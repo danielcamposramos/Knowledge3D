@@ -13,6 +13,10 @@ This document outlines the planned phases for getting the Knowledge3D repository
 | **6. Draft CONTRIBUTING.md (1 day)** | Coding style, branch naming, DCO sign-off, clip limit reminders | Smooth external PRs | Manual draft |
 | **7. Outreach placeholder (ongoing)** | `docs/ROADMAP.md` with 2025‑Q3 "Spec v0.1", Q4 "LOD & AR extension", 2026 "Khronos proposal" | Sets vision for newcomers |  |
 
+## Status
+
+Phases 0 and 1 are complete. The repository is now ready to begin **Phase 2**.
+
 **Why this order?**
 
 - Phases 0–1 make the repo public-ready before code.

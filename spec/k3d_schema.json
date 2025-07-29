@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "K3D Metadata Schema",
+  "description": "Placeholder schema describing the structure of K3D metadata.",
+  "type": "object",
+  "properties": {
+    "id": {"type": "string"},
+    "vector": {"type": "array", "items": {"type": "number"}},
+    "metadata": {"type": "object"}
+  },
+  "required": ["id", "vector"]
+}
