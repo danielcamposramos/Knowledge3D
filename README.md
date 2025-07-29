@@ -15,6 +15,8 @@ Other companion documents expand on this vision:
 * **AI model integration.** "AI Models and 3D Knowledge (K3D) Databases" explores how neural models could inhabit the same 3D data world, enabling immersive visualization and shared interaction.
 * **Augmented reality use cases.** "Integrating Augmented Reality and AI: New Frontiers in Training, Learning, and Exploration" outlines how AR headsets can overlay K3D scenes onto the real world for education and field work.
 * **CAD/vector database fusion.** "Merging CAD and Vector Database Concepts into a 3D Knowledge Visualization Standard" and "Using AutoCAD’s 3D Vector Format as an AI Vector Database" discuss storing vector embeddings inside CAD-like geometry files so that standard 3D tools become knowledge browsers.
+* **Science fiction influence.** "From Sci-Fi to Reality: How Tron's Grid, The Matrix, Star Wars, Star Trek, and *The Jetsons* Foreshadowed Our Future" highlights pop-culture milestones that predicted immersive 3D data interfaces.
+* **Historical inspiration.** [Lessons from Early 3D Interfaces and Apollo&nbsp;11](docs/fsn_apollo_inspiration.md) reflects on SGI's 3D file navigator \(as seen in *Jurassic Park*\) and NASA's modular software practices.
 
 ## TeleKnowledge vision
 
