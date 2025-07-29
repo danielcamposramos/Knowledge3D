@@ -16,3 +16,5 @@ Other companion documents expand on this vision:
 
 All code in this repository is released under the Apache‑2.0 License.  The white‑paper and related text documents are distributed under the Creative Commons Attribution 4.0 International (CC‑BY‑4.0) license.  See [`/docs/LICENSE-CC-BY-4.0.txt`](docs/LICENSE-CC-BY-4.0.txt) for the full CC‑BY‑4.0 text.  GitHub may report "No license" for the documentation, but this file is authoritative.
 
+For the development roadmap see [docs/ROADMAP.md](docs/ROADMAP.md). Codex agents coordinating work should consult [CODEX.md](CODEX.md).
+
