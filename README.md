@@ -17,6 +17,10 @@ Other companion documents expand on this vision:
 * **CAD/vector database fusion.** "Merging CAD and Vector Database Concepts into a 3D Knowledge Visualization Standard" and "Using AutoCAD’s 3D Vector Format as an AI Vector Database" discuss storing vector embeddings inside CAD-like geometry files so that standard 3D tools become knowledge browsers.
 * **Science fiction influence.** "From Sci-Fi to Reality: How Tron's Grid, The Matrix, Star Wars, Star Trek, and *The Jetsons* Foreshadowed Our Future" highlights pop-culture milestones that predicted immersive 3D data interfaces.
 * **Historical inspiration.** [Lessons from Early 3D Interfaces and Apollo&nbsp;11](docs/fsn_apollo_inspiration.md) reflects on SGI's 3D file navigator \(as seen in *Jurassic Park*\) and NASA's modular software practices.
+* **Collaborative research.** "Spatial Web K3D Gemini Deep Research Report 2" combines insights from **OpenAI GPT o3 Deep Research** with a final write‑up produced by **Google Gemini&nbsp;2.5&nbsp;Pro/Flash**.
+* **Manus AI perspective.** The PDFs "The K3D Advantage: A Paradigm Shift for Internal AI Memory" and "The K3D Catalyst: Fostering Human-Like Reasoning and Intuition in AI" are both signed by **Manus&nbsp;AI**.
+* **AR vision with an AI coauthor.** "Integrating Augmented Reality and AI: New Frontiers in Training, Learning, and Exploration" expands on Daniel Campos Ramos' ideas in partnership with an **AI assistant**.
+* **Interactive demo.** The HTML file "K3D Gemini report" showcases a simple web report generated using **Google Gemini**.
 
 ## TeleKnowledge vision
 
