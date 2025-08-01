@@ -15,7 +15,8 @@ This document outlines the planned phases for getting the Knowledge3D repository
 
 ## Status
 
-Phases 0 and 1 are complete. The repository is now ready to begin **Phase 2**.
+Phases 0 and 1 are complete. With this update the repository enters **Phase 2**
+and includes the first working prototype of `k3dgen`.
 
 **Why this order?**
 
