@@ -62,6 +62,16 @@ Knowledge3D aims to cooperate with organizations building an open 3D internet.  
 - [Decentraland](https://github.com/decentraland)
 - [OpenAI](https://github.com/openai)
 
+## Quick start
+
+Generate the example dataset using the `k3dgen` CLI:
+
+```bash
+python -m k3dgen examples/sample_vectors.csv --gltf examples/sample_output.gltf --k3d examples/sample_output.k3d
+```
+
+The command writes both `examples/sample_output.gltf` and `examples/sample_output.k3d`.
+
 ## Licensing
 
 All code in this repository is released under the Apache‑2.0 License.  The white‑paper and related text documents are distributed under the Creative Commons Attribution 4.0 International (CC‑BY‑4.0) license.  See [`/docs/LICENSE-CC-BY-4.0.txt`](docs/LICENSE-CC-BY-4.0.txt) for the full CC‑BY‑4.0 text.  GitHub may report "No license" for the documentation, but this file is authoritative.
