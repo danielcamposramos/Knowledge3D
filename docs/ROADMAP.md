@@ -16,7 +16,10 @@ This document outlines the planned phases for getting the Knowledge3D repository
 ## Status
 
 Phases 0 and 1 are complete. With this update the repository enters **Phase 2**
-and includes the first working prototype of `k3dgen`.
+and includes the first working prototype of `k3dgen`. The repository also
+aggregates AI-generated documents from ChatGPT, Gemini, Claude, Manus AI, and
+Perplexity AI under `Diverse_AI_Reports.md` to reference the many formats that
+will be joined going forward.
 
 **Why this order?**
 
