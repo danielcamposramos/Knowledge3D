@@ -31,6 +31,16 @@ Other companion documents expand on this vision:
 * **Audio discussion.** "Spatial Web & K3D_ Your Future of Immersive Knowledge and AI Collaboration.mpga" captures an informal conversation about the Spatial Web.
 * **Screenshot preview.** "Screenshot_20250730_153941.png" shows an early build of the planned 3D viewer.
 
+## EchoSystems Action Plan
+
+The project now aligns with the **EchoSystems K3D Collaboration Action Plan**. Key directives are:
+
+- **Guiding principles** – form↔meaning, show‑don’t‑scroll, edge‑first and open‑by‑default.
+- **Four‑Pillar stack** – design craft, persuasive psychology, frontend velocity and system design & DevOps.
+- **Reference architecture** – data and graph layers share a `K3D‑Node` schema ([`spec/k3d_node_schema.json`](spec/k3d_node_schema.json)).
+
+See [`echo_systems_k_3_d_action_plan_v_0.md`](echo_systems_k_3_d_action_plan_v_0.md) for the full document.
+
 ## TeleKnowledge vision
 
 The companion paper *"Towards an Interactive __TeleKnowledge__ Internet: A 3D Virtual World for Businesses, Humans, and AI"* expands on the long‑term ambition for Knowledge3D.  It imagines a **Spatial Web** where self‑hosted virtual buildings replace today’s static pages.  Using open protocols such as the IEEE 2874 Hyperspace Transaction Protocol (HSTP) and its HSML modeling language, any organization could serve a richly interactive 3D environment under its own domain while still linking seamlessly to others.  Built‑in decentralized identifiers control access so both humans and AI agents can explore knowledge spaces safely and transparently.
@@ -56,5 +66,5 @@ Knowledge3D aims to cooperate with organizations building an open 3D internet.  
 
 All code in this repository is released under the Apache‑2.0 License.  The white‑paper and related text documents are distributed under the Creative Commons Attribution 4.0 International (CC‑BY‑4.0) license.  See [`/docs/LICENSE-CC-BY-4.0.txt`](docs/LICENSE-CC-BY-4.0.txt) for the full CC‑BY‑4.0 text.  GitHub may report "No license" for the documentation, but this file is authoritative.
 
-For the development roadmap see [docs/ROADMAP.md](docs/ROADMAP.md). Codex agents coordinating work should consult [CODEX.md](CODEX.md).
+For the development roadmap see [docs/ROADMAP.md](docs/ROADMAP.md). Codex agents coordinating work should consult [CODEX.md](CODEX.md). Development conventions are summarized in [docs/DEV_GUIDELINES.md](docs/DEV_GUIDELINES.md).
 
