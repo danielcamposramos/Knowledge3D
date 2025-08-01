@@ -21,6 +21,8 @@ aggregates AI-generated documents from ChatGPT, Gemini, Claude, Manus AI, and
 Perplexity AI under `Diverse_AI_Reports.md` to reference the many formats that
 will be joined going forward.
 
+In August 2025 the team adopted the **EchoSystems K3D Collaboration Action Plan**. The first directive is fulfilled here by publishing the draft [`spec/k3d_node_schema.json`](../spec/k3d_node_schema.json). Upcoming milestones will align with the plan's MVP Flight Plan.
+
 **Why this order?**
 
 - Phases 0–1 make the repo public-ready before code.
