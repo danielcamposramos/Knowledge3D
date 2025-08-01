@@ -21,6 +21,13 @@ Other companion documents expand on this vision:
 * **Manus AI perspective.** The PDFs "The K3D Advantage: A Paradigm Shift for Internal AI Memory" and "The K3D Catalyst: Fostering Human-Like Reasoning and Intuition in AI" are both signed by **Manus&nbsp;AI**.
 * **AR vision with an AI coauthor.** "Integrating Augmented Reality and AI: New Frontiers in Training, Learning, and Exploration" expands on Daniel Campos Ramos' ideas in partnership with an **AI assistant**.
 * **Interactive demo.** The HTML file "K3D Gemini report" showcases a simple web report generated using **Google Gemini**.
+* **ChatGPT agent research.** "ChatGPT Agent - K3D paradigm research" collects exploratory notes from early conversations with the OpenAI model.
+* **Industry impact deck.** "ChatGPT Agent - Impact of the K3D Paradigm on BIM and Additive Manufacturing" and the spreadsheet "ChatGPT Agent - Impact_Domains.xlsx" map potential use cases across sectors.
+* **Claude's perspective.** "Claude - Collective Intelligence in Shared K3D Space" summarizes Anthropic's take on collaborative 3D knowledge worlds.
+* **Concept slides.** "From_Pages_to_Spaces.pptx" visualizes how web pages could evolve into immersive spaces.
+* **Deep research notes.** "Gemini DeepResearch Report" chronicles brainstorming sessions prior to the Gemini coauthored paper.
+* **Audio discussion.** "Spatial Web & K3D_ Your Future of Immersive Knowledge and AI Collaboration.mpga" captures an informal conversation about the Spatial Web.
+* **Screenshot preview.** "Screenshot_20250730_153941.png" shows an early build of the planned 3D viewer.
 
 ## TeleKnowledge vision
 
