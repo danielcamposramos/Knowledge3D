@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "K3D Node",
+  "description": "Draft schema for a single knowledge node as described in the EchoSystems action plan.",
+  "type": "object",
+  "properties": {
+    "id": {"type": "string"},
+    "vector": {
+      "type": "array",
+      "items": {"type": "number"}
+    },
+    "metadata": {"type": "object"},
+    "neighbors": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Related node identifiers"
+    }
+  },
+  "required": ["id", "vector"]
+}
