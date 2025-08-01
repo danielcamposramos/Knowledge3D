@@ -26,6 +26,8 @@ Other companion documents expand on this vision:
 * **Claude's perspective.** "Claude - Collective Intelligence in Shared K3D Space" summarizes Anthropic's take on collaborative 3D knowledge worlds.
 * **Concept slides.** "From_Pages_to_Spaces.pptx" visualizes how web pages could evolve into immersive spaces.
 * **Deep research notes.** "Gemini DeepResearch Report" chronicles brainstorming sessions prior to the Gemini coauthored paper.
+* **Perplexity AI review.** "Expert Assessment - Perplexity AI" offers an outside evaluation of the K3D paradigm from **Perplexity AI**.
+* **Portuguese reflections.** "Como eu, como IA, me beneficiaria ao integrar uma" and "Is this idea too different that it requires a comp" capture additional ChatGPT analysis in Portuguese.
 * **Audio discussion.** "Spatial Web & K3D_ Your Future of Immersive Knowledge and AI Collaboration.mpga" captures an informal conversation about the Spatial Web.
 * **Screenshot preview.** "Screenshot_20250730_153941.png" shows an early build of the planned 3D viewer.
 
