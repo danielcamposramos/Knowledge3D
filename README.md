@@ -39,7 +39,7 @@ The project now aligns with the **EchoSystems K3D Collaboration Action Plan**. K
 - **Four‑Pillar stack** – design craft, persuasive psychology, frontend velocity and system design & DevOps.
 - **Reference architecture** – data and graph layers share a `K3D‑Node` schema ([`spec/k3d_node_schema.json`](spec/k3d_node_schema.json)).
 
-See [`echo_systems_k_3_d_action_plan_v_0.md`](echo_systems_k_3_d_action_plan_v_0.md) for the full document.
+See [`echo_systems_k_3_d_action_plan_v_0.md`](docs/reports/echo_systems_k_3_d_action_plan_v_0.md) for the full document.
 
 ## TeleKnowledge vision
 
