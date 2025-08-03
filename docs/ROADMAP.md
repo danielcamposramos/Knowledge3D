@@ -43,3 +43,9 @@ In August 2025 the team adopted the **EchoSystems K3D Collaboration Action Plan
 - GIF for README: record the viewer rotating the demo cloud—30 fps, 6 s loop.
 - CI: any commit touching `/viewer` should auto‑deploy to `gh-pages`, so folks can click‑try without cloning.
 
+## Ongoing research
+
+- **3D data standards**: glTF, OpenUSD, 3D Tiles, and IfcOpenShell are under review for compatibility and reuse.
+- **Graph database standards**: TinkerPop, openCypher, RDF-star, and Neo4j will guide the K3D graph model.
+- **Math embedding models**: MathBERT and LaTeX2Vector are being evaluated for formula embeddings.
+

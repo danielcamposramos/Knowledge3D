@@ -28,5 +28,14 @@ This file lists tasks for Codex agents working on this repository. They mirror t
 8. **Update roadmap**
    - Keep `docs/ROADMAP.md` current with milestones through 2026.
 
+## Research tasks
+
+1. **3D data standards**
+   - Evaluate repositories such as `KhronosGroup/glTF`, `PixarAnimationStudios/OpenUSD`, `CesiumGS/3d-tiles`, and `IfcOpenShell/IfcOpenShell` for license compatibility and tooling.
+2. **Graph database standards**
+   - Investigate `apache/tinkerpop`, `opencypher/openCypher`, `w3c/rdf-star`, and `neo4j/neo4j` to align query languages and schemas with K3D.
+3. **Math embedding models**
+   - Review projects like `tbs17/MathBERT` and `Jordan-Haidee/LaTeX2Vector` to support equation-level vectorization.
+
 Agents should reference this file to coordinate efforts and keep contributions aligned with the overall roadmap.
 
