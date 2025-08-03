@@ -19,6 +19,13 @@ Other companion documents expand on this vision:
 * **Historical inspiration.** [Lessons from Early 3D Interfaces and Apollo&nbsp;11](docs/fsn_apollo_inspiration.md) reflects on SGI's 3D file navigator \(as seen in *Jurassic Park*\) and NASA's modular software practices.
 * **Collaborative research.** "Spatial Web K3D Gemini Deep Research Report 2" combines insights from **OpenAI GPT o3 Deep Research** with a final write‑up produced by **Google Gemini&nbsp;2.5&nbsp;Pro/Flash**.
 * **Temporal agents and knowledge graphs.** [Temporal Agents with Knowledge Graphs](docs/openai_temporal_agents_cookbook.md) distills takeaways from the [OpenAI cookbook notebook](https://github.com/openai/openai-cookbook/blob/main/examples/partners/temporal_agents_with_knowledge_graphs/temporal_agents_with_knowledge_graphs.ipynb).
+* **Eval-driven pipeline design.** [Eval-Driven System Design](docs/openai_eval_driven_system_design_cookbook.md) shows how rigorous evaluations steer autonomous K3D workflows.
+* **Voice agents via MCP.** [MCP-Powered Agentic Voice Framework](docs/openai_mcp_voice_agents_cookbook.md) demonstrates orchestrating tool-calling voice interfaces with the Model Context Protocol.
+* **Model selection playbook.** [Practical Guide for Model Selection](docs/openai_model_selection_cookbook.md) offers decision frameworks for choosing among GPT-4.1, o3, and o4-mini.
+* **Graph-based retrieval.** [RAG with Graph Databases](docs/openai_rag_graph_db_cookbook.md) combines Neo4j graphs and LLMs for relationship-aware context fetching.
+* **3D embedding plots.** [Visualizing Embeddings in 3D](docs/openai_visualizing_embeddings_3d_cookbook.md) applies PCA to project high-dimensional vectors into spatial plots.
+* **Vector store integrations.** [Vector Database Guides](docs/openai_vector_database_guides.md) catalog storage options for semantic search.
+* **Dynamic tool execution.** [Dynamic Code Interpreter for Agents](docs/openai_dynamic_code_interpreter_cookbook.md) explores on-the-fly code generation and execution with o3-mini.
 * **Manus AI perspective.** The PDFs "The K3D Advantage: A Paradigm Shift for Internal AI Memory" and "The K3D Catalyst: Fostering Human-Like Reasoning and Intuition in AI" are both signed by **Manus&nbsp;AI**.
 * **AR vision with an AI coauthor.** "Integrating Augmented Reality and AI: New Frontiers in Training, Learning, and Exploration" expands on Daniel Campos Ramos' ideas in partnership with an **AI assistant**.
 * **Interactive demo.** The HTML file "K3D Gemini report" showcases a simple web report generated using **Google Gemini**.
