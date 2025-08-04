@@ -70,6 +70,14 @@ Knowledge3D aims to cooperate with organizations building an open 3D internet.  
 - [Decentraland](https://github.com/decentraland)
 - [OpenAI](https://github.com/openai)
 
+## Installation
+
+Install the project in editable mode to expose the `k3dgen` command:
+
+```bash
+pip install -e .
+```
+
 ## Quick start
 
 Generate the example dataset using the `k3dgen` CLI:
