@@ -15,15 +15,15 @@ This document outlines the planned phases for getting the Knowledge3D repository
 
 ## Status
 
-Phases 0 and 1 are complete. With this update the repository enters **Phase 2**
-and includes the first working prototype of `k3dgen`. The repository also
+Phases 0–2 are complete. With this update the repository enters **Phase 3**
+and adds a lightweight Three.js viewer under `/viewer`. The repository also
 aggregates AI-generated documents from ChatGPT, Gemini, Claude, Manus AI, and
 Perplexity AI under [`reports/Diverse_AI_Reports.md`](reports/Diverse_AI_Reports.md) to reference the many formats that
 will be joined going forward.
 
 The first dataset produced by `k3dgen` lives at
-`examples/sample_output.k3d` alongside its glTF scene. This file marks the
-initial test of the pipeline.
+`examples/sample_output.k3d` alongside its glTF scene and now renders in the
+browser viewer.
 
 In August 2025 the team adopted the **EchoSystems K3D Collaboration Action Plan**. The first directive is fulfilled here by publishing the draft [`spec/k3d_node_schema.json`](../spec/k3d_node_schema.json). Upcoming milestones will align with the plan's MVP Flight Plan.
 
