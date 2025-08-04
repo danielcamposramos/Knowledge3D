@@ -5,8 +5,27 @@
   "type": "object",
   "properties": {
     "id": {"type": "string"},
-    "vector": {"type": "array", "items": {"type": "number"}},
-    "metadata": {"type": "object"}
+    "vector": {
+      "type": "array",
+      "items": {"type": "number"},
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "label": {"type": "string"},
+        "type": {"type": "string"}
+      },
+      "required": ["label", "type"],
+      "additionalProperties": false
+    },
+    "neighbors": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Related node identifiers",
+      "uniqueItems": true
+    }
   },
   "required": ["id", "vector"]
 }
