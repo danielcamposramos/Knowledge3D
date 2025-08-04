@@ -1,38 +1,100 @@
 import argparse
-import json
 import base64
+import json
+from typing import List
+
 import numpy as np
 import pandas as pd
+from pygltflib import (
+    GLTF2,
+    Accessor,
+    Asset,
+    Buffer,
+    BufferView,
+    Mesh,
+    Node,
+    Primitive,
+    Scene,
+)
 from sklearn.decomposition import PCA
-from pygltflib import GLTF2, Scene, Node, Mesh, Buffer, BufferView, Accessor, Primitive, Asset
 
 ARRAY_BUFFER = 34962
 FLOAT = 5126
 
 
-def generate(csv_path, gltf_path, k3d_path):
-    df = pd.read_csv(csv_path)
-    if 'id' in df.columns:
-        ids = df['id'].astype(str)
-        vectors = df.drop(columns=['id']).to_numpy()
+def generate(csv_path: str, gltf_path: str, k3d_path: str) -> None:
+    """Generate a glTF scene and accompanying .k3d metadata from a CSV file.
+
+    Parameters
+    ----------
+    csv_path : str
+        Path to the input CSV file containing optional ``id`` column and
+        vector components.
+    gltf_path : str
+        Destination filepath for the generated glTF scene.
+    k3d_path : str
+        Destination filepath for the generated ``.k3d`` metadata file.
+
+    Returns
+    -------
+    None
+
+    Side Effects
+    ------------
+    Writes ``gltf_path`` and ``k3d_path`` to disk. Raises ``ValueError`` if the
+    CSV contains non‑numeric data or inconsistent dimensionality.
+    """
+
+    try:
+        df = pd.read_csv(csv_path)
+    except Exception as exc:  # pragma: no cover - pandas errors vary
+        raise ValueError(f"Failed to read CSV file '{csv_path}': {exc}") from exc
+
+    if "id" in df.columns:
+        ids: List[str] = df["id"].astype(str).tolist()
+        df_vectors = df.drop(columns=["id"])
     else:
         ids = [str(i) for i in range(len(df))]
-        vectors = df.to_numpy()
+        df_vectors = df
 
-    pca = PCA(n_components=3)
-    points = pca.fit_transform(vectors)
+    if df_vectors.empty:
+        raise ValueError("CSV must contain at least one vector column")
+
+    # Ensure all data is numeric and complete
+    vectors: np.ndarray
+    try:
+        for col in df_vectors.columns:
+            df_vectors[col] = pd.to_numeric(df_vectors[col], errors="raise")
+    except ValueError as exc:
+        raise ValueError(f"Non-numeric data found in column '{col}': {exc}") from exc
+
+    if df_vectors.isnull().any().any():
+        raise ValueError("CSV contains missing values in vector columns")
+
+    vectors = df_vectors.to_numpy(dtype=float)
+
+    try:
+        pca = PCA(n_components=3)
+        points = pca.fit_transform(vectors)
+    except Exception as exc:  # pragma: no cover - PCA may raise many errors
+        raise ValueError(f"PCA computation failed: {exc}") from exc
 
     records = [
         {"id": i, "vector": vec.tolist(), "metadata": {}}
         for i, vec in zip(ids, points)
     ]
-    with open(k3d_path, 'w') as f:
-        json.dump(records, f, indent=2)
+    try:
+        with open(k3d_path, "w", encoding="utf-8") as f:
+            json.dump(records, f, indent=2)
+    except OSError as exc:
+        raise OSError(f"Failed to write .k3d file '{k3d_path}': {exc}") from exc
 
     # glTF with POINTS primitive
     positions = points.astype(np.float32)
     data_bytes = positions.tobytes()
-    uri = 'data:application/octet-stream;base64,' + base64.b64encode(data_bytes).decode('ascii')
+    uri = "data:application/octet-stream;base64," + base64.b64encode(data_bytes).decode(
+        "ascii"
+    )
     buffer = Buffer(byteLength=len(data_bytes), uri=uri)
     view = BufferView(buffer=0, byteOffset=0, byteLength=len(data_bytes), target=ARRAY_BUFFER)
     accessor = Accessor(
@@ -58,16 +120,38 @@ def generate(csv_path, gltf_path, k3d_path):
         scenes=[scene],
         scene=0,
     )
-    gltf.save(gltf_path)
+    try:
+        gltf.save(gltf_path)
+    except OSError as exc:
+        raise OSError(f"Failed to write glTF file '{gltf_path}': {exc}") from exc
 
 
-def main():
+def main() -> None:
+    """Command-line entry point for generating K3D assets.
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    None
+
+    Side Effects
+    ------------
+    Parses command-line arguments and writes output files by calling
+    :func:`generate`.
+    """
+
     parser = argparse.ArgumentParser(description="Generate glTF + .k3d from vectors")
-    parser.add_argument('csv', help='CSV file with id + vector columns')
-    parser.add_argument('--gltf', default='output.gltf', help='Output glTF path')
-    parser.add_argument('--k3d', default='output.k3d', help='Output .k3d path')
+    parser.add_argument("csv", help="CSV file with id + vector columns")
+    parser.add_argument("--gltf", default="output.gltf", help="Output glTF path")
+    parser.add_argument("--k3d", default="output.k3d", help="Output .k3d path")
     args = parser.parse_args()
-    generate(args.csv, args.gltf, args.k3d)
+    try:
+        generate(args.csv, args.gltf, args.k3d)
+    except Exception as exc:  # pragma: no cover - CLI wrapper
+        parser.exit(1, f"Error: {exc}\n")
 
 
 if __name__ == '__main__':
