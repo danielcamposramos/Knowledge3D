@@ -80,8 +80,7 @@ def generate(csv_path: str, gltf_path: str, k3d_path: str) -> None:
         raise ValueError(f"PCA computation failed: {exc}") from exc
 
     records = [
-        {"id": i, "vector": vec.tolist(), "metadata": {}}
-        for i, vec in zip(ids, points)
+        {"id": i, "vector": vec.tolist(), "metadata": {}} for i, vec in zip(ids, points)
     ]
     try:
         with open(k3d_path, "w", encoding="utf-8") as f:
@@ -96,7 +95,9 @@ def generate(csv_path: str, gltf_path: str, k3d_path: str) -> None:
         "ascii"
     )
     buffer = Buffer(byteLength=len(data_bytes), uri=uri)
-    view = BufferView(buffer=0, byteOffset=0, byteLength=len(data_bytes), target=ARRAY_BUFFER)
+    view = BufferView(
+        buffer=0, byteOffset=0, byteLength=len(data_bytes), target=ARRAY_BUFFER
+    )
     accessor = Accessor(
         bufferView=0,
         byteOffset=0,
@@ -154,5 +155,5 @@ def main() -> None:
         parser.exit(1, f"Error: {exc}\n")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

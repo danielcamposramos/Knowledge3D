@@ -1,8 +1,8 @@
 # Knowledge3D
 
-| Status | License |
-| ------ | ------- |
-| ![pre-alpha](https://img.shields.io/badge/status-pre--alpha-blue) | [Apache-2.0](LICENSE) |
+| Status | CI | License |
+| ------ | -- | ------- |
+| ![pre-alpha](https://img.shields.io/badge/status-pre--alpha-blue) | [![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/ci.yml) | [Apache-2.0](LICENSE) |
 
 Knowledge3D (K3D) is an initiative from EchoSystems AI Studios to build an open standard and toolkit for rendering artificial intelligence knowledge as a navigable three‑dimensional universe.  It fuses concepts from CAD geometry, vector databases and augmented‑reality mapping so humans and AI models can explore data side by side.
 

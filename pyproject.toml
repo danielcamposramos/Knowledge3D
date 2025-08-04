@@ -20,3 +20,7 @@ k3dgen = "k3dgen.__main__:main"
 
 [tool.setuptools]
 packages = ["k3dgen"]
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203"]
