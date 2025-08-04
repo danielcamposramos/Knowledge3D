@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "knowledge3d"
+version = "0.1.0"
+description = "Prototype CLI for Knowledge3D"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "pandas",
+    "numpy",
+    "scikit-learn",
+    "pygltflib",
+]
+
+[project.scripts]
+k3dgen = "k3dgen.__main__:main"
+
+[tool.setuptools]
+packages = ["k3dgen"]
