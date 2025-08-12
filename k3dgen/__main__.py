@@ -2,7 +2,7 @@ import argparse
 import base64
 import json
 import os
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -18,37 +18,17 @@ from pygltflib import (
     Scene,
 )
 from sklearn.decomposition import PCA
+from sklearn.neighbors import NearestNeighbors
 
 ARRAY_BUFFER = 34962
 FLOAT = 5126
 
 
-def generate(csv_path: str, gltf_path: str, k3d_path: str) -> None:
-    """Generate a glTF scene and accompanying .k3d metadata from a CSV file.
-
-    Parameters
-    ----------
-    csv_path : str
-        Path to the input CSV file containing optional ``id`` column and
-        vector components.
-    gltf_path : str
-        Destination filepath for the generated glTF scene.
-    k3d_path : str
-        Destination filepath for the generated ``.k3d`` metadata file.
-
-    Returns
-    -------
-    None
-
-    Side Effects
-    ------------
-    Writes ``gltf_path`` and ``k3d_path`` to disk. Raises ``ValueError`` if the
-    CSV contains non‑numeric data or inconsistent dimensionality.
-    """
-
+def load_vectors(csv_path: str) -> Tuple[List[str], np.ndarray]:
+    """Load vectors from a CSV file."""
     try:
         df = pd.read_csv(csv_path)
-    except Exception as exc:  # pragma: no cover - pandas errors vary
+    except Exception as exc:
         raise ValueError(f"Failed to read CSV file '{csv_path}': {exc}") from exc
 
     if "id" in df.columns:
@@ -61,8 +41,6 @@ def generate(csv_path: str, gltf_path: str, k3d_path: str) -> None:
     if df_vectors.empty:
         raise ValueError("CSV must contain at least one vector column")
 
-    # Ensure all data is numeric and complete
-    vectors: np.ndarray
     try:
         for col in df_vectors.columns:
             df_vectors[col] = pd.to_numeric(df_vectors[col], errors="raise")
@@ -72,35 +50,65 @@ def generate(csv_path: str, gltf_path: str, k3d_path: str) -> None:
     if df_vectors.isnull().any().any():
         raise ValueError("CSV contains missing values in vector columns")
 
-    vectors = df_vectors.to_numpy(dtype=float)
+    return ids, df_vectors.to_numpy(dtype=float)
 
+
+def reduce_dimensions(vectors: np.ndarray) -> np.ndarray:
+    """Reduce the dimensionality of vectors to 3D using PCA."""
     try:
         pca = PCA(n_components=3)
-        points = pca.fit_transform(vectors)
-    except Exception as exc:  # pragma: no cover - PCA may raise many errors
+        return pca.fit_transform(vectors)
+    except Exception as exc:
         raise ValueError(f"PCA computation failed: {exc}") from exc
 
-    records = [
-        {
-            "id": i,
-            "vector": p.tolist(),
-            "embedding": v.tolist(),
-            "metadata": {"label": i},
-        }
-        for i, p, v in zip(ids, points, vectors)
-    ]
+
+def find_neighbors(vectors: np.ndarray, k: int) -> np.ndarray:
+    """Find the k-nearest neighbors for each vector."""
+    if k >= len(vectors):
+        raise ValueError("k must be less than the number of vectors")
+    nn = NearestNeighbors(n_neighbors=k + 1, algorithm="auto")
+    nn.fit(vectors)
+    _, indices = nn.kneighbors(vectors)
+    return indices[:, 1:]  # Exclude the point itself
+
+
+def create_k3d_file(
+    k3d_path: str,
+    ids: List[str],
+    points: np.ndarray,
+    embeddings: np.ndarray,
+    neighbor_indices: np.ndarray,
+) -> None:
+    """Create the .k3d file."""
+    records = []
+    for i, (point_id, point, embedding) in enumerate(zip(ids, points, embeddings)):
+        neighbor_ids = [ids[j] for j in neighbor_indices[i]]
+        records.append(
+            {
+                "id": point_id,
+                "vector": point.tolist(),
+                "embedding": embedding.tolist(),
+                "metadata": {"label": point_id},
+                "neighbors": neighbor_ids,
+            }
+        )
+
     try:
         with open(k3d_path, "w", encoding="utf-8") as f:
             json.dump(records, f, indent=2)
     except OSError as exc:
         raise OSError(f"Failed to write .k3d file '{k3d_path}': {exc}") from exc
 
-    # glTF with POINTS primitive
+
+def create_gltf_file(
+    gltf_path: str, k3d_path: str, ids: List[str], points: np.ndarray
+) -> None:
+    """Create the .gltf file."""
     positions = points.astype(np.float32)
     data_bytes = positions.tobytes()
-    uri = "data:application/octet-stream;base64," + base64.b64encode(data_bytes).decode(
-        "ascii"
-    )
+    uri = "data:application/octet-stream;base64," + base64.b64encode(
+        data_bytes
+    ).decode("ascii")
     buffer = Buffer(byteLength=len(data_bytes), uri=uri)
     view = BufferView(
         buffer=0, byteOffset=0, byteLength=len(data_bytes), target=ARRAY_BUFFER
@@ -119,7 +127,6 @@ def generate(csv_path: str, gltf_path: str, k3d_path: str) -> None:
     node = Node(mesh=0)
     scene = Scene(nodes=[0])
 
-    # K3D extension
     gltf_dir = os.path.dirname(gltf_path)
     relative_k3d_path = os.path.relpath(k3d_path, gltf_dir)
     relative_schema_path = os.path.relpath("spec/k3d_node_schema.json", gltf_dir)
@@ -148,31 +155,28 @@ def generate(csv_path: str, gltf_path: str, k3d_path: str) -> None:
         raise OSError(f"Failed to write glTF file '{gltf_path}': {exc}") from exc
 
 
+def generate(csv_path: str, gltf_path: str, k3d_path: str, k: int) -> None:
+    """Generate a glTF scene and accompanying .k3d metadata from a CSV file."""
+    ids, embeddings = load_vectors(csv_path)
+    points = reduce_dimensions(embeddings)
+    neighbor_indices = find_neighbors(embeddings, k)
+    create_k3d_file(k3d_path, ids, points, embeddings, neighbor_indices)
+    create_gltf_file(gltf_path, k3d_path, ids, points)
+
+
 def main() -> None:
-    """Command-line entry point for generating K3D assets.
-
-    Parameters
-    ----------
-    None
-
-    Returns
-    -------
-    None
-
-    Side Effects
-    ------------
-    Parses command-line arguments and writes output files by calling
-    :func:`generate`.
-    """
-
+    """Command-line entry point for generating K3D assets."""
     parser = argparse.ArgumentParser(description="Generate glTF + .k3d from vectors")
     parser.add_argument("csv", help="CSV file with id + vector columns")
     parser.add_argument("--gltf", default="output.gltf", help="Output glTF path")
     parser.add_argument("--k3d", default="output.k3d", help="Output .k3d path")
+    parser.add_argument(
+        "--k", type=int, default=5, help="Number of nearest neighbors to find"
+    )
     args = parser.parse_args()
     try:
-        generate(args.csv, args.gltf, args.k3d)
-    except Exception as exc:  # pragma: no cover - CLI wrapper
+        generate(args.csv, args.gltf, args.k3d, args.k)
+    except Exception as exc:
         parser.exit(1, f"Error: {exc}\n")
 
 

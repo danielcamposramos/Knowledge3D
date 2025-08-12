@@ -15,15 +15,7 @@ This document outlines the planned phases for getting the Knowledge3D repository
 
 ## Status
 
-Phases 0–2 are complete. With this update the repository enters **Phase 3**
-and adds a lightweight Three.js viewer under `/viewer`. The repository also
-aggregates AI-generated documents from ChatGPT, Gemini, Claude, Manus AI, and
-Perplexity AI under [`reports/Diverse_AI_Reports.md`](reports/Diverse_AI_Reports.md) to reference the many formats that
-will be joined going forward.
-
-The first dataset produced by `k3dgen` lives at
-`examples/sample_output.k3d` alongside its glTF scene and now renders in the
-browser viewer.
+Phases 0–3 are complete. The project now has a functional "Hello-World" pipeline and a lightweight browser viewer that can visualize graph relationships. The next phase of the project will focus on implementing the features outlined in the "Next Steps" section below.
 
 In August 2025 the team adopted the **EchoSystems K3D Collaboration Action Plan**. The first directive is fulfilled here by publishing the draft [`spec/k3d_node_schema.json`](../spec/k3d_node_schema.json). Upcoming milestones will align with the plan's MVP Flight Plan.
 
@@ -49,3 +41,16 @@ In August 2025 the team adopted the **EchoSystems K3D Collaboration Action Plan
 - **Graph database standards**: TinkerPop, openCypher, RDF-star, and Neo4j will guide the K3D graph model.
 - **Math embedding models**: MathBERT and LaTeX2Vector are being evaluated for formula embeddings.
 
+## Next Steps
+
+Based on the work completed in Phases 0-3, the following next steps are proposed to move the project towards its long-term vision:
+
+-   **Develop a more sophisticated data model:** The current `K3D-Node` schema can be extended to support more complex relationships and metadata. This could include adding support for different node types (e.g., "planet", "star", "galaxy") and relationship types (e.g., "orbits", "part of").
+
+-   **Implement a REST/Graph API:** The "EchoSystems K3D Collaboration Action Plan" calls for an API layer. A simple REST API that allows users to query for nodes and their neighbors would be a good starting point.
+
+-   **Improve the viewer's UI/UX:** The viewer could be enhanced with features like a search bar, a legend for the color scheme, and more detailed information in the tooltip.
+
+-   **Explore alternative dimensionality reduction techniques:** While PCA is a good default, other techniques like t-SNE or UMAP might produce more meaningful visualizations for certain types of data.
+
+-   **Begin work on the LLM plug-in:** A key feature from the MVP Flight Plan, a simple prototype could be developed to allow an LLM to "teleport" to a specific node in the 3D space.
