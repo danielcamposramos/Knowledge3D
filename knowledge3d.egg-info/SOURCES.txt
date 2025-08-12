@@ -1,0 +1,13 @@
+LICENSE
+NOTICE
+README.md
+pyproject.toml
+k3dgen/__init__.py
+k3dgen/__main__.py
+knowledge3d.egg-info/PKG-INFO
+knowledge3d.egg-info/SOURCES.txt
+knowledge3d.egg-info/dependency_links.txt
+knowledge3d.egg-info/entry_points.txt
+knowledge3d.egg-info/requires.txt
+knowledge3d.egg-info/top_level.txt
+tests/test_k3dgen.py

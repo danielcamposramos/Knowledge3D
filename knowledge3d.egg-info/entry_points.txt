@@ -1,0 +1,2 @@
+[console_scripts]
+k3dgen = k3dgen.__main__:main
