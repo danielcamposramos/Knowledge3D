@@ -11,14 +11,18 @@
       "minItems": 3,
       "maxItems": 3
     },
+    "embedding": {
+      "type": "array",
+      "items": {"type": "number"},
+      "description": "Original high-dimensional embedding vector."
+    },
     "metadata": {
       "type": "object",
       "properties": {
         "label": {"type": "string"},
         "type": {"type": "string"}
       },
-      "required": ["label", "type"],
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "neighbors": {
       "type": "array",
@@ -27,5 +31,5 @@
       "uniqueItems": true
     }
   },
-  "required": ["id", "vector"]
+  "required": ["id", "vector", "embedding"]
 }

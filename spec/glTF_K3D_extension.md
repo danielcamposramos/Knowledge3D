@@ -7,27 +7,33 @@ graph‑based knowledge can be aligned with 3D geometry. Each record in the
 
 ## Properties
 
-| Property      | Type   | Description |
-|---------------|--------|-------------|
-| `uri`         | string | Relative or absolute URI of the `.k3d` file containing node entries that follow `k3d_node_schema.json`. |
-| `schema`      | string | Optional URI to a JSON schema describing the `.k3d` node format. Defaults to `k3d_node_schema.json` when omitted. |
-| `nodeProperty`| string | JSON pointer indicating where each glTF node stores the corresponding K3D `id`. Defaults to `extras.k3dId`. |
+| Property               | Type   | Description |
+|------------------------|--------|-------------|
+| `uri`                  | string | Relative or absolute URI of the `.k3d` file containing node entries that follow `k3d_node_schema.json`. |
+| `schema`               | string | Optional URI to a JSON schema describing the `.k3d` node format. Defaults to `k3d_node_schema.json` when omitted. |
+| `nodeProperty`         | string | JSON pointer indicating where each glTF **node** stores a corresponding K3D `id`. For scenes with distinct objects. Defaults to `extras.k3dId`. |
+| `primitiveIdsProperty` | string | JSON pointer indicating where a mesh **primitive** stores a list of K3D `id`s. For point clouds or batched geometries. |
 
-## Example
+## Example (Point Cloud)
 
 ```json
 {
   "extensionsUsed": ["K3D_nodes"],
   "extensions": {
     "K3D_nodes": {
-      "uri": "cloud.k3d",
+      "uri": "points.k3d",
       "schema": "../spec/k3d_node_schema.json",
-      "nodeProperty": "extras.k3dId"
+      "primitiveIdsProperty": "extras.k3dIds"
     }
   },
-  "nodes": [
-    { "mesh": 0, "extras": { "k3dId": "node-1" } }
-  ]
+  "meshes": [{
+    "primitives": [{
+      "attributes": { "POSITION": 1 },
+      "extras": {
+        "k3dIds": ["node-1", "node-2", "node-3"]
+      }
+    }]
+  }]
 }
 ```
 
