@@ -48,12 +48,54 @@ loader.load(gltfUrl, async (gltf) => {
   const count = primitive.getAttribute('position').count;
   const colors = new Float32Array(count * 3);
   const color = new THREE.Color();
-  for (let i = 0; i < count; i++) {
-    color.setHSL(i / count, 1, 0.5);
-    colors[i * 3] = color.r;
-    colors[i * 3 + 1] = color.g;
-    colors[i * 3 + 2] = color.b;
+
+  if (k3dData.length > 0 && k3dIds.length > 0) {
+    // Create a bounding box of all points to normalize colors
+    const vectors = k3dData.map((d) => d.vector);
+    const min = new THREE.Vector3(Infinity, Infinity, Infinity);
+    const max = new THREE.Vector3(-Infinity, -Infinity, -Infinity);
+    for (const vec of vectors) {
+      min.x = Math.min(min.x, vec[0]);
+      min.y = Math.min(min.y, vec[1]);
+      min.z = Math.min(min.z, vec[2]);
+      max.x = Math.max(max.x, vec[0]);
+      max.y = Math.max(max.y, vec[1]);
+      max.z = Math.max(max.z, vec[2]);
+    }
+    const size = new THREE.Vector3().subVectors(max, min);
+
+    // Create a map for efficient lookup
+    const recordMap = new Map(k3dData.map((r) => [r.id, r]));
+
+    for (let i = 0; i < count; i++) {
+      const recordId = k3dIds[i];
+      const record = recordMap.get(recordId);
+
+      if (record) {
+        const vec = record.vector;
+        // Normalize color based on the point's position in the bounding box
+        const r = size.x > 0 ? (vec[0] - min.x) / size.x : 0.5;
+        const g = size.y > 0 ? (vec[1] - min.y) / size.y : 0.5;
+        const b = size.z > 0 ? (vec[2] - min.z) / size.z : 0.5;
+        color.setRGB(r, g, b);
+      } else {
+        // Fallback for points that don't have a corresponding k3d record
+        color.setHSL(i / count, 1.0, 0.5);
+      }
+      colors[i * 3] = color.r;
+      colors[i * 3 + 1] = color.g;
+      colors[i * 3 + 2] = color.b;
+    }
+  } else {
+    // Fallback if k3d data is not available
+    for (let i = 0; i < count; i++) {
+      color.setHSL(i / count, 1.0, 0.5);
+      colors[i * 3] = color.r;
+      colors[i * 3 + 1] = color.g;
+      colors[i * 3 + 2] = color.b;
+    }
   }
+
   primitive.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   const points = new THREE.Points(
     primitive,
