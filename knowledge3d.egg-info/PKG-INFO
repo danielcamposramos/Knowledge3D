@@ -12,112 +12,94 @@ Requires-Dist: scikit-learn
 Requires-Dist: pygltflib
 Dynamic: license-file
 
-# Knowledge3D
+# Knowledge3D: A Spatial Knowledge Reality
 
-| Status | CI | License |
-| ------ | -- | ------- |
-| ![pre-alpha](https://img.shields.io/badge/status-pre--alpha-blue) | [![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/ci.yml) | [Apache-2.0](LICENSE) |
+| Status | License |
+| ------ | ------- |
+| ![pre-alpha](https://img.shields.io/badge/status-pre--alpha-blue) | [Apache-2.0](LICENSE) |
 
-Knowledge3D (K3D) is an initiative from EchoSystems AI Studios to build an open standard and toolkit for rendering artificial intelligence knowledge as a navigable three‑dimensional universe.  It fuses concepts from CAD geometry, vector databases and augmented‑reality mapping so humans and AI models can explore data side by side.
+Knowledge3D (K3D) is an open-source initiative to build a foundational platform for a new paradigm of human-AI interaction: a **Spatial Knowledge Reality**. It fuses concepts from CAD geometry, vector databases, and augmented reality to create a navigable 3D universe where knowledge is represented spatially.
 
-## White‑paper overview
+This "knowledgeverse" serves as a shared environment for both humans and AI agents, enabling a new level of collaboration and discovery.
 
-The white-paper ["A 3D Vector Universe Standard for High-Dimensional AI Knowledge"](docs/papers/3d_vector_universe_standard.docx) describes the core objective: create a universal 3D data format that lets users fly through interconnected datasets as if visiting planets in space.  Success is defined by knowledge navigability—intuitive traversal and reduced cognitive load—and by technical metrics such as frame rate, query latency and adoption by researchers.
+## The K3D Vision
 
-Other companion documents expand on this vision:
+Our vision is to **make knowledge spatial, social, and sentient**. We are moving beyond linear text and 2D interfaces to create a traversable 3D universe where insights can be discovered and shared at the speed of thought.
 
-* **AI model integration.** ["AI Models and 3D Knowledge (K3D) Databases"](docs/papers/ai_models_k3d_databases.docx) explores how neural models could inhabit the same 3D data world, enabling immersive visualization and shared interaction.
-* **Augmented reality use cases.** ["Integrating Augmented Reality and AI: New Frontiers in Training, Learning, and Exploration"](docs/papers/ar_ai_frontiers.docx) outlines how AR headsets can overlay K3D scenes onto the real world for education and field work.
-* **CAD/vector database fusion.** ["Merging CAD and Vector Database Concepts into a 3D Knowledge Visualization Standard"](docs/papers/merging_cad_vector_db.docx) and ["Using AutoCAD’s 3D Vector Format as an AI Vector Database"](docs/papers/autocad_3d_vector_format.docx) discuss storing vector embeddings inside CAD-like geometry files so that standard 3D tools become knowledge browsers.
-* **Science fiction influence.** ["From Sci-Fi to Reality"](docs/papers/sci_fi_to_reality.docx) highlights pop-culture milestones that predicted immersive 3D data interfaces.
-* **Historical inspiration.** [Lessons from Early 3D Interfaces and Apollo&nbsp;11](docs/fsn_apollo_inspiration.md) reflects on SGI's 3D file navigator \(as seen in *Jurassic Park*\) and NASA's modular software practices.
-* **Collaborative research.** ["Spatial Web K3D Gemini Deep Research Report 2"](docs/reports/spatial_web_k3d_gemini_report.docx) combines insights from **OpenAI GPT o3 Deep Research** with a final write‑up produced by **Google Gemini&nbsp;2.5&nbsp;Pro/Flash**.
-* **Temporal agents and knowledge graphs.** [Temporal Agents with Knowledge Graphs](docs/openai_temporal_agents_cookbook.md) distills takeaways from the [OpenAI cookbook notebook](https://github.com/openai/openai-cookbook/blob/main/examples/partners/temporal_agents_with_knowledge_graphs/temporal_agents_with_knowledge_graphs.ipynb).
-* **Eval-driven pipeline design.** [Eval-Driven System Design](docs/openai_eval_driven_system_design_cookbook.md) shows how rigorous evaluations steer autonomous K3D workflows.
-* **Voice agents via MCP.** [MCP-Powered Agentic Voice Framework](docs/openai_mcp_voice_agents_cookbook.md) demonstrates orchestrating tool-calling voice interfaces with the Model Context Protocol.
-* **Model selection playbook.** [Practical Guide for Model Selection](docs/openai_model_selection_cookbook.md) offers decision frameworks for choosing among GPT-4.1, o3, and o4-mini.
-* **Graph-based retrieval.** [RAG with Graph Databases](docs/openai_rag_graph_db_cookbook.md) combines Neo4j graphs and LLMs for relationship-aware context fetching.
-* **3D embedding plots.** [Visualizing Embeddings in 3D](docs/openai_visualizing_embeddings_3d_cookbook.md) applies PCA to project high-dimensional vectors into spatial plots.
-* **Vector store integrations.** [Vector Database Guides](docs/openai_vector_database_guides.md) catalog storage options for semantic search.
-* **Dynamic tool execution.** [Dynamic Code Interpreter for Agents](docs/openai_dynamic_code_interpreter_cookbook.md) explores on-the-fly code generation and execution with o3-mini.
-* **Manus AI perspective.** The PDFs ["The K3D Advantage: A Paradigm Shift for Internal AI Memory"](docs/reports/manus_k3d_advantage.pdf) and ["The K3D Catalyst: Fostering Human-Like Reasoning and Intuition in AI"](docs/reports/manus_k3d_catalyst.pdf) are both signed by **Manus&nbsp;AI**.
-* **AR vision with an AI coauthor.** "Integrating Augmented Reality and AI: New Frontiers in Training, Learning, and Exploration" expands on Daniel Campos Ramos' ideas in partnership with an **AI assistant**.
-* **Interactive demo.** The HTML file ["K3D Gemini report"](docs/reports/k3d_gemini_report.html) showcases a simple web report generated using **Google Gemini**.
-* **ChatGPT agent research.** ["ChatGPT Agent - K3D paradigm research"](docs/reports/chatgpt_k3d_research.docx) collects exploratory notes from early conversations with the OpenAI model.
-* **Industry impact deck.** ["ChatGPT Agent - Impact of the K3D Paradigm on BIM and Additive Manufacturing"](docs/presentations/chatgpt_k3d_bim_am.pptx) and the spreadsheet ["ChatGPT Agent - Impact_Domains.xlsx"](docs/reports/chatgpt_impact_domains.xlsx) map potential use cases across sectors.
-* **Claude's perspective.** ["Claude - Collective Intelligence in Shared K3D Space"](docs/papers/claude_collective_intelligence.pdf) summarizes Anthropic's take on collaborative 3D knowledge worlds.
-* **Concept slides.** ["From_Pages_to_Spaces.pptx"](docs/presentations/from_pages_to_spaces.pptx) visualizes how web pages could evolve into immersive spaces.
-* **Deep research notes.** ["Gemini DeepResearch Report"](docs/reports/gemini_deep_research_report.docx) chronicles brainstorming sessions prior to the Gemini coauthored paper.
-* **Perplexity AI review.** ["Expert Assessment - Perplexity AI"](docs/reports/perplexity_ai_assessment.docx) offers an outside evaluation of the K3D paradigm from **Perplexity AI**.
-* **Portuguese reflections.** ["Como eu, como IA, me beneficiaria ao integrar uma"](docs/papers/portuguese_ai_integration.docx) and ["Is this idea too different that it requires a comp"](docs/papers/portuguese_is_idea_too_different.docx) capture additional ChatGPT analysis in Portuguese.
-* **Audio discussion.** ["Spatial Web & K3D: Your Future of Immersive Knowledge and AI Collaboration.mpga"](docs/spatial_web_k3d_discussion.mpga) captures an informal conversation about the Spatial Web.
-* **Screenshot preview.** ["Screenshot_20250730_153941.png"](docs/viewer_preview.png) shows an early build of the planned 3D viewer.
+For a detailed exploration of this vision, please see the **[Jules Report: The K3D Vision for a Spatial Knowledge Reality](docs/Jules_Report.md)**.
 
-## EchoSystems Action Plan
+## Getting Started
 
-The project now aligns with the **EchoSystems K3D Collaboration Action Plan**. Key directives are:
+### Prerequisites
 
-- **Guiding principles** – form↔meaning, show‑don’t‑scroll, edge‑first and open‑by‑default.
-- **Four‑Pillar stack** – design craft, persuasive psychology, frontend velocity and system design & DevOps.
-- **Reference architecture** – data and graph layers share a `K3D‑Node` schema ([`spec/k3d_node_schema.json`](spec/k3d_node_schema.json)).
+- Python 3.8+
+- Node.js 16+
 
-See [`echo_systems_k_3_d_action_plan_v_0.md`](docs/reports/echo_systems_k_3_d_action_plan_v_0.md) for the full document.
+### Installation
 
-## TeleKnowledge vision
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/danielcamposramos/Knowledge3D.git
+    cd Knowledge3D
+    ```
 
-The companion paper *["Towards an Interactive __TeleKnowledge__ Internet: A 3D Virtual World for Businesses, Humans, and AI"](docs/papers/teleknoledge_internet.docx)* expands on the long‑term ambition for Knowledge3D.  It imagines a **Spatial Web** where self‑hosted virtual buildings replace today’s static pages.  Using open protocols such as the IEEE 2874 Hyperspace Transaction Protocol (HSTP) and its HSML modeling language, any organization could serve a richly interactive 3D environment under its own domain while still linking seamlessly to others.  Built‑in decentralized identifiers control access so both humans and AI agents can explore knowledge spaces safely and transparently.
+2.  Install the Python dependencies:
+    ```bash
+    pip install -e .
+    ```
 
-## Potential collaborators
+3.  Install the viewer dependencies:
+    ```bash
+    cd viewer
+    npm install
+    ```
 
-Knowledge3D aims to cooperate with organizations building an open 3D internet.  Notable groups include:
+### Quick Start
 
-- [Spatial Web Foundation](https://github.com/Spatial-Web-Foundation)
-- [Verses AI](https://github.com/Versesai)
-- [MSquared](https://github.com/msquared)
-- [mml‑io](https://github.com/mml-io/mml) – Metaverse Markup Language
-- [Niantic](https://github.com/Niantic) – Lightship AR platform
-- [Brilliant Labs](https://github.com/brilliantlabsAR)
-- [Meta](https://github.com/meta)
-- [Apple](https://github.com/apple)
-- [Google](https://github.com/google)
-- [Autodesk](https://github.com/Autodesk)
-- [Decentraland](https://github.com/decentraland)
-- [OpenAI](https://github.com/openai)
+1.  Generate the sample dataset:
+    ```bash
+    python -m k3dgen examples/sample_vectors.csv --gltf examples/sample_output.gltf --k3d examples/sample_output.k3d
+    ```
 
-## Installation
+2.  Run the viewer:
+    ```bash
+    cd viewer
+    npm run dev
+    ```
 
-Install the project in editable mode to expose the `k3dgen` command:
-
-```bash
-pip install -e .
-```
-
-## Quick start
-
-Generate the example dataset using the `k3dgen` CLI:
-
-```bash
-python -m k3dgen examples/sample_vectors.csv --gltf examples/sample_output.gltf --k3d examples/sample_output.k3d
-```
-
-The command writes both `examples/sample_output.gltf` and `examples/sample_output.k3d`.
-
-## Browser viewer
-
-To explore the generated dataset in 3D:
-
-```bash
-cd viewer
-npm install
-npm run dev
-```
-
-This launches a local server that renders `examples/sample_output.gltf` and shows point IDs on hover.
+This will launch a local server. Open your browser to the URL provided to see the 3D visualization.
 
 ![Viewer preview](docs/viewer_preview.png)
 
+## Project Status
+
+The project is currently in **Phase 3**, focusing on the development of a lightweight browser viewer. For more details, please see the [Project Roadmap](docs/ROADMAP.md).
+
+## Key Concepts
+
+The K3D standard is built on a few key concepts:
+
+-   **K3D Node:** A single unit of knowledge, defined by the [`k3d_node_schema.json`](spec/k3d_node_schema.json). Each node has an ID, a 3D position, the original high-dimensional embedding, and metadata.
+-   **glTF Extension:** We use a custom `K3D_nodes` glTF extension to link the 3D geometry to the `.k3d` metadata file. This keeps the glTF files small and focused on rendering. See [`glTF_K3D_extension.md`](spec/glTF_K3D_extension.md) for details.
+
+## How it Works
+
+The current implementation provides a simple pipeline for visualizing high-dimensional data:
+
+1.  **`k3dgen` CLI:** This Python tool reads a CSV file of high-dimensional vectors, uses PCA to reduce them to 3D, and generates a `.gltf` file and a `.k3d` metadata file.
+2.  **Viewer:** A `three.js`-based web application that loads the `.gltf` and `.k3d` files, displays the 3D point cloud, and provides basic interactivity.
+
+## Further Reading
+
+The ideas behind K3D are explored in more detail in the following documents:
+
+-   [EchoSystems K3D Collaboration Action Plan](docs/reports/echo_systems_k_3_d_action_plan_v_0.md)
+-   [A 3D Vector Universe Standard for High-Dimensional AI Knowledge](docs/papers/3d_vector_universe_standard.docx) (Whitepaper)
+-   [Developer Guidelines](docs/DEV_GUIDELINES.md)
+-   [Codex Tasks](CODEX.md)
+
+A full list of related papers and research can be found in the `docs/` directory.
+
 ## Licensing
 
-All code in this repository is released under the Apache‑2.0 License.  The white‑paper and related text documents are distributed under the Creative Commons Attribution 4.0 International (CC‑BY‑4.0) license.  See [`/docs/LICENSE-CC-BY-4.0.txt`](docs/LICENSE-CC-BY-4.0.txt) for the full CC‑BY‑4.0 text.  GitHub may report "No license" for the documentation, but this file is authoritative.
-
-For the development roadmap see [docs/ROADMAP.md](docs/ROADMAP.md). Codex agents coordinating work should consult [CODEX.md](CODEX.md). Development conventions are summarized in [docs/DEV_GUIDELINES.md](docs/DEV_GUIDELINES.md).
+All code in this repository is released under the Apache-2.0 License. The documentation and other text-based content are distributed under the Creative Commons Attribution 4.0 International (CC-BY-4.0) license.

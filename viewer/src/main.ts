@@ -28,7 +28,7 @@ let pointPositions: THREE.BufferAttribute;
 
 // --- Main ---
 // TODO: Make this configurable via URL parameter or file input
-const gltfUrl = '../examples/solar_system.gltf';
+const gltfUrl = '/sample_output.gltf';
 const loader = new GLTFLoader();
 
 // Lines for neighbor visualization
