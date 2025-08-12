@@ -1,0 +1,10 @@
+id,mass,diameter,distance_from_sun
+Sun,333000,1392700,0
+Mercury,0.055,4879,58
+Venus,0.815,12104,108
+Earth,1,12742,150
+Mars,0.107,6779,228
+Jupiter,317.8,139820,778
+Saturn,95.2,116460,1434
+Uranus,14.5,50724,2871
+Neptune,17.1,49244,4495
