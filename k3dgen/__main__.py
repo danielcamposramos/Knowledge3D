@@ -20,8 +20,11 @@ from pygltflib import (
 from sklearn.decomposition import PCA
 from sklearn.neighbors import NearestNeighbors
 
+# --- Constants ---
 ARRAY_BUFFER = 34962
 FLOAT = 5126
+K3D_EXTENSION_NAME = "K3D_nodes"
+K3D_IDS_PROPERTY = "extras.k3dIds"
 
 
 def load_vectors(csv_path: str) -> Tuple[List[str], np.ndarray]:
@@ -104,11 +107,14 @@ def create_gltf_file(
     gltf_path: str, k3d_path: str, ids: List[str], points: np.ndarray
 ) -> None:
     """Create the .gltf file."""
+    # 1. Convert numpy array to glTF binary buffer
     positions = points.astype(np.float32)
     data_bytes = positions.tobytes()
     uri = "data:application/octet-stream;base64," + base64.b64encode(
         data_bytes
     ).decode("ascii")
+
+    # 2. Create glTF structure
     buffer = Buffer(byteLength=len(data_bytes), uri=uri)
     view = BufferView(
         buffer=0, byteOffset=0, byteLength=len(data_bytes), target=ARRAY_BUFFER
@@ -122,11 +128,14 @@ def create_gltf_file(
         max=positions.max(axis=0).tolist(),
         min=positions.min(axis=0).tolist(),
     )
-    primitive = Primitive(attributes={"POSITION": 0}, mode=0, extras={"k3dIds": ids})
+    primitive = Primitive(
+        attributes={"POSITION": 0}, mode=0, extras={"k3dIds": ids}
+    )
     mesh = Mesh(primitives=[primitive])
     node = Node(mesh=0)
     scene = Scene(nodes=[0])
 
+    # 3. Create K3D extension
     gltf_dir = os.path.dirname(gltf_path)
     relative_k3d_path = os.path.relpath(k3d_path, gltf_dir)
     relative_schema_path = os.path.relpath("spec/k3d_node_schema.json", gltf_dir)
@@ -140,15 +149,17 @@ def create_gltf_file(
         nodes=[node],
         scenes=[scene],
         scene=0,
-        extensionsUsed=["K3D_nodes"],
+        extensionsUsed=[K3D_EXTENSION_NAME],
         extensions={
-            "K3D_nodes": {
+            K3D_EXTENSION_NAME: {
                 "uri": relative_k3d_path,
                 "schema": relative_schema_path,
-                "primitiveIdsProperty": "extras.k3dIds",
+                "primitiveIdsProperty": K3D_IDS_PROPERTY,
             }
         },
     )
+
+    # 4. Save glTF file
     try:
         gltf.save(gltf_path)
     except OSError as exc:
@@ -157,10 +168,19 @@ def create_gltf_file(
 
 def generate(csv_path: str, gltf_path: str, k3d_path: str, k: int) -> None:
     """Generate a glTF scene and accompanying .k3d metadata from a CSV file."""
+    # 1. Load the high-dimensional embeddings from the CSV file.
     ids, embeddings = load_vectors(csv_path)
+
+    # 2. Reduce the dimensionality of the embeddings to 3D for visualization.
     points = reduce_dimensions(embeddings)
+
+    # 3. Find the k-nearest neighbors for each point in the original high-dimensional space.
     neighbor_indices = find_neighbors(embeddings, k)
+
+    # 4. Create the .k3d file with the full embeddings and metadata.
     create_k3d_file(k3d_path, ids, points, embeddings, neighbor_indices)
+
+    # 5. Create the .gltf file with the 3D positions and a link to the .k3d file.
     create_gltf_file(gltf_path, k3d_path, ids, points)
 
 
