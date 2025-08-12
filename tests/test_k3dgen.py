@@ -20,6 +20,8 @@ def test_cli_generates_files(tmp_path):
             str(gltf_out),
             "--k3d",
             str(k3d_out),
+            "--k",
+            "2",
         ],
         check=True,
     )

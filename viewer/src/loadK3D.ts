@@ -3,6 +3,7 @@ export interface K3DRecord {
   vector: [number, number, number];
   embedding: number[];
   metadata: Record<string, unknown>;
+  neighbors?: string[];
 }
 
 export async function fetchK3D(url: string): Promise<K3DRecord[]> {
