@@ -1,0 +1,88 @@
+{
+  "extensions": {
+    "K3D_nodes": {
+      "uri": "solar_system.k3d",
+      "schema": "../spec/k3d_node_schema.json",
+      "primitiveIdsProperty": "extras.k3dIds"
+    }
+  },
+  "accessors": [
+    {
+      "bufferView": 0,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "normalized": false,
+      "count": 9,
+      "type": "VEC3",
+      "max": [
+        1230434.625,
+        10110.3115234375,
+        3224.475341796875
+      ],
+      "min": [
+        -196760.96875,
+        -21707.169921875,
+        -1215.1768798828125
+      ]
+    }
+  ],
+  "asset": {
+    "generator": "pygltflib@v1.16.5",
+    "version": "2.0"
+  },
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 108,
+      "target": 34962
+    }
+  ],
+  "buffers": [
+    {
+      "uri": "data:application/octet-stream;base64,FTOWSW0zR0X6KDtAPiZAyD/5HUYZWVTE3ks5yCgaA0ZViFbE87A4yIW1AEa1VU3E7Vg+yB3QFkYYvS3EbSuAx1eWqcap5ZfEh5asxy8OgMYL87zDFaoUyKicXcS+r8ZEoREWyMQwFMSbh0lF",
+      "byteLength": 108
+    }
+  ],
+  "extensionsUsed": [
+    "K3D_nodes"
+  ],
+  "meshes": [
+    {
+      "primitives": [
+        {
+          "extras": {
+            "k3dIds": [
+              "Sun",
+              "Mercury",
+              "Venus",
+              "Earth",
+              "Mars",
+              "Jupiter",
+              "Saturn",
+              "Uranus",
+              "Neptune"
+            ]
+          },
+          "attributes": {
+            "POSITION": 0
+          },
+          "mode": 0
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "mesh": 0
+    }
+  ],
+  "scene": 0,
+  "scenes": [
+    {
+      "nodes": [
+        0
+      ]
+    }
+  ]
+}
