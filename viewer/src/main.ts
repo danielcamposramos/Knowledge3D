@@ -4,6 +4,11 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { fetchK3D, type K3DRecord } from './loadK3D';
 
+// --- Constants ---
+const K3D_EXTENSION_NAME = 'K3D_nodes';
+const K3D_IDS_PROPERTY = 'extras.k3dIds';
+
+// --- Scene Setup ---
 const canvas = document.getElementById('scene') as HTMLCanvasElement;
 const renderer = new THREE.WebGLRenderer({ canvas });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -14,11 +19,15 @@ camera.position.z = 2;
 
 const controls = new OrbitControls(camera, renderer.domElement);
 
+// --- State ---
 let k3dData: K3DRecord[] = [];
 let k3dIds: string[] = [];
 let recordMap: Map<string, K3DRecord> = new Map();
+let idToIndexMap: Map<string, number> = new Map();
 let pointPositions: THREE.BufferAttribute;
 
+// --- Main ---
+// TODO: Make this configurable via URL parameter or file input
 const gltfUrl = '../examples/solar_system.gltf';
 const loader = new GLTFLoader();
 
@@ -29,29 +38,36 @@ const lines = new THREE.LineSegments(lineGeometry, lineMaterial);
 scene.add(lines);
 
 loader.load(gltfUrl, async (gltf) => {
-  const k3dExtension = gltf.parser.json.extensions?.['K3D_nodes'];
-  if (k3dExtension) {
+  // 1. Load K3D data
+  const k3dExtension = gltf.parser.json.extensions?.[K3D_EXTENSION_NAME];
+  if (k3dExtension?.uri) {
     const k3dUrl = new URL(k3dExtension.uri, gltfUrl).href;
     try {
       k3dData = await fetchK3D(k3dUrl);
       recordMap = new Map(k3dData.map((r) => [r.id, r]));
     } catch (e) {
-      console.error(e);
+      console.error('Failed to load K3D data:', e);
     }
   }
 
+  // 2. Extract geometry and IDs from glTF
   const mesh = gltf.scene.children[0] as THREE.Mesh;
+  if (!mesh) {
+    console.error('No mesh found in glTF scene.');
+    return;
+  }
   const primitive = mesh.geometry as THREE.BufferGeometry;
   pointPositions = primitive.getAttribute('position') as THREE.BufferAttribute;
 
-  const primitiveIdsProperty = k3dExtension?.primitiveIdsProperty;
-  if (primitiveIdsProperty === 'extras.k3dIds') {
+  if (k3dExtension?.primitiveIdsProperty === K3D_IDS_PROPERTY) {
     const ids = gltf.parser.json.meshes?.[0]?.primitives?.[0]?.extras?.k3dIds as string[];
     if (ids) {
       k3dIds = ids;
+      idToIndexMap = new Map(ids.map((id, i) => [id, i]));
     }
   }
 
+  // 3. Color points based on their 3D position
   const count = pointPositions.count;
   const colors = new Float32Array(count * 3);
   const color = new THREE.Color();
@@ -60,14 +76,10 @@ loader.load(gltfUrl, async (gltf) => {
     const vectors = k3dData.map((d) => d.vector);
     const min = new THREE.Vector3(Infinity, Infinity, Infinity);
     const max = new THREE.Vector3(-Infinity, -Infinity, -Infinity);
-    for (const vec of vectors) {
-      min.x = Math.min(min.x, vec[0]);
-      min.y = Math.min(min.y, vec[1]);
-      min.z = Math.min(min.z, vec[2]);
-      max.x = Math.max(max.x, vec[0]);
-      max.y = Math.max(max.y, vec[1]);
-      max.z = Math.max(max.z, vec[2]);
-    }
+    vectors.forEach(vec => {
+      min.min(new THREE.Vector3().fromArray(vec));
+      max.max(new THREE.Vector3().fromArray(vec));
+    });
     const size = new THREE.Vector3().subVectors(max, min);
 
     for (let i = 0; i < count; i++) {
@@ -83,16 +95,12 @@ loader.load(gltfUrl, async (gltf) => {
       } else {
         color.setHSL(i / count, 1.0, 0.5);
       }
-      colors[i * 3] = color.r;
-      colors[i * 3 + 1] = color.g;
-      colors[i * 3 + 2] = color.b;
+      colors.set([color.r, color.g, color.b], i * 3);
     }
   } else {
     for (let i = 0; i < count; i++) {
       color.setHSL(i / count, 1.0, 0.5);
-      colors[i * 3] = color.r;
-      colors[i * 3 + 1] = color.g;
-      colors[i * 3 + 2] = color.b;
+      colors.set([color.r, color.g, color.b], i * 3);
     }
   }
 
@@ -104,6 +112,7 @@ loader.load(gltfUrl, async (gltf) => {
   scene.add(points);
 });
 
+// --- Interactivity ---
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 const tooltip = document.getElementById('tooltip') as HTMLDivElement;
@@ -112,46 +121,50 @@ function onMouseMove(event: MouseEvent) {
   mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
   mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(mouse, camera);
-  const intersects = raycaster.intersectObjects(scene.children.filter(c => c.type === 'Points'), false);
+  const pointObjects = scene.children.filter(c => c.type === 'Points');
+  const intersects = raycaster.intersectObjects(pointObjects, false);
 
-  if (intersects.length > 0 && k3dIds.length > 0 && k3dData.length > 0) {
+  if (intersects.length > 0 && intersects[0].index !== undefined) {
     const idx = intersects[0].index;
-    if (idx === undefined) return;
-
     const recordId = k3dIds[idx];
     const record = recordMap.get(recordId);
 
     if (record) {
+      // Show tooltip
       tooltip.style.display = 'block';
-      tooltip.style.left = event.clientX + 5 + 'px';
-      tooltip.style.top = event.clientY + 5 + 'px';
+      tooltip.style.left = `${event.clientX + 5}px`;
+      tooltip.style.top = `${event.clientY + 5}px`;
       tooltip.textContent = record.id;
 
-      if (record.neighbors && record.neighbors.length > 0) {
+      // Show neighbor lines
+      if (record.neighbors?.length) {
         const positions = [];
         const fromVec = new THREE.Vector3().fromBufferAttribute(pointPositions, idx);
 
         for (const neighborId of record.neighbors) {
-          const neighborIdx = k3dIds.indexOf(neighborId);
-          if (neighborIdx !== -1) {
-            positions.push(fromVec.x, fromVec.y, fromVec.z);
+          const neighborIdx = idToIndexMap.get(neighborId);
+          if (neighborIdx !== undefined) {
+            positions.push(...fromVec.toArray());
             const toVec = new THREE.Vector3().fromBufferAttribute(pointPositions, neighborIdx);
-            positions.push(toVec.x, toVec.y, toVec.z);
+            positions.push(...toVec.toArray());
           }
         }
         lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
         lineGeometry.computeBoundingSphere();
       } else {
-        lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute([], 3));
+        lineGeometry.setDrawRange(0, 0); // Hide lines
       }
     } else {
-      tooltip.style.display = 'none';
-      lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute([], 3));
+      hideTooltipAndLines();
     }
   } else {
-    tooltip.style.display = 'none';
-    lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute([], 3));
+    hideTooltipAndLines();
   }
+}
+
+function hideTooltipAndLines() {
+  tooltip.style.display = 'none';
+  lineGeometry.setDrawRange(0, 0); // Hide lines
 }
 
 window.addEventListener('mousemove', onMouseMove);

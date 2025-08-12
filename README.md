@@ -1,14 +1,18 @@
-# Knowledge3D
+# Knowledge3D: A Spatial Knowledge Reality
 
 | Status | License |
 | ------ | ------- |
 | ![pre-alpha](https://img.shields.io/badge/status-pre--alpha-blue) | [Apache-2.0](LICENSE) |
 
-Knowledge3D (K3D) is an open-source initiative to build a standard and toolkit for representing knowledge as a navigable 3D universe. It fuses concepts from CAD geometry, vector databases, and augmented reality to create explorable spaces where humans and AI can collaborate.
+Knowledge3D (K3D) is an open-source initiative to build a foundational platform for a new paradigm of human-AI interaction: a **Spatial Knowledge Reality**. It fuses concepts from CAD geometry, vector databases, and augmented reality to create a navigable 3D universe where knowledge is represented spatially.
 
-## Vision
+This "knowledgeverse" serves as a shared environment for both humans and AI agents, enabling a new level of collaboration and discovery.
 
-Our vision is to **make knowledge spatial, social, and sentient**. We aim to create a traversable 3D universe where insights can be discovered and shared at the speed of thought, moving beyond linear text to explorable spaces.
+## The K3D Vision
+
+Our vision is to **make knowledge spatial, social, and sentient**. We are moving beyond linear text and 2D interfaces to create a traversable 3D universe where insights can be discovered and shared at the speed of thought.
+
+For a detailed exploration of this vision, please see the **[Jules Report: The K3D Vision for a Spatial Knowledge Reality](docs/Jules_Report.md)**.
 
 ## Getting Started
 
