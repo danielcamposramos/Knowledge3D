@@ -1,6 +1,7 @@
 import argparse
 import base64
 import json
+import os
 from typing import List
 
 import numpy as np
@@ -80,7 +81,13 @@ def generate(csv_path: str, gltf_path: str, k3d_path: str) -> None:
         raise ValueError(f"PCA computation failed: {exc}") from exc
 
     records = [
-        {"id": i, "vector": vec.tolist(), "metadata": {}} for i, vec in zip(ids, points)
+        {
+            "id": i,
+            "vector": p.tolist(),
+            "embedding": v.tolist(),
+            "metadata": {"label": i},
+        }
+        for i, p, v in zip(ids, points, vectors)
     ]
     try:
         with open(k3d_path, "w", encoding="utf-8") as f:
@@ -107,10 +114,16 @@ def generate(csv_path: str, gltf_path: str, k3d_path: str) -> None:
         max=positions.max(axis=0).tolist(),
         min=positions.min(axis=0).tolist(),
     )
-    primitive = Primitive(attributes={"POSITION": 0}, mode=0)
+    primitive = Primitive(attributes={"POSITION": 0}, mode=0, extras={"k3dIds": ids})
     mesh = Mesh(primitives=[primitive])
     node = Node(mesh=0)
     scene = Scene(nodes=[0])
+
+    # K3D extension
+    gltf_dir = os.path.dirname(gltf_path)
+    relative_k3d_path = os.path.relpath(k3d_path, gltf_dir)
+    relative_schema_path = os.path.relpath("spec/k3d_node_schema.json", gltf_dir)
+
     gltf = GLTF2(
         asset=Asset(generator="k3dgen"),
         buffers=[buffer],
@@ -120,6 +133,14 @@ def generate(csv_path: str, gltf_path: str, k3d_path: str) -> None:
         nodes=[node],
         scenes=[scene],
         scene=0,
+        extensionsUsed=["K3D_nodes"],
+        extensions={
+            "K3D_nodes": {
+                "uri": relative_k3d_path,
+                "schema": relative_schema_path,
+                "primitiveIdsProperty": "extras.k3dIds",
+            }
+        },
     )
     try:
         gltf.save(gltf_path)
