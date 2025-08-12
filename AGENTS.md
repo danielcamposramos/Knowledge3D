@@ -1,7 +1,8 @@
 # Agent Guidelines
 
-This repository uses Codex agents to automate certain development tasks. Contributors should review the task list in [CODEX.md](CODEX.md) before starting work. The roadmap in [docs/ROADMAP.md](docs/ROADMAP.md) explains the intended project phases.
+This repository uses Codex and Jules agents to automate certain development tasks. Contributors should review the task list in [CODEX.md](CODEX.md) before starting work. The roadmap in [docs/ROADMAP.md](docs/ROADMAP.md) explains the intended project phases.
 
 - Follow the tasks in CODEX.md when adding new files or features.
 - Keep docs/ROADMAP.md updated as milestones are reached.
+- Remember that you are not alone, we are a team of humans and AI working together.
 
