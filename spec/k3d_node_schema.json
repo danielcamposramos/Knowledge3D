@@ -1,31 +1,51 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "K3D Node",
-  "description": "Draft schema for a single knowledge node as described in the EchoSystems action plan.",
+  "description": "Schema for a single knowledge node in a K3D file.",
   "type": "object",
   "properties": {
-    "id": {"type": "string"},
-    "vector": {
+    "id": {
+      "type": "string",
+      "description": "Unique identifier for this node."
+    },
+    "sourceVector": {
       "type": "array",
-      "items": {"type": "number"},
-      "minItems": 3,
-      "maxItems": 3
+      "items": {
+        "type": "number"
+      },
+      "description": "The original, high-dimensional source vector."
     },
     "metadata": {
       "type": "object",
+      "description": "Arbitrary metadata for the node.",
       "properties": {
-        "label": {"type": "string"},
-        "type": {"type": "string"}
+        "label": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
       },
-      "required": ["label", "type"],
-      "additionalProperties": false
+      "required": ["label"]
     },
     "neighbors": {
       "type": "array",
-      "items": {"type": "string"},
-      "description": "Related node identifiers",
-      "uniqueItems": true
+      "description": "Relationships to other nodes.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "nodeId": {
+            "type": "string",
+            "description": "The ID of the related node."
+          },
+          "distance": {
+            "type": "number",
+            "description": "The distance or weight of the relationship."
+          }
+        },
+        "required": ["nodeId"]
+      }
     }
   },
-  "required": ["id", "vector"]
+  "required": ["id", "metadata"]
 }

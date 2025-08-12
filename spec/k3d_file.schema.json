@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "K3D File",
+  "description": "Schema for a K3D file, which contains a collection of knowledge nodes and file-level metadata.",
+  "type": "object",
+  "properties": {
+    "asset": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+$",
+          "description": "The version of the K3D standard."
+        },
+        "generator": {
+          "type": "string",
+          "description": "The tool that generated this file."
+        }
+      },
+      "required": ["version"]
+    },
+    "nodes": {
+      "type": "array",
+      "description": "An array of knowledge nodes.",
+      "items": {
+        "$ref": "k3d_node.schema.json"
+      }
+    }
+  },
+  "required": ["asset", "nodes"]
+}

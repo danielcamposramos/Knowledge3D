@@ -1,21 +1,27 @@
 {
+  "extensions": {
+    "K3D_nodes": {
+      "uri": "sample_output.k3d",
+      "nodeProperty": "extras.k3dId"
+    }
+  },
   "accessors": [
     {
       "bufferView": 0,
       "byteOffset": 0,
       "componentType": 5126,
       "normalized": false,
-      "count": 3,
+      "count": 1,
       "type": "VEC3",
       "max": [
-        0.7071067690849304,
-        0.8164966106414795,
-        3.925231079531968e-17
+        0.0,
+        0.0,
+        0.0
       ],
       "min": [
-        -0.7071067690849304,
-        -0.40824830532073975,
-        3.925231079531968e-17
+        0.0,
+        0.0,
+        0.0
       ]
     }
   ],
@@ -27,15 +33,17 @@
     {
       "buffer": 0,
       "byteOffset": 0,
-      "byteLength": 36,
-      "target": 34962
+      "byteLength": 12
     }
   ],
   "buffers": [
     {
-      "uri": "data:application/octet-stream;base64,5Lm+I+wFUT/zBDUk8wQ1P+wF0b7zBDUk8wQ1v+wF0b7zBDUk",
-      "byteLength": 36
+      "uri": "data:application/octet-stream;base64,AAAAAAAAAAAAAAAA",
+      "byteLength": 12
     }
+  ],
+  "extensionsUsed": [
+    "K3D_nodes"
   ],
   "meshes": [
     {
@@ -51,14 +59,46 @@
   ],
   "nodes": [
     {
-      "mesh": 0
+      "extras": {
+        "k3dId": "0"
+      },
+      "mesh": 0,
+      "translation": [
+        0.816496580927726,
+        -1.561652356433725e-17,
+        3.70074341541719e-17
+      ]
+    },
+    {
+      "extras": {
+        "k3dId": "1"
+      },
+      "mesh": 0,
+      "translation": [
+        -0.408248290463863,
+        0.7071067811865474,
+        3.700743415417188e-17
+      ]
+    },
+    {
+      "extras": {
+        "k3dId": "2"
+      },
+      "mesh": 0,
+      "translation": [
+        -0.4082482904638631,
+        -0.7071067811865472,
+        3.700743415417189e-17
+      ]
     }
   ],
   "scene": 0,
   "scenes": [
     {
       "nodes": [
-        0
+        0,
+        1,
+        2
       ]
     }
   ]

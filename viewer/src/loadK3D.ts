@@ -1,23 +1,36 @@
-import * as THREE from 'three';
-
-export interface K3DRecord {
+export interface K3DNode {
   id: string;
-  vector: [number, number, number];
-  metadata: Record<string, unknown>;
+  sourceVector?: number[];
+  metadata: {
+    label: string;
+    [key: string]: unknown;
+  };
+  neighbors?: {
+    nodeId: string;
+    distance?: number;
+  }[];
 }
 
-export async function fetchK3D(url: string): Promise<K3DRecord[]> {
+export interface K3DFile {
+  asset: {
+    version: string;
+    generator?: string;
+  };
+  nodes: K3DNode[];
+}
+
+export async function fetchK3D(
+  url: string
+): Promise<Map<string, K3DNode>> {
   const res = await fetch(url);
-  return (await res.json()) as K3DRecord[];
-}
+  if (!res.ok) {
+    throw new Error(`Failed to fetch K3D file from ${url}: ${res.statusText}`);
+  }
+  const k3dFile = (await res.json()) as K3DFile;
 
-export function buildPoints(records: K3DRecord[]): THREE.Points {
-  const positions = new Float32Array(records.length * 3);
-  records.forEach((r, i) => {
-    positions.set(r.vector, i * 3);
-  });
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  const material = new THREE.PointsMaterial({ size: 0.05 });
-  return new THREE.Points(geometry, material);
+  const nodeMap = new Map<string, K3DNode>();
+  for (const node of k3dFile.nodes) {
+    nodeMap.set(node.id, node);
+  }
+  return nodeMap;
 }
