@@ -83,6 +83,7 @@ The ideas behind K3D are explored in more detail in the following documents:
 -   [A 3D Vector Universe Standard for High-Dimensional AI Knowledge](docs/papers/3d_vector_universe_standard.docx) (Whitepaper)
 -   [Developer Guidelines](docs/DEV_GUIDELINES.md)
 -   [Codex Tasks](CODEX.md)
+-   [House Memory: Linking LLM Embeddings to the Spatial Web](docs/HOUSE_MEMORY.md)
 
 A full list of related papers and research can be found in the `docs/` directory.
 
