@@ -18,6 +18,8 @@ The K3D project is more than just a 3D data viewer; it is the blueprint for a **
 
 This spatial metaphor is not merely a visualization gimmick; it is a fundamental re-imagining of the user interface for knowledge work. By mapping the abstract relationships in high-dimensional data to the intuitive geometry of 3D space, we can unlock new ways of thinking and problem-solving.
 
+For a discussion of how LLM head embeddings can be externalized into K3D nodes using a house metaphor, see [House Memory](HOUSE_MEMORY.md).
+
 ## 2. The K3D Standard: A Foundation for Spatial Knowledge
 
 The K3D standard is the technical bedrock of this vision. It is a simple yet powerful fusion of two key technologies:
