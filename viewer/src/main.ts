@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { fetchK3D, type K3DRecord } from './loadK3D';
+import { findFirstMesh } from './findFirstMesh';
 
 // --- Constants ---
 const K3D_EXTENSION_NAME = 'K3D_nodes';
@@ -51,7 +52,7 @@ loader.load(gltfUrl, async (gltf) => {
   }
 
   // 2. Extract geometry and IDs from glTF
-  const mesh = gltf.scene.children[0] as THREE.Mesh;
+  const mesh = findFirstMesh(gltf.scene);
   if (!mesh) {
     console.error('No mesh found in glTF scene.');
     return;
