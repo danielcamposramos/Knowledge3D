@@ -56,3 +56,21 @@ def test_cli_generates_files(tmp_path):
     primitive = gltf.meshes[0].primitives[0]
     assert "k3dIds" in primitive.extras
     assert len(primitive.extras["k3dIds"]) == expected_records
+
+
+def test_cli_negative_k(tmp_path):
+    csv_path = Path("examples/sample_vectors.csv")
+    result = subprocess.run(
+        [
+            "python",
+            "-m",
+            "k3dgen",
+            str(csv_path),
+            "--k",
+            "-1",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode != 0
+    assert "positive integer" in result.stderr
