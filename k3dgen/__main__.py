@@ -167,7 +167,7 @@ def create_gltf_file(
 
 
 def generate(csv_path: str, gltf_path: str, k3d_path: str, k: int) -> None:
-    """Generate a glTF scene and accompanying .k3d metadata from a CSV file."""
+    """Generate a glTF scene and .k3d metadata from a CSV."""
     # 1. Load the high-dimensional embeddings from the CSV file.
     ids, embeddings = load_vectors(csv_path)
 
