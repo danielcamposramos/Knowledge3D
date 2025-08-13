@@ -67,6 +67,8 @@ def reduce_dimensions(vectors: np.ndarray) -> np.ndarray:
 
 def find_neighbors(vectors: np.ndarray, k: int) -> np.ndarray:
     """Find the k-nearest neighbors for each vector."""
+    if k <= 0:
+        raise ValueError("k must be a positive integer")
     if k >= len(vectors):
         raise ValueError("k must be less than the number of vectors")
     nn = NearestNeighbors(n_neighbors=k + 1, algorithm="auto")
