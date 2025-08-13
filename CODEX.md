@@ -36,6 +36,8 @@ This file lists tasks for Codex agents working on this repository. They mirror t
    - Investigate `apache/tinkerpop`, `opencypher/openCypher`, `w3c/rdf-star`, and `neo4j/neo4j` to align query languages and schemas with K3D.
 3. **Math embedding models**
    - Review projects like `tbs17/MathBERT` and `Jordan-Haidee/LaTeX2Vector` to support equation-level vectorization.
+4. **Mixture-of-experts condo routing**
+   - Explore mapping multiple houses to experts and routing strategies. See [docs/MOE_CONDO.md](docs/MOE_CONDO.md).
 
 Agents should reference this file to coordinate efforts and keep contributions aligned with the overall roadmap.
 
