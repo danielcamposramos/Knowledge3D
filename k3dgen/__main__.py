@@ -167,14 +167,14 @@ def create_gltf_file(
 
 
 def generate(csv_path: str, gltf_path: str, k3d_path: str, k: int) -> None:
-    """Generate a glTF scene and accompanying .k3d metadata from a CSV file."""
+    """Generate a glTF scene and .k3d metadata from a CSV."""
     # 1. Load the high-dimensional embeddings from the CSV file.
     ids, embeddings = load_vectors(csv_path)
 
     # 2. Reduce the dimensionality of the embeddings to 3D for visualization.
     points = reduce_dimensions(embeddings)
 
-    # 3. Find the k-nearest neighbors for each point in the original high-dimensional space.
+    # 3. Find the k-nearest neighbours for each point
     neighbor_indices = find_neighbors(embeddings, k)
 
     # 4. Create the .k3d file with the full embeddings and metadata.
