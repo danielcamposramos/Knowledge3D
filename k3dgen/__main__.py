@@ -175,7 +175,6 @@ def generate(csv_path: str, gltf_path: str, k3d_path: str, k: int) -> None:
     points = reduce_dimensions(embeddings)
 
     # 3. Find the k-nearest neighbours for each point
-    # in the original high-dimensional space.
     neighbor_indices = find_neighbors(embeddings, k)
 
     # 4. Create the .k3d file with the full embeddings and metadata.
