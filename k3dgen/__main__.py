@@ -2,6 +2,7 @@ import argparse
 import base64
 import json
 import os
+from pathlib import Path
 from typing import List, Tuple
 
 import numpy as np
@@ -138,9 +139,21 @@ def create_gltf_file(
     scene = Scene(nodes=[0])
 
     # 3. Create K3D extension
-    gltf_dir = os.path.dirname(gltf_path)
-    relative_k3d_path = os.path.relpath(k3d_path, gltf_dir)
-    relative_schema_path = os.path.relpath("spec/k3d_node_schema.json", gltf_dir)
+    gltf_path = Path(gltf_path)
+    k3d_path = Path(k3d_path)
+    gltf_dir = gltf_path.resolve().parent
+    schema_path = (
+        Path(__file__).resolve().parent.parent / "spec" / "k3d_node_schema.json"
+    ).resolve()
+
+    def _relative_path(target: Path, base: Path) -> str:
+        try:
+            return target.resolve().relative_to(base).as_posix()
+        except ValueError:
+            return Path(os.path.relpath(target, base)).as_posix()
+
+    relative_k3d_path = _relative_path(k3d_path, gltf_dir)
+    relative_schema_path = _relative_path(schema_path, gltf_dir)
 
     gltf = GLTF2(
         asset=Asset(generator="k3dgen"),
