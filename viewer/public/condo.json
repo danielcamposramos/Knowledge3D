@@ -1,0 +1,19 @@
+{
+  "houses": [
+    {
+      "uri": "/math_house.k3d",
+      "expert": "math",
+      "description": "A house for mathematical concepts and embeddings."
+    },
+    {
+      "uri": "/physics_house.k3d",
+      "expert": "physics",
+      "description": "A house for physics concepts, from classical to quantum."
+    },
+    {
+      "uri": "/literature_house.k3d",
+      "expert": "literature",
+      "description": "A house for literary works, authors, and concepts."
+    }
+  ]
+}
