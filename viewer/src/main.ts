@@ -1,183 +1,183 @@
 import './style.css';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { fetchK3D, type K3DRecord } from './loadK3D';
-import { findFirstMesh } from './findFirstMesh';
+import { fetchK3D, fetchCondoConfig, type K3DRecord, type CondoConfig, type HouseInfo } from './loadK3D';
 
-// --- Constants ---
-const K3D_EXTENSION_NAME = 'K3D_nodes';
-const K3D_IDS_PROPERTY = 'extras.k3dIds';
+// --- DOM Elements ---
+const canvas = document.getElementById('scene') as HTMLCanvasElement;
+const tooltip = document.getElementById('tooltip') as HTMLDivElement;
+const expertSelect = document.getElementById('expert-select') as HTMLSelectElement;
 
 // --- Scene Setup ---
-const canvas = document.getElementById('scene') as HTMLCanvasElement;
-const renderer = new THREE.WebGLRenderer({ canvas });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
-
 const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x111111);
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.z = 2;
-
+camera.position.set(0, 0, 5);
 const controls = new OrbitControls(camera, renderer.domElement);
 
 // --- State ---
 let k3dData: K3DRecord[] = [];
-let k3dIds: string[] = [];
 let recordMap: Map<string, K3DRecord> = new Map();
-let idToIndexMap: Map<string, number> = new Map();
-let pointPositions: THREE.BufferAttribute;
+let currentPoints: THREE.Points | null = null;
+let condoConfig: CondoConfig | null = null;
 
-// --- Main ---
-// TODO: Make this configurable via URL parameter or file input
-const gltfUrl = '../examples/solar_system.gltf';
-const loader = new GLTFLoader();
+// --- Main Logic ---
 
-// Lines for neighbor visualization
-const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 });
-const lineGeometry = new THREE.BufferGeometry();
-const lines = new THREE.LineSegments(lineGeometry, lineMaterial);
-scene.add(lines);
+/**
+ * Clears the current 3D scene of any house-related objects.
+ */
+function clearScene() {
+    if (currentPoints) {
+        scene.remove(currentPoints);
+        currentPoints.geometry.dispose();
+        (currentPoints.material as THREE.Material).dispose();
+        currentPoints = null;
+    }
+    k3dData = [];
+    recordMap.clear();
+}
 
-loader.load(gltfUrl, async (gltf) => {
-  // 1. Load K3D data
-  const k3dExtension = gltf.parser.json.extensions?.[K3D_EXTENSION_NAME];
-  if (k3dExtension?.uri) {
-    const k3dUrl = new URL(k3dExtension.uri, gltfUrl).href;
+/**
+ * Loads and displays a house from the given K3D data URL.
+ * @param k3dUrl The URL of the .k3d file to load.
+ */
+async function loadHouse(k3dUrl: string) {
+    clearScene();
+
     try {
-      k3dData = await fetchK3D(k3dUrl);
-      recordMap = new Map(k3dData.map((r) => [r.id, r]));
+        k3dData = await fetchK3D(k3dUrl);
+        if (k3dData.length === 0) {
+            console.warn(`No data found in ${k3dUrl}`);
+            return;
+        }
+        recordMap = new Map(k3dData.map((r) => [r.id, r]));
+
+        const positions = new Float32Array(k3dData.length * 3);
+        const colors = new Float32Array(k3dData.length * 3);
+        const color = new THREE.Color();
+
+        const vectors = k3dData.map((d) => d.vector);
+        const min = new THREE.Vector3(Infinity, Infinity, Infinity);
+        const max = new THREE.Vector3(-Infinity, -Infinity, -Infinity);
+        vectors.forEach(vec => {
+            min.min(new THREE.Vector3().fromArray(vec));
+            max.max(new THREE.Vector3().fromArray(vec));
+        });
+        const size = new THREE.Vector3().subVectors(max, min);
+
+        k3dData.forEach((record, i) => {
+            positions.set(record.vector, i * 3);
+
+            const r = size.x > 0 ? (record.vector[0] - min.x) / size.x : 0.5;
+            const g = size.y > 0 ? (record.vector[1] - min.y) / size.y : 0.5;
+            const b = size.z > 0 ? (record.vector[2] - min.z) / size.z : 0.5;
+            color.setRGB(r, g, b);
+            colors.set([color.r, color.g, color.b], i * 3);
+        });
+
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+        const material = new THREE.PointsMaterial({ size: 0.1, vertexColors: true });
+        currentPoints = new THREE.Points(geometry, material);
+        scene.add(currentPoints);
+
     } catch (e) {
-      console.error('Failed to load K3D data:', e);
+        console.error(`Failed to load house from ${k3dUrl}:`, e);
     }
-  }
+}
 
-  // 2. Extract geometry and IDs from glTF
-  const mesh = findFirstMesh(gltf.scene);
-  if (!mesh) {
-    console.error('No mesh found in glTF scene.');
-    return;
-  }
-  const primitive = mesh.geometry as THREE.BufferGeometry;
-  pointPositions = primitive.getAttribute('position') as THREE.BufferAttribute;
+/**
+ * Initializes the expert selector dropdown by fetching the condo configuration.
+ */
+async function initCondoSelector() {
+    try {
+        // Fetch condo.json from the public directory, served at the root
+        const condoUrl = '/condo.json';
+        condoConfig = await fetchCondoConfig(condoUrl);
 
-  if (k3dExtension?.primitiveIdsProperty === K3D_IDS_PROPERTY) {
-    const ids = gltf.parser.json.meshes?.[0]?.primitives?.[0]?.extras?.k3dIds as string[];
-    if (ids) {
-      k3dIds = ids;
-      idToIndexMap = new Map(ids.map((id, i) => [id, i]));
+        expertSelect.innerHTML = ''; // Clear "Loading..."
+        condoConfig.houses.forEach(houseInfo => {
+            const option = document.createElement('option');
+            option.value = houseInfo.expert;
+            option.textContent = houseInfo.expert;
+            expertSelect.appendChild(option);
+        });
+
+        expertSelect.addEventListener('change', () => {
+            const selectedExpert = expertSelect.value;
+            const houseInfo = condoConfig?.houses.find(h => h.expert === selectedExpert);
+            if (houseInfo) {
+                // The URI in condo.json is now a direct path, e.g., "/math_house.k3d"
+                const houseUrl = houseInfo.uri;
+                loadHouse(houseUrl);
+            }
+        });
+
+        // Load the first house by default
+        if (condoConfig.houses.length > 0) {
+            expertSelect.value = condoConfig.houses[0].expert;
+            expertSelect.dispatchEvent(new Event('change'));
+        }
+
+    } catch (e) {
+        console.error('Failed to initialize condo selector:', e);
+        expertSelect.innerHTML = '<option value="">Failed to load</option>';
     }
-  }
-
-  // 3. Color points based on their 3D position
-  const count = pointPositions.count;
-  const colors = new Float32Array(count * 3);
-  const color = new THREE.Color();
-
-  if (k3dData.length > 0) {
-    const vectors = k3dData.map((d) => d.vector);
-    const min = new THREE.Vector3(Infinity, Infinity, Infinity);
-    const max = new THREE.Vector3(-Infinity, -Infinity, -Infinity);
-    vectors.forEach(vec => {
-      min.min(new THREE.Vector3().fromArray(vec));
-      max.max(new THREE.Vector3().fromArray(vec));
-    });
-    const size = new THREE.Vector3().subVectors(max, min);
-
-    for (let i = 0; i < count; i++) {
-      const recordId = k3dIds[i];
-      const record = recordMap.get(recordId);
-
-      if (record) {
-        const vec = record.vector;
-        const r = size.x > 0 ? (vec[0] - min.x) / size.x : 0.5;
-        const g = size.y > 0 ? (vec[1] - min.y) / size.y : 0.5;
-        const b = size.z > 0 ? (vec[2] - min.z) / size.z : 0.5;
-        color.setRGB(r, g, b);
-      } else {
-        color.setHSL(i / count, 1.0, 0.5);
-      }
-      colors.set([color.r, color.g, color.b], i * 3);
-    }
-  } else {
-    for (let i = 0; i < count; i++) {
-      color.setHSL(i / count, 1.0, 0.5);
-      colors.set([color.r, color.g, color.b], i * 3);
-    }
-  }
-
-  primitive.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-  const points = new THREE.Points(
-    primitive,
-    new THREE.PointsMaterial({ size: 0.05, vertexColors: true })
-  );
-  scene.add(points);
-});
+}
 
 // --- Interactivity ---
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
-const tooltip = document.getElementById('tooltip') as HTMLDivElement;
 
 function onMouseMove(event: MouseEvent) {
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-  raycaster.setFromCamera(mouse, camera);
-  const pointObjects = scene.children.filter(c => c.type === 'Points');
-  const intersects = raycaster.intersectObjects(pointObjects, false);
-
-  if (intersects.length > 0 && intersects[0].index !== undefined) {
-    const idx = intersects[0].index;
-    const recordId = k3dIds[idx];
-    const record = recordMap.get(recordId);
-
-    if (record) {
-      // Show tooltip
-      tooltip.style.display = 'block';
-      tooltip.style.left = `${event.clientX + 5}px`;
-      tooltip.style.top = `${event.clientY + 5}px`;
-      tooltip.textContent = record.id;
-
-      // Show neighbor lines
-      if (record.neighbors?.length) {
-        const positions = [];
-        const fromVec = new THREE.Vector3().fromBufferAttribute(pointPositions, idx);
-
-        for (const neighborId of record.neighbors) {
-          const neighborIdx = idToIndexMap.get(neighborId);
-          if (neighborIdx !== undefined) {
-            positions.push(...fromVec.toArray());
-            const toVec = new THREE.Vector3().fromBufferAttribute(pointPositions, neighborIdx);
-            positions.push(...toVec.toArray());
-          }
-        }
-        lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-        lineGeometry.computeBoundingSphere();
-      } else {
-        lineGeometry.setDrawRange(0, 0); // Hide lines
-      }
-    } else {
-      hideTooltipAndLines();
-    }
-  } else {
-    hideTooltipAndLines();
-  }
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 }
 
-function hideTooltipAndLines() {
-  tooltip.style.display = 'none';
-  lineGeometry.setDrawRange(0, 0); // Hide lines
+function checkIntersects() {
+    if (!currentPoints) {
+        tooltip.style.display = 'none';
+        return;
+    }
+
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObject(currentPoints);
+
+    if (intersects.length > 0 && intersects[0].index !== undefined) {
+        const idx = intersects[0].index;
+        const record = k3dData[idx];
+
+        if (record) {
+            tooltip.style.display = 'block';
+            tooltip.style.left = `${mouse.x * window.innerWidth / 2 + window.innerWidth / 2 + 5}px`;
+            tooltip.style.top = `${-mouse.y * window.innerHeight / 2 + window.innerHeight / 2 + 5}px`;
+            tooltip.textContent = (record.metadata?.label as string) || record.id;
+        } else {
+            tooltip.style.display = 'none';
+        }
+    } else {
+        tooltip.style.display = 'none';
+    }
 }
 
 window.addEventListener('mousemove', onMouseMove);
 window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
 function animate() {
-  requestAnimationFrame(animate);
-  controls.update();
-  renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+    controls.update();
+    checkIntersects();
+    renderer.render(scene, camera);
 }
+
+// --- Start Application ---
+initCondoSelector();
 animate();
