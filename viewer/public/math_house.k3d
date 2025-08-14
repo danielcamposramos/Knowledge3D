@@ -1,0 +1,78 @@
+[
+  {
+    "id": "one",
+    "vector": [
+      -1.5,
+      0.0,
+      0.0
+    ],
+    "embedding": [
+      1,
+      0,
+      0,
+      0,
+      0
+    ],
+    "metadata": {
+      "label": "one"
+    },
+    "neighbors": []
+  },
+  {
+    "id": "two",
+    "vector": [
+      -0.49999999999999994,
+      0.0,
+      0.0
+    ],
+    "embedding": [
+      2,
+      0,
+      0,
+      0,
+      0
+    ],
+    "metadata": {
+      "label": "two"
+    },
+    "neighbors": []
+  },
+  {
+    "id": "three",
+    "vector": [
+      0.5,
+      0.0,
+      -0.0
+    ],
+    "embedding": [
+      3,
+      0,
+      0,
+      0,
+      0
+    ],
+    "metadata": {
+      "label": "three"
+    },
+    "neighbors": []
+  },
+  {
+    "id": "four",
+    "vector": [
+      1.5000000000000004,
+      -0.0,
+      0.0
+    ],
+    "embedding": [
+      4,
+      0,
+      0,
+      0,
+      0
+    ],
+    "metadata": {
+      "label": "four"
+    },
+    "neighbors": []
+  }
+]
