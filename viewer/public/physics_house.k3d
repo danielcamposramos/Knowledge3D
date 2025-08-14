@@ -1,0 +1,78 @@
+[
+  {
+    "id": "force",
+    "vector": [
+      -0.6738873386790492,
+      -0.21418649529806613,
+      0.0
+    ],
+    "embedding": [
+      1,
+      1,
+      0,
+      0,
+      0
+    ],
+    "metadata": {
+      "label": "force"
+    },
+    "neighbors": []
+  },
+  {
+    "id": "mass",
+    "vector": [
+      0.21418649529806622,
+      -0.6738873386790488,
+      -0.0
+    ],
+    "embedding": [
+      1,
+      2,
+      0,
+      0,
+      0
+    ],
+    "metadata": {
+      "label": "mass"
+    },
+    "neighbors": []
+  },
+  {
+    "id": "acceleration",
+    "vector": [
+      -0.21418649529806627,
+      0.673887338679049,
+      -0.0
+    ],
+    "embedding": [
+      2,
+      1,
+      0,
+      0,
+      0
+    ],
+    "metadata": {
+      "label": "acceleration"
+    },
+    "neighbors": []
+  },
+  {
+    "id": "gravity",
+    "vector": [
+      0.6738873386790488,
+      0.21418649529806633,
+      0.0
+    ],
+    "embedding": [
+      2,
+      2,
+      0,
+      0,
+      0
+    ],
+    "metadata": {
+      "label": "gravity"
+    },
+    "neighbors": []
+  }
+]
