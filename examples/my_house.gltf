@@ -1,0 +1,88 @@
+{
+  "extensions": {
+    "K3D_nodes": {
+      "uri": "my_house.k3d",
+      "schema": "../spec/k3d_node_schema.json",
+      "primitiveIdsProperty": "extras.k3dIds"
+    }
+  },
+  "accessors": [
+    {
+      "bufferView": 0,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "normalized": false,
+      "count": 9,
+      "type": "VEC3",
+      "max": [
+        0.7669652104377747,
+        0.6279029250144958,
+        0.03884733468294144
+      ],
+      "min": [
+        -0.5794374346733093,
+        -0.423676997423172,
+        -0.03945506364107132
+      ]
+    }
+  ],
+  "asset": {
+    "generator": "pygltflib@v1.16.5",
+    "version": "2.0"
+  },
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 108,
+      "target": 34962
+    }
+  ],
+  "buffers": [
+    {
+      "uri": "data:application/octet-stream;base64,x6I/vj++ID9T7v+8x0U0vvUK1D4DmAY9R/Q5vt1hBT8fG1Q61VdEP0yEKb46/Au9vSoQP7ip3r2h2Ac9SUEqP5RsDL4rcwS6A1YUvzHs2L6imyG92GTGvq0usL5iHh89b4j3vm+NxL7qT5+5",
+      "byteLength": 108
+    }
+  ],
+  "extensionsUsed": [
+    "K3D_nodes"
+  ],
+  "meshes": [
+    {
+      "primitives": [
+        {
+          "extras": {
+            "k3dIds": [
+              "book1",
+              "book2",
+              "book3",
+              "book4",
+              "book5",
+              "book6",
+              "book7",
+              "book8",
+              "book9"
+            ]
+          },
+          "attributes": {
+            "POSITION": 0
+          },
+          "mode": 0
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "mesh": 0
+    }
+  ],
+  "scene": 0,
+  "scenes": [
+    {
+      "nodes": [
+        0
+      ]
+    }
+  ]
+}
