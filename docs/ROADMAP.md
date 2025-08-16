@@ -43,14 +43,24 @@ In August 2025 the team adopted the **EchoSystems K3D Collaboration Action Plan
 
 ## Next Steps
 
-Based on the work completed in Phases 0-3, the following next steps are proposed to move the project towards its long-term vision:
+Based on the work completed in Phases 0-3 and the vision outlined in the **[K3D: A Vision for a Standardized Spatial Knowledge Reality](reports/K3D_Vision_and_Standardization.md)** report, the following next steps are proposed:
 
--   **Develop a more sophisticated data model:** The current `K3D-Node` schema can be extended to support more complex relationships and metadata. This could include adding support for different node types (e.g., "planet", "star", "galaxy") and relationship types (e.g., "orbits", "part of").
+-   **Develop the "House" and "Cranium" concepts:**
+    -   Create a formal specification for the "House" and "Cranium" data structures.
+    -   Define a standard API for interacting with a "House" and its "Cranium".
+    -   Develop a reference implementation of the "House" and "Cranium" concepts.
 
--   **Implement a REST/Graph API:** The "EchoSystems K3D Collaboration Action Plan" calls for an API layer. A simple REST API that allows users to query for nodes and their neighbors would be a good starting point.
+-   **Implement a reference implementation of the Fog Computing architecture:**
+    -   Develop a proof-of-concept that demonstrates the three-tiered (cloud, fog, edge) architecture.
+    -   Create a simple AI Avatar that runs on a fog node and interacts with its "House".
 
--   **Improve the viewer's UI/UX:** The viewer could be enhanced with features like a search bar, a legend for the color scheme, and more detailed information in the tooltip.
+-   **Engage with the W3C AIKR workgroup:**
+    -   Submit the "K3D: A Vision for a Standardized Spatial Knowledge Reality" report to the workgroup.
+    -   Begin the process of formalizing the K3D file format, House API, and Fog Computing protocol as standards.
 
--   **Explore alternative dimensionality reduction techniques:** While PCA is a good default, other techniques like t-SNE or UMAP might produce more meaningful visualizations for certain types of data.
-
--   **Begin work on the LLM plug-in:** A key feature from the MVP Flight Plan, a simple prototype could be developed to allow an LLM to "teleport" to a specific node in the 3D space.
+-   **Enhance the K3D ecosystem:**
+    -   Develop a more sophisticated data model to support a wider range of knowledge types.
+    -   Implement a REST/Graph API for querying the knowledgeverse.
+    -   Improve the viewer's UI/UX with advanced features like search, filtering, and collaboration tools.
+    -   Explore alternative dimensionality reduction techniques for different data modalities.
+    -   Continue development of the LLM plug-in to enable more advanced AI-to-environment interactions.
