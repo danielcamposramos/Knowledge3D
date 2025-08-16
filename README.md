@@ -12,7 +12,7 @@ This "knowledgeverse" serves as a shared environment for both humans and AI agen
 
 Our vision is to **make knowledge spatial, social, and sentient**. We are moving beyond linear text and 2D interfaces to create a traversable 3D universe where insights can be discovered and shared at the speed of thought.
 
-For a detailed exploration of this vision, please see the **[Jules Report: The K3D Vision for a Spatial Knowledge Reality](docs/Jules_Report.md)**.
+For a detailed exploration of this vision, please see the **[K3D: A Vision for a Standardized Spatial Knowledge Reality](docs/reports/K3D_Vision_and_Standardization.md)** report.
 
 ## Getting Started
 
@@ -55,6 +55,30 @@ For a detailed exploration of this vision, please see the **[Jules Report: The K
 
 This will launch a local server. Open your browser to the URL provided to see the 3D visualization.
 
+### House Example
+
+To generate and view a more detailed "House" example, follow these steps:
+
+1.  Generate the house data:
+    ```bash
+    python examples/my_house_generator.py examples/my_house_data.csv
+    ```
+    This will create `my_house.gltf` and `my_house.k3d` in the `examples` directory.
+
+2.  Copy the generated files to the viewer's public directory:
+    ```bash
+    cp examples/my_house.gltf viewer/public/
+    cp examples/my_house.k3d viewer/public/
+    ```
+
+3.  In `viewer/src/main.ts`, change the `file` variable to `my_house`.
+
+4.  Run the viewer:
+    ```bash
+    cd viewer
+    npm run dev
+    ```
+
 ![Viewer preview](docs/viewer_preview.png)
 
 ## Project Status
@@ -85,6 +109,7 @@ This distributed approach reduces latency, preserves data locality, and enables 
 
 The ideas behind K3D are explored in more detail in the following documents:
 
+-   [K3D: A Vision for a Standardized Spatial Knowledge Reality](docs/reports/K3D_Vision_and_Standardization.md)
 -   [EchoSystems K3D Collaboration Action Plan](docs/reports/echo_systems_k_3_d_action_plan_v_0.md)
 -   [A 3D Vector Universe Standard for High-Dimensional AI Knowledge](docs/papers/3d_vector_universe_standard.docx) (Whitepaper)
 -   [Developer Guidelines](docs/DEV_GUIDELINES.md)

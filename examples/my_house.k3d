@@ -1,0 +1,218 @@
+[
+  {
+    "id": "book1",
+    "vector": [
+      -0.18714437984569185,
+      0.6279029129806755,
+      -0.03124157234635941
+    ],
+    "embedding": [
+      0.1,
+      0.2,
+      0.8,
+      0.1,
+      0.3
+    ],
+    "metadata": {
+      "id": "book1",
+      "room": "math",
+      "title": "The Calculus Story"
+    },
+    "neighbors": [
+      "book3",
+      "book2"
+    ]
+  },
+  {
+    "id": "book2",
+    "vector": [
+      -0.17604742514121796,
+      0.4141460861460175,
+      0.03285981229895584
+    ],
+    "embedding": [
+      0.2,
+      0.3,
+      0.7,
+      0.2,
+      0.4
+    ],
+    "metadata": {
+      "id": "book2",
+      "room": "math",
+      "title": "A Tour of the Calculus"
+    },
+    "neighbors": [
+      "book3",
+      "book1"
+    ]
+  },
+  {
+    "id": "book3",
+    "vector": [
+      -0.18159590249345517,
+      0.5210244995633466,
+      0.0008091199762982114
+    ],
+    "embedding": [
+      0.15,
+      0.25,
+      0.75,
+      0.15,
+      0.35
+    ],
+    "metadata": {
+      "id": "book3",
+      "room": "math",
+      "title": "Infinite Powers"
+    },
+    "neighbors": [
+      "book1",
+      "book2"
+    ]
+  },
+  {
+    "id": "book4",
+    "vector": [
+      0.7669652351843059,
+      -0.16554374167747146,
+      -0.03417608947383584
+    ],
+    "embedding": [
+      0.8,
+      0.1,
+      0.2,
+      0.9,
+      0.1
+    ],
+    "metadata": {
+      "id": "book4",
+      "room": "physics",
+      "title": "The Elegant Universe"
+    },
+    "neighbors": [
+      "book6",
+      "book5"
+    ]
+  },
+  {
+    "id": "book5",
+    "vector": [
+      0.5631521358423122,
+      -0.10872214663091753,
+      0.033165577176444194
+    ],
+    "embedding": [
+      0.7,
+      0.2,
+      0.3,
+      0.8,
+      0.2
+    ],
+    "metadata": {
+      "id": "book5",
+      "room": "physics",
+      "title": "The Fabric of the Cosmos"
+    },
+    "neighbors": [
+      "book6",
+      "book4"
+    ]
+  },
+  {
+    "id": "book6",
+    "vector": [
+      0.6650586855133092,
+      -0.13713294415419444,
+      -0.000505256148695838
+    ],
+    "embedding": [
+      0.75,
+      0.15,
+      0.25,
+      0.85,
+      0.15
+    ],
+    "metadata": {
+      "id": "book6",
+      "room": "physics",
+      "title": "A Brief History of Time"
+    },
+    "neighbors": [
+      "book5",
+      "book4"
+    ]
+  },
+  {
+    "id": "book7",
+    "vector": [
+      -0.5794374264206236,
+      -0.42367700013538834,
+      -0.03945506346841779
+    ],
+    "embedding": [
+      0.3,
+      0.8,
+      0.1,
+      0.2,
+      0.9
+    ],
+    "metadata": {
+      "id": "book7",
+      "room": "cs",
+      "title": "The Pragmatic Programmer"
+    },
+    "neighbors": [
+      "book9",
+      "book8"
+    ]
+  },
+  {
+    "id": "book8",
+    "vector": [
+      -0.38748813961908446,
+      -0.34410611068291624,
+      0.038847335813212834
+    ],
+    "embedding": [
+      0.4,
+      0.7,
+      0.2,
+      0.3,
+      0.8
+    ],
+    "metadata": {
+      "id": "book8",
+      "room": "cs",
+      "title": "Clean Code"
+    },
+    "neighbors": [
+      "book9",
+      "book7"
+    ]
+  },
+  {
+    "id": "book9",
+    "vector": [
+      -0.48346278301985407,
+      -0.38389155540915226,
+      -0.0003038638276024767
+    ],
+    "embedding": [
+      0.35,
+      0.75,
+      0.15,
+      0.25,
+      0.85
+    ],
+    "metadata": {
+      "id": "book9",
+      "room": "cs",
+      "title": "Code Complete"
+    },
+    "neighbors": [
+      "book8",
+      "book7"
+    ]
+  }
+]
