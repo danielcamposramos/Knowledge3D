@@ -75,6 +75,12 @@ The current implementation provides a simple pipeline for visualizing high-dimen
 1.  **`k3dgen` CLI:** This Python tool reads a CSV file of high-dimensional vectors, uses PCA to reduce them to 3D, and generates a `.gltf` file and a `.k3d` metadata file.
 2.  **Viewer:** A `three.js`-based web application that loads the `.gltf` and `.k3d` files, displays the 3D point cloud, and provides basic interactivity.
 
+## Fog Computing and AI Avatars
+
+K3D deployments can span the cloud-to-edge continuum using a fog-computing architecture. Each AI avatar inhabits a personal "House"—a 3D palace of memory that stores its embeddings and artifacts. The **cranium memory** persists locally on fog or edge nodes, while the avatar's **cognitive logic** may run as a local model or connect to external services. Companies and applications integrate with an avatar by connecting to its door, allowing custom models to be plugged in without altering the underlying spatial format.
+
+This distributed approach reduces latency, preserves data locality, and enables resilient operation when cloud connectivity is intermittent. See [Fog Computing and the K3D AI Avatar](docs/FOG_COMPUTING_AND_AI_AVATAR.md) for a detailed technical overview.
+
 ## Further Reading
 
 The ideas behind K3D are explored in more detail in the following documents:
