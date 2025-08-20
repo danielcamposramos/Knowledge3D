@@ -1,18 +1,37 @@
-# Knowledge3D: A Spatial Knowledge Reality
+# Knowledge3D: A Unified Framework for Embodied Spatial Intelligence
 
 | Status | License |
 | ------ | ------- |
 | ![pre-alpha](https://img.shields.io/badge/status-pre--alpha-blue) | [Apache-2.0](LICENSE) |
 
-Knowledge3D (K3D) is an open-source initiative to build a foundational platform for a new paradigm of human-AI interaction: a **Spatial Knowledge Reality**. It fuses concepts from CAD geometry, vector databases, and augmented reality to create a navigable 3D universe where knowledge is represented spatially.
+Knowledge3D (K3D) is an open-source initiative to build a foundational platform for a new paradigm of human-AI interaction. It is a **unified framework for embodied spatial intelligence**, designed to bridge the cognitive gap between human spatial intuition and the abstract, high-dimensional nature of modern data.
 
-This "knowledgeverse" serves as a shared environment for both humans and AI agents, enabling a new level of collaboration and discovery.
+Our mission is to move beyond flat, 2D interfaces and create a dynamic, interactive spatial environment where knowledge is not just visualized, but experienced. By representing complex data in a tangible, geometric medium, K3D functions as a form of **cognitive augmentation**, amplifying human intelligence.
 
 ## The K3D Vision
 
-Our vision is to **make knowledge spatial, social, and sentient**. We are moving beyond linear text and 2D interfaces to create a traversable 3D universe where insights can be discovered and shared at the speed of thought.
+The core thesis of the K3D project is the seamless integration of three foundational pillars:
+1.  **High-Dimensional Data Visualization:** Transforming abstract knowledge into a geometric, visualizable form.
+2.  **Explainable AI (XAI) and LLM Interpretability:** Decoding the "black box" of modern AI models to provide human-understandable narratives.
+3.  **Embodied AI and Spatial Computing:** Creating an immersive environment with intelligent agents that provide a natural, conversational interface for human interaction.
 
-For a detailed exploration of this vision, please see the **[K3D: A Vision for a Standardized Spatial Knowledge Reality](docs/reports/K3D_Vision_and_Standardization.md)** report.
+For a detailed exploration of this vision, the architecture, and the technology stack, please see our comprehensive research report:
+### **[The Knowledge3D Project: A Visionary Framework for Embodied Spatial Intelligence](docs/k3d-research.md)**
+
+## Project Status
+
+The project is currently in **Phase 1** of its development, focusing on building the MVP. This phase will deliver a static, non-interactive visualization of a knowledge graph, proving the core data-to-spatial pipeline.
+
+For a detailed project timeline and deliverables, please see the **[Project Roadmap](docs/ROADMAP.md)**.
+
+## How it Works: The Data-to-Spatial Pipeline
+
+The K3D platform is powered by a multi-stage pipeline that transforms raw data into a navigable 3D environment:
+
+1.  **Embedding Generation:** Raw data (text, images, etc.) is ingested and converted into a unified, high-dimensional vector space using models like BERT.
+2.  **Dimensionality Reduction:** The high-dimensional vectors are projected into a 3D space using **UMAP** (Uniform Manifold Approximation and Projection), which excels at preserving both local and global data structures.
+3.  **Spatial Representation:** The system builds a symbolic spatial index of the 3D point cloud, creating a "world model" that underpins the agent's reasoning and interaction capabilities.
+4.  **Visualization:** A `three.js`-based web application loads the generated `.gltf` and `.k3d` files, displaying the 3D point cloud and providing basic interactivity.
 
 ## Getting Started
 
@@ -55,65 +74,21 @@ For a detailed exploration of this vision, please see the **[K3D: A Vision for a
 
 This will launch a local server. Open your browser to the URL provided to see the 3D visualization.
 
-### House Example
-
-To generate and view a more detailed "House" example, follow these steps:
-
-1.  Generate the house data:
-    ```bash
-    python examples/my_house_generator.py examples/my_house_data.csv
-    ```
-    This will create `my_house.gltf` and `my_house.k3d` in the `examples` directory.
-
-2.  Copy the generated files to the viewer's public directory:
-    ```bash
-    cp examples/my_house.gltf viewer/public/
-    cp examples/my_house.k3d viewer/public/
-    ```
-
-3.  In `viewer/src/main.ts`, change the `file` variable to `my_house`.
-
-4.  Run the viewer:
-    ```bash
-    cd viewer
-    npm run dev
-    ```
-
 ![Viewer preview](docs/viewer_preview.png)
-
-## Project Status
-
-The project is currently in **Phase 3**, focusing on the development of a lightweight browser viewer. For more details, please see the [Project Roadmap](docs/ROADMAP.md).
 
 ## Key Concepts
 
-The K3D standard is built on a few key concepts:
-
 -   **K3D Node:** A single unit of knowledge, defined by the [`k3d_node_schema.json`](spec/k3d_node_schema.json). Each node has an ID, a 3D position, the original high-dimensional embedding, and metadata.
--   **glTF Extension:** We use a custom `K3D_nodes` glTF extension to link the 3D geometry to the `.k3d` metadata file. This keeps the glTF files small and focused on rendering. See [`glTF_K3D_extension.md`](spec/glTF_K3D_extension.md) for details.
-
-## How it Works
-
-The current implementation provides a simple pipeline for visualizing high-dimensional data:
-
-1.  **`k3dgen` CLI:** This Python tool reads a CSV file of high-dimensional vectors, uses PCA to reduce them to 3D, and generates a `.gltf` file and a `.k3d` metadata file.
-2.  **Viewer:** A `three.js`-based web application that loads the `.gltf` and `.k3d` files, displays the 3D point cloud, and provides basic interactivity.
-
-## Fog Computing and AI Avatars
-
-K3D deployments can span the cloud-to-edge continuum using a fog-computing architecture. Each AI avatar inhabits a personal "House"—a 3D palace of memory that stores its embeddings and artifacts. The **cranium memory** persists locally on fog or edge nodes, while the avatar's **cognitive logic** may run as a local model or connect to external services. Companies and applications integrate with an avatar by connecting to its door, allowing custom models to be plugged in without altering the underlying spatial format.
-
-This distributed approach reduces latency, preserves data locality, and enables resilient operation when cloud connectivity is intermittent. See [Fog Computing and the K3D AI Avatar](docs/FOG_COMPUTING_AND_AI_AVATAR.md) for a detailed technical overview.
+-   **glTF Extension:** We use a custom `K3D_nodes` glTF extension to link the 3D geometry to the `.k3d` metadata file. See [`glTF_K3D_extension.md`](spec/glTF_K3D_extension.md) for details.
 
 ## Further Reading
 
 The ideas behind K3D are explored in more detail in the following documents:
 
--   [K3D: A Vision for a Standardized Spatial Knowledge Reality](docs/reports/K3D_Vision_and_Standardization.md)
--   [EchoSystems K3D Collaboration Action Plan](docs/reports/echo_systems_k_3_d_action_plan_v_0.md)
--   [A 3D Vector Universe Standard for High-Dimensional AI Knowledge](docs/papers/3d_vector_universe_standard.docx) (Whitepaper)
+-   **[The Knowledge3D Project: A Visionary Framework for Embodied Spatial Intelligence](docs/k3d-research.md) (Primary Vision Document)**
+-   [Project Roadmap](docs/ROADMAP.md)
 -   [Developer Guidelines](docs/DEV_GUIDELINES.md)
--   [Codex Tasks](CODEX.md)
+-   [Fog Computing and the K3D AI Avatar](docs/FOG_COMPUTING_AND_AI_AVATAR.md)
 -   [House Memory: Linking LLM Embeddings to the Spatial Web](docs/HOUSE_MEMORY.md)
 
 A full list of related papers and research can be found in the `docs/` directory.
