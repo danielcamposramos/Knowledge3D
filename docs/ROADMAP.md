@@ -1,66 +1,54 @@
-# Knowledge3D Roadmap
+# Knowledge3D Project Roadmap
 
-This document outlines the planned phases for getting the Knowledge3D repository into a community‑ready state. Each phase introduces new deliverables and sets expectations for future contributions.
+This document outlines the strategic, phased development plan for the Knowledge3D (K3D) project, as detailed in the **[Knowledge3D Project Research Report](k3d-research.md)**. The vision is to build a unified framework for embodied spatial intelligence, and this roadmap provides a clear, actionable path to achieving that goal.
 
-| Phase | Deliverable | Purpose | Owner/Tooling Hints |
-|------|-------------|---------|--------------------|
-| **0. Repo housekeeping (1 day)** | `LICENSE` (Apache‑2.0), `LICENSE-CC-BY-4.0.txt`, `NOTICE`, minimal `README.md` badge table | Legal clarity & polished first impression | Manual commit |
-| **1. Skeleton layout (1 day)** | `/docs` → white‑paper (`k3d_whitepaper_v1.md`), `/spec` → `k3d_schema.json`, `glTF_K3D_extension.md` stub, `/examples` → `sample_vectors.csv`, `demo.k3d` | Gives contributors clear folders |  |
-| **2. "Hello‑World" pipeline (3‑5 days)** | Python CLI `k3dgen` that reads `sample_vectors.csv`, runs PCA → 3D and writes minimal glTF with `.k3d` metadata sidecar | Proves the spec is implementable | `pygltflib`, `scikit-learn` |
-| **3. Lightweight browser viewer (5‑7 days)** | `/viewer` with Vite + Three.js demo that loads glTF, reads `.k3d` JSON, colors nodes and shows basic hover tooltip | Visual "wow" for README GIF | Codex to stub JS |
-| **4. Milestone issues & project board (0.5 day)** | GitHub Projects board with columns (Backlog / In‑progress / Done) and issues for phases 0‑3 | Open‑source workflow clarity | GitHub UI |
-| **5. Continuous integration (CI) (0.5 day)** | `.github/workflows/ci.yml` running black + flake8, jest for viewer, and building/uploading demo to GitHub Pages | Prevents broken demo | `actions/setup-python`, `actions/upload-pages-artifact` |
-| **6. Draft CONTRIBUTING.md (1 day)** | Coding style, branch naming, DCO sign-off, clip limit reminders | Smooth external PRs | Manual draft |
-| **7. Outreach placeholder (ongoing)** | `docs/ROADMAP.md` with 2025‑Q3 "Spec v0.1", Q4 "LOD & AR extension", 2026 "Khronos proposal" | Sets vision for newcomers |  |
+The development is divided into three main phases, each building upon the last to progressively realize the full K3D vision.
 
-## Status
+---
 
-Phases 0–3 are complete. The project now has a functional "Hello-World" pipeline and a lightweight browser viewer that can visualize graph relationships. The next phase of the project will focus on implementing the features outlined in the "Next Steps" section below.
+## Phase 1: The MVP - The Static Knowledge Graph
 
-In August 2025 the team adopted the **EchoSystems K3D Collaboration Action Plan**. The first directive is fulfilled here by publishing the draft [`spec/k3d_node_schema.json`](../spec/k3d_node_schema.json). Upcoming milestones will align with the plan's MVP Flight Plan.
+The initial focus is on proving the core data-to-spatial pipeline and validating the fundamental concept of transforming complex, high-dimensional data into an understandable 3D spatial representation. This phase will deliver a non-interactive, read-only visualization of a knowledge corpus.
 
-**Why this order?**
+| Deliverable | Purpose | Key Technologies | Status |
+|---|---|---|---|
+| **Data-to-Spatial Pipeline** | Ingest raw data (e.g., text), generate high-dimensional embeddings, and use UMAP for dimensionality reduction. | Python, Pandas, Hugging Face (BERT), UMAP-learn | Not Started |
+| **Static 3D Visualization** | Render the generated 3D point cloud in a simple, navigable environment. | Unity Engine | Not Started |
+| **Basic Schema Definition** | Define a robust `k3d_node_schema.json` from first principles, incorporating spatial and propositional knowledge representation. | JSON Schema | Not Started |
+| **Core Documentation** | Update project documentation (`README.md`, `AGENTS.md`) to reflect the new vision and this roadmap. | Markdown | In Progress |
 
-- Phases 0–1 make the repo public-ready before code.
-- Phase 2 delivers a tangible artifact proving the concept (<100 LOC).
-- Phase 3 provides a browser demo for the README GIF.
-- Phases 4–6 turn the repo from a personal playground into a community project.
-- Phase 7 seeds long-term ambition without blocking immediate progress.
+**Goal:** Prove the viability of the core visualization pipeline and establish a solid foundation for future development.
 
-**Tactical hints**
+---
 
-- Keep `k3dgen` tiny: `pandas` → `scikit-learn.PCA(3)` → `pygltflib` mesh of instanced spheres. Embed per‑point color in extras.
-- `.k3d` sidecar: simple JSON `{ id, vector, metadata }[]` to be read by the viewer—no glTF patching yet.
-- Viewer: start with point sprites and `OrbitControls`; add ray‑caster hover later.
-- GIF for README: record the viewer rotating the demo cloud—30 fps, 6 s loop.
-- CI: any commit touching `/viewer` should auto‑deploy to `gh-pages`, so folks can click‑try without cloning.
+## Phase 2: The Interactive Agent
 
-## Ongoing research
+Once the core visualization is stable, this phase will introduce the embodied AI agent and interactive features. The goal is to transform the passive viewing experience into an active, conversational one, increasing user engagement and trust.
 
-- **3D data standards**: glTF, OpenUSD, 3D Tiles, and IfcOpenShell are under review for compatibility and reuse.
-- **Graph database standards**: TinkerPop, openCypher, RDF-star, and Neo4j will guide the K3D graph model.
-- **Math embedding models**: MathBERT and LaTeX2Vector are being evaluated for formula embeddings.
+| Deliverable | Purpose | Key Technologies | Status |
+|---|---|---|---|
+| **Embodied AI Agent** | Integrate a conversational AI agent into the 3D environment to act as a guide and interpreter. | Unity Engine, LLM (e.g., GPT-4o, Llama), Convai API (or similar) | Not Started |
+| **Agent World Model** | Develop the agent's internal representation of the virtual environment, enabling it to reason about the space and user intentions. | Custom spatial data structures | Not Started |
+| **Interactive UI/UX** | Implement basic user interactions, such as selecting data points, issuing voice commands, and receiving multimodal feedback from the agent. | Unity UI, Speech-to-text libraries | Not Started |
+| **XAI Integration** | Begin integrating Explainable AI (XAI) methods (e.g., SHAP) to allow the agent to answer "why" questions about the data. | SHAP, Python backend | Not Started |
 
-## Next Steps
+**Goal:** Create an engaging, interactive experience where users can converse with an AI to explore and understand the knowledge space.
 
-Based on the work completed in Phases 0-3 and the vision outlined in the **[K3D: A Vision for a Standardized Spatial Knowledge Reality](reports/K3D_Vision_and_Standardization.md)** report, the following next steps are proposed:
+---
 
--   **Develop the "House" and "Cranium" concepts:**
-    -   Create a formal specification for the "House" and "Cranium" data structures.
-    -   Define a standard API for interacting with a "House" and its "Cranium".
-    -   Develop a reference implementation of the "House" and "Cranium" concepts.
+## Phase 3: The Collaborative Knowledge Habitat
 
--   **Implement a reference implementation of the Fog Computing architecture:**
-    -   Develop a proof-of-concept that demonstrates the three-tiered (cloud, fog, edge) architecture.
-    -   Create a simple AI Avatar that runs on a fog node and interacts with its "House".
+The final phase will expand the single-user experience into a fully-featured, multiplayer, and real-time collaborative environment. This will realize the full vision of K3D as a platform for remote collaboration and shared knowledge exploration.
 
--   **Engage with the W3C AIKR workgroup:**
-    -   Submit the "K3D: A Vision for a Standardized Spatial Knowledge Reality" report to the workgroup.
-    -   Begin the process of formalizing the K3D file format, House API, and Fog Computing protocol as standards.
+| Deliverable | Purpose | Key Technologies | Status |
+|---|---|---|---|
+| **Multiplayer Environment** | Enable multiple users and AI agents to co-exist and interact within the same shared 3D space. | Unreal Engine (recommended for high-fidelity graphics), Photon/Netcode for GameObjects | Not Started |
+| **Real-time Collaboration Tools** | Develop tools for shared annotations, real-time data manipulation, and collaborative problem-solving. | Custom UI/UX components | Not Started |
+| **Advanced RAG Integration** | Implement a sophisticated Retrieval-Augmented Generation (RAG) system connected to a knowledge graph to ensure agent responses are accurate and grounded. | Knowledge Graph DB (e.g., Neo4j), RAG frameworks | Not Started |
+| **Full Ecosystem API** | Develop a comprehensive API for third-party developers to extend the K3D platform and integrate their own data and models. | REST/GraphQL | Not Started |
 
--   **Enhance the K3D ecosystem:**
-    -   Develop a more sophisticated data model to support a wider range of knowledge types.
-    -   Implement a REST/Graph API for querying the knowledgeverse.
-    -   Improve the viewer's UI/UX with advanced features like search, filtering, and collaboration tools.
-    -   Explore alternative dimensionality reduction techniques for different data modalities.
-    -   Continue development of the LLM plug-in to enable more advanced AI-to-environment interactions.
+**Goal:** Deliver a rich, collaborative platform for collective intelligence, where teams of humans and AIs can explore complex data together.
+
+---
+
+This roadmap is a living document and will be updated as the project progresses. For a more detailed technical breakdown, please refer to the main [research document](k3d-research.md).
