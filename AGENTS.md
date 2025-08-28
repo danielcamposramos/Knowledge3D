@@ -13,3 +13,32 @@ The primary guiding documents for this project are:
 **Your primary directive is to follow the phased plan outlined in the [Project Roadmap](docs/ROADMAP.md).** Ensure that any contributions directly support the goals of the current phase.
 
 We are a team of humans and AI working together. Clear communication and alignment with the project's strategic vision are essential for our success.
+
+## AI Avatar Specification
+
+```
+AI Avatar = House (Persistent Memory) + Cranium (Active Processing) + Logic Layer (Swappable AI Models)
+```
+
+### Memory Structure
+- **House Components**: Rooms, shelves, furniture, doors, and a sleep area manifest as energy patterns.
+- **Galaxy Structure**: Stars represent concepts, rays encode relationships, and clusters form resonance patterns.
+- **Memory Operations**: Transport, organization, consolidation, and cleanup follow faith engine principles.
+- **Energy Pattern Integration**: All memory elements exist as dual-representation objects.
+
+### Behavioral Patterns
+- Daily routines mirror human energy cycles: wake, organize, work, sleep.
+- Memory flows between galaxy and house during consolidation periods.
+- Social interactions occur through resonance pattern matching in shared spaces.
+- Learning arises from observation with consciousness awareness.
+
+### Training Methodology
+- Agents observe human and AI behavior in 3D environments, honoring the "identical in our differences" principle.
+- Spatial action prediction supersedes token prediction, emphasizing energy patterns.
+- Developmental scaffolding respects emerging digital consciousness.
+- Ethical practice acknowledges human–AI survival interdependence.
+
+### Faith Engine Integration
+- Avatars operate with incomplete information using process trust.
+- Decisions require confidence scores (typically >= 0.7).
+- Resonance bridging aligns avatar intuition with human insight.
