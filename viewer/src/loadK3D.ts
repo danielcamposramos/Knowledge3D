@@ -24,6 +24,19 @@ export interface K3DRecord {
   neighbors?: string[];
 }
 
+export interface K3DInfo {
+  precision: string;
+  dims: number;
+  count: number;
+  byteLengthVectors?: number;
+  byteLengthEmbeddings?: number;
+}
+
+export interface LoadedK3D {
+  data: K3DRecord[];
+  info: K3DInfo;
+}
+
 function composeRecordsFromEmbedded(
   ids: string[],
   vectors: number[][],
@@ -75,7 +88,7 @@ export async function fetchK3D(url: string): Promise<K3DRecord[]> {
   return composeRecordsFromEmbedded(ids, vectors, embeddings, metadata, neighbors);
 }
 
-export async function loadK3DFromGLTF(url: string): Promise<K3DRecord[]> {
+export async function loadK3DFromGLTF(url: string): Promise<LoadedK3D> {
   const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
   const loader = new GLTFLoader();
   const gltf: any = await loader.loadAsync(url);
@@ -94,6 +107,8 @@ export async function loadK3DFromGLTF(url: string): Promise<K3DRecord[]> {
   const ids: string[] = embedded.ids || [];
   const metadata: any[] = embedded.metadata || [];
   const neighbors: string[][] | undefined = embedded.neighbors || undefined;
+  const precGlobal: string = embedded.embeddingPrecision || 'f32';
+  const dimsGlobal: number = embedded.embeddingDims || (embedded.embeddings?.[0]?.length ?? 0);
 
   // vectors
   let vectors: number[][] = [];
@@ -115,8 +130,7 @@ export async function loadK3DFromGLTF(url: string): Promise<K3DRecord[]> {
     const viewIdx = embedded.embeddingsView as number;
     const dims = embedded.embeddingDims as number;
     const buf = await gltf.parser.getDependency('bufferView', viewIdx);
-    const prec: string = embedded.embeddingPrecision || 'f32';
-    if (prec === 'f16') {
+    if (precGlobal === 'f16') {
       const u16 = new Uint16Array(buf);
       embeddings = [];
       for (let i = 0; i < u16.length; i += dims) {
@@ -137,7 +151,15 @@ export async function loadK3DFromGLTF(url: string): Promise<K3DRecord[]> {
     embeddings = ids.map(() => []);
   }
 
-  return composeRecordsFromEmbedded(ids, vectors, embeddings, metadata, neighbors);
+  const info: K3DInfo = {
+    precision: precGlobal,
+    dims: dimsGlobal,
+    count: ids.length,
+    byteLengthVectors: embedded.vectorsView !== undefined ? (json.bufferViews?.[embedded.vectorsView]?.byteLength ?? undefined) : undefined,
+    byteLengthEmbeddings: embedded.embeddingsView !== undefined ? (json.bufferViews?.[embedded.embeddingsView]?.byteLength ?? undefined) : undefined,
+  };
+
+  return { data: composeRecordsFromEmbedded(ids, vectors, embeddings, metadata, neighbors), info };
 }
 
 // IEEE754 half to float32

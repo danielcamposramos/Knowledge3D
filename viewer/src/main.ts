@@ -1,10 +1,11 @@
 import './style.css';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { loadK3DFromGLTF, fetchCondoConfig, type K3DRecord, type CondoConfig, type HouseInfo } from './loadK3D';
+import { loadK3DFromGLTF, fetchCondoConfig, type K3DRecord, type CondoConfig, type HouseInfo, type LoadedK3D } from './loadK3D';
 import { K3DAgent } from './agent';
 import { ChatClient, type ChatMessage, type CommandMessage } from './chat';
 import { RPN } from './rpn';
+import { openStore } from './cache';
 
 // --- DOM Elements ---
 const canvas = document.getElementById('scene') as HTMLCanvasElement;
@@ -27,6 +28,8 @@ let currentPoints: THREE.Points | null = null;
 let condoConfig: CondoConfig | null = null;
 let agent: K3DAgent | null = null;
 let chat: ChatClient | null = null;
+const cache = openStore<LoadedK3D>();
+let cacheEnabled = true;
 
 // --- Main Logic ---
 
@@ -60,7 +63,13 @@ async function loadHouse(k3dUrl: string) {
     clearScene();
 
     try {
-        k3dData = await loadK3DFromGLTF(k3dUrl);
+        let loaded: LoadedK3D | null = null;
+        if (cacheEnabled) loaded = await cache.get(k3dUrl);
+        if (!loaded) {
+            loaded = await loadK3DFromGLTF(k3dUrl);
+            if (cacheEnabled) await cache.put(k3dUrl, loaded);
+        }
+        k3dData = loaded.data;
         if (k3dData.length === 0) {
             console.warn(`No data found in ${k3dUrl}`);
             return;
@@ -97,6 +106,12 @@ async function loadHouse(k3dUrl: string) {
         const material = new THREE.PointsMaterial({ size: 0.1, vertexColors: true });
         currentPoints = new THREE.Points(geometry, material);
         scene.add(currentPoints);
+
+        // dataset info
+        const infoEl = document.getElementById('dataset-info') as HTMLDivElement;
+        const inf = loaded.info;
+        const fmt = (b?: number) => b !== undefined ? `${(b/1e6).toFixed(2)} MB` : 'n/a';
+        infoEl.textContent = `precision=${inf.precision} dims=${inf.dims} count=${inf.count} vectors=${fmt(inf.byteLengthVectors)} embeddings=${fmt(inf.byteLengthEmbeddings)}`;
 
         // Initialize or reset the agent
         const explainLog = document.getElementById('explain-log') as HTMLDivElement;
@@ -233,6 +248,8 @@ const agentGo = document.getElementById('agent-go') as HTMLButtonElement;
 const agentFollow = document.getElementById('agent-follow') as HTMLInputElement;
 const chatInput = document.getElementById('chat-input') as HTMLInputElement;
 const chatSend = document.getElementById('chat-send') as HTMLButtonElement;
+const cacheToggle = document.getElementById('cache-enable') as HTMLInputElement;
+const cacheClear = document.getElementById('cache-clear') as HTMLButtonElement;
 if (agentGo) {
     agentGo.addEventListener('click', () => {
         if (agent && agentTarget?.value) {
@@ -247,6 +264,18 @@ if (chatSend) {
             chat.sendChat(chatInput.value);
             chatInput.value = '';
         }
+    });
+}
+if (cacheToggle) {
+    cacheToggle.addEventListener('change', () => {
+        cacheEnabled = !!cacheToggle.checked;
+    });
+}
+if (cacheClear) {
+    cacheClear.addEventListener('click', async () => {
+        await cache.clear();
+        const infoEl = document.getElementById('dataset-info') as HTMLDivElement;
+        if (infoEl) infoEl.textContent = 'cache cleared';
     });
 }
 if (agentFollow) {
