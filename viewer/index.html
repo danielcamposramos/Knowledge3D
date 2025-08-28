@@ -11,6 +11,14 @@
       <select id="expert-select">
         <option value="">Loading...</option>
       </select>
+      <div style="margin-top:8px;">
+        <label for="agent-target">Agent target:</label>
+        <input id="agent-target" placeholder="label or id" style="width: 160px;" />
+        <button id="agent-go">Go</button>
+        <label style="margin-left:8px;">
+          <input type="checkbox" id="agent-follow" /> Follow
+        </label>
+      </div>
     </div>
     <canvas id="scene"></canvas>
     <div id="tooltip" style="position: absolute; display: none; background: #fff; border: 1px solid #000; padding: 2px 4px; font-size: 12px;"></div>

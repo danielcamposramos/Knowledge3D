@@ -13,6 +13,8 @@ dependencies = [
     "numpy",
     "scikit-learn",
     "pygltflib",
+    "umap-learn",
+    "sentence-transformers",
 ]
 
 [project.scripts]

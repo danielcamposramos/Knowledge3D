@@ -17,8 +17,8 @@ The initial focus is on proving the core data-to-spatial pipeline and validating
 | Deliverable | Purpose | Key Technologies | Status |
 |---|---|---|---|
 | **Data-to-Spatial Pipeline** | Ingest raw data (e.g., text), generate high-dimensional embeddings, and use UMAP for dimensionality reduction. | Python, Pandas, Hugging Face (BERT), UMAP-learn | Not Started |
-| **Static 3D Visualization** | Render the generated 3D point cloud in a simple, navigable environment. | Unity Engine | Not Started |
-| **Basic Schema Definition** | Define a robust `k3d_node_schema.json` from first principles, incorporating spatial and propositional knowledge representation. | JSON Schema | Not Started |
+| **Static 3D Visualization** | Render the generated 3D point cloud in a simple, navigable environment. | Web viewer (Three.js); Unity later | In Progress |
+| **Embedded Data Model** | Embed ids, vectors, embeddings, metadata directly in glTF (`primitive.extras.k3d`). | glTF 2.0 (extras) | In Progress |
 | **Core Documentation** | Update project documentation (`README.md`, `AGENTS.md`) to reflect the new vision and this roadmap. | Markdown | In Progress |
 
 **Goal:** Prove the viability of the core visualization pipeline and establish a solid foundation for future development.

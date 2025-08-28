@@ -1,0 +1,138 @@
+{
+  "accessors": [
+    {
+      "bufferView": 0,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "normalized": false,
+      "count": 3,
+      "type": "VEC3",
+      "max": [
+        0.8012115955352783,
+        0.7724931240081787,
+        -0.0
+      ],
+      "min": [
+        -0.5367857217788696,
+        -0.615246057510376,
+        -0.0
+      ]
+    }
+  ],
+  "asset": {
+    "generator": "pygltflib@v1.16.5",
+    "version": "2.0"
+  },
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 36,
+      "target": 34962
+    }
+  ],
+  "buffers": [
+    {
+      "uri": "data:application/octet-stream;base64,NBxNP18FIb4AAACA1GKHvhzCRT8AAACAymoJv8SAHb8AAACA",
+      "byteLength": 36
+    }
+  ],
+  "meshes": [
+    {
+      "primitives": [
+        {
+          "extras": {
+            "k3dIds": [
+              "0",
+              "1",
+              "2"
+            ],
+            "k3d": {
+              "ids": [
+                "0",
+                "1",
+                "2"
+              ],
+              "vectors": [
+                [
+                  0.8012116032968553,
+                  -0.15724704578830584,
+                  -0.0
+                ],
+                [
+                  -0.2644258653257001,
+                  0.7724931251560888,
+                  -0.0
+                ],
+                [
+                  -0.5367857379711553,
+                  -0.6152460793677834,
+                  -0.0
+                ]
+              ],
+              "embeddings": [
+                [
+                  1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  1.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ]
+              ],
+              "metadata": [
+                {
+                  "label": "0"
+                },
+                {
+                  "label": "1"
+                },
+                {
+                  "label": "2"
+                }
+              ],
+              "neighbors": [
+                [
+                  "1",
+                  "2"
+                ],
+                [
+                  "2",
+                  "0"
+                ],
+                [
+                  "1",
+                  "0"
+                ]
+              ]
+            }
+          },
+          "attributes": {
+            "POSITION": 0
+          },
+          "mode": 0
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "mesh": 0
+    }
+  ],
+  "scene": 0,
+  "scenes": [
+    {
+      "nodes": [
+        0
+      ]
+    }
+  ]
+}

@@ -1,11 +1,11 @@
-# glTF K3D Extension (Draft)
+# glTF K3D Data (Draft)
 
-The `K3D_nodes` extension links a glTF scene to external `.k3d` data so that
-graph‑based knowledge can be aligned with 3D geometry. Each record in the
-`.k3d` file must validate against
-[`k3d_node_schema.json`](k3d_node_schema.json).
+K3D supports two representations for aligning knowledge with 3D geometry:
 
-## Properties
+1) Legacy sidecar via `K3D_nodes` extension: a glTF scene links to an external `.k3d` JSON.
+2) Embedded variant: all K3D node data (IDs, vectors, embeddings, metadata) is stored directly in `primitive.extras.k3d`.
+
+## Sidecar Properties (Legacy)
 
 | Property               | Type   | Description |
 |------------------------|--------|-------------|
@@ -37,6 +37,26 @@ graph‑based knowledge can be aligned with 3D geometry. Each record in the
 }
 ```
 
+## Embedded Variant (Recommended)
+
+Data is embedded within the mesh primitive to keep geometry and semantics in a single asset.
+
+Location: `meshes[n].primitives[m].extras.k3d`
+
+Schema (informal):
+
+```json
+{
+  "ids": ["node-1", "node-2", "node-3"],
+  "vectors": [[x, y, z], [x, y, z], [x, y, z]],
+  "embeddings": [[...], [...], [...]],
+  "metadata": [{"label": "..."}, {"label": "..."}, {"label": "..."}],
+  "neighbors": [["...", "..."], ["..."], []]
+}
+```
+
+Back‑compat helper: `primitive.extras.k3dIds` mirrors the `ids` array for readers that only expect a flat id list.
+
 ## Rationale
 
 Separating K3D metadata into a sidecar keeps the glTF payload small while
@@ -45,8 +65,4 @@ allowing rich graph relationships defined in
 
 ## Compatibility
 
-Readers that ignore `K3D_nodes` continue to operate on standard glTF content.
-The extension follows the existing `extensionsUsed`/`extensionsRequired`
-mechanism and is compatible with other extensions such as
-`KHR_draco_mesh_compression`.
-
+Readers that ignore `K3D_nodes` or the `extras.k3d` payload continue to operate on standard glTF content. The embedded payload uses `extras` and remains valid glTF 2.0.
