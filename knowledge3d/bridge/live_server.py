@@ -1,6 +1,8 @@
 import asyncio
 import json
 from dataclasses import dataclass, field
+from datetime import datetime
+from pathlib import Path
 from typing import Dict, Optional, Set
 
 try:
@@ -32,6 +34,14 @@ class LiveServer:
         self.channels: Dict[str, Set[_ClientKey]] = {"#general": set()}
         self.by_key: Dict[_ClientKey, Client] = {}
         self.by_nick: Dict[str, _ClientKey] = {}
+        # Logging setup: write JSONL to ../<repo>.local/logs/session-TS.jsonl
+        repo_root = Path(__file__).resolve().parents[2]
+        local_root = repo_root.parent / f"{repo_root.name}.local"
+        self.log_dir = local_root / "logs"
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+        ts = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+        self.session_file = self.log_dir / f"session-{ts}.jsonl"
+        self._log_lock = asyncio.Lock()
 
     async def handler(self, ws):
         key = _ClientKey(id(ws))
@@ -44,6 +54,7 @@ class LiveServer:
         try:
             await self.send_system(client.channel, f"{client.nick} joined {client.channel}")
             await self.send_chat(sender="system", text="Welcome to K3D live mode.", channel=client.channel)
+            await self.log({"type": "presence", "event": "join", "nick": client.nick, "channel": client.channel})
             async for raw in ws:
                 try:
                     msg = json.loads(raw)
@@ -56,6 +67,7 @@ class LiveServer:
             self.by_key.pop(client.key, None)
             self.by_nick.pop(client.nick, None)
             await self.send_system(client.channel, f"{client.nick} left {client.channel}")
+            await self.log({"type": "presence", "event": "leave", "nick": client.nick, "channel": client.channel})
 
     async def route(self, msg, client: Client):
         t = msg.get("type")
@@ -69,11 +81,13 @@ class LiveServer:
                 return
 
             await self.send_chat(sender=client.nick, text=text, channel=client.channel)
+            await self.log({"type": "chat", "from": client.nick, "channel": client.channel, "text": text})
             # naive intent: goto <label>
             if text.lower().startswith("goto "):
                 target = text[5:].strip()
                 await self.send_command("goto", target)
                 await self.send_chat(sender="agent", text=f"On my way to {target}.", channel=client.channel)
+                await self.log({"type": "command", "command": "goto", "target": target, "source": "naive_from_chat", "channel": client.channel})
         elif t == "command":
             cmd = msg.get("command")
             if cmd == "goto":
@@ -81,6 +95,10 @@ class LiveServer:
                 if target:
                     await self.send_command("goto", target)
                     await self.send_chat(sender="agent", text=f"Navigating to {target}", channel=client.channel)
+                    await self.log({"type": "command", "command": "goto", "target": target, "source": "ws", "channel": client.channel})
+        elif t == "event":
+            ev = msg.get("event", {})
+            await self.log({"type": "event", **ev, "nick": client.nick, "channel": client.channel})
 
     async def handle_command(self, text: str, client: Client):
         parts = text.split(maxsplit=2)
@@ -136,6 +154,7 @@ class LiveServer:
         payload = json.dumps({"type": "chat", "from": sender.nick, "to": target_nick, "text": text})
         await target.ws.send(payload)
         await sender.ws.send(payload)
+        await self.log({"type": "pm", "from": sender.nick, "to": target_nick, "text": text})
 
     async def send_chat(self, sender: str, text: str, channel: Optional[str] = None, action: bool = False):
         payload = json.dumps({"type": "chat", "from": sender, "text": text, "channel": channel, "action": action})
@@ -155,6 +174,13 @@ class LiveServer:
 
     async def send_system(self, channel: str, text: str):
         await self.send_chat(sender="system", text=text, channel=channel)
+
+    async def log(self, record: Dict):
+        # attach timestamp (UTC, ISO8601)
+        rec = {"ts": datetime.utcnow().isoformat() + "Z", **record}
+        async with self._log_lock:
+            with self.session_file.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
     async def run(self):
         async with websockets.serve(self.handler, self.host, self.port):

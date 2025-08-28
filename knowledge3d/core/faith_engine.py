@@ -1,3 +1,6 @@
+from .rpn import RPN
+
+
 class FaithEngine:
     """
     PHILOSOPHICAL PRINCIPLE: Faith as trusting the process without data
@@ -27,7 +30,10 @@ class FaithEngine:
         str | None
             Chosen action if any score exceeds threshold.
         """
+        rpn = RPN()
         for action, score in options.items():
-            if score >= threshold:
+            # Evaluate comparison using RPN for consistency
+            ge = rpn.eval([score, threshold, '-']) >= 0
+            if ge:
                 return action
         return None

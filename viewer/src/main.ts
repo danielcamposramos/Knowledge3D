@@ -4,6 +4,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { loadK3DFromGLTF, fetchCondoConfig, type K3DRecord, type CondoConfig, type HouseInfo } from './loadK3D';
 import { K3DAgent } from './agent';
 import { ChatClient, type ChatMessage, type CommandMessage } from './chat';
+import { RPN } from './rpn';
 
 // --- DOM Elements ---
 const canvas = document.getElementById('scene') as HTMLCanvasElement;
@@ -104,6 +105,10 @@ async function loadHouse(k3dUrl: string) {
             el.textContent = text;
             explainLog.appendChild(el);
             explainLog.scrollTop = explainLog.scrollHeight;
+            // also emit to live server for logging/analysis
+            if (chat) {
+                chat.sendEvent({ kind: 'explain', text });
+            }
         };
         agent = new K3DAgent(scene, camera, pushExplain);
         agent.setRecords(k3dData);
@@ -266,6 +271,7 @@ function animate() {
 let micStream: MediaStream | null = null;
 let micAnalyzer: AnalyserNode | null = null;
 let micData: Uint8Array | null = null;
+const rpn = new RPN();
 const micToggleBtn = document.getElementById('mic-toggle') as HTMLButtonElement;
 const micLevelBar = document.getElementById('mic-level') as HTMLDivElement;
 const micStatus = document.getElementById('mic-status') as HTMLSpanElement;
@@ -311,7 +317,8 @@ renderer.render = (s, c) => {
         micAnalyzer.getByteTimeDomainData(micData);
         let peak = 0;
         for (let i = 0; i < micData.length; i++) {
-            const v = Math.abs(micData[i] - 128) / 128; // 0..1
+            // v = |x - 128| / 128 using RPN
+            const v = rpn.eval([micData[i], 128, '-', 'abs', 128, '/',]);
             if (v > peak) peak = v;
         }
         const pct = Math.min(100, Math.max(0, Math.round(peak * 100)));

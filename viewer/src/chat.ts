@@ -66,4 +66,9 @@ export class ChatClient {
     const msg: CommandMessage = { type: 'command', command: 'goto', target };
     this.ws?.send(JSON.stringify(msg));
   }
+
+  sendEvent(event: Record<string, unknown>) {
+    const payload = { type: 'event', event };
+    this.ws?.send(JSON.stringify(payload));
+  }
 }
