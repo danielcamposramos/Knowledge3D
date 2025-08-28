@@ -48,14 +48,18 @@ Schema (informal):
 ```json
 {
   "ids": ["node-1", "node-2", "node-3"],
-  "vectors": [[x, y, z], [x, y, z], [x, y, z]],
-  "embeddings": [[...], [...], [...]],
+  "vectorsView": 0,
+  "embeddingsView": 1,
+  "embeddingDims": 768,
   "metadata": [{"label": "..."}, {"label": "..."}, {"label": "..."}],
   "neighbors": [["...", "..."], ["..."], []]
 }
 ```
 
-Back‑compat helper: `primitive.extras.k3dIds` mirrors the `ids` array for readers that only expect a flat id list.
+Notes:
+- `vectorsView` is a `bufferView` index of packed Float32 triples (x,y,z for each node).
+- `embeddingsView` is a `bufferView` index of packed Float32 embeddings concatenated row-wise; `embeddingDims` gives the per-node dimension.
+- `primitive.extras.k3dIds` mirrors the `ids` array for simple readers.
 
 ## Rationale
 

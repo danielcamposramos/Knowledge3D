@@ -1,7 +1,7 @@
 import './style.css';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { fetchK3D, fetchCondoConfig, type K3DRecord, type CondoConfig, type HouseInfo } from './loadK3D';
+import { loadK3DFromGLTF, fetchCondoConfig, type K3DRecord, type CondoConfig, type HouseInfo } from './loadK3D';
 import { K3DAgent } from './agent';
 
 // --- DOM Elements ---
@@ -53,7 +53,7 @@ async function loadHouse(k3dUrl: string) {
     clearScene();
 
     try {
-        k3dData = await fetchK3D(k3dUrl);
+        k3dData = await loadK3DFromGLTF(k3dUrl);
         if (k3dData.length === 0) {
             console.warn(`No data found in ${k3dUrl}`);
             return;
