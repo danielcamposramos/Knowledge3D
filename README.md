@@ -19,6 +19,14 @@ Benefits include:
 - Natural collaboration via resonance between human and AI energy patterns.
 - Persistent houses and galaxy memories that evolve through interaction.
 
+## Cognitive House Illustration
+
+The Cognitive House depicts the AI Avatar operating within a shared human–AI memory environment. This concept anchors K3D’s “House (memory) + Cranium (processing) + Logic Layer (models)” framework.
+
+![Cognitive House](docs/images/cognitive_house.png)
+
+Reference prompt: see `docs/images/cognitive_house_prompt.md`.
+
 ## Technical Overview
 
 - **Three-tier Fog Computing**: Edge devices, regional fog nodes, and a cloud backbone coordinate processing to keep latency under 100ms.
