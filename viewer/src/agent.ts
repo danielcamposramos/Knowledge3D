@@ -11,10 +11,12 @@ export class K3DAgent {
   private target: THREE.Vector3 | null = null;
   private path: THREE.Vector3[] = [];
   private speed = 1.5; // units per second
+  private onExplain?: (text: string) => void;
 
-  constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
+  constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera, onExplain?: (text: string) => void) {
     this.scene = scene;
     this.camera = camera;
+    this.onExplain = onExplain;
     const geom = new THREE.SphereGeometry(0.12, 16, 16);
     const mat = new THREE.MeshBasicMaterial({ color: 0xffcc00 });
     this.object = new THREE.Mesh(geom, mat);
@@ -47,10 +49,17 @@ export class K3DAgent {
         return new THREE.Vector3(r.vector[0], r.vector[1], r.vector[2]);
       });
       this.target = this.path.shift() || null;
+      // Explain initial plan
+      this.emitExplainPlan(pathIds);
     } else {
       const [x, y, z] = found.vector;
       this.target = new THREE.Vector3(x, y, z);
       this.path = [];
+      // Explain direct intent
+      const src = start ? this.labelOf(start.id) : 'start';
+      const dst = this.labelOf(found.id);
+      const sim = start ? this.cosSimById(start.id, found.id).toFixed(3) : 'n/a';
+      this.emitExplain(`Plan: move directly from ${src} → ${dst} (sim=${sim}).`);
     }
   }
 
@@ -88,6 +97,35 @@ export class K3DAgent {
     return null;
   }
 
+  private labelOf(id: string): string {
+    const r = this.recordMap.get(id);
+    return (r?.metadata?.label as string) || id;
+  }
+
+  private cosSim(a: number[], b: number[]): number {
+    let dot = 0, na = 0, nb = 0;
+    for (let i = 0; i < Math.min(a.length, b.length); i++) {
+      dot += a[i]*b[i]; na += a[i]*a[i]; nb += b[i]*b[i];
+    }
+    if (na === 0 || nb === 0) return 0;
+    return dot / (Math.sqrt(na) * Math.sqrt(nb));
+  }
+
+  private cosSimById(aId: string, bId: string): number {
+    const a = this.recordMap.get(aId)?.embedding || [];
+    const b = this.recordMap.get(bId)?.embedding || [];
+    return this.cosSim(a as number[], b as number[]);
+  }
+
+  private emitExplain(text: string) {
+    if (this.onExplain) this.onExplain(text);
+  }
+
+  private emitExplainPlan(pathIds: string[]) {
+    const labels = pathIds.map(id => this.labelOf(id));
+    this.emitExplain(`Plan: path ${labels.join(' → ')}`);
+  }
+
   update(dt: number) {
     if (!this.target) return;
     const current = this.object.position;
@@ -95,9 +133,18 @@ export class K3DAgent {
     const dist = dir.length();
     if (dist < 1e-3) {
       if (this.path.length > 0) {
+        const prev = this.findClosestRecord(current)?.id;
         this.target = this.path.shift() || null;
+        const nextId = this.findClosestRecord(this.target!)?.id;
+        if (prev && nextId) {
+          const s = this.labelOf(prev);
+          const t = this.labelOf(nextId);
+          const sim = this.cosSimById(prev, nextId).toFixed(3);
+          this.emitExplain(`Step: ${s} → ${t} (neighbor hop, sim=${sim}).`);
+        }
       } else {
         this.target = null;
+        this.emitExplain(`Arrived.`);
       }
       return;
     }

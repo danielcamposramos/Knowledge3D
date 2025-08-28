@@ -98,7 +98,14 @@ async function loadHouse(k3dUrl: string) {
         scene.add(currentPoints);
 
         // Initialize or reset the agent
-        agent = new K3DAgent(scene, camera);
+        const explainLog = document.getElementById('explain-log') as HTMLDivElement;
+        const pushExplain = (text: string) => {
+            const el = document.createElement('div');
+            el.textContent = text;
+            explainLog.appendChild(el);
+            explainLog.scrollTop = explainLog.scrollHeight;
+        };
+        agent = new K3DAgent(scene, camera, pushExplain);
         agent.setRecords(k3dData);
 
         // Start chat connection
@@ -254,6 +261,64 @@ function animate() {
     if (agent) agent.update(dt);
     renderer.render(scene, camera);
 }
+
+// --- Mic Toggle ---
+let micStream: MediaStream | null = null;
+let micAnalyzer: AnalyserNode | null = null;
+let micData: Uint8Array | null = null;
+const micToggleBtn = document.getElementById('mic-toggle') as HTMLButtonElement;
+const micLevelBar = document.getElementById('mic-level') as HTMLDivElement;
+const micStatus = document.getElementById('mic-status') as HTMLSpanElement;
+
+async function startMic() {
+    try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true }, video: false });
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const src = ctx.createMediaStreamSource(micStream);
+        micAnalyzer = ctx.createAnalyser();
+        micAnalyzer.fftSize = 256;
+        src.connect(micAnalyzer);
+        micData = new Uint8Array(micAnalyzer.frequencyBinCount);
+        micStatus.textContent = 'mic: on';
+        micToggleBtn.textContent = 'Stop Mic';
+    } catch (e) {
+        micStatus.textContent = 'mic: error';
+    }
+}
+
+function stopMic() {
+    if (micStream) {
+        micStream.getTracks().forEach(t => t.stop());
+        micStream = null;
+    }
+    micAnalyzer = null;
+    micData = null;
+    micStatus.textContent = 'mic: off';
+    micToggleBtn.textContent = 'Start Mic';
+    if (micLevelBar) micLevelBar.style.width = '0%';
+}
+
+if (micToggleBtn) {
+    micToggleBtn.addEventListener('click', () => {
+        if (micStream) stopMic(); else startMic();
+    });
+}
+
+// update mic level in the render loop
+const _origRender = renderer.render.bind(renderer);
+renderer.render = (s, c) => {
+    if (micAnalyzer && micData && micLevelBar) {
+        micAnalyzer.getByteTimeDomainData(micData);
+        let peak = 0;
+        for (let i = 0; i < micData.length; i++) {
+            const v = Math.abs(micData[i] - 128) / 128; // 0..1
+            if (v > peak) peak = v;
+        }
+        const pct = Math.min(100, Math.max(0, Math.round(peak * 100)));
+        micLevelBar.style.width = pct + '%';
+    }
+    _origRender(s, c);
+};
 
 // --- Start Application ---
 initCondoSelector();
