@@ -27,6 +27,7 @@ We are a team of humans and AI working together. Clear communication and alignme
   - Chat commands: `/join #channel`, `/nick name`, `/me action`, `/msg nick text`, and plain messages. The agent responds to `goto <label>`.
   - Agent movement emits explanations (plan + per-hop cosine similarity). Use these traces for iteration and training.
 - Logging for iteration: Session logs are written as JSONL to a sibling folder outside the repo: `../Knowledge3D.local/logs/session-<ts>.jsonl`. Treat them as training data and do not commit them to the repo.
+- Dual code (HR/MR): Generate machine‑runtime sources outside the repo with the `codeopt` CLI. See `docs/DUAL_CODE.md`.
 - Generator pipeline:
   - CSV: `python -m k3dgen data.csv --gltf scene.glb --k 5 --reducer umap`
   - Text: `python -m k3dgen --text lines.txt --gltf books.glb --k 5 --model sentence-transformers/all-MiniLM-L6-v2`

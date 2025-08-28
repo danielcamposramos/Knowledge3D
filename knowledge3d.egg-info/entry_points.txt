@@ -1,2 +1,3 @@
 [console_scripts]
+codeopt = codeopt.__main__:main
 k3dgen = k3dgen.__main__:main
