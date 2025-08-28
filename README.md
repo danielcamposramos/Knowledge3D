@@ -58,9 +58,9 @@ npm install
 ```
 
 ### First Prototype
-Generate a sample dataset and view it in the web-based viewer:
+Generate a sample glTF with embedded K3D data and view it in the web-based viewer:
 ```bash
-python -m k3dgen examples/sample_vectors.csv --gltf examples/sample_output.gltf --k3d examples/sample_output.k3d
+python -m k3dgen examples/sample_vectors.csv --gltf examples/sample_output.gltf
 cd viewer
 npm run dev
 ```
@@ -76,8 +76,8 @@ knowledge3d/
 ├── examples/        # Proof-of-concept implementations
 ```
 Additional directories:
-- `k3dgen/` : Tooling for converting embeddings to spatial formats.
-- `viewer/` : Web-based 3D viewer.
+- `k3dgen/` : Tooling for converting embeddings to embedded glTF formats.
+- `viewer/` : Web-based 3D viewer with an initial AI avatar agent.
 - `docs/` : Extended documentation and research.
 - `tests/` : Unit tests and future philosophical validation suites.
 

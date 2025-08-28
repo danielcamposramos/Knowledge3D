@@ -24,8 +24,6 @@ from sklearn.neighbors import NearestNeighbors
 # --- Constants ---
 ARRAY_BUFFER = 34962
 FLOAT = 5126
-K3D_EXTENSION_NAME = "K3D_nodes"
-K3D_IDS_PROPERTY = "extras.k3dIds"
 
 
 def load_vectors(csv_path: str) -> Tuple[List[str], np.ndarray]:
@@ -57,13 +55,59 @@ def load_vectors(csv_path: str) -> Tuple[List[str], np.ndarray]:
     return ids, df_vectors.to_numpy(dtype=float)
 
 
-def reduce_dimensions(vectors: np.ndarray) -> np.ndarray:
-    """Reduce the dimensionality of vectors to 3D using PCA."""
+def reduce_dimensions(vectors: np.ndarray, reducer: str = "umap") -> np.ndarray:
+    """Reduce dimensionality to 3D using UMAP (default) or PCA."""
     try:
-        pca = PCA(n_components=3)
-        return pca.fit_transform(vectors)
+        n_samples = vectors.shape[0]
+        if reducer.lower() == "umap":
+            # Guard: tiny datasets can fail UMAP spectral step when n_components >= n_samples
+            if n_samples <= 3:
+                pca = PCA(n_components=min(3, n_samples))
+                projected = pca.fit_transform(vectors)
+                if projected.shape[1] < 3:
+                    pad = np.zeros((projected.shape[0], 3))
+                    pad[:, : projected.shape[1]] = projected
+                    return pad
+                return projected
+            try:
+                import umap  # type: ignore
+            except Exception as exc:  # pragma: no cover
+                raise ValueError(
+                    "UMAP not available. Install umap-learn or use --reducer pca"
+                ) from exc
+            um = umap.UMAP(n_components=3, n_neighbors=min(15, max(2, len(vectors) - 1)))
+            return um.fit_transform(vectors)
+        else:
+            pca = PCA(n_components=3)
+            return pca.fit_transform(vectors)
     except Exception as exc:
-        raise ValueError(f"PCA computation failed: {exc}") from exc
+        raise ValueError(f"Dimensionality reduction failed: {exc}") from exc
+
+
+def embed_texts(text_path: str, model_name: str = "sentence-transformers/all-MiniLM-L6-v2") -> Tuple[List[str], np.ndarray, List[str]]:
+    """Compute embeddings for lines of text using sentence-transformers.
+
+    Returns ids, embedding matrix, and labels (trimmed text snippets).
+    """
+    try:
+        with open(text_path, "r", encoding="utf-8") as f:
+            lines = [ln.strip() for ln in f if ln.strip()]
+    except OSError as exc:
+        raise ValueError(f"Failed to read text file '{text_path}': {exc}") from exc
+    if not lines:
+        raise ValueError("Text file is empty")
+    try:
+        from sentence_transformers import SentenceTransformer  # type: ignore
+    except Exception as exc:  # pragma: no cover
+        raise ValueError(
+            "sentence-transformers not available. Install it or omit --text"
+        ) from exc
+    model = SentenceTransformer(model_name)
+    embeddings = np.asarray(model.encode(lines, convert_to_numpy=True), dtype=float)
+    ids = [str(i) for i in range(len(lines))]
+    # labels: first 24 chars of line
+    labels = [ln if len(ln) <= 24 else (ln[:21] + "...") for ln in lines]
+    return ids, embeddings, labels
 
 
 def find_neighbors(vectors: np.ndarray, k: int) -> np.ndarray:
@@ -78,38 +122,19 @@ def find_neighbors(vectors: np.ndarray, k: int) -> np.ndarray:
     return indices[:, 1:]  # Exclude the point itself
 
 
-def create_k3d_file(
-    k3d_path: str,
+def create_k3d_file(*args, **kwargs) -> None:  # pragma: no cover - removed functionality
+    raise RuntimeError(".k3d sidecar output is no longer supported. Use embedded glTF.")
+
+
+def create_gltf_file(
+    gltf_path: str,
     ids: List[str],
     points: np.ndarray,
     embeddings: np.ndarray,
     neighbor_indices: np.ndarray,
+    labels: List[str] | None = None,
 ) -> None:
-    """Create the .k3d file."""
-    records = []
-    for i, (point_id, point, embedding) in enumerate(zip(ids, points, embeddings)):
-        neighbor_ids = [ids[j] for j in neighbor_indices[i]]
-        records.append(
-            {
-                "id": point_id,
-                "vector": point.tolist(),
-                "embedding": embedding.tolist(),
-                "metadata": {"label": point_id},
-                "neighbors": neighbor_ids,
-            }
-        )
-
-    try:
-        with open(k3d_path, "w", encoding="utf-8") as f:
-            json.dump(records, f, indent=2)
-    except OSError as exc:
-        raise OSError(f"Failed to write .k3d file '{k3d_path}': {exc}") from exc
-
-
-def create_gltf_file(
-    gltf_path: str, k3d_path: str, ids: List[str], points: np.ndarray
-) -> None:
-    """Create the .gltf file."""
+    """Create the .gltf file with embeddings embedded in primitive.extras."""
     # 1. Convert numpy array to glTF binary buffer
     positions = points.astype(np.float32)
     data_bytes = positions.tobytes()
@@ -131,30 +156,34 @@ def create_gltf_file(
         max=positions.max(axis=0).tolist(),
         min=positions.min(axis=0).tolist(),
     )
+    # Build K3D extras embedded directly into the primitive
+    neighbors: List[List[str]] = []
+    for i, _ in enumerate(ids):
+        neighbors.append([ids[j] for j in neighbor_indices[i]])
+
+    k3d_payload = {
+        "ids": ids,
+        "vectors": points.tolist(),
+        "embeddings": embeddings.tolist(),
+        "metadata": [{"label": (labels[i] if labels else ids[i])} for i in range(len(ids))],
+        "neighbors": neighbors,
+    }
+
     primitive = Primitive(
-        attributes={"POSITION": 0}, mode=0, extras={"k3dIds": ids}
+        attributes={"POSITION": 0},
+        mode=0,
+        extras={
+            # Back-compat: keep flat id list
+            "k3dIds": ids,
+            # New embedded payload
+            "k3d": k3d_payload,
+        },
     )
     mesh = Mesh(primitives=[primitive])
     node = Node(mesh=0)
     scene = Scene(nodes=[0])
 
-    # 3. Create K3D extension
-    gltf_path = Path(gltf_path)
-    k3d_path = Path(k3d_path)
-    gltf_dir = gltf_path.resolve().parent
-    schema_path = (
-        Path(__file__).resolve().parent.parent / "spec" / "k3d_node_schema.json"
-    ).resolve()
-
-    def _relative_path(target: Path, base: Path) -> str:
-        try:
-            return target.resolve().relative_to(base).as_posix()
-        except ValueError:
-            return Path(os.path.relpath(target, base)).as_posix()
-
-    relative_k3d_path = _relative_path(k3d_path, gltf_dir)
-    relative_schema_path = _relative_path(schema_path, gltf_dir)
-
+    # 3. Assemble glTF without external sidecar extension (embedded variant)
     gltf = GLTF2(
         asset=Asset(generator="k3dgen"),
         buffers=[buffer],
@@ -164,14 +193,6 @@ def create_gltf_file(
         nodes=[node],
         scenes=[scene],
         scene=0,
-        extensionsUsed=[K3D_EXTENSION_NAME],
-        extensions={
-            K3D_EXTENSION_NAME: {
-                "uri": relative_k3d_path,
-                "schema": relative_schema_path,
-                "primitiveIdsProperty": K3D_IDS_PROPERTY,
-            }
-        },
     )
 
     # 4. Save glTF file
@@ -181,36 +202,71 @@ def create_gltf_file(
         raise OSError(f"Failed to write glTF file '{gltf_path}': {exc}") from exc
 
 
-def generate(csv_path: str, gltf_path: str, k3d_path: str, k: int) -> None:
-    """Generate a glTF scene and .k3d metadata from a CSV."""
-    # 1. Load the high-dimensional embeddings from the CSV file.
-    ids, embeddings = load_vectors(csv_path)
+def generate(
+    csv_path: str | None,
+    gltf_path: str,
+    k: int,
+    reducer: str = "umap",
+    text_path: str | None = None,
+    model_name: str | None = None,
+) -> None:
+    """Generate a glTF scene with embedded K3D payload from CSV or text.
 
-    # 2. Reduce the dimensionality of the embeddings to 3D for visualization.
-    points = reduce_dimensions(embeddings)
+    If text_path is provided, CSV is ignored.
+    """
+    # 1. Load embeddings
+    if text_path:
+        ids, embeddings, labels = embed_texts(text_path, model_name or "sentence-transformers/all-MiniLM-L6-v2")
+    else:
+        assert csv_path is not None
+        ids, embeddings = load_vectors(csv_path)
+        labels = ids
+
+    # Early validation for k
+    if k <= 0:
+        raise ValueError("k must be a positive integer")
+    if k >= len(embeddings):
+        raise ValueError("k must be less than the number of vectors")
+
+    # 2. Reduce
+    points = reduce_dimensions(embeddings, reducer=reducer)
 
     # 3. Find the k-nearest neighbours for each point
     neighbor_indices = find_neighbors(embeddings, k)
 
-    # 4. Create the .k3d file with the full embeddings and metadata.
-    create_k3d_file(k3d_path, ids, points, embeddings, neighbor_indices)
-
-    # 5. Create the .gltf file with the 3D positions and a link to the .k3d file.
-    create_gltf_file(gltf_path, k3d_path, ids, points)
+    # 4. Create the .gltf file with embedded embeddings in primitive.extras.
+    # 4. Create the .gltf file with embedded embeddings and labels in primitive.extras.
+    create_gltf_file(gltf_path, ids, points, embeddings, neighbor_indices, labels)
 
 
 def main() -> None:
     """Command-line entry point for generating K3D assets."""
-    parser = argparse.ArgumentParser(description="Generate glTF + .k3d from vectors")
-    parser.add_argument("csv", help="CSV file with id + vector columns")
+    parser = argparse.ArgumentParser(description="Generate embedded glTF from vectors or text")
+    parser.add_argument("csv", nargs="?", help="CSV file with id + vector columns")
     parser.add_argument("--gltf", default="output.gltf", help="Output glTF path")
-    parser.add_argument("--k3d", default="output.k3d", help="Output .k3d path")
+    # Sidecar output removed by design
     parser.add_argument(
         "--k", type=int, default=5, help="Number of nearest neighbors to find"
     )
+    parser.add_argument(
+        "--reducer", choices=["umap", "pca"], default="umap", help="Dimensionality reduction method"
+    )
+    parser.add_argument(
+        "--text", help="Path to a text file; each non-empty line becomes a record"
+    )
+    parser.add_argument(
+        "--model",
+        default="sentence-transformers/all-MiniLM-L6-v2",
+        help="Sentence-Transformer model for --text mode",
+    )
     args = parser.parse_args()
     try:
-        generate(args.csv, args.gltf, args.k3d, args.k)
+        if args.text:
+            generate(None, args.gltf, args.k, reducer=args.reducer, text_path=args.text, model_name=args.model)
+        else:
+            if not args.csv:
+                parser.exit(2, "Error: CSV path required when not using --text\n")
+            generate(args.csv, args.gltf, args.k, reducer=args.reducer)
     except Exception as exc:
         parser.exit(1, f"Error: {exc}\n")
 

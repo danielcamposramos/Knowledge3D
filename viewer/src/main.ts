@@ -2,6 +2,7 @@ import './style.css';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { fetchK3D, fetchCondoConfig, type K3DRecord, type CondoConfig, type HouseInfo } from './loadK3D';
+import { K3DAgent } from './agent';
 
 // --- DOM Elements ---
 const canvas = document.getElementById('scene') as HTMLCanvasElement;
@@ -22,6 +23,7 @@ let k3dData: K3DRecord[] = [];
 let recordMap: Map<string, K3DRecord> = new Map();
 let currentPoints: THREE.Points | null = null;
 let condoConfig: CondoConfig | null = null;
+let agent: K3DAgent | null = null;
 
 // --- Main Logic ---
 
@@ -37,6 +39,10 @@ function clearScene() {
     }
     k3dData = [];
     recordMap.clear();
+    if (agent) {
+        scene.remove(agent.object);
+        agent = null;
+    }
 }
 
 /**
@@ -84,6 +90,10 @@ async function loadHouse(k3dUrl: string) {
         const material = new THREE.PointsMaterial({ size: 0.1, vertexColors: true });
         currentPoints = new THREE.Points(geometry, material);
         scene.add(currentPoints);
+
+        // Initialize or reset the agent
+        agent = new K3DAgent(scene, camera);
+        agent.setRecords(k3dData);
 
     } catch (e) {
         console.error(`Failed to load house from ${k3dUrl}:`, e);
@@ -155,7 +165,9 @@ function checkIntersects() {
             tooltip.style.display = 'block';
             tooltip.style.left = `${mouse.x * window.innerWidth / 2 + window.innerWidth / 2 + 5}px`;
             tooltip.style.top = `${-mouse.y * window.innerHeight / 2 + window.innerHeight / 2 + 5}px`;
-            tooltip.textContent = (record.metadata?.label as string) || record.id;
+            const label = (record.metadata?.label as string) || record.id;
+            const text = (record.metadata?.text as string) || '';
+            tooltip.textContent = text ? `${label}: ${text.slice(0, 120)}` : label;
         } else {
             tooltip.style.display = 'none';
         }
@@ -171,10 +183,32 @@ window.addEventListener('resize', () => {
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
+// Agent UI controls
+const agentTarget = document.getElementById('agent-target') as HTMLInputElement;
+const agentGo = document.getElementById('agent-go') as HTMLButtonElement;
+const agentFollow = document.getElementById('agent-follow') as HTMLInputElement;
+if (agentGo) {
+    agentGo.addEventListener('click', () => {
+        if (agent && agentTarget?.value) {
+            agent.goToLabel(agentTarget.value);
+        }
+    });
+}
+if (agentFollow) {
+    agentFollow.addEventListener('change', () => {
+        if (agent) agent.followCamera = !!agentFollow.checked;
+    });
+}
+
+let last = performance.now();
 function animate() {
+    const now = performance.now();
+    const dt = Math.min(0.1, (now - last) / 1000);
+    last = now;
     requestAnimationFrame(animate);
     controls.update();
     checkIntersects();
+    if (agent) agent.update(dt);
     renderer.render(scene, camera);
 }
 
