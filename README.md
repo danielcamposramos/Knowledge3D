@@ -75,6 +75,15 @@ Then open the viewer (`npm run dev`) and use the Chat box. Try messages like:
 - `goto gravity`
 - `hello`
 
+### Build Replay Dataset (Imitation Learning)
+Convert live logs to IL samples for training:
+```bash
+python -m knowledge3d.bridge.replay_builder --logs_dir ../Knowledge3D.local/logs \
+  --gltf viewer/public/physics_house.gltf \
+  --out ../Knowledge3D.local/datasets/replay.jsonl
+```
+Each line is a training example with from/next labels and optional embeddings when available.
+
 ## Project Structure
 
 ```text

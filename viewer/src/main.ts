@@ -6,6 +6,7 @@ import { K3DAgent } from './agent';
 import { ChatClient, type ChatMessage, type CommandMessage } from './chat';
 import { RPN } from './rpn';
 import { openStore } from './cache';
+import { kmeans, palette } from './cluster';
 
 // --- DOM Elements ---
 const canvas = document.getElementById('scene') as HTMLCanvasElement;
@@ -250,6 +251,10 @@ const chatInput = document.getElementById('chat-input') as HTMLInputElement;
 const chatSend = document.getElementById('chat-send') as HTMLButtonElement;
 const cacheToggle = document.getElementById('cache-enable') as HTMLInputElement;
 const cacheClear = document.getElementById('cache-clear') as HTMLButtonElement;
+const colorMode = document.getElementById('color-mode') as HTMLSelectElement;
+const clusterK = document.getElementById('cluster-k') as HTMLInputElement;
+const applyColor = document.getElementById('apply-color') as HTMLButtonElement;
+const legend = document.getElementById('legend') as HTMLDivElement;
 if (agentGo) {
     agentGo.addEventListener('click', () => {
         if (agent && agentTarget?.value) {
@@ -276,6 +281,52 @@ if (cacheClear) {
         await cache.clear();
         const infoEl = document.getElementById('dataset-info') as HTMLDivElement;
         if (infoEl) infoEl.textContent = 'cache cleared';
+    });
+}
+
+function applyPositionColors() {
+    if (!currentPoints || k3dData.length === 0) return;
+    const positions = k3dData.map(d => d.vector);
+    const min = new THREE.Vector3(Infinity, Infinity, Infinity);
+    const max = new THREE.Vector3(-Infinity, -Infinity, -Infinity);
+    positions.forEach(v => { min.min(new THREE.Vector3().fromArray(v)); max.max(new THREE.Vector3().fromArray(v)); });
+    const size = new THREE.Vector3().subVectors(max, min);
+    const colors = currentPoints.geometry.getAttribute('color') as THREE.BufferAttribute;
+    for (let i = 0; i < k3dData.length; i++) {
+        const v = k3dData[i].vector;
+        const r = size.x > 0 ? (v[0] - min.x) / size.x : 0.5;
+        const g = size.y > 0 ? (v[1] - min.y) / size.y : 0.5;
+        const b = size.z > 0 ? (v[2] - min.z) / size.z : 0.5;
+        colors.setXYZ(i, r, g, b);
+    }
+    colors.needsUpdate = true;
+    legend.textContent = 'position-based coloring';
+}
+
+function applyClusterColors(k: number) {
+    if (!currentPoints || k3dData.length === 0) return;
+    const emb = k3dData.map(d => d.embedding);
+    const { labels } = kmeans(emb, Math.max(2, Math.min(20, Math.floor(k))));
+    const colors = currentPoints.geometry.getAttribute('color') as THREE.BufferAttribute;
+    const pal = palette(Math.max(...labels) + 1);
+    const counts: Record<number, number> = {};
+    for (let i = 0; i < k3dData.length; i++) {
+        const c = labels[i] ?? 0; counts[c] = (counts[c] ?? 0) + 1;
+        const tmp = new THREE.Color(pal[c % pal.length]);
+        colors.setXYZ(i, tmp.r, tmp.g, tmp.b);
+    }
+    colors.needsUpdate = true;
+    const items = Object.keys(counts).map(k => ({ c: Number(k), n: counts[Number(k)] })).sort((a,b)=>a.c-b.c);
+    legend.innerHTML = items.map(it => `<span style="display:inline-block;width:12px;height:12px;background:${pal[it.c%pal.length]};margin-right:4px;"></span> C${it.c} (${it.n})`).join(' &nbsp; ');
+}
+
+if (applyColor) {
+    applyColor.addEventListener('click', () => {
+        if (colorMode.value === 'cluster') {
+            applyClusterColors(Number(clusterK.value || '5'));
+        } else {
+            applyPositionColors();
+        }
     });
 }
 if (agentFollow) {
