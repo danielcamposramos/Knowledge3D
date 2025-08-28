@@ -2,3 +2,5 @@ pandas
 numpy
 scikit-learn
 pygltflib
+umap-learn
+sentence-transformers
