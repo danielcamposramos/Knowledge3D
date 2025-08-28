@@ -19,6 +19,15 @@
           <input type="checkbox" id="agent-follow" /> Follow
         </label>
       </div>
+      <div style="margin-top:8px;">
+        <strong>Chat</strong>
+        <div id="chat-log" style="width: 320px; height: 120px; overflow-y: auto; background: #fff; border: 1px solid #ccc; padding: 6px; margin-top: 4px;"></div>
+        <div style="display:flex; gap:6px; margin-top:6px;">
+          <input id="chat-input" placeholder="Type a message..." style="flex:1;" />
+          <button id="chat-send">Send</button>
+        </div>
+        <div id="chat-status" style="font-size: 11px; color: #555; margin-top:4px;">WS: disconnected</div>
+      </div>
     </div>
     <canvas id="scene"></canvas>
     <div id="tooltip" style="position: absolute; display: none; background: #fff; border: 1px solid #000; padding: 2px 4px; font-size: 12px;"></div>

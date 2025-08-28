@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { loadK3DFromGLTF, fetchCondoConfig, type K3DRecord, type CondoConfig, type HouseInfo } from './loadK3D';
 import { K3DAgent } from './agent';
+import { ChatClient, type ChatMessage, type CommandMessage } from './chat';
 
 // --- DOM Elements ---
 const canvas = document.getElementById('scene') as HTMLCanvasElement;
@@ -24,6 +25,7 @@ let recordMap: Map<string, K3DRecord> = new Map();
 let currentPoints: THREE.Points | null = null;
 let condoConfig: CondoConfig | null = null;
 let agent: K3DAgent | null = null;
+let chat: ChatClient | null = null;
 
 // --- Main Logic ---
 
@@ -42,6 +44,10 @@ function clearScene() {
     if (agent) {
         scene.remove(agent.object);
         agent = null;
+    }
+    if (chat) {
+        chat.disconnect();
+        chat = null;
     }
 }
 
@@ -94,6 +100,32 @@ async function loadHouse(k3dUrl: string) {
         // Initialize or reset the agent
         agent = new K3DAgent(scene, camera);
         agent.setRecords(k3dData);
+
+        // Start chat connection
+        const chatLog = document.getElementById('chat-log') as HTMLDivElement;
+        const chatStatus = document.getElementById('chat-status') as HTMLDivElement;
+        const append = (from: string, text: string) => {
+            const el = document.createElement('div');
+            el.textContent = `${from}: ${text}`;
+            chatLog.appendChild(el);
+            chatLog.scrollTop = chatLog.scrollHeight;
+        };
+        chat = new ChatClient('ws://localhost:8765', {
+            onStatus: s => chatStatus.textContent = `WS: ${s}`,
+            onChat: (m: ChatMessage) => {
+                if (m.action) append('* ' + m.from, m.text);
+                else if (m.to) append(`${m.from}→${m.to}`, m.text);
+                else if (m.channel) append(`[${m.channel}] ${m.from}`, m.text);
+                else append(m.from, m.text);
+            },
+            onCommand: (m: CommandMessage) => {
+                if (m.command === 'goto' && agent) {
+                    agent.goToLabel(m.target);
+                    append('system', `Agent navigating to ${m.target}`);
+                }
+            }
+        });
+        chat.connect();
 
     } catch (e) {
         console.error(`Failed to load house from ${k3dUrl}:`, e);
@@ -187,10 +219,21 @@ window.addEventListener('resize', () => {
 const agentTarget = document.getElementById('agent-target') as HTMLInputElement;
 const agentGo = document.getElementById('agent-go') as HTMLButtonElement;
 const agentFollow = document.getElementById('agent-follow') as HTMLInputElement;
+const chatInput = document.getElementById('chat-input') as HTMLInputElement;
+const chatSend = document.getElementById('chat-send') as HTMLButtonElement;
 if (agentGo) {
     agentGo.addEventListener('click', () => {
         if (agent && agentTarget?.value) {
             agent.goToLabel(agentTarget.value);
+            if (chat) chat.sendCommandGoto(agentTarget.value);
+        }
+    });
+}
+if (chatSend) {
+    chatSend.addEventListener('click', () => {
+        if (chat && chatInput?.value) {
+            chat.sendChat(chatInput.value);
+            chatInput.value = '';
         }
     });
 }
