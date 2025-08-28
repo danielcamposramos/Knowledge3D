@@ -65,6 +65,16 @@ cd viewer
 npm run dev
 ```
 
+### Live Mode (Text Chat)
+Run the lightweight WebSocket bridge and chat with the agent from the viewer UI:
+```bash
+python3 -m pip install --user --break-system-packages websockets
+python -m knowledge3d.bridge.live_server
+```
+Then open the viewer (`npm run dev`) and use the Chat box. Try messages like:
+- `goto gravity`
+- `hello`
+
 ## Project Structure
 
 ```text
@@ -77,7 +87,7 @@ knowledge3d/
 ```
 Additional directories:
 - `k3dgen/` : Tooling for converting embeddings to embedded glTF formats.
-- `viewer/` : Web-based 3D viewer with an initial AI avatar agent.
+- `viewer/` : Web-based 3D viewer with an initial AI avatar agent and chat.
 - `docs/` : Extended documentation and research.
 - `tests/` : Unit tests and future philosophical validation suites.
 
