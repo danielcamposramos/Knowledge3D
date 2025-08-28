@@ -28,6 +28,19 @@
         </div>
         <div id="chat-status" style="font-size: 11px; color: #555; margin-top:4px;">WS: disconnected</div>
       </div>
+      <div style="margin-top:8px;">
+        <strong>Explain</strong>
+        <div id="explain-log" style="width: 320px; height: 120px; overflow-y: auto; background: #fff; border: 1px solid #ccc; padding: 6px; margin-top: 4px;"></div>
+      </div>
+      <div style="margin-top:8px; display:flex; align-items:center; gap:8px;">
+        <button id="mic-toggle">Start Mic</button>
+        <div title="audio level" style="display:flex; align-items:center; gap:4px;">
+          <div style="width:80px; height:8px; background:#eee; border:1px solid #ccc; position:relative;">
+            <div id="mic-level" style="position:absolute; top:0; left:0; height:100%; width:0%; background:#4caf50;"></div>
+          </div>
+          <span id="mic-status" style="font-size:11px;color:#555;">mic: off</span>
+        </div>
+      </div>
     </div>
     <canvas id="scene"></canvas>
     <div id="tooltip" style="position: absolute; display: none; background: #fff; border: 1px solid #000; padding: 2px 4px; font-size: 12px;"></div>
