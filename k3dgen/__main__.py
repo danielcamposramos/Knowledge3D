@@ -135,6 +135,7 @@ def create_gltf_file(
     labels: List[str] | None = None,
     metadata_texts: List[str] | None = None,
     fmt: str = "gltf",
+    emb_precision: str = "f32",
 ) -> None:
     """Create a glTF/GLB file with positions + embeddings in buffers.
 
@@ -146,7 +147,10 @@ def create_gltf_file(
     emb = embeddings.astype(np.float32)
 
     pos_bytes = positions.tobytes()
-    emb_bytes = emb.tobytes()
+    if emb_precision.lower() == "f16":
+        emb_bytes = embeddings.astype(np.float16).tobytes()
+    else:
+        emb_bytes = emb.tobytes()
     data_bytes = pos_bytes + emb_bytes
 
     # Buffer and bufferViews
@@ -195,6 +199,7 @@ def create_gltf_file(
         "vectorsView": 0,
         "embeddingsView": 1,
         "embeddingDims": int(embeddings.shape[1]),
+        "embeddingPrecision": "f16" if emb_precision.lower() == "f16" else "f32",
         "metadata": meta_list,
         "neighbors": neighbors,
     }
@@ -274,6 +279,7 @@ def generate(
     # 4. Create the .gltf file with embedded embeddings in primitive.extras.
     # 4. Create the .gltf/.glb with embedded buffers and labels/text metadata.
     fmt = "glb" if str(gltf_path).lower().endswith(".glb") else "gltf"
+    emb_precision = _ARGS.emb_precision if '_ARGS' in globals() else 'f32'
     create_gltf_file(
         gltf_path,
         ids,
@@ -283,6 +289,7 @@ def generate(
         labels,
         metadata_texts,
         fmt,
+        emb_precision,
     )
 
 
@@ -306,7 +313,15 @@ def main() -> None:
         default="sentence-transformers/all-MiniLM-L6-v2",
         help="Sentence-Transformer model for --text mode",
     )
+    parser.add_argument(
+        "--emb-precision",
+        choices=["f32", "f16"],
+        default="f32",
+        help="Embedding precision in GLTF bufferView (binary). f16 halves storage at some precision cost",
+    )
     args = parser.parse_args()
+    global _ARGS
+    _ARGS = args
     try:
         if args.text:
             generate(None, args.gltf, args.k, reducer=args.reducer, text_path=args.text, model_name=args.model)

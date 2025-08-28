@@ -115,10 +115,21 @@ export async function loadK3DFromGLTF(url: string): Promise<K3DRecord[]> {
     const viewIdx = embedded.embeddingsView as number;
     const dims = embedded.embeddingDims as number;
     const buf = await gltf.parser.getDependency('bufferView', viewIdx);
-    const arr = new Float32Array(buf);
-    embeddings = [];
-    for (let i = 0; i < arr.length; i += dims) {
-      embeddings.push(Array.from(arr.slice(i, i + dims)));
+    const prec: string = embedded.embeddingPrecision || 'f32';
+    if (prec === 'f16') {
+      const u16 = new Uint16Array(buf);
+      embeddings = [];
+      for (let i = 0; i < u16.length; i += dims) {
+        const row: number[] = [];
+        for (let j = 0; j < dims; j++) row.push(halfToFloat(u16[i + j]));
+        embeddings.push(row);
+      }
+    } else {
+      const arr = new Float32Array(buf);
+      embeddings = [];
+      for (let i = 0; i < arr.length; i += dims) {
+        embeddings.push(Array.from(arr.slice(i, i + dims)));
+      }
     }
   } else if (embedded.embeddings) {
     embeddings = embedded.embeddings as number[][];
@@ -127,4 +138,24 @@ export async function loadK3DFromGLTF(url: string): Promise<K3DRecord[]> {
   }
 
   return composeRecordsFromEmbedded(ids, vectors, embeddings, metadata, neighbors);
+}
+
+// IEEE754 half to float32
+function halfToFloat(h: number): number {
+  const s = (h >> 15) & 1;
+  let e = (h >> 10) & 0x1f;
+  let f = h & 0x3ff;
+  if (e === 0) {
+    if (f === 0) return s ? -0 : 0;
+    while ((f & 0x400) === 0) { f <<= 1; e -= 1; }
+    e += 1; f &= ~0x400;
+  } else if (e === 31) {
+    if (f === 0) return s ? -Infinity : Infinity;
+    return NaN;
+  }
+  e = e + (127 - 15);
+  const bits = (s << 31) | (e << 23) | (f << 13);
+  const buf = new ArrayBuffer(4);
+  new DataView(buf).setUint32(0, bits);
+  return new DataView(buf).getFloat32(0);
 }

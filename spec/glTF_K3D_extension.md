@@ -59,6 +59,7 @@ Schema (informal):
 Notes:
 - `vectorsView` is a `bufferView` index of packed Float32 triples (x,y,z for each node).
 - `embeddingsView` is a `bufferView` index of packed Float32 embeddings concatenated row-wise; `embeddingDims` gives the per-node dimension.
+- `embeddingPrecision`: optional, one of `"f32"|"f16"`. When `f16`, the embeddings bufferView stores IEEE754 half-precision floats (2 bytes); readers should decode to float32 for processing.
 - `primitive.extras.k3dIds` mirrors the `ids` array for simple readers.
 
 ## Rationale
