@@ -49,6 +49,20 @@
           <button id="cache-clear">Clear Cache</button>
         </div>
       </div>
+      <div style="margin-top:8px;">
+        <strong>Coloring</strong>
+        <div style="display:flex; gap:8px; margin-top:4px; align-items:center;">
+          <label>Mode:
+            <select id="color-mode">
+              <option value="position">position</option>
+              <option value="cluster">cluster-kmeans</option>
+            </select>
+          </label>
+          <label>K: <input id="cluster-k" type="number" value="5" min="2" max="20" style="width:56px" /></label>
+          <button id="apply-color">Apply</button>
+        </div>
+        <div id="legend" style="margin-top:6px; font-size:12px; color:#333;"></div>
+      </div>
     </div>
     <canvas id="scene"></canvas>
     <div id="tooltip" style="position: absolute; display: none; background: #fff; border: 1px solid #000; padding: 2px 4px; font-size: 12px;"></div>
