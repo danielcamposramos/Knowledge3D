@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { K3DRecord } from './loadK3D';
+import { RPN } from './rpn';
 
 export class K3DAgent {
   public object: THREE.Object3D;
@@ -12,6 +13,7 @@ export class K3DAgent {
   private path: THREE.Vector3[] = [];
   private speed = 1.5; // units per second
   private onExplain?: (text: string) => void;
+  private rpn = new RPN();
 
   constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera, onExplain?: (text: string) => void) {
     this.scene = scene;
@@ -103,12 +105,7 @@ export class K3DAgent {
   }
 
   private cosSim(a: number[], b: number[]): number {
-    let dot = 0, na = 0, nb = 0;
-    for (let i = 0; i < Math.min(a.length, b.length); i++) {
-      dot += a[i]*b[i]; na += a[i]*a[i]; nb += b[i]*b[i];
-    }
-    if (na === 0 || nb === 0) return 0;
-    return dot / (Math.sqrt(na) * Math.sqrt(nb));
+    return this.rpn.cosine(a, b);
   }
 
   private cosSimById(aId: string, bId: string): number {
