@@ -24,6 +24,10 @@ AI Avatar = House (Persistent Memory) + Cranium (Active Processing) + Logic Laye
 
 Figure: Visual reference for the AI Avatar’s operating context. The House represents persistent memory, the Cranium handles active processing, and the Logic Layer swaps AI models. Prompt: `docs/images/cognitive_house_prompt.md`.
 
+![Avatar Workshop Close-up](docs/images/avatar_workshop.png)
+
+Figure: The avatar reasoning at a network door in the Workshop. The translucent cranium reveals the inner galaxy (embeddings and semantic links) as nodes activate around networking and security. Prompt: `docs/images/avatar_workshop_prompt.md`.
+
 ### Memory Structure
 - **House Components**: Rooms, shelves, furniture, doors, and a sleep area manifest as energy patterns.
 - **Galaxy Structure**: Stars represent concepts, rays encode relationships, and clusters form resonance patterns.
