@@ -3,7 +3,7 @@ import json
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional, Set
+from typing import Any, Dict, Optional, Set
 
 try:
     import websockets
@@ -42,6 +42,14 @@ class LiveServer:
         ts = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
         self.session_file = self.log_dir / f"session-{ts}.jsonl"
         self._log_lock = asyncio.Lock()
+        # Enhanced chat state
+        try:
+            from .enhanced_chat_processor import EnhancedChatProcessor, ConversationContext  # type: ignore
+        except Exception:  # pragma: no cover
+            EnhancedChatProcessor = None  # type: ignore
+            ConversationContext = None  # type: ignore
+        self._processor = EnhancedChatProcessor() if EnhancedChatProcessor else None
+        self._ctx_by_nick: Dict[str, Any] = {}
 
     async def handler(self, ws):
         key = _ClientKey(id(ws))
@@ -82,12 +90,34 @@ class LiveServer:
 
             await self.send_chat(sender=client.nick, text=text, channel=client.channel)
             await self.log({"type": "chat", "from": client.nick, "channel": client.channel, "text": text})
-            # naive intent: goto <label>
-            if text.lower().startswith("goto "):
-                target = text[5:].strip()
-                await self.send_command("goto", target)
-                await self.send_chat(sender="agent", text=f"On my way to {target}.", channel=client.channel)
-                await self.log({"type": "command", "command": "goto", "target": target, "source": "naive_from_chat", "channel": client.channel})
+            # Enhanced processing (fallbacks to naive path if processor missing)
+            if self._processor is not None:
+                ctx = self._ctx_by_nick.setdefault(client.nick, ConversationContext())
+                resp = self._processor.process_message(text, ctx)
+                ctx.update(text, resp)
+                await self.send_json(
+                    {
+                        "type": "chat_response",
+                        "response": resp,
+                        "context": ctx.get_relevant_context(text),
+                        "suggestions": resp.get("suggestions"),
+                    },
+                    channel=client.channel,
+                )
+                if resp.get("type") in ("navigation", "exploration", "interaction"):
+                    action = resp.get("action") or "action"
+                    # payload as JSON string in target for compatibility
+                    payload = json.dumps({k: v for k, v in resp.items() if k not in {"type", "message"}})
+                    await self.send_command(action, payload, channel=client.channel)
+                    if msg_text := resp.get("message"):
+                        await self.send_chat(sender="agent", text=msg_text, channel=client.channel)
+            else:
+                # naive intent: goto <label>
+                if text.lower().startswith("goto "):
+                    target = text[5:].strip()
+                    await self.send_command("goto", target)
+                    await self.send_chat(sender="agent", text=f"On my way to {target}.", channel=client.channel)
+                    await self.log({"type": "command", "command": "goto", "target": target, "source": "naive_from_chat", "channel": client.channel})
         elif t == "command":
             cmd = msg.get("command")
             if cmd == "goto":
@@ -181,6 +211,14 @@ class LiveServer:
         async with self._log_lock:
             with self.session_file.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+
+    async def send_json(self, obj: Dict[str, Any], channel: Optional[str] = None):
+        payload = json.dumps(obj)
+        if channel and channel in self.channels:
+            targets = [self.by_key[k].ws for k in self.channels[channel] if k in self.by_key]
+            await asyncio.gather(*[ws.send(payload) for ws in targets])
+        else:
+            await asyncio.gather(*[c.ws.send(payload) for c in list(self.clients)])
 
     async def run(self):
         async with websockets.serve(self.handler, self.host, self.port):
