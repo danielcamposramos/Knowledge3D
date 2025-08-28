@@ -39,9 +39,10 @@ def test_cli_generates_files(tmp_path):
     assert "k3d" in primitive.extras
     k3d = primitive.extras["k3d"]
     assert len(k3d["ids"]) == expected_records
-    assert len(k3d["vectors"]) == expected_records
-    assert len(k3d["embeddings"]) == expected_records
     assert len(k3d["metadata"]) == expected_records
+    # Payload can be arrays or bufferView indices; we require either path
+    assert ("vectors" in k3d) or ("vectorsView" in k3d)
+    assert ("embeddings" in k3d) or ("embeddingsView" in k3d)
 
 
 def test_cli_negative_k(tmp_path):

@@ -133,21 +133,42 @@ def create_gltf_file(
     embeddings: np.ndarray,
     neighbor_indices: np.ndarray,
     labels: List[str] | None = None,
+    metadata_texts: List[str] | None = None,
+    fmt: str = "gltf",
 ) -> None:
-    """Create the .gltf file with embeddings embedded in primitive.extras."""
-    # 1. Convert numpy array to glTF binary buffer
-    positions = points.astype(np.float32)
-    data_bytes = positions.tobytes()
-    uri = "data:application/octet-stream;base64," + base64.b64encode(
-        data_bytes
-    ).decode("ascii")
+    """Create a glTF/GLB file with positions + embeddings in buffers.
 
-    # 2. Create glTF structure
-    buffer = Buffer(byteLength=len(data_bytes), uri=uri)
-    view = BufferView(
-        buffer=0, byteOffset=0, byteLength=len(data_bytes), target=ARRAY_BUFFER
+    - Positions are in bufferView 0 with accessor 0 and used by POSITION attribute.
+    - Embeddings are in bufferView 1 (no accessor; shape provided in extras.k3d).
+    - extras.k3d contains ids, metadata, neighbors, and bufferView indices.
+    """
+    positions = points.astype(np.float32)
+    emb = embeddings.astype(np.float32)
+
+    pos_bytes = positions.tobytes()
+    emb_bytes = emb.tobytes()
+    data_bytes = pos_bytes + emb_bytes
+
+    # Buffer and bufferViews
+    if fmt not in {"gltf", "glb"}:
+        raise ValueError("fmt must be 'gltf' or 'glb'")
+
+    if fmt == "gltf":
+        uri = "data:application/octet-stream;base64," + base64.b64encode(
+            data_bytes
+        ).decode("ascii")
+        buffer = Buffer(byteLength=len(data_bytes), uri=uri)
+    else:
+        buffer = Buffer(byteLength=len(data_bytes))
+
+    view_positions = BufferView(
+        buffer=0, byteOffset=0, byteLength=len(pos_bytes), target=ARRAY_BUFFER
     )
-    accessor = Accessor(
+    view_embeddings = BufferView(
+        buffer=0, byteOffset=len(pos_bytes), byteLength=len(emb_bytes)
+    )
+
+    accessor_positions = Accessor(
         bufferView=0,
         byteOffset=0,
         componentType=FLOAT,
@@ -156,16 +177,25 @@ def create_gltf_file(
         max=positions.max(axis=0).tolist(),
         min=positions.min(axis=0).tolist(),
     )
-    # Build K3D extras embedded directly into the primitive
+
+    # K3D extras payload
     neighbors: List[List[str]] = []
     for i, _ in enumerate(ids):
         neighbors.append([ids[j] for j in neighbor_indices[i]])
 
+    meta_list = []
+    for i in range(len(ids)):
+        entry = {"label": (labels[i] if labels else ids[i])}
+        if metadata_texts is not None and i < len(metadata_texts):
+            entry["text"] = metadata_texts[i]
+        meta_list.append(entry)
+
     k3d_payload = {
         "ids": ids,
-        "vectors": points.tolist(),
-        "embeddings": embeddings.tolist(),
-        "metadata": [{"label": (labels[i] if labels else ids[i])} for i in range(len(ids))],
+        "vectorsView": 0,
+        "embeddingsView": 1,
+        "embeddingDims": int(embeddings.shape[1]),
+        "metadata": meta_list,
         "neighbors": neighbors,
     }
 
@@ -173,9 +203,7 @@ def create_gltf_file(
         attributes={"POSITION": 0},
         mode=0,
         extras={
-            # Back-compat: keep flat id list
             "k3dIds": ids,
-            # New embedded payload
             "k3d": k3d_payload,
         },
     )
@@ -183,19 +211,21 @@ def create_gltf_file(
     node = Node(mesh=0)
     scene = Scene(nodes=[0])
 
-    # 3. Assemble glTF without external sidecar extension (embedded variant)
     gltf = GLTF2(
         asset=Asset(generator="k3dgen"),
         buffers=[buffer],
-        bufferViews=[view],
-        accessors=[accessor],
+        bufferViews=[view_positions, view_embeddings],
+        accessors=[accessor_positions],
         meshes=[mesh],
         nodes=[node],
         scenes=[scene],
         scene=0,
     )
 
-    # 4. Save glTF file
+    # For GLB embed binary blob
+    if fmt == "glb":
+        gltf.set_binary_blob(data_bytes)
+
     try:
         gltf.save(gltf_path)
     except OSError as exc:
@@ -215,8 +245,15 @@ def generate(
     If text_path is provided, CSV is ignored.
     """
     # 1. Load embeddings
+    metadata_texts: List[str] | None = None
     if text_path:
         ids, embeddings, labels = embed_texts(text_path, model_name or "sentence-transformers/all-MiniLM-L6-v2")
+        # Also capture the raw text lines for metadata
+        try:
+            with open(text_path, "r", encoding="utf-8") as f:
+                metadata_texts = [ln.strip() for ln in f if ln.strip()]
+        except OSError:
+            metadata_texts = None
     else:
         assert csv_path is not None
         ids, embeddings = load_vectors(csv_path)
@@ -235,13 +272,23 @@ def generate(
     neighbor_indices = find_neighbors(embeddings, k)
 
     # 4. Create the .gltf file with embedded embeddings in primitive.extras.
-    # 4. Create the .gltf file with embedded embeddings and labels in primitive.extras.
-    create_gltf_file(gltf_path, ids, points, embeddings, neighbor_indices, labels)
+    # 4. Create the .gltf/.glb with embedded buffers and labels/text metadata.
+    fmt = "glb" if str(gltf_path).lower().endswith(".glb") else "gltf"
+    create_gltf_file(
+        gltf_path,
+        ids,
+        points,
+        embeddings,
+        neighbor_indices,
+        labels,
+        metadata_texts,
+        fmt,
+    )
 
 
 def main() -> None:
     """Command-line entry point for generating K3D assets."""
-    parser = argparse.ArgumentParser(description="Generate embedded glTF from vectors or text")
+    parser = argparse.ArgumentParser(description="Generate embedded glTF/GLB from vectors or text")
     parser.add_argument("csv", nargs="?", help="CSV file with id + vector columns")
     parser.add_argument("--gltf", default="output.gltf", help="Output glTF path")
     # Sidecar output removed by design
