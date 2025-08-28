@@ -74,3 +74,13 @@ This file lists actionable tasks for AI agents working on the Knowledge3D reposi
 -   **Knowledge Graph & RAG:** Research and develop a robust backend using a knowledge graph and a Retrieval-Augmented Generation (RAG) system.
 -   **3D Data Standards:** Continue to monitor and align with standards like glTF, OpenUSD, and 3D Tiles.
 -   **Graph Database Standards:** Continue to align K3D's data model with standards like openCypher and RDF.
+
+---
+
+## Assets
+
+- **Location:** Store all visual assets in `docs/images/`.
+- **Naming:** Use descriptive, kebab-case names, e.g., `cognitive_house.png`, `avatar_workshop.png`.
+- **Prompt Pairing:** For each asset, add a matching prompt file named `<image>_prompt.md` containing the generation prompt and any parameters.
+- **Referencing:** When adding an asset, embed it in relevant docs (`README.md`, `docs/k3d-research.md`, `docs/ROADMAP.md`, `AGENTS.md`) and link to its prompt file.
+- **Attribution & License:** Ensure images comply with the repo license or include source/usage notes in the prompt file if different.

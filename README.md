@@ -27,6 +27,14 @@ The Cognitive House depicts the AI Avatar operating within a shared human–AI m
 
 Reference prompt: see `docs/images/cognitive_house_prompt.md`.
 
+### Avatar Workshop Close-up
+
+Close-up of the avatar in the workshop facing a labeled network door, revealing the inner galaxy during focused reasoning.
+
+![Avatar Workshop Close-up](docs/images/avatar_workshop.png)
+
+Reference prompt: see `docs/images/avatar_workshop_prompt.md`.
+
 ## Technical Overview
 
 - **Three-tier Fog Computing**: Edge devices, regional fog nodes, and a cloud backbone coordinate processing to keep latency under 100ms.
