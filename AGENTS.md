@@ -20,6 +20,10 @@ We are a team of humans and AI working together. Clear communication and alignme
 AI Avatar = House (Persistent Memory) + Cranium (Active Processing) + Logic Layer (Swappable AI Models)
 ```
 
+![Cognitive House](docs/images/cognitive_house.png)
+
+Figure: Visual reference for the AI Avatar’s operating context. The House represents persistent memory, the Cranium handles active processing, and the Logic Layer swaps AI models. Prompt: `docs/images/cognitive_house_prompt.md`.
+
 ### Memory Structure
 - **House Components**: Rooms, shelves, furniture, doors, and a sleep area manifest as energy patterns.
 - **Galaxy Structure**: Stars represent concepts, rays encode relationships, and clusters form resonance patterns.

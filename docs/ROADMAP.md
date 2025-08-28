@@ -4,6 +4,10 @@ This document outlines the strategic, phased development plan for the Knowledge3
 
 The development is divided into three main phases, each building upon the last to progressively realize the full K3D vision.
 
+![Cognitive House](images/cognitive_house.png)
+
+Figure: The Cognitive House illustrates the House (persistent memory), Cranium (active processing), and Logic Layer (models) that guide the roadmap. See the generation prompt in `docs/images/cognitive_house_prompt.md`.
+
 ---
 
 ## Phase 1: The MVP - The Static Knowledge Graph
