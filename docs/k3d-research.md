@@ -1,5 +1,9 @@
 # The Knowledge3D Project: A Visionary Framework for Embodied Spatial Intelligence
 
+![Cognitive House](images/cognitive_house.png)
+
+Figure: The Cognitive House — a cutaway visualization of the House (persistent memory), Cranium (active processing), and Logic Layer (models) operating together as an AI Avatar within a shared human–AI environment. The image reinforces the dual-representation principle and the dream-state galaxy for memory consolidation. See the generation prompt in `docs/images/cognitive_house_prompt.md`.
+
 
 1. The Vision of Knowledge3D: A Unified Framework for Spatial Intelligence
 
