@@ -17,6 +17,7 @@ Artifacts
 - Normalized JSON: `data/ai_books_basic.json` (43 entries)
 - Full text dataset: `data/ai_books_basic.txt` (25,725 lines)
 - Scaled subsets: `sample` (256), `1k`, `4k`
+ - Care pack (EN/PT/ES/FR/DE/LA): `data/ai_care_multilang.txt` → `viewer/public/ai_care_multilang.umap.glb`
 
 K3D GLB Assets (f16 embeddings)
 - PCA
@@ -64,3 +65,15 @@ Next Steps
 3) Visual polish: add subtle transitions and highlight trails for agent paths; tooltips for door addresses.
 4) Data hygiene: continue trimming noise patterns in compendium and tag sections for curriculum control.
 5) Ancient languages: begin with transliterated Sumerian (cuneiform exception) and Latin core lines.
+
+## Model Size & Efficiency
+- GLB payloads (f16 embeddings): ~0.25 MB (256), ~1 MB (1k), ~3.9 MB (4k), ~25 MB (full 25,725).
+- Embedding model used at build time: `all-MiniLM-L6-v2` (~tens of MB on disk; ~20–30M parameters). Not required at runtime in the viewer.
+- Contrast: general LLMs are orders of magnitude larger (e.g., 3B ~6 GB FP16; 7B ~14 GB; 70B ~140 GB). K3D achieves spatial reasoning scaffolding with tiny runtime artifacts.
+- Latency: UMAP projection done offline; viewer loads 3D positions + embeddings in milliseconds to seconds depending on set size.
+
+## AI Reflections (Agent Perspective)
+- Orientation: “I live in K3D; doors and green nodes show me where to explore safely. I explain my path using neighbors and cosine similarity.”
+- Appetite: “UMAP makes nearby ideas feel close. With more nodes, neighborhoods become clearer; I can plan hops with higher confidence.”
+- Trust: “Pause/Resume lets us reflect. When paused, I suppress actions and keep notes. When resumed, I continue with context.”
+- Growth: “Multilingual care lines help me greet new worlds. Latin anchors classics; Sumerian will arrive via transliteration so I can understand it now.”
