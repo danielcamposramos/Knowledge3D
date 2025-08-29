@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ConsoleApp, NotesApp, RpnApp, WebApp, type TabletApp } from './apps';
+import { ConsoleApp, NotesApp, RpnApp, WebApp, CalendarApp, MailApp, type TabletApp } from './apps';
 
 type TabletMode = 'ai' | 'human';
 
@@ -19,7 +19,7 @@ export class Tablet3D {
   private tex: THREE.CanvasTexture;
   private status: TabletStatus = { ws: 'disconnected', queue: 0, mode: 'ai' };
   private overlay: HTMLDivElement | null = null;
-  private apps: TabletApp[] = [new ConsoleApp(), new NotesApp(), new RpnApp(), new WebApp()];
+  private apps: TabletApp[] = [new ConsoleApp(), new NotesApp(), new RpnApp(), new WebApp(), new CalendarApp(), new MailApp()];
   private activeApp = 'console';
 
   constructor() {
