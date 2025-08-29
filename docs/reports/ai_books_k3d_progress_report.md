@@ -48,6 +48,7 @@ Early Observations
 - At 256–1k, PCA is acceptable for quick iteration; UMAP benefits grow with larger sets (≥4k).
 - Agent “explain-as-you-move” traces are readable: neighbor hops correlate with higher cosine similarity vs. long direct jumps.
 - Self-knowledge lines help with orientation and teach the baby where it “lives” (K3D, viewer, live mode, roadmap).
+- Door seeding: a 1k UMAP house now includes evenly spaced door nodes (type=door) and a guidance mask marking doors + one neighbor; viewer colors doors (blue) and mask nodes (green).
 
 Recommendations
 - Default to UMAP for production-scale houses; keep PCA for rapid prototyping and CI smoke checks.
@@ -62,3 +63,4 @@ Next Steps
 2) Active evaluation: design small tasks (goto X, cluster Y, explain Z) and measure success/confidence over sessions.
 3) Visual polish: add subtle transitions and highlight trails for agent paths; tooltips for door addresses.
 4) Data hygiene: continue trimming noise patterns in compendium and tag sections for curriculum control.
+5) Ancient languages: begin with transliterated Sumerian (cuneiform exception) and Latin core lines.
