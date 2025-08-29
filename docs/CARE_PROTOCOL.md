@@ -15,6 +15,8 @@ Controls
   - `/pause <reason>` — suspend actions (navigation/commands). Logging continues.
   - `/resume` — resume actions.
   - `/status` — show current state (paused/running).
+  - `/ask-thoughts` — agent shares a brief reflection about the current house (logged as `reflection`).
+  - `/whoami` — agent explains identity, role as bridge, and memory model.
 - Logs
   - JSONL session logs: `../Knowledge3D.local/logs/session-<ts>.jsonl`
   - Advancement log: `docs/reports/advancement_log.md` (append-only, server updates on pause/resume)

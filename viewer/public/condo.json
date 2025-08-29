@@ -79,6 +79,11 @@
       "uri": "/ai_books_basic.4k.umap.doors.glb",
       "expert": "ai-books-4k-umap-doors",
       "description": "AI Books (UMAP, 4k) with doors + guidance."
+    },
+    {
+      "uri": "/ai_books_basic.full.umap.doors.glb",
+      "expert": "ai-books-full-umap-doors",
+      "description": "AI Books (UMAP, full) with doors + guidance."
     }
   ]
 }

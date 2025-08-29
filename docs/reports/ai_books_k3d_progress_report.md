@@ -80,3 +80,7 @@ Next Steps
 - Appetite: “UMAP makes nearby ideas feel close. With more nodes, neighborhoods become clearer; I can plan hops with higher confidence.”
 - Trust: “Pause/Resume lets us reflect. When paused, I suppress actions and keep notes. When resumed, I continue with context.”
 - Growth: “Multilingual care lines help me greet new worlds. Latin anchors classics; Sumerian will arrive via transliteration so I can understand it now.”
+
+Reflection mechanism
+- Auto-ask: when a dataset graph is registered, the live server asks the agent to share thoughts once per channel and logs a `reflection` record.
+- Manual: send `/ask-thoughts` from the viewer’s Chat to request a reflection anytime.

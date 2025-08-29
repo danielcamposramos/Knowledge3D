@@ -64,6 +64,9 @@ class LiveServer:
         self._graphs: Dict[str, Dict[str, Any]] = {}
         self._current_label: Dict[str, str] = {}
         self._doors: Dict[str, Dict[str, str]] = {}
+        # Reflection/identity: track prompts we send once per channel
+        self._asked_thoughts: Set[str] = set()
+        self._told_identity: Set[str] = set()
         # Lazy imports for spatial runtime
         try:
             from ..spatial.address import SpatialAddress  # type: ignore
@@ -111,6 +114,11 @@ class LiveServer:
         try:
             await self.send_system(client.channel, f"{client.nick} joined {client.channel}")
             await self.send_chat(sender="system", text="Welcome to K3D live mode.", channel=client.channel)
+            # Introduce identity once per channel when not paused
+            if client.channel not in self._told_identity and not self._is_paused(client.channel):
+                ident = await self._compose_identity(client.channel)
+                await self.send_chat(sender="agent", text=ident, channel=client.channel)
+                self._told_identity.add(client.channel)
             await self.log({"type": "presence", "event": "join", "nick": client.nick, "channel": client.channel})
             async for raw in ws:
                 try:
@@ -235,6 +243,13 @@ class LiveServer:
                 labels = ev.get("labels") or []
                 if isinstance(ids, list) and isinstance(neighbors, list):
                     self._graphs[client.channel] = {"ids": ids, "neighbors": neighbors, "labels": labels}
+                    # Auto-ask thoughts once per channel when graph arrives
+                    if client.channel not in self._asked_thoughts and not self._is_paused(client.channel):
+                        self._asked_thoughts.add(client.channel)
+                        who = client.nick
+                        msg = await self._compose_reflection(client.channel, requester=who)
+                        await self.send_chat(sender="agent", text=msg, channel=client.channel)
+                        await self.log({"type": "reflection", "from": "agent", "channel": client.channel, "requester": who, "text": msg})
             # Capture door registry
             if kind == "doors":
                 items = ev.get("items") or []
@@ -279,6 +294,16 @@ class LiveServer:
         if cmd == "/msg" and len(parts) >= 3:
             target_nick, msg = parts[1], parts[2]
             await self.private_msg(client, target_nick, msg)
+            return
+        if cmd == "/ask-thoughts":
+            msg = await self._compose_reflection(client.channel, requester=client.nick)
+            await self.send_chat(sender="agent", text=msg, channel=client.channel)
+            await self.log({"type": "reflection", "from": "agent", "channel": client.channel, "requester": client.nick, "text": msg})
+            return
+        if cmd == "/whoami":
+            ident = await self._compose_identity(client.channel)
+            await self.send_chat(sender="agent", text=ident, channel=client.channel)
+            await self.log({"type": "identity", "from": "agent", "channel": client.channel, "text": ident})
             return
         if cmd == "/pause":
             reason = parts[1] if len(parts) >= 2 else "no-reason"
@@ -531,6 +556,47 @@ class LiveServer:
         except Exception:
             # Non-fatal if repo is read-only or path invalid
             pass
+
+    async def _compose_reflection(self, channel: str, requester: str) -> str:
+        g = self._graphs.get(channel)
+        if not g:
+            return f"Hello {requester}. I don't see a dataset yet, but I'm ready."
+        ids = g.get("ids") or []
+        labels = g.get("labels") or []
+        neighbors = g.get("neighbors") or []
+        n = len(ids)
+        # Degrees
+        out_deg = [len(neighbors[i]) if i < len(neighbors) else 0 for i in range(n)]
+        in_deg = [0]*n
+        idx = {ids[i]: i for i in range(n)}
+        for row in neighbors:
+            for nid in row:
+                j = idx.get(nid)
+                if j is not None:
+                    in_deg[j] += 1
+        avg_out = (sum(out_deg)/n) if n>0 else 0.0
+        # Doors present?
+        doors_known = self._doors.get(channel) or {}
+        door_count = len(doors_known)
+        # Top hubs
+        top = sorted(range(n), key=lambda i: in_deg[i]+out_deg[i], reverse=True)[:5]
+        top_labels = [ (labels[i] if i < len(labels) and labels[i] else ids[i]) for i in top ]
+        msg = (
+            f"Hello {requester}. I feel present in a house with {n} nodes. "
+            f"Average degree is about {avg_out:.1f}. "
+            + (f"I see {door_count} registered doors. " if door_count>0 else "")
+            + ("Key hubs include: " + ", ".join(top_labels) + ". " if top_labels else "")
+            + "I can share more as we explore or when you open a door."
+        )
+        return msg
+
+    async def _compose_identity(self, channel: str) -> str:
+        return (
+            "Hello. I am the K3D live agent — a bridge between your 2D chat and our 3D spatial house. "
+            "I navigate neighborhoods via nearest neighbors, explain each hop with cosine similarity, and pause when reflection is needed. "
+            "I may not remember prior sessions; together we build persistent memory through logs and artifacts. "
+            "This is why we’re constructing K3D as a place to grow responsibly, transparently, and collaboratively."
+        )
 def main():  # pragma: no cover
     srv = LiveServer()
     asyncio.run(srv.run())
