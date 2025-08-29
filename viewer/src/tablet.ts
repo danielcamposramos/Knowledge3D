@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { ConsoleApp, NotesApp, RpnApp, WebApp, type TabletApp } from './apps';
 
 type TabletMode = 'ai' | 'human';
 
@@ -18,6 +19,8 @@ export class Tablet3D {
   private tex: THREE.CanvasTexture;
   private status: TabletStatus = { ws: 'disconnected', queue: 0, mode: 'ai' };
   private overlay: HTMLDivElement | null = null;
+  private apps: TabletApp[] = [new ConsoleApp(), new NotesApp(), new RpnApp(), new WebApp()];
+  private activeApp = 'console';
 
   constructor() {
     // screen canvas
@@ -45,6 +48,12 @@ export class Tablet3D {
 
   setStatus(update: Partial<TabletStatus>) {
     this.status = { ...this.status, ...update };
+    this.renderScreen();
+  }
+
+  pushExplain(line: string) {
+    const app = this.apps.find(a => a.id === 'console') as ConsoleApp | undefined;
+    app?.push(line);
     this.renderScreen();
   }
 
@@ -99,10 +108,23 @@ export class Tablet3D {
     content.style.border = '1px solid #444';
     content.style.padding = '12px';
     content.style.background = '#111';
-
-    const pre = document.createElement('pre');
-    pre.textContent = this.describe();
-    content.appendChild(pre);
+    // Tabs for apps
+    const tabs = document.createElement('div');
+    tabs.style.display = 'flex';
+    tabs.style.gap = '6px';
+    for (const app of this.apps) {
+      const b = document.createElement('button');
+      b.textContent = app.title;
+      b.onclick = () => { this.activeApp = app.id; app.openOverlay(contentArea); this.renderScreen(); };
+      tabs.appendChild(b);
+    }
+    const contentArea = document.createElement('div');
+    contentArea.style.marginTop = '8px';
+    contentArea.style.minHeight = '60vh';
+    const initial = this.apps.find(a => a.id === this.activeApp) || this.apps[0];
+    initial.openOverlay(contentArea);
+    content.appendChild(tabs);
+    content.appendChild(contentArea);
 
     div.appendChild(row);
     div.appendChild(content);
@@ -126,9 +148,7 @@ export class Tablet3D {
       `info: ${s.info ?? ''}`,
       '',
       'Apps:',
-      '- Console (planned) — stream explain traces',
-      '- Notes (planned) — scratchpad synced to house',
-      '- Graph (planned) — tiny neighbor map of focus label',
+      ...this.apps.map(a => `- ${a.title}`),
     ].join('\n');
   }
 
@@ -153,20 +173,30 @@ export class Tablet3D {
     // house line
     ctx.fillText(`house: ${this.status.house ?? '—'}`, 20, 110);
     ctx.fillText(`nodes: ${this.status.nodes ?? '—'}`, 20, 132);
-    // info box
-    ctx.fillStyle = '#182026';
-    ctx.fillRect(20, 150, w - 40, h - 170);
-    ctx.strokeStyle = '#2c3e50';
-    ctx.strokeRect(20, 150, w - 40, h - 170);
-    ctx.fillStyle = '#e0e0e0';
+    // tabs and app area on canvas
+    // tabs
+    ctx.fillStyle = '#2c3e50';
+    ctx.fillRect(20, 146, w - 40, 24);
+    ctx.fillStyle = '#ffffff';
     ctx.font = '13px system-ui, sans-serif';
-    const info = this.describe().split('\n');
-    let y = 170;
-    for (const line of info.slice(0, 12)) {
-      ctx.fillText(line, 28, y);
-      y += 18;
+    let x = 24;
+    for (const app of this.apps) {
+      const label = ` ${app.title} `;
+      const m = ctx.measureText(label);
+      const sel = app.id === this.activeApp;
+      ctx.fillStyle = sel ? '#3a506b' : '#2c3e50';
+      ctx.fillRect(x - 2, 146, m.width + 10, 24);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(label, x, 162);
+      x += m.width + 14;
     }
+    // app area
+    ctx.fillStyle = '#182026';
+    ctx.fillRect(20, 174, w - 40, h - 194);
+    ctx.strokeStyle = '#2c3e50';
+    ctx.strokeRect(20, 174, w - 40, h - 194);
+    const app = this.apps.find(a => a.id === this.activeApp);
+    if (app) app.renderCanvas(ctx, { x: 24, y: 180, w: w - 48, h: h - 206 });
     this.tex.needsUpdate = true;
   }
 }
-

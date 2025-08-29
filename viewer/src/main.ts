@@ -144,6 +144,7 @@ async function loadHouse(k3dUrl: string) {
             if (chat) {
                 chat.sendEvent({ kind: 'explain', text });
             }
+            if (tablet) tablet.pushExplain(text);
         };
         agent = new K3DAgent(scene, camera, pushExplain);
         agent.setRecords(k3dData);
