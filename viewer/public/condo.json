@@ -64,6 +64,11 @@
       "uri": "/ai_care_multilang.umap.glb",
       "expert": "ai-care-umap",
       "description": "Self-knowledge care pack (EN/PT/ES, UMAP)."
+    },
+    {
+      "uri": "/ai_books_basic.1k.umap.doors.glb",
+      "expert": "ai-books-1k-umap-doors",
+      "description": "AI Books (UMAP, 1k) with doors + guidance."
     }
   ]
 }
