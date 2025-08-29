@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { openStore } from './cache';
 import { RPN } from './rpn';
+import type { K3DRecord } from './loadK3D';
 
 export interface TabletApp {
   id: string;
@@ -8,6 +9,7 @@ export interface TabletApp {
   renderCanvas(ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }): void;
   openOverlay(el: HTMLDivElement): void;
   onEvent?(ev: { type: string; payload?: any }): void;
+  setContext?(ctx: { records: ReadonlyArray<K3DRecord> }): void;
 }
 
 export class ConsoleApp implements TabletApp {
@@ -216,4 +218,85 @@ export class MailApp implements TabletApp {
     render();
   }
   renderCanvas(ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }) { ctx.fillStyle='#0a0a0a'; ctx.fillRect(rect.x, rect.y, rect.w, rect.h); ctx.fillStyle='#fff'; ctx.font='12px system-ui'; ctx.fillText(`Messages: ${this.msgs.length}`, rect.x+8, rect.y+18); }
+}
+
+export class EmbeddingsApp implements TabletApp {
+  id = 'peek'; title = 'Embeddings Peek';
+  private records: ReadonlyArray<K3DRecord> = [];
+  private focus: string = '';
+  private results: { label: string; sim: number }[] = [];
+  setContext(ctx: { records: ReadonlyArray<K3DRecord> }) { this.records = ctx.records; }
+  onEvent(ev: { type: string; payload?: any }) {
+    if (ev.type === 'focus' && ev.payload?.label) {
+      this.focus = String(ev.payload.label);
+      this.compute();
+    }
+  }
+  private cosine(a: number[], b: number[]): number {
+    let dot = 0, na = 0, nb = 0;
+    const n = Math.min(a.length, b.length);
+    for (let i = 0; i < n; i++) { const x=a[i], y=b[i]; dot += x*y; na += x*x; nb += y*y; }
+    return (na>0 && nb>0) ? (dot / (Math.sqrt(na)*Math.sqrt(nb))) : 0;
+  }
+  private compute() {
+    if (!this.records.length || !this.focus) { this.results = []; return; }
+    const idx = this.records.findIndex(r => ((r.metadata?.label as string) || r.id) === this.focus);
+    if (idx < 0) { this.results = []; return; }
+    const ref = this.records[idx].embedding as number[];
+    const cap = Math.min(5000, this.records.length);
+    const sims: { i: number; s: number }[] = [];
+    for (let i = 0; i < cap; i++) {
+      if (i === idx) continue;
+      const s = this.cosine(ref, this.records[i].embedding as number[]);
+      sims.push({ i, s });
+    }
+    sims.sort((a,b)=>b.s-a.s);
+    this.results = sims.slice(0, 16).map(x => ({ label: (this.records[x.i].metadata?.label as string) || this.records[x.i].id, sim: x.s }));
+  }
+  renderCanvas(ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }) {
+    ctx.fillStyle = '#0a0d10'; ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+    ctx.fillStyle = '#fff'; ctx.font = '12px system-ui';
+    ctx.fillText(`Focus: ${(this.focus||'—').slice(0,48)}`, rect.x+8, rect.y+18);
+    let y = rect.y + 36;
+    ctx.font = '12px monospace';
+    for (const r of this.results) { ctx.fillText(`${r.sim.toFixed(3)}  ${r.label.slice(0,48)}`, rect.x+8, y); y += 14; }
+  }
+  openOverlay(el: HTMLDivElement) {
+    el.innerHTML='';
+    const input = document.createElement('input'); input.placeholder = 'label or id'; input.style.width='60%'; if (this.focus) input.value = this.focus;
+    const btn = document.createElement('button'); btn.textContent = 'Peek';
+    const out = document.createElement('pre'); out.style.color='#ddd'; out.style.whiteSpace='pre-wrap'; out.style.marginTop='8px';
+    const go = () => { this.focus = input.value.trim(); this.compute(); out.textContent = this.results.map(r=>`${r.sim.toFixed(3)}  ${r.label}`).join('\n'); };
+    btn.onclick = go; el.appendChild(input); el.appendChild(btn); el.appendChild(out);
+    if (this.focus) go();
+  }
+}
+
+export class GraphApp implements TabletApp {
+  id = 'graph'; title = 'Mini-Map';
+  private records: ReadonlyArray<K3DRecord> = [];
+  private focus: string = '';
+  setContext(ctx: { records: ReadonlyArray<K3DRecord> }) { this.records = ctx.records; }
+  onEvent(ev: { type: string; payload?: any }) { if (ev.type === 'focus' && ev.payload?.label) this.focus = String(ev.payload.label); }
+  renderCanvas(ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }) {
+    ctx.fillStyle = '#050608'; ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+    if (!this.records.length) return;
+    // project vectors to 2D by XY; normalize bounds
+    const cap = Math.min(this.records.length, 4096);
+    let minx=Infinity, miny=Infinity, maxx=-Infinity, maxy=-Infinity;
+    for (let i=0;i<cap;i++){ const v=this.records[i].vector; if(!v) continue; if(v[0]<minx)minx=v[0]; if(v[0]>maxx)maxx=v[0]; if(v[1]<miny)miny=v[1]; if(v[1]>maxy)maxy=v[1]; }
+    const sx = (x:number)=> rect.x + ((x-minx)/(maxx-minx||1)) * rect.w;
+    const sy = (y:number)=> rect.y + ((y-miny)/(maxy-miny||1)) * rect.h;
+    // draw points
+    ctx.fillStyle = '#88aaff';
+    for (let i=0;i<cap;i++){ const v=this.records[i].vector as [number,number,number]; const x=sx(v[0]), y=sy(v[1]); ctx.fillRect(x, y, 1, 1); }
+    // highlight focus if present
+    if (this.focus) {
+      const i = this.records.findIndex(r => ((r.metadata?.label as string) || r.id) === this.focus);
+      if (i>=0) { const v=this.records[i].vector as [number,number,number]; ctx.strokeStyle='#ffcc00'; ctx.strokeRect(sx(v[0])-3, sy(v[1])-3, 6, 6); }
+    }
+  }
+  openOverlay(el: HTMLDivElement) {
+    el.innerHTML=''; const p = document.createElement('p'); p.textContent='Mini-map of XY positions (cap 4096) with focus square.'; p.style.color='#ddd'; el.appendChild(p);
+  }
 }

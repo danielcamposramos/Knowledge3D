@@ -1,0 +1,26 @@
+{
+  "ts": "20250829-235207",
+  "nodes": 25725,
+  "avg_degree": 5.0,
+  "doors": 144,
+  "guided": 286,
+  "hubs": [
+    "Sculpture - Wikipedia...",
+    "Sculpture - Wikipedia...",
+    "Painting - Wikipedia ...",
+    "Dance - Wikipedia — D...",
+    "ASCII art - Wikipedia..."
+  ],
+  "goto": {
+    "count": 64,
+    "success": 64,
+    "success_rate": 1.0,
+    "median_hops": 10
+  },
+  "door": {
+    "count": 32,
+    "success": 32,
+    "success_rate": 1.0,
+    "median_hops": 10
+  }
+}

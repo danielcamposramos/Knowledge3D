@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ConsoleApp, NotesApp, RpnApp, WebApp, CalendarApp, MailApp, type TabletApp } from './apps';
+import { ConsoleApp, NotesApp, RpnApp, WebApp, CalendarApp, MailApp, EmbeddingsApp, GraphApp, type TabletApp } from './apps';
 
 type TabletMode = 'ai' | 'human';
 
@@ -19,7 +19,7 @@ export class Tablet3D {
   private tex: THREE.CanvasTexture;
   private status: TabletStatus = { ws: 'disconnected', queue: 0, mode: 'ai' };
   private overlay: HTMLDivElement | null = null;
-  private apps: TabletApp[] = [new ConsoleApp(), new NotesApp(), new RpnApp(), new WebApp(), new CalendarApp(), new MailApp()];
+  private apps: TabletApp[] = [new ConsoleApp(), new NotesApp(), new RpnApp(), new WebApp(), new CalendarApp(), new MailApp(), new EmbeddingsApp(), new GraphApp()];
   private activeApp = 'console';
 
   constructor() {
@@ -54,6 +54,17 @@ export class Tablet3D {
   pushExplain(line: string) {
     const app = this.apps.find(a => a.id === 'console') as ConsoleApp | undefined;
     app?.push(line);
+    this.renderScreen();
+  }
+
+  setDataset(records: ReadonlyArray<{ id: string; vector: [number,number,number]; embedding: number[]; metadata: Record<string, unknown> }>) {
+    for (const app of this.apps) {
+      app.setContext?.({ records: records as any });
+    }
+  }
+
+  setFocusLabel(label: string) {
+    for (const app of this.apps) app.onEvent?.({ type: 'focus', payload: { label } });
     this.renderScreen();
   }
 

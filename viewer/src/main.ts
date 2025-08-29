@@ -132,6 +132,22 @@ async function loadHouse(k3dUrl: string) {
         const inf = loaded.info;
         const fmt = (b?: number) => b !== undefined ? `${(b/1e6).toFixed(2)} MB` : 'n/a';
         infoEl.textContent = `precision=${inf.precision} dims=${inf.dims} count=${inf.count} vectors=${fmt(inf.byteLengthVectors)} embeddings=${fmt(inf.byteLengthEmbeddings)}`;
+        // quick scoreboard lines
+        const mask = loaded.info?.ai?.mask?.has_new_information;
+        const guided = Array.isArray(mask) ? mask.filter(Boolean).length : 0;
+        const doorsCount = k3dData.filter(r => (r.metadata?.type as string) === 'door').length;
+        if (tablet) {
+            tablet.pushExplain(`House loaded: count=${k3dData.length} dims=${inf.dims}`);
+            tablet.pushExplain(`Doors=${doorsCount} Guided=${guided}`);
+        }
+        // try fetch viewer/public training scoreboard
+        try {
+            const res = await fetch('/training/latest.json', { cache: 'no-store' });
+            if (res.ok) {
+                const s = await res.json();
+                tablet?.pushExplain(`Scoreboard ts=${s.ts} GOTO: ${s.goto.success}/${s.goto.count} (med=${s.goto.median_hops}) DOOR: ${s.door.success}/${s.door.count} (med=${s.door.median_hops})`);
+            }
+        } catch {}
 
         // Initialize or reset the agent
         const explainLog = document.getElementById('explain-log') as HTMLDivElement;
@@ -154,8 +170,9 @@ async function loadHouse(k3dUrl: string) {
             tablet = new Tablet3D();
             scene.add(tablet.object);
         }
-        // Update tablet with house info
+        // Update tablet with house info and dataset
         tablet.setStatus({ house: k3dUrl, nodes: k3dData.length, info: `dims=${loaded.info.dims} precision=${loaded.info.precision}` });
+        tablet.setDataset(k3dData);
 
         // Start chat connection
         const chatLog = document.getElementById('chat-log') as HTMLDivElement;
@@ -308,6 +325,7 @@ function checkIntersects() {
             } catch {}
             const head = isDoor ? `🚪 ${label}` : label;
             tooltip.textContent = text ? `${head}: ${text.slice(0, 120)}${extra}` : (head + extra);
+            if (tablet) tablet.setFocusLabel(label);
         } else {
             tooltip.style.display = 'none';
         }
