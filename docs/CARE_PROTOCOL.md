@@ -26,6 +26,7 @@ Feeding Stages
 - Large house: `ai-books-4k-umap`
 - Full house: `ai-books-full-umap`
 - Guidance variant: `ai-books-1k-umap-doors` — door nodes + new-info mask for gentle paths
+ - Scaled guidance: `ai-books-4k-umap-doors` for larger, structured walks
 
 Generation
 - Normalize books: `python -m knowledge3d.tools.build_ai_books`
@@ -43,4 +44,4 @@ Agent Guidance
 - Explain-as-you-move: announce plan, neighbor hops with cosine similarity, and arrival address.
 - Respect confidence: default threshold ≥ 0.7 for action suggestions.
 - Doors & masks: follow green nodes (has_new_information) and blue doors to explore purposefully.
-
+ - Visual trails: agent leaves subtle line segments between hops for recaps; door tooltips show their spatial address.

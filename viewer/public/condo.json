@@ -69,6 +69,16 @@
       "uri": "/ai_books_basic.1k.umap.doors.glb",
       "expert": "ai-books-1k-umap-doors",
       "description": "AI Books (UMAP, 1k) with doors + guidance."
+    },
+    {
+      "uri": "/ai_care_ancient.umap.glb",
+      "expert": "ai-care-ancient-umap",
+      "description": "Ancient care (Sumerian transliteration, UMAP)."
+    },
+    {
+      "uri": "/ai_books_basic.4k.umap.doors.glb",
+      "expert": "ai-books-4k-umap-doors",
+      "description": "AI Books (UMAP, 4k) with doors + guidance."
     }
   ]
 }

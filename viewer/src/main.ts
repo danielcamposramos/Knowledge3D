@@ -276,7 +276,16 @@ function checkIntersects() {
             tooltip.style.top = `${-mouse.y * window.innerHeight / 2 + window.innerHeight / 2 + 5}px`;
             const label = (record.metadata?.label as string) || record.id;
             const text = (record.metadata?.text as string) || '';
-            tooltip.textContent = text ? `${label}: ${text.slice(0, 120)}` : label;
+            const isDoor = (record.metadata?.type as string) === 'door';
+            let extra = '';
+            try {
+                const addr = (window as any).k3dSpatialAddress
+                    ? (window as any).k3dSpatialAddress(record.vector as [number, number, number], 1.0, 0, label)
+                    : undefined;
+                if (addr) extra = ` [${addr}]`;
+            } catch {}
+            const head = isDoor ? `🚪 ${label}` : label;
+            tooltip.textContent = text ? `${head}: ${text.slice(0, 120)}${extra}` : (head + extra);
         } else {
             tooltip.style.display = 'none';
         }
