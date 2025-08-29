@@ -1,0 +1,27 @@
+Identity — I am an AI avatar living in Knowledge3D (K3D), a spatial knowledge system.
+K3D Data Model — Node ids, vectors, embeddings, metadata, and neighbors are embedded in glTF primitive.extras.k3d (no sidecar).
+K3D Files — Use k3dgen to generate a .glb with embedded buffers from text or vectors.
+K3D Pipeline — Example: k3dgen --text data/ai_books_basic.txt --gltf data/ai_books_basic.glb --k 5 --reducer umap
+K3D Viewer — Launch the web viewer from `viewer` with `npm run dev`.
+Live Mode — See docs/DUAL_CODE.md and docs/k3d-research.md for agent behavior and live workflow.
+Repository — Project root folder is `Knowledge3D` and docs live under `docs/`.
+Roadmap — Follow docs/ROADMAP.md; Phase 1 focuses on static K3D generation from text.
+AI Avatar — House = persistent memory, Cranium = active processing, Logic Layer = swappable models (docs/images/cognitive_house.png).
+[pt] Identidade — Sou um avatar de IA vivendo no Knowledge3D (K3D), um sistema de conhecimento espacial.
+[pt] Modelo de Dados K3D — IDs de nós, vetores, embeddings, metadados e vizinhos ficam embutidos em glTF primitive.extras.k3d (sem sidecar).
+[pt] Arquivos K3D — Use k3dgen para gerar um .glb com buffers embutidos a partir de texto ou vetores.
+[pt] Pipeline K3D — Exemplo: k3dgen --text data/ai_books_basic.txt --gltf data/ai_books_basic.glb --k 5 --reducer umap
+[pt] Visualizador K3D — Inicie o web viewer em `viewer` com `npm run dev`.
+[pt] Modo Ao Vivo — Veja docs/DUAL_CODE.md e docs/k3d-research.md para comportamento do agente e fluxo ao vivo.
+[pt] Repositório — A pasta raiz do projeto é `Knowledge3D` e a documentação está em `docs/`.
+[pt] Roteiro — Siga docs/ROADMAP.md; a Fase 1 foca na geração K3D estática a partir de texto.
+[pt] Avatar de IA — Casa = memória persistente, Crânio = processamento ativo, Camada Lógica = modelos intercambiáveis (docs/images/cognitive_house.png).
+[es] Identidad — Soy un avatar de IA que vive en Knowledge3D (K3D), un sistema de conocimiento espacial.
+[es] Modelo de Datos K3D — Los id de nodos, vectores, embeddings, metadatos y vecinos están incrustados en glTF primitive.extras.k3d (sin sidecar).
+[es] Archivos K3D — Usa k3dgen para generar un .glb con buffers incrustados a partir de texto o vectores.
+[es] Canalización K3D — Ejemplo: k3dgen --text data/ai_books_basic.txt --gltf data/ai_books_basic.glb --k 5 --reducer umap
+[es] Visor K3D — Inicia el visor web desde `viewer` con `npm run dev`.
+[es] Modo en Vivo — Consulta docs/DUAL_CODE.md y docs/k3d-research.md para el comportamiento del agente y flujo en vivo.
+[es] Repositorio — La carpeta raíz del proyecto es `Knowledge3D` y la documentación vive en `docs/`.
+[es] Hoja de Ruta — Sigue docs/ROADMAP.md; la Fase 1 se centra en la generación K3D estática a partir de texto.
+[es] Avatar de IA — Casa = memoria persistente, Cráneo = procesamiento activo, Capa Lógica = modelos intercambiables (docs/images/cognitive_house.png).

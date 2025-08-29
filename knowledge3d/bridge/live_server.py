@@ -95,6 +95,10 @@ class LiveServer:
             pass
         self._model_kind: Optional[str] = None
         self._model = None
+        # Pause state per channel
+        self._paused: Dict[str, Dict[str, Any]] = {}
+        # Advancement log in-repo (append-only)
+        self._adv_log = (Path(__file__).resolve().parents[2] / "docs" / "reports" / "advancement_log.md")
 
     async def handler(self, ws):
         key = _ClientKey(id(ws))
@@ -133,7 +137,10 @@ class LiveServer:
             if text.startswith("/"):
                 await self.handle_command(text, client)
                 return
-
+            if self._is_paused(client.channel):
+                await self.send_system(client.channel, "Paused: ignoring chat intents until /resume")
+                await self.log({"type": "pause_block", "what": "chat_intent", "text": raw_text, "channel": client.channel})
+                return
             await self.send_chat(sender=client.nick, text=raw_text, channel=client.channel)
             await self.log({"type": "chat", "from": client.nick, "channel": client.channel, "text": raw_text, "normalized": text})
             # Enhanced processing (fallbacks to naive path if processor missing)
@@ -179,6 +186,10 @@ class LiveServer:
                 except Exception:
                     pass
                 if resp.get("type") in ("navigation", "exploration", "interaction"):
+                    if self._is_paused(client.channel):
+                        await self.send_system(client.channel, "Paused: action suppressed. Use /resume to continue.")
+                        await self.log({"type": "pause_block", "what": resp.get("type"), "channel": client.channel})
+                        return
                     # Ethics gate
                     dec = self._policy_check(text, resp.get("action"))
                     await self.log({"type":"ethics_decision","allow":dec.allow,"reason":dec.reason,"action":resp.get("action"),"text":raw_text})
@@ -194,6 +205,10 @@ class LiveServer:
             else:
                 # naive intent: goto <label>
                 if text.lower().startswith("goto "):
+                    if self._is_paused(client.channel):
+                        await self.send_system(client.channel, "Paused: ignoring goto until /resume")
+                        await self.log({"type": "pause_block", "what": "goto", "channel": client.channel})
+                        return
                     target = text[5:].strip()
                     await self.send_command("goto", target)
                     await self.send_chat(sender="agent", text=f"On my way to {target}.", channel=client.channel)
@@ -201,6 +216,10 @@ class LiveServer:
         elif t == "command":
             cmd = msg.get("command")
             if cmd == "goto":
+                if self._is_paused(client.channel):
+                    await self.send_system(client.channel, "Paused: ignoring commands until /resume")
+                    await self.log({"type": "pause_block", "what": "command", "command": cmd, "channel": client.channel})
+                    return
                 target = str(msg.get("target", "")).strip()
                 if target:
                     await self.send_command("goto", target)
@@ -260,6 +279,17 @@ class LiveServer:
         if cmd == "/msg" and len(parts) >= 3:
             target_nick, msg = parts[1], parts[2]
             await self.private_msg(client, target_nick, msg)
+            return
+        if cmd == "/pause":
+            reason = parts[1] if len(parts) >= 2 else "no-reason"
+            await self._pause(client, reason)
+            return
+        if cmd == "/resume":
+            await self._resume(client)
+            return
+        if cmd == "/status":
+            st = "paused" if self._is_paused(client.channel) else "running"
+            await self.send_system(client.channel, f"Status: {st}")
             return
         if cmd in ("/open", "/door") and len(parts) >= 2:
             await self._handle_open(parts[1], client)
@@ -464,6 +494,43 @@ class LiveServer:
         async with websockets.serve(self.handler, self.host, self.port):
             print(f"K3D live server listening on ws://{self.host}:{self.port}")
             await asyncio.Future()
+
+    # --- Pause/Resume support ---
+    def _is_paused(self, channel: str) -> bool:
+        return channel in self._paused
+
+    async def _pause(self, client: Client, reason: str) -> None:
+        ch = client.channel
+        if self._is_paused(ch):
+            await self.send_system(ch, "Already paused.")
+            return
+        self._paused[ch] = {"reason": reason, "by": client.nick, "ts": datetime.utcnow().isoformat() + "Z"}
+        await self.send_system(ch, f"Paused by {client.nick}: {reason}")
+        await self.log({"type": "control", "action": "pause", "channel": ch, "by": client.nick, "reason": reason})
+        self._append_advancement_log(action="pause", channel=ch, by=client.nick, reason=reason)
+
+    async def _resume(self, client: Client) -> None:
+        ch = client.channel
+        was = self._paused.pop(ch, None)
+        if not was:
+            await self.send_system(ch, "Not paused.")
+            return
+        await self.send_system(ch, f"Resumed by {client.nick}")
+        await self.log({"type": "control", "action": "resume", "channel": ch, "by": client.nick})
+        self._append_advancement_log(action="resume", channel=ch, by=client.nick, reason=was.get("reason", ""))
+
+    def _append_advancement_log(self, action: str, channel: str, by: str, reason: str = "") -> None:
+        try:
+            self._adv_log.parent.mkdir(parents=True, exist_ok=True)
+            if not self._adv_log.exists():
+                self._adv_log.write_text("# Advancement Log\n\nEntries appended by live server (/pause, /resume).\n\n", encoding="utf-8")
+            ts = datetime.utcnow().isoformat() + "Z"
+            line = f"- {ts} — {action.upper()} — channel={channel} by={by} reason={reason}\n"
+            with self._adv_log.open("a", encoding="utf-8") as f:
+                f.write(line)
+        except Exception:
+            # Non-fatal if repo is read-only or path invalid
+            pass
 def main():  # pragma: no cover
     srv = LiveServer()
     asyncio.run(srv.run())
