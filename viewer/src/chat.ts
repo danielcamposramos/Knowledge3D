@@ -1,3 +1,5 @@
+import { openStore } from './cache';
+
 export type ChatMessage = {
   type: 'chat';
   from: string;
