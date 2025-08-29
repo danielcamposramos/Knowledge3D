@@ -90,13 +90,22 @@ async function loadHouse(k3dUrl: string) {
         });
         const size = new THREE.Vector3().subVectors(max, min);
 
+        const mask = loaded.info?.ai?.mask?.has_new_information;
         k3dData.forEach((record, i) => {
             positions.set(record.vector, i * 3);
 
-            const r = size.x > 0 ? (record.vector[0] - min.x) / size.x : 0.5;
-            const g = size.y > 0 ? (record.vector[1] - min.y) / size.y : 0.5;
-            const b = size.z > 0 ? (record.vector[2] - min.z) / size.z : 0.5;
-            color.setRGB(r, g, b);
+            const isDoor = (record.metadata?.type as string) === 'door';
+            if (mask && mask[i] === true) {
+                // AI per-node cue: green for nodes with new info
+                color.setRGB(0.0, 1.0, 0.0);
+            } else if (isDoor) {
+                color.setRGB(0.2, 0.5, 1.0); // bluish for doors
+            } else {
+                const r = size.x > 0 ? (record.vector[0] - min.x) / size.x : 0.5;
+                const g = size.y > 0 ? (record.vector[1] - min.y) / size.y : 0.5;
+                const b = size.z > 0 ? (record.vector[2] - min.z) / size.z : 0.5;
+                color.setRGB(r, g, b);
+            }
             colors.set([color.r, color.g, color.b], i * 3);
         });
 
@@ -107,6 +116,13 @@ async function loadHouse(k3dUrl: string) {
         const material = new THREE.PointsMaterial({ size: 0.1, vertexColors: true });
         currentPoints = new THREE.Points(geometry, material);
         scene.add(currentPoints);
+
+        // AI-native visual hint (global): if has_new_information on primitive and no mask provided
+        if (loaded.info?.ai?.flags?.has_new_information && !loaded.info?.ai?.mask?.has_new_information && currentPoints) {
+            const colorsAttr = currentPoints.geometry.getAttribute('color') as THREE.BufferAttribute;
+            for (let i = 0; i < k3dData.length; i++) colorsAttr.setXYZ(i, 0.0, 1.0, 0.0);
+            colorsAttr.needsUpdate = true;
+        }
 
         // dataset info
         const infoEl = document.getElementById('dataset-info') as HTMLDivElement;
@@ -150,10 +166,43 @@ async function loadHouse(k3dUrl: string) {
                 if (m.command === 'goto' && agent) {
                     agent.goToLabel(m.target);
                     append('system', `Agent navigating to ${m.target}`);
+                } else if (m.command === 'open') {
+                    try {
+                        const info = JSON.parse(m.target);
+                        const label = info.label ?? 'unknown';
+                        const addr = info.address ?? 'k3d://';
+                        const hops = Array.isArray(info.path) ? info.path.length - 1 : 0;
+                        append('system', `Door opened to ${label} via ${hops} hops (${addr})`);
+                        if (agent && label) agent.goToLabel(label);
+                    } catch {
+                        append('system', `Door opened: ${m.target}`);
+                    }
                 }
             }
         });
         chat.connect();
+
+        // Share dataset graph with live server for routing (ids, neighbors, labels)
+        const ids = k3dData.map(r => r.id);
+        const neighbors = k3dData.map(r => r.neighbors || []);
+        const labelsArr = k3dData.map(r => (r.metadata?.label as string) || r.id);
+        chat.sendEvent({ kind: 'dataset_graph', ids, neighbors, labels: labelsArr });
+
+        // Share registered doors (type === 'door') and their spatial addresses
+        const doorItems = k3dData
+            .map((r) => {
+                const isDoor = (r.metadata?.type as string) === 'door';
+                if (!isDoor) return null;
+                const label = (r.metadata?.label as string) || r.id;
+                const address = (window as any).k3dSpatialAddress
+                    ? (window as any).k3dSpatialAddress(r.vector as [number, number, number], 1.0, 0, label)
+                    : undefined;
+                return { label, address };
+            })
+            .filter(Boolean);
+        if (doorItems.length > 0) {
+            chat.sendEvent({ kind: 'doors', items: doorItems });
+        }
 
     } catch (e) {
         console.error(`Failed to load house from ${k3dUrl}:`, e);

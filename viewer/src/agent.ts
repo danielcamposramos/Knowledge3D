@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { K3DRecord } from './loadK3D';
 import { RPN } from './rpn';
+import { spatialAddress } from './address';
 
 export class K3DAgent {
   public object: THREE.Object3D;
@@ -137,11 +138,19 @@ export class K3DAgent {
           const s = this.labelOf(prev);
           const t = this.labelOf(nextId);
           const sim = this.cosSimById(prev, nextId).toFixed(3);
-          this.emitExplain(`Step: ${s} → ${t} (neighbor hop, sim=${sim}).`);
+          const addr = spatialAddress(this.recordMap.get(nextId)!.vector as [number, number, number], 1.0, 0, t);
+          this.emitExplain(`Step: ${s} → ${t} (neighbor hop, sim=${sim}, addr=${addr}).`);
         }
       } else {
         this.target = null;
-        this.emitExplain(`Arrived.`);
+        const here = this.findClosestRecord(current);
+        if (here) {
+          const lab = this.labelOf(here.id);
+          const addr = spatialAddress(here.vector as [number, number, number], 1.0, 0, lab);
+          this.emitExplain(`Arrived at ${lab} (addr=${addr}).`);
+        } else {
+          this.emitExplain(`Arrived.`);
+        }
       }
       return;
     }

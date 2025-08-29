@@ -62,6 +62,13 @@ Notes:
 - `embeddingPrecision`: optional, one of `"f32"|"f16"`. When `f16`, the embeddings bufferView stores IEEE754 half-precision floats (2 bytes); readers should decode to float32 for processing.
 - `primitive.extras.k3dIds` mirrors the `ids` array for simple readers.
 
+AI-native optional fields
+
+- `ai_interaction_protocol` (string): One of `direct_vector_manipulation`, `semantic_query`, or `spatial_reasoning`. Specifies how AI agents are expected to interact with this payload.
+- `ai_state_flags` (object): Dynamic flags for AI runtime. Suggested keys: `is_active` (bool), `is_traversable` (bool), `has_new_information` (bool).
+- `ai_state_flags_mask` (object): Optional per-node boolean masks with same length as `ids`. Currently defined key: `has_new_information: boolean[]`. When present, it overrides global `ai_state_flags.has_new_information` for coloring/alerts.
+- For large per-node embeddings, an additional compact form may be present per node entry or for the whole set: `embedding_b64` with `{ data, dtype, dims, endianness }` for efficient transfer.
+
 ## Rationale
 
 Separating K3D metadata into a sidecar keeps the glTF payload small while
