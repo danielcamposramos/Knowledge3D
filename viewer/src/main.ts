@@ -310,6 +310,8 @@ const chatSend = document.getElementById('chat-send') as HTMLButtonElement;
 const chatPause = document.getElementById('chat-pause') as HTMLButtonElement;
 const chatResume = document.getElementById('chat-resume') as HTMLButtonElement;
 const chatStatusBtn = document.getElementById('chat-status-btn') as HTMLButtonElement;
+const chatAskThoughts = document.getElementById('chat-ask-thoughts') as HTMLButtonElement;
+const chatWhoAmI = document.getElementById('chat-whoami') as HTMLButtonElement;
 const cacheToggle = document.getElementById('cache-enable') as HTMLInputElement;
 const cacheClear = document.getElementById('cache-clear') as HTMLButtonElement;
 const colorMode = document.getElementById('color-mode') as HTMLSelectElement;
@@ -345,6 +347,16 @@ if (chatResume) {
 if (chatStatusBtn) {
     chatStatusBtn.addEventListener('click', () => {
         if (chat) chat.sendChat('/status');
+    });
+}
+if (chatAskThoughts) {
+    chatAskThoughts.addEventListener('click', () => {
+        if (chat) chat.sendChat('/ask-thoughts');
+    });
+}
+if (chatWhoAmI) {
+    chatWhoAmI.addEventListener('click', () => {
+        if (chat) chat.sendChat('/whoami');
     });
 }
 if (cacheToggle) {
