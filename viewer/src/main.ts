@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { loadK3DFromGLTF, fetchCondoConfig, type K3DRecord, type CondoConfig, type HouseInfo, type LoadedK3D } from './loadK3D';
 import { K3DAgent } from './agent';
+import { Tablet3D } from './tablet';
 import { ChatClient, type ChatMessage, type CommandMessage } from './chat';
 import { RPN } from './rpn';
 import { openStore } from './cache';
@@ -30,6 +31,8 @@ let condoConfig: CondoConfig | null = null;
 let agent: K3DAgent | null = null;
 let chat: ChatClient | null = null;
 const cache = openStore<LoadedK3D>();
+const tabletStore = openStore<any>('k3d-tablet','tablet');
+let tablet: Tablet3D | null = null;
 let cacheEnabled = true;
 
 // --- Main Logic ---
@@ -145,6 +148,14 @@ async function loadHouse(k3dUrl: string) {
         agent = new K3DAgent(scene, camera, pushExplain);
         agent.setRecords(k3dData);
 
+        // Setup tablet (3D object) if not present
+        if (!tablet) {
+            tablet = new Tablet3D();
+            scene.add(tablet.object);
+        }
+        // Update tablet with house info
+        tablet.setStatus({ house: k3dUrl, nodes: k3dData.length, info: `dims=${loaded.info.dims} precision=${loaded.info.precision}` });
+
         // Start chat connection
         const chatLog = document.getElementById('chat-log') as HTMLDivElement;
         const chatStatus = document.getElementById('chat-status') as HTMLDivElement;
@@ -155,12 +166,20 @@ async function loadHouse(k3dUrl: string) {
             chatLog.scrollTop = chatLog.scrollHeight;
         };
         chat = new ChatClient('ws://localhost:8765', {
-            onStatus: s => chatStatus.textContent = `WS: ${s}`,
+            onStatus: async (s) => {
+                chatStatus.textContent = `WS: ${s}`;
+                const q = await chat!.getQueueLength();
+                const tinfo = document.getElementById('tablet-info') as HTMLDivElement;
+                if (tinfo) tinfo.textContent = `Tablet: ${s === 'connected' ? 'online' : 'offline'}, queue=${q}`;
+                if (tablet) tablet.setStatus({ ws: s, queue: q });
+            },
             onChat: (m: ChatMessage) => {
                 if (m.action) append('* ' + m.from, m.text);
                 else if (m.to) append(`${m.from}→${m.to}`, m.text);
                 else if (m.channel) append(`[${m.channel}] ${m.from}`, m.text);
                 else append(m.from, m.text);
+                // mirror into tablet info box
+                if (tablet) tablet.setStatus({ info: `last: ${m.from}: ${m.text.slice(0, 60)}` });
             },
             onCommand: (m: CommandMessage) => {
                 if (m.command === 'goto' && agent) {
@@ -187,6 +206,7 @@ async function loadHouse(k3dUrl: string) {
         const neighbors = k3dData.map(r => r.neighbors || []);
         const labelsArr = k3dData.map(r => (r.metadata?.label as string) || r.id);
         chat.sendEvent({ kind: 'dataset_graph', ids, neighbors, labels: labelsArr });
+        await tabletStore.put(`graph:${k3dUrl}`, { ids, neighbors, labels: labelsArr });
 
         // Share registered doors (type === 'door') and their spatial addresses
         const doorItems = k3dData
@@ -202,6 +222,7 @@ async function loadHouse(k3dUrl: string) {
             .filter(Boolean);
         if (doorItems.length > 0) {
             chat.sendEvent({ kind: 'doors', items: doorItems });
+            await tabletStore.put(`doors:${k3dUrl}`, doorItems);
         }
 
     } catch (e) {
@@ -300,6 +321,11 @@ window.addEventListener('resize', () => {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
+window.addEventListener('keydown', (ev: KeyboardEvent) => {
+    if (ev.key.toLowerCase() === 'f' && tablet) {
+        tablet.toggleFocus();
+    }
+});
 
 // Agent UI controls
 const agentTarget = document.getElementById('agent-target') as HTMLInputElement;
@@ -318,6 +344,8 @@ const colorMode = document.getElementById('color-mode') as HTMLSelectElement;
 const clusterK = document.getElementById('cluster-k') as HTMLInputElement;
 const applyColor = document.getElementById('apply-color') as HTMLButtonElement;
 const legend = document.getElementById('legend') as HTMLDivElement;
+const toggleTrails = document.getElementById('toggle-trails') as HTMLInputElement;
+const tabletFocusBtn = document.getElementById('tablet-focus') as HTMLButtonElement;
 if (agentGo) {
     agentGo.addEventListener('click', () => {
         if (agent && agentTarget?.value) {
@@ -415,6 +443,16 @@ if (applyColor) {
         } else {
             applyPositionColors();
         }
+    });
+}
+if (toggleTrails) {
+    toggleTrails.addEventListener('change', () => {
+        if (agent) agent.trailsEnabled = !!toggleTrails.checked;
+    });
+}
+if (tabletFocusBtn) {
+    tabletFocusBtn.addEventListener('click', () => {
+        if (tablet) tablet.toggleFocus();
     });
 }
 if (agentFollow) {
