@@ -50,6 +50,19 @@ class LiveServer:
             ConversationContext = None  # type: ignore
         self._processor = EnhancedChatProcessor() if EnhancedChatProcessor else None
         self._ctx_by_nick: Dict[str, Any] = {}
+        # OSI/Spatial state per channel
+        self._graphs: Dict[str, Dict[str, Any]] = {}
+        self._current_label: Dict[str, str] = {}
+        self._doors: Dict[str, Dict[str, str]] = {}
+        # Lazy imports for spatial runtime
+        try:
+            from ..spatial.address import SpatialAddress  # type: ignore
+            from ..spatial.osi import Network3D  # type: ignore
+            self._SpatialAddress = SpatialAddress
+            self._Network3D = Network3D
+        except Exception:  # pragma: no cover
+            self._SpatialAddress = None
+            self._Network3D = None
 
     async def handler(self, ws):
         key = _ClientKey(id(ws))
@@ -128,6 +141,26 @@ class LiveServer:
                     await self.log({"type": "command", "command": "goto", "target": target, "source": "ws", "channel": client.channel})
         elif t == "event":
             ev = msg.get("event", {})
+            kind = ev.get("kind")
+            # Capture dataset graph for routing
+            if kind == "dataset_graph":
+                ids = ev.get("ids") or []
+                neighbors = ev.get("neighbors") or []
+                labels = ev.get("labels") or []
+                if isinstance(ids, list) and isinstance(neighbors, list):
+                    self._graphs[client.channel] = {"ids": ids, "neighbors": neighbors, "labels": labels}
+            # Track agent arrival for current label baseline
+            if kind == "explain":
+                txt = str(ev.get("text") or "")
+                if txt.startswith("Arrived at "):
+                    # Arrived at <label> (addr=...)
+                    try:
+                        head = txt.split(" (addr=", 1)[0]
+                        label = head.replace("Arrived at ", "", 1)
+                        if label:
+                            self._current_label[client.channel] = label
+                    except Exception:
+                        pass
             await self.log({"type": "event", **ev, "nick": client.nick, "channel": client.channel})
 
     async def handle_command(self, text: str, client: Client):
@@ -146,7 +179,62 @@ class LiveServer:
             target_nick, msg = parts[1], parts[2]
             await self.private_msg(client, target_nick, msg)
             return
+        if cmd in ("/open", "/door") and len(parts) >= 2:
+            await self._handle_open(parts[1], client)
+            return
         await self.send_system(client.channel, f"Unknown command: {cmd}")
+
+    async def _handle_open(self, target: str, client: Client):
+        # Resolve label from k3d URI or raw label text
+        if self._SpatialAddress is None or self._Network3D is None:
+            await self.send_system(client.channel, "Spatial runtime unavailable.")
+            return
+        label = None
+        address = None
+        if target.startswith("k3d://"):
+            try:
+                addr = self._SpatialAddress.from_uri(target)
+                label = addr.label
+                address = target
+            except Exception:
+                pass
+        if not label:
+            label = target
+        graph = self._graphs.get(client.channel)
+        if not graph:
+            await self.send_system(client.channel, "No dataset graph registered yet.")
+            return
+        # If doors are registered for this channel, restrict to known labels
+        doors = self._doors.get(client.channel) or {}
+        if doors:
+            if not label or label not in doors:
+                await self.send_system(client.channel, f"Unknown door: {label}. Use one of: {', '.join(sorted(doors.keys()))}")
+                return
+        ids = graph.get("ids") or []
+        neighbors = graph.get("neighbors") or []
+        labels = graph.get("labels") or []
+        # pick start by current label if known
+        start_label = self._current_label.get(client.channel)
+        try:
+            start_idx = labels.index(start_label) if start_label in labels else 0
+        except Exception:
+            start_idx = 0
+        try:
+            target_idx = labels.index(label) if label in labels else -1
+        except Exception:
+            target_idx = -1
+        if target_idx < 0:
+            await self.send_system(client.channel, f"Unknown label: {label}")
+            return
+        start_id = ids[start_idx]
+        target_id = ids[target_idx]
+        path_ids = self._Network3D.route(ids, neighbors, start_id, target_id)
+        # compose payload and broadcast as a command
+        resolved_addr = address or doors.get(label) or f"k3d://@?label={label}"
+        payload = {"label": label, "address": resolved_addr, "path": path_ids or []}
+        await self.send_command("open", json.dumps(payload), channel=client.channel)
+        hops = max(0, (len(path_ids or []) - 1))
+        await self.send_chat(sender="system", text=f"Opening door to {label} via {hops} hops", channel=client.channel)
 
     async def change_nick(self, client: Client, new_nick: str):
         new_nick = new_nick.strip()
@@ -226,6 +314,21 @@ class LiveServer:
             await asyncio.Future()
 
 
+            # Capture door registry
+            if kind == "doors":
+                items = ev.get("items") or []
+                if isinstance(items, list):
+                    door_map: Dict[str, str] = {}
+                    for it in items:
+                        try:
+                            lab = str(it.get("label") or "").strip()
+                            addr = str(it.get("address") or "").strip()
+                            if lab:
+                                door_map[lab] = addr
+                        except Exception:
+                            continue
+                    if door_map:
+                        self._doors[client.channel] = door_map
 def main():  # pragma: no cover
     srv = LiveServer()
     asyncio.run(srv.run())

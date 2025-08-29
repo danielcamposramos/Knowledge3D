@@ -1,6 +1,11 @@
 {
   "houses": [
     {
+      "uri": "/ai_demo.glb",
+      "expert": "ai-demo",
+      "description": "AI demo with ai_state_flags and protocol."
+    },
+    {
       "uri": "/math_house.gltf",
       "expert": "math",
       "description": "A house for mathematical concepts and embeddings."

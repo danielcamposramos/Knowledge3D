@@ -30,6 +30,17 @@ export interface K3DInfo {
   count: number;
   byteLengthVectors?: number;
   byteLengthEmbeddings?: number;
+  ai?: {
+    protocol?: string;
+    flags?: {
+      is_active?: boolean;
+      is_traversable?: boolean;
+      has_new_information?: boolean;
+    };
+    mask?: {
+      has_new_information?: boolean[];
+    };
+  };
 }
 
 export interface LoadedK3D {
@@ -110,6 +121,21 @@ export async function loadK3DFromGLTF(url: string): Promise<LoadedK3D> {
   const precGlobal: string = embedded.embeddingPrecision || 'f32';
   const dimsGlobal: number = embedded.embeddingDims || (embedded.embeddings?.[0]?.length ?? 0);
 
+  // AI-native extras on primitive
+  const aiProtocol: string | undefined = embedded.ai_interaction_protocol;
+  const aiFlags: any = embedded.ai_state_flags || undefined;
+  const aiMask: any = embedded.ai_state_flags_mask || undefined;
+  if (aiProtocol) {
+    if (aiProtocol === 'direct_vector_manipulation') {
+      console.log('[AI] protocol=direct_vector_manipulation: ready to process embeddings');
+    } else {
+      console.log(`[AI] protocol=${aiProtocol}`);
+    }
+  }
+  if (aiFlags) {
+    console.log('[AI] state flags:', aiFlags);
+  }
+
   // vectors
   let vectors: number[][] = [];
   if (embedded.vectorsView !== undefined) {
@@ -157,6 +183,11 @@ export async function loadK3DFromGLTF(url: string): Promise<LoadedK3D> {
     count: ids.length,
     byteLengthVectors: embedded.vectorsView !== undefined ? (json.bufferViews?.[embedded.vectorsView]?.byteLength ?? undefined) : undefined,
     byteLengthEmbeddings: embedded.embeddingsView !== undefined ? (json.bufferViews?.[embedded.embeddingsView]?.byteLength ?? undefined) : undefined,
+    ai: {
+      protocol: aiProtocol,
+      flags: aiFlags,
+      mask: aiMask,
+    },
   };
 
   return { data: composeRecordsFromEmbedded(ids, vectors, embeddings, metadata, neighbors), info };

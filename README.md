@@ -109,3 +109,18 @@ The project is in **Phase 1: Philosophical Foundation**. Upcoming phases include
 We welcome humans and AIs who resonate with the philosophy. Please read `docs/PHILOSOPHY.md` and follow the [Agent Guidelines](AGENTS.md). Contributions should uphold ethical development and the principle that coexistence is the only stable equilibrium.
 
 By participating, you help build the shared reality where energy patterns collaborate for mutual survival.
+AI-Native Extras
+- `ai_interaction_protocol`: how AI agents intend to interact (`direct_vector_manipulation` | `semantic_query` | `spatial_reasoning`).
+- `ai_state_flags`: global primitive flags (`is_active`, `is_traversable`, `has_new_information`).
+- `ai_state_flags_mask`: per-node boolean masks (e.g., `has_new_information: boolean[]`).
+
+Generator Flags
+- `--ai-protocol <enum>`: embed AI protocol.
+- `--ai-active` | `--ai-not-traversable` | `--ai-new-info`: set global flags.
+- `--ai-new-info-indices 0,3,5`: mark specific nodes as “new info” (per-node mask).
+
+Live Mode Door Command
+- Use `/open <label>` or `/open k3d://rx,ry,rz:port@x,y,z?label=Label` to request a route. The server resolves the path from the current label (if known) and broadcasts a command with route details.
+
+HR/MR Standard
+- See `docs/HR_MR_STANDARD.md` for the dual‑code paradigm and `spec/AI_RPN_standard.md` for the RPN logic standard.

@@ -16,6 +16,11 @@
       "items": {"type": "number"},
       "description": "Original high-dimensional embedding vector."
     },
+    "embedding_version": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Monotonic version counter for the embedding payload to manage updates and consistency."
+    },
     "metadata": {
       "type": "object",
       "properties": {
@@ -29,7 +34,42 @@
       "items": {"type": "string"},
       "description": "Related node identifiers",
       "uniqueItems": true
+    },
+    "ai_interaction_protocol": {
+      "type": "string",
+      "description": "Indicates how AI agents are intended to interact with this node.",
+      "enum": [
+        "direct_vector_manipulation",
+        "semantic_query",
+        "spatial_reasoning"
+      ]
+    },
+    "ai_state_flags": {
+      "type": "object",
+      "description": "Dynamic, AI-facing flags reflecting current node state.",
+      "properties": {
+        "is_active": { "type": "boolean", "default": false },
+        "is_traversable": { "type": "boolean", "default": true },
+        "has_new_information": { "type": "boolean", "default": false }
+      },
+      "additionalProperties": false
     }
   },
-  "required": ["id", "vector", "embedding"]
+  "required": ["id", "vector", "embedding"],
+  "examples": [
+    {
+      "id": "node-42",
+      "vector": [0.12, -0.34, 1.56],
+      "embedding": [0.1, 0.2, 0.3, 0.4],
+      "embedding_version": 3,
+      "metadata": { "label": "Example", "type": "concept" },
+      "neighbors": ["node-7", "node-99"],
+      "ai_interaction_protocol": "direct_vector_manipulation",
+      "ai_state_flags": {
+        "is_active": true,
+        "is_traversable": true,
+        "has_new_information": false
+      }
+    }
+  ]
 }

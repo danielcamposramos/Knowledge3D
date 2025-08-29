@@ -136,6 +136,9 @@ def create_gltf_file(
     metadata_texts: List[str] | None = None,
     fmt: str = "gltf",
     emb_precision: str = "f32",
+    ai_protocol: str | None = None,
+    ai_flags: dict | None = None,
+    ai_flags_mask: dict | None = None,
 ) -> None:
     """Create a glTF/GLB file with positions + embeddings in buffers.
 
@@ -203,6 +206,26 @@ def create_gltf_file(
         "metadata": meta_list,
         "neighbors": neighbors,
     }
+
+    # Optional AI-native fields at primitive level
+    if ai_protocol:
+        k3d_payload["ai_interaction_protocol"] = ai_protocol
+    if ai_flags:
+        # Only include valid keys
+        allowed = {"is_active", "is_traversable", "has_new_information"}
+        flags = {k: bool(v) for k, v in ai_flags.items() if k in allowed}
+        if flags:
+            k3d_payload["ai_state_flags"] = flags
+    if ai_flags_mask:
+        # Validate and include boolean masks per node
+        mask_allowed = {"has_new_information"}
+        mask_obj: dict = {}
+        for k, v in ai_flags_mask.items():
+            if k in mask_allowed and isinstance(v, list) and len(v) == len(ids):
+                mask_row = [bool(x) for x in v]
+                mask_obj[k] = mask_row
+        if mask_obj:
+            k3d_payload["ai_state_flags_mask"] = mask_obj
 
     primitive = Primitive(
         attributes={"POSITION": 0},
@@ -280,6 +303,31 @@ def generate(
     # 4. Create the .gltf/.glb with embedded buffers and labels/text metadata.
     fmt = "glb" if str(gltf_path).lower().endswith(".glb") else "gltf"
     emb_precision = _ARGS.emb_precision if '_ARGS' in globals() else 'f32'
+    ai_protocol = getattr(_ARGS, "ai_protocol", None)
+    ai_flags = {}
+    if getattr(_ARGS, "ai_active", False):
+        ai_flags["is_active"] = True
+    if getattr(_ARGS, "ai_not_traversable", False):
+        ai_flags["is_traversable"] = False
+    if getattr(_ARGS, "ai_new_info", False):
+        ai_flags["has_new_information"] = True
+    if not ai_flags:
+        ai_flags = None  # type: ignore
+
+    # Optional per-node has_new_information mask from explicit indices
+    ai_flags_mask = None
+    idx_str = getattr(_ARGS, "ai_new_info_indices", None)
+    if idx_str:
+        try:
+            indices = [int(x) for x in str(idx_str).split(",") if str(x).strip() != ""]
+            mask = [False] * len(ids)
+            for i in indices:
+                if 0 <= i < len(mask):
+                    mask[i] = True
+            ai_flags_mask = {"has_new_information": mask}
+        except Exception:
+            ai_flags_mask = None
+
     create_gltf_file(
         gltf_path,
         ids,
@@ -290,6 +338,9 @@ def generate(
         metadata_texts,
         fmt,
         emb_precision,
+        ai_protocol,
+        ai_flags,
+        ai_flags_mask,
     )
 
 
@@ -318,6 +369,19 @@ def main() -> None:
         choices=["f32", "f16"],
         default="f32",
         help="Embedding precision in GLTF bufferView (binary). f16 halves storage at some precision cost",
+    )
+    # AI-native fields for primitive.extras.k3d
+    parser.add_argument(
+        "--ai-protocol",
+        choices=["direct_vector_manipulation", "semantic_query", "spatial_reasoning"],
+        help="Optional AI interaction protocol to embed in extras.k3d",
+    )
+    parser.add_argument("--ai-active", action="store_true", help="Set ai_state_flags.is_active=true")
+    parser.add_argument("--ai-not-traversable", action="store_true", help="Set ai_state_flags.is_traversable=false")
+    parser.add_argument("--ai-new-info", action="store_true", help="Set ai_state_flags.has_new_information=true")
+    parser.add_argument(
+        "--ai-new-info-indices",
+        help="Comma-separated node indices to mark as has_new_information=true (per-node mask)",
     )
     args = parser.parse_args()
     global _ARGS

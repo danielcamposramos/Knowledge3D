@@ -9,8 +9,8 @@ export type ChatMessage = {
 
 export type CommandMessage = {
   type: 'command';
-  command: 'goto';
-  target: string;
+  command: string; // 'goto' | 'open' | others
+  target: string;  // often a label or JSON string payload
   channel?: string;
 };
 
