@@ -17,6 +17,7 @@ export class K3DAgent {
   private rpn = new RPN();
   private trail: THREE.Group;
   private maxTrailSegments = 89; // keep it light and readable
+  public trailsEnabled = true;
 
   constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera, onExplain?: (text: string) => void) {
     this.scene = scene;
@@ -145,17 +146,19 @@ export class K3DAgent {
           const addr = spatialAddress(this.recordMap.get(nextId)!.vector as [number, number, number], 1.0, 0, t);
           this.emitExplain(`Step: ${s} → ${t} (neighbor hop, sim=${sim}, addr=${addr}).`);
           // draw a subtle trail segment between current and next target
-          const p1 = current.clone();
-          const p2 = this.target ? this.target.clone() : p1.clone();
-          const g = new THREE.BufferGeometry().setFromPoints([p1, p2]);
-          const m = new THREE.LineBasicMaterial({ color: 0xffdd88, transparent: true, opacity: 0.6 });
-          const line = new THREE.Line(g, m);
-          this.trail.add(line);
-          while (this.trail.children.length > this.maxTrailSegments) {
-            const old = this.trail.children.shift();
-            if (old) {
-              (old as any).geometry?.dispose?.();
-              (old as any).material?.dispose?.();
+          if (this.trailsEnabled) {
+            const p1 = current.clone();
+            const p2 = this.target ? this.target.clone() : p1.clone();
+            const g = new THREE.BufferGeometry().setFromPoints([p1, p2]);
+            const m = new THREE.LineBasicMaterial({ color: 0xffdd88, transparent: true, opacity: 0.6 });
+            const line = new THREE.Line(g, m);
+            this.trail.add(line);
+            while (this.trail.children.length > this.maxTrailSegments) {
+              const old = this.trail.children.shift();
+              if (old) {
+                (old as any).geometry?.dispose?.();
+                (old as any).material?.dispose?.();
+              }
             }
           }
         }

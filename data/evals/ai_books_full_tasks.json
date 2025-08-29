@@ -1,0 +1,294 @@
+{
+  "goto_tasks": [
+    {
+      "from": "Meaning of life - Wik...",
+      "to": "Fine art - Wikipedia ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Working animal - Wiki...",
+      "to": "Biography - Wikipedia...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Performance art - Wik...",
+      "to": "Sketch (drawing) - Wi...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Painting - Wikipedia ...",
+      "to": "Sculpture - Wikipedia...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Beginning of human pe...",
+      "to": "Creativity - Wikipedi...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Meaning of life - Wik...",
+      "to": "Biography - Wikipedia...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Employment - Wikipedi...",
+      "to": "Creativity - Wikipedi...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Life expectancy - Wik...",
+      "to": "Music - Wikipedia — e...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Working animal - Wiki...",
+      "to": "Working animal - Wiki...",
+      "path_len": 3,
+      "exists": true
+    },
+    {
+      "from": "Creativity - Wikipedi...",
+      "to": "Painting - Wikipedia ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Drawing - Wikipedia —...",
+      "to": "Idea - Wikipedia — eu...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Life expectancy - Wik...",
+      "to": "Working animal - Wiki...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Work (physics) - Wiki...",
+      "to": "Painting - Wikipedia ...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Human rights - Wikipe...",
+      "to": "Meaning of life - Wik...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Human rights - Wikipe...",
+      "to": "Employment - Wikipedi...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Music - Wikipedia — C...",
+      "to": "Painting - Wikipedia ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Imagination - Wikiped...",
+      "to": "Life expectancy - Wik...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Performance art - Wik...",
+      "to": "Work (human activity)...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Parenting - Wikipedia...",
+      "to": "Sculpture - Wikipedia...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Human rights - Wikipe...",
+      "to": "Music - Wikipedia — m...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Writing - Wikipedia —...",
+      "to": "Performance art - Wik...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Sculpture - Wikipedia...",
+      "to": "Painting - Wikipedia ...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Parenting - Wikipedia...",
+      "to": "Writing - Wikipedia —...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Creativity - Wikipedi...",
+      "to": "Creativity - Wikipedi...",
+      "path_len": 4,
+      "exists": true
+    },
+    {
+      "from": "ASCII art - Wikipedia...",
+      "to": "Creativity - Wikipedi...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "Literature - Wikipedi...",
+      "to": "Literature - Wikipedi...",
+      "path_len": 4,
+      "exists": true
+    },
+    {
+      "from": "Life expectancy - Wik...",
+      "to": "Performance art - Wik...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Work (thermodynamics)...",
+      "to": "Beginning of human pe...",
+      "path_len": 15,
+      "exists": true
+    },
+    {
+      "from": "Imagination - Wikiped...",
+      "to": "Employment - Wikipedi...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Work of art - Wikiped...",
+      "to": "Creative coding - Wik...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Creativity - Wikipedi...",
+      "to": "Employment - Wikipedi...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Performance art - Wik...",
+      "to": "Meaning of life - Wik...",
+      "path_len": 10,
+      "exists": true
+    }
+  ],
+  "door_tasks": [
+    {
+      "from": "Everyday life - Wikip...",
+      "door": "Idea - Wikipedia — 29...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Life expectancy - Wik...",
+      "door": "Performance art - Wik...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Human rights - Wikipe...",
+      "door": "Creativity - Wikipedi...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Work (thermodynamics)...",
+      "door": "Dance - Wikipedia — 1...",
+      "path_len": 15,
+      "exists": true
+    },
+    {
+      "from": "Parenting - Wikipedia...",
+      "door": "Music - Wikipedia — n...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Creativity - Wikipedi...",
+      "door": "Dance - Wikipedia — 0...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Creativity - Wikipedi...",
+      "door": "Career - Wikipedia — ...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Performance art - Wik...",
+      "door": "Meaning of life - Wik...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Meaning of life - Wik...",
+      "door": "Derivative work - Wik...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "Sculpture - Wikipedia...",
+      "door": "Derivative work - Wik...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Literature - Wikipedi...",
+      "door": "Performance art - Wik...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Meaning of life - Wik...",
+      "door": "Literature - Wikipedi...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Human rights - Wikipe...",
+      "door": "Creativity - Wikipedi...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Life expectancy - Wik...",
+      "door": "Drawing - Wikipedia —...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Career - Wikipedia — ...",
+      "door": "Writing - Wikipedia —...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Sculpture - Wikipedia...",
+      "door": "Meaning of life - Wik...",
+      "path_len": 10,
+      "exists": true
+    }
+  ]
+}
