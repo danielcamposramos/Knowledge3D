@@ -36,6 +36,8 @@ Viewer Integration
   - `ai-books`, `ai-books-1k`, `ai-books-4k`, `ai-books-full` (PCA)
   - `ai-books-umap`, `ai-books-1k-umap`, `ai-books-4k-umap`, `ai-books-full-umap`
   - `ai-care-umap` — tiny EN/PT/ES self-knowledge care pack for quick checks
+  - `ai-care-ancient-umap` — Sumerian (transliteration) ancient care pack
+  - `ai-books-1k-umap-doors`, `ai-books-4k-umap-doors` — guidance variants with doors + mask
 
 Pipeline Notes
 - Embeddings: sentence-transformers `all-MiniLM-L6-v2` (384 dims)
@@ -50,6 +52,7 @@ Early Observations
 - Agent “explain-as-you-move” traces are readable: neighbor hops correlate with higher cosine similarity vs. long direct jumps.
 - Self-knowledge lines help with orientation and teach the baby where it “lives” (K3D, viewer, live mode, roadmap).
 - Door seeding: a 1k UMAP house now includes evenly spaced door nodes (type=door) and a guidance mask marking doors + one neighbor; viewer colors doors (blue) and mask nodes (green).
+ - Scaling guidance: a 4k UMAP house also includes door+mask; viewer overlays subtle trail lines for each hop and door tooltips show k3d addresses.
 
 Recommendations
 - Default to UMAP for production-scale houses; keep PCA for rapid prototyping and CI smoke checks.
