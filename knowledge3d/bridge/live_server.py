@@ -30,7 +30,7 @@ class LiveServer:
     def __init__(self, host: str = "127.0.0.1", port: int = 8765) -> None:
         self.host = host
         self.port = port
-        self.clients: Set[Client] = set()
+        self.clients: Set[_ClientKey] = set()
         self.channels: Dict[str, Set[_ClientKey]] = {"#general": set()}
         self.by_key: Dict[_ClientKey, Client] = {}
         self.by_nick: Dict[str, _ClientKey] = {}
@@ -45,11 +45,21 @@ class LiveServer:
         # Enhanced chat state
         try:
             from .enhanced_chat_processor import EnhancedChatProcessor, ConversationContext  # type: ignore
+            self._ConversationContext = ConversationContext
+            self._processor = EnhancedChatProcessor()
         except Exception:  # pragma: no cover
-            EnhancedChatProcessor = None  # type: ignore
-            ConversationContext = None  # type: ignore
-        self._processor = EnhancedChatProcessor() if EnhancedChatProcessor else None
+            self._ConversationContext = None  # type: ignore
+            self._processor = None
         self._ctx_by_nick: Dict[str, Any] = {}
+        # Normalization + policy
+        try:
+            from .normalize import normalize_text  # type: ignore
+            from .policy import check_request  # type: ignore
+            self._normalize = normalize_text
+            self._policy_check = check_request
+        except Exception:
+            self._normalize = lambda s: s  # type: ignore
+            self._policy_check = lambda t, a=None: type("Dec",(),{"allow":True,"reason":None})()  # type: ignore
         # OSI/Spatial state per channel
         self._graphs: Dict[str, Dict[str, Any]] = {}
         self._current_label: Dict[str, str] = {}
@@ -63,12 +73,34 @@ class LiveServer:
         except Exception:  # pragma: no cover
             self._SpatialAddress = None
             self._Network3D = None
+        # Inline intent model (optional)
+        self._model = None
+        self._model_enabled = False
+        self._model_threshold = 0.7
+        self._model_path: Optional[str] = None
+        # Try to wire both sklearn and HF loaders; pick at runtime
+        self._loaders: list = []
+        self._predictors: list = []
+        try:
+            from ..models.intent_classifier import load_model as skl_load, predict_action as skl_pred  # type: ignore
+            self._loaders.append(("sklearn", skl_load))
+            self._predictors.append(("sklearn", skl_pred))
+        except Exception:
+            pass
+        try:
+            from ..models.intent_hf import load_model as hf_load, predict_action as hf_pred  # type: ignore
+            self._loaders.append(("hf", hf_load))
+            self._predictors.append(("hf", hf_pred))
+        except Exception:
+            pass
+        self._model_kind: Optional[str] = None
+        self._model = None
 
     async def handler(self, ws):
         key = _ClientKey(id(ws))
         nick = f"user{str(id(ws))[-4:]}"
         client = Client(ws=ws, key=key, nick=nick)
-        self.clients.add(client)
+        self.clients.add(client.key)
         self.by_key[key] = client
         self.by_nick[nick] = key
         self.channels.setdefault(client.channel, set()).add(key)
@@ -83,7 +115,7 @@ class LiveServer:
                     continue
                 await self.route(msg, client)
         finally:
-            self.clients.discard(client)
+            self.clients.discard(client.key)
             self.channels.get(client.channel, set()).discard(client.key)
             self.by_key.pop(client.key, None)
             self.by_nick.pop(client.nick, None)
@@ -93,7 +125,8 @@ class LiveServer:
     async def route(self, msg, client: Client):
         t = msg.get("type")
         if t == "chat":
-            text = str(msg.get("text", "")).strip()
+            raw_text = str(msg.get("text", "")).strip()
+            text = self._normalize(raw_text)
             if not text:
                 return
             # mIRC-like slash commands
@@ -101,11 +134,11 @@ class LiveServer:
                 await self.handle_command(text, client)
                 return
 
-            await self.send_chat(sender=client.nick, text=text, channel=client.channel)
-            await self.log({"type": "chat", "from": client.nick, "channel": client.channel, "text": text})
+            await self.send_chat(sender=client.nick, text=raw_text, channel=client.channel)
+            await self.log({"type": "chat", "from": client.nick, "channel": client.channel, "text": raw_text, "normalized": text})
             # Enhanced processing (fallbacks to naive path if processor missing)
-            if self._processor is not None:
-                ctx = self._ctx_by_nick.setdefault(client.nick, ConversationContext())
+            if self._processor is not None and self._ConversationContext is not None:
+                ctx = self._ctx_by_nick.setdefault(client.nick, self._ConversationContext())
                 resp = self._processor.process_message(text, ctx)
                 ctx.update(text, resp)
                 await self.send_json(
@@ -117,7 +150,41 @@ class LiveServer:
                     },
                     channel=client.channel,
                 )
+                # Log chat_response for training/eval datasets
+                await self.log({
+                    "type": "chat_response",
+                    "from": client.nick,
+                    "channel": client.channel,
+                    "text": raw_text,
+                    "normalized": text,
+                    "response": resp,
+                })
+                # Inline model prediction for analysis and hints
+                try:
+                    if self._model_enabled and self._model is not None and self._model_kind is not None:
+                        # find predictor by kind
+                        pred = next((p for k,p in self._predictors if k==self._model_kind), None)
+                        action, conf = pred(self._model, text) if pred else (None, 0.0)
+                        await self.log({
+                            "type": "model_prediction",
+                            "from": client.nick,
+                            "channel": client.channel,
+                            "text": raw_text,
+                            "normalized": text,
+                            "pred_action": action,
+                            "confidence": conf,
+                        })
+                        if action and conf >= self._model_threshold:
+                            await self.send_chat(sender="agent", text=f"[model {conf:.2f}] intent={action}", channel=client.channel)
+                except Exception:
+                    pass
                 if resp.get("type") in ("navigation", "exploration", "interaction"):
+                    # Ethics gate
+                    dec = self._policy_check(text, resp.get("action"))
+                    await self.log({"type":"ethics_decision","allow":dec.allow,"reason":dec.reason,"action":resp.get("action"),"text":raw_text})
+                    if not dec.allow:
+                        await self.send_chat(sender="system", text=f"Action blocked by ethics policy ({dec.reason}). With great powers, come great responsibilities.", channel=client.channel)
+                        return
                     action = resp.get("action") or "action"
                     # payload as JSON string in target for compatibility
                     payload = json.dumps({k: v for k, v in resp.items() if k not in {"type", "message"}})
@@ -149,6 +216,21 @@ class LiveServer:
                 labels = ev.get("labels") or []
                 if isinstance(ids, list) and isinstance(neighbors, list):
                     self._graphs[client.channel] = {"ids": ids, "neighbors": neighbors, "labels": labels}
+            # Capture door registry
+            if kind == "doors":
+                items = ev.get("items") or []
+                if isinstance(items, list):
+                    door_map: Dict[str, str] = {}
+                    for it in items:
+                        try:
+                            lab = str(it.get("label") or "").strip()
+                            addr = str(it.get("address") or "").strip()
+                            if lab:
+                                door_map[lab] = addr
+                        except Exception:
+                            continue
+                    if door_map:
+                        self._doors[client.channel] = door_map
             # Track agent arrival for current label baseline
             if kind == "explain":
                 txt = str(ev.get("text") or "")
@@ -181,6 +263,9 @@ class LiveServer:
             return
         if cmd in ("/open", "/door") and len(parts) >= 2:
             await self._handle_open(parts[1], client)
+            return
+        if cmd == "/model":
+            await self._handle_model(parts[1:] if len(parts) > 1 else [], client)
             return
         await self.send_system(client.channel, f"Unknown command: {cmd}")
 
@@ -236,6 +321,73 @@ class LiveServer:
         hops = max(0, (len(path_ids or []) - 1))
         await self.send_chat(sender="system", text=f"Opening door to {label} via {hops} hops", channel=client.channel)
 
+    async def _handle_model(self, args, client: Client):
+        sub = (args[0].lower() if args else "status")
+        if sub == "on":
+            if self._model is None:
+                repo_root = Path(__file__).resolve().parents[2]
+                # Prefer HF directory if exists; else sklearn .pkl
+                default_hf = repo_root.parent / f"{repo_root.name}.local" / "models" / "intent_hf"
+                default_skl = repo_root.parent / f"{repo_root.name}.local" / "models" / "intent.pkl"
+                candidates: list[tuple[str, Path]] = []
+                if default_hf.exists(): candidates.append(("hf", default_hf))
+                if default_skl.exists(): candidates.append(("sklearn", default_skl))
+                if not candidates:
+                    await self.send_system(client.channel, "No default model found. Use /model load <path> or train first.")
+                    return
+                for kind, path in candidates:
+                    loader = next((l for k,l in self._loaders if k==kind), None)
+                    if not loader: continue
+                    try:
+                        self._model = loader(path)
+                        self._model_kind = kind
+                        self._model_path = str(path)
+                        break
+                    except Exception:
+                        continue
+                if self._model is None:
+                    await self.send_system(client.channel, "Failed to load any default model.")
+                    return
+            self._model_enabled = True
+            await self.send_system(client.channel, f"Model: on (threshold={self._model_threshold:.2f}) kind={self._model_kind}")
+            return
+        if sub == "off":
+            self._model_enabled = False
+            await self.send_system(client.channel, "Model: off")
+            return
+        if sub == "load" and len(args) >= 2:
+            path = args[1]
+            p = Path(path)
+            # detect kind by filesystem
+            kind = "hf" if p.is_dir() else "sklearn"
+            loader = next((l for k,l in self._loaders if k==kind), None)
+            if not loader:
+                await self.send_system(client.channel, f"No loader for kind={kind}")
+                return
+            try:
+                self._model = loader(p)
+                self._model_kind = kind
+                self._model_path = path
+                await self.send_system(client.channel, f"Model loaded: kind={kind} path={path}")
+            except Exception as e:
+                await self.send_system(client.channel, f"Model load failed: {e}")
+            return
+        if sub == "threshold" and len(args) >= 2:
+            try:
+                t = float(args[1])
+                if 0.0 <= t <= 1.0:
+                    self._model_threshold = t
+                    await self.send_system(client.channel, f"Model threshold set to {t:.2f}")
+                    return
+            except Exception:
+                pass
+            await self.send_system(client.channel, "Usage: /model threshold <0..1>")
+            return
+        await self.send_system(
+            client.channel,
+            f"Model status: {'on' if self._model_enabled else 'off'} kind={self._model_kind or 'unset'} path={self._model_path or 'unset'} threshold={self._model_threshold:.2f}",
+        )
+
     async def change_nick(self, client: Client, new_nick: str):
         new_nick = new_nick.strip()
         if not new_nick or new_nick in self.by_nick:
@@ -280,7 +432,7 @@ class LiveServer:
             targets = [self.by_key[k].ws for k in self.channels[channel] if k in self.by_key]
             await asyncio.gather(*[ws.send(payload) for ws in targets])
         else:
-            await asyncio.gather(*[c.ws.send(payload) for c in list(self.clients)])
+            await asyncio.gather(*[c.ws.send(payload) for c in list(self.by_key.values())])
 
     async def send_command(self, command: str, target: str, channel: Optional[str] = None):
         payload = json.dumps({"type": "command", "command": command, "target": target, "channel": channel})
@@ -288,7 +440,7 @@ class LiveServer:
             targets = [self.by_key[k].ws for k in self.channels[channel] if k in self.by_key]
             await asyncio.gather(*[ws.send(payload) for ws in targets])
         else:
-            await asyncio.gather(*[c.ws.send(payload) for c in list(self.clients)])
+            await asyncio.gather(*[c.ws.send(payload) for c in list(self.by_key.values())])
 
     async def send_system(self, channel: str, text: str):
         await self.send_chat(sender="system", text=text, channel=channel)
@@ -312,23 +464,6 @@ class LiveServer:
         async with websockets.serve(self.handler, self.host, self.port):
             print(f"K3D live server listening on ws://{self.host}:{self.port}")
             await asyncio.Future()
-
-
-            # Capture door registry
-            if kind == "doors":
-                items = ev.get("items") or []
-                if isinstance(items, list):
-                    door_map: Dict[str, str] = {}
-                    for it in items:
-                        try:
-                            lab = str(it.get("label") or "").strip()
-                            addr = str(it.get("address") or "").strip()
-                            if lab:
-                                door_map[lab] = addr
-                        except Exception:
-                            continue
-                    if door_map:
-                        self._doors[client.channel] = door_map
 def main():  # pragma: no cover
     srv = LiveServer()
     asyncio.run(srv.run())

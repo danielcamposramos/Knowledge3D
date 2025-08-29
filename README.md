@@ -124,3 +124,14 @@ Live Mode Door Command
 
 HR/MR Standard
 - See `docs/HR_MR_STANDARD.md` for the dual‑code paradigm and `spec/AI_RPN_standard.md` for the RPN logic standard.
+
+Headless Text Chat
+- Connect to the live server without the 3D viewer: `python -m knowledge3d.bridge.cli_client`
+- Enable model auto-replies after training: `python -m knowledge3d.models.intent_classifier train --logs ../Knowledge3D.local/logs --model ../Knowledge3D.local/models/intent.pkl` then `python -m knowledge3d.bridge.cli_client --auto --model ../Knowledge3D.local/models/intent.pkl`
+
+Inline Model (Server)
+- Control from chat:
+  - `/model on|off` — enable/disable inline intent classifier.
+  - `/model load /path/to/intent.pkl` — load model.
+  - `/model threshold 0.8` — set confidence threshold.
+  - `/model` — status.

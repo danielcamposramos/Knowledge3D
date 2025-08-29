@@ -1,0 +1,46 @@
+intents:
+  teleport:
+    - "teleport to [{x},{y},{z}]"
+    - "teleport to [{x}, {y}, {z}]"
+  move:
+    - "move {direction} {distance}"
+    - "go {direction} {distance} units"
+  goto:
+    - "goto {place}"
+    - "go to {place}"
+    - "navigate to {place}"
+  follow:
+    - "follow {person}"
+    - "follow agent {person}"
+  orbit:
+    - "orbit around {place}"
+    - "circle around {place}"
+  show:
+    - "show me {topic}"
+    - "display {topic}"
+  find_related:
+    - "find related to {topic}"
+    - "related to {topic}"
+  expand:
+    - "expand {topic}"
+    - "expand area {topic}"
+    - "expand cluster {topic}"
+  hide:
+    - "hide {object}"
+    - "conceal {object}"
+  touch:
+    - "touch {object}"
+    - "tap {object}"
+  talk:
+    - "talk to {person}"
+    - "speak to {person}"
+  give:
+    - "give {item} to {person}"
+    - "hand {item} to {person}"
+vocab:
+  directions: [left, right, up, down, forward, back]
+  places: [library, market, hub, core]
+  topics: [graphs, math, physics, clustering, embeddings, neural networks, quantum]
+  objects: [blue cube, red sphere, door, portal, legend, tooltip]
+  persons: [guide, "agent one", "avatar alice", bob, clerk, gatekeeper, alice]
+  items: [key, token, coin]

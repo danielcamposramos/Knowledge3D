@@ -19,3 +19,21 @@ MR Generation
 - Use `codeopt` to generate MR sources to `../Knowledge3D.local/mr` (see `docs/DUAL_CODE.md`).
 - Do not commit MR outputs; keep HR as the authored source of truth.
 
+Runbook
+- Collect logs by running the live server (`python -m knowledge3d.bridge.live_server`) and chatting via the viewer or CLI client.
+- Train first model (HR):
+  - `python -m knowledge3d.models.intent_classifier train --logs ../Knowledge3D.local/logs --model ../Knowledge3D.local/models/intent.pkl`
+- Headless chat (HR) with model auto-replies:
+  - `python -m knowledge3d.bridge.cli_client --auto --model ../Knowledge3D.local/models/intent.pkl`
+- Generate MR:
+  - `codeopt --in k3dgen knowledge3d viewer --out ../Knowledge3D.local/mr --lang auto --stats`
+
+Inline Model in Live Server
+- Toggle and manage the inline classifier via slash commands in any client (viewer or CLI):
+  - `/model on` — enable inline predictions (loads default model if not loaded).
+  - `/model off` — disable.
+  - `/model load /full/path/to/intent.pkl` — load a specific model file.
+  - `/model threshold 0.75` — adjust Faith Engine threshold (default 0.70).
+  - `/model` — show status.
+- Predictions are logged as `model_prediction` entries alongside `chat_response` for evaluation.
+- Evaluate logs: `python -m knowledge3d.models.eval_logs --logs ../Knowledge3D.local/logs`.
