@@ -347,6 +347,8 @@ const applyColor = document.getElementById('apply-color') as HTMLButtonElement;
 const legend = document.getElementById('legend') as HTMLDivElement;
 const toggleTrails = document.getElementById('toggle-trails') as HTMLInputElement;
 const tabletFocusBtn = document.getElementById('tablet-focus') as HTMLButtonElement;
+const tabletModeSel = document.getElementById('tablet-mode') as HTMLSelectElement;
+const tabletVisible = document.getElementById('tablet-visible') as HTMLInputElement;
 if (agentGo) {
     agentGo.addEventListener('click', () => {
         if (agent && agentTarget?.value) {
@@ -454,6 +456,16 @@ if (toggleTrails) {
 if (tabletFocusBtn) {
     tabletFocusBtn.addEventListener('click', () => {
         if (tablet) tablet.toggleFocus();
+    });
+}
+if (tabletModeSel) {
+    tabletModeSel.addEventListener('change', () => {
+        if (tablet) tablet.setStatus({ mode: (tabletModeSel.value as any) });
+    });
+}
+if (tabletVisible) {
+    tabletVisible.addEventListener('change', () => {
+        if (tablet) tablet.object.visible = !!tabletVisible.checked;
     });
 }
 if (agentFollow) {

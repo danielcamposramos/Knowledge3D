@@ -170,3 +170,50 @@ export class WebApp implements TabletApp {
   }
 }
 
+export class CalendarApp implements TabletApp {
+  id = 'calendar';
+  title = 'Calendar';
+  private store = openStore<any>('k3d-tablet', 'calendar');
+  private events: { id: number; title: string; start: string; end?: string; desc?: string }[] = [];
+  private async load() { this.events = (await this.store.get('all')) || []; if (!Array.isArray(this.events)) this.events = []; }
+  private async save() { await this.store.put('all', this.events); }
+  async openOverlay(el: HTMLDivElement) {
+    await this.load();
+    el.innerHTML = '';
+    const t = document.createElement('input'); t.placeholder = 'Title';
+    const s = document.createElement('input'); s.placeholder = 'Start (YYYY-MM-DD)';
+    const d = document.createElement('input'); d.placeholder = 'Description'; d.style.width = '60%';
+    const add = document.createElement('button'); add.textContent = 'Add';
+    const list = document.createElement('div'); list.style.marginTop = '8px';
+    add.onclick = async () => { if (!t.value || !s.value) return; this.events.push({ id: Date.now(), title: t.value, start: s.value, desc: d.value }); await this.save(); render(); };
+    el.appendChild(t); el.appendChild(s); el.appendChild(d); el.appendChild(add); el.appendChild(list);
+    const render = () => { list.innerHTML = this.events.slice().reverse().map(e=>`${e.start} — ${e.title}${e.desc?': '+e.desc:''}`).join('\n'); list.style.whiteSpace='pre-wrap'; list.style.color='#ddd'; };
+    render();
+  }
+  renderCanvas(ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }) {
+    ctx.fillStyle = '#0e0f10'; ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+    ctx.fillStyle = '#fff'; ctx.font = '12px system-ui';
+    ctx.fillText(`Events: ${this.events.length}`, rect.x + 8, rect.y + 18);
+  }
+}
+
+export class MailApp implements TabletApp {
+  id = 'mail'; title = 'Email';
+  private store = openStore<any>('k3d-tablet', 'mail');
+  private msgs: { id: number; from: string; to: string; subj: string; body: string; ts: number }[] = [];
+  private async load() { this.msgs = (await this.store.get('all')) || []; if (!Array.isArray(this.msgs)) this.msgs = []; }
+  private async save() { await this.store.put('all', this.msgs); }
+  async openOverlay(el: HTMLDivElement) {
+    await this.load(); el.innerHTML='';
+    const to = document.createElement('input'); to.placeholder='to';
+    const subj = document.createElement('input'); subj.placeholder='subject'; subj.style.width='50%';
+    const body = document.createElement('textarea'); body.rows=6; body.style.width='100%';
+    const send = document.createElement('button'); send.textContent='Save Draft';
+    const list = document.createElement('div'); list.style.marginTop='8px';
+    send.onclick = async ()=>{ this.msgs.push({ id: Date.now(), from: 'me', to: to.value, subj: subj.value, body: body.value, ts: Date.now() }); await this.save(); render(); };
+    el.appendChild(to); el.appendChild(subj); el.appendChild(send); el.appendChild(body); el.appendChild(list);
+    const render = () => { list.innerHTML = this.msgs.slice().reverse().map(m=>`[${new Date(m.ts).toLocaleString()}] ${m.to}: ${m.subj}`).join('\n'); list.style.whiteSpace='pre-wrap'; list.style.color='#ddd'; };
+    render();
+  }
+  renderCanvas(ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }) { ctx.fillStyle='#0a0a0a'; ctx.fillRect(rect.x, rect.y, rect.w, rect.h); ctx.fillStyle='#fff'; ctx.font='12px system-ui'; ctx.fillText(`Messages: ${this.msgs.length}`, rect.x+8, rect.y+18); }
+}
