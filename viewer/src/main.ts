@@ -298,6 +298,9 @@ const agentGo = document.getElementById('agent-go') as HTMLButtonElement;
 const agentFollow = document.getElementById('agent-follow') as HTMLInputElement;
 const chatInput = document.getElementById('chat-input') as HTMLInputElement;
 const chatSend = document.getElementById('chat-send') as HTMLButtonElement;
+const chatPause = document.getElementById('chat-pause') as HTMLButtonElement;
+const chatResume = document.getElementById('chat-resume') as HTMLButtonElement;
+const chatStatusBtn = document.getElementById('chat-status-btn') as HTMLButtonElement;
 const cacheToggle = document.getElementById('cache-enable') as HTMLInputElement;
 const cacheClear = document.getElementById('cache-clear') as HTMLButtonElement;
 const colorMode = document.getElementById('color-mode') as HTMLSelectElement;
@@ -318,6 +321,21 @@ if (chatSend) {
             chat.sendChat(chatInput.value);
             chatInput.value = '';
         }
+    });
+}
+if (chatPause) {
+    chatPause.addEventListener('click', () => {
+        if (chat) chat.sendChat('/pause analyze');
+    });
+}
+if (chatResume) {
+    chatResume.addEventListener('click', () => {
+        if (chat) chat.sendChat('/resume');
+    });
+}
+if (chatStatusBtn) {
+    chatStatusBtn.addEventListener('click', () => {
+        if (chat) chat.sendChat('/status');
     });
 }
 if (cacheToggle) {
