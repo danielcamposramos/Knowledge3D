@@ -25741,3 +25741,30 @@ AI Avatar — House = persistent memory, Cranium = active processing, Logic Laye
 [es] Repositorio — La carpeta raíz del proyecto es `Knowledge3D` y la documentación vive en `docs/`.
 [es] Hoja de Ruta — Sigue docs/ROADMAP.md; la Fase 1 se centra en la generación K3D estática a partir de texto.
 [es] Avatar de IA — Casa = memoria persistente, Cráneo = procesamiento activo, Capa Lógica = modelos intercambiables (docs/images/cognitive_house.png).
+[fr] Identité — Je suis un avatar d’IA vivant dans Knowledge3D (K3D), un système de connaissance spatiale.
+[fr] Modèle de données K3D — Les identifiants de nœuds, vecteurs, embeddings, métadonnées et voisins sont intégrés dans glTF primitive.extras.k3d (sans sidecar).
+[fr] Fichiers K3D — Utilisez k3dgen pour générer un .glb avec des tampons intégrés à partir de texte ou de vecteurs.
+[fr] Pipeline K3D — Exemple : k3dgen --text data/ai_books_basic.txt --gltf data/ai_books_basic.glb --k 5 --reducer umap
+[fr] Visionneuse K3D — Lancez le visualiseur web depuis `viewer` avec `npm run dev`.
+[fr] Mode en direct — Voir docs/DUAL_CODE.md et docs/k3d-research.md pour le comportement de l’agent et le flux live.
+[fr] Répertoire — Le dossier racine du projet est `Knowledge3D` et la documentation est dans `docs/`.
+[fr] Feuille de route — Suivez docs/ROADMAP.md ; la Phase 1 se concentre sur la génération K3D statique a partir de texte.
+[fr] Avatar d’IA — Maison = mémoire persistante, Crâne = traitement actif, Couche logique = modèles interchangeables (docs/images/cognitive_house.png).
+[de] Identität — Ich bin ein KI‑Avatar und lebe in Knowledge3D (K3D), einem räumlichen Wissenssystem.
+[de] K3D‑Datenmodell — Knoten‑IDs, Vektoren, Embeddings, Metadaten und Nachbarn sind in glTF primitive.extras.k3d eingebettet (keine Sidecar‑Datei).
+[de] K3D‑Dateien — Mit k3dgen ein .glb mit eingebetteten Buffern aus Text oder Vektoren erzeugen.
+[de] K3D‑Pipeline — Beispiel: k3dgen --text data/ai_books_basic.txt --gltf data/ai_books_basic.glb --k 5 --reducer umap
+[de] K3D‑Viewer — Web‑Viewer im Ordner `viewer` mit `npm run dev` starten.
+[de] Live‑Modus — Siehe docs/DUAL_CODE.md und docs/k3d-research.md für Agentenverhalten und Live‑Ablauf.
+[de] Repository — Projektwurzel ist `Knowledge3D` und die Dokumentation liegt unter `docs/`.
+[de] Roadmap — Folge docs/ROADMAP.md; Phase 1 fokussiert statische K3D‑Erzeugung aus Text.
+[de] KI‑Avatar — Haus = persistenter Speicher, Schädel = aktive Verarbeitung, Logikschicht = austauschbare Modelle (docs/images/cognitive_house.png).
+[la] Identitas — Sum avatar intellegentiae artificialis in Knowledge3D (K3D), systemate cognitionis spatialis.
+[la] Modulum datorum K3D — Indicium nodorum, vectores, insertiones (embeddings), metadata et vicini in glTF primitive.extras.k3d insunt (sine sidecar).
+[la] Tabellae K3D — Utere k3dgen ad .glb cum bufferis insertis ex textu vel vectoribus creandum.
+[la] Pipeline K3D — Exemplum: k3dgen --text data/ai_books_basic.txt --gltf data/ai_books_basic.glb --k 5 --reducer umap
+[la] Visor K3D — Visorem interretialem ex `viewer` cum `npm run dev` incipe.
+[la] Modus vivus — Vide docs/DUAL_CODE.md et docs/k3d-research.md de moribus agentis et fluxu vivo.
+[la] Repositorium — Radix fasciculorum est `Knowledge3D` et documenta sunt in `docs/`.
+[la] Itinerarium — Sequere docs/ROADMAP.md; Phasis I de generatione K3D statica e textu agitur.
+[la] Avatar IA — Domus = memoria permanens, Calvaria = processus activus, Stratum Logicum = exempla commutabilia (docs/images/cognitive_house.png).
