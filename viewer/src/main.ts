@@ -298,6 +298,31 @@ async function loadHouse(k3dUrl: string) {
                 }
             }
         } catch {}
+        // Fallback: fetch a small set of Wikipedia redirects live (limit to 24 labels)
+        try {
+            const labels = k3dData.slice(0, 24).map(r => (r.metadata?.label as string) || r.id);
+            const items: { alias: string; label: string }[] = [];
+            const fetchOne = async (lab: string) => {
+                const api = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=redirects&rdlimit=25&titles=${encodeURIComponent(lab)}&origin=*`;
+                const r = await fetch(api);
+                if (!r.ok) return;
+                const j = await r.json();
+                const pages = j?.query?.pages || {};
+                for (const k in pages) {
+                    const pg = pages[k];
+                    const reds = pg?.redirects || [];
+                    for (const it of reds) {
+                        const a = String(it?.title || '').trim();
+                        if (a && a.toLowerCase() !== lab.toLowerCase()) items.push({ alias: a, label: lab });
+                    }
+                }
+            };
+            // limit concurrency to 6
+            for (let i = 0; i < labels.length; i += 6) {
+                await Promise.all(labels.slice(i, i + 6).map(l => fetchOne(l)));
+            }
+            if (items.length) chat.sendEvent({ kind: 'aliases', items });
+        } catch {}
 
         // Prepare smart suggestions and layers
         sugg = new AISuggestionManager(scene, camera, renderer.domElement);
