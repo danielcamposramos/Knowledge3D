@@ -257,6 +257,26 @@ class MemoryHouse:
             n += 1
         return n
 
+    def bootstrap_diary(self) -> int:
+        """Add diary entries as objects in a 'Diary' room from docs/reports/diary."""
+        ddir = ROOT / 'docs' / 'reports' / 'diary'
+        if not ddir.exists():
+            return 0
+        self.add_room('Diary', 'Daily notes and learning')
+        n=0
+        for p in sorted(ddir.glob('diary-*.md')):
+            try:
+                lines = p.read_text(encoding='utf-8').splitlines()
+                for ln in lines:
+                    if ln.startswith('- ['):
+                        # format: - [HH:MM -03:00] nick: text
+                        label = ln[2:].strip()
+                        self.add_object('Diary', label[:80], f'file:{p.as_posix()}')
+                        n+=1
+            except Exception:
+                continue
+        return n
+
     def export_gltf(self, out_path: Path):
         rooms = list(self.rooms.values())
         objs = self.objects
@@ -344,6 +364,7 @@ def main() -> None:  # pragma: no cover
     p.add_argument("--bootstrap-training", type=int)
     p.add_argument("--bootstrap-standard", action="store_true")
     p.add_argument("--bootstrap-doors", action="store_true")
+    p.add_argument("--bootstrap-diary", action="store_true")
     p.add_argument("--export", help="Output GLTF path", default=str(ROOT / "viewer" / "public" / "memory_house.gltf"))
     args = p.parse_args()
     h = MemoryHouse()
@@ -377,6 +398,9 @@ def main() -> None:  # pragma: no cover
     if args.bootstrap_doors:
         n = h.bootstrap_door_map()
         print(f"Bootstrapped {n} doors into 'Network'")
+    if args.bootstrap_diary:
+        n = h.bootstrap_diary()
+        print(f"Bootstrapped {n} diary entries into 'Diary'")
     out = Path(args.export)
     h.export_gltf(out)
     print(f"Exported House Memory to {out}")

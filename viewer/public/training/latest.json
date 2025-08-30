@@ -1,26 +1,26 @@
 {
-  "ts": "20250830-024704",
-  "nodes": 9076,
+  "ts": "20250830-025631",
+  "nodes": 10924,
   "avg_degree": 5.0,
-  "doors": 96,
-  "guided": 191,
+  "doors": 192,
+  "guided": 382,
   "hubs": [
     "AI ethics — While opi...",
     "Ontology (information...",
-    "Augmented reality — W...",
     "Data visualization — ...",
+    "Augmented reality — W...",
     "Data visualization — ..."
   ],
   "goto": {
-    "count": 320,
-    "success": 314,
-    "success_rate": 0.98125,
-    "median_hops": 9
+    "count": 512,
+    "success": 505,
+    "success_rate": 0.986328125,
+    "median_hops": 10
   },
   "door": {
-    "count": 128,
-    "success": 127,
-    "success_rate": 0.9921875,
+    "count": 192,
+    "success": 191,
+    "success_rate": 0.9947916666666666,
     "median_hops": 9
   }
 }

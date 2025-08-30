@@ -199,6 +199,10 @@ async function loadHouse(k3dUrl: string) {
                     const newGeom = layersMgr.buildGeometry(); newGeom.computeBoundingSphere();
                     if (lod) lod.setBase(newGeom);
                 } catch {}
+            } else if (ev?.type === 'openDoor') {
+                try { const label = String(ev.payload?.label || ''); if (chat && label) chat.sendChat(`/open ${label}`); } catch {}
+            } else if (ev?.type === 'diaryAdd') {
+                try { const text = String(ev.payload?.text || ''); if (chat && text) chat.sendEvent({ kind: 'diary_entry', text, tz: '-03:00' }); } catch {}
             }
         });
         // Update tablet with house info and dataset
