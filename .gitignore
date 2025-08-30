@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+data/ai_compendium_80k_vectors.csv
+viewer/public/ai_compendium.80k*.glb
