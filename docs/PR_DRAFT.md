@@ -23,6 +23,8 @@
 - knowledge3d/bridge/gazetteer.py: NFKD + stopword/clitic canonicalizer; tiny gazetteer builder/matcher.
 - knowledge3d/tools/build_aliases.py: fetch Wikipedia redirects to enrich gazetteer aliases.
 - viewer/src/extensions/smartGraph.ts: AISuggestionManager (mock API, radial UI), DynamicLayerManager (layer toggles), LODRenderer (decimation by distance).
+- viewer/src/extensions/smartGraph.ts: GridCulledPoints (grid-based frustum culling for large datasets) with per-chunk visibility toggling.
+- viewer/src/tablet.ts + viewer/src/apps.ts: Layers app inside Tablet Focus; Live Stats for goto resolution metrics.
 - knowledge3d/models/eval_logs.py: confusion matrix over logs.
 - viewer/src/loadK3D.ts: read AI flags + mask; expose info.ai.
 - viewer/src/address.ts: spatial address helper; exposed globally.
@@ -45,6 +47,7 @@
 - Live bridge: `python -m knowledge3d.bridge.live_server`.
 - Doors: In viewer chat, `/open two` or `/open k3d://0,0,0:0@0,0,0?label=two`.
 - Headless chat: `python -m knowledge3d.bridge.cli_client --auto --model ../Knowledge3D.local/models/intent.pkl`.
+- Viewer keys: `s` (AI suggestions radial), `l` (Layers overlay), `f` (Tablet Focus). Tablet has Layers and Live Stats panels.
 
 ## Notes
 - The door registry restricts `/open` to known `metadata.type === 'door'` labels when provided by the client.

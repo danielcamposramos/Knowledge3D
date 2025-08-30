@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ConsoleApp, NotesApp, RpnApp, WebApp, CalendarApp, MailApp, EmbeddingsApp, GraphApp, GalaxyApp, StatsApp, type TabletApp } from './apps';
+import { ConsoleApp, NotesApp, RpnApp, WebApp, CalendarApp, MailApp, EmbeddingsApp, GraphApp, GalaxyApp, StatsApp, LayersApp, type TabletApp } from './apps';
 
 type TabletMode = 'ai' | 'human';
 
@@ -19,9 +19,10 @@ export class Tablet3D {
   private tex: THREE.CanvasTexture;
   private status: TabletStatus = { ws: 'disconnected', queue: 0, mode: 'ai' };
   private overlay: HTMLDivElement | null = null;
-  private apps: TabletApp[] = [new ConsoleApp(), new NotesApp(), new RpnApp(), new WebApp(), new CalendarApp(), new MailApp(), new EmbeddingsApp(), new GraphApp(), new GalaxyApp(), new StatsApp()];
+  private apps: TabletApp[] = [new ConsoleApp(), new NotesApp(), new RpnApp(), new WebApp(), new CalendarApp(), new MailApp(), new EmbeddingsApp(), new GraphApp(), new GalaxyApp(), new StatsApp(), new LayersApp()];
   private activeApp = 'console';
   private emitter: ((ev: { type: string; payload?: any; kind?: string }) => void) | null = null;
+  private localHandler: ((ev: { type: string; payload?: any }) => void) | null = null;
 
   constructor() {
     // screen canvas
@@ -70,6 +71,8 @@ export class Tablet3D {
   private publish(ev: { type: string; payload?: any }) {
     // fan-out to apps
     for (const app of this.apps) app.onEvent?.(ev);
+    // local handler for in-app actions (e.g., applyLayers)
+    try { this.localHandler?.(ev); } catch {}
     // emit upstream for live logging (e.g., agentic browser events)
     try {
       this.emitter?.({ ...ev, kind: ev.type });
@@ -79,6 +82,10 @@ export class Tablet3D {
 
   setEmitter(fn: (ev: { type: string; payload?: any; kind?: string }) => void) {
     this.emitter = fn;
+  }
+
+  setLocalHandler(fn: (ev: { type: string; payload?: any }) => void) {
+    this.localHandler = fn;
   }
 
   // Allow external dispatch of tablet events (e.g., from commands)

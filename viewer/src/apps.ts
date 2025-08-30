@@ -530,3 +530,47 @@ export class StatsApp implements TabletApp {
     el.appendChild(p);
   }
 }
+
+export class LayersApp implements TabletApp {
+  id = 'layers'; title = 'Layers';
+  private layers: string[] = [];
+  private enabled: Set<string> = new Set();
+  private publish: ((ev: { type: string; payload?: any }) => void) | null = null;
+  setContext(ctx: { records: ReadonlyArray<K3DRecord>; publish?: (ev: { type: string; payload?: any }) => void }) {
+    this.publish = ctx.publish || null;
+    const set = new Set<string>();
+    for (const r of ctx.records) {
+      const l = (r.metadata?.layer as string) || (Array.isArray(r.metadata?.tags) ? (r.metadata.tags[0] as string) : undefined);
+      if (l) set.add(l);
+    }
+    this.layers = Array.from(set);
+    this.enabled = new Set(this.layers);
+  }
+  renderCanvas(ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }) {
+    ctx.fillStyle = '#0b0d0f'; ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+    ctx.fillStyle = '#fff'; ctx.font = '12px system-ui';
+    ctx.fillText(`layers: ${this.layers.length}`, rect.x+8, rect.y+18);
+    let y = rect.y+36;
+    for (const name of this.layers.slice(0, 8)) {
+      const on = this.enabled.has(name) ? '✓' : '✗';
+      ctx.fillText(`${on} ${name}`, rect.x+8, y); y += 14;
+    }
+  }
+  openOverlay(el: HTMLDivElement) {
+    el.innerHTML = '';
+    if (!this.layers.length) { const p = document.createElement('div'); p.textContent='No layers found.'; p.style.color='#ddd'; el.appendChild(p); return; }
+    const list = document.createElement('div'); list.style.marginTop='6px';
+    const apply = () => {
+      if (this.publish) this.publish({ type: 'applyLayers', payload: { enabled: Array.from(this.enabled) } });
+    };
+    for (const name of this.layers) {
+      const row = document.createElement('label'); row.style.display='block'; row.style.marginTop='4px';
+      const cb = document.createElement('input'); cb.type='checkbox'; cb.checked = this.enabled.has(name);
+      cb.onchange = () => { if (cb.checked) this.enabled.add(name); else this.enabled.delete(name); apply(); };
+      row.appendChild(cb); row.appendChild(document.createTextNode(' '+name)); list.appendChild(row);
+    }
+    const all = document.createElement('button'); all.textContent='All'; all.onclick = () => { this.enabled = new Set(this.layers); apply(); };
+    const none = document.createElement('button'); none.textContent='None'; none.style.marginLeft='6px'; none.onclick = () => { this.enabled.clear(); apply(); };
+    el.appendChild(all); el.appendChild(none); el.appendChild(list);
+  }
+}
