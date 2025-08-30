@@ -6,6 +6,16 @@
       "description": "AI demo with ai_state_flags and protocol."
     },
     {
+      "uri": "/ai_compendium.15k.umap.glb",
+      "expert": "ai-compendium-15k",
+      "description": "AI Compendium (~11k repo+wiki lines, embedded)"
+    },
+    {
+      "uri": "/ai_compendium.15k.umap.doors.glb",
+      "expert": "ai-compendium-15k-doors",
+      "description": "AI Compendium ~15k with doors + guidance"
+    },
+    {
       "uri": "/ai_compendium.11k.umap.glb",
       "expert": "ai-compendium-11k",
       "description": "AI Compendium (~11k lines)"

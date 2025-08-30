@@ -1,9 +1,9 @@
 {
-  "ts": "20250830-025631",
+  "ts": "20250830-032315",
   "nodes": 10924,
   "avg_degree": 5.0,
-  "doors": 192,
-  "guided": 382,
+  "doors": 256,
+  "guided": 508,
   "hubs": [
     "AI ethics — While opi...",
     "Ontology (information...",
@@ -12,15 +12,15 @@
     "Data visualization — ..."
   ],
   "goto": {
-    "count": 512,
-    "success": 505,
-    "success_rate": 0.986328125,
-    "median_hops": 10
+    "count": 768,
+    "success": 759,
+    "success_rate": 0.98828125,
+    "median_hops": 9
   },
   "door": {
-    "count": 192,
-    "success": 191,
-    "success_rate": 0.9947916666666666,
-    "median_hops": 9
+    "count": 256,
+    "success": 253,
+    "success_rate": 0.98828125,
+    "median_hops": 10
   }
 }

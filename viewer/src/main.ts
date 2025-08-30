@@ -156,6 +156,7 @@ async function loadHouse(k3dUrl: string) {
         if (tablet) {
             tablet.pushExplain(`House loaded: count=${k3dData.length} dims=${inf.dims}`);
             tablet.pushExplain(`Doors=${doorsCount} Guided=${guided}`);
+            tablet.dispatch({ type: 'dataset_summary', payload: { house: k3dUrl, nodes: k3dData.length, dims: inf.dims, doors: doorsCount, guided } });
         }
         // try fetch viewer/public training scoreboard
         try {
@@ -163,6 +164,7 @@ async function loadHouse(k3dUrl: string) {
             if (res.ok) {
                 const s = await res.json();
                 tablet?.pushExplain(`Scoreboard ts=${s.ts} GOTO: ${s.goto.success}/${s.goto.count} (med=${s.goto.median_hops}) DOOR: ${s.door.success}/${s.door.count} (med=${s.door.median_hops})`);
+                tablet?.dispatch({ type: 'scoreboard_summary', payload: s });
             }
         } catch {}
 
