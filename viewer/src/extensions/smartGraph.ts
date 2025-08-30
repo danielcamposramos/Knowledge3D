@@ -119,14 +119,18 @@ export class DynamicLayerManager {
 export class LODRenderer {
   private base: THREE.BufferGeometry;
   private material: THREE.PointsMaterial;
-  private points: THREE.Points | null = null;
+  private points: THREE.Points | null = null; // base points for intersections
+  private pBase: THREE.Points | null = null;
+  private pMid: THREE.Points | null = null;
+  private pLow: THREE.Points | null = null;
   private low: THREE.BufferGeometry | null = null;
   private mid: THREE.BufferGeometry | null = null;
   private centroid: THREE.Vector3 = new THREE.Vector3();
   private lastLevel: 0|1|2 = 0;
-  private near = 10; // distance threshold to switch to mid
-  private far = 20;  // distance threshold to switch to low
-  private hysteresis = 2; // band to avoid flicker
+  private pixNear = 6; // pixel radius threshold to use base
+  private pixMid = 4;  // pixel radius threshold to use mid
+  private hysteresis = 1.5; // pixel band to avoid flicker
+  private fadeWidth = 2.0; // pixels for cross-fade
 
   constructor(base: THREE.BufferGeometry, material?: THREE.PointsMaterial) {
     this.base = base;
@@ -136,29 +140,73 @@ export class LODRenderer {
   }
 
   attach(scene: THREE.Scene): THREE.Points {
-    this.points = new THREE.Points(this.base, this.material);
-    scene.add(this.points);
+    // Prepare materials per level (enable transparency for fades)
+    const mBase = this.material.clone(); mBase.transparent = true; mBase.opacity = 1.0;
+    const mMid  = this.material.clone(); mMid.transparent  = true; mMid.opacity  = 0.0;
+    const mLow  = this.material.clone(); mLow.transparent  = true; mLow.opacity  = 0.0;
+    this.pBase = new THREE.Points(this.base, mBase);
+    this.pMid  = new THREE.Points(this.mid  || this.base, mMid);
+    this.pLow  = new THREE.Points(this.low  || this.base, mLow);
+    scene.add(this.pBase, this.pMid, this.pLow);
+    // Keep reference for raycasting (base is fine for interaction)
+    this.points = this.pBase;
     return this.points;
   }
 
   update(camera: THREE.PerspectiveCamera) {
-    if (!this.points) return;
-    const d = camera.position.distanceTo(this.centroid);
-    // Hysteresis for stable switching
+    if (!this.pBase || !this.pMid || !this.pLow) return;
+    // Screen-space pixel radius for bounding sphere
+    const bs = (this.base.boundingSphere || this.computeCentroid()).clone();
+    const d = camera.position.distanceTo(bs.center);
+    const fov = THREE.MathUtils.degToRad(camera.fov);
+    const pixelsPerUnit = (0.5 * window.innerHeight) / Math.tan(fov / 2);
+    const pixelRadius = (bs.radius / Math.max(1e-6, d)) * pixelsPerUnit * (window.devicePixelRatio || 1);
+    // Determine target level with hysteresis on pixel thresholds
     let level: 0|1|2 = this.lastLevel;
+    const nearHi = this.pixNear + this.hysteresis, nearLo = this.pixNear - this.hysteresis;
+    const midHi  = this.pixMid  + this.hysteresis, midLo  = this.pixMid  - this.hysteresis;
     if (this.lastLevel === 0) {
-      if (d > this.near + this.hysteresis) level = 1;
+      if (pixelRadius < nearLo) level = 1;
     } else if (this.lastLevel === 1) {
-      if (d > this.far + this.hysteresis) level = 2;
-      else if (d < this.near - this.hysteresis) level = 0;
-    } else { // lastLevel === 2
-      if (d < this.far - this.hysteresis) level = 1;
+      if (pixelRadius < midLo) level = 2;
+      else if (pixelRadius > nearHi) level = 0;
+    } else { // lastLevel 2
+      if (pixelRadius > midHi) level = 1;
+    }
+    // Cross-fade between adjacent levels over fadeWidth pixels
+    const fade = (t: number) => Math.min(1, Math.max(0, t));
+    let aBase = 0, aMid = 0, aLow = 0;
+    if (pixelRadius >= this.pixNear) {
+      aBase = 1; aMid = 0; aLow = 0;
+      if (pixelRadius < this.pixNear + this.fadeWidth) {
+        const k = fade((this.pixNear + this.fadeWidth - pixelRadius) / this.fadeWidth);
+        aMid = 1 - k; aBase = k;
+      }
+      level = 0;
+    } else if (pixelRadius >= this.pixMid) {
+      aMid = 1; aBase = 0; aLow = 0;
+      const upperBlend = this.pixNear;
+      const lowerBlend = this.pixMid;
+      if (pixelRadius > upperBlend - this.fadeWidth) {
+        const k = fade((upperBlend - pixelRadius) / this.fadeWidth);
+        aBase = 1 - k; aMid = k;
+      } else if (pixelRadius < lowerBlend + this.fadeWidth) {
+        const k = fade((pixelRadius - lowerBlend) / this.fadeWidth);
+        aLow = 1 - k; aMid = k;
+      }
+      level = 1;
+    } else {
+      aLow = 1; aMid = 0; aBase = 0;
+      if (pixelRadius > this.pixMid - this.fadeWidth) {
+        const k = fade((pixelRadius - (this.pixMid - this.fadeWidth)) / this.fadeWidth);
+        aMid = 1 - k; aLow = k;
+      }
+      level = 2;
     }
     this.lastLevel = level;
-    const targetGeom = level === 2 ? (this.low || this.base) : (level === 1 ? (this.mid || this.base) : this.base);
-    if (this.points.geometry !== targetGeom) {
-      this.points.geometry = targetGeom;
-    }
+    (this.pBase.material as THREE.PointsMaterial).opacity = aBase;
+    (this.pMid.material as THREE.PointsMaterial).opacity = aMid;
+    (this.pLow.material as THREE.PointsMaterial).opacity = aLow;
   }
 
   setBase(geom: THREE.BufferGeometry) {
@@ -166,9 +214,9 @@ export class LODRenderer {
     this.base.computeBoundingSphere();
     this.computeCentroid();
     this.prepareLevels();
-    if (this.points) {
-      this.points.geometry = this.base;
-    }
+    if (this.pBase) this.pBase.geometry = this.base;
+    if (this.pMid)  this.pMid.geometry  = this.mid  || this.base;
+    if (this.pLow)  this.pLow.geometry  = this.low  || this.base;
   }
 
   private computeCentroid() {
