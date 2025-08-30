@@ -611,9 +611,11 @@ export class SummaryApp implements TabletApp {
   id = 'summary'; title = 'Summary';
   private dataset: { house?: string; nodes?: number; dims?: number; doors?: number; guided?: number } = {};
   private scoreboard: any = null;
+  private consolidation: { reflections?: number; training?: number; diary?: number } = {};
   onEvent(ev: { type: string; payload?: any }) {
     if (ev.type === 'dataset_summary') this.dataset = { ...(ev.payload||{}) };
     if (ev.type === 'scoreboard_summary') this.scoreboard = ev.payload || null;
+    if (ev.type === 'consolidation_summary') this.consolidation = { ...(ev.payload||{}) };
   }
   renderCanvas(ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }) {
     ctx.fillStyle = '#0b0d0f'; ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
@@ -621,9 +623,13 @@ export class SummaryApp implements TabletApp {
     ctx.fillText(`house: ${this.dataset.house||'—'}`, rect.x+8, rect.y+18);
     ctx.fillText(`nodes: ${this.dataset.nodes||0}  dims: ${this.dataset.dims||0}`, rect.x+8, rect.y+36);
     ctx.fillText(`doors: ${this.dataset.doors||0}  guided: ${this.dataset.guided||0}`, rect.x+8, rect.y+54);
+    const yCons = rect.y+72;
+    if (this.consolidation && (this.consolidation.reflections||this.consolidation.training||this.consolidation.diary)) {
+      ctx.fillText(`Consolidation — refl:${this.consolidation.reflections||0} tr:${this.consolidation.training||0} diary:${this.consolidation.diary||0}`, rect.x+8, yCons);
+    }
     if (this.scoreboard) {
       const s = this.scoreboard;
-      const y0 = rect.y+78;
+      const y0 = rect.y+96;
       ctx.fillText(`Scoreboard: ${s.ts||''}`, rect.x+8, y0);
       ctx.fillText(`GOTO: ${s.goto.success}/${s.goto.count} med=${s.goto.median_hops}`, rect.x+8, y0+18);
       ctx.fillText(`DOOR: ${s.door.success}/${s.door.count} med=${s.door.median_hops}`, rect.x+8, y0+36);
@@ -632,8 +638,8 @@ export class SummaryApp implements TabletApp {
   openOverlay(el: HTMLDivElement) {
     el.innerHTML='';
     const pre = document.createElement('pre'); pre.style.color='#ddd'; pre.style.whiteSpace='pre-wrap';
-    const ds = this.dataset; const sb = this.scoreboard;
-    pre.textContent = `Dataset\n- house: ${ds.house||'—'}\n- nodes: ${ds.nodes||0}\n- dims: ${ds.dims||0}\n- doors: ${ds.doors||0}\n- guided: ${ds.guided||0}\n\nScoreboard\n${sb?JSON.stringify(sb,null,2):'(none)'}`;
+    const ds = this.dataset; const sb = this.scoreboard; const cs = this.consolidation;
+    pre.textContent = `Dataset\n- house: ${ds.house||'—'}\n- nodes: ${ds.nodes||0}\n- dims: ${ds.dims||0}\n- doors: ${ds.doors||0}\n- guided: ${ds.guided||0}\n\nConsolidation\n- reflections: ${cs.reflections||0}\n- training: ${cs.training||0}\n- diary: ${cs.diary||0}\n\nScoreboard\n${sb?JSON.stringify(sb,null,2):'(none)'}`;
     el.appendChild(pre);
   }
 }

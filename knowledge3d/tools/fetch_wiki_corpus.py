@@ -127,6 +127,27 @@ DEFAULT_TOPICS = [
     # Data visualization
     "D3.js",
     "Vega (visualization grammar)",
+    # Visual AI and world models (recent/relevant)
+    "World model",
+    "MuZero",
+    "Dreamer (reinforcement learning)",
+    "Vision Transformer",
+    "Masked autoencoder",
+    "DETR",
+    "DINO",
+    "DINOv2",
+    "Segment Anything",
+    "BLIP",
+    "BLIP-2",
+    "CLIP (language model)",
+    "SigLIP",
+    "Flamingo (artificial intelligence)",
+    "Kosmos (multimodal large language model)",
+    "Gato (artificial intelligence)",
+    "Neural radiance field",
+    "Generative model",
+    "Autoregressive model",
+    "Diffusion model",
 ]
 
 
