@@ -5,66 +5,8 @@
       "expert": "ai-demo",
       "description": "AI demo with ai_state_flags and protocol."
     },
-    {
-      "uri": "/ai_compendium.80k.pca.glb",
-      "expert": "ai-compendium-80k-pca",
-      "description": "AI Compendium (80k, PCA, 512d, f16)"
-    },
-    {
-      "uri": "/ai_compendium.80k.pca.doors.glb",
-      "expert": "ai-compendium-80k-pca-doors",
-      "description": "AI Compendium (80k, PCA) with doors + guidance"
-    },
-    {
-      "uri": "/ai_compendium.40k.umap.glb",
-      "expert": "ai-compendium-40k",
-      "description": "AI Compendium (~50k merged lines)"
-    },
-    {
-      "uri": "/ai_compendium.40k.umap.doors.glb",
-      "expert": "ai-compendium-40k-doors",
-      "description": "AI Compendium ~40k with doors + guidance"
-    },
-    {
-      "uri": "/ai_compendium.20k.umap.glb",
-      "expert": "ai-compendium-20k",
-      "description": "AI Compendium (~11.4k repo+wiki lines merged)"
-    },
-    {
-      "uri": "/ai_compendium.20k.umap.doors.glb",
-      "expert": "ai-compendium-20k-doors",
-      "description": "AI Compendium ~20k with doors + guidance"
-    },
-    {
-      "uri": "/ai_compendium.15k.umap.glb",
-      "expert": "ai-compendium-15k",
-      "description": "AI Compendium (~11k repo+wiki lines, embedded)"
-    },
-    {
-      "uri": "/ai_compendium.15k.umap.doors.glb",
-      "expert": "ai-compendium-15k-doors",
-      "description": "AI Compendium ~15k with doors + guidance"
-    },
-    {
-      "uri": "/ai_compendium.11k.umap.glb",
-      "expert": "ai-compendium-11k",
-      "description": "AI Compendium (~11k lines)"
-    },
-    {
-      "uri": "/ai_compendium.11k.umap.doors.glb",
-      "expert": "ai-compendium-11k-doors",
-      "description": "AI Compendium 11k with doors + guidance"
-    },
-    {
-      "uri": "/ai_compendium.9k.umap.glb",
-      "expert": "ai-compendium-9k",
-      "description": "AI Compendium (~9k lines)"
-    },
-    {
-      "uri": "/ai_compendium.9k.umap.doors.glb",
-      "expert": "ai-compendium-9k-doors",
-      "description": "AI Compendium 9k with doors + guidance"
-    },
+    
+    
     {
       "uri": "/ai_compendium.4k.umap.glb",
       "expert": "ai-compendium-4k",

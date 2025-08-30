@@ -62,7 +62,7 @@ class House:
         data = [r for r in data if r.get("id") != id]
         record = {
             "id": str(id),
-            "vector": vector[:3],  # 3D projection placeholder
+            "vector": vector[:3],  # 3D projection (first 3 dims)
             "embedding": vector,
             "metadata": metadata,
             "neighbors": [],

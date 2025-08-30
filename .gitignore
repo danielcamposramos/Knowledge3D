@@ -1,4 +1,10 @@
 __pycache__/
 *.pyc
+build/
 data/ai_compendium_80k_vectors.csv
 viewer/public/ai_compendium.80k*.glb
+viewer/public/ai_compendium.40k*.glb
+viewer/public/ai_compendium.20k*.glb
+viewer/public/ai_compendium.15k*.glb
+viewer/public/ai_compendium.11k*.glb
+viewer/public/ai_compendium.9k*.glb
