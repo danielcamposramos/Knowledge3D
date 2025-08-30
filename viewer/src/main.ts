@@ -257,6 +257,14 @@ async function loadHouse(k3dUrl: string) {
                             const model_confidence = modelMatch ? parseFloat(modelMatch[1]) : undefined;
                             tablet.dispatch({ type: 'goto_resolution', payload: { target, query, sim, model_confidence } });
                         }
+                        // Parse consolidation summary: "Sleep: consolidated memory (reflections+X, training+Y, diary+Z)."
+                        const cons = /^Sleep: consolidated memory \(reflections\+(\d+),\s*training\+(\d+),\s*diary\+(\d+)\)/.exec(txt);
+                        if (cons) {
+                            const reflections = parseInt(cons[1]||'0',10);
+                            const training = parseInt(cons[2]||'0',10);
+                            const diary = parseInt(cons[3]||'0',10);
+                            tablet.dispatch({ type: 'consolidation_summary', payload: { reflections, training, diary } });
+                        }
                     }
                 } catch {}
             },

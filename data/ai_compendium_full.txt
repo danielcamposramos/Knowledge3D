@@ -10922,3 +10922,477 @@ D3.js — 580 King, Ritchie (2014), Visual Storytelling with D3: An Introduction
 D3.js — 288, ISBN 978-0-321-93317-1 Videos Gopal, Nikhil (October 2014), D3 and CoffeeScript: A Python Programmer's Introduction to Web Visualizations, Sebastopol, California: O’Reilly Media King, Ritchie (December 2014), D3 Visualization LiveLessons: An Introduction to Data Visualization in JavaScript, Addison-Wesley Professional
 D3.js — == Related projects == The Vega and Vega-Lite visualisation grammars are a declarative visualization specification built on parts of D3.js.
 D3.js — Official website D3.js Gallery Blocksplorer, search for blocks by methods used D3 "reusable chart" libraries: C3 https://c3js.org Plotly https://plot.ly/javascript bl.ock.org Archived April 7, 2017, at the Wayback Machine and blockbuilder.org: popular early gallery system.
+World model — A mental model is an internal representation of external reality: that is, a way of representing reality within one's mind.
+World model — Such models are hypothesized to play a major role in cognition, reasoning and decision-making.
+World model — The term for this concept was coined in 1943 by Kenneth Craik, who suggested that the mind constructs "small-scale models" of reality that it uses to anticipate events.
+World model — Mental models can help shape behaviour, including approaches to solving problems and performing tasks.
+World model — In psychology, the term mental models is sometimes used to refer to mental representations or mental simulation generally.
+World model — Elsewhere, it is used to refer to the "mental model" theory of reasoning developed by Philip Johnson-Laird and Ruth M.
+World model — == History == The term mental model is believed to have originated with Kenneth Craik in his 1943 book The Nature of Explanation.
+World model — Georges-Henri Luquet in Le dessin enfantin (Children's drawings), published in 1927 by Alcan, Paris, argued that children construct internal models, a view that influenced, among others, child psychologist Jean Piaget.
+World model — He has only selected concepts, and relationships between them, and uses those to represent the real system (Forrester, 1971).
+World model — Philip Johnson-Laird published Mental Models: Towards a Cognitive Science of Language, Inference and Consciousness in 1983.
+World model — In the same year, Dedre Gentner and Albert Stevens edited a collection of chapters in a book also titled Mental Models.
+World model — The first line of their book explains the idea further: "One function of this chapter is to belabor the obvious; people's views of the world, of themselves, of their own capabilities, and of the tasks that they are asked to perform, or topics they are asked to learn, depend heavily on the conceptualizations that they bring to the task." (see the book: Mental Models).
+World model — Since then, there has been much discussion and use of the idea in human-computer interaction and usability by researchers including Donald Norman and Steve Krug (in his book Don't Make Me Think).
+World model — Walter Kintsch and Teun A. van Dijk, using the term situation model (in their book Strategies of Discourse Comprehension, 1983), showed the relevance of mental models for the production and comprehension of discourse.
+World model — Charlie Munger popularized the use of multi-disciplinary mental models for making business and investment decisions.
+World model — In this view, mental models can be constructed from perception, imagination, or the comprehension of discourse (Johnson-Laird, 1983).
+World model — Such mental models are similar to architects' models or to physicists' diagrams in that their structure is analogous to the structure of the situation that they represent, unlike, say, the structure of logical forms used in formal rule theories of reasoning.
+World model — In this respect, they are a little like pictures in the picture theory of language described by philosopher Ludwig Wittgenstein in 1922.
+World model — Byrne developed their mental model theory of reasoning which makes the assumption that reasoning depends, not on logical form, but on mental models (Johnson-Laird and Byrne, 1991).
+World model — === Principles of mental models === Mental models are based on a small set of fundamental assumptions (axioms), which distinguish them from other proposed representations in the psychology of reasoning (Byrne and Johnson-Laird, 2009).
+World model — A mental model represents one possibility, capturing what is common to all the different ways in which the possibility may occur (Johnson-Laird and Byrne, 2002).
+World model — Mental models are iconic, i.e., each part of a model corresponds to each part of what it represents (Johnson-Laird, 2006).
+World model — Mental models are based on a principle of truth: they typically represent only those situations that are possible, and each model of a possibility represents only what is true in that possibility according to the proposition.
+World model — However, mental models can represent what is false, temporarily assumed to be true, for example, in the case of counterfactual conditionals and counterfactual thinking (Byrne, 2005).
+World model — === Reasoning with mental models === People infer that a conclusion is valid if it holds in all the possibilities.
+World model — Procedures for reasoning with mental models rely on counter-examples to refute invalid inferences; they establish validity by ensuring that a conclusion holds over all the models of the premises.
+World model — Reasoners focus on a subset of the possible models of multiple-model problems, often just a single model.
+World model — The ease with which reasoners can make deductions is affected by many factors, including age and working memory (Barrouillet, et al., 2000).
+World model — They reject a conclusion if they find a counterexample, i.e., a possibility in which the premises hold, but the conclusion does not (Schroyens, et al.
+World model — === Criticisms === Scientific debate continues about whether human reasoning is based on mental models, versus formal rules of inference (e.g., O'Brien, 2009), domain-specific rules of inference (e.g., Cheng & Holyoak, 2008; Cosmides, 2005), or probabilities (e.g., Oaksford and Chater, 2007).
+World model — Many empirical comparisons of the different theories have been carried out (e.g., Oberauer, 2006).
+World model — founded on unquantifiable, impugnable, obscure, or incomplete facts; flexible – considerably variable in positive as well as in negative sense; an information filter that causes selective perception, perception of only selected parts of information; very limited, compared with the complexities of the world, and even when a scientific model is extensive and in accordance with a certain reality in the derivation of logical consequences of it, it must take into account such restrictions as working memory; i.e., rules on the maximum number of elements that people are able to remember, gestaltisms or failure of the principles of logic, etc.; dependent on sources of information, which one cannot find anywhere else, are available at any time and can be used.
+World model — Mental models, in popular science parlance, have been described as "deeply held images of thinking and acting".
+World model — Mental models are so basic to understanding the world that people are hardly conscious of them.
+World model — Causal loop diagrams – displaying tendency and a direction of information connections and the resulting causality and feedback loops System structure diagrams – another way to express the structure of a qualitative dynamic system Stock and flow diagrams - a way to quantify the structure of a dynamic system These methods allow showing a mental model of a dynamic system, as an explicit, written model about a certain system based on internal beliefs.
+World model — Analyzing these graphical representations has been an increasing area of research across many social science fields.
+World model — Additionally software tools that attempt to capture and analyze the structural and functional properties of individual mental models such as Mental Modeler, "a participatory modeling tool based in fuzzy-logic cognitive mapping", have recently been developed and used to collect/compare/combine mental model representations collected from individuals for use in social science research, collaborative decision-making, and natural resource planning.
+World model — === Mental model in relation to system dynamics and systemic thinking === In the simplification of reality, creating a model can find a sense of reality, seeking to overcome systemic thinking and system dynamics.
+World model — These two disciplines can help to construct a better coordination with the reality of mental models and simulate it accurately.
+World model — They increase the probability that the consequences of how to decide and act in accordance with how to plan.
+World model — System dynamics – extending mental models through the creation of explicit models, which are clear, easily communicated and can be compared with each other.
+World model — Systemic thinking – seeking the means to improve the mental models and thereby improve the quality of dynamic decisions that are based on mental models.
+World model — Experimental studies carried out in weightlessness and on Earth using neuroimaging showed that humans are endowed with a mental model of the effects of gravity on object motion.
+World model — === Single and double-loop learning === After analyzing the basic characteristics, it is necessary to bring the process of changing the mental models, or the process of learning.
+World model — Learning is a back-loop process, and feedback loops can be illustrated as: single-loop learning or double-loop learning.
+World model — ==== Single-loop learning ==== Mental models affect the way that people work with information, and also how they determine the final decision.
+World model — Double-loop learning (see diagram below) is used when it is necessary to change the mental model on which a decision depends.
+World model — Unlike single loops, this model includes a shift in understanding, from simple and static to broader and more dynamic, such as taking into account the changes in the surroundings and the need for expression changes in mental models.
+World model — Conditional reasoning by mental models: chronometric and developmental evidence.
+World model — The Rational Imagination: How People Create Counterfactual Alternatives to Reality.
+World model — Byrne, R.M.J. & Johnson-Laird, P.N. (2009). 'If' and the problems of conditional reasoning.
+World model — In Reasoning: studies of human inference and its foundations (Adler, J.E. and Rips, L.J., eds), pp.
+World model — 827–842, Cambridge University Press Cosmides, L. et al. (2005) Detecting cheaters.
+World model — Mental Models: Towards a Cognitive Science of Language, Inference, and Consciousness.
+World model — Oxford University Press Johnson-Laird, P.N. and Byrne, R.M.J. (2002) Conditionals: a theory of meaning, inference, and pragmatics.
+World model — Oxford University Press Oberauer K. (2006) Reasoning with conditionals: A test of formal models of four theories.
+World model — Everyday conditional reasoning: A working memory-dependent tradeoff between counterexample and likelihood use.
+World model — == Further reading == Chater, N. et al. (2006) Probabilistic Models of Cognition: Conceptual Foundations.
+World model — A. et al. (2011). "Mental Models: an interdisciplinary synthesis of theory and methods" Ecology and Society.16 (1): 46.
+World model — A. et al. (2014). "Eliciting mental models: a comparison of interview procedures in the context of natural resource management" Ecology and Society.19 (1): 13.
+World model — ISBN 1-85343-516-3 Prediger, S. (2008). "Discontinuities for mental models - a source for difficulties with the multiplication of fractions" Proceedings of ICME-11, Topic Study Group 10, Research and Development of Number Systems and Arithmetic. (See also Prediger's references to Fischbein 1985 and Fischbein 1989, "Tacit models and mathematical reasoning".) Robles-De-La-Torre, G. & Sekuler, R. (2004). "Numerically Estimating Internal Models of Dynamic Virtual Objects Archived 2008-05-17 at the Wayback Machine".
+World model — == External links == Mental Models and Reasoning Laboratory Systems Analysis, Modelling and Prediction Group, University of Oxford System Dynamics Society
+MuZero — MuZero is a computer program developed by artificial intelligence research company DeepMind to master games without knowing their rules.
+MuZero — Its release in 2019 included benchmarks of its performance in go, chess, shogi, and a standard suite of Atari games.
+MuZero — It matched AlphaZero's performance in chess and shogi, improved on its performance in Go, and improved on the state of the art in mastering a suite of 57 Atari games (the Arcade Learning Environment), a visually-complex domain.
+MuZero — MuZero was trained via self-play, with no access to rules, opening books, or endgame tablebases.
+MuZero — The trained algorithm used the same convolutional and residual architecture as AlphaZero, but with 20 percent fewer computation steps per node in the search tree.
+MuZero — MuZero’s capacity to plan and learn effectively without explicit rules makes it a groundbreaking achievement in reinforcement learning and AI, pushing the boundaries of what is possible in artificial intelligence.
+MuZero — == History == MuZero really is discovering for itself how to build a model and understand it just from first principles.
+MuZero — === Derivation from AlphaZero === MuZero (MZ) is a combination of the high-performance planning of the AlphaZero (AZ) algorithm with approaches to model-free reinforcement learning.
+MuZero — The combination allows for more efficient training in classical planning regimes, such as Go, while also handling domains with much more complex inputs at each stage, such as visual video games.
+MuZero — MuZero was derived directly from AZ code, sharing its rules for setting hyperparameters.
+MuZero — Perfect knowledge of game rules is used in modeling state transitions in the search tree, actions available at each node, and termination of a branch of the tree.
+MuZero — MZ does not have access to the rules, and instead learns one with neural networks.
+MuZero — AZ has a single model for the game (from board state to predictions); MZ has separate models for representation of the current state (from board state into its internal embedding), dynamics of states (how actions change representations of board states), and prediction of policy and value of a future position (given a state's representation).
+MuZero — MZ's hidden model may be complex, and it may turn out it can host computation; exploring the details of the hidden model in a trained instance of MZ is a topic for future exploration.
+MuZero — It works with standard reinforcement-learning scenarios, including single-agent environments with continuous intermediate rewards, possibly of arbitrary magnitude and with time discounting.
+MuZero — === Comparison with R2D2 === The previous state of the art technique for learning to play the suite of Atari games was R2D2, the Recurrent Replay Distributed DQN.
+MuZero — MuZero surpassed both R2D2's mean and median performance across the suite of games, though it did not do better in every game.
+MuZero — == Training and results == MuZero used 16 third-generation tensor processing units (TPUs) for training, and 1000 TPUs for selfplay for board games, with 800 simulations per step and 8 TPUs for training and 32 TPUs for selfplay for Atari games, with 50 simulations per step.
+MuZero — AlphaZero used 64 second-generation TPUs for training, and 5000 first-generation TPUs for selfplay.
+MuZero — As TPU design has improved (third-generation chips are 2x as powerful individually as second-generation chips, with further advances in bandwidth and networking across chips in a pod), these are comparable training setups.
+MuZero — === Initial results === MuZero matched AlphaZero's performance in chess and Shogi after roughly 1 million training steps.
+MuZero — It matched AZ's performance in Go after 500,000 training steps and surpassed it by 1 million steps.
+MuZero — It matched R2D2's mean and median performance across the Atari game suite after 500 thousand training steps and surpassed it by 1 million steps, though it never performed well on 6 games in the suite.
+MuZero — == Reactions and related work == MuZero was viewed as a significant advancement over AlphaZero, and a generalizable step forward in unsupervised learning techniques.
+MuZero — The work was seen as advancing understanding of how to compose systems from smaller components, a systems-level development more than a pure machine-learning development.
+MuZero — While only pseudocode was released by the development team, Werner Duvaud produced an open source implementation based on that.
+MuZero — MuZero has been used as a reference implementation in other work, for instance as a way to generate model-based behavior.
+MuZero — In late 2021, a more efficient variant of MuZero was proposed, named EfficientZero.
+MuZero — It "achieves 194.3 percent mean human performance and 109.0 percent median performance on the Atari 100k benchmark with only two hours of real-time game experience".
+MuZero — In early 2022, a variant of MuZero was proposed to play stochastic games (for example 2048, backgammon), called Stochastic MuZero, which uses afterstate dynamics and chance codes to account for the stochastic nature of the environment when training the dynamics network.
+Masked autoencoder — A ViT decomposes an input image into a series of patches (rather than text into tokens), serializes each patch into a vector, and maps it to a smaller dimension with a single matrix multiplication.
+Masked autoencoder — These vector embeddings are then processed by a transformer encoder as if they were token embeddings.
+Masked autoencoder — ViTs were designed as alternatives to convolutional neural networks (CNNs) in computer vision applications.
+Masked autoencoder — Some of the largest modern computer vision models are ViTs, such as one with 22B parameters.
+Masked autoencoder — Subsequent to its publication, many variants were proposed, with hybrid architectures with both features of ViTs and CNNs .
+Masked autoencoder — ViTs have found application in image recognition, image segmentation, weather prediction, and autonomous driving.
+Masked autoencoder — == History == Transformers were introduced in Attention Is All You Need (2017), and have found widespread use in natural language processing.
+Masked autoencoder — Specifically, they started with a ResNet, a standard convolutional neural network used for computer vision, and replaced all convolutional kernels by the self-attention mechanism found in a Transformer.
+Masked autoencoder — In 2020, an encoder-only Transformer was adapted for computer vision, yielding the ViT, which reached state of the art in image classification, overcoming the previous dominance of CNN.
+Masked autoencoder — The vision transformer and the masked autoencoder, in turn, stimulated new developments in convolutional neural networks.
+Masked autoencoder — Subsequently, there was cross-fertilization between the previous CNN approach and the ViT approach.
+Masked autoencoder — These variants are mainly intended to be more efficient, more accurate or better suited to a specific domain.
+Masked autoencoder — Two studies improved efficiency and robustness of ViT by adding a CNN as a preprocessor.
+Masked autoencoder — The Swin Transformer achieved state-of-the-art results on some object detection datasets such as COCO, by using convolution-like sliding windows of attention mechanism, and the pyramid process in classical computer vision.
+Masked autoencoder — The input image is of type R H × W × C {\displaystyle \mathbb {R} ^{H\times W\times C}} , where H , W , C {\displaystyle H,W,C} are height, width, channel (RGB).
+Masked autoencoder — It is then split into square-shaped patches of type R P × P × C {\displaystyle \mathbb {R} ^{P\times P\times C}} .
+Masked autoencoder — For each patch, the patch is pushed through a linear operator, to obtain a vector ("patch embedding").
+Masked autoencoder — The position of the patch is also transformed into a vector by "position encoding".
+Masked autoencoder — The attention mechanism in a ViT repeatedly transforms representation vectors of image patches, incorporating more and more semantic relations between image patches in an image.
+Masked autoencoder — This is analogous to how in natural language processing, as representation vectors flow through a transformer, they incorporate more and more semantic relations between words, from syntax to semantics.
+Masked autoencoder — The above architecture turns an image into a sequence of vector representations.
+Masked autoencoder — To use these for downstream applications, an additional head needs to be trained to interpret them.
+Masked autoencoder — For example, to use it for classification, one can add a shallow MLP on top of it that outputs a probability distribution over classes.
+Masked autoencoder — === Original ViT === The original ViT was an encoder-only Transformer supervise-trained to predict the image label from the patches of the image.
+Masked autoencoder — As in the case of BERT, it uses a special token <CLS> in the input side, and the corresponding output vector is used as the only input of the final output MLP head.
+Masked autoencoder — The special token is an architectural hack to allow the model to compress all information relevant for predicting the image label into one vector.
+Masked autoencoder — Transformers found their initial applications in natural language processing tasks, as demonstrated by language models such as BERT and GPT-3.
+Masked autoencoder — By contrast the typical image processing system uses a convolutional neural network (CNN).
+Masked autoencoder — Well-known projects include Xception, ResNet, EfficientNet, DenseNet, and Inception.
+Masked autoencoder — Transformers measure the relationships between pairs of input tokens (words in the case of text strings), termed attention.
+Masked autoencoder — However, computing relationships for every pixel pair in a typical image is prohibitive in terms of memory and computation.
+Masked autoencoder — Instead, ViT computes relationships among pixels in various small sections of the image (e.g., 16x16 pixels), at a drastically reduced cost.
+Masked autoencoder — Each section is arranged into a linear sequence and multiplied by the embedding matrix.
+Masked autoencoder — These must be converted to a single class probability prediction by some kind of network.
+Masked autoencoder — In the original ViT and Masked Autoencoder, they used a dummy [CLS] token , in emulation of the BERT language model.
+Masked autoencoder — The output at [CLS] is the classification token, which is then processed by a LayerNorm-feedforward-softmax module into a probability distribution.
+Masked autoencoder — Global average pooling (GAP) does not use the dummy token, but simply takes the average of all output tokens as the classification token.
+Masked autoencoder — Multihead attention pooling (MAP) applies a multiheaded attention block to pooling.
+Masked autoencoder — Specifically, it takes as input a list of vectors x 1 , x 2 , … , x n {\displaystyle x_{1},x_{2},\dots ,x_{n}} , which might be thought of as the output vectors of a layer of a ViT.
+Masked autoencoder — The output from MAP is M u l t i h e a d e d A t t e n t i o n ( Q , V , V ) {\displaystyle \mathrm {MultiheadedAttention} (Q,V,V)} , where q {\displaystyle q} is a trainable query vector, and V {\displaystyle V} is the matrix with rows being x 1 , x 2 , … , x n {\displaystyle x_{1},x_{2},\dots ,x_{n}} .
+Masked autoencoder — Later papers demonstrated that GAP and MAP both perform better than BERT-like pooling.
+Masked autoencoder — A variant of MAP was proposed as class attention, which applies MAP, then feedforward, then MAP again.
+Masked autoencoder — The Masked Autoencoder took inspiration from denoising autoencoders and context encoders.
+Masked autoencoder — The first one ("encoder") takes in image patches with positional encoding, and outputs vectors representing each patch.
+Masked autoencoder — The second one (called "decoder", even though it is still an encoder-only Transformer) takes in vectors with positional encoding and outputs image patches again.
+Masked autoencoder — During training, each image is cut into patches, and with their positional embeddings added.
+Masked autoencoder — These are processed by the decoder ViT, which outputs a reconstruction of the full image.
+Masked autoencoder — The loss is the total mean-squared loss in pixel-space for all masked patches (reconstruction loss is not computed for non-masked patches).
+Masked autoencoder — === DINO === Like the Masked Autoencoder, the DINO (self-distillation with no labels) method is a way to train a ViT by self-supervision.
+Masked autoencoder — In DINO, the student is the model itself, and the teacher is an exponential average of the student's past states.
+Masked autoencoder — The method is similar to previous works like momentum contrast and bootstrap your own latent (BYOL).
+Masked autoencoder — The loss function used in DINO is the cross-entropy loss between the output of the teacher network ( f θ t ′ {\displaystyle f_{\theta '_{t}}} ) and the output of the student network ( f θ t {\displaystyle f_{\theta _{t}}} ).
+Masked autoencoder — The teacher network is an exponentially decaying average of the student network's past parameters: θ t ′ = α θ t + α ( 1 − α ) θ t − 1 + ⋯ {\displaystyle \theta '_{t}=\alpha \theta _{t}+\alpha (1-\alpha )\theta _{t-1}+\cdots } .
+Masked autoencoder — The inputs to the networks are two different crops of the same image, represented as T ( x ) {\displaystyle T(x)} and T ′ ( x ) {\displaystyle T'(x)} , where x {\displaystyle x} is the original image.
+Masked autoencoder — The loss function is written as L ( f θ t ′ ( T ( x ) ) , f θ t ( T ′ ( x ) ) ) {\displaystyle L(f_{\theta '_{t}}(T(x)),f_{\theta _{t}}(T'(x)))} One issue is that the network can "collapse" by always outputting the same value ( y {\displaystyle y} ), regardless of the input.
+Masked autoencoder — Sharpening: The teacher network's output is sharpened using a softmax function with a lower temperature.
+Masked autoencoder — This makes the teacher more "confident" in its predictions, forcing the student to learn more meaningful representations to match the teacher's sharpened output.
+Masked autoencoder — Centering: The teacher network's output is centered by averaging it with its previous outputs.
+Masked autoencoder — This prevents the teacher from becoming biased towards any particular output value, encouraging the student to learn a more diverse set of features.
+Masked autoencoder — In January 2024, Meta AI Research released an updated version called DINOv2 with improvements in architecture, loss function, and optimization technique.
+Masked autoencoder — The features learned by DINOv2 were more transferable, meaning it had better performance in downstream tasks.
+Masked autoencoder — It scaled up the model to 7B parameters and the training dataset to 1.7B images (obtained by diversity-sampling an initial dataset with 17B images).
+Masked autoencoder — Architecturally, it introduced two improvements: Gram anchoring and axial RoPE (Rotary Positional Embeddings) with jittering.
+Masked autoencoder — Gram anchoring applies teacher-student self-distillation for the Gram matrix between the feature vectors of the patches of an image.
+Masked autoencoder — It avoids the previously observed problem of degradation of dense feature maps: While performance on global tasks (like classification) continued to improve, performance on dense tasks (like segmentation) would peak early and then decline, with feature maps becoming noisy.
+Masked autoencoder — Axial RoPE makes the model more robust to varying image resolutions, scales, and aspect ratios.
+Masked autoencoder — === Swin Transformer === The Swin Transformer ("Shifted windows") took inspiration from standard CNNs:
+Masked autoencoder — Instead of performing self-attention over the entire sequence of tokens, one for each patch, it performs "shifted window based" self-attention, which means only performing attention over square-shaped blocks of patches.
+Masked autoencoder — After every few attention blocks, there is a "merge layer", which merges neighboring 2x2 tokens into a single token.
+Masked autoencoder — It is improved by Swin Transformer V2, which modifies upon the ViT by a different attention mechanism:
+Masked autoencoder — LayerNorm immediately after each attention and feedforward layer ("res-post-norm"); scaled cosine attention to replace the original dot product attention; log-spaced continuous relative position bias, which allows transfer learning across different window resolutions.
+Masked autoencoder — === TimeSformer === The TimeSformer was designed for video understanding tasks, and it applied a factorized self-attention, similar to the factorized convolution kernels found in the Inception CNN architecture.
+Masked autoencoder — Schematically, it divides a video into frames, and each frame into a square grid of patches (same as ViT).
+Masked autoencoder — Let each patch coordinate be denoted by x , y , t {\displaystyle x,y,t} , denoting horizontal, vertical, and time.
+Masked autoencoder — A space attention layer is a self-attention layer where each query patch q x , y , t {\displaystyle q_{x,y,t}} attends to only the key and value patches k x ′ , y ′ , t ′ , v x ′ , y ′ , t ′ {\displaystyle k_{x',y',t'},v_{x',y',t'}} such that t = t ′ {\displaystyle t=t'} .
+Masked autoencoder — A time attention layer is where the requirement is x ′ = x , y ′ = y {\displaystyle x'=x,y'=y} instead.
+Masked autoencoder — The TimeSformer also considered other attention layer designs, such as the "height attention layer" where the requirement is x ′ = x , t ′ = t {\displaystyle x'=x,t'=t} .
+Masked autoencoder — However, they found empirically that the best design interleaves one space attention layer and one time attention layer.
+Masked autoencoder — The vectors can only come from a discrete set of "codebook", as in vector quantization.
+Masked autoencoder — The training objective attempts to make the reconstruction image (the output image) faithful to the input image.
+Masked autoencoder — The discriminator (usually a convolutional network, but other networks are allowed) attempts to decide if an image is an original real image, or a reconstructed image by the ViT.
+Masked autoencoder — The idea is essentially the same as vector quantized variational autoencoder (VQVAE) plus generative adversarial network (GAN).
+Masked autoencoder — After such a ViT-VQGAN is trained, it can be used to code an arbitrary image into a list of symbols, and code an arbitrary list of symbols into an image.
+Masked autoencoder — The list of symbols can be used to train into a standard autoregressive transformer (like GPT), for autoregressively generating an image.
+Masked autoencoder — Further, one can take a list of caption-image pairs, convert the images into strings of symbols, and train a standard GPT-style transformer.
+Masked autoencoder — Then at test time, one can just give an image caption, and have it autoregressively generate the image.
+Masked autoencoder — === Others === Other examples include the visual transformer, CoAtNet, CvT, the data-efficient ViT (DeiT), etc.
+Masked autoencoder — In the Transformer in Transformer architecture, each layer applies a vision Transformer layer on each image patch embedding, add back the resulting tokens to the embedding, then applies another vision Transformer layer.
+Masked autoencoder — == Comparison with CNNs == Typically, ViT uses patch sizes larger than standard CNN kernels (3x3 to 7x7).
+Masked autoencoder — ViT is more sensitive to the choice of the optimizer, hyperparameters, and network depth.
+Masked autoencoder — Preprocessing with a layer of smaller-size, overlapping (stride < size) convolutional filters helps with performance and stability.
+Masked autoencoder — This different behavior seems to derive from the different inductive biases they possess.
+Masked autoencoder — This allows them to be more data efficient and less sensitive to local perturbations.
+Masked autoencoder — ViT applies self-attention, allowing them to easily capture long-range relationships between patches .
+Masked autoencoder — They also require more data to train, but they can ingest more training data compared to CNN, which might not improve after training on a large enough training dataset.
+Masked autoencoder — ViT also appears more robust to input image distortions such as adversarial patches or permutations.
+Masked autoencoder — == Applications == ViT have been used in many Computer Vision tasks with excellent results and in some cases even state-of-the-art.
+Masked autoencoder — Image Classification, Object Detection, Video Deepfake Detection, Image segmentation, Anomaly detection, Image Synthesis, Cluster analysis, Autonomous Driving.
+Masked autoencoder — ViT had been used for image generation as backbones for GAN and for diffusion models (diffusion transformer, or DiT).
+Masked autoencoder — DINO has been demonstrated to learn useful representations for clustering images and exploring morphological profiles on biological datasets, such as images generated with the Cell Painting assay.
+Masked autoencoder — In 2024, a 113 billion-parameter ViT model was proposed (the largest ViT to date) for weather and climate prediction, and trained on the Frontier supercomputer with a throughput of 1.6 exaFLOPs.
+Masked autoencoder — == See also == Transformer (machine learning model) Convolutional neural network Attention (machine learning) Perceiver Deep learning PyTorch TensorFlow
+Masked autoencoder — == Further reading == Zhang, Aston; Lipton, Zachary; Li, Mu; Smola, Alexander J. (2024). "11.8.
+Masked autoencoder — Cambridge New York Port Melbourne New Delhi Singapore: Cambridge University Press.
+Masked autoencoder — Steiner, Andreas; Kolesnikov, Alexander; Zhai, Xiaohua; Wightman, Ross; Uszkoreit, Jakob; Beyer, Lucas (June 18, 2021). "How to train your ViT?
+Masked autoencoder — Data, Augmentation, and Regularization in Vision Transformers". arXiv:2106.10270 [cs.CV].
+DETR — The Secretary of State for the Environment, Transport and the Regions was a United Kingdom Cabinet position created in 1997, with responsibility for the Department of the Environment, Transport and the Regions (DETR).
+DETR — The position and department were created for John Prescott by merging the positions and responsibilities of the Secretary of State for Environment, the Secretary of State for Transport and some other functions.
+DETR — Frank Dobson, who had been Shadow Secretary of State for the Environment prior to the 1997 general election, was made Secretary of State for Health, while Andrew Smith, who had been Shadow Secretary of State for Transport, was made a junior minister at the Department for Education and Employment.
+DETR — Michael Meacher, who had been Shadow Minister for Environmental Protection within the Shadow Cabinet, was given the non-cabinet position of Minister of State for the Environment, and attended cabinet meetings where the Environment was discussed, and a position of Minister of State for Transport was similarly created, initially held by Gavin Strang.
+DETR — In June 2001, the department was renamed the Department for Transport, Local Government and the Regions (DTLR), with the Environment portfolio being merged with the Ministry of Agriculture, Fisheries and Food into the Department of Environment, Food and Rural Affairs.
+DETR — In May 2002, the Local Government and the Regions portfolios were separated from Transport and given to the Office of the Deputy Prime Minister, which in turn became the Department for Communities and Local Government in May 2006.
+DETR — == Transport == From 1997 to 2001, the Ministers of State with responsibility for Transport were:
+DETR — Gavin Strang (3 May 1997 – 27 July 1998) John Reid (27 July 1998 – 17 May 1999) Helen Liddell (17 May 1999 – 29 July 1999) Lord Macdonald of Tradeston (29 July 1999 – 8 June 2001) John Reid attended cabinet meetings, but was not formally a member of the cabinet, whereas Gavin Strang was given a seat in the cabinet when he held the position.
+DETR — == Environment == Ministers of State with responsibility for the Environment included:
+DETR — Michael Meacher (1997–2001) Richard Caborn (1997–1999) Nick Raynsford (1999–2001)
+DETR — == Local government == Hilary Armstrong was Minister of State with responsibility for Local Government (1997–2001).
+DINO — In U.S. politics, Democrat in name only (DINO) is a pejorative term used to describe politicians of the Democratic Party to indicate that their governing or legislating style is more like a member of the Republican Party.
+DINO — The terms Blue Dog Democrat and Yellow dog Democrat have been more popular than DINO for describing heterodox Democrats, particularly conservative Democrats.
+DINO — === Usage === In his 1920 run for one of Georgia's seats in the United States Senate, Thomas E.
+DINO — Watson was denounced by the Valdosta Times newspaper as a "Democrat in name only." When William DeWitt Mitchell was appointed United States Attorney General in 1928 by President Herbert Hoover, the Chicago Tribune described Mitchell as a "Democrat in name only," arguing that "his record of the last few years has been Republican." In 1936 United States Senator Edward R.
+DINO — Burke of Nebraska resigned his position as a member of the Democratic National Committee stating that he could not support "any candidate masquerading as a Democrat but who was a Democrat in name only," referring to Terry Carpenter, a Representative from Nebraska then running for the Senate.
+DINO — The term was used by left-leaning bloggers in 2005 to refer to Connecticut Senator Joe Lieberman, who they saw as being too conservative on foreign policy and an apologist for the Bush administration.
+DINO — In 2010, the term was also used in reference to Nebraska Senator Ben Nelson after voting not to confirm Elena Kagan to the Supreme Court.
+DINO — In October 2021, Richard Luscombe writing in The Guardian applied the term to two Democratic Senators, Joe Manchin of West Virginia and Kyrsten Sinema of Arizona, when they opposed passing President Joe Biden's Build Back Better Act.
+SigLIP — Contrastive Language-Image Pre-training (CLIP) is a technique for training a pair of neural network models, one for image understanding and one for text understanding, using a contrastive objective.
+SigLIP — This method has enabled broad applications across multiple domains, including cross-modal retrieval, text-to-image generation, and aesthetic ranking.
+SigLIP — One model takes in a piece of text as input and outputs a single vector representing its semantic content.
+SigLIP — The other model takes in an image and similarly outputs a single vector representing its visual content.
+SigLIP — The models are trained so that the vectors corresponding to semantically similar text-image pairs are close together in the shared vector space, while those corresponding to dissimilar pairs are far apart.
+SigLIP — To train a pair of CLIP models, one would start by preparing a large dataset of image-caption pairs.
+SigLIP — During training, the models are presented with batches of N {\displaystyle N} image-caption pairs.
+SigLIP — Let the outputs from the text and image models be respectively v 1 , . . . , v N , w 1 , . . . , w N {\displaystyle v_{1},...,v_{N},w_{1},...,w_{N}} .
+SigLIP — The loss incurred on this batch is the multi-class N-pair loss, which is a symmetric cross-entropy loss over similarity scores: − 1 N ∑ i ln ⁡ e v i ⋅ w i / T ∑ j e v i ⋅ w j / T − 1 N ∑ j ln ⁡ e v j ⋅ w j / T ∑ i e v i ⋅ w j / T {\displaystyle -{\frac {1}{N}}\sum _{i}\ln {\frac {e^{v_{i}\cdot w_{i}/T}}{\sum _{j}e^{v_{i}\cdot w_{j}/T}}}-{\frac {1}{N}}\sum _{j}\ln {\frac {e^{v_{j}\cdot w_{j}/T}}{\sum _{i}e^{v_{i}\cdot w_{j}/T}}}} In essence, this loss function encourages the dot product between matching image and text vectors ( v i ⋅ w i {\displaystyle v_{i}\cdot w_{i}} ) to be high, while discouraging high dot products between non-matching pairs.
+SigLIP — The parameter T > 0 {\displaystyle T>0} is the temperature, which is parameterized in the original CLIP model as T = e − τ {\displaystyle T=e^{-\tau }} where τ ∈ R {\displaystyle \tau \in \mathbb {R} } is a learned parameter.
+SigLIP — For example, Sigmoid CLIP (SigLIP) proposes the following loss function: L = 1 N ∑ i , j ∈ 1 : N f ( ( 2 δ i , j − 1 ) ( e τ w i ⋅ v j + b ) ) {\displaystyle L={\frac {1}{N}}\sum _{i,j\in 1:N}f((2\delta _{i,j}-1)(e^{\tau }w_{i}\cdot v_{j}+b))} where f ( x ) = ln ⁡ ( 1 + e − x ) {\displaystyle f(x)=\ln(1+e^{-x})} is the negative log sigmoid loss, and the Dirac delta symbol δ i , j {\displaystyle \delta _{i,j}} is 1 if i = j {\displaystyle i=j} else 0.
+SigLIP — == CLIP models == While the original model was developed by OpenAI, subsequent models have been trained by other organizations as well.
+SigLIP — The naming convention for these models often reflects the specific ViT architecture used.
+SigLIP — For instance, "ViT-L/14" means a "vision transformer large" (compared to other models in the same series) with a patch size of 14, meaning that the image is divided into 14-by-14 pixel patches before being processed by the transformer.
+SigLIP — The size indicator ranges from B, L, H, G (base, large, huge, giant), in that order.
+SigLIP — Other than ViT, the image model is typically a convolutional neural network, such as ResNet (in the original series by OpenAI), or ConvNeXt (in the OpenCLIP model series by LAION).
+SigLIP — Since the output vectors of the image model and the text model must have exactly the same length, both the image model and the text model have fixed-length vector outputs, which in the original report is called "embedding dimension".
+SigLIP — For example, in the original OpenAI model, the ResNet models have embedding dimensions ranging from 512 to 1024, and for the ViTs, from 512 to 768.
+SigLIP — Its implementation of ViT was the same as the original one, with one modification: after position embeddings are added to the initial patch embeddings, there is a LayerNorm.
+SigLIP — Its implementation of ResNet was the same as the original one, with 3 modifications:
+SigLIP — In the start of the CNN (the "stem"), they used three stacked 3x3 convolutions instead of a single 7x7 convolution, as suggested by.
+SigLIP — There is an average pooling of stride 2 at the start of each downsampling convolutional layer (they called it rect-2 blur pooling according to the terminology of ).
+SigLIP — ALIGN a model with similar capabilities, trained by researchers from Google used EfficientNet, a kind of convolutional neural network.
+SigLIP — In the original OpenAI report, they reported using a Transformer (63M-parameter, 12-layer, 512-wide, 8 attention heads) with lower-cased byte pair encoding (BPE) with 49152 vocabulary size.
+SigLIP — Like BERT, the text sequence is bracketed by two special tokens [SOS] and [EOS] ("start of sequence" and "end of sequence").
+SigLIP — Take the activations of the highest layer of the transformer on the [EOS], apply LayerNorm, then a final linear map.
+SigLIP — The final linear map has output dimension equal to the embedding dimension of whatever image encoder it is paired with.
+SigLIP — === WebImageText === The CLIP models released by OpenAI were trained on a dataset called "WebImageText" (WIT) containing 400 million pairs of images and their corresponding captions scraped from the internet.
+SigLIP — The total number of words in this dataset is similar in scale to the WebText dataset used for training GPT-2, which contains about 40 gigabytes of text data.
+SigLIP — The dataset contains 500,000 text-queries, with up to 20,000 (image, text) pairs per query.
+SigLIP — The text-queries were generated by starting with all words occurring at least 100 times in English Wikipedia, then extended by bigrams with high mutual information, names of all Wikipedia articles above a certain search volume, and WordNet synsets.
+SigLIP — The dataset is private and has not been released to the public, and there is no further information on it.
+SigLIP — ==== Data preprocessing ==== For the CLIP image models, the input images are preprocessed by first dividing each of the R, G, B values of an image by the maximum possible value, so that these values fall between 0 and 1, then subtracting by [0.48145466, 0.4578275, 0.40821073], and dividing by [0.26862954, 0.26130258, 0.27577711].
+SigLIP — The rationale was that these are the mean and standard deviations of the images in the WebImageText dataset, so this preprocessing step roughly whitens the image tensor.
+SigLIP — These numbers slightly differ from the standard preprocessing for ImageNet, which uses [0.485, 0.456, 0.406] and [0.229, 0.224, 0.225].
+SigLIP — If the input image does not have the same resolution as the native resolution (224×224 for all except ViT-L/14@336px, which has 336×336 resolution), then the input image is scaled down by bicubic interpolation, so that its shorter side is the same as the native resolution, then the central square of the image is cropped out.
+SigLIP — === Others === ALIGN used over one billion image-text pairs, obtained by extracting images and their alt-tags from online crawling.
+SigLIP — The method was described as similar to how the Conceptual Captions dataset was constructed, but instead of complex filtering, they only applied a frequency-based filtering.
+SigLIP — For example, LAION trained OpenCLIP with published datasets LAION-400M, LAION-2B, and DataComp-1B.
+SigLIP — == Training == In the original OpenAI CLIP report, they reported training 5 ResNet and 3 ViT (ViT-B/32, ViT-B/16, ViT-L/14).
+SigLIP — The ViT-L/14 was then boosted to 336×336 resolution by FixRes, resulting in a model.
+SigLIP — In the OpenCLIP series, the ViT-L/14 model was trained on 384 A100 GPUs on the LAION-2B dataset, for 160 epochs for a total of 32B samples seen.
+SigLIP — === Cross-modal retrieval === CLIP's cross-modal retrieval enables the alignment of visual and textual data in a shared latent space, allowing users to retrieve images based on text descriptions and vice versa, without the need for explicit image annotations.
+SigLIP — In text-to-image retrieval, users input descriptive text, and CLIP retrieves images with matching embeddings.
+SigLIP — CLIP’s ability to connect visual and textual data has found applications in multimedia search, content discovery, and recommendation systems.
+SigLIP — === Image classification === CLIP can perform zero-shot image classification tasks.
+SigLIP — This is achieved by prompting the text encoder with class names and selecting the class whose embedding is closest to the image embedding.
+SigLIP — For example, to classify an image, they compared the embedding of the image with the embedding of the text "A photo of a {class}.", and the {class} that results in the highest dot product is outputted.
+SigLIP — === CLIP for multimodal learning === CLIP has been used as a component in multimodal learning.
+SigLIP — For example, during the training of Google DeepMind's Flamingo (2022), the authors trained a CLIP pair, with BERT as the text encoder and NormalizerFree ResNet F6 as the image encoder.
+SigLIP — The image encoder of the CLIP pair was taken with parameters frozen and the text encoder was discarded.
+SigLIP — The frozen image encoder was then combined with a frozen Chinchilla language model, by finetuning with some further parameters that connect the two frozen models.
+SigLIP — === Applications in other domains === CLIP's image encoder is a pre-trained image featurizer.
+SigLIP — Models like Stable Diffusion use CLIP's text encoder to transform text prompts into embeddings for image generation.
+SigLIP — CLIP can also be used as a gradient signal for directly guiding diffusion ("CLIP guidance") or other generative art.
+SigLIP — Fine-tuned CLIP models can be used to rank images by aesthetic quality, which may be useful as a step in filtering a large dataset into a smaller one with higher quality.
+SigLIP — CLIP can be used to generate image captions by matching text inputs to image embeddings.
+SigLIP — == External links == OpenAI's CLIP webpage OpenCLIP: An open source implementation of CLIP Arora, Aman (2023-03-11). "The Annotated CLIP (Part-2)". amaarora.github.io.
+Generative model — In statistical classification, two main approaches are called the generative approach and the discriminative approach.
+Generative model — These compute classifiers by different approaches, differing in the degree of statistical modelling.
+Generative model — A generative model is a statistical model of the joint probability distribution P ( X , Y ) {\displaystyle P(X,Y)} on a given observable variable X and target variable Y; A generative model can be used to "generate" random instances (outcomes) of an observation x.
+Generative model — A discriminative model is a model of the conditional probability P ( Y ∣ X = x ) {\displaystyle P(Y\mid X=x)} of the target Y, given an observation x.
+Generative model — It can be used to "discriminate" the value of the target variable Y, given an observation x.
+Generative model — Classifiers computed without using a probability model are also referred to loosely as "discriminative".
+Generative model — The distinction between these last two classes is not consistently made; Jebara (2004) refers to these three classes as generative learning, conditional learning, and discriminative learning, but Ng & Jordan (2002) only distinguish two classes, calling them generative classifiers (joint distribution) and discriminative classifiers (conditional distribution or no distribution), not distinguishing between the latter two classes.
+Generative model — Analogously, a classifier based on a generative model is a generative classifier, while a classifier based on a discriminative model is a discriminative classifier, though this term also refers to classifiers that are not based on a model.
+Generative model — generative classifiers: naive Bayes classifier and linear discriminant analysis discriminative model: logistic regression In application to classification, one wishes to go from an observation x to a label y (or probability distribution on labels).
+Generative model — One can compute this directly, without using a probability distribution (distribution-free classifier); one can estimate the probability of a label given an observation, P ( Y | X = x ) {\displaystyle P(Y|X=x)} (discriminative model), and base classification on that; or one can estimate the joint distribution P ( X , Y ) {\displaystyle P(X,Y)} (generative model), from that compute the conditional probability P ( Y | X = x ) {\displaystyle P(Y|X=x)} , and then base classification on that.
+Generative model — These are increasingly indirect, but increasingly probabilistic, allowing more domain knowledge and probability theory to be applied.
+Generative model — In practice different approaches are used, depending on the particular problem, and hybrids can combine strengths of multiple approaches.
+Generative model — a generative model is a model of the conditional probability of the observable X, given a target y, symbolically, P ( X ∣ Y = y ) {\displaystyle P(X\mid Y=y)}
+Generative model — a discriminative model is a model of the conditional probability of the target Y, given an observation x, symbolically, P ( Y ∣ X = x ) {\displaystyle P(Y\mid X=x)}
+Generative model — Regardless of precise definition, the terminology is constitutional because a generative model can be used to "generate" random instances (outcomes), either of an observation and target ( x , y ) {\displaystyle (x,y)} , or of an observation x given a target value y, while a discriminative model or discriminative classifier (without a model) can be used to "discriminate" the value of the target variable Y, given an observation x.
+Generative model — The difference between "discriminate" (distinguish) and "classify" is subtle, and these are not consistently distinguished. (The term "discriminative classifier" becomes a pleonasm when "discrimination" is equivalent to "classification".) The term "generative model" is also used to describe models that generate instances of output variables in a way that has no clear relationship to probability distributions over potential samples of input variables.
+Generative model — Generative adversarial networks are examples of this class of generative models, and are judged primarily by the similarity of particular outputs to potential inputs.
+Generative model — === Relationships between models === In application to classification, the observable X is frequently a continuous variable, the target Y is generally a discrete variable consisting of a finite set of labels, and the conditional probability P ( Y ∣ X ) {\displaystyle P(Y\mid X)} can also be interpreted as a (non-deterministic) target function f : X → Y {\displaystyle f\colon X\to Y} , considering X as inputs and Y as outputs.
+Generative model — Given a finite set of labels, the two definitions of "generative model" are closely related.
+Generative model — A model of the conditional distribution P ( X ∣ Y = y ) {\displaystyle P(X\mid Y=y)} is a model of the distribution of each label, and a model of the joint distribution is equivalent to a model of the distribution of label values P ( Y ) {\displaystyle P(Y)} , together with the distribution of observations given a label, P ( X ∣ Y ) {\displaystyle P(X\mid Y)} ; symbolically, P ( X , Y ) = P ( X ∣ Y ) P ( Y ) . {\displaystyle P(X,Y)=P(X\mid Y)P(Y).} Thus, while a model of the joint probability distribution is more informative than a model of the distribution of label (but without their relative frequencies), it is a relatively small step, hence these are not always distinguished.
+Generative model — Given a model of the joint distribution, P ( X , Y ) {\displaystyle P(X,Y)} , the distribution of the individual variables can be computed as the marginal distributions P ( X ) = ∑ y P ( X , Y = y ) {\displaystyle P(X)=\sum _{y}P(X,Y=y)} and P ( Y ) = ∫ x P ( Y , X = x ) {\displaystyle P(Y)=\int _{x}P(Y,X=x)} (considering X as continuous, hence integrating over it, and Y as discrete, hence summing over it), and either conditional distribution can be computed from the definition of conditional probability: P ( X ∣ Y ) = P ( X , Y ) / P ( Y ) {\displaystyle P(X\mid Y)=P(X,Y)/P(Y)} and P ( Y ∣ X ) = P ( X , Y ) / P ( X ) {\displaystyle P(Y\mid X)=P(X,Y)/P(X)} .
+Generative model — Given a model of one conditional probability, and estimated probability distributions for the variables X and Y, denoted P ( X ) {\displaystyle P(X)} and P ( Y ) {\displaystyle P(Y)} , one can estimate the opposite conditional probability using Bayes' rule:
+Generative model — P ( X ∣ Y ) P ( Y ) = P ( Y ∣ X ) P ( X ) . {\displaystyle P(X\mid Y)P(Y)=P(Y\mid X)P(X).}
+Generative model — For example, given a generative model for P ( X ∣ Y ) {\displaystyle P(X\mid Y)} , one can estimate:
+Generative model — P ( Y ∣ X ) = P ( X ∣ Y ) P ( Y ) / P ( X ) , {\displaystyle P(Y\mid X)=P(X\mid Y)P(Y)/P(X),}
+Generative model — and given a discriminative model for P ( Y ∣ X ) {\displaystyle P(Y\mid X)} , one can estimate:
+Generative model — P ( X ∣ Y ) = P ( Y ∣ X ) P ( X ) / P ( Y ) . {\displaystyle P(X\mid Y)=P(Y\mid X)P(X)/P(Y).}
+Generative model — Note that Bayes' rule (computing one conditional probability in terms of the other) and the definition of conditional probability (computing conditional probability in terms of the joint distribution) are frequently conflated as well.
+Generative model — == Contrast with discriminative classifiers == A generative algorithm models how the data was generated in order to categorize a signal.
+Generative model — It asks the question: based on my generation assumptions, which category is most likely to generate this signal?
+Generative model — A discriminative algorithm does not care about how the data was generated, it simply categorizes a given signal.
+Generative model — So, discriminative algorithms try to learn p ( y | x ) {\displaystyle p(y|x)} directly from the data and then try to classify data.
+Generative model — On the other hand, generative algorithms try to learn p ( x , y ) {\displaystyle p(x,y)} which can be transformed into p ( y | x ) {\displaystyle p(y|x)} later to classify the data.
+Generative model — One of the advantages of generative algorithms is that you can use p ( x , y ) {\displaystyle p(x,y)} to generate new data similar to existing data.
+Generative model — On the other hand, it has been proved that some discriminative algorithms give better performance than some generative algorithms in classification tasks.
+Generative model — Despite the fact that discriminative models do not need to model the distribution of the observed variables, they cannot generally express complex relationships between the observed and target variables.
+Generative model — But in general, they don't necessarily perform better than generative models at classification and regression tasks.
+Generative model — The two classes are seen as complementary or as different views of the same procedure.
+Generative model — == Deep generative models == With the rise of deep learning, a new family of methods, called deep generative models (DGMs), is formed through the combination of generative models and deep neural networks.
+Generative model — An increase in the scale of the neural networks is typically accompanied by an increase in the scale of the training data, both of which are required for good performance.
+Generative model — Popular DGMs include variational autoencoders (VAEs), generative adversarial networks (GANs), and auto-regressive models.
+Generative model — For example, GPT-3, and its precursor GPT-2, are auto-regressive neural language models that contain billions of parameters, BigGAN and VQ-VAE which are used for image generation that can have hundreds of millions of parameters, and Jukebox is a very large generative model for musical audio that contains billions of parameters.
+Generative model — Gaussian mixture model (and other types of mixture model) Hidden Markov model Probabilistic context-free grammar Bayesian network (e.g.
+Generative model — Naive bayes, Autoregressive model) Averaged one-dependence estimators Latent Dirichlet allocation Boltzmann machine (e.g.
+Generative model — Restricted Boltzmann machine, Deep belief network) Variational autoencoder Generative adversarial network Flow-based generative model Energy based model Diffusion model If the observed data are truly sampled from the generative model, then fitting the parameters of the generative model to maximize the data likelihood is a common method.
+Generative model — However, since most statistical models are only approximations to the true distribution, if the model's application is to infer about a subset of variables conditional on known values of others, then it can be argued that the approximation makes more assumptions than are necessary to solve the problem at hand.
+Generative model — In such cases, it can be more accurate to model the conditional density functions directly using a discriminative model (see below), although application-specific details will ultimately dictate which approach is most suitable in any particular case.
+Generative model — === Discriminative models === k-nearest neighbors algorithm Logistic regression Support Vector Machines Decision Tree Learning Random Forest Maximum-entropy Markov models Conditional random fields
+Generative model — === Simple example === Suppose the input data is x ∈ { 1 , 2 } {\displaystyle x\in \{1,2\}} , the set of labels for x {\displaystyle x} is y ∈ { 0 , 1 } {\displaystyle y\in \{0,1\}} , and there are the following 4 data points:
+Generative model — ( x , y ) = { ( 1 , 0 ) , ( 1 , 1 ) , ( 2 , 0 ) , ( 2 , 1 ) } {\displaystyle (x,y)=\{(1,0),(1,1),(2,0),(2,1)\}}
+Generative model — For the above data, estimating the joint probability distribution p ( x , y ) {\displaystyle p(x,y)} from the empirical measure will be the following:
+Generative model — === Text generation === Shannon (1948) gives an example in which a table of frequencies of English word pairs is used to generate a sentence beginning with "representing and speedily is an good"; which is not proper English but which will increasingly approximate it as the table is moved from word pairs to word triplets etc.
+Autoregressive model — In statistics, econometrics, and signal processing, an autoregressive (AR) model is a representation of a type of random process; as such, it can be used to describe certain time-varying processes in nature, economics, behavior, etc.
+Autoregressive model — The autoregressive model specifies that the output variable depends linearly on its own previous values and on a stochastic term (an imperfectly predictable term); thus the model is in the form of a stochastic difference equation (or recurrence relation) which should not be confused with a differential equation.
+Autoregressive model — Together with the moving-average (MA) model, it is a special case and key component of the more general autoregressive–moving-average (ARMA) and autoregressive integrated moving average (ARIMA) models of time series, which have a more complicated stochastic structure; it is also a special case of the vector autoregressive model (VAR), which consists of a system of more than one interlocking stochastic difference equation in more than one evolving random variable.
+Autoregressive model — Another important extension is the time-varying autoregressive (TVAR) model, where the autoregressive coefficients are allowed to change over time to model evolving or non-stationary processes.
+Autoregressive model — TVAR models are widely applied in cases where the underlying dynamics of the system are not constant, such as in sensors time series modelling, finance, climate science, economics, signal processing and telecommunications, radar systems, and biological signals.
+Autoregressive model — Unlike the moving-average (MA) model, the autoregressive model is not always stationary; non-stationarity can arise either due to the presence of a unit root or due to time-varying model parameters, as in time-varying autoregressive (TVAR) models.
+Autoregressive model — Large language models are called autoregressive, but they are not a classical autoregressive model in this sense because they are not linear.
+Autoregressive model — == Definition == The notation A R ( p ) {\displaystyle AR(p)} indicates an autoregressive model of order p.
+Autoregressive model — X t = ∑ i = 1 p φ i X t − i + ε t {\displaystyle X_{t}=\sum _{i=1}^{p}\varphi _{i}X_{t-i}+\varepsilon _{t}}
+Autoregressive model — where φ 1 , … , φ p {\displaystyle \varphi _{1},\ldots ,\varphi _{p}} are the parameters of the model, and ε t {\displaystyle \varepsilon _{t}} is white noise.
+Autoregressive model — X t = ∑ i = 1 p φ i B i X t + ε t {\displaystyle X_{t}=\sum _{i=1}^{p}\varphi _{i}B^{i}X_{t}+\varepsilon _{t}}
+Autoregressive model — so that, moving the summation term to the left side and using polynomial notation, we have
+Autoregressive model — An autoregressive model can thus be viewed as the output of an all-pole infinite impulse response filter whose input is white noise.
+Autoregressive model — Some parameter constraints are necessary for the model to remain weak-sense stationary.
+Autoregressive model — For example, processes in the AR(1) model with | φ 1 | ≥ 1 {\displaystyle |\varphi _{1}|\geq 1} are not stationary.
+Autoregressive model — More generally, for an AR(p) model to be weak-sense stationary, the roots of the polynomial Φ ( z ) := 1 − ∑ i = 1 p φ i z i {\displaystyle \Phi (z):=\textstyle 1-\sum _{i=1}^{p}\varphi _{i}z^{i}} must lie outside the unit circle, i.e., each (complex) root z i {\displaystyle z_{i}} must satisfy | z i | > 1 {\displaystyle |z_{i}|>1} (see pages 89,92 ).
+Autoregressive model — == Intertemporal effect of shocks == In an AR process, a one-time shock affects values of the evolving variable infinitely far into the future.
+Autoregressive model — For example, consider the AR(1) model X t = φ 1 X t − 1 + ε t {\displaystyle X_{t}=\varphi _{1}X_{t-1}+\varepsilon _{t}} .
+Autoregressive model — A non-zero value for ε t {\displaystyle \varepsilon _{t}} at say time t=1 affects X 1 {\displaystyle X_{1}} by the amount ε 1 {\displaystyle \varepsilon _{1}} .
+Autoregressive model — Then by the AR equation for X 2 {\displaystyle X_{2}} in terms of X 1 {\displaystyle X_{1}} , this affects X 2 {\displaystyle X_{2}} by the amount φ 1 ε 1 {\displaystyle \varphi _{1}\varepsilon _{1}} .
+Autoregressive model — Then by the AR equation for X 3 {\displaystyle X_{3}} in terms of X 2 {\displaystyle X_{2}} , this affects X 3 {\displaystyle X_{3}} by the amount φ 1 2 ε 1 {\displaystyle \varphi _{1}^{2}\varepsilon _{1}} .
+Autoregressive model — Continuing this process shows that the effect of ε 1 {\displaystyle \varepsilon _{1}} never ends, although if the process is stationary then the effect diminishes toward zero in the limit.
+Autoregressive model — Because each shock affects X values infinitely far into the future from when they occur, any given value Xt is affected by shocks occurring infinitely far into the past.
+Autoregressive model — (where the constant term has been suppressed by assuming that the variable has been measured as deviations from its mean) as
+Autoregressive model — X t = 1 ϕ ( B ) ε t . {\displaystyle X_{t}={\frac {1}{\phi (B)}}\varepsilon _{t}\,.}
+Autoregressive model — When the polynomial division on the right side is carried out, the polynomial in the backshift operator applied to ε t {\displaystyle \varepsilon _{t}} has an infinite order—that is, an infinite number of lagged values of ε t {\displaystyle \varepsilon _{t}} appear on the right side of the equation.
+Autoregressive model — == Characteristic polynomial == The autocorrelation function of an AR(p) process can be expressed as
+Autoregressive model — ρ ( τ ) = ∑ k = 1 p a k y k − | τ | , {\displaystyle \rho (\tau )=\sum _{k=1}^{p}a_{k}y_{k}^{-|\tau |},}
+Autoregressive model — ϕ ( B ) = 1 − ∑ k = 1 p φ k B k {\displaystyle \phi (B)=1-\sum _{k=1}^{p}\varphi _{k}B^{k}}
+Autoregressive model — where B is the backshift operator, where ϕ ( ⋅ ) {\displaystyle \phi (\cdot )} is the function defining the autoregression, and where φ k {\displaystyle \varphi _{k}} are the coefficients in the autoregression.
+Autoregressive model — The autocorrelation function of an AR(p) process is a sum of decaying exponentials.
+Autoregressive model — Each real root contributes a component to the autocorrelation function that decays exponentially.
+Autoregressive model — Similarly, each pair of complex conjugate roots contributes an exponentially damped oscillation.
+Autoregressive model — Only the error/innovation/noise term contributes to the output of the process, so in the figure, AR(0) corresponds to white noise.
+Autoregressive model — For an AR(1) process with a positive φ {\displaystyle \varphi } , only the previous term in the process and the noise term contribute to the output.
+Autoregressive model — If φ {\displaystyle \varphi } is close to 0, then the process still looks like white noise, but as φ {\displaystyle \varphi } approaches 1, the output gets a larger contribution from the previous term relative to the noise.
+Autoregressive model — This results in a "smoothing" or integration of the output, similar to a low pass filter.
+Autoregressive model — For an AR(2) process, the previous two terms and the noise term contribute to the output.
+Autoregressive model — If both φ 1 {\displaystyle \varphi _{1}} and φ 2 {\displaystyle \varphi _{2}} are positive, the output will resemble a low pass filter, with the high frequency part of the noise decreased.
+Autoregressive model — If φ 1 {\displaystyle \varphi _{1}} is positive while φ 2 {\displaystyle \varphi _{2}} is negative, then the process favors changes in sign between terms of the process.
+Autoregressive model — == Example: An AR(1) process == An AR(1) process is given by: X t = φ X t − 1 + ε t {\displaystyle X_{t}=\varphi X_{t-1}+\varepsilon _{t}\,} where ε t {\displaystyle \varepsilon _{t}} is a white noise process with zero mean and constant variance σ ε 2 {\displaystyle \sigma _{\varepsilon }^{2}} . (Note: The subscript on φ 1 {\displaystyle \varphi _{1}} has been dropped.) The process is weak-sense stationary if | φ | < 1 {\displaystyle |\varphi |<1} since it is obtained as the output of a stable filter whose input is white noise. (If φ = 1 {\displaystyle \varphi =1} then the variance of X t {\displaystyle X_{t}} depends on time lag t, so that the variance of the series diverges to infinity as t goes to infinity, and is therefore not weak-sense stationary.) Assuming | φ | < 1 {\displaystyle |\varphi |<1} , the mean E ⁡ ( X t ) {\displaystyle \operatorname {E} (X_{t})} is identical for all values of t by definition of weak sense stationarity.
+Autoregressive model — If the mean is denoted by μ {\displaystyle \mu } , it follows from E ⁡ ( X t ) = φ E ⁡ ( X t − 1 ) + E ⁡ ( ε t ) , {\displaystyle \operatorname {E} (X_{t})=\varphi \operatorname {E} (X_{t-1})+\operatorname {E} (\varepsilon _{t}),} that μ = φ μ + 0 , {\displaystyle \mu =\varphi \mu +0,} and hence
+Autoregressive model — var ( X t ) = E ⁡ ( X t 2 ) − μ 2 = σ ε 2 1 − φ 2 , {\displaystyle {\textrm {var}}(X_{t})=\operatorname {E} (X_{t}^{2})-\mu ^{2}={\frac {\sigma _{\varepsilon }^{2}}{1-\varphi ^{2}}},}
+Autoregressive model — where σ ε {\displaystyle \sigma _{\varepsilon }} is the standard deviation of ε t {\displaystyle \varepsilon _{t}} .
+Autoregressive model — var ( X t ) = φ 2 var ( X t − 1 ) + σ ε 2 , {\displaystyle {\textrm {var}}(X_{t})=\varphi ^{2}{\textrm {var}}(X_{t-1})+\sigma _{\varepsilon }^{2},}
+Autoregressive model — and then by noticing that the quantity above is a stable fixed point of this relation.
+Autoregressive model — B n = E ⁡ ( X t + n X t ) − μ 2 = σ ε 2 1 − φ 2 φ | n | . {\displaystyle B_{n}=\operatorname {E} (X_{t+n}X_{t})-\mu ^{2}={\frac {\sigma _{\varepsilon }^{2}}{1-\varphi ^{2}}}\,\,\varphi ^{|n|}.}
+Autoregressive model — It can be seen that the autocovariance function decays with a decay time (also called time constant) of τ = 1 / ( 1 − φ ) {\displaystyle \tau =1/(1-\varphi )} .
+Autoregressive model — The spectral density function is the Fourier transform of the autocovariance function.
+Autoregressive model — Φ ( ω ) = 1 2 π ∑ n = − ∞ ∞ B n e − i ω n = 1 2 π ( σ ε 2 1 + φ 2 − 2 φ cos ⁡ ( ω ) ) . {\displaystyle \Phi (\omega )={\frac {1}{\sqrt {2\pi }}}\,\sum _{n=-\infty }^{\infty }B_{n}e^{-i\omega n}={\frac {1}{\sqrt {2\pi }}}\,\left({\frac {\sigma _{\varepsilon }^{2}}{1+\varphi ^{2}-2\varphi \cos(\omega )}}\right).}
+Autoregressive model — This expression is periodic due to the discrete nature of the X j {\displaystyle X_{j}} , which is manifested as the cosine term in the denominator.
+Autoregressive model — If we assume that the sampling time ( Δ t = 1 {\displaystyle \Delta t=1} ) is much smaller than the decay time ( τ {\displaystyle \tau } ), then we can use a continuum approximation to B n {\displaystyle B_{n}} :
+Autoregressive model — B ( t ) ≈ σ ε 2 1 − φ 2 φ | t | {\displaystyle B(t)\approx {\frac {\sigma _{\varepsilon }^{2}}{1-\varphi ^{2}}}\,\,\varphi ^{|t|}}
+Autoregressive model — Φ ( ω ) = 1 2 π σ ε 2 1 − φ 2 γ π ( γ 2 + ω 2 ) {\displaystyle \Phi (\omega )={\frac {1}{\sqrt {2\pi }}}\,{\frac {\sigma _{\varepsilon }^{2}}{1-\varphi ^{2}}}\,{\frac {\gamma }{\pi (\gamma ^{2}+\omega ^{2})}}}
+Autoregressive model — where γ = 1 / τ {\displaystyle \gamma =1/\tau } is the angular frequency associated with the decay time τ {\displaystyle \tau } .
+Autoregressive model — An alternative expression for X t {\displaystyle X_{t}} can be derived by first substituting φ X t − 2 + ε t − 1 {\displaystyle \varphi X_{t-2}+\varepsilon _{t-1}} for X t − 1 {\displaystyle X_{t-1}} in the defining equation.
+Autoregressive model — X t = φ N X t − N + ∑ k = 0 N − 1 φ k ε t − k . {\displaystyle X_{t}=\varphi ^{N}X_{t-N}+\sum _{k=0}^{N-1}\varphi ^{k}\varepsilon _{t-k}.}
+Autoregressive model — For N approaching infinity, φ N {\displaystyle \varphi ^{N}} will approach zero and:
+Autoregressive model — X t = ∑ k = 0 ∞ φ k ε t − k . {\displaystyle X_{t}=\sum _{k=0}^{\infty }\varphi ^{k}\varepsilon _{t-k}.}
+Autoregressive model — It is seen that X t {\displaystyle X_{t}} is white noise convolved with the φ k {\displaystyle \varphi ^{k}} kernel plus the constant mean.
+Autoregressive model — If the white noise ε t {\displaystyle \varepsilon _{t}} is a Gaussian process then X t {\displaystyle X_{t}} is also a Gaussian process.
+Autoregressive model — In other cases, the central limit theorem indicates that X t {\displaystyle X_{t}} will be approximately normally distributed when φ {\displaystyle \varphi } is close to one.
+Autoregressive model — For ε t = 0 {\displaystyle \varepsilon _{t}=0} , the process X t = φ X t − 1 {\displaystyle X_{t}=\varphi X_{t-1}} will be a geometric progression (exponential growth or decay).
+Autoregressive model — In this case, the solution can be found analytically: X t = a φ t {\displaystyle X_{t}=a\varphi ^{t}} whereby a {\displaystyle a} is an unknown constant (initial condition).
+Autoregressive model — === Explicit mean/difference form of AR(1) process === The AR(1) model is the discrete-time analogy of the continuous Ornstein-Uhlenbeck process.
+Autoregressive model — It is therefore sometimes useful to understand the properties of the AR(1) model cast in an equivalent form.
+Autoregressive model — In this form, the AR(1) model, with process parameter θ ∈ R {\displaystyle \theta \in \mathbb {R} } , is given by
+Autoregressive model — X t + 1 = X t + ( 1 − θ ) ( μ − X t ) + ε t + 1 {\displaystyle X_{t+1}=X_{t}+(1-\theta )(\mu -X_{t})+\varepsilon _{t+1}} , where | θ | < 1 {\displaystyle |\theta |<1\,} , μ := E ( X ) {\displaystyle \mu :=E(X)} is the model mean, and { ϵ t } {\displaystyle \{\epsilon _{t}\}} is a white-noise process with zero mean and constant variance σ {\displaystyle \sigma } .
+Autoregressive model — By rewriting this as X t + 1 = θ X t + ( 1 − θ ) μ + ε t + 1 {\displaystyle X_{t+1}=\theta X_{t}+(1-\theta )\mu +\varepsilon _{t+1}} and then deriving (by induction) X t + n = θ n X t + ( 1 − θ n ) μ + Σ i = 1 n ( θ n − i ϵ t + i ) {\displaystyle X_{t+n}=\theta ^{n}X_{t}+(1-\theta ^{n})\mu +\Sigma _{i=1}^{n}\left(\theta ^{n-i}\epsilon _{t+i}\right)} , one can show that
+Autoregressive model — E ⁡ ( X t + n | X t ) = μ [ 1 − θ n ] + X t θ n {\displaystyle \operatorname {E} (X_{t+n}|X_{t})=\mu \left[1-\theta ^{n}\right]+X_{t}\theta ^{n}} and
+Autoregressive model — Var ⁡ ( X t + n | X t ) = σ 2 1 − θ 2 n 1 − θ 2 {\displaystyle \operatorname {Var} (X_{t+n}|X_{t})=\sigma ^{2}{\frac {1-\theta ^{2n}}{1-\theta ^{2}}}} .
+Autoregressive model — The partial autocorrelation of an AR(p) process equals zero at lags larger than p, so the appropriate maximum lag p is the one after which the partial autocorrelations are all zero.
+Autoregressive model — == Calculation of the AR parameters == There are many ways to estimate the coefficients, such as the ordinary least squares procedure or method of moments (through Yule–Walker equations).
+Autoregressive model — X t = ∑ i = 1 p φ i X t − i + ε t . {\displaystyle X_{t}=\sum _{i=1}^{p}\varphi _{i}X_{t-i}+\varepsilon _{t}.\,}
+Autoregressive model — There is a direct correspondence between these parameters and the covariance function of the process, and this correspondence can be inverted to determine the parameters from the autocorrelation function (which is itself obtained from the covariances).
+Autoregressive model — === Yule–Walker equations === The Yule–Walker equations, named for Udny Yule and Gilbert Walker, are the following set of equations.
+Autoregressive model — γ m = ∑ k = 1 p φ k γ m − k + σ ε 2 δ m , 0 , {\displaystyle \gamma _{m}=\sum _{k=1}^{p}\varphi _{k}\gamma _{m-k}+\sigma _{\varepsilon }^{2}\delta _{m,0},}
+Autoregressive model — Here γ m {\displaystyle \gamma _{m}} is the autocovariance function of Xt, σ ε {\displaystyle \sigma _{\varepsilon }} is the standard deviation of the input noise process, and δ m , 0 {\displaystyle \delta _{m,0}} is the Kronecker delta function.
+Autoregressive model — Because the last part of an individual equation is non-zero only if m = 0, the set of equations can be solved by representing the equations for m > 0 in matrix form, thus getting the equation
+Autoregressive model — [ γ 1 γ 2 γ 3 ⋮ γ p ] = [ γ 0 γ − 1 γ − 2 ⋯ γ 1 γ 0 γ − 1 ⋯ γ 2 γ 1 γ 0 ⋯ ⋮ ⋮ ⋮ ⋱ γ p − 1 γ p − 2 γ p − 3 ⋯ ] [ φ 1 φ 2 φ 3 ⋮ φ p ] {\displaystyle {\begin{bmatrix}\gamma _{1}\\\gamma _{2}\\\gamma _{3}\\\vdots \\\gamma _{p}\\\end{bmatrix}}={\begin{bmatrix}\gamma _{0}&\gamma _{-1}&\gamma _{-2}&\cdots \\\gamma _{1}&\gamma _{0}&\gamma _{-1}&\cdots \\\gamma _{2}&\gamma _{1}&\gamma _{0}&\cdots \\\vdots &\vdots &\vdots &\ddots \\\gamma _{p-1}&\gamma _{p-2}&\gamma _{p-3}&\cdots \\\end{bmatrix}}{\begin{bmatrix}\varphi _{1}\\\varphi _{2}\\\varphi _{3}\\\vdots \\\varphi _{p}\\\end{bmatrix}}}
+Autoregressive model — which can be solved for all { φ m ; m = 1 , 2 , … , p } . {\displaystyle \{\varphi _{m};m=1,2,\dots ,p\}.} The remaining equation for m = 0 is
+Autoregressive model — γ 0 = ∑ k = 1 p φ k γ − k + σ ε 2 , {\displaystyle \gamma _{0}=\sum _{k=1}^{p}\varphi _{k}\gamma _{-k}+\sigma _{\varepsilon }^{2},}
+Autoregressive model — which, once { φ m ; m = 1 , 2 , … , p } {\displaystyle \{\varphi _{m};m=1,2,\dots ,p\}} are known, can be solved for σ ε 2 . {\displaystyle \sigma _{\varepsilon }^{2}.}
+Autoregressive model — The AR parameters are determined by the first p+1 elements ρ ( τ ) {\displaystyle \rho (\tau )} of the autocorrelation function.
+Autoregressive model — The full autocorrelation function can then be derived by recursively calculating
+Autoregressive model — ρ ( τ ) = ∑ k = 1 p φ k ρ ( k − τ ) {\displaystyle \rho (\tau )=\sum _{k=1}^{p}\varphi _{k}\rho (k-\tau )}
+Autoregressive model — Hence ρ 1 = γ 1 / γ 0 = φ 1 {\displaystyle \rho _{1}=\gamma _{1}/\gamma _{0}=\varphi _{1}}
+Autoregressive model — γ 1 = φ 1 γ 0 + φ 2 γ − 1 {\displaystyle \gamma _{1}=\varphi _{1}\gamma _{0}+\varphi _{2}\gamma _{-1}}
+Autoregressive model — γ 2 = φ 1 γ 1 + φ 2 γ 0 {\displaystyle \gamma _{2}=\varphi _{1}\gamma _{1}+\varphi _{2}\gamma _{0}}
+Autoregressive model — Using the first equation yields ρ 1 = γ 1 / γ 0 = φ 1 1 − φ 2 {\displaystyle \rho _{1}=\gamma _{1}/\gamma _{0}={\frac {\varphi _{1}}{1-\varphi _{2}}}}
+Autoregressive model — Using the recursion formula yields ρ 2 = γ 2 / γ 0 = φ 1 2 − φ 2 2 + φ 2 1 − φ 2 {\displaystyle \rho _{2}=\gamma _{2}/\gamma _{0}={\frac {\varphi _{1}^{2}-\varphi _{2}^{2}+\varphi _{2}}{1-\varphi _{2}}}}
+Autoregressive model — === Estimation of AR parameters === The above equations (the Yule–Walker equations) provide several routes to estimating the parameters of an AR(p) model, by replacing the theoretical covariances with estimated values.
+Autoregressive model — There are different ways of doing this and the choice between these affects the properties of the estimation scheme.
+Autoregressive model — For example, negative estimates of the variance can be produced by some choices.
+Autoregressive model — Formulation as a least squares regression problem in which an ordinary least squares prediction problem is constructed, basing prediction of values of Xt on the p previous values of the same series.
+Autoregressive model — The normal equations for this problem can be seen to correspond to an approximation of the matrix form of the Yule–Walker equations in which each appearance of an autocovariance of the same lag is replaced by a slightly different estimate.
+Autoregressive model — Here two sets of prediction equations are combined into a single estimation scheme and a single set of normal equations.
+Autoregressive model — One set is the set of forward-prediction equations and the other is a corresponding set of backward prediction equations, relating to the backward representation of the AR model:
+Autoregressive model — X t = ∑ i = 1 p φ i X t + i + ε t ∗ . {\displaystyle X_{t}=\sum _{i=1}^{p}\varphi _{i}X_{t+i}+\varepsilon _{t}^{*}\,.}
+Autoregressive model — Here predicted values of Xt would be based on the p future values of the same series.
+Autoregressive model — This way of estimating the AR parameters is due to John Parker Burg, and is called the Burg method: Burg and later authors called these particular estimates "maximum entropy estimates", but the reasoning behind this applies to the use of any set of estimated AR parameters.
+Autoregressive model — Compared to the estimation scheme using only the forward prediction equations, different estimates of the autocovariances are produced, and the estimates have different stability properties.
+Autoregressive model — Burg estimates are particularly associated with maximum entropy spectral estimation.
+Autoregressive model — Two distinct variants of maximum likelihood are available: in one (broadly equivalent to the forward prediction least squares scheme) the likelihood function considered is that corresponding to the conditional distribution of later values in the series given the initial p values in the series; in the second, the likelihood function considered is that corresponding to the unconditional joint distribution of all the values in the observed series.
+Autoregressive model — Substantial differences in the results of these approaches can occur if the observed series is short, or if the process is close to non-stationarity.
+Autoregressive model — The power spectral density (PSD) of an AR(p) process with noise variance V a r ( Z t ) = σ Z 2 {\displaystyle \mathrm {Var} (Z_{t})=\sigma _{Z}^{2}} is
+Autoregressive model — S ( f ) = σ Z 2 | 1 − ∑ k = 1 p φ k e − i 2 π f k | 2 . {\displaystyle S(f)={\frac {\sigma _{Z}^{2}}{|1-\sum _{k=1}^{p}\varphi _{k}e^{-i2\pi fk}|^{2}}}.}
+Autoregressive model — S ( f ) = σ Z 2 | 1 − φ 1 e − 2 π i f | 2 = σ Z 2 1 + φ 1 2 − 2 φ 1 cos ⁡ 2 π f {\displaystyle S(f)={\frac {\sigma _{Z}^{2}}{|1-\varphi _{1}e^{-2\pi if}|^{2}}}={\frac {\sigma _{Z}^{2}}{1+\varphi _{1}^{2}-2\varphi _{1}\cos 2\pi f}}}
+Autoregressive model — If φ 1 > 0 {\displaystyle \varphi _{1}>0} there is a single spectral peak at f = 0 {\displaystyle f=0} , often referred to as red noise.
+Autoregressive model — As φ 1 {\displaystyle \varphi _{1}} becomes nearer 1, there is stronger power at low frequencies, i.e. larger time lags.
+Autoregressive model — This is then a low-pass filter, when applied to full spectrum light, everything except for the red light will be filtered.
+Autoregressive model — If φ 1 < 0 {\displaystyle \varphi _{1}<0} there is a minimum at f = 0 {\displaystyle f=0} , often referred to as blue noise.
+Autoregressive model — This similarly acts as a high-pass filter, everything except for blue light will be filtered.
+Autoregressive model — === AR(2) === The behavior of an AR(2) process is determined entirely by the roots of it characteristic equation, which is expressed in terms of the lag operator as:
+Autoregressive model — or equivalently by the poles of its transfer function, which is defined in the Z domain by:
+Autoregressive model — H z = ( 1 − φ 1 z − 1 − φ 2 z − 2 ) − 1 . {\displaystyle H_{z}=(1-\varphi _{1}z^{-1}-\varphi _{2}z^{-2})^{-1}.}
+Autoregressive model — 1 − φ 1 z − 1 − φ 2 z − 2 = 0 {\displaystyle 1-\varphi _{1}z^{-1}-\varphi _{2}z^{-2}=0} , which yields:
+Autoregressive model — z 1 , z 2 = 1 2 φ 2 ( φ 1 ± φ 1 2 + 4 φ 2 ) {\displaystyle z_{1},z_{2}={\frac {1}{2\varphi _{2}}}\left(\varphi _{1}\pm {\sqrt {\varphi _{1}^{2}+4\varphi _{2}}}\right)} .
+Autoregressive model — z 1 {\displaystyle z_{1}} and z 2 {\displaystyle z_{2}} are the reciprocals of the characteristic roots, as well as the eigenvalues of the temporal update matrix:
+Autoregressive model — [ φ 1 φ 2 1 0 ] {\displaystyle {\begin{bmatrix}\varphi _{1}&\varphi _{2}\\1&0\end{bmatrix}}}
+Autoregressive model — AR(2) processes can be split into three groups depending on the characteristics of their roots/poles:
+Autoregressive model — When φ 1 2 + 4 φ 2 < 0 {\displaystyle \varphi _{1}^{2}+4\varphi _{2}<0} , the process has a pair of complex-conjugate poles, creating a mid-frequency peak at:
+Autoregressive model — f ∗ = 1 2 π cos − 1 ⁡ ( φ 1 2 − φ 2 ) , {\displaystyle f^{*}={\frac {1}{2\pi }}\cos ^{-1}\left({\frac {\varphi _{1}}{2{\sqrt {-\varphi _{2}}}}}\right),}
+Autoregressive model — with bandwidth about the peak inversely proportional to the moduli of the poles:
+Autoregressive model — | z 1 | = | z 2 | = − φ 2 . {\displaystyle |z_{1}|=|z_{2}|={\sqrt {-\varphi _{2}}}.}
+Autoregressive model — The terms involving square roots are all real in the case of complex poles since they exist only when φ 2 < 0 {\displaystyle \varphi _{2}<0} .
+Autoregressive model — When φ 1 > 0 {\displaystyle \varphi _{1}>0} it acts as a low-pass filter on the white noise with a spectral peak at f = 0 {\displaystyle f=0}
+Autoregressive model — When φ 1 < 0 {\displaystyle \varphi _{1}<0} it acts as a high-pass filter on the white noise with a spectral peak at f = 1 / 2 {\displaystyle f=1/2} .
+Autoregressive model — The process is non-stationary when the poles are on or outside the unit circle, or equivalently when the characteristic roots are on or inside the unit circle.
+Autoregressive model — The process is stable when the poles are strictly within the unit circle (roots strictly outside the unit circle), or equivalently when the coefficients are in the triangle − 1 ≤ φ 2 ≤ 1 − | φ 1 | {\displaystyle -1\leq \varphi _{2}\leq 1-|\varphi _{1}|} .
+Autoregressive model — S ( f ) = σ Z 2 1 + φ 1 2 + φ 2 2 − 2 φ 1 ( 1 − φ 2 ) cos ⁡ ( 2 π f ) − 2 φ 2 cos ⁡ ( 4 π f ) {\displaystyle S(f)={\frac {\sigma _{Z}^{2}}{1+\varphi _{1}^{2}+\varphi _{2}^{2}-2\varphi _{1}(1-\varphi _{2})\cos(2\pi f)-2\varphi _{2}\cos(4\pi f)}}}
+Autoregressive model — == Implementations in statistics packages == R – the stats package includes ar function; the astsa package includes sarima function to fit various models including AR.
+Autoregressive model — MATLAB – the Econometrics Toolbox and System Identification Toolbox include AR models.
+Autoregressive model — MATLAB and Octave – the TSA toolbox contains several estimation functions for uni-variate, multivariate, and adaptive AR models.
+Autoregressive model — PyMC3 – the Bayesian statistics and probabilistic programming framework supports AR modes with p lags. bayesloop – supports parameter inference and model selection for the AR-1 process with time-varying parameters.
+Autoregressive model — == Impulse response == The impulse response of a system is the change in an evolving variable in response to a change in the value of a shock term k periods earlier, as a function of k.
+Autoregressive model — Since the AR model is a special case of the vector autoregressive model, the computation of the impulse response in vector autoregression#impulse response applies here.
+Autoregressive model — X t = ∑ i = 1 p φ i X t − i + ε t {\displaystyle X_{t}=\sum _{i=1}^{p}\varphi _{i}X_{t-i}+\varepsilon _{t}\,}
+Autoregressive model — have been estimated, the autoregression can be used to forecast an arbitrary number of periods into the future.
+Autoregressive model — First use t to refer to the first period for which data is not yet available; substitute the known preceding values Xt-i for i=1, ..., p into the autoregressive equation while setting the error term ε t {\displaystyle \varepsilon _{t}} equal to zero (because we forecast Xt to equal its expected value, and the expected value of the unobserved error term is zero).
+Autoregressive model — The output of the autoregressive equation is the forecast for the first unobserved period.
+Autoregressive model — Next, use t to refer to the next period for which data is not yet available; again the autoregressive equation is used to make the forecast, with one difference: the value of X one period prior to the one now being forecast is not known, so its expected value—the predicted value arising from the previous forecasting step—is used instead.
+Autoregressive model — Then for future periods the same procedure is used, each time using one more forecast value on the right side of the predictive equation until, after p predictions, all p right-side values are predicted values from preceding steps.
+Autoregressive model — There are four sources of uncertainty regarding predictions obtained in this manner: (1) uncertainty as to whether the autoregressive model is the correct model; (2) uncertainty about the accuracy of the forecasted values that are used as lagged values in the right side of the autoregressive equation; (3) uncertainty about the true values of the autoregressive coefficients; and (4) uncertainty about the value of the error term ε t {\displaystyle \varepsilon _{t}\,} for the period being predicted.
+Autoregressive model — Each of the last three can be quantified and combined to give a confidence interval for the n-step-ahead predictions; the confidence interval will become wider as n increases because of the use of an increasing number of estimated values for the right-side variables.
+Autoregressive model — == See also == Moving average model Linear difference equation Predictive analytics Linear predictive coding Resonance Levinson recursion Ornstein–Uhlenbeck process Infinite impulse response
+Autoregressive model — == External links == AutoRegression Analysis (AR) by Paul Bourke Econometrics lecture (topic: Autoregressive models) on YouTube by Mark Thoma
