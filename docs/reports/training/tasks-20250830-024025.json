@@ -1,0 +1,2118 @@
+{
+  "goto_tasks": [
+    {
+      "from": "k3d-research — Data I...",
+      "to": "PR DRAFT — knowledge3...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Artificial intelligen...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "glTF K3D extension — ...",
+      "to": "CONCEPTS — Human–AI B...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "TABLET — Outbox: unse...",
+      "to": "Cosine similarity — I...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "standards research — ...",
+      "to": "Principal component a...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "HR MR STANDARD — `/mo...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "HR MR STANDARD — AI r...",
+      "to": "K3D  A Framework for ...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "AI RPN standard — Cro...",
+      "to": "Artificial intelligen...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "PR DRAFT — viewer/src...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "README — Generate",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Cosine similarity — D...",
+      "to": "Large language model ...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "glTF K3D extension — ...",
+      "to": "Natural language proc...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "Artificial intelligen...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "MOE CONDO — Shard hou...",
+      "to": "echo systems k 3 d ac...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "Deep learning — That ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "core changes impact —...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "k3d reflection-202508...",
+      "to": "Deep learning — The f...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "TABLET — The Tablet i...",
+      "to": "K3D  A Framework for ...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "to": "K3D  A Framework for ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — This ...",
+      "to": "Deep learning — An AN...",
+      "path_len": 4,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "LICENSE-CC-BY-4.0 — a...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Natural language proc...",
+      "to": "Word embedding — As o...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "DEV GUIDELINES — Edge...",
+      "to": "Transformer (machine ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "PodCast Script - The ...",
+      "to": "Dimensionality reduct...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — Th...",
+      "to": "Deep learning — On th...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "LLM EVAL PLAN — Harne...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — c...",
+      "to": "LICENSE-CC-BY-4.0 — a...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Machine learning — As...",
+      "path_len": 3,
+      "exists": true
+    },
+    {
+      "from": "PodCast Script - The ...",
+      "to": "Artificial intelligen...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "ARCHITECTURE — Human–...",
+      "to": "Transformer (machine ...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Natural language proc...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — Goert...",
+      "to": "echo systems k 3 d ac...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Neural network — Howe...",
+      "to": "Deep learning — Deep ...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "session-20250830-0221...",
+      "to": "Artificial intelligen...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "PHILOSOPHY — Everythi...",
+      "to": "today 2025-08-28 — Wh...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Word embedding — A st...",
+      "to": "Artificial intelligen...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "HR TRAINING AND MEMOR...",
+      "to": "Computer vision — It ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "to": "Artificial intelligen...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "AI RPN standard — Spe...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — Un...",
+      "to": "LICENSE-CC-BY-4.0 — i...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "HR MR STANDARD — `/mo...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — A ...",
+      "to": "Transformer (machine ...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "LICENSE-CC-BY-4.0 — i...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "session-20250830-0154...",
+      "to": "Principal component a...",
+      "path_len": null,
+      "exists": false
+    },
+    {
+      "from": "Machine learning — Bi...",
+      "to": "session-20250830-0003...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "Transformer (machine ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Natural language proc...",
+      "to": "AGENT IDENTITY — `doc...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "CONCEPTS — Human–AI B...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Principal component a...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Cosine similarity — I...",
+      "to": "Artificial intelligen...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "Large language model ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "Transformer (machine ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — Altho...",
+      "to": "AI RPN standard — Age...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "CARE PROTOCOL — Agent...",
+      "to": "Reinforcement learnin...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "TABLET APPS — Tablet ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — S...",
+      "to": "k3d-research — Furthe...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "core changes impact —...",
+      "to": "echo systems k 3 d ac...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "LICENSE-CC-BY-4.0 — S...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "to": "Transformer (machine ...",
+      "path_len": 3,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — For...",
+      "to": "Graph neural network ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Dimensionality reduct...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "K3D Arch-From Trainin...",
+      "to": "k3d-research — XAI me...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Word embedding — The ...",
+      "to": "Artificial intelligen...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — DNN m...",
+      "to": "k3d-research — Ingest...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — Fo...",
+      "to": "Large language model ...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "echo systems k 3 d ac...",
+      "to": "Natural language proc...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "AUDIO ARCH — TTS (str...",
+      "to": "Artificial intelligen...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "live test 20250830-00...",
+      "path_len": 15,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "k3d-research — Princi...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — Re...",
+      "to": "Reinforcement learnin...",
+      "path_len": 1,
+      "exists": true
+    },
+    {
+      "from": "README — Normalize an...",
+      "to": "core changes impact —...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "to": "echo systems k 3 d ac...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Cosine similarity — F...",
+      "to": "Graph neural network ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "fsn apollo inspiratio...",
+      "to": "Machine learning — ==...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "Knowledgeverse  The A...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "k3d-research — Conver...",
+      "to": "Deep learning — As of...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — Ea...",
+      "to": "Artificial intelligen...",
+      "path_len": 3,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — i...",
+      "to": "Artificial intelligen...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "PodCast Script - The ...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "standards research — ...",
+      "to": "Computer vision — Com...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — D...",
+      "to": "Word embedding — Typi...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "核心理念-空间智能之道 — K3D: Th...",
+      "to": "核心理念-空间智能之道 — Step 2*...",
+      "path_len": 2,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — If ...",
+      "to": "Dimensionality reduct...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "HR TRAINING AND MEMOR...",
+      "to": "Artificial intelligen...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Graph neural network ...",
+      "to": "Large language model ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "session-20250829-2346...",
+      "to": "Cosine similarity — I...",
+      "path_len": null,
+      "exists": false
+    },
+    {
+      "from": "avatar workshop promp...",
+      "to": "Machine learning — It...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "to": "Transformer (machine ...",
+      "path_len": 4,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "Knowledge graph — The...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Natural language proc...",
+      "to": "k3d-research — What i...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "k3d agent protocol — ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — S...",
+      "to": "Deep learning — It wa...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Knowledgeverse  The A...",
+      "to": "Principal component a...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Dimensionality reduct...",
+      "to": "Artificial intelligen...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "glTF K3D extension — ...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "K3D Arch-From Trainin...",
+      "to": "PHILOSOPHY — Human an...",
+      "path_len": 4,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — a...",
+      "to": "Artificial intelligen...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — w...",
+      "to": "HR MR STANDARD — Togg...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — The c...",
+      "to": "PHILOSOPHY — We are i...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Knowledge graph — The...",
+      "to": "Artificial intelligen...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Computer vision — Whe...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "session-20250830-0222...",
+      "to": "Cosine similarity — I...",
+      "path_len": null,
+      "exists": false
+    },
+    {
+      "from": "openai eval driven sy...",
+      "to": "Principal component a...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "Computer vision — ===...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Computer vision — One...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "advancement log — T18...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "K3D  A Framework for ...",
+      "to": "K3D  A Framework for ...",
+      "path_len": 2,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "Deep learning — In 20...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "Large language model ...",
+      "path_len": 3,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — An ...",
+      "to": "LICENSE-CC-BY-4.0 — S...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "DUAL CODE — Output la...",
+      "to": "LICENSE-CC-BY-4.0 — E...",
+      "path_len": 4,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "to": "Deep learning — The i...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "k3d-research — Embodi...",
+      "to": "Artificial intelligen...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "LLM EVAL PLAN — CLUST...",
+      "to": "advancement log — Exa...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Word embedding — Unli...",
+      "to": "Natural language proc...",
+      "path_len": 4,
+      "exists": true
+    },
+    {
+      "from": "CONCEPTS — Energy Pat...",
+      "to": "Large language model ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "ai books k3d progress...",
+      "to": "Artificial intelligen...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — Mac...",
+      "to": "Artificial intelligen...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Jules Report — Semant...",
+      "to": "Natural language proc...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Dimensionality reduct...",
+      "to": "DUAL CODE — JS/TS: re...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — L...",
+      "to": "Cosine similarity — T...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "FOG COMPUTING AND AI ...",
+      "to": "K3D  A Framework for ...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "HR TRAINING AND MEMOR...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "Computer vision — As ...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — The...",
+      "to": "session-20250829-2352...",
+      "path_len": null,
+      "exists": false
+    },
+    {
+      "from": "Transformer (machine ...",
+      "to": "LICENSE-CC-BY-4.0 — W...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "HR TRAINING AND MEMOR...",
+      "to": "Transformer (machine ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "AUDIO ARCH — Pros: Li...",
+      "to": "Transformer (machine ...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Natural language proc...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Large language model ...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "Reinforcement learnin...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "core changes impact —...",
+      "to": "advancement log — Adv...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — It...",
+      "to": "k3d reflection-202508...",
+      "path_len": null,
+      "exists": false
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — S...",
+      "to": "Principal component a...",
+      "path_len": 15,
+      "exists": true
+    },
+    {
+      "from": "Cosine similarity — A...",
+      "to": "LICENSE-CC-BY-4.0 — I...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — Ru...",
+      "to": "LICENSE-CC-BY-4.0 — r...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — D...",
+      "to": "Principal component a...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — Bli...",
+      "to": "Reinforcement learnin...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Graph neural network ...",
+      "to": "echo systems k 3 d ac...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — P...",
+      "to": "Reinforcement learnin...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "PodCast Script - The ...",
+      "to": "ai books k3d progress...",
+      "path_len": 4,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — C...",
+      "to": "LICENSE-CC-BY-4.0 — L...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Transformer (machine ...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "k3d-research — D huma...",
+      "to": "Principal component a...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Principal component a...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — w...",
+      "to": "PodCast Script - The ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "Principal component a...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "Graph neural network ...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — Ma...",
+      "to": "Artificial intelligen...",
+      "path_len": 4,
+      "exists": true
+    },
+    {
+      "from": "cognitive house promp...",
+      "to": "Machine learning — Wh...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Artificial intelligen...",
+      "path_len": 4,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "to": "核心理念-空间智能之道 — 完整中文版提案...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — Th...",
+      "to": "Natural language proc...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — In...",
+      "to": "PHILOSOPHY — Coexiste...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "K3D Arch-From Trainin...",
+      "to": "Natural language proc...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "ARCHITECTURE — Bridge...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Jules Report — Date: ...",
+      "to": "Word embedding — A mo...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "tasks-20250830-022158...",
+      "to": "Reinforcement learnin...",
+      "path_len": null,
+      "exists": false
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "openai rag graph db c...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — == Ha...",
+      "to": "LICENSE-CC-BY-4.0 — i...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Neural network — Neur...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "echo systems k 3 d ac...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "Cosine similarity — U...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — In...",
+      "to": "Graph neural network ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "K3D Arch-From Trainin...",
+      "to": "UMAP — Military Units...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — ==...",
+      "to": "TABLET — Dev notes",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "CARE PROTOCOL — Controls",
+      "to": "Artificial intelligen...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "k3d-research — Real-t...",
+      "to": "k3d-research — Table ...",
+      "path_len": 3,
+      "exists": true
+    },
+    {
+      "from": "Dimensionality reduct...",
+      "to": "core changes impact —...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Artificial intelligen...",
+      "path_len": 3,
+      "exists": true
+    },
+    {
+      "from": "session-20250830-0154...",
+      "to": "Deep learning — In 20...",
+      "path_len": null,
+      "exists": false
+    },
+    {
+      "from": "cognitive house promp...",
+      "to": "Artificial intelligen...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "Reinforcement learnin...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "LICENSE-CC-BY-4.0 — b...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "K3D  A Framework for ...",
+      "to": "Large language model ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "LICENSE-CC-BY-4.0 — t...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "AUDIO ARCH — Closed o...",
+      "to": "Deep learning — Deep ...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "核心理念-空间智能之道 — 我将在24小时...",
+      "to": "Artificial intelligen...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "echo systems k 3 d ac...",
+      "to": "Large language model ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Dimensionality reduct...",
+      "to": "Large language model ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "K3D Arch-From Trainin...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "k3d-research — Conver...",
+      "to": "Jules Report — This w...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "openai temporal agent...",
+      "to": "Cosine similarity — T...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — f...",
+      "to": "Neural network — The ...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "Dimensionality reduct...",
+      "path_len": 4,
+      "exists": true
+    },
+    {
+      "from": "openai temporal agent...",
+      "to": "Large language model ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "核心理念-空间智能之道 — |------...",
+      "to": "LICENSE-CC-BY-4.0 — M...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — Si...",
+      "to": "Deep learning — === E...",
+      "path_len": 4,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — C...",
+      "to": "Deep learning — The s...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "session-20250830-0221...",
+      "to": "Artificial intelligen...",
+      "path_len": null,
+      "exists": false
+    },
+    {
+      "from": "TABLET — Viewer (brow...",
+      "to": "Deep learning — The n...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "Large language model ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "core changes impact —...",
+      "to": "Artificial intelligen...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "echo systems k 3 d ac...",
+      "to": "K3D Vision and Standa...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "PR DRAFT — knowledge3...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "live test 20250830-00...",
+      "to": "Deep learning — Shoul...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "Artificial intelligen...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "echo systems k 3 d ac...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "k3d-research — Best a...",
+      "to": "Transformer (machine ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — o...",
+      "to": "Computer vision — Pro...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "glTF K3D extension — ...",
+      "to": "README — K3D embeds n...",
+      "path_len": 3,
+      "exists": true
+    },
+    {
+      "from": "Natural language proc...",
+      "to": "Deep learning — Cereb...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — Su...",
+      "to": "Artificial intelligen...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "glTF K3D extension — ...",
+      "to": "PR DRAFT — Enrich vie...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "ARK AGI PLAN — ARK-AG...",
+      "to": "Transformer (machine ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — Prior...",
+      "to": "Artificial intelligen...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — o...",
+      "to": "Artificial intelligen...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — This ...",
+      "to": "Reinforcement learnin...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "to": "Word embedding — As o...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — More ...",
+      "to": "PR DRAFT — Generate d...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "k3d-research — World ...",
+      "to": "Artificial intelligen...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "live test 20250830-00...",
+      "to": "Principal component a...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "LICENSE-CC-BY-4.0 — t...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "k3d-research — Primar...",
+      "to": "Large language model ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — These...",
+      "to": "Machine learning — Ru...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "Reinforcement learnin...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "k3d-research — D rend...",
+      "to": "Transformer (machine ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "advancement log — YYY...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "LICENSE-CC-BY-4.0 — o...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "AUDIO ARCH — Pros: Br...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Graph neural network ...",
+      "to": "Word embedding — For ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "LANGUAGE PLAN — Add t...",
+      "to": "Deep learning — Furth...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "LICENSE-CC-BY-4.0 — t...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — The t...",
+      "to": "Machine learning — Ke...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "DEV GUIDELINES — Form...",
+      "to": "Machine learning — Af...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "Machine learning — It...",
+      "path_len": 4,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "Machine learning — ==...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "to": "Machine learning — Th...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Dimensionality reduct...",
+      "to": "核心理念-空间智能之道 — 战略协同：巴西...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "LLM EVAL PLAN — REFLE...",
+      "to": "Large language model ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "to": "K3D Vision and Standa...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "Machine learning — Ex...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "Cosine similarity — F...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "fsn apollo inspiratio...",
+      "to": "Machine learning — Su...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — Wi...",
+      "to": "session-20250830-0154...",
+      "path_len": null,
+      "exists": false
+    },
+    {
+      "from": "Large language model ...",
+      "to": "Principal component a...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — In...",
+      "to": "Computer vision — The...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "Large language model ...",
+      "path_len": 2,
+      "exists": true
+    },
+    {
+      "from": "session-20250829-2352...",
+      "to": "Reinforcement learnin...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — Mac...",
+      "to": "Diverse AI Reports — ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "PodCast Script - The ...",
+      "to": "Artificial intelligen...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Knowledge graph — A d...",
+      "to": "Deep learning — Conse...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "K3D  A Framework for ...",
+      "to": "Artificial intelligen...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — RF...",
+      "to": "k3d agent protocol — ...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "README — Produce a K3...",
+      "to": "openai temporal agent...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "PR DRAFT — k3dgen/__m...",
+      "to": "LICENSE-CC-BY-4.0 — j...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Computer vision — A c...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "PHILOSOPHY — Infinity...",
+      "to": "Natural language proc...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "Principal component a...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "ARK AGI PLAN — Genera...",
+      "to": "Transformer (machine ...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "Transformer (machine ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "openai temporal agent...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "MOE CONDO — Houses as...",
+      "to": "k3d-research — perple...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "AI RPN standard — Ref...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "K3D Vision and Standa...",
+      "to": "Knowledge graph — Str...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — Thi...",
+      "to": "LICENSE-CC-BY-4.0 — a...",
+      "path_len": 11,
+      "exists": true
+    }
+  ],
+  "door_tasks": [
+    {
+      "from": "Principal component a...",
+      "door": "Machine learning — ==...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "k3d-research — What a...",
+      "door": "Cosine similarity — |...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "CARE PROTOCOL — Care ...",
+      "door": "Principal component a...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Graph neural network ...",
+      "door": "Transformer (machine ...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Natural language proc...",
+      "door": "Reinforcement learnin...",
+      "path_len": 4,
+      "exists": true
+    },
+    {
+      "from": "Cosine similarity — F...",
+      "door": "Word embedding — Name...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "echo systems k 3 d ac...",
+      "door": "Principal component a...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Natural language proc...",
+      "door": "Machine learning — In...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "door": "Deep learning — Deep ...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Graph neural network ...",
+      "door": "Principal component a...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "door": "Deep learning — Deep ...",
+      "path_len": 3,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "door": "PodCast Script - The ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "door": "Artificial intelligen...",
+      "path_len": 4,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "door": "Transformer (machine ...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — Ma...",
+      "door": "K3D  A Framework for ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "CARE PROTOCOL — Agent...",
+      "door": "live test 20250830-00...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "door": "Computer vision — The...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "core changes impact —...",
+      "door": "Artificial intelligen...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — i...",
+      "door": "Reinforcement learnin...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "door": "Transformer (machine ...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Cosine similarity — a...",
+      "door": "Principal component a...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "door": "LICENSE-CC-BY-4.0 — b...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "session-20250830-0003...",
+      "door": "Reinforcement learnin...",
+      "path_len": null,
+      "exists": false
+    },
+    {
+      "from": "Transformer (machine ...",
+      "door": "ROADMAP — | **Advance...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "door": "Natural language proc...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — Det...",
+      "door": "fsn apollo inspiratio...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — All m...",
+      "door": "Deep learning — The s...",
+      "path_len": 3,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "door": "Reinforcement learnin...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Word embedding — Debi...",
+      "door": "Artificial intelligen...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "door": "Artificial intelligen...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "door": "Knowledge graph — Str...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — As ...",
+      "door": "PR DRAFT — Viewer key...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "door": "Transformer (machine ...",
+      "path_len": 4,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "door": "LANGUAGE PLAN — Tag l...",
+      "path_len": 4,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — How...",
+      "door": "openai model selectio...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Word embedding — A st...",
+      "door": "PR DRAFT — Viewer key...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "door": "PR DRAFT — Viewer key...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "PodCast Script - The ...",
+      "door": "Reinforcement learnin...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "CARE PROTOCOL — Statu...",
+      "door": "Principal component a...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "ai books k3d progress...",
+      "door": "LICENSE-CC-BY-4.0 — r...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "door": "Natural language proc...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — These...",
+      "door": "Artificial intelligen...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Natural language proc...",
+      "door": "Transformer (machine ...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — Key d...",
+      "door": "Natural language proc...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "door": "Reinforcement learnin...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "door": "K3D  A Framework for ...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — It ...",
+      "door": "ROADMAP — | **Advance...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Cosine similarity — F...",
+      "door": "LICENSE-CC-BY-4.0 — r...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — In 20...",
+      "door": "Artificial intelligen...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — l...",
+      "door": "LICENSE-CC-BY-4.0 — a...",
+      "path_len": 4,
+      "exists": true
+    },
+    {
+      "from": "HR MR STANDARD — Gene...",
+      "door": "Machine learning — ==...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "README — Small care p...",
+      "door": "ROADMAP — | **Advance...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "core changes impact —...",
+      "door": "Artificial intelligen...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "核心理念-空间智能之道 — \"K3D is...",
+      "door": "Principal component a...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "k3d-research — Explai...",
+      "door": "Artificial intelligen...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — The...",
+      "door": "Machine learning — Sp...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Neural network — Neur...",
+      "door": "LANGUAGE PLAN — Tag l...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "k3d-research — XAI me...",
+      "door": "ai books k3d progress...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — It...",
+      "door": "k3d-research — JSholl...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "door": "PR DRAFT — Viewer key...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — Fo...",
+      "door": "Natural language proc...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "door": "Artificial intelligen...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Jules Report — The hu...",
+      "door": "Machine learning — ==...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "openai visualizing em...",
+      "door": "Deep learning — The s...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "k3d-research — What i...",
+      "door": "LICENSE-CC-BY-4.0 — a...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — CNNs ...",
+      "door": "Reinforcement learnin...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "door": "Jules Report — Semant...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "door": "Transformer (machine ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "FOG COMPUTING AND AI ...",
+      "door": "Reinforcement learnin...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "door": "k3d-research — JSholl...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "door": "Large language model ...",
+      "path_len": 3,
+      "exists": true
+    },
+    {
+      "from": "Natural language proc...",
+      "door": "live test 20250830-00...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "door": "session-20250830-0003...",
+      "path_len": null,
+      "exists": false
+    },
+    {
+      "from": "Graph neural network ...",
+      "door": "Machine learning — In...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Word embedding — == E...",
+      "door": "Principal component a...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — Rec...",
+      "door": "Knowledge graph — Str...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "door": "Machine learning — In...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — In...",
+      "door": "Machine learning — ==...",
+      "path_len": 3,
+      "exists": true
+    },
+    {
+      "from": "standards research — ...",
+      "door": "Deep learning — Deep ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Natural language proc...",
+      "door": "Machine learning — ==...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — Tow...",
+      "door": "Natural language proc...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — That ...",
+      "door": "PR DRAFT — Viewer key...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "door": "Transformer (machine ...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "ai books k3d progress...",
+      "door": "Principal component a...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "session-20250829-2346...",
+      "door": "Large language model ...",
+      "path_len": null,
+      "exists": false
+    },
+    {
+      "from": "Artificial intelligen...",
+      "door": "Transformer (machine ...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "door": "Deep learning — Deep ...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "door": "K3D Arch-From Trainin...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Knowledge graph — A k...",
+      "door": "k3d agent protocol — ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "standards research — ...",
+      "door": "Artificial intelligen...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "door": "Principal component a...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "door": "Artificial intelligen...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — == ...",
+      "door": "Principal component a...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Natural language proc...",
+      "door": "ROADMAP — | **Advance...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "K3D  A Framework for ...",
+      "door": "Deep learning — Vario...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "glTF K3D extension — ...",
+      "door": "Computer vision — Alg...",
+      "path_len": 6,
+      "exists": true
+    }
+  ]
+}

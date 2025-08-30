@@ -296,9 +296,15 @@ async function loadHouse(k3dUrl: string) {
                 const isDoor = (r.metadata?.type as string) === 'door';
                 if (!isDoor) return null;
                 const label = (r.metadata?.label as string) || r.id;
-                const address = (window as any).k3dSpatialAddress
-                    ? (window as any).k3dSpatialAddress(r.vector as [number, number, number], 1.0, 0, label)
-                    : undefined;
+                let address: string | undefined = undefined;
+                try {
+                    // Prefer explicit metadata address for inter-house links
+                    const metaAddr = (r.metadata?.address as string) || undefined;
+                    if (metaAddr && typeof metaAddr === 'string') address = metaAddr;
+                    if (!address && (window as any).k3dSpatialAddress) {
+                        address = (window as any).k3dSpatialAddress(r.vector as [number, number, number], 1.0, 0, label);
+                    }
+                } catch {}
                 return { label, address };
             })
             .filter(Boolean);

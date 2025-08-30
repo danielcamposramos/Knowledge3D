@@ -239,6 +239,24 @@ class MemoryHouse:
                     continue
         return total
 
+    def bootstrap_door_map(self) -> int:
+        """Add inter-house doors to the Network room for quick navigation."""
+        self.add_room("Network", "OSI doors and ports")
+        doors = [
+            ("Memory House", "/memory_house.gltf"),
+            ("AI Compendium 1k", "/ai_compendium.1k.umap.doors.glb"),
+            ("AI Compendium 4k", "/ai_compendium.4k.umap.doors.glb"),
+            ("AI Books 4k", "/ai_books_basic.4k.umap.doors.glb"),
+            ("AI Books Full", "/ai_books_basic.full.umap.doors.glb"),
+            ("AI Care Multilang", "/ai_care_multilang.umap.glb"),
+            ("AI Care Ancient", "/ai_care_ancient.umap.glb"),
+        ]
+        n = 0
+        for label, addr in doors:
+            self.add_door(label, addr, room="Network")
+            n += 1
+        return n
+
     def export_gltf(self, out_path: Path):
         rooms = list(self.rooms.values())
         objs = self.objects
@@ -325,6 +343,7 @@ def main() -> None:  # pragma: no cover
     p.add_argument("--bootstrap-reflections", type=int)
     p.add_argument("--bootstrap-training", type=int)
     p.add_argument("--bootstrap-standard", action="store_true")
+    p.add_argument("--bootstrap-doors", action="store_true")
     p.add_argument("--export", help="Output GLTF path", default=str(ROOT / "viewer" / "public" / "memory_house.gltf"))
     args = p.parse_args()
     h = MemoryHouse()
@@ -355,6 +374,9 @@ def main() -> None:  # pragma: no cover
     if args.bootstrap_standard:
         n = h.bootstrap_standard()
         print(f"Bootstrapped {n} standard/spec artifacts")
+    if args.bootstrap_doors:
+        n = h.bootstrap_door_map()
+        print(f"Bootstrapped {n} doors into 'Network'")
     out = Path(args.export)
     h.export_gltf(out)
     print(f"Exported House Memory to {out}")
