@@ -1,26 +1,26 @@
 {
-  "ts": "20250830-065849",
-  "nodes": 80000,
+  "ts": "20250830-080130",
+  "nodes": 120000,
   "avg_degree": 5.0,
-  "doors": 1280,
-  "guided": 2504,
+  "doors": 1920,
+  "guided": 3266,
   "hubs": [
-    "47190",
+    "86728",
     "48216",
-    "45515",
-    "29132",
-    "33071"
+    "86800",
+    "47190",
+    "17444"
   ],
   "goto": {
-    "count": 128,
-    "success": 127,
-    "success_rate": 0.9921875,
-    "median_hops": 7
+    "count": 512,
+    "success": 497,
+    "success_rate": 0.970703125,
+    "median_hops": 8
   },
   "door": {
-    "count": 64,
-    "success": 64,
-    "success_rate": 1.0,
-    "median_hops": 6
+    "count": 256,
+    "success": 254,
+    "success_rate": 0.9921875,
+    "median_hops": 8
   }
 }

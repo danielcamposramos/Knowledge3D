@@ -59,7 +59,8 @@ def reduce_dimensions(vectors: np.ndarray, reducer: str = "umap") -> np.ndarray:
     """Reduce dimensionality to 3D using UMAP (default) or PCA."""
     try:
         n_samples = vectors.shape[0]
-        if reducer.lower() == "umap":
+        red = (reducer or "pca").lower()
+        if red == "umap":
             # Guard: tiny datasets can fail UMAP spectral step when n_components >= n_samples
             if n_samples <= 3:
                 pca = PCA(n_components=min(3, n_samples))
@@ -152,7 +153,8 @@ def create_gltf_file(
     emb = embeddings.astype(np.float32)
 
     pos_bytes = positions.tobytes()
-    if emb_precision.lower() == "f16":
+    _prec = (emb_precision or "f32").lower()
+    if _prec == "f16":
         emb_bytes = embeddings.astype(np.float16).tobytes()
     else:
         emb_bytes = emb.tobytes()
@@ -207,7 +209,7 @@ def create_gltf_file(
         "vectorsView": 0,
         "embeddingsView": 1,
         "embeddingDims": int(embeddings.shape[1]),
-        "embeddingPrecision": "f16" if emb_precision.lower() == "f16" else "f32",
+        "embeddingPrecision": "f16" if _prec == "f16" else "f32",
         "metadata": meta_list,
         "neighbors": neighbors,
     }
@@ -306,7 +308,8 @@ def generate(
         raise ValueError("k must be less than the number of vectors")
 
     # 2. Reduce
-    points = reduce_dimensions(embeddings, reducer=reducer)
+    red = reducer or "pca"
+    points = reduce_dimensions(embeddings, reducer=red)
 
     # 3. Find the k-nearest neighbours for each point
     neighbor_indices = find_neighbors(embeddings, k)
@@ -315,6 +318,8 @@ def generate(
     # 4. Create the .gltf/.glb with embedded buffers and labels/text metadata.
     fmt = "glb" if str(gltf_path).lower().endswith(".glb") else "gltf"
     emb_precision = _ARGS.emb_precision if '_ARGS' in globals() else 'f32'
+    if not emb_precision:
+        emb_precision = 'f32'
     ai_protocol = getattr(_ARGS, "ai_protocol", None)
     ai_flags = {}
     if getattr(_ARGS, "ai_active", False):
@@ -347,12 +352,12 @@ def generate(
         embeddings,
         neighbor_indices,
         labels,
-        metadata_texts,
-        fmt,
-        emb_precision,
-        ai_protocol,
-        ai_flags,
-        ai_flags_mask,
+        metadata_texts=metadata_texts,
+        fmt=fmt,
+        emb_precision=emb_precision,
+        ai_protocol=ai_protocol,
+        ai_flags=ai_flags,
+        ai_flags_mask=ai_flags_mask,
     )
 
 
