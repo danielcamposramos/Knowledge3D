@@ -300,3 +300,113 @@ export class GraphApp implements TabletApp {
     el.innerHTML=''; const p = document.createElement('p'); p.textContent='Mini-map of XY positions (cap 4096) with focus square.'; p.style.color='#ddd'; el.appendChild(p);
   }
 }
+
+export class GalaxyApp implements TabletApp {
+  id = 'galaxy'; title = 'Galaxy Context';
+  private records: ReadonlyArray<K3DRecord> = [];
+  private focus: string = '';
+  private rings = 4; // number of expansion rings beyond focus
+  private base = 12; // base nodes per ring, grows by phi^level
+  private phi = 1.61803398875;
+  private layout: { ring: number; label: string; sim: number }[] = [];
+
+  setContext(ctx: { records: ReadonlyArray<K3DRecord> }) { this.records = ctx.records; this.compute(); }
+  onEvent(ev: { type: string; payload?: any }) { if (ev.type === 'focus' && ev.payload?.label) { this.focus = String(ev.payload.label); this.compute(); } }
+
+  private cosine(a: number[], b: number[]): number {
+    let dot = 0, na = 0, nb = 0; const n = Math.min(a.length, b.length);
+    for (let i = 0; i < n; i++) { const x=a[i], y=b[i]; dot += x*y; na += x*x; nb += y*y; }
+    return (na>0 && nb>0) ? (dot / (Math.sqrt(na)*Math.sqrt(nb))) : 0;
+  }
+
+  private compute() {
+    this.layout = [];
+    if (!this.records.length || !this.focus) return;
+    const idOf = (i:number)=> this.records[i].id;
+    const labelOf = (i:number)=> (this.records[i].metadata?.label as string) || this.records[i].id;
+    const idx = this.records.findIndex(r => labelOf(this.records.indexOf(r)) === this.focus || r.id === this.focus);
+    const byId = new Map<string, number>(this.records.map((r,i)=>[r.id,i]));
+    const findIndexByLabel = (lab:string)=> this.records.findIndex(r => labelOf(this.records.indexOf(r)) === lab);
+    const focusIdx = idx >= 0 ? idx : findIndexByLabel(this.focus);
+    if (focusIdx < 0) return;
+    const focusEmb = this.records[focusIdx].embedding as number[];
+
+    const seen = new Set<number>([focusIdx]);
+    const ringSets: number[][] = [];
+    // ring 1: direct neighbors (if provided)
+    const neighIds = (this.records[focusIdx].neighbors || []) as string[];
+    let ring = neighIds.map(id => byId.get(id)).filter((i): i is number => typeof i === 'number');
+    ring = ring.filter(i=>!seen.has(i)); ring.forEach(i=>seen.add(i));
+    ringSets.push(ring);
+    // subsequent rings via neighbors-of-neighbors
+    for (let r = 2; r <= this.rings; r++) {
+      const prev = ringSets[ringSets.length-1] || [];
+      const candSet = new Set<number>();
+      for (const i of prev) {
+        const ids = (this.records[i].neighbors || []) as string[];
+        for (const nid of ids) {
+          const j = byId.get(nid); if (j===undefined) continue; if (seen.has(j)) continue; candSet.add(j);
+        }
+      }
+      const cands = Array.from(candSet);
+      cands.sort((a,b)=> this.cosine(focusEmb, this.records[b].embedding as number[]) - this.cosine(focusEmb, this.records[a].embedding as number[]));
+      const budget = Math.max(3, Math.round(this.base * Math.pow(this.phi, r-1)));
+      const take = cands.slice(0, budget);
+      take.forEach(i=>seen.add(i));
+      ringSets.push(take);
+    }
+    // build layout entries with sims
+    this.layout.push({ ring: 0, label: labelOf(focusIdx), sim: 1.0 });
+    ringSets.forEach((arr, k) => {
+      for (const i of arr) {
+        const lab = labelOf(i);
+        const sim = this.cosine(focusEmb, this.records[i].embedding as number[]);
+        this.layout.push({ ring: k+1, label: lab, sim });
+      }
+    });
+  }
+
+  renderCanvas(ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }) {
+    ctx.fillStyle = '#07090c'; ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+    if (!this.layout.length) { ctx.fillStyle='#fff'; ctx.font='12px system-ui'; ctx.fillText('No focus selected.', rect.x+8, rect.y+18); return; }
+    const cx = rect.x + rect.w/2, cy = rect.y + rect.h/2;
+    const maxRing = Math.max(...this.layout.map(e=>e.ring));
+    const r0 = Math.min(rect.w, rect.h) * 0.08;
+    const step = Math.min(rect.w, rect.h) * 0.12; // spacing between rings
+    // draw rings
+    ctx.strokeStyle='#22344a';
+    for (let k=0;k<=maxRing;k++){ ctx.beginPath(); ctx.arc(cx, cy, r0 + k*step, 0, Math.PI*2); ctx.stroke(); }
+    // place nodes around each ring
+    const byRing: Map<number, { label:string; sim:number }[]> = new Map();
+    for (const e of this.layout) { if (!byRing.has(e.ring)) byRing.set(e.ring, []); byRing.get(e.ring)!.push({label:e.label, sim:e.sim}); }
+    ctx.fillStyle='#ffffff'; ctx.font='10px system-ui';
+    for (let k=0;k<=maxRing;k++){
+      const items = byRing.get(k) || [];
+      const radius = r0 + k*step;
+      const n = Math.max(1, items.length);
+      for (let i=0;i<items.length;i++){
+        const a = (i / n) * Math.PI * 2;
+        const x = cx + Math.cos(a) * radius;
+        const y = cy + Math.sin(a) * radius;
+        const s = Math.max(1, Math.min(3, Math.round((items[i].sim||0)*3)));
+        ctx.fillStyle = k===0 ? '#ffcc00' : '#a8c0ff';
+        ctx.fillRect(x-1, y-1, 2, 2);
+        if (k<=1 && i<8) { ctx.fillStyle='#dddddd'; ctx.fillText(items[i].label.slice(0,22), x+4, y); }
+      }
+    }
+    // focus label
+    ctx.fillStyle='#ffcc00'; ctx.font='12px system-ui'; ctx.fillText('focus', cx+8, cy-8);
+  }
+
+  openOverlay(el: HTMLDivElement) {
+    el.innerHTML='';
+    const controls = document.createElement('div'); controls.style.display='flex'; controls.style.gap='8px'; controls.style.alignItems='center';
+    const rings = document.createElement('input'); rings.type='number'; rings.min='1'; rings.max='8'; rings.value=String(this.rings);
+    const base = document.createElement('input'); base.type='number'; base.min='4'; base.max='64'; base.value=String(this.base);
+    const apply = document.createElement('button'); apply.textContent='Apply';
+    apply.onclick = () => { this.rings = Math.max(1, Math.min(8, parseInt(rings.value||'4'))); this.base = Math.max(4, Math.min(64, parseInt(base.value||'12'))); this.compute(); };
+    controls.append('Rings:', rings, 'Base:', base, apply);
+    el.appendChild(controls);
+    const hint = document.createElement('div'); hint.style.color='#ddd'; hint.style.marginTop='8px'; hint.textContent = 'Rings expand by phi; nodes per ring ≈ base × phi^(ring-1).'; el.appendChild(hint);
+  }
+}
