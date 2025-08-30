@@ -44,6 +44,20 @@ We extended the live chat with `/mem` to update memory without leaving the sessi
 
 Switch to the “memory” house in the viewer dropdown to browse rooms + objects.
 
+## AI Compendium (Repo Docs → Training Lines)
+We created a parallel AI Compendium from local K3D docs/specs so the agent learns the project’s language and structure.
+
+Files
+- Tool: `knowledge3d/tools/build_ai_compendium.py`
+- Outputs: `data/ai_compendium.json`, `data/ai_compendium.txt`
+- Generated GLBs: `viewer/public/ai_compendium.1k.umap.glb`, `ai_compendium.1k.umap.doors.glb`
+
+Usage
+- Build: `python3 -m knowledge3d.tools.build_ai_compendium --target-lines 4000` (falls back to available lines)
+- Generate GLB: `python3 -m k3dgen --text data/ai_compendium.txt --gltf viewer/public/ai_compendium.1k.umap.glb --k 5 --reducer umap`
+- Add doors: `python3 -m knowledge3d.tools.mark_doors --input viewer/public/ai_compendium.1k.umap.glb --output viewer/public/ai_compendium.1k.umap.doors.glb --doors 32 --trail true`
+- Select in viewer: expert `ai-compendium` or `ai-compendium-doors` in `condo.json`.
+
 ## Galaxy vs House
 - House (rooms/objects) = long-term memory; curated and persistent.
 - Galaxy (rings in Tablet) = active context; expands from current focus by neighbors/similarity using the working dataset.

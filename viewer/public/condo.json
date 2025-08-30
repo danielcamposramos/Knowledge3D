@@ -6,6 +6,16 @@
       "description": "AI demo with ai_state_flags and protocol."
     },
     {
+      "uri": "/ai_compendium.1k.umap.glb",
+      "expert": "ai-compendium",
+      "description": "AI Compendium (repo docs)"
+    },
+    {
+      "uri": "/ai_compendium.1k.umap.doors.glb",
+      "expert": "ai-compendium-doors",
+      "description": "AI Compendium with doors + guidance"
+    },
+    {
       "uri": "/memory_house.gltf",
       "expert": "memory",
       "description": "House Memory: rooms + objects as long-term memory."
