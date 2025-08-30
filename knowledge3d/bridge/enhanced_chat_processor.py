@@ -56,18 +56,38 @@ class ConversationContext:
 
 
 class SpatialParser:
-    loc_re = re.compile(r"\b(?:goto|go to)\s+(?P<loc>[\w\- ]+)", re.I)
-    teleport_re = re.compile(r"\bteleport(?:\s+to)?\s*\[(?P<x>-?\d+(?:\.\d+)?),(?P<y>-?\d+(?:\.\d+)?),(?P<z>-?\d+(?:\.\d+)?)\]", re.I)
-    move_re = re.compile(r"\bmove\s+(?P<dir>up|down|left|right|forward|back)\s+(?P<dist>\d+(?:\.\d+)?)", re.I)
-    follow_re = re.compile(r"\bfollow\s+(?P<target>[\w\- ]+)", re.I)
-    orbit_re = re.compile(r"\borbit\s+around\s+(?P<target>[\w\- ]+)", re.I)
-    show_re = re.compile(r"\bshow\s+me\s+(?P<topic>.+)", re.I)
-    find_re = re.compile(r"\bfind\s+related\s+to\s+(?P<topic>.+)", re.I)
-    expand_re = re.compile(r"\bexpand\s+(?P<area>.+)", re.I)
-    hide_re = re.compile(r"\bhide\s+(?P<obj>.+)", re.I)
-    touch_re = re.compile(r"\btouch\s+(?P<obj>.+)", re.I)
-    talk_re = re.compile(r"\btalk\s+to\s+(?P<avatar>.+)", re.I)
-    give_re = re.compile(r"\bgive\s+(?P<obj>.+)\s+to\s+(?P<recipient>.+)", re.I)
+    # Multilingual patterns informed by data/intent_templates (en, pt, es)
+    # goto / navigate
+    loc_re = re.compile(
+        r"\b(?:(?:goto|go\s+to|navigate\s+to)|(?:ir\s+a|ve\s+a|navegar\s+a)|(?:ir\s+para|vá\s+até|vá\s+para))\s+(?P<loc>[\w\-\s]+)",
+        re.I | re.U,
+    )
+    # teleport
+    teleport_re = re.compile(
+        r"\b(?:teleport(?:\s+to)?|teleportar\s+para|teletransportar\s+a)\s*\[(?P<x>-?\d+(?:\.\d+)?),(?P<y>-?\d+(?:\.\d+)?),(?P<z>-?\d+(?:\.\d+)?)\]",
+        re.I | re.U,
+    )
+    # move
+    move_re = re.compile(
+        r"\b(?:move|mover)\s+(?P<dir>up|down|left|right|forward|back|cima|baixo|esquerda|direita|frente|trás|izquierda|derecha|arriba|abajo|adelante|atrás)\s+(?P<dist>\d+(?:\.\d+)?)",
+        re.I | re.U,
+    )
+    follow_re = re.compile(r"\bfollow\s+(?P<target>[\w\-\s]+)", re.I | re.U)
+    orbit_re = re.compile(r"\borbit\s+around\s+(?P<target>[\w\-\s]+)", re.I | re.U)
+    # show
+    show_re = re.compile(r"\b(?:show\s+me|display|mostrar|mostre|muestra)\s+(?P<topic>.+)", re.I | re.U)
+    # find related
+    find_re = re.compile(r"\b(?:find\s+related\s+to|related\s+to|encontrar\s+relacionado\s+a|relacionado\s+a|relacionado\s+con)\s+(?P<topic>.+)", re.I | re.U)
+    # expand
+    expand_re = re.compile(r"\b(?:expand|expandir)(?:\s+(?:area|área))?\s+(?P<area>.+)", re.I | re.U)
+    # hide
+    hide_re = re.compile(r"\b(?:hide|ocultar|esconder)\s+(?P<obj>.+)", re.I | re.U)
+    # touch
+    touch_re = re.compile(r"\b(?:touch|tocar|toque\s+em|toca)\s+(?P<obj>.+)", re.I | re.U)
+    # talk
+    talk_re = re.compile(r"\b(?:talk\s+to|speak\s+to|falar\s+com|conversar\s+com|hablar\s+con|conversar\s+con)\s+(?P<avatar>.+)", re.I | re.U)
+    # give
+    give_re = re.compile(r"\b(?:give|dar)\s+(?P<obj>.+)\s+(?:to|para|a)\s+(?P<recipient>.+)", re.I | re.U)
 
     def parse(self, message: str, ctx: ConversationContext) -> Dict[str, Any]:
         m = self.teleport_re.search(message)
@@ -216,5 +236,3 @@ class EnhancedChatProcessor:
                 "message": f"Giving {p.get('object')} to {p.get('recipient')}",
             }
         return {"type": "chat_response", "ok": False, "message": "Unknown interaction action"}
-
-

@@ -216,6 +216,22 @@ async function loadHouse(k3dUrl: string) {
                     } catch {
                         append('system', `Door opened: ${m.target}`);
                     }
+                } else if (m.command === 'highlight') {
+                    try {
+                        const info = JSON.parse(m.target);
+                        const labels: string[] = Array.isArray(info?.labels) ? info.labels : [];
+                        if (labels.length && tablet) {
+                            tablet.dispatch({ type: 'highlightNeighbors', payload: { labels } });
+                            append('system', `Highlight: ${labels.join(', ')}`);
+                        }
+                    } catch {
+                        if (tablet && m.target) {
+                            const s = String(m.target);
+                            const labels = s.split(',').map(x=>x.trim()).filter(Boolean);
+                            tablet.dispatch({ type: 'highlightNeighbors', payload: { labels } });
+                            append('system', `Highlight: ${labels.join(', ')}`);
+                        }
+                    }
                 }
             }
         });

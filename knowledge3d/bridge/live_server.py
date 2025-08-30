@@ -189,8 +189,28 @@ class LiveServer:
                             "pred_action": action,
                             "confidence": conf,
                         })
-                        if action and conf >= self._model_threshold:
-                            await self.send_chat(sender="agent", text=f"[model {conf:.2f}] intent={action}", channel=client.channel)
+                        # If the rule-based processor didn't produce an actionable response,
+                        # and the model is confident, attempt a safe auto-action.
+                        if (not (resp.get("type") in ("navigation", "exploration", "interaction"))) and action and conf >= self._model_threshold:
+                            # Ethics gate
+                            dec = self._policy_check(text, action)
+                            await self.log({"type": "ethics_decision","allow":dec.allow,"reason":dec.reason,"action":action,"text":raw_text,"source":"model"})
+                            if not dec.allow or self._is_paused(client.channel):
+                                await self.send_chat(sender="agent", text=f"[model {conf:.2f}] intent={action} (held)", channel=client.channel)
+                            else:
+                                # Derive minimal payloads using the spatial parser (now multilingual)
+                                p = self._processor.spatial_parser.parse(text, self._ctx_by_nick.get(client.nick, self._ConversationContext()))
+                                if action == "goto":
+                                    target = p.get("location") or p.get("loc") or text
+                                    await self.send_command("goto", str(target), channel=client.channel)
+                                    await self.send_chat(sender="agent", text=f"[model {conf:.2f}] Navigating to {target}", channel=client.channel)
+                                elif action in {"show", "find_related", "expand"}:
+                                    label = p.get("topic") or p.get("area") or p.get("object") or text
+                                    payload = json.dumps({"labels": [str(label)]})
+                                    await self.send_command("highlight", payload, channel=client.channel)
+                                    await self.send_chat(sender="agent", text=f"[model {conf:.2f}] Highlighting {label}", channel=client.channel)
+                                else:
+                                    await self.send_chat(sender="agent", text=f"[model {conf:.2f}] intent={action}", channel=client.channel)
                 except Exception:
                     pass
                 if resp.get("type") in ("navigation", "exploration", "interaction"):
