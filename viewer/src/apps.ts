@@ -9,7 +9,7 @@ export interface TabletApp {
   renderCanvas(ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }): void;
   openOverlay(el: HTMLDivElement): void;
   onEvent?(ev: { type: string; payload?: any }): void;
-  setContext?(ctx: { records: ReadonlyArray<K3DRecord> }): void;
+  setContext?(ctx: { records: ReadonlyArray<K3DRecord>; publish?: (ev: { type: string; payload?: any }) => void }): void;
 }
 
 export class ConsoleApp implements TabletApp {
@@ -151,23 +151,28 @@ export class WebApp implements TabletApp {
   }
   async openOverlay(el: HTMLDivElement) {
     el.innerHTML = '';
-    const url = document.createElement('input'); url.style.width='70%'; url.placeholder='https://…'; if (this.lastUrl) url.value = this.lastUrl;
+    const url = document.createElement('input'); url.style.width='60%'; url.placeholder='https://…'; if (this.lastUrl) url.value = this.lastUrl;
     const go = document.createElement('button'); go.textContent = 'Go';
+    const iframe = document.createElement('iframe'); iframe.style.width='100%'; iframe.style.height='60vh'; iframe.style.border='1px solid #444'; iframe.style.display='none'; iframe.setAttribute('sandbox','allow-scripts allow-forms allow-popups');
     const view = document.createElement('div'); view.style.marginTop = '8px'; view.style.background='#111'; view.style.color='#ddd'; view.style.padding='8px'; view.style.height='60vh'; view.style.overflow='auto';
     const fetchText = async (u: string) => {
       try {
         const res = await fetch(u, { mode: 'cors' });
         const html = await res.text();
         const text = html.replace(/<script[\s\S]*?<\/script>/g,'').replace(/<style[\s\S]*?<\/style>/g,'').replace(/<[^>]+>/g,'');
+        iframe.style.display='none'; view.style.display='block';
         view.textContent = text.slice(0, 8000);
         this.lastUrl = u; this.lastTitle = (html.match(/<title>([^<]+)<\/title>/i)?.[1] || '').trim();
         await this.store.put('last', { url: this.lastUrl, title: this.lastTitle, ts: Date.now() });
       } catch (e) {
-        view.textContent = 'Fetch failed (CORS or offline).';
+        // Fallback: try iframe (may be blocked by X-Frame-Options)
+        iframe.style.display='block'; view.style.display='none'; iframe.src = u;
+        this.lastUrl = u; this.lastTitle = '';
+        await this.store.put('last', { url: this.lastUrl, title: this.lastTitle, ts: Date.now() });
       }
     };
     go.onclick = () => { const u = url.value.trim(); if (!u) return; void fetchText(u); };
-    el.appendChild(url); el.appendChild(go); el.appendChild(view);
+    el.appendChild(url); el.appendChild(go); el.appendChild(iframe); el.appendChild(view);
     const saved = await this.store.get('last'); if (saved?.url) { this.lastUrl = saved.url; this.lastTitle = saved.title || ''; url.value = saved.url; }
   }
 }
@@ -225,7 +230,8 @@ export class EmbeddingsApp implements TabletApp {
   private records: ReadonlyArray<K3DRecord> = [];
   private focus: string = '';
   private results: { label: string; sim: number }[] = [];
-  setContext(ctx: { records: ReadonlyArray<K3DRecord> }) { this.records = ctx.records; }
+  private publish: ((ev: { type: string; payload?: any }) => void) | null = null;
+  setContext(ctx: { records: ReadonlyArray<K3DRecord>; publish?: (ev: { type: string; payload?: any }) => void }) { this.records = ctx.records; this.publish = ctx.publish || null; }
   onEvent(ev: { type: string; payload?: any }) {
     if (ev.type === 'focus' && ev.payload?.label) {
       this.focus = String(ev.payload.label);
@@ -265,9 +271,11 @@ export class EmbeddingsApp implements TabletApp {
     el.innerHTML='';
     const input = document.createElement('input'); input.placeholder = 'label or id'; input.style.width='60%'; if (this.focus) input.value = this.focus;
     const btn = document.createElement('button'); btn.textContent = 'Peek';
+    const btnHi = document.createElement('button'); btnHi.textContent = 'Highlight in Mini-Map'; btnHi.style.marginLeft = '8px';
     const out = document.createElement('pre'); out.style.color='#ddd'; out.style.whiteSpace='pre-wrap'; out.style.marginTop='8px';
     const go = () => { this.focus = input.value.trim(); this.compute(); out.textContent = this.results.map(r=>`${r.sim.toFixed(3)}  ${r.label}`).join('\n'); };
-    btn.onclick = go; el.appendChild(input); el.appendChild(btn); el.appendChild(out);
+    btn.onclick = go; btnHi.onclick = () => { if (this.publish) this.publish({ type: 'highlightNeighbors', payload: { labels: this.results.map(r=>r.label) } }); };
+    el.appendChild(input); el.appendChild(btn); el.appendChild(btnHi); el.appendChild(out);
     if (this.focus) go();
   }
 }
@@ -276,8 +284,13 @@ export class GraphApp implements TabletApp {
   id = 'graph'; title = 'Mini-Map';
   private records: ReadonlyArray<K3DRecord> = [];
   private focus: string = '';
+  private highlight: Set<string> = new Set();
   setContext(ctx: { records: ReadonlyArray<K3DRecord> }) { this.records = ctx.records; }
-  onEvent(ev: { type: string; payload?: any }) { if (ev.type === 'focus' && ev.payload?.label) this.focus = String(ev.payload.label); }
+  onEvent(ev: { type: string; payload?: any }) {
+    if (ev.type === 'focus' && ev.payload?.label) this.focus = String(ev.payload.label);
+    if (ev.type === 'highlightNeighbors' && Array.isArray(ev.payload?.labels)) this.highlight = new Set<string>(ev.payload.labels as string[]);
+    if (ev.type === 'clearHighlight') this.highlight.clear();
+  }
   renderCanvas(ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }) {
     ctx.fillStyle = '#050608'; ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
     if (!this.records.length) return;
@@ -288,8 +301,13 @@ export class GraphApp implements TabletApp {
     const sx = (x:number)=> rect.x + ((x-minx)/(maxx-minx||1)) * rect.w;
     const sy = (y:number)=> rect.y + ((y-miny)/(maxy-miny||1)) * rect.h;
     // draw points
-    ctx.fillStyle = '#88aaff';
-    for (let i=0;i<cap;i++){ const v=this.records[i].vector as [number,number,number]; const x=sx(v[0]), y=sy(v[1]); ctx.fillRect(x, y, 1, 1); }
+    for (let i=0;i<cap;i++){
+      const rec = this.records[i];
+      const v=rec.vector as [number,number,number]; const x=sx(v[0]), y=sy(v[1]);
+      const lab = (rec.metadata?.label as string) || rec.id;
+      if (this.highlight.has(lab)) { ctx.fillStyle='#3df5c7'; ctx.fillRect(x-1, y-1, 3, 3); }
+      else { ctx.fillStyle = '#88aaff'; ctx.fillRect(x, y, 1, 1); }
+    }
     // highlight focus if present
     if (this.focus) {
       const i = this.records.findIndex(r => ((r.metadata?.label as string) || r.id) === this.focus);
@@ -404,8 +422,10 @@ export class GalaxyApp implements TabletApp {
     const rings = document.createElement('input'); rings.type='number'; rings.min='1'; rings.max='8'; rings.value=String(this.rings);
     const base = document.createElement('input'); base.type='number'; base.min='4'; base.max='64'; base.value=String(this.base);
     const apply = document.createElement('button'); apply.textContent='Apply';
+    const expand = document.createElement('button'); expand.textContent='Expand φ';
     apply.onclick = () => { this.rings = Math.max(1, Math.min(8, parseInt(rings.value||'4'))); this.base = Math.max(4, Math.min(64, parseInt(base.value||'12'))); this.compute(); };
-    controls.append('Rings:', rings, 'Base:', base, apply);
+    expand.onclick = () => { this.rings = Math.min(8, this.rings+1); this.base = Math.max(4, Math.round(this.base * this.phi)); this.compute(); rings.value=String(this.rings); base.value=String(this.base); };
+    controls.append('Rings:', rings, 'Base:', base, apply, expand);
     el.appendChild(controls);
     const hint = document.createElement('div'); hint.style.color='#ddd'; hint.style.marginTop='8px'; hint.textContent = 'Rings expand by phi; nodes per ring ≈ base × phi^(ring-1).'; el.appendChild(hint);
   }

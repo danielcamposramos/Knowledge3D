@@ -58,13 +58,16 @@ export class Tablet3D {
   }
 
   setDataset(records: ReadonlyArray<{ id: string; vector: [number,number,number]; embedding: number[]; metadata: Record<string, unknown> }>) {
-    for (const app of this.apps) {
-      app.setContext?.({ records: records as any });
-    }
+    for (const app of this.apps) app.setContext?.({ records: records as any, publish: (ev) => this.publish(ev) });
   }
 
   setFocusLabel(label: string) {
     for (const app of this.apps) app.onEvent?.({ type: 'focus', payload: { label } });
+    this.renderScreen();
+  }
+
+  private publish(ev: { type: string; payload?: any }) {
+    for (const app of this.apps) app.onEvent?.(ev);
     this.renderScreen();
   }
 
