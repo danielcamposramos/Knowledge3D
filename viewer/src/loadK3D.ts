@@ -46,6 +46,7 @@ export interface K3DInfo {
 export interface LoadedK3D {
   data: K3DRecord[];
   info: K3DInfo;
+  edges?: [string, string][];
 }
 
 function composeRecordsFromEmbedded(
@@ -118,6 +119,7 @@ export async function loadK3DFromGLTF(url: string): Promise<LoadedK3D> {
   const ids: string[] = embedded.ids || [];
   const metadata: any[] = embedded.metadata || [];
   const neighbors: string[][] | undefined = embedded.neighbors || undefined;
+  const edges: [string, string][] | undefined = embedded.edges || undefined;
   const precGlobal: string = embedded.embeddingPrecision || 'f32';
   const dimsGlobal: number = embedded.embeddingDims || (embedded.embeddings?.[0]?.length ?? 0);
 
@@ -190,7 +192,7 @@ export async function loadK3DFromGLTF(url: string): Promise<LoadedK3D> {
     },
   };
 
-  return { data: composeRecordsFromEmbedded(ids, vectors, embeddings, metadata, neighbors), info };
+  return { data: composeRecordsFromEmbedded(ids, vectors, embeddings, metadata, neighbors), info, edges };
 }
 
 // IEEE754 half to float32

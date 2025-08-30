@@ -130,11 +130,6 @@ export class Tablet3D {
     btnExit.textContent = 'Exit Focus';
     btnExit.onclick = () => this.hideFocus();
     controls.appendChild(btnExit);
-    const btnInstall = document.createElement('button');
-    btnInstall.textContent = 'Install App…';
-    btnInstall.style.marginLeft = '8px';
-    btnInstall.onclick = () => alert('App store placeholder — to be wired');
-    controls.appendChild(btnInstall);
     row.appendChild(controls);
 
     const content = document.createElement('div');

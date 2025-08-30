@@ -23,8 +23,28 @@ Dev notes
 - Stores: `openStore('k3d-tablet','outbox'|'tablet')` in `viewer/src/chat.ts` and `viewer/src/main.ts`.
 - All messages remain standard JSON envelopes (`chat`/`command`/`event`), so the live server logs them uniformly after flush.
 
+Message Envelope
+- Fields appended by the tablet client for continuity and audit:
+  - `tabletId: string` — stable per-browser ID stored at `localStorage['k3d-tablet/id']`.
+  - `house?: string` — current GLB URI (set by viewer on house load).
+  - `mode?: 'ai'|'human'` — current operating mode.
+- Example (chat):
+  `{ "type":"chat", "from":"human", "text":"/open gravity", "tabletId":"abcd…", "house":"/ai_compendium.80k.pca.doors.glb", "mode":"ai" }`
+
+Outbox Schema (IndexedDB)
+- DB: `k3d-tablet`, Store: `outbox`
+- Key: `'queue'`
+- Value: `Array<Envelope & { ts: number }>` where `Envelope` is one of `chat|command|event` with `tabletId,house,mode` appended.
+- Flush: on `ws.onopen`, attempt send in order, re-queue unsent.
+
+Tablet Snapshot Schema (IndexedDB)
+- DB: `k3d-tablet`, Store: `tablet`
+- Keys per house URI:
+  - `${house}:dataset_graph` — minimal record list for UI (labels/ids, optional doors mask).
+  - `${house}:doors` — boolean[] mask for `has_new_information`.
+- Purpose: provide continuity hints and local app views while offline.
+
 Roadmap
 - Add Tablet ID in messages for continuity.
 - Optional CRDT merge for multi‑device note streams.
 - Wallet export/import for long‑running sessions.
-

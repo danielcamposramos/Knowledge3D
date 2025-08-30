@@ -4,6 +4,29 @@ Architecture
 - Apps implement `TabletApp` (id, title, renderCanvas, openOverlay). The tablet draws a compact view on the 3D screen and opens a full UI in Focus mode.
 - Registry: Console, Notes, RPN Calc, Web (text fetch). Extensible for Calendar/Email/OAuth connectors.
 
+TypeScript Interface
+```
+export interface TabletApp {
+  id: string;
+  title: string;
+  renderCanvas(ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }): void;
+  openOverlay(el: HTMLDivElement): void;
+  onEvent?(ev: { type: string; payload?: any }): void; // fan‑in events from tablet.publish()
+  setContext?(ctx: { records: ReadonlyArray<K3DRecord>; publish?: (ev: { type: string; payload?: any }) => void }): void;
+}
+```
+
+Event Bus
+- The tablet forwards app events to the live server as `event` envelopes via `ChatClient.sendEvent`.
+- Canonical events used by built‑in apps:
+  - `browser_search`: `{ engine, query, count }`
+  - `browser_visit`: `{ engine, url, title, len }`
+  - `browser_iframe`: `{ url }`
+  - `goto_resolution`: `{ target, query?, sim?, model_confidence? }`
+  - `applyLayers`: `{ enabled: string[] }`
+  - `diary_entry`: `{ text, tz }`
+  - `sleep` / `wake`: `{ mode?: 'consolidate' }`
+
 Current apps
 - Console: shows explain-as-you-move messages; mirrors to live logs; clears in Focus.
 - Notes: local IndexedDB store; offline by default. Future: optional OAuth sync for human (e.g., to a Keep-like OSS service).
@@ -14,6 +37,10 @@ Current apps
 Offline & Sync
 - All apps default to offline storage; human can authorize OAuth connectors (documented per app when added).
 - Tablet keeps an outbox and snapshots for house graph/doors.
+
+UI Details
+- Focus header shows: mode, ws status, queue, house URI, nodes, info.
+- No placeholder actions: the "Install App…" control has been removed; focus panel strictly hosts real app UIs.
 
 Extending
 - Add a new app by implementing `TabletApp` in `viewer/src/apps.ts` and registering in `viewer/src/tablet.ts`.

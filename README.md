@@ -87,6 +87,7 @@ Each line is a training example with from/next labels and optional embeddings wh
 ### Run Evidence
 - Raw session logs and server outputs: `docs/reports/live/`
 - Derived session summaries and tasks: `docs/reports/training/`
+- New large asset: `viewer/public/ai_compendium.80k.pca.doors.glb` (80k nodes, PCA, 512d f16)
 
 ## Project Structure
 
