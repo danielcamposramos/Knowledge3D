@@ -8,6 +8,7 @@ import { ChatClient, type ChatMessage, type CommandMessage } from './chat';
 import { RPN } from './rpn';
 import { openStore } from './cache';
 import { kmeans, palette } from './cluster';
+import { AISuggestionManager, DynamicLayerManager, LODRenderer } from './extensions/smartGraph';
 
 // --- DOM Elements ---
 const canvas = document.getElementById('scene') as HTMLCanvasElement;
@@ -34,6 +35,11 @@ const cache = openStore<LoadedK3D>();
 const tabletStore = openStore<any>('k3d-tablet','tablet');
 let tablet: Tablet3D | null = null;
 let cacheEnabled = true;
+let sugg: AISuggestionManager | null = null;
+let layersMgr: DynamicLayerManager | null = null;
+let lod: LODRenderer | null = null;
+let lastHoverRecord: K3DRecord | null = null;
+let layersOverlay: HTMLDivElement | null = null;
 
 // --- Main Logic ---
 
@@ -47,6 +53,8 @@ function clearScene() {
         (currentPoints.material as THREE.Material).dispose();
         currentPoints = null;
     }
+    lod = null;
+    layersMgr = null;
     k3dData = [];
     recordMap.clear();
     if (agent) {
@@ -112,13 +120,15 @@ async function loadHouse(k3dUrl: string) {
             colors.set([color.r, color.g, color.b], i * 3);
         });
 
-        const geometry = new THREE.BufferGeometry();
-        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        const baseGeom = new THREE.BufferGeometry();
+        baseGeom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        baseGeom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        baseGeom.computeBoundingSphere();
 
         const material = new THREE.PointsMaterial({ size: 0.1, vertexColors: true });
-        currentPoints = new THREE.Points(geometry, material);
-        scene.add(currentPoints);
+        // Wrap with LOD renderer (distance-based for now)
+        lod = new LODRenderer(baseGeom, material);
+        currentPoints = lod.attach(scene);
 
         // AI-native visual hint (global): if has_new_information on primitive and no mask provided
         if (loaded.info?.ai?.flags?.has_new_information && !loaded.info?.ai?.mask?.has_new_information && currentPoints) {
@@ -278,6 +288,23 @@ async function loadHouse(k3dUrl: string) {
             await tabletStore.put(`doors:${k3dUrl}`, doorItems);
         }
 
+        // Try to load alias map and send to live server to enrich gazetteer
+        try {
+            const resAliases = await fetch('/aliases.json', { cache: 'no-store' });
+            if (resAliases.ok) {
+                const data = await resAliases.json();
+                if (Array.isArray(data?.items)) {
+                    chat.sendEvent({ kind: 'aliases', items: data.items });
+                }
+            }
+        } catch {}
+
+        // Prepare smart suggestions and layers
+        sugg = new AISuggestionManager(scene, camera, renderer.domElement);
+        sugg.setRecords(k3dData);
+        layersMgr = new DynamicLayerManager();
+        layersMgr.setRecords(k3dData as any);
+
     } catch (e) {
         console.error(`Failed to load house from ${k3dUrl}:`, e);
     }
@@ -338,7 +365,7 @@ function checkIntersects() {
     }
 
     raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObject(currentPoints);
+    const intersects = currentPoints ? raycaster.intersectObject(currentPoints) : [];
 
     if (intersects.length > 0 && intersects[0].index !== undefined) {
         const idx = intersects[0].index;
@@ -349,6 +376,7 @@ function checkIntersects() {
             tooltip.style.left = `${mouse.x * window.innerWidth / 2 + window.innerWidth / 2 + 5}px`;
             tooltip.style.top = `${-mouse.y * window.innerHeight / 2 + window.innerHeight / 2 + 5}px`;
             const label = (record.metadata?.label as string) || record.id;
+            lastHoverRecord = record;
             const text = (record.metadata?.text as string) || '';
             const isDoor = (record.metadata?.type as string) === 'door';
             let extra = '';
@@ -378,6 +406,14 @@ window.addEventListener('resize', () => {
 window.addEventListener('keydown', (ev: KeyboardEvent) => {
     if (ev.key.toLowerCase() === 'f' && tablet) {
         tablet.toggleFocus();
+    }
+    if (ev.key.toLowerCase() === 's') {
+        if (sugg && lastHoverRecord && agent) {
+            sugg.showSuggestions(lastHoverRecord, (targetId) => { agent!.goToLabel(targetId); });
+        }
+    }
+    if (ev.key.toLowerCase() === 'l') {
+        toggleLayersOverlay();
     }
 });
 
@@ -536,7 +572,38 @@ function animate() {
     controls.update();
     checkIntersects();
     if (agent) agent.update(dt);
+    if (lod) lod.update(camera);
     renderer.render(scene, camera);
+}
+
+// --- Layers Overlay ---
+function toggleLayersOverlay() {
+    if (layersOverlay) { document.body.removeChild(layersOverlay); layersOverlay = null; return; }
+    if (!layersMgr) return;
+    const div = document.createElement('div');
+    div.style.position = 'fixed'; div.style.right = '12px'; div.style.top = '12px';
+    div.style.background = 'rgba(0,0,0,0.8)'; div.style.color = '#fff';
+    div.style.padding = '10px'; div.style.zIndex = '1500'; div.style.fontFamily = 'system-ui, sans-serif';
+    const title = document.createElement('div'); title.textContent = 'Layers'; title.style.fontWeight = 'bold'; div.appendChild(title);
+    const layers = layersMgr.getLayers();
+    if (!layers.length) {
+        const p = document.createElement('div'); p.textContent = '(no layers found)'; div.appendChild(p);
+    } else {
+        for (const name of layers) {
+            const row = document.createElement('label'); row.style.display = 'block'; row.style.marginTop = '4px';
+            const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = layersMgr.isEnabled(name);
+            cb.onchange = () => {
+                layersMgr!.toggle(name, cb.checked);
+                const newGeom = layersMgr!.buildGeometry(); newGeom.computeBoundingSphere();
+                if (lod) lod.setBase(newGeom);
+            };
+            row.appendChild(cb); row.appendChild(document.createTextNode(' ' + name));
+            div.appendChild(row);
+        }
+    }
+    const close = document.createElement('button'); close.textContent = 'Close'; close.style.marginTop = '8px'; close.onclick = () => { toggleLayersOverlay(); };
+    div.appendChild(close);
+    document.body.appendChild(div); layersOverlay = div;
 }
 
 // --- Mic Toggle ---
