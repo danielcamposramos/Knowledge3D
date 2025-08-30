@@ -8,7 +8,7 @@ import { ChatClient, type ChatMessage, type CommandMessage } from './chat';
 import { RPN } from './rpn';
 import { openStore } from './cache';
 import { kmeans, palette } from './cluster';
-import { AISuggestionManager, DynamicLayerManager, LODRenderer } from './extensions/smartGraph';
+import { AISuggestionManager, DynamicLayerManager, LODRenderer, GridCulledPoints } from './extensions/smartGraph';
 
 // --- DOM Elements ---
 const canvas = document.getElementById('scene') as HTMLCanvasElement;
@@ -27,7 +27,7 @@ const controls = new OrbitControls(camera, renderer.domElement);
 // --- State ---
 let k3dData: K3DRecord[] = [];
 let recordMap: Map<string, K3DRecord> = new Map();
-let currentPoints: THREE.Points | null = null;
+let currentPoints: THREE.Object3D | null = null;
 let condoConfig: CondoConfig | null = null;
 let agent: K3DAgent | null = null;
 let chat: ChatClient | null = null;
@@ -126,9 +126,16 @@ async function loadHouse(k3dUrl: string) {
         baseGeom.computeBoundingSphere();
 
         const material = new THREE.PointsMaterial({ size: 0.1, vertexColors: true });
-        // Wrap with LOD renderer (distance-based for now)
-        lod = new LODRenderer(baseGeom, material);
-        currentPoints = lod.attach(scene);
+        // For larger datasets, use grid culling; otherwise use LOD
+        if (k3dData.length > 8000) {
+            const grid = new GridCulledPoints(baseGeom, material, 4);
+            currentPoints = grid.attach(scene);
+            // piggyback update call via lod reference (optional)
+            lod = null;
+        } else {
+            lod = new LODRenderer(baseGeom, material);
+            currentPoints = lod.attach(scene);
+        }
 
         // AI-native visual hint (global): if has_new_information on primitive and no mask provided
         if (loaded.info?.ai?.flags?.has_new_information && !loaded.info?.ai?.mask?.has_new_information && currentPoints) {
@@ -182,6 +189,17 @@ async function loadHouse(k3dUrl: string) {
         }
         // Forward tablet app events to live server for session logging
         tablet.setEmitter?.((ev: any) => { if (chat) chat.sendEvent(ev); });
+        // Local handler for in-world actions from Tablet apps (e.g., Layers)
+        tablet.setLocalHandler?.((ev: any) => {
+            if (ev?.type === 'applyLayers' && layersMgr) {
+                try {
+                    const names: string[] = Array.isArray(ev.payload?.enabled) ? ev.payload.enabled : [];
+                    // rebuild geometry according to enabled names
+                    const newGeom = layersMgr.buildGeometry(); newGeom.computeBoundingSphere();
+                    if (lod) lod.setBase(newGeom);
+                } catch {}
+            }
+        });
         // Update tablet with house info and dataset
         tablet.setStatus({ house: k3dUrl, nodes: k3dData.length, info: `dims=${loaded.info.dims} precision=${loaded.info.precision}` });
         tablet.setDataset(k3dData);
@@ -390,7 +408,7 @@ function checkIntersects() {
     }
 
     raycaster.setFromCamera(mouse, camera);
-    const intersects = currentPoints ? raycaster.intersectObject(currentPoints) : [];
+    const intersects = currentPoints ? raycaster.intersectObject(currentPoints as any, true) : [];
 
     if (intersects.length > 0 && intersects[0].index !== undefined) {
         const idx = intersects[0].index;
@@ -524,15 +542,25 @@ function applyPositionColors() {
     const max = new THREE.Vector3(-Infinity, -Infinity, -Infinity);
     positions.forEach(v => { min.min(new THREE.Vector3().fromArray(v)); max.max(new THREE.Vector3().fromArray(v)); });
     const size = new THREE.Vector3().subVectors(max, min);
-    const colors = currentPoints.geometry.getAttribute('color') as THREE.BufferAttribute;
-    for (let i = 0; i < k3dData.length; i++) {
-        const v = k3dData[i].vector;
-        const r = size.x > 0 ? (v[0] - min.x) / size.x : 0.5;
-        const g = size.y > 0 ? (v[1] - min.y) / size.y : 0.5;
-        const b = size.z > 0 ? (v[2] - min.z) / size.z : 0.5;
-        colors.setXYZ(i, r, g, b);
+    const updateGeomColors = (geom: THREE.BufferGeometry) => {
+        const colors = geom.getAttribute('color') as THREE.BufferAttribute;
+        if (!colors) return;
+        const pos = geom.getAttribute('position') as THREE.BufferAttribute;
+        for (let i = 0; i < colors.count; i++) {
+            const x = pos.getX(i);
+            const y = pos.getY(i);
+            const z = pos.getZ(i);
+            const r = size.x > 0 ? (x - min.x) / size.x : 0.5;
+            const g = size.y > 0 ? (y - min.y) / size.y : 0.5;
+            const b = size.z > 0 ? (z - min.z) / size.z : 0.5;
+            colors.setXYZ(i, r, g, b);
+        }
+        colors.needsUpdate = true;
+    };
+    if ((currentPoints as any).isPoints) updateGeomColors((currentPoints as THREE.Points).geometry as THREE.BufferGeometry);
+    else if ((currentPoints as any).isGroup) {
+        (currentPoints as THREE.Group).children.forEach(ch => { if ((ch as any).isPoints) updateGeomColors((ch as THREE.Points).geometry as THREE.BufferGeometry); });
     }
-    colors.needsUpdate = true;
     legend.textContent = 'position-based coloring';
 }
 
@@ -540,15 +568,21 @@ function applyClusterColors(k: number) {
     if (!currentPoints || k3dData.length === 0) return;
     const emb = k3dData.map(d => d.embedding);
     const { labels } = kmeans(emb, Math.max(2, Math.min(20, Math.floor(k))));
-    const colors = currentPoints.geometry.getAttribute('color') as THREE.BufferAttribute;
     const pal = palette(Math.max(...labels) + 1);
     const counts: Record<number, number> = {};
-    for (let i = 0; i < k3dData.length; i++) {
-        const c = labels[i] ?? 0; counts[c] = (counts[c] ?? 0) + 1;
-        const tmp = new THREE.Color(pal[c % pal.length]);
-        colors.setXYZ(i, tmp.r, tmp.g, tmp.b);
-    }
-    colors.needsUpdate = true;
+    const applyColors = (geom: THREE.BufferGeometry) => {
+        const colors = geom.getAttribute('color') as THREE.BufferAttribute;
+        if (!colors) return;
+        for (let i = 0; i < colors.count; i++) {
+            const cidx = i % labels.length;
+            const c = labels[cidx] ?? 0; counts[c] = (counts[c] ?? 0) + 1;
+            const val = new THREE.Color(pal[c % pal.length]);
+            colors.setXYZ(i, val.r, val.g, val.b);
+        }
+        colors.needsUpdate = true;
+    };
+    if ((currentPoints as any).isPoints) applyColors((currentPoints as THREE.Points).geometry as THREE.BufferGeometry);
+    else if ((currentPoints as any).isGroup) (currentPoints as THREE.Group).children.forEach(ch => { if ((ch as any).isPoints) applyColors((ch as THREE.Points).geometry as THREE.BufferGeometry); });
     const items = Object.keys(counts).map(k => ({ c: Number(k), n: counts[Number(k)] })).sort((a,b)=>a.c-b.c);
     legend.innerHTML = items.map(it => `<span style="display:inline-block;width:12px;height:12px;background:${pal[it.c%pal.length]};margin-right:4px;"></span> C${it.c} (${it.n})`).join(' &nbsp; ');
 }

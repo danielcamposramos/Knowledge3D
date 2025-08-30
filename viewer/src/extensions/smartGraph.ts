@@ -174,12 +174,14 @@ export class LODRenderer {
       if (pixelRadius > midHi) level = 1;
     }
     // Cross-fade between adjacent levels over fadeWidth pixels
-    const fade = (t: number) => Math.min(1, Math.max(0, t));
+    const clamp01 = (t: number) => Math.min(1, Math.max(0, t));
+    const easeInOutQuad = (t: number) => t < 0.5 ? 2*t*t : -1 + (4 - 2*t) * t;
     let aBase = 0, aMid = 0, aLow = 0;
     if (pixelRadius >= this.pixNear) {
       aBase = 1; aMid = 0; aLow = 0;
       if (pixelRadius < this.pixNear + this.fadeWidth) {
-        const k = fade((this.pixNear + this.fadeWidth - pixelRadius) / this.fadeWidth);
+        const lin = clamp01((this.pixNear + this.fadeWidth - pixelRadius) / this.fadeWidth);
+        const k = easeInOutQuad(lin);
         aMid = 1 - k; aBase = k;
       }
       level = 0;
@@ -188,17 +190,20 @@ export class LODRenderer {
       const upperBlend = this.pixNear;
       const lowerBlend = this.pixMid;
       if (pixelRadius > upperBlend - this.fadeWidth) {
-        const k = fade((upperBlend - pixelRadius) / this.fadeWidth);
+        const lin = clamp01((upperBlend - pixelRadius) / this.fadeWidth);
+        const k = easeInOutQuad(lin);
         aBase = 1 - k; aMid = k;
       } else if (pixelRadius < lowerBlend + this.fadeWidth) {
-        const k = fade((pixelRadius - lowerBlend) / this.fadeWidth);
+        const lin = clamp01((pixelRadius - lowerBlend) / this.fadeWidth);
+        const k = easeInOutQuad(lin);
         aLow = 1 - k; aMid = k;
       }
       level = 1;
     } else {
       aLow = 1; aMid = 0; aBase = 0;
       if (pixelRadius > this.pixMid - this.fadeWidth) {
-        const k = fade((pixelRadius - (this.pixMid - this.fadeWidth)) / this.fadeWidth);
+        const lin = clamp01((pixelRadius - (this.pixMid - this.fadeWidth)) / this.fadeWidth);
+        const k = easeInOutQuad(lin);
         aMid = 1 - k; aLow = k;
       }
       level = 2;
@@ -261,3 +266,72 @@ export class LODRenderer {
 }
 
 export default { AISuggestionManager, DynamicLayerManager, LODRenderer };
+export class GridCulledPoints {
+  private group: THREE.Group = new THREE.Group();
+  private chunks: { geom: THREE.BufferGeometry; points: THREE.Points; bs: THREE.Sphere }[] = [];
+  private material: THREE.PointsMaterial;
+
+  constructor(base: THREE.BufferGeometry, material?: THREE.PointsMaterial, grid = 4) {
+    this.material = (material || new THREE.PointsMaterial({ size: 0.1, vertexColors: true })).clone();
+    this.buildChunks(base, grid);
+  }
+
+  private buildChunks(base: THREE.BufferGeometry, grid: number) {
+    const pos = base.getAttribute('position') as THREE.BufferAttribute;
+    const col = base.getAttribute('color') as THREE.BufferAttribute | null;
+    base.computeBoundingBox();
+    const bb = base.boundingBox!;
+    const size = new THREE.Vector3(); bb.getSize(size);
+    const origin = new THREE.Vector3(bb.min.x, bb.min.y, bb.min.z);
+    const idxBuckets: number[][] = Array(grid*grid*grid).fill(0).map(()=>[]);
+    const cellOf = (x:number,y:number,z:number) => {
+      const ix = Math.min(grid-1, Math.max(0, Math.floor(((x - origin.x) / (size.x||1)) * grid)));
+      const iy = Math.min(grid-1, Math.max(0, Math.floor(((y - origin.y) / (size.y||1)) * grid)));
+      const iz = Math.min(grid-1, Math.max(0, Math.floor(((z - origin.z) / (size.z||1)) * grid)));
+      return ix + iy*grid + iz*grid*grid;
+    };
+    for (let i=0;i<pos.count;i++){
+      const cell = cellOf(pos.getX(i), pos.getY(i), pos.getZ(i));
+      idxBuckets[cell].push(i);
+    }
+    for (const idxs of idxBuckets) {
+      if (!idxs.length) continue;
+      const positions = new Float32Array(idxs.length*3);
+      const colors = col ? new Float32Array(idxs.length*3) : null;
+      let k = 0;
+      for (const i of idxs) {
+        positions[k*3+0] = pos.getX(i);
+        positions[k*3+1] = pos.getY(i);
+        positions[k*3+2] = pos.getZ(i);
+        if (colors) { colors[k*3+0] = col!.getX(i); colors[k*3+1] = col!.getY(i); colors[k*3+2] = col!.getZ(i); }
+        k++;
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      if (colors) g.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      g.computeBoundingSphere();
+      const p = new THREE.Points(g, this.material.clone());
+      this.group.add(p);
+      this.chunks.push({ geom: g, points: p, bs: g.boundingSphere!.clone() });
+    }
+  }
+
+  attach(scene: THREE.Scene): THREE.Group {
+    scene.add(this.group);
+    return this.group;
+  }
+
+  update(camera: THREE.PerspectiveCamera) {
+    const frustum = new THREE.Frustum();
+    const proj = new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    frustum.setFromProjectionMatrix(proj);
+    for (const c of this.chunks) {
+      const center = c.bs.center.clone();
+      const radius = c.bs.radius;
+      const visible = frustum.containsPoint(center) || frustum.intersectsSphere(new THREE.Sphere(center, radius));
+      c.points.visible = visible;
+    }
+  }
+
+  get object(): THREE.Group { return this.group; }
+}
