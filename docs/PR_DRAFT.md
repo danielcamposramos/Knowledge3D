@@ -16,7 +16,7 @@
 - k3dgen/ai_native.py: helper to embed AI-native node data.
 - knowledge3d/spatial/address.py: `SpatialAddress` encode/decode/partition.
 - knowledge3d/spatial/osi.py: Physical/DataLink/Network/Transport scaffolds; BFS routing.
-- knowledge3d/bridge/live_server.py: event ingestion (graph, doors, explain), `/open` door command with restriction to registered doors.
+- knowledge3d/bridge/live_server.py: event ingestion (graph, doors, explain), `/open` door command with restriction to registered doors; model-to-action routing (confidence-gated) with multilingual slot parsing; emits `highlight` command for exploration.
 - knowledge3d/bridge/cli_client.py: headless text chat client; optional model auto-replies.
 - knowledge3d/models/intent_classifier.py: classic n-gram classifier with synthetic augmentation.
 - knowledge3d/models/intent_hf.py: Hugging Face (DistilBERT) trainer + loader (GPU-ready).
@@ -24,7 +24,7 @@
 - viewer/src/loadK3D.ts: read AI flags + mask; expose info.ai.
 - viewer/src/address.ts: spatial address helper; exposed globally.
 - viewer/src/agent.ts: include spatial address in explain traces.
-- viewer/src/main.ts: per-node mask coloring; door coloring; emits dataset_graph + doors to server; handles `open` command.
+- viewer/src/main.ts: per-node mask coloring; door coloring; emits dataset_graph + doors to server; handles `open`, `goto`, and `highlight` commands (forwarded to Tablet mini-map).
 - viewer/public/ai_demo.glb: demo with per-node `has_new_information` (generated).
 - viewer/public/math_house.gltf: add door metadata + AI mask + protocol.
 - README.md: document generator flags, `/open`, HR/MR and RPN references.

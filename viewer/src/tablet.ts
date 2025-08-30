@@ -81,6 +81,11 @@ export class Tablet3D {
     this.emitter = fn;
   }
 
+  // Allow external dispatch of tablet events (e.g., from commands)
+  dispatch(ev: { type: string; payload?: any }) {
+    this.publish(ev);
+  }
+
   toggleFocus() {
     if (this.overlay) { this.hideFocus(); return; }
     this.showFocus();
