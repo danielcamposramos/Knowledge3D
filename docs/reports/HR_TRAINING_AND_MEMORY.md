@@ -64,6 +64,16 @@ Usage
 
 This duality matches our HR/MR standard: HR artifacts document the system and memory; MR sources run the code and models.
 
+## Sleep Mode (Pause + Consolidate)
+- Commands in live chat:
+  - `/sleep` — pauses the channel (agent stops acting).
+  - `/sleep consolidate` — pauses and consolidates long-term memory:
+    - pulls new diary/reflection/training artifacts
+    - updates the Memory House GLTF (rooms, objects, door map)
+  - `/resume` or `/wake` — resumes action.
+
+- Diary: Tablet → Diary app; entries are stored locally and emitted to the live server. The server logs them to `docs/reports/diary/diary-YYYY-MM-DD.md` in GMT‑3. Use `--bootstrap-diary` to bring entries into the Memory House.
+
 ## Credits
 - Human (Daniel) for vision, prompts, direction.
 - AI partners (Codex, Perplexity AI, DeepSeek) credited in `docs/reports/contributors_credits.md`.

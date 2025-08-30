@@ -427,6 +427,9 @@ class LiveServer:
         if cmd == "/model":
             await self._handle_model(parts[1:] if len(parts) > 1 else [], client)
             return
+        if cmd == "/sleep":
+            await self._handle_sleep(parts[1:] if len(parts) > 1 else [], client)
+            return
         if cmd == "/mem" and len(parts) >= 2:
             await self._handle_mem(parts[1:], client)
             return
@@ -561,6 +564,35 @@ class LiveServer:
             await self.send_chat(sender="agent", text=f"Memory: exported to {out}", channel=client.channel)
             return
         await self.send_system(client.channel, "Usage: /mem room <name> [desc] | /mem add <room>|<label>|<text> | /mem furniture <room>|<kind>|<label> | /mem door <label>|<address> | /mem bootstrap <kind> | /mem export")
+
+    async def _handle_sleep(self, args, client: Client):
+        """Sleep mode: pause channel and consolidate House Memory; '/wake' uses /resume.
+
+        /sleep              -> pause only
+        /sleep consolidate  -> pause + consolidate (diary/reflections/training) + export memory
+        """
+        # pause channel first
+        if not self._is_paused(client.channel):
+            await self._pause(client, reason="sleep")
+        do_cons = (len(args) >= 1 and args[0].lower().startswith("consol"))
+        if not do_cons:
+            await self.send_chat(sender="agent", text="Entering sleep mode (paused). Use /sleep consolidate to restructure memory or /resume to wake.", channel=client.channel)
+            return
+        # Consolidate memory
+        try:
+            from ..tools.house_memory import MemoryHouse  # type: ignore
+            h = MemoryHouse()
+            n_ref = h.bootstrap_reflections(100)
+            n_tr = h.bootstrap_training(100)
+            n_diary = h.bootstrap_diary()
+            h.bootstrap_defaults()  # ensure furniture/doors exist
+            out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "memory_house.gltf")
+            h.export_gltf(out)
+            await self.send_chat(sender="agent", text=f"Sleep: consolidated memory (reflections+{n_ref}, training+{n_tr}, diary+{n_diary}). Exported memory_house.gltf.", channel=client.channel)
+            # log sleep event
+            await self.log({"type":"sleep","action":"consolidate","reflections":n_ref,"training":n_tr,"diary":n_diary})
+        except Exception as e:
+            await self.send_system(client.channel, f"Sleep consolidation error: {e}")
 
     async def _handle_model(self, args, client: Client):
         sub = (args[0].lower() if args else "status")
