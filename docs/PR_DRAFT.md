@@ -16,10 +16,13 @@
 - k3dgen/ai_native.py: helper to embed AI-native node data.
 - knowledge3d/spatial/address.py: `SpatialAddress` encode/decode/partition.
 - knowledge3d/spatial/osi.py: Physical/DataLink/Network/Transport scaffolds; BFS routing.
-- knowledge3d/bridge/live_server.py: event ingestion (graph, doors, explain), `/open` door command with restriction to registered doors; model-to-action routing (confidence-gated) with multilingual slot parsing; emits `highlight` command for exploration.
+- knowledge3d/bridge/live_server.py: event ingestion (graph, doors, explain, aliases), `/open` door command; model-to-action routing (confidence-gated) with multilingual slot parsing; open-vocab goto via tiny gazetteer + TF‑IDF; emits `highlight`.
 - knowledge3d/bridge/cli_client.py: headless text chat client; optional model auto-replies.
 - knowledge3d/models/intent_classifier.py: classic n-gram classifier with synthetic augmentation.
 - knowledge3d/models/intent_hf.py: Hugging Face (DistilBERT) trainer + loader (GPU-ready).
+- knowledge3d/bridge/gazetteer.py: NFKD + stopword/clitic canonicalizer; tiny gazetteer builder/matcher.
+- knowledge3d/tools/build_aliases.py: fetch Wikipedia redirects to enrich gazetteer aliases.
+- viewer/src/extensions/smartGraph.ts: AISuggestionManager (mock API, radial UI), DynamicLayerManager (layer toggles), LODRenderer (decimation by distance).
 - knowledge3d/models/eval_logs.py: confusion matrix over logs.
 - viewer/src/loadK3D.ts: read AI flags + mask; expose info.ai.
 - viewer/src/address.ts: spatial address helper; exposed globally.
@@ -34,6 +37,7 @@
 ## Tests
 - Python: `pytest -q` → 9 passed (1 warning unrelated).
 - Viewer: `node ./node_modules/jest/bin/jest.js --runInBand` → 3 suites passed.
+- Live Stats: Tablet app aggregates goto resolutions (direct vs resolved, model-assisted) from agent messages.
 
 ## Usage
 - Generate demo: `python3 -m k3dgen examples/sample_vectors.csv --gltf examples/ai_demo.glb --k 2 --reducer pca --ai-protocol direct_vector_manipulation --ai-active --ai-new-info-indices 1,3 && cp examples/ai_demo.glb viewer/public/ai_demo.glb`.

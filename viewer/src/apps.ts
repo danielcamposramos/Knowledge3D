@@ -503,3 +503,30 @@ export class GalaxyApp implements TabletApp {
     const hint = document.createElement('div'); hint.style.color='#ddd'; hint.style.marginTop='8px'; hint.textContent = 'Rings expand by phi; nodes per ring ≈ base × phi^(ring-1).'; el.appendChild(hint);
   }
 }
+
+export class StatsApp implements TabletApp {
+  id = 'stats'; title = 'Live Stats';
+  private totals = { goto: 0, resolved: 0, direct: 0, model: 0 };
+  onEvent(ev: { type: string; payload?: any }) {
+    if (ev.type === 'goto_resolution') {
+      const p = ev.payload || {};
+      this.totals.goto += 1;
+      if (typeof p.sim === 'number' || (p.query && p.query !== p.target)) this.totals.resolved += 1; else this.totals.direct += 1;
+      if (typeof p.model_confidence === 'number') this.totals.model += 1;
+    }
+  }
+  renderCanvas(ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }) {
+    ctx.fillStyle = '#0b0d0f'; ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+    ctx.fillStyle = '#fff'; ctx.font = '12px system-ui';
+    ctx.fillText(`goto total: ${this.totals.goto}`, rect.x+8, rect.y+18);
+    ctx.fillText(`resolved: ${this.totals.resolved}`, rect.x+8, rect.y+36);
+    ctx.fillText(`direct: ${this.totals.direct}`, rect.x+8, rect.y+54);
+    ctx.fillText(`model assisted: ${this.totals.model}`, rect.x+8, rect.y+72);
+  }
+  openOverlay(el: HTMLDivElement) {
+    el.innerHTML = '';
+    const p = document.createElement('pre'); p.style.color='#ddd';
+    p.textContent = JSON.stringify(this.totals, null, 2);
+    el.appendChild(p);
+  }
+}

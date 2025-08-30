@@ -9,6 +9,7 @@ Current apps
 - Notes: local IndexedDB store; offline by default. Future: optional OAuth sync for human (e.g., to a Keep-like OSS service).
 - RPN Calc: HP‑style stack operations using the shared `RPN` engine. Works offline.
 - Agentic Browser: Wikipedia search via MediaWiki API (CORS-safe) + summary view; attempts direct fetch with text fallback and iframe fallback. Emits session logs to the live server (`browser_search`, `browser_visit`, `browser_iframe`).
+- Live Stats: aggregates live `goto` resolutions parsed from agent messages (direct vs. resolved; model-assisted count).
 
 Offline & Sync
 - All apps default to offline storage; human can authorize OAuth connectors (documented per app when added).

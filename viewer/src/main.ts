@@ -200,6 +200,23 @@ async function loadHouse(k3dUrl: string) {
                 else append(m.from, m.text);
                 // mirror into tablet info box
                 if (tablet) tablet.setStatus({ info: `last: ${m.from}: ${m.text.slice(0, 60)}` });
+                // Parse goto resolution notes from agent messages to stats app
+                try {
+                    if (m.from === 'agent' && tablet && m.text) {
+                        // Formats: "Navigating to <target>" or "[model x.xx] Navigating to <target> (from '<q>' sim=0.xxx)"
+                        const txt = m.text;
+                        const modelMatch = /^\[model\s+([0-9.]+)\]/.exec(txt);
+                        const after = txt.replace(/^\[model[^\]]+\]\s*/, '');
+                        const navMatch = /^Navigating to\s+([^()]+)(?:\s*\(from\s*'([^']+)'\s*(?:sim=([0-9.]+))?\))?/.exec(after);
+                        if (navMatch) {
+                            const target = navMatch[1].trim();
+                            const query = (navMatch[2]||'').trim() || undefined;
+                            const sim = navMatch[3] ? parseFloat(navMatch[3]) : undefined;
+                            const model_confidence = modelMatch ? parseFloat(modelMatch[1]) : undefined;
+                            tablet.dispatch({ type: 'goto_resolution', payload: { target, query, sim, model_confidence } });
+                        }
+                    }
+                } catch {}
             },
             onCommand: (m: CommandMessage) => {
                 if (m.command === 'goto' && agent) {
