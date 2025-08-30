@@ -1,3 +1,10 @@
+> **Note: This document is outdated.**
+>
+> The information in this file has been superseded by the new, consolidated vision document. For the most current and authoritative information on the project's vision, architecture, and roadmap, please see:
+>
+> **[`docs/VISION.md`](VISION.md)**
+---
+
 # Knowledge3D Architecture
 
 ## Overview

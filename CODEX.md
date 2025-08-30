@@ -1,3 +1,10 @@
+> **Note: This document is outdated.**
+>
+> The information in this file has been superseded by the new, consolidated vision document. For the most current and authoritative information on the project's vision, architecture, and roadmap, please see:
+>
+> **[`docs/VISION.md`](docs/VISION.md)**
+---
+
 # Codex Tasks
 
 This file lists actionable tasks for AI agents working on the Knowledge3D repository. All tasks are derived from the official **[Project Roadmap](docs/ROADMAP.md)** and should be executed in accordance with the vision outlined in the **[K3D Research Report](docs/k3d-research.md)**.
