@@ -41,6 +41,7 @@ Reference prompt: see `docs/images/avatar_workshop_prompt.md`.
 - **Dual-Client Rendering**: AI clients access full embeddings while human clients see rich 3D visuals generated with engines like Three.js or Unity.
 - **Spatial Databases**: Knowledge is stored in 3D coordinates with semantic metadata, enabling geometry and meaning to coexist.
 - **Training Through Observation**: Embodied models learn by watching behavior in shared environments, similar to human developmental learning.
+- **Knowledge Gardens**: An inner greenhouse where ontology trees (roots→branches→leaves) organize crystallized knowledge with explicit parent→child edges.
 
 ## Getting Started
 
@@ -89,6 +90,17 @@ Each line is a training example with from/next labels and optional embeddings wh
 - Derived session summaries and tasks: `docs/reports/training/`
 - New large asset: `viewer/public/ai_compendium.80k.pca.doors.glb` (80k nodes, PCA, 512d f16)
 
+### Knowledge Gardens (Ontology Room)
+- Build demo: `python3 -m knowledge3d.tools.gardens --gltf viewer/public/knowledge_garden.glb`
+- Select in viewer: `knowledge-garden` (draws trees with green edges).
+- Details: `docs/KNOWLEDGE_GARDENS.md`
+
+### Exams (ARC‑AGI / HLE)
+- Serve local datasets: `python3 -m knowledge3d.tools.serve_datasets --port 8766`
+- ARC tasks: `git clone https://github.com/fchollet/ARC.git ../Knowledge3D.local/datasets/exams/arc-src` then `python3 -m knowledge3d.tools.build_exams_index --max-arc 200`
+- Optional HLE sample export: `python3 -m knowledge3d.tools.export_hle_sample --count 50` (HF gated; see `docs/LARGE_ASSETS.md`).
+- Open the Tablet and switch to “Exams” to load tasks from the local server.
+
 ## Project Structure
 
 ```text
@@ -106,8 +118,7 @@ Additional directories:
 - `tests/` : Unit tests and future philosophical validation suites.
 
 ## Roadmap
-
-The project is in **Phase 1: Philosophical Foundation**. Upcoming phases include technical architecture prototypes, proof-of-concept avatars, multi-user environments, software integration, and long-term distributed networking. See [Development Plan](DEVELOPMENT.md) for details.
+The project is in **Phase 1: Philosophical Foundation**. We’re prototyping Knowledge Gardens and Tablet Exams with real ARC ingestion. Upcoming phases include technical architecture prototypes, proof-of-concept avatars, multi-user environments, software integration, and long-term distributed networking. See [Development Plan](DEVELOPMENT.md) and [Roadmap](docs/ROADMAP.md) for details.
 
 ## Contributing
 
@@ -135,6 +146,9 @@ Headless Text Chat
 - Enable model auto-replies after training: `python -m knowledge3d.models.intent_classifier train --logs ../Knowledge3D.local/logs --model ../Knowledge3D.local/models/intent.pkl` then `python -m knowledge3d.bridge.cli_client --auto --model ../Knowledge3D.local/models/intent.pkl`
 
 Inline Model (Server)
+
+Large Assets
+- Heavy datasets live outside the repo; see `docs/LARGE_ASSETS.md` to reproduce (80k+ compendiums, ARC/HLE exams).
 - Control from chat:
   - `/model on|off` — enable/disable inline intent classifier.
   - `/model load /path/to/intent.pkl` — load model.
