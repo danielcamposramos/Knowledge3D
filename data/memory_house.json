@@ -275,236 +275,6 @@
       "id": "obj:ec397cb9"
     },
     {
-      "room": "Living Area",
-      "label": "Sofa",
-      "text": "",
-      "kind": "furniture",
-      "extra": {
-        "furniture": "sofa"
-      },
-      "id": "obj:f8fd84fe"
-    },
-    {
-      "room": "Living Area",
-      "label": "Floating Screen",
-      "text": "",
-      "kind": "furniture",
-      "extra": {
-        "furniture": "screen"
-      },
-      "id": "obj:67b1cec4"
-    },
-    {
-      "room": "Study",
-      "label": "Bookshelf",
-      "text": "",
-      "kind": "furniture",
-      "extra": {
-        "furniture": "bookshelf"
-      },
-      "id": "obj:a3c58d11"
-    },
-    {
-      "room": "Study",
-      "label": "Active Book",
-      "text": "",
-      "kind": "furniture",
-      "extra": {
-        "furniture": "book"
-      },
-      "id": "obj:e412e8d4"
-    },
-    {
-      "room": "Workshop",
-      "label": "Workbench",
-      "text": "",
-      "kind": "furniture",
-      "extra": {
-        "furniture": "bench"
-      },
-      "id": "obj:fd9af853"
-    },
-    {
-      "room": "Workshop",
-      "label": "Server Rack",
-      "text": "",
-      "kind": "furniture",
-      "extra": {
-        "furniture": "server_rack"
-      },
-      "id": "obj:8eaafc91"
-    },
-    {
-      "room": "Dream",
-      "label": "Dream Chamber",
-      "text": "",
-      "kind": "furniture",
-      "extra": {
-        "furniture": "tub"
-      },
-      "id": "obj:72118ee4"
-    },
-    {
-      "room": "Dream",
-      "label": "Galaxy Projector",
-      "text": "",
-      "kind": "furniture",
-      "extra": {
-        "furniture": "projector"
-      },
-      "id": "obj:caa02d21"
-    },
-    {
-      "room": "Network",
-      "label": "Internet Door",
-      "text": "k3d://net?label=internet",
-      "kind": "door",
-      "extra": {
-        "address": "k3d://net?label=internet"
-      },
-      "id": "obj:ca412287"
-    },
-    {
-      "room": "Network",
-      "label": "Local Network Door",
-      "text": "k3d://lan?label=local",
-      "kind": "door",
-      "extra": {
-        "address": "k3d://lan?label=local"
-      },
-      "id": "obj:6e2fdbd0"
-    },
-    {
-      "room": "Network",
-      "label": "Sensor Door",
-      "text": "k3d://sensors?label=sensors",
-      "kind": "door",
-      "extra": {
-        "address": "k3d://sensors?label=sensors"
-      },
-      "id": "obj:19e8fbae"
-    },
-    {
-      "room": "Reflections",
-      "label": "K3D Reflection — 20250829-223037",
-      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/reflections/k3d_reflection-20250829-223037.md",
-      "kind": "object",
-      "extra": {},
-      "id": "obj:8f4ac235"
-    },
-    {
-      "room": "Reflections",
-      "label": "K3D Reflection — 20250829-223156",
-      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/reflections/k3d_reflection-20250829-223156.md",
-      "kind": "object",
-      "extra": {},
-      "id": "obj:f6c35228"
-    },
-    {
-      "room": "Reflections",
-      "label": "K3D Reflection — 20250829-234126",
-      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/reflections/k3d_reflection-20250829-234126.md",
-      "kind": "object",
-      "extra": {},
-      "id": "obj:a8e6da8f"
-    },
-    {
-      "room": "Experiments",
-      "label": "Training Session — 20250829-234654",
-      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/session-20250829-234654.md",
-      "kind": "object",
-      "extra": {},
-      "id": "obj:1be5f518"
-    },
-    {
-      "room": "Experiments",
-      "label": "Training Session — 20250829-235207",
-      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/session-20250829-235207.md",
-      "kind": "object",
-      "extra": {},
-      "id": "obj:c1025272"
-    },
-    {
-      "room": "Experiments",
-      "label": "Training Session — 20250830-000345",
-      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/session-20250830-000345.md",
-      "kind": "object",
-      "extra": {},
-      "id": "obj:cccd5684"
-    },
-    {
-      "room": "Experiments",
-      "label": "Training Session — 20250830-000347",
-      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/session-20250830-000347.md",
-      "kind": "object",
-      "extra": {},
-      "id": "obj:07e04eaa"
-    },
-    {
-      "room": "Experiments",
-      "label": "Training Session — 20250830-003603",
-      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/session-20250830-003603.md",
-      "kind": "object",
-      "extra": {},
-      "id": "obj:567c2e5d"
-    },
-    {
-      "room": "Experiments",
-      "label": "Training Session — 20250830-015402",
-      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/session-20250830-015402.md",
-      "kind": "object",
-      "extra": {},
-      "id": "obj:5740dd9e"
-    },
-    {
-      "room": "Experiments",
-      "label": "Tasks — tasks-20250829-234654",
-      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/tasks-20250829-234654.json",
-      "kind": "object",
-      "extra": {},
-      "id": "obj:23ddac1d"
-    },
-    {
-      "room": "Experiments",
-      "label": "Tasks — tasks-20250829-235207",
-      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/tasks-20250829-235207.json",
-      "kind": "object",
-      "extra": {},
-      "id": "obj:48b48ed7"
-    },
-    {
-      "room": "Experiments",
-      "label": "Tasks — tasks-20250830-000345",
-      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/tasks-20250830-000345.json",
-      "kind": "object",
-      "extra": {},
-      "id": "obj:566e2b27"
-    },
-    {
-      "room": "Experiments",
-      "label": "Tasks — tasks-20250830-000347",
-      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/tasks-20250830-000347.json",
-      "kind": "object",
-      "extra": {},
-      "id": "obj:d7787d9d"
-    },
-    {
-      "room": "Experiments",
-      "label": "Tasks — tasks-20250830-003603",
-      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/tasks-20250830-003603.json",
-      "kind": "object",
-      "extra": {},
-      "id": "obj:19748506"
-    },
-    {
-      "room": "Experiments",
-      "label": "Tasks — tasks-20250830-015402",
-      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/tasks-20250830-015402.json",
-      "kind": "object",
-      "extra": {},
-      "id": "obj:b474168b"
-    },
-    {
       "room": "Standards & Specs",
       "label": "glTF K3D extension",
       "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/spec/glTF_K3D_extension.md",
@@ -615,6 +385,332 @@
       "kind": "object",
       "extra": {},
       "id": "obj:efe78747"
+    },
+    {
+      "room": "Reflections",
+      "label": "K3D Reflection — 20250829-223037",
+      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/reflections/k3d_reflection-20250829-223037.md",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:8f4ac235"
+    },
+    {
+      "room": "Reflections",
+      "label": "K3D Reflection — 20250829-223156",
+      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/reflections/k3d_reflection-20250829-223156.md",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:f6c35228"
+    },
+    {
+      "room": "Reflections",
+      "label": "K3D Reflection — 20250829-234126",
+      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/reflections/k3d_reflection-20250829-234126.md",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:a8e6da8f"
+    },
+    {
+      "room": "Experiments",
+      "label": "Training Session — 20250829-234654",
+      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/session-20250829-234654.md",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:1be5f518"
+    },
+    {
+      "room": "Experiments",
+      "label": "Training Session — 20250829-235207",
+      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/session-20250829-235207.md",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:c1025272"
+    },
+    {
+      "room": "Experiments",
+      "label": "Training Session — 20250830-000345",
+      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/session-20250830-000345.md",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:cccd5684"
+    },
+    {
+      "room": "Experiments",
+      "label": "Training Session — 20250830-000347",
+      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/session-20250830-000347.md",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:07e04eaa"
+    },
+    {
+      "room": "Experiments",
+      "label": "Training Session — 20250830-003603",
+      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/session-20250830-003603.md",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:567c2e5d"
+    },
+    {
+      "room": "Experiments",
+      "label": "Training Session — 20250830-015402",
+      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/session-20250830-015402.md",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:5740dd9e"
+    },
+    {
+      "room": "Experiments",
+      "label": "Training Session — 20250830-022158",
+      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/session-20250830-022158.md",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:0017d7d1"
+    },
+    {
+      "room": "Experiments",
+      "label": "Training Session — 20250830-022201",
+      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/session-20250830-022201.md",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:0cccd07c"
+    },
+    {
+      "room": "Experiments",
+      "label": "Training Session — 20250830-023217",
+      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/session-20250830-023217.md",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:0e3f068c"
+    },
+    {
+      "room": "Experiments",
+      "label": "Training Session — 20250830-024025",
+      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/session-20250830-024025.md",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:ec0457e6"
+    },
+    {
+      "room": "Experiments",
+      "label": "Training Session — 20250830-024704",
+      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/session-20250830-024704.md",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:e8fd8694"
+    },
+    {
+      "room": "Experiments",
+      "label": "Training Session — 20250830-025631",
+      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/session-20250830-025631.md",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:41cad314"
+    },
+    {
+      "room": "Experiments",
+      "label": "Tasks — tasks-20250829-234654",
+      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/tasks-20250829-234654.json",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:23ddac1d"
+    },
+    {
+      "room": "Experiments",
+      "label": "Tasks — tasks-20250829-235207",
+      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/tasks-20250829-235207.json",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:48b48ed7"
+    },
+    {
+      "room": "Experiments",
+      "label": "Tasks — tasks-20250830-000345",
+      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/tasks-20250830-000345.json",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:566e2b27"
+    },
+    {
+      "room": "Experiments",
+      "label": "Tasks — tasks-20250830-000347",
+      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/tasks-20250830-000347.json",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:d7787d9d"
+    },
+    {
+      "room": "Experiments",
+      "label": "Tasks — tasks-20250830-003603",
+      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/tasks-20250830-003603.json",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:19748506"
+    },
+    {
+      "room": "Experiments",
+      "label": "Tasks — tasks-20250830-015402",
+      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/tasks-20250830-015402.json",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:b474168b"
+    },
+    {
+      "room": "Experiments",
+      "label": "Tasks — tasks-20250830-022158",
+      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/tasks-20250830-022158.json",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:c7413f7a"
+    },
+    {
+      "room": "Experiments",
+      "label": "Tasks — tasks-20250830-022201",
+      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/tasks-20250830-022201.json",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:94398a36"
+    },
+    {
+      "room": "Experiments",
+      "label": "Tasks — tasks-20250830-023217",
+      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/tasks-20250830-023217.json",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:14b1dce6"
+    },
+    {
+      "room": "Experiments",
+      "label": "Tasks — tasks-20250830-024025",
+      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/tasks-20250830-024025.json",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:03d30efe"
+    },
+    {
+      "room": "Experiments",
+      "label": "Tasks — tasks-20250830-024704",
+      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/tasks-20250830-024704.json",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:bfd03514"
+    },
+    {
+      "room": "Experiments",
+      "label": "Tasks — tasks-20250830-025631",
+      "text": "file:/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/reports/training/tasks-20250830-025631.json",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:4fb19100"
+    },
+    {
+      "room": "Living Area",
+      "label": "Sofa",
+      "text": "",
+      "kind": "furniture",
+      "extra": {
+        "furniture": "sofa"
+      },
+      "id": "obj:f8fd84fe"
+    },
+    {
+      "room": "Living Area",
+      "label": "Floating Screen",
+      "text": "",
+      "kind": "furniture",
+      "extra": {
+        "furniture": "screen"
+      },
+      "id": "obj:67b1cec4"
+    },
+    {
+      "room": "Study",
+      "label": "Bookshelf",
+      "text": "",
+      "kind": "furniture",
+      "extra": {
+        "furniture": "bookshelf"
+      },
+      "id": "obj:a3c58d11"
+    },
+    {
+      "room": "Study",
+      "label": "Active Book",
+      "text": "",
+      "kind": "furniture",
+      "extra": {
+        "furniture": "book"
+      },
+      "id": "obj:e412e8d4"
+    },
+    {
+      "room": "Workshop",
+      "label": "Workbench",
+      "text": "",
+      "kind": "furniture",
+      "extra": {
+        "furniture": "bench"
+      },
+      "id": "obj:fd9af853"
+    },
+    {
+      "room": "Workshop",
+      "label": "Server Rack",
+      "text": "",
+      "kind": "furniture",
+      "extra": {
+        "furniture": "server_rack"
+      },
+      "id": "obj:8eaafc91"
+    },
+    {
+      "room": "Dream",
+      "label": "Dream Chamber",
+      "text": "",
+      "kind": "furniture",
+      "extra": {
+        "furniture": "tub"
+      },
+      "id": "obj:72118ee4"
+    },
+    {
+      "room": "Dream",
+      "label": "Galaxy Projector",
+      "text": "",
+      "kind": "furniture",
+      "extra": {
+        "furniture": "projector"
+      },
+      "id": "obj:caa02d21"
+    },
+    {
+      "room": "Network",
+      "label": "Internet Door",
+      "text": "k3d://net?label=internet",
+      "kind": "door",
+      "extra": {
+        "address": "k3d://net?label=internet"
+      },
+      "id": "obj:ca412287"
+    },
+    {
+      "room": "Network",
+      "label": "Local Network Door",
+      "text": "k3d://lan?label=local",
+      "kind": "door",
+      "extra": {
+        "address": "k3d://lan?label=local"
+      },
+      "id": "obj:6e2fdbd0"
+    },
+    {
+      "room": "Network",
+      "label": "Sensor Door",
+      "text": "k3d://sensors?label=sensors",
+      "kind": "door",
+      "extra": {
+        "address": "k3d://sensors?label=sensors"
+      },
+      "id": "obj:19e8fbae"
     },
     {
       "room": "Network",
