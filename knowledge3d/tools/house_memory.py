@@ -23,6 +23,7 @@ import math
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+import math as _math
 
 ROOT = Path(__file__).resolve().parents[2]
 STATE = ROOT / "data" / "memory_house.json"
@@ -329,6 +330,34 @@ class MemoryHouse:
             if ri is not None and oi is not None:
                 neighbors[ri].append(o.id)
                 neighbors[oi].append(self.rooms[o.room].id)
+
+        # Optional consolidation: add KNN links among non-room nodes (objects/doors), exclude furniture for clarity
+        try:
+            import numpy as np  # type: ignore
+            K = 3
+            obj_idx = [i for i, md in enumerate(metadata) if md.get('type') in {'object', 'door'}]
+            if len(obj_idx) > K:
+                emb = np.array([embeddings[i] for i in obj_idx], dtype=float)
+                # cosine similarity
+                norms = np.linalg.norm(emb, axis=1, keepdims=True) + 1e-9
+                X = emb / norms
+                S = X @ X.T
+                for ii, gi in enumerate(obj_idx):
+                    sims = S[ii]
+                    order = np.argsort(-sims)
+                    added = 0
+                    for jj in order:
+                        if jj == ii: continue
+                        gj = obj_idx[int(jj)]
+                        # link ids[gi] <-> ids[gj]
+                        if ids[gj] not in neighbors[gi]:
+                            neighbors[gi].append(ids[gj])
+                        if ids[gi] not in neighbors[gj]:
+                            neighbors[gj].append(ids[gi])
+                        added += 1
+                        if added >= K: break
+        except Exception:
+            pass
 
         # pack GLTF json with embedded arrays
         payload = {
