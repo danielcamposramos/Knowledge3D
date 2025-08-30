@@ -1,0 +1,3 @@
+{"ts": "2025-08-29T20:23:38.112954Z", "type": "presence", "event": "join", "nick": "user9040", "channel": "#general"}
+{"ts": "2025-08-29T20:23:38.114698Z", "type": "chat", "from": "user9040", "channel": "#general", "text": "goto library"}
+{"ts": "2025-08-29T20:23:38.115862Z", "type": "presence", "event": "leave", "nick": "user9040", "channel": "#general"}

@@ -644,6 +644,35 @@ export class SummaryApp implements TabletApp {
   }
 }
 
+export class StandardsApp implements TabletApp {
+  id = 'standards'; title = 'Standards Index';
+  private files: { title: string; path: string }[] = [
+    { title: 'glTF K3D Extension', path: '/spec/glTF_K3D_extension.md' },
+    { title: 'K3D Node Schema', path: '/spec/k3d_node_schema.json' },
+    { title: 'K3D Agent Protocol', path: '/spec/k3d_agent_protocol.md' },
+    { title: 'AI RPN Standard', path: '/spec/AI_RPN_standard.md' },
+    { title: 'HR/MR Standard', path: '/docs/HR_MR_STANDARD.md' },
+    { title: 'Methods (HR/MR)', path: '/docs/reports/METHODS.md' },
+  ];
+  private publish: ((ev: { type: string; payload?: any }) => void) | null = null;
+  setContext(ctx: { records: ReadonlyArray<K3DRecord>; publish?: (ev: { type: string; payload?: any }) => void }) { this.publish = ctx.publish || null; }
+  renderCanvas(ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }) {
+    ctx.fillStyle = '#0b0d0f'; ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+    ctx.fillStyle = '#fff'; ctx.font = '12px system-ui';
+    ctx.fillText('Standards ready in Focus', rect.x+8, rect.y+18);
+  }
+  openOverlay(el: HTMLDivElement) {
+    el.innerHTML=''; const list = document.createElement('div'); list.style.marginTop='6px';
+    for (const f of this.files) {
+      const row = document.createElement('div'); row.style.display='flex'; row.style.justifyContent='space-between'; row.style.gap='8px'; row.style.marginTop='6px';
+      const lab = document.createElement('div'); lab.textContent = f.title; lab.style.color='#ddd'; lab.style.flex='1';
+      const btn = document.createElement('button'); btn.textContent='Open'; btn.onclick=()=>{ this.publish?.({ type:'webOpen', payload:{ url: f.path } }); };
+      row.appendChild(lab); row.appendChild(btn); list.appendChild(row);
+    }
+    el.appendChild(list);
+  }
+}
+
 export class LayersApp implements TabletApp {
   id = 'layers'; title = 'Layers';
   private layers: string[] = [];
