@@ -64,6 +64,10 @@ class LiveServer:
         self._graphs: Dict[str, Dict[str, Any]] = {}
         self._current_label: Dict[str, str] = {}
         self._doors: Dict[str, Dict[str, str]] = {}
+        # Search caches per channel
+        self._label_to_id: Dict[str, Dict[str, str]] = {}
+        self._goto_cache: Dict[str, Dict[str, str]] = {}
+        self._search_index: Dict[str, Dict[str, Any]] = {}
         # Reflection/identity: track prompts we send once per channel
         self._asked_thoughts: Set[str] = set()
         self._told_identity: Set[str] = set()
@@ -76,6 +80,26 @@ class LiveServer:
         except Exception:  # pragma: no cover
             self._SpatialAddress = None
             self._Network3D = None
+        # Optional TF-IDF embedding for open-vocab goto
+        try:
+            from sklearn.feature_extraction.text import TfidfVectorizer  # type: ignore
+            import numpy as _np  # type: ignore
+            self._TFIDF = TfidfVectorizer
+            self._NP = _np
+        except Exception:
+            self._TFIDF = None  # type: ignore
+            self._NP = None  # type: ignore
+        # Gazetteer/canonicalizer (optional, tiny)
+        try:
+            from .gazetteer import build_gazetteer, match_gazetteer, canonicalize  # type: ignore
+            self._build_gazetteer = build_gazetteer
+            self._match_gazetteer = match_gazetteer
+            self._canonicalize = canonicalize
+        except Exception:
+            self._build_gazetteer = None  # type: ignore
+            self._match_gazetteer = None  # type: ignore
+            self._canonicalize = lambda s: s  # type: ignore
+
         # Inline intent model (optional)
         self._model = None
         self._model_enabled = False
@@ -202,8 +226,7 @@ class LiveServer:
                                 p = self._processor.spatial_parser.parse(text, self._ctx_by_nick.get(client.nick, self._ConversationContext()))
                                 if action == "goto":
                                     target = p.get("location") or p.get("loc") or text
-                                    await self.send_command("goto", str(target), channel=client.channel)
-                                    await self.send_chat(sender="agent", text=f"[model {conf:.2f}] Navigating to {target}", channel=client.channel)
+                                    await self._dispatch_goto(client.channel, str(target), source="model", confidence=conf)
                                 elif action in {"show", "find_related", "expand"}:
                                     label = p.get("topic") or p.get("area") or p.get("object") or text
                                     payload = json.dumps({"labels": [str(label)]})
@@ -225,11 +248,15 @@ class LiveServer:
                         await self.send_chat(sender="system", text=f"Action blocked by ethics policy ({dec.reason}). With great powers, come great responsibilities.", channel=client.channel)
                         return
                     action = resp.get("action") or "action"
-                    # payload as JSON string in target for compatibility
-                    payload = json.dumps({k: v for k, v in resp.items() if k not in {"type", "message"}})
-                    await self.send_command(action, payload, channel=client.channel)
-                    if msg_text := resp.get("message"):
-                        await self.send_chat(sender="agent", text=msg_text, channel=client.channel)
+                    if action == "goto":
+                        target = str(resp.get("target") or resp.get("location") or "").strip()
+                        await self._dispatch_goto(client.channel, target, source="rule")
+                    else:
+                        # payload as JSON string in target for compatibility
+                        payload = json.dumps({k: v for k, v in resp.items() if k not in {"type", "message"}})
+                        await self.send_command(action, payload, channel=client.channel)
+                        if msg_text := resp.get("message"):
+                            await self.send_chat(sender="agent", text=msg_text, channel=client.channel)
             else:
                 # naive intent: goto <label>
                 if text.lower().startswith("goto "):
@@ -238,8 +265,7 @@ class LiveServer:
                         await self.log({"type": "pause_block", "what": "goto", "channel": client.channel})
                         return
                     target = text[5:].strip()
-                    await self.send_command("goto", target)
-                    await self.send_chat(sender="agent", text=f"On my way to {target}.", channel=client.channel)
+                    await self._dispatch_goto(client.channel, target, source="naive")
                     await self.log({"type": "command", "command": "goto", "target": target, "source": "naive_from_chat", "channel": client.channel})
         elif t == "command":
             cmd = msg.get("command")
@@ -263,6 +289,21 @@ class LiveServer:
                 labels = ev.get("labels") or []
                 if isinstance(ids, list) and isinstance(neighbors, list):
                     self._graphs[client.channel] = {"ids": ids, "neighbors": neighbors, "labels": labels}
+                    # build caches, gazetteer, and optional TF-IDF search index
+                    try:
+                        self._label_to_id[client.channel] = {str(labels[i] if i < len(labels) and labels[i] else ids[i]): ids[i] for i in range(len(ids))}
+                        self._goto_cache.setdefault(client.channel, {})
+                        if getattr(self, "_build_gazetteer", None) is not None:
+                            self._search_index.setdefault(client.channel, {})
+                            self._search_index[client.channel]["gazetteer"] = self._build_gazetteer(self._label_to_id[client.channel].keys())
+                        if getattr(self, "_TFIDF", None) is not None:
+                            vec = self._TFIDF(lowercase=True, analyzer='word', ngram_range=(1,2))
+                            texts = [str(labels[i] if labels and i < len(labels) and labels[i] else ids[i]) for i in range(len(ids))]
+                            X = vec.fit_transform(texts)
+                            self._search_index.setdefault(client.channel, {})
+                            self._search_index[client.channel].update({"vec": vec, "X": X, "labels": texts})
+                    except Exception:
+                        pass
                     # Auto-ask thoughts once per channel when graph arrives
                     if client.channel not in self._asked_thoughts and not self._is_paused(client.channel):
                         self._asked_thoughts.add(client.channel)
@@ -285,6 +326,30 @@ class LiveServer:
                             continue
                     if door_map:
                         self._doors[client.channel] = door_map
+            # Optional: aliases to enrich gazetteer (alias -> label)
+            if kind == "aliases":
+                try:
+                    items = ev.get("items") or []
+                    idx = self._search_index.get(client.channel)
+                    if not idx:
+                        self._search_index[client.channel] = {}
+                        idx = self._search_index[client.channel]
+                    gaz = idx.get("gazetteer") or {}
+                    if getattr(self, "_canonicalize", None) is not None:
+                        for it in items:
+                            alias = str(it.get("alias") or "").strip()
+                            label = str(it.get("label") or "").strip()
+                            if not alias or not label:
+                                continue
+                            can = self._canonicalize(alias)
+                            if not can:
+                                continue
+                            arr = gaz.setdefault(can, [])
+                            if label not in arr:
+                                arr.append(label)
+                        self._search_index[client.channel]["gazetteer"] = gaz
+                except Exception:
+                    pass
             # Track agent arrival for current label baseline
             if kind == "explain":
                 txt = str(ev.get("text") or "")
@@ -539,6 +604,83 @@ class LiveServer:
         async with websockets.serve(self.handler, self.host, self.port):
             print(f"K3D live server listening on ws://{self.host}:{self.port}")
             await asyncio.Future()
+
+    # --- Open-vocab goto resolution ---
+    async def _dispatch_goto(self, channel: str, query: str, source: str = "rule", confidence: Optional[float] = None) -> None:
+        q = (query or "").strip()
+        if not q:
+            return
+        # Gazetteer pass (exact/prefix/substring on canonical forms)
+        idx = self._search_index.get(channel) if hasattr(self, "_search_index") else None
+        if idx and idx.get("gazetteer") and getattr(self, "_match_gazetteer", None) is not None:
+            lab, sc = self._match_gazetteer(q, idx["gazetteer"])  # type: ignore[arg-type]
+            if lab:
+                resolved = lab
+                score = sc
+        # Use cache next
+        cache = self._goto_cache.setdefault(channel, {})
+        if not resolved:
+            resolved = cache.get(q)
+        # fallback TF-IDF + string heuristics
+        if not resolved:
+            # Exact/normalized match first
+            labels_map = self._label_to_id.get(channel) or {}
+            if q in labels_map:
+                resolved = q
+                score = 1.0
+            else:
+                # simple case-insensitive normalization
+                lower_map = {k.lower(): k for k in labels_map.keys()}
+                if q.lower() in lower_map:
+                    resolved = lower_map[q.lower()]
+                    score = 1.0
+                else:
+                    # TF-IDF cosine over labels if available
+                    if idx and getattr(self, "_NP", None) is not None:
+                        try:
+                            vec, X, labs = idx["vec"], idx["X"], idx["labels"]
+                            qv = vec.transform([q])
+                            import numpy as np  # type: ignore
+                            qnorm = float(np.sqrt((qv.multiply(qv)).sum())) or 1.0
+                            row_norms = idx.get("row_norms")
+                            if row_norms is None:
+                                row_norms = np.sqrt((X.multiply(X)).sum(axis=1)).A1
+                                idx["row_norms"] = row_norms
+                            sims = (X @ qv.T).toarray().ravel()
+                            denom = row_norms * qnorm
+                            denom = np.where(denom == 0, 1.0, denom)
+                            sims = sims / denom
+                            best = int(sims.argmax())
+                            resolved = labs[best]
+                            score = float(sims[best])
+                        except Exception:
+                            resolved = None
+                    # fallback: prefix/substring over labels
+                    if not resolved and labels_map:
+                        cand = next((k for k in labels_map.keys() if k.lower().startswith(q.lower())), None)
+                        resolved = cand or next((k for k in labels_map.keys() if q.lower() in k.lower()), None)
+            if resolved:
+                cache[q] = resolved
+        # Send command using resolved if available; else use raw query
+        target = resolved or q
+        await self.send_command("goto", target, channel=channel)
+        # Human-friendly note with resolution
+        note = f"Navigating to {target}" if target == q else f"Navigating to {target} (from '{q}'{', sim='+str(round(score,3)) if score is not None else ''})"
+        if confidence is not None:
+            note = f"[model {confidence:.2f}] " + note
+        await self.send_chat(sender="agent", text=note, channel=channel)
+        try:
+            await self.log({
+                "type": "goto_resolution",
+                "channel": channel,
+                "query": q,
+                "resolved": target,
+                "score": score,
+                "source": source,
+                "model_confidence": confidence,
+            })
+        except Exception:
+            pass
 
     # --- Pause/Resume support ---
     def _is_paused(self, channel: str) -> bool:
