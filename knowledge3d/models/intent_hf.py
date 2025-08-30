@@ -252,6 +252,7 @@ def train_from_logs_and_synth(
         save_strategy="epoch",
         load_best_model_at_end=True,
         metric_for_best_model="eval_loss",
+        fp16=True if False else False,
     )
     import evaluate
     acc = evaluate.load("accuracy")
@@ -314,11 +315,22 @@ def main():  # pragma: no cover
     p.add_argument("--epochs", type=int, default=3)
     p.add_argument("--synth-per-label", type=int, default=100)
     p.add_argument("--batch-size", type=int, default=16)
+    p.add_argument("--fp16", action="store_true")
     p.add_argument("--templates-dir", default=str((Path(__file__).resolve().parents[2] / "data" / "intent_templates")))
     p.add_argument("--langs", default="en,pt,es")
     p.add_argument("--text", help="text to predict")
     args = p.parse_args()
     if args.command == "train":
+        # Configure FP16 if requested
+        global TrainingArguments
+        if args.fp16:
+            # Rebind TrainingArguments to include fp16=True via a thin wrapper
+            from transformers import TrainingArguments as _TA  # type: ignore
+            class _TA2(_TA):
+                def __init__(self, *a, **kw):
+                    kw.setdefault("fp16", True)
+                    super().__init__(*a, **kw)
+            TrainingArguments = _TA2  # type: ignore
         res = train_from_logs_and_synth(
             Path(args.logs),
             Path(args.out),
