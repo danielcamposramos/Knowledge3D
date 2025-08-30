@@ -4,11 +4,9 @@
 
 ![pre-alpha](https://img.shields.io/badge/status-pre--alpha-blue) [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE)
 
-- [Philosophy](docs/PHILOSOPHY.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Concepts](docs/CONCEPTS.md)
-- [Ethics](docs/ETHICS.md)
-- [Development Plan](DEVELOPMENT.md)
+> **New to K3D? Start here: [`The K3D Vision: A Unified Framework`](docs/VISION.md)**
+>
+> This core document outlines the project's vision, architecture, roadmap, and contributor guidelines in one place.
 
 ## Vision
 
@@ -117,8 +115,6 @@ Additional directories:
 - `docs/` : Extended documentation and research.
 - `tests/` : Unit tests and future philosophical validation suites.
 
-## Roadmap
-The project is in **Phase 1: Philosophical Foundation**. We’re prototyping Knowledge Gardens and Tablet Exams with real ARC ingestion. Upcoming phases include technical architecture prototypes, proof-of-concept avatars, multi-user environments, software integration, and long-term distributed networking. See [Development Plan](DEVELOPMENT.md) and [Roadmap](docs/ROADMAP.md) for details.
 
 ## Contributing
 

@@ -1,3 +1,10 @@
+> **Note: This document is outdated.**
+>
+> The information in this file has been superseded by the new, consolidated vision document. For the most current and authoritative information on the project's vision, architecture, and roadmap, please see:
+>
+> **[`docs/VISION.md`](VISION.md)**
+---
+
 # Knowledge3D Project Roadmap
 
 This document outlines the strategic, phased development plan for the Knowledge3D (K3D) project, as detailed in the **[Knowledge3D Project Research Report](k3d-research.md)**. The vision is to build a unified framework for embodied spatial intelligence, and this roadmap provides a clear, actionable path to achieving that goal.
