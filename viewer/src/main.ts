@@ -170,6 +170,8 @@ async function loadHouse(k3dUrl: string) {
             tablet = new Tablet3D();
             scene.add(tablet.object);
         }
+        // Forward tablet app events to live server for session logging
+        tablet.setEmitter?.((ev: any) => { if (chat) chat.sendEvent(ev); });
         // Update tablet with house info and dataset
         tablet.setStatus({ house: k3dUrl, nodes: k3dData.length, info: `dims=${loaded.info.dims} precision=${loaded.info.precision}` });
         tablet.setDataset(k3dData);

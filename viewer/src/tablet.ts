@@ -21,6 +21,7 @@ export class Tablet3D {
   private overlay: HTMLDivElement | null = null;
   private apps: TabletApp[] = [new ConsoleApp(), new NotesApp(), new RpnApp(), new WebApp(), new CalendarApp(), new MailApp(), new EmbeddingsApp(), new GraphApp(), new GalaxyApp()];
   private activeApp = 'console';
+  private emitter: ((ev: { type: string; payload?: any; kind?: string }) => void) | null = null;
 
   constructor() {
     // screen canvas
@@ -67,8 +68,17 @@ export class Tablet3D {
   }
 
   private publish(ev: { type: string; payload?: any }) {
+    // fan-out to apps
     for (const app of this.apps) app.onEvent?.(ev);
+    // emit upstream for live logging (e.g., agentic browser events)
+    try {
+      this.emitter?.({ ...ev, kind: ev.type });
+    } catch {}
     this.renderScreen();
+  }
+
+  setEmitter(fn: (ev: { type: string; payload?: any; kind?: string }) => void) {
+    this.emitter = fn;
   }
 
   toggleFocus() {
