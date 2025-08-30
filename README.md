@@ -88,7 +88,7 @@ Each line is a training example with from/next labels and optional embeddings wh
 ### Run Evidence
 - Raw session logs and server outputs: `docs/reports/live/`
 - Derived session summaries and tasks: `docs/reports/training/`
-- New large asset: `viewer/public/ai_compendium.80k.pca.doors.glb` (80k nodes, PCA, 512d f16)
+- Large assets are local-only; see `docs/LARGE_ASSETS.md` to reproduce.
 
 ### Knowledge Gardens (Ontology Room)
 - Build demo: `python3 -m knowledge3d.tools.gardens --gltf viewer/public/knowledge_garden.glb`

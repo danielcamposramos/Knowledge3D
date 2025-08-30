@@ -59,7 +59,7 @@ class Network3D:
 
 
 class Transport3D:
-    """Transport layer: reliable delivery (placeholder)."""
+    """Transport layer: message envelope definition (lightweight)."""
 
     @dataclass
     class Message:
@@ -70,16 +70,43 @@ class Transport3D:
 
 
 class Session3D:
-    """Session layer: maintains conversational/session state (placeholder)."""
-    pass
+    """Session layer: minimal per-channel state (current label, doors)."""
+    _labels: Dict[str, str] = {}
+    _doors: Dict[str, Dict[str, str]] = {}
+
+    @classmethod
+    def set_label(cls, channel: str, label: str) -> None:
+        cls._labels[channel] = label
+
+    @classmethod
+    def get_label(cls, channel: str) -> Optional[str]:
+        return cls._labels.get(channel)
+
+    @classmethod
+    def set_doors(cls, channel: str, doors: Dict[str, str]) -> None:
+        cls._doors[channel] = dict(doors)
+
+    @classmethod
+    def get_doors(cls, channel: str) -> Dict[str, str]:
+        return dict(cls._doors.get(channel, {}))
 
 
 class Presentation3D:
-    """Presentation layer: transforms data for human/AI clients (placeholder)."""
-    pass
+    """Presentation layer: simple helpers to format payloads."""
+
+    @staticmethod
+    def format_open_payload(label: str, address: str, path: List[str]) -> dict:
+        return {"label": label, "address": address, "path": path}
 
 
 class Application3D:
-    """Application layer: high-level services like search, edit, insight (placeholder)."""
-    pass
+    """Application layer: helpers for door registration and routing."""
+
+    @staticmethod
+    def register_doors(channel: str, doors: Dict[str, str]) -> None:
+        Session3D.set_doors(channel, doors)
+
+    @staticmethod
+    def current_label(channel: str) -> Optional[str]:
+        return Session3D.get_label(channel)
 
