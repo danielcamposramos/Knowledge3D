@@ -1,26 +1,26 @@
 {
-  "ts": "20250830-023217",
-  "nodes": 1880,
+  "ts": "20250830-024704",
+  "nodes": 9076,
   "avg_degree": 5.0,
-  "doors": 32,
-  "guided": 63,
+  "doors": 96,
+  "guided": 191,
   "hubs": [
-    "LICENSE-CC-BY-4.0 — c...",
-    "k3d-research — Conclu...",
-    "echo systems k 3 d ac...",
-    "LICENSE-CC-BY-4.0 — i...",
-    "LICENSE-CC-BY-4.0 — f..."
+    "AI ethics — While opi...",
+    "Ontology (information...",
+    "Augmented reality — W...",
+    "Data visualization — ...",
+    "Data visualization — ..."
   ],
   "goto": {
-    "count": 128,
-    "success": 119,
-    "success_rate": 0.9296875,
-    "median_hops": 7
+    "count": 320,
+    "success": 314,
+    "success_rate": 0.98125,
+    "median_hops": 9
   },
   "door": {
-    "count": 48,
-    "success": 46,
-    "success_rate": 0.9583333333333334,
-    "median_hops": 7
+    "count": 128,
+    "success": 127,
+    "success_rate": 0.9921875,
+    "median_hops": 9
   }
 }

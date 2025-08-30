@@ -615,6 +615,76 @@
       "kind": "object",
       "extra": {},
       "id": "obj:efe78747"
+    },
+    {
+      "room": "Network",
+      "label": "Memory House",
+      "text": "/memory_house.gltf",
+      "kind": "door",
+      "extra": {
+        "address": "/memory_house.gltf"
+      },
+      "id": "obj:50f6e410"
+    },
+    {
+      "room": "Network",
+      "label": "AI Compendium 1k",
+      "text": "/ai_compendium.1k.umap.doors.glb",
+      "kind": "door",
+      "extra": {
+        "address": "/ai_compendium.1k.umap.doors.glb"
+      },
+      "id": "obj:0472c81b"
+    },
+    {
+      "room": "Network",
+      "label": "AI Compendium 4k",
+      "text": "/ai_compendium.4k.umap.doors.glb",
+      "kind": "door",
+      "extra": {
+        "address": "/ai_compendium.4k.umap.doors.glb"
+      },
+      "id": "obj:1964a196"
+    },
+    {
+      "room": "Network",
+      "label": "AI Books 4k",
+      "text": "/ai_books_basic.4k.umap.doors.glb",
+      "kind": "door",
+      "extra": {
+        "address": "/ai_books_basic.4k.umap.doors.glb"
+      },
+      "id": "obj:f9e7e8d0"
+    },
+    {
+      "room": "Network",
+      "label": "AI Books Full",
+      "text": "/ai_books_basic.full.umap.doors.glb",
+      "kind": "door",
+      "extra": {
+        "address": "/ai_books_basic.full.umap.doors.glb"
+      },
+      "id": "obj:b595b075"
+    },
+    {
+      "room": "Network",
+      "label": "AI Care Multilang",
+      "text": "/ai_care_multilang.umap.glb",
+      "kind": "door",
+      "extra": {
+        "address": "/ai_care_multilang.umap.glb"
+      },
+      "id": "obj:1c92428c"
+    },
+    {
+      "room": "Network",
+      "label": "AI Care Ancient",
+      "text": "/ai_care_ancient.umap.glb",
+      "kind": "door",
+      "extra": {
+        "address": "/ai_care_ancient.umap.glb"
+      },
+      "id": "obj:b875ccd6"
     }
   ]
 }
