@@ -1,26 +1,26 @@
 {
-  "ts": "20250830-022201",
-  "nodes": 4096,
+  "ts": "20250830-023217",
+  "nodes": 1880,
   "avg_degree": 5.0,
-  "doors": 55,
-  "guided": 110,
+  "doors": 32,
+  "guided": 63,
   "hubs": [
-    "Fine art - Wikipedia ...",
-    "Fine art - Wikipedia ...",
-    "Work (human activity)...",
-    "Fine art - Wikipedia ...",
-    "Fine art - Wikipedia ..."
+    "LICENSE-CC-BY-4.0 — c...",
+    "k3d-research — Conclu...",
+    "echo systems k 3 d ac...",
+    "LICENSE-CC-BY-4.0 — i...",
+    "LICENSE-CC-BY-4.0 — f..."
   ],
   "goto": {
-    "count": 256,
-    "success": 174,
-    "success_rate": 0.6796875,
+    "count": 128,
+    "success": 119,
+    "success_rate": 0.9296875,
     "median_hops": 7
   },
   "door": {
-    "count": 96,
-    "success": 71,
-    "success_rate": 0.7395833333333334,
+    "count": 48,
+    "success": 46,
+    "success_rate": 0.9583333333333334,
     "median_hops": 7
   }
 }
