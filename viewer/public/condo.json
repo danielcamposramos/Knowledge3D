@@ -6,6 +6,16 @@
       "description": "AI demo with ai_state_flags and protocol."
     },
     {
+      "uri": "/ai_compendium.80k.pca.glb",
+      "expert": "ai-compendium-80k-pca",
+      "description": "AI Compendium (80k, PCA, 512d, f16)"
+    },
+    {
+      "uri": "/ai_compendium.80k.pca.doors.glb",
+      "expert": "ai-compendium-80k-pca-doors",
+      "description": "AI Compendium (80k, PCA) with doors + guidance"
+    },
+    {
       "uri": "/ai_compendium.40k.umap.glb",
       "expert": "ai-compendium-40k",
       "description": "AI Compendium (~50k merged lines)"

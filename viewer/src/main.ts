@@ -40,6 +40,7 @@ let layersMgr: DynamicLayerManager | null = null;
 let lod: LODRenderer | null = null;
 let lastHoverRecord: K3DRecord | null = null;
 let layersOverlay: HTMLDivElement | null = null;
+let edgesObject: THREE.LineSegments | null = null;
 
 // --- Main Logic ---
 
@@ -52,6 +53,12 @@ function clearScene() {
         currentPoints.geometry.dispose();
         (currentPoints.material as THREE.Material).dispose();
         currentPoints = null;
+    }
+    if (edgesObject) {
+        scene.remove(edgesObject);
+        (edgesObject.geometry as THREE.BufferGeometry).dispose();
+        (edgesObject.material as THREE.Material).dispose();
+        edgesObject = null;
     }
     lod = null;
     layersMgr = null;
@@ -184,6 +191,31 @@ async function loadHouse(k3dUrl: string) {
         agent = new K3DAgent(scene, camera, pushExplain);
         agent.setRecords(k3dData);
 
+        // Optional edges rendering (e.g., Knowledge Gardens ontology)
+        if (loaded.edges && loaded.edges.length > 0) {
+            const idToIndex = new Map<string, number>();
+            k3dData.forEach((r, i) => idToIndex.set(r.id, i));
+            const E = loaded.edges.filter(([a,b]) => idToIndex.has(a) && idToIndex.has(b));
+            const edgePos = new Float32Array(E.length * 2 * 3);
+            let ptr = 0;
+            for (const [a, b] of E) {
+                const ia = idToIndex.get(a)!;
+                const ib = idToIndex.get(b)!;
+                const ax = positions[ia*3+0], ay = positions[ia*3+1], az = positions[ia*3+2];
+                const bx = positions[ib*3+0], by = positions[ib*3+1], bz = positions[ib*3+2];
+                edgePos[ptr++] = ax; edgePos[ptr++] = ay; edgePos[ptr++] = az;
+                edgePos[ptr++] = bx; edgePos[ptr++] = by; edgePos[ptr++] = bz;
+            }
+            const eg = new THREE.BufferGeometry();
+            eg.setAttribute('position', new THREE.BufferAttribute(edgePos, 3));
+            const emat = new THREE.LineBasicMaterial({ color: 0x66cc66, transparent: true, opacity: 0.25 });
+            const lines = new THREE.LineSegments(eg, emat);
+            // draw slightly behind points to reduce overdraw
+            (lines.material as THREE.LineBasicMaterial).depthWrite = false;
+            scene.add(lines);
+            edgesObject = lines;
+        }
+
         // Setup tablet (3D object) if not present
         if (!tablet) {
             tablet = new Tablet3D();
@@ -302,6 +334,8 @@ async function loadHouse(k3dUrl: string) {
                 }
             }
         });
+        // Provide context for logging and continuity
+        chat.setContext({ house: k3dUrl, mode: 'ai' });
         chat.connect();
 
         // Share dataset graph with live server for routing (ids, neighbors, labels)

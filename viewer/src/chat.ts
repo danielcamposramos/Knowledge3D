@@ -30,10 +30,13 @@ export class ChatClient {
   private handlers: Handlers;
   private connected = false;
   private outbox = openStore<any>('k3d-tablet', 'outbox');
+  private tabletId: string;
+  private context: { house?: string; mode?: 'ai' | 'human' } = {};
 
   constructor(url: string, handlers: Handlers = {}) {
     this.url = url;
     this.handlers = handlers;
+    this.tabletId = this.ensureTabletId();
   }
 
   connect() {
@@ -96,18 +99,36 @@ export class ChatClient {
     await this.outbox.put(key, keep);
   }
 
+  setContext(ctx: { house?: string; mode?: 'ai' | 'human' }) { this.context = { ...this.context, ...ctx }; }
+
+  private ensureTabletId(): string {
+    try {
+      const key = 'k3d-tablet/id';
+      const existing = localStorage.getItem(key);
+      if (existing && existing.length > 0) return existing;
+      const id = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
+      localStorage.setItem(key, id);
+      return id;
+    } catch {
+      return 'unknown-tablet';
+    }
+  }
+
   sendChat(text: string) {
-    const msg: ChatMessage = { type: 'chat', from: 'human', text };
-    if (!this.trySend(msg)) this.enqueue(msg);
+    const msg: ChatMessage & any = { type: 'chat', from: 'human', text };
+    const envelope = { ...msg, tabletId: this.tabletId, house: this.context.house, mode: this.context.mode };
+    if (!this.trySend(envelope)) this.enqueue(envelope);
   }
 
   sendCommandGoto(target: string) {
-    const msg: CommandMessage = { type: 'command', command: 'goto', target };
-    if (!this.trySend(msg)) this.enqueue(msg);
+    const msg: CommandMessage & any = { type: 'command', command: 'goto', target };
+    const envelope = { ...msg, tabletId: this.tabletId, house: this.context.house, mode: this.context.mode };
+    if (!this.trySend(envelope)) this.enqueue(envelope);
   }
 
   sendEvent(event: Record<string, unknown>) {
-    const payload = { type: 'event', event };
-    if (!this.trySend(payload)) this.enqueue(payload);
+    const payload = { type: 'event', event } as any;
+    const envelope = { ...payload, tabletId: this.tabletId, house: this.context.house, mode: this.context.mode };
+    if (!this.trySend(envelope)) this.enqueue(envelope);
   }
 }

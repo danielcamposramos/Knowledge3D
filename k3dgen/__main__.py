@@ -3,7 +3,7 @@ import base64
 import json
 import os
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Dict, Any
 
 import numpy as np
 import pandas as pd
@@ -134,11 +134,13 @@ def create_gltf_file(
     neighbor_indices: np.ndarray,
     labels: List[str] | None = None,
     metadata_texts: List[str] | None = None,
+    metadata_override: List[Dict[str, Any]] | None = None,
     fmt: str = "gltf",
     emb_precision: str = "f32",
     ai_protocol: str | None = None,
     ai_flags: dict | None = None,
     ai_flags_mask: dict | None = None,
+    edges: List[Tuple[str, str]] | None = None,
 ) -> None:
     """Create a glTF/GLB file with positions + embeddings in buffers.
 
@@ -190,12 +192,15 @@ def create_gltf_file(
     for i, _ in enumerate(ids):
         neighbors.append([ids[j] for j in neighbor_indices[i]])
 
-    meta_list = []
-    for i in range(len(ids)):
-        entry = {"label": (labels[i] if labels else ids[i])}
-        if metadata_texts is not None and i < len(metadata_texts):
-            entry["text"] = metadata_texts[i]
-        meta_list.append(entry)
+    if metadata_override is not None and len(metadata_override) == len(ids):
+        meta_list = metadata_override
+    else:
+        meta_list = []
+        for i in range(len(ids)):
+            entry = {"label": (labels[i] if labels else ids[i])}
+            if metadata_texts is not None and i < len(metadata_texts):
+                entry["text"] = metadata_texts[i]
+            meta_list.append(entry)
 
     k3d_payload = {
         "ids": ids,
@@ -206,6 +211,13 @@ def create_gltf_file(
         "metadata": meta_list,
         "neighbors": neighbors,
     }
+
+    # Optional explicit edges (e.g., ontology parent->child pairs)
+    if edges:
+        try:
+            k3d_payload["edges"] = [[str(a), str(b)] for (a, b) in edges]
+        except Exception:
+            pass
 
     # Optional AI-native fields at primitive level
     if ai_protocol:
