@@ -531,6 +531,60 @@ export class StatsApp implements TabletApp {
   }
 }
 
+export class DoorsApp implements TabletApp {
+  id = 'doors'; title = 'Doors';
+  private items: { label: string; address?: string }[] = [];
+  private publish: ((ev: { type: string; payload?: any }) => void) | null = null;
+  setContext(ctx: { records: ReadonlyArray<K3DRecord>; publish?: (ev: { type: string; payload?: any }) => void }) { this.publish = ctx.publish || null; }
+  onEvent(ev: { type: string; payload?: any }) {
+    if (ev.type === 'doors_list' && Array.isArray(ev.payload?.items)) this.items = ev.payload.items as any[];
+  }
+  renderCanvas(ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }) {
+    ctx.fillStyle = '#0b0d0f'; ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+    ctx.fillStyle = '#fff'; ctx.font = '12px system-ui';
+    ctx.fillText(`doors: ${this.items.length}`, rect.x+8, rect.y+18);
+    let y = rect.y+36; const max = Math.min(8, this.items.length);
+    for (let i=0;i<max;i++){ const it=this.items[i]; ctx.fillText(`${it.label}`, rect.x+8, y); y += 14; }
+  }
+  openOverlay(el: HTMLDivElement) {
+    el.innerHTML = '';
+    const list = document.createElement('div'); list.style.maxHeight='60vh'; list.style.overflow='auto'; list.style.marginTop='6px';
+    for (const it of this.items) {
+      const row = document.createElement('div'); row.style.display='flex'; row.style.justifyContent='space-between'; row.style.alignItems='center'; row.style.gap='8px'; row.style.marginTop='6px';
+      const lab = document.createElement('div'); lab.textContent = it.label + (it.address?` — ${it.address}`:''); lab.style.color='#ddd'; lab.style.flex='1';
+      const btn = document.createElement('button'); btn.textContent='Open'; btn.onclick=()=>{ this.publish?.({ type:'openDoor', payload:{ label: it.label, address: it.address } }); };
+      row.appendChild(lab); row.appendChild(btn); list.appendChild(row);
+    }
+    el.appendChild(list);
+  }
+}
+
+export class DiaryApp implements TabletApp {
+  id = 'diary'; title = 'Diary';
+  private store = openStore<any>('k3d-tablet','diary');
+  private entries: { ts: number; text: string }[] = [];
+  private publish: ((ev: { type: string; payload?: any }) => void) | null = null;
+  async ensureLoaded(){ const arr=(await this.store.get('entries'))||[]; this.entries = Array.isArray(arr)?arr:[]; }
+  async save(){ await this.store.put('entries', this.entries); }
+  setContext(ctx: { records: ReadonlyArray<K3DRecord>; publish?: (ev: { type: string; payload?: any }) => void }) { this.publish = ctx.publish || null; }
+  onEvent(ev: { type: string; payload?: any }) {}
+  renderCanvas(ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }) {
+    ctx.fillStyle = '#0b0d0f'; ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+    ctx.fillStyle = '#fff'; ctx.font = '12px system-ui';
+    const last = this.entries[this.entries.length-1];
+    ctx.fillText(`entries: ${this.entries.length}`, rect.x+8, rect.y+18);
+    if (last) ctx.fillText(`last: ${(new Date(last.ts)).toLocaleString()}`, rect.x+8, rect.y+36);
+  }
+  async openOverlay(el: HTMLDivElement) {
+    await this.ensureLoaded(); el.innerHTML='';
+    const ta = document.createElement('textarea'); ta.rows=4; ta.style.width='100%'; ta.placeholder='What did I learn?';
+    const add = document.createElement('button'); add.textContent='Add'; add.onclick = async ()=>{ const t=ta.value.trim(); if(!t) return; this.entries.push({ ts: Date.now(), text: t }); await this.save(); this.publish?.({ type:'diaryAdd', payload:{ text: t } }); ta.value=''; renderList(); };
+    const list = document.createElement('div'); list.style.marginTop='8px'; list.style.maxHeight='50vh'; list.style.overflow='auto';
+    const renderList = ()=>{ list.innerHTML=''; for (const e of this.entries.slice().reverse()){ const p = document.createElement('div'); p.style.color='#ddd'; p.style.padding='6px'; p.textContent = new Date(e.ts).toLocaleString()+': '+e.text; list.appendChild(p);} };
+    el.appendChild(ta); el.appendChild(add); el.appendChild(list); renderList();
+  }
+}
+
 export class LayersApp implements TabletApp {
   id = 'layers'; title = 'Layers';
   private layers: string[] = [];

@@ -1,0 +1,4230 @@
+{
+  "goto_tasks": [
+    {
+      "from": "Frustum culling — == ...",
+      "to": "glTF K3D extension — ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — (...",
+      "to": "Dimensionality reduct...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "Natural language proc...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "cognitive house promp...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "SPARQL — Whether in a...",
+      "to": "K3D Vision and Standa...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Markov decision proce...",
+      "to": "AI ethics — One reaso...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — S...",
+      "to": "LICENSE-CC-BY-4.0 — R...",
+      "path_len": 3,
+      "exists": true
+    },
+    {
+      "from": "ai books k3d progress...",
+      "to": "Large language model ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — ===...",
+      "to": "Ontology learning — F...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Knowledge distillatio...",
+      "to": "LICENSE-CC-BY-4.0 — e...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Backpropagation — ===...",
+      "to": "Transformer (machine ...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Polygon mesh — Figure...",
+      "to": "SPARQL — Whatever nam...",
+      "path_len": 17,
+      "exists": true
+    },
+    {
+      "from": "AI ethics — Moreover,...",
+      "to": "Large language model ...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Diffusion model — The...",
+      "to": "Markov decision proce...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "FOG COMPUTING AND AI ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — A ...",
+      "to": "AI ethics — As the wi...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Augmented reality — H...",
+      "to": "Principal component a...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — Re...",
+      "to": "Large language model ...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Augmented reality — A...",
+      "to": "cognitive house promp...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "ai books k3d progress...",
+      "to": "Explainable artificia...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "ARK AGI PLAN — Milest...",
+      "to": "Augmented reality — A...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Augmented reality — M...",
+      "to": "CUDA — At Stanford, h...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Graph neural network ...",
+      "to": "standards research — ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Diffusion model — Eac...",
+      "to": "Graph database — That...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Explainable artificia...",
+      "path_len": 4,
+      "exists": true
+    },
+    {
+      "from": "echo systems k 3 d ac...",
+      "to": "Resource Description ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "Quadtree — It is ofte...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Octree — == Common us...",
+      "to": "Augmented reality — S...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Bayesian inference — ...",
+      "to": "Transformer (machine ...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "CONCEPTS — Dual-Repre...",
+      "to": "TABLET APPS — Embeddi...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Simultaneous localiza...",
+      "to": "Natural language proc...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "echo systems k 3 d ac...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — Sop...",
+      "to": "cognitive house promp...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Explainable artificia...",
+      "to": "Principal component a...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Diffusion model — If ...",
+      "to": "R tree — It also guar...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "3D computer graphics ...",
+      "to": "Machine learning — It...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Data visualization — ...",
+      "to": "Augmented reality — F...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "Word embedding — In 2...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Polygon mesh — For re...",
+      "to": "AGENT IDENTITY — `spe...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "TensorFlow — It is on...",
+      "to": "Quadtree — == See als...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — Gener...",
+      "to": "Graph database — Inde...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "Deep learning — In ma...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Diffusion model — Cro...",
+      "to": "Explainable artificia...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Cosine similarity — O...",
+      "to": "Frustum culling — Z-b...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Backpropagation — Com...",
+      "to": "Large language model ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Semantic Web — Many o...",
+      "to": "k3d-research — Conver...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Natural language proc...",
+      "to": "LICENSE-CC-BY-4.0 — a...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Ontology (information...",
+      "to": "AI alignment — For th...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Word embedding — Base...",
+      "to": "openai eval driven sy...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "Stochastic gradient d...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Ontology (information...",
+      "to": "Large language model ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Neural radiance field...",
+      "to": "Knowledge representat...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "AI safety — This pers...",
+      "to": "Frustum culling — Hid...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "Diffusion model — Thi...",
+      "to": "Artificial intelligen...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Graph neural network ...",
+      "to": "Artificial intelligen...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "Backpropagation — The...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Neo4j — In November 2...",
+      "to": "Graph neural network ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Bayesian inference — ...",
+      "to": "AI ethics — His work ...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Bayesian inference — ...",
+      "to": "AI alignment — Chatbo...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "3D computer graphics ...",
+      "to": "Large language model ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "OpenGL — As such, Ope...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "ai books k3d progress...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "K3D  A Framework for ...",
+      "to": "AI RPN standard — Age...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — Th...",
+      "to": "Quadtree — A quadtree...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — Pa...",
+      "to": "AI ethics — A custome...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Curriculum learning —...",
+      "to": "核心理念-空间智能之道 — \"Be wat...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Explainable artificia...",
+      "to": "Explainable artificia...",
+      "path_len": 2,
+      "exists": true
+    },
+    {
+      "from": "Markov decision proce...",
+      "to": "Generative adversaria...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "JSON — The most expan...",
+      "to": "Reinforcement learnin...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Resource Description ...",
+      "to": "Knowledgeverse  The A...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Graph database — This...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Word embedding — The ...",
+      "to": "Frustum culling — The...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Augmented reality — P...",
+      "to": "glTF K3D extension — ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "Foundation model — Tr...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — Ma...",
+      "to": "Diffusion model — The...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "MOE CONDO — Shard hou...",
+      "to": "Graph neural network ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Knowledge representat...",
+      "to": "Deep learning — === F...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Hierarchical navigabl...",
+      "to": "session-20250830-0003...",
+      "path_len": null,
+      "exists": false
+    },
+    {
+      "from": "Spatial index — == Sp...",
+      "to": "Principal component a...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "R tree — The resultin...",
+      "to": "Hierarchical navigabl...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "PyTorch — The followi...",
+      "to": "Transformer (machine ...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — Th...",
+      "to": "Data visualization — ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — It...",
+      "to": "Neo4j — The Enterpris...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "JSON — === JSONC === ...",
+      "to": "AUDIO ARCH — Low-late...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Meta learning — Encou...",
+      "to": "Semantic Web — This e...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "LICENSE-CC-BY-4.0 — r...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "glTF K3D extension — ...",
+      "to": "3D computer graphics ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Information retrieval...",
+      "to": "Computer vision — Psy...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "k3d-research — While ...",
+      "to": "Computer vision — Dep...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Stochastic gradient d...",
+      "to": "echo systems k 3 d ac...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "today 2025-08-28 — Pa...",
+      "to": "Reinforcement learnin...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "CARE PROTOCOL — Agent...",
+      "to": "Graph database — Mean...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Artificial intelligen...",
+      "path_len": 3,
+      "exists": true
+    },
+    {
+      "from": "Simultaneous localiza...",
+      "to": "Generative adversaria...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Resource Description ...",
+      "to": "Deep learning — == In...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Graph neural network ...",
+      "to": "JSON — It is specifie...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "CUDA — AMD's contract...",
+      "to": "AI ethics — Before au...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "Neo4j — It is dual-li...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "to": "Retrieval-augmented g...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "AI alignment — But de...",
+      "to": "Polygon mesh — Figure...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Data visualization — ...",
+      "to": "Foundation model — ==...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "OpenGL — ARB assembly...",
+      "to": "Diffusion model — α ¯...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Reinforcement learnin...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Natural language proc...",
+      "to": "核心理念-空间智能之道 — 试点项目**：...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Augmented reality — 1...",
+      "to": "LICENSE-CC-BY-4.0 — s...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "Bayesian inference — ...",
+      "to": "Resource Description ...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Natural language proc...",
+      "to": "Markov decision proce...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "FOG COMPUTING AND AI ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "AGENT IDENTITY — How ...",
+      "to": "Quadtree — Else, find...",
+      "path_len": 15,
+      "exists": true
+    },
+    {
+      "from": "k3d-research — Unity ...",
+      "to": "Natural language proc...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "CARE PROTOCOL — `/res...",
+      "to": "LICENSE-CC-BY-4.0 — c...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Semantic Web — An adv...",
+      "to": "AGENT IDENTITY — Why ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "OpenGL — === Longs Pe...",
+      "to": "Computer vision — Dri...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "Reinforcement learnin...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "Neo4j — Two are on-pr...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Stochastic gradient d...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Bayesian inference — ...",
+      "to": "Generative adversaria...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — Com...",
+      "to": "Generative adversaria...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "AI alignment — As a r...",
+      "to": "Transformer (machine ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "ai books k3d progress...",
+      "to": "ARK AGI PLAN — Evalua...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Simultaneous localiza...",
+      "to": "Foundation model — AI...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Augmented reality — A...",
+      "to": "AI ethics — They poin...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "AI alignment — AI ali...",
+      "to": "Generative adversaria...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "k3d-research — Medium...",
+      "to": "Neural radiance field...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Polygon mesh — Furthe...",
+      "to": "LANGUAGE PLAN — Phase...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "k3d-research — How to...",
+      "to": "AI alignment — AI sys...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Augmented reality — 2...",
+      "to": "AI RPN standard — Tra...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "Transformer (machine ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "to": "Graph database — For ...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Diffusion model — The...",
+      "to": "Artificial intelligen...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "AI ethics — One reaso...",
+      "to": "Deep learning — The p...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "Generative adversaria...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "openai model selectio...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Contrastive learning ...",
+      "to": "Resource Description ...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "LANGUAGE PLAN — Curre...",
+      "to": "ARCHITECTURE — The br...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Neural radiance field...",
+      "to": "Cypher (query languag...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "HR MR STANDARD — Trac...",
+      "to": "ai books k3d progress...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — ===...",
+      "to": "Deep learning — They ...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "AI alignment — Power-...",
+      "to": "Reinforcement learnin...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Prompt engineering — ...",
+      "to": "Large language model ...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "AI alignment — This t...",
+      "to": "k3d-research — Archit...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — CAP o...",
+      "to": "Explainable artificia...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "AUDIO ARCH — Agent en...",
+      "to": "AI safety — For examp...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Graph neural network ...",
+      "to": "Diffusion model — Dur...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "AI ethics — Currently...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Backpropagation — Ess...",
+      "to": "Simultaneous localiza...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "Machine learning — In...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "to": "Principal component a...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "k3d-research — Phase ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Bayesian inference — ...",
+      "to": "Cypher (query languag...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "k3d-research — Embedd...",
+      "to": "Retrieval-augmented g...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "k3d-research — Answer...",
+      "to": "ARCHITECTURE — Data Flow",
+      "path_len": 4,
+      "exists": true
+    },
+    {
+      "from": "Bayesian inference — ...",
+      "to": "Prompt engineering — ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Knowledge representat...",
+      "to": "Graph database — Some...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — Ma...",
+      "to": "k3d-research — User-F...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Hierarchical navigabl...",
+      "to": "echo systems k 3 d ac...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "to": "CARE PROTOCOL — Scale...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Markov decision proce...",
+      "to": "CARE PROTOCOL — JSONL...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — The...",
+      "to": "AI alignment — As AI ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Stochastic gradient d...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "Bayesian inference — ...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Markov decision proce...",
+      "to": "PodCast Script - The ...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Octree — == See also ...",
+      "to": "HR TRAINING AND MEMOR...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "AI ethics — Explainab...",
+      "to": "Simultaneous localiza...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Bayesian inference — ...",
+      "to": "Stochastic gradient d...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Three.js — Secondly, ...",
+      "to": "Ontology (information...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Graph neural network ...",
+      "to": "Large language model ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Retrieval-augmented g...",
+      "to": "Computer vision — Cur...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Graph neural network ...",
+      "to": "AI safety — Others, s...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Polygon mesh — In man...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "Diffusion model — ∂ t...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Ontology (information...",
+      "to": "openai temporal agent...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "ROADMAP — | **Multipl...",
+      "to": "Diffusion model — Spe...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Bounding volume hiera...",
+      "to": "Backpropagation — Som...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "README — Live mode pa...",
+      "to": "openai temporal agent...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Graph database — They...",
+      "to": "Large language model ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Ontology learning — =...",
+      "to": "Graph neural network ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Augmented reality — T...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "CARE PROTOCOL — Mark ...",
+      "to": "Reinforcement learnin...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Data visualization — ...",
+      "to": "Principal component a...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — A ...",
+      "to": "Foundation model — Al...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "SPARQL — In addition,...",
+      "to": "Information retrieval...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "TensorFlow — Some of ...",
+      "to": "Neural radiance field...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "JSON — Google Protoco...",
+      "to": "FOG COMPUTING AND AI ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Backpropagation — For...",
+      "to": "Principal component a...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "ARKit — ARKit in visi...",
+      "to": "session-20250830-0003...",
+      "path_len": null,
+      "exists": false
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Graph neural network ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "session-20250829-2352...",
+      "path_len": null,
+      "exists": false
+    },
+    {
+      "from": "Resource Description ...",
+      "to": "Machine learning — In...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Cosine similarity — T...",
+      "to": "Principal component a...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "CUDA — Mac OS X suppo...",
+      "to": "Large language model ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Augmented reality — =...",
+      "to": "Large language model ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Quadtree — Before the...",
+      "to": "Graph neural network ...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "Ontology learning — I...",
+      "to": "Reinforcement learnin...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "openai visualizing em...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "ai books k3d progress...",
+      "to": "Quadtree — The transf...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "AI ethics — They poin...",
+      "to": "Dimensionality reduct...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "openai mcp voice agen...",
+      "to": "K3D Arch-From Trainin...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "glTF — Various glTF e...",
+      "to": "Artificial intelligen...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "R tree — In this stru...",
+      "to": "Graph neural network ...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — It...",
+      "to": "Self-supervised learn...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Resource Description ...",
+      "to": "AI ethics — Its inter...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Backpropagation — It ...",
+      "to": "Knowledgeverse  The A...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "glTF K3D extension — ...",
+      "to": "openai model selectio...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — In...",
+      "to": "SPARQL — CONSTRUCT qu...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "PHILOSOPHY — Proof of...",
+      "to": "Data visualization — ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Bayesian inference — ...",
+      "to": "Resource Description ...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — Cl...",
+      "to": "AI ethics — The short...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "PodCast Script - The ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Information retrieval...",
+      "to": "3D computer graphics ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "PodCast Script - The ...",
+      "to": "Augmented reality — =...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "Reinforcement learnin...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "cognitive house promp...",
+      "to": "Augmented reality — T...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Backpropagation — Con...",
+      "to": "AI alignment — Power-...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Bounding volume hiera...",
+      "to": "Machine learning — De...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — Mor...",
+      "to": "Machine learning — ==...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — AtomN...",
+      "to": "AI ethics — Inevitabl...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — t...",
+      "to": "Deep learning — Using...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "glTF — === glTF 1.0 =...",
+      "to": "AI ethics — This incl...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "Word embedding — The ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — Ex...",
+      "to": "k3d reflection-202508...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Explainable artificia...",
+      "to": "Jules Report — Conclu...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Generative adversaria...",
+      "to": "Natural language proc...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "to": "Diffusion model — For...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Augmented reality — T...",
+      "to": "Information retrieval...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Natural language proc...",
+      "to": "Natural language proc...",
+      "path_len": 4,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — S...",
+      "to": "Simultaneous localiza...",
+      "path_len": 16,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "to": "AI alignment — During...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Semantic Web — == App...",
+      "to": "Principal component a...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "CARE PROTOCOL — Visua...",
+      "to": "Principal component a...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Augmented reality — W...",
+      "to": "Frustum culling — Pri...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "OpenGL — The API is d...",
+      "to": "AI alignment — Stanfo...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Graph database — That...",
+      "to": "Semantic Web — Ontolo...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — M...",
+      "to": "Artificial intelligen...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Graph neural network ...",
+      "to": "Deep learning — === I...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Bayesian inference — ...",
+      "to": "Graph neural network ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Jules Report — Data V...",
+      "to": "k3d reflection-202508...",
+      "path_len": null,
+      "exists": false
+    },
+    {
+      "from": "Curriculum learning —...",
+      "to": "Foundation model — ==...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Augmented reality — =...",
+      "to": "Retrieval-augmented g...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Foundation model — In...",
+      "to": "CUDA — Unlike OpenCL,...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "OpenGL — Extensions a...",
+      "to": "Artificial intelligen...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Explainable artificia...",
+      "to": "Bayesian inference — ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "to": "Reinforcement learnin...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "openai mcp voice agen...",
+      "to": "Foundation model — A ...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "AUDIO ARCH — Coqui TT...",
+      "to": "WebGL — === Utilities...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Graph database — Dgra...",
+      "to": "Transformer (machine ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "3D computer graphics ...",
+      "to": "Foundation model — Al...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "CONCEPTS — House**: P...",
+      "to": "ARCore — === Geospati...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Semantic Web — This p...",
+      "to": "Bounding volume hiera...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Retrieval-augmented g...",
+      "to": "ARKit — ARKit in visi...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Principal component a...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "FAISS — FAISS was rep...",
+      "to": "Vector database — The...",
+      "path_len": 4,
+      "exists": true
+    },
+    {
+      "from": "AI alignment — Such g...",
+      "to": "Semantic Web — === We...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "AI alignment — Other ...",
+      "to": "Principal component a...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Backpropagation — y {...",
+      "to": "Artificial intelligen...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "to": "AI ethics — To preven...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "D3.js — In 2011, the ...",
+      "to": "Explainable artificia...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — Final...",
+      "to": "Hugging Face — In Jun...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Stochastic gradient d...",
+      "to": "Information retrieval...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "AI alignment — As of ...",
+      "to": "Resource Description ...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "fsn apollo inspiratio...",
+      "to": "Information retrieval...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "Large language model ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "AI ethics — Zimmerman...",
+      "to": "Bayesian inference — ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "CUDA — == Example == ...",
+      "to": "Neural radiance field...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Ontology (information...",
+      "to": "Generative adversaria...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Self-supervised learn...",
+      "to": "Self-supervised learn...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "OpenGL — Several \"mul...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Generative adversaria...",
+      "to": "Deep learning — Indus...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Simultaneous localiza...",
+      "to": "Diverse AI Reports — ...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "OpenGL — Certain feat...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "ARCore — A scene sema...",
+      "to": "Quadtree — Since the ...",
+      "path_len": 15,
+      "exists": true
+    },
+    {
+      "from": "Octree — The first im...",
+      "to": "WebXR — == Support ==...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "ai books k3d progress...",
+      "to": "Computer vision — Com...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Retrieval-augmented g...",
+      "to": "Natural language proc...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "to": "Machine learning — Un...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — L...",
+      "to": "K3D  A Framework for ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "Generative adversaria...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "TensorFlow — This dis...",
+      "to": "openai temporal agent...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Diffusion model — Thi...",
+      "to": "AI ethics — Bengio ca...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Quadtree — This can r...",
+      "to": "Bayesian inference — ...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "to": "Explainable artificia...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Knowledge representat...",
+      "to": "AI alignment — Social...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "Machine learning — As...",
+      "path_len": 3,
+      "exists": true
+    },
+    {
+      "from": "Neural radiance field...",
+      "to": "K3D Arch-From Trainin...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "tasks-20250830-022158...",
+      "to": "AI ethics — Unless mo...",
+      "path_len": null,
+      "exists": false
+    },
+    {
+      "from": "Large language model ...",
+      "to": "Deep learning — All m...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "WebGL — WebGPU provid...",
+      "to": "Generative adversaria...",
+      "path_len": 16,
+      "exists": true
+    },
+    {
+      "from": "ARCHITECTURE — Knowle...",
+      "to": "Backpropagation — ===...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "Artificial intelligen...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Diffusion model — ===...",
+      "to": "Artificial intelligen...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Generative adversaria...",
+      "to": "Graph database — Othe...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Backpropagation — L {...",
+      "to": "Markov decision proce...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Ontology (information...",
+      "to": "Contrastive learning ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "TensorFlow — Numpy ND...",
+      "to": "Ontology learning — I...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "AI ethics — In Januar...",
+      "to": "Resource Description ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Diffusion model — The...",
+      "to": "Machine learning — Wh...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Generative adversaria...",
+      "to": "Diffusion model — d x...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Knowledge graph — As ...",
+      "to": "Reinforcement learnin...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "R tree — At each step...",
+      "to": "UMAP — Military Units...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "WebGPU — In JavaScrip...",
+      "to": "Reinforcement learnin...",
+      "path_len": 15,
+      "exists": true
+    },
+    {
+      "from": "Spatial index — Howev...",
+      "to": "Computer vision — An ...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "Dimensionality reduct...",
+      "to": "Self-supervised learn...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "core changes impact —...",
+      "to": "Principal component a...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — In ...",
+      "to": "Cosine similarity — T...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Augmented reality — C...",
+      "to": "Ontology (information...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Cypher (query languag...",
+      "to": "echo systems k 3 d ac...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Machine learning — De...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — As ...",
+      "to": "Explainable artificia...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — Le...",
+      "to": "Large language model ...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "核心理念-空间智能之道 — 文化桥梁：功夫...",
+      "to": "AI ethics — The algor...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "AI alignment — Some h...",
+      "to": "Semantic Web — The GR...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Cypher (query languag...",
+      "to": "Generative adversaria...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "AI ethics — It strugg...",
+      "to": "DEV GUIDELINES — Form...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "AI ethics — The OECD,...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "AI safety — In 2021, ...",
+      "to": "Bayesian inference — ...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — r...",
+      "to": "Bayesian inference — ...",
+      "path_len": 17,
+      "exists": true
+    },
+    {
+      "from": "Explainable artificia...",
+      "to": "Prompt engineering — ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "K3D Arch-From Trainin...",
+      "to": "Augmented reality — C...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "AI safety — ==== Adve...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "AI ethics — It is dif...",
+      "to": "Graph database — == L...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "SPARQL — To make quer...",
+      "to": "CUDA — This accessibi...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "Reinforcement learnin...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "Cosine similarity — T...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Foundation model — Ho...",
+      "to": "Reinforcement learnin...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — r...",
+      "to": "AI safety — He has th...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Augmented reality — T...",
+      "to": "AI alignment — To inc...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — The t...",
+      "to": "Generative adversaria...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Bounding volume hiera...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Graph database — Inde...",
+      "to": "LICENSE-CC-BY-4.0 — l...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "AI safety — ==== Chal...",
+      "to": "Markov decision proce...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Stochastic gradient d...",
+      "to": "SLAM — == Other uses ...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — Y...",
+      "to": "Diverse AI Reports — ...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Frustum culling — If ...",
+      "to": "AI ethics — Eliezer Y...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Diffusion model — Mus...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — The r...",
+      "to": "ARCHITECTURE — AI Ava...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Graph neural network ...",
+      "to": "Explainable artificia...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Semantic Web — Many o...",
+      "to": "Large language model ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Diffusion model — In ...",
+      "to": "Semantic Web — Probab...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Augmented reality — W...",
+      "to": "Explainable artificia...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "AI ethics — In the et...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "HR TRAINING AND MEMOR...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Generative adversaria...",
+      "to": "LICENSE-CC-BY-4.0 — o...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Neo4j — The Enterpris...",
+      "to": "TABLET — Wallet expor...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Augmented reality — D...",
+      "to": "Natural language proc...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Polygon mesh — == Oth...",
+      "to": "CARE PROTOCOL — Norma...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Neural radiance field...",
+      "to": "PodCast Script - The ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — I...",
+      "to": "Reinforcement learnin...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "to": "LICENSE-CC-BY-4.0 — c...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Bounding volume hiera...",
+      "to": "Machine learning — Th...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — Exa...",
+      "to": "Artificial intelligen...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Generative adversaria...",
+      "to": "Artificial intelligen...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Stochastic gradient d...",
+      "to": "Large language model ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Generative adversaria...",
+      "to": "Knowledge graph — Rec...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Data visualization — ...",
+      "to": "Deep learning — This ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "CUDA — Branches in th...",
+      "to": "CUDA — Whereas Nvidia...",
+      "path_len": 3,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Deep learning — Howev...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Retrieval-augmented g...",
+      "to": "k3d reflection-202508...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Bayesian inference — ...",
+      "to": "LICENSE-CC-BY-4.0 — L...",
+      "path_len": 16,
+      "exists": true
+    },
+    {
+      "from": "Retrieval-augmented g...",
+      "to": "Bayesian inference — ...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Data visualization — ...",
+      "to": "AI safety — In May 20...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "to": "ETHICS — Developers m...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Markov decision proce...",
+      "to": "Spatial index — == Fu...",
+      "path_len": 15,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — As ...",
+      "to": "cognitive house promp...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Information retrieval...",
+      "to": "Knowledge distillatio...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Stochastic gradient d...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "PodCast Script - The ...",
+      "to": "Augmented reality — T...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Graph database — In a...",
+      "to": "AI ethics — Much of h...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Simultaneous localiza...",
+      "to": "Data visualization — ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "CARE PROTOCOL — Multi...",
+      "to": "Ontology learning — O...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Polygon mesh — Thus, ...",
+      "to": "Augmented reality — V...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "PR DRAFT — knowledge3...",
+      "to": "AI ethics — Others ar...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "tasks-20250830-015402...",
+      "path_len": null,
+      "exists": false
+    },
+    {
+      "from": "Foundation model — Wo...",
+      "to": "3D computer graphics ...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "R tree — Similar to t...",
+      "to": "Diffusion model — Wha...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — Gi...",
+      "to": "Foundation model — Si...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — This ...",
+      "to": "WebGPU — Google team ...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "Polygon mesh — Normal...",
+      "to": "Cosine similarity — G...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "Hugging Face — In an ...",
+      "to": "Graph database — Whil...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "Generative adversaria...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Foundation model — So...",
+      "to": "Markov decision proce...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Word embedding — Name...",
+      "to": "Ontology (information...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "K3D Vision and Standa...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "Diffusion model — ===...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "Generative adversaria...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Stochastic gradient d...",
+      "to": "TensorFlow — In May 2...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Explainable artificia...",
+      "to": "Augmented reality — A...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — r...",
+      "to": "Knowledge representat...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Semantic Web — Rather...",
+      "to": "Deep learning — Learn...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "Large language model ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Augmented reality — M...",
+      "to": "Knowledge graph — A k...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Augmented reality — M...",
+      "to": "Principal component a...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "Markov decision proce...",
+      "to": "Dimensionality reduct...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Backpropagation — C (...",
+      "to": "Knowledgeverse  The A...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "OpenGL — Image format...",
+      "to": "Transformer (machine ...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "today 2025-08-28 — Pr...",
+      "to": "Computer vision — Seg...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "AI alignment — Power-...",
+      "to": "Reinforcement learnin...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Backpropagation — Dur...",
+      "to": "Computer vision — The...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Generative adversaria...",
+      "to": "Polygon mesh — For sm...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "Diffusion model — ===...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — d...",
+      "to": "ai books k3d progress...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "Natural language proc...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "AI alignment — Christ...",
+      "to": "Reinforcement learnin...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Information retrieval...",
+      "to": "ARCore — Lighting cue...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Bayesian inference — ...",
+      "to": "Data visualization — ...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Generative adversaria...",
+      "to": "Resource Description ...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Graph database — Rela...",
+      "to": "Augmented reality — A...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "AI ethics — Prompt in...",
+      "to": "Resource Description ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Semantic Web — Anothe...",
+      "to": "Augmented reality — P...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Diffusion model — The...",
+      "to": "Cosine similarity — c...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Information retrieval...",
+      "to": "Reinforcement learnin...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Natural language proc...",
+      "to": "Artificial intelligen...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "to": "Ontology (information...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Graph database — Rela...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "to": "Transformer (machine ...",
+      "path_len": 3,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "to": "Reinforcement learnin...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Dimensionality reduct...",
+      "to": "Markov decision proce...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "JSON — Code for parsi...",
+      "to": "Curriculum learning —...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "avatar workshop promp...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "to": "Principal component a...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Natural language proc...",
+      "to": "Augmented reality — C...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — === D...",
+      "to": "Information retrieval...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "PR DRAFT — Viewer key...",
+      "to": "Graph database — Inde...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Cosine similarity — A...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "TABLET APPS — Extending",
+      "to": "k3d-research — Interp...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Resource Description ...",
+      "to": "Principal component a...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "R tree — ==== Choosin...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "cognitive house promp...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "PR DRAFT — k3dgen/__m...",
+      "to": "Stochastic gradient d...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "Generative adversaria...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "Prompt engineering — ...",
+      "to": "Self-supervised learn...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Augmented reality — N...",
+      "to": "Neural network — Whil...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "TABLET — Tablet ID: s...",
+      "to": "Reinforcement learnin...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "Prompt engineering — ...",
+      "to": "Artificial intelligen...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "核心理念-空间智能之道 — 立即行动方案**：",
+      "to": "AI alignment — The le...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "openai temporal agent...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Bayesian inference — ...",
+      "to": "Quadtree — The cells ...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "k3d-research — Preser...",
+      "to": "Machine learning — Th...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — Re...",
+      "to": "Backpropagation — He ...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Information retrieval...",
+      "to": "today 2025-08-28 — Em...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "Artificial intelligen...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Backpropagation — The...",
+      "to": "AI ethics — This can ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "CUDA — Attempts to im...",
+      "to": "Markov decision proce...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Octree — == History =...",
+      "to": "Natural language proc...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Three.js — == History...",
+      "to": "Explainable artificia...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Diffusion model — Thi...",
+      "to": "Contrastive learning ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "Markov decision proce...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "AI ethics — They note...",
+      "to": "Information retrieval...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Stochastic gradient d...",
+      "to": "Bounding volume hiera...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "k3d-research — What a...",
+      "to": "TensorFlow — TensorFl...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "README — `data/ai_boo...",
+      "to": "Large language model ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Spatial index — Octre...",
+      "to": "Large language model ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Graph neural network ...",
+      "to": "Simultaneous localiza...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "echo systems k 3 d ac...",
+      "to": "Machine learning — Wh...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — Thi...",
+      "to": "Deep learning — Regul...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Resource Description ...",
+      "to": "openai temporal agent...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — Th...",
+      "to": "MOE CONDO — MOE Condo...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "AI alignment — Evolut...",
+      "to": "Diffusion model — Thi...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Markov decision proce...",
+      "to": "Generative adversaria...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "LICENSE-CC-BY-4.0 — d...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — It ...",
+      "to": "Principal component a...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "Diffusion model — Ins...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "AGENT IDENTITY — Pers...",
+      "to": "Computer vision — Com...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Graph neural network ...",
+      "to": "Spatial index — Predi...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Markov decision proce...",
+      "to": "Simultaneous localiza...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "to": "AI ethics — Unless mo...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "SPARQL — In addition,...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Natural language proc...",
+      "to": "Polygon mesh — Howeve...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — Du...",
+      "to": "Graph neural network ...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "AGENT IDENTITY — `spe...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "k3d-research — Conclu...",
+      "to": "Deep learning — Frank...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Information retrieval...",
+      "to": "Markov decision proce...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Stochastic gradient d...",
+      "to": "Principal component a...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Self-supervised learn...",
+      "to": "Artificial intelligen...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Generative adversaria...",
+      "to": "Information retrieval...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "AI alignment — Resear...",
+      "to": "Cosine similarity — =...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Knowledge representat...",
+      "to": "Cypher (query languag...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "Foundation model — To...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "echo systems k 3 d ac...",
+      "to": "Meta learning — The m...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "PodCast Script - The ...",
+      "to": "Foundation model — Ho...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Ontology (information...",
+      "to": "CUDA — At Stanford, h...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "LICENSE-CC-BY-4.0 — m...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "ai books k3d progress...",
+      "to": "Natural language proc...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Bayesian inference — ...",
+      "to": "Bayesian inference — ...",
+      "path_len": 3,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — a...",
+      "to": "Cosine similarity — I...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Bayesian inference — ...",
+      "to": "PodCast Script - The ...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — Large...",
+      "to": "Generative adversaria...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "WebGL — However, its ...",
+      "to": "Neural radiance field...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "Self-supervised learn...",
+      "to": "Principal component a...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — As of...",
+      "to": "Bayesian inference — ...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Foundation model — Wh...",
+      "to": "Quadtree — === QuadTr...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "ai books k3d progress...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Generative adversaria...",
+      "to": "Augmented reality — I...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "AI alignment — The sy...",
+      "to": "glTF — PBR extensions...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Ontology (information...",
+      "to": "session-20250830-0221...",
+      "path_len": null,
+      "exists": false
+    },
+    {
+      "from": "Machine learning — An...",
+      "to": "Semantic Web — The pr...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "AI ethics — The ethic...",
+      "to": "Knowledge representat...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "to": "SLAM — === Other uses...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "AI alignment — Resear...",
+      "to": "Resource Description ...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Jules Report — Execut...",
+      "to": "Diffusion model — In ...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "K3D Vision and Standa...",
+      "to": "Ontology (information...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "to": "Semantic Web — The 20...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "AI alignment — Anothe...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "OpenGL — For example,...",
+      "to": "AUDIO ARCH — Approach...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Simultaneous localiza...",
+      "to": "Cypher (query languag...",
+      "path_len": 18,
+      "exists": true
+    },
+    {
+      "from": "Diffusion model — Mov...",
+      "to": "AI ethics — Ethically...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "k3d-research — Primar...",
+      "to": "Transformer (machine ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "WebGL — == History ==...",
+      "to": "Augmented reality — I...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Bounding volume hiera...",
+      "to": "Knowledge representat...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Spatial index — Inste...",
+      "to": "Self-supervised learn...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "TABLET — The viewer s...",
+      "to": "Large language model ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Word embedding — A st...",
+      "to": "Resource Description ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "to": "Principal component a...",
+      "path_len": 10,
+      "exists": true
+    }
+  ],
+  "door_tasks": [
+    {
+      "from": "Foundation model — Th...",
+      "door": "Bounding volume hiera...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "door": "k3d reflection-202508...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — i...",
+      "door": "Backpropagation — The...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "PyTorch — Networks ar...",
+      "door": "Large language model ...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — By...",
+      "door": "Dimensionality reduct...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Resource Description ...",
+      "door": "Knowledgeverse  The A...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Resource Description ...",
+      "door": "3D computer graphics ...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "ai books k3d progress...",
+      "door": "Transformer (machine ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "k3d agent protocol — ...",
+      "door": "AI ethics — Machine e...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "door": "Bayesian inference — ...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — Ar...",
+      "door": "Contrastive learning ...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "door": "Diffusion model — By ...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Cosine similarity — c...",
+      "door": "Data visualization — ...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "door": "AI ethics — The Found...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "door": "AI alignment — Additi...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Resource Description ...",
+      "door": "Artificial intelligen...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Explainable artificia...",
+      "door": "Deep learning — Conse...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Knowledge distillatio...",
+      "door": "Diffusion model — By ...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "door": "k3d-research — Custom...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Dimensionality reduct...",
+      "door": "Data visualization — ...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Augmented reality — V...",
+      "door": "Diffusion model — Typ...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Word embedding — Rowe...",
+      "door": "fsn apollo inspiratio...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "door": "Polygon mesh — Mathem...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "door": "JSON — JSON (JavaScri...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Bayesian inference — ...",
+      "door": "Bayesian inference — ...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "door": "Artificial intelligen...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Diffusion model — Con...",
+      "door": "Prompt engineering — ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "door": "Information retrieval...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "glTF — === glTF 2.0 =...",
+      "door": "Reinforcement learnin...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "SPARQL — This single ...",
+      "door": "WebXR — == Design == ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Diffusion model — A h...",
+      "door": "Principal component a...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "door": "Bounding volume hiera...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — Per...",
+      "door": "OpenGL — For the same...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Explainable artificia...",
+      "door": "Large language model ...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "AI alignment — The US...",
+      "door": "Jules Report — To rea...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Ontology (information...",
+      "door": "ARKit — According to ...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Generative adversaria...",
+      "door": "Quadtree — Rather tha...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Explainable artificia...",
+      "door": "Augmented reality — T...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "ARCore — === Six degr...",
+      "door": "Bayesian inference — ...",
+      "path_len": 15,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — As...",
+      "door": "Self-supervised learn...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Jules Report — The K3...",
+      "door": "glTF K3D extension — ...",
+      "path_len": 4,
+      "exists": true
+    },
+    {
+      "from": "Knowledge representat...",
+      "door": "JSON — For interopera...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "glTF — Nodes are save...",
+      "door": "K3D Vision and Standa...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Self-supervised learn...",
+      "door": "K3D Vision and Standa...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "JSON — While this all...",
+      "door": "AI alignment — Additi...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "HR MR STANDARD — `pyt...",
+      "door": "Frustum culling — Han...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — It...",
+      "door": "3D computer graphics ...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Neural radiance field...",
+      "door": "Artificial intelligen...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "openai temporal agent...",
+      "door": "AI ethics — The Found...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Graph neural network ...",
+      "door": "Principal component a...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Bounding volume hiera...",
+      "door": "Point cloud — Since t...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "AI alignment — AI sys...",
+      "door": "Bayesian inference — ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "echo systems k 3 d ac...",
+      "door": "Principal component a...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Graph database — Othe...",
+      "door": "Augmented reality — B...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Ontology (information...",
+      "door": "Backpropagation — The...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "door": "Prompt engineering — ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "PHILOSOPHY — Energy P...",
+      "door": "Resource Description ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "CARE PROTOCOL — Guida...",
+      "door": "Large language model ...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Quadtree — Find the e...",
+      "door": "TensorFlow — === Auto...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "door": "Transformer (machine ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "contributors credits ...",
+      "door": "Explainable artificia...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "LANGUAGE PLAN — Phase...",
+      "door": "Stochastic gradient d...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "avatar workshop promp...",
+      "door": "AI safety — These inc...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — A 197...",
+      "door": "Point cloud — Since t...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "door": "LICENSE-CC-BY-4.0 — L...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "K3D  A Framework for ...",
+      "door": "Principal component a...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "k3d-research — Projec...",
+      "door": "Graph neural network ...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Augmented reality — B...",
+      "door": "glTF — Alternatively,...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Foundation model — Be...",
+      "door": "Artificial intelligen...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "door": "Generative adversaria...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "AI ethics — Alan Winf...",
+      "door": "Knowledge representat...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — Graph...",
+      "door": "Machine learning — Th...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — The a...",
+      "door": "CONCEPTS — A resonanc...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "TensorFlow — Google a...",
+      "door": "Augmented reality — B...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Bounding volume hiera...",
+      "door": "CUDA — The oneAPI lib...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — Ima...",
+      "door": "Contrastive learning ...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Bayesian inference — ...",
+      "door": "Artificial intelligen...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — At ...",
+      "door": "AI ethics — Machine e...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "R tree — When a data ...",
+      "door": "Natural language proc...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Diffusion model — ===...",
+      "door": "Natural language proc...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "ROADMAP — | **Real-ti...",
+      "door": "AI ethics — Process m...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "door": "CUDA — His work attra...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "SPARQL — Wikidata Que...",
+      "door": "Artificial intelligen...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "openai temporal agent...",
+      "door": "AI safety — These inc...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Augmented reality — T...",
+      "door": "JSON — JSON (JavaScri...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "door": "Stochastic gradient d...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "AI ethics — Regarding...",
+      "door": "JAX — === Jacksonvill...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "door": "AI alignment — Additi...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Information retrieval...",
+      "door": "Deep learning — == Ha...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Explainable artificia...",
+      "door": "AI ethics — The Swedi...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "session-20250829-2352...",
+      "door": "Large language model ...",
+      "path_len": null,
+      "exists": false
+    },
+    {
+      "from": "Explainable artificia...",
+      "door": "OpenGL — For the same...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Augmented reality — A...",
+      "door": "OpenGL — Back in June...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "door": "Spatial index — Sever...",
+      "path_len": 4,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "door": "LICENSE-CC-BY-4.0 — w...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "Simultaneous localiza...",
+      "door": "Augmented reality — E...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Dimensionality reduct...",
+      "door": "FOG COMPUTING AND AI ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Stochastic gradient d...",
+      "door": "TensorFlow — === Auto...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "DUAL CODE — Preserve ...",
+      "door": "Cypher (query languag...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Knowledge representat...",
+      "door": "Reinforcement learnin...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Natural language proc...",
+      "door": "Cypher (query languag...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Augmented reality — I...",
+      "door": "Transformer (machine ...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "R tree — When data is...",
+      "door": "Deep learning — Conse...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Bounding volume hiera...",
+      "door": "Natural language proc...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Simultaneous localiza...",
+      "door": "CUDA — The oneAPI lib...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "door": "Backpropagation — The...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "ARK AGI PLAN — Explai...",
+      "door": "Backpropagation — The...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Polygon mesh — materi...",
+      "door": "LICENSE-CC-BY-4.0 — w...",
+      "path_len": 17,
+      "exists": true
+    },
+    {
+      "from": "Vector database — In ...",
+      "door": "AI safety — For examp...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — c...",
+      "door": "OpenGL — Image format...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "3D computer graphics ...",
+      "door": "Neural radiance field...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "door": "echo systems k 3 d ac...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "door": "Principal component a...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "AI ethics — However, ...",
+      "door": "Machine learning — Ar...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Transformer (machine ...",
+      "door": "Artificial intelligen...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Neo4j — The Enterpris...",
+      "door": "Semantic Web — Curren...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Graph database — Quer...",
+      "door": "Diffusion model — The...",
+      "path_len": 15,
+      "exists": true
+    },
+    {
+      "from": "Cosine similarity — ‖...",
+      "door": "Machine learning — Th...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Knowledge graph — In ...",
+      "door": "AI ethics — The Swedi...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Principal component a...",
+      "door": "D3.js — Official webs...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Augmented reality — 1...",
+      "door": "cognitive house promp...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Generative adversaria...",
+      "door": "openai rag graph db c...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "door": "Transformer (machine ...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "AI alignment — But pr...",
+      "door": "Knowledge representat...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Data visualization — ...",
+      "door": "echo systems k 3 d ac...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "AI safety — AI govern...",
+      "door": "Knowledgeverse  The A...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Graph neural network ...",
+      "door": "Prompt engineering — ...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "door": "AI alignment — Additi...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Data visualization — ...",
+      "door": "Knowledge distillatio...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Graph neural network ...",
+      "door": "WebGL — === Games ===...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Explainable artificia...",
+      "door": "Stochastic gradient d...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Data visualization — ...",
+      "door": "ai books k3d progress...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — ===...",
+      "door": "AI ethics — The Found...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — D...",
+      "door": "Resource Description ...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Backpropagation — The...",
+      "door": "Principal component a...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "TensorFlow — A TPU is...",
+      "door": "Transformer (machine ...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "Polygon mesh — The la...",
+      "door": "k3d-research — Embedd...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "R tree — == R-tree id...",
+      "door": "AI ethics — Machine e...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Information retrieval...",
+      "door": "Bayesian inference — ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "AI alignment — Since ...",
+      "door": "cognitive house promp...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "door": "Jules Report — To rea...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Jules Report — The K3...",
+      "door": "Word embedding — A mo...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "door": "cognitive house promp...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "ARK AGI PLAN — Genera...",
+      "door": "Large language model ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Graph database — For ...",
+      "door": "Artificial intelligen...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "AI safety — From 2008...",
+      "door": "AI alignment — Additi...",
+      "path_len": 4,
+      "exists": true
+    },
+    {
+      "from": "Data visualization — ...",
+      "door": "Curriculum learning —...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Cypher (query languag...",
+      "door": "Data visualization — ...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Bayesian inference — ...",
+      "door": "ARKit — According to ...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — So...",
+      "door": "Data visualization — ...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Neural radiance field...",
+      "door": "K3D Vision and Standa...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Reinforcement learnin...",
+      "door": "Resource Description ...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "AI alignment — If the...",
+      "door": "Reinforcement learnin...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — d...",
+      "door": "JAX — === Jacksonvill...",
+      "path_len": 14,
+      "exists": true
+    },
+    {
+      "from": "Data visualization — ...",
+      "door": "Transformer (machine ...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Contrastive learning ...",
+      "door": "AI safety — These inc...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — One...",
+      "door": "Ontology (information...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "README — `data/ai_car...",
+      "door": "TensorFlow — === Auto...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Data visualization — ...",
+      "door": "Reinforcement learnin...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Signed distance funct...",
+      "door": "Ontology (information...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "k3d-research — How do...",
+      "door": "Augmented reality — E...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Dimensionality reduct...",
+      "door": "Deep learning — Conse...",
+      "path_len": 5,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "door": "AI alignment — Additi...",
+      "path_len": 6,
+      "exists": true
+    },
+    {
+      "from": "ai books k3d progress...",
+      "door": "Markov decision proce...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "door": "Stochastic gradient d...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Frustum culling — Des...",
+      "door": "JSON — == See also ==...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "LICENSE-CC-BY-4.0 — c...",
+      "door": "PodCast Script - The ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "glTF — Various glTF e...",
+      "door": "Large language model ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "door": "Knowledge representat...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Large language model ...",
+      "door": "k3d-research — Custom...",
+      "path_len": 8,
+      "exists": true
+    },
+    {
+      "from": "Backpropagation — Bac...",
+      "door": "Neural network — Arti...",
+      "path_len": 3,
+      "exists": true
+    },
+    {
+      "from": "Bayesian inference — ...",
+      "door": "Transformer (machine ...",
+      "path_len": 13,
+      "exists": true
+    },
+    {
+      "from": "Computer vision — Ove...",
+      "door": "Principal component a...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — As...",
+      "door": "JSON — == See also ==...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "MOE CONDO — Each **ho...",
+      "door": "Reinforcement learnin...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "Machine learning — As...",
+      "door": "Artificial intelligen...",
+      "path_len": 4,
+      "exists": true
+    },
+    {
+      "from": "Cypher (query languag...",
+      "door": "Natural language proc...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Deep learning — The t...",
+      "door": "LANGUAGE PLAN — Intro...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Simultaneous localiza...",
+      "door": "LICENSE-CC-BY-4.0 — A...",
+      "path_len": 16,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "door": "Knowledgeverse  The A...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Augmented reality — I...",
+      "door": "Large language model ...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Markov decision proce...",
+      "door": "Principal component a...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "HR MR STANDARD — `/mo...",
+      "door": "Machine learning — Ar...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Graph neural network ...",
+      "door": "TABLET APPS — All app...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "door": "Simultaneous localiza...",
+      "path_len": 11,
+      "exists": true
+    },
+    {
+      "from": "AI ethics — Managing ...",
+      "door": "Generative adversaria...",
+      "path_len": 7,
+      "exists": true
+    },
+    {
+      "from": "Artificial intelligen...",
+      "door": "ARKit — According to ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "核心理念-空间智能之道 — 人脑启发设计*...",
+      "door": "AI ethics — However, ...",
+      "path_len": 9,
+      "exists": true
+    },
+    {
+      "from": "Diffusion model — The...",
+      "door": "Ontology (information...",
+      "path_len": 12,
+      "exists": true
+    },
+    {
+      "from": "OpenGL — Game develop...",
+      "door": "JSON — For interopera...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "AI RPN standard — The...",
+      "door": "AI alignment — In 202...",
+      "path_len": 10,
+      "exists": true
+    },
+    {
+      "from": "Ontology learning — A...",
+      "door": "Transformer (machine ...",
+      "path_len": 7,
+      "exists": true
+    }
+  ]
+}

@@ -363,6 +363,26 @@ class LiveServer:
                     except Exception:
                         pass
             await self.log({"type": "event", **ev, "nick": client.nick, "channel": client.channel})
+            # Diary entries: write to human-readable diary file in GMT-3
+            if kind == "diary_entry":
+                try:
+                    from datetime import datetime, timezone, timedelta
+                    tz = timezone(timedelta(hours=-3))
+                    now = datetime.now(tz)
+                    date = now.strftime('%Y-%m-%d')
+                    clock = now.strftime('%H:%M')
+                    text = str(ev.get('text') or '').strip()
+                    if text:
+                        diary_dir = Path(__file__).resolve().parents[2] / 'docs' / 'reports' / 'diary'
+                        diary_dir.mkdir(parents=True, exist_ok=True)
+                        diary_file = diary_dir / f'diary-{date}.md'
+                        if not diary_file.exists():
+                            diary_file.write_text(f"# Diary — {date} (GMT-3)\n\n", encoding='utf-8')
+                        with diary_file.open('a', encoding='utf-8') as f:
+                            f.write(f"- [{clock} -03:00] {client.nick}: {text}\n")
+                        await self.send_chat(sender='agent', text=f"Diary updated for {date} ({clock} -03:00)", channel=client.channel)
+                except Exception:
+                    pass
 
     async def handle_command(self, text: str, client: Client):
         parts = text.split(maxsplit=2)
