@@ -123,6 +123,10 @@ export class LODRenderer {
   private low: THREE.BufferGeometry | null = null;
   private mid: THREE.BufferGeometry | null = null;
   private centroid: THREE.Vector3 = new THREE.Vector3();
+  private lastLevel: 0|1|2 = 0;
+  private near = 10; // distance threshold to switch to mid
+  private far = 20;  // distance threshold to switch to low
+  private hysteresis = 2; // band to avoid flicker
 
   constructor(base: THREE.BufferGeometry, material?: THREE.PointsMaterial) {
     this.base = base;
@@ -140,9 +144,30 @@ export class LODRenderer {
   update(camera: THREE.PerspectiveCamera) {
     if (!this.points) return;
     const d = camera.position.distanceTo(this.centroid);
-    const targetGeom = d > 20 ? (this.low || this.base) : (d > 10 ? (this.mid || this.base) : this.base);
+    // Hysteresis for stable switching
+    let level: 0|1|2 = this.lastLevel;
+    if (this.lastLevel === 0) {
+      if (d > this.near + this.hysteresis) level = 1;
+    } else if (this.lastLevel === 1) {
+      if (d > this.far + this.hysteresis) level = 2;
+      else if (d < this.near - this.hysteresis) level = 0;
+    } else { // lastLevel === 2
+      if (d < this.far - this.hysteresis) level = 1;
+    }
+    this.lastLevel = level;
+    const targetGeom = level === 2 ? (this.low || this.base) : (level === 1 ? (this.mid || this.base) : this.base);
     if (this.points.geometry !== targetGeom) {
       this.points.geometry = targetGeom;
+    }
+  }
+
+  setBase(geom: THREE.BufferGeometry) {
+    this.base = geom;
+    this.base.computeBoundingSphere();
+    this.computeCentroid();
+    this.prepareLevels();
+    if (this.points) {
+      this.points.geometry = this.base;
     }
   }
 
@@ -181,9 +206,10 @@ export class LODRenderer {
       return g;
     };
     this.mid = makeDecimated(2);
+    this.mid.computeBoundingSphere();
     this.low = makeDecimated(8);
+    this.low.computeBoundingSphere();
   }
 }
 
 export default { AISuggestionManager, DynamicLayerManager, LODRenderer };
-
