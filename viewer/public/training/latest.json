@@ -1,26 +1,26 @@
 {
-  "ts": "20250829-235207",
-  "nodes": 25725,
+  "ts": "20250830-000347",
+  "nodes": 4096,
   "avg_degree": 5.0,
-  "doors": 144,
-  "guided": 286,
+  "doors": 55,
+  "guided": 110,
   "hubs": [
-    "Sculpture - Wikipedia...",
-    "Sculpture - Wikipedia...",
-    "Painting - Wikipedia ...",
-    "Dance - Wikipedia — D...",
-    "ASCII art - Wikipedia..."
+    "Fine art - Wikipedia ...",
+    "Fine art - Wikipedia ...",
+    "Work (human activity)...",
+    "Fine art - Wikipedia ...",
+    "Fine art - Wikipedia ..."
   ],
   "goto": {
-    "count": 64,
-    "success": 64,
-    "success_rate": 1.0,
-    "median_hops": 10
+    "count": 128,
+    "success": 81,
+    "success_rate": 0.6328125,
+    "median_hops": 6
   },
   "door": {
-    "count": 32,
-    "success": 32,
-    "success_rate": 1.0,
-    "median_hops": 10
+    "count": 64,
+    "success": 47,
+    "success_rate": 0.734375,
+    "median_hops": 7
   }
 }
