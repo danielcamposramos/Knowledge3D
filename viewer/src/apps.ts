@@ -716,3 +716,97 @@ export class LayersApp implements TabletApp {
     el.appendChild(all); el.appendChild(none); el.appendChild(list);
   }
 }
+
+export class ExamsApp implements TabletApp {
+  id = 'exams';
+  title = 'Exams';
+  private localIndexUrl = '/training/exams_index.json';
+  private remoteIndexUrl = 'http://127.0.0.1:8766/exams_index.json';
+  private items: { id: string; title: string; source: string; url: string }[] = [];
+  private current: any | null = null;
+  private publish: ((ev: { type: string; payload?: any }) => void) | null = null;
+  setContext(ctx: { publish?: (ev: { type: string; payload?: any }) => void }) { this.publish = ctx.publish || null; }
+  renderCanvas(ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }) {
+    ctx.fillStyle = '#0d1117'; ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+    ctx.fillStyle = '#c9d1d9'; ctx.font = '13px system-ui';
+    const title = this.current ? (this.current.title || 'Task') : 'Select a task';
+    ctx.fillText(`[Exams] ${title}`.slice(0, 60), rect.x + 6, rect.y + 18);
+  }
+  private async fetchJson(url: string): Promise<any | null> { try { const res = await fetch(url, { cache: 'no-cache' }); if (!res.ok) return null; return await res.json(); } catch { return null; } }
+  private async loadIndex() {
+    if (this.items.length) return;
+    const remote = await this.fetchJson(this.remoteIndexUrl);
+    if (Array.isArray(remote)) { this.items = remote; return; }
+    const local = await this.fetchJson(this.localIndexUrl);
+    if (Array.isArray(local)) { this.items = local; return; }
+  }
+  async openOverlay(el: HTMLDivElement) {
+    await this.loadIndex();
+    el.innerHTML = '';
+    const list = document.createElement('div');
+    list.style.maxHeight = '25vh'; list.style.overflow='auto'; list.style.padding='6px'; list.style.border='1px solid #444';
+    const panel = document.createElement('div');
+    panel.style.marginTop = '8px'; panel.style.color = '#ddd';
+    const renderList = () => {
+      list.innerHTML = '';
+      for (const it of this.items) {
+        const b = document.createElement('button'); b.textContent = `${it.source}: ${it.title}`;
+        b.onclick = async () => {
+          try {
+            const isRemote = it.url.startsWith('http') || it.url.startsWith('/exams/');
+            const base = isRemote ? 'http://127.0.0.1:8766' : '';
+            const res = await fetch(isRemote ? (base + it.url) : it.url);
+            const data = await res.json();
+            this.current = { ...data, id: it.id, title: it.title, source: it.source };
+            renderTask();
+          } catch {}
+        };
+        list.appendChild(b);
+      }
+    };
+    const renderTask = () => {
+      panel.innerHTML = '';
+      if (!this.current) return;
+      const h = document.createElement('div'); h.textContent = `${this.current.source} — ${this.current.title}`; h.style.fontWeight = 'bold'; panel.appendChild(h);
+      const kind = String(this.current.kind || '').toLowerCase();
+      if (kind === 'arc' && this.current.train && Array.isArray(this.current.train)) { this.renderArc(panel, this.current); return; }
+      const p = document.createElement('pre'); p.style.whiteSpace = 'pre-wrap'; p.textContent = String(this.current.prompt || this.current.description || '(no prompt)'); panel.appendChild(p);
+      const choices: string[] = Array.isArray(this.current.choices) ? this.current.choices : [];
+      if (choices.length) {
+        const box = document.createElement('div'); box.style.display='flex'; box.style.flexDirection='column'; box.style.gap='6px';
+        choices.forEach((c: string, idx: number) => { const btn = document.createElement('button'); btn.textContent = `(${idx}) ${c}`; btn.onclick=()=>{ const ok = (Number(this.current.answer_idx ?? -1) === idx); this.publish?.({ type:'exam_attempt', payload:{ id:this.current.id, source:this.current.source, idx, ok } }); alert(ok?'Correct!':'Try again'); }; box.appendChild(btn); });
+        panel.appendChild(box);
+      } else {
+        const input = document.createElement('input'); input.placeholder='Your answer…'; input.style.width='50%'; const go = document.createElement('button'); go.textContent='Submit';
+        go.onclick = () => { const ans = String((input as HTMLInputElement).value||'').trim(); const gold = String(this.current.answer||'').trim(); const ok = gold && ans.toLowerCase() === gold.toLowerCase(); this.publish?.({ type:'exam_attempt', payload:{ id:this.current.id, source:this.current.source, answer:ans, ok } }); alert(ok?'Correct!':(gold?`Expected: ${gold}`:'Submitted.')); };
+        panel.appendChild(input); panel.appendChild(go);
+      }
+    };
+    el.appendChild(list); el.appendChild(panel);
+    renderList(); renderTask();
+  }
+  private renderArc(panel: HTMLDivElement, task: any) {
+    const container = document.createElement('div'); container.style.display='flex'; container.style.gap='12px';
+    const train = Array.isArray(task.train) ? task.train : [];
+    let idx = 0; const gridStyle = 'border:1px solid #444; image-rendering: pixelated;';
+    const colorMap = ['#000000','#0074D9','#FF4136','#2ECC40','#FFDC00','#AAAAAA','#F012BE','#FF851B','#7FDBFF','#870C25'];
+    const mkCanvas = (w:number,h:number,scale=20)=>{ const c=document.createElement('canvas'); c.width=w; c.height=h; c.style.width=(w*scale)+'px'; c.style.height=(h*scale)+'px'; c.style.cssText=gridStyle; return c; };
+    const hexToRgb = (hex:string):[number,number,number]=>{ const m=/^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(hex)!; return [parseInt(m[1],16),parseInt(m[2],16),parseInt(m[3],16)]; };
+    const drawGrid = (canvas: HTMLCanvasElement, grid: number[][]) => { const ctx=canvas.getContext('2d')!; const h=grid.length; const w=grid[0].length; const img=ctx.createImageData(w,h); for(let y=0;y<h;y++) for(let x=0;x<w;x++){ const v=Math.max(0,Math.min(9,Number(grid[y][x]||0))); const [r,g,b]=hexToRgb(colorMap[v]); const i=((y*w)+x)*4; img.data[i]=r; img.data[i+1]=g; img.data[i+2]=b; img.data[i+3]=255; } ctx.putImageData(img,0,0); };
+    const state = { attempt: [] as number[][] };
+    const renderPair = () => {
+      container.innerHTML=''; const pair=train[idx]; if(!pair) return; const inG=pair.input as number[][]; const outG=pair.output as number[][];
+      const inC=mkCanvas(inG[0].length,inG.length); drawGrid(inC,inG); const outC=mkCanvas(outG[0].length,outG.length); drawGrid(outC,outG); const edC=mkCanvas(outG[0].length,outG.length);
+      state.attempt = outG.map(row=>row.map(_=>0)); const scale=edC.clientWidth/edC.width; edC.addEventListener('click',(ev)=>{ const rect=edC.getBoundingClientRect(); const x=Math.floor((ev.clientX-rect.left)/scale); const y=Math.floor((ev.clientY-rect.top)/scale); const next=(state.attempt[y][x]+1)%10; state.attempt[y][x]=next; drawGrid(edC,state.attempt); });
+      const left=document.createElement('div'); const labIn=document.createElement('div'); labIn.textContent='Input'; left.appendChild(labIn); left.appendChild(inC);
+      const mid=document.createElement('div'); const labOut=document.createElement('div'); labOut.textContent='Output (GT)'; mid.appendChild(labOut); mid.appendChild(outC);
+      const right=document.createElement('div'); const labEd=document.createElement('div'); labEd.textContent='Your attempt'; right.appendChild(labEd); right.appendChild(edC);
+      const controls=document.createElement('div'); controls.style.marginTop='8px'; const prev=document.createElement('button'); prev.textContent='Prev'; prev.onclick=()=>{ idx=(idx-1+train.length)%train.length; renderPair(); };
+      const next=document.createElement('button'); next.textContent='Next'; next.onclick=()=>{ idx=(idx+1)%train.length; renderPair(); };
+      const check=document.createElement('button'); check.textContent='Check'; check.onclick=()=>{ const ok=JSON.stringify(state.attempt)===JSON.stringify(outG); this.publish?.({ type:'exam_attempt', payload:{ id:task.title||task.id, source:'ARC-AGI', ok, kind:'arc-train' } }); alert(ok?'Match!':'Not equal.'); };
+      controls.appendChild(prev); controls.appendChild(next); controls.appendChild(check);
+      container.appendChild(left); container.appendChild(mid); container.appendChild(right); panel.appendChild(container); panel.appendChild(controls);
+    };
+    renderPair();
+  }
+}
