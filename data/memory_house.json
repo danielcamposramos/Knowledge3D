@@ -1,0 +1,155 @@
+{
+  "rooms": [
+    {
+      "name": "Books",
+      "desc": "Long-term knowledge books",
+      "id": "room:6225eb5b"
+    }
+  ],
+  "objects": [
+    {
+      "room": "Books",
+      "label": "Work - Wikipedia",
+      "text": "book entry",
+      "id": "obj:37ae761b"
+    },
+    {
+      "room": "Books",
+      "label": "Work (human activity) - Wikipedia",
+      "text": "book entry",
+      "id": "obj:5b1f2d18"
+    },
+    {
+      "room": "Books",
+      "label": "Manual labour - Wikipedia",
+      "text": "book entry",
+      "id": "obj:a1e1a187"
+    },
+    {
+      "room": "Books",
+      "label": "Homemaking - Wikipedia",
+      "text": "book entry",
+      "id": "obj:98ac71fa"
+    },
+    {
+      "room": "Books",
+      "label": "Working animal - Wikipedia",
+      "text": "book entry",
+      "id": "obj:dbcc3478"
+    },
+    {
+      "room": "Books",
+      "label": "Work (electric field) - Wikipedia",
+      "text": "book entry",
+      "id": "obj:284e4f02"
+    },
+    {
+      "room": "Books",
+      "label": "Work (thermodynamics) - Wikipedia",
+      "text": "book entry",
+      "id": "obj:42fec67a"
+    },
+    {
+      "room": "Books",
+      "label": "Creative work - Wikipedia",
+      "text": "book entry",
+      "id": "obj:75e8b586"
+    },
+    {
+      "room": "Books",
+      "label": "Creativity - Wikipedia",
+      "text": "book entry",
+      "id": "obj:21d3d73c"
+    },
+    {
+      "room": "Books",
+      "label": "Fine art - Wikipedia",
+      "text": "book entry",
+      "id": "obj:1f2b8c53"
+    },
+    {
+      "room": "Books",
+      "label": "Work of art - Wikipedia",
+      "text": "book entry",
+      "id": "obj:39307f6c"
+    },
+    {
+      "room": "Books",
+      "label": "Sculpture - Wikipedia",
+      "text": "book entry",
+      "id": "obj:e61fabe1"
+    },
+    {
+      "room": "Books",
+      "label": "Painting - Wikipedia",
+      "text": "book entry",
+      "id": "obj:42b4942c"
+    },
+    {
+      "room": "Books",
+      "label": "Drawing - Wikipedia",
+      "text": "book entry",
+      "id": "obj:1ad2302e"
+    },
+    {
+      "room": "Books",
+      "label": "Sketch (drawing) - Wikipedia",
+      "text": "book entry",
+      "id": "obj:4771f7bc"
+    },
+    {
+      "room": "Books",
+      "label": "Performance art - Wikipedia",
+      "text": "book entry",
+      "id": "obj:58ba8780"
+    },
+    {
+      "room": "Books",
+      "label": "Dance - Wikipedia",
+      "text": "book entry",
+      "id": "obj:ae112bc5"
+    },
+    {
+      "room": "Books",
+      "label": "Writing - Wikipedia",
+      "text": "book entry",
+      "id": "obj:767a661a"
+    },
+    {
+      "room": "Books",
+      "label": "Literature - Wikipedia",
+      "text": "book entry",
+      "id": "obj:bf46a8c7"
+    },
+    {
+      "room": "Books",
+      "label": "Creative coding - Wikipedia",
+      "text": "book entry",
+      "id": "obj:235bfd62"
+    },
+    {
+      "room": "Books",
+      "label": "ASCII art - Wikipedia",
+      "text": "book entry",
+      "id": "obj:f7229de7"
+    },
+    {
+      "room": "Books",
+      "label": "Filmmaking - Wikipedia",
+      "text": "book entry",
+      "id": "obj:ee55e7a4"
+    },
+    {
+      "room": "Books",
+      "label": "Music - Wikipedia",
+      "text": "book entry",
+      "id": "obj:fb2f340d"
+    },
+    {
+      "room": "Books",
+      "label": "Imagination - Wikipedia",
+      "text": "book entry",
+      "id": "obj:ec397cb9"
+    }
+  ]
+}

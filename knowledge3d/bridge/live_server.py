@@ -407,6 +407,9 @@ class LiveServer:
         if cmd == "/model":
             await self._handle_model(parts[1:] if len(parts) > 1 else [], client)
             return
+        if cmd == "/mem" and len(parts) >= 2:
+            await self._handle_mem(parts[1:], client)
+            return
         await self.send_system(client.channel, f"Unknown command: {cmd}")
 
     async def _handle_open(self, target: str, client: Client):
@@ -460,6 +463,44 @@ class LiveServer:
         await self.send_command("open", json.dumps(payload), channel=client.channel)
         hops = max(0, (len(path_ids or []) - 1))
         await self.send_chat(sender="system", text=f"Opening door to {label} via {hops} hops", channel=client.channel)
+
+    async def _handle_mem(self, args, client: Client):
+        """Manage House Memory: rooms + objects; export GLTF to viewer/public/memory_house.gltf.
+
+        Commands:
+          /mem room <name> [desc]
+          /mem add <room>|<label>|<text>
+          /mem export
+        """
+        try:
+            from ..tools.house_memory import MemoryHouse  # type: ignore
+        except Exception:
+            await self.send_system(client.channel, "Memory tool unavailable.")
+            return
+        sub = args[0].lower() if args else "help"
+        h = MemoryHouse()
+        if sub == "room" and len(args) >= 2:
+            name = args[1]
+            desc = "".join(args[2:]) if len(args) > 2 else ""
+            h.add_room(name, desc)
+            await self.send_chat(sender="agent", text=f"Memory: added room '{name}'.", channel=client.channel)
+            return
+        if sub == "add" and len(args) >= 2:
+            try:
+                # Expect room|label|text
+                raw = " ".join(args[1:])
+                room, label, text = [s.strip() for s in raw.split("|")]
+                h.add_object(room, label, text)
+                await self.send_chat(sender="agent", text=f"Memory: saved '{label}' in room '{room}'.", channel=client.channel)
+            except Exception:
+                await self.send_system(client.channel, "Usage: /mem add <room>|<label>|<text>")
+            return
+        if sub == "export":
+            out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "memory_house.gltf")
+            h.export_gltf(out)
+            await self.send_chat(sender="agent", text=f"Memory: exported to {out}", channel=client.channel)
+            return
+        await self.send_system(client.channel, "Usage: /mem room <name> [desc] | /mem add <room>|<label>|<text> | /mem export")
 
     async def _handle_model(self, args, client: Client):
         sub = (args[0].lower() if args else "status")

@@ -6,6 +6,11 @@
       "description": "AI demo with ai_state_flags and protocol."
     },
     {
+      "uri": "/memory_house.gltf",
+      "expert": "memory",
+      "description": "House Memory: rooms + objects as long-term memory."
+    },
+    {
       "uri": "/math_house.gltf",
       "expert": "math",
       "description": "A house for mathematical concepts and embeddings."
