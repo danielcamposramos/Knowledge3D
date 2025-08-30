@@ -137,10 +137,20 @@ export class RpnApp implements TabletApp {
 
 export class WebApp implements TabletApp {
   id = 'web';
-  title = 'Web';
+  title = 'Agentic Browser';
   private store = openStore<any>('k3d-tablet', 'web');
   private lastUrl: string = '';
   private lastTitle: string = '';
+  private publish: ((ev: { type: string; payload?: any }) => void) | null = null;
+
+  setContext(ctx: { records: ReadonlyArray<K3DRecord>; publish?: (ev: { type: string; payload?: any }) => void }) {
+    this.publish = ctx.publish || null;
+  }
+
+  private log(kind: string, data: Record<string, unknown>) {
+    try { this.publish?.({ type: kind, payload: data }); } catch {}
+  }
+
   renderCanvas(ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }) {
     ctx.fillStyle = '#121212';
     ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
@@ -149,30 +159,90 @@ export class WebApp implements TabletApp {
     const t = this.lastTitle || this.lastUrl || '(no page)';
     ctx.fillText(t.slice(0, 48), rect.x + 8, rect.y + 18);
   }
+
+  private async fetchDirect(u: string, iframe: HTMLIFrameElement, view: HTMLDivElement) {
+    try {
+      const res = await fetch(u, { mode: 'cors' });
+      const html = await res.text();
+      const text = html.replace(/<script[\s\S]*?<\/script>/g,'').replace(/<style[\s\S]*?<\/style>/g,'').replace(/<[^>]+>/g,'');
+      iframe.style.display='none'; view.style.display='block';
+      view.textContent = text.slice(0, 8000);
+      this.lastUrl = u; this.lastTitle = (html.match(/<title>([^<]+)<\/title>/i)?.[1] || '').trim();
+      await this.store.put('last', { url: this.lastUrl, title: this.lastTitle, ts: Date.now() });
+      this.log('browser_visit', { engine: 'direct', url: u, title: this.lastTitle, len: text.length });
+    } catch (e) {
+      // Fallback: iframe (may be blocked by X-Frame-Options)
+      iframe.style.display='block'; view.style.display='none'; iframe.src = u;
+      this.lastUrl = u; this.lastTitle = '';
+      await this.store.put('last', { url: this.lastUrl, title: this.lastTitle, ts: Date.now() });
+      this.log('browser_iframe', { url: u });
+    }
+  }
+
+  private async wikiSearch(q: string): Promise<{ title: string; snippet: string }[]> {
+    const api = 'https://en.wikipedia.org/w/api.php?action=query&list=search&format=json&origin=*';
+    const url = `${api}&srsearch=${encodeURIComponent(q)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const arr = (data?.query?.search || []) as any[];
+    return arr.map((it) => ({ title: it.title as string, snippet: (it.snippet || '').replace(/<[^>]+>/g,'') }));
+  }
+
+  private async wikiSummary(title: string): Promise<{ title: string; extract: string; url: string } | null> {
+    const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}?redirect=true`;
+    const res = await fetch(url, { headers: { 'accept': 'application/json' } });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const extract = (data?.extract || '') as string;
+    const pageUrl = (data?.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`) as string;
+    return { title: data?.title || title, extract, url: pageUrl };
+  }
+
   async openOverlay(el: HTMLDivElement) {
     el.innerHTML = '';
-    const url = document.createElement('input'); url.style.width='60%'; url.placeholder='https://…'; if (this.lastUrl) url.value = this.lastUrl;
+    // Controls
+    const url = document.createElement('input'); url.style.width='50%'; url.placeholder='https://… or Wikipedia topic'; if (this.lastUrl) url.value = this.lastUrl;
     const go = document.createElement('button'); go.textContent = 'Go';
-    const iframe = document.createElement('iframe'); iframe.style.width='100%'; iframe.style.height='60vh'; iframe.style.border='1px solid #444'; iframe.style.display='none'; iframe.setAttribute('sandbox','allow-scripts allow-forms allow-popups');
-    const view = document.createElement('div'); view.style.marginTop = '8px'; view.style.background='#111'; view.style.color='#ddd'; view.style.padding='8px'; view.style.height='60vh'; view.style.overflow='auto';
-    const fetchText = async (u: string) => {
+    const wikiBtn = document.createElement('button'); wikiBtn.textContent = 'Wikipedia Search'; wikiBtn.style.marginLeft = '8px';
+    const iframe = document.createElement('iframe'); iframe.style.width='100%'; iframe.style.height='55vh'; iframe.style.border='1px solid #444'; iframe.style.display='none'; iframe.setAttribute('sandbox','allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox');
+    const view = document.createElement('div'); view.style.marginTop = '8px'; view.style.background='#111'; view.style.color='#ddd'; view.style.padding='8px'; view.style.height='55vh'; view.style.overflow='auto';
+    const results = document.createElement('div'); results.style.marginTop='8px'; results.style.color='#ddd';
+
+    const doGo = async () => { const u = url.value.trim(); if (!u) return; await this.fetchDirect(u, iframe, view); };
+    go.onclick = () => { void doGo(); };
+
+    wikiBtn.onclick = async () => {
+      const q = url.value.trim(); if (!q) return;
+      results.innerHTML = 'Searching…';
       try {
-        const res = await fetch(u, { mode: 'cors' });
-        const html = await res.text();
-        const text = html.replace(/<script[\s\S]*?<\/script>/g,'').replace(/<style[\s\S]*?<\/style>/g,'').replace(/<[^>]+>/g,'');
-        iframe.style.display='none'; view.style.display='block';
-        view.textContent = text.slice(0, 8000);
-        this.lastUrl = u; this.lastTitle = (html.match(/<title>([^<]+)<\/title>/i)?.[1] || '').trim();
-        await this.store.put('last', { url: this.lastUrl, title: this.lastTitle, ts: Date.now() });
+        const items = await this.wikiSearch(q);
+        this.log('browser_search', { engine: 'wikipedia', query: q, count: items.length });
+        if (!items.length) { results.textContent = 'No results.'; return; }
+        results.innerHTML = '';
+        for (const it of items.slice(0, 12)) {
+          const row = document.createElement('div'); row.style.padding='6px 0'; row.style.borderBottom='1px solid #333';
+          const a = document.createElement('a'); a.href = `https://en.wikipedia.org/wiki/${encodeURIComponent(it.title)}`; a.textContent = it.title; a.target = '_blank';
+          const p = document.createElement('div'); p.textContent = it.snippet;
+          const open = document.createElement('button'); open.textContent = 'Open summary'; open.style.marginLeft='8px';
+          open.onclick = async () => {
+            const s = await this.wikiSummary(it.title);
+            if (s) {
+              iframe.style.display='none'; view.style.display='block';
+              view.textContent = `Wikipedia — ${s.title}\n\n${s.extract}\n\nURL: ${s.url}`;
+              this.lastUrl = s.url; this.lastTitle = s.title; await this.store.put('last', { url: this.lastUrl, title: this.lastTitle, ts: Date.now() });
+              this.log('browser_visit', { engine: 'wikipedia', url: s.url, title: s.title, len: s.extract.length });
+            }
+          };
+          row.appendChild(a); row.appendChild(open); row.appendChild(p);
+          results.appendChild(row);
+        }
       } catch (e) {
-        // Fallback: try iframe (may be blocked by X-Frame-Options)
-        iframe.style.display='block'; view.style.display='none'; iframe.src = u;
-        this.lastUrl = u; this.lastTitle = '';
-        await this.store.put('last', { url: this.lastUrl, title: this.lastTitle, ts: Date.now() });
+        results.textContent = 'Search failed.';
       }
     };
-    go.onclick = () => { const u = url.value.trim(); if (!u) return; void fetchText(u); };
-    el.appendChild(url); el.appendChild(go); el.appendChild(iframe); el.appendChild(view);
+
+    el.appendChild(url); el.appendChild(go); el.appendChild(wikiBtn);
+    el.appendChild(iframe); el.appendChild(view); el.appendChild(results);
     const saved = await this.store.get('last'); if (saved?.url) { this.lastUrl = saved.url; this.lastTitle = saved.title || ''; url.value = saved.url; }
   }
 }
@@ -327,9 +397,10 @@ export class GalaxyApp implements TabletApp {
   private base = 12; // base nodes per ring, grows by phi^level
   private phi = 1.61803398875;
   private layout: { ring: number; label: string; sim: number }[] = [];
+  private frozen = false;
 
   setContext(ctx: { records: ReadonlyArray<K3DRecord> }) { this.records = ctx.records; this.compute(); }
-  onEvent(ev: { type: string; payload?: any }) { if (ev.type === 'focus' && ev.payload?.label) { this.focus = String(ev.payload.label); this.compute(); } }
+  onEvent(ev: { type: string; payload?: any }) { if (ev.type === 'focus' && ev.payload?.label) { this.focus = String(ev.payload.label); if (!this.frozen) this.compute(); } }
 
   private cosine(a: number[], b: number[]): number {
     let dot = 0, na = 0, nb = 0; const n = Math.min(a.length, b.length);
@@ -423,9 +494,11 @@ export class GalaxyApp implements TabletApp {
     const base = document.createElement('input'); base.type='number'; base.min='4'; base.max='64'; base.value=String(this.base);
     const apply = document.createElement('button'); apply.textContent='Apply';
     const expand = document.createElement('button'); expand.textContent='Expand φ';
+    const freeze = document.createElement('button'); freeze.textContent = this.frozen ? 'Unfreeze' : 'Freeze';
     apply.onclick = () => { this.rings = Math.max(1, Math.min(8, parseInt(rings.value||'4'))); this.base = Math.max(4, Math.min(64, parseInt(base.value||'12'))); this.compute(); };
     expand.onclick = () => { this.rings = Math.min(8, this.rings+1); this.base = Math.max(4, Math.round(this.base * this.phi)); this.compute(); rings.value=String(this.rings); base.value=String(this.base); };
-    controls.append('Rings:', rings, 'Base:', base, apply, expand);
+    freeze.onclick = () => { this.frozen = !this.frozen; freeze.textContent = this.frozen ? 'Unfreeze' : 'Freeze'; if (!this.frozen) this.compute(); };
+    controls.append('Rings:', rings, 'Base:', base, apply, expand, freeze);
     el.appendChild(controls);
     const hint = document.createElement('div'); hint.style.color='#ddd'; hint.style.marginTop='8px'; hint.textContent = 'Rings expand by phi; nodes per ring ≈ base × phi^(ring-1).'; el.appendChild(hint);
   }

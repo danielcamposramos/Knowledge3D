@@ -155,6 +155,33 @@ def train_model(log_dir: Path, out_path: Path, synth_per_label: int = 0) -> dict
     return {"samples": len(X), "classes": sorted(set(y)), "report": report, "model": str(out_path)}
 
 
+def train_from_templates(templates_dir: Path, langs: list[str], out_path: Path, n_per_label: int = 200) -> dict:
+    """Train a compact multilingual intent model using YAML templates.
+
+    Reuses the synthetic templating from the HF pipeline to avoid heavy dependencies.
+    """
+    from .intent_hf import synthesize_examples_from_templates  # type: ignore
+    files = [templates_dir / f"{ln}.yaml" for ln in langs if (templates_dir / f"{ln}.yaml").exists()]
+    if not files:
+        raise RuntimeError(f"No template files found for langs={langs} in {templates_dir}")
+    X, y = synthesize_examples_from_templates(files, n_per_label)
+    if not X:
+        raise RuntimeError("No examples synthesized from templates")
+    pipe = Pipeline([
+        ("vect", CountVectorizer(ngram_range=(1,2), min_df=1)),
+        ("clf", LogisticRegression(max_iter=1000, n_jobs=1)),
+    ])
+    from sklearn.model_selection import train_test_split
+    from sklearn.metrics import classification_report
+    X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, random_state=42)
+    pipe.fit(X_tr, y_tr)
+    y_pred = pipe.predict(X_te)
+    report = classification_report(y_te, y_pred, zero_division=0, output_dict=True)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    joblib.dump(pipe, out_path)
+    return {"samples": len(X), "classes": sorted(set(y)), "report": report, "model": str(out_path)}
+
+
 def load_model(path: Path) -> Pipeline:
     return joblib.load(path)
 
@@ -169,17 +196,22 @@ def predict_action(model: Pipeline, text: str) -> Tuple[str, float]:
 
 def main():  # pragma: no cover
     import argparse
-    parser = argparse.ArgumentParser(description="Train/evaluate a simple intent-action classifier from live logs")
-    parser.add_argument("command", choices=["train", "predict"], help="Mode")
+    parser = argparse.ArgumentParser(description="Train/evaluate a simple intent-action classifier from live logs or templates")
+    parser.add_argument("command", choices=["train", "train-templates", "predict"], help="Mode")
     parser.add_argument("--logs", default=str((Path(__file__).resolve().parents[2].parent / (Path(__file__).resolve().parents[2].name + ".local") / "logs")), help="Logs directory")
     parser.add_argument("--model", default=str((Path(__file__).resolve().parents[2].parent / (Path(__file__).resolve().parents[2].name + ".local") / "models" / "intent.pkl")), help="Model path")
     parser.add_argument("--synth-per-label", type=int, default=0, help="Synthesize N examples per label to augment logs")
     parser.add_argument("--text", help="Text to predict in predict mode")
+    parser.add_argument("--templates-dir", default=str((Path(__file__).resolve().parents[2] / "data" / "intent_templates")))
+    parser.add_argument("--langs", default="en,pt,es")
     args = parser.parse_args()
     logs = Path(args.logs)
     model_path = Path(args.model)
     if args.command == "train":
         res = train_model(logs, model_path, synth_per_label=args.synth_per_label)
+        print(json.dumps(res, indent=2))
+    elif args.command == "train-templates":
+        res = train_from_templates(Path(args.templates_dir), [s.strip() for s in str(args.langs).split(',') if s.strip()], model_path, n_per_label=args.synth_per_label or 200)
         print(json.dumps(res, indent=2))
     else:
         if not args.text:
