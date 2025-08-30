@@ -203,6 +203,13 @@ async function loadHouse(k3dUrl: string) {
                 try { const label = String(ev.payload?.label || ''); if (chat && label) chat.sendChat(`/open ${label}`); } catch {}
             } else if (ev?.type === 'diaryAdd') {
                 try { const text = String(ev.payload?.text || ''); if (chat && text) chat.sendEvent({ kind: 'diary_entry', text, tz: '-03:00' }); } catch {}
+            } else if (ev?.type === 'sleep') {
+                try {
+                    const mode = String(ev.payload?.mode || 'pause');
+                    if (chat) chat.sendChat(mode === 'consolidate' ? '/sleep consolidate' : '/sleep');
+                } catch {}
+            } else if (ev?.type === 'wake') {
+                try { if (chat) chat.sendChat('/resume'); } catch {}
             }
         });
         // Update tablet with house info and dataset

@@ -585,6 +585,28 @@ export class DiaryApp implements TabletApp {
   }
 }
 
+export class ControlApp implements TabletApp {
+  id = 'control'; title = 'Control';
+  private publish: ((ev: { type: string; payload?: any }) => void) | null = null;
+  setContext(ctx: { records: ReadonlyArray<K3DRecord>; publish?: (ev: { type: string; payload?: any }) => void }) { this.publish = ctx.publish || null; }
+  renderCanvas(ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }) {
+    ctx.fillStyle = '#0b0d0f'; ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+    ctx.fillStyle = '#fff'; ctx.font = '12px system-ui';
+    ctx.fillText('Sleep/Wake orchestration', rect.x+8, rect.y+18);
+    ctx.fillText('Use Focus → Control for buttons', rect.x+8, rect.y+36);
+  }
+  openOverlay(el: HTMLDivElement) {
+    el.innerHTML = '';
+    const row = document.createElement('div'); row.style.display='flex'; row.style.gap='8px';
+    const sleep = document.createElement('button'); sleep.textContent='Sleep (pause)'; sleep.onclick=()=>{ this.publish?.({ type:'sleep', payload:{ mode:'pause' } }); };
+    const consolidate = document.createElement('button'); consolidate.textContent='Sleep + Consolidate'; consolidate.onclick=()=>{ this.publish?.({ type:'sleep', payload:{ mode:'consolidate' } }); };
+    const wake = document.createElement('button'); wake.textContent='Wake (resume)'; wake.onclick=()=>{ this.publish?.({ type:'wake' }); };
+    row.appendChild(sleep); row.appendChild(consolidate); row.appendChild(wake);
+    el.appendChild(row);
+    const p = document.createElement('div'); p.style.color='#ddd'; p.style.marginTop='8px'; p.textContent = 'Sleep consolidates diary/reflections/training and re-exports memory_house.gltf (GMT-3 timestamps).'; el.appendChild(p);
+  }
+}
+
 export class LayersApp implements TabletApp {
   id = 'layers'; title = 'Layers';
   private layers: string[] = [];
