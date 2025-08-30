@@ -1,0 +1,57 @@
+/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/knowledge3d/bridge/live_server.py:23: DeprecationWarning: websockets.WebSocketServerProtocol is deprecated
+  ws: websockets.WebSocketServerProtocol
+/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/knowledge3d/bridge/live_server.py:42: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  ts = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/knowledge3d/bridge/live_server.py:432: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  rec = {"ts": datetime.utcnow().isoformat() + "Z", **record}
+/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/knowledge3d/bridge/live_server.py:432: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  rec = {"ts": datetime.utcnow().isoformat() + "Z", **record}
+connection handler failed
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/websockets/asyncio/server.py", line 376, in conn_handler
+    await self.handler(connection)
+  File "/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/knowledge3d/bridge/live_server.py", line 107, in handler
+    await self.route(msg, client)
+  File "/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/knowledge3d/bridge/live_server.py", line 124, in route
+    await self.handle_command(text, client)
+  File "/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/knowledge3d/bridge/live_server.py", line 250, in handle_command
+    await self._handle_model(parts[1:] if len(parts) > 1 else [], client)
+  File "/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/knowledge3d/bridge/live_server.py", line 334, in _handle_model
+    await self.send_system(client.channel, f"Model: on (threshold={self._model_threshold:.2f}) kind={self._model_kind}")
+  File "/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/knowledge3d/bridge/live_server.py", line 428, in send_system
+    await self.send_chat(sender="system", text=text, channel=channel)
+  File "/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/knowledge3d/bridge/live_server.py", line 415, in send_chat
+    await asyncio.gather(*[ws.send(payload) for ws in targets])
+  File "/usr/lib/python3/dist-packages/websockets/asyncio/connection.py", line 476, in send
+    async with self.send_context():
+               ~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/websockets/asyncio/connection.py", line 957, in send_context
+    raise self.protocol.close_exc from original_exc
+websockets.exceptions.ConnectionClosedOK: received 1000 (OK); then sent 1000 (OK)
+connection handler failed
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/websockets/asyncio/server.py", line 376, in conn_handler
+    await self.handler(connection)
+  File "/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/knowledge3d/bridge/live_server.py", line 107, in handler
+    try:
+    
+  File "/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/knowledge3d/bridge/live_server.py", line 124, in route
+  File "/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/knowledge3d/bridge/live_server.py", line 250, in handle_command
+    cmd = parts[0].lower()
+        ^^^^^^^^^^^^^^^^^^
+  File "/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/knowledge3d/bridge/live_server.py", line 334, in _handle_model
+    if default_skl.exists(): candidates.append(("sklearn", default_skl))
+  File "/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/knowledge3d/bridge/live_server.py", line 428, in send_system
+  File "/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/knowledge3d/bridge/live_server.py", line 415, in send_chat
+  File "/usr/lib/python3/dist-packages/websockets/asyncio/connection.py", line 476, in send
+    async with self.send_context():
+               ~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/websockets/asyncio/connection.py", line 957, in send_context
+    raise self.protocol.close_exc from original_exc
+websockets.exceptions.ConnectionClosedOK: received 1000 (OK); then sent 1000 (OK)

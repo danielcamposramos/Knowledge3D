@@ -1,0 +1,86 @@
+{"ts": "2025-08-29T20:24:11.618599Z", "type": "presence", "event": "join", "nick": "user2304", "channel": "#general"}
+{"ts": "2025-08-29T20:24:11.620083Z", "type": "chat", "from": "user2304", "channel": "#general", "text": "goto library"}
+{"ts": "2025-08-29T20:24:11.621270Z", "type": "chat_response", "from": "user2304", "channel": "#general", "text": "goto library", "response": {"type": "navigation", "action": "goto", "target": "library", "message": "Navigating to library"}}
+{"ts": "2025-08-29T20:24:11.623059Z", "type": "chat", "from": "user2304", "channel": "#general", "text": "move left 2"}
+{"ts": "2025-08-29T20:24:11.624432Z", "type": "chat_response", "from": "user2304", "channel": "#general", "text": "move left 2", "response": {"type": "navigation", "action": "move", "direction": "left", "distance": 2.0, "message": "Moving left by 2.0 units"}}
+{"ts": "2025-08-29T20:24:11.626059Z", "type": "chat", "from": "user2304", "channel": "#general", "text": "move up 1.5"}
+{"ts": "2025-08-29T20:24:11.627403Z", "type": "chat_response", "from": "user2304", "channel": "#general", "text": "move up 1.5", "response": {"type": "navigation", "action": "move", "direction": "up", "distance": 1.5, "message": "Moving up by 1.5 units"}}
+{"ts": "2025-08-29T20:24:11.628908Z", "type": "chat", "from": "user2304", "channel": "#general", "text": "teleport to [1,2,3]"}
+{"ts": "2025-08-29T20:24:11.630284Z", "type": "chat_response", "from": "user2304", "channel": "#general", "text": "teleport to [1,2,3]", "response": {"type": "navigation", "action": "teleport", "target": [1.0, 2.0, 3.0], "message": "Teleporting to (1.0, 2.0, 3.0)"}}
+{"ts": "2025-08-29T20:24:11.631836Z", "type": "chat", "from": "user2304", "channel": "#general", "text": "follow agent one"}
+{"ts": "2025-08-29T20:24:11.633157Z", "type": "chat_response", "from": "user2304", "channel": "#general", "text": "follow agent one", "response": {"type": "navigation", "action": "follow", "target": "agent one", "message": "Following agent one"}}
+{"ts": "2025-08-29T20:24:11.634647Z", "type": "chat", "from": "user2304", "channel": "#general", "text": "orbit around Saturn"}
+{"ts": "2025-08-29T20:24:11.636043Z", "type": "chat_response", "from": "user2304", "channel": "#general", "text": "orbit around Saturn", "response": {"type": "navigation", "action": "orbit", "target": "Saturn", "message": "Orbiting around Saturn"}}
+{"ts": "2025-08-29T20:24:11.637558Z", "type": "chat", "from": "user2304", "channel": "#general", "text": "show me sorting algorithms"}
+{"ts": "2025-08-29T20:24:11.638864Z", "type": "chat_response", "from": "user2304", "channel": "#general", "text": "show me sorting algorithms", "response": {"type": "exploration", "action": "show", "topic": "sorting algorithms", "message": "Showing sorting algorithms"}}
+{"ts": "2025-08-29T20:24:11.640298Z", "type": "chat", "from": "user2304", "channel": "#general", "text": "find related to neural networks"}
+{"ts": "2025-08-29T20:24:11.641607Z", "type": "chat_response", "from": "user2304", "channel": "#general", "text": "find related to neural networks", "response": {"type": "exploration", "action": "find_related", "topic": "neural networks", "message": "Finding related to neural networks"}}
+{"ts": "2025-08-29T20:24:11.642989Z", "type": "chat", "from": "user2304", "channel": "#general", "text": "expand cluster physics"}
+{"ts": "2025-08-29T20:24:11.644268Z", "type": "chat_response", "from": "user2304", "channel": "#general", "text": "expand cluster physics", "response": {"type": "exploration", "action": "expand", "area": "cluster physics", "message": "Expanding cluster physics"}}
+{"ts": "2025-08-29T20:24:11.645730Z", "type": "chat", "from": "user2304", "channel": "#general", "text": "hide legend"}
+{"ts": "2025-08-29T20:24:11.647199Z", "type": "chat_response", "from": "user2304", "channel": "#general", "text": "hide legend", "response": {"type": "exploration", "action": "hide", "object": "legend", "message": "Hiding legend"}}
+{"ts": "2025-08-29T20:24:11.648672Z", "type": "presence", "event": "leave", "nick": "user2304", "channel": "#general"}
+{"ts": "2025-08-29T20:24:42.372778Z", "type": "presence", "event": "join", "nick": "user7232", "channel": "#general"}
+{"ts": "2025-08-29T20:24:43.881534Z", "type": "presence", "event": "leave", "nick": "user7232", "channel": "#general"}
+{"ts": "2025-08-29T20:24:52.526287Z", "type": "presence", "event": "join", "nick": "user1072", "channel": "#general"}
+{"ts": "2025-08-29T20:24:52.528472Z", "type": "chat", "from": "user1072", "channel": "#general", "text": "goto market"}
+{"ts": "2025-08-29T20:24:52.529996Z", "type": "chat_response", "from": "user1072", "channel": "#general", "text": "goto market", "response": {"type": "navigation", "action": "goto", "target": "market", "message": "Navigating to market"}}
+{"ts": "2025-08-29T20:24:52.531781Z", "type": "model_prediction", "from": "user1072", "channel": "#general", "text": "goto market", "pred_action": "goto", "confidence": 0.24093249772200007}
+{"ts": "2025-08-29T20:24:52.533807Z", "type": "chat", "from": "user1072", "channel": "#general", "text": "move forward 3"}
+{"ts": "2025-08-29T20:24:52.535324Z", "type": "chat_response", "from": "user1072", "channel": "#general", "text": "move forward 3", "response": {"type": "navigation", "action": "move", "direction": "forward", "distance": 3.0, "message": "Moving forward by 3.0 units"}}
+{"ts": "2025-08-29T20:24:52.537145Z", "type": "model_prediction", "from": "user1072", "channel": "#general", "text": "move forward 3", "pred_action": "move", "confidence": 0.24093249772199996}
+{"ts": "2025-08-29T20:24:53.039748Z", "type": "chat", "from": "user1072", "channel": "#general", "text": "show me graphs"}
+{"ts": "2025-08-29T20:24:53.041930Z", "type": "chat_response", "from": "user1072", "channel": "#general", "text": "show me graphs", "response": {"type": "exploration", "action": "show", "topic": "graphs", "message": "Showing graphs"}}
+{"ts": "2025-08-29T20:24:53.043682Z", "type": "model_prediction", "from": "user1072", "channel": "#general", "text": "show me graphs", "pred_action": "show", "confidence": 0.25900404688474404}
+{"ts": "2025-08-29T20:24:53.546214Z", "type": "chat", "from": "user1072", "channel": "#general", "text": "find related to clustering"}
+{"ts": "2025-08-29T20:24:53.549957Z", "type": "chat_response", "from": "user1072", "channel": "#general", "text": "find related to clustering", "response": {"type": "exploration", "action": "find_related", "topic": "clustering", "message": "Finding related to clustering"}}
+{"ts": "2025-08-29T20:24:53.551720Z", "type": "model_prediction", "from": "user1072", "channel": "#general", "text": "find related to clustering", "pred_action": "find_related", "confidence": 0.32133322825464194}
+{"ts": "2025-08-29T20:24:54.054101Z", "type": "chat", "from": "user1072", "channel": "#general", "text": "touch red sphere"}
+{"ts": "2025-08-29T20:24:54.056157Z", "type": "chat_response", "from": "user1072", "channel": "#general", "text": "touch red sphere", "response": {"type": "interaction", "action": "touch", "object": "red sphere", "message": "Touching red sphere"}}
+{"ts": "2025-08-29T20:24:54.058056Z", "type": "model_prediction", "from": "user1072", "channel": "#general", "text": "touch red sphere", "pred_action": "goto", "confidence": 0.15162885642503535}
+{"ts": "2025-08-29T20:24:54.560555Z", "type": "chat", "from": "user1072", "channel": "#general", "text": "give token to gatekeeper"}
+{"ts": "2025-08-29T20:24:54.564256Z", "type": "chat_response", "from": "user1072", "channel": "#general", "text": "give token to gatekeeper", "response": {"type": "interaction", "action": "give", "object": "token", "recipient": "gatekeeper", "message": "Giving token to gatekeeper"}}
+{"ts": "2025-08-29T20:24:54.565957Z", "type": "model_prediction", "from": "user1072", "channel": "#general", "text": "give token to gatekeeper", "pred_action": "teleport", "confidence": 0.22618838385447962}
+{"ts": "2025-08-29T20:24:55.068590Z", "type": "presence", "event": "leave", "nick": "user1072", "channel": "#general"}
+{"ts": "2025-08-29T20:38:22.581113Z", "type": "presence", "event": "join", "nick": "user7408", "channel": "#general"}
+{"ts": "2025-08-29T20:38:24.086176Z", "type": "presence", "event": "leave", "nick": "user7408", "channel": "#general"}
+{"ts": "2025-08-29T20:38:32.022879Z", "type": "presence", "event": "join", "nick": "user0752", "channel": "#general"}
+{"ts": "2025-08-29T20:38:32.025213Z", "type": "chat", "from": "user0752", "channel": "#general", "text": "goto city center"}
+{"ts": "2025-08-29T20:38:32.026736Z", "type": "chat_response", "from": "user0752", "channel": "#general", "text": "goto city center", "response": {"type": "navigation", "action": "goto", "target": "city center", "message": "Navigating to city center"}}
+{"ts": "2025-08-29T20:38:32.028483Z", "type": "model_prediction", "from": "user0752", "channel": "#general", "text": "goto city center", "pred_action": "goto", "confidence": 0.24093249772200007}
+{"ts": "2025-08-29T20:38:32.030223Z", "type": "chat", "from": "user0752", "channel": "#general", "text": "please move right 4"}
+{"ts": "2025-08-29T20:38:32.031645Z", "type": "chat_response", "from": "user0752", "channel": "#general", "text": "please move right 4", "response": {"type": "navigation", "action": "move", "direction": "right", "distance": 4.0, "message": "Moving right by 4.0 units"}}
+{"ts": "2025-08-29T20:38:32.033438Z", "type": "model_prediction", "from": "user0752", "channel": "#general", "text": "please move right 4", "pred_action": "move", "confidence": 0.24093249772199996}
+{"ts": "2025-08-29T20:38:32.536147Z", "type": "chat", "from": "user0752", "channel": "#general", "text": "teleport to [2,3,4]"}
+{"ts": "2025-08-29T20:38:32.538400Z", "type": "chat_response", "from": "user0752", "channel": "#general", "text": "teleport to [2,3,4]", "response": {"type": "navigation", "action": "teleport", "target": [2.0, 3.0, 4.0], "message": "Teleporting to (2.0, 3.0, 4.0)"}}
+{"ts": "2025-08-29T20:38:32.540053Z", "type": "model_prediction", "from": "user0752", "channel": "#general", "text": "teleport to [2,3,4]", "pred_action": "teleport", "confidence": 0.4865938470509512}
+{"ts": "2025-08-29T20:38:33.042144Z", "type": "chat", "from": "user0752", "channel": "#general", "text": "orbit around hub"}
+{"ts": "2025-08-29T20:38:33.045597Z", "type": "chat_response", "from": "user0752", "channel": "#general", "text": "orbit around hub", "response": {"type": "navigation", "action": "orbit", "target": "hub", "message": "Orbiting around hub"}}
+{"ts": "2025-08-29T20:38:33.047386Z", "type": "model_prediction", "from": "user0752", "channel": "#general", "text": "orbit around hub", "pred_action": "orbit", "confidence": 0.35148592644181476}
+{"ts": "2025-08-29T20:38:33.549904Z", "type": "chat", "from": "user0752", "channel": "#general", "text": "follow agent one"}
+{"ts": "2025-08-29T20:38:33.552165Z", "type": "chat_response", "from": "user0752", "channel": "#general", "text": "follow agent one", "response": {"type": "navigation", "action": "follow", "target": "agent one", "message": "Following agent one"}}
+{"ts": "2025-08-29T20:38:33.553894Z", "type": "model_prediction", "from": "user0752", "channel": "#general", "text": "follow agent one", "pred_action": "follow", "confidence": 0.584657204100132}
+{"ts": "2025-08-29T20:38:34.056200Z", "type": "chat", "from": "user0752", "channel": "#general", "text": "talk to the guide"}
+{"ts": "2025-08-29T20:38:34.059994Z", "type": "chat_response", "from": "user0752", "channel": "#general", "text": "talk to the guide", "response": {"type": "interaction", "action": "talk", "avatar": "the guide", "message": "Talking to the guide"}}
+{"ts": "2025-08-29T20:38:34.061621Z", "type": "model_prediction", "from": "user0752", "channel": "#general", "text": "talk to the guide", "pred_action": "teleport", "confidence": 0.22618838385447962}
+{"ts": "2025-08-29T20:38:34.563634Z", "type": "chat", "from": "user0752", "channel": "#general", "text": "give coin to clerk"}
+{"ts": "2025-08-29T20:38:34.565466Z", "type": "chat_response", "from": "user0752", "channel": "#general", "text": "give coin to clerk", "response": {"type": "interaction", "action": "give", "object": "coin", "recipient": "clerk", "message": "Giving coin to clerk"}}
+{"ts": "2025-08-29T20:38:34.567229Z", "type": "model_prediction", "from": "user0752", "channel": "#general", "text": "give coin to clerk", "pred_action": "teleport", "confidence": 0.22618838385447962}
+{"ts": "2025-08-29T20:38:35.069593Z", "type": "chat", "from": "user0752", "channel": "#general", "text": "hide legend"}
+{"ts": "2025-08-29T20:38:35.073476Z", "type": "chat_response", "from": "user0752", "channel": "#general", "text": "hide legend", "response": {"type": "exploration", "action": "hide", "object": "legend", "message": "Hiding legend"}}
+{"ts": "2025-08-29T20:38:35.075269Z", "type": "model_prediction", "from": "user0752", "channel": "#general", "text": "hide legend", "pred_action": "hide", "confidence": 0.5001320596803993}
+{"ts": "2025-08-29T20:38:35.577822Z", "type": "chat", "from": "user0752", "channel": "#general", "text": "expand cluster physics"}
+{"ts": "2025-08-29T20:38:35.579722Z", "type": "chat_response", "from": "user0752", "channel": "#general", "text": "expand cluster physics", "response": {"type": "exploration", "action": "expand", "area": "cluster physics", "message": "Expanding cluster physics"}}
+{"ts": "2025-08-29T20:38:35.581328Z", "type": "model_prediction", "from": "user0752", "channel": "#general", "text": "expand cluster physics", "pred_action": "goto", "confidence": 0.15162885642503535}
+{"ts": "2025-08-29T20:38:36.083819Z", "type": "chat", "from": "user0752", "channel": "#general", "text": "find related to embeddings"}
+{"ts": "2025-08-29T20:38:36.087495Z", "type": "chat_response", "from": "user0752", "channel": "#general", "text": "find related to embeddings", "response": {"type": "exploration", "action": "find_related", "topic": "embeddings", "message": "Finding related to embeddings"}}
+{"ts": "2025-08-29T20:38:36.089052Z", "type": "model_prediction", "from": "user0752", "channel": "#general", "text": "find related to embeddings", "pred_action": "find_related", "confidence": 0.32133322825464194}
+{"ts": "2025-08-29T20:38:36.591560Z", "type": "chat", "from": "user0752", "channel": "#general", "text": "touch red sphere"}
+{"ts": "2025-08-29T20:38:36.593594Z", "type": "chat_response", "from": "user0752", "channel": "#general", "text": "touch red sphere", "response": {"type": "interaction", "action": "touch", "object": "red sphere", "message": "Touching red sphere"}}
+{"ts": "2025-08-29T20:38:36.595255Z", "type": "model_prediction", "from": "user0752", "channel": "#general", "text": "touch red sphere", "pred_action": "goto", "confidence": 0.15162885642503535}
+{"ts": "2025-08-29T20:38:37.097808Z", "type": "chat", "from": "user0752", "channel": "#general", "text": "show me graphs"}
+{"ts": "2025-08-29T20:38:37.657598Z", "type": "chat_response", "from": "user0752", "channel": "#general", "text": "show me graphs", "response": {"type": "exploration", "action": "show", "topic": "graphs", "message": "Showing graphs"}}
+{"ts": "2025-08-29T20:38:37.659818Z", "type": "model_prediction", "from": "user0752", "channel": "#general", "text": "show me graphs", "pred_action": "show", "confidence": 0.25900404688474404}
+{"ts": "2025-08-29T20:38:37.661873Z", "type": "presence", "event": "leave", "nick": "user0752", "channel": "#general"}
+{"ts": "2025-08-29T20:47:05.450436Z", "type": "presence", "event": "join", "nick": "user3792", "channel": "#general"}
+{"ts": "2025-08-29T20:47:07.457968Z", "type": "presence", "event": "leave", "nick": "user3792", "channel": "#general"}

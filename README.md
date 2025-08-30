@@ -84,6 +84,10 @@ python -m knowledge3d.bridge.replay_builder --logs_dir ../Knowledge3D.local/logs
 ```
 Each line is a training example with from/next labels and optional embeddings when available.
 
+### Run Evidence
+- Raw session logs and server outputs: `docs/reports/live/`
+- Derived session summaries and tasks: `docs/reports/training/`
+
 ## Project Structure
 
 ```text

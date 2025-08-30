@@ -29,3 +29,7 @@
 - Deploy full fog computing infrastructure.
 - Standardize K3D protocols for the spatial web.
 - Grow an open-source ecosystem around energy pattern computing.
+
+## Logging and Run Artifacts
+- Default: Live-mode session logs are written to a sibling folder `../Knowledge3D.local/logs` and are generally not committed.
+- Exception: For reproducibility of recent runs, a curated mirror is published at `docs/reports/live/` with SHA-256 checksums.
