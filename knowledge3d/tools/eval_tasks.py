@@ -15,7 +15,7 @@ import argparse
 import json
 import random
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from pygltflib import GLTF2  # type: ignore
 
@@ -49,18 +49,91 @@ def bfs_route(ids: List[str], neighbors: List[List[str]], start_id: str, target_
     return None
 
 
-def load_extras(gltf_path: Path) -> Dict[str, Any]:
+def extract_positions(g) -> Optional[List[Tuple[float, float, float]]]:
+    try:
+        bv = g.bufferViews[0]
+        blob = g.binary_blob()
+        start = bv.byteOffset or 0
+        end = start + bv.byteLength
+        arr = np.frombuffer(blob[start:end], dtype=np.float32)
+        pos = arr.reshape((-1, 3))
+        return [(float(x), float(y), float(z)) for x, y, z in pos]
+    except Exception:
+        return None
+
+
+def astar_route(ids: List[str], neighbors: List[List[str]], positions: List[Tuple[float, float, float]], start_id: str, target_id: str) -> Optional[List[str]]:
+    import heapq
+    id_to_idx = {ids[i]: i for i in range(len(ids))}
+    si = id_to_idx.get(start_id); ti = id_to_idx.get(target_id)
+    if si is None or ti is None:
+        return None
+    # Compute min observed edge length on a small sample to keep heuristic admissible
+    min_edge = float('inf')
+    for i in range(0, min(10000, len(ids)), max(1, len(ids)//10000)):
+        pi = positions[i]
+        for nb in neighbors[i]:
+            j = id_to_idx.get(nb)
+            if j is None: continue
+            pj = positions[j]
+            d = ((pi[0]-pj[0])**2 + (pi[1]-pj[1])**2 + (pi[2]-pj[2])**2) ** 0.5
+            if d > 0 and d < min_edge:
+                min_edge = d
+    if not (min_edge > 0 and min_edge < float('inf')):
+        min_edge = 1.0
+    def h(i: int, j: int) -> float:
+        pi = positions[i]; pj = positions[j]
+        d = ((pi[0]-pj[0])**2 + (pi[1]-pj[1])**2 + (pi[2]-pj[2])**2) ** 0.5
+        return d / min_edge
+    openq = []
+    heapq.heappush(openq, (h(si, ti), 0.0, si, None))
+    came: Dict[int, Optional[int]] = {}
+    gscore: Dict[int, float] = {si: 0.0}
+    visited = set()
+    while openq:
+        f, g, i, parent = heapq.heappop(openq)
+        if i in visited:
+            continue
+        visited.add(i)
+        came[i] = parent
+        if i == ti:
+            # reconstruct
+            path_idx = []
+            cur = i
+            while cur is not None:
+                path_idx.append(cur)
+                cur = came.get(cur)
+            path_idx.reverse()
+            return [ids[k] for k in path_idx]
+        for nb in neighbors[i]:
+            j = id_to_idx.get(nb)
+            if j is None or j in visited:
+                continue
+            ng = g + 1.0
+            if ng < gscore.get(j, 1e18):
+                gscore[j] = ng
+                heapq.heappush(openq, (ng + h(j, ti), ng, j, i))
+    return None
+
+
+def load_extras_and_gltf(gltf_path: Path) -> Tuple[Dict[str, Any], Any]:
     g = GLTF2().load(str(gltf_path))
     prim = g.meshes[0].primitives[0]
-    return prim.extras.get("k3d", {})
+    return prim.extras.get("k3d", {}), g
 
 
-def generate_tasks(gltf_path: Path, pairs: int, door: int) -> Dict[str, Any]:
-    k3d = load_extras(gltf_path)
+def generate_tasks(gltf_path: Path, pairs: int, door: int, router: str = "bfs") -> Dict[str, Any]:
+    k3d, g = load_extras_and_gltf(gltf_path)
     ids: List[str] = list(k3d.get("ids", []))
     meta: List[Dict[str, Any]] = [m if isinstance(m, dict) else {} for m in k3d.get("metadata", [])]
     labels: List[str] = [ (m.get("label") if isinstance(m, dict) else None) or ids[i] for i,m in enumerate(meta) ]
     neighbors: List[List[str]] = k3d.get("neighbors", []) or []
+    positions = None
+    try:
+        import numpy as np  # local import for speed if absent
+        positions = extract_positions(g)
+    except Exception:
+        positions = None
     n = len(ids)
     # random label pairs for goto
     rnd = random.Random(42)
@@ -70,7 +143,12 @@ def generate_tasks(gltf_path: Path, pairs: int, door: int) -> Dict[str, Any]:
         if a == b:
             b = (b + 1) % n
         start, target = ids[a], ids[b]
-        p = bfs_route(ids, neighbors, start, target)
+        if router == "astar" and positions is not None:
+            p = astar_route(ids, neighbors, positions, start, target)
+            if p is None:  # fallback
+                p = bfs_route(ids, neighbors, start, target)
+        else:
+            p = bfs_route(ids, neighbors, start, target)
         pairs_out.append({
             "from": labels[a],
             "to": labels[b],
@@ -85,13 +163,18 @@ def generate_tasks(gltf_path: Path, pairs: int, door: int) -> Dict[str, Any]:
             break
         src = rnd.randrange(n)
         di = rnd.choice(door_idxs)
-        p = bfs_route(ids, neighbors, ids[src], ids[di])
-        door_out.append({
-            "from": labels[src],
-            "door": labels[di],
-            "path_len": (len(p) - 1) if p else None,
-            "exists": p is not None,
-        })
+        if router == "astar" and positions is not None:
+            p = astar_route(ids, neighbors, positions, ids[src], ids[di])
+            if p is None:
+                p = bfs_route(ids, neighbors, ids[src], ids[di])
+        else:
+            p = bfs_route(ids, neighbors, ids[src], ids[di])
+    door_out.append({
+        "from": labels[src],
+        "door": labels[di],
+        "path_len": (len(p) - 1) if p else None,
+        "exists": p is not None,
+    })
     return {"goto_tasks": pairs_out, "door_tasks": door_out}
 
 
@@ -101,11 +184,12 @@ def main() -> None:
     p.add_argument("--out", required=True)
     p.add_argument("--pairs", type=int, default=32)
     p.add_argument("--door", type=int, default=16)
+    p.add_argument("--router", choices=["bfs", "astar"], default="bfs")
     args = p.parse_args()
     gltf_path = Path(args.gltf)
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    tasks = generate_tasks(gltf_path, args.pairs, args.door)
+    tasks = generate_tasks(gltf_path, args.pairs, args.door, router=args.router)
     out.write_text(json.dumps(tasks, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"Wrote {out}")
 
