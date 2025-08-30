@@ -96,6 +96,7 @@ export class DynamicLayerManager {
   getLayers(): string[] { return Array.from(this.layers); }
   isEnabled(name: string): boolean { return this.enabled.has(name); }
   toggle(name: string, on?: boolean) { if (on === undefined) { if (this.enabled.has(name)) this.enabled.delete(name); else this.enabled.add(name); } else { if (on) this.enabled.add(name); else this.enabled.delete(name); } }
+  setEnabled(names: string[]) { this.enabled = new Set(names); }
 
   buildGeometry(): THREE.BufferGeometry {
     const points = this.source.filter(r => {

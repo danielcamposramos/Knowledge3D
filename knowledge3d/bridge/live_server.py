@@ -495,12 +495,52 @@ class LiveServer:
             except Exception:
                 await self.send_system(client.channel, "Usage: /mem add <room>|<label>|<text>")
             return
+        if sub == "furniture" and len(args) >= 2:
+            try:
+                # Expect room|kind|label
+                raw = " ".join(args[1:])
+                room, kind, label = [s.strip() for s in raw.split("|")]
+                h.add_furniture(room, kind, label)
+                await self.send_chat(sender="agent", text=f"Memory: placed {kind} '{label}' in '{room}'.", channel=client.channel)
+            except Exception:
+                await self.send_system(client.channel, "Usage: /mem furniture <room>|<kind>|<label>")
+            return
+        if sub == "door" and len(args) >= 2:
+            try:
+                # Expect label|address
+                raw = " ".join(args[1:])
+                label, address = [s.strip() for s in raw.split("|")]
+                h.add_door(label, address)
+                await self.send_chat(sender="agent", text=f"Memory: added door '{label}' -> {address}", channel=client.channel)
+            except Exception:
+                await self.send_system(client.channel, "Usage: /mem door <label>|<address>")
+            return
+        if sub == "bootstrap" and len(args) >= 2:
+            kind = args[1].lower()
+            if kind == "defaults":
+                h.bootstrap_defaults()
+                await self.send_chat(sender="agent", text="Memory: bootstrapped defaults (rooms, furniture, doors)", channel=client.channel)
+                return
+            if kind == "books":
+                n = h.bootstrap_books(24)
+                await self.send_chat(sender="agent", text=f"Memory: bootstrapped {n} books", channel=client.channel)
+                return
+            if kind == "reflections":
+                n = h.bootstrap_reflections(50)
+                await self.send_chat(sender="agent", text=f"Memory: bootstrapped {n} reflections", channel=client.channel)
+                return
+            if kind == "training":
+                n = h.bootstrap_training(50)
+                await self.send_chat(sender="agent", text=f"Memory: bootstrapped {n} training artifacts", channel=client.channel)
+                return
+            await self.send_system(client.channel, "Usage: /mem bootstrap defaults|books|reflections|training")
+            return
         if sub == "export":
             out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "memory_house.gltf")
             h.export_gltf(out)
             await self.send_chat(sender="agent", text=f"Memory: exported to {out}", channel=client.channel)
             return
-        await self.send_system(client.channel, "Usage: /mem room <name> [desc] | /mem add <room>|<label>|<text> | /mem export")
+        await self.send_system(client.channel, "Usage: /mem room <name> [desc] | /mem add <room>|<label>|<text> | /mem furniture <room>|<kind>|<label> | /mem door <label>|<address> | /mem bootstrap <kind> | /mem export")
 
     async def _handle_model(self, args, client: Client):
         sub = (args[0].lower() if args else "status")

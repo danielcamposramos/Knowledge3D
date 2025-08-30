@@ -33,7 +33,7 @@ def main() -> None:  # pragma: no cover
     p.add_argument("--logs", default=str((Path(__file__).resolve().parents[2].parent / (Path(__file__).resolve().parents[2].name + ".local") / "logs")))
     p.add_argument("--gltf", default="viewer/public/ai_books_basic.4k.umap.doors.glb")
     p.add_argument("--pairs", type=int, default=256)
-    p.add_argument("--door", type:int, default=96)
+    p.add_argument("--door", type=int, default=96)
     args = p.parse_args()
 
     # 1) Train tiny sklearn from templates (multilingual)
@@ -74,4 +74,3 @@ def main() -> None:  # pragma: no cover
 
 if __name__ == "__main__":  # pragma: no cover
     main()
-

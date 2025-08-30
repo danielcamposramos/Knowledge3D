@@ -195,6 +195,7 @@ async function loadHouse(k3dUrl: string) {
                 try {
                     const names: string[] = Array.isArray(ev.payload?.enabled) ? ev.payload.enabled : [];
                     // rebuild geometry according to enabled names
+                    if (layersMgr.setEnabled) layersMgr.setEnabled(names);
                     const newGeom = layersMgr.buildGeometry(); newGeom.computeBoundingSphere();
                     if (lod) lod.setBase(newGeom);
                 } catch {}
