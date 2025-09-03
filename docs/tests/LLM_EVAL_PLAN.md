@@ -24,6 +24,6 @@ Scoring
 - Success/hops for GOTO, door validity ratio, reflection completeness vs. stats, human rating for cluster explain.
 
 Path to ARK-AGI
-- Build curriculum from small houses to full; increase complexity (longer hops, multi-door reasoning, multilingual labels).
+- Build curriculum from small trees to full content; increase complexity (longer hops, multi-door reasoning, multilingual labels).
 - Integrate environment interactions later (Phase 2/3), preserving explainability at each step.
 
