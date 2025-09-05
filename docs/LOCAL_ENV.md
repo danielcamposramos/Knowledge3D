@@ -10,6 +10,9 @@ Acceleration settings
 - Set `K3D_ACCEL=auto` (default) to prefer GPU when available; override with `gpu` or `cpu`.
 - Optional router override: `K3D_ROUTER=bfs|dijkstra|astar` (default: bfs unless positions provided).
 
+GPU setup guides
+- See `docs/GPU_ACCEL.md` for Docker-based RAPIDS UMAP + FAISS GPU instructions.
+
 Large datasets
 - Typical vector sizes: 180k–240k rows (e.g., 768‑dim embeddings). Use GPU paths when possible.
 - k3dgen now prefers FAISS GPU for k‑NN and cuML UMAP for 3D reduction when installed.
@@ -22,4 +25,4 @@ Workflows
 Knowledge Garden
 - Every House includes the room “Knowledge Garden” (ontology greenhouse).
 - Build a demo glb: `python3 -m knowledge3d.tools.gardens --gltf viewer/public/knowledge_garden.glb`
-
+- Ethics tree: `python3 -m knowledge3d.tools.gardens --paths data/ontology/ethics_paths.txt --gltf viewer/public/knowledge_garden.ethics.glb`

@@ -832,6 +832,97 @@ class LiveServer:
             })
         except Exception:
             pass
+        # If we already hold a dataset graph, pre-compute and share a concise route trace
+        try:
+            g = self._graphs.get(channel) or {}
+            ids = g.get("ids") or []
+            labels = g.get("labels") or []
+            neighbors = g.get("neighbors") or []
+            positions = g.get("positions") if isinstance(g, dict) else None
+            if ids and neighbors and labels:
+                # Derive start/target from current label + target
+                start_label = self._current_label.get(channel)
+                si = labels.index(start_label) if start_label in labels else None
+                ti = labels.index(target) if target in labels else None
+                if si is not None and ti is not None:
+                    start_id = ids[si]; target_id = ids[ti]
+                    # Prefer A* when positions present
+                    if positions is not None:
+                        path = self._Network3D.route_astar_ex(ids, neighbors, positions, start_id, target_id)
+                    else:
+                        path = self._Network3D.route(ids, neighbors, start_id, target_id)
+                    if path and len(path) > 1:
+                        # Build label path
+                        id_to_idx = {ids[i]: i for i in range(len(ids))}
+                        path_labels = [labels[id_to_idx[p]] if id_to_idx.get(p) is not None else p for p in path]
+                        # TF-IDF cosine over labels for per-hop sim
+                        tfidf_sims = []
+                        try:
+                            idx = self._search_index.get(channel)
+                            if idx:
+                                vec, X, labs = idx.get("vec"), idx.get("X"), idx.get("labels")
+                                import numpy as np  # type: ignore
+                                # map label -> row index
+                                lab_to_row = {labs[i]: i for i in range(len(labs))}
+                                row_norms = idx.get("row_norms")
+                                if row_norms is None:
+                                    row_norms = np.sqrt((X.multiply(X)).sum(axis=1)).A1
+                                    idx["row_norms"] = row_norms
+                                for a, b in zip(path_labels[:-1], path_labels[1:]):
+                                    ia = lab_to_row.get(a); ib = lab_to_row.get(b)
+                                    if ia is None or ib is None:
+                                        tfidf_sims.append(None)
+                                    else:
+                                        num = (X[ia] @ X[ib].T).toarray().ravel()[0]
+                                        den = float(row_norms[ia] * row_norms[ib]) or 1.0
+                                        tfidf_sims.append(float(num / den))
+                        except Exception:
+                            tfidf_sims = []
+                        # Geometric distances
+                        geo = []
+                        if positions is not None:
+                            def d3(i, j):
+                                pi = positions[i]; pj = positions[j]
+                                import math
+                                return float(math.sqrt((pi[0]-pj[0])**2 + (pi[1]-pj[1])**2 + (pi[2]-pj[2])**2))
+                            for a, b in zip(path[:-1], path[1:]):
+                                ia = id_to_idx.get(a); ib = id_to_idx.get(b)
+                                if ia is None or ib is None:
+                                    geo.append(None)
+                                else:
+                                    geo.append(d3(ia, ib))
+                        # Compose concise trace
+                        hop_lines = []
+                        for i in range(len(path_labels) - 1):
+                            la = path_labels[i]; lb = path_labels[i+1]
+                            s = tfidf_sims[i] if i < len(tfidf_sims) else None
+                            gdist = geo[i] if i < len(geo) else None
+                            parts = [f"{la} -> {lb}"]
+                            if s is not None:
+                                parts.append(f"sim={s:.2f}")
+                            if gdist is not None:
+                                parts.append(f"dist={gdist:.2f}")
+                            hop_lines.append(" (" + ", ".join(parts[1:]) + ")" if len(parts)>1 else "")
+                        summary = "Route: " + " -> ".join(path_labels)
+                        if hop_lines:
+                            # Align minimal: keep compact inline annotations per hop
+                            annotated = []
+                            for i, seg in enumerate(zip(path_labels[:-1], path_labels[1:])):
+                                la, lb = seg
+                                ann = hop_lines[i]
+                                annotated.append(f"{la}->{lb}{ann}")
+                            summary = "Trace: " + "; ".join(annotated)
+                        await self.send_chat(sender="agent", text=summary, channel=channel)
+                        await self.log({
+                            "type": "route_trace",
+                            "channel": channel,
+                            "labels": path_labels,
+                            "tfidf_sim": tfidf_sims,
+                            "geo_dist": geo,
+                            "source": source,
+                        })
+        except Exception:
+            pass
 
     # --- Pause/Resume support ---
     def _is_paused(self, channel: str) -> bool:

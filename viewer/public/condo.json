@@ -10,6 +10,11 @@
       "expert": "foundation",
       "description": "K3D Foundation (Human/AI + Spatial corpus, 6k lines)"
     },
+    {
+      "uri": "/knowledge_garden.ethics.glb",
+      "expert": "garden-ethics",
+      "description": "Knowledge Garden — Ethics tree (principles, AI ethics, theories)"
+    },
     
     
     {

@@ -1,0 +1,19 @@
+# Ethics ontology for Knowledge Garden
+Ethics/Principles/With great power, comes great responsibility
+Ethics/Principles/Non-maleficence (Do no harm)
+Ethics/Principles/Beneficence (Do good)
+Ethics/Principles/Autonomy (Respect for persons)
+Ethics/Principles/Justice (Fairness)
+Ethics/AI Ethics/Fairness
+Ethics/AI Ethics/Accountability
+Ethics/AI Ethics/Transparency
+Ethics/AI Ethics/Privacy
+Ethics/AI Ethics/Safety
+Ethics/AI Ethics/Security
+Ethics/AI Ethics/Value alignment
+Ethics/Theories/Deontology (Duty)
+Ethics/Theories/Consequentialism (Utilitarianism)
+Ethics/Theories/Virtue ethics
+Ethics/Practices/Auditing and monitoring
+Ethics/Practices/Risk assessments
+Ethics/Practices/Human-in-the-loop oversight

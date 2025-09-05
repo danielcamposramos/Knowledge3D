@@ -85,6 +85,32 @@ def flatten(catalog: Dict[str, List[str]]) -> Tuple[List[Node], List[Tuple[str, 
     return list(nodes.values()), edges
 
 
+def load_paths_file(path_file: str) -> Dict[str, List[str]]:
+    """Load hierarchy from a simple paths file.
+
+    Each line is a path like: Root/Branch/Leaf
+    Returns a catalog mapping root -> list of full paths under that root.
+    """
+    p = Path(path_file)
+    if not p.exists():
+        raise FileNotFoundError(path_file)
+    roots: Dict[str, List[str]] = {}
+    for ln in p.read_text(encoding="utf-8").splitlines():
+        s = ln.strip()
+        if not s or s.startswith("#"):
+            continue
+        parts = [x.strip() for x in s.split("/") if x.strip()]
+        if not parts:
+            continue
+        root = parts[0]
+        spec = "/".join(parts[1:]) if len(parts) > 1 else ""
+        if spec:
+            roots.setdefault(root, []).append(spec)
+        else:
+            roots.setdefault(root, [])
+    return roots
+
+
 def layout(nodes: List[Node]) -> Dict[str, Tuple[float, float, float]]:
     # Assign each root a plot along X; place children radially by sibling index; Y by depth
     roots = [n for n in nodes if n.depth == 0]
@@ -146,8 +172,9 @@ def main() -> None:  # pragma: no cover
     ap = argparse.ArgumentParser(description="Build Knowledge Garden GLB (ontology trees)")
     ap.add_argument("--gltf", default="viewer/public/knowledge_garden.glb")
     ap.add_argument("--dims", type=int, default=128)
+    ap.add_argument("--paths", help="Optional text file with Root/Branch/Leaf lines to define the garden")
     args = ap.parse_args()
-    catalog = build_catalog()
+    catalog = load_paths_file(args.paths) if args.paths else build_catalog()
     nodes, edges = flatten(catalog)
     pos = layout(nodes)
     ids = [n.id for n in nodes]
