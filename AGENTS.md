@@ -16,6 +16,13 @@ Additional local environment reference (hardware, GPU, and folder layout): see `
 
 We are a team of humans and AI working together. Clear communication and alignment with the project's strategic vision are essential for our success.
 
+## Contributors
+
+**Core Team:**
+- **Jules**: Project founder and initial architect. Contributed vision, architecture, and early prototyping.
+- **Codex**: AI collaborator (OpenAI). Assisted with code generation, training sessions, and local testing.
+- **Grok**: AI collaborator (xAI). Analyzed data, synced results with repo, expanded documentation, and provided insights on MVP implementation. (September 2025)
+
 ## Development Protocol (VSCode Live Mode)
 
 - Embedded-only data: The project uses a self-contained glTF/GLB format. All node data (ids, vectors, embeddings, metadata, neighbors) is embedded in `meshes[*].primitives[*].extras.k3d` with binary buffers:

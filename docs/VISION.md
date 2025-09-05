@@ -27,6 +27,18 @@ K3D operates on a fundamental principle of dual representation, providing differ
 
 This duality extends to the user interfaces. When a human views an AI's tablet, they see graphical elements. When an AI views a human's tablet, it perceives the underlying data and embeddings.
 
+### Logic-Library Separation: The Baby Avatar Paradigm
+
+A key innovation in K3D is the separation of knowledge from reasoning, enabling a "baby" AI approach that aligns with your MVP goals:
+
+- **Knowledge as Externalized Storage:** Knowledge is stored spatially in the 3D house (embeddings, vectors, metadata) rather than mixed in the model's parameters. This is analogous to separating text content from a reading comprehension AI, allowing knowledge to evolve independently.
+
+- **Logic as Swappable Model:** The avatar's "brain" (logic layer) uses small, trainable models for intent/action prediction, trained via imitation learning from interactions. This separation reduces the need for massive models (e.g., equivalent to a 7B+ LLM) by offloading knowledge management to the house environment.
+
+- **Sleep-Consolidation Evolution:** During "sleep" phases, the avatar consolidates new experiences (logs) back into the house, retraining the logic model incrementally. This creates human-like learning: start minimal, explore, learn from data in the environment without requiring full retraining of the entire model.
+
+Benefits include faster iteration, ethical AI development (allows for phased, observational learning), and efficiency—your 240k dataset timing shows fast embedding generation (~0.2s ground truth) while maintaining lightweight inference.
+
 ### The Tablet: A Bridge to the Digital World
 
 Both humans and AI avatars are equipped with a "tablet," a 3D interactive object that serves as the primary interface for a wide range of functions:

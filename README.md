@@ -1,8 +1,8 @@
 # Knowledge3D: Spatial, Social, Sentient Knowledge
 
-> Making knowledge navigable energy in shared 3D spaces where humans and AIs coexist.
+> Making knowledge navigable energy in shared 3D spaces where humans and AIs coexist. MVP Achieved: Decentralized AGI Path Proven.
 
-![pre-alpha](https://img.shields.io/badge/status-pre--alpha-blue) [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE)
+[![status](https://img.shields.io/badge/status-MVP-green) ![pre-alpha](https://img.shields.io/badge/version-0.1.0-blue) [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE)
 
 > **New to K3D? Start here: [`The K3D Vision: A Unified Framework`](docs/VISION.md)**
 >
