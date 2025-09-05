@@ -1,75 +1,363 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "K3D Node",
-  "description": "Draft schema for a single knowledge node as described in the EchoSystems action plan.",
+  "$id": "https://danielcamposramos.github.io/Knowledge3D/spec/k3d_node_schema.json",
+  "title": "K3D Node Schema",
+  "description": "Schema for Knowledge3D (K3D) nodes representing knowledge units in spatial reality",
   "type": "object",
   "properties": {
-    "id": {"type": "string"},
-    "vector": {
-      "type": "array",
-      "items": {"type": "number"},
-      "minItems": 3,
-      "maxItems": 3
+    "id": {
+      "type": "string",
+      "description": "Unique identifier (UUID or URI)",
+      "pattern": "^[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*$"
     },
-    "embedding": {
-      "type": "array",
-      "items": {"type": "number"},
-      "description": "Original high-dimensional embedding vector."
-    },
-    "embedding_version": {
-      "type": "integer",
-      "minimum": 0,
-      "description": "Monotonic version counter for the embedding payload to manage updates and consistency."
+    "type": {
+      "type": "string",
+      "enum": ["content", "concept", "relation", "domain", "door", "agent"],
+      "default": "content",
+      "description": "Type of knowledge node"
     },
     "metadata": {
       "type": "object",
       "properties": {
-        "label": {"type": "string"},
-        "type": {"type": "string"}
+        "label": {
+          "type": "string",
+          "description": "Human-readable label"
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description"
+        },
+        "text": {
+          "type": "string",
+          "description": "Original text content"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Source URL"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "domain": {
+          "type": "string",
+          "description": "Knowledge domain/category"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "AI confidence score"
+        },
+        "author": {
+          "type": "string",
+          "description": "Content author/creator"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation/modification timestamp"
+        },
+        "address": {
+          "type": "string",
+          "description": "Spatial address in Fog network"
+        },
+        "w3c_kr_state": {
+          "type": "string",
+          "enum": ["proposed", "standard", "deprecated"],
+          "description": "W3C Knowledge Representation standard state"
+        }
       },
       "additionalProperties": true
     },
-    "neighbors": {
-      "type": "array",
-      "items": {"type": "string"},
-      "description": "Related node identifiers",
-      "uniqueItems": true
-    },
-    "ai_interaction_protocol": {
-      "type": "string",
-      "description": "Indicates how AI agents are intended to interact with this node.",
-      "enum": [
-        "direct_vector_manipulation",
-        "semantic_query",
-        "spatial_reasoning"
-      ]
-    },
-    "ai_state_flags": {
+    "spatial": {
       "type": "object",
-      "description": "Dynamic, AI-facing flags reflecting current node state.",
       "properties": {
-        "is_active": { "type": "boolean", "default": false },
-        "is_traversable": { "type": "boolean", "default": true },
-        "has_new_information": { "type": "boolean", "default": false }
+        "position": {
+          "type": "object",
+          "properties": {
+            "x": { "type": "number" },
+            "y": { "type": "number" },
+            "z": { "type": "number" }
+          },
+          "required": ["x", "y", "z"],
+          "description": "3D coordinates (results from dimensionality reduction)"
+        },
+        "boundingBox": {
+          "type": "object",
+          "properties": {
+            "min": {
+              "type": "object",
+              "properties": {
+                "x": { "type": "number" },
+                "y": { "type": "number" },
+                "z": { "type": "number" }
+              }
+            },
+            "max": {
+              "type": "object",
+              "properties": {
+                "x": { "type": "number" },
+                "y": { "type": "number" },
+                "z": { "type": "number" }
+              }
+            }
+          },
+          "description": "Spatial bounding box for clusters/groups"
+        },
+        "fog_tier": {
+          "type": "string",
+          "enum": ["client", "fog", "cloud"],
+          "description": "Which Fog computing tier hosts this node"
+        },
+        "last_accessed": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last Fog access timestamp for LRU pruning"
+        }
       },
-      "additionalProperties": false
+      "required": ["position"]
+    },
+    "vectors": {
+      "type": "object",
+      "properties": {
+        "original": {
+          "type": "array",
+          "items": { "type": "number" },
+          "description": "Original high-dimensional vector (e.g., 768-4096 dims)"
+        },
+        "reduced": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 3,
+          "maxItems": 3,
+          "description": "3D reduced coordinates for visualization"
+        },
+        "pca": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 3,
+          "maxItems": 3,
+          "description": "PCA-reduced coordinates for distant viewing"
+        },
+        "umap": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 3,
+          "maxItems": 3,
+          "description": "UMAP-reduced coordinates for balanced viewing"
+        },
+        "tsne": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 3,
+          "maxItems": 3,
+          "description": "t-SNE coordinates for detailed cluster analysis"
+        },
+        "embedding_model": {
+          "type": "string",
+          "description": "Model used to generate embedding (e.g., 'bert-base', 'sentence-transformers/all-MiniLM-L6-v2')"
+        },
+        "reduction_method": {
+          "type": "string",
+          "enum": ["pca", "umap", "tsne"],
+          "description": "Dimensionality reduction method"
+        },
+        "similarity_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Semantic similarity score for compression decisions"
+        }
+      },
+      "required": ["original"]
+    },
+    "relations": {
+      "type": "object",
+      "properties": {
+        "semantic": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "target_id": { "type": "string" },
+              "relationship_type": {
+                "type": "string",
+                "enum": ["similar", "parent", "child", "related", "antonym", "prerequisite"]
+              },
+              "strength": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "bidirectional": { "type": "boolean", "default": true }
+            },
+            "required": ["target_id", "relationship_type"]
+          },
+          "description": "Semantic relationships to other nodes"
+        },
+        "spatial": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "target_id": { "type": "string" },
+              "distance": { "type": "number" },
+              "direction": {
+                "type": "object",
+                "properties": {
+                  "x": { "type": "number" },
+                  "y": { "type": "number" },
+                  "z": { "type": "number" }
+                }
+              }
+            }
+          },
+          "description": "Spatial proximity relationships"
+        },
+        "ontology": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Ontology paths (e.g., ['science', 'technology', 'AI'])"
+        }
+      }
+    },
+    "compression": {
+      "type": "object",
+      "properties": {
+        "level": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10,
+          "description": "Compression level (0 = uncompressed, 10 = max compression)"
+        },
+        "last_pruned": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last galaxy pruning timestamp"
+        },
+        "compression_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Opportunistic compression score"
+        },
+        "should_compress": {
+          "type": "boolean",
+          "description": "Whether node should be compressed based on access patterns"
+        },
+        "ancestor_count": {
+          "type": "integer",
+          "description": "Number of parent relationships (determines compression priority)"
+        }
+      }
+    },
+    "ai_native": {
+      "type": "object",
+      "properties": {
+        "cognition": {
+          "type": "object",
+          "properties": {
+            "current_context": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Current AI attention context"
+            },
+            "focus_level": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "AI focus/attention level on this node"
+            },
+            "memory_strength": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Reinforcement learning memory strength"
+            }
+          }
+        },
+        "interaction": {
+          "type": "object",
+          "properties": {
+            "protocol": {
+              "type": "string",
+              "enum": ["direct_vector_manipulation", "semantic_query", "spatial_reasoning"],
+              "description": "AI interaction protocol for this node"
+            },
+            "flags": {
+              "type": "object",
+              "properties": {
+                "is_active": { "type": "boolean", "default": false },
+                "is_traversable": { "type": "boolean", "default": true },
+                "has_new_information": { "type": "boolean", "default": false }
+              },
+              "description": "AI state flags"
+            },
+            "last_ai_interaction": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Last interaction with AI agent"
+            }
+          }
+        },
+        "training": {
+          "type": "object",
+          "properties": {
+            "observation_count": {
+              "type": "integer",
+              "description": "Number of AI observations for reinforcement learning"
+            },
+            "utility_score": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Node utility for training"
+            },
+            "is_training_data": {
+              "type": "boolean",
+              "default": false,
+              "description": "Whether this node is part of training dataset"
+            }
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "properties": {
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Node creation timestamp"
+        },
+        "modified": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last modification timestamp"
+        },
+        "creator": {
+          "type": "string",
+          "description": "Entity that created this node (human/AI)"
+        },
+        "version": {
+          "type": "string",
+          "description": "Node version/tag"
+        },
+        "license": {
+          "type": "string",
+          "enum": ["apache-2.0", "cc-by-4.0", "cc-by-sa-4.0"],
+          "description": "Content license"
+        }
+      },
+      "required": ["created", "creator"]
     }
   },
-  "required": ["id", "vector", "embedding"],
-  "examples": [
-    {
-      "id": "node-42",
-      "vector": [0.12, -0.34, 1.56],
-      "embedding": [0.1, 0.2, 0.3, 0.4],
-      "embedding_version": 3,
-      "metadata": { "label": "Example", "type": "concept" },
-      "neighbors": ["node-7", "node-99"],
-      "ai_interaction_protocol": "direct_vector_manipulation",
-      "ai_state_flags": {
-        "is_active": true,
-        "is_traversable": true,
-        "has_new_information": false
-      }
-    }
-  ]
+  "required": ["id", "metadata", "spatial"],
+  "additionalProperties": false
 }

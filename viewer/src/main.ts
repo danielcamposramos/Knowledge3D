@@ -96,6 +96,7 @@ function clearScene() {
  */
 async function loadHouse(k3dUrl: string) {
     clearScene();
+    currentHouseUrl = k3dUrl;
 
     try {
         let loaded: LoadedK3D | null = null;
@@ -526,9 +527,9 @@ window.addEventListener('resize', () => {
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// Update LOD HUD periodically based on camera proximity
+// Update LOD HUD periodically based on camera proximity and trigger automatic LOD switching
 setInterval(() => {
-    if (!k3dData || k3dData.length === 0 || lodHud.style.display === 'none') return;
+    if (!k3dData || k3dData.length === 0) return;
     // Estimate nearest record to camera from a capped sample
     const sampleN = Math.min(k3dData.length, 4096);
     let best = Infinity;
@@ -540,13 +541,18 @@ setInterval(() => {
         const d = Math.sqrt(dx*dx + dy*dy + dz*dz);
         if (d < best) best = d;
     }
-    const near = 3.0, far = 30.0, minCap = 3, maxCap = 12;
-    const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
-    const smooth01 = (x: number) => { x = clamp01(x); return x*x*(3-2*x); };
-    let t = 1.0 - ((best - near) / Math.max(1e-6, (far - near)));
-    t = smooth01(t);
-    const cap = Math.round(minCap + (maxCap - minCap) * t);
-    lodHud.textContent = `LOD cap≈${cap} dist≈${best.toFixed(1)}`;
+    // Handle automatic LOD switching
+    switchLodIfNeeded(best);
+    if (lodHud.style.display !== 'none') {
+        const near = 3.0, far = 30.0, minCap = 3, maxCap = 12;
+        const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
+        const smooth01 = (x: number) => { x = clamp01(x); return x*x*(3-2*x); };
+        let t = 1.0 - ((best - near) / Math.max(1e-6, (far - near)));
+        t = smooth01(t);
+        const cap = Math.round(minCap + (maxCap - minCap) * t);
+        const lodMethod = getLodMethod(best);
+        lodHud.textContent = `LOD ${lodMethod.toUpperCase()} dist≈${best.toFixed(1)} cap≈${cap}`;
+    }
 }, 500);
 window.addEventListener('keydown', (ev: KeyboardEvent) => {
     if (ev.key.toLowerCase() === 'f' && tablet) {
@@ -583,6 +589,9 @@ const toggleTrails = document.getElementById('toggle-trails') as HTMLInputElemen
 const tabletFocusBtn = document.getElementById('tablet-focus') as HTMLButtonElement;
 const tabletModeSel = document.getElementById('tablet-mode') as HTMLSelectElement;
 const tabletVisible = document.getElementById('tablet-visible') as HTMLInputElement;
+const lodReductionSel = document.getElementById('lod-reduction') as HTMLSelectElement;
+const updateLodBtn = document.getElementById('update-lod') as HTMLButtonElement;
+let currentHouseUrl: string = '';
 if (agentGo) {
     agentGo.addEventListener('click', () => {
         if (agent && agentTarget?.value) {
@@ -723,8 +732,48 @@ if (agentFollow) {
         if (agent) agent.followCamera = !!agentFollow.checked;
     });
 }
+if (updateLodBtn) {
+    updateLodBtn.addEventListener('click', () => {
+        if (!lodReductionSel || !currentHouseUrl) return;
+        const reduction = lodReductionSel.value;
+        if (!['umap', 'pca', 'tsne'].includes(reduction)) return;
+        let newUrl = currentHouseUrl.replace(/\.(umap|pca|tsne)?\.glb$/, `.${reduction}.glb`);
+        loadHouse(newUrl);
+    });
+}
 
 let last = performance.now();
+let currentLodLevel: string | null = null;
+
+// Determine appropriate LOD method based on camera distance
+function getLodMethod(distance: number): string {
+    if (currentPoints && (currentPoints.children?.length || k3dData.length) > 5000 && distance > 20) {
+        // For large datasets, use fast method at distance
+        return distance > 40 ? 'pca' : 'umap';
+    }
+    // Standard LOD levels based on distance
+    if (distance > 30) return 'pca';  // Distant: fastest
+    if (distance > 10) return 'umap'; // Medium: balanced
+    return 'tsne'; // Close: most accurate
+}
+
+// Handle automatic LOD switching
+let lodSwitchTimeout: any = null;
+function switchLodIfNeeded(distance: number) {
+    if (!currentHouseUrl) return;
+    const newLod = getLodMethod(distance);
+    if (newLod !== currentLodLevel) {
+        currentLodLevel = newLod;
+        if (lodSwitchTimeout) clearTimeout(lodSwitchTimeout);
+        lodSwitchTimeout = setTimeout(() => {
+            let newUrl = currentHouseUrl.replace(/\.(umap|pca|tsne)?\.glb$/, `.${newLod}.glb`);
+            if (newUrl !== currentHouseUrl) {
+                loadHouse(newUrl);
+            }
+        }, 500); // Debounce switching
+    }
+}
+
 function animate() {
     const now = performance.now();
     const dt = Math.min(0.1, (now - last) / 1000);
@@ -814,7 +863,7 @@ if (micToggleBtn) {
 const _origRender = renderer.render.bind(renderer);
 renderer.render = (s, c) => {
     if (micAnalyzer && micData && micLevelBar) {
-        micAnalyzer.getByteTimeDomainData(micData);
+        micAnalyzer.getByteTimeDomainData(micData as any);
         let peak = 0;
         for (let i = 0; i < micData.length; i++) {
             // v = |x - 128| / 128 using RPN

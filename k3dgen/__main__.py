@@ -19,6 +19,7 @@ from pygltflib import (
     Scene,
 )
 from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
 
 # --- Constants ---
 ARRAY_BUFFER = 34962
@@ -64,13 +65,27 @@ def reduce_dimensions(vectors: np.ndarray, reducer: str = "umap") -> np.ndarray:
         from knowledge3d.accel import reduce_to_3d  # type: ignore
 
         return reduce_to_3d(vectors, method=reducer)
-    except Exception as exc:
-        # Final safety: PCA fallback
-        try:
-            pca = PCA(n_components=3)
-            return pca.fit_transform(vectors)
-        except Exception as exc2:
-            raise ValueError(f"Dimensionality reduction failed: {exc or exc2}") from exc2
+    except Exception:
+        # Fallback to sklearn methods
+        if reducer == "pca":
+            try:
+                pca = PCA(n_components=3)
+                return pca.fit_transform(vectors)
+            except Exception as exc_pca:
+                raise ValueError(f"PCA reduction failed: {exc_pca}") from exc_pca
+        elif reducer == "tsne":
+            try:
+                tsne = TSNE(n_components=3, random_state=42, perplexity=min(30, len(vectors)-1))
+                return tsne.fit_transform(vectors)
+            except Exception as exc_tsne:
+                raise ValueError(f"t-SNE reduction failed: {exc_tsne}") from exc_tsne
+        else:
+            # Default to PCA for other cases
+            try:
+                pca = PCA(n_components=3)
+                return pca.fit_transform(vectors)
+            except Exception as exc_def:
+                raise ValueError(f"Dimensionality reduction failed: {exc_def}") from exc_def
 
 
 def embed_texts(text_path: str, model_name: str = "sentence-transformers/all-MiniLM-L6-v2") -> Tuple[List[str], np.ndarray, List[str]]:
@@ -390,7 +405,7 @@ def main() -> None:
         "--k", type=int, default=5, help="Number of nearest neighbors to find"
     )
     parser.add_argument(
-        "--reducer", choices=["umap", "pca"], default="umap", help="Dimensionality reduction method"
+        "--reducer", choices=["umap", "pca", "tsne"], default="umap", help="Dimensionality reduction method"
     )
     # ANN / FAISS options
     parser.add_argument("--ann", choices=["flat", "ivf"], default="flat", help="Approximate NN index: flat or IVF-Flat for large datasets")
