@@ -5,6 +5,11 @@
       "expert": "ai-demo",
       "description": "AI demo with ai_state_flags and protocol."
     },
+    {
+      "uri": "/k3d_foundation.6k.umap.glb",
+      "expert": "foundation",
+      "description": "K3D Foundation (Human/AI + Spatial corpus, 6k lines)"
+    },
     
     
     {

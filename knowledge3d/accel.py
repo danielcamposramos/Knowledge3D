@@ -42,10 +42,14 @@ def _has_faiss() -> Tuple[bool, bool]:
     # Check GPU components
     try:
         import faiss  # type: ignore
-        _ = faiss.get_num_gpus()
-        return (True, True)
+        ng = 0
+        try:
+            ng = int(getattr(faiss, "get_num_gpus", lambda: 0)())
+        except Exception:
+            ng = 0
+        return (True, ng > 0)
     except Exception:
-        return (True, False)
+        return (False, False)
 
 
 def reduce_to_3d(vectors: np.ndarray, method: str = "umap") -> np.ndarray:
@@ -177,4 +181,3 @@ def st_device_kwargs() -> dict:
     except Exception:
         pass
     return {}
-

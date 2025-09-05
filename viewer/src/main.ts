@@ -338,11 +338,12 @@ async function loadHouse(k3dUrl: string) {
         chat.setContext({ house: k3dUrl, mode: 'ai' });
         chat.connect();
 
-        // Share dataset graph with live server for routing (ids, neighbors, labels)
+        // Share dataset graph with live server for routing (ids, neighbors, labels, positions)
         const ids = k3dData.map(r => r.id);
         const neighbors = k3dData.map(r => r.neighbors || []);
         const labelsArr = k3dData.map(r => (r.metadata?.label as string) || r.id);
-        chat.sendEvent({ kind: 'dataset_graph', ids, neighbors, labels: labelsArr });
+        const positions = k3dData.map(r => r.vector as [number, number, number]);
+        chat.sendEvent({ kind: 'dataset_graph', ids, neighbors, labels: labelsArr, positions });
         await tabletStore.put(`graph:${k3dUrl}`, { ids, neighbors, labels: labelsArr });
 
         // Share registered doors (type === 'door') and their spatial addresses

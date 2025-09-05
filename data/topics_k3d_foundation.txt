@@ -1,0 +1,44 @@
+Human
+Person
+Homo sapiens
+Human brain
+Human cognition
+Embodiment
+Consciousness
+Memory (psychology)
+Spatial cognition
+Artificial intelligence
+Machine learning
+Deep learning
+Neural network
+Large language model
+Cognitive architecture
+Knowledge representation and reasoning
+Ontology (information science)
+Ontology learning
+Knowledge graph
+Retrieval-augmented generation
+Vector database
+FAISS
+Hierarchical navigable small world
+Annoy (software)
+Cosine similarity
+Dimensionality reduction
+UMAP
+Principal component analysis
+3D computer graphics
+Point cloud
+glTF
+Three.js
+Spatial index
+k-d tree
+Quadtree
+R-tree
+Graph (discrete mathematics)
+Graph theory
+Shortest path problem
+Dijkstra's algorithm
+A* search algorithm
+Explainable artificial intelligence
+AI safety
+AI ethics

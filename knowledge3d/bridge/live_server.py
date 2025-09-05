@@ -287,8 +287,18 @@ class LiveServer:
                 ids = ev.get("ids") or []
                 neighbors = ev.get("neighbors") or []
                 labels = ev.get("labels") or []
+                positions = ev.get("positions") or None
                 if isinstance(ids, list) and isinstance(neighbors, list):
-                    self._graphs[client.channel] = {"ids": ids, "neighbors": neighbors, "labels": labels}
+                    g: Dict[str, Any] = {"ids": ids, "neighbors": neighbors, "labels": labels}
+                    # Optional positions for A* routing
+                    if isinstance(positions, list):
+                        try:
+                            # validate shape minimally (list of triples)
+                            if positions and isinstance(positions[0], (list, tuple)) and len(positions[0]) == 3:
+                                g["positions"] = positions
+                        except Exception:
+                            pass
+                    self._graphs[client.channel] = g
                     # build caches, gazetteer, and optional TF-IDF search index
                     try:
                         self._label_to_id[client.channel] = {str(labels[i] if i < len(labels) and labels[i] else ids[i]): ids[i] for i in range(len(ids))}
@@ -479,7 +489,15 @@ class LiveServer:
             return
         start_id = ids[start_idx]
         target_id = ids[target_idx]
-        path_ids = self._Network3D.route(ids, neighbors, start_id, target_id)
+        # Prefer A* when positions are available (default behavior)
+        positions = graph.get("positions") if isinstance(graph, dict) else None
+        if positions is not None:
+            try:
+                path_ids = self._Network3D.route_astar_ex(ids, neighbors, positions, start_id, target_id)
+            except Exception:
+                path_ids = self._Network3D.route(ids, neighbors, start_id, target_id)
+        else:
+            path_ids = self._Network3D.route(ids, neighbors, start_id, target_id)
         # compose payload and broadcast as a command
         resolved_addr = address or doors.get(label) or f"k3d://@?label={label}"
         payload = {"label": label, "address": resolved_addr, "path": path_ids or []}

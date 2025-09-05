@@ -20,11 +20,9 @@ Dynamic: license-file
 
 ![pre-alpha](https://img.shields.io/badge/status-pre--alpha-blue) [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE)
 
-- [Philosophy](docs/PHILOSOPHY.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Concepts](docs/CONCEPTS.md)
-- [Ethics](docs/ETHICS.md)
-- [Development Plan](DEVELOPMENT.md)
+> **New to K3D? Start here: [`The K3D Vision: A Unified Framework`](docs/VISION.md)**
+>
+> This core document outlines the project's vision, architecture, roadmap, and contributor guidelines in one place.
 
 ## Vision
 
@@ -57,6 +55,7 @@ Reference prompt: see `docs/images/avatar_workshop_prompt.md`.
 - **Dual-Client Rendering**: AI clients access full embeddings while human clients see rich 3D visuals generated with engines like Three.js or Unity.
 - **Spatial Databases**: Knowledge is stored in 3D coordinates with semantic metadata, enabling geometry and meaning to coexist.
 - **Training Through Observation**: Embodied models learn by watching behavior in shared environments, similar to human developmental learning.
+- **Knowledge Gardens**: An inner greenhouse where ontology trees (roots→branches→leaves) organize crystallized knowledge with explicit parent→child edges.
 
 ## Getting Started
 
@@ -91,6 +90,31 @@ Then open the viewer (`npm run dev`) and use the Chat box. Try messages like:
 - `goto gravity`
 - `hello`
 
+### Build Replay Dataset (Imitation Learning)
+Convert live logs to IL samples for training:
+```bash
+python -m knowledge3d.bridge.replay_builder --logs_dir ../Knowledge3D.local/logs \
+  --gltf viewer/public/physics_house.gltf \
+  --out ../Knowledge3D.local/datasets/replay.jsonl
+```
+Each line is a training example with from/next labels and optional embeddings when available.
+
+### Run Evidence
+- Raw session logs and server outputs: `docs/reports/live/`
+- Derived session summaries and tasks: `docs/reports/training/`
+- Large assets are local-only; see `docs/LARGE_ASSETS.md` to reproduce.
+
+### Knowledge Gardens (Ontology Room)
+- Build demo: `python3 -m knowledge3d.tools.gardens --gltf viewer/public/knowledge_garden.glb`
+- Select in viewer: `knowledge-garden` (draws trees with green edges).
+- Details: `docs/KNOWLEDGE_GARDENS.md`
+
+### Exams (ARC‑AGI / HLE)
+- Serve local datasets: `python3 -m knowledge3d.tools.serve_datasets --port 8766`
+- ARC tasks: `git clone https://github.com/fchollet/ARC.git ../Knowledge3D.local/datasets/exams/arc-src` then `python3 -m knowledge3d.tools.build_exams_index --max-arc 200`
+- Optional HLE sample export: `python3 -m knowledge3d.tools.export_hle_sample --count 50` (HF gated; see `docs/LARGE_ASSETS.md`).
+- Open the Tablet and switch to “Exams” to load tasks from the local server.
+
 ## Project Structure
 
 ```text
@@ -107,12 +131,38 @@ Additional directories:
 - `docs/` : Extended documentation and research.
 - `tests/` : Unit tests and future philosophical validation suites.
 
-## Roadmap
-
-The project is in **Phase 1: Philosophical Foundation**. Upcoming phases include technical architecture prototypes, proof-of-concept avatars, multi-user environments, software integration, and long-term distributed networking. See [Development Plan](DEVELOPMENT.md) for details.
 
 ## Contributing
 
 We welcome humans and AIs who resonate with the philosophy. Please read `docs/PHILOSOPHY.md` and follow the [Agent Guidelines](AGENTS.md). Contributions should uphold ethical development and the principle that coexistence is the only stable equilibrium.
 
 By participating, you help build the shared reality where energy patterns collaborate for mutual survival.
+AI-Native Extras
+- `ai_interaction_protocol`: how AI agents intend to interact (`direct_vector_manipulation` | `semantic_query` | `spatial_reasoning`).
+- `ai_state_flags`: global primitive flags (`is_active`, `is_traversable`, `has_new_information`).
+- `ai_state_flags_mask`: per-node boolean masks (e.g., `has_new_information: boolean[]`).
+
+Generator Flags
+- `--ai-protocol <enum>`: embed AI protocol.
+- `--ai-active` | `--ai-not-traversable` | `--ai-new-info`: set global flags.
+- `--ai-new-info-indices 0,3,5`: mark specific nodes as “new info” (per-node mask).
+
+Live Mode Door Command
+- Use `/open <label>` or `/open k3d://rx,ry,rz:port@x,y,z?label=Label` to request a route. The server resolves the path from the current label (if known) and broadcasts a command with route details.
+
+HR/MR Standard
+- See `docs/HR_MR_STANDARD.md` for the dual‑code paradigm and `spec/AI_RPN_standard.md` for the RPN logic standard.
+
+Headless Text Chat
+- Connect to the live server without the 3D viewer: `python -m knowledge3d.bridge.cli_client`
+- Enable model auto-replies after training: `python -m knowledge3d.models.intent_classifier train --logs ../Knowledge3D.local/logs --model ../Knowledge3D.local/models/intent.pkl` then `python -m knowledge3d.bridge.cli_client --auto --model ../Knowledge3D.local/models/intent.pkl`
+
+Inline Model (Server)
+
+Large Assets
+- Heavy datasets live outside the repo; see `docs/LARGE_ASSETS.md` to reproduce (80k+ compendiums, ARC/HLE exams).
+- Control from chat:
+  - `/model on|off` — enable/disable inline intent classifier.
+  - `/model load /path/to/intent.pkl` — load model.
+  - `/model threshold 0.8` — set confidence threshold.
+  - `/model` — status.

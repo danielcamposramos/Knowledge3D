@@ -79,6 +79,11 @@
       "name": "AI Avatar",
       "desc": "AI Avatar",
       "id": "room:f1aa4ba4"
+    },
+    {
+      "name": "Knowledge Garden",
+      "desc": "Ontology greenhouse — trees of knowledge",
+      "id": "room:dd85a0e4"
     }
   ],
   "objects": [
@@ -683,6 +688,26 @@
       "id": "obj:caa02d21"
     },
     {
+      "room": "Knowledge Garden",
+      "label": "Indoor Greenhouse",
+      "text": "",
+      "kind": "furniture",
+      "extra": {
+        "furniture": "greenhouse"
+      },
+      "id": "obj:8fdd634a"
+    },
+    {
+      "room": "Knowledge Garden",
+      "label": "Reading Bench",
+      "text": "",
+      "kind": "furniture",
+      "extra": {
+        "furniture": "bench"
+      },
+      "id": "obj:27ae858a"
+    },
+    {
       "room": "Network",
       "label": "Internet Door",
       "text": "k3d://net?label=internet",
@@ -721,6 +746,16 @@
         "address": "/memory_house.gltf"
       },
       "id": "obj:50f6e410"
+    },
+    {
+      "room": "Network",
+      "label": "Knowledge Garden",
+      "text": "/knowledge_garden.glb",
+      "kind": "door",
+      "extra": {
+        "address": "/knowledge_garden.glb"
+      },
+      "id": "obj:7488e2e9"
     },
     {
       "room": "Network",
