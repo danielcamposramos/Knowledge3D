@@ -178,7 +178,7 @@ def knn_all(
             m = min(n, 100_000)
             cpu.train(x[:m])
             ok, has_gpu = _has_faiss()
-            if _want_gpu() and has_gpu:
+            if _want_faiss_gpu() and has_gpu:
                 gpu = faiss.index_cpu_to_all_gpus(cpu)
                 gpu.nprobe = npb
                 gpu.add(x)
@@ -188,7 +188,7 @@ def knn_all(
                 cpu.add(x)
                 index = cpu
         else:
-            index = _faiss_gpu_index(x)
+            index = _faiss_gpu_index(x) if _want_faiss_gpu() else None
             if index is None:
                 # CPU flat
                 cpu = faiss.IndexFlatL2(d)
@@ -239,3 +239,10 @@ def st_device_kwargs() -> dict:
     except Exception:
         pass
     return {}
+def _want_faiss_gpu() -> bool:
+    v = os.getenv("K3D_FAISS_DEVICE", "auto").lower().strip()
+    if v == "cpu":
+        return False
+    if v == "gpu":
+        return True
+    return _want_gpu()

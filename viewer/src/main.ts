@@ -41,6 +41,22 @@ let lod: LODRenderer | null = null;
 let lastHoverRecord: K3DRecord | null = null;
 let layersOverlay: HTMLDivElement | null = null;
 let edgesObject: THREE.LineSegments | null = null;
+// LOD HUD
+const lodHud = document.createElement('div');
+lodHud.id = 'lod-hud';
+lodHud.style.position = 'absolute';
+lodHud.style.top = '10px';
+lodHud.style.right = '10px';
+lodHud.style.background = 'rgba(0,0,0,0.6)';
+lodHud.style.color = '#eee';
+lodHud.style.fontSize = '12px';
+lodHud.style.padding = '4px 6px';
+lodHud.style.borderRadius = '4px';
+lodHud.style.display = 'none';
+lodHud.textContent = 'LOD: —';
+document.body.appendChild(lodHud);
+const lodToggle = document.getElementById('toggle-lod-hud') as HTMLInputElement | null;
+if (lodToggle) lodToggle.onchange = () => { lodHud.style.display = lodToggle.checked ? 'block' : 'none'; };
 
 // --- Main Logic ---
 
@@ -509,6 +525,29 @@ window.addEventListener('resize', () => {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
+// Update LOD HUD periodically based on camera proximity
+setInterval(() => {
+    if (!k3dData || k3dData.length === 0 || lodHud.style.display === 'none') return;
+    // Estimate nearest record to camera from a capped sample
+    const sampleN = Math.min(k3dData.length, 4096);
+    let best = Infinity;
+    for (let i = 0; i < sampleN; i++) {
+        const v = k3dData[i].vector;
+        const dx = v[0] - camera.position.x;
+        const dy = v[1] - camera.position.y;
+        const dz = v[2] - camera.position.z;
+        const d = Math.sqrt(dx*dx + dy*dy + dz*dz);
+        if (d < best) best = d;
+    }
+    const near = 3.0, far = 30.0, minCap = 3, maxCap = 12;
+    const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
+    const smooth01 = (x: number) => { x = clamp01(x); return x*x*(3-2*x); };
+    let t = 1.0 - ((best - near) / Math.max(1e-6, (far - near)));
+    t = smooth01(t);
+    const cap = Math.round(minCap + (maxCap - minCap) * t);
+    lodHud.textContent = `LOD cap≈${cap} dist≈${best.toFixed(1)}`;
+}, 500);
 window.addEventListener('keydown', (ev: KeyboardEvent) => {
     if (ev.key.toLowerCase() === 'f' && tablet) {
         tablet.toggleFocus();

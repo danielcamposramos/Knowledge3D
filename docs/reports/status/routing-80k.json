@@ -1,0 +1,25 @@
+{
+  "n": 80000,
+  "pairs": 256,
+  "bfs": {
+    "success": 256,
+    "count": 256,
+    "success_rate": 1.0,
+    "median_hops": 8,
+    "avg_ms": 143.30684338233368
+  },
+  "astar": {
+    "success": 256,
+    "count": 256,
+    "success_rate": 1.0,
+    "median_hops": 27,
+    "avg_ms": 565.0872957278352
+  },
+  "astar_lod": {
+    "success": 250,
+    "count": 256,
+    "success_rate": 0.9765625,
+    "median_hops": 34,
+    "avg_ms": 562.2856164782206
+  }
+}
