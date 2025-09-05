@@ -91,12 +91,18 @@ class House:
             raise ValueError("not enough vectors to find neighbors")
 
         embeddings = np.array([r["embedding"] for r in data], dtype=float)
-        nn = NearestNeighbors(n_neighbors=k + 1)
-        nn.fit(embeddings)
-
         index = ids.index(id)
-        neighbors_idx = nn.kneighbors([embeddings[index]], return_distance=False)[0][1:]
-        return [ids[i] for i in neighbors_idx]
+        # Prefer FAISS if available; fallback to sklearn
+        try:
+            from knowledge3d.accel import knn_all  # type: ignore
+
+            all_idx = knn_all(embeddings, k)
+            return [ids[i] for i in all_idx[index]]
+        except Exception:
+            nn = NearestNeighbors(n_neighbors=k + 1)
+            nn.fit(embeddings)
+            neighbors_idx = nn.kneighbors([embeddings[index]], return_distance=False)[0][1:]
+            return [ids[i] for i in neighbors_idx]
 
     def get_all_records(self) -> List[Dict[str, Any]]:
         """Return all records from the house."""

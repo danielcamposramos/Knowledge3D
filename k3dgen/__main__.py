@@ -19,7 +19,6 @@ from pygltflib import (
     Scene,
 )
 from sklearn.decomposition import PCA
-from sklearn.neighbors import NearestNeighbors
 
 # --- Constants ---
 ARRAY_BUFFER = 34962
@@ -56,33 +55,22 @@ def load_vectors(csv_path: str) -> Tuple[List[str], np.ndarray]:
 
 
 def reduce_dimensions(vectors: np.ndarray, reducer: str = "umap") -> np.ndarray:
-    """Reduce dimensionality to 3D using UMAP (default) or PCA."""
+    """Reduce dimensionality to 3D.
+
+    Prefers GPU-accelerated UMAP (RAPIDS) when available, falls back to CPU UMAP,
+    then PCA. Behavior is controlled by K3D_ACCEL.
+    """
     try:
-        n_samples = vectors.shape[0]
-        red = (reducer or "pca").lower()
-        if red == "umap":
-            # Guard: tiny datasets can fail UMAP spectral step when n_components >= n_samples
-            if n_samples <= 3:
-                pca = PCA(n_components=min(3, n_samples))
-                projected = pca.fit_transform(vectors)
-                if projected.shape[1] < 3:
-                    pad = np.zeros((projected.shape[0], 3))
-                    pad[:, : projected.shape[1]] = projected
-                    return pad
-                return projected
-            try:
-                import umap  # type: ignore
-            except Exception as exc:  # pragma: no cover
-                raise ValueError(
-                    "UMAP not available. Install umap-learn or use --reducer pca"
-                ) from exc
-            um = umap.UMAP(n_components=3, n_neighbors=min(15, max(2, len(vectors) - 1)))
-            return um.fit_transform(vectors)
-        else:
+        from knowledge3d.accel import reduce_to_3d  # type: ignore
+
+        return reduce_to_3d(vectors, method=reducer)
+    except Exception as exc:
+        # Final safety: PCA fallback
+        try:
             pca = PCA(n_components=3)
             return pca.fit_transform(vectors)
-    except Exception as exc:
-        raise ValueError(f"Dimensionality reduction failed: {exc}") from exc
+        except Exception as exc2:
+            raise ValueError(f"Dimensionality reduction failed: {exc or exc2}") from exc2
 
 
 def embed_texts(text_path: str, model_name: str = "sentence-transformers/all-MiniLM-L6-v2") -> Tuple[List[str], np.ndarray, List[str]]:
@@ -103,8 +91,25 @@ def embed_texts(text_path: str, model_name: str = "sentence-transformers/all-Min
         raise ValueError(
             "sentence-transformers not available. Install it or omit --text"
         ) from exc
-    model = SentenceTransformer(model_name)
-    embeddings = np.asarray(model.encode(lines, convert_to_numpy=True), dtype=float)
+    # Prefer CUDA when available
+    try:
+        from knowledge3d.accel import st_device_kwargs  # type: ignore
+
+        dev_kwargs = st_device_kwargs()
+    except Exception:
+        dev_kwargs = {}
+    try:
+        model = SentenceTransformer(model_name, **dev_kwargs)  # type: ignore[arg-type]
+    except TypeError:
+        model = SentenceTransformer(model_name)
+    # Some versions require device in encode() call
+    try:
+        embeddings = np.asarray(
+            model.encode(lines, convert_to_numpy=True, **dev_kwargs),
+            dtype=float,
+        )
+    except TypeError:
+        embeddings = np.asarray(model.encode(lines, convert_to_numpy=True), dtype=float)
     ids = [str(i) for i in range(len(lines))]
     # labels: first 24 chars of line
     labels = [ln if len(ln) <= 24 else (ln[:21] + "...") for ln in lines]
@@ -112,15 +117,25 @@ def embed_texts(text_path: str, model_name: str = "sentence-transformers/all-Min
 
 
 def find_neighbors(vectors: np.ndarray, k: int) -> np.ndarray:
-    """Find the k-nearest neighbors for each vector."""
+    """Find the k-nearest neighbors for each vector.
+
+    Prefers FAISS (GPU) when available, falls back to sklearn.
+    """
     if k <= 0:
         raise ValueError("k must be a positive integer")
     if k >= len(vectors):
         raise ValueError("k must be less than the number of vectors")
-    nn = NearestNeighbors(n_neighbors=k + 1, algorithm="auto")
-    nn.fit(vectors)
-    _, indices = nn.kneighbors(vectors)
-    return indices[:, 1:]  # Exclude the point itself
+    try:
+        from knowledge3d.accel import knn_all  # type: ignore
+
+        return knn_all(vectors, k)
+    except Exception:
+        from sklearn.neighbors import NearestNeighbors  # type: ignore
+
+        nn = NearestNeighbors(n_neighbors=k + 1, algorithm="auto")
+        nn.fit(vectors)
+        _, indices = nn.kneighbors(vectors)
+        return indices[:, 1:]
 
 
 def create_k3d_file(*args, **kwargs) -> None:  # pragma: no cover - removed functionality

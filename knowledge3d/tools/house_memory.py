@@ -125,6 +125,7 @@ class MemoryHouse:
         self.add_room("Study", "Avatar & knowledge interaction")
         self.add_room("Workshop", "Cognitive Fabrication Lab")
         self.add_room("Dream", "Internal galaxy projection / sleep")
+        self.add_room("Knowledge Garden", "Ontology greenhouse — trees of knowledge")
         self.add_room("Network", "OSI doors and ports")
 
         # Furniture per room
@@ -139,11 +140,16 @@ class MemoryHouse:
 
         self.add_furniture("Dream", "tub", "Dream Chamber")
         self.add_furniture("Dream", "projector", "Galaxy Projector")
+        # Garden fixtures
+        self.add_furniture("Knowledge Garden", "greenhouse", "Indoor Greenhouse")
+        self.add_furniture("Knowledge Garden", "bench", "Reading Bench")
 
         # Doors in Network
         self.add_door("Internet Door", "k3d://net?label=internet")
         self.add_door("Local Network Door", "k3d://lan?label=local")
         self.add_door("Sensor Door", "k3d://sensors?label=sensors")
+        # Garden scene door
+        self.add_door("Knowledge Garden", "/knowledge_garden.glb", room="Network")
 
     def bootstrap_reflections(self, limit: int = 50) -> int:
         """Add objects from docs/reports/reflections/*.md into 'Reflections' room."""
@@ -245,6 +251,7 @@ class MemoryHouse:
         self.add_room("Network", "OSI doors and ports")
         doors = [
             ("Memory House", "/memory_house.gltf"),
+            ("Knowledge Garden", "/knowledge_garden.glb"),
             ("AI Compendium 1k", "/ai_compendium.1k.umap.doors.glb"),
             ("AI Compendium 4k", "/ai_compendium.4k.umap.doors.glb"),
             ("AI Books 4k", "/ai_books_basic.4k.umap.doors.glb"),

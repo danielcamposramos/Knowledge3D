@@ -49,6 +49,12 @@ def bfs_route(ids: List[str], neighbors: List[List[str]], start_id: str, target_
     return None
 
 
+def dijkstra_route(ids: List[str], neighbors: List[List[str]], start_id: str, target_id: str) -> Optional[List[str]]:
+    """Unweighted Dijkstra equals BFS in hop count; kept for API completeness."""
+    # Reuse BFS implementation for now
+    return bfs_route(ids, neighbors, start_id, target_id)
+
+
 def extract_positions(g) -> Optional[List[Tuple[float, float, float]]]:
     try:
         bv = g.bufferViews[0]
@@ -147,6 +153,8 @@ def generate_tasks(gltf_path: Path, pairs: int, door: int, router: str = "bfs") 
             p = astar_route(ids, neighbors, positions, start, target)
             if p is None:  # fallback
                 p = bfs_route(ids, neighbors, start, target)
+        elif router == "dijkstra":
+            p = dijkstra_route(ids, neighbors, start, target)
         else:
             p = bfs_route(ids, neighbors, start, target)
         pairs_out.append({
@@ -167,6 +175,8 @@ def generate_tasks(gltf_path: Path, pairs: int, door: int, router: str = "bfs") 
             p = astar_route(ids, neighbors, positions, ids[src], ids[di])
             if p is None:
                 p = bfs_route(ids, neighbors, ids[src], ids[di])
+        elif router == "dijkstra":
+            p = dijkstra_route(ids, neighbors, ids[src], ids[di])
         else:
             p = bfs_route(ids, neighbors, ids[src], ids[di])
     door_out.append({
@@ -184,7 +194,7 @@ def main() -> None:
     p.add_argument("--out", required=True)
     p.add_argument("--pairs", type=int, default=32)
     p.add_argument("--door", type=int, default=16)
-    p.add_argument("--router", choices=["bfs", "astar"], default="bfs")
+    p.add_argument("--router", choices=["bfs", "astar", "dijkstra"], default="bfs")
     args = p.parse_args()
     gltf_path = Path(args.gltf)
     out = Path(args.out)

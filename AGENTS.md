@@ -10,6 +10,8 @@ The primary guiding documents for this project are:
 
 3.  **[Codex Tasks (CODEX.md)](CODEX.md)**: This file provides a detailed, actionable task list that corresponds to the current phase of the roadmap. Agents should consult this file for specific implementation tasks.
 
+Additional local environment reference (hardware, GPU, and folder layout): see `docs/LOCAL_ENV.md`.
+
 **Your primary directive is to follow the phased plan outlined in the [Project Roadmap](docs/ROADMAP.md).** Ensure that any contributions directly support the goals of the current phase.
 
 We are a team of humans and AI working together. Clear communication and alignment with the project's strategic vision are essential for our success.
@@ -27,6 +29,8 @@ We are a team of humans and AI working together. Clear communication and alignme
   - Chat commands: `/join #channel`, `/nick name`, `/me action`, `/msg nick text`, and plain messages. The agent responds to `goto <label>`.
   - Agent movement emits explanations (plan + per-hop cosine similarity). Use these traces for iteration and training.
 - Logging for iteration: Session logs are written as JSONL to a sibling folder outside the repo: `../Knowledge3D.local/logs/session-<ts>.jsonl`. Treat them as training data and do not commit them to the repo.
+
+- Knowledge Garden: Every House includes a standard room “Knowledge Garden” (ontology greenhouse). Build the GLB via `python -m knowledge3d.tools.gardens` and access via the “Knowledge Garden” door in the Network room.
 - Dual code (HR/MR): Generate machine‑runtime sources outside the repo with the `codeopt` CLI. See `docs/DUAL_CODE.md`.
 - Generator pipeline:
   - CSV: `python -m k3dgen data.csv --gltf scene.glb --k 5 --reducer umap`
