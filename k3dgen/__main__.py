@@ -116,7 +116,7 @@ def embed_texts(text_path: str, model_name: str = "sentence-transformers/all-Min
     return ids, embeddings, labels
 
 
-def find_neighbors(vectors: np.ndarray, k: int) -> np.ndarray:
+def find_neighbors(vectors: np.ndarray, k: int, ann: str | None = None, nlist: int | None = None, nprobe: int | None = None) -> np.ndarray:
     """Find the k-nearest neighbors for each vector.
 
     Prefers FAISS (GPU) when available, falls back to sklearn.
@@ -128,7 +128,7 @@ def find_neighbors(vectors: np.ndarray, k: int) -> np.ndarray:
     try:
         from knowledge3d.accel import knn_all  # type: ignore
 
-        return knn_all(vectors, k)
+        return knn_all(vectors, k, ann=ann, nlist=nlist, nprobe=nprobe)
     except Exception:
         from sklearn.neighbors import NearestNeighbors  # type: ignore
 
@@ -327,7 +327,11 @@ def generate(
     points = reduce_dimensions(embeddings, reducer=red)
 
     # 3. Find the k-nearest neighbours for each point
-    neighbor_indices = find_neighbors(embeddings, k)
+    # 3. Find the k-nearest neighbours for each point (ANN selectable)
+    ann = getattr(_ARGS, "ann", None)
+    nlist = getattr(_ARGS, "nlist", None)
+    nprobe = getattr(_ARGS, "nprobe", None)
+    neighbor_indices = find_neighbors(embeddings, k, ann=ann, nlist=nlist, nprobe=nprobe)
 
     # 4. Create the .gltf file with embedded embeddings in primitive.extras.
     # 4. Create the .gltf/.glb with embedded buffers and labels/text metadata.
@@ -388,6 +392,10 @@ def main() -> None:
     parser.add_argument(
         "--reducer", choices=["umap", "pca"], default="umap", help="Dimensionality reduction method"
     )
+    # ANN / FAISS options
+    parser.add_argument("--ann", choices=["flat", "ivf"], default="flat", help="Approximate NN index: flat or IVF-Flat for large datasets")
+    parser.add_argument("--nlist", type=int, help="IVF: number of coarse clusters (auto if omitted)")
+    parser.add_argument("--nprobe", type=int, help="IVF: number of clusters to probe at search (auto if omitted)")
     parser.add_argument(
         "--text", help="Path to a text file; each non-empty line becomes a record"
     )

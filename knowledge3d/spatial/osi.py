@@ -172,6 +172,88 @@ class Network3D:
                     heapq.heappush(openq, (ng + h(j, ti), ng, j, i))
         return None
 
+    @staticmethod
+    def route_astar_lod(
+        ids: List[str],
+        neighbors: List[List[str]],
+        positions: List[tuple[float, float, float]],
+        start_id: str,
+        target_id: str,
+        min_cap: int = 3,
+        max_cap: int = 12,
+        near: float = 3.0,
+        far: float = 30.0,
+    ) -> Optional[List[str]]:
+        """A* with dynamic LOD neighbor caps based on geometric proximity.
+
+        - Nodes closer to start/target get higher neighbor cap (more detail)
+        - Far nodes get fewer neighbors considered (less detail)
+        """
+        import heapq, math
+        id_to_idx = {ids[i]: i for i in range(len(ids))}
+        si = id_to_idx.get(start_id); ti = id_to_idx.get(target_id)
+        if si is None or ti is None:
+            return None
+        def dist3(i: int, j: int) -> float:
+            pi = positions[i]; pj = positions[j]
+            return math.sqrt((pi[0]-pj[0])**2 + (pi[1]-pj[1])**2 + (pi[2]-pj[2])**2)
+        # heuristic scale
+        min_edge = float('inf')
+        for i in range(len(ids)):
+            for nb in neighbors[i]:
+                j = id_to_idx.get(nb)
+                if j is None: continue
+                d = dist3(i, j)
+                if 0 < d < min_edge:
+                    min_edge = d
+        if not (min_edge > 0 and min_edge < float('inf')):
+            min_edge = 1.0
+        def h(i: int, j: int) -> float:
+            return dist3(i, j) / min_edge
+        # smoothstep utility for cap interpolation
+        def smooth01(x: float) -> float:
+            x = max(0.0, min(1.0, x))
+            return x*x*(3 - 2*x)
+        def cap_for(i: int) -> int:
+            # distance to the closer of start/target
+            d = min(dist3(i, si), dist3(i, ti))
+            # near -> 1, far -> 0
+            t = 1.0 - ((d - near) / max(1e-6, (far - near)))
+            t = smooth01(t)
+            c = int(round(min_cap + (max_cap - min_cap) * t))
+            return max(min_cap, min(max_cap, c))
+        openq = []
+        heapq.heappush(openq, (h(si, ti), 0.0, si, None))
+        came: Dict[int, Optional[int]] = {}
+        gscore: Dict[int, float] = {si: 0.0}
+        visited = set()
+        while openq:
+            f, g, i, parent = heapq.heappop(openq)
+            if i in visited:
+                continue
+            visited.add(i)
+            came[i] = parent
+            if i == ti:
+                # reconstruct path
+                path_idx = []
+                cur = i
+                while cur is not None:
+                    path_idx.append(cur)
+                    cur = came.get(cur)
+                path_idx.reverse()
+                return [ids[k] for k in path_idx]
+            # consider only first cap neighbors (assumed ordered by closeness in GLB)
+            cap = cap_for(i)
+            for nb in neighbors[i][:cap]:
+                j = id_to_idx.get(nb)
+                if j is None or j in visited:
+                    continue
+                ng = g + 1.0
+                if ng < gscore.get(j, 1e18):
+                    gscore[j] = ng
+                    heapq.heappush(openq, (ng + h(j, ti), ng, j, i))
+        return None
+
 
 class Transport3D:
     """Transport layer: message envelope definition (lightweight)."""

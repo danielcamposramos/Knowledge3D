@@ -126,10 +126,29 @@ def _faiss_gpu_index(vectors: np.ndarray) -> Optional[Any]:
     return cpu_index
 
 
-def knn_all(vectors: np.ndarray, k: int) -> np.ndarray:
-    """Compute k-NN for each row in vectors using GPU FAISS if possible.
+def _heuristic_ivf_params(n: int) -> tuple[int, int]:
+    # nlist ~ 4*sqrt(n), capped
+    import math
+    nlist = int(max(1024, min(65536, 4 * math.sqrt(max(1, n)))))
+    nprobe = int(max(8, min(128, nlist // 32)))
+    return nlist, nprobe
 
-    Returns an (N, k) int32 array of neighbor indices excluding self.
+
+def knn_all(
+    vectors: np.ndarray,
+    k: int,
+    ann: str | None = None,
+    nlist: int | None = None,
+    nprobe: int | None = None,
+) -> np.ndarray:
+    """Compute k-NN for each row in vectors using FAISS (GPU preferred).
+
+    Parameters
+    - ann: 'flat' (default) or 'ivf'
+    - nlist, nprobe: IVF parameters; heuristics applied if None
+
+    Returns
+    - (N, k) int64 array of neighbor indices excluding self
     """
     if k <= 0:
         raise ValueError("k must be a positive integer")
@@ -137,23 +156,62 @@ def knn_all(vectors: np.ndarray, k: int) -> np.ndarray:
     if k >= n:
         raise ValueError("k must be less than the number of vectors")
 
-    # Try FAISS (GPU preferred), then sklearn fallback
-    index = _faiss_gpu_index(vectors)
-    if index is not None:
-        try:
-            # Query in batches to avoid VRAM spikes
-            batch = 10000 if n >= 200000 else 20000
-            I_list: list[np.ndarray] = []
-            for start in range(0, n, batch):
-                end = min(n, start + batch)
-                D, I = index.search(vectors[start:end].astype(np.float32), k + 1)
-                # drop self index when present in first column
-                I = I[:, 1:]
-                I_list.append(I)
-            out = np.vstack(I_list)
-            return out.astype(np.int64)
-        except Exception:
-            pass
+    ann_kind = (ann or os.getenv("K3D_FAISS_INDEX", "flat")).lower().strip()
+    use_ivf = ann_kind in {"ivf", "ivf-flat", "ivfflat"}
+
+    # FAISS path (GPU preferred)
+    try:
+        import faiss  # type: ignore
+
+        x = vectors.astype(np.float32)
+        d = x.shape[1]
+        if use_ivf:
+            nl, npb = _heuristic_ivf_params(n)
+            if nlist:
+                nl = int(nlist)
+            if nprobe:
+                npb = int(nprobe)
+            quant = faiss.IndexFlatL2(d)
+            cpu = faiss.IndexIVFFlat(quant, d, nl, faiss.METRIC_L2)
+            # IVFFlat requires training
+            # Use a sample up to 100k for speed
+            m = min(n, 100_000)
+            cpu.train(x[:m])
+            ok, has_gpu = _has_faiss()
+            if _want_gpu() and has_gpu:
+                gpu = faiss.index_cpu_to_all_gpus(cpu)
+                gpu.nprobe = npb
+                gpu.add(x)
+                index = gpu
+            else:
+                cpu.nprobe = npb
+                cpu.add(x)
+                index = cpu
+        else:
+            index = _faiss_gpu_index(x)
+            if index is None:
+                # CPU flat
+                cpu = faiss.IndexFlatL2(d)
+                cpu.add(x)
+                index = cpu
+        # Query in batches
+        batch = 10000 if n >= 200000 else 20000
+        I_list: list[np.ndarray] = []
+        for start in range(0, n, batch):
+            end = min(n, start + batch)
+            _, I = index.search(x[start:end], k + 1)
+            I = I[:, 1:]
+            I_list.append(I)
+        out = np.vstack(I_list)
+        return out.astype(np.int64)
+    except Exception:
+        # sklearn fallback
+        from sklearn.neighbors import NearestNeighbors  # type: ignore
+
+        nn = NearestNeighbors(n_neighbors=k + 1, algorithm="auto")
+        nn.fit(vectors)
+        _, idx = nn.kneighbors(vectors)
+        return idx[:, 1:].astype(np.int64)
 
     # sklearn fallback
     try:

@@ -493,7 +493,12 @@ class LiveServer:
         positions = graph.get("positions") if isinstance(graph, dict) else None
         if positions is not None:
             try:
-                path_ids = self._Network3D.route_astar_ex(ids, neighbors, positions, start_id, target_id)
+                # Dynamic LOD: adjust neighbor fanout by proximity (enabled by default)
+                use_lod = True if str(os.getenv("K3D_LOD_DYNAMIC", "1")).strip() != "0" else False
+                if use_lod:
+                    path_ids = self._Network3D.route_astar_lod(ids, neighbors, positions, start_id, target_id)
+                else:
+                    path_ids = self._Network3D.route_astar_ex(ids, neighbors, positions, start_id, target_id)
             except Exception:
                 path_ids = self._Network3D.route(ids, neighbors, start_id, target_id)
         else:
