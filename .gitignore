@@ -8,3 +8,6 @@ viewer/public/ai_compendium.20k*.glb
 viewer/public/ai_compendium.15k*.glb
 viewer/public/ai_compendium.11k*.glb
 viewer/public/ai_compendium.9k*.glb
+viewer/public/knowledge_garden.wiki_large.glb
+viewer/public/knowledge_garden.library.glb
+viewer/public/knowledge_garden.gigabyte_compendium.glb
