@@ -57,11 +57,7 @@
       "expert": "literature",
       "description": "A house for literary works, authors, and concepts."
     },
-    {
-      "uri": "/ai_books_basic.sample.glb",
-      "expert": "ai-books",
-      "description": "AI Books basic sample (256 lines)."
-    },
+
     {
       "uri": "/ai_books_basic.1k.glb",
       "expert": "ai-books-1k",
@@ -76,6 +72,21 @@
       "uri": "/ai_books_basic.full.glb",
       "expert": "ai-books-full",
       "description": "AI Books basic (full)."
+    },
+    {
+      "uri": "/ai_books_basic.sample.glb",
+      "expert": "ai-books-sample",
+      "description": "AI Books basic sample (256)."
+    },
+    {
+      "uri": "/ai_books_basic.sample.pca.glb",
+      "expert": "ai-books-pca",
+      "description": "AI Books sample (PCA, 256)."
+    },
+    {
+      "uri": "/ai_books_basic.sample.tsne.glb",
+      "expert": "ai-books-tsne",
+      "description": "AI Books sample (t-SNE, 256)."
     },
     {
       "uri": "/ai_books_basic.sample.umap.glb",

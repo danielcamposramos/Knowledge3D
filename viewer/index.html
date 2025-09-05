@@ -81,6 +81,16 @@
           <button id="tablet-focus">Focus Mode</button>
         </div>
         <div id="legend" style="margin-top:6px; font-size:12px; color:#333;"></div>
+        <div style="display:flex; gap:8px; margin-top:4px; align-items:center;">
+          <label>LOD Reduction:
+            <select id="lod-reduction">
+              <option value="umap" selected>UMAP</option>
+              <option value="pca">PCA</option>
+              <option value="tsne">t-SNE</option>
+            </select>
+          </label>
+          <button id="update-lod">Update LOD</button>
+        </div>
       </div>
     </div>
     <canvas id="scene"></canvas>
