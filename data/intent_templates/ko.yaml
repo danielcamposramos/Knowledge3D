@@ -1,0 +1,47 @@
+intents:
+  teleport:
+    - "[{x},{y},{z}] 로 텔레포트"
+    - "[{x}, {y}, {z}] 로 텔레포트 해주세요"
+  move:
+    - "{direction} 으로 {distance} 이동"
+    - "{direction} 로 {distance} 칸 가기"
+  goto:
+    - "{place} 로 가기"
+    - "{place} 로 네비게이트"
+    - "{place} 로 데려가줘"
+    - "{place} 로 가는 문 열어줘"
+  follow:
+    - "{person} 따라가"
+    - "에이전트 {person} 따라가"
+  orbit:
+    - "{place} 주위를 돌기"
+    - "{place} 를 공전하기"
+  show:
+    - "{topic} 보여줘"
+    - "{topic} 강조 표시해줘"
+  find_related:
+    - "{topic} 와 관련된 것 찾아줘"
+    - "{topic} 와 유사한 것 보여줘"
+  expand:
+    - "{topic} 확대"
+    - "{topic} 확장"
+  hide:
+    - "{object} 숨기기"
+    - "{object} 가리기"
+  touch:
+    - "{object} 터치"
+    - "{object} 와 상호작용"
+  talk:
+    - "{person} 와 대화"
+    - "{person} 에게 물어봐"
+  give:
+    - "{item} 을 {person} 에게 건네"
+    - "{item} 을 {person} 에게 전달"
+vocab:
+  directions: [왼쪽, 오른쪽, 위, 아래, 앞으로, 뒤로]
+  places: [도서관, 시장, 허브, 코어]
+  topics: [그래프, 수학, 물리, 클러스터링, 임베딩, 신경망, 양자]
+  objects: [파란색 큐브, 빨간색 구, 문, 포탈, 범례, 힌트]
+  persons: [가이드, "에이전트 1", "아바타 앨리스", 밥, 직원, 도어맨, 앨리스]
+  items: [열쇠, 토큰, 동전]
+
