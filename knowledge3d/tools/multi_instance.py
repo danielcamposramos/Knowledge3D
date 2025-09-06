@@ -124,6 +124,8 @@ def make_phrases(labels: List[str], langs: List[str]) -> Tuple[List[str], List[s
 
     for lab in labels:
         ln = random.choice(langs)
+        if ln not in nav_phrases:
+            ln = 'en'
         # Scout
         scout.append(random.choice(nav_phrases[ln]).format(x=lab))
         scout.append(random.choice(move_dirs[ln]).format(d=random.choice([1, 2, 3])))

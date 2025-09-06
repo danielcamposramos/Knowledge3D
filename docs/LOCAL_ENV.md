@@ -43,6 +43,20 @@ Workflows
 - Live server: `python -m knowledge3d.bridge.live_server`
 - GPU smoke: `python -m knowledge3d.tools.gpu_smoke`
 
+Traditional Chat (Tablet/CLI)
+- Server loads the model automatically when available: `K3D_MODEL=../Knowledge3D.local/models/intent_hf K3D_MODEL_AUTO=1 python -m knowledge3d.bridge.live_server`
+- Headless chat client (auto replies): `python -m knowledge3d.bridge.cli_client --nick tester --auto --model ../Knowledge3D.local/models/intent_hf --threshold 0.7`
+- The 3D Tablet mirrors this “old Q&A” style, while the agent remains spatial‑first.
+
+Long Dual‑Agent Runs (Multilingual)
+- Generate training logs in parallel using two agents (scout + gardener):
+```bash
+python -m knowledge3d.tools.multi_instance \
+  --gltf ../Knowledge3D.local/datasets/ai_compendium.500k.umap.ivfpq.glb \
+  --count 500 --delay 0.08 --langs en,pt,es,fr,de,it,zh,ja,ar,ru,ko,hi,tr
+```
+- Logs land in `../Knowledge3D.local/logs/`. Retrain HF with fp16 after runs.
+
 Knowledge Garden
 - Every House includes the room “Knowledge Garden” (ontology greenhouse).
 - Build a demo glb: `python3 -m knowledge3d.tools.gardens --gltf viewer/public/knowledge_garden.glb`

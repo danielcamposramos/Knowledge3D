@@ -49,6 +49,33 @@ python3 -m knowledge3d.tools.mark_doors \
 ## Knowledge Gardens
 - Build lightweight ontology demo: `python3 -m knowledge3d.tools.gardens --gltf viewer/public/knowledge_garden.glb`
 
+## 500k / 1M Compendium (GPU)
+
+1) Build mega text (dedupe + fill to target):
+```bash
+python -m knowledge3d.tools.build_mega_corpus --target 1000000 --out data/ai_compendium_1m.txt
+```
+2) Vectorize to CSV (CPU HashingVectorizer is fine):
+```bash
+python -m knowledge3d.tools.text_to_vectors \
+  --text data/ai_compendium_1m.txt \
+  --out ../Knowledge3D.local/datasets/ai_compendium_1m_vectors.csv \
+  --dims 512
+```
+3) Build GPU GLBs (IVF‑PQ):
+```bash
+conda run -n k3d-rapids \
+  env K3D_ACCEL=gpu K3D_FAISS_DEVICE=gpu K3D_ACCEL_LOG=1 \
+      K3D_FAISS_PQ_M=16 K3D_FAISS_PQ_BITS=8 \
+  python -m k3dgen ../Knowledge3D.local/datasets/ai_compendium_1m_vectors.csv \
+    --gltf ../Knowledge3D.local/datasets/ai_compendium.1m.umap.ivfpq.glb \
+    --k 10 --reducer umap --ann ivfpq --emb-precision f16
+```
+Sharding option (when memory is tight):
+```bash
+# Split your vectors CSV externally (e.g., by head/tail) and build multiple 500k GLBs
+```
+
 ## Tablet Exams (ARC‑AGI + HLE)
 - Use `viewer/public/training/` samples as a template to mount real datasets from local disks (keep large sets in `../Knowledge3D.local/datasets`).
 - Fetch sources locally:
