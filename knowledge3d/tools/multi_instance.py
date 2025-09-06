@@ -135,7 +135,7 @@ def make_phrases(labels: List[str], langs: List[str]) -> Tuple[List[str], List[s
     return scout, gardener
 
 
-async def _agent(url: str, nick: str, lines: Iterable[str], delay: float):
+async def _agent(url: str, nick: str, lines: Iterable[str], delay: float, jitter: float = 0.0):
     async with websockets.connect(url) as ws:
         # Set nickname
         await ws.send(json.dumps({"type": "chat", "from": "human", "text": f"/nick {nick}"}))
@@ -157,28 +157,53 @@ async def _agent(url: str, nick: str, lines: Iterable[str], delay: float):
                     print(f"[{nick}] cmd <- {msg.get('command')} {msg.get('target')}")
         task = asyncio.create_task(recv_loop())
         # Send scripted lines
+        import random as _rnd
         for line in lines:
             payload = json.dumps({"type": "chat", "from": nick, "text": line})
             print(f"[{nick}] send -> {line}")
             await ws.send(payload)
-            await asyncio.sleep(delay)
+            dt = delay + ( _rnd.uniform(0.0, jitter) if jitter > 0 else 0.0 )
+            await asyncio.sleep(max(0.0, dt))
         await asyncio.sleep(1.0)
         task.cancel()
         with contextlib.suppress(Exception):
             await task
 
 
-async def main_async(url: str, gltf: Path, count: int, delay: float, langs: List[str]) -> None:
+async def _maintenance_agent(url: str, interval: float) -> None:
+    if interval <= 0:
+        return
+    try:
+        async with websockets.connect(url) as ws:
+            await ws.send(json.dumps({"type": "chat", "from": "human", "text": "/nick janitor"}))
+            while True:
+                # ask status then trigger compression sweep
+                await ws.send(json.dumps({"type": "chat", "from": "janitor", "text": "/logs status"}))
+                await ws.send(json.dumps({"type": "chat", "from": "janitor", "text": "/logs compress"}))
+                await asyncio.sleep(interval)
+    except Exception:
+        # Run silent if maintenance cannot attach
+        await asyncio.sleep(interval)
+
+
+async def main_async(url: str, gltf: Path, count: int, delay: float, langs: List[str], workers: int = 1, jitter: float = 0.0, rounds: int = 1, maint_interval: float = 0.0) -> None:
     labels = extract_labels(gltf, max_n=count)
     scout_msgs, gardener_msgs = make_phrases(labels, langs)
     # Interleave limited slices
     scout_msgs = scout_msgs[:count]
     gardener_msgs = gardener_msgs[:count]
-    # Run both agents concurrently
-    await asyncio.gather(
-        _agent(url, "scout", scout_msgs, delay),
-        _agent(url, "gardener", gardener_msgs, delay),
-    )
+    tasks: list[asyncio.Task] = []
+    # Maintenance task
+    if maint_interval and maint_interval > 0:
+        tasks.append(asyncio.create_task(_maintenance_agent(url, maint_interval)))
+    # Worker groups (each spawns two agents)
+    for r in range(max(1, rounds)):
+        for w in range(max(1, workers)):
+            s_nick = f"scout{r+1}-{w+1}" if workers > 1 or rounds > 1 else "scout"
+            g_nick = f"gardener{r+1}-{w+1}" if workers > 1 or rounds > 1 else "gardener"
+            tasks.append(asyncio.create_task(_agent(url, s_nick, scout_msgs, delay, jitter)))
+            tasks.append(asyncio.create_task(_agent(url, g_nick, gardener_msgs, delay, jitter)))
+    await asyncio.gather(*tasks)
 
 
 def main() -> None:  # pragma: no cover
@@ -188,11 +213,15 @@ def main() -> None:  # pragma: no cover
     ap.add_argument("--count", type=int, default=64)
     ap.add_argument("--delay", type=float, default=0.5)
     ap.add_argument("--langs", default="en,pt,es", help="Comma-separated languages to sample: en,pt,es")
+    ap.add_argument("--workers", type=int, default=1, help="Number of agent pairs to run concurrently")
+    ap.add_argument("--rounds", type=int, default=1, help="Repeat the message set this many times")
+    ap.add_argument("--jitter", type=float, default=0.0, help="Random jitter added to delay (seconds)")
+    ap.add_argument("--maint-interval", type=float, default=0.0, help="Seconds between /logs compress sweeps (0=off)")
     args = ap.parse_args()
     langs = [s.strip() for s in str(args.langs).split(',') if s.strip() in ("en","pt","es")]
     if not langs:
         langs = ["en"]
-    asyncio.run(main_async(args.url, Path(args.gltf), args.count, args.delay, langs))
+    asyncio.run(main_async(args.url, Path(args.gltf), args.count, args.delay, langs, workers=int(args.workers), jitter=float(args.jitter), rounds=int(args.rounds), maint_interval=float(args.maint_interval)))
 
 
 if __name__ == "__main__":

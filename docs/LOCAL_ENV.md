@@ -43,6 +43,10 @@ Workflows
 - Live server: `python -m knowledge3d.bridge.live_server`
 - GPU smoke: `python -m knowledge3d.tools.gpu_smoke`
 
+Log maintenance (server)
+- Env: `K3D_LOG_ROTATE_BYTES` (default 1GB), `K3D_LOG_COMPRESS_AGE_HOURS` (default 24), `K3D_LOG_MAINT_PERIOD` (default 60s).
+- Chat commands: `/logs status`, `/logs rotate`, `/logs compress`.
+
 Traditional Chat (Tablet/CLI)
 - Server loads the model automatically when available: `K3D_MODEL=../Knowledge3D.local/models/intent_hf K3D_MODEL_AUTO=1 python -m knowledge3d.bridge.live_server`
 - Headless chat client (auto replies): `python -m knowledge3d.bridge.cli_client --nick tester --auto --model ../Knowledge3D.local/models/intent_hf --threshold 0.7`

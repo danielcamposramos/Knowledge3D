@@ -41,8 +41,23 @@ class LiveServer:
         self.log_dir = local_root / "logs"
         self.log_dir.mkdir(parents=True, exist_ok=True)
         ts = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+        self._session_ts = ts
+        self._session_idx = 0
         self.session_file = self.log_dir / f"session-{ts}.jsonl"
         self._log_lock = asyncio.Lock()
+        # Log maintenance policy (env-configurable)
+        try:
+            self._log_rotate_bytes = int(os.getenv("K3D_LOG_ROTATE_BYTES", str(1024 * 1024 * 1024)))
+        except Exception:
+            self._log_rotate_bytes = 1024 * 1024 * 1024
+        try:
+            self._log_compress_age_hours = int(os.getenv("K3D_LOG_COMPRESS_AGE_HOURS", "24"))
+        except Exception:
+            self._log_compress_age_hours = 24
+        try:
+            self._log_maint_period = int(os.getenv("K3D_LOG_MAINT_PERIOD", "60"))
+        except Exception:
+            self._log_maint_period = 60
         # Enhanced chat state
         try:
             from .enhanced_chat_processor import EnhancedChatProcessor, ConversationContext  # type: ignore
@@ -101,13 +116,13 @@ class LiveServer:
             self._match_gazetteer = None  # type: ignore
             self._canonicalize = lambda s: s  # type: ignore
 
-        # Inline intent model (optional)
-        self._model = None
+        # Inline intent model (optional, ensemble-ready)
         self._model_enabled = False
         self._model_threshold = 0.7
-        self._model_path: Optional[str] = None
-        self._model_kind: Optional[str] = None
-        # Try to wire both sklearn and HF loaders; pick at runtime
+        self._models: Dict[str, Any] = {}
+        self._model_paths: Dict[str, str] = {}
+        self._active_kinds: Set[str] = set()
+        # Try to wire both sklearn and HF loaders/predictors
         self._loaders: list = []
         self._predictors: list = []
         try:
@@ -116,35 +131,42 @@ class LiveServer:
             self._predictors.append(("sklearn", skl_pred))
         except Exception:
             pass
-        # Auto-load default model if available
+        # Auto-load default models (optional)
         try:
             repo_root = Path(__file__).resolve().parents[2]
             local_root = repo_root.parent / f"{repo_root.name}.local"
             env_path = os.getenv("K3D_MODEL")
             auto_on = True if str(os.getenv("K3D_MODEL_AUTO", "1")).strip() != "0" else False
-            p: Optional[Path] = None
-            kind: Optional[str] = None
+            want_ensemble = True if str(os.getenv("K3D_MODEL_ENSEMBLE", "0")).strip() != "0" else False
+            candidates: list[tuple[str, Path]] = []
             if env_path:
                 p = Path(env_path)
                 kind = "hf" if p.is_dir() else "sklearn"
+                candidates.append((kind, p))
             else:
                 hf_dir = local_root / "models" / "intent_hf"
                 pkl = local_root / "models" / "intent.pkl"
                 if hf_dir.exists() and (hf_dir / "config.json").exists():
-                    p = hf_dir
-                    kind = "hf"
-                elif pkl.exists():
-                    p = pkl
-                    kind = "sklearn"
-            if p and kind:
-                loader = next((l for k, l in self._loaders if k == kind), None)
-                if loader:
-                    self._model = loader(p)
-                    self._model_kind = kind
-                    self._model_path = str(p)
-                    self._model_enabled = auto_on
+                    candidates.append(("hf", hf_dir))
+                if pkl.exists():
+                    candidates.append(("sklearn", pkl))
+            for kind, path in candidates:
+                loader = next((l for k,l in self._loaders if k==kind), None)
+                if not loader:
+                    continue
+                try:
+                    mdl = loader(path)
+                    self._models[kind] = mdl
+                    self._model_paths[kind] = str(path)
+                    if want_ensemble:
+                        self._active_kinds.add(kind)
+                except Exception:
+                    continue
+            if not self._active_kinds and self._models:
+                # default to hf if present, else any
+                self._active_kinds.add("hf" if "hf" in self._models else next(iter(self._models.keys())))
+            self._model_enabled = auto_on and bool(self._active_kinds)
         except Exception:
-            # Fail quietly; users can /model load later
             pass
         try:
             from ..models.intent_hf import load_model as hf_load, predict_action as hf_pred  # type: ignore
@@ -152,8 +174,7 @@ class LiveServer:
             self._predictors.append(("hf", hf_pred))
         except Exception:
             pass
-        self._model_kind: Optional[str] = None
-        self._model = None
+        # Backward-compat shim removed: use _models/_active_kinds
         # Pause state per channel
         self._paused: Dict[str, Dict[str, Any]] = {}
         # Advancement log in-repo (append-only)
@@ -230,42 +251,53 @@ class LiveServer:
                     "normalized": text,
                     "response": resp,
                 })
-                # Inline model prediction for analysis and hints
+                # Inline model prediction (ensemble-capable)
                 try:
-                    if self._model_enabled and self._model is not None and self._model_kind is not None:
-                        # find predictor by kind
-                        pred = next((p for k,p in self._predictors if k==self._model_kind), None)
-                        action, conf = pred(self._model, text) if pred else (None, 0.0)
-                        await self.log({
-                            "type": "model_prediction",
-                            "from": client.nick,
-                            "channel": client.channel,
-                            "text": raw_text,
-                            "normalized": text,
-                            "pred_action": action,
-                            "confidence": conf,
-                        })
-                        # If the rule-based processor didn't produce an actionable response,
-                        # and the model is confident, attempt a safe auto-action.
-                        if (not (resp.get("type") in ("navigation", "exploration", "interaction"))) and action and conf >= self._model_threshold:
-                            # Ethics gate
-                            dec = self._policy_check(text, action)
-                            await self.log({"type": "ethics_decision","allow":dec.allow,"reason":dec.reason,"action":action,"text":raw_text,"source":"model"})
-                            if not dec.allow or self._is_paused(client.channel):
-                                await self.send_chat(sender="agent", text=f"[model {conf:.2f}] intent={action} (held)", channel=client.channel)
-                            else:
-                                # Derive minimal payloads using the spatial parser (now multilingual)
-                                p = self._processor.spatial_parser.parse(text, self._ctx_by_nick.get(client.nick, self._ConversationContext()))
-                                if action == "goto":
-                                    target = p.get("location") or p.get("loc") or text
-                                    await self._dispatch_goto(client.channel, str(target), source="model", confidence=conf)
-                                elif action in {"show", "find_related", "expand"}:
-                                    label = p.get("topic") or p.get("area") or p.get("object") or text
-                                    payload = json.dumps({"labels": [str(label)]})
-                                    await self.send_command("highlight", payload, channel=client.channel)
-                                    await self.send_chat(sender="agent", text=f"[model {conf:.2f}] Highlighting {label}", channel=client.channel)
-                                else:
-                                    await self.send_chat(sender="agent", text=f"[model {conf:.2f}] intent={action}", channel=client.channel)
+                    if self._model_enabled and self._active_kinds:
+                        preds: list[dict] = []
+                        for kind in list(self._active_kinds):
+                            mdl = self._models.get(kind)
+                            pred = next((p for k,p in self._predictors if k==kind), None)
+                            if mdl is None or pred is None:
+                                continue
+                            try:
+                                action, conf = pred(mdl, text)
+                                preds.append({"kind": kind, "action": action, "confidence": float(conf)})
+                            except Exception:
+                                continue
+                        if preds:
+                            chosen = max(preds, key=lambda r: (r.get("confidence") or 0.0, 1 if r.get("kind")=="hf" else 0))
+                            await self.log({
+                                "type": "model_prediction",
+                                "from": client.nick,
+                                "channel": client.channel,
+                                "text": raw_text,
+                                "normalized": text,
+                                "predictions": preds,
+                                "chosen": chosen,
+                                "source": "ensemble" if len(preds) > 1 else chosen.get("kind"),
+                            })
+                            if (not (resp.get("type") in ("navigation", "exploration", "interaction"))):
+                                action = chosen.get("action")
+                                conf = float(chosen.get("confidence") or 0.0)
+                                if action and conf >= self._model_threshold:
+                                    dec = self._policy_check(text, action)
+                                    await self.log({"type": "ethics_decision","allow":dec.allow,"reason":dec.reason,"action":action,"text":raw_text,"source":"model_ensemble"})
+                                    scores = " ".join([f"{r['kind']}:{(r.get('confidence') or 0.0):.2f}" for r in preds])
+                                    if not dec.allow or self._is_paused(client.channel):
+                                        await self.send_chat(sender="agent", text=f"[models {scores}] intent={action} (held)", channel=client.channel)
+                                    else:
+                                        p = self._processor.spatial_parser.parse(text, self._ctx_by_nick.get(client.nick, self._ConversationContext()))
+                                        if action == "goto":
+                                            target = p.get("location") or p.get("loc") or text
+                                            await self._dispatch_goto(client.channel, str(target), source="model", confidence=conf)
+                                        elif action in {"show", "find_related", "expand"}:
+                                            label = p.get("topic") or p.get("area") or p.get("object") or text
+                                            payload = json.dumps({"labels": [str(label)]})
+                                            await self.send_command("highlight", payload, channel=client.channel)
+                                            await self.send_chat(sender="agent", text=f"[models {scores}] Highlighting {label}", channel=client.channel)
+                                        else:
+                                            await self.send_chat(sender="agent", text=f"[models {scores}] intent={action}", channel=client.channel)
                 except Exception:
                     pass
                 if resp.get("type") in ("navigation", "exploration", "interaction"):
@@ -469,6 +501,9 @@ class LiveServer:
         if cmd == "/model":
             await self._handle_model(parts[1:] if len(parts) > 1 else [], client)
             return
+        if cmd == "/logs":
+            await self._handle_logs(parts[1:] if len(parts) > 1 else [], client)
+            return
         if cmd == "/sleep":
             await self._handle_sleep(parts[1:] if len(parts) > 1 else [], client)
             return
@@ -652,9 +687,8 @@ class LiveServer:
     async def _handle_model(self, args, client: Client):
         sub = (args[0].lower() if args else "status")
         if sub == "on":
-            if self._model is None:
+            if not self._models:
                 repo_root = Path(__file__).resolve().parents[2]
-                # Prefer HF directory if exists; else sklearn .pkl
                 default_hf = repo_root.parent / f"{repo_root.name}.local" / "models" / "intent_hf"
                 default_skl = repo_root.parent / f"{repo_root.name}.local" / "models" / "intent.pkl"
                 candidates: list[tuple[str, Path]] = []
@@ -667,17 +701,13 @@ class LiveServer:
                     loader = next((l for k,l in self._loaders if k==kind), None)
                     if not loader: continue
                     try:
-                        self._model = loader(path)
-                        self._model_kind = kind
-                        self._model_path = str(path)
-                        break
+                        self._models[kind] = loader(path)
+                        self._model_paths[kind] = str(path)
+                        self._active_kinds.add(kind)
                     except Exception:
                         continue
-                if self._model is None:
-                    await self.send_system(client.channel, "Failed to load any default model.")
-                    return
             self._model_enabled = True
-            await self.send_system(client.channel, f"Model: on (threshold={self._model_threshold:.2f}) kind={self._model_kind}")
+            await self.send_system(client.channel, f"Model: on (threshold={self._model_threshold:.2f}) active={','.join(sorted(self._active_kinds)) or 'none'}")
             return
         if sub == "off":
             self._model_enabled = False
@@ -693,12 +723,25 @@ class LiveServer:
                 await self.send_system(client.channel, f"No loader for kind={kind}")
                 return
             try:
-                self._model = loader(p)
-                self._model_kind = kind
-                self._model_path = path
+                self._models[kind] = loader(p)
+                self._model_paths[kind] = str(p)
+                self._active_kinds.add(kind)
                 await self.send_system(client.channel, f"Model loaded: kind={kind} path={path}")
             except Exception as e:
                 await self.send_system(client.channel, f"Model load failed: {e}")
+            return
+        if sub == "use" and len(args) >= 2:
+            mode = args[1].lower()
+            if mode in ("both", "all"):
+                self._active_kinds = set(self._models.keys())
+            elif mode in ("hf", "sklearn"):
+                self._active_kinds = {mode} if mode in self._models else set()
+            elif mode in ("auto",):
+                self._active_kinds = {"hf"} if "hf" in self._models else (set([next(iter(self._models.keys()))]) if self._models else set())
+            else:
+                await self.send_system(client.channel, "Usage: /model use both|hf|sklearn|auto")
+                return
+            await self.send_system(client.channel, f"Active models: {','.join(sorted(self._active_kinds)) or 'none'}")
             return
         if sub == "threshold" and len(args) >= 2:
             try:
@@ -711,10 +754,83 @@ class LiveServer:
                 pass
             await self.send_system(client.channel, "Usage: /model threshold <0..1>")
             return
+        if sub == "list":
+            loaded = ", ".join([f"{k}:{self._model_paths.get(k,'?')}" for k in sorted(self._models.keys())]) or "(none)"
+            active = ",".join(sorted(self._active_kinds)) or "(none)"
+            await self.send_system(client.channel, f"Models loaded: {loaded}. Active: {active}. Enabled: {self._model_enabled} threshold={self._model_threshold:.2f}")
+            return
+        if sub == "clear":
+            self._models.clear(); self._model_paths.clear(); self._active_kinds.clear()
+            await self.send_system(client.channel, "Models cleared.")
+            return
         await self.send_system(
             client.channel,
-            f"Model status: {'on' if self._model_enabled else 'off'} kind={self._model_kind or 'unset'} path={self._model_path or 'unset'} threshold={self._model_threshold:.2f}",
+            f"Model status: {'on' if self._model_enabled else 'off'} active={','.join(sorted(self._active_kinds)) or 'none'} threshold={self._model_threshold:.2f}",
         )
+
+    async def _handle_logs(self, args, client: Client):
+        sub = (args[0].lower() if args else "status")
+        if sub == "status":
+            try:
+                size = self.session_file.stat().st_size
+            except Exception:
+                size = 0
+            await self.send_system(client.channel, f"Log: {self.session_file.name} size={size} rotate_bytes={self._log_rotate_bytes} compress_age(h)={self._log_compress_age_hours}")
+            return
+        if sub == "rotate":
+            self._session_idx += 1
+            self.session_file = self.log_dir / f"session-{self._session_ts}-{self._session_idx}.jsonl"
+            await self.send_system(client.channel, f"Log rotated → {self.session_file.name}")
+            return
+        if sub == "compress":
+            try:
+                # run a one-shot maintenance pass
+                cutoff = datetime.utcnow().timestamp() - (self._log_compress_age_hours * 3600)
+                for p in self.log_dir.glob("session-*.jsonl"):
+                    try:
+                        if p.resolve() == self.session_file.resolve():
+                            continue
+                        if p.stat().st_mtime < cutoff:
+                            try:
+                                import zstandard as zstd  # type: ignore
+                                out = p.with_suffix(p.suffix + ".zst")
+                                cctx = zstd.ZstdCompressor(level=19)
+                                with p.open("rb") as fin, out.open("wb") as fout:
+                                    cctx.copy_stream(fin, fout)
+                                p.unlink(missing_ok=True)
+                            except Exception:
+                                import gzip
+                                out = p.with_suffix(p.suffix + ".gz")
+                                with p.open("rb") as fin, gzip.open(out, "wb", compresslevel=9) as fout:
+                                    while True:
+                                        chunk = fin.read(1024 * 1024)
+                                        if not chunk:
+                                            break
+                                        fout.write(chunk)
+                                p.unlink(missing_ok=True)
+                    except Exception:
+                        continue
+            except Exception:
+                pass
+            await self.send_system(client.channel, "Compression sweep complete.")
+            return
+        if sub == "set" and len(args) >= 3:
+            key = args[1].lower(); val = args[2]
+            if key in ("rotate", "rotate_bytes"):
+                try:
+                    self._log_rotate_bytes = int(val)
+                    await self.send_system(client.channel, f"rotate_bytes={self._log_rotate_bytes}")
+                except Exception:
+                    await self.send_system(client.channel, "Invalid rotate_bytes value")
+                return
+            if key in ("compress_age", "compress_hours"):
+                try:
+                    self._log_compress_age_hours = int(val)
+                    await self.send_system(client.channel, f"compress_age(h)={self._log_compress_age_hours}")
+                except Exception:
+                    await self.send_system(client.channel, "Invalid compress_age value")
+                return
+        await self.send_system(client.channel, "Usage: /logs status|rotate|compress|set rotate_bytes <N>|set compress_age <H>")
 
     async def change_nick(self, client: Client, new_nick: str):
         new_nick = new_nick.strip()
@@ -779,6 +895,15 @@ class LiveServer:
         async with self._log_lock:
             with self.session_file.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+            # rotate if needed
+            try:
+                if self._log_rotate_bytes and self._log_rotate_bytes > 0:
+                    size = self.session_file.stat().st_size
+                    if size >= self._log_rotate_bytes:
+                        self._session_idx += 1
+                        self.session_file = self.log_dir / f"session-{self._session_ts}-{self._session_idx}.jsonl"
+            except Exception:
+                pass
 
     async def send_json(self, obj: Dict[str, Any], channel: Optional[str] = None):
         payload = json.dumps(obj)
@@ -791,7 +916,49 @@ class LiveServer:
     async def run(self):
         async with websockets.serve(self.handler, self.host, self.port):
             print(f"K3D live server listening on ws://{self.host}:{self.port}")
+            # Start background log compression loop
+            try:
+                asyncio.create_task(self._log_maintenance_loop())
+            except Exception:
+                pass
             await asyncio.Future()
+
+    async def _log_maintenance_loop(self) -> None:
+        while True:
+            try:
+                # compress session-*.jsonl older than threshold (except current)
+                cutoff = datetime.utcnow().timestamp() - (self._log_compress_age_hours * 3600)
+                for p in self.log_dir.glob("session-*.jsonl"):
+                    try:
+                        if p.resolve() == self.session_file.resolve():
+                            continue
+                    except Exception:
+                        continue
+                    try:
+                        if p.stat().st_mtime < cutoff:
+                            # prefer zstd, fallback gzip
+                            try:
+                                import zstandard as zstd  # type: ignore
+                                out = p.with_suffix(p.suffix + ".zst")
+                                cctx = zstd.ZstdCompressor(level=19)
+                                with p.open("rb") as fin, out.open("wb") as fout:
+                                    cctx.copy_stream(fin, fout)
+                                p.unlink(missing_ok=True)
+                            except Exception:
+                                import gzip
+                                out = p.with_suffix(p.suffix + ".gz")
+                                with p.open("rb") as fin, gzip.open(out, "wb", compresslevel=9) as fout:
+                                    while True:
+                                        chunk = fin.read(1024 * 1024)
+                                        if not chunk:
+                                            break
+                                        fout.write(chunk)
+                                p.unlink(missing_ok=True)
+                    except Exception:
+                        continue
+            except Exception:
+                pass
+            await asyncio.sleep(max(5, int(self._log_maint_period or 60)))
 
     # --- Open-vocab goto resolution ---
     async def _dispatch_goto(self, channel: str, query: str, source: str = "rule", confidence: Optional[float] = None) -> None:

@@ -73,6 +73,14 @@ python -m knowledge3d.bridge.live_server
 Then open the viewer (`npm run dev`) and use the Chat box. Try messages like:
 - `goto gravity`
 - `hello`
+Model controls (inline):
+- `/model on|off` — enable/disable inline model. `/model list` to inspect; `/model use both|hf|sklearn|auto` for ensemble control; `/model threshold 0.8` set confidence.
+Logs maintenance:
+- `/logs status` — show current log file and policy; `/logs rotate` — start a new session file; `/logs compress` — compress old sessions.
+Env for ensemble:
+- `K3D_MODEL`: path to model (HF dir or sklearn .pkl). If omitted, defaults are autodiscovered under `../Knowledge3D.local/models`.
+- `K3D_MODEL_AUTO=1` enables auto-on at server start.
+- `K3D_MODEL_ENSEMBLE=1` loads both HF and sklearn (when present) and uses the highest-confidence prediction.
 
 ### Build Replay Dataset (Imitation Learning)
 Convert live logs to IL samples for training:
