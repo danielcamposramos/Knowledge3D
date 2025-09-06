@@ -1,0 +1,47 @@
+intents:
+  teleport:
+    - "[{x},{y},{z}] にテレポート"
+    - "[{x}, {y}, {z}] へテレポートしてください"
+  move:
+    - "{direction} に {distance} 移動"
+    - "{direction} へ {distance} ユニット進む"
+  goto:
+    - "{place} へ行く"
+    - "{place} にナビゲート"
+    - "{place} に連れていって"
+    - "{place} へのドアを開けて"
+  follow:
+    - "{person} についていく"
+    - "エージェント {person} についていく"
+  orbit:
+    - "{place} の周りを回る"
+    - "{place} を周回する"
+  show:
+    - "{topic} を見せて"
+    - "{topic} をハイライトして"
+  find_related:
+    - "{topic} に関連するものを探す"
+    - "{topic} と似ているものを表示"
+  expand:
+    - "{topic} を拡大"
+    - "{topic} を展開"
+  hide:
+    - "{object} を隠す"
+    - "{object} を非表示"
+  touch:
+    - "{object} に触れる"
+    - "{object} と対話する"
+  talk:
+    - "{person} と話す"
+    - "{person} に質問して"
+  give:
+    - "{item} を {person} に渡す"
+    - "{item} を {person} に手渡す"
+vocab:
+  directions: [左, 右, 上, 下, 前, 後]
+  places: [図書館, 市場, ハブ, コア]
+  topics: [グラフ, 数学, 物理, クラスタリング, 埋め込み, ニューラルネット, 量子]
+  objects: [青い立方体, 赤い球, ドア, ポータル, 凡例, ヒント]
+  persons: [ガイド, "エージェント1", "アバター・アリス", ボブ, 店員, ドアマン, アリス]
+  items: [鍵, トークン, コイン]
+

@@ -182,7 +182,7 @@ def knn_all(
         raise ValueError("k must be less than the number of vectors")
 
     ann_kind = (ann or os.getenv("K3D_FAISS_INDEX", "flat")).lower().strip()
-    use_ivf = ann_kind in {"ivf", "ivf-flat", "ivfflat"}
+    use_ivf = ann_kind in {"ivf", "ivf-flat", "ivfflat", "ivfpq"}
 
     # FAISS path (GPU preferred)
     try:
@@ -197,7 +197,19 @@ def knn_all(
             if nprobe:
                 npb = int(nprobe)
             quant = faiss.IndexFlatL2(d)
-            cpu = faiss.IndexIVFFlat(quant, d, nl, faiss.METRIC_L2)
+            if ann_kind == "ivfpq":
+                # IVF-PQ with heuristics: M and nbits via env or defaults
+                try:
+                    M = int(os.getenv("K3D_FAISS_PQ_M", "16"))
+                except Exception:
+                    M = 16 if d % 16 == 0 else 8
+                try:
+                    nbits = int(os.getenv("K3D_FAISS_PQ_BITS", "8"))
+                except Exception:
+                    nbits = 8
+                cpu = faiss.IndexIVFPQ(quant, d, nl, M, nbits)
+            else:
+                cpu = faiss.IndexIVFFlat(quant, d, nl, faiss.METRIC_L2)
             # IVFFlat requires training
             # Use a sample up to 100k for speed
             m = min(n, 100_000)
@@ -214,7 +226,8 @@ def knn_all(
                 index = cpu
             try:
                 from .utils.env_guard import accel_log  # type: ignore
-                accel_log(f"FAISS IVF-Flat ({'GPU' if _want_faiss_gpu() and has_gpu else 'CPU'}) nlist={nl} nprobe={npb}")
+                kind = 'IVF-PQ' if ann_kind == 'ivfpq' else 'IVF-Flat'
+                accel_log(f"FAISS {kind} ({'GPU' if _want_faiss_gpu() and has_gpu else 'CPU'}) nlist={nl} nprobe={npb}")
             except Exception:
                 pass
         else:

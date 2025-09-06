@@ -408,7 +408,7 @@ def main() -> None:
         "--reducer", choices=["umap", "pca", "tsne"], default="umap", help="Dimensionality reduction method"
     )
     # ANN / FAISS options
-    parser.add_argument("--ann", choices=["flat", "ivf"], default="flat", help="Approximate NN index: flat or IVF-Flat for large datasets")
+    parser.add_argument("--ann", choices=["flat", "ivf", "ivfpq"], default="flat", help="Approximate NN index: flat, IVF-Flat, or IVF-PQ for large datasets")
     parser.add_argument("--nlist", type=int, help="IVF: number of coarse clusters (auto if omitted)")
     parser.add_argument("--nprobe", type=int, help="IVF: number of clusters to probe at search (auto if omitted)")
     parser.add_argument(

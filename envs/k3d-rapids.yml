@@ -10,12 +10,11 @@ dependencies:
   - cuml=24.06
   - faiss-gpu=1.7.2
   - pytorch
+  - numpy<2
+  - scikit-learn
   - pip
   - pip:
-      - -e .
       - pandas
-      - numpy
-      - scikit-learn
       - pygltflib
       - umap-learn
       - sentence-transformers

@@ -8,6 +8,7 @@ k3dgen/ai_native.py
 k3dgen/condo.py
 k3dgen/cranium.py
 k3dgen/house.py
+k3dgen/sleep_compute.py
 knowledge3d.egg-info/PKG-INFO
 knowledge3d.egg-info/SOURCES.txt
 knowledge3d.egg-info/dependency_links.txt

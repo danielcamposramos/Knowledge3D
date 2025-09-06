@@ -3,12 +3,11 @@ channels:
   - conda-forge
 dependencies:
   - python=3.10
+  - numpy<2
+  - scikit-learn
   - pip
   - pip:
-      - -e .
       - pandas
-      - numpy
-      - scikit-learn
       - pygltflib
       - umap-learn
       - sentence-transformers

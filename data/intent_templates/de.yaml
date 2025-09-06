@@ -1,0 +1,47 @@
+intents:
+  teleport:
+    - "teleportiere zu [{x},{y},{z}]"
+    - "bitte teleportiere mich zu [{x}, {y}, {z}]"
+  move:
+    - "bewege dich {direction} {distance}"
+    - "gehe {direction} {distance} einheiten"
+  goto:
+    - "gehe zu {place}"
+    - "navigiere zu {place}"
+    - "bring mich zu {place}"
+    - "öffne die tür zu {place}"
+  follow:
+    - "folge {person}"
+    - "folge agent {person}"
+  orbit:
+    - "umlaufe {place}"
+    - "kreise um {place}"
+  show:
+    - "zeige mir {topic}"
+    - "markiere {topic}"
+  find_related:
+    - "finde ähnlich zu {topic}"
+    - "zeige verwandtes zu {topic}"
+  expand:
+    - "vergrößere {topic}"
+    - "zoome in {topic}"
+  hide:
+    - "verstecke {object}"
+    - "blende {object} aus"
+  touch:
+    - "berühre {object}"
+    - "interagiere mit {object}"
+  talk:
+    - "sprich mit {person}"
+    - "frage {person}"
+  give:
+    - "gib {item} an {person}"
+    - "überreiche {item} an {person}"
+vocab:
+  directions: [links, rechts, oben, unten, vorwärts, rückwärts]
+  places: [bibliothek, markt, hub, kern]
+  topics: [graphen, mathematik, physik, clustering, embeddings, neuronale netze, quanten]
+  objects: [blauer würfel, rote kugel, tür, portal, legende, hinweis]
+  persons: [guide, "agent eins", "avatar alice", bob, mitarbeiter, türsteher, alice]
+  items: [schlüssel, token, münze]
+

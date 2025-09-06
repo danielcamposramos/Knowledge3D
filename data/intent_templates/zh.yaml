@@ -1,0 +1,47 @@
+intents:
+  teleport:
+    - "传送到 [{x},{y},{z}]"
+    - "请把我传送到 [{x}, {y}, {z}]"
+  move:
+    - "向{direction}移动 {distance}"
+    - "往{direction}走 {distance} 个单位"
+  goto:
+    - "去 {place}"
+    - "导航到 {place}"
+    - "带我去 {place}"
+    - "打开前往 {place} 的门"
+  follow:
+    - "跟随 {person}"
+    - "跟着代理 {person}"
+  orbit:
+    - "环绕 {place}"
+    - "围绕 {place} 转一圈"
+  show:
+    - "给我看 {topic}"
+    - "高亮 {topic}"
+  find_related:
+    - "查找与 {topic} 相关的"
+    - "显示与 {topic} 相似的"
+  expand:
+    - "展开 {topic}"
+    - "放大 {topic}"
+  hide:
+    - "隐藏 {object}"
+    - "遮蔽 {object}"
+  touch:
+    - "触碰 {object}"
+    - "与 {object} 互动"
+  talk:
+    - "和 {person} 说话"
+    - "请询问 {person}"
+  give:
+    - "把 {item} 交给 {person}"
+    - "把 {item} 递给 {person}"
+vocab:
+  directions: [左, 右, 上, 下, 前, 后]
+  places: [图书馆, 市场, 中枢, 枢纽]
+  topics: [图谱, 数学, 物理, 聚类, 向量嵌入, 神经网络, 量子]
+  objects: [蓝色立方体, 红色球体, 门, 传送门, 图例, 提示]
+  persons: [向导, "代理一号", "化身爱丽丝", 鲍勃, 职员, 门卫, 爱丽丝]
+  items: [钥匙, 令牌, 硬币]
+
