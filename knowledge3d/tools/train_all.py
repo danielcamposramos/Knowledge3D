@@ -15,6 +15,13 @@ import subprocess
 import sys
 from pathlib import Path
 
+try:
+    # Enforce containment on Debian hosts
+    from ..utils.env_guard import enforce_containment  # type: ignore
+    enforce_containment("train_all pipeline")
+except Exception:
+    # Soft-fail: if module not available, continue
+    pass
 
 def run(cmd: list[str]) -> tuple[int, str]:
     p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)

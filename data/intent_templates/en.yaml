@@ -2,41 +2,59 @@ intents:
   teleport:
     - "teleport to [{x},{y},{z}]"
     - "teleport to [{x}, {y}, {z}]"
+    - "please teleport me to [{x}, {y}, {z}]"
+    - "could you teleport us to [{x}, {y}, {z}]"
   move:
     - "move {direction} {distance}"
     - "go {direction} {distance} units"
+    - "please move {direction} {distance}"
+    - "take {direction} {distance} steps"
   goto:
     - "goto {place}"
     - "go to {place}"
     - "navigate to {place}"
+    - "please take me to {place}"
+    - "bring us to {place}"
+    - "open the door to {place}"
   follow:
     - "follow {person}"
     - "follow agent {person}"
+    - "please follow {person}"
   orbit:
     - "orbit around {place}"
     - "circle around {place}"
+    - "please circle around {place}"
   show:
     - "show me {topic}"
     - "display {topic}"
+    - "please highlight {topic}"
+    - "could you reveal {topic}"
   find_related:
     - "find related to {topic}"
     - "related to {topic}"
+    - "show similar to {topic}"
+    - "what connects to {topic}"
   expand:
     - "expand {topic}"
     - "expand area {topic}"
     - "expand cluster {topic}"
+    - "please zoom into {topic}"
   hide:
     - "hide {object}"
     - "conceal {object}"
+    - "please hide the {object}"
   touch:
     - "touch {object}"
     - "tap {object}"
+    - "interact with the {object}"
   talk:
     - "talk to {person}"
     - "speak to {person}"
+    - "please ask {person}"
   give:
     - "give {item} to {person}"
     - "hand {item} to {person}"
+    - "offer {item} to {person}"
 vocab:
   directions: [left, right, up, down, forward, back]
   places: [library, market, hub, core]

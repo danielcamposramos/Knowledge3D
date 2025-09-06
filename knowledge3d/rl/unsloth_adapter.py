@@ -19,6 +19,7 @@ CLI
 Notes
 - This is a thin scaffold. For production RL, adopt Unsloth APIs or TRL PPO, add
   reward shaping (e.g., shorter hops, higher sim), and enforce safety gates (Faith Engine).
+ - Debian containment guard: requires Conda or Docker unless K3D_ALLOW_NATIVE=1.
 """
 from __future__ import annotations
 
@@ -27,6 +28,12 @@ import json
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+try:
+    # Guard unsafe runs on Debian without containment
+    from ..utils.env_guard import enforce_containment  # type: ignore
+    enforce_containment("RL/Unsloth training")
+except Exception:
+    pass
 
 LABELS = [
     "teleport", "move", "goto", "follow", "orbit",
@@ -115,4 +122,3 @@ def main() -> None:  # pragma: no cover
 
 if __name__ == "__main__":  # pragma: no cover
     main()
-

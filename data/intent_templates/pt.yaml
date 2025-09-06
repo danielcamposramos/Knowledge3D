@@ -2,39 +2,52 @@ intents:
   teleport:
     - "teleportar para [{x},{y},{z}]"
     - "teleportar para [{x}, {y}, {z}]"
+    - "por favor, teleporte-me para [{x}, {y}, {z}]"
   move:
     - "mover {direction} {distance}"
     - "vá {direction} {distance} unidades"
+    - "por favor, mova {direction} {distance}"
   goto:
     - "ir para {place}"
     - "vá até {place}"
+    - "por favor, leve-me para {place}"
+    - "abra a porta para {place}"
   follow:
     - "seguir {person}"
     - "siga {person}"
+    - "por favor, siga {person}"
   orbit:
     - "orbitar ao redor de {place}"
     - "circular ao redor de {place}"
+    - "por favor, circule {place}"
   show:
     - "mostre {topic}"
     - "mostrar {topic}"
+    - "por favor, destaque {topic}"
   find_related:
     - "encontrar relacionado a {topic}"
     - "relacionado a {topic}"
+    - "mostrar similar a {topic}"
   expand:
     - "expandir {topic}"
     - "expandir área {topic}"
+    - "aproxime {topic}"
   hide:
     - "ocultar {object}"
     - "esconder {object}"
+    - "por favor, oculte {object}"
   touch:
     - "tocar {object}"
     - "toque em {object}"
+    - "interagir com {object}"
   talk:
     - "falar com {person}"
     - "conversar com {person}"
+    - "por favor, pergunte a {person}"
   give:
     - "dar {item} para {person}"
     - "entregar {item} a {person}"
+    - "ofereça {item} a {person}"
 vocab:
   directions: [esquerda, direita, cima, baixo, frente, trás]
   places: [biblioteca, mercado, hub, núcleo]

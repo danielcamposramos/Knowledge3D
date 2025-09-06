@@ -8,6 +8,12 @@ from typing import Dict, List, Tuple, Optional
 
 import numpy as np
 
+try:
+    # Block unsafe native runs on Debian unless explicitly allowed
+    from ..utils.env_guard import enforce_containment  # type: ignore
+    enforce_containment("HF intent training")
+except Exception:
+    pass
 
 # Labels align with EnhancedChatProcessor actions
 INTENT_LABELS: List[str] = [

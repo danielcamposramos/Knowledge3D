@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -105,6 +106,7 @@ class LiveServer:
         self._model_enabled = False
         self._model_threshold = 0.7
         self._model_path: Optional[str] = None
+        self._model_kind: Optional[str] = None
         # Try to wire both sklearn and HF loaders; pick at runtime
         self._loaders: list = []
         self._predictors: list = []
@@ -113,6 +115,36 @@ class LiveServer:
             self._loaders.append(("sklearn", skl_load))
             self._predictors.append(("sklearn", skl_pred))
         except Exception:
+            pass
+        # Auto-load default model if available
+        try:
+            repo_root = Path(__file__).resolve().parents[2]
+            local_root = repo_root.parent / f"{repo_root.name}.local"
+            env_path = os.getenv("K3D_MODEL")
+            auto_on = True if str(os.getenv("K3D_MODEL_AUTO", "1")).strip() != "0" else False
+            p: Optional[Path] = None
+            kind: Optional[str] = None
+            if env_path:
+                p = Path(env_path)
+                kind = "hf" if p.is_dir() else "sklearn"
+            else:
+                hf_dir = local_root / "models" / "intent_hf"
+                pkl = local_root / "models" / "intent.pkl"
+                if hf_dir.exists() and (hf_dir / "config.json").exists():
+                    p = hf_dir
+                    kind = "hf"
+                elif pkl.exists():
+                    p = pkl
+                    kind = "sklearn"
+            if p and kind:
+                loader = next((l for k, l in self._loaders if k == kind), None)
+                if loader:
+                    self._model = loader(p)
+                    self._model_kind = kind
+                    self._model_path = str(p)
+                    self._model_enabled = auto_on
+        except Exception:
+            # Fail quietly; users can /model load later
             pass
         try:
             from ..models.intent_hf import load_model as hf_load, predict_action as hf_pred  # type: ignore
@@ -764,6 +796,8 @@ class LiveServer:
     # --- Open-vocab goto resolution ---
     async def _dispatch_goto(self, channel: str, query: str, source: str = "rule", confidence: Optional[float] = None) -> None:
         q = (query or "").strip()
+        resolved: Optional[str] = None
+        score: Optional[float] = None
         if not q:
             return
         # Gazetteer pass (exact/prefix/substring on canonical forms)

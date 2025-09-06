@@ -21,12 +21,17 @@ Option A — RAPIDS Docker (recommended)
    `export K3D_ACCEL=gpu`
    `python -m k3dgen data/ai_compendium_80k.txt --gltf ../Knowledge3D.local/datasets/ai_compendium.80k.umap.gpu.glb --k 10 --reducer umap --emb-precision f16`
 
-Option B — Host venv with FAISS CPU only
-- Create venv: `python -m venv ~/k3d-venv && . ~/k3d-venv/bin/activate`
-- Install: `pip install -e . pandas numpy scikit-learn pygltflib umap-learn sentence-transformers faiss-cpu`
-- Run with `K3D_ACCEL=cpu` for deterministic CPU builds.
+Option B — Conda (recommended on bare metal)
+1) GPU setup (RAPIDS + FAISS GPU):
+   - `conda env create -f envs/k3d-rapids.yml && conda activate k3d-rapids`
+   - `export K3D_ACCEL=gpu K3D_FAISS_DEVICE=gpu`
+2) CPU-only setup:
+   - `conda env create -f envs/k3d-cpu.yml && conda activate k3d-cpu`
+   - `export K3D_ACCEL=cpu`
+
+Notes
+- On Debian-like hosts, heavy training is guarded and requires Conda or Docker unless `K3D_ALLOW_NATIVE=1` is set.
 
 Notes
 - For larger-than-100k datasets, FAISS IndexFlatL2 works but IVF indexes may be faster. We will add IVF support on request.
 - `--emb-precision f16` halves embedding buffer size; most viewers decode to float32 on read.
-

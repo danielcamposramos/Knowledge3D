@@ -16,6 +16,12 @@ import datetime
 import random
 from pathlib import Path
 
+try:
+    # Enforce containment for training on Debian-like systems
+    from ..utils.env_guard import enforce_containment  # type: ignore
+    enforce_containment("Spatial memory training")
+except Exception:
+    pass
 
 class SpatialMemoryDataset(Dataset):
     """Dataset for spatial memory training using optimized knowledge graphs."""

@@ -63,6 +63,11 @@ def reduce_to_3d(vectors: np.ndarray, method: str = "umap") -> np.ndarray:
     red = (method or "pca").lower()
     n = vectors.shape[0]
     if red != "umap":
+        try:
+            from .utils.env_guard import accel_log  # type: ignore
+            accel_log("Reduction=non-UMAP -> using PCA (CPU)")
+        except Exception:
+            pass
         pca = PCA(n_components=3)
         return pca.fit_transform(vectors)
 
@@ -83,6 +88,11 @@ def reduce_to_3d(vectors: np.ndarray, method: str = "umap") -> np.ndarray:
 
             um = UMAP(n_components=3, n_neighbors=min(15, max(2, n - 1)))
             out = um.fit_transform(vectors)
+            try:
+                from .utils.env_guard import accel_log  # type: ignore
+                accel_log("UMAP via RAPIDS cuML (GPU)")
+            except Exception:
+                pass
             return np.asarray(out, dtype=np.float32)
         except Exception:
             pass
@@ -95,6 +105,11 @@ def reduce_to_3d(vectors: np.ndarray, method: str = "umap") -> np.ndarray:
         return np.asarray(um.fit_transform(vectors), dtype=np.float32)
     except Exception:
         # PCA fallback
+        try:
+            from .utils.env_guard import accel_log  # type: ignore
+            accel_log("UMAP unavailable -> PCA fallback (CPU)")
+        except Exception:
+            pass
         pca = PCA(n_components=3)
         return pca.fit_transform(vectors)
 
@@ -118,11 +133,21 @@ def _faiss_gpu_index(vectors: np.ndarray) -> Optional[Any]:
                 res.append(faiss.StandardGpuResources())
             gpu_index = faiss.index_cpu_to_all_gpus(cpu_index)
             gpu_index.add(vectors.astype(np.float32))
+            try:
+                from .utils.env_guard import accel_log  # type: ignore
+                accel_log("FAISS IndexFlatL2 (GPU shards)")
+            except Exception:
+                pass
             return gpu_index
         except Exception:
             # fallback to CPU
             pass
     cpu_index.add(vectors.astype(np.float32))
+    try:
+        from .utils.env_guard import accel_log  # type: ignore
+        accel_log("FAISS IndexFlatL2 (CPU)")
+    except Exception:
+        pass
     return cpu_index
 
 
@@ -187,6 +212,11 @@ def knn_all(
                 cpu.nprobe = npb
                 cpu.add(x)
                 index = cpu
+            try:
+                from .utils.env_guard import accel_log  # type: ignore
+                accel_log(f"FAISS IVF-Flat ({'GPU' if _want_faiss_gpu() and has_gpu else 'CPU'}) nlist={nl} nprobe={npb}")
+            except Exception:
+                pass
         else:
             index = _faiss_gpu_index(x) if _want_faiss_gpu() else None
             if index is None:
@@ -194,6 +224,11 @@ def knn_all(
                 cpu = faiss.IndexFlatL2(d)
                 cpu.add(x)
                 index = cpu
+            try:
+                from .utils.env_guard import accel_log  # type: ignore
+                accel_log(f"FAISS Flat ({'GPU' if index is not None and hasattr(index,'search') and _want_faiss_gpu() else 'CPU'})")
+            except Exception:
+                pass
         # Query in batches
         batch = 10000 if n >= 200000 else 20000
         I_list: list[np.ndarray] = []

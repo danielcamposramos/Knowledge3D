@@ -1,0 +1,15 @@
+name: k3d-cpu
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+      - -e .
+      - pandas
+      - numpy
+      - scikit-learn
+      - pygltflib
+      - umap-learn
+      - sentence-transformers
+      - faiss-cpu

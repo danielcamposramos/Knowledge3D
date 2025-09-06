@@ -4,7 +4,8 @@ import asyncio
 import json
 import sys
 from dataclasses import dataclass
-from typing import Any, Optional
+from pathlib import Path
+from typing import Any, Optional, Tuple, Callable
 
 
 try:
@@ -19,17 +20,26 @@ class Options:
     nick: Optional[str] = None
     auto: bool = False
     model_path: Optional[str] = None
+    threshold: float = 0.7
 
 
 async def run_cli(opts: Options) -> None:
     model = None
-    predict = None
+    predict: Optional[Callable[[Any, str], Tuple[str, float]]] = None
     if opts.auto and opts.model_path:
         try:
-            from ..models.intent_classifier import load_model, predict_action  # type: ignore
-            model = load_model(__import__('pathlib').Path(opts.model_path))
-            predict = predict_action
-            print(f"[cli] loaded model from {opts.model_path}")
+            p = Path(opts.model_path)
+            if p.is_dir():
+                from ..models.intent_hf import load_model, predict_action  # type: ignore
+                model = load_model(p)
+                predict = predict_action
+                kind = "hf"
+            else:
+                from ..models.intent_classifier import load_model, predict_action  # type: ignore
+                model = load_model(p)
+                predict = predict_action
+                kind = "sklearn"
+            print(f"[cli] loaded {kind} model from {opts.model_path}")
         except Exception as e:  # pragma: no cover
             print(f"[cli] failed to load model: {e}")
             model = None
@@ -52,7 +62,7 @@ async def run_cli(opts: Options) -> None:
                     print(f"[{ch}] {who}: {txt}")
                     if opts.auto and predict and model and who != "agent":
                         action, conf = predict(model, str(txt))
-                        if conf >= 0.7:
+                        if conf >= opts.threshold:
                             reply = f"[model:{conf:.2f}] intent={action}"
                         else:
                             reply = f"[model:{conf:.2f}] unsure; try /help"
@@ -85,11 +95,11 @@ def main():  # pragma: no cover
     p.add_argument("--url", default="ws://127.0.0.1:8765", help="WebSocket URL")
     p.add_argument("--nick", help="Nickname to send in messages")
     p.add_argument("--auto", action="store_true", help="Enable model auto-replies")
-    p.add_argument("--model", dest="model_path", help="Path to trained model for auto mode")
+    p.add_argument("--model", dest="model_path", help="Path to trained model for auto mode (HF dir or sklearn .pkl)")
+    p.add_argument("--threshold", type=float, default=0.7, help="Confidence threshold for auto replies")
     a = p.parse_args()
-    asyncio.run(run_cli(Options(url=a.url, nick=a.nick, auto=a.auto, model_path=a.model_path)))
+    asyncio.run(run_cli(Options(url=a.url, nick=a.nick, auto=a.auto, model_path=a.model_path, threshold=a.threshold)))
 
 
 if __name__ == "__main__":
     main()
-

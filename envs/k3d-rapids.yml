@@ -1,0 +1,21 @@
+name: k3d-rapids
+channels:
+  - rapidsai
+  - conda-forge
+  - nvidia
+  - pytorch
+dependencies:
+  - python=3.10
+  - cudatoolkit=11.8
+  - cuml=24.06
+  - faiss-gpu=1.7.2
+  - pytorch
+  - pip
+  - pip:
+      - -e .
+      - pandas
+      - numpy
+      - scikit-learn
+      - pygltflib
+      - umap-learn
+      - sentence-transformers
