@@ -59,30 +59,59 @@ def _load_gltf_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def extract_labels(path: Path, max_n: int = 256) -> List[str]:
+def _extract_graph(path: Path) -> Tuple[List[str], List[List[str]], List[str], List[Dict[str,str]]]:
+    """Return (ids, neighbors, labels, doors) from a K3D GLTF/GLB.
+
+    doors: list of {label, address} if metadata marks type=='door'. Address falls
+    back to k3d:// label form.
+    """
     try:
         obj = _load_gltf_json(path)
     except Exception:
-        return []
+        return [], [], [], []
+    ids: List[str] = []
+    neighbors: List[List[str]] = []
     labels: List[str] = []
+    doors: List[Dict[str, str]] = []
     for m in (obj.get("meshes") or []):
         for p in (m.get("primitives") or []):
-            k3d = (p.get("extras") or {}).get("k3d")
-            if not k3d:
-                continue
-            md = k3d.get("metadata") or []
-            if isinstance(md, list):
-                for it in md:
-                    lab = (it or {}).get("label")
-                    if isinstance(lab, str) and lab.strip():
-                        s = lab.strip()
-                        # Trim long labels at em-dash / en-dash for cleaner commands
-                        s = s.split(" — ")[0].split(" – ")[0]
-                        labels.append(s)
-            # only first embedded block is needed
+            ex = (p.get("extras") or {})
+            k3d = ex.get("k3d") or {}
+            kid = ex.get("k3dIds") or []
+            if k3d and kid:
+                ids = list(kid)
+                neighbors = list(k3d.get("neighbors") or [[] for _ in range(len(ids))])
+                md = k3d.get("metadata") or []
+                if isinstance(md, list) and md:
+                    for i in range(len(ids)):
+                        lab = None
+                        try:
+                            lab = (md[i] or {}).get("label")
+                        except Exception:
+                            lab = None
+                        labels.append(lab if isinstance(lab, str) and lab.strip() else ids[i])
+                    # doors
+                    for i in range(min(len(md), len(labels))):
+                        try:
+                            t = (md[i] or {}).get("type")
+                            if t == "door":
+                                lab = labels[i]
+                                doors.append({"label": lab, "address": f"k3d://@?label={lab}"})
+                        except Exception:
+                            continue
+                else:
+                    labels = ids[:]
+                break
+        if ids:
             break
-        if labels:
-            break
+    return ids, neighbors, labels, doors
+
+
+def extract_labels(path: Path, max_n: int = 256) -> List[str]:
+    ids, _neighbors, labels, _doors = _extract_graph(path)
+    if labels:
+        # Trim long labels at em-/en-dash for cleaner commands
+        labels = [ (s.split(" — ")[0].split(" – ")[0] if isinstance(s, str) else str(s)) for s in labels ]
     # Unique and sample
     seen = set()
     uniq = []
@@ -187,6 +216,17 @@ async def _maintenance_agent(url: str, interval: float) -> None:
 
 
 async def main_async(url: str, gltf: Path, count: int, delay: float, langs: List[str], workers: int = 1, jitter: float = 0.0, rounds: int = 1, maint_interval: float = 0.0) -> None:
+    # Push dataset graph to server once before spawning agents
+    ids, neigh, labels_full, doors = _extract_graph(gltf)
+    if ids and neigh:
+        try:
+            async with websockets.connect(url) as ws:
+                await ws.send(json.dumps({"type": "chat", "from": "human", "text": "/nick loader"}))
+                await ws.send(json.dumps({"type": "event", "event": {"kind": "dataset_graph", "ids": ids, "neighbors": neigh, "labels": labels_full}}))
+                if doors:
+                    await ws.send(json.dumps({"type": "event", "event": {"kind": "doors", "items": doors}}))
+        except Exception:
+            pass
     labels = extract_labels(gltf, max_n=count)
     scout_msgs, gardener_msgs = make_phrases(labels, langs)
     # Interleave limited slices
