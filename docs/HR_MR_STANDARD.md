@@ -1,4 +1,4 @@
-# HR/MR Standard for Knowledge3D
+# HR/MR Standard for Knowledge3D (GLM‑4.5)
 
 Human‑Readable (HR) and Machine‑Runtime (MR) are dual facets of the same system:
 
@@ -16,7 +16,8 @@ Artifacts
 - Viewer parity: `viewer/src/` implements human affordances over the same AI substrate.
 
 MR Generation
-- Use `codeopt` to generate MR sources to `../Knowledge3D.local/mr` (see `docs/DUAL_CODE.md`).
+- Use `codeopt` (GLM‑4.5 dual‑code compiler) to generate MR sources to `../Knowledge3D.local/mr` (see `docs/DUAL_CODE.md`).
+- Shortcut: `make compile-mr`.
 - Do not commit MR outputs; keep HR as the authored source of truth.
 
 Runbook

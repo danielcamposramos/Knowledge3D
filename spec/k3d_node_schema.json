@@ -356,6 +356,30 @@
         }
       },
       "required": ["created", "creator"]
+    },
+    "temporal": {
+      "type": "object",
+      "properties": {
+        "alpha": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Temporal visibility (1=current, 0=historical)"
+        },
+        "versions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "version": { "type": "integer" },
+              "valid_until": { "type": ["string", "null"], "format": "date-time" }
+            },
+            "required": ["version"]
+          },
+          "description": "Historical versions for this node"
+        }
+      },
+      "additionalProperties": true
     }
   },
   "required": ["id", "metadata", "spatial"],

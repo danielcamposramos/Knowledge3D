@@ -135,7 +135,10 @@ Live Mode Door Command
 - Use `/open <label>` or `/open k3d://rx,ry,rz:port@x,y,z?label=Label` to request a route. The server resolves the path from the current label (if known) and broadcasts a command with route details.
 
 HR/MR Standard
-- See `docs/HR_MR_STANDARD.md` for the dual‑code paradigm and `spec/AI_RPN_standard.md` for the RPN logic standard.
+- See `docs/HR_MR_STANDARD.md` for the GLM‑4.5 dual‑code paradigm and `spec/AI_RPN_standard.md` for the RPN logic standard.
+
+Temporal LOD
+- See `docs/TEMPORAL_LOD.md` for GLM‑4.5 temporal alpha (per‑node/global) embedded in glTF and supported by the viewer.
 
 Headless Text Chat
 - Connect to the live server without the 3D viewer: `python -m knowledge3d.bridge.cli_client`

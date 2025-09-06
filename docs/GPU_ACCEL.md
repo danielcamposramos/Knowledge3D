@@ -35,3 +35,24 @@ Notes
 Notes
 - For larger-than-100k datasets, FAISS IndexFlatL2 works but IVF indexes may be faster. We will add IVF support on request.
 - `--emb-precision f16` halves embedding buffer size; most viewers decode to float32 on read.
+
+## Debian 13 Quickstart (Container‑first)
+
+Debian 13 (“trixie”) is supported via containers to ensure consistent CUDA stacks.
+
+1) Ensure NVIDIA Container Toolkit is installed and `docker run --gpus all nvidia/cuda:11.8.0-base-ubuntu22.04 nvidia-smi` works.
+2) From the repo root, launch RAPIDS:
+```
+docker run --rm --gpus all -it \
+  -v "$PWD":"/workspace" -w /workspace \
+  rapidsai/rapidsai-core:24.06-cuda11.8-runtime-ubuntu22.04-py3.10 bash
+```
+3) Inside the container:
+```
+conda install -y -c pytorch -c nvidia faiss-gpu=1.7.2 cudatoolkit=11.8
+pip install -U pip wheel setuptools
+pip install -e . pandas numpy scikit-learn pygltflib umap-learn sentence-transformers
+export K3D_ACCEL=gpu K3D_FAISS_DEVICE=gpu
+python -m k3dgen examples/sample_vectors.csv --gltf ../Knowledge3D.local/datasets/sample.umap.gpu.glb --k 5 --reducer umap --emb-precision f16
+```
+4) Outside the container, run the viewer locally (Node 16+) and point it at the generated GLB.

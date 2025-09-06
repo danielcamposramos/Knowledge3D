@@ -30,6 +30,10 @@ export interface K3DInfo {
   count: number;
   byteLengthVectors?: number;
   byteLengthEmbeddings?: number;
+  temporal?: {
+    alpha?: number;
+    alphaMask?: number[];
+  };
   ai?: {
     protocol?: string;
     flags?: {
@@ -122,6 +126,7 @@ export async function loadK3DFromGLTF(url: string): Promise<LoadedK3D> {
   const edges: [string, string][] | undefined = embedded.edges || undefined;
   const precGlobal: string = embedded.embeddingPrecision || 'f32';
   const dimsGlobal: number = embedded.embeddingDims || (embedded.embeddings?.[0]?.length ?? 0);
+  const temporal: any = embedded.temporal || {};
 
   // AI-native extras on primitive
   const aiProtocol: string | undefined = embedded.ai_interaction_protocol;
@@ -185,6 +190,10 @@ export async function loadK3DFromGLTF(url: string): Promise<LoadedK3D> {
     count: ids.length,
     byteLengthVectors: embedded.vectorsView !== undefined ? (json.bufferViews?.[embedded.vectorsView]?.byteLength ?? undefined) : undefined,
     byteLengthEmbeddings: embedded.embeddingsView !== undefined ? (json.bufferViews?.[embedded.embeddingsView]?.byteLength ?? undefined) : undefined,
+    temporal: {
+      alpha: typeof temporal.alpha === 'number' ? Math.max(0, Math.min(1, temporal.alpha)) : undefined,
+      alphaMask: Array.isArray(temporal.alphaMask) ? temporal.alphaMask.map((x: any) => Math.max(0, Math.min(1, Number(x)))) : undefined,
+    },
     ai: {
       protocol: aiProtocol,
       flags: aiFlags,

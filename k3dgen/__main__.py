@@ -244,6 +244,45 @@ def create_gltf_file(
         "neighbors": neighbors,
     }
 
+    # Temporal (alpha channel + optional per-node mask)
+    try:
+        _alpha = getattr(_ARGS, "temporal_alpha", None)
+        _alpha_mask_spec = getattr(_ARGS, "temporal_alpha_mask", None)
+    except Exception:
+        _alpha = None
+        _alpha_mask_spec = None
+    temporal: Dict[str, Any] = {}
+    if _alpha is not None:
+        try:
+            a = max(0.0, min(1.0, float(_alpha)))
+            temporal["alpha"] = a
+        except Exception:
+            pass
+    if _alpha_mask_spec:
+        mask = [1.0] * len(ids)
+        try:
+            parts = str(_alpha_mask_spec).split(",")
+            for part in parts:
+                if not part:
+                    continue
+                if ":" in part:
+                    idx_s, val_s = part.split(":", 1)
+                    i = int(idx_s)
+                    v = float(val_s)
+                else:
+                    # allow shorthand 'idx' => set to global alpha or 0.5
+                    i = int(part)
+                    v = float(temporal.get("alpha", 0.5))
+                if 0 <= i < len(mask):
+                    mask[i] = max(0.0, min(1.0, v))
+        except Exception:
+            # ignore malformed
+            mask = []
+        if mask:
+            temporal["alphaMask"] = mask
+    if temporal:
+        k3d_payload["temporal"] = temporal
+
     # Optional explicit edges (e.g., ontology parent->child pairs)
     if edges:
         try:
@@ -424,6 +463,18 @@ def main() -> None:
         choices=["f32", "f16"],
         default="f32",
         help="Embedding precision in GLTF bufferView (binary). f16 halves storage at some precision cost",
+    )
+    # Temporal perception (alpha channel)
+    parser.add_argument(
+        "--temporal-alpha",
+        dest="temporal_alpha",
+        type=float,
+        help="Global temporal alpha 0..1 (1=current, 0=historical) to embed in extras.k3d.temporal.alpha",
+    )
+    parser.add_argument(
+        "--temporal-alpha-mask",
+        dest="temporal_alpha_mask",
+        help="Comma-separated per-node alpha overrides as idx:value (e.g., 0:1,1:0.7,2:0.2). Without :value uses global alpha or 0.5",
     )
     # AI-native fields for primitive.extras.k3d
     parser.add_argument(

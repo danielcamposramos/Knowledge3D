@@ -52,7 +52,21 @@ Schema (informal):
   "embeddingsView": 1,
   "embeddingDims": 768,
   "metadata": [{"label": "..."}, {"label": "..."}, {"label": "..."}],
-  "neighbors": [["...", "..."], ["..."], []]
+  "neighbors": [["...", "..."], ["..."], []],
+  "temporal": {
+    "alpha": 1.0,
+    "alphaMask": [1.0, 0.6, 0.3],
+    "versions": [
+      [
+        {"version": 1, "valid_until": "2023-12-31T23:59:59Z"},
+        {"version": 2, "valid_until": null}
+      ],
+      [
+        {"version": 1, "valid_until": null}
+      ],
+      []
+    ]
+  }
 }
 ```
 
@@ -61,6 +75,11 @@ Notes:
 - `embeddingsView` is a `bufferView` index of packed Float32 embeddings concatenated row-wise; `embeddingDims` gives the per-node dimension.
 - `embeddingPrecision`: optional, one of `"f32"|"f16"`. When `f16`, the embeddings bufferView stores IEEE754 half-precision floats (2 bytes); readers should decode to float32 for processing.
 - `primitive.extras.k3dIds` mirrors the `ids` array for simple readers.
+
+Temporal fields
+- `temporal.alpha` is a global 0..1 visibility weight for the entire primitive. Viewers may map this to material opacity.
+- `temporal.alphaMask` is an optional per-node array of 0..1 weights aligned with `ids`. For large sets, future versions may support a `bufferView` instead (not yet standardized here).
+- `temporal.versions` is an optional array of per-node version lists. Each inner list contains objects with `version` and `valid_until` (ISO 8601 or null). Embedding deltas are intentionally omitted at this layer; agents should query external provenance if needed.
 
 AI-native optional fields
 
@@ -74,6 +93,8 @@ AI-native optional fields
 Separating K3D metadata into a sidecar keeps the glTF payload small while
 allowing rich graph relationships defined in
 [`k3d_node_schema.json`](k3d_node_schema.json).
+
+Temporal metadata follows the K3D dual-representation principle. The alpha channel communicates recency to both human clients (as transparency) and AI clients (as an explicit weight), enabling temporal Level of Detail (LOD): older information fades while remaining spatially coherent.
 
 ## Compatibility
 

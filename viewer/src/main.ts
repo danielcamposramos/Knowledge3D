@@ -126,6 +126,7 @@ async function loadHouse(k3dUrl: string) {
         const size = new THREE.Vector3().subVectors(max, min);
 
         const mask = loaded.info?.ai?.mask?.has_new_information;
+        const tmask = loaded.info?.temporal?.alphaMask;
         k3dData.forEach((record, i) => {
             positions.set(record.vector, i * 3);
 
@@ -141,6 +142,11 @@ async function loadHouse(k3dUrl: string) {
                 const b = size.z > 0 ? (record.vector[2] - min.z) / size.z : 0.5;
                 color.setRGB(r, g, b);
             }
+            // Temporal per-node dimming via alphaMask
+            if (tmask && typeof tmask[i] === 'number') {
+                const a = Math.max(0, Math.min(1, tmask[i]));
+                color.multiplyScalar(a);
+            }
             colors.set([color.r, color.g, color.b], i * 3);
         });
 
@@ -150,6 +156,11 @@ async function loadHouse(k3dUrl: string) {
         baseGeom.computeBoundingSphere();
 
         const material = new THREE.PointsMaterial({ size: 0.1, vertexColors: true });
+        const talpha = loaded.info?.temporal?.alpha;
+        if (typeof talpha === 'number') {
+            material.transparent = talpha < 1.0;
+            material.opacity = Math.max(0, Math.min(1, talpha));
+        }
         // For larger datasets, use grid culling; otherwise use LOD
         if (k3dData.length > 8000) {
             const grid = new GridCulledPoints(baseGeom, material, 4);

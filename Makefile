@@ -14,6 +14,17 @@ scoreboard:
 eval-logs:
 	$(PY) -m knowledge3d.models.eval_logs --logs ../Knowledge3D.local/logs
 
+.PHONY: compile-mr clean-mr
+
+# Generate Machine-Runtime (MR) sources outside the repo using codeopt
+compile-mr:
+	@echo "Compiling HR -> MR into ../Knowledge3D.local/mr ..."
+	$(PY) -m codeopt --in k3dgen knowledge3d viewer --out ../Knowledge3D.local/mr --lang auto --stats
+	@echo "Done."
+
+clean-mr:
+	rm -rf ../Knowledge3D.local/mr
+
 .PHONY: session-80k-long build-120k session-120k-medium
 
 # Long 80k session (writes report under docs/reports/training)

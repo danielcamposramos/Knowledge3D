@@ -14,7 +14,7 @@ GPU setup guides
 - See `docs/GPU_ACCEL.md` for Docker-based RAPIDS UMAP + FAISS GPU instructions.
 
 Training containment (Debian guard)
-- On Debian-like hosts, heavy training commands are blocked unless running under Conda or Docker. This avoids unstable native builds and GPU driver mismatches.
+- On Debian-like hosts (including Debian 13), heavy training commands are blocked unless running under Conda or Docker. This avoids unstable native builds and GPU driver mismatches. Prefer the RAPIDS Docker path in `docs/GPU_ACCEL.md`.
 - To override (not recommended), set `K3D_ALLOW_NATIVE=1`.
 
 Affected commands

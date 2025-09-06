@@ -1,6 +1,6 @@
-# Dual Code Paradigm: Human‑Readable (HR) and Machine‑Runtime (MR)
+# Dual Code Paradigm (GLM‑4.5): Human‑Readable (HR) and Machine‑Runtime (MR)
 
-K3D maintains two representations of source when running locally:
+K3D maintains two representations of source when running locally. This design, proposed jointly with GLM‑4.5 (Fullstack), formalizes code Level‑of‑Detail (LOD): HR is rich and explanatory for humans/agents; MR is compact for fast runtime.
 
 - HR (Human‑Readable): idiomatic, commented, richly documented code for humans and AI to study.
 - MR (Machine‑Runtime): stripped, compact, comment‑free output optimized for loading and execution (no semantics change).
@@ -13,7 +13,7 @@ This is achieved by a simple optimizer that copies sources into a sibling folder
 
 ## Tooling
 
-CLI: `codeopt`
+CLI: `codeopt` (GLM‑4.5 dual‑code compiler)
 
 Examples:
 
@@ -33,3 +33,9 @@ Output layout mirrors input directories under the output root. This folder is no
 - JS/TS comment removal is string‑aware; block comments are removed; multiline string content is preserved.
 - Reports bytes saved and a per‑file summary when `--stats` is enabled.
 
+## Make Targets
+
+- `make compile-mr` — generate MR sources for `k3dgen`, `knowledge3d`, and `viewer` into `../Knowledge3D.local/mr`.
+- `make clean-mr` — remove MR outputs.
+
+MR sources are not committed. Treat them like compiled artifacts.
