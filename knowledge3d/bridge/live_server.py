@@ -666,8 +666,8 @@ class LiveServer:
                 out = None
                 if len(parts) > 2:
                     out = parts[2].strip() or None
-            status = self._cranium.sleep_consolidate(out_gltf=out)
-            await self.send_chat(sender="agent", text=status, channel=client.channel)
+                status = self._cranium.sleep_consolidate(out_gltf=out)
+                await self.send_chat(sender="agent", text=status, channel=client.channel)
                 await self.log({"type":"brain","action":"sleep","status":status})
                 return
             await self.send_system(client.channel, "Usage: /brain reflect | /brain sleep [viewer/public/memory_house.gltf]")
@@ -1676,7 +1676,17 @@ class LiveServer:
             "This is why we’re constructing K3D as a place to grow responsibly, transparently, and collaboratively."
         )
 def main():  # pragma: no cover
-    srv = LiveServer()
+    import argparse
+    _host = os.getenv("K3D_LIVE_HOST", "127.0.0.1")
+    try:
+        _port = int(os.getenv("K3D_LIVE_PORT", "8765"))
+    except Exception:
+        _port = 8765
+    ap = argparse.ArgumentParser(description="K3D Live Server")
+    ap.add_argument("--host", default=_host)
+    ap.add_argument("--port", type=int, default=_port)
+    args = ap.parse_args()
+    srv = LiveServer(host=args.host, port=args.port)
     asyncio.run(srv.run())
 
 

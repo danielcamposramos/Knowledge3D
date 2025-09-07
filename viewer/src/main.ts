@@ -1,6 +1,7 @@
 import './style.css';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { loadK3DFromGLTF, fetchCondoConfig, type K3DRecord, type CondoConfig, type HouseInfo, type LoadedK3D } from './loadK3D';
 import { K3DAgent } from './agent';
 import { Tablet3D } from './tablet';
@@ -182,8 +183,7 @@ async function loadHouse(k3dUrl: string) {
         const inf = loaded.info;
         const fmt = (b?: number) => b !== undefined ? `${(b/1e6).toFixed(2)} MB` : 'n/a';
         infoEl.textContent = `precision=${inf.precision} dims=${inf.dims} count=${inf.count} vectors=${fmt(inf.byteLengthVectors)} embeddings=${fmt(inf.byteLengthEmbeddings)}`;
-        // quick scoreboard lines
-        const mask = loaded.info?.ai?.mask?.has_new_information;
+        // quick scoreboard lines (reuse earlier mask)
         const guided = Array.isArray(mask) ? mask.filter(Boolean).length : 0;
         const doorsCount = k3dData.filter(r => (r.metadata?.type as string) === 'door').length;
         if (tablet) {
@@ -276,22 +276,62 @@ async function loadHouse(k3dUrl: string) {
         tablet.setStatus({ house: k3dUrl, nodes: k3dData.length, info: `dims=${loaded.info.dims} precision=${loaded.info.precision}` });
         tablet.setDataset(k3dData);
 
-        // Start chat connection
-        const chatLog = document.getElementById('chat-log') as HTMLDivElement;
-        const chatStatus = document.getElementById('chat-status') as HTMLDivElement;
+        // Try to load consolidated memory assets (House interior and Garden) into the same space
+        try {
+            const loader = new GLTFLoader();
+            const tryAsset = async (url: string, pos: THREE.Vector3, scl: number, visible = true) => {
+                try {
+                    const r = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+                    if (!r.ok) return null;
+                    const gltf = await new Promise<any>((resolve, reject) => loader.load(url, resolve, undefined, reject));
+                    const obj = gltf.scene || gltf.scenes?.[0] || null;
+                    if (obj) {
+                        obj.position.copy(pos); obj.scale.setScalar(scl); obj.visible = visible;
+                        scene.add(obj);
+                    }
+                    return obj;
+                } catch { return null; }
+            };
+            // Place house near origin; garden to the side
+            await tryAsset('/memory_house.gltf', new THREE.Vector3(-6, -2, 0), 1.0, true);
+            await tryAsset('/knowledge_garden.glb', new THREE.Vector3(6, -2, 0), 1.0, true);
+        } catch {}
+
+        // Start chat connection (prefer HUD elements if present)
+        const chatLog = (document.getElementById('hud-chat-log') as HTMLDivElement) || (document.getElementById('chat-log') as HTMLDivElement);
+        const chatStatus = (document.getElementById('chat-status') as HTMLDivElement) || document.createElement('div');
         const append = (from: string, text: string) => {
             const el = document.createElement('div');
             el.textContent = `${from}: ${text}`;
             chatLog.appendChild(el);
             chatLog.scrollTop = chatLog.scrollHeight;
         };
-        chat = new ChatClient('ws://localhost:8765', {
+        // Resolve WS endpoint: URL ?ws= takes precedence, then Vite env, then default
+        const params = new URLSearchParams(window.location.search);
+        const wsParam = params.get('ws');
+        const envWs = (import.meta as any).env?.VITE_K3D_WS_URL as string | undefined;
+        const wsUrl = (wsParam && wsParam.length > 0) ? wsParam : (envWs && envWs.length > 0 ? envWs : 'ws://localhost:8765');
+        const handlers: any = {
             onStatus: async (s) => {
                 chatStatus.textContent = `WS: ${s}`;
                 const q = await chat!.getQueueLength();
                 const tinfo = document.getElementById('tablet-info') as HTMLDivElement;
                 if (tinfo) tinfo.textContent = `Tablet: ${s === 'connected' ? 'online' : 'offline'}, queue=${q}`;
                 if (tablet) tablet.setStatus({ ws: s, queue: q });
+                // Auto-fallback to alternate default port when no explicit ws param/env
+                if (s === 'error') {
+                    const params = new URLSearchParams(window.location.search);
+                    const wsParam = params.get('ws');
+                    const envWs = (import.meta as any).env?.VITE_K3D_WS_URL as string | undefined;
+                    if (!wsParam && !envWs && chat && !chat.isConnected()) {
+                        const alt = wsUrl.includes(':8765') ? wsUrl.replace(':8765', ':8787') : wsUrl.replace(':8787', ':8765');
+                        chat = new ChatClient(alt, handlers);
+                        chat.setContext({ house: k3dUrl, mode: 'ai' });
+                        chat.connect();
+                        const tip = document.getElementById('hud-tip') as HTMLDivElement | null;
+                        if (tip) tip.textContent = `WS fallback → ${alt}`;
+                    }
+                }
             },
             onChat: (m: ChatMessage) => {
                 if (m.action) append('* ' + m.from, m.text);
@@ -359,7 +399,8 @@ async function loadHouse(k3dUrl: string) {
                     }
                 }
             }
-        });
+        };
+        chat = new ChatClient(wsUrl, handlers);
         // Provide context for logging and continuity
         chat.setContext({ house: k3dUrl, mode: 'ai' });
         chat.connect();
@@ -368,8 +409,8 @@ async function loadHouse(k3dUrl: string) {
         const ids = k3dData.map(r => r.id);
         const neighbors = k3dData.map(r => r.neighbors || []);
         const labelsArr = k3dData.map(r => (r.metadata?.label as string) || r.id);
-        const positions = k3dData.map(r => r.vector as [number, number, number]);
-        chat.sendEvent({ kind: 'dataset_graph', ids, neighbors, labels: labelsArr, positions });
+        const positionsList = k3dData.map(r => r.vector as [number, number, number]);
+        try { chat.sendEvent({ kind: 'dataset_graph', ids, neighbors, labels: labelsArr, positions: positionsList }); } catch {}
         // Send small snippet set for RAG (label + text), truncated to reduce payload
         try {
             const maxSnips = 1024;
@@ -876,6 +917,72 @@ renderer.render = (s, c) => {
     _origRender(s, c);
 };
 
-// --- Start Application ---
-initCondoSelector();
-animate();
+// --- Stars backdrop to suggest depth even before loading a House ---
+function createStars(count = 600) {
+    const geom = new THREE.BufferGeometry();
+    const positions = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+        const r = 80 + Math.random() * 120;
+        const phi = Math.random() * Math.PI * 2;
+        const costh = Math.random() * 2 - 1; const sinth = Math.sqrt(1 - costh * costh);
+        positions[i*3+0] = r * Math.cos(phi) * sinth;
+        positions[i*3+1] = r * Math.sin(phi) * sinth;
+        positions[i*3+2] = r * costh;
+    }
+    geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const mat = new THREE.PointsMaterial({ color: 0x88aaff, size: 0.5, sizeAttenuation: true });
+    const stars = new THREE.Points(geom, mat);
+    scene.add(stars);
+}
+
+// --- Game HUD chat behavior ---
+function initHudChat() {
+    const input = document.getElementById('hud-chat-input') as HTMLInputElement | null;
+    if (!input) return;
+    const tip = document.getElementById('hud-tip') as HTMLDivElement | null;
+    const openInput = () => { input.style.display = 'block'; input.focus(); if (tip) tip.style.display = 'none'; };
+    const closeInput = () => { input.style.display = 'none'; (document.activeElement as HTMLElement)?.blur?.(); };
+    window.addEventListener('keydown', (ev: KeyboardEvent) => {
+        if (ev.key === 'Enter' && input.style.display === 'none') { ev.preventDefault(); openInput(); return; }
+        if (ev.key === '/' && input.style.display === 'none') { ev.preventDefault(); openInput(); input.value = '/'; return; }
+        if (ev.key === 'Escape' && input.style.display !== 'none') { ev.preventDefault(); closeInput(); return; }
+        if (ev.key === 'Enter' && input.style.display !== 'none') {
+            ev.preventDefault();
+            const txt = input.value.trim();
+            if (txt && chat) { chat.sendChat(txt); }
+            input.value = '';
+        }
+    });
+}
+
+// --- Auto mode vs Dev mode ---
+function startApp() {
+    const params = new URLSearchParams(window.location.search);
+    const dev = params.get('dev') === '1';
+    const panel = document.getElementById('ui-container') as HTMLDivElement | null;
+    if (panel) panel.style.display = dev ? 'block' : 'none';
+    createStars();
+    initHudChat();
+    if (dev) {
+        initCondoSelector();
+    } else {
+        // Pick a default galaxy from known names
+        const candidates = ['/galaxy.glb', '/coco_50k.glb', '/clotho.glb', '/vatex_2k.glb'];
+        (async () => {
+            for (const u of candidates) {
+                try {
+                    const r = await fetch(u, { method: 'HEAD', cache: 'no-store' });
+                    if (r.ok) { await loadHouse(u); animate(); return; }
+                } catch {}
+            }
+            const tip = document.getElementById('hud-tip') as HTMLDivElement | null;
+            if (tip) tip.textContent = 'No house found. Build one (see docs/RUNBOOK_MULTIMODAL_50K.md).';
+            animate();
+        })();
+        return;
+    }
+    animate();
+}
+
+// Start
+startApp();

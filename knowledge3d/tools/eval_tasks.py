@@ -57,6 +57,7 @@ def dijkstra_route(ids: List[str], neighbors: List[List[str]], start_id: str, ta
 
 def extract_positions(g) -> Optional[List[Tuple[float, float, float]]]:
     try:
+        import numpy as np  # type: ignore
         bv = g.bufferViews[0]
         blob = g.binary_blob()
         start = bv.byteOffset or 0
@@ -134,12 +135,7 @@ def generate_tasks(gltf_path: Path, pairs: int, door: int, router: str = "bfs") 
     meta: List[Dict[str, Any]] = [m if isinstance(m, dict) else {} for m in k3d.get("metadata", [])]
     labels: List[str] = [ (m.get("label") if isinstance(m, dict) else None) or ids[i] for i,m in enumerate(meta) ]
     neighbors: List[List[str]] = k3d.get("neighbors", []) or []
-    positions = None
-    try:
-        import numpy as np  # local import for speed if absent
-        positions = extract_positions(g)
-    except Exception:
-        positions = None
+    positions = extract_positions(g)
     n = len(ids)
     # random label pairs for goto
     rnd = random.Random(42)
@@ -179,12 +175,12 @@ def generate_tasks(gltf_path: Path, pairs: int, door: int, router: str = "bfs") 
             p = dijkstra_route(ids, neighbors, ids[src], ids[di])
         else:
             p = bfs_route(ids, neighbors, ids[src], ids[di])
-    door_out.append({
-        "from": labels[src],
-        "door": labels[di],
-        "path_len": (len(p) - 1) if p else None,
-        "exists": p is not None,
-    })
+        door_out.append({
+            "from": labels[src],
+            "door": labels[di],
+            "path_len": (len(p) - 1) if p else None,
+            "exists": p is not None,
+        })
     return {"goto_tasks": pairs_out, "door_tasks": door_out}
 
 

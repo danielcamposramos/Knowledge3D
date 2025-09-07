@@ -1,26 +1,26 @@
 {
-  "ts": "20250905-211444",
-  "nodes": 4096,
-  "avg_degree": 5.0,
-  "doors": 55,
-  "guided": 110,
+  "ts": "20250907-194621",
+  "nodes": 4884,
+  "avg_degree": 8.0,
+  "doors": 0,
+  "guided": 0,
   "hubs": [
-    "Fine art - Wikipedia ...",
-    "Fine art - Wikipedia ...",
-    "Work (human activity)...",
-    "Fine art - Wikipedia ...",
-    "Fine art - Wikipedia ..."
+    "Rainy weather.wav",
+    "engine start BMW 320 VG91.wav",
+    "Hyeres street sounds child.wav",
+    "Bird Chimes.wav",
+    "Bosch Dishwasher Motor - Base of Machine Close.wav"
   ],
   "goto": {
-    "count": 256,
-    "success": 174,
-    "success_rate": 0.6796875,
-    "median_hops": 7
+    "count": 128,
+    "success": 128,
+    "success_rate": 1.0,
+    "median_hops": 4
   },
   "door": {
-    "count": 1,
-    "success": 1,
-    "success_rate": 1.0,
-    "median_hops": 7
+    "count": 0,
+    "success": 0,
+    "success_rate": 0.0,
+    "median_hops": null
   }
 }

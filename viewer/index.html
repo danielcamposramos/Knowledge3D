@@ -6,7 +6,8 @@
     <title>K3D Viewer</title>
   </head>
   <body>
-    <div id="ui-container" style="position: absolute; top: 10px; left: 10px; z-index: 100; background: rgba(255, 255, 255, 0.8); padding: 10px; border-radius: 5px;">
+    <!-- Developer UI (hidden by default; toggle with ?dev=1) -->
+    <div id="ui-container" style="position: absolute; top: 10px; left: 10px; z-index: 100; background: rgba(255, 255, 255, 0.8); padding: 10px; border-radius: 5px; display:none;">
       <label for="expert-select">Select Expert House:</label>
       <select id="expert-select">
         <option value="">Loading...</option>
@@ -92,6 +93,14 @@
           <button id="update-lod">Update LOD</button>
         </div>
       </div>
+    </div>
+    <!-- Game HUD: minimal in‑game chat overlay -->
+    <div id="hud-container" style="position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 90; pointer-events: none;">
+      <div id="hud-chat-log" style="max-width: 720px; height: 140px; overflow-y: auto; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.2); padding: 6px; color: #e6e6e6; font-family: system-ui, sans-serif; font-size: 12px; pointer-events: auto;"></div>
+      <div style="display:flex; gap:6px; margin-top:6px; max-width: 720px;">
+        <input id="hud-chat-input" placeholder="Press Enter to chat… (/help)" style="flex:1; background: rgba(0,0,0,0.5); color:#fff; border:1px solid rgba(255,255,255,0.2); padding:8px; border-radius:4px; display:none; pointer-events: auto;" />
+      </div>
+      <div id="hud-tip" style="margin-top:6px; color:#bbb; font-size:11px; font-family: system-ui, sans-serif;">Press Enter to chat. Type /help for commands.</div>
     </div>
     <canvas id="scene"></canvas>
     <div id="tooltip" style="position: absolute; display: none; background: #fff; border: 1px solid #000; padding: 2px 4px; font-size: 12px;"></div>

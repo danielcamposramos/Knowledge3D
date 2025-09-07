@@ -43,7 +43,7 @@ Reference prompt: see `docs/images/avatar_workshop_prompt.md`.
 ## Technical Overview
 
 - **Three-tier Fog Computing**: Edge devices, regional fog nodes, and a cloud backbone coordinate processing to keep latency under 100ms.
-- **Dual-Client Rendering**: AI clients access full embeddings while human clients see rich 3D visuals generated with engines like Three.js or Unity.
+- **Dual-Client Rendering**: AI clients access full embeddings while human clients see rich 3D visuals. One unified Galaxy shows all knowledge as stars; consolidated knowledge materializes as 3D objects (books, trees, papers) inside the House asset.
 - **Spatial Databases**: Knowledge is stored in 3D coordinates with semantic metadata, enabling geometry and meaning to coexist.
 - **Training Through Observation**: Embodied models learn by watching behavior in shared environments, similar to human developmental learning.
 - **Knowledge Gardens**: An inner greenhouse where ontology trees (roots→branches→leaves) organize crystallized knowledge with explicit parent→child edges.
@@ -63,19 +63,35 @@ cd viewer
 npm install
 ```
 
-### First Prototype
-Generate a sample glTF with embedded K3D data and view it in the web-based viewer:
+### First Prototype (Unified Galaxy)
+Build per‑modality GLBs and then a single Galaxy GLB; open the viewer and press Enter to chat.
 ```bash
-python -m k3dgen examples/sample_vectors.csv --gltf examples/sample_output.gltf
-cd viewer
-npm run dev
+# Build the unified galaxy (skips missing datasets gracefully)
+export BASE=../Knowledge3D.local/datasets
+scripts/k3d_env.sh run python -m knowledge3d.tools.build_galaxy \
+  --out viewer/public/galaxy.glb --dims 256 --k 10 --reducer pca \
+  image:$BASE/coco.train.clip.csv:$BASE/coco.train.meta.json \
+  audio:$BASE/clotho.clap.csv:$BASE/clotho.meta.json \
+  video:$BASE/vatex.clip.csv:$BASE/vatex.meta.json
+cd viewer && npm run dev
 ```
 
-### Live Mode (Text Chat)
+### Live Mode (Game HUD)
+The viewer now opens with a simple in‑game HUD:
+- Press Enter to open chat; type `/help`, `/pause`, `/resume`, `goto <label>`
+- Chat shows as an overlay (mIRC style). Dev controls are hidden by default.
+
 Run the lightweight WebSocket bridge and chat with the agent from the viewer UI:
 ```bash
-python3 -m pip install --user --break-system-packages websockets
-python -m knowledge3d.bridge.live_server
+# Choose env explicitly (e.g., k3dml)
+export K3D_CONDA_ENV=k3dml
+# Start on a custom port if 8765 is in use (e.g., 8787)
+scripts/k3d_env.sh run python -m knowledge3d.bridge.live_server --port 8787
+
+# Viewer: pass the WebSocket endpoint with ?ws=
+# Example: http://localhost:5173/?ws=ws://localhost:8787
+# Alternatively, set Vite env at build time: VITE_K3D_WS_URL=ws://localhost:8787
+# Tip: If you don’t pass ?ws=, the viewer tries 8765, then auto‑fallbacks to 8787.
 ```
 Then open the viewer (`npm run dev`) and use the Chat box. Try messages like:
 - `goto gravity`
@@ -103,6 +119,28 @@ python -m knowledge3d.bridge.replay_builder --logs_dir ../Knowledge3D.local/logs
   --out ../Knowledge3D.local/datasets/replay.jsonl
 ```
 Each line is a training example with from/next labels and optional embeddings when available.
+
+## Operations Quickstart
+
+- End‑to‑end ingest/build steps: `docs/RUNBOOK_MULTIMODAL_50K.md`
+- One‑shot launcher with logs: `scripts/run_ingest_build.sh [--autobuild-coco]`
+- Start Live server (custom port if 8765 is busy):
+  - `scripts/k3d_env.sh run python -m knowledge3d.bridge.live_server --port 8787 > /home/daniel/K3D_llama_cpp/logs/live_server.log 2>&1 & echo $! > /home/daniel/K3D_llama_cpp/logs/live_server.pid`
+- Troubleshoot port conflicts:
+  - `ss -ltnp '( sport = :8765 )'` then `kill <pid>` or use `--port`.
+
+## Galaxy + House
+- One Galaxy: all knowledge lives in one virtual space (`viewer/public/galaxy.glb`). The viewer auto‑loads it when present.
+- The House: consolidated knowledge becomes 3D objects inside the House (e.g., `viewer/public/memory_house.gltf`). The viewer loads the House and the Knowledge Garden (`viewer/public/knowledge_garden.glb`) into the same scene.
+- Dev selector is off by default; use `?dev=1` if you need to debug per‑modality GLBs.
+
+Build a minimal House and Garden for demo:
+```bash
+# House with a few rooms and book objects
+scripts/k3d_env.sh run python -m knowledge3d.tools.house_memory --bootstrap-books 24 --export viewer/public/memory_house.gltf
+# Knowledge Garden (ontology demo)
+scripts/k3d_env.sh run python -m knowledge3d.tools.gardens --gltf viewer/public/knowledge_garden.glb
+```
 
 ### Run Evidence
 - Raw session logs and server outputs: `docs/reports/live/`

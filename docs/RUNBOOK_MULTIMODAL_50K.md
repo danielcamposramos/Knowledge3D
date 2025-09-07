@@ -5,10 +5,9 @@ Purpose
 - Keep commands deterministic, logged, and easy to re‑run.
 
 Outputs
-- `viewer/public/coco_50k.glb`
-- `viewer/public/clotho.glb`
-- `viewer/public/vatex_2k.glb`
-- `../Knowledge3D.local/datasets/matched/{matches.jsonl,pool.txt}`
+- Per‑modality GLBs: `viewer/public/{coco_50k,clotho,vatex_2k}.glb`
+- Unified Galaxy: `viewer/public/galaxy.glb` (one virtual space)
+- Cross‑modal: `../Knowledge3D.local/datasets/matched/{matches.jsonl,pool.txt}`
 
 Pre‑Requisites
 - GPU with recent NVIDIA driver (CUDA ≥ 12)
@@ -47,6 +46,16 @@ Build GLBs
 - VATEX: `scripts/k3d_env.sh run python -m k3dgen "$BASE/vatex.clip.csv" --gltf viewer/public/vatex_2k.glb --k 10 --reducer umap --metadata "$BASE/vatex.meta.json" --emb-precision f16`
 - COCO: `scripts/k3d_env.sh run python -m k3dgen "$BASE/coco.train.clip.csv" --gltf viewer/public/coco_50k.glb --k 10 --reducer umap --metadata "$BASE/coco.train.meta.json" --emb-precision f16`
 
+Build Unified Galaxy (one space)
+- Merge what’s available (skips missing gracefully):
+```bash
+scripts/k3d_env.sh run python -m knowledge3d.tools.build_galaxy \
+  --out viewer/public/galaxy.glb --dims 256 --k 10 --reducer pca \
+  image:$BASE/coco.train.clip.csv:$BASE/coco.train.meta.json \
+  audio:$BASE/clotho.clap.csv:$BASE/clotho.meta.json \
+  video:$BASE/vatex.clip.csv:$BASE/vatex.meta.json
+```
+
 Cross‑Modal Matching
 - `scripts/k3d_env.sh run python -m knowledge3d.tools.match_crossmodal --audio ../Knowledge3D.local/datasets/clotho.meta.json --video ../Knowledge3D.local/datasets/vatex.meta.json --out ../Knowledge3D.local/datasets/matched --top 30000`
 - Produces: `../Knowledge3D.local/datasets/matched/matches.jsonl` and `pool.txt`
@@ -60,8 +69,10 @@ Monitoring & Recovery
 
 Viewer & Live
 - Viewer: `cd viewer && npm run dev`
-- Live WS bridge: `scripts/k3d_env.sh run python -m knowledge3d.bridge.live_server`
-- Load GLBs: `viewer/public/coco_50k.glb`, `viewer/public/clotho.glb`, `viewer/public/vatex_2k.glb`
+- Live WS bridge (custom port if 8765 is busy): `scripts/k3d_env.sh run python -m knowledge3d.bridge.live_server --port 8787`
+- Viewer connects automatically (tries 8765 → 8787). To force: `http://localhost:5173/?ws=ws://localhost:8787`
+- Press Enter to chat (HUD overlay). Dev controls hidden; add `?dev=1` for the old selector panel.
+- Load GLBs: place `viewer/public/coco_50k.glb` / `clotho.glb` / `vatex_2k.glb`. The viewer auto‑loads the first available.
 
 Known Pitfalls
 - Wrong COCO path: images belong under `.../train2017/train2017`. If you see “no images processed”, fix this path.
