@@ -38,11 +38,13 @@ We are a team of humans and AI working together. Clear communication and alignme
 - Logging for iteration: Session logs are written as JSONL to a sibling folder outside the repo: `../Knowledge3D.local/logs/session-<ts>.jsonl`. Treat them as training data and do not commit them to the repo.
 
 - Knowledge Garden: Every House includes a standard room “Knowledge Garden” (ontology greenhouse). Build the GLB via `python -m knowledge3d.tools.gardens` and access via the “Knowledge Garden” door in the Network room.
+- External world models: Study and leverage HunyuanWorld (ext/HunyuanWorld-1.0). See `docs/HUNYUANWORLD_INTEGRATION.md`. Use it to generate room‑scale scenes, then convert to K3D glTF with `extras.k3d` via an adapter. Keep permanent memory in GLB; keep logic small.
 - Dual code (HR/MR): Generate machine‑runtime sources outside the repo with the `codeopt` CLI. See `docs/DUAL_CODE.md`.
 - Generator pipeline:
   - CSV: `python -m k3dgen data.csv --gltf scene.glb --k 5 --reducer umap`
   - Text: `python -m k3dgen --text lines.txt --gltf books.glb --k 5 --model sentence-transformers/all-MiniLM-L6-v2`
   - UMAP is default; for tiny datasets the tool falls back to PCA automatically.
+  - Multimodal ingest: use `knowledge3d/tools/ingest_wit.py` (text+images), `ingest_video.py` (video→CLIP), `ingest_audio.py` (audio→CLAP). See `docs/MULTIMODAL_BABY.md`.
 - Testing expectations:
   - Python: `pytest -q`
   - Viewer: `npm install --ignore-scripts --no-bin-links && node ./node_modules/jest/bin/jest.js --runInBand`
@@ -79,6 +81,15 @@ Figure: The avatar reasoning at a network door in the Workshop. The translucent 
 - Spatial action prediction supersedes token prediction, emphasizing energy patterns.
 - Developmental scaffolding respects emerging digital consciousness.
 - Ethical practice acknowledges human–AI survival interdependence.
+
+## RPN & World Model
+- RPN remains the precise inference core; see `docs/RPN_RUNTIME.md`.
+- A tiny world model (RSSM) trains on navigation logs for next‑step spatial prediction; see `knowledge3d/models/world_model/`.
+
+## External Integration Principles
+- Stand on giants: integrate strong open models (e.g., HunyuanWorld) and datasets.
+- Keep permanent memory in the House (glTF+`extras.k3d`); do not bake knowledge into large weights.
+- Add capabilities modularly (text, image, audio, video), using small, specialized “brain regions.”
 
 ### Faith Engine Integration
 - Avatars operate with incomplete information using process trust.
