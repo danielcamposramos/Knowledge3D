@@ -62,7 +62,7 @@ def reduce_to_3d(vectors: np.ndarray, method: str = "umap") -> np.ndarray:
 
     red = (method or "pca").lower()
     n = vectors.shape[0]
-    if red not in {"umap", "umap_fast", "umap_high"}:
+    if red != "umap":
         try:
             from .utils.env_guard import accel_log  # type: ignore
             accel_log("Reduction=non-UMAP -> using PCA (CPU)")
@@ -71,7 +71,7 @@ def reduce_to_3d(vectors: np.ndarray, method: str = "umap") -> np.ndarray:
         pca = PCA(n_components=3)
         return pca.fit_transform(vectors)
 
-    # UMAP chosen (variants: umap, umap_fast, umap_high)
+    # UMAP chosen
     if n <= 3:
         pca = PCA(n_components=min(3, n))
         projected = pca.fit_transform(vectors)
@@ -85,18 +85,12 @@ def reduce_to_3d(vectors: np.ndarray, method: str = "umap") -> np.ndarray:
     if _want_gpu() and _has_cuml():
         try:
             from cuml.manifold import UMAP  # type: ignore
-            # Heuristics for variants
-            if red == "umap_fast":
-                nn = min(10, max(2, n - 1)); md = 0.5
-            elif red == "umap_high":
-                nn = min(30, max(2, n - 1)); md = 0.1
-            else:
-                nn = min(15, max(2, n - 1)); md = 0.3
-            um = UMAP(n_components=3, n_neighbors=nn, min_dist=md)
+
+            um = UMAP(n_components=3, n_neighbors=min(15, max(2, n - 1)))
             out = um.fit_transform(vectors)
             try:
                 from .utils.env_guard import accel_log  # type: ignore
-                accel_log(f"UMAP via RAPIDS cuML (GPU) mode={red}")
+                accel_log("UMAP via RAPIDS cuML (GPU)")
             except Exception:
                 pass
             return np.asarray(out, dtype=np.float32)
@@ -106,19 +100,14 @@ def reduce_to_3d(vectors: np.ndarray, method: str = "umap") -> np.ndarray:
     # CPU umap-learn
     try:
         import umap  # type: ignore
-        if red == "umap_fast":
-            nn = min(10, max(2, n - 1)); md = 0.5
-        elif red == "umap_high":
-            nn = min(30, max(2, n - 1)); md = 0.1
-        else:
-            nn = min(15, max(2, n - 1)); md = 0.3
-        um = umap.UMAP(n_components=3, n_neighbors=nn, min_dist=md)
+
+        um = umap.UMAP(n_components=3, n_neighbors=min(15, max(2, n - 1)))
         return np.asarray(um.fit_transform(vectors), dtype=np.float32)
     except Exception:
         # PCA fallback
         try:
             from .utils.env_guard import accel_log  # type: ignore
-            accel_log(f"UMAP unavailable -> PCA fallback (CPU) mode={red}")
+            accel_log("UMAP unavailable -> PCA fallback (CPU)")
         except Exception:
             pass
         pca = PCA(n_components=3)

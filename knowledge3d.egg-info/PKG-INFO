@@ -89,14 +89,6 @@ python -m knowledge3d.bridge.live_server
 Then open the viewer (`npm run dev`) and use the Chat box. Try messages like:
 - `goto gravity`
 - `hello`
-Model controls (inline):
-- `/model on|off` — enable/disable inline model. `/model list` to inspect; `/model use both|hf|sklearn|auto` for ensemble control; `/model threshold 0.8` set confidence.
-Logs maintenance:
-- `/logs status` — show current log file and policy; `/logs rotate` — start a new session file; `/logs compress` — compress old sessions.
-Env for ensemble:
-- `K3D_MODEL`: path to model (HF dir or sklearn .pkl). If omitted, defaults are autodiscovered under `../Knowledge3D.local/models`.
-- `K3D_MODEL_AUTO=1` enables auto-on at server start.
-- `K3D_MODEL_ENSEMBLE=1` loads both HF and sklearn (when present) and uses the highest-confidence prediction.
 
 ### Build Replay Dataset (Imitation Learning)
 Convert live logs to IL samples for training:
@@ -159,10 +151,7 @@ Live Mode Door Command
 - Use `/open <label>` or `/open k3d://rx,ry,rz:port@x,y,z?label=Label` to request a route. The server resolves the path from the current label (if known) and broadcasts a command with route details.
 
 HR/MR Standard
-- See `docs/HR_MR_STANDARD.md` for the GLM‑4.5 dual‑code paradigm and `spec/AI_RPN_standard.md` for the RPN logic standard.
-
-Temporal LOD
-- See `docs/TEMPORAL_LOD.md` for GLM‑4.5 temporal alpha (per‑node/global) embedded in glTF and supported by the viewer.
+- See `docs/HR_MR_STANDARD.md` for the dual‑code paradigm and `spec/AI_RPN_standard.md` for the RPN logic standard.
 
 Headless Text Chat
 - Connect to the live server without the 3D viewer: `python -m knowledge3d.bridge.cli_client`
