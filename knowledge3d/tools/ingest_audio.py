@@ -68,7 +68,8 @@ def main() -> None:  # pragma: no cover
             else:
                 v = _hash_vec(p, 32)
         except Exception:
-            continue
+            # Fallback to hashed vector if CLAP fails per-file
+            v = _hash_vec(p, 32)
         aid = md5(p.encode("utf-8")).hexdigest()[:16]
         ids.append(aid)
         vecs.append(v)
@@ -77,6 +78,9 @@ def main() -> None:  # pragma: no cover
             print(f"processed audio: {len(ids)}")
     # write outputs
     import csv, json
+    if not vecs:
+        print("no audio processed")
+        return
     dims = len(vecs[0])
     out_csv = Path(args.out_csv)
     out_meta = Path(args.out_meta)

@@ -13,6 +13,7 @@
 > For vector‑native diaries, see `docs/DIARY.md`.
 > For local hygiene tasks, see `docs/MAINTENANCE.md`.
 > For environment rules on Debian, see `docs/ENV_POLICY.md`.
+> For the end‑to‑end ingest/build operator steps, see `docs/RUNBOOK_MULTIMODAL_50K.md`.
 
 ## Vision
 

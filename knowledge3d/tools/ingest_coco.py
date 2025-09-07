@@ -102,8 +102,7 @@ def main() -> None:  # pragma: no cover
                 f = f / f.norm(dim=-1, keepdim=True)
             v = f.squeeze(0).detach().cpu().numpy().astype(float).tolist()
         else:
-            # fallback: hashed 32-d
-            from hashlib import md5
+            # fallback: hashed 32-d (use module-level md5)
             h = md5(p.as_posix().encode("utf-8")).digest()
             vals = [(b/255.0)-0.5 for b in h]
             while len(vals) < 32:

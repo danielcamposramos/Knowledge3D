@@ -28,26 +28,59 @@ from typing import List, Tuple
 from hashlib import md5
 
 
-def _read_jsonl(path: Path) -> Tuple[List[str], List[str]]:
+def _read_any_meta(path: Path) -> Tuple[List[str], List[str]]:
+    """Read either JSONL (one object per line) or a JSON list.
+
+    Accepts objects with keys: id (optional), caption (preferred) or text.
+    If id is missing, derives a stable id from url+caption or caption hash.
+    """
     ids: List[str] = []
     caps: List[str] = []
-    with path.open("r", encoding="utf-8") as f:
-        for line in f:
+    txt = path.read_text(encoding="utf-8")
+    # Heuristic: JSONL won't start with '['
+    if not txt.lstrip().startswith("["):
+        for line in txt.splitlines():
+            line = line.strip()
+            if not line:
+                continue
             try:
                 j = json.loads(line)
-                cap = str(j.get("caption") or "").strip()
-                cid = j.get("id")
-                if not cid:
-                    # derive id from url or caption hash
-                    u = j.get("url") or ""
-                    raw = (str(u) + cap).encode("utf-8")
-                    cid = md5(raw).hexdigest()[:16]
-                cid = str(cid)
-                if cap:
-                    ids.append(cid)
-                    caps.append(cap)
             except Exception:
                 continue
+            cap = str(j.get("caption") or j.get("text") or "").strip()
+            if not cap:
+                continue
+            cid = j.get("id")
+            if not cid:
+                u = j.get("url") or j.get("image") or j.get("video") or ""
+                raw = (str(u) + cap).encode("utf-8")
+                cid = md5(raw).hexdigest()[:16]
+            ids.append(str(cid))
+            caps.append(cap)
+        return ids, caps
+    # JSON array
+    try:
+        arr = json.loads(txt)
+    except Exception:
+        return ids, caps
+    if not isinstance(arr, list):
+        return ids, caps
+    for j in arr:
+        try:
+            cap = str((j.get("caption") if isinstance(j, dict) else "") or (j.get("text") if isinstance(j, dict) else "") or "").strip()
+        except Exception:
+            continue
+        if not cap:
+            continue
+        cid = None
+        if isinstance(j, dict):
+            cid = j.get("id")
+        if not cid:
+            u = (j.get("url") if isinstance(j, dict) else None) or (j.get("image") if isinstance(j, dict) else None) or (j.get("video") if isinstance(j, dict) else None) or ""
+            raw = (str(u) + cap).encode("utf-8")
+            cid = md5(raw).hexdigest()[:16]
+        ids.append(str(cid))
+        caps.append(cap)
     return ids, caps
 
 
@@ -59,8 +92,8 @@ def main() -> None:  # pragma: no cover
     ap.add_argument("--top", type=int, default=30000, help="number of top pairs to output")
     args = ap.parse_args()
 
-    a_ids, a_caps = _read_jsonl(Path(args.audio))
-    v_ids, v_caps = _read_jsonl(Path(args.video))
+    a_ids, a_caps = _read_any_meta(Path(args.audio))
+    v_ids, v_caps = _read_any_meta(Path(args.video))
     if not a_ids or not v_ids:
         print("Empty inputs; nothing to match")
         return

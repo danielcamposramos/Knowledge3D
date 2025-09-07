@@ -42,3 +42,11 @@ GPU setup (NVIDIA)
 - Validate GPU availability:
   nvidia-smi
   scripts/k3d_env.sh run python -c "import torch; print(torch.cuda.is_available())"
+
+Environment selection and pitfalls
+- Select the conda env explicitly to avoid surprises from shell auto‑activation:
+  - `export K3D_CONDA_ENV=k3dml` (default GPU env)
+  - Optional RAPIDS: `export K3D_CONDA_ENV=k3d-rapids`
+- Always use the wrapper to run Python: `scripts/k3d_env.sh run python -m ...`
+  - Do not nest `bash -lc` inside `conda run` — it may drop to system Python 2.7 and cause syntax errors.
+  - The wrapper sets `PYTHONPATH=.` so local modules resolve from repo root.
