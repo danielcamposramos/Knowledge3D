@@ -3,7 +3,10 @@
 # Usage:
 #   scripts/k3d_env.sh bootstrap        # create/install env (conda preferred, venv fallback)
 #   scripts/k3d_env.sh bootstrap-gpu    # GPU-enabled env (conda preferred, venv fallback)
-#   scripts/k3d_env.sh run <cmd...>     # run command inside env with PYTHONPATH=.
+#   scripts/k3d_env.sh bootstrap-rapids # New GPU env with FAISS-GPU + RAPIDS cuML (recommended)
+#   scripts/k3d_env.sh run <cmd...>     # run command inside env with PYTHONPATH=., GPU-only flags
+#   scripts/k3d_env.sh shell            # open an interactive bash with `conda activate <env>` (GPU-only)
+#   scripts/k3d_env.sh activate         # print the one-liner to activate this env in your current shell
 set -euo pipefail
 ENV_NAME=${K3D_CONDA_ENV:-k3dml}
 VENV_DIR=${K3D_VENV_DIR:-.venv_k3dml}
@@ -53,18 +56,54 @@ elif [[ "${1:-}" == "bootstrap-gpu" ]]; then
     "$VENV_DIR/bin/python" -m pip install open_clip_torch pillow av soundfile laion_clap umap-learn scikit-learn numpy pandas pygltflib
     echo "[OK] Venv $VENV_DIR ready (GPU)"
   fi
+elif [[ "${1:-}" == "bootstrap-rapids" ]]; then
+  # Create a fresh GPU env with FAISS-GPU + RAPIDS cuML + PyTorch CUDA
+  if have_conda; then
+    conda env remove -y -n "$ENV_NAME" >/dev/null 2>&1 || true
+    conda create -y -n "$ENV_NAME" python=3.10
+    # Core GPU libs
+    conda run -n "$ENV_NAME" conda install -y -c pytorch -c nvidia pytorch torchvision torchaudio pytorch-cuda=12.1
+    # FAISS GPU + sklearn + pyarrow
+    conda run -n "$ENV_NAME" conda install -y -c conda-forge faiss-gpu scikit-learn pyarrow
+    # RAPIDS cuML (CUDA 12.x). Channel resolution can be slow; pinned via rapidsai.
+    conda run -n "$ENV_NAME" conda install -y -c rapidsai -c conda-forge -c nvidia cuml
+    # Pip deps
+    conda run -n "$ENV_NAME" python -m pip install --upgrade pip
+    conda run -n "$ENV_NAME" python -m pip install \
+      sentence-transformers open_clip_torch pillow av soundfile laion_clap umap-learn numpy pandas pygltflib
+    echo "[OK] Conda GPU+RAPIDS env $ENV_NAME ready"
+  else
+    echo "[ERR] Conda not found. Install Miniconda or use Docker." >&2
+    exit 1
+  fi
 elif [[ "${1:-}" == "run" ]]; then
   shift || true
   if have_conda; then
-    exec conda run -n "$ENV_NAME" env PYTHONPATH=. "$@"
+    # Enforce GPU-only behavior by default
+    exec conda run -n "$ENV_NAME" env K3D_ACCEL=gpu K3D_FAISS_DEVICE=gpu K3D_STRICT_GPU=1 PYTHONPATH=. "$@"
   else
     if [[ ! -d "$VENV_DIR" ]]; then
       echo "[ERR] No conda and venv $VENV_DIR not found. Run: scripts/k3d_env.sh bootstrap or bootstrap-gpu" >&2
       exit 1
     fi
     # Prepend venv bin to PATH so 'python' resolves into the venv
-    exec env PATH="$VENV_DIR/bin:$PATH" PYTHONPATH=. "$@"
+    # If venv fallback is used, still set strict GPU flags; tools will error if GPU libs missing
+    exec env PATH="$VENV_DIR/bin:$PATH" K3D_ACCEL=gpu K3D_FAISS_DEVICE=gpu K3D_STRICT_GPU=1 PYTHONPATH=. "$@"
   fi
+elif [[ "${1:-}" == "shell" ]]; then
+  # Open an interactive shell using `conda activate <env>` with GPU-only flags
+  if ! have_conda; then
+    echo "[ERR] Conda not found. Install Miniconda/Miniforge or use 'run' with venv." >&2
+    exit 1
+  fi
+  exec bash -i -c 'eval "$(conda shell.bash hook)" && conda activate "'$ENV_NAME'" && export K3D_ACCEL=gpu K3D_FAISS_DEVICE=gpu K3D_STRICT_GPU=1 PYTHONPATH=. && echo "[OK] Activated '$ENV_NAME' (GPU-only)." && bash -i'
+elif [[ "${1:-}" == "activate" ]]; then
+  # Print the one-liner to activate in the current shell session
+  cat <<EOF
+# Paste this into your shell to activate (GPU-only):
+eval "\$(conda shell.bash hook)"; conda activate "$ENV_NAME"; export K3D_ACCEL=gpu K3D_FAISS_DEVICE=gpu K3D_STRICT_GPU=1 PYTHONPATH=.
+EOF
+  exit 0
 else
   echo "Usage: $0 bootstrap|run <cmd...>" >&2
   exit 2

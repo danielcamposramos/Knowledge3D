@@ -1,0 +1,9 @@
+{
+  "nodes": 661837,
+  "avg_neighbors": 10.0,
+  "homophily_mean": 0.9999956182564589,
+  "homophily_median": 1.0,
+  "cross_edges": {
+    "image-text": 29
+  }
+}

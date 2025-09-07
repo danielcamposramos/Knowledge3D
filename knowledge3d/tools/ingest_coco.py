@@ -33,6 +33,10 @@ def _load_openclip():  # pragma: no cover
         import torch  # type: ignore
     except Exception:
         return None, None, None, None
+    import os
+    strict = os.getenv("K3D_STRICT_GPU", "1").strip() not in {"", "0", "false", "False"}
+    if strict and not torch.cuda.is_available():
+        raise SystemExit("GPU required (K3D_STRICT_GPU=1) but CUDA not available for OpenCLIP")
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model, _, preprocess = open_clip.create_model_and_transforms("ViT-B-32", pretrained="laion2b_s34b_b79k", device=device)
     model.eval()

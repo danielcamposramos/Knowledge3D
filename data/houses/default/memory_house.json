@@ -1,0 +1,368 @@
+{
+  "rooms": [
+    {
+      "name": "Living Area",
+      "desc": "Human-AI interface zone",
+      "id": "room:f5203650"
+    },
+    {
+      "name": "Study",
+      "desc": "Avatar & knowledge interaction",
+      "id": "room:0a3dac23"
+    },
+    {
+      "name": "Workshop",
+      "desc": "Cognitive Fabrication Lab",
+      "id": "room:8e5d9dbc"
+    },
+    {
+      "name": "Dream",
+      "desc": "Internal galaxy projection / sleep",
+      "id": "room:2a2542f9"
+    },
+    {
+      "name": "Knowledge Garden",
+      "desc": "Ontology greenhouse — trees of knowledge",
+      "id": "room:dd85a0e4"
+    },
+    {
+      "name": "Network",
+      "desc": "OSI doors and ports",
+      "id": "room:eec89088"
+    }
+  ],
+  "objects": [
+    {
+      "room": "Living Area",
+      "label": "Sofa",
+      "text": "",
+      "kind": "furniture",
+      "extra": {
+        "furniture": "sofa"
+      },
+      "id": "obj:f8fd84fe"
+    },
+    {
+      "room": "Living Area",
+      "label": "Floating Screen",
+      "text": "",
+      "kind": "furniture",
+      "extra": {
+        "furniture": "screen"
+      },
+      "id": "obj:67b1cec4"
+    },
+    {
+      "room": "Study",
+      "label": "Bookshelf",
+      "text": "",
+      "kind": "furniture",
+      "extra": {
+        "furniture": "bookshelf"
+      },
+      "id": "obj:a3c58d11"
+    },
+    {
+      "room": "Study",
+      "label": "Active Book",
+      "text": "",
+      "kind": "furniture",
+      "extra": {
+        "furniture": "book"
+      },
+      "id": "obj:e412e8d4"
+    },
+    {
+      "room": "Workshop",
+      "label": "Workbench",
+      "text": "",
+      "kind": "furniture",
+      "extra": {
+        "furniture": "bench"
+      },
+      "id": "obj:fd9af853"
+    },
+    {
+      "room": "Workshop",
+      "label": "Server Rack",
+      "text": "",
+      "kind": "furniture",
+      "extra": {
+        "furniture": "server_rack"
+      },
+      "id": "obj:8eaafc91"
+    },
+    {
+      "room": "Dream",
+      "label": "Dream Chamber",
+      "text": "",
+      "kind": "furniture",
+      "extra": {
+        "furniture": "tub"
+      },
+      "id": "obj:72118ee4"
+    },
+    {
+      "room": "Dream",
+      "label": "Galaxy Projector",
+      "text": "",
+      "kind": "furniture",
+      "extra": {
+        "furniture": "projector"
+      },
+      "id": "obj:caa02d21"
+    },
+    {
+      "room": "Knowledge Garden",
+      "label": "Indoor Greenhouse",
+      "text": "",
+      "kind": "furniture",
+      "extra": {
+        "furniture": "greenhouse"
+      },
+      "id": "obj:8fdd634a"
+    },
+    {
+      "room": "Knowledge Garden",
+      "label": "Reading Bench",
+      "text": "",
+      "kind": "furniture",
+      "extra": {
+        "furniture": "bench"
+      },
+      "id": "obj:27ae858a"
+    },
+    {
+      "room": "Network",
+      "label": "Internet Door",
+      "text": "k3d://net?label=internet",
+      "kind": "door",
+      "extra": {
+        "address": "k3d://net?label=internet"
+      },
+      "id": "obj:ca412287"
+    },
+    {
+      "room": "Network",
+      "label": "Local Network Door",
+      "text": "k3d://lan?label=local",
+      "kind": "door",
+      "extra": {
+        "address": "k3d://lan?label=local"
+      },
+      "id": "obj:6e2fdbd0"
+    },
+    {
+      "room": "Network",
+      "label": "Sensor Door",
+      "text": "k3d://sensors?label=sensors",
+      "kind": "door",
+      "extra": {
+        "address": "k3d://sensors?label=sensors"
+      },
+      "id": "obj:19e8fbae"
+    },
+    {
+      "room": "Network",
+      "label": "Knowledge Garden",
+      "text": "/knowledge_garden.glb",
+      "kind": "door",
+      "extra": {
+        "address": "/knowledge_garden.glb"
+      },
+      "id": "obj:7488e2e9"
+    },
+    {
+      "room": "Study",
+      "label": "Butterfly Knife Noises 1.wav",
+      "text": "consolidated from galaxy",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:cead0d09"
+    },
+    {
+      "room": "Study",
+      "label": "20100117.beeps.00.wav",
+      "text": "consolidated from galaxy",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:9e1f2599"
+    },
+    {
+      "room": "Study",
+      "label": "Zastava 101.wav",
+      "text": "consolidated from galaxy",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:2901c4f6"
+    },
+    {
+      "room": "Study",
+      "label": "Dinosaur Footsteps-01.wav",
+      "text": "consolidated from galaxy",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:a79d787e"
+    },
+    {
+      "room": "Study",
+      "label": "water_flows_over_rock.wav",
+      "text": "consolidated from galaxy",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:eb69a5e5"
+    },
+    {
+      "room": "Study",
+      "label": "Restaurant Ambience.wav",
+      "text": "consolidated from galaxy",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:3dbed1ee"
+    },
+    {
+      "room": "Study",
+      "label": "LaCambre.wav",
+      "text": "consolidated from galaxy",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:f56fb923"
+    },
+    {
+      "room": "Study",
+      "label": "02paint_and_glass.wav",
+      "text": "consolidated from galaxy",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:14a2461e"
+    },
+    {
+      "room": "Study",
+      "label": "SummerFieldBirdSingingMay23rd2015.wav",
+      "text": "consolidated from galaxy",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:f9fc0668"
+    },
+    {
+      "room": "Study",
+      "label": "Bell_5_times.wav",
+      "text": "consolidated from galaxy",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:e84b483f"
+    },
+    {
+      "room": "Study",
+      "label": "Train Leaves Station.wav",
+      "text": "consolidated from galaxy",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:37054ef8"
+    },
+    {
+      "room": "Study",
+      "label": "Uni_Folie_FountainWater2.wav",
+      "text": "consolidated from galaxy",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:ab5766c3"
+    },
+    {
+      "room": "Study",
+      "label": "running on the street.wav",
+      "text": "consolidated from galaxy",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:29742224"
+    },
+    {
+      "room": "Study",
+      "label": "Franklin Square-Fountain.wav",
+      "text": "consolidated from galaxy",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:9ffd84e9"
+    },
+    {
+      "room": "Study",
+      "label": "mansteps.wav",
+      "text": "consolidated from galaxy",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:c1e942d6"
+    },
+    {
+      "room": "Study",
+      "label": "Ryan_CoffeeMachine.wav",
+      "text": "consolidated from galaxy",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:38fccdad"
+    },
+    {
+      "room": "Study",
+      "label": "indoors ambient room tone clock ticking distant TV.wav",
+      "text": "consolidated from galaxy",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:06ed33d7"
+    },
+    {
+      "room": "Study",
+      "label": "Cicada Chant.wav",
+      "text": "consolidated from galaxy",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:ccc7b5f3"
+    },
+    {
+      "room": "Study",
+      "label": "Fast typing on a mechanical keyboard.wav",
+      "text": "consolidated from galaxy",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:88dd8e4d"
+    },
+    {
+      "room": "Study",
+      "label": "PassingMotorCycle01.wav",
+      "text": "consolidated from galaxy",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:f8084c15"
+    },
+    {
+      "room": "Study",
+      "label": "Squeaky_Door_01B.wav",
+      "text": "consolidated from galaxy",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:705c3f16"
+    },
+    {
+      "room": "Study",
+      "label": "Kings Cross platform 3.wav",
+      "text": "consolidated from galaxy",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:8731806d"
+    },
+    {
+      "room": "Study",
+      "label": "car burning.wav",
+      "text": "consolidated from galaxy",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:7188d542"
+    },
+    {
+      "room": "Study",
+      "label": "VHCL_S_Airplane_Prop_001.wav",
+      "text": "consolidated from galaxy",
+      "kind": "object",
+      "extra": {},
+      "id": "obj:2ff80a9e"
+    }
+  ]
+}

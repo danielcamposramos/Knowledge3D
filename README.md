@@ -134,6 +134,14 @@ Each line is a training example with from/next labels and optional embeddings wh
 - The House: consolidated knowledge becomes 3D objects inside the House (e.g., `viewer/public/memory_house.gltf`). The viewer loads the House and the Knowledge Garden (`viewer/public/knowledge_garden.glb`) into the same scene.
 - Dev selector is off by default; use `?dev=1` if you need to debug per‑modality GLBs.
 
+### Visual Standards (Meaning‑First)
+- Clustering: by meaning (embedding proximity), not media type.
+- Stars: each node is a star. The geometric shape encodes the formats included:
+  - text: tetrahedron, image: cube, audio: octahedron, video: icosahedron, mixed: dodecahedron.
+- Rays: each available format emits a short “light ray” (finite cylinder) from the star. Rays encode format via color/thickness and never extend far enough to collide with neighbors.
+- Overlap: near‑field rendering respects minimal spacing; rays are capped by local spacing.
+- LOD: far field uses a performant point cloud; near field upgrades stars to instanced shapes + rays.
+
 Build a minimal House and Garden for demo:
 ```bash
 # House with a few rooms and book objects

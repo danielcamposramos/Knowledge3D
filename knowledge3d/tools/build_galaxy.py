@@ -30,6 +30,7 @@ from typing import List, Tuple
 import numpy as np
 
 from k3dgen.__main__ import create_gltf_file, reduce_dimensions, find_neighbors  # type: ignore
+from knowledge3d.accel import st_device_kwargs  # type: ignore
 
 
 @dataclass
@@ -47,9 +48,9 @@ def parse_specs(args: List[str]) -> List[ModalitySpec]:
         if len(parts) < 2:
             continue
         kind = parts[0].strip()
-        csv_path = Path(parts[1].strip())
+        path1 = Path(parts[1].strip())
         meta_path = Path(parts[2].strip()) if len(parts) >= 3 else None
-        specs.append(ModalitySpec(kind=kind, csv_path=csv_path, meta_path=meta_path))
+        specs.append(ModalitySpec(kind=kind, csv_path=path1, meta_path=meta_path))
     return specs
 
 
@@ -73,6 +74,26 @@ def load_csv(path: Path) -> Tuple[List[str], np.ndarray]:
     if not ids:
         return ids, np.zeros((0, 1), dtype=float)
     return ids, np.asarray(vecs, dtype=float)
+
+
+def load_textlines_embed(path: Path, strict_gpu: bool = True) -> Tuple[List[str], np.ndarray, List[str]]:
+    lines = [ln.strip() for ln in path.read_text(encoding='utf-8').splitlines() if ln.strip()]
+    # Sentence-Transformers on GPU only
+    try:
+        from sentence_transformers import SentenceTransformer  # type: ignore
+    except Exception as e:
+        raise SystemExit("sentence-transformers not installed") from e
+    dev = st_device_kwargs()
+    if strict_gpu and (not dev or dev.get('device') != 'cuda'):
+        raise SystemExit("GPU required for text embedding (K3D_STRICT_GPU)")
+    try:
+        model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', **dev)
+    except TypeError:
+        model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+    emb = np.asarray(model.encode(lines, convert_to_numpy=True, **dev), dtype=float)
+    ids = [f"text:{i}" for i in range(len(lines))]
+    labels = [s if len(s) <= 48 else (s[:45] + '...') for s in lines]
+    return ids, emb, labels
 
 
 def load_meta(path: Path | None, n: int, defaults: dict) -> List[dict]:
@@ -145,20 +166,33 @@ def main() -> None:  # pragma: no cover
     Xs: List[np.ndarray] = []
     metas_all: List[dict] = []
 
+    import os
+    strict = os.getenv("K3D_STRICT_GPU", "1").strip() not in {"", "0", "false", "False"}
     for sp in specs:
         if not sp.csv_path.exists():
             continue
-        ids, X = load_csv(sp.csv_path)
-        if not ids:
-            continue
-        # Prefix ids to avoid collisions
-        ids_pref = [f"{sp.kind}:{i}" for i in ids]
-        meta_defaults = {"type": sp.kind}
-        metas = load_meta(sp.meta_path, len(ids_pref), meta_defaults)
-        ids_all.extend(ids_pref)
-        kind_all.extend([sp.kind] * len(ids_pref))
-        Xs.append(X)
-        metas_all.extend(metas)
+        if sp.kind == 'textlines':
+            ids, X, labels = load_textlines_embed(sp.csv_path, strict_gpu=strict)
+            meta_defaults = {"type": "text"}
+            metas = load_meta(sp.meta_path, len(ids), meta_defaults)
+            # Ensure labels populate metadata
+            for i, m in enumerate(metas):
+                m.setdefault('label', labels[i])
+            ids_all.extend(ids)
+            kind_all.extend(['text'] * len(ids))
+            Xs.append(X)
+            metas_all.extend(metas)
+        else:
+            ids, X = load_csv(sp.csv_path)
+            if not ids:
+                continue
+            ids_pref = [f"{sp.kind}:{i}" for i in ids]
+            meta_defaults = {"type": sp.kind}
+            metas = load_meta(sp.meta_path, len(ids_pref), meta_defaults)
+            ids_all.extend(ids_pref)
+            kind_all.extend([sp.kind] * len(ids_pref))
+            Xs.append(X)
+            metas_all.extend(metas)
 
     if not ids_all:
         raise SystemExit("No inputs found; nothing to build")
@@ -167,9 +201,25 @@ def main() -> None:  # pragma: no cover
     proj = project_common(Xs, int(args.dims))
     emb = np.vstack(proj).astype(np.float32)
 
-    # 3D positions and neighbors
+    # 3D positions and neighbors (strict GPU only)
     points = reduce_dimensions(emb, reducer=str(args.reducer))
-    nbr = find_neighbors(emb, int(args.k))
+    k = int(args.k)
+    try:
+        # Prefer cuML NearestNeighbors (GPU)
+        from cuml.neighbors import NearestNeighbors  # type: ignore
+        nn = NearestNeighbors(n_neighbors=k + 1, algorithm="brute")
+        nn.fit(emb)
+        d, ind = nn.kneighbors(emb)
+        try:
+            import cupy as cp  # type: ignore
+            if isinstance(ind, cp.ndarray):
+                ind = ind.get()
+        except Exception:
+            pass
+        nbr = ind[:, 1:]
+    except Exception:
+        # Fallback to FAISS GPU path via accel (still strict GPU; will raise if not available)
+        nbr = find_neighbors(emb, k)
 
     # Labels (prefer metadata.label if exists)
     labels = []

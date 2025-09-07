@@ -10,11 +10,19 @@ import { RPN } from './rpn';
 import { openStore } from './cache';
 import { kmeans, palette } from './cluster';
 import { AISuggestionManager, DynamicLayerManager, LODRenderer, GridCulledPoints } from './extensions/smartGraph';
+import { buildInstancedStars } from './shapes';
 
 // --- DOM Elements ---
 const canvas = document.getElementById('scene') as HTMLCanvasElement;
 const tooltip = document.getElementById('tooltip') as HTMLDivElement;
 const expertSelect = document.getElementById('expert-select') as HTMLSelectElement;
+const devPanel = document.getElementById('ui-container') as HTMLDivElement | null;
+const hudLog = document.getElementById('hud-chat-log') as HTMLDivElement | null;
+const hudInput = document.getElementById('hud-chat-input') as HTMLInputElement | null;
+const hudTip = document.getElementById('hud-tip') as HTMLDivElement | null;
+const hudLegend = document.getElementById('hud-legend') as HTMLDivElement | null;
+const hudMenu = document.getElementById('hud-menu') as HTMLDivElement | null;
+const hudMenuClose = document.getElementById('hud-menu-close') as HTMLButtonElement | null;
 
 // --- Scene Setup ---
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -177,6 +185,13 @@ async function loadHouse(k3dUrl: string) {
             for (let i = 0; i < k3dData.length; i++) colorsAttr.setXYZ(i, 0.0, 1.0, 0.0);
             colorsAttr.needsUpdate = true;
         }
+
+        // Near-field shapes + rays for better semantics (meaning-driven; modality shown as rays)
+        try {
+          const posArr = (currentPoints as any).geometry.getAttribute('position').array as Float32Array;
+          // Build detail layer for a capped set to avoid perf issues
+          buildInstancedStars(k3dData, posArr, scene, Math.min(2000, k3dData.length));
+        } catch {}
 
         // dataset info
         const infoEl = document.getElementById('dataset-info') as HTMLDivElement;
@@ -423,6 +438,20 @@ async function loadHouse(k3dUrl: string) {
             if (pairs.length) chat.sendEvent({ kind: 'dataset_snippets', pairs });
         } catch {}
         await tabletStore.put(`graph:${k3dUrl}`, { ids, neighbors, labels: labelsArr });
+
+        // Update HUD legend counts by metadata.type
+        if (hudLegend) {
+            const counts: Record<string, number> = {};
+            for (const r of k3dData) {
+                const t = String((r.metadata?.type as any) || 'unknown');
+                counts[t] = (counts[t] || 0) + 1;
+            }
+            const total = k3dData.length;
+            const lines = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,8)
+              .map(([k,v])=>`${k}: ${v} (${Math.round((v/Math.max(1,total))*100)}%)`);
+            hudLegend.innerHTML = `<div style="font-weight:600;margin-bottom:4px;">Legend</div>${lines.map(s=>`<div>${s}</div>`).join('')}`;
+            hudLegend.style.display = 'block';
+        }
 
         // Door broadcasting is disabled for the House-as-rooms model (no inter-house linking here)
 
@@ -942,6 +971,18 @@ function initHudChat() {
     const tip = document.getElementById('hud-tip') as HTMLDivElement | null;
     const openInput = () => { input.style.display = 'block'; input.focus(); if (tip) tip.style.display = 'none'; };
     const closeInput = () => { input.style.display = 'none'; (document.activeElement as HTMLElement)?.blur?.(); };
+    // Idle sleep consolidation: trigger '/sleep consolidate' after prolonged inactivity
+    let lastAction = performance.now();
+    const idleThresholdMs = 90000; // 90s idle
+    const markActivity = () => { lastAction = performance.now(); };
+    ['mousemove','keydown','pointerdown','wheel','touchstart'].forEach(evt => window.addEventListener(evt, markActivity, { passive: true }));
+    setInterval(() => {
+        const idle = performance.now() - lastAction;
+        if (idle > idleThresholdMs && chat && chat.isConnected()) {
+            chat.sendChat('/sleep consolidate');
+            lastAction = performance.now();
+        }
+    }, 5000);
     window.addEventListener('keydown', (ev: KeyboardEvent) => {
         if (ev.key === 'Enter' && input.style.display === 'none') { ev.preventDefault(); openInput(); return; }
         if (ev.key === '/' && input.style.display === 'none') { ev.preventDefault(); openInput(); input.value = '/'; return; }

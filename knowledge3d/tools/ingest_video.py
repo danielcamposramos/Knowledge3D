@@ -25,6 +25,10 @@ def _load_openclip():
     try:
         import open_clip  # type: ignore
         import torch  # type: ignore
+        import os
+        strict = os.getenv("K3D_STRICT_GPU", "1").strip() not in {"", "0", "false", "False"}
+        if strict and not torch.cuda.is_available():
+            raise SystemExit("GPU required (K3D_STRICT_GPU=1) but CUDA not available for OpenCLIP")
         return open_clip, torch
     except Exception:
         return None, None

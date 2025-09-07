@@ -56,8 +56,9 @@ def _recall_at_k(truth: np.ndarray, cand: np.ndarray, k: int) -> float:
 
 
 def eval_retrieval(glb_path: Path, k: int, queries: int, ann: str = "ivf") -> Dict[str, Any]:
-    from sklearn.neighbors import NearestNeighbors  # fallback + ground truth
+    from sklearn.neighbors import NearestNeighbors  # ground truth
     from knowledge3d.accel import knn_all  # type: ignore
+    import os
 
     emb = _load_embeddings_from_glb(glb_path)
     n = emb.shape[0]
@@ -73,9 +74,17 @@ def eval_retrieval(glb_path: Path, k: int, queries: int, ann: str = "ivf") -> Di
     truth = truth_all[:, 1:]
     t_truth = time.perf_counter() - t0
 
-    # Candidate ANN
+    # Candidate ANN (FAISS GPU; optional CPU fallback disabled when K3D_STRICT_GPU=1)
     t1 = time.perf_counter()
-    idx = knn_all(emb, k, ann=ann)
+    try:
+        idx = knn_all(emb, k, ann=ann)
+    except Exception as e:
+        if os.getenv("K3D_STRICT_GPU", "1").strip() not in {"", "0", "false", "False"}:
+            raise
+        # Optional fallback (not expected in strict mode)
+        nn2 = NearestNeighbors(n_neighbors=k + 1, algorithm="auto").fit(emb)
+        _, idx_full = nn2.kneighbors(emb)
+        idx = idx_full[:, 1:]
     t_build = time.perf_counter() - t1
     # Extract candidate neighbors for q_idx rows
     cand = idx[q_idx]
@@ -110,4 +119,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

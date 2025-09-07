@@ -21,6 +21,10 @@ def _load_clap():
     try:
         import laion_clap  # type: ignore
         import torch  # type: ignore
+        import os
+        strict = os.getenv("K3D_STRICT_GPU", "1").strip() not in {"", "0", "false", "False"}
+        if strict and not torch.cuda.is_available():
+            raise SystemExit("GPU required (K3D_STRICT_GPU=1) but CUDA not available for CLAP")
         return laion_clap, torch
     except Exception as e:  # fallback
         return None, None

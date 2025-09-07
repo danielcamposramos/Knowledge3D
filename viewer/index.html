@@ -102,6 +102,17 @@
       </div>
       <div id="hud-tip" style="margin-top:6px; color:#bbb; font-size:11px; font-family: system-ui, sans-serif;">Press Enter to chat. Type /help for commands.</div>
     </div>
+    <!-- HUD Legend and ESC Menu -->
+    <div id="hud-legend" style="position: fixed; right: 12px; top: 12px; z-index: 90; background: rgba(0,0,0,0.45); color: #e6e6e6; padding: 8px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; font-family: system-ui, sans-serif; font-size: 12px; display: none;"></div>
+    <div id="hud-menu" style="position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 120; background: rgba(0,0,0,0.75); color: #e6e6e6; padding: 16px 20px; border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; font-family: system-ui, sans-serif; font-size: 14px; display: none; min-width: 400px;">
+      <div style="font-weight: 600; margin-bottom: 8px;">Menu</div>
+      <div style="margin-bottom: 6px;">- Help: Press Enter to chat, use /help, /pause, /resume, goto &lt;label&gt;.</div>
+      <div style="margin-bottom: 6px;">- Sleep Compute: Idle triggers consolidation automatically.</div>
+      <div style="margin-bottom: 12px;">- Live Server: Auto connects (8765→8787 fallback).</div>
+      <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <button id="hud-menu-close" style="background:#2d6cdf; color:#fff; border:none; border-radius:4px; padding:6px 10px; cursor:pointer;">Close</button>
+      </div>
+    </div>
     <canvas id="scene"></canvas>
     <div id="tooltip" style="position: absolute; display: none; background: #fff; border: 1px solid #000; padding: 2px 4px; font-size: 12px;"></div>
     <script type="module" src="/src/main.ts"></script>
