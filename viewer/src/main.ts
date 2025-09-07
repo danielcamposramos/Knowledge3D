@@ -1007,6 +1007,20 @@ function startApp() {
     if (dev) {
         initCondoSelector();
     } else {
+        // Optional override via URL: ?gltf=/galaxy.cross.glb
+        const pick = params.get('gltf') || params.get('house');
+        if (pick && pick.length > 0) {
+            (async () => {
+                try {
+                    const r = await fetch(pick, { method: 'HEAD', cache: 'no-store' });
+                    if (r.ok) { await loadHouse(pick); animate(); return; }
+                } catch {}
+                const tip = document.getElementById('hud-tip') as HTMLDivElement | null;
+                if (tip) tip.textContent = `Not found: ${pick}`;
+                animate();
+            })();
+            return;
+        }
         // Pick a default galaxy from known names
         const candidates = ['/galaxy.glb', '/coco_50k.glb', '/clotho.glb', '/vatex_2k.glb'];
         (async () => {

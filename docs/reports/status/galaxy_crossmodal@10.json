@@ -1,8 +1,10 @@
 {
-  "pairs": 0,
-  "k": 10,
-  "hit_either_topk": 0,
-  "hit_both_topk": 0,
-  "rate_either": 0.0,
-  "rate_both": 0.0
+  "nodes": 55582,
+  "avg_neighbors": 10.0,
+  "homophily_mean": 0.9781116188694182,
+  "homophily_median": 1.0,
+  "cross_edges": {
+    "audio-video": 12162,
+    "audio-image": 4
+  }
 }
