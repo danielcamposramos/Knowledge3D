@@ -56,3 +56,10 @@ export K3D_ACCEL=gpu K3D_FAISS_DEVICE=gpu
 python -m k3dgen examples/sample_vectors.csv --gltf ../Knowledge3D.local/datasets/sample.umap.gpu.glb --k 5 --reducer umap --emb-precision f16
 ```
 4) Outside the container, run the viewer locally (Node 16+) and point it at the generated GLB.
+Strict GPU mode (no CPU fallback)
+- The project is configured to require GPU for heavy steps:
+  - UMAP reduction must use RAPIDS cuML on GPU; CPU fallbacks are removed.
+  - FAISS k‑NN must use GPU; CPU/sklearn fallbacks are removed.
+- If you need CPU support later, uncomment the noted sections in `knowledge3d/accel.py` where the CPU fallbacks were removed.
+- Non‑UMAP PCA remains CPU-based as it is lightweight and used for far‑LOD positioning.
+- The generator respects `K3D_STRICT_GPU=1` to prevent fallback to CPU at the CLI layer as well.

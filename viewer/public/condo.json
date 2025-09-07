@@ -1,6 +1,16 @@
 {
   "houses": [
     {
+      "uri": "http://127.0.0.1:8766/wit.sample.umap.glb",
+      "expert": "wit-clip",
+      "description": "WIT subset (OpenCLIP embeddings, GPU UMAP, images in tooltip)"
+    },
+    {
+      "uri": "http://127.0.0.1:8766/wit.sample.pca.glb",
+      "expert": "wit-clip-pca",
+      "description": "WIT subset (OpenCLIP embeddings, PCA positions; quick preview)"
+    },
+    {
       "uri": "/ai_demo.glb",
       "expert": "ai-demo",
       "description": "AI demo with ai_state_flags and protocol."

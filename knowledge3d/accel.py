@@ -53,16 +53,20 @@ def _has_faiss() -> Tuple[bool, bool]:
 
 
 def reduce_to_3d(vectors: np.ndarray, method: str = "umap") -> np.ndarray:
-    """Reduce dimensionality to 3D using (GPU) UMAP when available, else CPU fallback.
+    """Reduce dimensionality to 3D.
 
-    - Uses RAPIDS cuML UMAP when present and GPU is desired.
-    - Falls back to umap-learn on CPU, or PCA when UMAP is unavailable.
+    STRICT GPU POLICY:
+    - For UMAP variants ("umap", "umap_fast", "umap_high"), require RAPIDS cuML on GPU.
+      CPU fallbacks (umap-learn/PCA) have been intentionally removed for performance.
+      Uncomment the older CPU fallback code if you need non-GPU runs.
+    - For non-UMAP methods (e.g., "pca"), PCA is used on CPU (lightweight).
     """
     from sklearn.decomposition import PCA
 
     red = (method or "pca").lower()
     n = vectors.shape[0]
-    if red != "umap":
+    if red not in {"umap", "umap_fast", "umap_high"}:
+        # Non-UMAP reducers (e.g., PCA) remain CPU-based and fast.
         try:
             from .utils.env_guard import accel_log  # type: ignore
             accel_log("Reduction=non-UMAP -> using PCA (CPU)")
@@ -71,7 +75,7 @@ def reduce_to_3d(vectors: np.ndarray, method: str = "umap") -> np.ndarray:
         pca = PCA(n_components=3)
         return pca.fit_transform(vectors)
 
-    # UMAP chosen
+    # UMAP chosen (variants: umap, umap_fast, umap_high) — require GPU cuML
     if n <= 3:
         pca = PCA(n_components=min(3, n))
         projected = pca.fit_transform(vectors)
@@ -81,37 +85,26 @@ def reduce_to_3d(vectors: np.ndarray, method: str = "umap") -> np.ndarray:
             return pad
         return projected
 
-    # Try cuML UMAP if GPU desired and available
-    if _want_gpu() and _has_cuml():
-        try:
-            from cuml.manifold import UMAP  # type: ignore
+    if not (_want_gpu() and _has_cuml()):
+        raise RuntimeError(
+            "UMAP reduction requires RAPIDS cuML on GPU (CPU fallback disabled)."
+        )
 
-            um = UMAP(n_components=3, n_neighbors=min(15, max(2, n - 1)))
-            out = um.fit_transform(vectors)
-            try:
-                from .utils.env_guard import accel_log  # type: ignore
-                accel_log("UMAP via RAPIDS cuML (GPU)")
-            except Exception:
-                pass
-            return np.asarray(out, dtype=np.float32)
-        except Exception:
-            pass
-
-    # CPU umap-learn
+    from cuml.manifold import UMAP  # type: ignore
+    if red == "umap_fast":
+        nn = min(10, max(2, n - 1)); md = 0.5
+    elif red == "umap_high":
+        nn = min(30, max(2, n - 1)); md = 0.1
+    else:
+        nn = min(15, max(2, n - 1)); md = 0.3
+    um = UMAP(n_components=3, n_neighbors=nn, min_dist=md)
+    out = um.fit_transform(vectors)
     try:
-        import umap  # type: ignore
-
-        um = umap.UMAP(n_components=3, n_neighbors=min(15, max(2, n - 1)))
-        return np.asarray(um.fit_transform(vectors), dtype=np.float32)
+        from .utils.env_guard import accel_log  # type: ignore
+        accel_log(f"UMAP via RAPIDS cuML (GPU) mode={red}")
     except Exception:
-        # PCA fallback
-        try:
-            from .utils.env_guard import accel_log  # type: ignore
-            accel_log("UMAP unavailable -> PCA fallback (CPU)")
-        except Exception:
-            pass
-        pca = PCA(n_components=3)
-        return pca.fit_transform(vectors)
+        pass
+    return np.asarray(out, dtype=np.float32)
 
 
 def _faiss_gpu_index(vectors: np.ndarray) -> Optional[Any]:
@@ -166,14 +159,11 @@ def knn_all(
     nlist: int | None = None,
     nprobe: int | None = None,
 ) -> np.ndarray:
-    """Compute k-NN for each row in vectors using FAISS (GPU preferred).
+    """Compute k-NN for each row using FAISS on GPU.
 
-    Parameters
-    - ann: 'flat' (default) or 'ivf'
-    - nlist, nprobe: IVF parameters; heuristics applied if None
-
-    Returns
-    - (N, k) int64 array of neighbor indices excluding self
+    STRICT GPU POLICY:
+    - Requires FAISS with GPU; CPU/scikit-learn fallbacks removed.
+      Uncomment the old fallback code if CPU support is needed.
     """
     if k <= 0:
         raise ValueError("k must be a positive integer")
@@ -184,93 +174,65 @@ def knn_all(
     ann_kind = (ann or os.getenv("K3D_FAISS_INDEX", "flat")).lower().strip()
     use_ivf = ann_kind in {"ivf", "ivf-flat", "ivfflat", "ivfpq"}
 
-    # FAISS path (GPU preferred)
-    try:
-        import faiss  # type: ignore
+    # FAISS (GPU required)
+    import faiss  # type: ignore
+    ok, has_gpu = _has_faiss()
+    if not (_want_faiss_gpu() and ok and has_gpu):
+        raise RuntimeError("FAISS GPU required (CPU fallback disabled)")
 
-        x = vectors.astype(np.float32)
-        d = x.shape[1]
-        if use_ivf:
-            nl, npb = _heuristic_ivf_params(n)
-            if nlist:
-                nl = int(nlist)
-            if nprobe:
-                npb = int(nprobe)
-            quant = faiss.IndexFlatL2(d)
-            if ann_kind == "ivfpq":
-                # IVF-PQ with heuristics: M and nbits via env or defaults
-                try:
-                    M = int(os.getenv("K3D_FAISS_PQ_M", "16"))
-                except Exception:
-                    M = 16 if d % 16 == 0 else 8
-                try:
-                    nbits = int(os.getenv("K3D_FAISS_PQ_BITS", "8"))
-                except Exception:
-                    nbits = 8
-                cpu = faiss.IndexIVFPQ(quant, d, nl, M, nbits)
-            else:
-                cpu = faiss.IndexIVFFlat(quant, d, nl, faiss.METRIC_L2)
-            # IVFFlat requires training
-            # Use a sample up to 100k for speed
-            m = min(n, 100_000)
-            cpu.train(x[:m])
-            ok, has_gpu = _has_faiss()
-            if _want_faiss_gpu() and has_gpu:
-                gpu = faiss.index_cpu_to_all_gpus(cpu)
-                gpu.nprobe = npb
-                gpu.add(x)
-                index = gpu
-            else:
-                cpu.nprobe = npb
-                cpu.add(x)
-                index = cpu
+    x = vectors.astype(np.float32)
+    d = x.shape[1]
+    if use_ivf:
+        nl, npb = _heuristic_ivf_params(n)
+        if nlist:
+            nl = int(nlist)
+        if nprobe:
+            npb = int(nprobe)
+        quant = faiss.IndexFlatL2(d)
+        if ann_kind == "ivfpq":
             try:
-                from .utils.env_guard import accel_log  # type: ignore
-                kind = 'IVF-PQ' if ann_kind == 'ivfpq' else 'IVF-Flat'
-                accel_log(f"FAISS {kind} ({'GPU' if _want_faiss_gpu() and has_gpu else 'CPU'}) nlist={nl} nprobe={npb}")
+                M = int(os.getenv("K3D_FAISS_PQ_M", "16"))
             except Exception:
-                pass
+                M = 16 if d % 16 == 0 else 8
+            try:
+                nbits = int(os.getenv("K3D_FAISS_PQ_BITS", "8"))
+            except Exception:
+                nbits = 8
+            cpu = faiss.IndexIVFPQ(quant, d, nl, M, nbits)
         else:
-            index = _faiss_gpu_index(x) if _want_faiss_gpu() else None
-            if index is None:
-                # CPU flat
-                cpu = faiss.IndexFlatL2(d)
-                cpu.add(x)
-                index = cpu
-            try:
-                from .utils.env_guard import accel_log  # type: ignore
-                accel_log(f"FAISS Flat ({'GPU' if index is not None and hasattr(index,'search') and _want_faiss_gpu() else 'CPU'})")
-            except Exception:
-                pass
-        # Query in batches
-        batch = 10000 if n >= 200000 else 20000
-        I_list: list[np.ndarray] = []
-        for start in range(0, n, batch):
-            end = min(n, start + batch)
-            _, I = index.search(x[start:end], k + 1)
-            I = I[:, 1:]
-            I_list.append(I)
-        out = np.vstack(I_list)
-        return out.astype(np.int64)
-    except Exception:
-        # sklearn fallback
-        from sklearn.neighbors import NearestNeighbors  # type: ignore
+            cpu = faiss.IndexIVFFlat(quant, d, nl, faiss.METRIC_L2)
+        m = min(n, 100_000)
+        cpu.train(x[:m])
+        gpu = faiss.index_cpu_to_all_gpus(cpu)
+        gpu.nprobe = npb
+        gpu.add(x)
+        index = gpu
+        try:
+            from .utils.env_guard import accel_log  # type: ignore
+            kind = 'IVF-PQ' if ann_kind == 'ivfpq' else 'IVF-Flat'
+            accel_log(f"FAISS {kind} (GPU) nlist={nl} nprobe={npb}")
+        except Exception:
+            pass
+    else:
+        # Flat L2 on GPU shards
+        index = _faiss_gpu_index(x)
+        if index is None:
+            raise RuntimeError("FAISS GPU IndexFlatL2 unavailable")
+        try:
+            from .utils.env_guard import accel_log  # type: ignore
+            accel_log("FAISS Flat (GPU)")
+        except Exception:
+            pass
 
-        nn = NearestNeighbors(n_neighbors=k + 1, algorithm="auto")
-        nn.fit(vectors)
-        _, idx = nn.kneighbors(vectors)
-        return idx[:, 1:].astype(np.int64)
-
-    # sklearn fallback
-    try:
-        from sklearn.neighbors import NearestNeighbors  # type: ignore
-
-        nn = NearestNeighbors(n_neighbors=k + 1, algorithm="auto")
-        nn.fit(vectors)
-        _, idx = nn.kneighbors(vectors)
-        return idx[:, 1:].astype(np.int64)
-    except Exception as exc:  # pragma: no cover
-        raise RuntimeError(f"Failed to compute neighbors: {exc}") from exc
+    batch = 10000 if n >= 200000 else 20000
+    I_list: list[np.ndarray] = []
+    for start in range(0, n, batch):
+        end = min(n, start + batch)
+        _, I = index.search(x[start:end], k + 1)
+        I = I[:, 1:]
+        I_list.append(I)
+    out = np.vstack(I_list)
+    return out.astype(np.int64)
 
 
 def st_device_kwargs() -> dict:

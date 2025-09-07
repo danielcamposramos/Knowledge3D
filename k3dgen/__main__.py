@@ -144,7 +144,11 @@ def find_neighbors(vectors: np.ndarray, k: int, ann: str | None = None, nlist: i
         from knowledge3d.accel import knn_all  # type: ignore
 
         return knn_all(vectors, k, ann=ann, nlist=nlist, nprobe=nprobe)
-    except Exception:
+    except Exception as exc:
+        # Optional strict GPU: if K3D_STRICT_GPU=1, do not fallback to CPU
+        import os as _os
+        if _os.getenv("K3D_STRICT_GPU", "0").strip() not in {"", "0", "false", "False"}:
+            raise
         from sklearn.neighbors import NearestNeighbors  # type: ignore
 
         nn = NearestNeighbors(n_neighbors=k + 1, algorithm="auto")
@@ -172,6 +176,7 @@ def create_gltf_file(
     ai_flags: dict | None = None,
     ai_flags_mask: dict | None = None,
     edges: List[Tuple[str, str]] | None = None,
+    lod_positions: List[Tuple[str, np.ndarray]] | None = None,
 ) -> None:
     """Create a glTF/GLB file with positions + embeddings in buffers.
 
@@ -182,13 +187,18 @@ def create_gltf_file(
     positions = points.astype(np.float32)
     emb = embeddings.astype(np.float32)
 
+    # Build a contiguous binary blob: [pos_default][embeddings][pos_lod_0][pos_lod_1]...
+    chunks: list[tuple[bytes, int]] = []  # (bytes, length)
     pos_bytes = positions.tobytes()
+    chunks.append((pos_bytes, len(pos_bytes)))
     _prec = (emb_precision or "f32").lower()
     if _prec == "f16":
         emb_bytes = embeddings.astype(np.float16).tobytes()
     else:
         emb_bytes = emb.tobytes()
     data_bytes = pos_bytes + emb_bytes
+    # Track bufferViews we create
+    buffer_views: list[BufferView] = []
 
     # Buffer and bufferViews
     if fmt not in {"gltf", "glb"}:
@@ -202,12 +212,22 @@ def create_gltf_file(
     else:
         buffer = Buffer(byteLength=len(data_bytes))
 
-    view_positions = BufferView(
-        buffer=0, byteOffset=0, byteLength=len(pos_bytes), target=ARRAY_BUFFER
-    )
-    view_embeddings = BufferView(
-        buffer=0, byteOffset=len(pos_bytes), byteLength=len(emb_bytes)
-    )
+    view_positions = BufferView(buffer=0, byteOffset=0, byteLength=len(pos_bytes), target=ARRAY_BUFFER)
+    view_embeddings = BufferView(buffer=0, byteOffset=len(pos_bytes), byteLength=len(emb_bytes))
+    buffer_views.append(view_positions)
+    buffer_views.append(view_embeddings)
+    # Append LOD positions after embeddings if provided
+    lod_specs: list[Dict[str, Any]] = []
+    if lod_positions:
+        offset = len(pos_bytes) + len(emb_bytes)
+        for name, arr in lod_positions:
+            arr32 = arr.astype(np.float32)
+            b = arr32.tobytes()
+            view = BufferView(buffer=0, byteOffset=offset, byteLength=len(b), target=ARRAY_BUFFER)
+            buffer_views.append(view)
+            data_bytes += b
+            lod_specs.append({"name": str(name), "method": str(name), "vectorsView": len(buffer_views) - 1})
+            offset += len(b)
 
     accessor_positions = Accessor(
         bufferView=0,
@@ -243,6 +263,9 @@ def create_gltf_file(
         "metadata": meta_list,
         "neighbors": neighbors,
     }
+    if lod_specs:
+        # First POSITION is the default; include alternative LODs in extras
+        k3d_payload["lods"] = lod_specs
 
     # Temporal (alpha channel + optional per-node mask)
     try:
@@ -325,7 +348,7 @@ def create_gltf_file(
     gltf = GLTF2(
         asset=Asset(generator="k3dgen"),
         buffers=[buffer],
-        bufferViews=[view_positions, view_embeddings],
+        bufferViews=buffer_views,
         accessors=[accessor_positions],
         meshes=[mesh],
         nodes=[node],
@@ -379,6 +402,24 @@ def generate(
     # 2. Reduce
     red = reducer or "pca"
     points = reduce_dimensions(embeddings, reducer=red)
+    # Prepare optional LOD positions from --lod-levels
+    lod_methods: list[str] = []
+    try:
+        arg_lods = getattr(_ARGS, "lod_levels", None)
+        if arg_lods:
+            lod_methods = [s.strip() for s in str(arg_lods).split(",") if s.strip()]
+    except Exception:
+        lod_methods = []
+    lod_positions: list[tuple[str, np.ndarray]] = []
+    for m in lod_methods:
+        # Skip duplicate of default reducer if equal
+        if (m or "").lower() == (red or "").lower():
+            continue
+        try:
+            pts = reduce_dimensions(embeddings, reducer=m)
+            lod_positions.append((m, pts))
+        except Exception:
+            continue
 
     # 3. Find the k-nearest neighbours for each point
     # 3. Find the k-nearest neighbours for each point (ANN selectable)
@@ -418,6 +459,18 @@ def generate(
         except Exception:
             ai_flags_mask = None
 
+    # Optional metadata override JSON (aligned with ids)
+    meta_override = None
+    try:
+        meta_path = getattr(_ARGS, "metadata_json", None)
+        if meta_path:
+            with open(meta_path, "r", encoding="utf-8") as f:
+                m = json.load(f)
+            if isinstance(m, list) and len(m) == len(ids):
+                meta_override = m
+    except Exception:
+        meta_override = None
+
     create_gltf_file(
         gltf_path,
         ids,
@@ -426,11 +479,13 @@ def generate(
         neighbor_indices,
         labels,
         metadata_texts=metadata_texts,
+        metadata_override=meta_override,
         fmt=fmt,
         emb_precision=emb_precision,
         ai_protocol=ai_protocol,
         ai_flags=ai_flags,
         ai_flags_mask=ai_flags_mask,
+        lod_positions=lod_positions,
     )
 
 
@@ -464,6 +519,11 @@ def main() -> None:
         default="f32",
         help="Embedding precision in GLTF bufferView (binary). f16 halves storage at some precision cost",
     )
+    parser.add_argument(
+        "--metadata",
+        dest="metadata_json",
+        help="Path to JSON array with per-node metadata aligned to ids (supports fields like label, text, image)",
+    )
     # Temporal perception (alpha channel)
     parser.add_argument(
         "--temporal-alpha",
@@ -488,6 +548,10 @@ def main() -> None:
     parser.add_argument(
         "--ai-new-info-indices",
         help="Comma-separated node indices to mark as has_new_information=true (per-node mask)",
+    )
+    parser.add_argument(
+        "--lod-levels",
+        help="Comma-separated additional reducers for LOD positions (e.g., 'pca,umap_fast,umap_high')",
     )
     args = parser.parse_args()
     global _ARGS

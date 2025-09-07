@@ -130,12 +130,10 @@ async function loadHouse(k3dUrl: string) {
         k3dData.forEach((record, i) => {
             positions.set(record.vector, i * 3);
 
-            const isDoor = (record.metadata?.type as string) === 'door';
+            // Uniform coloring by position; optional AI per-node mask tints via multiplier below
             if (mask && mask[i] === true) {
                 // AI per-node cue: green for nodes with new info
                 color.setRGB(0.0, 1.0, 0.0);
-            } else if (isDoor) {
-                color.setRGB(0.2, 0.5, 1.0); // bluish for doors
             } else {
                 const r = size.x > 0 ? (record.vector[0] - min.x) / size.x : 0.5;
                 const g = size.y > 0 ? (record.vector[1] - min.y) / size.y : 0.5;
@@ -374,28 +372,7 @@ async function loadHouse(k3dUrl: string) {
         chat.sendEvent({ kind: 'dataset_graph', ids, neighbors, labels: labelsArr, positions });
         await tabletStore.put(`graph:${k3dUrl}`, { ids, neighbors, labels: labelsArr });
 
-        // Share registered doors (type === 'door') and their spatial addresses
-        const doorItems = k3dData
-            .map((r) => {
-                const isDoor = (r.metadata?.type as string) === 'door';
-                if (!isDoor) return null;
-                const label = (r.metadata?.label as string) || r.id;
-                let address: string | undefined = undefined;
-                try {
-                    // Prefer explicit metadata address for inter-house links
-                    const metaAddr = (r.metadata?.address as string) || undefined;
-                    if (metaAddr && typeof metaAddr === 'string') address = metaAddr;
-                    if (!address && (window as any).k3dSpatialAddress) {
-                        address = (window as any).k3dSpatialAddress(r.vector as [number, number, number], 1.0, 0, label);
-                    }
-                } catch {}
-                return { label, address };
-            })
-            .filter(Boolean);
-        if (doorItems.length > 0) {
-            chat.sendEvent({ kind: 'doors', items: doorItems });
-            await tabletStore.put(`doors:${k3dUrl}`, doorItems);
-        }
+        // Door broadcasting is disabled for the House-as-rooms model (no inter-house linking here)
 
         // Try to load alias map and send to live server to enrich gazetteer
         try {
@@ -512,16 +489,17 @@ function checkIntersects() {
             const label = (record.metadata?.label as string) || record.id;
             lastHoverRecord = record;
             const text = (record.metadata?.text as string) || '';
-            const isDoor = (record.metadata?.type as string) === 'door';
-            let extra = '';
-            try {
-                const addr = (window as any).k3dSpatialAddress
-                    ? (window as any).k3dSpatialAddress(record.vector as [number, number, number], 1.0, 0, label)
-                    : undefined;
-                if (addr) extra = ` [${addr}]`;
-            } catch {}
-            const head = isDoor ? `🚪 ${label}` : label;
-            tooltip.textContent = text ? `${head}: ${text.slice(0, 120)}${extra}` : (head + extra);
+            const img = (record.metadata?.image as string) || '';
+            let html = `<div><strong>${label}</strong></div>`;
+            if (img) {
+                const safeSrc = String(img).replace(/"/g, '');
+                html += `<div style="margin-top:4px;"><img src="${safeSrc}" alt="thumb" style="max-width:240px; max-height:140px; object-fit:cover; border:1px solid #ccc;"/></div>`;
+            }
+            if (text) {
+                const t = text.length > 200 ? (text.slice(0, 197) + '...') : text;
+                html += `<div style=\"margin-top:4px; font-size:12px; color:#333;\">${t}</div>`;
+            }
+            tooltip.innerHTML = html;
             if (tablet) tablet.setFocusLabel(label);
         } else {
             tooltip.style.display = 'none';
