@@ -105,6 +105,18 @@ class LiveServer:
         except Exception:
             self._TFIDF = None  # type: ignore
             self._NP = None  # type: ignore
+        # LLM skill (optional, with RAG) — transformers only
+        try:
+            from ..skills.llm import LLMSkill, LLMConfig  # type: ignore
+            self._llm = LLMSkill(LLMConfig())
+        except Exception:
+            self._llm = None
+        # Spatial text skill (memory-native composition)
+        try:
+            from ..skills.spatial_text import compose_answer  # type: ignore
+            self._sp_compose = compose_answer
+        except Exception:
+            self._sp_compose = None
         # Gazetteer/canonicalizer (optional, tiny)
         try:
             from .gazetteer import build_gazetteer, match_gazetteer, canonicalize  # type: ignore
@@ -424,6 +436,35 @@ class LiveServer:
                         self._search_index[client.channel]["gazetteer"] = gaz
                 except Exception:
                     pass
+            # Optional: dataset snippets (label, text) for RAG
+            if kind == "dataset_snippets":
+                try:
+                    pairs = ev.get("pairs") or []
+                    if isinstance(pairs, list) and pairs:
+                        idx = self._search_index.setdefault(client.channel, {})
+                        snip: Dict[str, str] = {}
+                        for it in pairs:
+                            try:
+                                lab = str(it[0]); txt = str(it[1])
+                                if lab:
+                                    snip[lab] = txt
+                            except Exception:
+                                continue
+                        idx["snip"] = snip
+                        # Rebuild TF-IDF corpus using snippets when available
+                        if self._TFIDF is not None:
+                            labels = (self._graphs.get(client.channel) or {}).get("labels") or []
+                            vec = self._TFIDF(lowercase=True, analyzer='word', ngram_range=(1,2))
+                            corpus = []
+                            for i in range(len(labels)):
+                                lab = str(labels[i])
+                                txt = snip.get(lab, "")
+                                doc = f"{lab} — {txt}" if txt else lab
+                                corpus.append(doc)
+                            X = vec.fit_transform(corpus)
+                            idx["vec"], idx["X"], idx["labels"] = vec, X, corpus
+                except Exception:
+                    pass
             # Track agent arrival for current label baseline
             if kind == "explain":
                 txt = str(ev.get("text") or "")
@@ -506,6 +547,12 @@ class LiveServer:
             return
         if cmd == "/sleep":
             await self._handle_sleep(parts[1:] if len(parts) > 1 else [], client)
+            return
+        if cmd == "/llm":
+            await self._handle_llm(parts[1:] if len(parts) > 1 else [], client)
+            return
+        if cmd == "/ask":
+            await self._handle_k3d_ask(parts[1:] if len(parts) > 1 else [], client)
             return
         if cmd == "/mem" and len(parts) >= 2:
             await self._handle_mem(parts[1:], client)
@@ -1166,6 +1213,116 @@ class LiveServer:
         except Exception:
             # Non-fatal if repo is read-only or path invalid
             pass
+
+    async def _handle_llm(self, args, client: Client):
+        if self._llm is None:
+            await self.send_system(client.channel, "LLM skill unavailable. Set K3D_LLM_BACKEND=ollama|transformers.")
+            return
+        if not args:
+            await self.send_system(client.channel, "Usage: /llm ask <text> | /llm rag <text> [k] | /llm backend ollama|transformers [model] [url]")
+            return
+        sub = args[0].lower()
+        if sub == "backend":
+            # Usage:
+            # /llm backend transformers <hf-model>
+            # /llm backend llama_cpp <path.gguf> [n_gpu_layers] [n_ctx]
+            kind = args[1].lower() if len(args) > 1 else "transformers"
+            if kind == "llama_cpp":
+                if len(args) < 3:
+                    await self.send_system(client.channel, "Usage: /llm backend llama_cpp <model.gguf> [n_gpu_layers] [n_ctx]")
+                    return
+                model = args[2]
+                try:
+                    self._llm.set_backend("llama_cpp", model=model, url=None)
+                    # Optional GPU layers and ctx size
+                    n_gpu_layers = int(args[3]) if len(args) > 3 else None
+                    n_ctx = int(args[4]) if len(args) > 4 else None
+                    self._llm.configure_llama_cpp(n_gpu_layers=n_gpu_layers, n_ctx=n_ctx)
+                    await self.send_system(client.channel, f"LLM backend set to llama_cpp model={model} gpu_layers={n_gpu_layers or '(default)'} ctx={n_ctx or '(default)'}")
+                except Exception as e:
+                    await self.send_system(client.channel, f"LLM backend error: {e}")
+                return
+            else:
+                model = args[2] if len(args) > 2 else (args[1] if len(args) > 1 else None)
+                try:
+                    self._llm.set_backend("transformers", model=model, url=None)
+                    await self.send_system(client.channel, f"LLM backend set to transformers model={model or '(unchanged)'}")
+                except Exception as e:
+                    await self.send_system(client.channel, f"LLM backend error: {e}")
+                return
+        if sub == "ask":
+            text = args[1] if len(args) > 1 else ""
+            if not text:
+                await self.send_system(client.channel, "Usage: /llm ask <text>")
+                return
+            out = self._llm.generate(text)
+            await self.send_chat(sender="agent", text=out, channel=client.channel)
+            await self.log({"type": "llm", "mode": "ask", "text": text, "out": out})
+            return
+        if sub == "rag":
+            q = args[1] if len(args) > 1 else ""
+            try:
+                k = int(args[2]) if len(args) > 2 else 5
+            except Exception:
+                k = 5
+            if not q:
+                await self.send_system(client.channel, "Usage: /llm rag <text> [k]")
+                return
+            idx = self._search_index.get(client.channel) or {}
+            vec = idx.get("vec")
+            X = idx.get("X")
+            labels = idx.get("labels") or []
+            contexts: list[tuple[str,str]] = []
+            if vec is not None and X is not None and labels:
+                try:
+                    qv = vec.transform([q])
+                    scores = (X @ qv.T).toarray().ravel()
+                    import numpy as _np  # type: ignore
+                    top = _np.argsort(-scores)[: max(1, k)]
+                    for i in top:
+                        lab = labels[int(i)]
+                        contexts.append((lab, ""))
+                except Exception:
+                    pass
+            out = self._llm.answer_with_rag(q, contexts)
+            await self.send_chat(sender="agent", text=out, channel=client.channel)
+            await self.log({"type": "llm", "mode": "rag", "text": q, "contexts": contexts, "out": out})
+            return
+        await self.send_system(client.channel, "Usage: /llm ask <text> | /llm rag <text> [k] | /llm backend transformers <model> | /llm backend llama_cpp <model.gguf> [n_gpu_layers] [n_ctx]")
+
+    async def _handle_k3d_ask(self, args, client: Client):
+        if self._sp_compose is None:
+            await self.send_system(client.channel, "Spatial text skill unavailable.")
+            return
+        q = args[0] if args else ""
+        if not q:
+            await self.send_system(client.channel, "Usage: /ask <text>")
+            return
+        # Build contexts from snippets
+        idx = self._search_index.get(client.channel) or {}
+        vec = idx.get("vec")
+        X = idx.get("X")
+        labels = idx.get("labels") or []
+        snip = idx.get("snip") or {}
+        contexts: list[tuple[str,str]] = []
+        if vec is not None and X is not None and labels:
+            try:
+                qv = vec.transform([q])
+                scores = (X @ qv.T).toarray().ravel()
+                import numpy as _np  # type: ignore
+                top = _np.argsort(-scores)[: max(1, 8)]
+                for i in top:
+                    lab = labels[int(i)]
+                    # labels[] contains doc string ("label — text") when snippets were provided
+                    # Extract original label key for snip lookup if possible
+                    key = lab.split(" — ", 1)[0]
+                    txt = snip.get(key, "")
+                    contexts.append((key, txt or lab))
+            except Exception:
+                pass
+        out = self._sp_compose(q, contexts)
+        await self.send_chat(sender="agent", text=out, channel=client.channel)
+        await self.log({"type": "ask", "text": q, "contexts": contexts, "out": out})
 
     async def _compose_reflection(self, channel: str, requester: str) -> str:
         g = self._graphs.get(channel)

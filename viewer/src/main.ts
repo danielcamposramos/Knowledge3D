@@ -370,6 +370,17 @@ async function loadHouse(k3dUrl: string) {
         const labelsArr = k3dData.map(r => (r.metadata?.label as string) || r.id);
         const positions = k3dData.map(r => r.vector as [number, number, number]);
         chat.sendEvent({ kind: 'dataset_graph', ids, neighbors, labels: labelsArr, positions });
+        // Send small snippet set for RAG (label + text), truncated to reduce payload
+        try {
+            const maxSnips = 1024;
+            const pairs: [string, string][] = [];
+            for (let i = 0; i < Math.min(k3dData.length, maxSnips); i++) {
+                const lab = (k3dData[i].metadata?.label as string) || k3dData[i].id;
+                const txt = (k3dData[i].metadata?.text as string) || '';
+                if (txt) pairs.push([String(lab), String(txt).slice(0, 240)]);
+            }
+            if (pairs.length) chat.sendEvent({ kind: 'dataset_snippets', pairs });
+        } catch {}
         await tabletStore.put(`graph:${k3dUrl}`, { ids, neighbors, labels: labelsArr });
 
         // Door broadcasting is disabled for the House-as-rooms model (no inter-house linking here)
