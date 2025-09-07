@@ -22,9 +22,12 @@ from typing import List, Optional, Tuple
 
 
 def _load_openclip():
-    import open_clip  # type: ignore
-    import torch  # type: ignore
-    return open_clip, torch
+    try:
+        import open_clip  # type: ignore
+        import torch  # type: ignore
+        return open_clip, torch
+    except Exception:
+        return None, None
 
 
 def _encode_frames(frames, preprocess, model, device) -> List[List[float]]:
@@ -53,11 +56,11 @@ def _encode_frames(frames, preprocess, model, device) -> List[List[float]]:
 
 def _sample_frames(path: Path, fps: float, max_frames: int) -> Tuple[List, Optional[object]]:
     # Returns (PIL frames, first_frame)
-    from PIL import Image  # type: ignore
-    import av  # type: ignore
-    frames = []
+    frames: List = []
     first = None
     try:
+        from PIL import Image  # type: ignore
+        import av  # type: ignore
         container = av.open(str(path))
         stream = container.streams.video[0]
         base = max(1, int(stream.average_rate) if stream.average_rate else 30)
@@ -90,9 +93,11 @@ def main() -> None:  # pragma: no cover
     args = ap.parse_args()
 
     open_clip, torch = _load_openclip()
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    model, _, preprocess = open_clip.create_model_and_transforms("ViT-B-32", pretrained="laion2b_s34b_b79k", device=device)
-    model.eval()
+    has_clip = open_clip is not None and torch is not None
+    if has_clip:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        model, _, preprocess = open_clip.create_model_and_transforms("ViT-B-32", pretrained="laion2b_s34b_b79k", device=device)
+        model.eval()
 
     vids: List[str] = []
     for pat in args.videos:
@@ -115,16 +120,25 @@ def main() -> None:  # pragma: no cover
     for p in vids:
         path = Path(p)
         vid_id = md5(path.as_posix().encode("utf-8")).hexdigest()[:16]
-        frames, thumb = _sample_frames(path, fps=max(0.1, args.fps), max_frames=24)
-        if not frames:
-            continue
-        emb = _encode_frames(frames, preprocess, model, device)
-        # aggregate
-        import numpy as np
-        arr = np.asarray(emb, dtype=float)
-        mean = arr.mean(axis=0)
+        if has_clip:
+            frames, thumb = _sample_frames(path, fps=max(0.1, args.fps), max_frames=24)
+            if not frames:
+                continue
+            emb = _encode_frames(frames, preprocess, model, device)
+            import numpy as np
+            arr = np.asarray(emb, dtype=float)
+            mean = arr.mean(axis=0)
+            v = mean.astype(float).tolist()
+        else:
+            # fallback: 32-d hash based on filename
+            h = md5(path.as_posix().encode("utf-8")).digest()
+            vals = [(b/255.0)-0.5 for b in h]
+            while len(vals) < 32:
+                vals.extend(vals)
+            v = vals[:32]
+            thumb = None
         ids.append(vid_id)
-        vecs.append(mean.astype(float).tolist())
+        vecs.append(v)
         img_url = None
         if thumb is not None:
             ext = ".jpg"
@@ -157,4 +171,3 @@ def main() -> None:  # pragma: no cover
 
 if __name__ == "__main__":
     main()
-

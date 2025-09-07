@@ -11,6 +11,8 @@
 > For the unified multimodal core (Cranium), see `docs/CRANIUM.md`.
 > For OSI‑style doors and addressing, see `docs/DOORS_AND_NETWORK.md`.
 > For vector‑native diaries, see `docs/DIARY.md`.
+> For local hygiene tasks, see `docs/MAINTENANCE.md`.
+> For environment rules on Debian, see `docs/ENV_POLICY.md`.
 
 ## Vision
 

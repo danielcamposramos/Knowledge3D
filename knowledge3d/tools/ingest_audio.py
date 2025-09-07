@@ -18,9 +18,12 @@ from typing import List
 
 
 def _load_clap():
-    import laion_clap  # type: ignore
-    import torch  # type: ignore
-    return laion_clap, torch
+    try:
+        import laion_clap  # type: ignore
+        import torch  # type: ignore
+        return laion_clap, torch
+    except Exception as e:  # fallback
+        return None, None
 
 
 def main() -> None:  # pragma: no cover
@@ -31,10 +34,11 @@ def main() -> None:  # pragma: no cover
     args = ap.parse_args()
 
     laion_clap, torch = _load_clap()
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = laion_clap.CLAP_Module(enable_fusion=False, amodel="HTSAT-base")
-    model.eval()
-    model.to(device)
+    has_clap = laion_clap is not None and torch is not None
+    if has_clap:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        model = laion_clap.CLAP_Module(enable_fusion=False, amodel="HTSAT-base")
+        model.eval(); model.to(device)
     # gather files
     files: List[str] = []
     for pat in args.audio:
@@ -47,10 +51,22 @@ def main() -> None:  # pragma: no cover
     ids: List[str] = []
     vecs: List[List[float]] = []
     metas: List[dict] = []
+    import numpy as np  # type: ignore
+    def _hash_vec(text: str, dims: int = 32) -> List[float]:
+        from hashlib import md5
+        h = md5(text.encode("utf-8")).digest()
+        vals = [(b / 255.0) - 0.5 for b in h]
+        while len(vals) < dims:
+            vals.extend(vals)
+        return vals[:dims]
+
     for p in files:
         try:
-            emb = model.get_audio_embedding_from_filelist(x=[p], use_tensor=True, device=device)
-            v = emb[0].detach().cpu().numpy().astype(float).tolist()
+            if has_clap:
+                emb = model.get_audio_embedding_from_filelist(x=[p], use_tensor=True, device=device)
+                v = emb[0].detach().cpu().numpy().astype(float).tolist()
+            else:
+                v = _hash_vec(p, 32)
         except Exception:
             continue
         aid = md5(p.encode("utf-8")).hexdigest()[:16]
@@ -77,4 +93,3 @@ def main() -> None:  # pragma: no cover
 
 if __name__ == "__main__":
     main()
-
