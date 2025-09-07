@@ -142,6 +142,17 @@ Each line is a training example with from/next labels and optional embeddings wh
 - Overlap: near‑field rendering respects minimal spacing; rays are capped by local spacing.
 - LOD: far field uses a performant point cloud; near field upgrades stars to instanced shapes + rays.
 
+### World of Everything (Small Unified Sample)
+- Build a meaning‑aligned mini‑galaxy across text, images, audio, and video.
+- Script: `scripts/build_world_sample.sh` (skips modalities that are missing).
+- Example:
+```bash
+BASE=../Knowledge3D.local/datasets \
+KEYWORDS="rain,street,car,city,child,speech" \
+scripts/build_world_sample.sh
+```
+- Open edge view: `?gltf=/galaxy.cross.glb`
+
 Cross‑Modal Edges (optional)
 - Add explicit cross‑modal links between nearest unlike‑modality neighbors to aid navigation:
 ```bash
