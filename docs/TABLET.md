@@ -1,50 +1,24 @@
-# K3D Tablet (Wallet + Offline Sync)
+# The K3D Tablet — Bridge UI and Casting
 
-Concept
-- The Tablet is a local wallet that stays connected to your House (K3D). When the network drops, it buffers your intent and syncs back on reconnect so the agent isn’t lost.
+The Tablet is a 3D object and the central UI surface for agents and humans. It connects the “old” (web/apps) with the “new” (spatial House) and can cast to projection surfaces (e.g., a large wall screen) inside the House.
 
-What it stores
-- Outbox: unsent chat, commands, and events queued in IndexedDB (`k3d-tablet/outbox`).
-- Snapshot: last dataset graph and doors per house URI in IndexedDB (`k3d-tablet/tablet`).
-- Tablet ID: stored in `localStorage` (future: signatures, auth, multi‑homes).
+UI Modes (three levels)
+- In‑World Use: Interact directly with the Tablet mesh (touch/buttons). Quick actions: open doors, chat, highlight, cast.
+- Close‑up View: The camera moves closer to the Tablet while staying in the 3D scene; richer controls and typing.
+- Screen‑First Mode: The Tablet screen takes over as the primary UI (like in games); full apps, multi‑pane views.
 
-Where
-- Viewer (browser) via IndexedDB — lightweight, persistent across reloads.
+Casting
+- The Tablet can “chromecast” views to larger projection screens or surfaces in the House — useful for presentations or shared reading.
+- The agent can choose to cast a panel (e.g., route planner, diary page, or portal window) to a target screen.
 
-How it works
-- The viewer’s ChatClient writes to an outbox when offline and flushes when reconnected (button status shows queue length).
-- The viewer saves `dataset_graph` and `doors` snapshots for the current house. On reconnect, the agent can reconcile via normal events.
+Network & Doors
+- The Tablet serves as the anchor for network actions: opening doors via an address bar, maintaining connection overlays, and managing routes.
+- For network‑intensive links (other Houses, remote datasets), doors behave as Portals using Quake‑3 style portal rendering: the door plays a portal animation and shows a rendered view of the destination as a texture when open.
 
-UI
-- Tablet status shows online/offline and queue count.
-- Works with Pause/Resume and all live commands.
+Apps
+- Small, composable apps (chat, door control, garden view, diary reader) run within the Tablet, keeping logic small and memory stable.
 
-Dev notes
-- Stores: `openStore('k3d-tablet','outbox'|'tablet')` in `viewer/src/chat.ts` and `viewer/src/main.ts`.
-- All messages remain standard JSON envelopes (`chat`/`command`/`event`), so the live server logs them uniformly after flush.
-
-Message Envelope
-- Fields appended by the tablet client for continuity and audit:
-  - `tabletId: string` — stable per-browser ID stored at `localStorage['k3d-tablet/id']`.
-  - `house?: string` — current GLB URI (set by viewer on house load).
-  - `mode?: 'ai'|'human'` — current operating mode.
-- Example (chat):
-  `{ "type":"chat", "from":"human", "text":"/open gravity", "tabletId":"abcd…", "house":"/ai_compendium.80k.pca.doors.glb", "mode":"ai" }`
-
-Outbox Schema (IndexedDB)
-- DB: `k3d-tablet`, Store: `outbox`
-- Key: `'queue'`
-- Value: `Array<Envelope & { ts: number }>` where `Envelope` is one of `chat|command|event` with `tabletId,house,mode` appended.
-- Flush: on `ws.onopen`, attempt send in order, re-queue unsent.
-
-Tablet Snapshot Schema (IndexedDB)
-- DB: `k3d-tablet`, Store: `tablet`
-- Keys per house URI:
-  - `${house}:dataset_graph` — minimal record list for UI (labels/ids, optional doors mask).
-  - `${house}:doors` — boolean[] mask for `has_new_information`.
-- Purpose: provide continuity hints and local app views while offline.
-
-Roadmap
-- Add Tablet ID in messages for continuity.
-- Optional CRDT merge for multi‑device note streams.
-- Wallet export/import for long‑running sessions.
+Implementation Notes
+- Viewer should expose Tablet interactions in all three modes; a “cast to screen” action should target any projection surfaces present in the House.
+- Door address bars can live on the Tablet as well as on door frames; both paths call into the same `/open` flow.
+- See also `docs/DOORS_AND_NETWORK.md` and `docs/CRANIUM.md`.

@@ -87,6 +87,10 @@ AI-native optional fields
 - `ai_state_flags` (object): Dynamic flags for AI runtime. Suggested keys: `is_active` (bool), `is_traversable` (bool), `has_new_information` (bool).
 - `ai_state_flags_mask` (object): Optional per-node boolean masks with same length as `ids`. Currently defined key: `has_new_information: boolean[]`. When present, it overrides global `ai_state_flags.has_new_information` for coloring/alerts.
 - For large per-node embeddings, an additional compact form may be present per node entry or for the whole set: `embedding_b64` with `{ data, dtype, dims, endianness }` for efficient transfer.
+ - `metadata.type` may be `door`, `diary_book`, or `diary_page` for AI-native affordances.
+ - `metadata.address` (string) for `door` nodes: `k3d://rx,ry,rz:port@x,y,z?label=...` or an asset path (e.g., `/houses/<id>/memory_house.gltf`).
+ - `metadata.parent` (string) for `diary_page`: the id of its parent `diary_book`.
+ - `metadata.embedding32` (number[32]) for `diary_page`: native content; when present, readers may reflect this into the packed `embeddings` buffer row for the page.
 
 ## Rationale
 

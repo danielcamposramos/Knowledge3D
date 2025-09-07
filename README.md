@@ -7,6 +7,10 @@
 > **New to K3D? Start here: [`The K3D Vision: A Unified Framework`](docs/VISION.md)**
 >
 > This core document outlines the project's vision, architecture, roadmap, and contributor guidelines in one place.
+>
+> For the unified multimodal core (Cranium), see `docs/CRANIUM.md`.
+> For OSI‑style doors and addressing, see `docs/DOORS_AND_NETWORK.md`.
+> For vector‑native diaries, see `docs/DIARY.md`.
 
 ## Vision
 
@@ -73,6 +77,12 @@ python -m knowledge3d.bridge.live_server
 Then open the viewer (`npm run dev`) and use the Chat box. Try messages like:
 - `goto gravity`
 - `hello`
+Brain controls:
+- `/ask <text>` — unified Cranium response (navigation is gated by confidence)
+- `/brain reflect` — summarize short‑term galaxy
+- `/brain sleep` — consolidate recent notes into `viewer/public/memory_house.gltf`
+Diary:
+- `/diary read [book_label] [page_id|label]` — translate a diary page (AI writes its own pages).
 Model controls (inline):
 - `/model on|off` — enable/disable inline model. `/model list` to inspect; `/model use both|hf|sklearn|auto` for ensemble control; `/model threshold 0.8` set confidence.
 Logs maintenance:

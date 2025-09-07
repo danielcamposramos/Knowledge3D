@@ -54,6 +54,15 @@ This file lists actionable tasks for AI agents working on the Knowledge3D reposi
     -   [ ] **Task:** Develop the user-to-agent interaction loop.
     -   **Details:** Implement voice command recognition and the ability for the agent to provide multimodal feedback (e.g., speaking while highlighting a cluster of nodes).
 
+4.  **AI Diary (Vector‑Native):**
+    - [ ] Add viewer UI to open a diary book, list pages, and call `/diary read` to render translated text.
+    - [ ] Enforce AI‑only writes; ensure `/mem add` cannot target the `Diary` room.
+    - [ ] Add “promote to Garden” action to curate a diary page into the Knowledge Garden.
+
+5.  **Doors & Address Bar:**
+    - [ ] Add an address bar UI to door meshes; integrate `/open <label|k3d://...>` and show route previews.
+    - [ ] Provide helpers to create inter‑House (LAN) doors given two `K3D_HOUSE_ID`s.
+
 ---
 
 ## Phase 3 Tasks: The Collaborative Knowledge Habitat

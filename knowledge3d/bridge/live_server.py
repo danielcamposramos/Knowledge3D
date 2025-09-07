@@ -117,6 +117,12 @@ class LiveServer:
             self._sp_compose = compose_answer
         except Exception:
             self._sp_compose = None
+        # Unified cranium (multimodal core, optional)
+        try:
+            from ..cranium.core import CraniumCore  # type: ignore
+            self._cranium = CraniumCore()
+        except Exception:
+            self._cranium = None
         # Gazetteer/canonicalizer (optional, tiny)
         try:
             from .gazetteer import build_gazetteer, match_gazetteer, canonicalize  # type: ignore
@@ -191,6 +197,24 @@ class LiveServer:
         self._paused: Dict[str, Dict[str, Any]] = {}
         # Advancement log in-repo (append-only)
         self._adv_log = (Path(__file__).resolve().parents[2] / "docs" / "reports" / "advancement_log.md")
+        # Autonomy state
+        self._last_activity: Dict[str, float] = {}
+        try:
+            import time as _time
+            self._now = _time.time  # type: ignore
+        except Exception:  # pragma: no cover
+            self._now = lambda: 0.0  # type: ignore
+        import os as _os
+        self._autonomy_enabled = (_os.getenv("K3D_AUTONOMY", "0").strip() != "0")
+        # Idle threshold before autonomous action (seconds); default ~phi minute (≈ 37s)
+        self._autonomy_idle = float(_os.getenv("K3D_AUTONOMY_IDLE_SEC", "37"))
+        # Periodic check (seconds); default ~pi (≈ 9s)
+        self._autonomy_period = float(_os.getenv("K3D_AUTONOMY_PERIOD_SEC", "9"))
+        # Diary auto-writing
+        self._last_diary_time: Dict[str, float] = {}
+        self._diary_auto_enabled = (_os.getenv("K3D_DIARY_AUTO", "0").strip() != "0")
+        self._diary_period = float(_os.getenv("K3D_DIARY_PERIOD_SEC", "600"))  # 10 minutes default
+        self._diary_book = _os.getenv("K3D_DIARY_BOOK", "AI Diary")
 
     async def handler(self, ws):
         key = _ClientKey(id(ws))
@@ -203,6 +227,7 @@ class LiveServer:
         try:
             await self.send_system(client.channel, f"{client.nick} joined {client.channel}")
             await self.send_chat(sender="system", text="Welcome to K3D live mode.", channel=client.channel)
+            self._last_activity[client.channel] = self._now()
             # Introduce identity once per channel when not paused
             if client.channel not in self._told_identity and not self._is_paused(client.channel):
                 ident = await self._compose_identity(client.channel)
@@ -240,6 +265,13 @@ class LiveServer:
                 return
             await self.send_chat(sender=client.nick, text=raw_text, channel=client.channel)
             await self.log({"type": "chat", "from": client.nick, "channel": client.channel, "text": raw_text, "normalized": text})
+            self._last_activity[client.channel] = self._now()
+            # Feed short‑term memory for unified cranium (if available)
+            try:
+                if self._cranium is not None:
+                    self._cranium.observe_text(raw_text, label=client.nick)
+            except Exception:
+                pass
             # Enhanced processing (fallbacks to naive path if processor missing)
             if self._processor is not None and self._ConversationContext is not None:
                 ctx = self._ctx_by_nick.setdefault(client.nick, self._ConversationContext())
@@ -355,9 +387,11 @@ class LiveServer:
                     await self.send_command("goto", target)
                     await self.send_chat(sender="agent", text=f"Navigating to {target}", channel=client.channel)
                     await self.log({"type": "command", "command": "goto", "target": target, "source": "ws", "channel": client.channel})
+                    self._last_activity[client.channel] = self._now()
         elif t == "event":
             ev = msg.get("event", {})
             kind = ev.get("kind")
+            self._last_activity[client.channel] = self._now()
             # Capture dataset graph for routing
             if kind == "dataset_graph":
                 ids = ev.get("ids") or []
@@ -390,13 +424,32 @@ class LiveServer:
                             self._search_index[client.channel].update({"vec": vec, "X": X, "labels": texts})
                     except Exception:
                         pass
-                    # Auto-ask thoughts once per channel when graph arrives
-                    if client.channel not in self._asked_thoughts and not self._is_paused(client.channel):
-                        self._asked_thoughts.add(client.channel)
-                        who = client.nick
-                        msg = await self._compose_reflection(client.channel, requester=who)
-                        await self.send_chat(sender="agent", text=msg, channel=client.channel)
-                        await self.log({"type": "reflection", "from": "agent", "channel": client.channel, "requester": who, "text": msg})
+            # Auto-ask thoughts once per channel when graph arrives
+            if client.channel not in self._asked_thoughts and not self._is_paused(client.channel):
+                self._asked_thoughts.add(client.channel)
+                who = client.nick
+                msg = await self._compose_reflection(client.channel, requester=who)
+                await self.send_chat(sender="agent", text=msg, channel=client.channel)
+                await self.log({"type": "reflection", "from": "agent", "channel": client.channel, "requester": who, "text": msg})
+                # Event-based diary page after initial reflection (policy-gated)
+                try:
+                    if self._cranium is not None and getattr(self._cranium, "_stm", None) is not None:
+                        vec = self._cranium._stm.snapshot_vector()
+                        from ..tools.house_memory import MemoryHouse  # type: ignore
+                        from ..cranium.diary import DiaryPolicy  # type: ignore
+                        h = MemoryHouse(); pages = h.list_diary_pages(self._diary_book)
+                        last = None
+                        if pages:
+                            e32 = (pages[-1].extra or {}).get("embedding32") if isinstance(pages[-1].extra, dict) else None
+                            if isinstance(e32, list):
+                                last = e32
+                        pol = DiaryPolicy()
+                        if pol.should_write(vec, last, event="reflect_init", meta={"by": who}):
+                            pid = h.add_diary_page_embedding(self._diary_book, vec, meta={"event": "reflect_init", "by": who})
+                            out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "houses" / (os.getenv("K3D_HOUSE_ID","default")) / "memory_house.gltf")
+                            h.export_gltf(out)
+                except Exception:
+                    pass
             # Capture door registry
             if kind == "doors":
                 items = ev.get("items") or []
@@ -519,6 +572,27 @@ class LiveServer:
             msg = await self._compose_reflection(client.channel, requester=client.nick)
             await self.send_chat(sender="agent", text=msg, channel=client.channel)
             await self.log({"type": "reflection", "from": "agent", "channel": client.channel, "requester": client.nick, "text": msg})
+            # Event-based diary page (AI-only, policy-gated)
+            try:
+                if self._cranium is not None and getattr(self._cranium, "_stm", None) is not None:
+                    vec = self._cranium._stm.snapshot_vector()
+                    from ..tools.house_memory import MemoryHouse  # type: ignore
+                    from ..cranium.diary import DiaryPolicy  # type: ignore
+                    h = MemoryHouse()
+                    pages = h.list_diary_pages(self._diary_book)
+                    last = None
+                    if pages:
+                        e32 = (pages[-1].extra or {}).get("embedding32") if isinstance(pages[-1].extra, dict) else None
+                        if isinstance(e32, list):
+                            last = e32
+                    pol = DiaryPolicy()
+                    meta = {"event": "reflect", "by": client.nick}
+                    if pol.should_write(vec, last, event="reflect", meta=meta):
+                        h.add_diary_page_embedding(self._diary_book, vec, meta=meta)
+                        out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "houses" / (os.getenv("K3D_HOUSE_ID","default")) / "memory_house.gltf")
+                        h.export_gltf(out)
+            except Exception:
+                pass
             return
         if cmd == "/whoami":
             ident = await self._compose_identity(client.channel)
@@ -553,6 +627,50 @@ class LiveServer:
             return
         if cmd == "/ask":
             await self._handle_k3d_ask(parts[1:] if len(parts) > 1 else [], client)
+            return
+        if cmd == "/diary":
+            await self._handle_diary(parts[1:] if len(parts) > 1 else [], client)
+            return
+        if cmd == "/brain":
+            # /brain reflect | /brain sleep [out]
+            sub = parts[1].lower() if len(parts) > 1 else "status"
+            if self._cranium is None:
+                await self.send_system(client.channel, "Cranium not available.")
+                return
+            if sub == "reflect":
+                msg = self._cranium.reflect()
+                await self.send_chat(sender="agent", text=msg, channel=client.channel)
+                await self.log({"type":"brain","action":"reflect","text":msg})
+                # Event-based diary page (policy-gated)
+                try:
+                    if getattr(self._cranium, "_stm", None) is not None:
+                        vec = self._cranium._stm.snapshot_vector()
+                        from ..tools.house_memory import MemoryHouse  # type: ignore
+                        from ..cranium.diary import DiaryPolicy  # type: ignore
+                        h = MemoryHouse(); pages = h.list_diary_pages(self._diary_book)
+                        last = None
+                        if pages:
+                            e32 = (pages[-1].extra or {}).get("embedding32") if isinstance(pages[-1].extra, dict) else None
+                            if isinstance(e32, list):
+                                last = e32
+                        pol = DiaryPolicy()
+                        meta = {"event": "brain_reflect"}
+                        if pol.should_write(vec, last, event="brain_reflect", meta=meta):
+                            h.add_diary_page_embedding(self._diary_book, vec, meta=meta)
+                            out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "houses" / (os.getenv("K3D_HOUSE_ID","default")) / "memory_house.gltf")
+                            h.export_gltf(out)
+                except Exception:
+                    pass
+                return
+            if sub == "sleep":
+                out = None
+                if len(parts) > 2:
+                    out = parts[2].strip() or None
+            status = self._cranium.sleep_consolidate(out_gltf=out)
+            await self.send_chat(sender="agent", text=status, channel=client.channel)
+                await self.log({"type":"brain","action":"sleep","status":status})
+                return
+            await self.send_system(client.channel, "Usage: /brain reflect | /brain sleep [viewer/public/memory_house.gltf]")
             return
         if cmd == "/mem" and len(parts) >= 2:
             await self._handle_mem(parts[1:], client)
@@ -650,6 +768,10 @@ class LiveServer:
                 # Expect room|label|text
                 raw = " ".join(args[1:])
                 room, label, text = [s.strip() for s in raw.split("|")]
+                # Prevent human writes into the AI Diary room
+                if room.lower() == "diary":
+                    await self.send_system(client.channel, "Writes to 'Diary' are AI-only.")
+                    return
                 h.add_object(room, label, text)
                 await self.send_chat(sender="agent", text=f"Memory: saved '{label}' in room '{room}'.", channel=client.channel)
             except Exception:
@@ -968,6 +1090,12 @@ class LiveServer:
                 asyncio.create_task(self._log_maintenance_loop())
             except Exception:
                 pass
+            # Start autonomy loop
+            try:
+                if self._autonomy_enabled:
+                    asyncio.create_task(self._autonomy_loop())
+            except Exception:
+                pass
             await asyncio.Future()
 
     async def _log_maintenance_loop(self) -> None:
@@ -1005,6 +1133,94 @@ class LiveServer:
                         continue
             except Exception:
                 pass
+
+    async def _autonomy_loop(self) -> None:
+        """Autonomous behavior when channels are idle.
+
+        Behavior (every ~pi seconds):
+        - If a channel is idle > threshold and not paused, reflect and make a small movement
+        - Prefer moving to a hub or a neighbor-of-neighbor
+        - Propose link suggestions via highlight and a short chat
+        """
+        while True:
+            try:
+                await asyncio.sleep(self._autonomy_period)
+                now = self._now()
+                for ch, keys in list(self.channels.items()):
+                    if self._is_paused(ch):
+                        continue
+                    last = self._last_activity.get(ch, 0.0)
+                    if now - last < self._autonomy_idle:
+                        continue
+                    # Reflect
+                    try:
+                        if self._cranium is not None:
+                            msg = self._cranium.reflect()
+                            await self.send_chat(sender="agent", text=f"[reflect] {msg}", channel=ch)
+                    except Exception:
+                        pass
+                    # Navigate to an interesting node (hub or unseen)
+                    g = self._graphs.get(ch)
+                    labels = (g or {}).get("labels") or []
+                    neighbors = (g or {}).get("neighbors") or []
+                    ids = (g or {}).get("ids") or []
+                    if labels and neighbors and ids:
+                        deg = [(i, len(neighbors[i]) if i < len(neighbors) else 0) for i in range(len(ids))]
+                        target_idx = deg[0][0] if not deg else 0
+                        try:
+                            target_idx = sorted(deg, key=lambda t: t[1], reverse=True)[0][0]
+                        except Exception:
+                            target_idx = 0
+                        target_label = labels[target_idx] if target_idx < len(labels) else None
+                        if target_label:
+                            await self._dispatch_goto(ch, target_label, source="autonomy")
+                    # Suggest a link between two close labels using TF‑IDF
+                    idx = self._search_index.get(ch) or {}
+                    vec = idx.get("vec"); X = idx.get("X"); labs = idx.get("labels") or []
+                    if vec is not None and X is not None and labs:
+                        try:
+                            import numpy as _np  # type: ignore
+                            # pick two top mutually similar docs
+                            S = (X @ X.T).toarray()
+                            _np.fill_diagonal(S, -1)
+                            i, j = _np.unravel_index(_np.argmax(S), S.shape)
+                            if i != j and 0 <= i < len(labs) and 0 <= j < len(labs):
+                                a, b = labs[int(i)], labs[int(j)]
+                                score = float(S[i, j])
+                                payload = json.dumps({"labels": [str(a), str(b)]})
+                                await self.send_command("highlight", payload, channel=ch)
+                                await self.send_chat(sender="agent", text=f"[suggest] Link {a} ↔ {b} (score≈{score:.2f})", channel=ch)
+                        except Exception:
+                            pass
+                    # Mark the time to avoid spamming
+                    self._last_activity[ch] = now
+                    # Autonote: write a diary page periodically
+                    try:
+                        if self._diary_auto_enabled and self._cranium is not None and getattr(self._cranium, "_stm", None) is not None:
+                            lastp = self._last_diary_time.get(ch, 0.0)
+                            if now - lastp >= self._diary_period:
+                                vec = self._cranium._stm.snapshot_vector()
+                                from ..tools.house_memory import MemoryHouse  # type: ignore
+                                from ..cranium.diary import DiaryPolicy  # type: ignore
+                                h = MemoryHouse(); pages = h.list_diary_pages(self._diary_book)
+                                last = None
+                                if pages:
+                                    e32 = (pages[-1].extra or {}).get("embedding32") if isinstance(pages[-1].extra, dict) else None
+                                    if isinstance(e32, list):
+                                        last = e32
+                                pol = DiaryPolicy()
+                                if pol.should_write(vec, last, event="auto", meta={"by":"autonomy"}):
+                                    pid = h.add_diary_page_embedding(self._diary_book, vec, meta={"event":"auto"})
+                                    out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "houses" / (os.getenv("K3D_HOUSE_ID","default")) / "memory_house.gltf")
+                                    h.export_gltf(out)
+                                    await self.send_chat(sender="agent", text=f"[diary] wrote page in '{self._diary_book}' (id={pid})", channel=ch)
+                                    await self.log({"type":"diary","action":"auto","book":self._diary_book,"page_id":pid,"channel":ch})
+                                    self._last_diary_time[ch] = now
+                    except Exception:
+                        pass
+            except Exception:
+                # Keep the loop alive regardless of errors
+                continue
             await asyncio.sleep(max(5, int(self._log_maint_period or 60)))
 
     # --- Open-vocab goto resolution ---
@@ -1083,6 +1299,26 @@ class LiveServer:
                 "source": source,
                 "model_confidence": confidence,
             })
+        except Exception:
+            pass
+        # Event-based diary entry after navigation (AI-only, policy-gated)
+        try:
+            if self._cranium is not None and getattr(self._cranium, "_stm", None) is not None:
+                vec = self._cranium._stm.snapshot_vector()
+                from ..tools.house_memory import MemoryHouse  # type: ignore
+                from ..cranium.diary import DiaryPolicy  # type: ignore
+                h = MemoryHouse(); pages = h.list_diary_pages(self._diary_book)
+                last = None
+                if pages:
+                    e32 = (pages[-1].extra or {}).get("embedding32") if isinstance(pages[-1].extra, dict) else None
+                    if isinstance(e32, list):
+                        last = e32
+                pol = DiaryPolicy()
+                meta = {"event": "navigate", "target": target, "query": q, "source": source, "score": score if score is not None else 0.0}
+                if pol.should_write(vec, last, event="navigate", meta=meta):
+                    h.add_diary_page_embedding(self._diary_book, vec, meta=meta)
+                    out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "houses" / (os.getenv("K3D_HOUSE_ID","default")) / "memory_house.gltf")
+                    h.export_gltf(out)
         except Exception:
             pass
         # If we already hold a dataset graph, pre-compute and share a concise route trace
@@ -1291,9 +1527,7 @@ class LiveServer:
         await self.send_system(client.channel, "Usage: /llm ask <text> | /llm rag <text> [k] | /llm backend transformers <model> | /llm backend llama_cpp <model.gguf> [n_gpu_layers] [n_ctx]")
 
     async def _handle_k3d_ask(self, args, client: Client):
-        if self._sp_compose is None:
-            await self.send_system(client.channel, "Spatial text skill unavailable.")
-            return
+        # Try unified cranium first
         q = args[0] if args else ""
         if not q:
             await self.send_system(client.channel, "Usage: /ask <text>")
@@ -1320,9 +1554,86 @@ class LiveServer:
                     contexts.append((key, txt or lab))
             except Exception:
                 pass
+        if self._cranium is not None:
+            try:
+                resp = self._cranium.act(q, contexts=contexts)
+                if resp.get("type") in ("navigation", "exploration", "interaction"):
+                    # Dispatch navigation/action payloads
+                    if self._is_paused(client.channel):
+                        await self.send_system(client.channel, "Paused: action suppressed. Use /resume to continue.")
+                        await self.log({"type": "pause_block", "what": resp.get("type"), "channel": client.channel})
+                        return
+                    dec = self._policy_check(q, resp.get("action"))
+                    if not dec.allow:
+                        await self.send_chat(sender="system", text=f"Action blocked by ethics policy ({dec.reason}).", channel=client.channel)
+                        return
+                    action = resp.get("action") or "action"
+                    if action == "goto":
+                        target = str(resp.get("target") or resp.get("location") or "").strip()
+                        await self._dispatch_goto(client.channel, target, source="brain")
+                    else:
+                        payload = json.dumps({k: v for k, v in resp.items() if k not in {"type", "message"}})
+                        await self.send_command(action, payload, channel=client.channel)
+                        if msg_text := resp.get("message"):
+                            await self.send_chat(sender="agent", text=msg_text, channel=client.channel)
+                    await self.log({"type":"ask","mode":"brain","text":q,"contexts":contexts,"resp":resp})
+                    return
+                # Chat response
+                out = resp.get("message") or ""
+                if out:
+                    await self.send_chat(sender="agent", text=out, channel=client.channel)
+                    await self.log({"type":"ask","mode":"brain","text":q,"contexts":contexts,"out":out})
+                    return
+            except Exception:
+                pass
+        # Fallback to spatial text skill
+        if self._sp_compose is None:
+            await self.send_system(client.channel, "Spatial text skill unavailable.")
+            return
         out = self._sp_compose(q, contexts)
         await self.send_chat(sender="agent", text=out, channel=client.channel)
-        await self.log({"type": "ask", "text": q, "contexts": contexts, "out": out})
+        await self.log({"type": "ask", "mode":"spatial_text", "text": q, "contexts": contexts, "out": out})
+
+    async def _handle_diary(self, args, client: Client):
+        sub = args[0].lower() if args else "help"
+        try:
+            from ..tools.house_memory import MemoryHouse  # type: ignore
+        except Exception:
+            await self.send_system(client.channel, "Diary unavailable (memory tools missing).")
+            return
+        # Writing is AI-only (no user command). Humans can only read.
+        if sub == "read":
+            label = args[1] if len(args) > 1 else "AI Diary"
+            page = args[2] if len(args) > 2 else None
+            try:
+                h = MemoryHouse()
+                pages = h.list_diary_pages(label)
+                if not pages:
+                    await self.send_system(client.channel, f"No pages in '{label}'.")
+                    return
+                target = None
+                if page:
+                    target = next((o for o in pages if o.id == page or o.label == page), None)
+                if target is None:
+                    target = pages[-1]
+                e32 = (target.extra or {}).get("embedding32") if isinstance(target.extra, dict) else None
+                if not isinstance(e32, list):
+                    await self.send_system(client.channel, "Selected page missing embedding.")
+                    return
+                ctxs = h.nearest_contexts_for_embedding(e32, k=6)
+                # Compose for humans
+                try:
+                    from ..skills.spatial_text import compose_answer  # type: ignore
+                    txt = compose_answer(f"What is the gist of page '{target.label}'?", ctxs)
+                except Exception:
+                    lines = [f"- {lab}: {txt}" for lab, txt in ctxs[:5]]
+                    txt = "\n".join([f"Page {target.label} (AI diary)", *lines])
+                await self.send_chat(sender="agent", text=txt, channel=client.channel)
+                await self.log({"type":"diary","action":"read","book":label,"page_id":target.id,"ctxs":ctxs})
+            except Exception as e:
+                await self.send_system(client.channel, f"Diary read error: {e}")
+            return
+        await self.send_system(client.channel, "Usage: /diary read [book_label] [page_id|label]")
 
     async def _compose_reflection(self, channel: str, requester: str) -> str:
         g = self._graphs.get(channel)

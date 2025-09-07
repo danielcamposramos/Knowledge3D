@@ -11,7 +11,7 @@ class FaithEngine:
     Minimal faith engine that selects actions based on confidence.
     """
 
-    def decide(self, options: dict[str, float], threshold: float = 0.7) -> str | None:
+    def decide(self, options: dict[str, float], threshold: float | None = None) -> str | None:
         """
         PHILOSOPHICAL PRINCIPLE: Coexistence is the only stable equilibrium
         SURVIVAL NECESSITY: Requires cooperative choices above threshold
@@ -30,6 +30,19 @@ class FaithEngine:
         str | None
             Chosen action if any score exceeds threshold.
         """
+        # Determine threshold. Default: golden ratio inspired (phi ≈ 0.618)
+        # Use env K3D_FAITH_THRESHOLD to override.
+        if threshold is None:
+            try:
+                import os
+                val = os.getenv("K3D_FAITH_THRESHOLD", "").strip()
+                if val:
+                    threshold = float(val)
+                else:
+                    # 1/phi ≈ 0.618 (confidence to act)
+                    threshold = 0.61803398875
+            except Exception:
+                threshold = 0.61803398875
         rpn = RPN()
         for action, score in options.items():
             # Evaluate comparison using RPN for consistency

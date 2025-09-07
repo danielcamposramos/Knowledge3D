@@ -108,3 +108,20 @@ Figure: The avatar reasoning at a network door in the Workshop. The translucent 
 - Explain-as-you-move: Emit concise rationale at each step, referencing neighbors and similarity metrics.
 - Social first: Agents may initiate chats to propose exploration or ask clarifying questions; do not wait for prompts.
 - Safety: Apply Faith Engine thresholds for actions that modify or link knowledge; prefer read/navigation unless confidence ≥ 0.7.
+
+## House/Galaxy/Cranium
+
+- **House (Disk):** Per‑avatar persistent memory in glTF `extras.k3d`. Select the current House with `K3D_HOUSE_ID`; do not cross‑write between Houses. Exports live under `viewer/public/houses/<id>/`.
+- **Galaxy (RAM):** Short‑term memory (STM) of embeddings and recent observations for active reasoning.
+- **Cranium (CPU):** Unified logic (no LLM fallback by default), with confidence‑gated actions (φ≈0.618).
+
+## Diary Policy (AI‑Only)
+
+- Humans can read diary pages but cannot write to the `Diary` room. The bridge blocks such writes.
+- The agent writes pages based on policy (novelty and confidence “feelings”) at events like reflect, navigate, and sleep.
+- Details: `docs/DIARY.md`, `knowledge3d/cranium/diary.py`.
+
+## Doors & Network
+
+- Doors are network interfaces with an address bar (`k3d://rx,ry,rz:port@x,y,z?label=...`).
+- Use doors to bridge Houses (LAN) and services; see `docs/DOORS_AND_NETWORK.md`.

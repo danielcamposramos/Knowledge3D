@@ -26,7 +26,14 @@ from typing import Dict, List, Optional, Tuple
 import math as _math
 
 ROOT = Path(__file__).resolve().parents[2]
-STATE = ROOT / "data" / "memory_house.json"
+def _default_state_path() -> Path:
+    import os
+    hid = (os.getenv("K3D_HOUSE_ID", "").strip() or "default")
+    # Keep houses segregated by ID under data/houses/<id>
+    base = ROOT / "data" / "houses" / hid
+    return base / "memory_house.json"
+
+STATE = _default_state_path()
 
 
 def _hash_vec(text: str, dims: int = 32) -> List[float]:
@@ -104,6 +111,97 @@ class MemoryHouse:
 
     def add_door(self, label: str, address: str, room: str = "Network"):
         self.add_object(room, label, text=address, kind="door", extra={"address": address})
+
+    # --- Diary (AI personal notes as embeddings) ---
+    def ensure_diary_book(self, label: str = "AI Diary", room: str = "Diary") -> str:
+        """Ensure a diary book object exists; return its object id."""
+        if room not in self.rooms:
+            self.add_room(room, "Daily notes and reflections (AI diary)")
+        oid = f"diary:{hashlib.md5((room+'|'+label).encode()).hexdigest()[:8]}"
+        # If missing, add the book as a furniture-like object of kind 'diary_book'
+        if not any(o.id == oid for o in self.objects):
+            self.objects.append(Obj(room=room, label=label, text="", kind="diary_book", extra={}, id=oid))
+            self._save()
+        return oid
+
+    def add_diary_page_embedding(self, book_label: str, vec32: List[float], ts: Optional[float] = None, room: str = "Diary", meta: Optional[Dict[str, object]] = None) -> str:
+        """Append a diary page as a node with an explicit 32-d embedding.
+
+        Stores metadata: parent (book id), ts (ISO8601), and e32 length. Returns page id.
+        """
+        import time
+        # Normalize length
+        v = list(vec32 or [])
+        if len(v) != 32:
+            # pad or trim to 32
+            if len(v) < 32:
+                v = v + [0.0] * (32 - len(v))
+            else:
+                v = v[:32]
+        book_id = self.ensure_diary_book(book_label, room=room)
+        t = ts or time.time()
+        iso = datetime.utcfromtimestamp(t).isoformat() + "Z"
+        # Stable page id
+        pid = f"page:{hashlib.md5((book_id+'|'+iso).encode()).hexdigest()[:8]}"
+        label = f"{book_label} — {iso}"
+        extra = {"parent": book_id, "ts": iso, "embedding32": v}
+        if meta:
+            extra["meta"] = meta
+        # Insert or replace
+        self.objects = [o for o in self.objects if o.id != pid]
+        self.objects.append(Obj(room=room, label=label, text="", kind="diary_page", extra=extra, id=pid))
+        self._save()
+        return pid
+
+    def list_diary_pages(self, book_label: str, room: str = "Diary") -> List[Obj]:
+        book_id = self.ensure_diary_book(book_label, room=room)
+        pages = [o for o in self.objects if o.kind == "diary_page" and (o.extra or {}).get("parent") == book_id]
+        # sort by ts
+        def _ts(o: Obj) -> float:
+            try:
+                s = (o.extra or {}).get("ts") or ""
+                return datetime.fromisoformat(s.replace("Z", "")).timestamp()
+            except Exception:
+                return 0.0
+        return sorted(pages, key=_ts)
+
+    def nearest_contexts_for_embedding(self, vec32: List[float], k: int = 6) -> List[Tuple[str, str]]:
+        """Return (label, text) from existing objects most similar to the given vector.
+
+        Uses cosine on 32-d embeddings, where non-diary objects fall back to hashed
+        embeddings derived from label+text.
+        """
+        import math
+        v = list(vec32 or [])
+        if len(v) != 32:
+            if len(v) < 32:
+                v = v + [0.0] * (32 - len(v))
+            else:
+                v = v[:32]
+        def _cos(a: List[float], b: List[float]) -> float:
+            dot = sum(x*y for x, y in zip(a, b))
+            na = math.sqrt(sum(x*x for x in a)) + 1e-9
+            nb = math.sqrt(sum(y*y for y in b)) + 1e-9
+            return dot / (na * nb)
+        scored: List[Tuple[float, str, str]] = []
+        for o in self.objects:
+            md = dict(o.extra or {})
+            e = md.get("embedding32")
+            if not isinstance(e, list):
+                e = _hash_vec(o.label + "|" + o.text, 32)
+            c = _cos(v, e)
+            # Prefer objects with some text (e.g., files) for human contexts
+            txt = o.text
+            if not txt and o.kind in {"door", "diary_page", "diary_book"}:
+                txt = o.label
+            scored.append((c, o.label, txt))
+        scored.sort(reverse=True, key=lambda t: t[0])
+        out: List[Tuple[str, str]] = []
+        for s, lab, txt in scored:
+            if len(out) >= max(1, k):
+                break
+            out.append((lab, txt))
+        return out
 
     def bootstrap_books(self, limit: int = 24):
         p = ROOT / "data" / "ai_books_basic.json"
@@ -323,7 +421,12 @@ class MemoryHouse:
                 x, y, z = base[0] + math.cos(a) * r, base[1] + math.sin(a) * r, 0.0
                 ids.append(o.id)
                 vectors.append([x, y, z])
-                embeddings.append(_hash_vec(o.label + "|" + o.text, 32))
+                # Prefer explicit embedding for diary pages
+                e32 = (o.extra or {}).get("embedding32") if isinstance(o.extra, dict) else None
+                if isinstance(e32, list) and len(e32) == 32:
+                    embeddings.append(list(map(float, e32)))
+                else:
+                    embeddings.append(_hash_vec(o.label + "|" + o.text, 32))
                 md = {"label": o.label, "type": o.kind, "room": room_name, "layer": room_name}
                 md.update(o.extra or {})
                 metadata.append(md)
@@ -337,6 +440,13 @@ class MemoryHouse:
             if ri is not None and oi is not None:
                 neighbors[ri].append(o.id)
                 neighbors[oi].append(self.rooms[o.room].id)
+            # Connect diary pages to their book
+            if isinstance(o.extra, dict) and o.kind == "diary_page":
+                parent_id = o.extra.get("parent")
+                pi = id_index.get(parent_id) if parent_id else None
+                if pi is not None and oi is not None:
+                    neighbors[pi].append(o.id)
+                    neighbors[oi].append(parent_id)
 
         # Optional consolidation: add KNN links among non-room nodes (objects/doors), exclude furniture for clarity
         try:

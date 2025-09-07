@@ -30,4 +30,13 @@ See also
 - `spec/glTF_K3D_extension.md`
 - `spec/k3d_node_schema.json`
 - `docs/CARE_PROTOCOL.md`
+ - `docs/DOORS_AND_NETWORK.md`
 
+Diary nodes (AI-native)
+- `metadata.type = "diary_book" | "diary_page"` — marks diary structures.
+- `metadata.parent` — links a `diary_page` to its `diary_book`.
+- `metadata.embedding32: number[32]` — native page content; also reflected in the packed `embeddings` buffer.
+
+Door nodes (network)
+- `metadata.type = "door"` and `metadata.address: string` — `k3d://...` or asset path (`/houses/<id>/memory_house.gltf`).
+- Doors may be used to connect Houses (LAN) or external services.
