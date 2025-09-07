@@ -180,7 +180,8 @@ def knn_all(
     if not (_want_faiss_gpu() and ok and has_gpu):
         raise RuntimeError("FAISS GPU required (CPU fallback disabled)")
 
-    x = vectors.astype(np.float32)
+    # Ensure C-contiguous float32 array for FAISS
+    x = np.ascontiguousarray(vectors, dtype=np.float32)
     d = x.shape[1]
     if use_ivf:
         nl, npb = _heuristic_ivf_params(n)
