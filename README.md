@@ -142,6 +142,15 @@ Each line is a training example with from/next labels and optional embeddings wh
 - Overlap: near‑field rendering respects minimal spacing; rays are capped by local spacing.
 - LOD: far field uses a performant point cloud; near field upgrades stars to instanced shapes + rays.
 
+Cross‑Modal Edges (optional)
+- Add explicit cross‑modal links between nearest unlike‑modality neighbors to aid navigation:
+```bash
+python3 -m knowledge3d.tools.add_crossmodal_edges \
+  --input viewer/public/galaxy.glb \
+  --out   viewer/public/galaxy.cross.glb
+```
+Open with `?gltf=/galaxy.cross.glb` or replace `galaxy.glb`.
+
 Build a minimal House and Garden for demo:
 ```bash
 # House with a few rooms and book objects

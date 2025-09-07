@@ -22,17 +22,40 @@ export function modalityMask(r: K3DRecord): number {
   return m;
 }
 
-function shapeGeometry(mask: number): THREE.BufferGeometry {
-  // Pick a geometry based on modalities present.
-  // Single modality shapes: text= tetrahedron, image=box, audio=octahedron, video=icosahedron
-  // Mixed -> dodecahedron
+// Shared geometry cache (to enable real instancing)
+const GEO = {
+  tetra: new THREE.TetrahedronGeometry(0.6, 0),
+  box: new THREE.BoxGeometry(0.8, 0.8, 0.8),
+  octa: new THREE.OctahedronGeometry(0.7, 0),
+  icosa: new THREE.IcosahedronGeometry(0.6, 0),
+  dodeca: new THREE.DodecahedronGeometry(0.5, 0),
+  sphere: new THREE.SphereGeometry(0.5, 8, 6),
+};
+
+function shapeKey(mask: number): keyof typeof GEO {
   const bits = [F_TEXT, F_IMAGE, F_AUDIO, F_VIDEO].filter(b => (mask & b) !== 0).length;
-  if (bits >= 2) return new THREE.DodecahedronGeometry(0.5, 0);
-  if (mask & F_TEXT) return new THREE.TetrahedronGeometry(0.6, 0);
-  if (mask & F_IMAGE) return new THREE.BoxGeometry(0.8, 0.8, 0.8);
-  if (mask & F_AUDIO) return new THREE.OctahedronGeometry(0.7, 0);
-  if (mask & F_VIDEO) return new THREE.IcosahedronGeometry(0.6, 0);
-  return new THREE.SphereGeometry(0.5, 8, 6);
+  if (bits >= 2) return 'dodeca';
+  if (mask & F_TEXT) return 'tetra';
+  if (mask & F_IMAGE) return 'box';
+  if (mask & F_AUDIO) return 'octa';
+  if (mask & F_VIDEO) return 'icosa';
+  return 'sphere';
+}
+
+function shapeGeometry(mask: number): THREE.BufferGeometry {
+  return GEO[shapeKey(mask)];
+}
+
+function baseRadius(mask: number): number {
+  // Approximate unscaled radius per geometry for spacing/ray calculations
+  switch (shapeKey(mask)) {
+    case 'tetra': return 0.6;
+    case 'box': return 0.8;
+    case 'octa': return 0.7;
+    case 'icosa': return 0.6;
+    case 'dodeca': return 0.5;
+    default: return 0.5;
+  }
 }
 
 const RAY_COLORS: Record<string, number> = {
@@ -40,6 +63,14 @@ const RAY_COLORS: Record<string, number> = {
   image: 0xffcc66,
   audio: 0x66ff88,
   video: 0xff6699,
+};
+
+const RAY_THICKNESS: Record<'text'|'image'|'audio'|'video', number> = {
+  // Thickness by format (x,z scale of cylinder)
+  text: 0.018,
+  image: 0.030,
+  audio: 0.024,
+  video: 0.034,
 };
 
 function rayDirections(mask: number): Array<{ dir: THREE.Vector3; color: number }>{
@@ -61,19 +92,66 @@ export function buildInstancedStars(
   const group = new THREE.Group();
   const n = Math.min(records.length, maxNodes);
 
+  // Precompute local spacing: nearest-neighbor distance per node
+  const idToIndex = new Map<string, number>();
+  for (let i = 0; i < n; i++) idToIndex.set(records[i].id, i);
+  const nnDist: number[] = new Array(n).fill(Number.POSITIVE_INFINITY);
+  for (let i = 0; i < n; i++) {
+    const r = records[i];
+    const hasN = Array.isArray(r.neighbors) && r.neighbors!.length > 0;
+    if (hasN) {
+      for (const nid of r.neighbors!) {
+        const j = idToIndex.get(nid);
+        if (j === undefined || j === i) continue;
+        const dx = positions[i*3+0]-positions[j*3+0];
+        const dy = positions[i*3+1]-positions[j*3+1];
+        const dz = positions[i*3+2]-positions[j*3+2];
+        const d = Math.hypot(dx, dy, dz);
+        if (d > 0 && d < nnDist[i]) nnDist[i] = d;
+      }
+    }
+  }
+  // Fallback: for any remaining INF, do a light O(n^2) search (n <= 2000)
+  const needFallback = nnDist.some(v => !isFinite(v));
+  if (needFallback) {
+    for (let i = 0; i < n; i++) {
+      if (isFinite(nnDist[i])) continue;
+      let best = Number.POSITIVE_INFINITY;
+      const ix = positions[i*3+0], iy = positions[i*3+1], iz = positions[i*3+2];
+      for (let j = 0; j < n; j++) {
+        if (j === i) continue;
+        const dx = ix-positions[j*3+0];
+        const dy = iy-positions[j*3+1];
+        const dz = iz-positions[j*3+2];
+        const d = Math.hypot(dx, dy, dz);
+        if (d > 0 && d < best) best = d;
+      }
+      nnDist[i] = isFinite(best) ? best : 1.0;
+    }
+  }
+  // Global median for normalization
+  const sorted = [...nnDist].sort((a,b) => a-b);
+  const median = sorted.length ? sorted[Math.floor(sorted.length*0.5)] : 1.0;
+  const safeMedian = (median > 1e-6) ? median : 1.0;
+
   // Partition by geometry type to reduce draw calls
   const buckets = new Map<string, { geom: THREE.BufferGeometry; indices: number[] }>();
   const masks: number[] = new Array(n);
+  const scales: number[] = new Array(n);
+  const bitsCount = (m: number) => [F_TEXT, F_IMAGE, F_AUDIO, F_VIDEO].reduce((s, b) => s + ((m & b) ? 1 : 0), 0);
   for (let i = 0; i < n; i++) {
     const m = modalityMask(records[i]);
     masks[i] = m;
+    // Density-aware star scale: smaller in dense zones, larger in sparse
+    const rel = Math.max(0.5, Math.min(1.5, nnDist[i] / safeMedian));
+    scales[i] = 0.18 * rel; // base 0.18 scaled by density
     const geom = shapeGeometry(m);
-    const key = `${geom.type}:${geom.uuid}`; // approximate key; geometries differ by class
+    const key = shapeKey(m);
     if (!buckets.has(key)) buckets.set(key, { geom, indices: [] });
     buckets.get(key)!.indices.push(i);
   }
 
-  const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.1, roughness: 0.6 });
+  const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.35, metalness: 0.1, roughness: 0.6 });
   for (const { geom, indices } of buckets.values()) {
     const inst = new THREE.InstancedMesh(geom, mat, indices.length);
     const m = new THREE.Matrix4();
@@ -84,8 +162,7 @@ export function buildInstancedStars(
       const x = positions[i * 3 + 0];
       const y = positions[i * 3 + 1];
       const z = positions[i * 3 + 2];
-      // Minimal spacing-based scale based on local density later (placeholder 1)
-      s.setScalar(0.18);
+      s.setScalar(scales[i]);
       q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), (i * 0.17) % (Math.PI * 2));
       m.compose(new THREE.Vector3(x, y, z), q, s);
       inst.setMatrixAt(k, m);
@@ -95,12 +172,35 @@ export function buildInstancedStars(
   }
 
   // Rays: build per-modality cylinder instancing for thickness
-  const rayGeom = new THREE.CylinderGeometry(0.03, 0.03, 1.0, 6, 1, true);
+  const rayGeom = new THREE.CylinderGeometry(0.03, 0.03, 1.0, 10, 1, true);
+  // Subtle vertical gradient via vertex colors (brighter at base, slightly dim at tip)
+  {
+    const pos = rayGeom.getAttribute('position') as THREE.BufferAttribute;
+    const count = pos.count;
+    let minY = Infinity, maxY = -Infinity;
+    for (let i = 0; i < count; i++) {
+      const y = pos.getY(i);
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+    const colors = new Float32Array(count * 3);
+    const span = Math.max(1e-6, maxY - minY);
+    for (let i = 0; i < count; i++) {
+      const y = pos.getY(i);
+      const t = (y - minY) / span; // 0=base, 1=tip
+      // factor: base 1.0 → tip 0.65
+      const f = 1.0 - 0.35 * t;
+      colors[i*3+0] = f;
+      colors[i*3+1] = f;
+      colors[i*3+2] = f;
+    }
+    rayGeom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  }
   const rayMats: Record<string, THREE.MeshBasicMaterial> = {
-    text: new THREE.MeshBasicMaterial({ color: RAY_COLORS.text }),
-    image: new THREE.MeshBasicMaterial({ color: RAY_COLORS.image }),
-    audio: new THREE.MeshBasicMaterial({ color: RAY_COLORS.audio }),
-    video: new THREE.MeshBasicMaterial({ color: RAY_COLORS.video }),
+    text: new THREE.MeshBasicMaterial({ color: RAY_COLORS.text, vertexColors: true }),
+    image: new THREE.MeshBasicMaterial({ color: RAY_COLORS.image, vertexColors: true }),
+    audio: new THREE.MeshBasicMaterial({ color: RAY_COLORS.audio, vertexColors: true }),
+    video: new THREE.MeshBasicMaterial({ color: RAY_COLORS.video, vertexColors: true }),
   };
   const rayBuckets: Record<string, Array<number>> = { text: [], image: [], audio: [], video: [] };
   for (let i = 0; i < n; i++) {
@@ -112,6 +212,8 @@ export function buildInstancedStars(
   }
   const tmp = new THREE.Matrix4();
   const up = new THREE.Vector3(0, 1, 0);
+  const rayLenSum: number[] = new Array(n).fill(0);
+  const rayLenCnt: number[] = new Array(n).fill(0);
   function makeRays(kind: 'text'|'image'|'audio'|'video', indices: number[]) {
     if (!indices.length) return;
     const inst = new THREE.InstancedMesh(rayGeom, rayMats[kind], indices.length);
@@ -127,14 +229,18 @@ export function buildInstancedStars(
       const i = indices[k];
       const x = positions[i*3+0]; const y = positions[i*3+1]; const z = positions[i*3+2];
       const dir = dirs[k];
-      // length based on simple spacing heuristic: short rays to minimize overlap
-      const len = 0.8; // actual length scaled per local spacing later
+      // Spacing-aware length: respect nearest spacing minus star radii margin
+      const margin = 2.0 * (scales[i] * baseRadius(masks[i])) + 0.05;
+      const candidate = Math.max(0.12, 0.45 * Math.max(0.0, nnDist[i] - margin));
+      const len = Math.min(0.8, candidate);
       const pos = new THREE.Vector3(x, y, z).add(dir.clone().multiplyScalar(len*0.5));
       const quat = new THREE.Quaternion();
       quat.setFromUnitVectors(up, dir);
-      const scl = new THREE.Vector3(1, len, 1);
+      const thick = RAY_THICKNESS[kind];
+      const scl = new THREE.Vector3(thick / 0.03, len, thick / 0.03);
       tmp.compose(pos, quat, scl);
       inst.setMatrixAt(k, tmp);
+      rayLenSum[i] += len; rayLenCnt[i] += 1;
     }
     inst.instanceMatrix.needsUpdate = true;
     group.add(inst);
@@ -144,7 +250,29 @@ export function buildInstancedStars(
   makeRays('audio', rayBuckets.audio);
   makeRays('video', rayBuckets.video);
 
+  // Inject a lightweight shape embedding for AI-side enrichment (dual rendering)
+  for (let i = 0; i < n; i++) {
+    try {
+      const m = masks[i];
+      const t = (m & F_TEXT) ? 1 : 0;
+      const im = (m & F_IMAGE) ? 1 : 0;
+      const au = (m & F_AUDIO) ? 1 : 0;
+      const v = (m & F_VIDEO) ? 1 : 0;
+      const mix = bitsCount(m) / 4.0;
+      const nn = Math.max(0, Math.min(1, nnDist[i] / (safeMedian * 2.0)));
+      const scl = Math.max(0, Math.min(1, scales[i] / (0.18 * 1.5)));
+      const rAvg = rayLenCnt[i] > 0 ? (rayLenSum[i] / rayLenCnt[i]) : 0;
+      const rN = Math.max(0, Math.min(1, rAvg / 0.8));
+      const shapeEmb = [t, im, au, v, nn, scl, rN, mix];
+      const md: any = records[i].metadata || {};
+      md.shape_embedding = shapeEmb;
+      md.shape_bits = m;
+      md.nn_dist = nnDist[i];
+      md.ray_len_avg = rAvg;
+      (records[i] as any).metadata = md;
+    } catch {}
+  }
+
   scene.add(group);
   return group;
 }
-

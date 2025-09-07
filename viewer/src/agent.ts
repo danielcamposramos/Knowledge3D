@@ -115,9 +115,20 @@ export class K3DAgent {
   }
 
   private cosSimById(aId: string, bId: string): number {
-    const a = this.recordMap.get(aId)?.embedding || [];
-    const b = this.recordMap.get(bId)?.embedding || [];
-    return this.cosSim(a as number[], b as number[]);
+    const ra = this.recordMap.get(aId);
+    const rb = this.recordMap.get(bId);
+    const a = (ra?.embedding || []) as number[];
+    const b = (rb?.embedding || []) as number[];
+    const base = this.cosSim(a, b);
+    // Optional shape-aware similarity (dual engine): include shape_embedding if both present
+    const sa = ((ra?.metadata as any)?.shape_embedding as number[] | undefined) || undefined;
+    const sb = ((rb?.metadata as any)?.shape_embedding as number[] | undefined) || undefined;
+    if (Array.isArray(sa) && Array.isArray(sb) && sa.length > 0 && sb.length > 0) {
+      const ssim = this.cosSim(sa, sb);
+      const w = 0.85; // emphasize semantic embedding
+      return w * base + (1 - w) * ssim;
+    }
+    return base;
   }
 
   private emitExplain(text: string) {

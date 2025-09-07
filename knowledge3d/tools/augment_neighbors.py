@@ -53,7 +53,7 @@ def write_neighbors_to_glb(in_path: str, out_path: str, new_neighbors: List[List
     k3d = prim.extras.get("k3d", {})
     k3d["neighbors"] = new_neighbors
     prim.extras["k3d"] = k3d
-    g.save(out_path)
+    g.save_binary(out_path)
 
 
 def build_grid_hubs(pos: np.ndarray, target_hubs: int) -> Tuple[np.ndarray, Dict[Tuple[int, int, int], int], Dict[int, Tuple[int, int, int]]]:
@@ -150,4 +150,3 @@ def main() -> None:  # pragma: no cover
 
 if __name__ == "__main__":
     main()
-
