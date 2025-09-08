@@ -14,6 +14,10 @@
 > For local hygiene tasks, see `docs/MAINTENANCE.md`.
 > For environment rules on Debian, see `docs/ENV_POLICY.md`.
 > For the end‑to‑end ingest/build operator steps, see `docs/RUNBOOK_MULTIMODAL_50K.md`.
+> For curated public datasets, see `docs/DATASETS_CATALOG.md`.
+> For scene generation references (DreamFusion, HunyuanWorld), see `docs/SCENE_GEN_INSPIRATION.md`.
+> For client roles, see `docs/DUAL_CLIENTS.md` (no toggle; tailored experiences).
+> For nightly consolidation, see `docs/SLEEP_COMPUTE.md`.
 
 ## Vision
 
@@ -178,7 +182,7 @@ scripts/k3d_env.sh run python -m knowledge3d.tools.gardens --gltf viewer/public/
 ### Knowledge Gardens (Ontology Room)
 - Build demo: `python3 -m knowledge3d.tools.gardens --gltf viewer/public/knowledge_garden.glb`
 - Select in viewer: `knowledge-garden` (draws trees with green edges).
-- Details: `docs/KNOWLEDGE_GARDENS.md`
+- Details: `docs/KNOWLEDGE_GARDENS.md` (meaning‑guided fractal trees plan)
 
 ### Exams (ARC‑AGI / HLE)
 - Serve local datasets: `python3 -m knowledge3d.tools.serve_datasets --port 8766`

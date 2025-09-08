@@ -1,14 +1,15 @@
 K3D Cranium: Skills Bus (Integrated Logic)
 
 Intent
-- Provide a single, coherent logic layer (the “Cranium”) that integrates small, specialized models (skills) directly with House memory, without relying on external adapters at runtime.
+- Provide a single, coherent logic layer (the “Cranium”) that integrates small, specialized models (skills) directly with House memory, without relying on external adapters at runtime. This engine is multimodal by design: chat, vision (images/video), audio, and 3D shape understanding/manipulation live behind one interface.
 
 Skills (initial set)
-- Intent (text → action): Hugging Face classifier trained from live logs.
+- Intent (text → action): HF classifier trained from live logs.
 - Vision (images): OpenCLIP embeddings + retrieval; thumbnails in tooltips.
 - Audio: LAION‑CLAP embeddings + retrieval.
 - Video: frame sampling via PyAV + OpenCLIP aggregation per clip.
-- Dynamics: Tiny RSSM predicts next 3D step from recent trajectory.
+- 3D Shapes: shape features and embeddings for objects/leaves; supports “direct vector manipulation” to change semantics/placement.
+- Dynamics (optional): a tiny RSSM for sequence prediction over interaction traces. This is not a “navigation AI”; it is a helper for temporal reasoning when useful.
 - RPN (policy): precise, auditable rules gating actions and parameters.
 
 Memory Interface
@@ -24,5 +25,4 @@ Sleep‑Compute
   - Retrain the small skills (intent, RSSM) from fresh logs.
 
 Progressive Capability
-- Larger generators (e.g., HunyuanWorld, TRELLIS) are integrated as optional skills and only invoked when hardware permits. The House memory format remains stable.
-
+- Larger generators (e.g., HunyuanWorld, TRELLIS) are integrated as optional producers and only invoked when hardware permits. The House memory format remains stable. The Cranium remains the unified, multimodal logic layer (no hard external dependencies at runtime).

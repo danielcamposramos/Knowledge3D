@@ -18,6 +18,17 @@ Network & Doors
 Apps
 - Small, composable apps (chat, door control, garden view, diary reader) run within the Tablet, keeping logic small and memory stable.
 
+Media & Screens
+- The Tablet includes a media player app:
+  - Video: plays local/served MP4/WebM on the Tablet and can cast to any in‑world screen mesh as a video texture.
+  - Audio: plays WAV/MP3/OGG with a simple waveform/levels overlay; can route to “room speakers”.
+  - Images: preview grid and detail pane; can pin to a screen.
+- Virtual Screens: TVs/monitors/projectors are 3D meshes whose materials receive live textures from the Tablet (video frames or app canvases).
+
+Tool‑Centric & Agentic
+- The Tablet acts as the entry point for tools (file systems, virtual computers, local programs). The Cranium routes tool invocations via a small tool registry (skills bus) and records changes back into House memory (embeddings + metadata updates).
+- Examples: open a browser panel, run a local converter, attach an image/audio to an object, or edit a node’s embedding (direct vector manipulation with safeguards).
+
 Implementation Notes
 - Viewer should expose Tablet interactions in all three modes; a “cast to screen” action should target any projection surfaces present in the House.
 - Door address bars can live on the Tablet as well as on door frames; both paths call into the same `/open` flow.

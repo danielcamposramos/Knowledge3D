@@ -5,6 +5,7 @@ Local Development Environment (Reference)
 - Storage: Standard HDD
 - Local folder (not in repo): ../Knowledge3D.local
   - Structure: datasets/, logs/, models/, mr/, repos/
+  - Alternative raw store (bigger disk): `/K3D/K3D_llama_cpp/datasets/` (often symlinked nearby). Prefer keeping curated subsets under `../Knowledge3D.local/datasets` and link to large raw trees to save space.
 
 Acceleration settings
 - Set `K3D_ACCEL=auto` (default) to prefer GPU when available; override with `gpu` or `cpu`.
