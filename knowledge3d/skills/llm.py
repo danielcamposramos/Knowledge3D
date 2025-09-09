@@ -15,12 +15,17 @@ class LLMConfig:
     # llama.cpp (GGUF) params
     n_gpu_layers: int = int(os.getenv("K3D_LLM_N_GPU_LAYERS", "0"))
     n_ctx: int = int(os.getenv("K3D_LLM_CTX", "2048"))
+    # Optional PEFT base model for adapter directories
+    peft_base: str = os.getenv("K3D_LLM_PEFT_BASE", "").strip()
 
 
 class LLMSkill:
     def __init__(self, cfg: Optional[LLMConfig] = None) -> None:
         self.cfg = cfg or LLMConfig()
         self._llama = None  # llama-cpp handle (lazy)
+        self._hf_model = None  # transformers model cache
+        self._hf_tokenizer = None
+        self._hf_model_key = None  # str identifying model or adapter path
 
     def set_backend(self, backend: str, model: Optional[str] = None, url: Optional[str] = None) -> None:
         self.cfg.backend = backend
@@ -71,7 +76,17 @@ class LLMSkill:
         except Exception as e:
             return f"[llm:transformers import error] {e}"
         try:
-            tok = AutoTokenizer.from_pretrained(self.cfg.model)
+            import os as _os
+            from pathlib import Path as _Path
+            model_id_or_path = self.cfg.model
+            adapter_path = _Path(model_id_or_path)
+            use_peft = adapter_path.exists() and adapter_path.is_dir() and (adapter_path/"adapter_config.json").exists()
+            base_model = None
+            if use_peft:
+                base_txt = (adapter_path/"base_model_id.txt")
+                base_model = (self.cfg.peft_base or (base_txt.read_text(encoding="utf-8").strip() if base_txt.exists() else "")).strip()
+                if not base_model:
+                    base_model = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
             device = "cuda" if torch.cuda.is_available() else "cpu"
             quant = os.getenv("K3D_LLM_QUANT", "").lower().strip()
             quant_cfg = None
@@ -92,12 +107,30 @@ class LLMSkill:
                     kwargs["device_map"] = "auto"
                 except Exception:
                     quant_cfg = None
-
             if quant_cfg is None:
                 kwargs["torch_dtype"] = (torch.float16 if device == "cuda" else None)
-            mdl = AutoModelForCausalLM.from_pretrained(self.cfg.model, **kwargs)
-            if quant_cfg is None:
-                mdl = mdl.to(device)
+            # Cache key
+            model_key = (str(adapter_path.resolve()) if use_peft else model_id_or_path) + f"|q={quant if quant else 'none'}"
+            if self._hf_model is None or self._hf_model_key != model_key:
+                tok = AutoTokenizer.from_pretrained(base_model or model_id_or_path)
+                if use_peft:
+                    mdl = AutoModelForCausalLM.from_pretrained(base_model, **kwargs)
+                    try:
+                        from peft import PeftModel  # type: ignore
+                        mdl = PeftModel.from_pretrained(mdl, str(adapter_path))
+                    except Exception as e:
+                        return f"[llm:transformers peft load error] {e}"
+                    if quant_cfg is None:
+                        mdl = mdl.to(device)
+                else:
+                    mdl = AutoModelForCausalLM.from_pretrained(model_id_or_path, **kwargs)
+                    if quant_cfg is None:
+                        mdl = mdl.to(device)
+                self._hf_model = mdl
+                self._hf_tokenizer = tok
+                self._hf_model_key = model_key
+            mdl = self._hf_model
+            tok = self._hf_tokenizer
             full = (system + "\n\n" if system else "") + prompt
             ids = tok(full, return_tensors="pt").to(mdl.device)
             out = mdl.generate(**ids, max_new_tokens=int(max_tokens or self.cfg.max_tokens), do_sample=True, top_p=0.9, temperature=0.7)

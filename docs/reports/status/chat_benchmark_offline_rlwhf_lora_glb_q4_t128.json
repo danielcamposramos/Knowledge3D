@@ -1,0 +1,447 @@
+{
+  "n_labels": 255486,
+  "n_queries": 20,
+  "model": "../Knowledge3D.local/models/rlwhf_lora_tinyllama_glb",
+  "modes": {
+    "k3d": {
+      "count": 20,
+      "latency_ms_avg": 169.14000205142656,
+      "latency_ms_p50": 59.00582099275198,
+      "context_sim_avg": 0.7760900604260279
+    },
+    "llm": {
+      "count": 20,
+      "latency_ms_avg": 10545.738414899824,
+      "latency_ms_p50": 13702.533150004456,
+      "context_sim_avg": 0.2033483230418096
+    },
+    "llm_rag": {
+      "count": 20,
+      "latency_ms_avg": 13536.577276798926,
+      "latency_ms_p50": 13512.948161005625,
+      "context_sim_avg": 0.6369579915509798
+    }
+  },
+  "rows": [
+    {
+      "query": "What is text:w:197711?",
+      "mode": "k3d",
+      "latency_ms": 2265.2405529952375,
+      "answer_chars": 429,
+      "context_sim": 0.9207621207566364
+    },
+    {
+      "query": "What is text:w:197711?",
+      "mode": "llm",
+      "latency_ms": 12148.40022601129,
+      "answer_chars": 392,
+      "context_sim": 0.28644698829616405
+    },
+    {
+      "query": "What is text:w:197711?",
+      "mode": "llm_rag",
+      "latency_ms": 13616.731146990787,
+      "answer_chars": 833,
+      "context_sim": 0.6298352849047424
+    },
+    {
+      "query": "Explain text:w:183293 in simple terms.",
+      "mode": "k3d",
+      "latency_ms": 55.87699000898283,
+      "answer_chars": 420,
+      "context_sim": 0.7806397668661497
+    },
+    {
+      "query": "Explain text:w:183293 in simple terms.",
+      "mode": "llm",
+      "latency_ms": 13791.795297001954,
+      "answer_chars": 1118,
+      "context_sim": 0.03635945167481837
+    },
+    {
+      "query": "Explain text:w:183293 in simple terms.",
+      "mode": "llm_rag",
+      "latency_ms": 13187.696649998543,
+      "answer_chars": 655,
+      "context_sim": 0.8764593592462212
+    },
+    {
+      "query": "Give a brief overview of text:w:51468.",
+      "mode": "k3d",
+      "latency_ms": 61.940251995110884,
+      "answer_chars": 415,
+      "context_sim": 0.8195986524490548
+    },
+    {
+      "query": "Give a brief overview of text:w:51468.",
+      "mode": "llm",
+      "latency_ms": 13672.587883993401,
+      "answer_chars": 360,
+      "context_sim": 0.239014982283412
+    },
+    {
+      "query": "Give a brief overview of text:w:51468.",
+      "mode": "llm_rag",
+      "latency_ms": 13315.627866002615,
+      "answer_chars": 773,
+      "context_sim": 0.6307801973937429
+    },
+    {
+      "query": "Summarize 000000546581.jpg.",
+      "mode": "k3d",
+      "latency_ms": 52.93725000228733,
+      "answer_chars": 377,
+      "context_sim": 0.822649348309492
+    },
+    {
+      "query": "Summarize 000000546581.jpg.",
+      "mode": "llm",
+      "latency_ms": 13611.600221993285,
+      "answer_chars": 660,
+      "context_sim": 0.2606034872310042
+    },
+    {
+      "query": "Summarize 000000546581.jpg.",
+      "mode": "llm_rag",
+      "latency_ms": 13661.860596999759,
+      "answer_chars": 815,
+      "context_sim": 0.44689246967449114
+    },
+    {
+      "query": "Tell me about 000000005325.jpg.",
+      "mode": "k3d",
+      "latency_ms": 60.584537000977434,
+      "answer_chars": 361,
+      "context_sim": 0.7763882138349164
+    },
+    {
+      "query": "Tell me about 000000005325.jpg.",
+      "mode": "llm",
+      "latency_ms": 943.3336200017948,
+      "answer_chars": 83,
+      "context_sim": 0.2158691860584916
+    },
+    {
+      "query": "Tell me about 000000005325.jpg.",
+      "mode": "llm_rag",
+      "latency_ms": 13512.948161005625,
+      "answer_chars": 616,
+      "context_sim": 0.9148902237141676
+    },
+    {
+      "query": "What is text:w:194446?",
+      "mode": "k3d",
+      "latency_ms": 60.929448998649605,
+      "answer_chars": 429,
+      "context_sim": 0.9129614172961991
+    },
+    {
+      "query": "What is text:w:194446?",
+      "mode": "llm",
+      "latency_ms": 13861.352780993911,
+      "answer_chars": 385,
+      "context_sim": 0.2126618323583678
+    },
+    {
+      "query": "What is text:w:194446?",
+      "mode": "llm_rag",
+      "latency_ms": 13337.092753994511,
+      "answer_chars": 868,
+      "context_sim": 0.5860176080565604
+    },
+    {
+      "query": "Explain text:w:32729 in simple terms.",
+      "mode": "k3d",
+      "latency_ms": 56.690866011194885,
+      "answer_chars": 419,
+      "context_sim": 0.7175387136913357
+    },
+    {
+      "query": "Explain text:w:32729 in simple terms.",
+      "mode": "llm",
+      "latency_ms": 2495.4113319981843,
+      "answer_chars": 225,
+      "context_sim": 0.024383151879365357
+    },
+    {
+      "query": "Explain text:w:32729 in simple terms.",
+      "mode": "llm_rag",
+      "latency_ms": 13750.17661799211,
+      "answer_chars": 895,
+      "context_sim": 0.45912605478150503
+    },
+    {
+      "query": "Give a brief overview of text:w:22799.",
+      "mode": "k3d",
+      "latency_ms": 55.0751420087181,
+      "answer_chars": 415,
+      "context_sim": 0.8169755927499188
+    },
+    {
+      "query": "Give a brief overview of text:w:22799.",
+      "mode": "llm",
+      "latency_ms": 13386.040587996831,
+      "answer_chars": 300,
+      "context_sim": 0.2519475965333353
+    },
+    {
+      "query": "Give a brief overview of text:w:22799.",
+      "mode": "llm_rag",
+      "latency_ms": 13777.742616992327,
+      "answer_chars": 816,
+      "context_sim": 0.578659329947891
+    },
+    {
+      "query": "Summarize text:w:167214.",
+      "mode": "k3d",
+      "latency_ms": 57.01328400755301,
+      "answer_chars": 78,
+      "context_sim": 0.3310651477840929
+    },
+    {
+      "query": "Summarize text:w:167214.",
+      "mode": "llm",
+      "latency_ms": 13720.110362002742,
+      "answer_chars": 810,
+      "context_sim": 0.2887938019725587
+    },
+    {
+      "query": "Summarize text:w:167214.",
+      "mode": "llm_rag",
+      "latency_ms": 13401.69913500722,
+      "answer_chars": 648,
+      "context_sim": 0.5042890605824288
+    },
+    {
+      "query": "Tell me about text:w:131114.",
+      "mode": "k3d",
+      "latency_ms": 54.15761699259747,
+      "answer_chars": 358,
+      "context_sim": 0.8387448375486446
+    },
+    {
+      "query": "Tell me about text:w:131114.",
+      "mode": "llm",
+      "latency_ms": 13760.459661003551,
+      "answer_chars": 538,
+      "context_sim": 0.25951917500288285
+    },
+    {
+      "query": "Tell me about text:w:131114.",
+      "mode": "llm_rag",
+      "latency_ms": 13367.852848998155,
+      "answer_chars": 674,
+      "context_sim": 0.8624458900410269
+    },
+    {
+      "query": "What is text:w:110617?",
+      "mode": "k3d",
+      "latency_ms": 59.56146199605428,
+      "answer_chars": 429,
+      "context_sim": 0.9122351346570473
+    },
+    {
+      "query": "What is text:w:110617?",
+      "mode": "llm",
+      "latency_ms": 819.3228360032663,
+      "answer_chars": 72,
+      "context_sim": 0.021166538798504136
+    },
+    {
+      "query": "What is text:w:110617?",
+      "mode": "llm_rag",
+      "latency_ms": 13697.367330998532,
+      "answer_chars": 809,
+      "context_sim": 0.6578334563352695
+    },
+    {
+      "query": "Explain text:w:21955 in simple terms.",
+      "mode": "k3d",
+      "latency_ms": 59.00582099275198,
+      "answer_chars": 419,
+      "context_sim": 0.7142520795179008
+    },
+    {
+      "query": "Explain text:w:21955 in simple terms.",
+      "mode": "llm",
+      "latency_ms": 13409.6320259996,
+      "answer_chars": 853,
+      "context_sim": 0.20835940270803643
+    },
+    {
+      "query": "Explain text:w:21955 in simple terms.",
+      "mode": "llm_rag",
+      "latency_ms": 13898.999954995816,
+      "answer_chars": 783,
+      "context_sim": 0.6562429455061565
+    },
+    {
+      "query": "Give a brief overview of text:w:115061.",
+      "mode": "k3d",
+      "latency_ms": 68.27992299804464,
+      "answer_chars": 416,
+      "context_sim": 0.8440852752827762
+    },
+    {
+      "query": "Give a brief overview of text:w:115061.",
+      "mode": "llm",
+      "latency_ms": 14058.411342994077,
+      "answer_chars": 612,
+      "context_sim": 0.23375020800998988
+    },
+    {
+      "query": "Give a brief overview of text:w:115061.",
+      "mode": "llm_rag",
+      "latency_ms": 13312.602768011857,
+      "answer_chars": 613,
+      "context_sim": 0.7389423839809062
+    },
+    {
+      "query": "Summarize 000000311015.jpg.",
+      "mode": "k3d",
+      "latency_ms": 57.32726800488308,
+      "answer_chars": 355,
+      "context_sim": 0.845606803048436
+    },
+    {
+      "query": "Summarize 000000311015.jpg.",
+      "mode": "llm",
+      "latency_ms": 13725.901588986744,
+      "answer_chars": 764,
+      "context_sim": 0.27233862849658225
+    },
+    {
+      "query": "Summarize 000000311015.jpg.",
+      "mode": "llm_rag",
+      "latency_ms": 13461.622318995069,
+      "answer_chars": 698,
+      "context_sim": 0.5433909291555531
+    },
+    {
+      "query": "Tell me about text:w:24058.",
+      "mode": "k3d",
+      "latency_ms": 68.34192899987102,
+      "answer_chars": 357,
+      "context_sim": 0.8278399594993061
+    },
+    {
+      "query": "Tell me about text:w:24058.",
+      "mode": "llm",
+      "latency_ms": 13718.196722009452,
+      "answer_chars": 754,
+      "context_sim": 0.1905351541840139
+    },
+    {
+      "query": "Tell me about text:w:24058.",
+      "mode": "llm_rag",
+      "latency_ms": 13459.808642001008,
+      "answer_chars": 794,
+      "context_sim": 0.5724741555970688
+    },
+    {
+      "query": "What is text:w:187960?",
+      "mode": "k3d",
+      "latency_ms": 59.70299900218379,
+      "answer_chars": 429,
+      "context_sim": 0.9221477592130547
+    },
+    {
+      "query": "What is text:w:187960?",
+      "mode": "llm",
+      "latency_ms": 13702.533150004456,
+      "answer_chars": 426,
+      "context_sim": 0.29742571116439115
+    },
+    {
+      "query": "What is text:w:187960?",
+      "mode": "llm_rag",
+      "latency_ms": 13863.126726006158,
+      "answer_chars": 656,
+      "context_sim": 0.8113136508322425
+    },
+    {
+      "query": "Explain 000000094745.jpg in simple terms.",
+      "mode": "k3d",
+      "latency_ms": 55.707685998640954,
+      "answer_chars": 433,
+      "context_sim": 0.7136662424619741
+    },
+    {
+      "query": "Explain 000000094745.jpg in simple terms.",
+      "mode": "llm",
+      "latency_ms": 63.58157099748496,
+      "answer_chars": 0,
+      "context_sim": null
+    },
+    {
+      "query": "Explain 000000094745.jpg in simple terms.",
+      "mode": "llm_rag",
+      "latency_ms": 13428.660400997614,
+      "answer_chars": 835,
+      "context_sim": 0.4927229872021954
+    },
+    {
+      "query": "Give a brief overview of text:w:112115.",
+      "mode": "k3d",
+      "latency_ms": 57.883868998032995,
+      "answer_chars": 416,
+      "context_sim": 0.8331664096825241
+    },
+    {
+      "query": "Give a brief overview of text:w:112115.",
+      "mode": "llm",
+      "latency_ms": 13809.818958005053,
+      "answer_chars": 923,
+      "context_sim": 0.3035666641537545
+    },
+    {
+      "query": "Give a brief overview of text:w:112115.",
+      "mode": "llm_rag",
+      "latency_ms": 13537.367397002527,
+      "answer_chars": 784,
+      "context_sim": 0.599868714209549
+    },
+    {
+      "query": "Summarize text:w:178151.",
+      "mode": "k3d",
+      "latency_ms": 62.21008700958919,
+      "answer_chars": 78,
+      "context_sim": 0.34265261854238765
+    },
+    {
+      "query": "Summarize text:w:178151.",
+      "mode": "llm",
+      "latency_ms": 2410.8977599971695,
+      "answer_chars": 170,
+      "context_sim": 0.0999706073578226
+    },
+    {
+      "query": "Summarize text:w:178151.",
+      "mode": "llm_rag",
+      "latency_ms": 13753.849526998238,
+      "answer_chars": 706,
+      "context_sim": 0.5186955923615534
+    },
+    {
+      "query": "Tell me about text:w:134496.",
+      "mode": "k3d",
+      "latency_ms": 54.33305700717028,
+      "answer_chars": 358,
+      "context_sim": 0.8288251153287065
+    },
+    {
+      "query": "Tell me about text:w:134496.",
+      "mode": "llm",
+      "latency_ms": 13805.38037000224,
+      "answer_chars": 762,
+      "context_sim": 0.16090556963088823
+    },
+    {
+      "query": "Tell me about text:w:134496.",
+      "mode": "llm_rag",
+      "latency_ms": 13388.712075990043,
+      "answer_chars": 784,
+      "context_sim": 0.6582795374963225
+    }
+  ]
+}

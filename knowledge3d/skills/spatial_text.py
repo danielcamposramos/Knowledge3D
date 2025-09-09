@@ -10,6 +10,7 @@ keeps inference fully inside K3D.
 """
 
 from typing import List, Tuple
+from .llm import LLMSkill, LLMConfig  # type: ignore
 
 _ranker = None
 
@@ -94,3 +95,29 @@ def compose_answer(question: str, contexts: List[Tuple[str, str]], max_chars: in
     parts.extend(out_lines)
     parts.append("I hope this helps. We can navigate to any of these topics for more detail.")
     return "\n".join(parts)
+
+
+def compose_generate(question: str, contexts: List[Tuple[str, str]], max_tokens: int = 256) -> str:
+    """
+    Grounded generative path: uses the internal LLM skill to generate an answer
+    strictly from provided contexts (House memory). Honors the grounded policy
+    in knowledge3d/skills/llm.py by instructing the model to admit unknowns and
+    cite labels.
+
+    Model selection follows env defaults, so RLWHF LoRA adapters can be used by
+    setting `K3D_LLM_MODEL` to the adapter directory and `K3D_LLM_PEFT_BASE` to
+    the base model id.
+    """
+    q = _normalize(question)
+    # Limit to unique, non-empty contexts
+    seen = set(); pairs: List[Tuple[str, str]] = []
+    for lab, txt in contexts:
+        lab = _normalize(lab); txt = _normalize(txt)
+        if not lab or not txt: continue
+        if lab in seen: continue
+        seen.add(lab); pairs.append((lab, txt))
+        if len(pairs) >= 6: break
+    if not pairs:
+        return "I don't have enough memory text for that yet."
+    llm = LLMSkill(LLMConfig())
+    return llm.answer_with_rag(q, pairs, max_tokens=max_tokens)
