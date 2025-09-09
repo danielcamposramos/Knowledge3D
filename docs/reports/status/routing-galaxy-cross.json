@@ -1,25 +1,25 @@
 {
-  "n": 6676,
-  "pairs": 64,
+  "n": 255486,
+  "pairs": 128,
   "bfs": {
-    "success": 64,
-    "count": 64,
+    "success": 128,
+    "count": 128,
     "success_rate": 1.0,
-    "median_hops": 5,
-    "avg_ms": 5.586781813008201
+    "median_hops": 7,
+    "avg_ms": 1036.9987918664947
   },
   "astar": {
-    "success": 64,
-    "count": 64,
+    "success": 128,
+    "count": 128,
     "success_rate": 1.0,
-    "median_hops": 12,
-    "avg_ms": 42.04997476585959
+    "median_hops": 34,
+    "avg_ms": 4381.216037351123
   },
   "astar_lod": {
-    "success": 64,
-    "count": 64,
-    "success_rate": 1.0,
-    "median_hops": 15,
-    "avg_ms": 41.737067248732274
+    "success": 125,
+    "count": 128,
+    "success_rate": 0.9765625,
+    "median_hops": 41,
+    "avg_ms": 4492.105165101293
   }
 }

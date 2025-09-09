@@ -1,0 +1,11 @@
+{
+  "messages": 0,
+  "avg_reward": 0.0,
+  "sum_reward": 0.0,
+  "breakdown": {
+    "grounded": 0,
+    "partial": 0,
+    "honest": 0,
+    "hallucination": 0
+  }
+}

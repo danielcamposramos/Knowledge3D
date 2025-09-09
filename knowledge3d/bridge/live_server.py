@@ -704,6 +704,26 @@ class LiveServer:
         if cmd == "/diary":
             await self._handle_diary(parts[1:] if len(parts) > 1 else [], client)
             return
+        if cmd in ("/fb", "/feedback"):
+            # RLWHF: /fb good|partial|bad [gold_or_notes]
+            try:
+                rating = (parts[1] if len(parts) > 1 else "").strip().lower()
+                notes = (parts[2] if len(parts) > 2 else "").strip()
+            except Exception:
+                rating, notes = "", ""
+            if rating not in ("good", "partial", "bad"):
+                await self.send_system(client.channel, "Usage: /fb good|partial|bad [gold_or_notes]")
+                return
+            rec = {
+                "type": "feedback",
+                "channel": client.channel,
+                "from": client.nick,
+                "rating": rating,
+                "gold": notes,
+            }
+            await self.log(rec)
+            await self.send_chat(sender="agent", text=f"[thanks] feedback noted: {rating}", channel=client.channel)
+            return
         if cmd == "/brain":
             # /brain reflect | /brain sleep [out]
             sub = parts[1].lower() if len(parts) > 1 else "status"
