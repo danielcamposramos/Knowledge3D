@@ -12,3 +12,5 @@ dependencies:
       - umap-learn
       - sentence-transformers
       - faiss-cpu
+      - websockets==10.4
+      - pyyaml

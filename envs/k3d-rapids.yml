@@ -18,3 +18,5 @@ dependencies:
       - pygltflib
       - umap-learn
       - sentence-transformers
+      - websockets==10.4
+      - pyyaml

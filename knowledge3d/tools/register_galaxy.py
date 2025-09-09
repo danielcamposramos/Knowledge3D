@@ -45,7 +45,8 @@ def _load_from_glb(path: Path) -> Tuple[Dict[str, Any], List[Tuple[float, float,
 async def _send(url: str, msgs: List[Dict[str, Any]]) -> None:
     import websockets  # type: ignore
 
-    async with websockets.connect(url) as ws:
+    # Allow a longer handshake window for slower server startups
+    async with websockets.connect(url, open_timeout=30) as ws:
         # drain initial server messages (welcome/system)
         async def recv_once():
             try:
@@ -93,4 +94,3 @@ def main() -> None:  # pragma: no cover
 
 if __name__ == "__main__":
     main()
-

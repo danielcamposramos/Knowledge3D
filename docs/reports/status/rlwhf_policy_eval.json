@@ -1,0 +1,107 @@
+{
+  "count": 20,
+  "sim_avg": 0.3486130313536654,
+  "sim_p50": 0.272483169760018,
+  "rows": [
+    {
+      "query": "What is text:w:197711?",
+      "sim": 0.24329604184139786,
+      "answer_chars": 1092
+    },
+    {
+      "query": "Explain text:w:183293 in simple terms.",
+      "sim": 0.272483169760018,
+      "answer_chars": 779
+    },
+    {
+      "query": "Give a brief overview of text:w:51468.",
+      "sim": 0.6232976907219171,
+      "answer_chars": 1019
+    },
+    {
+      "query": "Summarize 000000546581.jpg.",
+      "sim": 0.6703936654055114,
+      "answer_chars": 893
+    },
+    {
+      "query": "Tell me about 000000005325.jpg.",
+      "sim": 0.02382821871380009,
+      "answer_chars": 862
+    },
+    {
+      "query": "What is text:w:194446?",
+      "sim": 0.4588023693028058,
+      "answer_chars": 1084
+    },
+    {
+      "query": "Explain text:w:32729 in simple terms.",
+      "sim": 0.5785932032751574,
+      "answer_chars": 1071
+    },
+    {
+      "query": "Give a brief overview of text:w:22799.",
+      "sim": 0.15829979810976794,
+      "answer_chars": 958
+    },
+    {
+      "query": "Summarize text:w:167214.",
+      "sim": 0.16061142070921583,
+      "answer_chars": 680
+    },
+    {
+      "query": "Tell me about text:w:131114.",
+      "sim": 0.8232394448631009,
+      "answer_chars": 675
+    },
+    {
+      "query": "What is text:w:110617?",
+      "sim": 0.41459300563557683,
+      "answer_chars": 866
+    },
+    {
+      "query": "Explain text:w:21955 in simple terms.",
+      "sim": 0.6147451761026063,
+      "answer_chars": 1121
+    },
+    {
+      "query": "Give a brief overview of text:w:115061.",
+      "sim": 0.6512290232821816,
+      "answer_chars": 1032
+    },
+    {
+      "query": "Summarize 000000311015.jpg.",
+      "sim": 0.5173015301598698,
+      "answer_chars": 910
+    },
+    {
+      "query": "Tell me about text:w:24058.",
+      "sim": 0.02647690630153999,
+      "answer_chars": 1116
+    },
+    {
+      "query": "What is text:w:187960?",
+      "sim": 0.24329604184139786,
+      "answer_chars": 1092
+    },
+    {
+      "query": "Explain 000000094745.jpg in simple terms.",
+      "sim": 0.23589597618832123,
+      "answer_chars": 926
+    },
+    {
+      "query": "Give a brief overview of text:w:112115.",
+      "sim": 0.02358050782590464,
+      "answer_chars": 45
+    },
+    {
+      "query": "Summarize text:w:178151.",
+      "sim": 0.026753323125908,
+      "answer_chars": 1038
+    },
+    {
+      "query": "Tell me about text:w:134496.",
+      "sim": 0.20554411390730987,
+      "answer_chars": 194
+    }
+  ]
+}

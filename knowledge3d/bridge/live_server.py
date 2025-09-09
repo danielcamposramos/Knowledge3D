@@ -28,9 +28,14 @@ class Client:
 
 
 class LiveServer:
-    def __init__(self, host: str = "127.0.0.1", port: int = 8765) -> None:
+    def __init__(self, host: str = "127.0.0.1", port: int = 8765, fast_start: Optional[bool] = None) -> None:
         self.host = host
         self.port = port
+        # Fast-start mode: delay heavy optional imports and model loads until after the server is listening
+        try:
+            self._fast_start = (str(os.getenv("K3D_LIVE_FAST", "1")).strip() != "0") if fast_start is None else bool(fast_start)
+        except Exception:
+            self._fast_start = True
         self.clients: Set[_ClientKey] = set()
         self.channels: Dict[str, Set[_ClientKey]] = {"#general": set()}
         self.by_key: Dict[_ClientKey, Client] = {}
@@ -156,48 +161,53 @@ class LiveServer:
             self._predictors.append(("sklearn", skl_pred))
         except Exception:
             pass
-        # Auto-load default models (optional)
-        try:
-            repo_root = Path(__file__).resolve().parents[2]
-            local_root = repo_root.parent / f"{repo_root.name}.local"
-            env_path = os.getenv("K3D_MODEL")
-            auto_on = True if str(os.getenv("K3D_MODEL_AUTO", "1")).strip() != "0" else False
-            want_ensemble = True if str(os.getenv("K3D_MODEL_ENSEMBLE", "0")).strip() != "0" else False
-            candidates: list[tuple[str, Path]] = []
-            if env_path:
-                p = Path(env_path)
-                kind = "hf" if p.is_dir() else "sklearn"
-                candidates.append((kind, p))
-            else:
-                hf_dir = local_root / "models" / "intent_hf"
-                pkl = local_root / "models" / "intent.pkl"
-                if hf_dir.exists() and (hf_dir / "config.json").exists():
-                    candidates.append(("hf", hf_dir))
-                if pkl.exists():
-                    candidates.append(("sklearn", pkl))
-            for kind, path in candidates:
-                loader = next((l for k,l in self._loaders if k==kind), None)
-                if not loader:
-                    continue
+        # Heavy HF intent loader import and auto-loading: delay when fast_start enabled
+        if not self._fast_start:
+            try:
+                repo_root = Path(__file__).resolve().parents[2]
+                local_root = repo_root.parent / f"{repo_root.name}.local"
+                env_path = os.getenv("K3D_MODEL")
+                auto_on = True if str(os.getenv("K3D_MODEL_AUTO", "1")).strip() != "0" else False
+                want_ensemble = True if str(os.getenv("K3D_MODEL_ENSEMBLE", "0")).strip() != "0" else False
+                # Load HF loader (may import transformers)
                 try:
-                    mdl = loader(path)
-                    self._models[kind] = mdl
-                    self._model_paths[kind] = str(path)
-                    if want_ensemble:
-                        self._active_kinds.add(kind)
+                    from ..models.intent_hf import load_model as hf_load, predict_action as hf_pred  # type: ignore
+                    self._loaders.append(("hf", hf_load))
+                    self._predictors.append(("hf", hf_pred))
                 except Exception:
-                    continue
-            if not self._active_kinds and self._models:
-                # default to hf if present, else any
-                self._active_kinds.add("hf" if "hf" in self._models else next(iter(self._models.keys())))
-            self._model_enabled = auto_on and bool(self._active_kinds)
-        except Exception:
-            pass
-        try:
-            from ..models.intent_hf import load_model as hf_load, predict_action as hf_pred  # type: ignore
-            self._loaders.append(("hf", hf_load))
-            self._predictors.append(("hf", hf_pred))
-        except Exception:
+                    pass
+                candidates: list[tuple[str, Path]] = []
+                if env_path:
+                    p = Path(env_path)
+                    kind = "hf" if p.is_dir() else "sklearn"
+                    candidates.append((kind, p))
+                else:
+                    hf_dir = local_root / "models" / "intent_hf"
+                    pkl = local_root / "models" / "intent.pkl"
+                    if hf_dir.exists() and (hf_dir / "config.json").exists():
+                        candidates.append(("hf", hf_dir))
+                    if pkl.exists():
+                        candidates.append(("sklearn", pkl))
+                for kind, path in candidates:
+                    loader = next((l for k,l in self._loaders if k==kind), None)
+                    if not loader:
+                        continue
+                    try:
+                        mdl = loader(path)
+                        self._models[kind] = mdl
+                        self._model_paths[kind] = str(path)
+                        if want_ensemble:
+                            self._active_kinds.add(kind)
+                    except Exception:
+                        continue
+                if not self._active_kinds and self._models:
+                    # default to hf if present, else any
+                    self._active_kinds.add("hf" if "hf" in self._models else next(iter(self._models.keys())))
+                self._model_enabled = auto_on and bool(self._active_kinds)
+            except Exception:
+                pass
+        else:
+            # fast start: postpone HF loader import and any model auto-load to warmup
             pass
         # Backward-compat shim removed: use _models/_active_kinds
         # Pause state per channel
@@ -413,6 +423,10 @@ class LiveServer:
             ev = msg.get("event", {})
             kind = ev.get("kind")
             self._last_activity[client.channel] = self._now()
+            # Lightweight health check for readiness probes
+            if kind == "healthz":
+                await self.send_json({"type": "system", "text": "ok", "ts": datetime.utcnow().isoformat() + "Z"}, channel=client.channel)
+                return
             # Capture dataset graph for routing
             if kind == "dataset_graph":
                 ids = ev.get("ids") or []
@@ -1211,15 +1225,73 @@ class LiveServer:
         else:
             await asyncio.gather(*[c.ws.send(payload) for c in list(self.clients)])
 
+    async def _warmup_heavy(self):
+        if not self._fast_start:
+            return
+        loop = asyncio.get_running_loop()
+        # Import HF loader in thread to avoid blocking event loop
+        def _import_hf():
+            try:
+                from ..models.intent_hf import load_model as hf_load, predict_action as hf_pred  # type: ignore
+                return hf_load, hf_pred
+            except Exception:
+                return None
+        res = await loop.run_in_executor(None, _import_hf)
+        if res:
+            hf_load, hf_pred = res
+            self._loaders.append(("hf", hf_load))
+            self._predictors.append(("hf", hf_pred))
+        # Auto-load default models (best effort)
+        def _auto_load():
+            try:
+                repo_root = Path(__file__).resolve().parents[2]
+                local_root = repo_root.parent / f"{repo_root.name}.local"
+                env_path = os.getenv("K3D_MODEL")
+                auto_on = True if str(os.getenv("K3D_MODEL_AUTO", "1")).strip() != "0" else False
+                want_ensemble = True if str(os.getenv("K3D_MODEL_ENSEMBLE", "0")).strip() != "0" else False
+                candidates: list[tuple[str, Path]] = []
+                if env_path:
+                    p = Path(env_path)
+                    kind = "hf" if p.is_dir() else "sklearn"
+                    candidates.append((kind, p))
+                else:
+                    hf_dir = local_root / "models" / "intent_hf"
+                    pkl = local_root / "models" / "intent.pkl"
+                    if hf_dir.exists() and (hf_dir / "config.json").exists():
+                        candidates.append(("hf", hf_dir))
+                    if pkl.exists():
+                        candidates.append(("sklearn", pkl))
+                for kind, path in candidates:
+                    loader = next((l for k,l in self._loaders if k==kind), None)
+                    if not loader:
+                        continue
+                    try:
+                        mdl = loader(path)
+                        self._models[kind] = mdl
+                        self._model_paths[kind] = str(path)
+                        if want_ensemble:
+                            self._active_kinds.add(kind)
+                    except Exception:
+                        continue
+                if not self._active_kinds and self._models:
+                    self._active_kinds.add("hf" if "hf" in self._models else next(iter(self._models.keys())))
+                self._model_enabled = auto_on and bool(self._active_kinds)
+            except Exception:
+                pass
+        await loop.run_in_executor(None, _auto_load)
+
     async def run(self):
         async with websockets.serve(self.handler, self.host, self.port):
             print(f"K3D live server listening on ws://{self.host}:{self.port}")
-            # Start background log compression loop
+            # Start background tasks early so handshake can complete
             try:
                 asyncio.create_task(self._log_maintenance_loop())
             except Exception:
                 pass
-            # Start autonomy loop
+            try:
+                asyncio.create_task(self._warmup_heavy())
+            except Exception:
+                pass
             try:
                 if self._autonomy_enabled:
                     asyncio.create_task(self._autonomy_loop())
@@ -1814,8 +1886,9 @@ def main():  # pragma: no cover
     ap = argparse.ArgumentParser(description="K3D Live Server")
     ap.add_argument("--host", default=_host)
     ap.add_argument("--port", type=int, default=_port)
+    ap.add_argument("--fast-start", action="store_true", help="Delay heavy imports/model loads until after the server starts listening")
     args = ap.parse_args()
-    srv = LiveServer(host=args.host, port=args.port)
+    srv = LiveServer(host=args.host, port=args.port, fast_start=(True if args.fast_start else None))
     asyncio.run(srv.run())
 
 

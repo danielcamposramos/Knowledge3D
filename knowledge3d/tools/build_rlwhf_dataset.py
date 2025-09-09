@@ -21,6 +21,7 @@ import argparse
 import json
 from pathlib import Path
 from typing import Dict, List, Optional
+from .eval_honesty_reward import is_honest  # reuse shared honesty detector
 import numpy as np
 
 

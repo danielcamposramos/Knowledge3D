@@ -50,3 +50,11 @@ Environment selection and pitfalls
 - Always use the wrapper to run Python: `scripts/k3d_env.sh run python -m ...`
   - Do not nest `bash -lc` inside `conda run` — it may drop to system Python 2.7 and cause syntax errors.
   - The wrapper sets `PYTHONPATH=.` so local modules resolve from repo root.
+
+Live server ports and WebSockets
+- Port 8787 is commonly used by ComfyUI; the live benchmark script now avoids this port by default.
+  - Override ports via `K3D_LIVE_PORTS` (e.g., `K3D_LIVE_PORTS="8791 8793 8797"`).
+- For stability, we pin `websockets==10.4` in all environments.
+  - On Debian 13, newer `websockets` versions (e.g., 15.x) caused opening-handshake timeouts in our live server; pinning resolves this.
+  - `knowledge3d.tools.register_galaxy` uses a longer `open_timeout=30` to tolerate slower startup.
+  - Fast start mode: set `K3D_LIVE_FAST=1` (default) or pass `--fast-start` to delay heavy imports/model loads until after the WS server is listening. This improves readiness and avoids client handshake timeouts.

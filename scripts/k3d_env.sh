@@ -26,7 +26,7 @@ if [[ "${1:-}" == "bootstrap" ]]; then
     conda run -n "$ENV_NAME" python -m pip install \
       torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
     conda run -n "$ENV_NAME" python -m pip install open_clip_torch pillow av soundfile \
-      laion_clap umap-learn scikit-learn numpy pandas pygltflib
+      laion_clap umap-learn scikit-learn numpy pandas pygltflib websockets==10.4 pyyaml
     echo "[OK] Conda env $ENV_NAME ready"
   else
     echo "[INFO] Conda not found; bootstrapping Python venv at $VENV_DIR (CPU)."
@@ -34,7 +34,7 @@ if [[ "${1:-}" == "bootstrap" ]]; then
     "$VENV_DIR/bin/python" -m pip install \
       torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
     "$VENV_DIR/bin/python" -m pip install open_clip_torch pillow av soundfile \
-      laion_clap umap-learn scikit-learn numpy pandas pygltflib
+      laion_clap umap-learn scikit-learn numpy pandas pygltflib websockets==10.4 pyyaml
     echo "[OK] Venv $VENV_DIR ready (CPU)"
   fi
 elif [[ "${1:-}" == "bootstrap-gpu" ]]; then
@@ -45,7 +45,7 @@ elif [[ "${1:-}" == "bootstrap-gpu" ]]; then
     # Install PyTorch with CUDA via conda (nvidia channel)
     conda run -n "$ENV_NAME" conda install -y -c pytorch -c nvidia pytorch torchvision torchaudio pytorch-cuda=12.1
     # Remaining deps via pip
-    conda run -n "$ENV_NAME" python -m pip install open_clip_torch pillow av soundfile laion_clap umap-learn scikit-learn numpy pandas pygltflib
+    conda run -n "$ENV_NAME" python -m pip install open_clip_torch pillow av soundfile laion_clap umap-learn scikit-learn numpy pandas pygltflib websockets==10.4 pyyaml
     echo "[OK] Conda GPU env $ENV_NAME ready"
   else
     echo "[INFO] Conda not found; bootstrapping Python venv at $VENV_DIR (GPU wheels)."
@@ -53,7 +53,7 @@ elif [[ "${1:-}" == "bootstrap-gpu" ]]; then
     # Install PyTorch with CUDA wheels (cu121) from pytorch index
     "$VENV_DIR/bin/python" -m pip install --extra-index-url https://download.pytorch.org/whl/cu121 \
       torch torchvision torchaudio
-    "$VENV_DIR/bin/python" -m pip install open_clip_torch pillow av soundfile laion_clap umap-learn scikit-learn numpy pandas pygltflib
+    "$VENV_DIR/bin/python" -m pip install open_clip_torch pillow av soundfile laion_clap umap-learn scikit-learn numpy pandas pygltflib websockets==10.4 pyyaml
     echo "[OK] Venv $VENV_DIR ready (GPU)"
   fi
 elif [[ "${1:-}" == "bootstrap-rapids" ]]; then
@@ -70,7 +70,7 @@ elif [[ "${1:-}" == "bootstrap-rapids" ]]; then
     # Pip deps
     conda run -n "$ENV_NAME" python -m pip install --upgrade pip
     conda run -n "$ENV_NAME" python -m pip install \
-      sentence-transformers open_clip_torch pillow av soundfile laion_clap umap-learn numpy pandas pygltflib
+      sentence-transformers open_clip_torch pillow av soundfile laion_clap umap-learn numpy pandas pygltflib websockets==10.4 pyyaml
     echo "[OK] Conda GPU+RAPIDS env $ENV_NAME ready"
   else
     echo "[ERR] Conda not found. Install Miniconda or use Docker." >&2

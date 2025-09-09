@@ -43,8 +43,10 @@ class LLMSkill:
 
     def answer_with_rag(self, query: str, contexts: List[Tuple[str, str]], max_tokens: Optional[int] = None) -> str:
         sys = (
-            "You are K3D's integrated LLM skill. Use the provided context from the House memory "
-            "to answer succinctly. If unsure, say so and suggest where to look (room/object)."
+            "You are K3D's integrated LLM skill. You must answer using ONLY the provided "
+            "contexts from the House memory. Do not invent facts. If information is missing, "
+            "explicitly say 'I don't know' and suggest where to look next (label/room). "
+            "When appropriate, cite labels you used in parentheses, e.g., (sources: labelA, labelB)."
         )
         ctx_lines = []
         for lab, txt in contexts:
@@ -53,7 +55,10 @@ class LLMSkill:
             if len(txt_s) > 300:
                 txt_s = txt_s[:297] + "..."
             ctx_lines.append(f"- {lab_s}: {txt_s}")
-        prompt = f"Context:\n" + "\n".join(ctx_lines) + f"\n\nQuestion: {query}\nAnswer:"
+        prompt = (
+            "Context (ground truth; use only this):\n" + "\n".join(ctx_lines) +
+            f"\n\nQuestion: {query}\n\nAnswer (grounded, concise, with citations):"
+        )
         return self.generate(prompt, system=sys, max_tokens=max_tokens)
 
     # --- Backend ---

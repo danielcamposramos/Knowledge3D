@@ -1,0 +1,57 @@
+{
+  "a": "docs/reports/status/chat_benchmark_offline_default.json",
+  "b": "docs/reports/status/chat_benchmark_offline_rlwhf.json",
+  "rows": {
+    "llm": {
+      "a": {
+        "latency_ms_avg": 3201.838950948877,
+        "latency_ms_p50": 2362.372741001309,
+        "context_sim_avg": 0.15252752576027714
+      },
+      "b": {
+        "latency_ms_avg": 1425.1394457511196,
+        "latency_ms_p50": 1440.182538004592,
+        "context_sim_avg": 0.19288659661569696
+      },
+      "delta": {
+        "latency_ms_avg": -1776.6995051977574,
+        "latency_ms_p50": -922.1902029967168,
+        "context_sim_avg": 0.040359070855419815
+      }
+    },
+    "llm_rag": {
+      "a": {
+        "latency_ms_avg": 5013.467034748464,
+        "latency_ms_p50": 5891.180189995794,
+        "context_sim_avg": 0.713023698461655
+      },
+      "b": {
+        "latency_ms_avg": 1481.4760962988657,
+        "latency_ms_p50": 1460.3714040131308,
+        "context_sim_avg": 0.6341496570249523
+      },
+      "delta": {
+        "latency_ms_avg": -3531.9909384495986,
+        "latency_ms_p50": -4430.808785982663,
+        "context_sim_avg": -0.07887404143670274
+      }
+    },
+    "k3d": {
+      "a": {
+        "latency_ms_avg": 177.9866923985537,
+        "latency_ms_p50": 52.270415995735675,
+        "context_sim_avg": 0.7760900604260279
+      },
+      "b": {
+        "latency_ms_avg": 160.324833598861,
+        "latency_ms_p50": 55.52378999709617,
+        "context_sim_avg": 0.7760900604260279
+      },
+      "delta": {
+        "latency_ms_avg": -17.66185879969271,
+        "latency_ms_p50": 3.2533740013604984,
+        "context_sim_avg": 0.0
+      }
+    }
+  }
+}
