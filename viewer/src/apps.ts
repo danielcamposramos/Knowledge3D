@@ -9,7 +9,7 @@ export interface TabletApp {
   renderCanvas(ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }): void;
   openOverlay(el: HTMLDivElement): void;
   onEvent?(ev: { type: string; payload?: any }): void;
-  setContext?(ctx: { records: ReadonlyArray<K3DRecord>; publish?: (ev: { type: string; payload?: any }) => void }): void;
+  setContext?(ctx: { records: ReadonlyArray<K3DRecord>; publish?: (ev: { type: string; payload?: any }) => void; house?: string }): void;
 }
 
 export class ConsoleApp implements TabletApp {
@@ -50,7 +50,13 @@ export class ChatApp implements TabletApp {
   id = 'chat';
   title = 'Chat';
   private history: { ts: number; from: string; text: string }[] = [];
-  setContext() {}
+  private house: string | undefined;
+  private publish: ((ev: { type: string; payload?: any }) => void) | null = null;
+  private books = openStore<any>('k3d-tablet', 'books');
+  setContext(ctx: { records: ReadonlyArray<K3DRecord>; publish?: (ev: { type: string; payload?: any }) => void; house?: string }) {
+    this.house = ctx.house;
+    this.publish = ctx.publish || null;
+  }
   onEvent(ev: { type: string; payload?: any }) {
     if (ev?.type === 'chat_msg' && ev.payload) {
       const m = ev.payload as { from: string; text: string };
@@ -69,13 +75,83 @@ export class ChatApp implements TabletApp {
   }
   openOverlay(el: HTMLDivElement) {
     el.innerHTML = '';
-    const list = document.createElement('div'); list.style.maxHeight = '60vh'; list.style.overflowY = 'auto'; list.style.padding='6px'; list.style.background = '#222'; list.style.color='#ddd';
-    const input = document.createElement('input'); input.placeholder = 'Type message (/history 50)'; input.style.width='70%';
-    const send = document.createElement('button'); send.textContent='Send';
-    send.onclick = () => { const t = input.value.trim(); if (!t) return; try { (this as any).publish?.({ type:'sendChat', payload:{ text: t } }); } catch {}; input.value=''; };
-    el.appendChild(input); el.appendChild(send); el.appendChild(list);
-    const render = () => { list.innerHTML=''; for (const m of this.history.slice().reverse()) { const p=document.createElement('div'); p.textContent = `${new Date(m.ts).toLocaleTimeString()} ${m.from}: ${m.text}`; p.style.padding='4px'; list.appendChild(p);} };
-    render();
+    // Tabs
+    const tabs = document.createElement('div'); tabs.style.display='flex'; tabs.style.gap='6px';
+    const tabLive = document.createElement('button'); tabLive.textContent='Live';
+    const tabBooks = document.createElement('button'); tabBooks.textContent='Books';
+    const tabCompose = document.createElement('button'); tabCompose.textContent='Compose';
+    tabs.appendChild(tabLive); tabs.appendChild(tabBooks); tabs.appendChild(tabCompose);
+    const area = document.createElement('div'); area.style.marginTop='8px';
+
+    // Views
+    const renderLive = () => {
+      area.innerHTML = '';
+      const list = document.createElement('div'); list.style.maxHeight = '56vh'; list.style.overflowY='auto'; list.style.padding='6px'; list.style.background='#222'; list.style.color='#ddd';
+      const input = document.createElement('input'); input.placeholder = 'Type message (/history 50)'; input.style.width='70%';
+      const send = document.createElement('button'); send.textContent='Send';
+      send.onclick = () => { const t = input.value.trim(); if (!t) return; try { (this as any).publish?.({ type:'sendChat', payload:{ text: t } }); } catch {}; input.value=''; };
+      area.appendChild(input); area.appendChild(send); area.appendChild(list);
+      const render = () => { list.innerHTML=''; for (const m of this.history.slice().reverse()) { const p=document.createElement('div'); p.textContent = `${new Date(m.ts).toLocaleTimeString()} ${m.from}: ${m.text}`; p.style.padding='4px'; list.appendChild(p);} };
+      render();
+    };
+
+    const renderBooks = async () => {
+      area.innerHTML = '';
+      const wrap = document.createElement('div'); wrap.style.display='grid'; wrap.style.gridTemplateColumns='repeat(auto-fill, minmax(180px, 1fr))'; wrap.style.gap='8px';
+      const items: any[] = (await this.books.get('all')) || [];
+      if (!items.length) { const p=document.createElement('div'); p.style.color='#ccc'; p.textContent='No items yet. Use Compose to add images/audio/video.'; area.appendChild(p); return; }
+      for (const it of items.slice().reverse()) {
+        const card = document.createElement('div'); card.style.background='#1a1a1a'; card.style.color='#ddd'; card.style.padding='6px'; card.style.border='1px solid #333';
+        const head = document.createElement('div'); head.textContent = `${new Date(it.ts||Date.now()).toLocaleString()} — ${it.type||'file'}`; head.style.fontSize='12px';
+        card.appendChild(head);
+        if (it.type && it.type.startsWith('image/')) {
+          const img = document.createElement('img'); img.src = it.url; img.style.maxWidth='100%'; img.style.maxHeight='160px'; img.style.objectFit='cover'; card.appendChild(img);
+        } else if (it.type && it.type.startsWith('audio/')) {
+          const aud = document.createElement('audio'); aud.src = it.url; aud.controls = true; aud.style.width='100%'; card.appendChild(aud);
+        } else if (it.type && it.type.startsWith('video/')) {
+          const vid = document.createElement('video'); vid.src = it.url; vid.controls = true; vid.style.width='100%'; vid.style.maxHeight='160px'; card.appendChild(vid);
+        } else {
+          const a = document.createElement('a'); a.href = it.url; a.textContent = it.name || '(file)'; a.target = '_blank'; card.appendChild(a);
+        }
+        const meta = document.createElement('div'); meta.style.fontSize='11px'; meta.style.color='#aaa'; meta.style.marginTop='4px'; meta.textContent = `house: ${it.house||'—'} size: ${it.size||'?'}B`;
+        card.appendChild(meta);
+        wrap.appendChild(card);
+      }
+      area.appendChild(wrap);
+    };
+
+    const renderCompose = () => {
+      area.innerHTML = '';
+      const zone = document.createElement('div');
+      zone.textContent = 'Drop images/audio/video here or click to pick…';
+      zone.style.border='2px dashed #555'; zone.style.padding='16px'; zone.style.height='44vh'; zone.style.display='flex'; zone.style.alignItems='center'; zone.style.justifyContent='center'; zone.style.color='#ccc';
+      const picker = document.createElement('input'); picker.type='file'; picker.multiple=true; picker.accept='image/*,audio/*,video/*'; picker.style.display='none';
+      zone.onclick = ()=> picker.click();
+      const saveItems = async (files: FileList | File[]) => {
+        const arr = Array.from(files);
+        const all: any[] = (await this.books.get('all')) || [];
+        for (const f of arr) {
+          const url = URL.createObjectURL(f);
+          all.push({ id: `file:${Date.now()}-${Math.random().toString(36).slice(2,8)}`, name: f.name, type: f.type, size: f.size, url, ts: Date.now(), house: this.house||'' });
+        }
+        await this.books.put('all', all);
+        // announce via publish for logging
+        try { this.publish?.({ type: 'books_updated', payload: { count: all.length } }); } catch {}
+        // show books view after add
+        renderBooks();
+      };
+      picker.onchange = () => { if (picker.files && picker.files.length) { void saveItems(picker.files); } };
+      zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.style.borderColor='#88f'; });
+      zone.addEventListener('dragleave', (e) => { e.preventDefault(); zone.style.borderColor='#555'; });
+      zone.addEventListener('drop', (e) => { e.preventDefault(); zone.style.borderColor='#0a0'; const dt = e.dataTransfer; if (dt && dt.files && dt.files.length) { void saveItems(dt.files); } });
+      area.appendChild(zone); area.appendChild(picker);
+    };
+
+    tabLive.onclick = renderLive;
+    tabBooks.onclick = () => { void renderBooks(); };
+    tabCompose.onclick = renderCompose;
+    el.appendChild(tabs); el.appendChild(area);
+    renderLive();
   }
 }
 

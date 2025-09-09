@@ -6,6 +6,15 @@
     <title>K3D Viewer</title>
   </head>
   <body>
+    <!-- HUD Topbar: History + Compose + Topic banner -->
+    <div id="hud-topbar" style="position: fixed; left: 12px; right: 12px; top: 10px; z-index: 95; pointer-events: none; display:flex; align-items:center; justify-content:space-between;">
+      <div style="pointer-events:auto; display:flex; gap:6px;">
+        <button id="hud-history" title="/history 200" style="background:rgba(0,0,0,0.65); color:#eee; border:1px solid rgba(255,255,255,0.25); border-radius:4px; padding:6px 10px; cursor:pointer;">History</button>
+        <button id="hud-compose" title="Compose (drop media)" style="background:rgba(0,0,0,0.65); color:#eee; border:1px solid rgba(255,255,255,0.25); border-radius:4px; padding:6px 10px; cursor:pointer;">Compose</button>
+      </div>
+      <div id="hud-topic" style="pointer-events:none; color:#ffd166; font-family: system-ui, sans-serif; font-size: 13px; text-shadow: 0 1px 2px rgba(0,0,0,0.6);">—</div>
+      <div style="width:92px;"></div>
+    </div>
     <!-- Developer UI (hidden by default; toggle with ?dev=1) -->
     <div id="ui-container" style="position: absolute; top: 10px; left: 10px; z-index: 100; background: rgba(255, 255, 255, 0.8); padding: 10px; border-radius: 5px; display:none;">
       <label for="expert-select">Select Expert House:</label>

@@ -276,3 +276,61 @@ export function buildInstancedStars(
   scene.add(group);
   return group;
 }
+
+// Build instanced garden branches/leaves for near view from explicit edges
+export function buildInstancedBranches(
+  positions: Float32Array,
+  edges: Array<[number, number]>,
+  scene: THREE.Scene,
+  maxEdges = 5000
+): THREE.Group {
+  const group = new THREE.Group();
+  // Cylinder oriented along edge vector for branches
+  const cyl = new THREE.CylinderGeometry(0.02, 0.02, 1.0, 8, 1, true);
+  const mat = new THREE.MeshStandardMaterial({ color: 0x7b5e2a, metalness: 0.05, roughness: 0.9 });
+  const instCount = Math.min(edges.length, maxEdges);
+  const inst = new THREE.InstancedMesh(cyl, mat, instCount);
+  const tmp = new THREE.Matrix4();
+  const quat = new THREE.Quaternion();
+  const up = new THREE.Vector3(0, 1, 0);
+  for (let k = 0; k < instCount; k++) {
+    const [ia, ib] = edges[k];
+    const ax = positions[ia*3+0], ay = positions[ia*3+1], az = positions[ia*3+2];
+    const bx = positions[ib*3+0], by = positions[ib*3+1], bz = positions[ib*3+2];
+    const a = new THREE.Vector3(ax, ay, az);
+    const b = new THREE.Vector3(bx, by, bz);
+    const mid = a.clone().add(b).multiplyScalar(0.5);
+    const dir = b.clone().sub(a);
+    const len = Math.max(0.02, dir.length());
+    dir.normalize();
+    quat.setFromUnitVectors(up, dir);
+    const scl = new THREE.Vector3(1, len, 1);
+    tmp.compose(mid, quat, scl);
+    inst.setMatrixAt(k, tmp);
+  }
+  inst.instanceMatrix.needsUpdate = true;
+  group.add(inst);
+  // Leaves: small spheres near branch ends
+  const leafGeom = new THREE.IcosahedronGeometry(0.05, 0);
+  const leafMat = new THREE.MeshPhongMaterial({ color: 0x4caf50, emissive: 0x163d1a });
+  const leafCount = Math.min(instCount * 2, 16000);
+  const leaf = new THREE.InstancedMesh(leafGeom, leafMat, leafCount);
+  const lm = new THREE.Matrix4();
+  let li = 0;
+  for (let k = 0; k < instCount && li < leafCount; k++) {
+    const [ia, ib] = edges[k];
+    const ax = positions[ia*3+0], ay = positions[ia*3+1], az = positions[ia*3+2];
+    const bx = positions[ib*3+0], by = positions[ib*3+1], bz = positions[ib*3+2];
+    const a = new THREE.Vector3(ax, ay, az);
+    const b = new THREE.Vector3(bx, by, bz);
+    const jitter = () => (Math.random()-0.5) * 0.06;
+    const sa = new THREE.Vector3().copy(a).add(new THREE.Vector3(jitter(), jitter(), jitter()));
+    const sb = new THREE.Vector3().copy(b).add(new THREE.Vector3(jitter(), jitter(), jitter()));
+    lm.makeTranslation(sa.x, sa.y, sa.z); leaf.setMatrixAt(li++, lm);
+    if (li < leafCount) { lm.makeTranslation(sb.x, sb.y, sb.z); leaf.setMatrixAt(li++, lm); }
+  }
+  leaf.instanceMatrix.needsUpdate = true;
+  group.add(leaf);
+  scene.add(group);
+  return group;
+}

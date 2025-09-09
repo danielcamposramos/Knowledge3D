@@ -61,7 +61,7 @@ export class Tablet3D {
 
   setDataset(records: ReadonlyArray<{ id: string; vector: [number,number,number]; embedding: number[]; metadata: Record<string, unknown> }>) {
     for (const app of this.apps) (app as any).publish = (ev: any) => this.publish(ev);
-    for (const app of this.apps) app.setContext?.({ records: records as any, publish: (ev) => this.publish(ev) });
+    for (const app of this.apps) app.setContext?.({ records: records as any, publish: (ev) => this.publish(ev), house: this.status.house });
   }
 
   setFocusLabel(label: string) {
@@ -91,6 +91,21 @@ export class Tablet3D {
 
   // Allow external dispatch of tablet events (e.g., from commands)
   dispatch(ev: { type: string; payload?: any }) {
+    // Handle local UI events
+    if (ev.type === 'open_app') {
+      const id = String(ev.payload?.id || '');
+      if (id && this.apps.some(a => a.id === id)) {
+        this.activeApp = id;
+        // If in focus overlay, try to reopen current app content
+        if (this.overlay) {
+          const areas = this.overlay.querySelectorAll('div');
+          // Rebuild overlay to refresh app content
+          this.hideFocus(); this.showFocus();
+        }
+        this.renderScreen();
+        return;
+      }
+    }
     this.publish(ev);
   }
 

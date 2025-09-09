@@ -10,7 +10,7 @@ import { RPN } from './rpn';
 import { openStore } from './cache';
 import { kmeans, palette } from './cluster';
 import { AISuggestionManager, DynamicLayerManager, LODRenderer, GridCulledPoints } from './extensions/smartGraph';
-import { buildInstancedStars } from './shapes';
+import { buildInstancedStars, buildInstancedBranches } from './shapes';
 
 // --- DOM Elements ---
 const canvas = document.getElementById('scene') as HTMLCanvasElement;
@@ -22,6 +22,9 @@ const hudInput = document.getElementById('hud-chat-input') as HTMLInputElement |
 const hudTip = document.getElementById('hud-tip') as HTMLDivElement | null;
 const hudLegend = document.getElementById('hud-legend') as HTMLDivElement | null;
 const hudMenu = document.getElementById('hud-menu') as HTMLDivElement | null;
+const hudHistory = document.getElementById('hud-history') as HTMLButtonElement | null;
+const hudTopic = document.getElementById('hud-topic') as HTMLDivElement | null;
+const hudCompose = document.getElementById('hud-compose') as HTMLButtonElement | null;
 const hudMenuClose = document.getElementById('hud-menu-close') as HTMLButtonElement | null;
 
 // --- Scene Setup ---
@@ -50,6 +53,7 @@ let lod: LODRenderer | null = null;
 let lastHoverRecord: K3DRecord | null = null;
 let layersOverlay: HTMLDivElement | null = null;
 let edgesObject: THREE.LineSegments | null = null;
+let gardenInstanced: THREE.Group | null = null;
 // LOD HUD
 const lodHud = document.createElement('div');
 lodHud.id = 'lod-hud';
@@ -84,6 +88,14 @@ function clearScene() {
         (edgesObject.geometry as THREE.BufferGeometry).dispose();
         (edgesObject.material as THREE.Material).dispose();
         edgesObject = null;
+    }
+    if (gardenInstanced) {
+        scene.remove(gardenInstanced);
+        gardenInstanced.children.forEach((ch:any) => {
+            try { (ch as any).geometry?.dispose?.(); } catch {}
+            try { (ch as any).material?.dispose?.(); } catch {}
+        });
+        gardenInstanced = null;
     }
     lod = null;
     layersMgr = null;
@@ -255,6 +267,11 @@ async function loadHouse(k3dUrl: string) {
             (lines.material as THREE.LineBasicMaterial).depthWrite = false;
             scene.add(lines);
             edgesObject = lines;
+            // Near-view upgrade: instanced branches + leaves (cap to keep light)
+            try {
+                const eIdx: Array<[number, number]> = E.slice(0, Math.min(E.length, 5000)).map(([a,b]) => [idToIndex.get(a)!, idToIndex.get(b)!]);
+                gardenInstanced = buildInstancedBranches(positions, eIdx, scene, 5000);
+            } catch {}
         }
 
         // Setup tablet (3D object) if not present
@@ -355,6 +372,7 @@ async function loadHouse(k3dUrl: string) {
         } catch {}
         const chatStatus = (document.getElementById('chat-status') as HTMLDivElement) || document.createElement('div');
         const topicBanner = document.getElementById('topic-banner') as HTMLDivElement | null;
+        const hudTopicEl = document.getElementById('hud-topic') as HTMLDivElement | null;
         const append = (from: string, text: string) => {
             const el = document.createElement('div');
             el.textContent = `${from}: ${text}`;
@@ -396,11 +414,15 @@ async function loadHouse(k3dUrl: string) {
                 else if (m.channel) append(`[${m.channel}] ${m.from}`, m.text);
                 else append(m.from, m.text);
                 // Topic banner from system lines
-                if (topicBanner && m.from === 'system' && m.text) {
+                if ((topicBanner || hudTopicEl) && m.from === 'system' && m.text) {
                     const setMatch = /^Topic set for\s+(#[^:]+):\s+(.+)$/.exec(m.text);
                     const showMatch = /^Topic for\s+(#[^:]+):\s+(.+)$/.exec(m.text);
                     const mm = setMatch || showMatch;
-                    if (mm) { topicBanner.textContent = `${mm[1]} — ${mm[2]}`; topicBanner.style.display='block'; }
+                    if (mm) {
+                        const txt = `${mm[1]} — ${mm[2]}`;
+                        if (topicBanner) { topicBanner.textContent = txt; topicBanner.style.display='block'; }
+                        if (hudTopicEl) { hudTopicEl.textContent = txt; }
+                    }
                 }
                 // Mirror to tablet chat app
                 try { if (tablet) tablet.dispatch({ type: 'chat_msg', payload: m }); } catch {}
@@ -635,6 +657,7 @@ function checkIntersects() {
             }
             tooltip.innerHTML = html;
             if (tablet) tablet.setFocusLabel(label);
+            try { const t = document.getElementById('hud-topic') as HTMLDivElement | null; if (t) t.textContent = label; } catch {}
         } else {
             tooltip.style.display = 'none';
         }
@@ -864,6 +887,14 @@ if (updateLodBtn) {
         loadHouse(newUrl);
     });
 }
+
+// HUD: History and Compose
+(() => {
+  const h = document.getElementById('hud-history') as HTMLButtonElement | null;
+  if (h) h.addEventListener('click', () => { try { chat?.sendChat('/history 200'); } catch {} });
+  const c = document.getElementById('hud-compose') as HTMLButtonElement | null;
+  if (c) c.addEventListener('click', () => { try { if (tablet) { tablet.showFocus(); tablet.dispatch({ type: 'open_app', payload: { id: 'chat', tab: 'compose' } }); } } catch {} });
+})();
 
 let last = performance.now();
 let currentLodLevel: string | null = null;
