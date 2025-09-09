@@ -1,324 +1,49 @@
-{"query": "Sort the list ascending: [-18, -34, -1, 5, -31].", "answer": "[-34, -31, -18, -1, 5]", "contexts": ["", "", "", "audio: 31 hn_door4.wav"], "reward": 1.0}
-{"query": "Reverse the string: 'y013d1'.", "answer": "1d310y", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Reverse the string: 'ad153cyfzy'.", "answer": "yzfyc351da", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [-17, -29, 29, -37, -22].", "answer": "[-37, -29, -22, -17, 29]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(186, 779).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [30, -4, -48, 16].", "answer": "[-48, -4, 16, 30]", "contexts": ["", "", "", "audio: crowd-16.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [-4, -40, -28, 32, -38].", "answer": "[-40, -38, -28, -4, 32]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute 985 - -697.", "answer": "1682", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute 711 * 807.", "answer": "573777", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'ccz304z0'.", "answer": "0z403zcc", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute -499 - -417.", "answer": "-82", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(710, 562).", "answer": "2", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute -855 + 153.", "answer": "-702", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [-21, -45, 12, 0, -23, -21, 29].", "answer": "[-45, -23, -21, -21, 0, 12, 29]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'xe11c1bx'.", "answer": "xb1c11ex", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute 905 - -441.", "answer": "1346", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'f350cf'.", "answer": "fc053f", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute 32 * -111.", "answer": "-3552", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(758, 988).", "answer": "2", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: '3x44xc'.", "answer": "cx44x3", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute gcd(991, 265).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(99, 289).", "answer": "1", "contexts": ["", "", "audio: Babbling Brook 99.wav", "A young man riding a skateboard down a street holding a 99 cent store bag."], "reward": 1.0}
-{"query": "Compute -547 - 350.", "answer": "-897", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [-41, 0, -29, -50, 13, -27, 9].", "answer": "[-50, -41, -29, -27, 0, 9, 13]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute 994 - 89.", "answer": "905", "contexts": ["", "", "audio: bell cbn2 b1 89.wav", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [-25, 6, 45, -24, 2, -41, 0].", "answer": "[-41, -25, -24, 0, 2, 6, 45]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(673, 366).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(793, 238).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute -243 + 923.", "answer": "680", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'afbc4'.", "answer": "4cbfa", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [26, -17, -24, 33, -17, 12, -25].", "answer": "[-25, -24, -17, -17, 12, 26, 33]", "contexts": ["", "audio: PIT-ROIG 0.12-0.17.wav", "audio: China bowl 12.25.2011.wav", "audio: 17 hn_dripsHeinzField.wav"], "reward": 1.0}
-{"query": "Reverse the string: '4a43edx'.", "answer": "xde34a4", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [45, 33, 12, 18].", "answer": "[12, 18, 33, 45]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute 869 * -974.", "answer": "-846406", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'azb0b'.", "answer": "b0bza", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute 236 + 894.", "answer": "1130", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(903, 811).", "answer": "1", "contexts": ["", "", "Bus 811 is pulling into a bus stop. ", ""], "reward": 1.0}
-{"query": "Compute 230 + 841.", "answer": "1071", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(782, 470).", "answer": "2", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(227, 555).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(763, 765).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute 918 * -862.", "answer": "-791316", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [-18, -23, -33, 42, -44, -32, 35].", "answer": "[-44, -33, -32, -23, -18, 35, 42]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: '3zb0bb20f'.", "answer": "f02bb0bz3", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute gcd(507, 210).", "answer": "3", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute 358 - -805.", "answer": "1163", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: '3002czfddy'.", "answer": "yddfzc2003", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute gcd(691, 6).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [-46, 26, 29, 31, -33, 14].", "answer": "[-46, -33, 14, 26, 29, 31]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [32, -13, -41].", "answer": "[-41, -13, 32]", "contexts": ["", "", "", "audio: Untitled-13.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [-10, 21, 3, -25, -3, 36].", "answer": "[-25, -10, -3, 3, 21, 36]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'efex2xc3'.", "answer": "3cx2xefe", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute -396 + 430.", "answer": "34", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(598, 97).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute -392 - 234.", "answer": "-626", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [39, -13, -46, -21].", "answer": "[-46, -21, -13, 39]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(789, 271).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: '4xzfy1'.", "answer": "1yfzx4", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute gcd(742, 868).", "answer": "14", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: '22yc4f5b'.", "answer": "b5f4cy22", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute -285 * 585.", "answer": "-166725", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'e24fdc1ce'.", "answer": "ec1cdf42e", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [-2, -19, -14, -15, 49].", "answer": "[-19, -15, -14, -2, 49]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute 848 - -991.", "answer": "1839", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [48, -21, 49, 9, 41, -17, -48].", "answer": "[-48, -21, -17, 9, 41, 48, 49]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(856, 952).", "answer": "8", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [-16, -21, 45].", "answer": "[-21, -16, 45]", "contexts": ["", "", "", "audio: crowd-16.wav"], "reward": 1.0}
-{"query": "Compute gcd(127, 945).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'c0402xz1fc'.", "answer": "cf1zx2040c", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute gcd(563, 698).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'be3azc'.", "answer": "cza3eb", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Reverse the string: '3yax13'.", "answer": "31xay3", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Reverse the string: '40xdbyaf'.", "answer": "faybdx04", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Reverse the string: 'ef2fydx'.", "answer": "xdyf2fe", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute 530 * 340.", "answer": "180200", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: '421yaf5'.", "answer": "5fay124", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [-21, -5, -28, -22, 32, 11].", "answer": "[-28, -22, -21, -5, 11, 32]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: '05xy4'.", "answer": "4yx50", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute gcd(303, 248).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute 286 + -416.", "answer": "-130", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute -701 * 890.", "answer": "-623890", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute -304 * -746.", "answer": "226784", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute 197 + 993.", "answer": "1190", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [4, -26, 15, 49, -17].", "answer": "[-26, -17, 4, 15, 49]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'c20cfzfdc'.", "answer": "cdfzfc02c", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute gcd(372, 374).", "answer": "2", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'acaf255yy'.", "answer": "yy552faca", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute 536 * -517.", "answer": "-277112", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: '4exyb5'.", "answer": "5byxe4", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Reverse the string: '01e41a'.", "answer": "a14e10", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [-30, 19, -40].", "answer": "[-40, -30, 19]", "contexts": ["", "", "", "audio: 30 hn_door3.wav"], "reward": 1.0}
-{"query": "Compute -200 + -969.", "answer": "-1169", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [27, 49, -32, -10, 22].", "answer": "[-32, -10, 22, 27, 49]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(146, 171).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute 436 - -856.", "answer": "1292", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: '5de0c1dd'.", "answer": "dd1c0ed5", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Reverse the string: 'f0zcce'.", "answer": "eccz0f", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [-19, -21, 16, -30, -8].", "answer": "[-30, -21, -19, -8, 16]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute 940 * -477.", "answer": "-448380", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: '4b4b4yez'.", "answer": "zey4b4b4", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute gcd(964, 718).", "answer": "2", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: '0eyyb'.", "answer": "byye0", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [-11, -27, -36, 32].", "answer": "[-36, -27, -11, 32]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'fcz3e2fe2'.", "answer": "2ef2e3zcf", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [-28, -47, -11].", "answer": "[-47, -28, -11]", "contexts": ["", "", "", "audio: baby_voice_11months(11).wav"], "reward": 1.0}
-{"query": "Reverse the string: 'b2y0222bcb'.", "answer": "bcb2220y2b", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute gcd(716, 454).", "answer": "2", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute 169 * -460.", "answer": "-77740", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [-19, -30, 18, -17, 35, -40].", "answer": "[-40, -30, -19, -17, 18, 35]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'dxz335efay'.", "answer": "yafe533zxd", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [-38, -49, -16, -35, -43, 0].", "answer": "[-49, -43, -38, -35, -16, 0]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(801, 356).", "answer": "89", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute -729 * 250.", "answer": "-182250", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute 552 + 338.", "answer": "890", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: '32d5xff'.", "answer": "ffx5d23", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Reverse the string: 'f0d532yxe'.", "answer": "exy235d0f", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Reverse the string: 'yed151'.", "answer": "151dey", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [26, -36, -10, 9, -50].", "answer": "[-50, -36, -10, 9, 26]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(991, 550).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'f3bb0d02'.", "answer": "20d0bb3f", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute gcd(878, 449).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'fzc4ffe'.", "answer": "eff4czf", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Reverse the string: 'dab2z'.", "answer": "z2bad", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute gcd(931, 426).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [34, 22, -15, -47, -27, -40, 36].", "answer": "[-47, -40, -27, -15, 22, 34, 36]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute 437 + -248.", "answer": "189", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(449, 462).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute -333 - 584.", "answer": "-917", "contexts": ["", "", "audio: 08 - 333 con tren hotel Galicia-Madrid saliendo de Zamora  11-04-2011.wav", ""], "reward": 1.0}
-{"query": "Compute gcd(187, 769).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: '04fx3dz'.", "answer": "zd3xf40", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute -525 - 399.", "answer": "-924", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(437, 615).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(594, 427).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: '4z0ca'.", "answer": "ac0z4", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [30, -31, -49, 30].", "answer": "[-49, -31, 30, 30]", "contexts": ["", "audio: 30 hn_door3.wav", "", ""], "reward": 1.0}
-{"query": "Reverse the string: '2eez4y3b4f'.", "answer": "f4b3y4zee2", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Reverse the string: 'c5y5c0'.", "answer": "0c5y5c", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute gcd(450, 265).", "answer": "5", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(180, 362).", "answer": "2", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(239, 776).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [23, 8, 44, -2, 9].", "answer": "[-2, 8, 9, 23, 44]", "contexts": ["", "", "a red and white airplane ascending in the sky ", "A commercial airplane ascending in to the sky"], "reward": 1.0}
-{"query": "Compute gcd(792, 399).", "answer": "3", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute -399 + -363.", "answer": "-762", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [27, -50, -17, 33].", "answer": "[-50, -17, 27, 33]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute 589 + 251.", "answer": "840", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(501, 834).", "answer": "3", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [22, -12, -21, -11, 26, 7, -3].", "answer": "[-21, -12, -11, -3, 7, 22, 26]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [13, 43, -9, 13, 1, -23].", "answer": "[-23, -9, 1, 13, 13, 43]", "contexts": ["", "audio: Untitled-13.wav", "", ""], "reward": 1.0}
-{"query": "Compute gcd(279, 301).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [-18, 17, 27, -28, -22, 10, 23].", "answer": "[-28, -22, -18, 10, 17, 23, 27]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(98, 594).", "answer": "2", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute 92 - -467.", "answer": "559", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute 480 + 900.", "answer": "1380", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [39, 19, -24, -34, -17].", "answer": "[-34, -24, -17, 19, 39]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute 984 * 882.", "answer": "867888", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute 83 * -419.", "answer": "-34777", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [-6, 20, 3].", "answer": "[-6, 3, 20]", "contexts": ["", "audio: 20-Plane-consolidated.wav", "a red and white airplane ascending in the sky ", "A commercial airplane ascending in to the sky"], "reward": 1.0}
-{"query": "Reverse the string: 'eab322'.", "answer": "223bae", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute 132 + -739.", "answer": "-607", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'dec4f'.", "answer": "f4ced", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute gcd(145, 106).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [-4, 13, -50, 2, 8].", "answer": "[-50, -4, 2, 8, 13]", "contexts": ["", "", "audio: Untitled-13.wav", "audio: birds and wind 13.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [-45, 23, 16].", "answer": "[-45, 16, 23]", "contexts": ["", "", "", "audio: crowd-16.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [4, 13, -20, -47, 1, 14].", "answer": "[-47, -20, 1, 4, 13, 14]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [28, 13, 48].", "answer": "[13, 28, 48]", "contexts": ["", "", "", "audio: Untitled-13.wav"], "reward": 1.0}
-{"query": "Compute gcd(631, 833).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute -413 - -435.", "answer": "22", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(289, 362).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute -663 + -922.", "answer": "-1585", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute -651 * -441.", "answer": "287091", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [29, -27, 43, -9, 4].", "answer": "[-27, -9, 4, 29, 43]", "contexts": ["", "", "", "a red and white airplane ascending in the sky "], "reward": 1.0}
-{"query": "Sort the list ascending: [31, 48, -1, 3, 22].", "answer": "[-1, 3, 22, 31, 48]", "contexts": ["", "", "", "audio: 31 hn_door4.wav"], "reward": 1.0}
-{"query": "Reverse the string: 'a1yxc0bx5'.", "answer": "5xb0cxy1a", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [14, 13, 33].", "answer": "[13, 14, 33]", "contexts": ["", "", "", "audio: 14.wav"], "reward": 1.0}
-{"query": "Compute gcd(470, 49).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [-29, -4, 22, -1, -12].", "answer": "[-29, -12, -4, -1, 22]", "contexts": ["", "", "", "audio: rainy stream 22 sec.wav"], "reward": 1.0}
-{"query": "Reverse the string: '5za2ede40c'.", "answer": "c04ede2az5", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Reverse the string: '4ddyc3y'.", "answer": "y3cydd4", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Reverse the string: 'f3z43aa0fc'.", "answer": "cf0aa34z3f", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Reverse the string: 'fy0ecd02c'.", "answer": "c20dce0yf", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute 694 * -245.", "answer": "-170030", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(427, 583).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(828, 703).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(257, 544).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(457, 302).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [-49, -26, -20, 45, -25, -13].", "answer": "[-49, -26, -25, -20, -13, 45]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute -56 + -422.", "answer": "-478", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(136, 724).", "answer": "4", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'd2d44d'.", "answer": "d44d2d", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Reverse the string: '0ccd3'.", "answer": "3dcc0", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [-46, -49, -35, -15, 40, -39, -9].", "answer": "[-49, -46, -39, -35, -15, -9, 40]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute -564 + 311.", "answer": "-253", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(576, 346).", "answer": "2", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'xxbfcd23'.", "answer": "32dcfbxx", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute gcd(972, 909).", "answer": "9", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(141, 387).", "answer": "3", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(63, 631).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'ezybe'.", "answer": "ebyze", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [33, 34, 38, -49, 18].", "answer": "[-49, 18, 33, 34, 38]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [26, -22, -2, 9, -13].", "answer": "[-22, -13, -2, 9, 26]", "contexts": ["", "", "", "audio: Untitled-13.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [-35, 49, -4].", "answer": "[-35, -4, 49]", "contexts": ["", "", "a red and white airplane ascending in the sky ", "A commercial airplane ascending in to the sky"], "reward": 1.0}
-{"query": "Compute -777 * -967.", "answer": "751359", "contexts": ["", "", "An All Nippon Airways 777 sitting at a gate on the tarmac.", ""], "reward": 1.0}
-{"query": "Reverse the string: '2yz4fyedbx'.", "answer": "xbdeyf4zy2", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute gcd(885, 307).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'xaczbx'.", "answer": "xbzcax", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute gcd(958, 697).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [6, 26, 31, 41, 20, -32].", "answer": "[-32, 6, 20, 26, 31, 41]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'eeya43xc24'.", "answer": "42cx34ayee", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute -67 - -244.", "answer": "177", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(816, 365).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute -294 * -692.", "answer": "203448", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(305, 7).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute 136 + -243.", "answer": "-107", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'z3ya3ee'.", "answer": "ee3ay3z", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute gcd(924, 250).", "answer": "2", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [33, 50, 34, -39, 7, 36].", "answer": "[-39, 7, 33, 34, 36, 50]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'ycze1a1z'.", "answer": "z1a1ezcy", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [-42, -1, 21, -41, -23].", "answer": "[-42, -41, -23, -1, 21]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [22, 19, 29].", "answer": "[19, 22, 29]", "contexts": ["", "", "", "audio: rainy stream 22 sec.wav"], "reward": 1.0}
-{"query": "Compute 948 + -214.", "answer": "734", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: '4zyd5bx'.", "answer": "xb5dyz4", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [-9, 29, -33, -30, -25, 23, 22].", "answer": "[-33, -30, -25, -9, 22, 23, 29]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [12, 18, 47, -47, -20, 13].", "answer": "[-47, -20, 12, 13, 18, 47]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(617, 161).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(687, 344).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [-46, 39, -39, -3, -31].", "answer": "[-46, -39, -31, -3, 39]", "contexts": ["", "audio: dmv - &#39;now serving&#39;.wav", "", "audio: 39 voices.wav"], "reward": 1.0}
-{"query": "Reverse the string: 'yzee21ffbe'.", "answer": "ebff12eezy", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Reverse the string: 'xyxdcey'.", "answer": "yecdxyx", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [-23, 27, 7, -17].", "answer": "[-23, -17, 7, 27]", "contexts": ["", "", "", "audio: 17 hn_dripsHeinzField.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [36, -12, -32].", "answer": "[-32, -12, 36]", "contexts": ["", "", "", "audio: hollipops 4 july 12.wav"], "reward": 1.0}
-{"query": "Compute gcd(953, 456).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: '412e5fdb'.", "answer": "bdf5e214", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [4, 24, 19].", "answer": "[4, 19, 24]", "contexts": ["", "", "audio: Fenway Park Sep 19 2010.wav", "a red and white airplane ascending in the sky "], "reward": 1.0}
-{"query": "Compute gcd(648, 214).", "answer": "2", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'z02ff'.", "answer": "ff20z", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [49, -34, 40, 8, -4, -27].", "answer": "[-34, -27, -4, 8, 40, 49]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute 996 * 247.", "answer": "246012", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [-20, 20, 45, 37, -29, 14].", "answer": "[-29, -20, 14, 20, 37, 45]", "contexts": ["", "audio: 20-Plane-consolidated.wav", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'bbbde4d'.", "answer": "d4edbbb", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute 434 - 608.", "answer": "-174", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute -332 * -664.", "answer": "220448", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [-29, 21, -18, -17].", "answer": "[-29, -18, -17, 21]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'fza3f14z'.", "answer": "z41f3azf", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [-32, 13, 38, 23, -2].", "answer": "[-32, -2, 13, 23, 38]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(955, 207).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: '14b4x'.", "answer": "x4b41", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [9, 7, 2].", "answer": "[2, 7, 9]", "contexts": ["a red and white airplane ascending in the sky ", "A commercial airplane ascending in to the sky", "An airplane ascending into the sky above the treeline.", "A large jet is ascending in to the air"], "reward": 1.0}
-{"query": "Compute 123 + 47.", "answer": "170", "contexts": ["", "", "Bananas are on sale for 47 cents per pound in the produce section.", ""], "reward": 1.0}
-{"query": "Compute 625 - 96.", "answer": "529", "contexts": ["", "", "audio: 96 stock.wav", "audio: Rain falling on a metal roof - 96 kHz _ 24 Bit.wav"], "reward": 1.0}
-{"query": "Compute 625 - -145.", "answer": "770", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute 300 - -780.", "answer": "1080", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute -142 + 693.", "answer": "551", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(490, 927).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'dc3cexyd0'.", "answer": "0dyxec3cd", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute gcd(992, 354).", "answer": "2", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: '2b3z5ad34'.", "answer": "43da5z3b2", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [-19, 7, 31, 25, -50, -49, -48].", "answer": "[-50, -49, -48, -19, 7, 25, 31]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(897, 60).", "answer": "3", "contexts": ["", "", "An old picture back in the 60's or 70's of a group of men and woman.", ""], "reward": 1.0}
-{"query": "Compute 918 + -42.", "answer": "876", "contexts": ["", "", "The bus door are opened up a crack to see 42 Street. ", "A street sign depicting the corner of TUDOR CITY PLACE and E 42 ST."], "reward": 1.0}
-{"query": "Compute gcd(332, 33).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [26, -22, -43].", "answer": "[-43, -22, 26]", "contexts": ["", "", "", "audio: rainy stream 22 sec.wav"], "reward": 1.0}
-{"query": "Reverse the string: 'ax0eaf54'.", "answer": "45fae0xa", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [-25, -33, 5, 34].", "answer": "[-33, -25, 5, 34]", "contexts": ["", "", "", "A tan clock tower shows the time of 6:34."], "reward": 1.0}
-{"query": "Compute gcd(39, 336).", "answer": "3", "contexts": ["", "", "audio: dmv - &#39;now serving&#39;.wav", "audio: 39 voices.wav"], "reward": 1.0}
-{"query": "Compute gcd(596, 203).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [-42, 30, 21, 29, 29, 19].", "answer": "[-42, 19, 21, 29, 29, 30]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(831, 533).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(450, 926).", "answer": "2", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(843, 146).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(725, 292).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [-14, 2, 16, 11].", "answer": "[-14, 2, 11, 16]", "contexts": ["audio: Ocean 1.0 9-11-16.wav", "", "audio: 14.wav", ""], "reward": 1.0}
-{"query": "Reverse the string: 'cy32e3'.", "answer": "3e23yc", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [-1, -32, 11, 22, -40, -31, 4].", "answer": "[-40, -32, -31, -1, 4, 11, 22]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute 932 * 969.", "answer": "903108", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(97, 103).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [-15, -23, 26].", "answer": "[-23, -15, 26]", "contexts": ["", "", "", "audio: Blackberry Creek 2-15-15.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [26, 40, 20, 2].", "answer": "[2, 20, 26, 40]", "contexts": ["", "", "", "audio: 20-Plane-consolidated.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [0, -14, 34, 32, 36, 29, 25].", "answer": "[-14, 0, 25, 29, 32, 34, 36]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute 748 + 248.", "answer": "996", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute -443 * 2.", "answer": "-886", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(219, 57).", "answer": "3", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute 583 - -454.", "answer": "1037", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'a5012b'.", "answer": "b2105a", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [43, 44, 37, 25, -8].", "answer": "[-8, 25, 37, 43, 44]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute 326 + -765.", "answer": "-439", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute -813 + -587.", "answer": "-1400", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute 780 + 9.", "answer": "789", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'cf3cz'.", "answer": "zc3fc", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute gcd(819, 135).", "answer": "9", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute 619 + -838.", "answer": "-219", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'ed0x2cab'.", "answer": "bac2x0de", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute 313 * 446.", "answer": "139598", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute -17 - -277.", "answer": "260", "contexts": ["", "", "audio: 17 hn_dripsHeinzField.wav", "audio: EMX 17.. wav.wav"], "reward": 1.0}
-{"query": "Compute 581 - -596.", "answer": "1177", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute 127 * 379.", "answer": "48133", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(699, 138).", "answer": "3", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [48, 5, 32, 21, 49].", "answer": "[5, 21, 32, 48, 49]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'f5yddad1'.", "answer": "1daddy5f", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Sort the list ascending: [-34, 24, -41, -23, -48, 23, 50].", "answer": "[-48, -41, -34, -23, 23, 24, 50]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'ba1ae'.", "answer": "ea1ab", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute -14 + -172.", "answer": "-186", "contexts": ["", "", "audio: 14.wav", "audio: 14.12.2011.003.wav"], "reward": 1.0}
-{"query": "Reverse the string: 'cx33a002a'.", "answer": "a200a33xc", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute -576 - 214.", "answer": "-790", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute -900 - 814.", "answer": "-1714", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute -86 + -377.", "answer": "-463", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute gcd(189, 965).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Sort the list ascending: [40, -50, -34, -20, -9, 19, -33].", "answer": "[-50, -34, -33, -20, -9, 19, 40]", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: '0y0x11yf4'.", "answer": "4fy11x0y0", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Reverse the string: 'a2220zb22'.", "answer": "22bz0222a", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute gcd(494, 800).", "answer": "2", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: '3b25fa1x'.", "answer": "x1af52b3", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute -919 * -182.", "answer": "167258", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute -623 + -935.", "answer": "-1558", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: 'fxf0cz'.", "answer": "zc0fxf", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute gcd(906, 282).", "answer": "6", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Compute 105 * 264.", "answer": "27720", "contexts": ["", "", "", ""], "reward": 1.0}
-{"query": "Reverse the string: '2a4ed2y'.", "answer": "y2de4a2", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Reverse the string: '3112fx'.", "answer": "xf2113", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Reverse the string: 'b5c4zc'.", "answer": "cz4c5b", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Compute gcd(707, 160).", "answer": "1", "contexts": ["", "", "An advertisement showing a woman with blue luggage in front of a boeing 707 passenger plane.", ""], "reward": 1.0}
-{"query": "Compute -451 - 96.", "answer": "-547", "contexts": ["", "", "audio: 96 stock.wav", "audio: Rain falling on a metal roof - 96 kHz _ 24 Bit.wav"], "reward": 1.0}
-{"query": "Reverse the string: 'ead42e1'.", "answer": "1e24dae", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Reverse the string: 'aaf4yy5dx'.", "answer": "xd5yy4faa", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
-{"query": "Reverse the string: 'exd05b1'.", "answer": "1b50dxe", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
+{"query": "Reverse the string: '033ay'.", "answer": "ya330", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
+{"query": "Compute gcd(117, 314).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
+{"query": "Compute gcd(596, 291).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
+{"query": "Compute gcd(971, 972).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
+{"query": "Compute gcd(186, 555).", "answer": "3", "contexts": ["", "", "", ""], "reward": 1.0}
+{"query": "Sort the list ascending: [-27, -25, 22, -7, 6, -28, -42].", "answer": "[-42, -28, -27, -25, -7, 6, 22]", "contexts": ["", "", "", ""], "reward": 1.0}
+{"query": "Compute gcd(847, 684).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
+{"query": "Sort the list ascending: [-8, -23, -3, 24, -3].", "answer": "[-23, -8, -3, -3, 24]", "contexts": ["", "", "a red and white airplane ascending in the sky ", "A commercial airplane ascending in to the sky"], "reward": 1.0}
+{"query": "Compute gcd(534, 852).", "answer": "6", "contexts": ["", "", "", ""], "reward": 1.0}
+{"query": "Compute gcd(344, 349).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
+{"query": "Compute -951 + -703.", "answer": "-1654", "contexts": ["", "", "", ""], "reward": 1.0}
+{"query": "Reverse the string: 'xbefx4e'.", "answer": "e4xfebx", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
+{"query": "Reverse the string: 'c23y0xff'.", "answer": "ffx0y32c", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
+{"query": "Reverse the string: 'a155xdfe'.", "answer": "efdx551a", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
+{"query": "Compute gcd(107, 557).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
+{"query": "Reverse the string: 'fd0z0'.", "answer": "0z0df", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
+{"query": "Compute gcd(273, 384).", "answer": "3", "contexts": ["", "", "", ""], "reward": 1.0}
+{"query": "Compute gcd(841, 535).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
+{"query": "Compute gcd(112, 200).", "answer": "8", "contexts": ["", "", "", ""], "reward": 1.0}
+{"query": "Sort the list ascending: [9, -2, -29, -47].", "answer": "[-47, -29, -2, 9]", "contexts": ["", "", "a red and white airplane ascending in the sky ", "A commercial airplane ascending in to the sky"], "reward": 1.0}
+{"query": "Sort the list ascending: [45, -28, 22, -35, 38, -38].", "answer": "[-38, -35, -28, 22, 38, 45]", "contexts": ["", "", "", "The clock on the corner of the sidewalk reads 4:38."], "reward": 1.0}
+{"query": "Compute 757 + -911.", "answer": "-154", "contexts": ["", "", "", ""], "reward": 1.0}
+{"query": "Sort the list ascending: [22, 27, 49, 13, -3, 36, 15].", "answer": "[-3, 13, 15, 22, 27, 36, 49]", "contexts": ["", "", "", ""], "reward": 1.0}
+{"query": "Compute gcd(477, 29).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
+{"query": "Compute gcd(975, 893).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
+{"query": "Compute 678 * 308.", "answer": "208824", "contexts": ["", "", "", ""], "reward": 1.0}
+{"query": "Reverse the string: 'f1axa4e'.", "answer": "e4axa1f", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
+{"query": "Compute gcd(534, 8).", "answer": "2", "contexts": ["", "", "", ""], "reward": 1.0}
+{"query": "Compute -926 * 924.", "answer": "-855624", "contexts": ["", "", "", ""], "reward": 1.0}
+{"query": "Compute gcd(907, 557).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
+{"query": "Reverse the string: '0220fa'.", "answer": "af0220", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
+{"query": "Compute 121 - 716.", "answer": "-595", "contexts": ["", "", "audio: Mazda 121 engine EXT.wav", ""], "reward": 1.0}
+{"query": "Compute gcd(742, 651).", "answer": "7", "contexts": ["", "", "", ""], "reward": 1.0}
+{"query": "Reverse the string: 'xzb30d1'.", "answer": "1d03bzx", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
+{"query": "Compute -186 - 797.", "answer": "-983", "contexts": ["", "", "", ""], "reward": 1.0}
+{"query": "Compute gcd(917, 857).", "answer": "1", "contexts": ["", "", "", ""], "reward": 1.0}
+{"query": "Compute -989 - -628.", "answer": "-361", "contexts": ["", "", "", ""], "reward": 1.0}
+{"query": "Sort the list ascending: [-45, -40, 50].", "answer": "[-45, -40, 50]", "contexts": ["", "", "", "audio: 061216_17-00_rampisham_rook_roost_mkh30-40.wav"], "reward": 1.0}
+{"query": "Sort the list ascending: [-27, 4, -27].", "answer": "[-27, -27, 4]", "contexts": ["", "a red and white airplane ascending in the sky ", "A commercial airplane ascending in to the sky", "An airplane ascending into the sky above the treeline."], "reward": 1.0}
+{"query": "Reverse the string: 'aazae52ef'.", "answer": "fe25eazaa", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
+{"query": "Compute 814 * -22.", "answer": "-17908", "contexts": ["", "", "audio: rainy stream 22 sec.wav", "audio: dare-22 - 8819124hDbXstnozf_fs.jpg - V-ANS (complete).wav"], "reward": 1.0}
+{"query": "Compute 665 * 736.", "answer": "489440", "contexts": ["", "", "", ""], "reward": 1.0}
+{"query": "Sort the list ascending: [43, -22, -40, -19, 47, -22, 34].", "answer": "[-40, -22, -22, -19, 34, 43, 47]", "contexts": ["", "", "", ""], "reward": 1.0}
+{"query": "Sort the list ascending: [-38, 16, 5].", "answer": "[-38, 5, 16]", "contexts": ["", "", "audio: crowd-16.wav", "The clock on the corner of the sidewalk reads 4:38."], "reward": 1.0}
+{"query": "Compute -81 - 788.", "answer": "-869", "contexts": ["", "", "", ""], "reward": 1.0}
+{"query": "Sort the list ascending: [16, 16, 38, -30, -12].", "answer": "[-30, -12, 16, 16, 38]", "contexts": ["", "audio: crowd-16.wav", "audio: 16 splashes.wav", "audio: md1trk15-16.wav"], "reward": 1.0}
+{"query": "Compute 598 - -62.", "answer": "660", "contexts": ["", "", "", ""], "reward": 1.0}
+{"query": "Reverse the string: 'bc3e0a22'.", "answer": "22a0e3cb", "contexts": ["a person holding the string of a kite flying in the sky", "The cat is playing with the string of a video game remote. ", "Someone holding the string of a kite that flies high in the air. ", "audio: Reverse laughter.wav"], "reward": 1.0}
+{"query": "Compute -13 * -587.", "answer": "7631", "contexts": ["", "", "audio: Untitled-13.wav", "audio: birds and wind 13.wav"], "reward": 1.0}
