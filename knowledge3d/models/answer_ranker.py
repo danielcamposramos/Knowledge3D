@@ -58,10 +58,14 @@ def train(dataset: Path) -> Tuple[Ranker, dict]:
     # Load ST on GPU if available
     from sentence_transformers import SentenceTransformer  # type: ignore
     try:
+        import os
         import torch  # type: ignore
+        strict = os.getenv("K3D_STRICT_GPU", "0").strip() != "0"
+        if strict and not torch.cuda.is_available():
+            raise SystemExit("GPU required (K3D_STRICT_GPU=1) but CUDA is not available")
         dev = {"device": "cuda"} if torch.cuda.is_available() else {}
-    except Exception:
-        dev = {}
+    except Exception as e:
+        raise SystemExit(f"GPU setup error: {e}")
     st = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2", **dev)
     X: List[float] = []
     y: List[float] = []
@@ -111,10 +115,14 @@ def load(model_path: Path) -> Ranker:
     import pickle
     from sentence_transformers import SentenceTransformer  # type: ignore
     try:
+        import os
         import torch  # type: ignore
+        strict = os.getenv("K3D_STRICT_GPU", "0").strip() != "0"
+        if strict and not torch.cuda.is_available():
+            raise SystemExit("GPU required (K3D_STRICT_GPU=1) but CUDA is not available")
         dev = {"device": "cuda"} if torch.cuda.is_available() else {}
-    except Exception:
-        dev = {}
+    except Exception as e:
+        raise SystemExit(f"GPU setup error: {e}")
     st = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2", **dev)
     with model_path.open("rb") as f:
         d = pickle.load(f)
@@ -145,4 +153,3 @@ def main() -> None:  # pragma: no cover
 
 if __name__ == "__main__":
     main()
-

@@ -1,4 +1,3 @@
-import * as THREE from 'three';
 import { openStore } from './cache';
 import { RPN } from './rpn';
 import type { K3DRecord } from './loadK3D';
@@ -520,7 +519,6 @@ export class GalaxyApp implements TabletApp {
   private compute() {
     this.layout = [];
     if (!this.records.length || !this.focus) return;
-    const idOf = (i:number)=> this.records[i].id;
     const labelOf = (i:number)=> (this.records[i].metadata?.label as string) || this.records[i].id;
     const idx = this.records.findIndex(r => labelOf(this.records.indexOf(r)) === this.focus || r.id === this.focus);
     const byId = new Map<string, number>(this.records.map((r,i)=>[r.id,i]));
@@ -586,7 +584,7 @@ export class GalaxyApp implements TabletApp {
         const a = (i / n) * Math.PI * 2;
         const x = cx + Math.cos(a) * radius;
         const y = cy + Math.sin(a) * radius;
-        const s = Math.max(1, Math.min(3, Math.round((items[i].sim||0)*3)));
+        // marker; optionally vary by similarity in future
         ctx.fillStyle = k===0 ? '#ffcc00' : '#a8c0ff';
         ctx.fillRect(x-1, y-1, 2, 2);
         if (k<=1 && i<8) { ctx.fillStyle='#dddddd'; ctx.fillText(items[i].label.slice(0,22), x+4, y); }
@@ -676,7 +674,7 @@ export class DiaryApp implements TabletApp {
   async ensureLoaded(){ const arr=(await this.store.get('entries'))||[]; this.entries = Array.isArray(arr)?arr:[]; }
   async save(){ await this.store.put('entries', this.entries); }
   setContext(ctx: { records: ReadonlyArray<K3DRecord>; publish?: (ev: { type: string; payload?: any }) => void }) { this.publish = ctx.publish || null; }
-  onEvent(ev: { type: string; payload?: any }) {}
+  onEvent(ev?: { type: string; payload?: any }) { void ev; /* no-op for now */ }
   renderCanvas(ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }) {
     ctx.fillStyle = '#0b0d0f'; ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
     ctx.fillStyle = '#fff'; ctx.font = '12px system-ui';

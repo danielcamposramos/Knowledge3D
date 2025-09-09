@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import socket
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -30,7 +31,7 @@ class Client:
 class LiveServer:
     def __init__(self, host: str = "127.0.0.1", port: int = 8765, fast_start: Optional[bool] = None) -> None:
         self.host = host
-        self.port = port
+        self.port = int(port)
         # Fast-start mode: delay heavy optional imports and model loads until after the server is listening
         try:
             self._fast_start = (str(os.getenv("K3D_LIVE_FAST", "1")).strip() != "0") if fast_start is None else bool(fast_start)
@@ -232,6 +233,55 @@ class LiveServer:
         self._diary_auto_enabled = (_os.getenv("K3D_DIARY_AUTO", "0").strip() != "0")
         self._diary_period = float(_os.getenv("K3D_DIARY_PERIOD_SEC", "600"))  # 10 minutes default
         self._diary_book = _os.getenv("K3D_DIARY_BOOK", "AI Diary")
+        # Port scan state
+        self._port_scan: Dict[str, Any] = {"tried": [], "chosen": None}
+
+    def _is_port_in_use(self, host: str, port: int) -> bool:
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.settimeout(0.15)
+                return s.connect_ex((host, int(port))) == 0
+        except Exception:
+            return False
+
+    def _candidate_ports(self) -> list[int]:
+        """Build candidate ports list: env K3D_LIVE_PORTS or near defaults.
+
+        Order: [self.port, 8765, 8787, 8788, self.port+1..self.port+9]
+        """
+        cand: list[int] = []
+        try:
+            raw = os.getenv("K3D_LIVE_PORTS")
+            if raw:
+                xs = [int(x.strip()) for x in raw.split(",") if x.strip()]
+                for x in xs:
+                    if x not in cand:
+                        cand.append(x)
+        except Exception:
+            pass
+        base = [int(self.port), 8765, 8787, 8788]
+        for x in base:
+            if x not in cand:
+                cand.append(x)
+        for d in range(1, 10):
+            x = int(self.port) + d
+            if x not in cand:
+                cand.append(x)
+        return cand
+
+    def _choose_free_port(self) -> int:
+        tried: list[dict] = []
+        chosen = None
+        for p in self._candidate_ports():
+            used = self._is_port_in_use(self.host, p)
+            tried.append({"port": int(p), "used": bool(used)})
+            if not used and chosen is None:
+                chosen = int(p)
+        if chosen is None:
+            # fallback to original even if used; serve() will raise
+            chosen = int(self.port)
+        self._port_scan = {"tried": tried, "chosen": chosen}
+        return chosen
 
     async def handler(self, ws):
         key = _ClientKey(id(ws))
@@ -251,6 +301,13 @@ class LiveServer:
                 await self.send_chat(sender="agent", text=ident, channel=client.channel)
                 self._told_identity.add(client.channel)
             await self.log({"type": "presence", "event": "join", "nick": client.nick, "channel": client.channel})
+            # Inform clients about chosen port mapping (on first join)
+            try:
+                if self._port_scan.get("tried"):
+                    m = ", ".join([f"{t['port']}={'used' if t['used'] else 'free'}" for t in self._port_scan["tried"][:6]])
+                    await self.send_system(client.channel, f"LiveServer ports: {m} (chosen={self._port_scan.get('chosen')})")
+            except Exception:
+                pass
             async for raw in ws:
                 try:
                     msg = json.loads(raw)
@@ -1784,6 +1841,11 @@ class LiveServer:
                 if out:
                     await self.send_chat(sender="agent", text=out, channel=client.channel)
                     await self.log({"type":"ask","mode":"brain","text":q,"contexts":contexts,"out":out})
+                    # Emit Spatial CoT overlay even when using unified cranium path
+                    try:
+                        await self._emit_reasoning_overlay(client.channel, q, contexts, mode_hint="compose", composed_text=out)
+                    except Exception:
+                        pass
                     return
             except Exception:
                 pass
@@ -1794,6 +1856,11 @@ class LiveServer:
         out = self._sp_compose(q, contexts)
         await self.send_chat(sender="agent", text=out, channel=client.channel)
         await self.log({"type": "ask", "mode":"spatial_text", "text": q, "contexts": contexts, "out": out})
+        # Emit Spatial CoT overlay (Phase 1) when available
+        try:
+            await self._emit_reasoning_overlay(client.channel, q, contexts, mode_hint="compose", composed_text=out)
+        except Exception:
+            pass
 
     async def _handle_diary(self, args, client: Client):
         sub = args[0].lower() if args else "help"
@@ -1835,6 +1902,101 @@ class LiveServer:
                 await self.send_system(client.channel, f"Diary read error: {e}")
             return
         await self.send_system(client.channel, "Usage: /diary read [book_label] [page_id|label]")
+
+    async def _emit_reasoning_overlay(self, channel: str, question: str, contexts: list[tuple[str, str]], mode_hint: str = "compose", composed_text: Optional[str] = None) -> None:
+        """Build and send a reasoning path overlay to the viewer when supported.
+
+        - Uses knowledge3d.skills.spatial_cot.compose_with_cot if available.
+        - Resolves step labels to 3D waypoints when positions are present from dataset_graph.
+        - Sends as a command: { type: 'command', command: 'reasoning_path', target: JSON }.
+        """
+        try:
+            from ..skills.spatial_cot import compose_with_cot  # type: ignore
+        except Exception:
+            return
+        # Avoid recomputing the answer when we already have it
+        composer = (lambda q, ctxs: composed_text) if composed_text else None
+        _, path = compose_with_cot(question, contexts, mode=mode_hint, composer=composer)
+        payload = path.to_payload()
+        # Resolve waypoints via dataset_graph if positions are present
+        g = self._graphs.get(channel) or {}
+        labels: list[str] = g.get("labels") or []
+        positions: Optional[list] = g.get("positions") if isinstance(g, dict) else None
+        if isinstance(positions, list) and positions and labels:
+            # Build list of unique labels encountered in natural step order (retrieve/synthesize/verify dominate path)
+            order: list[str] = []
+            for s in payload.get("steps", []):
+                lab = str(s.get("label") or "").strip()
+                op = str(s.get("op") or "")
+                # For compare, skip adding combined label as a waypoint
+                if not lab or op == "compare":
+                    continue
+                # For synthesize labels like "a, b, c", split and take first
+                if op == "synthesize" and "," in lab:
+                    lab = lab.split(",", 1)[0].strip()
+                if lab not in order:
+                    order.append(lab)
+            idx_map = {str(labels[i]): i for i in range(len(labels))}
+            waypoints: list = []
+            for lab in order:
+                i = idx_map.get(lab)
+                if i is None:
+                    continue
+                try:
+                    pos = positions[i]
+                    # Validate [x,y,z]
+                    if isinstance(pos, (list, tuple)) and len(pos) == 3:
+                        waypoints.append([float(pos[0]), float(pos[1]), float(pos[2])])
+                except Exception:
+                    continue
+            if waypoints:
+                payload["waypoints"] = waypoints
+        # Compute per-hop similarity when 3D positions available and emit
+        try:
+            links: list[dict] = []
+            order_labels = [s.get("label") for s in payload.get("steps", []) if s.get("op") in {"retrieve","synthesize","verify"}]
+            # Condense synthesize combined labels
+            order: list[str] = []
+            for lab in order_labels:
+                lab = str(lab or "").strip()
+                if not lab:
+                    continue
+                if "," in lab:
+                    lab = lab.split(",", 1)[0].strip()
+                if lab not in order:
+                    order.append(lab)
+            if isinstance(positions, list) and labels and order and len(order) >= 2:
+                idx_map = {str(labels[i]): i for i in range(len(labels))}
+                def _cos(a, b):
+                    import math
+                    ax, ay, az = a; bx, by, bz = b
+                    dot = ax*bx + ay*by + az*bz
+                    na = math.sqrt(ax*ax + ay*ay + az*az)
+                    nb = math.sqrt(bx*bx + by*by + bz*bz)
+                    return float(dot / (max(1e-9, na*nb)))
+                for i in range(len(order)-1):
+                    a = order[i]; b = order[i+1]
+                    ia = idx_map.get(a); ib = idx_map.get(b)
+                    if ia is None or ib is None:
+                        continue
+                    try:
+                        va = positions[int(ia)]; vb = positions[int(ib)]
+                        if isinstance(va, (list, tuple)) and isinstance(vb, (list, tuple)) and len(va) == 3 and len(vb) == 3:
+                            sim3d = _cos(va, vb)
+                            links.append({"from": a, "to": b, "sim3d": round(sim3d, 6)})
+                            await self.send_chat(sender="system", text=f"CoT hop: {a} → {b} (sim3d={sim3d:.3f})", channel=channel)
+                    except Exception:
+                        continue
+            if links:
+                payload["links"] = links
+        except Exception:
+            pass
+        # Send as a command for viewer overlay rendering
+        try:
+            await self.send_command("reasoning_path", json.dumps(payload), channel=channel)
+            await self.log({"type": "reasoning_path", "question": question, "payload": payload})
+        except Exception:
+            pass
 
     async def _compose_reflection(self, channel: str, requester: str) -> str:
         g = self._graphs.get(channel)
@@ -1887,8 +2049,22 @@ def main():  # pragma: no cover
     ap.add_argument("--host", default=_host)
     ap.add_argument("--port", type=int, default=_port)
     ap.add_argument("--fast-start", action="store_true", help="Delay heavy imports/model loads until after the server starts listening")
+    ap.add_argument("--auto-port", action="store_true", help="Auto-select the nearest free port if requested port is busy")
     args = ap.parse_args()
     srv = LiveServer(host=args.host, port=args.port, fast_start=(True if args.fast_start else None))
+    # Choose free port when requested or if env K3D_LIVE_AUTO is set
+    want_auto = bool(args.auto_port or (os.getenv("K3D_LIVE_AUTO", "0").strip() != "0"))
+    try:
+        chosen = srv._choose_free_port() if (want_auto or srv._is_port_in_use(args.host, args.port)) else int(args.port)
+        srv.port = int(chosen)
+        # Write port scan summary
+        repo_root = Path(__file__).resolve().parents[2]
+        status = repo_root / "docs" / "reports" / "status"
+        status.mkdir(parents=True, exist_ok=True)
+        (status / "live_server_ports.json").write_text(json.dumps({"ts": datetime.utcnow().isoformat()+"Z", **srv._port_scan}, indent=2), encoding="utf-8")
+        print(f"[LiveServer] binding {srv.host}:{srv.port} (auto={want_auto})")
+    except Exception:
+        pass
     asyncio.run(srv.run())
 
 

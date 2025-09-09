@@ -11,6 +11,8 @@ export class AISuggestionManager {
     this.scene = scene;
     this.camera = camera;
     this.canvas = canvas;
+    // no-op read to satisfy TS strict unused checks for 'scene' until used by future features
+    void this.scene;
   }
 
   setRecords(records: ReadonlyArray<{ id: string; embedding: number[]; vector: [number,number,number]; metadata: any }>) {
@@ -157,7 +159,15 @@ export class LODRenderer {
   update(camera: THREE.PerspectiveCamera) {
     if (!this.pBase || !this.pMid || !this.pLow) return;
     // Screen-space pixel radius for bounding sphere
-    const bs = (this.base.boundingSphere || this.computeCentroid()).clone();
+    let bs: THREE.Sphere;
+    if (this.base.boundingSphere) {
+      bs = this.base.boundingSphere.clone();
+    } else {
+      // ensure centroid and bounding sphere exist; fallback to small sphere
+      this.computeCentroid();
+      this.base.computeBoundingSphere();
+      bs = (this.base.boundingSphere || new THREE.Sphere(this.centroid.clone(), 1)).clone();
+    }
     const d = camera.position.distanceTo(bs.center);
     const fov = THREE.MathUtils.degToRad(camera.fov);
     const pixelsPerUnit = (0.5 * window.innerHeight) / Math.tan(fov / 2);

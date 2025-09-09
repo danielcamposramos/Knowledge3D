@@ -2,7 +2,7 @@ import './style.css';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { loadK3DFromGLTF, fetchCondoConfig, type K3DRecord, type CondoConfig, type HouseInfo, type LoadedK3D } from './loadK3D';
+import { loadK3DFromGLTF, fetchCondoConfig, type K3DRecord, type CondoConfig, type LoadedK3D } from './loadK3D';
 import { K3DAgent } from './agent';
 import { Tablet3D } from './tablet';
 import { ChatClient, type ChatMessage, type CommandMessage } from './chat';
@@ -16,16 +16,7 @@ import { buildInstancedStars, buildInstancedBranches } from './shapes';
 const canvas = document.getElementById('scene') as HTMLCanvasElement;
 const tooltip = document.getElementById('tooltip') as HTMLDivElement;
 const expertSelect = document.getElementById('expert-select') as HTMLSelectElement;
-const devPanel = document.getElementById('ui-container') as HTMLDivElement | null;
-const hudLog = document.getElementById('hud-chat-log') as HTMLDivElement | null;
-const hudInput = document.getElementById('hud-chat-input') as HTMLInputElement | null;
-const hudTip = document.getElementById('hud-tip') as HTMLDivElement | null;
 const hudLegend = document.getElementById('hud-legend') as HTMLDivElement | null;
-const hudMenu = document.getElementById('hud-menu') as HTMLDivElement | null;
-const hudHistory = document.getElementById('hud-history') as HTMLButtonElement | null;
-const hudTopic = document.getElementById('hud-topic') as HTMLDivElement | null;
-const hudCompose = document.getElementById('hud-compose') as HTMLButtonElement | null;
-const hudMenuClose = document.getElementById('hud-menu-close') as HTMLButtonElement | null;
 
 // --- Scene Setup ---
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -42,6 +33,7 @@ let recordMap: Map<string, K3DRecord> = new Map();
 let currentPoints: THREE.Object3D | null = null;
 let condoConfig: CondoConfig | null = null;
 let agent: K3DAgent | null = null;
+let cotOverlay: THREE.Group | null = null;
 let chat: ChatClient | null = null;
 const cache = openStore<LoadedK3D>();
 const tabletStore = openStore<any>('k3d-tablet','tablet');
@@ -79,8 +71,8 @@ if (lodToggle) lodToggle.onchange = () => { lodHud.style.display = lodToggle.che
 function clearScene() {
     if (currentPoints) {
         scene.remove(currentPoints);
-        currentPoints.geometry.dispose();
-        (currentPoints.material as THREE.Material).dispose();
+        try { (currentPoints as any).geometry?.dispose?.(); } catch {}
+        try { (currentPoints as any).material?.dispose?.(); } catch {}
         currentPoints = null;
     }
     if (edgesObject) {
@@ -104,6 +96,16 @@ function clearScene() {
     if (agent) {
         scene.remove(agent.object);
         agent = null;
+    }
+    if (cotOverlay) {
+        try {
+            cotOverlay.traverse((obj: any) => {
+                try { obj.geometry?.dispose?.(); } catch {}
+                try { obj.material?.dispose?.(); } catch {}
+            });
+        } catch {}
+        scene.remove(cotOverlay);
+        cotOverlay = null;
     }
     if (chat) {
         chat.disconnect();
@@ -193,9 +195,14 @@ async function loadHouse(k3dUrl: string) {
 
         // AI-native visual hint (global): if has_new_information on primitive and no mask provided
         if (loaded.info?.ai?.flags?.has_new_information && !loaded.info?.ai?.mask?.has_new_information && currentPoints) {
-            const colorsAttr = currentPoints.geometry.getAttribute('color') as THREE.BufferAttribute;
-            for (let i = 0; i < k3dData.length; i++) colorsAttr.setXYZ(i, 0.0, 1.0, 0.0);
-            colorsAttr.needsUpdate = true;
+            try {
+                if ((currentPoints as any).isPoints) {
+                    const colorsAttr = ((currentPoints as THREE.Points).geometry as THREE.BufferGeometry).getAttribute('color') as THREE.BufferAttribute;
+                    for (let i = 0; i < colorsAttr.count; i++) colorsAttr.setXYZ(i, 0.0, 1.0, 0.0);
+                    colorsAttr.needsUpdate = true;
+                }
+                // Skip group retint for grid-culling to keep perf simple
+            } catch {}
         }
 
         // Near-field shapes + rays for better semantics (meaning-driven; modality shown as rays)
@@ -379,30 +386,37 @@ async function loadHouse(k3dUrl: string) {
             chatLog.appendChild(el);
             chatLog.scrollTop = chatLog.scrollHeight;
         };
-        // Resolve WS endpoint: URL ?ws= takes precedence, then Vite env, then default
+        // Resolve WS endpoint: URL ?ws= takes precedence, then Vite env; otherwise try a candidate list
         const params = new URLSearchParams(window.location.search);
         const wsParam = params.get('ws');
         const envWs = (import.meta as any).env?.VITE_K3D_WS_URL as string | undefined;
-        const wsUrl = (wsParam && wsParam.length > 0) ? wsParam : (envWs && envWs.length > 0 ? envWs : 'ws://localhost:8765');
+        let wsCandidates: string[] = [];
+        if (wsParam && wsParam.length > 0) {
+            wsCandidates = [wsParam];
+        } else if (envWs && envWs.length > 0) {
+            wsCandidates = [envWs];
+        } else {
+            const base = 'ws://localhost:';
+            wsCandidates = [base+'8765', base+'8787', base+'8788', base+'8789'];
+        }
+        let wsIndex = 0;
         const handlers: any = {
-            onStatus: async (s) => {
+            onStatus: async (s: 'connected' | 'disconnected' | 'error') => {
                 chatStatus.textContent = `WS: ${s}`;
                 const q = await chat!.getQueueLength();
                 const tinfo = document.getElementById('tablet-info') as HTMLDivElement;
                 if (tinfo) tinfo.textContent = `Tablet: ${s === 'connected' ? 'online' : 'offline'}, queue=${q}`;
                 if (tablet) tablet.setStatus({ ws: s, queue: q });
-                // Auto-fallback to alternate default port when no explicit ws param/env
+                // Auto-fallback to alternate default ports when no explicit ws param/env
                 if (s === 'error') {
-                    const params = new URLSearchParams(window.location.search);
-                    const wsParam = params.get('ws');
-                    const envWs = (import.meta as any).env?.VITE_K3D_WS_URL as string | undefined;
-                    if (!wsParam && !envWs && chat && !chat.isConnected()) {
-                        const alt = wsUrl.includes(':8765') ? wsUrl.replace(':8765', ':8787') : wsUrl.replace(':8787', ':8765');
-                        chat = new ChatClient(alt, handlers);
+                    if (!wsParam && !envWs && chat && !chat.isConnected() && wsIndex + 1 < wsCandidates.length) {
+                        wsIndex += 1;
+                        const next = wsCandidates[wsIndex];
+                        chat = new ChatClient(next, handlers);
                         chat.setContext({ house: k3dUrl, mode: 'ai' });
                         chat.connect();
                         const tip = document.getElementById('hud-tip') as HTMLDivElement | null;
-                        if (tip) tip.textContent = `WS fallback → ${alt}`;
+                        if (tip) tip.textContent = `WS fallback → ${next}`;
                     }
                 }
                 // On connect, request topic and short history preload
@@ -485,10 +499,16 @@ async function loadHouse(k3dUrl: string) {
                             append('system', `Highlight: ${labels.join(', ')}`);
                         }
                     }
+                } else if (m.command === 'reasoning_path') {
+                    try {
+                        const payload = JSON.parse(m.target);
+                        drawReasoningOverlay(payload);
+                        append('system', `Spatial CoT overlay: ${payload?.mode || 'compose'}`);
+                    } catch {}
                 }
             }
         };
-        chat = new ChatClient(wsUrl, handlers);
+        chat = new ChatClient(wsCandidates[0], handlers);
         // Provide context for logging and continuity
         chat.setContext({ house: k3dUrl, mode: 'ai' });
         // Wire HUD History
@@ -858,6 +878,12 @@ if (toggleTrails) {
         if (agent) agent.trailsEnabled = !!toggleTrails.checked;
     });
 }
+const cotToggle = document.getElementById('toggle-cot') as HTMLInputElement | null;
+if (cotToggle) {
+    cotToggle.addEventListener('change', () => {
+        if (cotOverlay) cotOverlay.visible = !!cotToggle.checked;
+    });
+}
 if (tabletFocusBtn) {
     tabletFocusBtn.addEventListener('click', () => {
         if (tablet) tablet.toggleFocus();
@@ -1046,6 +1072,90 @@ function createStars(count = 600) {
     const mat = new THREE.PointsMaterial({ color: 0x88aaff, size: 0.5, sizeAttenuation: true });
     const stars = new THREE.Points(geom, mat);
     scene.add(stars);
+}
+
+// --- Spatial CoT Overlay ---
+function drawReasoningOverlay(payload: any) {
+    // Remove existing overlay
+    if (cotOverlay) {
+        try {
+            cotOverlay.traverse((obj: any) => {
+                try { obj.geometry?.dispose?.(); } catch {}
+                try { obj.material?.dispose?.(); } catch {}
+            });
+        } catch {}
+        scene.remove(cotOverlay);
+        cotOverlay = null;
+    }
+    const group = new THREE.Group();
+    const steps: any[] = Array.isArray(payload?.steps) ? payload.steps : [];
+    const wp: Array<[number, number, number]> = Array.isArray(payload?.waypoints) ? payload.waypoints : [];
+    let points: THREE.Vector3[] = [];
+    if (wp.length > 0) {
+        points = wp.map(([x,y,z]) => new THREE.Vector3(x,y,z));
+    } else {
+        // Map labels -> vectors using recordMap
+        const labels: string[] = [];
+        for (const s of steps) {
+            const op = String(s?.op || '');
+            let lab = String(s?.label || '');
+            if (!lab || op === 'compare') continue;
+            if (op === 'synthesize' && lab.includes(',')) lab = lab.split(',')[0].trim();
+            if (!labels.includes(lab)) labels.push(lab);
+        }
+        for (const lab of labels) {
+            const rec = findRecordByLabel(lab);
+            if (rec) points.push(new THREE.Vector3(rec.vector[0], rec.vector[1], rec.vector[2]));
+        }
+    }
+    if (points.length >= 2) {
+        // Draw polyline for path
+        const geom = new THREE.BufferGeometry().setFromPoints(points);
+        const mat = new THREE.LineBasicMaterial({ color: 0x66ccff, transparent: true, opacity: 0.8 });
+        const line = new THREE.Line(geom, mat);
+        (line.material as THREE.LineBasicMaterial).depthWrite = false;
+        group.add(line);
+    }
+    // Draw step markers
+    const sphere = new THREE.SphereGeometry(0.12, 12, 12);
+    const colorFor = (op: string, verified?: boolean): number => {
+        if (op === 'retrieve') return 0x00e0ff;  // cyan
+        if (op === 'compare') return 0xffd166;   // yellow
+        if (op === 'synthesize') return 0xff66cc; // pink
+        if (op === 'verify') return verified === false ? 0xff6b6b : 0x8bdc7f; // red/green
+        return 0xffffff;
+    };
+    for (const s of steps) {
+        const op = String(s?.op || '');
+        let lab = String(s?.label || '');
+        if (!lab || op === 'compare') continue;
+        if (op === 'synthesize' && lab.includes(',')) lab = lab.split(',')[0].trim();
+        const rec = findRecordByLabel(lab);
+        if (!rec) continue;
+        const pos = new THREE.Vector3(rec.vector[0], rec.vector[1], rec.vector[2]);
+        const mat = new THREE.MeshBasicMaterial({ color: colorFor(op, !!s?.verified) });
+        const m = new THREE.Mesh(sphere, mat);
+        m.position.copy(pos);
+        // Scale by confidence if present (visualize step certainty)
+        const conf = typeof s?.confidence === 'number' ? Math.max(0, Math.min(1, s.confidence)) : 0.6;
+        const scale = 0.8 + 0.6 * conf;
+        m.scale.setScalar(scale);
+        group.add(m);
+    }
+    cotOverlay = group;
+    scene.add(group);
+}
+
+function findRecordByLabel(label: string): K3DRecord | null {
+    // Prefer exact match on metadata.label; then contains; then id
+    let rec = k3dData.find(r => (r.metadata?.label as string) === label);
+    if (rec) return rec;
+    rec = k3dData.find(r => ((r.metadata?.label as string) || '').toLowerCase() === label.toLowerCase());
+    if (rec) return rec;
+    rec = k3dData.find(r => ((r.metadata?.label as string) || '').toLowerCase().includes(label.toLowerCase()));
+    if (rec) return rec;
+    rec = k3dData.find(r => r.id === label);
+    return rec || null;
 }
 
 // --- Game HUD chat behavior ---

@@ -74,8 +74,9 @@ def main() -> None:  # pragma: no cover
         q = str(rec.get("query"))
         ctxs = [str(x or "") for x in rec.get("contexts") or []]
         prompt = build_prompt(q, ctxs)
-        ids = tok(prompt, return_tensors="pt").to(device)
-        out = mdl.generate(**ids, max_new_tokens=256, do_sample=True, top_p=0.9, temperature=0.7)
+        # Guard against long prompts: truncate to leave room for generation within 1024 ctx window
+        ids = tok(prompt, return_tensors="pt", truncation=True, max_length=768).to(device)
+        out = mdl.generate(**ids, max_new_tokens=128, do_sample=True, top_p=0.9, temperature=0.7)
         txt = tok.decode(out[0], skip_special_tokens=True)
         ans = txt[len(prompt):].strip() if txt.startswith(prompt) else txt
         # Similarity to context blob
@@ -98,4 +99,3 @@ def main() -> None:  # pragma: no cover
 
 if __name__ == "__main__":
     main()
-

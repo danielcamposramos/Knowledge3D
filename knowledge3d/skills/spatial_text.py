@@ -10,6 +10,7 @@ keeps inference fully inside K3D.
 """
 
 from typing import List, Tuple
+from datetime import datetime
 from pathlib import Path
 from .llm import LLMSkill, LLMConfig  # type: ignore
 
@@ -154,12 +155,68 @@ def compose_auto(question: str, contexts: List[Tuple[str, str]], max_tokens: int
         try:
             y = sel.predict(question or "", ctx_txts)
             if y == 1:
-                return "compose_generate", compose_generate(question, contexts, max_tokens=max_tokens)
+                mode, out = "compose_generate", compose_generate(question, contexts, max_tokens=max_tokens)
+                _log_mode_decision(question, ctx_txts, mode, out)
+                return mode, out
             else:
-                return "compose", compose_answer(question, contexts, max_chars=max_tokens*3)
+                mode, out = "compose", compose_answer(question, contexts, max_chars=max_tokens*3)
+                _log_mode_decision(question, ctx_txts, mode, out)
+                return mode, out
         except Exception:
             pass
     # Heuristic fallback
     if contexts:
-        return "compose_generate", compose_generate(question, contexts, max_tokens=max_tokens)
-    return "compose", compose_answer(question, contexts, max_chars=max_tokens*3)
+        mode, out = "compose_generate", compose_generate(question, contexts, max_tokens=max_tokens)
+        _log_mode_decision(question, ctx_txts, mode, out)
+        return mode, out
+    mode, out = "compose", compose_answer(question, contexts, max_chars=max_tokens*3)
+    _log_mode_decision(question, ctx_txts, mode, out)
+    return mode, out
+
+
+def _log_mode_decision(question: str, ctx_txts: List[str], mode: str, answer: str) -> None:
+    """Append a JSONL record for mode selection outcomes.
+
+    Writes to docs/reports/training/mode_selector_outcomes.jsonl and mirrors to
+    ../Knowledge3D.local/logs/mode_selector-<date>.jsonl. If K3D_MODE_LOG_SIM=1
+    and sentence-transformers is available, compute a quick similarity score
+    between the answer and context blob for downstream labels.
+    """
+    try:
+        import os, json
+        from pathlib import Path
+        repo_root = Path(__file__).resolve().parents[2]
+        out_repo = repo_root / "docs" / "reports" / "training" / "mode_selector_outcomes.jsonl"
+        local_root = repo_root.parent / f"{repo_root.name}.local"
+        ts = datetime.utcnow().isoformat() + "Z"
+        rec = {"ts": ts, "question": question, "mode": mode, "answer": answer, "contexts": ctx_txts[:6]}
+        # Optional similarity for outcome label
+        want_sim = os.getenv("K3D_MODE_LOG_SIM", "0").strip() != "0"
+        if want_sim:
+            try:
+                from sentence_transformers import SentenceTransformer  # type: ignore
+                import numpy as _np  # type: ignore
+                import torch  # type: ignore
+                st = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2", device=("cuda" if torch.cuda.is_available() else "cpu"))
+                e1 = st.encode([answer], convert_to_numpy=True)[0]
+                blob = "\n".join(ctx_txts[:4])
+                e2 = st.encode([blob], convert_to_numpy=True)[0]
+                sim = float(_np.dot(e1, e2) / (float(_np.linalg.norm(e1)) * float(_np.linalg.norm(e2)) + 1e-9))
+                rec["sim"] = sim
+            except Exception:
+                pass
+        out_repo.parent.mkdir(parents=True, exist_ok=True)
+        with out_repo.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+        # mirror to local logs
+        try:
+            local_root.mkdir(parents=True, exist_ok=True)
+            day = ts[:10]
+            out_local = local_root / "logs" / f"mode_selector-{day}.jsonl"
+            out_local.parent.mkdir(parents=True, exist_ok=True)
+            with out_local.open("a", encoding="utf-8") as lf:
+                lf.write(json.dumps(rec, ensure_ascii=False) + "\n")
+        except Exception:
+            pass
+    except Exception:
+        pass

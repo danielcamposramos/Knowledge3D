@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ConsoleApp, NotesApp, RpnApp, WebApp, CalendarApp, MailApp, EmbeddingsApp, GraphApp, GalaxyApp, StatsApp, LayersApp, DoorsApp, DiaryApp, ControlApp, SummaryApp, ExamsApp, type TabletApp } from './apps';
+import { ConsoleApp, ChatApp, NotesApp, RpnApp, WebApp, CalendarApp, MailApp, EmbeddingsApp, GraphApp, GalaxyApp, StatsApp, LayersApp, DoorsApp, DiaryApp, ControlApp, SummaryApp, StandardsApp, ExamsApp, type TabletApp } from './apps';
 
 type TabletMode = 'ai' | 'human';
 
@@ -98,7 +98,6 @@ export class Tablet3D {
         this.activeApp = id;
         // If in focus overlay, try to reopen current app content
         if (this.overlay) {
-          const areas = this.overlay.querySelectorAll('div');
           // Rebuild overlay to refresh app content
           this.hideFocus(); this.showFocus();
         }
@@ -185,19 +184,20 @@ export class Tablet3D {
     this.overlay = null;
   }
 
-  private describe(): string {
-    const s = this.status;
-    return [
-      `mode: ${s.mode ?? 'ai'}`,
-      `ws: ${s.ws}  queue: ${s.queue}`,
-      `house: ${s.house ?? '—'}`,
-      `nodes: ${s.nodes ?? '—'}`,
-      `info: ${s.info ?? ''}`,
-      '',
-      'Apps:',
-      ...this.apps.map(a => `- ${a.title}`),
-    ].join('\n');
-  }
+  // reserved: can be used for debugging
+  // private describe(): string {
+  //   const s = this.status;
+  //   return [
+  //     `mode: ${s.mode ?? 'ai'}`,
+  //     `ws: ${s.ws}  queue: ${s.queue}`,
+  //     `house: ${s.house ?? '—'}`,
+  //     `nodes: ${s.nodes ?? '—'}`,
+  //     `info: ${s.info ?? ''}`,
+  //     '',
+  //     'Apps:',
+  //     ...this.apps.map(a => `- ${a.title}`),
+  //   ].join('\n');
+  // }
 
   private renderScreen() {
     const ctx = this.ctx;

@@ -98,10 +98,15 @@ def main() -> None:  # pragma: no cover
     # ST encoder for similarity-based rewards
     from sentence_transformers import SentenceTransformer  # type: ignore
     try:
+        import os
         import torch  # type: ignore
-        st = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2", device=("cuda" if torch.cuda.is_available() else "cpu"))
+        strict = os.getenv("K3D_STRICT_GPU", "0").strip() != "0"
+        if strict and not torch.cuda.is_available():
+            raise SystemExit("GPU required (K3D_STRICT_GPU=1) but CUDA is not available")
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        st = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2", device=device)
     except Exception as e:
-        raise SystemExit(f"sentence-transformers required: {e}")
+        raise SystemExit(f"sentence-transformers setup error: {e}")
 
     # Answer composers
     from knowledge3d.skills.spatial_text import compose_answer, compose_generate  # type: ignore

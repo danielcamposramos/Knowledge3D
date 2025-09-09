@@ -1,0 +1,54 @@
+{
+  "ts": "2025-09-09T23:10:58.546887Z",
+  "tried": [
+    {
+      "port": 8765,
+      "used": false
+    },
+    {
+      "port": 8787,
+      "used": true
+    },
+    {
+      "port": 8788,
+      "used": true
+    },
+    {
+      "port": 8766,
+      "used": false
+    },
+    {
+      "port": 8767,
+      "used": false
+    },
+    {
+      "port": 8768,
+      "used": false
+    },
+    {
+      "port": 8769,
+      "used": false
+    },
+    {
+      "port": 8770,
+      "used": false
+    },
+    {
+      "port": 8771,
+      "used": false
+    },
+    {
+      "port": 8772,
+      "used": false
+    },
+    {
+      "port": 8773,
+      "used": false
+    },
+    {
+      "port": 8774,
+      "used": false
+    }
+  ],
+  "chosen": 8765
+}
