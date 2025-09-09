@@ -1,0 +1,45 @@
+K3D — Next Session Bootstrap (9/9/9)
+
+Hi Codex, please pick up exactly here:
+
+Context
+- Mode selector is trained and integrated (compose_auto). Model: ../Knowledge3D.local/models/mode_selector.pkl
+- Ranker retrained on unified v2. Model: ../Knowledge3D.local/models/answer_ranker.pkl
+- Unified datasets: v3 (9,220 rows) includes RL (honesty + algorithmic) and RLWHF grounded sets.
+- Small generative head retrained on v3. Model: ../Knowledge3D.local/models/rlwhf_policy
+- Spatial CoT plan is recorded at docs/reports/status/K3D_Spatial_CoT_Plan_2025-09-09.md
+
+Immediate Tasks (in order)
+1) Spatial CoT — Phase 1
+   - Add ReasoningPath class (e.g., knowledge3d/skills/spatial_cot.py) and extend compose/compose_generate to emit spatial reasoning steps with operations (retrieve/compare/synthesize/verify), confidence, and citations.
+   - Add verification checkpoints per step using House snippets.
+   - Emit a minimal event stream for visualization (path of 3D waypoints) and a toggled overlay in the viewer.
+
+2) Scale Grounded Data (+5k)
+   - Build +2.5k Anthropic +2.5k OASST grounded sets:
+     scripts/k3d_env.sh run python -m knowledge3d.tools.ingest_rl_open --gltf viewer/public/galaxy.cross.glb --out docs/reports/training/rlwhf_dataset_open_2500_anthropic_2.jsonl --n 2500 --dataset anthropic --mode compose
+     scripts/k3d_env.sh run python -m knowledge3d.tools.ingest_rl_open --gltf viewer/public/galaxy.cross.glb --out docs/reports/training/rlwhf_dataset_open_2500_oasst_2.jsonl --n 2500 --dataset oasst --mode compose
+   - Merge to v4 and retrain ranker:
+     scripts/k3d_env.sh run python -m knowledge3d.tools.merge_jsonl --out docs/reports/training/rlwhf_dataset_unified_v4.jsonl --dedup query docs/reports/training/rlwhf_dataset_unified_v3.jsonl docs/reports/training/rlwhf_dataset_open_2500_*_2.jsonl
+     scripts/k3d_env.sh run python -m knowledge3d.models.answer_ranker --dataset docs/reports/training/rlwhf_dataset_unified_v4.jsonl --out ../Knowledge3D.local/models/answer_ranker.pkl
+
+3) Algorithmic Thinking RLWHF (with K3D hints)
+   - Generate and merge:
+     scripts/k3d_env.sh run python -m knowledge3d.tools.build_algorithmic_thinking --out docs/reports/training/rl_dataset_algo_rlwhf_2000.jsonl --n 2000 --mode rlwhf --gltf viewer/public/galaxy.cross.glb
+     scripts/k3d_env.sh run python -m knowledge3d.tools.merge_jsonl --out docs/reports/training/rlwhf_dataset_unified_v5.jsonl --dedup query docs/reports/training/rlwhf_dataset_unified_v4.jsonl docs/reports/training/rl_dataset_algo_rlwhf_2000.jsonl
+   - Retrain small head and evaluate:
+     scripts/k3d_env.sh run python -m knowledge3d.models.rlwhf_policy --dataset docs/reports/training/rlwhf_dataset_unified_v5.jsonl --out ../Knowledge3D.local/models/rlwhf_policy --model distilgpt2 --epochs 2 --batch 4 --max_len 384 --lr 5e-5
+     scripts/k3d_env.sh run python -m knowledge3d.tools.eval_rlwhf_policy --dataset docs/reports/training/rlwhf_dataset_unified_v5.jsonl --model ../Knowledge3D.local/models/rlwhf_policy --out docs/reports/status/rlwhf_policy_eval_v5.json --limit 100
+
+4) Mode Selector — outcome labels
+   - Start logging for compose_auto decisions with downstream similarity reward; retrain mode selector on these labels.
+
+Notes
+- Keep K3D compose as primary; compose_generate is auxiliary.
+- All work remains internal (no external RAG). Grounding strictly via House.
+- If the viewer is needed, run: (cd viewer && npm run dev) and use live_server WS bridge if testing paths.
+
+Documents
+- Progress snapshot: docs/reports/status/progress_snapshot_2025-09-09.md
+- Spatial CoT plan: docs/reports/status/K3D_Spatial_CoT_Plan_2025-09-09.md
+- Grounded generative guide: docs/reports/status/grounded_generative_guide.md
