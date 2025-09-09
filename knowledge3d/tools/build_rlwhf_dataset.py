@@ -21,6 +21,7 @@ import argparse
 import json
 from pathlib import Path
 from typing import Dict, List, Optional
+import numpy as np
 
 
 def iter_logs(log_dir: Path):
@@ -64,6 +65,18 @@ def main() -> None:  # pragma: no cover
         by_ch.setdefault(ch, []).append(r)
     counts = {"good":0, "partial":0, "bad":0, "none":0}
     total_reward = 0.0
+    # ST encoder for similarity-based reward when feedback missing
+    try:
+        from sentence_transformers import SentenceTransformer  # type: ignore
+        import torch  # type: ignore
+        dev = {"device": "cuda"} if torch.cuda.is_available() else {}
+        st = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2", **dev)
+    except Exception:
+        st = None
+
+    def _cos(a: np.ndarray, b: np.ndarray) -> float:
+        return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-9))
+
     for ch, seq in by_ch.items():
         for i, rec in enumerate(seq):
             if rec.get("type") != "chat_response":
@@ -91,7 +104,25 @@ def main() -> None:  # pragma: no cover
                 reward += {"good":1.0, "partial":0.5, "bad":-0.25}[rating]
             else:
                 counts["none"] += 1
-                reward += honesty_bonus(a, contexts)
+                # Similarity-based reward (grounding proxy) when contexts captured
+                if st is not None and contexts:
+                    try:
+                        ans_v = st.encode([a], convert_to_numpy=True)[0]
+                        doc = "\n".join(contexts)
+                        ctx_v = st.encode([doc], convert_to_numpy=True)[0]
+                        sim = _cos(ans_v, ctx_v)
+                        if sim >= 0.70:
+                            reward += 1.0
+                        elif sim >= 0.40:
+                            reward += 0.5
+                        elif is_honest(a):
+                            reward += 0.5
+                        else:
+                            reward -= 0.25
+                    except Exception:
+                        reward += honesty_bonus(a, contexts)
+                else:
+                    reward += honesty_bonus(a, contexts)
             total_reward += reward
             out_rows.append({
                 "channel": ch,
@@ -119,4 +150,3 @@ def main() -> None:  # pragma: no cover
 
 if __name__ == "__main__":
     main()
-

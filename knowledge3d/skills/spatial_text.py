@@ -11,6 +11,23 @@ keeps inference fully inside K3D.
 
 from typing import List, Tuple
 
+_ranker = None
+
+def _load_ranker():
+    global _ranker
+    if _ranker is not None:
+        return _ranker
+    try:
+        from pathlib import Path
+        from ..models.answer_ranker import load  # type: ignore
+        repo_root = Path(__file__).resolve().parents[2]
+        model_path = (repo_root.parent / f"{repo_root.name}.local" / "models" / "answer_ranker.pkl")
+        if model_path.exists():
+            _ranker = load(model_path)
+    except Exception:
+        _ranker = None
+    return _ranker
+
 
 def _normalize(s: str) -> str:
     return " ".join((s or "").strip().split())
@@ -18,6 +35,13 @@ def _normalize(s: str) -> str:
 
 def compose_answer(question: str, contexts: List[Tuple[str, str]], max_chars: int = 600) -> str:
     q = _normalize(question)
+    # Optional: learned ranker to reorder contexts by predicted reward
+    rk = _load_ranker()
+    if rk is not None:
+        try:
+            contexts = sorted(contexts, key=lambda p: rk.score(q, p[1] or ''), reverse=True)
+        except Exception:
+            pass
     # Deduplicate by label, keep first non-empty text
     seen = set()
     pairs: List[Tuple[str, str]] = []
@@ -70,4 +94,3 @@ def compose_answer(question: str, contexts: List[Tuple[str, str]], max_chars: in
     parts.extend(out_lines)
     parts.append("I hope this helps. We can navigate to any of these topics for more detail.")
     return "\n".join(parts)
-

@@ -1,0 +1,12 @@
+{
+  "messages": 14,
+  "avg_reward": 0.0,
+  "sum_reward": 0.0,
+  "counts": {
+    "good": 0,
+    "partial": 0,
+    "bad": 0,
+    "none": 14
+  },
+  "out": "docs/reports/training/rlwhf_dataset.jsonl"
+}
