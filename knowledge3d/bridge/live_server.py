@@ -87,6 +87,13 @@ class LiveServer:
         # Reflection/identity: track prompts we send once per channel
         self._asked_thoughts: Set[str] = set()
         self._told_identity: Set[str] = set()
+        # Chat to memory linkage (track last message id per channel)
+        self._last_chat_msg: Dict[str, str] = {}
+        # IRC-inspired bits: topics, flood control, message caps
+        self._topics: Dict[str, str] = {}
+        self._max_msg_len = 512
+        self._flood_last: Dict[str, float] = {}
+        self._flood_min_interval = 0.6  # seconds between messages per nick
         # Lazy imports for spatial runtime
         try:
             from ..spatial.address import SpatialAddress  # type: ignore
@@ -255,6 +262,20 @@ class LiveServer:
             text = self._normalize(raw_text)
             if not text:
                 return
+            # Flood control (per-nick)
+            try:
+                now = self._now()
+                last = self._flood_last.get(client.nick, 0.0)
+                if now - last < self._flood_min_interval:
+                    await self.send_system(client.channel, "Slow down (flood control)")
+                    return
+                self._flood_last[client.nick] = now
+            except Exception:
+                pass
+            # Message length cap (IRC-like 512 chars)
+            if len(raw_text) > self._max_msg_len:
+                raw_text = raw_text[: self._max_msg_len]
+                text = text[: self._max_msg_len]
             # mIRC-like slash commands
             if text.startswith("/"):
                 await self.handle_command(text, client)
@@ -610,6 +631,58 @@ class LiveServer:
             st = "paused" if self._is_paused(client.channel) else "running"
             await self.send_system(client.channel, f"Status: {st}")
             return
+        if cmd == "/topic":
+            # /topic -> show; /topic set <text> to change
+            sub = parts[1] if len(parts) > 1 else "show"
+            if sub == "show":
+                topic = self._topics.get(client.channel) or "(no topic)"
+                await self.send_system(client.channel, f"Topic for {client.channel}: {topic}")
+            elif sub == "set" and len(parts) >= 3:
+                topic = parts[2]
+                self._topics[client.channel] = topic
+                await self.send_system(client.channel, f"Topic set for {client.channel}: {topic}")
+                await self.log({"type": "topic", "channel": client.channel, "topic": topic})
+            else:
+                await self.send_system(client.channel, "Usage: /topic [show|set <text>]")
+            return
+        if cmd == "/names":
+            # list nicks in channel
+            members = sorted([self.by_key[k].nick for k in self.channels.get(client.channel, set()) if k in self.by_key])
+            await self.send_system(client.channel, f"Names in {client.channel}: {', '.join(members) if members else '(none)'}")
+            return
+        if cmd == "/who":
+            # alias to /names with simple output
+            members = sorted([self.by_key[k].nick for k in self.channels.get(client.channel, set()) if k in self.by_key])
+            await self.send_system(client.channel, f"{client.channel}: {len(members)} users — {', '.join(members)}")
+            return
+        if cmd == "/history":
+            # emit last N messages from Chat Book to the requester as system lines
+            try:
+                N = int(parts[1]) if (len(parts) > 1 and parts[1].isdigit()) else 50
+            except Exception:
+                N = 50
+            try:
+                from ..tools.house_memory import MemoryHouse  # type: ignore
+                h = MemoryHouse()
+                book = f"Chat {client.channel}"
+                # extract messages with ts and nick
+                objs = [o for o in h.objects if o.kind == 'chat_message' and (o.extra or {}).get('parent') == h.ensure_chat_book(book)]
+                # sort by ts
+                def _ts(o):
+                    try:
+                        import datetime as _dt
+                        return _dt.datetime.fromisoformat((o.extra or {}).get('ts','').replace('Z','')).timestamp()
+                    except Exception:
+                        return 0.0
+                objs.sort(key=_ts)
+                tail = objs[-max(1,N):]
+                for o in tail:
+                    nick = str((o.extra or {}).get('nick') or o.label.split(':',1)[0] or 'user')
+                    msg = o.text or ''
+                    await self.send_system(client.channel, f"[history] {nick}: {msg}")
+            except Exception:
+                await self.send_system(client.channel, "History unavailable.")
+            return
         if cmd in ("/open", "/door") and len(parts) >= 2:
             await self._handle_open(parts[1], client)
             return
@@ -844,12 +917,36 @@ class LiveServer:
             n_ref = h.bootstrap_reflections(100)
             n_tr = h.bootstrap_training(100)
             n_diary = h.bootstrap_diary()
+            # Sleep-time re-embed of chat messages (GPU only; skipped if unavailable)
+            try:
+                n_chat = h.reembed_chat_messages()
+            except Exception:
+                n_chat = 0
             h.bootstrap_defaults()  # ensure furniture/doors exist
             out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "memory_house.gltf")
             h.export_gltf(out)
-            await self.send_chat(sender="agent", text=f"Sleep: consolidated memory (reflections+{n_ref}, training+{n_tr}, diary+{n_diary}). Exported memory_house.gltf.", channel=client.channel)
+            # Grow Knowledge Garden from current Galaxy (best-effort)
+            try:
+                galaxy = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "galaxy.glb")
+                garden_out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "knowledge_garden.glb")
+                if galaxy.exists():
+                    from ..tools import gardens as _gard
+                    _gard.main  # ensure import OK
+                    # Call builder API directly
+                    import argparse as _arg
+                    # emulate CLI
+                    import sys as _sys
+                    saved = list(_sys.argv)
+                    try:
+                        _sys.argv = ["gardens.py", "--from-galaxy", str(galaxy), "--gltf", str(garden_out)]
+                        _gard.main()
+                    finally:
+                        _sys.argv = saved
+            except Exception:
+                pass
+            await self.send_chat(sender="agent", text=f"Sleep: consolidated memory (reflections+{n_ref}, training+{n_tr}, diary+{n_diary}, chat_reembed+{n_chat}). Exported memory_house.gltf.", channel=client.channel)
             # log sleep event
-            await self.log({"type":"sleep","action":"consolidate","reflections":n_ref,"training":n_tr,"diary":n_diary})
+            await self.log({"type":"sleep","action":"consolidate","reflections":n_ref,"training":n_tr,"diary":n_diary,"chat_reembed":n_chat})
         except Exception as e:
             await self.send_system(client.channel, f"Sleep consolidation error: {e}")
 
@@ -1046,6 +1143,18 @@ class LiveServer:
             await asyncio.gather(*[ws.send(payload) for ws in targets])
         else:
             await asyncio.gather(*[c.ws.send(payload) for c in list(self.by_key.values())])
+        # Persist chat to House memory (Chat Book) except for system messages
+        try:
+            if channel and sender and sender != "system" and text:
+                from ..tools.house_memory import MemoryHouse  # type: ignore
+                role = "agent" if sender == "agent" else "human"
+                book_label = f"Chat {channel}"
+                h = MemoryHouse()
+                prev = self._last_chat_msg.get(channel)
+                mid = h.add_chat_message(book_label=book_label, nick=sender, text=str(text), role=role, room="Diary", prev_id=prev)
+                self._last_chat_msg[channel] = mid
+        except Exception:
+            pass
 
     async def send_command(self, command: str, target: str, channel: Optional[str] = None):
         payload = json.dumps({"type": "command", "command": command, "target": target, "channel": channel})

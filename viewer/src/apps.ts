@@ -46,6 +46,39 @@ export class ConsoleApp implements TabletApp {
   }
 }
 
+export class ChatApp implements TabletApp {
+  id = 'chat';
+  title = 'Chat';
+  private history: { ts: number; from: string; text: string }[] = [];
+  setContext() {}
+  onEvent(ev: { type: string; payload?: any }) {
+    if (ev?.type === 'chat_msg' && ev.payload) {
+      const m = ev.payload as { from: string; text: string };
+      this.history.push({ ts: Date.now(), from: String(m.from||'system'), text: String(m.text||'') });
+      if (this.history.length > 500) this.history.shift();
+    }
+  }
+  renderCanvas(ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }) {
+    ctx.fillStyle = '#0b0d0f';
+    ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+    ctx.fillStyle = '#e0e0e0';
+    ctx.font = '12px system-ui';
+    const lines = this.history.slice(-12);
+    let y = rect.y + 16;
+    for (const ln of lines) { ctx.fillText(`${ln.from}: ${ln.text}`.slice(0, 96), rect.x + 8, y); y += 14; }
+  }
+  openOverlay(el: HTMLDivElement) {
+    el.innerHTML = '';
+    const list = document.createElement('div'); list.style.maxHeight = '60vh'; list.style.overflowY = 'auto'; list.style.padding='6px'; list.style.background = '#222'; list.style.color='#ddd';
+    const input = document.createElement('input'); input.placeholder = 'Type message (/history 50)'; input.style.width='70%';
+    const send = document.createElement('button'); send.textContent='Send';
+    send.onclick = () => { const t = input.value.trim(); if (!t) return; try { (this as any).publish?.({ type:'sendChat', payload:{ text: t } }); } catch {}; input.value=''; };
+    el.appendChild(input); el.appendChild(send); el.appendChild(list);
+    const render = () => { list.innerHTML=''; for (const m of this.history.slice().reverse()) { const p=document.createElement('div'); p.textContent = `${new Date(m.ts).toLocaleTimeString()} ${m.from}: ${m.text}`; p.style.padding='4px'; list.appendChild(p);} };
+    render();
+  }
+}
+
 export class NotesApp implements TabletApp {
   id = 'notes';
   title = 'Notes';

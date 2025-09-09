@@ -24,6 +24,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 import math as _math
+from datetime import datetime
 
 ROOT = Path(__file__).resolve().parents[2]
 def _default_state_path() -> Path:
@@ -165,6 +166,51 @@ class MemoryHouse:
                 return 0.0
         return sorted(pages, key=_ts)
 
+    # --- Chat Memory (human + agent turns) ---
+    def ensure_chat_book(self, label: str = "Chat Book", room: str = "Diary") -> str:
+        """Ensure a chat book object exists; return its id.
+
+        Chat books group chat_message nodes by session/channel or topic.
+        """
+        if room not in self.rooms:
+            self.add_room(room, "Daily notes and conversations")
+        oid = f"chat:{hashlib.md5((room+'|'+label).encode()).hexdigest()[:8]}"
+        if not any(o.id == oid for o in self.objects):
+            self.objects.append(Obj(room=room, label=label, text="", kind="chat_book", extra={}, id=oid))
+            self._save()
+        return oid
+
+    def add_chat_message(
+        self,
+        book_label: str,
+        nick: str,
+        text: str,
+        role: str = "human",
+        room: str = "Diary",
+        prev_id: Optional[str] = None,
+        ts: Optional[float] = None,
+    ) -> str:
+        """Append a chat message node under a chat book.
+
+        - Stores metadata: parent (book id), ts (ISO8601), nick, role (human|agent), prev (previous message id)
+        - Embeds a deterministic 32‑d vector in extra.embedding32 (hash of nick|text)
+        Returns message id.
+        """
+        book_id = self.ensure_chat_book(book_label, room=room)
+        e32 = _hash_vec((nick or "") + "|" + (text or ""), 32)
+        import time as _time
+        t = ts or _time.time()
+        iso = datetime.utcfromtimestamp(t).isoformat() + "Z"
+        mid = f"msg:{hashlib.md5((book_id+'|'+iso+'|'+(nick or '')).encode()).hexdigest()[:8]}"
+        label = f"{nick}: {text[:48]}" if text else f"{nick}"
+        extra: Dict[str, object] = {"parent": book_id, "ts": iso, "nick": nick, "role": role, "embedding32": e32}
+        if prev_id:
+            extra["prev"] = prev_id
+        self.objects = [o for o in self.objects if o.id != mid]
+        self.objects.append(Obj(room=room, label=label, text=text, kind="chat_message", extra=extra, id=mid))
+        self._save()
+        return mid
+
     def nearest_contexts_for_embedding(self, vec32: List[float], k: int = 6) -> List[Tuple[str, str]]:
         """Return (label, text) from existing objects most similar to the given vector.
 
@@ -202,6 +248,51 @@ class MemoryHouse:
                 break
             out.append((lab, txt))
         return out
+
+    def reembed_chat_messages(self, model_name: str = "sentence-transformers/all-MiniLM-L6-v2", dims_out: int = 32) -> int:
+        """Re-embed chat_message nodes using a GPU text encoder and update extra.embedding32.
+
+        - Uses Sentence-Transformers on CUDA; if CUDA is unavailable, returns 0 (no CPU fallback).
+        - Compresses to dims_out by taking the first dims_out components after L2 normalization.
+        Returns number of updated messages.
+        """
+        # Collect chat messages
+        msgs: List[Obj] = [o for o in self.objects if o.kind == "chat_message" and isinstance(o.extra, dict)]
+        if not msgs:
+            return 0
+        # Prefer CUDA
+        try:
+            import torch  # type: ignore
+            if not torch.cuda.is_available():
+                return 0
+        except Exception:
+            return 0
+        try:
+            from sentence_transformers import SentenceTransformer  # type: ignore
+            mdl = SentenceTransformer(model_name, device='cuda')
+        except Exception:
+            return 0
+        texts = [o.text or o.label for o in msgs]
+        import numpy as _np  # type: ignore
+        emb = _np.asarray(mdl.encode(texts, convert_to_numpy=True, device='cuda'), dtype=float)
+        # L2-normalize
+        norms = _np.linalg.norm(emb, axis=1, keepdims=True) + 1e-9
+        emb = emb / norms
+        # Reduce to dims_out by slicing
+        d = min(dims_out, emb.shape[1])
+        emb32 = emb[:, :d]
+        # If smaller than dims_out, pad with zeros
+        if d < dims_out:
+            pad = _np.zeros((emb32.shape[0], dims_out - d), dtype=float)
+            emb32 = _np.concatenate([emb32, pad], axis=1)
+        # Write back
+        n = 0
+        for i, o in enumerate(msgs):
+            vec = [float(x) for x in emb32[i].tolist()]
+            o.extra["embedding32"] = vec
+            n += 1
+        self._save()
+        return n
 
     def bootstrap_books(self, limit: int = 24):
         p = ROOT / "data" / "ai_books_basic.json"
@@ -447,6 +538,18 @@ class MemoryHouse:
                 if pi is not None and oi is not None:
                     neighbors[pi].append(o.id)
                     neighbors[oi].append(parent_id)
+            # Connect chat messages to their chat book and previous message
+            if isinstance(o.extra, dict) and o.kind == "chat_message":
+                parent_id = o.extra.get("parent")
+                pi = id_index.get(parent_id) if parent_id else None
+                if pi is not None and oi is not None:
+                    neighbors[pi].append(o.id)
+                    neighbors[oi].append(parent_id)
+                prev_id = o.extra.get("prev")
+                pj = id_index.get(prev_id) if isinstance(prev_id, str) else None
+                if pj is not None and oi is not None:
+                    neighbors[oi].append(prev_id)  # link to previous
+                    neighbors[pj].append(o.id)     # link back
 
         # Optional consolidation: add KNN links among non-room nodes (objects/doors), exclude furniture for clarity
         try:

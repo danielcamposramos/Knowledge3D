@@ -19,7 +19,7 @@ export class Tablet3D {
   private tex: THREE.CanvasTexture;
   private status: TabletStatus = { ws: 'disconnected', queue: 0, mode: 'ai' };
   private overlay: HTMLDivElement | null = null;
-  private apps: TabletApp[] = [new ConsoleApp(), new NotesApp(), new RpnApp(), new WebApp(), new CalendarApp(), new MailApp(), new EmbeddingsApp(), new GraphApp(), new GalaxyApp(), new StatsApp(), new LayersApp(), new DoorsApp(), new DiaryApp(), new ControlApp(), new SummaryApp(), new StandardsApp(), new ExamsApp()];
+  private apps: TabletApp[] = [new ConsoleApp(), new ChatApp(), new NotesApp(), new RpnApp(), new WebApp(), new CalendarApp(), new MailApp(), new EmbeddingsApp(), new GraphApp(), new GalaxyApp(), new StatsApp(), new LayersApp(), new DoorsApp(), new DiaryApp(), new ControlApp(), new SummaryApp(), new StandardsApp(), new ExamsApp()];
   private activeApp = 'console';
   private emitter: ((ev: { type: string; payload?: any; kind?: string }) => void) | null = null;
   private localHandler: ((ev: { type: string; payload?: any }) => void) | null = null;
@@ -60,6 +60,7 @@ export class Tablet3D {
   }
 
   setDataset(records: ReadonlyArray<{ id: string; vector: [number,number,number]; embedding: number[]; metadata: Record<string, unknown> }>) {
+    for (const app of this.apps) (app as any).publish = (ev: any) => this.publish(ev);
     for (const app of this.apps) app.setContext?.({ records: records as any, publish: (ev) => this.publish(ev) });
   }
 

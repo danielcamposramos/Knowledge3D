@@ -29,6 +29,12 @@ Tool‑Centric & Agentic
 - The Tablet acts as the entry point for tools (file systems, virtual computers, local programs). The Cranium routes tool invocations via a small tool registry (skills bus) and records changes back into House memory (embeddings + metadata updates).
 - Examples: open a browser panel, run a local converter, attach an image/audio to an object, or edit a node’s embedding (direct vector manipulation with safeguards).
 
+Multimodal Chat Composer
+- The chat input is a multimodal box inspired by modern UIs (e.g., Open WebUI), not just plain text:
+  - Attach images/audio/video to turns; the AI client perceives these as embeddings.
+  - Drag‑drop into the Tablet; the app stores content under datasets and records references into House memory.
+  - For AI turns, the Tablet can display both text and an “AI view” overlay (vector fields, similarity rays).
+
 Implementation Notes
 - Viewer should expose Tablet interactions in all three modes; a “cast to screen” action should target any projection surfaces present in the House.
 - Door address bars can live on the Tablet as well as on door frames; both paths call into the same `/open` flow.

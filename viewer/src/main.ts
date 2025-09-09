@@ -285,6 +285,8 @@ async function loadHouse(k3dUrl: string) {
                 } catch {}
             } else if (ev?.type === 'wake') {
                 try { if (chat) chat.sendChat('/resume'); } catch {}
+            } else if (ev?.type === 'sendChat') {
+                try { const text = String(ev.payload?.text || ''); if (chat && text) chat.sendChat(text); } catch {}
             }
         });
         // Update tablet with house info and dataset
@@ -314,7 +316,45 @@ async function loadHouse(k3dUrl: string) {
 
         // Start chat connection (prefer HUD elements if present)
         const chatLog = (document.getElementById('hud-chat-log') as HTMLDivElement) || (document.getElementById('chat-log') as HTMLDivElement);
+        // Load persisted chat history from memory_house.gltf (if present)
+        try {
+            const res = await fetch('/memory_house.gltf', { cache: 'no-store' });
+            if (res.ok) {
+                const gltfJson = await res.json();
+                const prim = gltfJson?.meshes?.[0]?.primitives?.[0];
+                const k3d = prim?.extras?.k3d;
+                const ids: string[] = Array.isArray(k3d?.ids) ? k3d.ids : [];
+                const meta: any[] = Array.isArray(k3d?.metadata) ? k3d.metadata : [];
+                // Collect chat_message items with timestamps
+                type CM = { id: string; nick: string; text: string; ts: string };
+                const items: CM[] = [];
+                for (let i = 0; i < ids.length; i++) {
+                    const m = meta[i] || {};
+                    if (String(m.type||'') === 'chat_message') {
+                        const id = String(ids[i]);
+                        const nick = String(m.nick || '');
+                        const text = String(m.text || '');
+                        const ts = String(m.ts || '');
+                        items.push({ id, nick, text, ts });
+                    }
+                }
+                // Sort by ts (ISO)
+                items.sort((a,b) => (a.ts < b.ts ? -1 : (a.ts > b.ts ? 1 : 0)));
+                // Append last N messages to HUD log
+                const maxHist = 200;
+                const hist = items.slice(-maxHist);
+                for (const m of hist) {
+                    const row = document.createElement('div');
+                    const when = m.ts ? new Date(m.ts.replace('Z','')).toLocaleString() : '';
+                    row.textContent = when ? `[${when}] ${m.nick}: ${m.text}` : `${m.nick}: ${m.text}`;
+                    row.style.opacity = '0.85';
+                    chatLog.appendChild(row);
+                }
+                chatLog.scrollTop = chatLog.scrollHeight;
+            }
+        } catch {}
         const chatStatus = (document.getElementById('chat-status') as HTMLDivElement) || document.createElement('div');
+        const topicBanner = document.getElementById('topic-banner') as HTMLDivElement | null;
         const append = (from: string, text: string) => {
             const el = document.createElement('div');
             el.textContent = `${from}: ${text}`;
@@ -347,12 +387,23 @@ async function loadHouse(k3dUrl: string) {
                         if (tip) tip.textContent = `WS fallback → ${alt}`;
                     }
                 }
+                // On connect, request topic and short history preload
+                try { if (s === 'connected' && chat) { chat.sendChat('/topic show'); chat.sendChat('/history 50'); } } catch {}
             },
             onChat: (m: ChatMessage) => {
                 if (m.action) append('* ' + m.from, m.text);
                 else if (m.to) append(`${m.from}→${m.to}`, m.text);
                 else if (m.channel) append(`[${m.channel}] ${m.from}`, m.text);
                 else append(m.from, m.text);
+                // Topic banner from system lines
+                if (topicBanner && m.from === 'system' && m.text) {
+                    const setMatch = /^Topic set for\s+(#[^:]+):\s+(.+)$/.exec(m.text);
+                    const showMatch = /^Topic for\s+(#[^:]+):\s+(.+)$/.exec(m.text);
+                    const mm = setMatch || showMatch;
+                    if (mm) { topicBanner.textContent = `${mm[1]} — ${mm[2]}`; topicBanner.style.display='block'; }
+                }
+                // Mirror to tablet chat app
+                try { if (tablet) tablet.dispatch({ type: 'chat_msg', payload: m }); } catch {}
                 // mirror into tablet info box
                 if (tablet) tablet.setStatus({ info: `last: ${m.from}: ${m.text.slice(0, 60)}` });
                 // Parse goto resolution notes from agent messages to stats app
@@ -418,6 +469,8 @@ async function loadHouse(k3dUrl: string) {
         chat = new ChatClient(wsUrl, handlers);
         // Provide context for logging and continuity
         chat.setContext({ house: k3dUrl, mode: 'ai' });
+        // Wire HUD History
+        try { const hb = document.getElementById('chat-history') as HTMLButtonElement | null; if (hb) hb.onclick = ()=> chat?.sendChat('/history 200'); } catch {}
         chat.connect();
 
         // Share dataset graph with live server for routing (ids, neighbors, labels, positions)

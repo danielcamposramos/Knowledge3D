@@ -21,11 +21,13 @@
         </label>
       </div>
       <div style="margin-top:8px;">
+        <div id="topic-banner" style="font-size:12px; color:#333; margin-bottom:6px; display:none;"></div>
         <strong>Chat</strong>
         <div id="chat-log" style="width: 320px; height: 120px; overflow-y: auto; background: #fff; border: 1px solid #ccc; padding: 6px; margin-top: 4px;"></div>
         <div style="display:flex; gap:6px; margin-top:6px;">
           <input id="chat-input" placeholder="Type a message..." style="flex:1;" />
           <button id="chat-send">Send</button>
+          <button id="chat-history" title="/history 200">History</button>
         </div>
         <div style="display:flex; gap:6px; margin-top:6px;">
           <button id="chat-pause" title="/pause analyze">Pause</button>
