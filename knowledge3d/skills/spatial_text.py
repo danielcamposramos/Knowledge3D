@@ -10,9 +10,11 @@ keeps inference fully inside K3D.
 """
 
 from typing import List, Tuple
+from pathlib import Path
 from .llm import LLMSkill, LLMConfig  # type: ignore
 
 _ranker = None
+_selector = None
 
 def _load_ranker():
     global _ranker
@@ -28,6 +30,21 @@ def _load_ranker():
     except Exception:
         _ranker = None
     return _ranker
+
+
+def _load_selector():
+    global _selector
+    if _selector is not None:
+        return _selector
+    try:
+        from ..models.mode_selector import load as _load  # type: ignore
+        repo_root = Path(__file__).resolve().parents[2]
+        model_path = (repo_root.parent / f"{repo_root.name}.local" / "models" / "mode_selector.pkl")
+        if model_path.exists():
+            _selector = _load(model_path)
+    except Exception:
+        _selector = None
+    return _selector
 
 
 def _normalize(s: str) -> str:
@@ -121,3 +138,28 @@ def compose_generate(question: str, contexts: List[Tuple[str, str]], max_tokens:
         return "I don't have enough memory text for that yet."
     llm = LLMSkill(LLMConfig())
     return llm.answer_with_rag(q, pairs, max_tokens=max_tokens)
+
+
+def compose_auto(question: str, contexts: List[Tuple[str, str]], max_tokens: int = 256) -> Tuple[str, str]:
+    """
+    Auto-select between compose (retrieval+stitching) and compose_generate
+    (grounded generative) using the trained mode selector when available.
+
+    Returns (mode, text) where mode is "compose" or "compose_generate".
+    """
+    sel = _load_selector()
+    # Prepare contexts for selector (only text fields)
+    ctx_txts = [ (txt or "") for _, txt in contexts ]
+    if sel is not None:
+        try:
+            y = sel.predict(question or "", ctx_txts)
+            if y == 1:
+                return "compose_generate", compose_generate(question, contexts, max_tokens=max_tokens)
+            else:
+                return "compose", compose_answer(question, contexts, max_chars=max_tokens*3)
+        except Exception:
+            pass
+    # Heuristic fallback
+    if contexts:
+        return "compose_generate", compose_generate(question, contexts, max_tokens=max_tokens)
+    return "compose", compose_answer(question, contexts, max_chars=max_tokens*3)
