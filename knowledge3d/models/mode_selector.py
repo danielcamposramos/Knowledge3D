@@ -87,7 +87,11 @@ class ModeSelector:
         print("\nClassification Report:")
         print(
             classification_report(
-                y_test, y_pred, target_names=["compose", "compose_generate"]
+                y_test,
+                y_pred,
+                labels=[0, 1],
+                target_names=["compose", "compose_generate"],
+                zero_division=0,
             )
         )
 
@@ -119,4 +123,3 @@ if __name__ == "__main__":  # pragma: no cover
         )
         raise SystemExit(1)
     train_mode_selector(sys.argv[1], sys.argv[2])
-

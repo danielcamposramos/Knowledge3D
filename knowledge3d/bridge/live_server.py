@@ -1391,6 +1391,12 @@ class LiveServer:
                         continue
             except Exception:
                 pass
+            # Yield to the event loop to avoid starvation and control cadence
+            try:
+                await asyncio.sleep(max(1, int(self._log_maint_period)))
+            except Exception:
+                # As a last resort, yield briefly
+                await asyncio.sleep(1)
 
     async def _autonomy_loop(self) -> None:
         """Autonomous behavior when channels are idle.

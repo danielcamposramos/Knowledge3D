@@ -99,3 +99,13 @@ This file lists actionable tasks for AI agents working on the Knowledge3D reposi
 - **Prompt Pairing:** For each asset, add a matching prompt file named `<image>_prompt.md` containing the generation prompt and any parameters.
 - **Referencing:** When adding an asset, embed it in relevant docs (`README.md`, `docs/k3d-research.md`, `docs/ROADMAP.md`, `AGENTS.md`) and link to its prompt file.
 - **Attribution & License:** Ensure images comply with the repo license or include source/usage notes in the prompt file if different.
+
+---
+
+## Recent Implementation Notes (2025‑09‑10)
+
+- Live server stability: fixed an event‑loop starvation issue in log maintenance by yielding with an async sleep each pass. This restored reliable WS handshakes for local/remote clients.
+- Mode seeding: added `K3D_SEED_GRAPH_MAX` to cap the size of the `dataset_graph` payload sent by the seeder to avoid WebSocket frame overflow (1009). Seeder now uses a context‑managed connect (`websockets==10.4`).
+- Mode selector training: made classification report robust when a fold has only one class. Current log set is skewed toward `compose_generate`; expand seeding for factual prompts to balance labels.
+- New generator: `knowledge3d.tools.gen_text_ollama` to produce topic‑coherent text via local Ollama (e.g., `exaone3.5:latest`).
+- Built a modality‑balanced Galaxy (v7) with ~55 text (exaone) + ~55 3D assets. Unify projects embeddings to a common subspace (effective dims = min(target, max_dim, n‑1)). Cross‑modal edges added for navigation.

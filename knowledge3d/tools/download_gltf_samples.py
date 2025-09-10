@@ -12,6 +12,8 @@ Usage:
 
 import argparse
 import os
+import json
+from urllib.request import urlopen
 from pathlib import Path
 from typing import List
 
@@ -37,23 +39,52 @@ def url_for(name: str) -> str:
     return f"{base}/{name}/glTF-Binary/{name}.glb"
 
 
+def _download(url: str, out: Path) -> bool:
+    code = os.system(f"curl -fsSL '{url}' -o '{out}'")
+    return code == 0 and out.exists() and out.stat().st_size > 0
+
+
 def main() -> None:  # pragma: no cover
     ap = argparse.ArgumentParser(description="Download glTF sample GLBs")
     ap.add_argument("--out", default="../Knowledge3D.local/datasets/gltf_samples")
+    ap.add_argument("--all", action="store_true", help="Download all models from model-index.json")
+    ap.add_argument("--limit", type=int, default=0, help="Limit number of models when using --all (0 = no limit)")
     args = ap.parse_args()
     root = Path(args.out)
     root.mkdir(parents=True, exist_ok=True)
-    for name in SAMPLES:
-        u = url_for(name)
-        out = root / f"{name}.glb"
-        if out.exists() and out.stat().st_size > 0:
-            print(f"exists: {out}")
-            continue
-        print(f"downloading: {name} -> {out}")
-        code = os.system(f"curl -fsSL '{u}' -o '{out}'")
-        if code != 0 or (not out.exists()) or out.stat().st_size == 0:
-            print(f"failed: {name} ({u})")
-            continue
+    if args.all:
+        try:
+            idx_url = "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/model-index.json"
+            with urlopen(idx_url, timeout=60) as fh:
+                data = json.load(fh)
+            models = [m.get("name") for m in data if isinstance(m, dict) and m.get("name")]
+            count = 0
+            for name in models:
+                out = root / f"{name}.glb"
+                if out.exists() and out.stat().st_size > 0:
+                    print(f"exists: {out}")
+                    continue
+                u = url_for(name)
+                print(f"downloading: {name} -> {out}")
+                ok = _download(u, out)
+                if not ok:
+                    print(f"failed: {name} ({u})")
+                count += 1
+                if args.limit and count >= args.limit:
+                    break
+        except Exception as e:
+            raise SystemExit(f"Failed to download model-index: {e}")
+    else:
+        for name in SAMPLES:
+            u = url_for(name)
+            out = root / f"{name}.glb"
+            if out.exists() and out.stat().st_size > 0:
+                print(f"exists: {out}")
+                continue
+            print(f"downloading: {name} -> {out}")
+            ok = _download(u, out)
+            if not ok:
+                print(f"failed: {name} ({u})")
     print(str(root))
 
 
