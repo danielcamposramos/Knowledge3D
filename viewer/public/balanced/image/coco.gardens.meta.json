@@ -1,0 +1,252 @@
+[
+  {
+    "label": "000000016977.jpg",
+    "text": "A car that seems to be parked illegally behind a legally parked car",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000016977.jpg"
+  },
+  {
+    "label": "000000472598.jpg",
+    "text": "An old-fashioned green station wagon is parked on a shady driveway.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000472598.jpg"
+  },
+  {
+    "label": "000000082673.jpg",
+    "text": "A small car is parked in front of a scooter",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000082673.jpg"
+  },
+  {
+    "label": "000000267802.jpg",
+    "text": "A group of people riding mopeds in a busy street. ",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000267802.jpg"
+  },
+  {
+    "label": "000000107960.jpg",
+    "text": "Riding a motorcycle down a street that has no one else on it.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000107960.jpg"
+  },
+  {
+    "label": "000000491000.jpg",
+    "text": "Pedestrians walking down a sidewalk next to a small street.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000491000.jpg"
+  },
+  {
+    "label": "000000488327.jpg",
+    "text": "Posted signs point the way through a parking garage.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000488327.jpg"
+  },
+  {
+    "label": "000000540860.jpg",
+    "text": "A green car on display next to a busy street.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000540860.jpg"
+  },
+  {
+    "label": "000000427091.jpg",
+    "text": "City traffic and pedestrians are headed in multiple directions on the street.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000427091.jpg"
+  },
+  {
+    "label": "000000525971.jpg",
+    "text": "A large group of motorcycle riders collect in a parking lot. ",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000525971.jpg"
+  },
+  {
+    "label": "000000468508.jpg",
+    "text": "A red motorcycle parked on a sidewalk near multi-story buildings.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000468508.jpg"
+  },
+  {
+    "label": "000000529691.jpg",
+    "text": "A row of park benches on the side of a green grassy hill. ",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000529691.jpg"
+  },
+  {
+    "label": "000000138599.jpg",
+    "text": "A BMW motor cycle parked next to shrub..",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000138599.jpg"
+  },
+  {
+    "label": "000000100138.jpg",
+    "text": "A black motorcycle parked in front of trees.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000100138.jpg"
+  },
+  {
+    "label": "000000425690.jpg",
+    "text": "An overview picture of a street at night.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000425690.jpg"
+  },
+  {
+    "label": "000000278237.jpg",
+    "text": "A street scene with several cars and a bus.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000278237.jpg"
+  },
+  {
+    "label": "000000319275.jpg",
+    "text": "a person riding skis in the middle of a snowy street",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000319275.jpg"
+  },
+  {
+    "label": "000000443351.jpg",
+    "text": "One white motorcycle and one green motorcycle parked on the road",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000443351.jpg"
+  },
+  {
+    "label": "000000043098.jpg",
+    "text": "A man is walking down the street in front of a red door.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000043098.jpg"
+  },
+  {
+    "label": "000000568265.jpg",
+    "text": "A man flying a kite in a park on a clear day",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000568265.jpg"
+  },
+  {
+    "label": "000000030423.jpg",
+    "text": "Four giraffes in the wild eating from trees.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000030423.jpg"
+  },
+  {
+    "label": "000000207652.jpg",
+    "text": "A parked motorcycle with a red enclosed side car.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000207652.jpg"
+  },
+  {
+    "label": "000000369763.jpg",
+    "text": "A polie officer standing next to a  motorcycle parked on the street.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000369763.jpg"
+  },
+  {
+    "label": "000000322604.jpg",
+    "text": "A motorcycle rally on the street with many spectators.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000322604.jpg"
+  },
+  {
+    "label": "000000428769.jpg",
+    "text": "Car parked at meter with license plate that says SUPABAAD.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000428769.jpg"
+  },
+  {
+    "label": "000000056070.jpg",
+    "text": "A motorcycle parked next to a yellow thing and tree.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000056070.jpg"
+  },
+  {
+    "label": "000000555472.jpg",
+    "text": "An elephant is crossing a road while a jeep is parked watching. ",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000555472.jpg"
+  },
+  {
+    "label": "000000525667.jpg",
+    "text": "People standing around a park bench next to a bicycle.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000525667.jpg"
+  },
+  {
+    "label": "000000301574.jpg",
+    "text": "three motor cycle racers posing on their parked bikes",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000301574.jpg"
+  },
+  {
+    "label": "000000561780.jpg",
+    "text": "A group of older people sitting on a park bench with a dog on a leash.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000561780.jpg"
+  },
+  {
+    "label": "000000230600.jpg",
+    "text": "A toilet on the outside of a building next to a parking meter.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000230600.jpg"
+  },
+  {
+    "label": "000000021711.jpg",
+    "text": "Motorcyclists and a bicycle are parked on a yard.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000021711.jpg"
+  },
+  {
+    "label": "000000102735.jpg",
+    "text": "Dog in parking lot and on a leash.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000102735.jpg"
+  },
+  {
+    "label": "000000544713.jpg",
+    "text": "A man sitting on a parked motorcycle on the street ",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000544713.jpg"
+  },
+  {
+    "label": "000000237428.jpg",
+    "text": "A blonde woman sitting on a park bench next to a green bike.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000237428.jpg"
+  },
+  {
+    "label": "000000272015.jpg",
+    "text": "A park bench in front of a porch in a green grass filled park.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000272015.jpg"
+  },
+  {
+    "label": "000000360673.jpg",
+    "text": "A group of motorcycles parked side by side in front of a donuts shop.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000360673.jpg"
+  },
+  {
+    "label": "000000488943.jpg",
+    "text": "A European street scene with a motorcycle and a car.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000488943.jpg"
+  },
+  {
+    "label": "000000264599.jpg",
+    "text": "A crowded city street with lots of people walking around.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000264599.jpg"
+  },
+  {
+    "label": "000000013466.jpg",
+    "text": "Two street signs are shown against more buildings.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000013466.jpg"
+  },
+  {
+    "label": "000000099389.jpg",
+    "text": "A motorcycle parked in front of a graffiti covered building.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000099389.jpg"
+  },
+  {
+    "label": "000000528729.jpg",
+    "text": "A man talking on a cell phone walking an orange bike across a street.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000528729.jpg"
+  },
+  {
+    "label": "000000050411.jpg",
+    "text": "A mounted police officer riding down a city street past parked cars.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000050411.jpg"
+  },
+  {
+    "label": "000000175942.jpg",
+    "text": "A street view with a plane flying ahead.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000175942.jpg"
+  },
+  {
+    "label": "000000422326.jpg",
+    "text": "A modified motorcycle parked with other motorcycles on the pavement.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000422326.jpg"
+  },
+  {
+    "label": "000000028389.jpg",
+    "text": "A plane parked next to a truck next to a house.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000028389.jpg"
+  },
+  {
+    "label": "000000351711.jpg",
+    "text": "A motorcycle parked next to a bunch more with a plastic sign in front of it.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000351711.jpg"
+  },
+  {
+    "label": "000000544975.jpg",
+    "text": "Wild animals grazing near a lagoon surrounded by trees.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000544975.jpg"
+  },
+  {
+    "label": "000000170232.jpg",
+    "text": "A bus driving down a street in a small city.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000170232.jpg"
+  },
+  {
+    "label": "000000523953.jpg",
+    "text": "A young boy stands next to a row of parked motorcycles.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000523953.jpg"
+  }
+]

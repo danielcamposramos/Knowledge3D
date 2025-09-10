@@ -1,0 +1,3002 @@
+[
+  {
+    "label": "vciTh3A0TaM.mp4",
+    "text": "video: vciTh3A0TaM.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/vciTh3A0TaM.mp4"
+  },
+  {
+    "label": "P9dC44uaRME.mp4",
+    "text": "video: P9dC44uaRME.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/P9dC44uaRME.mp4"
+  },
+  {
+    "label": "VawlEZaX0_g.mp4",
+    "text": "video: VawlEZaX0_g.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/VawlEZaX0_g.mp4"
+  },
+  {
+    "label": "iOwov3nYkyA.mp4",
+    "text": "video: iOwov3nYkyA.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/iOwov3nYkyA.mp4"
+  },
+  {
+    "label": "okj49wqBI0s.mp4",
+    "text": "video: okj49wqBI0s.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/okj49wqBI0s.mp4"
+  },
+  {
+    "label": "8vkNr_eysXY.mp4",
+    "text": "video: 8vkNr_eysXY.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/8vkNr_eysXY.mp4"
+  },
+  {
+    "label": "0ylhLnuMg8g.mp4",
+    "text": "video: 0ylhLnuMg8g.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/0ylhLnuMg8g.mp4"
+  },
+  {
+    "label": "dhjUIvHSlKw.mp4",
+    "text": "video: dhjUIvHSlKw.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/dhjUIvHSlKw.mp4"
+  },
+  {
+    "label": "PeFrL-rQBnk.mp4",
+    "text": "video: PeFrL-rQBnk.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/PeFrL-rQBnk.mp4"
+  },
+  {
+    "label": "mvCzUIx7li0.mp4",
+    "text": "video: mvCzUIx7li0.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/mvCzUIx7li0.mp4"
+  },
+  {
+    "label": "3PSxWa6rGY4.mp4",
+    "text": "video: 3PSxWa6rGY4.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/3PSxWa6rGY4.mp4"
+  },
+  {
+    "label": "9Ev8CeE6CCc.mp4",
+    "text": "video: 9Ev8CeE6CCc.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/9Ev8CeE6CCc.mp4"
+  },
+  {
+    "label": "JMyCoStRMFg.mp4",
+    "text": "video: JMyCoStRMFg.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/JMyCoStRMFg.mp4"
+  },
+  {
+    "label": "4LqTgOA9qzc.mp4",
+    "text": "video: 4LqTgOA9qzc.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/4LqTgOA9qzc.mp4"
+  },
+  {
+    "label": "P1IJFOpUZAc.mp4",
+    "text": "video: P1IJFOpUZAc.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/P1IJFOpUZAc.mp4"
+  },
+  {
+    "label": "iJT_k-VD08k.mp4",
+    "text": "video: iJT_k-VD08k.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/iJT_k-VD08k.mp4"
+  },
+  {
+    "label": "fgzGX-pPYiM.mp4",
+    "text": "video: fgzGX-pPYiM.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/fgzGX-pPYiM.mp4"
+  },
+  {
+    "label": "AVn6O5tB5GA.mp4",
+    "text": "video: AVn6O5tB5GA.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/AVn6O5tB5GA.mp4"
+  },
+  {
+    "label": "-9vo9Oxjxhk.mp4",
+    "text": "video: -9vo9Oxjxhk.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/-9vo9Oxjxhk.mp4"
+  },
+  {
+    "label": "E-jdPE-780o.mp4",
+    "text": "video: E-jdPE-780o.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/E-jdPE-780o.mp4"
+  },
+  {
+    "label": "EvGkyGUuZnU.mp4",
+    "text": "video: EvGkyGUuZnU.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/EvGkyGUuZnU.mp4"
+  },
+  {
+    "label": "_rxOb5aJgmk.mp4",
+    "text": "video: _rxOb5aJgmk.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/_rxOb5aJgmk.mp4"
+  },
+  {
+    "label": "L9Z3h_o47nQ.mp4",
+    "text": "video: L9Z3h_o47nQ.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/L9Z3h_o47nQ.mp4"
+  },
+  {
+    "label": "yjtBhdBVtNM.mp4",
+    "text": "video: yjtBhdBVtNM.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/yjtBhdBVtNM.mp4"
+  },
+  {
+    "label": "ufL_i84GFmk.mp4",
+    "text": "video: ufL_i84GFmk.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/ufL_i84GFmk.mp4"
+  },
+  {
+    "label": "IcSYsu7ZzCs.mp4",
+    "text": "video: IcSYsu7ZzCs.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/IcSYsu7ZzCs.mp4"
+  },
+  {
+    "label": "atLO_DGRq4M.mp4",
+    "text": "video: atLO_DGRq4M.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/atLO_DGRq4M.mp4"
+  },
+  {
+    "label": "lFBl3JavvhM.mp4",
+    "text": "video: lFBl3JavvhM.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/lFBl3JavvhM.mp4"
+  },
+  {
+    "label": "z8Q-s8AthrA.mp4",
+    "text": "video: z8Q-s8AthrA.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/z8Q-s8AthrA.mp4"
+  },
+  {
+    "label": "1HBtXrz0fO8.mp4",
+    "text": "video: 1HBtXrz0fO8.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/1HBtXrz0fO8.mp4"
+  },
+  {
+    "label": "_oAKCHh_Av4.mp4",
+    "text": "video: _oAKCHh_Av4.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/_oAKCHh_Av4.mp4"
+  },
+  {
+    "label": "2_hbTxJ2fbI.mp4",
+    "text": "video: 2_hbTxJ2fbI.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/2_hbTxJ2fbI.mp4"
+  },
+  {
+    "label": "0bbub2tFSow.mp4",
+    "text": "video: 0bbub2tFSow.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/0bbub2tFSow.mp4"
+  },
+  {
+    "label": "O-Hy9k_Kf3c.mp4",
+    "text": "video: O-Hy9k_Kf3c.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/O-Hy9k_Kf3c.mp4"
+  },
+  {
+    "label": "BFfOzTssqX4.mp4",
+    "text": "video: BFfOzTssqX4.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/BFfOzTssqX4.mp4"
+  },
+  {
+    "label": "UJr2EP230dk.mp4",
+    "text": "video: UJr2EP230dk.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/UJr2EP230dk.mp4"
+  },
+  {
+    "label": "jeps5nSwq-U.mp4",
+    "text": "video: jeps5nSwq-U.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/jeps5nSwq-U.mp4"
+  },
+  {
+    "label": "Ib7NNJLjyT8.mp4",
+    "text": "video: Ib7NNJLjyT8.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/Ib7NNJLjyT8.mp4"
+  },
+  {
+    "label": "R5HizrVh_EY.mp4",
+    "text": "video: R5HizrVh_EY.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/R5HizrVh_EY.mp4"
+  },
+  {
+    "label": "4gUJVzt_zyk.mp4",
+    "text": "video: 4gUJVzt_zyk.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/4gUJVzt_zyk.mp4"
+  },
+  {
+    "label": "EdmxgI1nRxo.mp4",
+    "text": "video: EdmxgI1nRxo.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/EdmxgI1nRxo.mp4"
+  },
+  {
+    "label": "LdNnYkqCq9c.mp4",
+    "text": "video: LdNnYkqCq9c.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/LdNnYkqCq9c.mp4"
+  },
+  {
+    "label": "5YNqhjkMywo.mp4",
+    "text": "video: 5YNqhjkMywo.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/5YNqhjkMywo.mp4"
+  },
+  {
+    "label": "obZdhu9JICw.mp4",
+    "text": "video: obZdhu9JICw.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/obZdhu9JICw.mp4"
+  },
+  {
+    "label": "YUyureRGLAA.mp4",
+    "text": "video: YUyureRGLAA.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/YUyureRGLAA.mp4"
+  },
+  {
+    "label": "sq0mrRVotXc.mp4",
+    "text": "video: sq0mrRVotXc.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/sq0mrRVotXc.mp4"
+  },
+  {
+    "label": "ZoWgCBQc6wE.mp4",
+    "text": "video: ZoWgCBQc6wE.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/ZoWgCBQc6wE.mp4"
+  },
+  {
+    "label": "Me_M17VnQCE.mp4",
+    "text": "video: Me_M17VnQCE.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/Me_M17VnQCE.mp4"
+  },
+  {
+    "label": "7qnnCkJdBZc.mp4",
+    "text": "video: 7qnnCkJdBZc.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/7qnnCkJdBZc.mp4"
+  },
+  {
+    "label": "Fq_U-t6O7ls.mp4",
+    "text": "video: Fq_U-t6O7ls.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/Fq_U-t6O7ls.mp4"
+  },
+  {
+    "label": "c-umqY5HBxo.mp4",
+    "text": "video: c-umqY5HBxo.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/c-umqY5HBxo.mp4"
+  },
+  {
+    "label": "veNKRJ21hxo.mp4",
+    "text": "video: veNKRJ21hxo.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/veNKRJ21hxo.mp4"
+  },
+  {
+    "label": "WCdlpVUrbWs.mp4",
+    "text": "video: WCdlpVUrbWs.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/WCdlpVUrbWs.mp4"
+  },
+  {
+    "label": "vwj04OqdYNk.mp4",
+    "text": "video: vwj04OqdYNk.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/vwj04OqdYNk.mp4"
+  },
+  {
+    "label": "s-NJI7kSCMM.f135.mp4",
+    "text": "video: s-NJI7kSCMM.f135.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/s-NJI7kSCMM.f135.mp4"
+  },
+  {
+    "label": "U7AVv6ONUoY.mp4",
+    "text": "video: U7AVv6ONUoY.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/U7AVv6ONUoY.mp4"
+  },
+  {
+    "label": "cbznHY8uOOE.mp4",
+    "text": "video: cbznHY8uOOE.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/cbznHY8uOOE.mp4"
+  },
+  {
+    "label": "CnHKmtkBBs8.mp4",
+    "text": "video: CnHKmtkBBs8.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/CnHKmtkBBs8.mp4"
+  },
+  {
+    "label": "2LPE0KU05-Y.mp4",
+    "text": "video: 2LPE0KU05-Y.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/2LPE0KU05-Y.mp4"
+  },
+  {
+    "label": "89kpJOg07WI.mp4",
+    "text": "video: 89kpJOg07WI.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/89kpJOg07WI.mp4"
+  },
+  {
+    "label": "CNzzBs0XghA.mp4",
+    "text": "video: CNzzBs0XghA.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/CNzzBs0XghA.mp4"
+  },
+  {
+    "label": "_5loyvwKrb0.mp4",
+    "text": "video: _5loyvwKrb0.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/_5loyvwKrb0.mp4"
+  },
+  {
+    "label": "2xVH-79zc_U.mp4",
+    "text": "video: 2xVH-79zc_U.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/2xVH-79zc_U.mp4"
+  },
+  {
+    "label": "vHO1Dbq6beI.mp4",
+    "text": "video: vHO1Dbq6beI.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/vHO1Dbq6beI.mp4"
+  },
+  {
+    "label": "ramHGAZP14k.mp4",
+    "text": "video: ramHGAZP14k.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/ramHGAZP14k.mp4"
+  },
+  {
+    "label": "VaaUbEFcvvY.f135.mp4",
+    "text": "video: VaaUbEFcvvY.f135.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/VaaUbEFcvvY.f135.mp4"
+  },
+  {
+    "label": "p7uUj6baem0.mp4",
+    "text": "video: p7uUj6baem0.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/p7uUj6baem0.mp4"
+  },
+  {
+    "label": "GJJ_5dPMZ2c.mp4",
+    "text": "video: GJJ_5dPMZ2c.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/GJJ_5dPMZ2c.mp4"
+  },
+  {
+    "label": "7h4QEAFAxZw.mp4",
+    "text": "video: 7h4QEAFAxZw.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/7h4QEAFAxZw.mp4"
+  },
+  {
+    "label": "JSd8C0Ms-G0.mp4",
+    "text": "video: JSd8C0Ms-G0.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/JSd8C0Ms-G0.mp4"
+  },
+  {
+    "label": "5FlC5V1ipLk.mp4",
+    "text": "video: 5FlC5V1ipLk.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/5FlC5V1ipLk.mp4"
+  },
+  {
+    "label": "5kvBdoC-qiU.mp4",
+    "text": "video: 5kvBdoC-qiU.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/5kvBdoC-qiU.mp4"
+  },
+  {
+    "label": "gcbJi0VPzc8.mp4",
+    "text": "video: gcbJi0VPzc8.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/gcbJi0VPzc8.mp4"
+  },
+  {
+    "label": "cAxBY04KV2c.mp4",
+    "text": "video: cAxBY04KV2c.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/cAxBY04KV2c.mp4"
+  },
+  {
+    "label": "3Utbg9HZ-ms.mp4",
+    "text": "video: 3Utbg9HZ-ms.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/3Utbg9HZ-ms.mp4"
+  },
+  {
+    "label": "9icm5vsoOQE.mp4",
+    "text": "video: 9icm5vsoOQE.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/9icm5vsoOQE.mp4"
+  },
+  {
+    "label": "du5H86O9b-w.mp4",
+    "text": "video: du5H86O9b-w.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/du5H86O9b-w.mp4"
+  },
+  {
+    "label": "-rFgI-VJ98A.mp4",
+    "text": "video: -rFgI-VJ98A.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/-rFgI-VJ98A.mp4"
+  },
+  {
+    "label": "Uf9fRrDe1J0.mp4",
+    "text": "video: Uf9fRrDe1J0.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/Uf9fRrDe1J0.mp4"
+  },
+  {
+    "label": "Ljyd7jUhtOc.mp4",
+    "text": "video: Ljyd7jUhtOc.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/Ljyd7jUhtOc.mp4"
+  },
+  {
+    "label": "XmG50V_sAaw.mp4",
+    "text": "video: XmG50V_sAaw.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/XmG50V_sAaw.mp4"
+  },
+  {
+    "label": "xdbUx_h6iRI.mp4",
+    "text": "video: xdbUx_h6iRI.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/xdbUx_h6iRI.mp4"
+  },
+  {
+    "label": "MaP74kzZM-I.mp4",
+    "text": "video: MaP74kzZM-I.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/MaP74kzZM-I.mp4"
+  },
+  {
+    "label": "Oiu5EWCVjCw.mp4",
+    "text": "video: Oiu5EWCVjCw.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/Oiu5EWCVjCw.mp4"
+  },
+  {
+    "label": "IczD9OzKvco.mp4",
+    "text": "video: IczD9OzKvco.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/IczD9OzKvco.mp4"
+  },
+  {
+    "label": "_yUsbWXjPXU.mp4",
+    "text": "video: _yUsbWXjPXU.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/_yUsbWXjPXU.mp4"
+  },
+  {
+    "label": "Xc4VjKPDAOg.mp4",
+    "text": "video: Xc4VjKPDAOg.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/Xc4VjKPDAOg.mp4"
+  },
+  {
+    "label": "4DMCU48UVV8.mp4",
+    "text": "video: 4DMCU48UVV8.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/4DMCU48UVV8.mp4"
+  },
+  {
+    "label": "jK5Q_nYZ9fc.mp4",
+    "text": "video: jK5Q_nYZ9fc.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/jK5Q_nYZ9fc.mp4"
+  },
+  {
+    "label": "dGNSQX53IT4.mp4",
+    "text": "video: dGNSQX53IT4.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/dGNSQX53IT4.mp4"
+  },
+  {
+    "label": "5Jm0DJqRr2A.mp4",
+    "text": "video: 5Jm0DJqRr2A.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/5Jm0DJqRr2A.mp4"
+  },
+  {
+    "label": "70A4UJ3J7w0.mp4",
+    "text": "video: 70A4UJ3J7w0.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/70A4UJ3J7w0.mp4"
+  },
+  {
+    "label": "5jS7QxyiCcU.mp4",
+    "text": "video: 5jS7QxyiCcU.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/5jS7QxyiCcU.mp4"
+  },
+  {
+    "label": "6l-Waa_Pnmw.mp4",
+    "text": "video: 6l-Waa_Pnmw.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/6l-Waa_Pnmw.mp4"
+  },
+  {
+    "label": "q3n20KPoaos.mp4",
+    "text": "video: q3n20KPoaos.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/q3n20KPoaos.mp4"
+  },
+  {
+    "label": "Db2iwXmouCg.mp4",
+    "text": "video: Db2iwXmouCg.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/Db2iwXmouCg.mp4"
+  },
+  {
+    "label": "jsltYtLEKoY.mp4",
+    "text": "video: jsltYtLEKoY.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/jsltYtLEKoY.mp4"
+  },
+  {
+    "label": "xW6hpK-DBMY.mp4",
+    "text": "video: xW6hpK-DBMY.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/xW6hpK-DBMY.mp4"
+  },
+  {
+    "label": "t3dM_0zixzU.mp4",
+    "text": "video: t3dM_0zixzU.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/t3dM_0zixzU.mp4"
+  },
+  {
+    "label": "R16t04l9tWE.mp4",
+    "text": "video: R16t04l9tWE.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/R16t04l9tWE.mp4"
+  },
+  {
+    "label": "_nLeDqOr95c.mp4",
+    "text": "video: _nLeDqOr95c.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/_nLeDqOr95c.mp4"
+  },
+  {
+    "label": "BJNbW-UCKKE.mp4",
+    "text": "video: BJNbW-UCKKE.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/BJNbW-UCKKE.mp4"
+  },
+  {
+    "label": "v2Hr1CH-yb0.f136.mp4",
+    "text": "video: v2Hr1CH-yb0.f136.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/v2Hr1CH-yb0.f136.mp4"
+  },
+  {
+    "label": "78M2QDjGQz4.mp4",
+    "text": "video: 78M2QDjGQz4.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/78M2QDjGQz4.mp4"
+  },
+  {
+    "label": "5L0jGOL4luc.mp4",
+    "text": "video: 5L0jGOL4luc.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/5L0jGOL4luc.mp4"
+  },
+  {
+    "label": "50SQnqTg4RY.mp4",
+    "text": "video: 50SQnqTg4RY.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/50SQnqTg4RY.mp4"
+  },
+  {
+    "label": "F7UUQDKc6Mk.mp4",
+    "text": "video: F7UUQDKc6Mk.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/F7UUQDKc6Mk.mp4"
+  },
+  {
+    "label": "IJr83ksSr7I.mp4",
+    "text": "video: IJr83ksSr7I.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/IJr83ksSr7I.mp4"
+  },
+  {
+    "label": "DasRdyFA0bU.mp4",
+    "text": "video: DasRdyFA0bU.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/DasRdyFA0bU.mp4"
+  },
+  {
+    "label": "qd6ZbSabjQA.mp4",
+    "text": "video: qd6ZbSabjQA.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/qd6ZbSabjQA.mp4"
+  },
+  {
+    "label": "wbOD_G3ttgU.mp4",
+    "text": "video: wbOD_G3ttgU.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/wbOD_G3ttgU.mp4"
+  },
+  {
+    "label": "oh4oT0lD97w.mp4",
+    "text": "video: oh4oT0lD97w.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/oh4oT0lD97w.mp4"
+  },
+  {
+    "label": "NZLydTq7Q98.mp4",
+    "text": "video: NZLydTq7Q98.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/NZLydTq7Q98.mp4"
+  },
+  {
+    "label": "wHxBcTJB1F8.mp4",
+    "text": "video: wHxBcTJB1F8.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/wHxBcTJB1F8.mp4"
+  },
+  {
+    "label": "eXbVMzcdf8A.mp4",
+    "text": "video: eXbVMzcdf8A.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/eXbVMzcdf8A.mp4"
+  },
+  {
+    "label": "_Z0BTbNISSM.mp4",
+    "text": "video: _Z0BTbNISSM.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/_Z0BTbNISSM.mp4"
+  },
+  {
+    "label": "J83QgPQQPhQ.mp4",
+    "text": "video: J83QgPQQPhQ.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/J83QgPQQPhQ.mp4"
+  },
+  {
+    "label": "q4owm3Er7d8.mp4",
+    "text": "video: q4owm3Er7d8.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/q4owm3Er7d8.mp4"
+  },
+  {
+    "label": "M8YP9caUgrk.mp4",
+    "text": "video: M8YP9caUgrk.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/M8YP9caUgrk.mp4"
+  },
+  {
+    "label": "l_VFW7PmJA4.mp4",
+    "text": "video: l_VFW7PmJA4.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/l_VFW7PmJA4.mp4"
+  },
+  {
+    "label": "EA3HCx0yTIY.mp4",
+    "text": "video: EA3HCx0yTIY.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/EA3HCx0yTIY.mp4"
+  },
+  {
+    "label": "v-aqP5aP4g0.mp4",
+    "text": "video: v-aqP5aP4g0.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/v-aqP5aP4g0.mp4"
+  },
+  {
+    "label": "kBjslZs3JlU.mp4",
+    "text": "video: kBjslZs3JlU.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/kBjslZs3JlU.mp4"
+  },
+  {
+    "label": "ZBtWdtb46T8.mp4",
+    "text": "video: ZBtWdtb46T8.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/ZBtWdtb46T8.mp4"
+  },
+  {
+    "label": "l8r_tFC1pm0.mp4",
+    "text": "video: l8r_tFC1pm0.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/l8r_tFC1pm0.mp4"
+  },
+  {
+    "label": "r-6DdJlhNT4.mp4",
+    "text": "video: r-6DdJlhNT4.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/r-6DdJlhNT4.mp4"
+  },
+  {
+    "label": "J9Rv2nwPYzA.mp4",
+    "text": "video: J9Rv2nwPYzA.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/J9Rv2nwPYzA.mp4"
+  },
+  {
+    "label": "6dsG2BIL53o.mp4",
+    "text": "video: 6dsG2BIL53o.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/6dsG2BIL53o.mp4"
+  },
+  {
+    "label": "Bb8YBY227Es.mp4",
+    "text": "video: Bb8YBY227Es.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/Bb8YBY227Es.mp4"
+  },
+  {
+    "label": "zaCMAUukjAc.mp4",
+    "text": "video: zaCMAUukjAc.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/zaCMAUukjAc.mp4"
+  },
+  {
+    "label": "I08yHasZUzw.mp4",
+    "text": "video: I08yHasZUzw.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/I08yHasZUzw.mp4"
+  },
+  {
+    "label": "R2FHFNoyVd4.mp4",
+    "text": "video: R2FHFNoyVd4.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/R2FHFNoyVd4.mp4"
+  },
+  {
+    "label": "0mcbkruL7r4.mp4",
+    "text": "video: 0mcbkruL7r4.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/0mcbkruL7r4.mp4"
+  },
+  {
+    "label": "3CxZUEYjf6E.mp4",
+    "text": "video: 3CxZUEYjf6E.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/3CxZUEYjf6E.mp4"
+  },
+  {
+    "label": "o87ODF1TZQE.mp4",
+    "text": "video: o87ODF1TZQE.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/o87ODF1TZQE.mp4"
+  },
+  {
+    "label": "pBj0nIlWrzE.mp4",
+    "text": "video: pBj0nIlWrzE.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/pBj0nIlWrzE.mp4"
+  },
+  {
+    "label": "jF9vqo3B-hw.mp4",
+    "text": "video: jF9vqo3B-hw.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/jF9vqo3B-hw.mp4"
+  },
+  {
+    "label": "2uhXIJeb6zo.mp4",
+    "text": "video: 2uhXIJeb6zo.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/2uhXIJeb6zo.mp4"
+  },
+  {
+    "label": "V-djaZ1davU.mp4",
+    "text": "video: V-djaZ1davU.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/V-djaZ1davU.mp4"
+  },
+  {
+    "label": "SBOx3KAoAcQ.mp4",
+    "text": "video: SBOx3KAoAcQ.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/SBOx3KAoAcQ.mp4"
+  },
+  {
+    "label": "ZchkDtrtqVA.mp4",
+    "text": "video: ZchkDtrtqVA.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/ZchkDtrtqVA.mp4"
+  },
+  {
+    "label": "-_9XcrEHT5s.mp4",
+    "text": "video: -_9XcrEHT5s.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/-_9XcrEHT5s.mp4"
+  },
+  {
+    "label": "0sICsDdHAnw.mp4",
+    "text": "video: 0sICsDdHAnw.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/0sICsDdHAnw.mp4"
+  },
+  {
+    "label": "f39qVw_13dg.mp4",
+    "text": "video: f39qVw_13dg.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/f39qVw_13dg.mp4"
+  },
+  {
+    "label": "s6CRUjearK8.mp4",
+    "text": "video: s6CRUjearK8.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/s6CRUjearK8.mp4"
+  },
+  {
+    "label": "cWbSJOfhcE4.mp4",
+    "text": "video: cWbSJOfhcE4.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/cWbSJOfhcE4.mp4"
+  },
+  {
+    "label": "XqRn47i60xI.mp4",
+    "text": "video: XqRn47i60xI.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/XqRn47i60xI.mp4"
+  },
+  {
+    "label": "kiva9a4UuFc.mp4",
+    "text": "video: kiva9a4UuFc.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/kiva9a4UuFc.mp4"
+  },
+  {
+    "label": "L5ErTlgEThI.mp4",
+    "text": "video: L5ErTlgEThI.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/L5ErTlgEThI.mp4"
+  },
+  {
+    "label": "oJBcj3ID7fI.mp4",
+    "text": "video: oJBcj3ID7fI.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/oJBcj3ID7fI.mp4"
+  },
+  {
+    "label": "8fy2AtExBoA.mp4",
+    "text": "video: 8fy2AtExBoA.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/8fy2AtExBoA.mp4"
+  },
+  {
+    "label": "t-UeQCjC11o.mp4",
+    "text": "video: t-UeQCjC11o.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/t-UeQCjC11o.mp4"
+  },
+  {
+    "label": "xiPe16C-5mY.mp4",
+    "text": "video: xiPe16C-5mY.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/xiPe16C-5mY.mp4"
+  },
+  {
+    "label": "EDo0d6HMV1k.mp4",
+    "text": "video: EDo0d6HMV1k.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/EDo0d6HMV1k.mp4"
+  },
+  {
+    "label": "EiXWH6DqvlY.mp4",
+    "text": "video: EiXWH6DqvlY.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/EiXWH6DqvlY.mp4"
+  },
+  {
+    "label": "_dTUuY5L27o.mp4",
+    "text": "video: _dTUuY5L27o.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/_dTUuY5L27o.mp4"
+  },
+  {
+    "label": "lDOd8Z0Vwbg.mp4",
+    "text": "video: lDOd8Z0Vwbg.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/lDOd8Z0Vwbg.mp4"
+  },
+  {
+    "label": "CJUDL32Q7do.mp4",
+    "text": "video: CJUDL32Q7do.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/CJUDL32Q7do.mp4"
+  },
+  {
+    "label": "KG7MOPV_hdg.mp4",
+    "text": "video: KG7MOPV_hdg.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/KG7MOPV_hdg.mp4"
+  },
+  {
+    "label": "eYn8jtKpVkM.mp4",
+    "text": "video: eYn8jtKpVkM.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/eYn8jtKpVkM.mp4"
+  },
+  {
+    "label": "PjMBFaF-LDY.mp4",
+    "text": "video: PjMBFaF-LDY.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/PjMBFaF-LDY.mp4"
+  },
+  {
+    "label": "5vA-kP3C-WY.mp4",
+    "text": "video: 5vA-kP3C-WY.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/5vA-kP3C-WY.mp4"
+  },
+  {
+    "label": "b6Eejb-2hOs.mp4",
+    "text": "video: b6Eejb-2hOs.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/b6Eejb-2hOs.mp4"
+  },
+  {
+    "label": "-qWJhSDY2Tc.mp4",
+    "text": "video: -qWJhSDY2Tc.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/-qWJhSDY2Tc.mp4"
+  },
+  {
+    "label": "85e9l9qxtzQ.mp4",
+    "text": "video: 85e9l9qxtzQ.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/85e9l9qxtzQ.mp4"
+  },
+  {
+    "label": "J4YjMOdSx9g.mp4",
+    "text": "video: J4YjMOdSx9g.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/J4YjMOdSx9g.mp4"
+  },
+  {
+    "label": "uy5TENZk10I.mp4",
+    "text": "video: uy5TENZk10I.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/uy5TENZk10I.mp4"
+  },
+  {
+    "label": "tpm-b2JBck0.mp4",
+    "text": "video: tpm-b2JBck0.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/tpm-b2JBck0.mp4"
+  },
+  {
+    "label": "dIUvPZ0lDPM.mp4",
+    "text": "video: dIUvPZ0lDPM.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/dIUvPZ0lDPM.mp4"
+  },
+  {
+    "label": "ZeCnXIB60RM.mp4",
+    "text": "video: ZeCnXIB60RM.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/ZeCnXIB60RM.mp4"
+  },
+  {
+    "label": "WpGBC2ITQdI.mp4",
+    "text": "video: WpGBC2ITQdI.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/WpGBC2ITQdI.mp4"
+  },
+  {
+    "label": "oHzB-BFvQzM.mp4",
+    "text": "video: oHzB-BFvQzM.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/oHzB-BFvQzM.mp4"
+  },
+  {
+    "label": "j4-YU0XzZ4A.mp4",
+    "text": "video: j4-YU0XzZ4A.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/j4-YU0XzZ4A.mp4"
+  },
+  {
+    "label": "R69gd9CfwFo.mp4",
+    "text": "video: R69gd9CfwFo.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/R69gd9CfwFo.mp4"
+  },
+  {
+    "label": "ulE8jEflOcY.mp4",
+    "text": "video: ulE8jEflOcY.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/ulE8jEflOcY.mp4"
+  },
+  {
+    "label": "pD-lhCqK7fg.mp4",
+    "text": "video: pD-lhCqK7fg.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/pD-lhCqK7fg.mp4"
+  },
+  {
+    "label": "O7kvZg8bFFg.mp4",
+    "text": "video: O7kvZg8bFFg.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/O7kvZg8bFFg.mp4"
+  },
+  {
+    "label": "ip3qZdEsaao.mp4",
+    "text": "video: ip3qZdEsaao.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/ip3qZdEsaao.mp4"
+  },
+  {
+    "label": "702CL3eTNzg.mp4",
+    "text": "video: 702CL3eTNzg.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/702CL3eTNzg.mp4"
+  },
+  {
+    "label": "m4-dmxE3nUU.mp4",
+    "text": "video: m4-dmxE3nUU.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/m4-dmxE3nUU.mp4"
+  },
+  {
+    "label": "MbMGs5VEBTE.mp4",
+    "text": "video: MbMGs5VEBTE.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/MbMGs5VEBTE.mp4"
+  },
+  {
+    "label": "-vbd2W3yD4I.mp4",
+    "text": "video: -vbd2W3yD4I.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/-vbd2W3yD4I.mp4"
+  },
+  {
+    "label": "5379yXlh9og.mp4",
+    "text": "video: 5379yXlh9og.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/5379yXlh9og.mp4"
+  },
+  {
+    "label": "7UQKOm6lJq0.mp4",
+    "text": "video: 7UQKOm6lJq0.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/7UQKOm6lJq0.mp4"
+  },
+  {
+    "label": "7FMweTGNlJ0.mp4",
+    "text": "video: 7FMweTGNlJ0.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/7FMweTGNlJ0.mp4"
+  },
+  {
+    "label": "xGPyYkoB1T0.mp4",
+    "text": "video: xGPyYkoB1T0.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/xGPyYkoB1T0.mp4"
+  },
+  {
+    "label": "1L2LB7zIEI4.mp4",
+    "text": "video: 1L2LB7zIEI4.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/1L2LB7zIEI4.mp4"
+  },
+  {
+    "label": "81FISupw6KA.mp4",
+    "text": "video: 81FISupw6KA.mp4",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/81FISupw6KA.mp4"
+  },
+  {
+    "label": "mB0x7hz1jWM.mkv",
+    "text": "video: mB0x7hz1jWM.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/mB0x7hz1jWM.mkv"
+  },
+  {
+    "label": "_ctzjJx0uV8.mkv",
+    "text": "video: _ctzjJx0uV8.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/_ctzjJx0uV8.mkv"
+  },
+  {
+    "label": "6t5xk5mgiCk.mkv",
+    "text": "video: 6t5xk5mgiCk.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/6t5xk5mgiCk.mkv"
+  },
+  {
+    "label": "FXYGhLrkBgI.mkv",
+    "text": "video: FXYGhLrkBgI.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/FXYGhLrkBgI.mkv"
+  },
+  {
+    "label": "XbSNCTZiMQE.mkv",
+    "text": "video: XbSNCTZiMQE.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/XbSNCTZiMQE.mkv"
+  },
+  {
+    "label": "Fegs9N1v5X8.mkv",
+    "text": "video: Fegs9N1v5X8.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/Fegs9N1v5X8.mkv"
+  },
+  {
+    "label": "efvOYBo03XM.mkv",
+    "text": "video: efvOYBo03XM.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/efvOYBo03XM.mkv"
+  },
+  {
+    "label": "xbFechNcpsg.mkv",
+    "text": "video: xbFechNcpsg.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/xbFechNcpsg.mkv"
+  },
+  {
+    "label": "z9r-lQd_Ff8.mkv",
+    "text": "video: z9r-lQd_Ff8.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/z9r-lQd_Ff8.mkv"
+  },
+  {
+    "label": "ajB5i7H4RDo.mkv",
+    "text": "video: ajB5i7H4RDo.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/ajB5i7H4RDo.mkv"
+  },
+  {
+    "label": "M4_oCq6M_gk.mkv",
+    "text": "video: M4_oCq6M_gk.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/M4_oCq6M_gk.mkv"
+  },
+  {
+    "label": "fEp09CGRUTg.mkv",
+    "text": "video: fEp09CGRUTg.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/fEp09CGRUTg.mkv"
+  },
+  {
+    "label": "0-ZTHLSo_iI.mkv",
+    "text": "video: 0-ZTHLSo_iI.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/0-ZTHLSo_iI.mkv"
+  },
+  {
+    "label": "22glIZfA9R4.mkv",
+    "text": "video: 22glIZfA9R4.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/22glIZfA9R4.mkv"
+  },
+  {
+    "label": "I72uIE-va4E.mkv",
+    "text": "video: I72uIE-va4E.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/I72uIE-va4E.mkv"
+  },
+  {
+    "label": "3GgZd2Klrzc.mkv",
+    "text": "video: 3GgZd2Klrzc.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/3GgZd2Klrzc.mkv"
+  },
+  {
+    "label": "7IE2OCGjZns.mkv",
+    "text": "video: 7IE2OCGjZns.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/7IE2OCGjZns.mkv"
+  },
+  {
+    "label": "1EN3io4JoeY.mkv",
+    "text": "video: 1EN3io4JoeY.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/1EN3io4JoeY.mkv"
+  },
+  {
+    "label": "1zXXjwcOXTs.mkv",
+    "text": "video: 1zXXjwcOXTs.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/1zXXjwcOXTs.mkv"
+  },
+  {
+    "label": "9-eiUz08Y0E.mkv",
+    "text": "video: 9-eiUz08Y0E.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/9-eiUz08Y0E.mkv"
+  },
+  {
+    "label": "0Z-vvsm96fE.mkv",
+    "text": "video: 0Z-vvsm96fE.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/0Z-vvsm96fE.mkv"
+  },
+  {
+    "label": "3DPFZEqRWcw.mkv",
+    "text": "video: 3DPFZEqRWcw.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/3DPFZEqRWcw.mkv"
+  },
+  {
+    "label": "Ekqh_qkOvfU.mkv",
+    "text": "video: Ekqh_qkOvfU.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/Ekqh_qkOvfU.mkv"
+  },
+  {
+    "label": "CISOTXN2Y00.mkv",
+    "text": "video: CISOTXN2Y00.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/CISOTXN2Y00.mkv"
+  },
+  {
+    "label": "xlbnVWfHdr8.mkv",
+    "text": "video: xlbnVWfHdr8.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/xlbnVWfHdr8.mkv"
+  },
+  {
+    "label": "dfI2Xm-hdSc.mkv",
+    "text": "video: dfI2Xm-hdSc.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/dfI2Xm-hdSc.mkv"
+  },
+  {
+    "label": "34h2h9U_oV8.mkv",
+    "text": "video: 34h2h9U_oV8.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/34h2h9U_oV8.mkv"
+  },
+  {
+    "label": "n0tTYTSg4Os.mkv",
+    "text": "video: n0tTYTSg4Os.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/n0tTYTSg4Os.mkv"
+  },
+  {
+    "label": "lg5jO10MDkI.mkv",
+    "text": "video: lg5jO10MDkI.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/lg5jO10MDkI.mkv"
+  },
+  {
+    "label": "1qCyr3DPYnw.mkv",
+    "text": "video: 1qCyr3DPYnw.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/1qCyr3DPYnw.mkv"
+  },
+  {
+    "label": "v8DNLQVCPuY.mkv",
+    "text": "video: v8DNLQVCPuY.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/v8DNLQVCPuY.mkv"
+  },
+  {
+    "label": "vH-eCtxSJyg.mkv",
+    "text": "video: vH-eCtxSJyg.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/vH-eCtxSJyg.mkv"
+  },
+  {
+    "label": "-zuaFzRzl7Y.mkv",
+    "text": "video: -zuaFzRzl7Y.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/-zuaFzRzl7Y.mkv"
+  },
+  {
+    "label": "lc-bVZr8MKc.mkv",
+    "text": "video: lc-bVZr8MKc.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/lc-bVZr8MKc.mkv"
+  },
+  {
+    "label": "t1FS1HXa6HY.mkv",
+    "text": "video: t1FS1HXa6HY.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/t1FS1HXa6HY.mkv"
+  },
+  {
+    "label": "abaLFY_GI8k.mkv",
+    "text": "video: abaLFY_GI8k.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/abaLFY_GI8k.mkv"
+  },
+  {
+    "label": "Q7UqFn8xMv0.mkv",
+    "text": "video: Q7UqFn8xMv0.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/Q7UqFn8xMv0.mkv"
+  },
+  {
+    "label": "KFF_zkxtOh8.mkv",
+    "text": "video: KFF_zkxtOh8.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/KFF_zkxtOh8.mkv"
+  },
+  {
+    "label": "5eAmn18L0OY.mkv",
+    "text": "video: 5eAmn18L0OY.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/5eAmn18L0OY.mkv"
+  },
+  {
+    "label": "OF60r1xLH84.mkv",
+    "text": "video: OF60r1xLH84.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/OF60r1xLH84.mkv"
+  },
+  {
+    "label": "uaoC__dKucA.mkv",
+    "text": "video: uaoC__dKucA.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/uaoC__dKucA.mkv"
+  },
+  {
+    "label": "wGNaOBeul3A.mkv",
+    "text": "video: wGNaOBeul3A.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/wGNaOBeul3A.mkv"
+  },
+  {
+    "label": "-ORYjC-0F8I.mkv",
+    "text": "video: -ORYjC-0F8I.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/-ORYjC-0F8I.mkv"
+  },
+  {
+    "label": "Pj_070vBUeQ.mkv",
+    "text": "video: Pj_070vBUeQ.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/Pj_070vBUeQ.mkv"
+  },
+  {
+    "label": "OHnjPSvtkCQ.mkv",
+    "text": "video: OHnjPSvtkCQ.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/OHnjPSvtkCQ.mkv"
+  },
+  {
+    "label": "ZbI_bpw83Pc.mkv",
+    "text": "video: ZbI_bpw83Pc.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/ZbI_bpw83Pc.mkv"
+  },
+  {
+    "label": "w9JdtKedaZI.mkv",
+    "text": "video: w9JdtKedaZI.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/w9JdtKedaZI.mkv"
+  },
+  {
+    "label": "xAom09ISjoQ.mkv",
+    "text": "video: xAom09ISjoQ.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/xAom09ISjoQ.mkv"
+  },
+  {
+    "label": "1M_ehUdQbpE.mkv",
+    "text": "video: 1M_ehUdQbpE.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/1M_ehUdQbpE.mkv"
+  },
+  {
+    "label": "bqHFdldKo-k.mkv",
+    "text": "video: bqHFdldKo-k.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/bqHFdldKo-k.mkv"
+  },
+  {
+    "label": "4m-dwtx_W6E.mkv",
+    "text": "video: 4m-dwtx_W6E.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/4m-dwtx_W6E.mkv"
+  },
+  {
+    "label": "Q1mbd32UH34.mkv",
+    "text": "video: Q1mbd32UH34.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/Q1mbd32UH34.mkv"
+  },
+  {
+    "label": "xdBFPBV4PMk.mkv",
+    "text": "video: xdBFPBV4PMk.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/xdBFPBV4PMk.mkv"
+  },
+  {
+    "label": "5iLZs5BDXrk.mkv",
+    "text": "video: 5iLZs5BDXrk.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/5iLZs5BDXrk.mkv"
+  },
+  {
+    "label": "zUempCKuG_c.mkv",
+    "text": "video: zUempCKuG_c.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/zUempCKuG_c.mkv"
+  },
+  {
+    "label": "IB-8NOqnd5Q.mkv",
+    "text": "video: IB-8NOqnd5Q.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/IB-8NOqnd5Q.mkv"
+  },
+  {
+    "label": "_IEhvtusy8Y.mkv",
+    "text": "video: _IEhvtusy8Y.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/_IEhvtusy8Y.mkv"
+  },
+  {
+    "label": "eNnDmruTTfQ.mkv",
+    "text": "video: eNnDmruTTfQ.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/eNnDmruTTfQ.mkv"
+  },
+  {
+    "label": "WMeupz5g0a4.mkv",
+    "text": "video: WMeupz5g0a4.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/WMeupz5g0a4.mkv"
+  },
+  {
+    "label": "iIH9dyhPNhQ.mkv",
+    "text": "video: iIH9dyhPNhQ.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/iIH9dyhPNhQ.mkv"
+  },
+  {
+    "label": "fNa0EZiUib8.mkv",
+    "text": "video: fNa0EZiUib8.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/fNa0EZiUib8.mkv"
+  },
+  {
+    "label": "J8seLvL5KPY.mkv",
+    "text": "video: J8seLvL5KPY.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/J8seLvL5KPY.mkv"
+  },
+  {
+    "label": "FZx-h2nfHnY.mkv",
+    "text": "video: FZx-h2nfHnY.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/FZx-h2nfHnY.mkv"
+  },
+  {
+    "label": "PdpR-z-y4Mg.mkv",
+    "text": "video: PdpR-z-y4Mg.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/PdpR-z-y4Mg.mkv"
+  },
+  {
+    "label": "jDQFLoiYXEI.mkv",
+    "text": "video: jDQFLoiYXEI.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/jDQFLoiYXEI.mkv"
+  },
+  {
+    "label": "-CDQ-DFjDoA.mkv",
+    "text": "video: -CDQ-DFjDoA.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/-CDQ-DFjDoA.mkv"
+  },
+  {
+    "label": "0zNEeg9UCrM.mkv",
+    "text": "video: 0zNEeg9UCrM.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/0zNEeg9UCrM.mkv"
+  },
+  {
+    "label": "a2Ox7idnmU4.mkv",
+    "text": "video: a2Ox7idnmU4.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/a2Ox7idnmU4.mkv"
+  },
+  {
+    "label": "mrKxoh6jWBU.mkv",
+    "text": "video: mrKxoh6jWBU.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/mrKxoh6jWBU.mkv"
+  },
+  {
+    "label": "j6CgiNeWQwM.mkv",
+    "text": "video: j6CgiNeWQwM.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/j6CgiNeWQwM.mkv"
+  },
+  {
+    "label": "cqlOznBeksA.mkv",
+    "text": "video: cqlOznBeksA.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/cqlOznBeksA.mkv"
+  },
+  {
+    "label": "8MlUmCW4z8s.mkv",
+    "text": "video: 8MlUmCW4z8s.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/8MlUmCW4z8s.mkv"
+  },
+  {
+    "label": "H2ptfpn9QH0.mkv",
+    "text": "video: H2ptfpn9QH0.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/H2ptfpn9QH0.mkv"
+  },
+  {
+    "label": "5i-D02GAEh0.mkv",
+    "text": "video: 5i-D02GAEh0.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/5i-D02GAEh0.mkv"
+  },
+  {
+    "label": "0aSmZ91nawo.mkv",
+    "text": "video: 0aSmZ91nawo.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/0aSmZ91nawo.mkv"
+  },
+  {
+    "label": "BHxn3qfPAl4.mkv",
+    "text": "video: BHxn3qfPAl4.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/BHxn3qfPAl4.mkv"
+  },
+  {
+    "label": "Z5w-wkrjHuw.mkv",
+    "text": "video: Z5w-wkrjHuw.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/Z5w-wkrjHuw.mkv"
+  },
+  {
+    "label": "-CYBuvlIw0Q.mkv",
+    "text": "video: -CYBuvlIw0Q.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/-CYBuvlIw0Q.mkv"
+  },
+  {
+    "label": "8XE3dPSFfZM.mkv",
+    "text": "video: 8XE3dPSFfZM.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/8XE3dPSFfZM.mkv"
+  },
+  {
+    "label": "I7NGQdNGeOA.mkv",
+    "text": "video: I7NGQdNGeOA.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/I7NGQdNGeOA.mkv"
+  },
+  {
+    "label": "TcBTDj1z6YI.mkv",
+    "text": "video: TcBTDj1z6YI.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/TcBTDj1z6YI.mkv"
+  },
+  {
+    "label": "nhLHqlb9IUQ.mkv",
+    "text": "video: nhLHqlb9IUQ.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/nhLHqlb9IUQ.mkv"
+  },
+  {
+    "label": "JibAaj4av9Y.mkv",
+    "text": "video: JibAaj4av9Y.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/JibAaj4av9Y.mkv"
+  },
+  {
+    "label": "QJkpPoCxXqQ.mkv",
+    "text": "video: QJkpPoCxXqQ.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/QJkpPoCxXqQ.mkv"
+  },
+  {
+    "label": "EEMcAHWRTHU.mkv",
+    "text": "video: EEMcAHWRTHU.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/EEMcAHWRTHU.mkv"
+  },
+  {
+    "label": "mjLLz9lf2LU.mkv",
+    "text": "video: mjLLz9lf2LU.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/mjLLz9lf2LU.mkv"
+  },
+  {
+    "label": "HimTGgI4VQ8.mkv",
+    "text": "video: HimTGgI4VQ8.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/HimTGgI4VQ8.mkv"
+  },
+  {
+    "label": "63rfFPVVwXo.mkv",
+    "text": "video: 63rfFPVVwXo.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/63rfFPVVwXo.mkv"
+  },
+  {
+    "label": "iEAWgsSvJAE.mkv",
+    "text": "video: iEAWgsSvJAE.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/iEAWgsSvJAE.mkv"
+  },
+  {
+    "label": "WeXnmmh_GpE.mkv",
+    "text": "video: WeXnmmh_GpE.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/WeXnmmh_GpE.mkv"
+  },
+  {
+    "label": "FbpBmq5-a_A.mkv",
+    "text": "video: FbpBmq5-a_A.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/FbpBmq5-a_A.mkv"
+  },
+  {
+    "label": "8jDe3ZPcm1A.mkv",
+    "text": "video: 8jDe3ZPcm1A.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/8jDe3ZPcm1A.mkv"
+  },
+  {
+    "label": "XD7oMnLuI8Q.mkv",
+    "text": "video: XD7oMnLuI8Q.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/XD7oMnLuI8Q.mkv"
+  },
+  {
+    "label": "mavHEgYNLjs.mkv",
+    "text": "video: mavHEgYNLjs.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/mavHEgYNLjs.mkv"
+  },
+  {
+    "label": "elZqdoIVos4.mkv",
+    "text": "video: elZqdoIVos4.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/elZqdoIVos4.mkv"
+  },
+  {
+    "label": "U2PPeWWDSgM.mkv",
+    "text": "video: U2PPeWWDSgM.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/U2PPeWWDSgM.mkv"
+  },
+  {
+    "label": "vgsveBkXVss.mkv",
+    "text": "video: vgsveBkXVss.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/vgsveBkXVss.mkv"
+  },
+  {
+    "label": "iheIju_enig.mkv",
+    "text": "video: iheIju_enig.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/iheIju_enig.mkv"
+  },
+  {
+    "label": "GhBWH6spLNY.mkv",
+    "text": "video: GhBWH6spLNY.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/GhBWH6spLNY.mkv"
+  },
+  {
+    "label": "9RN4WoMfgoE.mkv",
+    "text": "video: 9RN4WoMfgoE.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/9RN4WoMfgoE.mkv"
+  },
+  {
+    "label": "kqzIkm7q2ko.mkv",
+    "text": "video: kqzIkm7q2ko.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/kqzIkm7q2ko.mkv"
+  },
+  {
+    "label": "JoP6OUiUt2E.mkv",
+    "text": "video: JoP6OUiUt2E.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/JoP6OUiUt2E.mkv"
+  },
+  {
+    "label": "EkGnk8zZe4E.mkv",
+    "text": "video: EkGnk8zZe4E.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/EkGnk8zZe4E.mkv"
+  },
+  {
+    "label": "1N2r_EIzs5g.mkv",
+    "text": "video: 1N2r_EIzs5g.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/1N2r_EIzs5g.mkv"
+  },
+  {
+    "label": "jwy5IYx3m6k.mkv",
+    "text": "video: jwy5IYx3m6k.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/jwy5IYx3m6k.mkv"
+  },
+  {
+    "label": "kmFC4sOQZ4c.mkv",
+    "text": "video: kmFC4sOQZ4c.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/kmFC4sOQZ4c.mkv"
+  },
+  {
+    "label": "_jy2A6qk_kM.mkv",
+    "text": "video: _jy2A6qk_kM.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/_jy2A6qk_kM.mkv"
+  },
+  {
+    "label": "j8Bp0L9D1oM.mkv",
+    "text": "video: j8Bp0L9D1oM.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/j8Bp0L9D1oM.mkv"
+  },
+  {
+    "label": "nJ6KPT1uwe8.mkv",
+    "text": "video: nJ6KPT1uwe8.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/nJ6KPT1uwe8.mkv"
+  },
+  {
+    "label": "vbPK1FaEkkY.mkv",
+    "text": "video: vbPK1FaEkkY.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/vbPK1FaEkkY.mkv"
+  },
+  {
+    "label": "Y0zwBnxzd1I.mkv",
+    "text": "video: Y0zwBnxzd1I.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/Y0zwBnxzd1I.mkv"
+  },
+  {
+    "label": "u-olDM7oGGM.mkv",
+    "text": "video: u-olDM7oGGM.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/u-olDM7oGGM.mkv"
+  },
+  {
+    "label": "ngbrye39-Qk.mkv",
+    "text": "video: ngbrye39-Qk.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/ngbrye39-Qk.mkv"
+  },
+  {
+    "label": "CXqpN526TxM.mkv",
+    "text": "video: CXqpN526TxM.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/CXqpN526TxM.mkv"
+  },
+  {
+    "label": "Q7mzAT5xlwU.mkv",
+    "text": "video: Q7mzAT5xlwU.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/Q7mzAT5xlwU.mkv"
+  },
+  {
+    "label": "rPv8mdRQcMg.mkv",
+    "text": "video: rPv8mdRQcMg.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/rPv8mdRQcMg.mkv"
+  },
+  {
+    "label": "d7_SY48r__8.mkv",
+    "text": "video: d7_SY48r__8.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/d7_SY48r__8.mkv"
+  },
+  {
+    "label": "ejSQTt97cM8.mkv",
+    "text": "video: ejSQTt97cM8.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/ejSQTt97cM8.mkv"
+  },
+  {
+    "label": "axSdPseoUlQ.mkv",
+    "text": "video: axSdPseoUlQ.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/axSdPseoUlQ.mkv"
+  },
+  {
+    "label": "3xA-WeJBKtc.mkv",
+    "text": "video: 3xA-WeJBKtc.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/3xA-WeJBKtc.mkv"
+  },
+  {
+    "label": "oLVxjvNTTVw.mkv",
+    "text": "video: oLVxjvNTTVw.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/oLVxjvNTTVw.mkv"
+  },
+  {
+    "label": "QNhd8xD7OMg.mkv",
+    "text": "video: QNhd8xD7OMg.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/QNhd8xD7OMg.mkv"
+  },
+  {
+    "label": "AWO_nKil_kA.mkv",
+    "text": "video: AWO_nKil_kA.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/AWO_nKil_kA.mkv"
+  },
+  {
+    "label": "Zpb1kjnrbKc.mkv",
+    "text": "video: Zpb1kjnrbKc.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/Zpb1kjnrbKc.mkv"
+  },
+  {
+    "label": "Lbq8dzeKW1s.mkv",
+    "text": "video: Lbq8dzeKW1s.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/Lbq8dzeKW1s.mkv"
+  },
+  {
+    "label": "D297atE3gag.mkv",
+    "text": "video: D297atE3gag.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/D297atE3gag.mkv"
+  },
+  {
+    "label": "lcT0ukZeCzo.mkv",
+    "text": "video: lcT0ukZeCzo.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/lcT0ukZeCzo.mkv"
+  },
+  {
+    "label": "aM4WyvYFP1k.mkv",
+    "text": "video: aM4WyvYFP1k.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/aM4WyvYFP1k.mkv"
+  },
+  {
+    "label": "diqTso9slWo.mkv",
+    "text": "video: diqTso9slWo.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/diqTso9slWo.mkv"
+  },
+  {
+    "label": "9vttVIYnQpQ.mkv",
+    "text": "video: 9vttVIYnQpQ.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/9vttVIYnQpQ.mkv"
+  },
+  {
+    "label": "xsG4N0-Lank.mkv",
+    "text": "video: xsG4N0-Lank.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/xsG4N0-Lank.mkv"
+  },
+  {
+    "label": "iNpZOj_WCxk.mkv",
+    "text": "video: iNpZOj_WCxk.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/iNpZOj_WCxk.mkv"
+  },
+  {
+    "label": "zDBUTSIdwPw.mkv",
+    "text": "video: zDBUTSIdwPw.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/zDBUTSIdwPw.mkv"
+  },
+  {
+    "label": "3K7PsTqaLv4.mkv",
+    "text": "video: 3K7PsTqaLv4.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/3K7PsTqaLv4.mkv"
+  },
+  {
+    "label": "o1zLQa2zaA4.mkv",
+    "text": "video: o1zLQa2zaA4.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/o1zLQa2zaA4.mkv"
+  },
+  {
+    "label": "Ybld2zl4NS8.mkv",
+    "text": "video: Ybld2zl4NS8.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/Ybld2zl4NS8.mkv"
+  },
+  {
+    "label": "N-LZPc27kjM.mkv",
+    "text": "video: N-LZPc27kjM.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/N-LZPc27kjM.mkv"
+  },
+  {
+    "label": "J8qydlYrOcM.mkv",
+    "text": "video: J8qydlYrOcM.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/J8qydlYrOcM.mkv"
+  },
+  {
+    "label": "2HQNJ8GrSqY.mkv",
+    "text": "video: 2HQNJ8GrSqY.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/2HQNJ8GrSqY.mkv"
+  },
+  {
+    "label": "kWWDhZsV4Es.mkv",
+    "text": "video: kWWDhZsV4Es.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/kWWDhZsV4Es.mkv"
+  },
+  {
+    "label": "jfSHyZpq-CQ.mkv",
+    "text": "video: jfSHyZpq-CQ.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/jfSHyZpq-CQ.mkv"
+  },
+  {
+    "label": "I3URfattavI.mkv",
+    "text": "video: I3URfattavI.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/I3URfattavI.mkv"
+  },
+  {
+    "label": "ACqrR9G1T-w.mkv",
+    "text": "video: ACqrR9G1T-w.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/ACqrR9G1T-w.mkv"
+  },
+  {
+    "label": "3fV7_Bci5nM.mkv",
+    "text": "video: 3fV7_Bci5nM.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/3fV7_Bci5nM.mkv"
+  },
+  {
+    "label": "xcu-xrvXZ3E.mkv",
+    "text": "video: xcu-xrvXZ3E.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/xcu-xrvXZ3E.mkv"
+  },
+  {
+    "label": "bjJw5KSto1k.mkv",
+    "text": "video: bjJw5KSto1k.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/bjJw5KSto1k.mkv"
+  },
+  {
+    "label": "m2_qmRnjICE.mkv",
+    "text": "video: m2_qmRnjICE.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/m2_qmRnjICE.mkv"
+  },
+  {
+    "label": "mNdTGphRHrY.mkv",
+    "text": "video: mNdTGphRHrY.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/mNdTGphRHrY.mkv"
+  },
+  {
+    "label": "_hH1yZQf5Og.mkv",
+    "text": "video: _hH1yZQf5Og.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/_hH1yZQf5Og.mkv"
+  },
+  {
+    "label": "R0M0xbeZR0E.mkv",
+    "text": "video: R0M0xbeZR0E.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/R0M0xbeZR0E.mkv"
+  },
+  {
+    "label": "2kJxrcNRS9w.mkv",
+    "text": "video: 2kJxrcNRS9w.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/2kJxrcNRS9w.mkv"
+  },
+  {
+    "label": "rjv8GzaSFgQ.mkv",
+    "text": "video: rjv8GzaSFgQ.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/rjv8GzaSFgQ.mkv"
+  },
+  {
+    "label": "m4pa_mTaKWk.mkv",
+    "text": "video: m4pa_mTaKWk.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/m4pa_mTaKWk.mkv"
+  },
+  {
+    "label": "WCfBIKrsT9s.mkv",
+    "text": "video: WCfBIKrsT9s.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/WCfBIKrsT9s.mkv"
+  },
+  {
+    "label": "pfDtEL7saqc.mkv",
+    "text": "video: pfDtEL7saqc.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/pfDtEL7saqc.mkv"
+  },
+  {
+    "label": "0HEi6q3bGaw.mkv",
+    "text": "video: 0HEi6q3bGaw.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/0HEi6q3bGaw.mkv"
+  },
+  {
+    "label": "S_y53iSsugk.mkv",
+    "text": "video: S_y53iSsugk.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/S_y53iSsugk.mkv"
+  },
+  {
+    "label": "dkGgRU-OS6k.mkv",
+    "text": "video: dkGgRU-OS6k.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/dkGgRU-OS6k.mkv"
+  },
+  {
+    "label": "BtWYzApEncw.mkv",
+    "text": "video: BtWYzApEncw.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/BtWYzApEncw.mkv"
+  },
+  {
+    "label": "d0irWdzJHNU.mkv",
+    "text": "video: d0irWdzJHNU.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/d0irWdzJHNU.mkv"
+  },
+  {
+    "label": "Rnta1wIPe1s.mkv",
+    "text": "video: Rnta1wIPe1s.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/Rnta1wIPe1s.mkv"
+  },
+  {
+    "label": "IDYX82M1XPo.mkv",
+    "text": "video: IDYX82M1XPo.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/IDYX82M1XPo.mkv"
+  },
+  {
+    "label": "sHXTWfRLOD8.mkv",
+    "text": "video: sHXTWfRLOD8.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/sHXTWfRLOD8.mkv"
+  },
+  {
+    "label": "3OJasCVIqrM.mkv",
+    "text": "video: 3OJasCVIqrM.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/3OJasCVIqrM.mkv"
+  },
+  {
+    "label": "Z-ELJyd800U.mkv",
+    "text": "video: Z-ELJyd800U.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/Z-ELJyd800U.mkv"
+  },
+  {
+    "label": "qdKnAq7KQ5c.mkv",
+    "text": "video: qdKnAq7KQ5c.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/qdKnAq7KQ5c.mkv"
+  },
+  {
+    "label": "bhngCE8rihI.mkv",
+    "text": "video: bhngCE8rihI.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/bhngCE8rihI.mkv"
+  },
+  {
+    "label": "d13fbMZ75EQ.mkv",
+    "text": "video: d13fbMZ75EQ.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/d13fbMZ75EQ.mkv"
+  },
+  {
+    "label": "I-w3sJe4dEE.mkv",
+    "text": "video: I-w3sJe4dEE.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/I-w3sJe4dEE.mkv"
+  },
+  {
+    "label": "H1McbtQeqPo.mkv",
+    "text": "video: H1McbtQeqPo.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/H1McbtQeqPo.mkv"
+  },
+  {
+    "label": "xfKDnu0XKsE.mkv",
+    "text": "video: xfKDnu0XKsE.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/xfKDnu0XKsE.mkv"
+  },
+  {
+    "label": "91kpnldKk9w.mkv",
+    "text": "video: 91kpnldKk9w.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/91kpnldKk9w.mkv"
+  },
+  {
+    "label": "3EPYGSINacM.mkv",
+    "text": "video: 3EPYGSINacM.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/3EPYGSINacM.mkv"
+  },
+  {
+    "label": "C3zTIW7jRJc.mkv",
+    "text": "video: C3zTIW7jRJc.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/C3zTIW7jRJc.mkv"
+  },
+  {
+    "label": "P5hhn9m-C68.mkv",
+    "text": "video: P5hhn9m-C68.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/P5hhn9m-C68.mkv"
+  },
+  {
+    "label": "7uLqECdWBKE.mkv",
+    "text": "video: 7uLqECdWBKE.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/7uLqECdWBKE.mkv"
+  },
+  {
+    "label": "BxgWZBhSGE4.mkv",
+    "text": "video: BxgWZBhSGE4.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/BxgWZBhSGE4.mkv"
+  },
+  {
+    "label": "g9s8fB6fc7k.mkv",
+    "text": "video: g9s8fB6fc7k.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/g9s8fB6fc7k.mkv"
+  },
+  {
+    "label": "LO8OjW7bBds.mkv",
+    "text": "video: LO8OjW7bBds.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/LO8OjW7bBds.mkv"
+  },
+  {
+    "label": "_iqgDkqaU7Q.mkv",
+    "text": "video: _iqgDkqaU7Q.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/_iqgDkqaU7Q.mkv"
+  },
+  {
+    "label": "2qNxEfK-yN0.mkv",
+    "text": "video: 2qNxEfK-yN0.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/2qNxEfK-yN0.mkv"
+  },
+  {
+    "label": "3ufJNSez5Is.mkv",
+    "text": "video: 3ufJNSez5Is.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/3ufJNSez5Is.mkv"
+  },
+  {
+    "label": "95Vl-RRzLgs.mkv",
+    "text": "video: 95Vl-RRzLgs.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/95Vl-RRzLgs.mkv"
+  },
+  {
+    "label": "S-C86j0keqc.mkv",
+    "text": "video: S-C86j0keqc.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/S-C86j0keqc.mkv"
+  },
+  {
+    "label": "QP3cjM6o6N8.mkv",
+    "text": "video: QP3cjM6o6N8.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/QP3cjM6o6N8.mkv"
+  },
+  {
+    "label": "31rIxx-7KvQ.mkv",
+    "text": "video: 31rIxx-7KvQ.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/31rIxx-7KvQ.mkv"
+  },
+  {
+    "label": "vjG6rNAiOLw.mkv",
+    "text": "video: vjG6rNAiOLw.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/vjG6rNAiOLw.mkv"
+  },
+  {
+    "label": "bjf8vlgDLh4.mkv",
+    "text": "video: bjf8vlgDLh4.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/bjf8vlgDLh4.mkv"
+  },
+  {
+    "label": "DBvL7JkXCjU.mkv",
+    "text": "video: DBvL7JkXCjU.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/DBvL7JkXCjU.mkv"
+  },
+  {
+    "label": "gpUo_tXVnQ4.mkv",
+    "text": "video: gpUo_tXVnQ4.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/gpUo_tXVnQ4.mkv"
+  },
+  {
+    "label": "FtBS6OZSGMI.mkv",
+    "text": "video: FtBS6OZSGMI.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/FtBS6OZSGMI.mkv"
+  },
+  {
+    "label": "RjPp0ZPW0yc.mkv",
+    "text": "video: RjPp0ZPW0yc.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/RjPp0ZPW0yc.mkv"
+  },
+  {
+    "label": "xgsMwJ6LJ24.mkv",
+    "text": "video: xgsMwJ6LJ24.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/xgsMwJ6LJ24.mkv"
+  },
+  {
+    "label": "BGjbcEVCDFU.mkv",
+    "text": "video: BGjbcEVCDFU.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/BGjbcEVCDFU.mkv"
+  },
+  {
+    "label": "0JezC4KDo-k.mkv",
+    "text": "video: 0JezC4KDo-k.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/0JezC4KDo-k.mkv"
+  },
+  {
+    "label": "_2gwvJM0no0.mkv",
+    "text": "video: _2gwvJM0no0.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/_2gwvJM0no0.mkv"
+  },
+  {
+    "label": "sElhD1rHXHw.mkv",
+    "text": "video: sElhD1rHXHw.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/sElhD1rHXHw.mkv"
+  },
+  {
+    "label": "5-xGskbsBgI.mkv",
+    "text": "video: 5-xGskbsBgI.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/5-xGskbsBgI.mkv"
+  },
+  {
+    "label": "4sjALsnszUQ.mkv",
+    "text": "video: 4sjALsnszUQ.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/4sjALsnszUQ.mkv"
+  },
+  {
+    "label": "2AVty18KSp0.mkv",
+    "text": "video: 2AVty18KSp0.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/2AVty18KSp0.mkv"
+  },
+  {
+    "label": "XYlU0BpIltM.mkv",
+    "text": "video: XYlU0BpIltM.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/XYlU0BpIltM.mkv"
+  },
+  {
+    "label": "m9n5SLRXIKw.mkv",
+    "text": "video: m9n5SLRXIKw.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/m9n5SLRXIKw.mkv"
+  },
+  {
+    "label": "Ca78lDSy4to.mkv",
+    "text": "video: Ca78lDSy4to.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/Ca78lDSy4to.mkv"
+  },
+  {
+    "label": "FE46Bv5xBxc.mkv",
+    "text": "video: FE46Bv5xBxc.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/FE46Bv5xBxc.mkv"
+  },
+  {
+    "label": "L0-klmDvEos.mkv",
+    "text": "video: L0-klmDvEos.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/L0-klmDvEos.mkv"
+  },
+  {
+    "label": "gHQSnIjxigo.mkv",
+    "text": "video: gHQSnIjxigo.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/gHQSnIjxigo.mkv"
+  },
+  {
+    "label": "7jmUQ0VYoV0.mkv",
+    "text": "video: 7jmUQ0VYoV0.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/7jmUQ0VYoV0.mkv"
+  },
+  {
+    "label": "-cqADbIiZ1Q.mkv",
+    "text": "video: -cqADbIiZ1Q.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/-cqADbIiZ1Q.mkv"
+  },
+  {
+    "label": "0EojNazUJ9U.mkv",
+    "text": "video: 0EojNazUJ9U.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/0EojNazUJ9U.mkv"
+  },
+  {
+    "label": "e_E3Nr0yljU.mkv",
+    "text": "video: e_E3Nr0yljU.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/e_E3Nr0yljU.mkv"
+  },
+  {
+    "label": "L2tHkBB84Ik.mkv",
+    "text": "video: L2tHkBB84Ik.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/L2tHkBB84Ik.mkv"
+  },
+  {
+    "label": "QmWfgOt-qdo.mkv",
+    "text": "video: QmWfgOt-qdo.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/QmWfgOt-qdo.mkv"
+  },
+  {
+    "label": "ifQs3qHV5Zw.mkv",
+    "text": "video: ifQs3qHV5Zw.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/ifQs3qHV5Zw.mkv"
+  },
+  {
+    "label": "yUSEphldA3U.mkv",
+    "text": "video: yUSEphldA3U.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/yUSEphldA3U.mkv"
+  },
+  {
+    "label": "TslQ8p67hI4.mkv",
+    "text": "video: TslQ8p67hI4.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/TslQ8p67hI4.mkv"
+  },
+  {
+    "label": "8Dk21aq68DY.mkv",
+    "text": "video: 8Dk21aq68DY.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/8Dk21aq68DY.mkv"
+  },
+  {
+    "label": "2HiDlFDURVs.mkv",
+    "text": "video: 2HiDlFDURVs.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/2HiDlFDURVs.mkv"
+  },
+  {
+    "label": "NPnVbn5Xn4U.mkv",
+    "text": "video: NPnVbn5Xn4U.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/NPnVbn5Xn4U.mkv"
+  },
+  {
+    "label": "QwB_SR22Gxc.mkv",
+    "text": "video: QwB_SR22Gxc.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/QwB_SR22Gxc.mkv"
+  },
+  {
+    "label": "d27aRRPH8wI.mkv",
+    "text": "video: d27aRRPH8wI.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/d27aRRPH8wI.mkv"
+  },
+  {
+    "label": "t0YEd74kWr0.mkv",
+    "text": "video: t0YEd74kWr0.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/t0YEd74kWr0.mkv"
+  },
+  {
+    "label": "aG7rjkh12Rw.mkv",
+    "text": "video: aG7rjkh12Rw.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/aG7rjkh12Rw.mkv"
+  },
+  {
+    "label": "yZnVFmHkwdM.mkv",
+    "text": "video: yZnVFmHkwdM.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/yZnVFmHkwdM.mkv"
+  },
+  {
+    "label": "49UpadKJY7U.mkv",
+    "text": "video: 49UpadKJY7U.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/49UpadKJY7U.mkv"
+  },
+  {
+    "label": "a7duB3wE8uw.mkv",
+    "text": "video: a7duB3wE8uw.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/a7duB3wE8uw.mkv"
+  },
+  {
+    "label": "M41kZ-3XS2c.mkv",
+    "text": "video: M41kZ-3XS2c.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/M41kZ-3XS2c.mkv"
+  },
+  {
+    "label": "SgzdiMypGHE.mkv",
+    "text": "video: SgzdiMypGHE.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/SgzdiMypGHE.mkv"
+  },
+  {
+    "label": "t24EEPY3c1k.mkv",
+    "text": "video: t24EEPY3c1k.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/t24EEPY3c1k.mkv"
+  },
+  {
+    "label": "IXDyBE4x7kE.mkv",
+    "text": "video: IXDyBE4x7kE.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/IXDyBE4x7kE.mkv"
+  },
+  {
+    "label": "5ejrCUnJQ2A.mkv",
+    "text": "video: 5ejrCUnJQ2A.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/5ejrCUnJQ2A.mkv"
+  },
+  {
+    "label": "ce8HdSJE9No.mkv",
+    "text": "video: ce8HdSJE9No.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/ce8HdSJE9No.mkv"
+  },
+  {
+    "label": "xoC9cDva8Fw.mkv",
+    "text": "video: xoC9cDva8Fw.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/xoC9cDva8Fw.mkv"
+  },
+  {
+    "label": "gjoZic4WjiQ.mkv",
+    "text": "video: gjoZic4WjiQ.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/gjoZic4WjiQ.mkv"
+  },
+  {
+    "label": "0fZrbXGkLBU.mkv",
+    "text": "video: 0fZrbXGkLBU.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/0fZrbXGkLBU.mkv"
+  },
+  {
+    "label": "77wHRVllzow.mkv",
+    "text": "video: 77wHRVllzow.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/77wHRVllzow.mkv"
+  },
+  {
+    "label": "tG1k5pm-Jfk.mkv",
+    "text": "video: tG1k5pm-Jfk.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/tG1k5pm-Jfk.mkv"
+  },
+  {
+    "label": "2KsKfc2TcEU.mkv",
+    "text": "video: 2KsKfc2TcEU.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/2KsKfc2TcEU.mkv"
+  },
+  {
+    "label": "t-aPsebmI0Q.mkv",
+    "text": "video: t-aPsebmI0Q.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/t-aPsebmI0Q.mkv"
+  },
+  {
+    "label": "r9vWNjeDh7A.mkv",
+    "text": "video: r9vWNjeDh7A.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/r9vWNjeDh7A.mkv"
+  },
+  {
+    "label": "Tt-yVwSSap8.mkv",
+    "text": "video: Tt-yVwSSap8.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/Tt-yVwSSap8.mkv"
+  },
+  {
+    "label": "IaB2PTRQRR0.mkv",
+    "text": "video: IaB2PTRQRR0.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/IaB2PTRQRR0.mkv"
+  },
+  {
+    "label": "rEDC7iP9mko.mkv",
+    "text": "video: rEDC7iP9mko.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/rEDC7iP9mko.mkv"
+  },
+  {
+    "label": "ISu38J3CU7M.mkv",
+    "text": "video: ISu38J3CU7M.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/ISu38J3CU7M.mkv"
+  },
+  {
+    "label": "wl4VBbzlt_0.mkv",
+    "text": "video: wl4VBbzlt_0.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/wl4VBbzlt_0.mkv"
+  },
+  {
+    "label": "C4g_K_MIPUg.mkv",
+    "text": "video: C4g_K_MIPUg.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/C4g_K_MIPUg.mkv"
+  },
+  {
+    "label": "nauxZ_zt5bk.mkv",
+    "text": "video: nauxZ_zt5bk.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/nauxZ_zt5bk.mkv"
+  },
+  {
+    "label": "ooABibl7bJw.mkv",
+    "text": "video: ooABibl7bJw.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/ooABibl7bJw.mkv"
+  },
+  {
+    "label": "q7MfG_x03_Q.mkv",
+    "text": "video: q7MfG_x03_Q.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/q7MfG_x03_Q.mkv"
+  },
+  {
+    "label": "N1J1AgIV0dE.mkv",
+    "text": "video: N1J1AgIV0dE.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/N1J1AgIV0dE.mkv"
+  },
+  {
+    "label": "829ebn4-0KE.mkv",
+    "text": "video: 829ebn4-0KE.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/829ebn4-0KE.mkv"
+  },
+  {
+    "label": "n3GQm7axSRo.mkv",
+    "text": "video: n3GQm7axSRo.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/n3GQm7axSRo.mkv"
+  },
+  {
+    "label": "1-jIze6gy0g.mkv",
+    "text": "video: 1-jIze6gy0g.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/1-jIze6gy0g.mkv"
+  },
+  {
+    "label": "acWe5XOfYvs.mkv",
+    "text": "video: acWe5XOfYvs.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/acWe5XOfYvs.mkv"
+  },
+  {
+    "label": "O9kHjU0CNuQ.mkv",
+    "text": "video: O9kHjU0CNuQ.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/O9kHjU0CNuQ.mkv"
+  },
+  {
+    "label": "O45kdm2N0kc.mkv",
+    "text": "video: O45kdm2N0kc.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/O45kdm2N0kc.mkv"
+  },
+  {
+    "label": "ZcYB6tPK2Eo.mkv",
+    "text": "video: ZcYB6tPK2Eo.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/ZcYB6tPK2Eo.mkv"
+  },
+  {
+    "label": "CK7SMUa0Plc.mkv",
+    "text": "video: CK7SMUa0Plc.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/CK7SMUa0Plc.mkv"
+  },
+  {
+    "label": "urQP3t9vhNg.mkv",
+    "text": "video: urQP3t9vhNg.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/urQP3t9vhNg.mkv"
+  },
+  {
+    "label": "atKJ7VHKRDw.mkv",
+    "text": "video: atKJ7VHKRDw.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/atKJ7VHKRDw.mkv"
+  },
+  {
+    "label": "gHf8NAY7GYE.mkv",
+    "text": "video: gHf8NAY7GYE.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/gHf8NAY7GYE.mkv"
+  },
+  {
+    "label": "PBui9niyfvI.mkv",
+    "text": "video: PBui9niyfvI.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/PBui9niyfvI.mkv"
+  },
+  {
+    "label": "OLTQ_XjVfO8.mkv",
+    "text": "video: OLTQ_XjVfO8.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/OLTQ_XjVfO8.mkv"
+  },
+  {
+    "label": "bzawAHbQI68.mkv",
+    "text": "video: bzawAHbQI68.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/bzawAHbQI68.mkv"
+  },
+  {
+    "label": "8gvvRHbMRIg.mkv",
+    "text": "video: 8gvvRHbMRIg.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/8gvvRHbMRIg.mkv"
+  },
+  {
+    "label": "N842a936PY0.mkv",
+    "text": "video: N842a936PY0.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/N842a936PY0.mkv"
+  },
+  {
+    "label": "mCqb6dJBDC8.mkv",
+    "text": "video: mCqb6dJBDC8.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/mCqb6dJBDC8.mkv"
+  },
+  {
+    "label": "0MC18taIzNU.mkv",
+    "text": "video: 0MC18taIzNU.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/0MC18taIzNU.mkv"
+  },
+  {
+    "label": "LW0ck77OMTM.mkv",
+    "text": "video: LW0ck77OMTM.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/LW0ck77OMTM.mkv"
+  },
+  {
+    "label": "TqbAGM4lX4U.mkv",
+    "text": "video: TqbAGM4lX4U.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/TqbAGM4lX4U.mkv"
+  },
+  {
+    "label": "hmo7QQh6obw.mkv",
+    "text": "video: hmo7QQh6obw.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/hmo7QQh6obw.mkv"
+  },
+  {
+    "label": "4G4JC7j1i6U.mkv",
+    "text": "video: 4G4JC7j1i6U.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/4G4JC7j1i6U.mkv"
+  },
+  {
+    "label": "lQvOO0kpUsA.mkv",
+    "text": "video: lQvOO0kpUsA.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/lQvOO0kpUsA.mkv"
+  },
+  {
+    "label": "FADsYIHnCww.mkv",
+    "text": "video: FADsYIHnCww.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/FADsYIHnCww.mkv"
+  },
+  {
+    "label": "_r0O0KGH9vo.mkv",
+    "text": "video: _r0O0KGH9vo.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/_r0O0KGH9vo.mkv"
+  },
+  {
+    "label": "G0mjFqytJt4.mkv",
+    "text": "video: G0mjFqytJt4.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/G0mjFqytJt4.mkv"
+  },
+  {
+    "label": "5L6dT8pjhTs.mkv",
+    "text": "video: 5L6dT8pjhTs.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/5L6dT8pjhTs.mkv"
+  },
+  {
+    "label": "bdCJ69JY2ro.mkv",
+    "text": "video: bdCJ69JY2ro.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/bdCJ69JY2ro.mkv"
+  },
+  {
+    "label": "DZHaPAhjpWA.mkv",
+    "text": "video: DZHaPAhjpWA.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/DZHaPAhjpWA.mkv"
+  },
+  {
+    "label": "Pkb3IPV21Uo.mkv",
+    "text": "video: Pkb3IPV21Uo.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/Pkb3IPV21Uo.mkv"
+  },
+  {
+    "label": "oOQpEj7htwo.mkv",
+    "text": "video: oOQpEj7htwo.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/oOQpEj7htwo.mkv"
+  },
+  {
+    "label": "97g4UgRi5t8.mkv",
+    "text": "video: 97g4UgRi5t8.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/97g4UgRi5t8.mkv"
+  },
+  {
+    "label": "6PR_YDmJZlw.mkv",
+    "text": "video: 6PR_YDmJZlw.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/6PR_YDmJZlw.mkv"
+  },
+  {
+    "label": "RtV8ySth6w4.mkv",
+    "text": "video: RtV8ySth6w4.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/RtV8ySth6w4.mkv"
+  },
+  {
+    "label": "IOKQVcsNVk4.mkv",
+    "text": "video: IOKQVcsNVk4.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/IOKQVcsNVk4.mkv"
+  },
+  {
+    "label": "V1xmfGJ9K5c.mkv",
+    "text": "video: V1xmfGJ9K5c.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/V1xmfGJ9K5c.mkv"
+  },
+  {
+    "label": "P1pIeYo-EZA.mkv",
+    "text": "video: P1pIeYo-EZA.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/P1pIeYo-EZA.mkv"
+  },
+  {
+    "label": "p41FPi6TYY8.mkv",
+    "text": "video: p41FPi6TYY8.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/p41FPi6TYY8.mkv"
+  },
+  {
+    "label": "j4CKRgv3jUg.mkv",
+    "text": "video: j4CKRgv3jUg.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/j4CKRgv3jUg.mkv"
+  },
+  {
+    "label": "k-R1hp7NtyA.mkv",
+    "text": "video: k-R1hp7NtyA.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/k-R1hp7NtyA.mkv"
+  },
+  {
+    "label": "21T1JDdJgsM.mkv",
+    "text": "video: 21T1JDdJgsM.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/21T1JDdJgsM.mkv"
+  },
+  {
+    "label": "hcRtBOXLM2M.mkv",
+    "text": "video: hcRtBOXLM2M.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/hcRtBOXLM2M.mkv"
+  },
+  {
+    "label": "w-YJn8Je4GY.mkv",
+    "text": "video: w-YJn8Je4GY.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/w-YJn8Je4GY.mkv"
+  },
+  {
+    "label": "E8ETFFvx1ac.mkv",
+    "text": "video: E8ETFFvx1ac.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/E8ETFFvx1ac.mkv"
+  },
+  {
+    "label": "8ji3VkUal2c.mkv",
+    "text": "video: 8ji3VkUal2c.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/8ji3VkUal2c.mkv"
+  },
+  {
+    "label": "1fhKRQdEA3Q.mkv",
+    "text": "video: 1fhKRQdEA3Q.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/1fhKRQdEA3Q.mkv"
+  },
+  {
+    "label": "F-pS1w5dX3U.mkv",
+    "text": "video: F-pS1w5dX3U.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/F-pS1w5dX3U.mkv"
+  },
+  {
+    "label": "7c4tJzsBhyk.mkv",
+    "text": "video: 7c4tJzsBhyk.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/7c4tJzsBhyk.mkv"
+  },
+  {
+    "label": "B4Zk7uw432k.mkv",
+    "text": "video: B4Zk7uw432k.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/B4Zk7uw432k.mkv"
+  },
+  {
+    "label": "Z9AzAk3OzEM.mkv",
+    "text": "video: Z9AzAk3OzEM.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/Z9AzAk3OzEM.mkv"
+  },
+  {
+    "label": "WASSmFKNVc4.mkv",
+    "text": "video: WASSmFKNVc4.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/WASSmFKNVc4.mkv"
+  },
+  {
+    "label": "0xxG18xn1bA.mkv",
+    "text": "video: 0xxG18xn1bA.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/0xxG18xn1bA.mkv"
+  },
+  {
+    "label": "0AjZCHKtJG8.mkv",
+    "text": "video: 0AjZCHKtJG8.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/0AjZCHKtJG8.mkv"
+  },
+  {
+    "label": "XnuUuUq-DYE.mkv",
+    "text": "video: XnuUuUq-DYE.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/XnuUuUq-DYE.mkv"
+  },
+  {
+    "label": "9F0fySfyvyQ.mkv",
+    "text": "video: 9F0fySfyvyQ.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/9F0fySfyvyQ.mkv"
+  },
+  {
+    "label": "8YBGHniZSVA.mkv",
+    "text": "video: 8YBGHniZSVA.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/8YBGHniZSVA.mkv"
+  },
+  {
+    "label": "A5EP2j_ZuGY.mkv",
+    "text": "video: A5EP2j_ZuGY.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/A5EP2j_ZuGY.mkv"
+  },
+  {
+    "label": "Bb8OqOF8sP4.mkv",
+    "text": "video: Bb8OqOF8sP4.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/Bb8OqOF8sP4.mkv"
+  },
+  {
+    "label": "BxKLO_y8gBU.mkv",
+    "text": "video: BxKLO_y8gBU.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/BxKLO_y8gBU.mkv"
+  },
+  {
+    "label": "2-ujw4m8-kA.mkv",
+    "text": "video: 2-ujw4m8-kA.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/2-ujw4m8-kA.mkv"
+  },
+  {
+    "label": "SMrNALE2rU0.mkv",
+    "text": "video: SMrNALE2rU0.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/SMrNALE2rU0.mkv"
+  },
+  {
+    "label": "O-52wwarhPw.mkv",
+    "text": "video: O-52wwarhPw.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/O-52wwarhPw.mkv"
+  },
+  {
+    "label": "hnWLonR3uN8.mkv",
+    "text": "video: hnWLonR3uN8.mkv",
+    "image": null,
+    "video": "/home/daniel/K3D_llama_cpp/datasets/vatex_raw/media/hnWLonR3uN8.mkv"
+  }
+]

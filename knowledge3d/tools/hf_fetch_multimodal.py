@@ -67,8 +67,12 @@ def _copy_or_download_media(item: Dict[str, Any], kind: str, out_dir: Path) -> O
                 dest = out_dir / f"{hid}{ext}"
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 if not dest.exists():
-                    with ur.urlopen(u, timeout=20) as r, open(dest, "wb") as f:
-                        f.write(r.read())
+                    req = ur.Request(u, headers={"User-Agent": "Mozilla/5.0 K3D-fetch/1.0"})
+                    with ur.urlopen(req, timeout=120) as r, open(dest, "wb") as f:
+                        chunk = r.read(1024*1024)
+                        while chunk:
+                            f.write(chunk)
+                            chunk = r.read(1024*1024)
                 return dest
             except Exception:
                 return None
