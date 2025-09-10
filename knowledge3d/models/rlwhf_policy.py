@@ -133,6 +133,11 @@ def collate_pad(batch: List[dict], pad_id: int) -> dict:
 
 
 def train(dataset_path: Path, out_dir: Path, model_id: str = "distilgpt2", epochs: int = 1, batch_size: int = 4, max_len: int = 384, lr: float = 5e-5) -> dict:
+    # Enforce GPU when K3D_STRICT_GPU is set
+    import os as _os
+    strict = _os.getenv("K3D_STRICT_GPU", "0").strip() not in {"", "0", "false", "False"}
+    if strict and not torch.cuda.is_available():
+        raise SystemExit("GPU required (K3D_STRICT_GPU=1) but CUDA is not available for RLWHF policy training")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     tok = AutoTokenizer.from_pretrained(model_id)
     if tok.pad_token_id is None:
@@ -199,4 +204,3 @@ def main() -> None:  # pragma: no cover
 
 if __name__ == "__main__":
     main()
-

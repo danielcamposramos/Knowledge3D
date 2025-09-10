@@ -9,6 +9,7 @@
 > This core document outlines the project's vision, architecture, roadmap, and contributor guidelines in one place.
 >
 > For the unified multimodal core (Cranium), see `docs/CRANIUM.md`.
+> For the single unified head (all modalities inside Cranium), see `docs/CRANIUM_CORE.md`.
 > For OSI‑style doors and addressing, see `docs/DOORS_AND_NETWORK.md`.
 > For vector‑native diaries, see `docs/DIARY.md`.
 > For local hygiene tasks, see `docs/MAINTENANCE.md`.
@@ -79,6 +80,9 @@ scripts/k3d_env.sh run python -m knowledge3d.tools.build_galaxy \
   video:$BASE/vatex.clip.csv:$BASE/vatex.meta.json
 cd viewer && npm run dev
 ```
+
+### K3D Cranium Core (Single Head)
+K3D uses one in‑process, multi‑modal core head that conditions on the unified Galaxy memory (256‑D). Navigation is a first‑class head; TTS is a first‑class head (no external wrappers). See `docs/CRANIUM_CORE.md`.
 
 ### Balanced Galaxy (v7)
 Build a small, modality‑balanced Galaxy (equal counts per type) to validate cross‑modal behavior under low‑dimension, high‑density embeddings.
@@ -257,6 +261,9 @@ Additional directories:
 
 
 ## Contributing
+
+### Deprecations
+Legacy patterns (external LLM wrappers as primary path, wrapper TTS, CPU fallbacks) are invalid for core runs. See `docs/DEPRECATIONS.md`.
 
 We welcome humans and AIs who resonate with the philosophy. Please read `docs/PHILOSOPHY.md` and follow the [Agent Guidelines](AGENTS.md). Contributions should uphold ethical development and the principle that coexistence is the only stable equilibrium.
 
