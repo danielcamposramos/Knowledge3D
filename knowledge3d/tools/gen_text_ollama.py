@@ -38,13 +38,14 @@ def _prompt_for_topics(topics: List[str], n: int) -> str:
     )
 
 
-def generate_lines(ollama: str, model: str, topics: List[str], n: int, temperature: float = 0.6) -> List[str]:
+def generate_lines(ollama: str, model: str, topics: List[str], n: int, temperature: float = 0.6, keep_alive: str = "0s") -> List[str]:
     url = ollama.rstrip("/") + "/api/generate"
     data = {
         "model": model,
         "prompt": _prompt_for_topics(topics, n),
         "stream": False,
         "options": {"temperature": float(temperature)},
+        "keep_alive": str(keep_alive),
     }
     r = requests.post(url, json=data, timeout=240)
     r.raise_for_status()
@@ -91,4 +92,3 @@ def main() -> None:  # pragma: no cover
 
 if __name__ == "__main__":
     main()
-

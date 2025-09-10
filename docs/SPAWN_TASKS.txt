@@ -1,0 +1,44 @@
+K3D Next Instance — Ordered Tasks
+=================================
+
+1) Environment (GPU‑only)
+- Use `scripts/k3d_env.sh bootstrap-rapids` and run all python with `scripts/k3d_env.sh run ...`.
+- Export `K3D_STRICT_GPU=1` to disallow CPU fallbacks.
+
+2) Switch to Cranium Core Head (Single Interpreter)
+- Read `docs/CRANIUM_CORE.md`.
+- Enable the new path via feature flag `K3D_CORE_HEAD=1` once the module is implemented.
+- For development, keep the retrieval+stitching baseline available for A/B.
+
+3) Phase A — Implement Navigation + Text
+- Implement the core head (transformer with memory cross‑attention) and the navigation head.
+- Route `compose_generate` through the core head.
+- Train with RLWHF v8 and evaluate (500 → 1000). Save results in `docs/reports/status/`.
+
+4) Phase B — Add Modal Stems + Contrastive Alignment
+- Add image/audio/3D stems mapping to 256‑D.
+- Add contrastive loss to align stems to memory tokens.
+
+5) Phase C — GPU KNN Kernel (No FAISS)
+- Implement a CUDA/Triton/PTX top‑K kernel over 256‑D memory (batched dot/L2 + argmaxK).
+- Integrate into the Cranium memory adapter.
+
+6) Phase D — First‑Class TTS
+- Integrate neural TTS as a first‑class head. No wrappers.
+- Add `/say` in the bridge; enable diary “voice notes” (text + wav path).
+
+7) House Vertical Check
+- Rebuild `viewer/public/galaxy.house.glb` with curated library/IT/workshop/office assets and text/audio.
+- Verify cross‑modal edges; run targeted evals.
+
+8) Deprecations (enforce)
+- External LLM wrappers and wrapper TTS: do not use for core runs (see `docs/DEPRECATIONS.md`).
+- CPU fallbacks: disallowed.
+
+9) Reporting
+- Update `docs/reports/status/` with training/eval metrics and short interpretations.
+- Mark any contradictory docs as legacy and point to `docs/CRANIUM_CORE.md`.
+
+10) Guardrails
+- Keep everything in‑process and memory‑native to K3D.
+- Prefer small, auditable modules; fit runtime to 12 GB VRAM.

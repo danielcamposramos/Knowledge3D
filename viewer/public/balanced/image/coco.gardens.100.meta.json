@@ -1,0 +1,502 @@
+[
+  {
+    "label": "000000203564.jpg",
+    "text": "A bicycle replica with a clock as the front wheel.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000203564.jpg"
+  },
+  {
+    "label": "000000322141.jpg",
+    "text": "A room with blue walls and a white sink and door.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000322141.jpg"
+  },
+  {
+    "label": "000000016977.jpg",
+    "text": "A car that seems to be parked illegally behind a legally parked car",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000016977.jpg"
+  },
+  {
+    "label": "000000106140.jpg",
+    "text": "A large passenger airplane flying through the air.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000106140.jpg"
+  },
+  {
+    "label": "000000571635.jpg",
+    "text": "A bathroom with a toilet, sink, and shower.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000571635.jpg"
+  },
+  {
+    "label": "000000301837.jpg",
+    "text": "A long empty, minimal modern skylit home kitchen.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000301837.jpg"
+  },
+  {
+    "label": "000000315702.jpg",
+    "text": "A bathroom sink with toiletries on the counter.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000315702.jpg"
+  },
+  {
+    "label": "000000189634.jpg",
+    "text": "This is an open box containing four cucumbers.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000189634.jpg"
+  },
+  {
+    "label": "000000472598.jpg",
+    "text": "An old-fashioned green station wagon is parked on a shady driveway.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000472598.jpg"
+  },
+  {
+    "label": "000000162113.jpg",
+    "text": "A gas stove next to a stainless steel kitchen sink and countertop.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000162113.jpg"
+  },
+  {
+    "label": "000000126657.jpg",
+    "text": "Several motorcycles riding down the road in formation.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000126657.jpg"
+  },
+  {
+    "label": "000000285421.jpg",
+    "text": "A black cat is inside a white toilet.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000285421.jpg"
+  },
+  {
+    "label": "000000071988.jpg",
+    "text": "A man in a wheelchair and another sitting on a bench that is overlooking the water.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000071988.jpg"
+  },
+  {
+    "label": "000000193622.jpg",
+    "text": "A man sits with a traditionally decorated cow",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000193622.jpg"
+  },
+  {
+    "label": "000000459912.jpg",
+    "text": "Rows of motor bikes and helmets in a city",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000459912.jpg"
+  },
+  {
+    "label": "000000548498.jpg",
+    "text": "A cute kitten is sitting in a dish on a table.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000548498.jpg"
+  },
+  {
+    "label": "000000052087.jpg",
+    "text": "A man getting a drink from a water fountain that is a toilet.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000052087.jpg"
+  },
+  {
+    "label": "000000119964.jpg",
+    "text": "A person holding a skateboard overlooks a dead field of crops.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000119964.jpg"
+  },
+  {
+    "label": "000000230610.jpg",
+    "text": "A bathroom with a sink and shower curtain with a map print.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000230610.jpg"
+  },
+  {
+    "label": "000000226419.jpg",
+    "text": "A random plane in the sky flying alone",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000226419.jpg"
+  },
+  {
+    "label": "000000218026.jpg",
+    "text": "A brown and black horse in the middle of the city eating grass.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000218026.jpg"
+  },
+  {
+    "label": "000000352538.jpg",
+    "text": "A brown purse is sitting on a green bench.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000352538.jpg"
+  },
+  {
+    "label": "000000202913.jpg",
+    "text": "Half of a white cake with coconuts on top.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000202913.jpg"
+  },
+  {
+    "label": "000000202658.jpg",
+    "text": "An old toilet with a hello kitty cover top. ",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000202658.jpg"
+  },
+  {
+    "label": "000000079472.jpg",
+    "text": "Office space with office equipment on desk top.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000079472.jpg"
+  },
+  {
+    "label": "000000346071.jpg",
+    "text": "Two husky's hanging out of the car windows.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000346071.jpg"
+  },
+  {
+    "label": "000000006672.jpg",
+    "text": "The back door with a window in the kitchen.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000006672.jpg"
+  },
+  {
+    "label": "000000419074.jpg",
+    "text": "Jet liner flying off into the distance on an overcast day",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000419074.jpg"
+  },
+  {
+    "label": "000000382406.jpg",
+    "text": "A woman is walking a dog in the city.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000382406.jpg"
+  },
+  {
+    "label": "000000175948.jpg",
+    "text": "A tiny bathroom with only a toilet and a shelf.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000175948.jpg"
+  },
+  {
+    "label": "000000573223.jpg",
+    "text": "A little girl in a public bathroom for kids.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000573223.jpg"
+  },
+  {
+    "label": "000000402514.jpg",
+    "text": "A picture of a man playing a violin in a kitchen.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000402514.jpg"
+  },
+  {
+    "label": "000000407286.jpg",
+    "text": "A trio of dogs sitting in their owner's lap in a red convertible.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000407286.jpg"
+  },
+  {
+    "label": "000000082673.jpg",
+    "text": "A small car is parked in front of a scooter",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000082673.jpg"
+  },
+  {
+    "label": "000000141172.jpg",
+    "text": "A door with a sticker of a cat door on it",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000141172.jpg"
+  },
+  {
+    "label": "000000104326.jpg",
+    "text": "A pinewood and green modern themed kitchen area.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000104326.jpg"
+  },
+  {
+    "label": "000000581177.jpg",
+    "text": "A kitchen is shown with wooden cabinets and a wooden celling.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000581177.jpg"
+  },
+  {
+    "label": "000000267802.jpg",
+    "text": "A group of people riding mopeds in a busy street. ",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000267802.jpg"
+  },
+  {
+    "label": "000000208408.jpg",
+    "text": "A person walking in the rain on the sidewalk. ",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000208408.jpg"
+  },
+  {
+    "label": "000000560591.jpg",
+    "text": "a modern flush toilet in a bathroom with tile. ",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000560591.jpg"
+  },
+  {
+    "label": "000000507362.jpg",
+    "text": "Fog is in the air at an intersection with several traffic lights.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000507362.jpg"
+  },
+  {
+    "label": "000000057429.jpg",
+    "text": "An airplane with its landing wheels out landing. ",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000057429.jpg"
+  },
+  {
+    "label": "000000153184.jpg",
+    "text": "Little birds sitting on the shoulder of a giraffe. ",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000153184.jpg"
+  },
+  {
+    "label": "000000571970.jpg",
+    "text": "a man with a bike at a marina",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000571970.jpg"
+  },
+  {
+    "label": "000000133680.jpg",
+    "text": "A man is sitting on a bench next to a bike.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000133680.jpg"
+  },
+  {
+    "label": "000000139011.jpg",
+    "text": "People are waiting for the bus near a bus stop.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000139011.jpg"
+  },
+  {
+    "label": "000000505386.jpg",
+    "text": "four urinals in a public restroom with a window",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000505386.jpg"
+  },
+  {
+    "label": "000000107990.jpg",
+    "text": "A small child climbs atop a large motorcycle",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000107990.jpg"
+  },
+  {
+    "label": "000000527510.jpg",
+    "text": "A large U.S Air Force plain sits on an asphalt ramp.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000527510.jpg"
+  },
+  {
+    "label": "000000005247.jpg",
+    "text": "A black and white photo of an older man skiing.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000005247.jpg"
+  },
+  {
+    "label": "000000107960.jpg",
+    "text": "Riding a motorcycle down a street that has no one else on it.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000107960.jpg"
+  },
+  {
+    "label": "000000410627.jpg",
+    "text": "The young man is stirring his pot of food with a wooden spoon.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000410627.jpg"
+  },
+  {
+    "label": "000000232223.jpg",
+    "text": "A fighter jet is flying at a fast speed.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000232223.jpg"
+  },
+  {
+    "label": "000000022793.jpg",
+    "text": "A public bathroom with a bunch of urinals.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000022793.jpg"
+  },
+  {
+    "label": "000000436456.jpg",
+    "text": "The airplane is on the runway with two young men standing by.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000436456.jpg"
+  },
+  {
+    "label": "000000368402.jpg",
+    "text": "The woman in the kitchen is holding a huge pan.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000368402.jpg"
+  },
+  {
+    "label": "000000135161.jpg",
+    "text": "A toilet sits next to a window and in front of a shower.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000135161.jpg"
+  },
+  {
+    "label": "000000178761.jpg",
+    "text": "A dog and a goat with their noses touching at fence.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000178761.jpg"
+  },
+  {
+    "label": "000000491000.jpg",
+    "text": "Pedestrians walking down a sidewalk next to a small street.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000491000.jpg"
+  },
+  {
+    "label": "000000538092.jpg",
+    "text": "A man standing in a kitchen while closing a cupboard door.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000538092.jpg"
+  },
+  {
+    "label": "000000205577.jpg",
+    "text": "A photograph of a kitchen inside a house.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000205577.jpg"
+  },
+  {
+    "label": "000000508672.jpg",
+    "text": "a bike leaning on a metal fence next to some flowing water. ",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000508672.jpg"
+  },
+  {
+    "label": "000000334015.jpg",
+    "text": "a small toilet stall with a toilet brush and 3 rolls of toilet paper ",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000334015.jpg"
+  },
+  {
+    "label": "000000027842.jpg",
+    "text": "A dual sink vanity with mirrors above the sinks.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000027842.jpg"
+  },
+  {
+    "label": "000000358606.jpg",
+    "text": "A fireplace with a fire built in it.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000358606.jpg"
+  },
+  {
+    "label": "000000567730.jpg",
+    "text": "The sign of a restaurant in the outside of the store.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000567730.jpg"
+  },
+  {
+    "label": "000000061259.jpg",
+    "text": "an airport with one plane flying away and the other sitting on the runway",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000061259.jpg"
+  },
+  {
+    "label": "000000554037.jpg",
+    "text": "a counter with vegetables, knife and cutting board on it. ",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000554037.jpg"
+  },
+  {
+    "label": "000000005394.jpg",
+    "text": "A boat that looks like a car moves through the water. ",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000005394.jpg"
+  },
+  {
+    "label": "000000455384.jpg",
+    "text": "A delivery truck with an advertisement for Entourage.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000455384.jpg"
+  },
+  {
+    "label": "000000249352.jpg",
+    "text": "A black and white toilet with a plunger.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000249352.jpg"
+  },
+  {
+    "label": "000000348306.jpg",
+    "text": "A bike leaning against a sign in Scotland.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000348306.jpg"
+  },
+  {
+    "label": "000000475593.jpg",
+    "text": "Women father around a desk and machinery in a factory.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000475593.jpg"
+  },
+  {
+    "label": "000000145523.jpg",
+    "text": "A few items sit on top of a toilet in a bathroom stall.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000145523.jpg"
+  },
+  {
+    "label": "000000143370.jpg",
+    "text": "A bathroom with a poster of an ugly face above the toilette.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000143370.jpg"
+  },
+  {
+    "label": "000000279806.jpg",
+    "text": "A dirt bike rider doing a stunt jump in the air",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000279806.jpg"
+  },
+  {
+    "label": "000000059171.jpg",
+    "text": "A couple of birds fly through a blue cloudy sky.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000059171.jpg"
+  },
+  {
+    "label": "000000369826.jpg",
+    "text": "A picture advertising Arizona tourism in an airport",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000369826.jpg"
+  },
+  {
+    "label": "000000400552.jpg",
+    "text": "A variety of pots are stored in a nook by a fireplace.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000400552.jpg"
+  },
+  {
+    "label": "000000238836.jpg",
+    "text": "A car is stopped at a red light",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000238836.jpg"
+  },
+  {
+    "label": "000000264461.jpg",
+    "text": "A bathroom with a traditional toilet next to a floor toilet.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000264461.jpg"
+  },
+  {
+    "label": "000000342387.jpg",
+    "text": "A group of people preparing food in a kitchen.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000342387.jpg"
+  },
+  {
+    "label": "000000488327.jpg",
+    "text": "Posted signs point the way through a parking garage.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000488327.jpg"
+  },
+  {
+    "label": "000000540860.jpg",
+    "text": "A green car on display next to a busy street.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000540860.jpg"
+  },
+  {
+    "label": "000000172851.jpg",
+    "text": "A large passenger jet taking off from an airport.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000172851.jpg"
+  },
+  {
+    "label": "000000486194.jpg",
+    "text": "Young woman carrying an opened umbrella in a city neighborhood.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000486194.jpg"
+  },
+  {
+    "label": "000000236148.jpg",
+    "text": "An older man backing up a truck with a bicycle in it's flat bed.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000236148.jpg"
+  },
+  {
+    "label": "000000115930.jpg",
+    "text": "A group of men standing in front of a bar having a conversation.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000115930.jpg"
+  },
+  {
+    "label": "000000075663.jpg",
+    "text": "A children play area absent of any children.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000075663.jpg"
+  },
+  {
+    "label": "000000352794.jpg",
+    "text": "Fruit in a jar filled with liquid sitting on a wooden table.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000352794.jpg"
+  },
+  {
+    "label": "000000175954.jpg",
+    "text": "A work station in use inside an office.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000175954.jpg"
+  },
+  {
+    "label": "000000484751.jpg",
+    "text": "Three computer screens showing a panoramic beach scene.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000484751.jpg"
+  },
+  {
+    "label": "000000457834.jpg",
+    "text": "Elephants are in a long line with people on top of them.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000457834.jpg"
+  },
+  {
+    "label": "000000412151.jpg",
+    "text": "A bicycle store shows two males leaning toward a bike.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000412151.jpg"
+  },
+  {
+    "label": "000000427091.jpg",
+    "text": "City traffic and pedestrians are headed in multiple directions on the street.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000427091.jpg"
+  },
+  {
+    "label": "000000032203.jpg",
+    "text": "There are some dirt bike riders taking a sharp turn",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000032203.jpg"
+  },
+  {
+    "label": "000000525971.jpg",
+    "text": "A large group of motorcycle riders collect in a parking lot. ",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000525971.jpg"
+  },
+  {
+    "label": "000000354572.jpg",
+    "text": "People sitting under an umbrella looking at the scenery.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000354572.jpg"
+  },
+  {
+    "label": "000000185360.jpg",
+    "text": "A cow standing next to a damaged car on a dirty lot.",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000185360.jpg"
+  },
+  {
+    "label": "000000321064.jpg",
+    "text": "A small wooden table covered with delicious vegetables. ",
+    "image": "/home/daniel/K3D_llama_cpp/datasets/coco_raw/train2017/train2017/000000321064.jpg"
+  }
+]
