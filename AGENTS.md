@@ -33,6 +33,7 @@ We are a team of humans and AI working together. Clear communication and alignme
 - Live mode workflow in VSCode:
   - Web viewer: `cd viewer && npm run dev`
   - Live WS bridge: `python -m knowledge3d.bridge.live_server` (defaults to `ws://127.0.0.1:8765`)
+    - Tip: bind to `0.0.0.0` and auto‑select a free port with `--auto-port` when seeding from another host.
   - Chat commands: `/join #channel`, `/nick name`, `/me action`, `/msg nick text`, and plain messages. The agent responds to `goto <label>`.
   - Agent movement emits explanations (plan + per-hop cosine similarity). Use these traces for iteration and training.
 - Logging for iteration: Session logs are written as JSONL to a sibling folder outside the repo: `../Knowledge3D.local/logs/session-<ts>.jsonl`. Treat them as training data and do not commit them to the repo.
@@ -51,6 +52,11 @@ We are a team of humans and AI working together. Clear communication and alignme
   - Python: `pytest -q`
   - Viewer: `npm install --ignore-scripts --no-bin-links && node ./node_modules/jest/bin/jest.js --runInBand`
   - Commit early and often with clear messages. Keep changes scoped.
+
+### Recent Improvements (2025‑09‑10)
+- WebSocket stability: the live server’s log maintenance loop now yields each pass to avoid event‑loop starvation; handshakes are reliable.
+- Seeder robustness: uses context‑managed WS connects (`websockets==10.4`) and caps `dataset_graph` size via `K3D_SEED_GRAPH_MAX` for large galaxies.
+- Balanced Galaxy sample (v7): small, equal‑count text+3D Galaxy built to validate cross‑modal navigation with low‑dimension, high‑density embeddings.
 
 ## AI Avatar Specification
 

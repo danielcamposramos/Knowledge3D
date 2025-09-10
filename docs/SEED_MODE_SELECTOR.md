@@ -61,4 +61,5 @@ Notes
 -----
 - The seeder only asks the remote LLM to produce a JSON list of prompts; it’s intentionally non‑agentic.
 - On very old GPUs, the first call may be slow. The seeder uses 240s HTTP timeout and a WS retry loop with open_timeout=90s.
-
+- For very large galaxies, cap the `dataset_graph` payload size to avoid WS frame limits:
+  - `export K3D_SEED_GRAPH_MAX=1200` (default ~1200). The seeder will subsample nodes and keep neighbor links within the subsample.

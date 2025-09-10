@@ -80,6 +80,51 @@ scripts/k3d_env.sh run python -m knowledge3d.tools.build_galaxy \
 cd viewer && npm run dev
 ```
 
+### Balanced Galaxy (v7)
+Build a small, modality‑balanced Galaxy (equal counts per type) to validate cross‑modal behavior under low‑dimension, high‑density embeddings.
+
+Artifacts
+- `viewer/public/galaxy.v7.glb` and `viewer/public/galaxy.v7.cross.glb` (text + 3D; ~55 nodes per modality)
+- Topic‑coherent text generated via local Ollama `exaone3.5:latest`
+
+Steps (GPU‑only)
+1) Generate topic‑coherent text lines with Ollama (exaone3.5):
+```bash
+scripts/k3d_env.sh run python -m knowledge3d.tools.gen_text_ollama \
+  --ollama http://192.168.0.4:11434 --model exaone3.5:latest \
+  --topics "animals,sports,vehicles,gardens,tools" --n 80 \
+  --out ../Knowledge3D.local/datasets/exaone_text_v1.txt
+```
+2) Build text GLB:
+```bash
+scripts/k3d_env.sh run python -m k3dgen \
+  --text ../Knowledge3D.local/datasets/exaone_text_v1.txt \
+  --gltf viewer/public/text_exaone_v1.glb --k 10 --reducer umap \
+  --model sentence-transformers/all-MiniLM-L6-v2 --emb-precision f16
+```
+3) Prepare a 3D subset (~55 assets) and index:
+```bash
+mkdir -p ../Knowledge3D.local/datasets/gltf_samples_small
+(cd ../Knowledge3D.local/datasets/gltf_samples && ls *.glb | head -n 55 | \
+  xargs -I{} ln -s "$PWD/{}" ../gltf_samples_small/{})
+scripts/k3d_env.sh run python -m knowledge3d.tools.ingest_open3d \
+  --root ../Knowledge3D.local/datasets/gltf_samples_small \
+  --out viewer/public/shapes_index_small.glb --pattern ".glb" --reducer umap
+```
+4) Unify and add cross‑modal edges:
+```bash
+scripts/k3d_env.sh run python -m knowledge3d.tools.unify_glbs \
+  viewer/public/text_exaone_v1.glb:text \
+  viewer/public/shapes_index_small.glb:3d \
+  --out viewer/public/galaxy.v7.glb --dims 256 --k 10 --reducer umap
+scripts/k3d_env.sh run python -m knowledge3d.tools.add_crossmodal_edges \
+  --input viewer/public/galaxy.v7.glb --out viewer/public/galaxy.v7.cross.glb
+```
+
+Notes
+- For seeding large graphs into the live server, cap WS payload via `K3D_SEED_GRAPH_MAX` (e.g., 1200) to avoid frame‑size errors.
+- To extend balancing to audio/video/images: fetch small slices with `knowledge3d.tools.hf_fetch_multimodal`, then `ingest_audio` / `ingest_video`, convert via `knowledge3d.tools.trellis_adapter to-k3d`, and unify.
+
 ### Live Mode (Game HUD)
 The viewer now opens with a simple in‑game HUD:
 - Press Enter to open chat; type `/help`, `/pause`, `/resume`, `goto <label>`

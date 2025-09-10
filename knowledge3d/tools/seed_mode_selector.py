@@ -17,7 +17,8 @@ import argparse
 import asyncio
 import json
 from pathlib import Path
-from typing import List, Tuple
+import os
+from typing import List, Tuple, Dict, Set
 
 import websockets  # type: ignore
 import time
@@ -107,44 +108,75 @@ def fetch_prompts(ollama_url: str, model: str, n: int) -> List[str]:
 
 async def main_async(ws_url: str, glb: Path, n: int, ollama: str, model: str) -> None:
     ids, labels, neighbors, vectors, pairs = load_k3d(glb)
+    # Trim the dataset_graph payload to avoid WS 1009 (message too big)
+    # Default cap ~1200 nodes; configurable via K3D_SEED_GRAPH_MAX
+    try:
+        max_graph = max(200, int(os.getenv("K3D_SEED_GRAPH_MAX", "1200")))
+    except Exception:
+        max_graph = 1200
+    if len(ids) > max_graph:
+        step = max(1, len(ids) // max_graph)
+        sel_idx = list(range(0, len(ids), step))[:max_graph]
+        id_map: Dict[int, int] = {old: i for i, old in enumerate(sel_idx)}
+        sel_set: Set[int] = set(sel_idx)
+        ids_s = [ids[i] for i in sel_idx]
+        labels_s = [labels[i] for i in sel_idx]
+        # Keep neighbors within selection; remap by label/id value (server expects ids list of strings)
+        neigh_s: List[List[str]] = []
+        for i in sel_idx:
+            row = neighbors[i] if i < len(neighbors) else []
+            # Neighbor rows are ids (strings) per K3D; filter by membership in ids_s
+            try:
+                keep = [nid for nid in row if nid in ids_s]
+            except Exception:
+                keep = []
+            neigh_s.append(keep)
+        # Positions are optional (3D triples)
+        vec_s: List[List[float]] = []
+        if isinstance(vectors, list) and vectors and isinstance(vectors[0], (list, tuple)):
+            try:
+                vec_s = [vectors[i] for i in sel_idx]
+            except Exception:
+                vec_s = []
+        ids, labels, neighbors, vectors = ids_s, labels_s, neigh_s, vec_s
     prompts = fetch_prompts(ollama, model, n)
     # More tolerant connect: retry for ~60s with growing delay
-    ws = None
     last_exc = None
     for attempt in range(1, 9):
         try:
-            ws = await websockets.connect(ws_url, open_timeout=90)
-            break
+            async with websockets.connect(ws_url, open_timeout=90) as ws:
+                # Send dataset graph
+                await ws_send_json(ws, {
+                    "type": "event",
+                    "event": {
+                        "kind": "dataset_graph",
+                        "ids": ids,
+                        "neighbors": neighbors,
+                        "labels": labels,
+                        "positions": vectors,
+                    }
+                })
+                # Send snippets (truncated)
+                await ws_send_json(ws, {
+                    "type": "event",
+                    "event": {
+                        "kind": "dataset_snippets",
+                        "pairs": pairs[:1024]
+                    }
+                })
+                # Send prompts as /ask commands
+                for i, q in enumerate(prompts):
+                    await ws_send_json(ws, {"type": "chat", "from": "seed", "text": f"/ask {q}"})
+                    # Allow more time for older GPUs; backoff slightly as we go
+                    await asyncio.sleep(0.25 + 0.02 * i)
+                # If we got here, seeding succeeded; exit loop
+                last_exc = None
+                break
         except Exception as e:
             last_exc = e
             await asyncio.sleep(min(2 * attempt, 10))
-    if ws is None:
+    if last_exc is not None:
         raise RuntimeError(f"WS connect failed to {ws_url}: {last_exc}")
-    async with ws:
-        # Send dataset graph
-        await ws_send_json(ws, {
-            "type": "event",
-            "event": {
-                "kind": "dataset_graph",
-                "ids": ids,
-                "neighbors": neighbors,
-                "labels": labels,
-                "positions": vectors,
-            }
-        })
-        # Send snippets (truncated)
-        await ws_send_json(ws, {
-            "type": "event",
-            "event": {
-                "kind": "dataset_snippets",
-                "pairs": pairs[:1024]
-            }
-        })
-        # Send prompts as /ask commands
-        for i, q in enumerate(prompts):
-            await ws_send_json(ws, {"type": "chat", "from": "seed", "text": f"/ask {q}"})
-            # Allow more time for older GPUs; backoff slightly as we go
-            await asyncio.sleep(0.25 + 0.02 * i)
 
 
 def main() -> None:  # pragma: no cover

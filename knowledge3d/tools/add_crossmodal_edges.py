@@ -24,7 +24,7 @@ from typing import Dict, List, Set, Tuple
 from pygltflib import GLTF2  # type: ignore
 
 
-MODAL_KEYS = ("text", "image", "audio", "video")
+MODAL_KEYS = ("text", "image", "audio", "video", "3d")
 
 
 def modality_set(md: dict) -> Set[str]:
