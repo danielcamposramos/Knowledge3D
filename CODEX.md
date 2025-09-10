@@ -109,3 +109,5 @@ This file lists actionable tasks for AI agents working on the Knowledge3D reposi
 - Mode selector training: made classification report robust when a fold has only one class. Current log set is skewed toward `compose_generate`; expand seeding for factual prompts to balance labels.
 - New generator: `knowledge3d.tools.gen_text_ollama` to produce topic‑coherent text via local Ollama (e.g., `exaone3.5:latest`).
 - Built a modality‑balanced Galaxy (v7) with ~55 text (exaone) + ~55 3D assets. Unify projects embeddings to a common subspace (effective dims = min(target, max_dim, n‑1)). Cross‑modal edges added for navigation.
+- Balanced Expansion Policy: apply per‑modality and per‑topic balancing for new galaxies; degrade gracefully only when open‑source data is exhausted (see `docs/EXPANSION_POLICY.md`).
+- Local models playbook: roles/hosts and orchestration are documented in `docs/LOCAL_OLLAMA_MODELS.md`.

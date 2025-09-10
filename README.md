@@ -125,6 +125,10 @@ Notes
 - For seeding large graphs into the live server, cap WS payload via `K3D_SEED_GRAPH_MAX` (e.g., 1200) to avoid frame‑size errors.
 - To extend balancing to audio/video/images: fetch small slices with `knowledge3d.tools.hf_fetch_multimodal`, then `ingest_audio` / `ingest_video`, convert via `knowledge3d.tools.trellis_adapter to-k3d`, and unify.
 
+### Expansion Policy & Local Models
+- Balanced expansion policy: see `docs/EXPANSION_POLICY.md` (keep modality/topic counts aligned; degrade gracefully when open data is exhausted).
+- Local Ollama models and roles (reasoning, vision, embeddings, re‑ranking): see `docs/LOCAL_OLLAMA_MODELS.md`.
+
 ### Live Mode (Game HUD)
 The viewer now opens with a simple in‑game HUD:
 - Press Enter to open chat; type `/help`, `/pause`, `/resume`, `goto <label>`
