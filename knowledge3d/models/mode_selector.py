@@ -1,141 +1,122 @@
 from __future__ import annotations
 
 """
-Mode Selector — chooses between compose (retrieval+stitching) and
-compose_generate (grounded generative) for a given query+contexts.
-
-Baseline: logistic regression over lightweight features:
-- n_ctx: number of contexts
-- avg_ctx_len: average context text length
-- sum_ctx_len: total context length
-- q_len: query length
-- media_flags: fraction of contexts that look like media (jpg/png/wav/mp4)
-
-Training labels (heuristic bootstrapping):
-- If contexts[] is empty → label=compose (0)
-- If contexts[] non-empty → label=compose_generate (1)
-
-Usage:
-  Train:
-    scripts/k3d_env.sh run python -m knowledge3d.models.mode_selector \
-      --dataset docs/reports/training/rlwhf_dataset_unified_v3.jsonl \
-      --out ../Knowledge3D.local/models/mode_selector.pkl
-
-  Predict (debug):
-    scripts/k3d_env.sh run python -m knowledge3d.models.mode_selector \
-      --predict --model ../Knowledge3D.local/models/mode_selector.pkl \
-      --query "What is UMAP?" --contexts "label1::This is text" "label2::Other text"
+Mode Selector — learned routing between compose and compose_generate modes.
+Trains on outcome logs to predict optimal mode given query + contexts.
 """
 
-import argparse
 import json
-from dataclasses import dataclass
+import pickle
 from pathlib import Path
-from typing import Iterable, List, Tuple
+from typing import List
 
-import numpy as np
-
-
-def iter_jsonl(path: Path) -> Iterable[dict]:
-    with path.open("r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                yield json.loads(line)
-            except Exception:
-                continue
+import numpy as np  # noqa: F401  (kept for potential future features)
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics import accuracy_score, classification_report
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
 
 
-def _features(query: str, contexts: List[str]) -> np.ndarray:
-    q = (query or "").strip()
-    ctx = [str(c or "") for c in contexts]
-    n_ctx = float(len(ctx))
-    lens = [len(c) for c in ctx] or [0]
-    avg_ctx_len = float(sum(lens) / len(lens)) if lens else 0.0
-    sum_ctx_len = float(sum(lens))
-    q_len = float(len(q))
-    media_hits = 0
-    for c in ctx:
-        if any(s in c.lower() for s in [".jpg", ".png", ".jpeg", ".wav", ".mp4", "audio:", "video:"]):
-            media_hits += 1
-    media_frac = float(media_hits) / max(1.0, n_ctx)
-    return np.asarray([n_ctx, avg_ctx_len, sum_ctx_len, q_len, media_frac], dtype=np.float32)
+class ModeSelector:
+    def __init__(self) -> None:
+        self.pipeline = Pipeline(
+            [
+                (
+                    "tfidf",
+                    TfidfVectorizer(
+                        max_features=1000,
+                        stop_words="english",
+                        ngram_range=(1, 2),
+                    ),
+                ),
+                ("clf", RandomForestClassifier(n_estimators=100, random_state=42)),
+            ]
+        )
+        self.trained = False
 
-
-@dataclass
-class Selector:
-    pipe: object
-
-    def predict_proba(self, query: str, contexts: List[str]) -> float:
-        X = _features(query, contexts).reshape(1, -1)
-        return float(self.pipe.predict_proba(X)[0][1])
+    def _featurize(self, query: str, contexts: List[str]) -> str:
+        ctx_text = " ".join([str(c or "") for c in contexts[:4]])
+        return f"{str(query or '').strip()} {ctx_text}".strip()
 
     def predict(self, query: str, contexts: List[str]) -> int:
-        X = _features(query, contexts).reshape(1, -1)
-        return int(self.pipe.predict(X)[0])
+        """Returns 0 for compose, 1 for compose_generate"""
+        if not self.trained:
+            return 0
+        feature_text = self._featurize(query, contexts)
+        try:
+            pred = self.pipeline.predict([feature_text])[0]
+            return int(pred)
+        except Exception:
+            return 0
+
+    def train(self, dataset_path: Path, test_size: float = 0.2) -> None:
+        print(f"Loading training data from {dataset_path}")
+        X: List[str] = []
+        y: List[int] = []
+        try:
+            with dataset_path.open("r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        rec = json.loads(line)
+                        q = str(rec.get("question") or "")
+                        ctxs = rec.get("contexts") or []
+                        mode = str(rec.get("mode") or "compose").strip()
+                        label = 1 if mode == "compose_generate" else 0
+                        X.append(self._featurize(q, ctxs))
+                        y.append(label)
+                    except Exception:
+                        continue
+        except OSError as e:
+            print(f"Error reading dataset: {e}")
+            return
+        if len(X) < 10:
+            print("Insufficient training data (<10 rows)")
+            return
+        print(f"Training on {len(X)} samples")
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=float(test_size), random_state=42
+        )
+        self.pipeline.fit(X_train, y_train)
+        self.trained = True
+        y_pred = self.pipeline.predict(X_test)
+        print(f"Accuracy: {accuracy_score(y_test, y_pred):.3f}")
+        print("\nClassification Report:")
+        print(
+            classification_report(
+                y_test, y_pred, target_names=["compose", "compose_generate"]
+            )
+        )
+
+    def save(self, path: Path) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("wb") as f:
+            pickle.dump(self, f)
+        print(f"Saved mode selector to {path}")
 
 
-def train(dataset: Path) -> Tuple[Selector, dict]:
-    from sklearn.linear_model import LogisticRegression  # type: ignore
-    X_rows: List[np.ndarray] = []
-    y_rows: List[int] = []
-    n = 0
-    for rec in iter_jsonl(dataset):
-        q = str(rec.get("query") or "").strip()
-        contexts = [str(c or "") for c in (rec.get("contexts") or [])]
-        lbl = 1 if contexts else 0
-        X_rows.append(_features(q, contexts))
-        y_rows.append(lbl)
-        n += 1
-    if not X_rows:
-        raise SystemExit("No samples in dataset for mode selector")
-    X = np.vstack(X_rows)
-    y = np.asarray(y_rows, dtype=np.int64)
-    clf = LogisticRegression(max_iter=200)
-    clf.fit(X, y)
-    sel = Selector(pipe=clf)
-    acc = float((clf.predict(X) == y).mean())
-    return sel, {"rows": int(n), "acc_train": acc}
+def load(path: Path) -> ModeSelector:
+    with path.open("rb") as f:
+        return pickle.load(f)
 
 
-def save(model: Selector, out: Path) -> None:
-    import joblib
-    out.parent.mkdir(parents=True, exist_ok=True)
-    joblib.dump(model.pipe, out)
+def train_mode_selector(outcomes_path: str, model_path: str) -> ModeSelector:
+    selector = ModeSelector()
+    selector.train(Path(outcomes_path))
+    selector.save(Path(model_path))
+    return selector
 
 
-def load(model_path: Path) -> Selector:
-    import joblib
-    pipe = joblib.load(model_path)
-    return Selector(pipe=pipe)
+if __name__ == "__main__":  # pragma: no cover
+    import sys
 
-
-def main() -> None:  # pragma: no cover
-    ap = argparse.ArgumentParser(description="Train/Predict mode selector (compose vs compose_generate)")
-    ap.add_argument("--dataset")
-    ap.add_argument("--out")
-    ap.add_argument("--predict", action="store_true")
-    ap.add_argument("--model")
-    ap.add_argument("--query")
-    ap.add_argument("--contexts", nargs="*")
-    args = ap.parse_args()
-    if args.predict:
-        sel = load(Path(args.model))
-        ctxs: List[str] = []
-        for c in (args.contexts or []):
-            # allow "label::text" or just text
-            parts = c.split("::", 1)
-            ctxs.append(parts[1] if len(parts) == 2 else c)
-        y = sel.predict(args.query or "", ctxs)
-        print(json.dumps({"mode": ("compose_generate" if y == 1 else "compose"), "proba_generate": sel.predict_proba(args.query or "", ctxs)}, indent=2))
-        return
-    sel, info = train(Path(args.dataset))
-    save(sel, Path(args.out))
-    print(json.dumps(info, indent=2))
-
-
-if __name__ == "__main__":
-    main()
+    if len(sys.argv) != 3:
+        print(
+            "Usage: python -m knowledge3d.models.mode_selector <outcomes.jsonl> <model.pkl>"
+        )
+        raise SystemExit(1)
+    train_mode_selector(sys.argv[1], sys.argv[2])
 

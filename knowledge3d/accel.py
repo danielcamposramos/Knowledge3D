@@ -174,66 +174,68 @@ def knn_all(
     ann_kind = (ann or os.getenv("K3D_FAISS_INDEX", "flat")).lower().strip()
     use_ivf = ann_kind in {"ivf", "ivf-flat", "ivfflat", "ivfpq"}
 
-    # FAISS (GPU required)
-    import faiss  # type: ignore
-    ok, has_gpu = _has_faiss()
-    if not (_want_faiss_gpu() and ok and has_gpu):
-        raise RuntimeError("FAISS GPU required (CPU fallback disabled)")
+    # Try FAISS GPU first
+    try:
+        import faiss  # type: ignore
+        ok, has_gpu = _has_faiss()
+        if not (_want_faiss_gpu() and ok and has_gpu):
+            raise RuntimeError("FAISS GPU unavailable")
 
-    # Ensure C-contiguous float32 array for FAISS
-    x = np.ascontiguousarray(vectors, dtype=np.float32)
-    d = x.shape[1]
-    if use_ivf:
-        nl, npb = _heuristic_ivf_params(n)
-        if nlist:
-            nl = int(nlist)
-        if nprobe:
-            npb = int(nprobe)
-        quant = faiss.IndexFlatL2(d)
-        if ann_kind == "ivfpq":
-            try:
-                M = int(os.getenv("K3D_FAISS_PQ_M", "16"))
-            except Exception:
-                M = 16 if d % 16 == 0 else 8
-            try:
-                nbits = int(os.getenv("K3D_FAISS_PQ_BITS", "8"))
-            except Exception:
-                nbits = 8
-            cpu = faiss.IndexIVFPQ(quant, d, nl, M, nbits)
+        x = np.ascontiguousarray(vectors, dtype=np.float32)
+        d = x.shape[1]
+        if use_ivf:
+            nl, npb = _heuristic_ivf_params(n)
+            if nlist:
+                nl = int(nlist)
+            if nprobe:
+                npb = int(nprobe)
+            quant = faiss.IndexFlatL2(d)
+            if ann_kind == "ivfpq":
+                try:
+                    M = int(os.getenv("K3D_FAISS_PQ_M", "16"))
+                except Exception:
+                    M = 16 if d % 16 == 0 else 8
+                try:
+                    nbits = int(os.getenv("K3D_FAISS_PQ_BITS", "8"))
+                except Exception:
+                    nbits = 8
+                cpu = faiss.IndexIVFPQ(quant, d, nl, M, nbits)
+            else:
+                cpu = faiss.IndexIVFFlat(quant, d, nl, faiss.METRIC_L2)
+            m = min(n, 100_000)
+            cpu.train(x[:m])
+            gpu = faiss.index_cpu_to_all_gpus(cpu)
+            gpu.nprobe = npb
+            gpu.add(x)
+            index = gpu
         else:
-            cpu = faiss.IndexIVFFlat(quant, d, nl, faiss.METRIC_L2)
-        m = min(n, 100_000)
-        cpu.train(x[:m])
-        gpu = faiss.index_cpu_to_all_gpus(cpu)
-        gpu.nprobe = npb
-        gpu.add(x)
-        index = gpu
+            index = _faiss_gpu_index(x)
+            if index is None:
+                raise RuntimeError("FAISS GPU IndexFlatL2 unavailable")
+        batch = 10000 if n >= 200000 else 20000
+        I_list: list[np.ndarray] = []
+        for start in range(0, n, batch):
+            end = min(n, start + batch)
+            _, I = index.search(x[start:end], k + 1)
+            I = I[:, 1:]
+            I_list.append(I)
+        out = np.vstack(I_list)
+        return out.astype(np.int64)
+    except Exception as e:
+        # Fallback to RAPIDS cuML KNN (still GPU) if available
+        if not _has_cuml():
+            raise
         try:
-            from .utils.env_guard import accel_log  # type: ignore
-            kind = 'IVF-PQ' if ann_kind == 'ivfpq' else 'IVF-Flat'
-            accel_log(f"FAISS {kind} (GPU) nlist={nl} nprobe={npb}")
+            from cuml.neighbors import NearestNeighbors  # type: ignore
         except Exception:
-            pass
-    else:
-        # Flat L2 on GPU shards
-        index = _faiss_gpu_index(x)
-        if index is None:
-            raise RuntimeError("FAISS GPU IndexFlatL2 unavailable")
-        try:
-            from .utils.env_guard import accel_log  # type: ignore
-            accel_log("FAISS Flat (GPU)")
-        except Exception:
-            pass
-
-    batch = 10000 if n >= 200000 else 20000
-    I_list: list[np.ndarray] = []
-    for start in range(0, n, batch):
-        end = min(n, start + batch)
-        _, I = index.search(x[start:end], k + 1)
+            raise
+        # cuML expects float32
+        x = np.asarray(vectors, dtype=np.float32)
+        nn = NearestNeighbors(n_neighbors=k + 1, metric="euclidean")
+        nn.fit(x)
+        _, I = nn.kneighbors(x)
         I = I[:, 1:]
-        I_list.append(I)
-    out = np.vstack(I_list)
-    return out.astype(np.int64)
+        return np.asarray(I, dtype=np.int64)
 
 
 def st_device_kwargs() -> dict:

@@ -97,11 +97,17 @@ def main() -> None:  # pragma: no cover
     except Exception as e:
         raise SystemExit(f"Failed to compute embeddings: {e}")
     # Use k3dgen internals to create GLB
-    from k3dgen.__main__ import reduce_dimensions, create_gltf_file
+    from k3dgen.__main__ import reduce_dimensions, find_neighbors, create_gltf_file
     reducer = str(args.reducer)
     pts = reduce_dimensions(embs, reducer=reducer)
-    # For asset index we don't require KNN edges; leave neighbors empty to avoid FAISS dependency
-    nbr_idx = [[] for _ in range(len(ids))]
+    try:
+        import numpy as _np  # type: ignore
+        pts = _np.nan_to_num(pts, copy=False, nan=0.0, posinf=1e6, neginf=-1e6)
+        embs = _np.nan_to_num(embs, copy=False, nan=0.0, posinf=1e6, neginf=-1e6)
+    except Exception:
+        pass
+    # Compute neighbors with FAISS-GPU (strict GPU mode; will fail if GPU FAISS unavailable)
+    nbr_idx = find_neighbors(embs, k=10)
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     labels = [m.get("label", i) for m, i in zip(meta, ids)]

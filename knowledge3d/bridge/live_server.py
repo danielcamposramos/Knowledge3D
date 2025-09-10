@@ -1812,6 +1812,21 @@ class LiveServer:
                     contexts.append((key, txt or lab))
             except Exception:
                 pass
+        # Optional: prefer compose_auto (for outcome logging/training) when enabled
+        try:
+            import os as _os
+            if (_os.getenv("K3D_USE_COMPOSE_AUTO", "0").strip() != "0"):
+                from ..skills.spatial_text import compose_auto  # type: ignore
+                mode, text = compose_auto(q, contexts)
+                await self.send_chat(sender="agent", text=text, channel=client.channel)
+                await self.log({"type":"ask","mode":"compose_auto","route":mode,"text":q,"contexts":contexts,"out":text})
+                try:
+                    await self._emit_reasoning_overlay(client.channel, q, contexts, mode_hint=mode, composed_text=text)
+                except Exception:
+                    pass
+                return
+        except Exception:
+            pass
         if self._cranium is not None:
             try:
                 resp = self._cranium.act(q, contexts=contexts)
