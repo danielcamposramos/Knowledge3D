@@ -771,12 +771,27 @@ class LiveServer:
                 domain = parts[2]
                 try:
                     from ..tools.phase2.grow_tree import GrowTreeCommand  # type: ignore
-                    out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "knowledge_garden.glb")
-                    cmdr = GrowTreeCommand(str(out))
+                    from ..tools.phase2.garden_renderer import render_garden  # type: ignore
+                    cmdr = GrowTreeCommand()
                     msg = cmdr.execute(domain)
-                    await self.send_chat(sender="agent", text=msg + " (asset: /knowledge_garden.glb)", channel=client.channel)
+                    path = render_garden()
+                    rel = "/" + str(Path(path).resolve().relative_to(Path(__file__).resolve().parents[2] / 'viewer' / 'public')).replace('\\','/')
+                    await self.send_chat(sender="agent", text=msg + f" (asset: {rel})", channel=client.channel)
                 except Exception:
                     await self.send_system(client.channel, "Grow tree failed.")
+                return
+        if cmd == "/repair" and len(parts) >= 3:
+            # /repair tree <id>
+            sub = parts[1].lower()
+            if sub == "tree":
+                tree_id = parts[2]
+                try:
+                    from ..tools.phase2.tree_repair import TreeRepair  # type: ignore
+                    rep = TreeRepair()
+                    ok = rep.auto_repair(tree_id)
+                    await self.send_chat(sender='agent', text=(f"Repaired {tree_id}." if ok else f"Repair failed for {tree_id}."), channel=client.channel)
+                except Exception:
+                    await self.send_system(client.channel, "Repair failed.")
                 return
         if cmd == "/model":
             await self._handle_model(parts[1:] if len(parts) > 1 else [], client)

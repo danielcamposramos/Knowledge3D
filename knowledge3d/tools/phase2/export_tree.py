@@ -50,10 +50,10 @@ def _flatten_tree(tree: dict) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.nd
 
 def exportTreeToGLB(tree: dict, out_path: str, *,
                     domain: str | None = None,
-                    position: tuple[float, float, float] | None = None,
-                    rotation: float | None = None,
-                    sectors: dict | None = None,
-                    radius: float = 10.0) -> bool:
+                    tree_id: str | None = None,
+                    source_ref: str | None = None,
+                    checksum: str | None = None,
+                    version: str = '1.0') -> bool:
     P, E, EMB, SIM = _flatten_tree(tree)
     if P.shape[0] == 0:
         return False
@@ -120,25 +120,16 @@ def exportTreeToGLB(tree: dict, out_path: str, *,
             "embeddingDims": int(EMB.shape[1]),
             "object": {"kind": "tree", "nodes": int(P.shape[0]), "edges": int(E.shape[0])}
         },
-        # Duplicate garden metadata here to ensure availability even if scene.extras is dropped by loaders
+        # Tree module metadata (no position here)
         "k3d_garden": {
-            'memory_realm': 'garden',
-            'room_type': 'circular_greenhouse',
-            'center_position': [0.0, 0.0, 0.0],
-            'radius': float(radius),
-            'knowledge_sectors': sectors or {},
-            'trees': [
-                {
-                    'id': f"tree_{(domain or 'domain').lower().replace(' ','_')}_001",
-                    'domain': domain or 'Unknown',
-                    'position': list(position) if position else [0.0, 0.0, 0.0],
-                    'rotation': float(rotation) if rotation is not None else 0.0,
-                    'complexity': int(P.shape[0]),
-                    'embeddingDims': int(EMB.shape[1]),
-                    'nodes': int(P.shape[0]),
-                    'edges': int(E.shape[0]),
-                }
-            ]
+            'tree_id': tree_id or f"tree_{(domain or 'domain').lower().replace(' ','_')}_001",
+            'domain': domain or 'Unknown',
+            'version': version,
+            'embeddingDims': int(EMB.shape[1]),
+            'complexity': int(P.shape[0]),
+            'is_chiral': False,
+            'checksum': checksum,
+            'source_ref': source_ref,
         }
     }
     mesh = Mesh(primitives=[prim])

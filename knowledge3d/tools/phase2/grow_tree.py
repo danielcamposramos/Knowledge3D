@@ -6,6 +6,8 @@ import numpy as np
 from knowledge3d.cranium.embedding_generator import DynamicEmbeddingGenerator
 from knowledge3d.tools.phase2.export_tree import exportTreeToGLB
 from knowledge3d.tools.phase2.tree_placer import calculate_tree_position, current_sectors
+from knowledge3d.tools.phase2.registry import TREES_DIR, register_tree
+from knowledge3d.tools.phase2.garden_renderer import render_garden
 
 
 def _generate_tree_py(emb: np.ndarray) -> Dict[str, Any]:
@@ -50,16 +52,15 @@ class GrowTreeCommand:
             emb = emb.copy(); emb[72] = 1.0
         tree = _generate_tree_py(emb)
         x, y, z, rot = calculate_tree_position(domain, tree)
-        ok = exportTreeToGLB(
-            tree,
-            self.garden_path,
-            domain=domain,
-            position=(x, y, z),
-            rotation=rot,
-            sectors=current_sectors(),
-            radius=10.0,
-        )
-        return f"🌳 Tree '{domain}' grown in Knowledge Garden." if ok else "Failed to grow tree."
+        tree_id = f"tree_{domain.lower().replace(' ','_')}_{int(np.random.randint(100,999))}"
+        out = TREES_DIR / f"{tree_id}.glb"
+        ok = exportTreeToGLB(tree, str(out), domain=domain, tree_id=tree_id, source_ref=domain, checksum=None)
+        if ok:
+            # Register and re-render garden composite
+            sector = next((k for k in current_sectors().keys() if k.lower() in domain.lower() or domain.lower() in k.lower()), domain)
+            register_tree(tree_id, str(out), domain, (x, y, z), rot, sector, status='success', error_code=None)
+            render_garden()
+        return f"🌳 Tree '{domain}' grown: id={tree_id}" if ok else "Failed to grow tree."
 
 
 def main():
