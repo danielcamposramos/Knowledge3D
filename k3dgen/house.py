@@ -8,8 +8,24 @@ import numpy as np
 from sklearn.neighbors import NearestNeighbors
 
 
+import warnings
+
+
+warnings.warn(
+    "k3dgen.house.House is deprecated as of Cranium Core v3.0: "
+    "use embedded glTF/GLB with meshes[*].primitives[*].extras.k3d instead of sidecar .k3d.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+
 class House:
-    """A K3D House, representing a collection of embeddings stored at a given URI."""
+    """[DEPRECATED v3.0] Use embedded glTF with extras.k3d instead of sidecar .k3d.
+
+    This legacy helper persists embeddings and metadata into an external `.k3d`
+    JSON file. New code should embed knowledge directly in GLB with bufferViews
+    and `primitive.extras.k3d`.
+    """
 
     def __init__(self, uri: str):
         """Initialize a House instance.

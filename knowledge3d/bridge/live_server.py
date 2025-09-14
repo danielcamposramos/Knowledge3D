@@ -755,6 +755,13 @@ class LiveServer:
                 await self.send_system(client.channel, "History unavailable.")
             return
         if cmd in ("/open", "/door") and len(parts) >= 2:
+            # Special-case: /open book <title>
+            try:
+                if parts[1].lower().startswith("book") and len(parts) >= 3:
+                    await self._handle_open_book(parts[2], client)
+                    return
+            except Exception:
+                pass
             await self._handle_open(parts[1], client)
             return
         if cmd == "/model":
@@ -1124,6 +1131,60 @@ class LiveServer:
             client.channel,
             f"Model status: {'on' if self._model_enabled else 'off'} active={','.join(sorted(self._active_kinds)) or 'none'} threshold={self._model_threshold:.2f}",
         )
+
+    async def _handle_open_book(self, title: str, client: Client):
+        """Project book text to a pseudo-screen by writing a projection file.
+
+        Demo implementation: searches viewer/public/library_room.glb for a book
+        with extras.k3d.object.title == <title>, decodes a short text from its
+        embedding buffer, and writes it to viewer/public/projections/<title>.txt.
+        """
+        try:
+            from pathlib import Path as _P
+            from pygltflib import GLTF2 as _G
+            import numpy as _np
+            import struct as _st
+        except Exception:
+            await self.send_system(client.channel, "OpenBook: missing deps (pygltflib/numpy)")
+            return
+        glb = (_P(__file__).resolve().parents[2] / "viewer" / "public" / "library_room.glb")
+        if not glb.exists():
+            await self.send_system(client.channel, "OpenBook: library_room.glb not found")
+            return
+        try:
+            m = _G().load_binary(str(glb))
+            found = None
+            for mesh in m.meshes or []:
+                for prim in mesh.primitives or []:
+                    k3d = (prim.extras or {}).get("k3d") if prim.extras else None
+                    if isinstance(k3d, dict) and k3d.get("object", {}).get("kind") == "book":
+                        if str(k3d.get("object", {}).get("title", "")) == title:
+                            found = k3d
+                            break
+                if found:
+                    break
+            if not found:
+                await self.send_system(client.channel, f"OpenBook: '{title}' not found")
+                return
+            bv = m.bufferViews[int(found["embeddingsView"])]
+            blob = m.binary_blob()
+            data = blob[(bv.byteOffset or 0): (bv.byteOffset or 0) + bv.byteLength]
+            emb = _np.array(_st.unpack('<' + 'f' * (bv.byteLength // 4), data), dtype=_np.float32)
+            # Lightweight demo decoder
+            out = []
+            for i in range(0, min(len(emb), 128), 4):
+                code = int(abs(float(emb[i])) * 255) % 128
+                if 32 <= code <= 126:
+                    out.append(chr(code))
+            text = (''.join(out))[:1000] or "(empty)"
+            proj_dir = glb.parent / "projections"
+            proj_dir.mkdir(parents=True, exist_ok=True)
+            safe = ''.join([c for c in title if c.isalnum() or c in ('_','-')])
+            (proj_dir / f"{safe}.txt").write_text(text, encoding='utf-8')
+            await self.send_chat(sender="agent", text=f"Projected '{title}' to screen (projections/{safe}.txt)", channel=client.channel)
+        except Exception:
+            await self.send_system(client.channel, "OpenBook: failed to project")
+        return
 
     async def _handle_logs(self, args, client: Client):
         sub = (args[0].lower() if args else "status")

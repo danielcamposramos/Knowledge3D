@@ -1,21 +1,19 @@
-Deprecated (Legacy) Patterns
-============================
+# Deprecations — Cranium Core v3.0
 
-The following approaches are no longer valid for K3D core runs:
+This project is transitioning to the Cranium Core v3.0 pipeline where all knowledge and runtime bindings live inside embedded glTF/GLB with `meshes[*].primitives[*].extras.k3d` and direct buffer views.
 
-1) External LLM wrappers as primary generation paths
-- Why: Contradicts the single‑interpreter design. The Cranium must run one in‑process core head that conditions on K3D memory.
-- Replacement: Cranium Core Head (docs/CRANIUM_CORE.md) with text + navigation (Phase A), then multi‑modal stems (Phase B), and first‑class TTS (Phase D).
+As part of this transition, the following modules and examples are deprecated. They will remain available during the migration window, but new work should target the embedded glTF path only.
 
-2) TTS as a python wrapper/tool
-- Why: TTS must be first‑class; the Cranium head should generate speech directly (no subprocess, no network). Diary “voice notes” are integral.
-- Replacement: In‑process neural TTS head (Phase D).
+- k3dgen/house.py: Sidecar `.k3d` storage and access helpers.
+  - Replacement: use embedded glTF with `extras.k3d` and bufferViews; see `spec/glTF_K3D_extension.md` and `knowledge3d/tools/phase0_export_glb.py`.
 
-3) CPU fallbacks for training/inference
-- Why: Violates performance and design constraints; we require GPU‑native operation.
-- Replacement: Strict GPU enforcement (`K3D_STRICT_GPU=1`), with CUDA/Triton/PTX paths where needed.
+- k3dgen/ai_native.py: AI-native extras helpers using `embedding_b64` payloads.
+  - Replacement: attach embeddings in binary `BufferView` referenced by `extras.k3d["embeddingsView"]` with `embeddingDims`.
 
-4) Over‑reliance on external high‑dimensional encoders
-- Why: K3D uses a low‑dimensional, high‑density 256‑D space. Additional stems must project into this shared space, not introduce separate high‑D silos.
-- Replacement: In‑repo stems mapping into 256‑D K3D space via contrastive alignment.
+- examples referencing `.k3d` (e.g., `examples/my_house_generator.py`, `examples/*.gltf` with sidecar URIs):
+  - Replacement: convert to embedded glTF. If needed, add a `vectorsView` and `embeddingsView` in the same `Buffer` as positions.
+
+Notes
+- The sidecar `.k3d` format remains documented for historical reference but is no longer a supported output in generators. See `k3dgen/__main__.py` for the embedded-only CLI.
+- New exporters must ensure direct buffer access for the AI client with `extras.k3d.direct_buffer_access = true` and provide `embeddingDims`.
 
