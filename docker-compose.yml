@@ -1,0 +1,12 @@
+version: '3.8'
+services:
+  k3d-cranium:
+    build: .
+    environment:
+      - K3D_LIVE_AUTO=1
+    ports:
+      - "8765-8800:8765-8800"
+    volumes:
+      - ./viewer/public:/app/viewer/public
+    restart: unless-stopped
+

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import List
+from pathlib import Path
 
 try:
     import torch
@@ -95,4 +96,3 @@ if __name__ == '__main__':  # pragma: no cover
     sl = SampleLoader(args.samples)
     tp = TrainingPipeline(sl)
     tp.train_shape_recognizer(sample_pattern=args.pattern, epochs=args.epochs)
-
