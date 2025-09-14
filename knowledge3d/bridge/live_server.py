@@ -726,6 +726,50 @@ class LiveServer:
             else:
                 await self.send_system(client.channel, "Usage: /topic [show|set <text>]")
             return
+        if cmd == "/house":
+            # /house render -> assemble master house GLB from zone objects
+            sub = parts[1] if len(parts) > 1 else "help"
+            if sub == "render":
+                try:
+                    from ..tools.phase8.export_house_master import build_house_master  # type: ignore
+                    from ..tools.phase8.house_master_renderer import HouseMasterRenderer  # type: ignore
+                    root = Path(__file__).resolve().parents[2]
+                    master = root / 'viewer' / 'public' / 'house' / 'house_master.glb'
+                    if not master.exists():
+                        build_house_master(str(master))
+                    zones = root / 'viewer' / 'public' / 'house'
+                    out = root / 'viewer' / 'public' / 'house' / 'house_master_assembled.glb'
+                    r = HouseMasterRenderer(str(master), str(zones))
+                    path = r.render_house_master(str(out))
+                    rel = "/" + str(Path(path).resolve().relative_to(root / 'viewer' / 'public')).replace('\\','/')
+                    await self.send_chat(sender='agent', text=f"🏠 House assembled: {rel}", channel=client.channel)
+                except Exception as e:
+                    await self.send_system(client.channel, f"House render failed: {e}")
+                return
+            await self.send_system(client.channel, "Usage: /house render")
+            return
+        if cmd == "/train":
+            # /train <sample_dir> [pattern] [epochs]
+            if len(parts) < 2:
+                await self.send_system(client.channel, "Usage: /train <sample_dir> [pattern] [epochs]")
+                return
+            sample_dir = parts[1]
+            pattern = parts[2] if len(parts) > 2 else '*.glb'
+            try:
+                epochs = int(parts[3]) if len(parts) > 3 else 10
+            except Exception:
+                epochs = 10
+            try:
+                from ..tools.phase9.sample_loader import SampleLoader  # type: ignore
+                from ..tools.phase9.training_pipeline import TrainingPipeline  # type: ignore
+                sl = SampleLoader(sample_dir)
+                tp = TrainingPipeline(sl)
+                tp.train_shape_recognizer(sample_pattern=pattern, epochs=epochs)
+                await self.send_chat(sender='agent', text="✅ Training completed. Model saved to /models/shape_recognizer.pth", channel=client.channel)
+                await self.log({'type':'train','samples':sample_dir,'pattern':pattern,'epochs':epochs})
+            except Exception as e:
+                await self.send_system(client.channel, f"Training failed: {e}")
+            return
         if cmd == "/living":
             # /living render
             sub = parts[1] if len(parts) > 1 else "help"
@@ -744,6 +788,46 @@ class LiveServer:
             # list nicks in channel
             members = sorted([self.by_key[k].nick for k in self.channels.get(client.channel, set()) if k in self.by_key])
             await self.send_system(client.channel, f"Names in {client.channel}: {', '.join(members) if members else '(none)'}")
+            return
+        if cmd == "/goto":
+            # /goto <zone>
+            if len(parts) < 2:
+                await self.send_system(client.channel, "Usage: /goto <zone>")
+                return
+            zone = parts[1].strip().lower()
+            try:
+                import json as _json
+                zp = (Path(__file__).resolve().parents[2] / 'viewer' / 'public' / 'house' / 'zone_coordinates.json')
+                if zp.exists():
+                    z = _json.loads(zp.read_text(encoding='utf-8'))
+                else:
+                    z = {
+                        'zones': {
+                            'library': {'position': [-30.0,0.0,0.0]},
+                            'garden': {'position': [30.0,0.0,0.0]},
+                            'workshop': {'position': [0.0,0.0,30.0]},
+                            'bathtub': {'position': [0.0,0.0,-30.0]},
+                            'living_room': {'position': [0.0,0.0,0.0]},
+                        }
+                    }
+                zones = z.get('zones') or {}
+                if zone not in zones:
+                    await self.send_system(client.channel, f"Unknown zone: {zone}. Valid: {', '.join(sorted(zones.keys()))}")
+                    return
+                pos = zones[zone].get('position') or [0.0,0.0,0.0]
+                # Notify viewer (if supported) and confirm
+                try:
+                    import json as __json
+                    self._last_position = pos  # store
+                    self._last_zone = zone
+                    self._topics[client.channel] = f"zone:{zone}"
+                    await self.send_command('move_avatar', __json.dumps({'position': pos, 'zone': zone}), channel=client.channel)
+                except Exception:
+                    pass
+                await self.send_chat(sender='agent', text=f"🚶 Moved to {zone} at ({pos[0]:.1f},{pos[1]:.1f},{pos[2]:.1f})", channel=client.channel)
+                await self.log({'type':'nav','action':'goto','zone':zone,'position':pos})
+            except Exception as e:
+                await self.send_system(client.channel, f"Goto failed: {e}")
             return
         if cmd == "/who":
             # alias to /names with simple output

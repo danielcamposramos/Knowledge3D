@@ -1,0 +1,31 @@
+{
+  "house_version": "1.0",
+  "center_position": [0.0, 0.0, 0.0],
+  "zones": {
+    "library": {
+      "position": [-30.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "description": "West wing — books, shelves, reading nooks"
+    },
+    "garden": {
+      "position": [30.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "description": "East wing — fractal trees, knowledge sectors"
+    },
+    "workshop": {
+      "position": [0.0, 0.0, 30.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "description": "North wing — manipulation tables, fusion pods"
+    },
+    "bathtub": {
+      "position": [0.0, 0.0, -30.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "description": "South wing — soaking tubs, dream particles"
+    },
+    "living_room": {
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "description": "Center — sofa, projection screens, avatar tablet"
+    }
+  }
+}
