@@ -18,9 +18,14 @@ from ...cranium.phase9.shape_recognizer import ShapeRecognizer  # type: ignore
 
 
 class MeaningCentricTrainingPipeline:
-    def __init__(self, sample_loader: SampleLoader):
+    def __init__(self, sample_loader: SampleLoader, honesty_threshold: float | None = None, ray_threshold: float | None = None, use_rlwhf: bool = False, use_self_reflection: bool = False):
         self.sample_loader = sample_loader
         self.shape_recognizer = ShapeRecognizer()
+        # Store optional knobs for future integration (MVP no-ops)
+        self._honesty_threshold = honesty_threshold
+        self._ray_threshold = ray_threshold
+        self._use_rlwhf = use_rlwhf
+        self._use_self_reflection = use_self_reflection
         if torch is not None and hasattr(self.shape_recognizer, 'parameters'):
             self.optimizer = torch.optim.Adam(self.shape_recognizer.parameters(), lr=0.001)
             self.criterion = nn.CrossEntropyLoss()  # type: ignore
@@ -70,6 +75,35 @@ class MeaningCentricTrainingPipeline:
         if torch is None:
             raise RuntimeError('PyTorch not available')
         samples = self.sample_loader.load_samples(pattern=pattern)
+        ds = self.create_dataset(samples)
+        dl = DataLoader(ds, batch_size=batch_size, shuffle=True)
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        model = self.shape_recognizer
+        try:
+            model.to(device)  # type: ignore[attr-defined]
+        except Exception:
+            pass
+        for ep in range(int(epochs)):
+            total = 0.0
+            for xb, yb in dl:
+                xb = xb.to(device)
+                yb = yb.to(device)
+                self.optimizer.zero_grad()  # type: ignore
+                logits = model(xb)  # type: ignore[misc]
+                loss = self.meaning_centric_loss(logits, xb, yb)
+                loss.backward()
+                self.optimizer.step()  # type: ignore
+                total += float(loss.item())
+            if ep % 5 == 0:
+                print(f"Epoch {ep}: loss={total/max(1,len(dl)):.4f}")
+        Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+        import torch as _t
+        _t.save(model.state_dict(), out_path)
+        print('Saved model to', out_path)
+
+    def train_on_samples(self, samples: List[dict], epochs: int = 50, batch_size: int = 16, out_path: str = 'viewer/public/models/shape_recognizer_stage.pth') -> None:
+        if torch is None:
+            raise RuntimeError('PyTorch not available')
         ds = self.create_dataset(samples)
         dl = DataLoader(ds, batch_size=batch_size, shuffle=True)
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
