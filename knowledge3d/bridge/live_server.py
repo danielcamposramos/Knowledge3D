@@ -5,7 +5,7 @@ import socket
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional, Set
+from typing import Any, Dict, Optional, Set, List
 
 try:
     import websockets
@@ -702,6 +702,16 @@ class LiveServer:
             st = "paused" if self._is_paused(client.channel) else "running"
             await self.send_system(client.channel, f"Status: {st}")
             return
+        if cmd == "/ai":
+            # Simple chat interface: /ai <text>
+            q = parts[1] if len(parts) > 1 else ""
+            if not q:
+                await self.send_system(client.channel, "Usage: /ai <text>")
+                return
+            out = f"AI processed: {q[:120]}..." if len(q) > 120 else f"AI processed: {q}"
+            await self.send_chat(sender="agent", text=f"🤖 {out}", channel=client.channel)
+            await self.log({"type": "chat", "mode": "ai_overlay", "text": q, "out": out})
+            return
         if cmd == "/topic":
             # /topic -> show; /topic set <text> to change
             sub = parts[1] if len(parts) > 1 else "show"
@@ -715,6 +725,20 @@ class LiveServer:
                 await self.log({"type": "topic", "channel": client.channel, "topic": topic})
             else:
                 await self.send_system(client.channel, "Usage: /topic [show|set <text>]")
+            return
+        if cmd == "/living":
+            # /living render
+            sub = parts[1] if len(parts) > 1 else "help"
+            if sub == "render":
+                try:
+                    from ..tools.phase6.export_living_room import build_living_room  # type: ignore
+                    out = (Path(__file__).resolve().parents[2] / 'viewer' / 'public' / 'living_room.glb')
+                    build_living_room(20.0, 8.0, 20.0, str(out))
+                    await self.send_chat(sender='agent', text=f"🛋️ Living room rendered: {out}", channel=client.channel)
+                except Exception as e:
+                    await self.send_system(client.channel, f"Living room render failed: {e}")
+                return
+            await self.send_system(client.channel, "Usage: /living render")
             return
         if cmd == "/names":
             # list nicks in channel
@@ -908,8 +932,116 @@ class LiveServer:
             except Exception:
                 await self.send_system(client.channel, "Export failed.")
             return
+        if cmd == "/install_app":
+            # /install_app <name>
+            name = parts[1] if len(parts) > 1 else ""
+            if not name:
+                await self.send_system(client.channel, "Usage: /install_app <name>")
+                return
+            try:
+                from ..tools.phase6.avatar_tablet import AvatarTablet  # type: ignore
+                if not hasattr(self, '_tablet') or self._tablet is None:
+                    self._tablet = AvatarTablet()
+                ok = self._tablet.install_app(name)
+                if ok:
+                    await self.send_chat(sender='agent', text=f"📱 Installed app '{name}' on avatar tablet.", channel=client.channel)
+                else:
+                    await self.send_system(client.channel, f"Install failed for '{name}'.")
+            except Exception as e:
+                await self.send_system(client.channel, f"Install failed: {e}")
+            return
+        if cmd == "/cast_to_screen":
+            # /cast_to_screen <name> <screen_id>
+            if len(parts) < 3:
+                await self.send_system(client.channel, "Usage: /cast_to_screen <app_name> <screen_id>")
+                return
+            name, screen = parts[1], parts[2]
+            try:
+                from ..tools.phase6.avatar_tablet import AvatarTablet  # type: ignore
+                if not hasattr(self, '_tablet') or self._tablet is None:
+                    self._tablet = AvatarTablet()
+                path = self._tablet.cast_to_screen(name, screen)
+                if path:
+                    # produce relative path for the viewer/public root
+                    pub = Path(__file__).resolve().parents[2] / 'viewer' / 'public'
+                    rel = "/" + str(Path(path).resolve().relative_to(pub)).replace('\\','/')
+                    await self.send_chat(sender='agent', text=f"📺 Cast '{name}' to screen '{screen}' (projection {rel})", channel=client.channel)
+                else:
+                    await self.send_system(client.channel, f"Cast failed (app '{name}' not installed?).")
+            except Exception as e:
+                await self.send_system(client.channel, f"Cast failed: {e}")
+            return
+        if cmd == "/voice":
+            # /voice say <text>
+            sub = parts[1] if len(parts) > 1 else "";
+            if sub != "say" or len(parts) < 3:
+                await self.send_system(client.channel, "Usage: /voice say <text>")
+                return
+            text = parts[2]
+            try:
+                from ..tools.phase6.voice_chat import VoiceChat  # type: ignore
+                # derive embedding from text (deterministic)
+                import hashlib
+                def _hash_vec(s: str, d: int = 32) -> list[float]:
+                    h = hashlib.sha256(s.encode('utf-8')).digest(); v=[]; i=0
+                    while len(v) < d:
+                        b = h[i % len(h)]; v.append((b/255.0)-0.5); i+=1
+                    return v
+                emb = _hash_vec(text, 32)
+                vc = VoiceChat()
+                out_dir = Path(__file__).resolve().parents[2] / 'viewer' / 'public' / 'voice'
+                path = vc.speak_to_file(text, emb, out_dir)
+                pub = Path(__file__).resolve().parents[2] / 'viewer' / 'public'
+                rel = "/" + str(path.resolve().relative_to(pub)).replace('\\','/')
+                await self.send_chat(sender='agent', text=f"🔊 Spoke: '{text[:64]}' (audio {rel})", channel=client.channel)
+                await self.log({"type":"voice","mode":"say","text":text,"audio":rel})
+            except Exception as e:
+                await self.send_system(client.channel, f"Voice synthesis failed: {e}")
+            return
         if cmd == "/sleep":
             await self._handle_sleep(parts[1:] if len(parts) > 1 else [], client)
+            return
+        if cmd == "/upgrade":
+            # /upgrade <furniture_id>
+            if len(parts) < 2:
+                await self.send_system(client.channel, "Usage: /upgrade <furniture_id>")
+                return
+            furn_id = parts[1].strip()
+            repo_root = Path(__file__).resolve().parents[2]
+            reg_path = repo_root / 'viewer' / 'public' / 'bathtub_registry.json'
+            try:
+                import json as _json
+                if not reg_path.exists():
+                    await self.send_system(client.channel, "Bathtub registry not found.")
+                    return
+                reg = _json.loads(reg_path.read_text(encoding='utf-8'))
+                furn = None
+                for f in list(reg.get('furniture', []) or []):
+                    if str(f.get('id')) == furn_id:
+                        furn = f
+                        break
+                if not furn:
+                    await self.send_system(client.channel, f"Furniture {furn_id} not found in bathtub registry.")
+                    return
+                from ..tools.phase5.asset_upgrade_engine import AssetUpgradeEngine  # type: ignore
+                eng = AssetUpgradeEngine()
+                up = eng.upgrade_asset(furn)
+                if up is furn or up == furn:
+                    await self.send_system(client.channel, f"Furniture {furn_id} not eligible for upgrade (check honesty/dims).")
+                    return
+                # Replace in registry and save
+                reg['furniture'] = [f if str(f.get('id')) != furn_id else up for f in reg.get('furniture', [])]
+                reg_path.write_text(_json.dumps(reg, ensure_ascii=False, indent=2), encoding='utf-8')
+                # Re-render scene
+                from ..tools.phase5.bathtub_renderer import BathtubRenderer  # type: ignore
+                scene_out = repo_root / 'viewer' / 'public' / 'bathtub_scene.glb'
+                r = BathtubRenderer(str(reg_path), str(scene_out))
+                out_path = r.render()
+                gtype = ((up.get('geometry') or {}).get('type') or 'enhanced')
+                await self.send_chat(sender='agent', text=f"✨ Upgraded {furn_id} → {gtype}. Scene: {out_path}", channel=client.channel)
+                await self.log({'type': 'upgrade', 'furniture_id': furn_id, 'geometry_type': gtype})
+            except Exception as e:
+                await self.send_system(client.channel, f"Upgrade failed: {e}")
             return
         if cmd == "/llm":
             await self._handle_llm(parts[1:] if len(parts) > 1 else [], client)
@@ -1148,57 +1280,194 @@ class LiveServer:
         await self.send_system(client.channel, "Usage: /mem room <name> [desc] | /mem add <room>|<label>|<text> | /mem furniture <room>|<kind>|<label> | /mem door <label>|<address> | /mem bootstrap <kind> | /mem export")
 
     async def _handle_sleep(self, args, client: Client):
-        """Sleep mode: pause channel and consolidate House Memory; '/wake' uses /resume.
+        """Sleep mode: pause channel and run consolidation.
 
-        /sleep              -> pause only
-        /sleep consolidate  -> pause + consolidate (diary/reflections/training) + export memory
+        Modes:
+          /sleep                         -> pause only
+          /sleep consolidate              -> pause + consolidate (diary/reflections/training) + export memory
+          /sleep <star_id> [shape_type]   -> consolidate a star into bathtub furniture, update registry + render scene
         """
-        # pause channel first
+        # Always pause channel first
         if not self._is_paused(client.channel):
             await self._pause(client, reason="sleep")
-        do_cons = (len(args) >= 1 and args[0].lower().startswith("consol"))
-        if not do_cons:
-            await self.send_chat(sender="agent", text="Entering sleep mode (paused). Use /sleep consolidate to restructure memory or /resume to wake.", channel=client.channel)
+
+        # Case 1: Consolidate memory house
+        if len(args) >= 1 and args[0].lower().startswith("consol"):
+            try:
+                from ..tools.house_memory import MemoryHouse  # type: ignore
+                h = MemoryHouse()
+                n_ref = h.bootstrap_reflections(100)
+                n_tr = h.bootstrap_training(100)
+                n_diary = h.bootstrap_diary()
+                # Sleep-time re-embed of chat messages (GPU only; skipped if unavailable)
+                try:
+                    n_chat = h.reembed_chat_messages()
+                except Exception:
+                    n_chat = 0
+                h.bootstrap_defaults()  # ensure furniture/doors exist
+                out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "memory_house.gltf")
+                h.export_gltf(out)
+                # Grow Knowledge Garden from current Galaxy (best-effort)
+                try:
+                    galaxy = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "galaxy.glb")
+                    garden_out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "knowledge_garden.glb")
+                    if galaxy.exists():
+                        from ..tools import gardens as _gard
+                        _gard.main  # import ok
+                        import sys as _sys
+                        saved = list(_sys.argv)
+                        try:
+                            _sys.argv = ["gardens.py", "--from-galaxy", str(galaxy), "--gltf", str(garden_out)]
+                            _gard.main()
+                        finally:
+                            _sys.argv = saved
+                except Exception:
+                    pass
+                await self.send_chat(sender="agent", text=f"Sleep: consolidated memory (reflections+{n_ref}, training+{n_tr}, diary+{n_diary}, chat_reembed+{n_chat}). Exported memory_house.gltf.", channel=client.channel)
+                await self.log({"type":"sleep","action":"consolidate","reflections":n_ref,"training":n_tr,"diary":n_diary,"chat_reembed":n_chat})
+            except Exception as e:
+                await self.send_system(client.channel, f"Sleep consolidation error: {e}")
             return
-        # Consolidate memory
-        try:
-            from ..tools.house_memory import MemoryHouse  # type: ignore
-            h = MemoryHouse()
-            n_ref = h.bootstrap_reflections(100)
-            n_tr = h.bootstrap_training(100)
-            n_diary = h.bootstrap_diary()
-            # Sleep-time re-embed of chat messages (GPU only; skipped if unavailable)
+
+        # Case 2: Consolidate a single star into bathtub furniture
+        if len(args) >= 1 and args[0].strip():
+            star_arg = args[0].strip()
+            shape_type = (args[1] if len(args) >= 2 else 'tetrahedron')
+            repo_root = Path(__file__).resolve().parents[2]
             try:
-                n_chat = h.reembed_chat_messages()
-            except Exception:
-                n_chat = 0
-            h.bootstrap_defaults()  # ensure furniture/doors exist
-            out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "memory_house.gltf")
-            h.export_gltf(out)
-            # Grow Knowledge Garden from current Galaxy (best-effort)
-            try:
-                galaxy = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "galaxy.glb")
-                garden_out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "knowledge_garden.glb")
-                if galaxy.exists():
-                    from ..tools import gardens as _gard
-                    _gard.main  # ensure import OK
-                    # Call builder API directly
-                    import argparse as _arg
-                    # emulate CLI
-                    import sys as _sys
-                    saved = list(_sys.argv)
+                # Resolve embedding for star_arg via simple heuristics
+                emb: List[float] = []
+                sid = star_arg
+                import numpy as _np  # type: ignore
+                def _load_npy(path: Path) -> List[float]:
+                    arr = _np.load(str(path))
+                    if hasattr(arr, 'shape') and len(arr.shape) == 2:
+                        # take first row
+                        return [float(x) for x in arr[0].tolist()]
+                    return [float(x) for x in arr.reshape(-1).tolist()]
+                # file:<path>
+                if star_arg.startswith('file:'):
+                    p = Path(star_arg[5:])
+                    if p.exists():
+                        if p.suffix.lower() == '.npy':
+                            emb = _load_npy(p)
+                        elif p.suffix.lower() in {'.json', '.txt'}:
+                            try:
+                                emb = list(json.loads(p.read_text(encoding='utf-8')))
+                            except Exception:
+                                pass
+                # index:<i>
+                if not emb and star_arg.startswith('index:'):
                     try:
-                        _sys.argv = ["gardens.py", "--from-galaxy", str(galaxy), "--gltf", str(garden_out)]
-                        _gard.main()
-                    finally:
-                        _sys.argv = saved
-            except Exception:
-                pass
-            await self.send_chat(sender="agent", text=f"Sleep: consolidated memory (reflections+{n_ref}, training+{n_tr}, diary+{n_diary}, chat_reembed+{n_chat}). Exported memory_house.gltf.", channel=client.channel)
-            # log sleep event
-            await self.log({"type":"sleep","action":"consolidate","reflections":n_ref,"training":n_tr,"diary":n_diary,"chat_reembed":n_chat})
-        except Exception as e:
-            await self.send_system(client.channel, f"Sleep consolidation error: {e}")
+                        i = int(star_arg.split(':', 1)[1])
+                        epath = repo_root / 'embeddings.npy'
+                        if epath.exists():
+                            mat = _np.load(str(epath))
+                            if 0 <= i < len(mat):
+                                emb = [float(x) for x in mat[i].reshape(-1).tolist()]
+                                sid = f"idx:{i}"
+                    except Exception:
+                        pass
+                # plain int → embeddings.npy row
+                if not emb:
+                    try:
+                        i = int(star_arg)
+                        epath = repo_root / 'embeddings.npy'
+                        if epath.exists():
+                            mat = _np.load(str(epath))
+                            if 0 <= i < len(mat):
+                                emb = [float(x) for x in mat[i].reshape(-1).tolist()]
+                                sid = f"idx:{i}"
+                    except Exception:
+                        pass
+                # fallback to single embedding.npy
+                if not emb:
+                    e1 = repo_root / 'embedding.npy'
+                    if e1.exists():
+                        emb = _load_npy(e1)
+                        sid = 'file:embedding.npy'
+                # as a last resort, best-effort from galaxy.glb (may be huge)
+                if not emb:
+                    try:
+                        from pygltflib import GLTF2  # type: ignore
+                        gpath = repo_root / 'viewer' / 'public' / 'galaxy.v7.glb'
+                        if not gpath.exists():
+                            gpath = repo_root / 'viewer' / 'public' / 'galaxy.glb'
+                        if gpath.exists():
+                            g = GLTF2().load_binary(str(gpath))
+                            prim = g.meshes[0].primitives[0]
+                            k3d = prim.extras.get('k3d', {}) if prim.extras else {}
+                            ids = list(k3d.get('ids', []) or [])
+                            embs = k3d.get('embeddings') or []
+                            if ids and embs and star_arg in ids:
+                                idx = ids.index(star_arg)
+                                vec = embs[idx]
+                                if isinstance(vec, list):
+                                    emb = [float(x) for x in vec]
+                    except Exception:
+                        pass
+
+                if not emb:
+                    await self.send_system(client.channel, f"/sleep: could not resolve embedding for '{star_arg}' (try 'index:<i>' or 'file:<path.npy>')")
+                    return
+
+                # Run ConsolidationEngine
+                from ..tools.phase5.ConsolidationEngine import ConsolidationEngine  # type: ignore
+                eng = ConsolidationEngine(keep_ratio=0.5)
+                res = eng.consolidate_star({'id': sid, 'embedding': emb, 'shape_type': shape_type})
+                item = eng.to_registry_item(res)
+
+                # Update bathtub registry
+                reg_path = repo_root / 'viewer' / 'public' / 'bathtub_registry.json'
+                try:
+                    if reg_path.exists():
+                        reg = json.loads(reg_path.read_text(encoding='utf-8'))
+                    else:
+                        reg = {'bathtub_version': '1.0', 'room_path': 'viewer/public/bathtub_room.glb', 'furniture': []}
+                except Exception:
+                    reg = {'bathtub_version': '1.0', 'room_path': 'viewer/public/bathtub_room.glb', 'furniture': []}
+                furn = list(reg.get('furniture', []) or [])
+                # replace existing by id
+                furn = [f for f in furn if str(f.get('id')) != item['id']]
+                furn.append(item)
+                reg['furniture'] = furn
+                reg_path.write_text(json.dumps(reg, ensure_ascii=False, indent=2), encoding='utf-8')
+
+                # Render bathtub scene
+                from ..tools.phase5.bathtub_renderer import BathtubRenderer  # type: ignore
+                scene_out = repo_root / 'viewer' / 'public' / 'bathtub_scene.glb'
+                r = BathtubRenderer(str(reg_path), str(scene_out))
+                out_path = r.render()
+
+                # Best-effort: also export to House Memory (Workshop room)
+                try:
+                    from ..tools.house_memory import MemoryHouse  # type: ignore
+                    h2 = MemoryHouse()
+                    h2.bootstrap_defaults()
+                    label = f"Crystallized {item['star_id']}"
+                    h2.add_furniture('Workshop', item['furniture_kind'], label)
+                    h2.export_gltf(repo_root / 'viewer' / 'public' / 'memory_house.gltf')
+                except Exception:
+                    pass
+
+                msg = (
+                    f"Sleep: consolidated star '{sid}' → {item['furniture_kind']} "
+                    f"(honesty={item['honesty_score']:.2f}, crystallized={'yes' if item['is_crystallized'] else 'no'}). "
+                    f"Updated registry and wrote {out_path}."
+                )
+                await self.send_chat(sender='agent', text=msg, channel=client.channel)
+                await self.log({
+                    'type': 'sleep', 'action': 'consolidate_star', 'star_id': sid,
+                    'furniture_kind': item['furniture_kind'], 'honesty': item['honesty_score'],
+                    'crystallized': item['is_crystallized']
+                })
+            except Exception as e:
+                await self.send_system(client.channel, f"Sleep star consolidation error: {e}")
+            return
+
+        # Default: just pause
+        await self.send_chat(sender="agent", text="Entering sleep mode (paused). Use /sleep consolidate to restructure memory or /resume to wake.", channel=client.channel)
+        return
 
     async def _handle_model(self, args, client: Client):
         sub = (args[0].lower() if args else "status")
