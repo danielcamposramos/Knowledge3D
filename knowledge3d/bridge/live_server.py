@@ -750,13 +750,15 @@ class LiveServer:
             return
         if cmd == "/train":
             # /train <sample_dir> [pattern] [epochs]
-            if len(parts) < 2:
+            # Re-parse tail to avoid early maxsplit truncation
+            tokens = text.split()
+            if len(tokens) < 2:
                 await self.send_system(client.channel, "Usage: /train <sample_dir> [pattern] [epochs]")
                 return
-            sample_dir = parts[1]
-            pattern = parts[2] if len(parts) > 2 else '*.glb'
+            sample_dir = tokens[1]
+            pattern = tokens[2] if len(tokens) > 2 else '*.glb'
             try:
-                epochs = int(parts[3]) if len(parts) > 3 else 10
+                epochs = int(tokens[3]) if len(tokens) > 3 else 10
             except Exception:
                 epochs = 10
             try:

@@ -1,0 +1,5 @@
+🔮 sample_bathtub: Pred cube, True cube
+🔮 sample_workshop: Pred icosahedron, True icosahedron
+🔮 wit.sample.512d.pca: Pred icosahedron, True unknown
+🎯 Accuracy: 66.67%
+
