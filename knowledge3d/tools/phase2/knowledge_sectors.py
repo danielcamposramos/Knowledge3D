@@ -5,7 +5,8 @@ from pathlib import Path
 from typing import Dict, Tuple
 
 
-SECTORS_PATH = Path('viewer/public/knowledge_sectors.json')
+GARDEN_DIR = Path('viewer/public/knowledge_garden')
+SECTORS_PATH = GARDEN_DIR / 'knowledge_sectors.json'
 
 
 DEFAULT_SECTORS: Dict[str, Tuple[float, float]] = {
@@ -19,9 +20,14 @@ DEFAULT_SECTORS: Dict[str, Tuple[float, float]] = {
 
 
 def _load() -> Dict[str, Tuple[float, float]]:
-    if SECTORS_PATH.exists():
+    # Migrate legacy path if exists
+    legacy = Path('viewer/public/knowledge_sectors.json')
+    if SECTORS_PATH.exists() or legacy.exists():
         try:
-            data = json.loads(SECTORS_PATH.read_text(encoding='utf-8'))
+            if SECTORS_PATH.exists():
+                data = json.loads(SECTORS_PATH.read_text(encoding='utf-8'))
+            else:
+                data = json.loads(legacy.read_text(encoding='utf-8'))
             out: Dict[str, Tuple[float, float]] = {}
             for k, v in data.items():
                 if isinstance(v, (list, tuple)) and len(v) == 2:
@@ -99,4 +105,3 @@ if __name__ == '__main__':
     print('Angle Physics:', get_sector_angle('Physics'))
     print('Angle Quantum Physics:', get_sector_angle('Quantum Physics'))
     print('Angle NewDomainX:', get_sector_angle('NewDomainX'))
-

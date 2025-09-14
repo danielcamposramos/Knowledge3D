@@ -1,0 +1,53 @@
+{
+  "garden_version": "3.0",
+  "center_position": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "current_radius": 10.0,
+  "max_radius": 100.0,
+  "trees": [
+    {
+      "tree_id": "tree_mathematics_156",
+      "filepath": "viewer/public/knowledge_garden/trees/tree_mathematics_156.glb",
+      "position": [
+        -0.5196152422706632,
+        0.0,
+        0.3
+      ],
+      "rotation": 5.759586531581288,
+      "sector": "Mathematics",
+      "domain": "Mathematics",
+      "load_status": "success",
+      "error_code": null,
+      "last_loaded": "2025-09-14T17:40:55.206008Z"
+    }
+  ],
+  "sectors": {
+    "Physics": [
+      0.0,
+      60.0
+    ],
+    "Biology": [
+      60.0,
+      120.0
+    ],
+    "Mathematics": [
+      120.0,
+      180.0
+    ],
+    "Philosophy": [
+      180.0,
+      240.0
+    ],
+    "Art": [
+      240.0,
+      300.0
+    ],
+    "Engineering": [
+      300.0,
+      360.0
+    ]
+  }
+}
