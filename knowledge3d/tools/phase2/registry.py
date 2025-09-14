@@ -79,3 +79,26 @@ def register_tree(tree_id: str, filepath: str, domain: str, position: Tuple[floa
     save_registry(reg)
     return reg
 
+
+def move_tree(tree_id: str, angle_deg: float, distance: float | None = None) -> bool:
+    """Move a tree by polar coordinates (angle in degrees, optional radial distance).
+
+    Rotation is updated to face the center. Returns True on success.
+    """
+    reg = load_registry()
+    ent = next((t for t in reg['trees'] if t.get('tree_id') == tree_id), None)
+    if not ent:
+        return False
+    import math
+    old = ent.get('position', [0.0, 0.0, 0.0])
+    r = distance if distance is not None else float((old[0] ** 2 + old[2] ** 2) ** 0.5)
+    ang = math.radians(float(angle_deg) % 360.0)
+    x = r * math.cos(ang)
+    z = r * math.sin(ang)
+    ent['position'] = [float(x), float(old[1] if len(old) > 1 else 0.0), float(z)]
+    ent['rotation'] = float(ang + math.pi)
+    # expand radius if needed
+    if float(reg.get('current_radius', 10.0)) < r + 1.0:
+        reg['current_radius'] = min(float(reg.get('max_radius', 100.0)), r + 1.0)
+    save_registry(reg)
+    return True

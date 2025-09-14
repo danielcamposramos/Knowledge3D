@@ -634,6 +634,97 @@ async function loadAssetGLB(url: string) {
     });
 }
 
+async function loadGLB(url: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+        const loader = new GLTFLoader();
+        loader.load(url, (gltf) => resolve(gltf), undefined, reject);
+    });
+}
+
+async function fetchJSON<T=any>(url: string): Promise<T | null> {
+    try {
+        const r = await fetch(url, { cache: 'no-store' });
+        if (!r.ok) return null;
+        return await r.json();
+    } catch {
+        return null;
+    }
+}
+
+function findFloorNode(sceneObj: THREE.Object3D): THREE.Mesh | null {
+    let found: THREE.Mesh | null = null;
+    sceneObj.traverse((obj: any) => {
+        if (found) return;
+        const name = (obj.name || '').toLowerCase();
+        if (obj.isMesh && (name.includes('greenhousefloor') || name.includes('greenhouse_floor') || name.includes('floor'))) {
+            found = obj as THREE.Mesh;
+        }
+    });
+    return found;
+}
+
+function getDomainColor(name: string): THREE.Color {
+    const map: Record<string, number> = {
+        physics: 0x3366ff,
+        biology: 0x33cc66,
+        mathematics: 0xdddddd,
+        philosophy: 0xe6c229,
+        art: 0xff66b3,
+        engineering: 0x99ccff,
+    };
+    const key = (name || '').toLowerCase();
+    const c = map[key] ?? 0x444444;
+    return new THREE.Color(c);
+}
+
+function findSectorByAngle(angleDeg: number, sectors: Record<string, [number, number]>): string {
+    const a = ((angleDeg % 360) + 360) % 360;
+    for (const [name, rng] of Object.entries(sectors || {})) {
+        const [s, e] = rng.map(Number) as [number, number];
+        if (s <= e) {
+            if (a >= s && a < e) return name;
+        } else {
+            // wrap-around sector
+            if (a >= s || a < e) return name;
+        }
+    }
+    return 'Unknown';
+}
+
+function applySectorColorsToFloor(sceneObj: THREE.Object3D, sectors: Record<string, [number, number]>) {
+    const floor = findFloorNode(sceneObj);
+    if (!floor) return;
+    const geom = floor.geometry as THREE.BufferGeometry;
+    const pos = geom.getAttribute('position') as THREE.BufferAttribute;
+    if (!pos) return;
+    const colors = new Float32Array(pos.count * 3);
+    for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i);
+        const z = pos.getZ(i);
+        let ang = Math.atan2(z, x) * 180 / Math.PI;
+        ang = (ang + 360) % 360;
+        const sector = findSectorByAngle(ang, sectors);
+        const col = getDomainColor(sector);
+        colors[i*3+0] = col.r;
+        colors[i*3+1] = col.g;
+        colors[i*3+2] = col.b;
+    }
+    geom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    (floor.material as any) = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.95 });
+}
+
+async function loadGardenAndGreenhouse() {
+    // Load greenhouse
+    const gh = await loadGLB('/greenhouse_base.glb');
+    scene.add(gh.scene);
+    // Load garden (assembled)
+    const garden = await loadGLB('/knowledge_garden/knowledge_garden.glb');
+    scene.add(garden.scene);
+    // Apply sector colors
+    const sectors = await fetchJSON<Record<string, [number, number]>>('/knowledge_garden/knowledge_sectors.json');
+    if (sectors) applySectorColorsToFloor(gh.scene, sectors);
+}
+
 /**
  * Initializes the expert selector dropdown by fetching the condo configuration.
  */
@@ -1238,6 +1329,11 @@ function startApp() {
     if (dev) {
         initCondoSelector();
     } else {
+        const assetCombo = params.get('asset');
+        if (assetCombo && assetCombo.toLowerCase() === 'garden+greenhouse') {
+            (async () => { try { await loadGardenAndGreenhouse(); } catch (e) { console.error(e); } finally { animate(); } })();
+            return;
+        }
         const asset = params.get('asset');
         if (asset && asset.length > 0) {
             (async () => { try { await loadAssetGLB(asset); } catch {} finally { animate(); } })();
