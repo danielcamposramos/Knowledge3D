@@ -781,6 +781,20 @@ class LiveServer:
         if cmd == "/model":
             await self._handle_model(parts[1:] if len(parts) > 1 else [], client)
             return
+        if cmd == "/map":
+            try:
+                from ..tools.phase2.map_blueprint import main as _map_cli  # type: ignore
+                # Generate to viewer/public/garden_map.svg
+                from pathlib import Path as _P
+                out = _P(__file__).resolve().parents[2] / 'viewer' / 'public' / 'garden_map.svg'
+                # Call via small shim
+                import sys as _sys
+                _sys.argv = ['map_blueprint', '--garden', str(_P(__file__).resolve().parents[2] / 'viewer' / 'public' / 'knowledge_garden.glb'), '--out', str(out)]
+                _map_cli()
+                await self.send_chat(sender='agent', text='Blueprint written to /garden_map.svg', channel=client.channel)
+            except Exception:
+                await self.send_system(client.channel, 'Map generation failed.')
+            return
         if cmd == "/logs":
             await self._handle_logs(parts[1:] if len(parts) > 1 else [], client)
             return

@@ -5,6 +5,7 @@ import numpy as np
 
 from knowledge3d.cranium.embedding_generator import DynamicEmbeddingGenerator
 from knowledge3d.tools.phase2.export_tree import exportTreeToGLB
+from knowledge3d.tools.phase2.tree_placer import calculate_tree_position, current_sectors
 
 
 def _generate_tree_py(emb: np.ndarray) -> Dict[str, Any]:
@@ -48,7 +49,16 @@ class GrowTreeCommand:
         if emb.shape[0] > 72:
             emb = emb.copy(); emb[72] = 1.0
         tree = _generate_tree_py(emb)
-        ok = exportTreeToGLB(tree, self.garden_path)
+        x, y, z, rot = calculate_tree_position(domain, tree)
+        ok = exportTreeToGLB(
+            tree,
+            self.garden_path,
+            domain=domain,
+            position=(x, y, z),
+            rotation=rot,
+            sectors=current_sectors(),
+            radius=10.0,
+        )
         return f"🌳 Tree '{domain}' grown in Knowledge Garden." if ok else "Failed to grow tree."
 
 
@@ -63,4 +73,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
