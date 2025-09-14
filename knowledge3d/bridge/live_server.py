@@ -2684,10 +2684,19 @@ def main():  # pragma: no cover
     ap.add_argument("--auto-port", action="store_true", help="Auto-select the nearest free port if requested port is busy")
     args = ap.parse_args()
     srv = LiveServer(host=args.host, port=args.port, fast_start=(True if args.fast_start else None))
-    # Choose free port when requested or if env K3D_LIVE_AUTO is set
+    # Choose free port when requested or if env K3D_LIVE_AUTO is set (uses PortScanner when available)
     want_auto = bool(args.auto_port or (os.getenv("K3D_LIVE_AUTO", "0").strip() != "0"))
     try:
-        chosen = srv._choose_free_port() if (want_auto or srv._is_port_in_use(args.host, args.port)) else int(args.port)
+        if want_auto:
+            try:
+                from ..utils.port_scanner import PortScanner  # type: ignore
+                chosen = PortScanner.get_dynamic_port(config_port=args.port, host=args.host)
+                # Minimal scan info
+                srv._port_scan = {"tried": [{"port": int(args.port), "used": srv._is_port_in_use(args.host, args.port)}], "chosen": int(chosen)}
+            except Exception:
+                chosen = srv._choose_free_port()
+        else:
+            chosen = int(args.port)
         srv.port = int(chosen)
         # Write port scan summary
         repo_root = Path(__file__).resolve().parents[2]
