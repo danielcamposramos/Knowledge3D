@@ -65,10 +65,27 @@ class SampleLoader:
             glb = GLTF2().load_binary(str(filepath))
         except Exception:
             return None
-        # Extract geometry from first primitive
-        if not glb.meshes or not glb.meshes[0].primitives:
+        if not glb.meshes:
             return None
-        prim = glb.meshes[0].primitives[0]
+        # Choose a primitive: prefer one with embeddingsView; fallback to first
+        prim = None
+        prim_mesh_index = 0
+        for mi, m in enumerate(glb.meshes or []):
+            for pr in (m.primitives or []):
+                k3d = (pr.extras or {}).get('k3d') if pr.extras else None
+                if isinstance(k3d, dict) and isinstance(k3d.get('embeddingsView'), int):
+                    prim = pr
+                    prim_mesh_index = mi
+                    break
+            if prim is not None:
+                break
+        if prim is None:
+            # fallback to first primitive of first mesh
+            m0 = glb.meshes[0]
+            if not m0.primitives:
+                return None
+            prim = m0.primitives[0]
+            prim_mesh_index = 0
         # POSITION accessor index (dict or Attributes)
         if not prim.attributes:
             return None
@@ -87,32 +104,40 @@ class SampleLoader:
         if prim.indices is not None:
             idx_acc = glb.accessors[prim.indices]
             idx_view = idx_acc.bufferView
-            # choose format based on componentType
-            if idx_acc.componentType == 5123:      # UNSIGNED_SHORT
+            if idx_acc.componentType == 5123:
                 indices = self._ints_from_view(glb, idx_view, comp_size=2, fmt='H')
-            elif idx_acc.componentType == 5125:    # UNSIGNED_INT
+            elif idx_acc.componentType == 5125:
                 indices = self._ints_from_view(glb, idx_view, comp_size=4, fmt='I')
-            else:
-                indices = []
         geom = {
             'vertices': vertices,
             'indices': indices,
             'vertex_count': len(vertices) // 3,
             'face_count': len(indices) // 3,
         }
-        # Extract embedding (k3d embeddingsView if present)
+        # Extract embedding from chosen primitive (if present)
         embedding: List[float] = []
         k3d = (prim.extras or {}).get('k3d') if prim.extras else None
         if isinstance(k3d, dict):
             ev = k3d.get('embeddingsView')
             if isinstance(ev, int):
                 embedding = self._floats_from_view(glb, ev)
-        # infer shape/media
+        # Infer shape/media from extras or geometry
         md = prim.extras or {}
-        ws = md.get('k3d_workshop') if isinstance(md, dict) else None
-        if isinstance(ws, dict) and isinstance(ws.get('shape_type'), str):
-            shape = ws['shape_type']
-        else:
+        shape = None
+        if isinstance(md, dict):
+            ws = md.get('k3d_workshop')
+            if isinstance(ws, dict) and isinstance(ws.get('shape_type'), str):
+                shape = ws['shape_type']
+            bt = md.get('k3d_bathtub')
+            if shape is None and isinstance(bt, dict):
+                fk = bt.get('furniture_kind')
+                if isinstance(fk, str):
+                    fk_l = fk.lower()
+                    if fk_l in { 'display_case' }:
+                        shape = 'icosahedron'
+                    elif fk_l in { 'bookshelf', 'workbench', 'gray_shell', 'pillar', 'lamp' }:
+                        shape = 'cube'
+        if shape is None:
             shape = self.infer_shape_type(geom)
         media = self.infer_media_types(geom, embedding)
         return Sample(id=filepath.stem, filepath=str(filepath), geometry=geom, embedding=embedding, media_types=media, shape_type=shape)
@@ -133,4 +158,3 @@ class SampleLoader:
         if v >= 100:
             return ['image']
         return []
-
