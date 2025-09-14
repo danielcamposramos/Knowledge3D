@@ -793,6 +793,30 @@ class LiveServer:
                 except Exception:
                     await self.send_system(client.channel, "Repair failed.")
                 return
+        if cmd == "/move" and len(parts) >= 3:
+            # /move tree <id> <angle> [distance]
+            sub = parts[1].lower()
+            if sub == "tree":
+                try:
+                    tid = parts[2]
+                    ang = float(parts[3]) if len(parts) > 3 else 0.0
+                    dist = float(parts[4]) if len(parts) > 4 else None
+                except Exception:
+                    await self.send_system(client.channel, "Usage: /move tree <id> <angle> [distance]")
+                    return
+                try:
+                    from ..tools.phase2.registry import move_tree  # type: ignore
+                    from ..tools.phase2.garden_renderer import render_garden  # type: ignore
+                    ok = move_tree(tid, ang, dist)
+                    if ok:
+                        path = render_garden()
+                        rel = "/" + str(Path(path).resolve().relative_to(Path(__file__).resolve().parents[2] / 'viewer' / 'public')).replace('\\','/')
+                        await self.send_chat(sender='agent', text=f"🌳 Tree {tid} moved to {ang:.1f}° ({'d='+str(dist) if dist is not None else 'keep r'}) — asset: {rel}", channel=client.channel)
+                    else:
+                        await self.send_system(client.channel, "Move failed: tree not found")
+                except Exception:
+                    await self.send_system(client.channel, "Move failed.")
+                return
         if cmd == "/model":
             await self._handle_model(parts[1:] if len(parts) > 1 else [], client)
             return
