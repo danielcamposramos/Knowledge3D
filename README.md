@@ -300,3 +300,5 @@ Large Assets
   - `/model load /path/to/intent.pkl` — load model.
   - `/model threshold 0.8` — set confidence threshold.
   - `/model` — status.
+
+<iframe src="https://claude.site/public/artifacts/68bb8854-6ed5-4c67-a967-dffc88dab1e4/embed" title="Claude Artifact" width="100%" height="600" frameborder="0" allow="clipboard-write" allowfullscreen></iframe>
