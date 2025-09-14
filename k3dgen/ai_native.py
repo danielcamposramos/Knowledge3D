@@ -14,6 +14,7 @@ from typing import Any, Dict, Mapping
 
 import base64
 import numpy as np
+import warnings
 from pygltflib import Primitive  # type: ignore
 
 
@@ -26,6 +27,14 @@ def _as_float32_array(values: Any) -> np.ndarray:
         arr = values.astype(np.float32, copy=False)
         return arr.reshape(-1)
     return np.asarray(values, dtype=np.float32).reshape(-1)
+
+
+warnings.warn(
+    "k3dgen.ai_native is deprecated as of Cranium Core v3.0: "
+    "store embeddings in a Float32 BufferView and reference it via extras.k3d.embeddingsView.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 def _embedding_to_b64(embedding: Any) -> Dict[str, Any]:
@@ -100,4 +109,3 @@ def create_ai_native_gltf_primitive(node_data: Mapping[str, Any]) -> Primitive:
 __all__ = [
     "create_ai_native_gltf_primitive",
 ]
-

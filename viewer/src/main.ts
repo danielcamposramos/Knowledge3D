@@ -2,6 +2,7 @@ import './style.css';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { HonestyMaterial } from './HonestyMaterial';
 import { loadK3DFromGLTF, fetchCondoConfig, type K3DRecord, type CondoConfig, type LoadedK3D } from './loadK3D';
 import { K3DAgent } from './agent';
 import { Tablet3D } from './tablet';
@@ -595,6 +596,35 @@ async function loadHouse(k3dUrl: string) {
     } catch (e) {
         console.error(`Failed to load house from ${k3dUrl}:`, e);
     }
+}
+
+async function loadAssetGLB(url: string) {
+    clearScene();
+    const loader = new GLTFLoader();
+    loader.load(url, (gltf) => {
+        const json: any = (gltf as any).parser?.json;
+        const honestyByMesh: number[] = [];
+        if (json && Array.isArray(json.meshes)) {
+            for (let i = 0; i < json.meshes.length; i++) {
+                let h = 1.0;
+                try {
+                    const prim = json.meshes[i]?.primitives?.[0];
+                    const hx = prim?.extras?.k3d?.rays?.[0]?.honesty;
+                    if (typeof hx === 'number') h = hx;
+                } catch {}
+                honestyByMesh[i] = h;
+            }
+        }
+        let meshIdx = 0;
+        gltf.scene.traverse((obj: any) => {
+            if (obj.isMesh) {
+                const h = honestyByMesh[meshIdx] ?? 1.0;
+                obj.material = new HonestyMaterial(h);
+                meshIdx++;
+            }
+        });
+        scene.add(gltf.scene);
+    });
 }
 
 /**
@@ -1201,6 +1231,11 @@ function startApp() {
     if (dev) {
         initCondoSelector();
     } else {
+        const asset = params.get('asset');
+        if (asset && asset.length > 0) {
+            (async () => { try { await loadAssetGLB(asset); } catch {} finally { animate(); } })();
+            return;
+        }
         // Optional override via URL: ?gltf=/galaxy.cross.glb
         const pick = params.get('gltf') || params.get('house');
         if (pick && pick.length > 0) {

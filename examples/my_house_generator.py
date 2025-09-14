@@ -192,6 +192,17 @@ def create_gltf_file(
         raise OSError(f"Failed to write glTF file '{gltf_path}': {exc}") from exc
 
 
+import warnings
+
+
+warnings.warn(
+    "examples/my_house_generator.py uses legacy sidecar .k3d. "
+    "This example is deprecated in v3.0; please migrate to embedded glTF with extras.k3d.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+
 def generate(csv_path: str, gltf_path: str, k3d_path: str, k: int) -> None:
     """Generate a glTF scene and .k3d metadata from a CSV."""
     # 1. Load the high-dimensional embeddings and metadata from the CSV file.
