@@ -602,27 +602,34 @@ async function loadAssetGLB(url: string) {
     clearScene();
     const loader = new GLTFLoader();
     loader.load(url, (gltf) => {
+        // Check memory_realm for first primitive to decide material strategy
         const json: any = (gltf as any).parser?.json;
-        const honestyByMesh: number[] = [];
-        if (json && Array.isArray(json.meshes)) {
-            for (let i = 0; i < json.meshes.length; i++) {
-                let h = 1.0;
-                try {
-                    const prim = json.meshes[i]?.primitives?.[0];
-                    const hx = prim?.extras?.k3d?.rays?.[0]?.honesty;
-                    if (typeof hx === 'number') h = hx;
-                } catch {}
-                honestyByMesh[i] = h;
+        let realm: string | null = null;
+        try { realm = String(json?.meshes?.[0]?.primitives?.[0]?.extras?.k3d?.memory_realm || ''); } catch {}
+        if (realm === 'house') {
+            const honestyByMesh: number[] = [];
+            if (json && Array.isArray(json.meshes)) {
+                for (let i = 0; i < json.meshes.length; i++) {
+                    let h = 1.0;
+                    try {
+                        const prim = json.meshes[i]?.primitives?.[0];
+                        const hx = prim?.extras?.k3d?.rays?.[0]?.honesty;
+                        if (typeof hx === 'number') h = hx;
+                    } catch {}
+                    honestyByMesh[i] = h;
+                }
             }
+            let meshIdx = 0;
+            gltf.scene.traverse((obj: any) => {
+                if (obj.isMesh) {
+                    const h = honestyByMesh[meshIdx] ?? 1.0;
+                    obj.material = new HonestyMaterial(h);
+                    meshIdx++;
+                }
+            });
+        } else {
+            // Garden: keep default materials (lines/points)
         }
-        let meshIdx = 0;
-        gltf.scene.traverse((obj: any) => {
-            if (obj.isMesh) {
-                const h = honestyByMesh[meshIdx] ?? 1.0;
-                obj.material = new HonestyMaterial(h);
-                meshIdx++;
-            }
-        });
         scene.add(gltf.scene);
     });
 }

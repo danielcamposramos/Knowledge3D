@@ -764,6 +764,20 @@ class LiveServer:
                 pass
             await self._handle_open(parts[1], client)
             return
+        if cmd == "/grow" and len(parts) >= 3:
+            # /grow tree <domain>
+            sub = parts[1].lower()
+            if sub == "tree":
+                domain = parts[2]
+                try:
+                    from ..tools.phase2.grow_tree import GrowTreeCommand  # type: ignore
+                    out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "knowledge_garden.glb")
+                    cmdr = GrowTreeCommand(str(out))
+                    msg = cmdr.execute(domain)
+                    await self.send_chat(sender="agent", text=msg + " (asset: /knowledge_garden.glb)", channel=client.channel)
+                except Exception:
+                    await self.send_system(client.channel, "Grow tree failed.")
+                return
         if cmd == "/model":
             await self._handle_model(parts[1:] if len(parts) > 1 else [], client)
             return
