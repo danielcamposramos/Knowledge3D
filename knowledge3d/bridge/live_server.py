@@ -837,6 +837,77 @@ class LiveServer:
         if cmd == "/logs":
             await self._handle_logs(parts[1:] if len(parts) > 1 else [], client)
             return
+        if cmd == "/morph":
+            # /morph <star_id> <dim> <value>
+            try:
+                star_id = parts[1]
+                dim = int(parts[2])
+                val = float(parts[3])
+            except Exception:
+                await self.send_system(client.channel, "Usage: /morph <star_id> <dim> <value>")
+                return
+            try:
+                import os, json
+                def _load_reg(p: str) -> dict:
+                    try:
+                        with open(p, 'r', encoding='utf-8') as f: return json.load(f)
+                    except Exception: return {"objects": []}
+                def _save_reg(reg: dict, p: str):
+                    os.makedirs(os.path.dirname(p) or '.', exist_ok=True)
+                    with open(p, 'w', encoding='utf-8') as f: json.dump(reg, f, indent=2)
+                wpath = str((Path(__file__).resolve().parents[2] / 'viewer' / 'public' / 'workshop' / 'workshop_registry.json'))
+                reg = _load_reg(wpath)
+                star = next((s for s in reg.get('objects', []) if str(s.get('id')) == star_id), None)
+                if not star:
+                    await self.send_system(client.channel, f"Star not found: {star_id}")
+                    return
+                emb = star.get('embedding')
+                if not isinstance(emb, list) or dim < 0 or dim >= len(emb):
+                    await self.send_system(client.channel, f"Invalid dim {dim} (size={len(emb) if isinstance(emb, list) else 0})")
+                    return
+                emb[dim] = float(val)
+                _save_reg(reg, wpath)
+                await self.send_chat(sender='agent', text=f"✨ {star_id} morphed dim[{dim}]={val:.4f}", channel=client.channel)
+            except Exception:
+                await self.send_system(client.channel, "Morph failed.")
+            return
+        if cmd == "/export":
+            # /export library <star_id> <title...>
+            # /export garden <star_id> <domain>
+            # /export bathtub <star_id>
+            if len(parts) < 3:
+                await self.send_system(client.channel, "Usage: /export library|garden|bathtub <star_id> [arg]")
+                return
+            kind = parts[1].lower()
+            star_id = parts[2]
+            tail = parts[3] if len(parts) > 3 else None
+            try:
+                import os, json
+                from ..tools.phase4.export_to_house import HouseExporter  # type: ignore
+                wpath = str((Path(__file__).resolve().parents[2] / 'viewer' / 'public' / 'workshop' / 'workshop_registry.json'))
+                with open(wpath, 'r', encoding='utf-8') as f:
+                    reg = json.load(f)
+                star = next((s for s in reg.get('objects', []) if str(s.get('id')) == star_id), None)
+                if not star:
+                    await self.send_system(client.channel, f"Star not found: {star_id}")
+                    return
+                hx = HouseExporter()
+                ok = False
+                if kind == 'library':
+                    title = tail or star_id
+                    ok = hx.export_to_library(star, title)
+                elif kind == 'garden':
+                    domain = tail or 'Unknown'
+                    ok = hx.export_to_garden(star, domain)
+                elif kind == 'bathtub':
+                    ok = hx.export_to_bathtub(star)
+                else:
+                    await self.send_system(client.channel, "Usage: /export library|garden|bathtub <star_id> [arg]")
+                    return
+                await self.send_chat(sender='agent', text=(f"Exported {star_id} → {kind}" if ok else f"Export failed for {star_id}"), channel=client.channel)
+            except Exception:
+                await self.send_system(client.channel, "Export failed.")
+            return
         if cmd == "/sleep":
             await self._handle_sleep(parts[1:] if len(parts) > 1 else [], client)
             return
