@@ -48,7 +48,12 @@ def _flatten_tree(tree: dict) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.nd
     return P, E, EMB, sim
 
 
-def exportTreeToGLB(tree: dict, out_path: str) -> bool:
+def exportTreeToGLB(tree: dict, out_path: str, *,
+                    domain: str | None = None,
+                    position: tuple[float, float, float] | None = None,
+                    rotation: float | None = None,
+                    sectors: dict | None = None,
+                    radius: float = 10.0) -> bool:
     P, E, EMB, SIM = _flatten_tree(tree)
     if P.shape[0] == 0:
         return False
@@ -114,6 +119,26 @@ def exportTreeToGLB(tree: dict, out_path: str) -> bool:
             "similarityView": 3,
             "embeddingDims": int(EMB.shape[1]),
             "object": {"kind": "tree", "nodes": int(P.shape[0]), "edges": int(E.shape[0])}
+        },
+        # Duplicate garden metadata here to ensure availability even if scene.extras is dropped by loaders
+        "k3d_garden": {
+            'memory_realm': 'garden',
+            'room_type': 'circular_greenhouse',
+            'center_position': [0.0, 0.0, 0.0],
+            'radius': float(radius),
+            'knowledge_sectors': sectors or {},
+            'trees': [
+                {
+                    'id': f"tree_{(domain or 'domain').lower().replace(' ','_')}_001",
+                    'domain': domain or 'Unknown',
+                    'position': list(position) if position else [0.0, 0.0, 0.0],
+                    'rotation': float(rotation) if rotation is not None else 0.0,
+                    'complexity': int(P.shape[0]),
+                    'embeddingDims': int(EMB.shape[1]),
+                    'nodes': int(P.shape[0]),
+                    'edges': int(E.shape[0]),
+                }
+            ]
         }
     }
     mesh = Mesh(primitives=[prim])
@@ -124,4 +149,3 @@ def exportTreeToGLB(tree: dict, out_path: str) -> bool:
     glb.set_binary_blob(blob)
     glb.save_binary(out_path)
     return True
-
