@@ -917,6 +917,20 @@ class LiveServer:
         if cmd == "/ask":
             await self._handle_k3d_ask(parts[1:] if len(parts) > 1 else [], client)
             return
+        if cmd == "/workshop" and len(parts) >= 2:
+            sub = parts[1].lower()
+            if sub == "render":
+                try:
+                    from ..tools.phase4.workshop_renderer import WorkshopRenderer  # type: ignore
+                    reg = str((Path(__file__).resolve().parents[2] / 'viewer' / 'public' / 'workshop' / 'workshop_registry.json'))
+                    out = str((Path(__file__).resolve().parents[2] / 'viewer' / 'public' / 'workshop' / 'workshop_scene.glb'))
+                    r = WorkshopRenderer(reg, out)
+                    path = r.render()
+                    rel = "/" + str(Path(path).resolve().relative_to(Path(__file__).resolve().parents[2] / 'viewer' / 'public')).replace('\\','/')
+                    await self.send_chat(sender='agent', text=f"🛠️ Workshop scene rendered: {rel}", channel=client.channel)
+                except Exception:
+                    await self.send_system(client.channel, "Workshop render failed.")
+                return
         if cmd == "/diary":
             await self._handle_diary(parts[1:] if len(parts) > 1 else [], client)
             return
