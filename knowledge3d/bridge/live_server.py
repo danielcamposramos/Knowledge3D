@@ -702,7 +702,7 @@ class LiveServer:
             st = "paused" if self._is_paused(client.channel) else "running"
             await self.send_system(client.channel, f"Status: {st}")
             return
-        if cmd == "/ai":
+        if cmd == "/ai" and not (len(parts) > 1 and parts[1] == "reflect"):
             # Simple chat interface: /ai <text>
             q = parts[1] if len(parts) > 1 else ""
             if not q:
@@ -777,6 +777,28 @@ class LiveServer:
                     await self.send_system(client.channel, f"[history] {nick}: {msg}")
             except Exception:
                 await self.send_system(client.channel, "History unavailable.")
+            return
+        if cmd == "/consolidate":
+            # /consolidate chat <title>
+            sub = parts[1] if len(parts) > 1 else "help"
+            if sub == "chat":
+                title = parts[2] if len(parts) > 2 else None
+                if not title:
+                    await self.send_system(client.channel, "Usage: /consolidate chat <title>")
+                    return
+                try:
+                    from ..tools.phase7.consolidation import ChatHistoryConsolidator  # type: ignore
+                    cons = ChatHistoryConsolidator()
+                    path = cons.consolidate_chat_to_book(title, channel=client.channel, last=100)
+                    if path:
+                        await self.send_chat(sender='agent', text=f"📚 Consolidated chat → book '{title}'. Exported {path}", channel=client.channel)
+                        await self.log({"type":"consolidate","mode":"chat","title":title,"channel":client.channel,"out":str(path)})
+                    else:
+                        await self.send_system(client.channel, "No chat messages to consolidate.")
+                except Exception as e:
+                    await self.send_system(client.channel, f"Chat consolidation failed: {e}")
+                return
+            await self.send_system(client.channel, "Usage: /consolidate chat <title>")
             return
         if cmd in ("/open", "/door") and len(parts) >= 2:
             # Special-case: /open book <title>
@@ -1065,6 +1087,29 @@ class LiveServer:
                 return
         if cmd == "/diary":
             await self._handle_diary(parts[1:] if len(parts) > 1 else [], client)
+            return
+        if cmd == "/ai" and len(parts) > 1 and parts[1] == "reflect":
+            # /ai reflect — AI writes a self-reflection diary page
+            try:
+                from ..tools.house_memory import MemoryHouse  # type: ignore
+                import hashlib
+                def _hash_vec(s: str, d: int = 32) -> list[float]:
+                    h = hashlib.sha256(s.encode('utf-8')).digest(); v=[]; i=0
+                    while len(v) < d:
+                        b = h[i % len(h)]; v.append((b/255.0)-0.5); i+=1
+                    return v
+                # Simple reflection from recent topic
+                topic = self._topics.get(client.channel) or client.channel
+                text = f"Observation: reflecting on {topic}. I will study more."
+                vec = _hash_vec(text, 32)
+                h = MemoryHouse()
+                h.add_diary_page_embedding(self._diary_book, vec, meta={"event":"reflect","by":"agent","channel":client.channel})
+                out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "memory_house.gltf")
+                h.export_gltf(out)
+                await self.send_chat(sender='agent', text=f"🧠 AI reflected: {text}", channel=client.channel)
+                await self.log({"type":"diary","action":"reflect","text":text})
+            except Exception as e:
+                await self.send_system(client.channel, f"Reflect failed: {e}")
             return
         if cmd in ("/fb", "/feedback"):
             # RLWHF: /fb good|partial|bad [gold_or_notes]

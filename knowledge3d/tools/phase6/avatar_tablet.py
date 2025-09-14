@@ -30,7 +30,8 @@ class App:
 class MockScreen:
     def __init__(self, screen_id: str, out_dir: Optional[Path] = None) -> None:
         self.screen_id = screen_id
-        repo = Path(__file__).resolve().parents[2]
+        # repo root = parents[3] (knowledge3d/tools/phase6 -> knowledge3d -> repo)
+        repo = Path(__file__).resolve().parents[3]
         self.out_dir = out_dir or (repo / 'viewer' / 'public' / 'projections')
         self.out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -76,4 +77,3 @@ class AvatarTablet:
             return None
         screen = self.find_screen(screen_id)
         return screen.display_content(app.embedding)
-
