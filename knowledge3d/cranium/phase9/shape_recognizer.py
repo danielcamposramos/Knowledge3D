@@ -25,7 +25,7 @@ if torch is None:
     ShapeRecognizer = _DummyModel  # type: ignore
 else:
     class ShapeRecognizer(nn.Module):  # type: ignore[misc]
-        def __init__(self, input_dim: int = 256, hidden_dim: int = 128, num_classes: int = 13):
+        def __init__(self, input_dim: int = 256, hidden_dim: int = 128, num_classes: int = 14):
             super().__init__()
             self.fc1 = nn.Linear(input_dim, hidden_dim)
             self.fc2 = nn.Linear(hidden_dim, hidden_dim)
@@ -60,7 +60,6 @@ else:
                 'tetrahedron', 'cube', 'octahedron', 'icosahedron', 'dodecahedron',
                 'triangular_prism', 'pentagonal_prism', 'rhombic_dodecahedron',
                 'truncated_icosahedron', 'snub_dodecahedron', 'great_rhombicuboctahedron',
-                'omnitruncated_icosahedron', 'hypersphere_projection'
+                'omnitruncated_icosahedron', 'hypersphere_projection', 'fractal_tree'
             ]
             return shapes[idx] if 0 <= idx < len(shapes) else 'unknown'
-
