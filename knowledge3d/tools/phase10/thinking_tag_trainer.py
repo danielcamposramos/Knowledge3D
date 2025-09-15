@@ -17,6 +17,7 @@ except Exception:  # pragma: no cover
 
 from .book_processor import BookProcessor  # type: ignore
 from ...cranium.phase10.thinking_tag_embedder import ThinkingTagEmbedder  # type: ignore
+from ...cranium.phase10.teacher_evaluator import TeacherEvaluator  # type: ignore
 
 
 class ThinkingTagTrainer:
@@ -24,6 +25,7 @@ class ThinkingTagTrainer:
         self.book_processor = book_processor
         self.input_dim = int(input_dim)
         self.tag_embedder = ThinkingTagEmbedder(input_dim=self.input_dim)
+        self.teacher_evaluator = TeacherEvaluator()
         if torch is not None:
             self.optimizer = torch.optim.Adam(self.tag_embedder.parameters(), lr=0.001)
             self.criterion = nn.BCELoss()  # type: ignore
@@ -46,12 +48,19 @@ class ThinkingTagTrainer:
         (out_books / 'thinking_tags.json').write_text(json.dumps(tags, ensure_ascii=False, indent=2), encoding='utf-8')
         # Build dataset
         ds, tag_names = self.create_dataset(tags)
+        if not tag_names:
+            print('❌ No thinking tags found to train on (empty tag set)')
+            return
         dl = DataLoader(ds, batch_size=16, shuffle=True)
         # Save tag names
         out_models = Path('viewer/public/models')
         out_models.mkdir(parents=True, exist_ok=True)
         tags_out = Path(out_tags_path) if out_tags_path else (out_models / 'tag_names.json')
         tags_out.write_text(json.dumps(tag_names, ensure_ascii=False, indent=2), encoding='utf-8')
+        # Rebuild model head to match dataset tag count
+        num_tags = len(tag_names)
+        self.tag_embedder = ThinkingTagEmbedder(input_dim=self.input_dim, num_tags=num_tags)
+        self.optimizer = torch.optim.Adam(self.tag_embedder.parameters(), lr=0.001)
         # Train
         for ep in range(int(epochs)):
             total = 0.0
@@ -68,6 +77,94 @@ class ThinkingTagTrainer:
         model_out = Path(out_model_path) if out_model_path else (out_models / 'thinking_tag_embedder.pth')
         torch.save(self.tag_embedder.state_dict(), str(model_out))
         print(f'✅ Thinking tag embedder trained and saved to {model_out}')
+
+    def train_with_teacher_feedback(
+        self,
+        epochs: int = 50,
+        limit: int | None = None,
+        out_model_path: str | None = None,
+        out_tags_path: str | None = None,
+    ) -> None:
+        if torch is None:
+            print('❌ PyTorch unavailable for RLWHF training')
+            return
+        # Process books via Ollama
+        tags = self.book_processor.process_books(limit=limit)
+        if not tags:
+            print('❌ No books processed')
+            return
+        # Build dataset
+        ds, tag_names = self.create_dataset(tags)
+        if not tag_names:
+            print('❌ No thinking tags found to train on (empty tag set)')
+            return
+        dl = DataLoader(ds, batch_size=32, shuffle=True)
+        # Save tag names
+        out_models = Path('viewer/public/models')
+        out_models.mkdir(parents=True, exist_ok=True)
+        tags_out = Path(out_tags_path) if out_tags_path else (out_models / 'tag_names_rlwhf.json')
+        tags_out.write_text(json.dumps(tag_names, ensure_ascii=False, indent=2), encoding='utf-8')
+        # Rebuild model head to match dataset tag count
+        num_tags = len(tag_names)
+        self.tag_embedder = ThinkingTagEmbedder(input_dim=self.input_dim, num_tags=num_tags)
+        self.optimizer = torch.optim.Adam(self.tag_embedder.parameters(), lr=0.001)
+        # Train
+        for ep in range(int(epochs)):
+            total = 0.0
+            for xb, yb in dl:
+                self.optimizer.zero_grad()  # type: ignore
+                probs = self.tag_embedder(xb)
+                loss = self.rlwhf_teacher_loss(probs, xb, yb)
+                loss.backward()
+                self.optimizer.step()  # type: ignore
+                total += float(loss.item())
+            if ep % 10 == 0:
+                print(f'Epoch {ep}: Loss = {total/max(1,len(dl)):.4f}')
+        # Save weights
+        model_out = Path(out_model_path) if out_model_path else (out_models / 'thinking_tag_embedder_rlwhf.pth')
+        torch.save(self.tag_embedder.state_dict(), str(model_out))
+        print('✅ Thinking tag embedder trained with RLWHF teacher feedback')
+
+    def rlwhf_teacher_loss(self, probs, embeddings, labels):
+        import torch.nn.functional as F  # type: ignore
+        # Base BCE per-element
+        elem_loss = F.binary_cross_entropy(probs, labels, reduction='none')  # [B, T]
+        # Teacher scores per sample
+        scores = self.get_teacher_scores(embeddings)  # List[float], len B
+        import torch as _t
+        w = _t.tensor(scores, dtype=_t.float32, device=elem_loss.device).unsqueeze(1)  # [B,1]
+        weighted = elem_loss * w
+        return weighted.mean()
+
+    def get_teacher_scores(self, embeddings) -> List[float]:
+        scores: List[float] = []
+        # embeddings: Tensor[B, D]
+        for emb in embeddings:  # type: ignore[assignment]
+            text = self.generate_text_from_embedding(emb)
+            ev = self.teacher_evaluator.evaluate_response(text)
+            # Normalize to [0,1] for weighting: map {-1,0.5,1} -> {0,0.5,1}
+            raw = float(ev.get('score', -1.0))
+            if raw <= -0.5:
+                norm = 0.0
+            elif raw < 1.0:
+                norm = 0.5
+            else:
+                norm = 1.0
+            scores.append(norm)
+        return scores
+
+    def generate_text_from_embedding(self, embedding) -> str:
+        # Simple deterministic text from embedding: sum-hash
+        try:
+            import torch as _t  # type: ignore
+            hash_val = int((_t.sum(embedding * 1000.0)).item()) % 1000000
+        except Exception:
+            # Fallback: python sum on iterables
+            try:
+                hash_val = int(sum(float(x) for x in embedding) * 1000.0) % 1000000
+            except Exception:
+                hash_val = 0
+        return f"Generated text from embedding: {hash_val}"
 
     def create_dataset(self, thinking_tags: List[Dict]) -> tuple[TensorDataset, List[str]]:
         import torch as _t
@@ -121,10 +218,19 @@ def main():  # pragma: no cover
     ap.add_argument('--limit', type=int, default=None)
     ap.add_argument('--output_model', default=None)
     ap.add_argument('--output_tags', default=None)
+    ap.add_argument('--mode', default='rlwhf', choices=['supervised', 'rlwhf'])
     args = ap.parse_args()
     bp = BookProcessor(args.books, ollama_model=args.model)
     tr = ThinkingTagTrainer(bp)
-    tr.train(epochs=int(args.epochs), limit=args.limit, out_model_path=args.output_model, out_tags_path=args.output_tags)
+    if args.mode == 'rlwhf':
+        tr.train_with_teacher_feedback(
+            epochs=int(args.epochs),
+            limit=args.limit,
+            out_model_path=args.output_model,
+            out_tags_path=args.output_tags,
+        )
+    else:
+        tr.train(epochs=int(args.epochs), limit=args.limit, out_model_path=args.output_model, out_tags_path=args.output_tags)
 
 
 if __name__ == '__main__':  # pragma: no cover
