@@ -139,7 +139,14 @@ class SampleLoader:
                         shape = 'cube'
         if shape is None:
             shape = self.infer_shape_type(geom)
-        media = self.infer_media_types(geom, embedding)
+        # Media types
+        media: List[str] = []
+        if isinstance(k3d, dict):
+            mt = k3d.get('media_types')
+            if isinstance(mt, list):
+                media = [str(x).lower() for x in mt]
+        if not media:
+            media = self.infer_media_types(geom, embedding)
         return Sample(id=filepath.stem, filepath=str(filepath), geometry=geom, embedding=embedding, media_types=media, shape_type=shape)
 
     def infer_shape_type(self, geometry: Dict) -> str:

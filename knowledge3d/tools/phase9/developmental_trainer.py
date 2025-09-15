@@ -38,7 +38,24 @@ class DevelopmentalTrainer:
         self.loader = SampleLoader(self.cfg.samples_dir)
 
     def _all(self) -> List[dict]:
-        return self.loader.load_samples('*.glb')
+        # Recursively load all GLBs under samples_dir (including stage folders)
+        base = Path(self.cfg.samples_dir)
+        out: List[dict] = []
+        for fp in base.rglob('*.glb'):
+            try:
+                s = self.loader.load_sample(fp)
+                if s:
+                    out.append({
+                        'id': s.id,
+                        'filepath': s.filepath,
+                        'geometry': s.geometry,
+                        'embedding': s.embedding,
+                        'media_types': s.media_types,
+                        'shape_type': s.shape_type,
+                    })
+            except Exception:
+                continue
+        return out
 
     def _complexity(self, shape: str) -> float:
         return _SHAPE_COMPLEXITY.get((shape or '').lower(), 2.0)
@@ -120,4 +137,3 @@ def main():  # pragma: no cover
 
 if __name__ == '__main__':  # pragma: no cover
     main()
-

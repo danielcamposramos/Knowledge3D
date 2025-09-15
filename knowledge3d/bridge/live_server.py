@@ -712,6 +712,52 @@ class LiveServer:
             await self.send_chat(sender="agent", text=f"🤖 {out}", channel=client.channel)
             await self.log({"type": "chat", "mode": "ai_overlay", "text": q, "out": out})
             return
+        if cmd == "/think":
+            # /think <text_or_path>  -> distill tags via exaone-deep (Ollama) and predict with embedder
+            if len(parts) < 2:
+                await self.send_system(client.channel, "Usage: /think <text_or_path>")
+                return
+            arg = parts[1]
+            content = None
+            try:
+                import os, json
+                from ..tools.phase10.book_processor import BookProcessor  # type: ignore
+                from ..cranium.phase10.thinking_tag_embedder import ThinkingTagEmbedder  # type: ignore
+                import torch as _t  # type: ignore
+                if os.path.isfile(arg):
+                    try:
+                        with open(arg, "r", encoding="utf-8") as f:
+                            content = f.read()
+                    except Exception:
+                        content = None
+                else:
+                    content = arg
+                if not content:
+                    await self.send_system(client.channel, f"Could not read content from: {arg}")
+                    return
+                bp = BookProcessor(book_dir=".", ollama_model="exaone-deep:latest")
+                distilled = bp.distill_thinking_tags({"content": content})
+                from pathlib import Path as _P
+                model_p = _P(__file__).resolve().parents[2] / "viewer" / "public" / "models"
+                emb_p = model_p / "thinking_tag_embedder_deep.pth"
+                names_p = model_p / "tag_names_deep.json"
+                predicted = []
+                if emb_p.exists() and names_p.exists():
+                    names = json.loads(names_p.read_text(encoding="utf-8"))
+                    import hashlib as _h
+                    hv = int(_h.md5(content.encode("utf-8")).hexdigest(), 16)
+                    emb = [((hv >> (i*8)) & 0xFF)/255.0 for i in range(512)]
+                    m = ThinkingTagEmbedder()
+                    m.load_state_dict(_t.load(str(emb_p), map_location="cpu"))
+                    m.eval()
+                    predicted = m.predict_thinking_tags(emb, names)
+                msg = "🧠 Thinking tags (distilled): " + (", ".join(distilled) if distilled else "(none)")
+                if predicted:
+                    msg += " | predicted: " + ", ".join(predicted)
+                await self.send_chat(sender="agent", text=msg, channel=client.channel)
+            except Exception as e:
+                await self.send_system(client.channel, f"/think error: {e}")
+            return
         if cmd == "/topic":
             # /topic -> show; /topic set <text> to change
             sub = parts[1] if len(parts) > 1 else "show"

@@ -46,7 +46,7 @@ class MeaningCentricTrainingPipeline:
             'tetrahedron': 0, 'cube': 1, 'octahedron': 2, 'icosahedron': 3, 'dodecahedron': 4,
             'triangular_prism': 5, 'pentagonal_prism': 6, 'rhombic_dodecahedron': 7,
             'truncated_icosahedron': 8, 'snub_dodecahedron': 9, 'great_rhombicuboctahedron': 10,
-            'omnitruncated_icosahedron': 11, 'hypersphere_projection': 12
+            'omnitruncated_icosahedron': 11, 'hypersphere_projection': 12, 'fractal_tree': 13
         }
         X: List[List[float]] = []
         y: List[int] = []
@@ -69,7 +69,8 @@ class MeaningCentricTrainingPipeline:
         probs = nn.functional.softmax(logits, dim=1)
         diffs = (probs.unsqueeze(1) - probs.unsqueeze(0)) ** 2
         meaning = (diffs.mean(dim=2) * cos).mean()
-        return ce + 0.1 * meaning
+        mult = 0.5 if bool(self._use_self_reflection) else 0.1
+        return ce + mult * meaning
 
     def train(self, epochs: int = 50, batch_size: int = 16, pattern: str = '*.glb', out_path: str = 'viewer/public/models/shape_recognizer_final.pth') -> None:
         if torch is None:
