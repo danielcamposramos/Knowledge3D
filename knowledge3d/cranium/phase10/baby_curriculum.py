@@ -65,3 +65,38 @@ class BabyCurriculum:
             return {"input": [0.5, 0.4, 0.3, 0.2], "label": 0}
         return {"input": [0.0, 0.0, 0.0, 0.0], "label": 0}
 
+
+def main():  # pragma: no cover
+    import argparse, json
+    ap = argparse.ArgumentParser(description="Baby curriculum stage manager")
+    ap.add_argument("--check_correct", type=int, default=None, help="Number of queries expected correct")
+    ap.add_argument("--advance_if_ready", action="store_true")
+    ap.add_argument("--stage", type=int, default=None)
+    args = ap.parse_args()
+    if args.check_correct is not None:
+        # Read last session log
+        from pathlib import Path
+        p = Path("logs/phase10.6_last_session.json")
+        if not p.exists():
+            print("⚠️ No live session results found")
+            return
+        data = json.loads(p.read_text(encoding="utf-8"))
+        correct = int(data.get("correct_count", 0))
+        num = int(data.get("num_queries", 0))
+        all_correct = bool(data.get("all_correct", False))
+        if all_correct and correct >= int(args.check_correct):
+            print("🎉 Advanced to Stage 2")
+        else:
+            print("⚠️ Stay in Stage 1")
+        return
+    # Default: demonstrate a single modality at stage
+    bc = BabyCurriculum()
+    if args.stage:
+        bc.stage = int(args.stage)
+    res = bc.introduce_modality("text")
+    if res is not None:
+        print(res)
+
+
+if __name__ == "__main__":  # pragma: no cover
+    main()

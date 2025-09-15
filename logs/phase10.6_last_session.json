@@ -1,0 +1,38 @@
+{
+  "stage": 1,
+  "num_queries": 5,
+  "results": [
+    {
+      "query": "What shape represents text in the Galaxy?",
+      "answer": "tetrahedron",
+      "score": 1.0,
+      "explanation": "deterministic correct"
+    },
+    {
+      "query": "What does ray thickness encode?",
+      "answer": "resolution",
+      "score": 1.0,
+      "explanation": "deterministic correct"
+    },
+    {
+      "query": "What is the simplest 3D shape for text?",
+      "answer": "tetrahedron",
+      "score": 1.0,
+      "explanation": "deterministic correct"
+    },
+    {
+      "query": "What shape represents image in the Galaxy?",
+      "answer": "cube",
+      "score": 1.0,
+      "explanation": "deterministic correct"
+    },
+    {
+      "query": "What does ray length encode?",
+      "answer": "content size",
+      "score": 1.0,
+      "explanation": "deterministic correct"
+    }
+  ],
+  "all_correct": true,
+  "correct_count": 5
+}
