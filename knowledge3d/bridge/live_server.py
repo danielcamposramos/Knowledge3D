@@ -235,6 +235,8 @@ class LiveServer:
         self._diary_book = _os.getenv("K3D_DIARY_BOOK", "AI Diary")
         # Port scan state
         self._port_scan: Dict[str, Any] = {"tried": [], "chosen": None}
+        # Museum loading flag (skip Zone 8 by default)
+        self.load_museum: bool = False
 
         # Load Galaxy state if present (continuity)
         try:
@@ -269,6 +271,10 @@ class LiveServer:
             try:
                 obj = _json.loads(fp.read_text(encoding='utf-8'))
                 typ = str(obj.get('type') or 'unknown').lower()
+                zone = str(obj.get('zone_placement') or '')
+                # Skip Learning Museum by default
+                if zone == "Zone 8 (Learning Museum)" and not getattr(self, 'load_museum', False):
+                    continue
                 if typ == 'chat_history_book':
                     loaded['books'].append(obj)
                 elif typ == 'diary_entry':
@@ -956,6 +962,15 @@ class LiveServer:
                 await self.send_chat(sender="agent", text=msg, channel=client.channel)
             except Exception as e:
                 await self.send_system(client.channel, f"/think error: {e}")
+            return
+        if cmd == "/open_museum":
+            # Toggle loading Learning Museum artifacts (Zone 8) and reload
+            try:
+                self.load_museum = True
+                self.load_materialized_objects()
+                await self.send_chat(sender='agent', text="🏛️  Learning Museum opened. Historical artifacts loaded.", channel=client.channel)
+            except Exception as e:
+                await self.send_system(client.channel, f"/open_museum failed: {e}")
             return
         if cmd == "/generate_3d":
             # /generate_3d <text>
