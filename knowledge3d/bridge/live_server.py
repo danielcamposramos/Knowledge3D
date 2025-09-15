@@ -236,6 +236,40 @@ class LiveServer:
         # Port scan state
         self._port_scan: Dict[str, Any] = {"tried": [], "chosen": None}
 
+        # Load materialized memory objects at startup (books, diaries, trees)
+        try:
+            self.materialized_memory = self.load_materialized_objects()
+        except Exception:
+            self.materialized_memory = {"books": [], "diaries": [], "trees": []}
+
+    def load_materialized_objects(self):
+        """Load materialized objects from viewer/public/house/materialized_objects into server memory.
+
+        Objects are JSON files with a 'type' field: chat_history_book, diary_entry, fractal_tree.
+        """
+        import json as _json
+        mdir = Path(__file__).resolve().parents[2] / 'viewer' / 'public' / 'house' / 'materialized_objects'
+        loaded = {"books": [], "diaries": [], "trees": [], "shapes": []}
+        if not mdir.exists():
+            print("📚 No materialized objects found.")
+            return loaded
+        for fp in sorted(mdir.glob('*.json')):
+            try:
+                obj = _json.loads(fp.read_text(encoding='utf-8'))
+                typ = str(obj.get('type') or 'unknown').lower()
+                if typ == 'chat_history_book':
+                    loaded['books'].append(obj)
+                elif typ == 'diary_entry':
+                    loaded['diaries'].append(obj)
+                elif typ == 'fractal_tree':
+                    loaded['trees'].append(obj)
+                elif typ == 'generated_3d_shape':
+                    loaded['shapes'].append(obj)
+            except Exception as e:
+                print(f"⚠️  Failed to load materialized object {fp}: {e}")
+        print(f"📚 Loaded {len(loaded['books'])} books, {len(loaded['diaries'])} diaries, {len(loaded['trees'])} trees, {len(loaded['shapes'])} shapes.")
+        return loaded
+
     def _is_port_in_use(self, host: str, port: int) -> bool:
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -757,6 +791,28 @@ class LiveServer:
                 await self.send_chat(sender="agent", text=msg, channel=client.channel)
             except Exception as e:
                 await self.send_system(client.channel, f"/think error: {e}")
+            return
+        if cmd == "/generate_3d":
+            # /generate_3d <text>
+            try:
+                if len(parts) < 2:
+                    await self.send_system(client.channel, "Usage: /generate_3d <text>")
+                    return
+                # Reconstruct prompt from split parts (maxsplit=2 earlier)
+                prompt = parts[1] if len(parts) == 2 else (parts[1] + (" " + parts[2] if len(parts) >= 3 else ""))
+                from ..cranium.phase10.text_to_3d_generator import TextTo3DGenerator  # type: ignore
+                repo_root = Path(__file__).resolve().parents[2]
+                mdir = repo_root / 'viewer' / 'public' / 'house' / 'materialized_objects'
+                gen = TextTo3DGenerator(material_dir=str(mdir))
+                p = gen.generate_3d_from_text(prompt)
+                # Reload materialized memory to include new shape
+                self.materialized_memory = self.load_materialized_objects()
+                pub = repo_root / 'viewer' / 'public'
+                rel = "/" + str(Path(p).resolve().relative_to(pub)).replace('\\','/') if Path(p).exists() else p
+                await self.send_chat(sender='agent', text=f"🌀 Generated 3D shape from: '{prompt[:80]}' → saved to {rel}\nPlaced in Zone 5 (Knowledge Garden).", channel=client.channel)
+                await self.log({"type":"generate_3d","prompt":prompt,"path":rel})
+            except Exception as e:
+                await self.send_system(client.channel, f"/generate_3d error: {e}")
             return
         if cmd == "/topic":
             # /topic -> show; /topic set <text> to change
@@ -1468,7 +1524,26 @@ class LiveServer:
         if not self._is_paused(client.channel):
             await self._pause(client, reason="sleep")
 
-        # Case 1: Consolidate memory house
+        # Case 1: Full sleep-time compute (materialize + geometry adjust)
+        if len(args) >= 1 and args[0].lower() in ("materialize", "compute", "ritual"):
+            try:
+                repo_root = Path(__file__).resolve().parents[2]
+                house = repo_root / 'viewer' / 'public' / 'house' / 'house_master_assembled.glb'
+                galaxy = repo_root / 'viewer' / 'public' / 'galaxy' / 'galaxy_memory.glb'
+                output = repo_root / 'viewer' / 'public' / 'house' / 'house_post_sleep.glb'
+                mdir = repo_root / 'viewer' / 'public' / 'house' / 'materialized_objects'
+                from ..cranium.phase10.sleep_time_compute import SleepTimeCompute  # type: ignore
+                stc = SleepTimeCompute(str(house), str(galaxy), str(output), str(mdir))
+                stc.run()
+                # Reload materialized memory
+                self.materialized_memory = self.load_materialized_objects()
+                await self.send_chat(sender='agent', text=f"🌙 Sleep ritual complete. Materialized memory refreshed (books={len(self.materialized_memory['books'])}, diaries={len(self.materialized_memory['diaries'])}, trees={len(self.materialized_memory['trees'])}, shapes={len(self.materialized_memory['shapes'])}).", channel=client.channel)
+                await self.log({"type":"sleep","action":"materialize","books":len(self.materialized_memory['books']),"diaries":len(self.materialized_memory['diaries']),"trees":len(self.materialized_memory['trees']),"shapes":len(self.materialized_memory['shapes'])})
+            except Exception as e:
+                await self.send_system(client.channel, f"/sleep materialize error: {e}")
+            return
+
+        # Case 2: Consolidate memory house (legacy path)
         if len(args) >= 1 and args[0].lower().startswith("consol"):
             try:
                 from ..tools.house_memory import MemoryHouse  # type: ignore
@@ -1643,7 +1718,7 @@ class LiveServer:
             return
 
         # Default: just pause
-        await self.send_chat(sender="agent", text="Entering sleep mode (paused). Use /sleep consolidate to restructure memory or /resume to wake.", channel=client.channel)
+        await self.send_chat(sender="agent", text="Entering sleep mode (paused). Use /sleep materialize to run ritual or /sleep consolidate for legacy export, or /resume to wake.", channel=client.channel)
         return
 
     async def _handle_model(self, args, client: Client):
