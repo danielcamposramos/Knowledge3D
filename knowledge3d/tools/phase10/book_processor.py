@@ -12,11 +12,22 @@ OLLAMA_HOST = "http://192.168.0.4:11434"
 
 
 class BookProcessor:
-    def __init__(self, book_dir: str, ollama_model: str = "exaone3.5:latest", max_chars: int = 8000, per_book_timeout: int = 90):
+    def __init__(
+        self,
+        book_dir: str,
+        ollama_model: str = "exaone3.5:latest",
+        max_chars: int = 8000,
+        per_book_timeout: int = 90,
+        first_call_timeout: int = 180,
+        system_prompt: Optional[str] = None,
+    ):
         self.book_dir = Path(book_dir)
         self.ollama_model = ollama_model
         self.max_chars = int(max_chars)
         self.per_book_timeout = int(per_book_timeout)
+        self.first_call_timeout = int(first_call_timeout)
+        self.system_prompt = system_prompt
+        self._first_generate = True
 
     def process_books(self, limit: Optional[int] = None) -> List[Dict]:
         """Process JSON books — distill thinking tags using Ollama over HTTP.
@@ -83,7 +94,15 @@ class BookProcessor:
             # Unload immediately to keep memory/context clean
             "keep_alive": "0s",
         }
-        to = int(timeout or self.per_book_timeout)
+        # Include optional system prompt
+        if self.system_prompt:
+            payload["system"] = self.system_prompt
+        # Longer timeout on first generate to allow model load
+        if self._first_generate:
+            to = int(self.first_call_timeout)
+            self._first_generate = False
+        else:
+            to = int(timeout or self.per_book_timeout)
         r = requests.post(url, json=payload, timeout=to)
         r.raise_for_status()
         data = r.json()
