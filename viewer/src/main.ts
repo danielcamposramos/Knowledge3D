@@ -725,6 +725,119 @@ async function loadGardenAndGreenhouse() {
     if (sectors) applySectorColorsToFloor(gh.scene, sectors);
 }
 
+async function loadMaterializedShapes(honestyMin: number = 0.7) {
+    try {
+        const r = await fetch('/house/materialized_objects/manifest.json', { cache: 'no-store' });
+        if (!r.ok) return;
+        const data = await r.json();
+        const arr: Array<{path: string, honesty_score?: number}> = data?.shapes || [];
+        if (!Array.isArray(arr) || arr.length === 0) return;
+        const loader = new GLTFLoader();
+        for (const it of arr) {
+            const path = String(it.path || '');
+            if (!path) continue;
+            if (typeof it.honesty_score === 'number' && it.honesty_score < honestyMin) continue;
+            try {
+                const gltf = await loader.loadAsync(path);
+                const root = gltf.scene;
+                // Try to read extras.k3d via userData
+                let k3d: any = null;
+                root.traverse((node: any) => {
+                    if (!k3d && node?.userData?.k3d) k3d = node.userData.k3d;
+                });
+                // scatter near origin of garden
+                root.position.x += (Math.random() * 2 - 1) * 2.0;
+                root.position.z += (Math.random() * 2 - 1) * 2.0;
+                scene.add(root);
+                console.log(`🌿 Garden shape: ${path} honesty=${k3d?.honesty_score ?? it.honesty_score ?? '?'}`);
+            } catch (e) {
+                console.warn('Failed to load shape', path, e);
+            }
+        }
+    } catch (e) {
+        console.warn('No materialized shapes manifest found');
+    }
+}
+
+async function loadRayBundles() {
+    try {
+        const r = await fetch('/house/materialized_objects/manifest.json', { cache: 'no-store' });
+        if (!r.ok) return;
+        const data = await r.json();
+        const rays: Array<{path: string, modality?: string, ray_count?: number, honesty_score?: number}> = data?.rays || [];
+        if (!Array.isArray(rays) || rays.length === 0) return;
+        for (const it of rays) {
+            const path = String(it.path || '');
+            if (!path) continue;
+            try {
+                if (path.endsWith('.json')) {
+                    const resp = await fetch(path, { cache: 'no-store' });
+                    if (!resp.ok) continue;
+                    const rayData = await resp.json();
+                    if (typeof rayData.honesty_score === 'number' && rayData.honesty_score < rayHonestyMin) continue;
+                    let count = 0;
+                    (rayData.rays || []).forEach((ray: any) => {
+                        const o = new THREE.Vector3(...(ray.origin || [0,0,0]));
+                        const d = new THREE.Vector3(...(ray.direction || [0,0,1])).normalize();
+                        const end = o.clone().add(d.multiplyScalar(2.0));
+                        const curve = new THREE.LineCurve3(o, end);
+                        const radius = typeof ray.thickness === 'number' ? Math.max(0.002, Math.min(0.2, ray.thickness)) : 0.02;
+                        const tube = new THREE.TubeGeometry(curve, 8, radius, 8, false);
+                        const col = new THREE.Color(...(ray.color || [1,1,1]));
+                        const mat = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.85 });
+                        const mesh = new THREE.Mesh(tube, mat);
+                        mesh.visible = raysVisible;
+                        mesh.userData = { type: 'ray', honesty_score: rayData.honesty_score ?? 1.0, modality: ray.modality || 'text', thickness: radius, source_shape: rayData.source_shape || '' };
+                        scene.add(mesh);
+                        rayObjects.push(mesh);
+                        count++;
+                    });
+                    console.log(`✨ Rendered ${count} volumetric rays from ${path}`);
+                } else {
+                    const loader = new GLTFLoader();
+                    const gltf = await loader.loadAsync(path);
+                    // get honesty from k3d extras
+                    let honesty = 1.0;
+                    gltf.scene.traverse((node: any) => {
+                        const ex = node?.userData?.k3d;
+                        if (ex && typeof ex.honesty_score === 'number') honesty = ex.honesty_score;
+                    });
+                    if (honesty < rayHonestyMin) continue;
+                    // Convert lines to tubes using positions and optional thickness array
+                    const tubes: THREE.Object3D[] = [];
+                    gltf.scene.traverse((obj: any) => {
+                        if (obj.isLineSegments) {
+                            const pos = (obj.geometry as THREE.BufferGeometry).getAttribute('position') as THREE.BufferAttribute;
+                            const colors = (obj.geometry as THREE.BufferGeometry).getAttribute('color') as THREE.BufferAttribute | undefined;
+                            const ex = obj?.userData?.k3d || {};
+                            const rayThickness: number[] = (ex.ray_thickness || []) as number[];
+                            for (let i = 0; i + 1 < pos.count; i += 2) {
+                                const o = new THREE.Vector3(pos.getX(i), pos.getY(i), pos.getZ(i));
+                                const e = new THREE.Vector3(pos.getX(i+1), pos.getY(i+1), pos.getZ(i+1));
+                                const curve = new THREE.LineCurve3(o, e);
+                                const radius = Math.max(0.002, Math.min(0.2, rayThickness[Math.floor(i/2)] || 0.02));
+                                const tube = new THREE.TubeGeometry(curve, 8, radius, 8, false);
+                                let col = new THREE.Color(1,1,1);
+                                if (colors) col = new THREE.Color(colors.getX(i), colors.getY(i), colors.getZ(i));
+                                const mat = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.85 });
+                                const mesh = new THREE.Mesh(tube, mat);
+                                mesh.visible = raysVisible;
+                                mesh.userData = { type: 'ray', honesty_score: honesty, modality: ex.modality || 'text', thickness: radius, source_shape: ex.source_shape || '' };
+                                scene.add(mesh);
+                                rayObjects.push(mesh);
+                                tubes.push(mesh);
+                            }
+                        }
+                    });
+                    console.log(`✨ Rendered ray bundle ${path} as ${tubes.length} tubes (GLB)`);
+                }
+            } catch (e) { console.warn('Failed to load rays', path, e); }
+        }
+    } catch (e) {
+        /* ignore */
+    }
+}
+
 /**
  * Initializes the expert selector dropdown by fetching the condo configuration.
  */
@@ -767,6 +880,9 @@ async function initCondoSelector() {
 // --- Interactivity ---
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
+let rayHonestyMin = 0.7;
+const rayObjects: THREE.Object3D[] = [];
+let raysVisible = true;
 
 function onMouseMove(event: MouseEvent) {
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -776,6 +892,34 @@ function onMouseMove(event: MouseEvent) {
 function checkIntersects() {
     if (!currentPoints) {
         tooltip.style.display = 'none';
+        // Also check ray meshes
+        raycaster.setFromCamera(mouse, camera);
+        const rayHits = rayObjects.length ? raycaster.intersectObjects(rayObjects, true) : [];
+        if (rayHits.length > 0) {
+            const obj: any = rayHits[0].object;
+            const ud = obj?.userData || {};
+            let rtip = document.getElementById('ray-tooltip') as HTMLDivElement | null;
+            if (!rtip) {
+                rtip = document.createElement('div');
+                rtip.id = 'ray-tooltip';
+                rtip.style.position = 'absolute';
+                rtip.style.background = 'rgba(0,0,0,0.8)';
+                rtip.style.color = '#fff';
+                rtip.style.padding = '4px 6px';
+                rtip.style.borderRadius = '4px';
+                rtip.style.fontSize = '12px';
+                rtip.style.pointerEvents = 'none';
+                document.body.appendChild(rtip);
+            }
+            rtip.style.display = 'block';
+            rtip.style.left = `${mouse.x * window.innerWidth / 2 + window.innerWidth / 2 + 5}px`;
+            rtip.style.top = `${-mouse.y * window.innerHeight / 2 + window.innerHeight / 2 + 5}px`;
+            rtip.innerHTML = `<strong>Ray</strong><br/>modality=${ud.modality || 'n/a'} honesty=${(ud.honesty_score ?? 1.0).toFixed(2)} thickness=${(ud.thickness ?? 0.02).toFixed(3)}`;
+            return;
+        } else {
+            const rtip = document.getElementById('ray-tooltip') as HTMLDivElement | null;
+            if (rtip) rtip.style.display = 'none';
+        }
         return;
     }
 
@@ -811,6 +955,32 @@ function checkIntersects() {
         }
     } else {
         tooltip.style.display = 'none';
+        // Also test rays
+        const rayHits = rayObjects.length ? raycaster.intersectObjects(rayObjects, true) : [];
+        if (rayHits.length > 0) {
+            const obj: any = rayHits[0].object;
+            const ud = obj?.userData || {};
+            let rtip = document.getElementById('ray-tooltip') as HTMLDivElement | null;
+            if (!rtip) {
+                rtip = document.createElement('div');
+                rtip.id = 'ray-tooltip';
+                rtip.style.position = 'absolute';
+                rtip.style.background = 'rgba(0,0,0,0.8)';
+                rtip.style.color = '#fff';
+                rtip.style.padding = '4px 6px';
+                rtip.style.borderRadius = '4px';
+                rtip.style.fontSize = '12px';
+                rtip.style.pointerEvents = 'none';
+                document.body.appendChild(rtip);
+            }
+            rtip.style.display = 'block';
+            rtip.style.left = `${mouse.x * window.innerWidth / 2 + window.innerWidth / 2 + 5}px`;
+            rtip.style.top = `${-mouse.y * window.innerHeight / 2 + window.innerHeight / 2 + 5}px`;
+            rtip.innerHTML = `<strong>Ray</strong><br/>modality=${ud.modality || 'n/a'} honesty=${(ud.honesty_score ?? 1.0).toFixed(2)} thickness=${(ud.thickness ?? 0.02).toFixed(3)}`;
+        } else {
+            const rtip = document.getElementById('ray-tooltip') as HTMLDivElement | null;
+            if (rtip) rtip.style.display = 'none';
+        }
     }
 }
 
@@ -859,6 +1029,14 @@ window.addEventListener('keydown', (ev: KeyboardEvent) => {
     }
     if (ev.key.toLowerCase() === 'l') {
         toggleLayersOverlay();
+    }
+    if (ev.key.toLowerCase() === 'r') {
+        // reload rays with current filter: remove existing and load again
+        while (rayObjects.length) {
+            const obj = rayObjects.pop()!;
+            scene.remove(obj);
+        }
+        loadRayBundles();
     }
 });
 
@@ -917,6 +1095,49 @@ if (chatStatusBtn) {
         if (chat) chat.sendChat('/status');
     });
 }
+
+// Simple honesty slider for rays
+try {
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.min = '0';
+    slider.max = '1';
+    slider.step = '0.05';
+    slider.value = String(rayHonestyMin);
+    slider.style.position = 'fixed';
+    slider.style.right = '16px';
+    slider.style.bottom = '16px';
+    slider.style.zIndex = '1000';
+    slider.title = 'Ray Honesty Filter';
+    slider.addEventListener('input', () => {
+        rayHonestyMin = parseFloat(slider.value);
+    });
+    slider.addEventListener('change', () => {
+        // reload rays on change
+        while (raySegments.length) {
+            const ls = raySegments.pop()!;
+            scene.remove(ls);
+        }
+        loadRayBundles();
+    });
+    document.body.appendChild(slider);
+} catch {}
+
+// Rays toggle button
+try {
+    const btn = document.createElement('button');
+    btn.textContent = '👁️ Hide Rays';
+    btn.style.position = 'fixed';
+    btn.style.right = '16px';
+    btn.style.bottom = '48px';
+    btn.style.zIndex = '1000';
+    btn.addEventListener('click', () => {
+        raysVisible = !raysVisible;
+        btn.textContent = raysVisible ? '👁️ Hide Rays' : '👁️ Show Rays';
+        rayObjects.forEach(o => { o.visible = raysVisible; });
+    });
+    document.body.appendChild(btn);
+} catch {}
 if (chatAskThoughts) {
     chatAskThoughts.addEventListener('click', () => {
         if (chat) chat.sendChat('/ask-thoughts');
@@ -1331,7 +1552,7 @@ function startApp() {
     } else {
         const assetCombo = params.get('asset');
         if (assetCombo && assetCombo.toLowerCase() === 'garden+greenhouse') {
-            (async () => { try { await loadGardenAndGreenhouse(); } catch (e) { console.error(e); } finally { animate(); } })();
+            (async () => { try { await loadGardenAndGreenhouse(); await loadMaterializedShapes(0.7); await loadRayBundles(); } catch (e) { console.error(e); } finally { animate(); } })();
             return;
         }
         const asset = params.get('asset');

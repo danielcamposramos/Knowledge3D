@@ -1,0 +1,17 @@
+{
+  "shapes": [
+    {
+      "path": "/house/materialized_objects/shape_cube_1757927798.glb",
+      "honesty_score": 0.08747918191892584,
+      "name": "Cube from: 'auto rays glb test...'",
+      "shape_type": "cube"
+    },
+    {
+      "path": "/house/materialized_objects/shape_tetrahedron_1757926925.glb",
+      "honesty_score": 0.08631867380795372,
+      "name": "Tetrahedron from: 'honest geometry is sacred...'",
+      "shape_type": "tetrahedron"
+    }
+  ],
+  "rays": []
+}

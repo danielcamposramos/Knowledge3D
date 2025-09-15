@@ -247,6 +247,158 @@ class SleepTimeCompute:
                 p = self.materialize_fractal_tree(s)
                 if p:
                     adjustments['materialized_objects'].append({'type': 'fractal_tree', 'path': p, 'zone': 'Zone 5 (Knowledge Garden)', 'star_id': s.get('id')})
+        # Prepare Galaxy working dir for pre‑consolidation drafts
+        working_dir = Path('viewer/public/galaxy/working')
+        working_dir.mkdir(parents=True, exist_ok=True)
+        generated_paths: list[str] = []
+
+        # Phase 13: Autonomous synthesis + curriculum (drafts to Galaxy working dir)
+        try:
+            from ..phase13.auto_synthesis_engine import AutoSynthesisEngine  # type: ignore
+            print("🧠 Running Autonomous Meaning Synthesis...")
+            syn = AutoSynthesisEngine(str(self.house_path), str(self.galaxy_path), str(working_dir))
+            synthesized = syn.run_synthesis()
+            for item in synthesized:
+                p = item.get('path')
+                if isinstance(p, str):
+                    generated_paths.append(p)
+        except Exception as e:
+            print(f"⚠️  Auto synthesis skipped: {e}")
+        try:
+            from ..phase13.self_curriculum_engine import SelfCurriculumEngine  # type: ignore
+            print("📚 Generating Self-Curated Curriculum...")
+            cur = SelfCurriculumEngine(str(self.galaxy_path))
+            queries = cur.run_self_curriculum()
+            if queries:
+                adjustments['self_training'] = []
+                from datetime import datetime as _dt
+                ts = _dt.now().isoformat()
+                for q in queries:
+                    print(f"🎓 Self-Training on: {q}")
+                    adjustments['self_training'].append({'query': q, 'trained_at': ts})
+        except Exception as e:
+            print(f"⚠️  Self-curated curriculum skipped: {e}")
+
+        # Phase 14: Dream shapes (Zone 6) — drafts to Galaxy working dir
+        try:
+            from ..phase14.dream_engine import DreamEngine  # type: ignore
+            print("🌌 Dreaming New Geometry...")
+            de = DreamEngine(str(self.galaxy_path), str(working_dir))
+            dreams = de.dream(num_dreams=3)
+            for d in dreams:
+                p = d.get('path')
+                if isinstance(p, str):
+                    generated_paths.append(p)
+        except Exception as e:
+            print(f"⚠️  Dream engine skipped: {e}")
+
+        # Phase 15.2: Pre‑consolidation critique loop
+        try:
+            from ..phase15.honest_critique_engine import HonestCritiqueEngine  # type: ignore
+            from ..phase15.critique_applier import CritiqueApplier  # type: ignore
+            import shutil as _sh
+            from pygltflib import GLTF2  # type: ignore
+            print(f"🔍 Found {len(generated_paths)} new shapes in Galaxy for pre-consolidation critique...")
+            final_shapes: list[str] = []
+            critique_cycles: list[dict] = []
+            for shape_path in list(generated_paths):
+                current_path = str(shape_path)
+                revision = 0
+                max_revisions = 3
+                honesty_score = 0.5
+                while revision < max_revisions:
+                    # read honesty
+                    h = 0.5
+                    try:
+                        gltf = GLTF2().load(current_path)
+                        for n in (gltf.nodes or []):
+                            ex = getattr(n, 'extras', None)
+                            if hasattr(ex, 'to_dict'):
+                                try:
+                                    ex = ex.to_dict()
+                                except Exception:
+                                    ex = dict(ex)
+                            if isinstance(ex, dict) and isinstance(ex.get('k3d'), dict):
+                                hh = ex['k3d'].get('honesty_score')
+                                if isinstance(hh, (int, float)):
+                                    h = float(hh)
+                                    break
+                    except Exception:
+                        pass
+                    honesty_score = h
+                    if honesty_score >= 0.85:
+                        print(f"✅ Shape {Path(current_path).stem} passed honesty threshold ({honesty_score:.2f}) at revision {revision}")
+                        final_shapes.append(current_path)
+                        critique_cycles.append({'shape': current_path, 'revisions': revision, 'final_honesty': honesty_score, 'status': 'consolidated'})
+                        break
+                    # critique and apply
+                    ce = HonestCritiqueEngine(str(self.material_dir), str(self.galaxy_path))
+                    crits = ce.critique_shapes([{'path': current_path}])
+                    if not crits:
+                        print(f"✅ No critiques for {Path(current_path).name} — accepting as-is.")
+                        final_shapes.append(current_path)
+                        critique_cycles.append({'shape': current_path, 'revisions': revision, 'final_honesty': honesty_score, 'status': 'consolidated_no_critique'})
+                        break
+                    ap = CritiqueApplier(str(self.material_dir), str(working_dir))
+                    try:
+                        new_path = ap.apply_shape_critique(current_path, revision=revision+1, delta=0.15)
+                        current_path = new_path
+                        revision += 1
+                        print(f"🔧 Revised {Path(current_path).stem}")
+                    except Exception as e:
+                        print(f"⚠️  Failed to revise {current_path}: {e}")
+                        break
+                # handle fail/discard
+                if revision >= max_revisions and honesty_score < 0.85:
+                    print(f"❌ Shape {Path(current_path).stem} failed to reach honesty threshold after {max_revisions} revisions — NOT consolidated.")
+                    critique_cycles.append({'shape': current_path, 'revisions': revision, 'final_honesty': honesty_score, 'status': 'discarded'})
+
+            # Consolidate to House only final_shapes
+            for f in final_shapes:
+                try:
+                    src = Path(f)
+                    dst = self.material_dir / src.name
+                    _sh.copy2(src, dst)
+                    # also copy rays (if generated in working dir)
+                    r = src.with_name(f"rays_{src.stem}.glb")
+                    if r.exists():
+                        _sh.copy2(r, self.material_dir / r.name)
+                    adjustments['materialized_objects'].append({'type': 'generated_3d_shape', 'path': str(dst), 'zone': 'Zone 5 (Knowledge Garden)', 'source': 'galaxy_after_critique'})
+                except Exception as e:
+                    print(f"⚠️  Failed to consolidate {f}: {e}")
+            for cyc in critique_cycles:
+                try:
+                    print(f"📊 {Path(cyc['shape']).name}: {cyc['revisions']} revisions, final honesty {float(cyc['final_honesty']):.2f} → {cyc['status']}")
+                except Exception:
+                    pass
+            # Phase 16: Reflect and (mock) train
+            try:
+                from ..phase16.post_consolidation_reflector import PostConsolidationReflector  # type: ignore
+                print("🧠 Running Post-Consolidation Reflection...")
+                ref = PostConsolidationReflector(str(self.material_dir), critique_cycles)
+                reflection = ref.reflect_on_consolidation()
+                queries = ref.generate_training_queries()
+                if queries:
+                    from datetime import datetime as _dt
+                    print(f"🎓 Generating {len(queries)} new training queries from reflection...")
+                    for q in queries:
+                        print(f"  → {q}")
+                        adjustments.setdefault('post_consolidation_training', []).append({'query': q, 'trained_at': _dt.now().isoformat()})
+                    print("✅ Post-Consolidation Training Complete.")
+            except Exception as e:
+                print(f"⚠️  Post-consolidation reflection skipped: {e}")
+        except Exception as e:
+            print(f"⚠️  Critique loop skipped: {e}")
+
+        # Persist Galaxy state for continuity
+        try:
+            from ..phase17.galaxy_state_serializer import GalaxyStateSerializer  # type: ignore
+            print("💾 Saving Galaxy State for Eternal Continuity...")
+            repo_root = Path(__file__).resolve().parents[2]
+            gpath = repo_root / 'viewer' / 'public' / 'galaxy' / 'galaxy_memory.glb'
+            GalaxyStateSerializer(str(gpath)).serialize_galaxy_state()
+        except Exception as e:
+            print(f"⚠️  Galaxy state serialization skipped: {e}")
 
         return adjustments
 

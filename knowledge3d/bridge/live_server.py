@@ -236,6 +236,17 @@ class LiveServer:
         # Port scan state
         self._port_scan: Dict[str, Any] = {"tried": [], "chosen": None}
 
+        # Load Galaxy state if present (continuity)
+        try:
+            from ..cranium.phase17.galaxy_state_serializer import GalaxyStateSerializer  # type: ignore
+            repo_root = Path(__file__).resolve().parents[2]
+            gpath = repo_root / 'viewer' / 'public' / 'galaxy' / 'galaxy_memory.glb'
+            self._galaxy_state = GalaxyStateSerializer(str(gpath)).deserialize_galaxy_state()
+            if self._galaxy_state:
+                print("🌌 Reconstructing Galaxy from saved state (mock)…")
+        except Exception:
+            self._galaxy_state = None  # type: ignore
+
         # Load materialized memory objects at startup (books, diaries, trees)
         try:
             self.materialized_memory = self.load_materialized_objects()
@@ -253,6 +264,7 @@ class LiveServer:
         if not mdir.exists():
             print("📚 No materialized objects found.")
             return loaded
+        # JSON metadata (legacy) and GLB artifacts (current)
         for fp in sorted(mdir.glob('*.json')):
             try:
                 obj = _json.loads(fp.read_text(encoding='utf-8'))
@@ -267,8 +279,161 @@ class LiveServer:
                     loaded['shapes'].append(obj)
             except Exception as e:
                 print(f"⚠️  Failed to load materialized object {fp}: {e}")
+        # Scan GLBs for k3d extras
+        try:
+            from pygltflib import GLTF2  # type: ignore
+            for fp in sorted(mdir.glob('*.glb')):
+                try:
+                    gltf = GLTF2().load(str(fp))
+                    for n in (gltf.nodes or []):
+                        extras = getattr(n, 'extras', None)
+                        if hasattr(extras, 'to_dict'):
+                            try:
+                                extras = extras.to_dict()
+                            except Exception:
+                                extras = dict(extras)
+                        if isinstance(extras, dict):
+                            k3d = extras.get('k3d')
+                            if isinstance(k3d, dict):
+                                typ = str(k3d.get('type') or 'unknown').lower()
+                                if typ in ('generated_3d_shape','synthesized_shape','dream_shape'):
+                                    obj = dict(k3d)
+                                    obj['path'] = str(fp)
+                                    loaded['shapes'].append(obj)
+                                elif typ == 'fractal_tree':
+                                    obj = dict(k3d)
+                                    obj['path'] = str(fp)
+                                    loaded['trees'].append(obj)
+                except Exception as e:
+                    print(f"⚠️  Failed to parse GLB {fp}: {e}")
+        except Exception:
+            pass
+        # Rays: JSON bundles named rays_*.json
+        try:
+            for fp in sorted(mdir.glob('rays_*.json')):
+                try:
+                    obj = _json.loads(fp.read_text(encoding='utf-8'))
+                    if str(obj.get('type') or '').lower() == 'ray_bundle':
+                        loaded.setdefault('rays', []); loaded['rays'].append({"path": "/" + str(fp.resolve().relative_to((Path(__file__).resolve().parents[2] / 'viewer' / 'public'))).replace('\\','/'), **obj})
+                except Exception as e:
+                    print(f"⚠️  Failed to parse ray bundle {fp}: {e}")
+        except Exception:
+            pass
+        # Rays: GLB bundles named rays_*.glb
+        try:
+            from pygltflib import GLTF2  # type: ignore
+            for fp in sorted(mdir.glob('rays_*.glb')):
+                try:
+                    gltf = GLTF2().load(str(fp))
+                    for n in (gltf.nodes or []):
+                        extras = getattr(n, 'extras', None)
+                        if hasattr(extras, 'to_dict'):
+                            try:
+                                extras = extras.to_dict()
+                            except Exception:
+                                extras = dict(extras)
+                        if isinstance(extras, dict):
+                            k3d = extras.get('k3d')
+                            if isinstance(k3d, dict) and str(k3d.get('type','')).lower() == 'ray_bundle':
+                                obj = dict(k3d)
+                                obj['path'] = str(fp)
+                                loaded.setdefault('rays', [])
+                                loaded['rays'].append(obj)
+                                break
+                except Exception as e:
+                    print(f"⚠️  Failed to parse ray GLB {fp}: {e}")
+        except Exception:
+            pass
         print(f"📚 Loaded {len(loaded['books'])} books, {len(loaded['diaries'])} diaries, {len(loaded['trees'])} trees, {len(loaded['shapes'])} shapes.")
+        # Save a high-level house manifest for continuity
+        try:
+            self.save_house_manifest()
+        except Exception as e:
+            print(f"⚠️  Failed to save House manifest: {e}")
+        # Write a public manifest for the viewer
+        try:
+            repo_root = Path(__file__).resolve().parents[2]
+            pub = repo_root / 'viewer' / 'public'
+            manifest_dir = pub / 'house' / 'materialized_objects'
+            manifest_dir.mkdir(parents=True, exist_ok=True)
+            # Only include GLB shapes that have a path
+            shapes = []
+            for s in loaded['shapes']:
+                p = s.get('path') if isinstance(s, dict) else None
+                if p:
+                    # Convert absolute path to public-relative URL
+                    try:
+                        rel = "/" + str(Path(p).resolve().relative_to(pub)).replace('\\','/')
+                    except Exception:
+                        rel = str(p)
+                    shapes.append({"path": rel, "honesty_score": s.get('honesty_score', 1.0), "name": s.get('name', ''), "shape_type": s.get('shape_type', ''), "type": s.get('type', '')})
+            rays = []
+            for r in (loaded.get('rays') or []):
+                p = r.get('path') if isinstance(r, dict) else None
+                if p:
+                    try:
+                        rel = "/" + str(Path(p).resolve().relative_to(pub)).replace('\\','/')
+                    except Exception:
+                        rel = str(p)
+                    rays.append({"path": rel, "modality": r.get('modality', 'text'), "ray_count": r.get('ray_count', 0)})
+            (manifest_dir / 'manifest.json').write_text(json.dumps({"shapes": shapes, "rays": rays}, ensure_ascii=False, indent=2), encoding='utf-8')
+        except Exception as e:
+            print(f"⚠️  Failed to write materialized manifest: {e}")
         return loaded
+
+    def save_house_manifest(self):
+        """Save House manifest (books, diaries, trees, shapes) to viewer/public/house/house_manifest.json."""
+        from datetime import datetime as _dt
+        repo_root = Path(__file__).resolve().parents[2]
+        base = repo_root / 'viewer' / 'public' / 'house'
+        mdir = base / 'materialized_objects'
+        manifest = {
+            'version': '1.0',
+            'saved_at': _dt.now().isoformat(),
+            'books': [],
+            'diaries': [],
+            'trees': [],
+            'shapes': [],
+        }
+        # JSON based objects
+        for fp in sorted(mdir.glob('*.json')):
+            try:
+                obj = json.loads(fp.read_text(encoding='utf-8'))
+                typ = str(obj.get('type',''))
+                entry = {
+                    'path': str(fp.resolve().relative_to(base.parent)).replace('\\','/'),
+                    'name': obj.get('name','') or obj.get('title',''),
+                    'created_at': obj.get('created_at',''),
+                    'honesty_score': obj.get('honesty_score', 0.5),
+                    'zone': obj.get('zone_placement','unknown'),
+                }
+                if typ == 'chat_history_book':
+                    manifest['books'].append(entry)
+                elif typ in ('diary_entry','critique_diary','reflection_diary'):
+                    manifest['diaries'].append(entry)
+                elif typ == 'fractal_tree':
+                    manifest['trees'].append(entry)
+                elif typ in ('generated_3d_shape','synthesized_shape','dream_shape'):
+                    manifest['shapes'].append(entry)
+            except Exception:
+                continue
+        # Shapes GLBs
+        for fp in sorted(mdir.glob('*.glb')):
+            try:
+                entry = {
+                    'path': str(fp.resolve().relative_to(base.parent)).replace('\\','/'),
+                    'name': fp.stem,
+                    'created_at': '',
+                    'honesty_score': 1.0,
+                    'zone': 'unknown',
+                }
+                manifest['shapes'].append(entry)
+            except Exception:
+                continue
+        out = base / 'house_manifest.json'
+        out.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')
+        print(f"🏛️  House Manifest Saved: {len(manifest['shapes'])} shapes, {len(manifest['diaries'])} diaries → {out}")
+        return manifest
 
     def _is_port_in_use(self, host: str, port: int) -> bool:
         try:
