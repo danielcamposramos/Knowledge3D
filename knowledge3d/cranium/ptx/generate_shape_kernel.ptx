@@ -1,0 +1,105 @@
+.visible .entry generate_shape_kernel(
+    .param .u64 embedding_ptr,
+    .param .u64 vertices_ptr,
+    .param .u32 vertex_count,
+    .param .u32 shape_type
+)
+{
+    .reg .b32 %r<12>;
+    .reg .b64 %rd<12>;
+    .reg .f32 %f<32>;
+    .reg .pred %p1, %p2;
+
+    // Load params
+    ld.param.u64 %rd1, [embedding_ptr];
+    ld.param.u64 %rd2, [vertices_ptr];
+    ld.param.u32 %r1, [vertex_count];
+    ld.param.u32 %r2, [shape_type];
+
+    // Thread id and bounds
+    mov.u32 %r3, %tid.x;
+    setp.ge.u32 %p1, %r3, %r1;
+    @%p1 bra done;
+
+    // Load first three embedding values and compute scale
+    ld.global.f32 %f1, [%rd1];
+    ld.global.f32 %f2, [%rd1+4];
+    ld.global.f32 %f3, [%rd1+8];
+    add.f32 %f10, %f1, %f2;
+    add.f32 %f11, %f10, %f3;
+    abs.f32 %f12, %f11;
+
+    // Default vertex
+    mov.f32 %f20, 0.0; // x
+    mov.f32 %f21, 0.0; // y
+    mov.f32 %f22, 0.0; // z
+
+    // shape_type dispatch
+    setp.eq.u32 %p2, %r2, 0; @%p2 bra tetra;
+    setp.eq.u32 %p2, %r2, 1; @%p2 bra cube;
+    setp.eq.u32 %p2, %r2, 2; @%p2 bra octa;
+    setp.eq.u32 %p2, %r2, 3; @%p2 bra icosa;
+    setp.eq.u32 %p2, %r2, 4; @%p2 bra dodeca;
+    bra fallback;
+
+tetra:
+    // 4 vertices
+    mov.f32 %f20, 1.0; mov.f32 %f21, 1.0; mov.f32 %f22, 1.0;
+    setp.eq.u32 %p2, %r3, 1; @%p2 { mov.f32 %f20, -1.0; mov.f32 %f21, -1.0; mov.f32 %f22, 1.0; }
+    setp.eq.u32 %p2, %r3, 2; @%p2 { mov.f32 %f20, -1.0; mov.f32 %f21, 1.0; mov.f32 %f22, -1.0; }
+    setp.eq.u32 %p2, %r3, 3; @%p2 { mov.f32 %f20, 1.0; mov.f32 %f21, -1.0; mov.f32 %f22, -1.0; }
+    bra write;
+
+cube:
+    // 8 vertices from signs of bits
+    mov.s32 %r4, -1; mov.s32 %r5, -1; mov.s32 %r6, -1;
+    and.b32 %r7, %r3, 1; setp.ne.u32 %p2, %r7, 0; @%p2 mov.s32 %r4, 1;
+    and.b32 %r7, %r3, 2; setp.ne.u32 %p2, %r7, 0; @%p2 mov.s32 %r5, 1;
+    and.b32 %r7, %r3, 4; setp.ne.u32 %p2, %r7, 0; @%p2 mov.s32 %r6, 1;
+    cvt.f32.s32 %f20, %r4; cvt.f32.s32 %f21, %r5; cvt.f32.s32 %f22, %r6;
+    bra write;
+
+octa:
+    // axes
+    setp.eq.u32 %p2, %r3, 0; @%p2 { mov.f32 %f20, 1.0; }
+    setp.eq.u32 %p2, %r3, 1; @%p2 { mov.f32 %f20, -1.0; }
+    setp.eq.u32 %p2, %r3, 2; @%p2 { mov.f32 %f21, 1.0; }
+    setp.eq.u32 %p2, %r3, 3; @%p2 { mov.f32 %f21, -1.0; }
+    setp.eq.u32 %p2, %r3, 4; @%p2 { mov.f32 %f22, 1.0; }
+    setp.eq.u32 %p2, %r3, 5; @%p2 { mov.f32 %f22, -1.0; }
+    bra write;
+
+icosa:
+    // Very rough cyclic set
+    mov.f32 %f30, 1.618034;
+    setp.eq.u32 %p2, %r3, 0; @%p2 { mov.f32 %f20, %f30; mov.f32 %f21, 1.0; mov.f32 %f22, 0.0; }
+    setp.eq.u32 %p2, %r3, 1; @%p2 { mov.f32 %f20, -%f30; mov.f32 %f21, 1.0; mov.f32 %f22, 0.0; }
+    setp.eq.u32 %p2, %r3, 2; @%p2 { mov.f32 %f20, %f30; mov.f32 %f21, -1.0; mov.f32 %f22, 0.0; }
+    setp.eq.u32 %p2, %r3, 3; @%p2 { mov.f32 %f20, -%f30; mov.f32 %f21, -1.0; mov.f32 %f22, 0.0; }
+    bra write;
+
+dodeca:
+fallback:
+    // unit circle fallback in XY
+    cvt.f32.u32 %f20, %r3;
+    mul.f32 %f20, %f20, 0.392699; // 2pi/16
+    sincos.approx.f32 %f21, %f22, %f20; // %f21=cos, %f22=sin
+    mov.f32 %f20, %f21; // x
+    // y=%f22, z=0 already
+
+write:
+    // scale
+    mul.f32 %f20, %f20, %f12;
+    mul.f32 %f21, %f21, %f12;
+    mul.f32 %f22, %f22, %f12;
+    // write float3
+    mul.wide.u32 %rd3, %r3, 12;
+    add.u64 %rd4, %rd2, %rd3;
+    st.global.f32 [%rd4], %f20;
+    st.global.f32 [%rd4+4], %f21;
+    st.global.f32 [%rd4+8], %f22;
+
+done:
+    ret;
+}
+

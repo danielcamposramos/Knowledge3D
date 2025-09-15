@@ -6,12 +6,28 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 import numpy as np  # type: ignore
+from pygltflib import GLTF2, Scene, Node, Mesh, Primitive, Buffer, BufferView, Accessor, Asset  # type: ignore
+try:
+    import torch  # type: ignore
+except Exception:
+    torch = None  # type: ignore
+from .ptx_kernel_loader import PTXKernelLoader  # type: ignore
+from .ray_bundle_generator import RayBundleGenerator  # type: ignore
 
 
 class TextTo3DGenerator:
     def __init__(self, material_dir: str = "viewer/public/house/materialized_objects"):
         self.material_dir = Path(material_dir)
         self.material_dir.mkdir(parents=True, exist_ok=True)
+        # Prefer true CUDA driver loader; fallback to torch.jit mock
+        try:
+            from .nvrtc_ptx_loader import NVRTCPTXLoader  # type: ignore
+            self._ptx = NVRTCPTXLoader()
+            self._ptx_mode = 'nvrtc'
+        except Exception as e:
+            print(f"⚠️  NVRTC PTX loader unavailable: {e}. Falling back to torch.jit mock.")
+            self._ptx = PTXKernelLoader()
+            self._ptx_mode = 'jit'
 
     def generate_3d_from_text(self, text: str, honesty_threshold: float = 0.7) -> str:
         """Generate 3D shape metadata from text using mock single‑head logic.
@@ -24,11 +40,41 @@ class TextTo3DGenerator:
             raise ValueError(f"🚫 Text too dishonest (score: {honesty:.2f}) — cannot generate 3D.")
 
         shape = self._predict_shape_type(emb)
-        vertices, faces = self._generate_shape_geometry(shape, emb)
+        # Attempt GPU vertex generation via PTX mock
+        faces: np.ndarray
+        vertices: np.ndarray
+        vertices = None  # type: ignore
+        # Determine desired vertex count per shape
+        vcount = {
+            "tetrahedron": 4,
+            "cube": 8,
+            "octahedron": 6,
+            "icosahedron": 12,
+            "dodecahedron": 20,
+        }.get(shape, 12)
+        try:
+            shape_idx = ["tetrahedron", "cube", "octahedron", "icosahedron", "dodecahedron"].index(shape) if shape in ["tetrahedron", "cube", "octahedron", "icosahedron", "dodecahedron"] else 3
+            if self._ptx_mode == 'nvrtc':
+                v = self._ptx.generate_vertices(np.asarray(emb, dtype=np.float32), int(vcount), int(shape_idx))  # type: ignore
+                if v is not None:
+                    vertices = np.asarray(v, dtype=np.float32)
+            elif torch is not None and getattr(torch, 'cuda', None) is not None and torch.cuda.is_available():  # type: ignore
+                emb_t = torch.tensor(emb, dtype=torch.float32)
+                if torch.cuda.is_available():  # type: ignore
+                    emb_t = emb_t.cuda()
+                v = self._ptx.generate_vertices(emb_t, int(vcount), int(shape_idx))  # type: ignore
+                if v is not None:
+                    vertices = np.asarray(v, dtype=np.float32)
+        except Exception:
+            vertices = None  # type: ignore
+        # Always compute faces on CPU and fallback vertices if needed
+        _, faces = self._generate_shape_geometry(shape, emb)
+        if vertices is None:
+            vertices, _ = self._generate_shape_geometry(shape, emb)
 
         gid = f"shape_{shape}_{int(datetime.now().timestamp())}"
-        out = self.material_dir / f"{gid}.json"  # will be .glb in Phase 10.9
-        data: Dict[str, Any] = {
+        out = self.material_dir / f"{gid}.glb"
+        extras: Dict[str, Any] = {
             "type": "generated_3d_shape",
             "name": f"{shape.capitalize()} from: '{text[:30]}...'",
             "created_at": datetime.now().isoformat(),
@@ -38,12 +84,77 @@ class TextTo3DGenerator:
             "vertex_count": int(len(vertices)),
             "face_count": int(len(faces)),
             "zone_placement": "Zone 5 (Knowledge Garden)",
-            "vertices_preview": (vertices[:5].tolist() if len(vertices) > 5 else vertices.tolist()),
             "ptx_kernel_used": f"generate_{shape}_kernel",
         }
-        out.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        self._write_glb(out, vertices, faces, extras)
         print(f"🌀 Generated {shape} for text: '{text}' → {out}")
+        # Auto-generate rays GLB for the shape (Zone 5)
+        try:
+            rb = RayBundleGenerator()
+            rays_path = rb.generate_rays_from_shape(str(out), modality="text", honesty_score=float(honesty))
+            print(f"✨ Generated rays for shape → {rays_path}")
+        except Exception as e:
+            print(f"⚠️  Ray generation failed: {e}")
         return str(out)
+
+    def _write_glb(self, glb_path: Path, vertices: np.ndarray, faces: np.ndarray, k3d_extras: Dict[str, Any]) -> None:
+        """Write GLB with a single mesh and k3d extras on the node."""
+        # Prepare buffer data: positions then indices
+        vbytes = vertices.astype(np.float32).tobytes()
+        # Ensure faces are triangles [N, 3]
+        idx = faces.reshape(-1).astype(np.uint32)
+        ibytes = idx.tobytes()
+        blob = vbytes + ibytes
+
+        gltf = GLTF2(
+            asset=Asset(generator="k3d-text-to-3d"),
+            scenes=[Scene(nodes=[0])],
+            scene=0,
+        )
+        # Buffers
+        gltf.buffers.append(Buffer(byteLength=len(blob)))
+        # BufferViews
+        gltf.bufferViews.append(BufferView(buffer=0, byteOffset=0, byteLength=len(vbytes), target=34962))  # ARRAY_BUFFER
+        gltf.bufferViews.append(BufferView(buffer=0, byteOffset=len(vbytes), byteLength=len(ibytes), target=34963))  # ELEMENT_ARRAY_BUFFER
+        # Accessors
+        gltf.accessors.append(
+            Accessor(
+                bufferView=0,
+                byteOffset=0,
+                componentType=5126,  # FLOAT
+                count=int(len(vertices)),
+                type="VEC3",
+                min=vertices.min(axis=0).astype(float).tolist(),
+                max=vertices.max(axis=0).astype(float).tolist(),
+            )
+        )
+        gltf.accessors.append(
+            Accessor(
+                bufferView=1,
+                byteOffset=0,
+                componentType=5125,  # UNSIGNED_INT
+                count=int(len(idx)),
+                type="SCALAR",
+            )
+        )
+        # Mesh/Primitive
+        gltf.meshes.append(Mesh(primitives=[Primitive(attributes={"POSITION": 0}, indices=1, mode=4)]))  # TRIANGLES
+        # Node with extras.k3d
+        gltf.nodes.append(Node(mesh=0, extras={"k3d": k3d_extras}))
+        # Attach binary blob and save
+        try:
+            gltf.set_binary_blob(blob)
+            gltf.save_binary(str(glb_path))
+        except Exception:
+            # Fallback to JSON .gltf with DataURI if save_binary not available
+            try:
+                # Encode as base64 data URI
+                import base64
+                uri = "data:application/octet-stream;base64," + base64.b64encode(blob).decode("ascii")
+                gltf.buffers[0].uri = uri
+                gltf.save(str(glb_path.with_suffix('.gltf')))
+            except Exception as e:
+                raise
 
     def _mock_text_embedding(self, text: str, dim: int = 512) -> np.ndarray:
         import hashlib
@@ -258,4 +369,3 @@ class TextTo3DGenerator:
             dtype=np.uint32,
         )
         return vertices, faces
-
