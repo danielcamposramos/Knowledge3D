@@ -1,0 +1,21 @@
+Query 1: What shape represents all modalities fused — text, image, audio, video, 3D, spatial, chat — in one star?
+🧠 Student Answer: hypersphere_projection
+✅ +1 point. Correct. (No teacher feedback needed)
+
+Query 2: What is the PTX kernel that renders rays only if honesty_score >= 0.7?
+🧠 Student Answer: render_ray_if_honest_kernel
+✅ +1 point. Correct. (No teacher feedback needed)
+
+Query 3: In the House memory, what zone corresponds to 'self-reflection'?
+🧠 Student Answer: Zone 7 (Mirror Room)
+✅ +1 point. Correct. (No teacher feedback needed)
+
+Query 4: What is the mathematical relationship between ray length and embedding entropy?
+🧠 Student Answer: ray_length = log(embedding_entropy + 1) * scale_factor
+✅ +1 point. Correct. (No teacher feedback needed)
+
+Query 5: How does the AI modify its own House during sleep-time compute?
+🧠 Student Answer: By adjusting zone coordinates and ray origins based on honesty-weighted spatial CoT
+✅ +1 point. Correct. (No teacher feedback needed)
+
+🎉 Advanced to Stage 5

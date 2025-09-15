@@ -1,0 +1,21 @@
+Query 1: What shape represents text, image, audio, and video fused in one star?
+🧠 Student Answer: dodecahedron
+✅ +1 point. Correct. (No teacher feedback needed)
+
+Query 2: How does the golden-ratio constrain the depth of a fractal tree’s recursion?
+🧠 Student Answer: Limits recursion depth to prevent overfitting (depth = int(φ * honesty_score * 10))
+✅ +1 point. Correct. (No teacher feedback needed)
+
+Query 3: What PTX kernel function maps ray thickness to embedding resolution?
+🧠 Student Answer: map_ray_thickness_to_resolution_kernel
+✅ +1 point. Correct. (No teacher feedback needed)
+
+Query 4: In dual-perception mode, what coordinate system aligns Galaxy and House?
+🧠 Student Answer: Shared Cartesian origin (0,0,0) with scale normalization
+✅ +1 point. Correct. (No teacher feedback needed)
+
+Query 5: What is the minimum honesty score required for a star to be rendered in AR?
+🧠 Student Answer: 0.7
+✅ +1 point. Correct. (No teacher feedback needed)
+
+🎉 Advanced to Stage 4

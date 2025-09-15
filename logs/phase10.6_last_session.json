@@ -1,34 +1,34 @@
 {
-  "stage": 1,
+  "stage": 4,
   "num_queries": 5,
   "results": [
     {
-      "query": "What shape represents text in the Galaxy?",
-      "answer": "tetrahedron",
+      "query": "What shape represents all modalities fused — text, image, audio, video, 3D, spatial, chat — in one star?",
+      "answer": "hypersphere_projection",
       "score": 1.0,
       "explanation": "deterministic correct"
     },
     {
-      "query": "What does ray thickness encode?",
-      "answer": "resolution",
+      "query": "What is the PTX kernel that renders rays only if honesty_score >= 0.7?",
+      "answer": "render_ray_if_honest_kernel",
       "score": 1.0,
       "explanation": "deterministic correct"
     },
     {
-      "query": "What is the simplest 3D shape for text?",
-      "answer": "tetrahedron",
+      "query": "In the House memory, what zone corresponds to 'self-reflection'?",
+      "answer": "Zone 7 (Mirror Room)",
       "score": 1.0,
       "explanation": "deterministic correct"
     },
     {
-      "query": "What shape represents image in the Galaxy?",
-      "answer": "cube",
+      "query": "What is the mathematical relationship between ray length and embedding entropy?",
+      "answer": "ray_length = log(embedding_entropy + 1) * scale_factor",
       "score": 1.0,
       "explanation": "deterministic correct"
     },
     {
-      "query": "What does ray length encode?",
-      "answer": "content size",
+      "query": "How does the AI modify its own House during sleep-time compute?",
+      "answer": "By adjusting zone coordinates and ray origins based on honesty-weighted spatial CoT",
       "score": 1.0,
       "explanation": "deterministic correct"
     }
