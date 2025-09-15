@@ -84,10 +84,14 @@ def main():  # pragma: no cover
         correct = int(data.get("correct_count", 0))
         num = int(data.get("num_queries", 0))
         all_correct = bool(data.get("all_correct", False))
+        cur_stage = int(data.get("stage", 1))
         if all_correct and correct >= int(args.check_correct):
-            print("🎉 Advanced to Stage 2")
+            if cur_stage >= 4:
+                print("🎓 Fully grown — all modalities mastered")
+            else:
+                print(f"🎉 Advanced to Stage {cur_stage+1}")
         else:
-            print("⚠️ Stay in Stage 1")
+            print(f"⚠️ Stay in Stage {cur_stage}")
         return
     # Default: demonstrate a single modality at stage
     bc = BabyCurriculum()
