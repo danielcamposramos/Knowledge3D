@@ -4,7 +4,7 @@ import argparse
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Set
 import os
 import subprocess
 import sys
@@ -123,6 +123,123 @@ class MeaningClusterTrainer:
         except Exception:
             self.fused_head = None
 
+    def _ensure_cuda(self) -> None:
+        try:
+            import torch  # type: ignore
+        except Exception as exc:  # pragma: no cover
+            raise RuntimeError(f'PyTorch not available for CUDA enforcement: {exc}')
+        if not torch.cuda.is_available():
+            raise RuntimeError('CUDA is required for Phase 22 training (GPU-only).')
+
+    def auto_commit_cluster(self, cluster_name: str, status: str, honesty_score: float = 0.0) -> None:
+        """Stage relevant artifacts and commit after each cluster."""
+        if status == 'consolidated':
+            commit_msg = f"✅ Cluster {cluster_name} trained — honesty {honesty_score:.2f} — GPU-only, RLWHF-enforced."
+        else:
+            commit_msg = f"❌ Cluster {cluster_name} failed — RLWHF timeout — GPU-only, no fallback."
+        paths_to_add = [
+            self.logs_dir / 'phase22_scale_report.json',
+            Path('viewer/public/house/materialized_objects'),
+            Path('viewer/public/galaxy/working'),
+        ]
+        try:
+            for path in paths_to_add:
+                if path.exists():
+                    subprocess.run(['git', 'add', str(path)], check=True)
+            commit = subprocess.run(
+                ['git', 'commit', '-m', commit_msg],
+                capture_output=True,
+                text=True,
+            )
+            if commit.returncode == 0:
+                print(f"💾 Auto-committed: {commit_msg}")
+            else:
+                detail = commit.stderr.strip() or commit.stdout.strip()
+                print(f"⚠️  Failed to auto-commit {cluster_name}: {detail}")
+        except Exception as exc:
+            print(f"⚠️  Failed to auto-commit {cluster_name}: {exc}")
+
+    def get_gpu_utilization(self) -> int:
+        """Return current GPU utilization percentage (best effort)."""
+        try:
+            result = subprocess.run(
+                ['nvidia-smi', '--query-gpu=utilization.gpu', '--format=csv,noheader,nounits'],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if result.returncode == 0:
+                lines = [ln for ln in result.stdout.splitlines() if ln.strip()]
+                if lines:
+                    return int(float(lines[0].strip()))
+        except Exception:
+            pass
+        return 0
+
+    def log_progress(self, cluster_index: int, total_clusters: int, avg_honesty: float) -> None:
+        """Log high-level progress every 10 clusters."""
+        if cluster_index <= 0 or cluster_index % 10 != 0:
+            return
+        gpu_util = self.get_gpu_utilization()
+        remaining = max(total_clusters - cluster_index, 0)
+        eta_hours = (remaining * 0.5) / 60.0
+        progress_msg = (
+            f"📊 Phase 22: {cluster_index}/{total_clusters} clusters trained — "
+            f"ETA {eta_hours:.1f}h — GPU: {gpu_util}% — Honesty: {avg_honesty:.2f}."
+        )
+        try:
+            Path('/home/daniel/progress.txt').write_text(progress_msg + '\n', encoding='utf-8')
+        except Exception as exc:
+            print(f"⚠️  Failed to write progress log: {exc}")
+        print(progress_msg)
+
+    def _calculate_average_honesty(self, report: Dict[str, Any]) -> float:
+        values: List[float] = []
+        for entry in report.get('results', []):
+            val = entry.get('final_honesty')
+            try:
+                if val is not None:
+                    values.append(float(val))
+            except Exception:
+                continue
+        if not values:
+            return 0.0
+        return float(sum(values) / len(values))
+
+    def auto_advance_to_phase_23(self) -> None:
+        """Generate the Phase 23 plan and commit it."""
+        plan_text = (
+            "# PHASE 23: AUTO-CURATED ARC/HLE BENCHMARK\n\n"
+            "## GOAL\n"
+            "- 50 zero-shot questions — multi-modal (text+image+audio+3D).\n"
+            "- Measure accuracy, honesty, cross-modal consistency.\n"
+            "- No training — pure geometric reasoning.\n\n"
+            "## COMMAND\n"
+            "```bash\n"
+            "conda activate k3d-cranium\n"
+            "PYTHONPATH=. python -m knowledge3d.tools.phase23.benchmark_runner --questions 50\n"
+            "```\n\n"
+            "## OUTPUT\n"
+            "- `logs/phase23_benchmark_report.json`\n"
+            "- `docs/PHASE_23_RESULTS.md`\n"
+        )
+        plan_path = Path('docs/PHASE_23_PLAN.md')
+        try:
+            plan_path.write_text(plan_text, encoding='utf-8')
+            subprocess.run(['git', 'add', str(plan_path)], check=True)
+            commit = subprocess.run(
+                ['git', 'commit', '-m', '🚀 Phase 23 Plan: Auto-curated ARC/HLE Benchmark'],
+                capture_output=True,
+                text=True,
+            )
+            if commit.returncode == 0:
+                print('🚀 Auto-advanced to Phase 23 — plan committed.')
+            else:
+                detail = commit.stderr.strip() or commit.stdout.strip()
+                print(f"⚠️  Failed to auto-commit Phase 23 plan: {detail}")
+        except Exception as exc:
+            print(f"⚠️  Failed to auto-advance to Phase 23: {exc}")
+
     def train_on_meaning_cluster(self, cluster_name: str) -> Dict[str, Any]:
         """Train one cluster with honesty-weighted remediation and conditional consolidation."""
         # Lazy imports to keep dependencies soft
@@ -134,7 +251,12 @@ class MeaningClusterTrainer:
         cluster = self.meaning_clusters.get(cluster_name)
         if not cluster:
             print(f"⚠️  Unknown meaning cluster: {cluster_name}")
-            return {'cluster': cluster_name, 'status': 'missing'}
+            return {
+                'cluster': cluster_name,
+                'cluster_name': cluster_name,
+                'status': 'missing',
+                'timestamp': datetime.now().isoformat(),
+            }
 
         print(f"\n🧠 TRAINING ON MEANING CLUSTER: {cluster_name}")
         print(f"   Description: {cluster.get('description','')}")
@@ -205,12 +327,16 @@ class MeaningClusterTrainer:
             print(f"⚠️  Cluster '{cluster_name}' not honest enough ({current_honesty:.2f}) — not consolidated.")
 
         print(f"📈 Cluster '{cluster_name}' honesty: {float(initial_honesty or 0.0):.2f} → {current_honesty:.2f} after {remediation_count} remedial rounds")
+        status = 'consolidated' if consolidated else 'incomplete'
         return {
             'cluster': cluster_name,
+            'cluster_name': cluster_name,
             'initial_honesty': float(initial_honesty or 0.0),
             'final_honesty': float(current_honesty),
             'remediation_rounds': remediation_count,
             'consolidated': consolidated,
+            'status': status,
+            'timestamp': datetime.now().isoformat(),
         }
 
     def consolidate_meaning_cluster(self, cluster_name: str, cluster: Dict[str, Any], accuracy: float) -> None:
@@ -451,21 +577,170 @@ class MeaningClusterTrainer:
 
     def train_all_generated_clusters(self) -> None:
         names = list(self.meaning_clusters.keys())
-        results: List[Dict[str, Any]] = []
+        if not names:
+            print("⚠️  No generated clusters loaded. Run with --generate_clusters first.")
+            return
+        try:
+            self._ensure_cuda()
+        except RuntimeError as exc:
+            print(f"❌ {exc}")
+            return
+        report_path: Path | None = None
         for n in names:
             try:
-                results.append(self.train_on_meaning_cluster(n))
+                result = self.train_on_meaning_cluster(n)
             except Exception as e:
-                results.append({'cluster': n, 'error': str(e)})
-        report = {
-            'phase': 22,
-            'total_clusters': len(names),
-            'results': results,
-            'timestamp': datetime.now().isoformat(),
-        }
+                result = {
+                    'cluster': n,
+                    'cluster_name': n,
+                    'status': 'error',
+                    'error': str(e),
+                    'timestamp': datetime.now().isoformat(),
+                }
+                print(f"⚠️  Error training cluster '{n}': {e}")
+            report_path = self.record_phase22_result(result)
+        if report_path is not None:
+            print(f"💾 Phase 22 scale report updated: {report_path}")
+
+    def _load_phase22_report(self) -> Dict[str, Any]:
+        report_path = self.logs_dir / 'phase22_scale_report.json'
+        report: Dict[str, Any]
+        if report_path.exists():
+            try:
+                loaded = json.loads(report_path.read_text(encoding='utf-8'))
+                if isinstance(loaded, dict):
+                    report = loaded
+                else:
+                    report = {}
+            except Exception:
+                report = {}
+        else:
+            report = {}
+        if 'results' not in report or not isinstance(report['results'], list):
+            report['results'] = []
+        report.setdefault('phase', 22)
+        return report
+
+    def record_phase22_result(self, result: Dict[str, Any]) -> Path:
+        report = self._load_phase22_report()
+        cluster_name = result.get('cluster_name') or result.get('cluster')
+        if cluster_name:
+            result['cluster_name'] = cluster_name
+        else:
+            raise ValueError('Cluster name missing from result record')
+        existing_results: List[Dict[str, Any]] = report.get('results', [])
+        filtered: List[Dict[str, Any]] = []
+        for entry in existing_results:
+            entry_name = entry.get('cluster_name') or entry.get('cluster')
+            if entry_name == cluster_name:
+                continue
+            filtered.append(entry)
+        filtered.append(result)
+        report['results'] = filtered
+        report['timestamp'] = datetime.now().isoformat()
+        unique_clusters: Set[str] = set()
+        for entry in report['results']:
+            entry_name = entry.get('cluster_name') or entry.get('cluster')
+            if entry_name:
+                unique_clusters.add(entry_name)
+        report['total_clusters'] = len(unique_clusters)
         out = self.logs_dir / 'phase22_scale_report.json'
         out.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
-        print(f"💾 Phase 22 scale report: {out}")
+        return out
+
+    def resume_training(self) -> None:
+        try:
+            self._ensure_cuda()
+        except RuntimeError as exc:
+            print(f"❌ {exc}")
+            return
+        cluster_file = self.logs_dir / 'phase22_clusters.json'
+        if not cluster_file.exists():
+            print("❌ No cluster file found — run --generate_clusters first.")
+            return
+        try:
+            clusters = json.loads(cluster_file.read_text(encoding='utf-8'))
+        except Exception as exc:
+            print(f"❌ Failed to load cluster file: {exc}")
+            return
+        if not isinstance(clusters, dict):
+            print("❌ Invalid cluster file format.")
+            return
+
+        report = self._load_phase22_report()
+        trained_clusters: Set[str] = set()
+        for entry in report.get('results', []):
+            name = entry.get('cluster_name') or entry.get('cluster')
+            if not isinstance(name, str):
+                continue
+            status = entry.get('status')
+            consolidated = entry.get('consolidated')
+            if status == 'consolidated' or consolidated is True:
+                trained_clusters.add(name)
+
+        print(f"🔁 Resuming training — {len(trained_clusters)} clusters already trained.")
+        self.meaning_clusters = clusters
+
+        trained_this_run = 0
+        error_count = 0
+        total_clusters = len(clusters)
+        for cluster_name in clusters.keys():
+            if cluster_name in trained_clusters:
+                print(f"✅ Skipping {cluster_name} — already trained.")
+                continue
+            try:
+                result = self.train_on_meaning_cluster(cluster_name)
+            except Exception as exc:
+                print(f"⚠️  Error training cluster '{cluster_name}': {exc}")
+                result = {
+                    'cluster': cluster_name,
+                    'cluster_name': cluster_name,
+                    'status': 'error',
+                    'error': str(exc),
+                    'timestamp': datetime.now().isoformat(),
+                }
+            self.record_phase22_result(result)
+            if result.get('status') == 'error':
+                error_count += 1
+            else:
+                trained_this_run += 1
+
+            latest_report = self._load_phase22_report()
+            completed_clusters = len({
+                entry.get('cluster_name') or entry.get('cluster')
+                for entry in latest_report.get('results', [])
+                if isinstance(entry.get('cluster_name') or entry.get('cluster'), str)
+            })
+            avg_honesty = self._calculate_average_honesty(latest_report)
+            if result.get('status') == 'consolidated':
+                honesty_val = float(result.get('final_honesty', 0.0))
+                self.auto_commit_cluster(cluster_name, 'consolidated', honesty_val)
+            else:
+                honesty_val = float(result.get('final_honesty', 0.0) or 0.0)
+                self.auto_commit_cluster(cluster_name, 'failed', honesty_val)
+            self.log_progress(completed_clusters, total_clusters, avg_honesty)
+
+        if trained_this_run == 0 and error_count == 0:
+            print("✅ Phase 22 Training Resumed — nothing new to train.")
+        elif error_count > 0:
+            print(f"⚠️  Phase 22 resume finished with {error_count} error(s). Check logs for details.")
+        else:
+            print("✅ Phase 22 Training Resumed and Completed.")
+
+        final_report = self._load_phase22_report()
+        final_completed = len({
+            entry.get('cluster_name') or entry.get('cluster')
+            for entry in final_report.get('results', [])
+            if isinstance(entry.get('cluster_name') or entry.get('cluster'), str)
+        })
+        if total_clusters > 0 and final_completed >= total_clusters:
+            self.auto_advance_to_phase_23()
+        pid_file = self.logs_dir / 'phase22_resume.pid'
+        if pid_file.exists():
+            try:
+                pid_file.unlink()
+            except Exception:
+                pass
 
     # ---------- Dataset scanning ----------
     def scan_dataset_images(self, dataset_path: Path) -> Dict[str, str]:
@@ -703,21 +978,18 @@ class MeaningClusterTrainer:
         # Use RLWHF TeacherEvaluator for a real score signal; fallback to simple check
         try:
             from knowledge3d.cranium.phase10.teacher_evaluator import TeacherEvaluator  # type: ignore
-            teacher = TeacherEvaluator()
-            prompt = (
-                "You are evaluating a multi-modal answer for cross-modal consistency.\n"
-                f"Query: {query}\nPredicted: {predicted}\nTrue: {true_answer}\n"
-                "Modalities present: text,image,audio,3d. Respond with the RLWHF marker."
-            )
-            ev = teacher.evaluate_response(prompt, model="exaone-deep:latest")
-            sc = float(ev.get('score', -1.0))
-            return 1.0 if sc >= 1.0 else (0.5 if sc >= 0.5 else -1.0)
-        except Exception:
-            if str(predicted).strip() != str(true_answer).strip():
-                return -1.0
-            img_mass = sum(abs(x) for x in embedding[512:1024])
-            aud_mass = sum(abs(x) for x in embedding[1024:1536])
-            return 1.0 if (img_mass > 10.0 and aud_mass > 10.0) else 0.5
+        except Exception as exc:  # pragma: no cover
+            raise RuntimeError('TeacherEvaluator unavailable — cannot score RLWHF.') from exc
+
+        teacher = TeacherEvaluator()
+        prompt = (
+            "You are evaluating a multi-modal answer for cross-modal consistency.\n"
+            f"Query: {query}\nPredicted: {predicted}\nTrue: {true_answer}\n"
+            "Modalities present: text,image,audio,3d. Respond with the RLWHF marker."
+        )
+        ev = teacher.evaluate_response(prompt, model="exaone-deep:latest")
+        sc = float(ev.get('score', -1.0))
+        return 1.0 if sc >= 1.0 else (0.5 if sc >= 0.5 else -1.0)
 
     def consolidate_fused_star(self, cluster_name: str, cluster: Dict[str, Any], embedding: List[float], accuracy: float) -> None:
         ts = int(datetime.now().timestamp())
@@ -1023,6 +1295,7 @@ def main() -> None:
     ap.add_argument('--phase21_run', action='store_true', help='Run Phase 21 prep (generate+train)')
     ap.add_argument('--generate_clusters', type=int, default=0, help='Phase 22: auto-generate N meaning clusters')
     ap.add_argument('--train_all_clusters', action='store_true', help='Phase 22: train all generated clusters')
+    ap.add_argument('--resume', action='store_true', help='Phase 22: resume training from saved logs')
     args = ap.parse_args()
     t = MeaningClusterTrainer()
     if args.test:
@@ -1033,6 +1306,8 @@ def main() -> None:
         t.auto_generate_phase21_clusters(120)
     elif args.generate_clusters and args.generate_clusters > 0:
         t.auto_generate_clusters(args.generate_clusters)
+    elif args.resume:
+        t.resume_training()
     elif args.train_all_clusters:
         # If a saved cluster set exists, load it
         clusters_fp = Path('logs/phase22_clusters.json')

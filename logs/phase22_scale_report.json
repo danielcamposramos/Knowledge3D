@@ -1,0 +1,27 @@
+{
+  "results": [
+    {
+      "cluster": "cluster_0000",
+      "cluster_name": "cluster_0000",
+      "initial_honesty": 1.0,
+      "final_honesty": 1.0,
+      "remediation_rounds": 0,
+      "consolidated": true,
+      "status": "consolidated",
+      "timestamp": "2025-09-16T14:41:15.818704"
+    },
+    {
+      "cluster": "cluster_0001",
+      "cluster_name": "cluster_0001",
+      "initial_honesty": -0.3333333333333333,
+      "final_honesty": -0.59375,
+      "remediation_rounds": 5,
+      "consolidated": false,
+      "status": "incomplete",
+      "timestamp": "2025-09-16T16:14:39.252202"
+    }
+  ],
+  "phase": 22,
+  "timestamp": "2025-09-16T16:14:39.252377",
+  "total_clusters": 2
+}

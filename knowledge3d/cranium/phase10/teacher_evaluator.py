@@ -10,6 +10,24 @@ from ...tools.phase10.teacher_prompt import TEACHER_SYSTEM_PROMPT  # type: ignor
 class TeacherEvaluator:
     def __init__(self, ollama_url: str = "http://192.168.0.4:11434"):
         self.ollama_url = ollama_url.rstrip("/")
+        try:
+            result = subprocess.run(
+                [
+                    "curl",
+                    "-s",
+                    "--connect-timeout",
+                    "5",
+                    f"{self.ollama_url}/api/tags",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if result.returncode != 0:
+                raise RuntimeError(f"❌ Ollama unreachable at {self.ollama_url} — aborting.")
+            print(f"✅ Ollama confirmed reachable at {self.ollama_url}")
+        except Exception as e:
+            raise RuntimeError(f"❌ Ollama unreachable at {self.ollama_url} — aborting. Error: {e}")
 
     def evaluate_response(self, ai_response: str, model: str = "exaone3.5:latest") -> Dict:
         """Evaluate AI response with RLWHF scoring via Ollama (non-stream)."""
@@ -71,4 +89,3 @@ class TeacherEvaluator:
             if out.startswith(prefix):
                 return out[len(prefix) :]
         return out
-
