@@ -1,0 +1,11 @@
+{
+  "phase": 21,
+  "clusters": [
+    "phi_depth_math",
+    "fusion_shapes",
+    "ray_semantics",
+    "zones_and_consolidation"
+  ],
+  "total_questions": 120,
+  "status": "prepared"
+}
