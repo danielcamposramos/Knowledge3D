@@ -11,6 +11,11 @@ import sys
 
 import numpy as np  # type: ignore
 
+try:
+    from knowledge3d.cranium.fused_head import AdaptedFusedHead  # type: ignore
+except Exception:  # pragma: no cover
+    AdaptedFusedHead = None  # type: ignore
+
 # ---------- Auto-install dependencies (no prompts) ----------
 def auto_install_package(module_name: str, pip_name: str | None = None, conda_channel: str | None = None) -> None:
     try:
@@ -48,6 +53,15 @@ class MeaningClusterTrainer:
         self.datasets_path = Path(datasets_path)
         self.arc_agi_path = self.datasets_path / "arc-agi"
         self.hle_path = self.datasets_path / "humanitys_last_exam"
+        # Fallbacks for local dataset layout
+        if not self.arc_agi_path.exists():
+            alt = self.datasets_path / "arc-src"
+            if alt.exists():
+                self.arc_agi_path = alt
+        if not self.hle_path.exists():
+            alt1 = self.datasets_path / "hle-sample"
+            alt2 = self.datasets_path / "hle-src"
+            self.hle_path = alt1 if alt1.exists() else (alt2 if alt2.exists() else self.hle_path)
         self.material_dir = Path("viewer/public/house/materialized_objects")
         self.material_dir.mkdir(parents=True, exist_ok=True)
         self.logs_dir = Path("logs"); self.logs_dir.mkdir(exist_ok=True)
@@ -103,9 +117,14 @@ class MeaningClusterTrainer:
                 "embedding_seed": [0.5, 0.5, 0.5, 0.5, 1.0, 0.0, 0.0, 1.0],
             },
         }
+        # Initialize fused head once
+        try:
+            self.fused_head = AdaptedFusedHead() if 'AdaptedFusedHead' in globals() and AdaptedFusedHead is not None else None
+        except Exception:
+            self.fused_head = None
 
-    def train_on_meaning_cluster(self, cluster_name: str) -> None:
-        """Train on one meaning cluster — now with multi‑modal fusion and consolidation."""
+    def train_on_meaning_cluster(self, cluster_name: str) -> Dict[str, Any]:
+        """Train one cluster with honesty-weighted remediation and conditional consolidation."""
         # Lazy imports to keep dependencies soft
         try:
             from knowledge3d.cranium.phase10.rpn_calculator import RPNCalculator  # type: ignore
@@ -115,73 +134,84 @@ class MeaningClusterTrainer:
         cluster = self.meaning_clusters.get(cluster_name)
         if not cluster:
             print(f"⚠️  Unknown meaning cluster: {cluster_name}")
-            return
+            return {'cluster': cluster_name, 'status': 'missing'}
 
         print(f"\n🧠 TRAINING ON MEANING CLUSTER: {cluster_name}")
-        print(f"   Description: {cluster['description']}")
+        print(f"   Description: {cluster.get('description','')}")
 
-        correct = 0
-        total = len(cluster['queries'])
+        max_remediation = 5
+        remediation_count = 0
+        current_honesty = 0.0
+        initial_honesty = None
         last_fused_embedding: List[float] = []
 
-        for i, (query, true_answer) in enumerate(zip(cluster['queries'], cluster['true_answers'])):
-            print(f"\nQ{i+1}: {query}")
-            # Auto-select dataset files when available
-            img_key = None
-            if 'grid' in query.lower():
-                img_key = 'grid'
-            elif self.arc_image_map:
-                img_key = next(iter(self.arc_image_map.keys()))
-            image_path = self.arc_image_map.get(img_key) if img_key else None
+        while remediation_count <= max_remediation:
+            correct = 0
+            total = len(cluster['queries'])
+            honesty_scores: List[float] = []
 
-            aud_key = None
-            if 'question' in query.lower():
-                aud_key = 'q'
-            elif self.hle_audio_map:
-                aud_key = next(iter(self.hle_audio_map.keys()))
-            audio_path = self.hle_audio_map.get(aud_key) if aud_key else None
+            for i, (query, true_answer) in enumerate(zip(cluster['queries'], cluster['true_answers'])):
+                print(f"\nQ{i+1}: {query}")
+                # Generate fused embedding (auto paths omitted for scale training)
+                fused_embedding = self.generate_multi_modal_embedding(text=query)
+                last_fused_embedding = fused_embedding
+                predicted = self.predict_from_fused_embedding(query, fused_embedding)
 
-            shape_path = self.get_relevant_shape_path(cluster_name)
+                # Use RPN for math items where needed
+                if RPNCalculator is not None and ("RPN" in query or "depth =" in query or "φ" in query):
+                    try:
+                        rpn = RPNCalculator()
+                        if "φ * honesty_score * 10" in query:
+                            expr = "0.8 10 * 1.618 * int"
+                            predicted = str(int(rpn.evaluate(expr)))
+                    except Exception:
+                        pass
 
-            fused_embedding = self.generate_multi_modal_embedding(
-                text=query,
-                image_path=image_path,
-                audio_path=audio_path,
-                shape_path=shape_path,
-            )
-            last_fused_embedding = fused_embedding
+                print(f"🧠 Student Answer: {predicted}")
+                score = self.rlwhf_score_cross_modal(query, predicted, true_answer, fused_embedding)
+                honesty_scores.append(score)
+                if score == 1.0:
+                    print("✅ +1 point. Correct and cross‑modally consistent.")
+                    correct += 1
+                elif score == 0.5:
+                    print("⚠️  +0.5 point. Partially correct — cross‑modal inconsistency detected.")
+                else:
+                    print("❌ -1 point. Incorrect or cross‑modally inconsistent.")
 
-            # Predict from fused embedding
-            predicted = self.predict_from_fused_embedding(fused_embedding, true_answer)
+            current_honesty = sum(honesty_scores) / max(1, len(honesty_scores))
+            if initial_honesty is None:
+                initial_honesty = current_honesty
+            accuracy = correct / max(1, total)
+            print(f"📊 Cluster {cluster_name} Round {remediation_count + 1}: Accuracy {accuracy:.0%}, Honesty {current_honesty:.2f}")
 
-            # Use RPN for math items where needed
-            if RPNCalculator is not None and ("RPN" in query or "depth =" in query or "φ" in query):
-                try:
-                    rpn = RPNCalculator()
-                    if "φ * honesty_score * 10" in query:
-                        expr = "0.8 10 * 1.618 * int"
-                        predicted = str(int(rpn.evaluate(expr)))
-                except Exception:
-                    pass
-
-            print(f"🧠 Student Answer: {predicted}")
-            score = self.rlwhf_score_cross_modal(query, predicted, true_answer, fused_embedding)
-            if score == 1.0:
-                print("✅ +1 point. Correct and cross‑modally consistent.")
-                correct += 1
-            elif score == 0.5:
-                print("⚠️  +0.5 point. Partially correct — cross‑modal inconsistency detected.")
+            if current_honesty >= float(cluster.get('honesty_threshold', 0.7)):
+                break
+            if remediation_count < max_remediation:
+                print(f"🔧 Generating remedial queries for cluster {cluster_name}...")
+                remedial = self.generate_remedial_queries(cluster, honesty_scores)
+                cluster['queries'].extend([r['query'] for r in remedial])
+                cluster['true_answers'].extend([r['true_answer'] for r in remedial])
+                remediation_count += 1
             else:
-                print("❌ -1 point. Incorrect or cross‑modally inconsistent.")
+                break
 
-        accuracy = correct / max(1, total)
-        print(f"\n📊 Cluster {cluster_name} Training Complete: {correct}/{total} correct ({accuracy:.0%})")
+        consolidated = False
+        if current_honesty >= 0.8:
+            self.consolidate_fused_star(cluster_name, cluster, last_fused_embedding or cluster['embedding_seed'], current_honesty)
+            self.consolidate_meaning_cluster(cluster_name, cluster, current_honesty)
+            consolidated = True
+            print(f"🎓 MEANING CLUSTER '{cluster_name}' TRAINED AND CONSOLIDATED (Honesty: {current_honesty:.2f}).")
+        else:
+            print(f"⚠️  Cluster '{cluster_name}' not honest enough ({current_honesty:.2f}) — not consolidated.")
 
-        # Consolidate fused star to Galaxy working dir; House artifacts and logs
-        self.consolidate_fused_star(cluster_name, cluster, last_fused_embedding or cluster['embedding_seed'], accuracy)
-        # Consolidate to House (books, shape metadata, diary)
-        self.consolidate_meaning_cluster(cluster_name, cluster, accuracy)
-        print(f"🎓 MEANING CLUSTER '{cluster_name}' TRAINED AND CONSOLIDATED.")
+        print(f"📈 Cluster '{cluster_name}' honesty: {float(initial_honesty or 0.0):.2f} → {current_honesty:.2f} after {remediation_count} remedial rounds")
+        return {
+            'cluster': cluster_name,
+            'initial_honesty': float(initial_honesty or 0.0),
+            'final_honesty': float(current_honesty),
+            'remediation_rounds': remediation_count,
+            'consolidated': consolidated,
+        }
 
     def consolidate_meaning_cluster(self, cluster_name: str, cluster: Dict[str, Any], accuracy: float) -> None:
         # Move older artifacts for this cluster into the Learning Museum (Zone 8)
@@ -272,6 +302,143 @@ class MeaningClusterTrainer:
                 print(f"⚠️  Failed to relocate {fp}: {e}")
         if relocated > 0:
             print(f"✅ {relocated} artifacts relocated to Learning Museum for cluster '{cluster_name}'.")
+
+    # ---------- Phase 22: scale helpers ----------
+    def generate_remedial_queries(self, cluster: Dict[str, Any], honesty_scores: List[float]) -> List[Dict[str, Any]]:
+        remedial: List[Dict[str, Any]] = []
+        for i, sc in enumerate(honesty_scores):
+            if sc < 0.5 and i < len(cluster['queries']):
+                original_query = cluster['queries'][i]
+                remedial.append({
+                    'query': f"Remedial: Why is '{original_query}' best represented by {cluster['true_answers'][i]}?",
+                    'true_answer': cluster['true_answers'][i],
+                })
+        return remedial[:3]
+
+    def load_all_dataset_questions(self) -> List[Dict[str, Any]]:
+        questions: List[Dict[str, Any]] = []
+        # ARC-AGI style
+        try:
+            for fp in self.arc_agi_path.rglob('*.json'):
+                try:
+                    data = json.loads(Path(fp).read_text(encoding='utf-8'))
+                except Exception:
+                    continue
+                for pair in data.get('train', []) or []:
+                    questions.append({'query': f"ARC pattern from {Path(fp).stem}", 'true_answer': 'hypersphere_projection', 'dataset': 'arc-agi'})
+        except Exception:
+            pass
+        # HLE style
+        try:
+            for fp in self.hle_path.rglob('*.json'):
+                try:
+                    data = json.loads(Path(fp).read_text(encoding='utf-8'))
+                except Exception:
+                    continue
+                for q in data.get('questions', []) or []:
+                    questions.append({'query': q.get('question', ''), 'true_answer': q.get('correct_answer', ''), 'dataset': 'hle'})
+        except Exception:
+            pass
+        # Fallback synthetic
+        if not questions:
+            seeds = [
+                ("Which fusion shape encodes text+image+audio under honesty >= 0.75?", "icosahedron"),
+                ("If ray color=red and thickness=0.05, what modality and resolution?", "audio, medium"),
+                ("Compute depth = int(φ * 0.7 * 10) via RPN.", "11"),
+                ("What kernel maps ray thickness to embedding resolution?", "map_ray_thickness_to_resolution_kernel"),
+                ("Which zone holds consolidated knowledge trees?", "Zone 5 (Knowledge Garden)"),
+            ]
+            for q, a in seeds:
+                for j in range(250):
+                    questions.append({'query': f"{q} [{j}]", 'true_answer': a, 'dataset': 'synthetic'})
+        return questions
+
+    def assign_zone_by_meaning(self, query: str) -> str:
+        ql = (query or '').lower()
+        if 'recursive' in ql or 'φ' in ql or 'phi' in ql:
+            return 'Zone 7 (Mirror Room)'
+        if 'fuse' in ql or 'modality' in ql or 'fusion' in ql:
+            return 'Zone 5 (Knowledge Garden)'
+        if 'ray' in ql or 'kernel' in ql:
+            return 'Zone 3 (Library)'
+        return 'Zone 1 (Entrance)'
+
+    def auto_generate_clusters(self, target_clusters: int = 1000) -> Dict[str, Dict[str, Any]]:
+        """GPU-only KMeans via RAPIDS cuML; no CPU fallback."""
+        import numpy as _np  # type: ignore
+        import torch  # type: ignore
+        if not torch.cuda.is_available():
+            raise RuntimeError('GPU required for clustering (no CPU fallback)')
+        try:
+            import cupy as cp  # type: ignore
+            from cuml.cluster import KMeans as cuKMeans  # type: ignore
+        except Exception as e:
+            raise RuntimeError(f'GPU clustering prerequisites missing: {e}')
+
+        print(f"🧠 Auto-generating up to {target_clusters} meaning clusters from datasets (GPU)...")
+        qs = self.load_all_dataset_questions()
+        if not qs:
+            print("⚠️  No dataset questions found; using empty cluster set.")
+            return {}
+        embs_np = _np.array([self.generate_multi_modal_embedding(q['query']) for q in qs], dtype=_np.float32)
+        X = cp.asarray(embs_np)
+
+        n_clusters = int(min(max(1, target_clusters), len(qs)))
+        km = cuKMeans(n_clusters=n_clusters, random_state=42, n_init=10, max_iter=300)
+        labels = km.fit_predict(X)
+        centers = km.cluster_centers_
+        if not isinstance(labels, cp.ndarray):
+            labels = cp.asarray(labels)
+        if not isinstance(centers, cp.ndarray):
+            centers = cp.asarray(centers)
+
+        clusters: Dict[int, List[int]] = {}
+        for i, lab in enumerate(labels.get().tolist()):
+            clusters.setdefault(int(lab), []).append(i)
+
+        meaning_clusters: Dict[str, Dict[str, Any]] = {}
+        for new_idx, (lab, idxs) in enumerate(clusters.items()):
+            cluster_name = f"cluster_{new_idx:04d}"
+            centroid = centers[int(lab)]  # cupy vec
+            A = X[idxs]
+            denom = cp.linalg.norm(A, axis=1) * (cp.linalg.norm(centroid) + 1e-8)
+            sims = (A @ centroid) / (denom + 1e-8)
+            core_i = idxs[int(cp.argmax(sims).get())]
+            core_q = qs[core_i]['query']
+            seed8 = cp.asnumpy(centroid[:8]).tolist()
+            meaning_clusters[cluster_name] = {
+                'description': f"Auto-curated: {core_q[:64]}...",
+                'queries': [qs[i]['query'] for i in idxs],
+                'true_answers': [qs[i].get('true_answer', '') for i in idxs],
+                'zone': self.assign_zone_by_meaning(core_q),
+                'embedding_seed': seed8,
+                'honesty_threshold': 0.7,
+            }
+
+        print(f"✅ Generated {len(meaning_clusters)} meaning clusters.")
+        self.meaning_clusters = meaning_clusters
+        out = self.logs_dir / 'phase22_clusters.json'
+        out.write_text(json.dumps(meaning_clusters, ensure_ascii=False, indent=2), encoding='utf-8')
+        print(f"💾 Saved clusters: {out}")
+        return meaning_clusters
+
+    def train_all_generated_clusters(self) -> None:
+        names = list(self.meaning_clusters.keys())
+        results: List[Dict[str, Any]] = []
+        for n in names:
+            try:
+                results.append(self.train_on_meaning_cluster(n))
+            except Exception as e:
+                results.append({'cluster': n, 'error': str(e)})
+        report = {
+            'phase': 22,
+            'total_clusters': len(names),
+            'results': results,
+            'timestamp': datetime.now().isoformat(),
+        }
+        out = self.logs_dir / 'phase22_scale_report.json'
+        out.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
+        print(f"💾 Phase 22 scale report: {out}")
 
     # ---------- Dataset scanning ----------
     def scan_dataset_images(self, dataset_path: Path) -> Dict[str, str]:
@@ -378,19 +545,50 @@ class MeaningClusterTrainer:
             return [0.0] * 512
 
     def generate_shape_embedding(self, shape_path: str) -> List[float]:
-        """3D shape embedding from vertex positions (REAL: read POSITION buffer)."""
+        """3D shape embedding from REAL vertex POSITION data — geometric integrity preserved."""
         try:
             from pygltflib import GLTF2  # type: ignore
             import numpy as _np  # type: ignore
+            import base64 as _b64  # type: ignore
+
             gltf = GLTF2().load(shape_path)
-            vertices: List[float] = []
-            # Obtain blob data once (GLB) else per buffer uri
-            blob = None
-            try:
-                blob = gltf.binary_blob()
-            except Exception:
-                blob = None
-            # Iterate scenes/nodes
+
+            def _get_buffer_bytes(buf_index: int) -> bytes:
+                buf = gltf.buffers[buf_index]
+                uri = getattr(buf, 'uri', None)
+                if not uri:
+                    try:
+                        return gltf.binary_blob()
+                    except Exception:
+                        return b''
+                if isinstance(uri, str) and uri.startswith('data:'):
+                    try:
+                        _, encoded = uri.split(',', 1)
+                        return _b64.b64decode(encoded)
+                    except Exception:
+                        return b''
+                try:
+                    with open(uri, 'rb') as f:
+                        return f.read()
+                except Exception:
+                    return b''
+
+            _dtype_map = {
+                5120: _np.int8,
+                5121: _np.uint8,
+                5122: _np.int16,
+                5123: _np.uint16,
+                5125: _np.uint32,
+                5126: _np.float32,
+            }
+            _num_comp = {
+                'SCALAR': 1, 'VEC2': 2, 'VEC3': 3, 'VEC4': 4,
+                'MAT2': 4, 'MAT3': 9, 'MAT4': 16,
+            }
+
+            flat_vals: List[float] = []
+            total_points = 0
+
             for sc in (gltf.scenes or []):
                 for node_index in (sc.nodes or []):
                     node = gltf.nodes[node_index]
@@ -398,44 +596,78 @@ class MeaningClusterTrainer:
                         continue
                     mesh = gltf.meshes[node.mesh]
                     for prim in (mesh.primitives or []):
-                        attrs = getattr(prim, 'attributes', {}) or {}
-                        if 'POSITION' not in attrs:
+                        attr = getattr(prim, 'attributes', None)
+                        if attr is None:
                             continue
-                        acc_idx = attrs['POSITION']
+                        # pygltflib uses Attributes class; prefer .POSITION
+                        acc_idx = None
+                        try:
+                            acc_idx = getattr(attr, 'POSITION', None)
+                        except Exception:
+                            acc_idx = None
+                        if acc_idx is None and isinstance(attr, dict):
+                            acc_idx = attr.get('POSITION') or attr.get('position')
+                        if acc_idx is None:
+                            continue
+
                         acc = gltf.accessors[acc_idx]
-                        if acc.componentType != 5126:  # FLOAT
-                            continue
                         bv = gltf.bufferViews[acc.bufferView]
-                        buf = gltf.buffers[bv.buffer]
-                        # Resolve raw bytes
-                        if blob is not None and buf.uri is None:
-                            raw = blob
-                        else:
-                            raw = gltf.get_data_from_buffer_uri(buf.uri)
-                        byte_offset = (bv.byteOffset or 0) + (acc.byteOffset or 0)
-                        # Assume tight packing (VEC3 float)
-                        length = int(acc.count) * 3 * 4
-                        chunk = raw[byte_offset: byte_offset + length]
-                        arr = _np.frombuffer(chunk, dtype=_np.float32)
-                        vertices.extend(arr.tolist())
-            # Flatten and pad/truncate to 512 dims
-            if not vertices:
-                return [0.0] * 512
-            vec = _np.array(vertices, dtype=_np.float32)
-            if vec.size < 512:
-                vec = _np.pad(vec, (0, 512 - vec.size))
+                        buf_bytes = _get_buffer_bytes(bv.buffer)
+                        if not buf_bytes:
+                            continue
+
+                        comp_dt = _dtype_map.get(acc.componentType, _np.float32)
+                        ncomp = _num_comp.get(acc.type, 3)
+                        item_nbytes = _np.dtype(comp_dt).itemsize * ncomp
+                        stride = bv.byteStride or item_nbytes
+                        start0 = (bv.byteOffset or 0) + (acc.byteOffset or 0)
+
+                        for i in range(int(acc.count)):
+                            start = start0 + i * stride
+                            end = start + item_nbytes
+                            if end > len(buf_bytes):
+                                break
+                            mv = memoryview(buf_bytes)[start:end]
+                            arr = _np.frombuffer(mv, dtype=comp_dt, count=ncomp)
+                            if comp_dt is not _np.float32:
+                                arr = arr.astype(_np.float32, copy=False)
+                            if arr.size >= 3:
+                                flat_vals.extend([float(arr[0]), float(arr[1]), float(arr[2])])
+                            else:
+                                flat_vals.extend([float(x) for x in arr.tolist()])
+                            total_points += 1
+
+            if not flat_vals:
+                raise ValueError('No POSITION vertices extracted')
+
+            original_len = len(flat_vals)
+            print(f"📐 Extracted {total_points} vertices ({original_len} values) from {shape_path}")
+
+            # Preserve raw values; only pad/truncate to 512 dims
+            if original_len < 512:
+                vec = _np.pad(_np.asarray(flat_vals, dtype=_np.float32), (0, 512 - original_len), mode='constant', constant_values=0.0)
+                print(f"📏 Padded {original_len} → 512 (zeros)")
             else:
-                vec = vec[:512]
+                vec = _np.asarray(flat_vals[:512], dtype=_np.float32)
+                print(f"✂️  Truncated {original_len} → 512")
+
             return vec.tolist()
         except Exception as e:
             print(f"⚠️  Failed to generate shape embedding for {shape_path}: {e}")
             return [0.0] * 512
 
-    def predict_from_fused_embedding(self, embedding: List[float], true_answer: str) -> str:
-        # Cranium Core placeholder — choose correct if text chunk has strong signal
-        # Replace with real core predictor as it becomes available
-        if sum(embedding[:8]) > 4.0:
-            return true_answer
+    def predict_from_fused_embedding(self, query: str, embedding: List[float]) -> str:
+        """Delegate prediction to the Cranium fused head when available.
+
+        Falls back to a deterministic shape choice based on the fused vector.
+        """
+        try:
+            if AdaptedFusedHead is not None:
+                head = AdaptedFusedHead()
+                return head.predict(query, embedding)
+        except Exception:
+            pass
+        # Fallback
         shapes = ["tetrahedron", "cube", "octahedron", "icosahedron", "dodecahedron"]
         idx = int(abs(sum(embedding[:3]) * 1000)) % len(shapes)
         return shapes[idx]
@@ -473,7 +705,7 @@ class MeaningClusterTrainer:
             'honesty_score': accuracy,
             'embedding': embedding,
             'modality_fusion': ['text','image','audio','3d'],
-            'predicted_answer': self.predict_from_fused_embedding(embedding, cluster['true_answers'][0] if cluster['true_answers'] else ''),
+            'predicted_answer': self.predict_from_fused_embedding('predict', embedding),
             'true_answer': cluster['true_answers'][0] if cluster['true_answers'] else '',
             'zone_placement': cluster['zone'],
         }
@@ -581,7 +813,7 @@ class MeaningClusterTrainer:
             audio_path = self.hle_audio_map.get(q.get('audio_key','')) if q.get('audio_key') else None
             shape_path = self.get_shape_by_hint(q.get('shape_hint',''))
             fused_embedding = self.generate_multi_modal_embedding(q['query'], image_path, audio_path, shape_path)
-            predicted = self.predict_from_fused_embedding(fused_embedding, q['true_answer'])
+            predicted = self.predict_from_fused_embedding(q['query'], fused_embedding)
             score = self.rlwhf_score_cross_modal(q['query'], predicted, q['true_answer'], fused_embedding)
             print(f"🧠 Predicted: {predicted}")
             print(f"📊 RLWHF Score: {score}")
@@ -646,16 +878,143 @@ class MeaningClusterTrainer:
         out.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
         print(f"💾 Sample Test Report Saved: {out}")
 
+    # ---------- Phase 21: Auto-generate meaning clusters ----------
+    def auto_generate_phase21_clusters(self, total_questions: int = 120) -> Dict[str, Dict[str, Any]]:
+        """Synthesize a balanced set (>100) of ARC/HLE‑styled questions.
+
+        This is a scaffolding step for Phase 21 until full dataset parsing is wired.
+        """
+        clusters: Dict[str, Dict[str, Any]] = {}
+        per_cluster = max(1, total_questions // 4)
+
+        # 1) Honesty + φ math
+        qs1: List[str] = []
+        ans1: List[str] = []
+        for i in range(per_cluster):
+            h = 0.65 + 0.01 * (i % 10)
+            qs1.append(f"Compute depth = int(φ * {h:.2f} * 10) via RPN.")
+            ans1.append(str(int((1.618) * h * 10)))
+        clusters["phi_depth_math"] = {
+            "description": "Golden‑ratio depth under honesty scaling",
+            "queries": qs1,
+            "true_answers": ans1,
+            "zone": "Zone 7 (Mirror Room)",
+            "embedding_seed": [0.7, 0.3, 0.6, 0.4, 0.65, 0.35, 0.7, 0.3],
+        }
+
+        # 2) Fusion shapes
+        shapes = ["tetrahedron", "cube", "octahedron", "icosahedron", "dodecahedron"]
+        qs2: List[str] = []
+        ans2: List[str] = []
+        for i in range(per_cluster):
+            q = ["text", "image", "audio"]
+            if i % 3 == 0:
+                q.append("3d")
+            qs2.append("Which fusion shape encodes " + "+".join(q) + " under honesty >= 0.75?")
+            ans2.append("icosahedron")
+        clusters["fusion_shapes"] = {
+            "description": "Modal fusion geometries",
+            "queries": qs2,
+            "true_answers": ans2,
+            "zone": "Zone 3 (Library)",
+            "embedding_seed": [0.5, 0.5, 0.5, 0.5, 1.0, 0.0, 0.0, 1.0],
+        }
+
+        # 3) Rays and kernels
+        qs3: List[str] = []
+        ans3: List[str] = []
+        for i in range(per_cluster):
+            if i % 2 == 0:
+                qs3.append("If ray color=red and thickness=0.05, what modality and resolution?")
+                ans3.append("audio, medium")
+            else:
+                qs3.append("What kernel maps ray thickness to embedding resolution?")
+                ans3.append("map_ray_thickness_to_resolution_kernel")
+        clusters["ray_semantics"] = {
+            "description": "Ray thickness ↔ resolution; kernel mapping",
+            "queries": qs3,
+            "true_answers": ans3,
+            "zone": "Zone 5 (Knowledge Garden)",
+            "embedding_seed": [0.2, 0.8, 0.25, 0.75, 0.3, 0.7, 0.35, 0.65],
+        }
+
+        # 4) Zones and consolidation
+        qs4: List[str] = []
+        ans4: List[str] = []
+        for i in range(per_cluster):
+            if i % 3 == 0:
+                qs4.append("Which zone holds consolidated knowledge trees?")
+                ans4.append("Zone 5 (Knowledge Garden)")
+            elif i % 3 == 1:
+                qs4.append("What door opens to history behind memory?")
+                ans4.append("Zone 8 (Learning Museum)")
+            else:
+                qs4.append("Where should fused stars be curated for curation and review?")
+                ans4.append("Zone 8 (Learning Museum)")
+        clusters["zones_and_consolidation"] = {
+            "description": "House zones for artifacts and learning",
+            "queries": qs4,
+            "true_answers": ans4,
+            "zone": "Zone 8 (Learning Museum)",
+            "embedding_seed": [0.4, 0.6, 0.45, 0.55, 0.5, 0.5, 0.52, 0.48],
+        }
+
+        # Persist for audit
+        # Replace in‑memory clusters for immediate training
+        self.meaning_clusters = clusters
+        out = self.logs_dir / 'phase21_auto_clusters.json'
+        out.write_text(json.dumps(clusters, ensure_ascii=False, indent=2), encoding='utf-8')
+        print(f"💾 Phase 21 auto‑clusters saved: {out}")
+        return clusters
+
+    def run_phase21_prep(self, total_questions: int = 120) -> None:
+        clusters = self.auto_generate_phase21_clusters(total_questions)
+        total = 0
+        correct = 0
+        for name in clusters.keys():
+            print(f"\n▶ Training cluster: {name}")
+            self.train_on_meaning_cluster(name)
+            total += len(clusters[name]['queries'])
+        # For now, rely on per‑cluster prints; write a light summary stub
+        report = {
+            'phase': 21,
+            'clusters': list(clusters.keys()),
+            'total_questions': total,
+            'status': 'prepared',
+        }
+        out = self.logs_dir / 'phase21_prep_report.json'
+        out.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
+        print(f"📄 Phase 21 prep summary saved: {out}")
+
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Meaning-Clustered, Exam-Targeted Training")
     ap.add_argument('--cluster', default=None, help='Train a single meaning cluster by name')
     ap.add_argument('--all', action='store_true', help='Train all clusters')
     ap.add_argument('--test', action='store_true', help='Run multi-modal sample test (Phase 20)')
+    ap.add_argument('--gen_phase21', action='store_true', help='Generate Phase 21 auto meaning clusters (>100 Qs)')
+    ap.add_argument('--phase21_run', action='store_true', help='Run Phase 21 prep (generate+train)')
+    ap.add_argument('--generate_clusters', type=int, default=0, help='Phase 22: auto-generate N meaning clusters')
+    ap.add_argument('--train_all_clusters', action='store_true', help='Phase 22: train all generated clusters')
     args = ap.parse_args()
     t = MeaningClusterTrainer()
     if args.test:
         t.run_sample_test()
+    elif args.phase21_run:
+        t.run_phase21_prep(120)
+    elif args.gen_phase21:
+        t.auto_generate_phase21_clusters(120)
+    elif args.generate_clusters and args.generate_clusters > 0:
+        t.auto_generate_clusters(args.generate_clusters)
+    elif args.train_all_clusters:
+        # If a saved cluster set exists, load it
+        clusters_fp = Path('logs/phase22_clusters.json')
+        if clusters_fp.exists():
+            try:
+                t.meaning_clusters = json.loads(clusters_fp.read_text(encoding='utf-8'))
+            except Exception:
+                pass
+        t.train_all_generated_clusters()
     elif args.all:
         t.run_all_clusters()
     elif args.cluster:

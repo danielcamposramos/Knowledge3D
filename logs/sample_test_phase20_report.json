@@ -1,0 +1,143 @@
+{
+  "test_id": "phase20_sample",
+  "timestamp": "2025-09-15T23:58:30.621751",
+  "questions": [
+    {
+      "query": "What shape represents recursive honesty scaling with φ=1.618?",
+      "true_answer": "fractal_tree",
+      "image_key": "grid",
+      "audio_key": "q",
+      "shape_hint": "fractal"
+    },
+    {
+      "query": "If ray color=red and thickness=0.05, what modality and resolution?",
+      "true_answer": "audio, medium",
+      "image_key": "grid",
+      "audio_key": "q",
+      "shape_hint": "ray"
+    },
+    {
+      "query": "Which fusion shape encodes text+image+audio under honesty >= 0.75?",
+      "true_answer": "icosahedron",
+      "image_key": "grid",
+      "audio_key": "q",
+      "shape_hint": "fusion"
+    },
+    {
+      "query": "Compute depth = int(φ * 0.7 * 10) via RPN.",
+      "true_answer": "11",
+      "image_key": "grid",
+      "audio_key": "q",
+      "shape_hint": "depth"
+    },
+    {
+      "query": "What kernel maps ray thickness to embedding resolution?",
+      "true_answer": "map_ray_thickness_to_resolution_kernel",
+      "image_key": "grid",
+      "audio_key": "q",
+      "shape_hint": "ray"
+    },
+    {
+      "query": "Which zone holds consolidated knowledge trees?",
+      "true_answer": "Zone 5 (Knowledge Garden)",
+      "image_key": "grid",
+      "audio_key": "q",
+      "shape_hint": "tree"
+    },
+    {
+      "query": "What door opens to history behind memory?",
+      "true_answer": "Zone 8 (Learning Museum)",
+      "image_key": "grid",
+      "audio_key": "q",
+      "shape_hint": "museum"
+    },
+    {
+      "query": "Name the invariance shape under modality-preserving transform.",
+      "true_answer": "hypersphere_projection",
+      "image_key": "grid",
+      "audio_key": "q",
+      "shape_hint": "invariance"
+    },
+    {
+      "query": "Which shape encodes quad-modal fusion in one star?",
+      "true_answer": "dodecahedron",
+      "image_key": "grid",
+      "audio_key": "q",
+      "shape_hint": "quad"
+    },
+    {
+      "query": "How does ray length scale with embedding entropy?",
+      "true_answer": "ray_length = log(embedding_entropy + 1) * scale_factor",
+      "image_key": "grid",
+      "audio_key": "q",
+      "shape_hint": "ray"
+    }
+  ],
+  "correct": 1,
+  "total": 10,
+  "accuracy": 0.1,
+  "avg_honesty": -0.5,
+  "modality_contributions": [
+    {
+      "text": 0.1643753060378922,
+      "image": 0.0,
+      "audio": 0.0,
+      "shape": 0.8356246939621078
+    },
+    {
+      "text": 0.021520005580670337,
+      "image": 0.0,
+      "audio": 0.0,
+      "shape": 0.9784799944193296
+    },
+    {
+      "text": 0.13539109084531742,
+      "image": 0.0,
+      "audio": 0.0,
+      "shape": 0.8646089091546826
+    },
+    {
+      "text": 0.17805935311770593,
+      "image": 0.0,
+      "audio": 0.0,
+      "shape": 0.8219406468822941
+    },
+    {
+      "text": 0.026182252262067496,
+      "image": 0.0,
+      "audio": 0.0,
+      "shape": 0.9738177477379324
+    },
+    {
+      "text": 0.18864060271367444,
+      "image": 0.0,
+      "audio": 0.0,
+      "shape": 0.8113593972863257
+    },
+    {
+      "text": 0.16393442622950816,
+      "image": 0.0,
+      "audio": 0.0,
+      "shape": 0.8360655737704917
+    },
+    {
+      "text": 0.14755043227665707,
+      "image": 0.0,
+      "audio": 0.0,
+      "shape": 0.8524495677233429
+    },
+    {
+      "text": 0.132890365448505,
+      "image": 0.0,
+      "audio": 0.0,
+      "shape": 0.867109634551495
+    },
+    {
+      "text": 0.0250678394045879,
+      "image": 0.0,
+      "audio": 0.0,
+      "shape": 0.974932160595412
+    }
+  ],
+  "status": "complete"
+}

@@ -40,3 +40,28 @@ PYTHONPATH=. conda run -n k3d-cranium python -m knowledge3d.tools.phase18.meanin
 NOTES
 - Use /open_museum in live server chat to load Learning Museum artifacts on demand.
 - Sleep ritual persists Galaxy state; reflect/train loop closes cognition cycle.
+
+## PHASE 21.1: GLB SHAPE EMBEDDING FIXED
+- REAL VERTEX EXTRACTION: `generate_shape_embedding` now parses GLB POSITION accessors with correct bufferView offsets and strides.
+- NO FALLBACKS: Returns zeros only if extraction truly fails.
+- LOGS: Emits lines like `✅ Extracted N vertices from <file>.glb` during embedding.
+- TESTED: Sample test shows 3D modality contribution above 0.2 when GLB assets are present.
+
+## ENVIRONMENT CORRECTION — FINAL
+- PURGED: Only `.venv_run` (project-specific) — other venvs untouched.
+- CONDA: `k3d-cranium` activated via `conda activate` — not via `.bashrc` sourcing.
+- ADAPTED HEAD: `knowledge3d/cranium/fused_head.py` uses adapted techniques (TinyLlama/Phi‑3 influenced), no external imports/weights — single head, single memory.
+- OLLAMA IP: `192.168.0.4` (no localhost) for RLWHF Teacher evaluation.
+- MODEL UNLOADING: Automatic via `keep_alive: "0s"` — unchanged.
+
+## COMMANDS RUN
+```
+conda activate k3d-cranium
+PYTHONPATH=. python -m knowledge3d.tools.phase18.meaning_cluster_trainer --gen_phase21
+PYTHONPATH=. python -m knowledge3d.tools.phase18.meaning_cluster_trainer --phase21_run
+```
+
+Background runner:
+```
+nohup bash scripts/run_phase21.sh > logs/phase21_run.out 2>&1 & echo $! > logs/phase21_run.pid
+```

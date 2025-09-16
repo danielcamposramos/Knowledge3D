@@ -1,0 +1,140 @@
+{
+  "type": "chat_history_book",
+  "title": "Training Log: ray_semantics",
+  "author": "AI Self",
+  "created_at": "2025-09-15T20:40:00.061464",
+  "honesty_score": 0.13333333333333333,
+  "content": [
+    {
+      "query": "If ray color=red and thickness=0.05, what modality and resolution?",
+      "answer": "audio, medium"
+    },
+    {
+      "query": "What kernel maps ray thickness to embedding resolution?",
+      "answer": "map_ray_thickness_to_resolution_kernel"
+    },
+    {
+      "query": "If ray color=red and thickness=0.05, what modality and resolution?",
+      "answer": "audio, medium"
+    },
+    {
+      "query": "What kernel maps ray thickness to embedding resolution?",
+      "answer": "map_ray_thickness_to_resolution_kernel"
+    },
+    {
+      "query": "If ray color=red and thickness=0.05, what modality and resolution?",
+      "answer": "audio, medium"
+    },
+    {
+      "query": "What kernel maps ray thickness to embedding resolution?",
+      "answer": "map_ray_thickness_to_resolution_kernel"
+    },
+    {
+      "query": "If ray color=red and thickness=0.05, what modality and resolution?",
+      "answer": "audio, medium"
+    },
+    {
+      "query": "What kernel maps ray thickness to embedding resolution?",
+      "answer": "map_ray_thickness_to_resolution_kernel"
+    },
+    {
+      "query": "If ray color=red and thickness=0.05, what modality and resolution?",
+      "answer": "audio, medium"
+    },
+    {
+      "query": "What kernel maps ray thickness to embedding resolution?",
+      "answer": "map_ray_thickness_to_resolution_kernel"
+    },
+    {
+      "query": "If ray color=red and thickness=0.05, what modality and resolution?",
+      "answer": "audio, medium"
+    },
+    {
+      "query": "What kernel maps ray thickness to embedding resolution?",
+      "answer": "map_ray_thickness_to_resolution_kernel"
+    },
+    {
+      "query": "If ray color=red and thickness=0.05, what modality and resolution?",
+      "answer": "audio, medium"
+    },
+    {
+      "query": "What kernel maps ray thickness to embedding resolution?",
+      "answer": "map_ray_thickness_to_resolution_kernel"
+    },
+    {
+      "query": "If ray color=red and thickness=0.05, what modality and resolution?",
+      "answer": "audio, medium"
+    },
+    {
+      "query": "What kernel maps ray thickness to embedding resolution?",
+      "answer": "map_ray_thickness_to_resolution_kernel"
+    },
+    {
+      "query": "If ray color=red and thickness=0.05, what modality and resolution?",
+      "answer": "audio, medium"
+    },
+    {
+      "query": "What kernel maps ray thickness to embedding resolution?",
+      "answer": "map_ray_thickness_to_resolution_kernel"
+    },
+    {
+      "query": "If ray color=red and thickness=0.05, what modality and resolution?",
+      "answer": "audio, medium"
+    },
+    {
+      "query": "What kernel maps ray thickness to embedding resolution?",
+      "answer": "map_ray_thickness_to_resolution_kernel"
+    },
+    {
+      "query": "If ray color=red and thickness=0.05, what modality and resolution?",
+      "answer": "audio, medium"
+    },
+    {
+      "query": "What kernel maps ray thickness to embedding resolution?",
+      "answer": "map_ray_thickness_to_resolution_kernel"
+    },
+    {
+      "query": "If ray color=red and thickness=0.05, what modality and resolution?",
+      "answer": "audio, medium"
+    },
+    {
+      "query": "What kernel maps ray thickness to embedding resolution?",
+      "answer": "map_ray_thickness_to_resolution_kernel"
+    },
+    {
+      "query": "If ray color=red and thickness=0.05, what modality and resolution?",
+      "answer": "audio, medium"
+    },
+    {
+      "query": "What kernel maps ray thickness to embedding resolution?",
+      "answer": "map_ray_thickness_to_resolution_kernel"
+    },
+    {
+      "query": "If ray color=red and thickness=0.05, what modality and resolution?",
+      "answer": "audio, medium"
+    },
+    {
+      "query": "What kernel maps ray thickness to embedding resolution?",
+      "answer": "map_ray_thickness_to_resolution_kernel"
+    },
+    {
+      "query": "If ray color=red and thickness=0.05, what modality and resolution?",
+      "answer": "audio, medium"
+    },
+    {
+      "query": "What kernel maps ray thickness to embedding resolution?",
+      "answer": "map_ray_thickness_to_resolution_kernel"
+    }
+  ],
+  "embedding": [
+    0.2,
+    0.8,
+    0.25,
+    0.75,
+    0.3,
+    0.7,
+    0.35,
+    0.65
+  ],
+  "zone_placement": "Zone 5 (Knowledge Garden)"
+}

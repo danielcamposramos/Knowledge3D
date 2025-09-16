@@ -1,0 +1,20 @@
+{
+  "type": "generated_3d_shape",
+  "name": "Concept: zones_and_consolidation",
+  "created_at": "2025-09-15T17:54:30.334321",
+  "honesty_score": 0.0,
+  "embedding": [
+    0.4,
+    0.6,
+    0.45,
+    0.55,
+    0.5,
+    0.5,
+    0.52,
+    0.48
+  ],
+  "shape_type": "tetrahedron",
+  "vertex_count": 100,
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "ptx_kernel_used": "train_cluster_zones_and_consolidation_kernel"
+}

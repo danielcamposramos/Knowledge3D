@@ -1,0 +1,25 @@
+{
+  "type": "diary_entry",
+  "title": "Reflection: fusion_shapes",
+  "author": "AI Self",
+  "created_at": "2025-09-15T18:41:22.391261",
+  "honesty_score": 0.13333333333333333,
+  "content": [
+    "Trained on 30 queries about fusion_shapes.",
+    "Accuracy: 13%.",
+    "Core insight: Modal fusion geometries"
+  ],
+  "embedding": [
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    1.0,
+    0.0,
+    0.0,
+    1.0
+  ],
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "relocated_at": "2025-09-15T20:16:37.618063",
+  "previous_zone": "Zone 3 (Library)"
+}
