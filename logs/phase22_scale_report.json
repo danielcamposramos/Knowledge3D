@@ -13,15 +13,15 @@
     {
       "cluster": "cluster_0001",
       "cluster_name": "cluster_0001",
-      "initial_honesty": -0.5,
-      "final_honesty": -0.7941176470588235,
+      "initial_honesty": -1.0,
+      "final_honesty": -0.5833333333333334,
       "remediation_rounds": 5,
       "consolidated": false,
       "status": "incomplete",
-      "timestamp": "2025-09-16T17:06:19.315872"
+      "timestamp": "2025-09-16T20:21:12.003762"
     }
   ],
   "phase": 22,
-  "timestamp": "2025-09-16T17:06:19.316038",
+  "timestamp": "2025-09-16T20:21:12.003921",
   "total_clusters": 2
 }
