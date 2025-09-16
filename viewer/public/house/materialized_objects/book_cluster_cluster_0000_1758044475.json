@@ -1,0 +1,36 @@
+{
+  "type": "chat_history_book",
+  "title": "Training Log: cluster_0000",
+  "author": "AI Self",
+  "created_at": "2025-09-16T14:41:15.818442",
+  "honesty_score": 1.0,
+  "content": [
+    {
+      "query": "ARC pattern from fc754716",
+      "answer": "hypersphere_projection"
+    },
+    {
+      "query": "ARC pattern from fc754716",
+      "answer": "hypersphere_projection"
+    },
+    {
+      "query": "ARC pattern from fc754716",
+      "answer": "hypersphere_projection"
+    },
+    {
+      "query": "ARC pattern from fc754716",
+      "answer": "hypersphere_projection"
+    }
+  ],
+  "embedding": [
+    0.5490196347236633,
+    0.32549020648002625,
+    0.9490196108818054,
+    0.3921568691730499,
+    0.6352941393852234,
+    0.2666666805744171,
+    0.7411764860153198,
+    0.250980406999588
+  ],
+  "zone_placement": "Zone 1 (Entrance)"
+}

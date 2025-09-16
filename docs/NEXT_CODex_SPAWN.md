@@ -65,3 +65,40 @@ Background runner:
 ```
 nohup bash scripts/run_phase21.sh > logs/phase21_run.out 2>&1 & echo $! > logs/phase21_run.pid
 ```
+
+## PHASE 22: RESUME AFTER POWER OUTAGE
+
+### GOAL
+- Resume training from last saved state — skip already trained clusters.
+- Enforce GPU-only — fail if no CUDA.
+- Append to logs — do not overwrite.
+
+### COMMAND
+```
+conda activate k3d-cranium
+PYTHONPATH=. python -m knowledge3d.tools.phase18.meaning_cluster_trainer --resume
+```
+
+### OUTPUT
+- `logs/phase22_scale_report.json` (appended)
+- `logs/phase22_clusters.json` (unchanged)
+
+## PHASE 22: RESUME + ENFORCE + COMPLETE
+
+### GOAL
+- **NO MOCKS** — `scripts/k3d_env.sh` removed, no PATH overrides.
+- **ENFORCE RLWHF** — `TeacherEvaluator` aborts if Ollama unreachable.
+- **RESUME HONESTLY** — `--resume` skips consolidated clusters, logs errors, never fakes consolidation.
+
+### COMMAND
+```
+conda activate k3d-cranium
+PYTHONPATH=. python -m knowledge3d.tools.phase18.meaning_cluster_trainer --resume
+```
+
+### OUTPUT
+- `logs/phase22_scale_report.json` (appends successes/errors)
+- Consolidated artifacts only for clusters that pass RLWHF evaluation
+
+### NO MANUAL MONITORING
+- No `tail -f`, no PID checks — fully automated.
