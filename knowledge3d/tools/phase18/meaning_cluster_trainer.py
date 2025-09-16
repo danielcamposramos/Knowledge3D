@@ -364,48 +364,75 @@ class MeaningClusterTrainer:
         return 'Zone 1 (Entrance)'
 
     def auto_generate_clusters(self, target_clusters: int = 1000) -> Dict[str, Dict[str, Any]]:
-        """GPU-only KMeans via RAPIDS cuML; no CPU fallback."""
+        """Auto-generate clusters using GPU-only KMeans implemented in PyTorch (no CPU fallback)."""
         import numpy as _np  # type: ignore
         import torch  # type: ignore
         if not torch.cuda.is_available():
             raise RuntimeError('GPU required for clustering (no CPU fallback)')
-        try:
-            import cupy as cp  # type: ignore
-            from cuml.cluster import KMeans as cuKMeans  # type: ignore
-        except Exception as e:
-            raise RuntimeError(f'GPU clustering prerequisites missing: {e}')
+        device = torch.device('cuda')
 
         print(f"🧠 Auto-generating up to {target_clusters} meaning clusters from datasets (GPU)...")
         qs = self.load_all_dataset_questions()
         if not qs:
             print("⚠️  No dataset questions found; using empty cluster set.")
             return {}
-        embs_np = _np.array([self.generate_multi_modal_embedding(q['query']) for q in qs], dtype=_np.float32)
-        X = cp.asarray(embs_np)
 
-        n_clusters = int(min(max(1, target_clusters), len(qs)))
-        km = cuKMeans(n_clusters=n_clusters, random_state=42, n_init=10, max_iter=300)
-        labels = km.fit_predict(X)
-        centers = km.cluster_centers_
-        if not isinstance(labels, cp.ndarray):
-            labels = cp.asarray(labels)
-        if not isinstance(centers, cp.ndarray):
-            centers = cp.asarray(centers)
+        embs_np = _np.array([self.generate_multi_modal_embedding(q['query']) for q in qs], dtype=_np.float32)
+        X = torch.from_numpy(embs_np).to(device)
+        N, D = X.shape
+        K = int(min(max(1, target_clusters), N))
+
+        # Initialize centers from random samples
+        g = torch.Generator(device=device); g.manual_seed(42)
+        perm = torch.randperm(N, generator=g, device=device)
+        centers = X[perm[:K]].clone()
+
+        def assign_batches(X, centers, batch=4096):
+            N = X.size(0)
+            labels = torch.empty(N, dtype=torch.int64, device=device)
+            csq = (centers.pow(2).sum(dim=1)).view(1, -1)
+            for s in range(0, N, batch):
+                e = min(N, s + batch)
+                xb = X[s:e]
+                dsq = xb.pow(2).sum(dim=1, keepdim=True) + csq - 2.0 * (xb @ centers.t())
+                labels[s:e] = torch.argmin(dsq, dim=1)
+            return labels
+
+        max_iter = 25; tol = 1e-4
+        for _ in range(max_iter):
+            labels = assign_batches(X, centers)
+            sums = torch.zeros_like(centers)
+            counts = torch.zeros(K, device=device)
+            sums.index_add_(0, labels, X)
+            counts.index_add_(0, labels, torch.ones(N, device=device))
+            empty = counts == 0
+            counts = counts.clamp_min(1.0)
+            new_centers = sums / counts.unsqueeze(1)
+            if empty.any():
+                ridx = torch.randint(0, N, (int(empty.sum().item()),), device=device)
+                new_centers[empty] = X[ridx]
+            shift = torch.norm(new_centers - centers, dim=1).mean().item()
+            centers = new_centers
+            if shift < tol:
+                break
+
+        labels = assign_batches(X, centers)
 
         clusters: Dict[int, List[int]] = {}
-        for i, lab in enumerate(labels.get().tolist()):
+        for i, lab in enumerate(labels.detach().cpu().tolist()):
             clusters.setdefault(int(lab), []).append(i)
 
         meaning_clusters: Dict[str, Dict[str, Any]] = {}
+        centers_n = torch.nn.functional.normalize(centers, dim=1)
+        X_n = torch.nn.functional.normalize(X, dim=1)
         for new_idx, (lab, idxs) in enumerate(clusters.items()):
             cluster_name = f"cluster_{new_idx:04d}"
-            centroid = centers[int(lab)]  # cupy vec
-            A = X[idxs]
-            denom = cp.linalg.norm(A, axis=1) * (cp.linalg.norm(centroid) + 1e-8)
-            sims = (A @ centroid) / (denom + 1e-8)
-            core_i = idxs[int(cp.argmax(sims).get())]
+            c = centers_n[int(lab)].unsqueeze(0)
+            Ai = torch.tensor(idxs, device=device, dtype=torch.long)
+            sims = (X_n.index_select(0, Ai) @ c.t()).squeeze(1)
+            core_i = idxs[int(torch.argmax(sims).item())]
             core_q = qs[core_i]['query']
-            seed8 = cp.asnumpy(centroid[:8]).tolist()
+            seed8 = centers[int(lab)][:8].detach().cpu().tolist()
             meaning_clusters[cluster_name] = {
                 'description': f"Auto-curated: {core_q[:64]}...",
                 'queries': [qs[i]['query'] for i in idxs],
@@ -415,7 +442,7 @@ class MeaningClusterTrainer:
                 'honesty_threshold': 0.7,
             }
 
-        print(f"✅ Generated {len(meaning_clusters)} meaning clusters.")
+        print(f"✅ Generated {len(meaning_clusters)} meaning clusters (GPU torch KMeans).")
         self.meaning_clusters = meaning_clusters
         out = self.logs_dir / 'phase22_clusters.json'
         out.write_text(json.dumps(meaning_clusters, ensure_ascii=False, indent=2), encoding='utf-8')
