@@ -2626,10 +2626,49 @@
         "suggested_revision": "Try saying: soft_tool_clinks"
       },
       "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T18:53:45.511968",
+      "query": "Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T18:54:02.656046",
+      "query": "What colour palette should its image memory emphasise?",
+      "student_answer": "warm_oak_and_teal",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": 1.0
     }
   ],
   "zone_placement": "Zone 4 (Workshop)",
-  "last_updated": "2025-09-17T18:00:24.783641",
-  "message_count": 138,
+  "last_updated": "2025-09-17T18:54:02.656046",
+  "message_count": 140,
   "latest_score": 1.0
 }
