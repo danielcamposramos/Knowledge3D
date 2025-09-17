@@ -139,9 +139,19 @@
       "consolidated": false,
       "status": "incomplete",
       "timestamp": "2025-09-17T16:28:16.336790"
+    },
+    {
+      "cluster": "house_mirror_room_orientation",
+      "cluster_name": "house_mirror_room_orientation",
+      "initial_honesty": -0.5,
+      "final_honesty": -0.5,
+      "remediation_rounds": 5,
+      "consolidated": false,
+      "status": "incomplete",
+      "timestamp": "2025-09-17T16:28:17.304562"
     }
   ],
   "phase": 22,
-  "timestamp": "2025-09-17T16:28:16.336934",
-  "total_clusters": 14
+  "timestamp": "2025-09-17T16:28:17.304688",
+  "total_clusters": 15
 }
