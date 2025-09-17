@@ -40,13 +40,17 @@ THEME_MAP: Dict[str, Dict[str, List[Dict[str, Iterable[str]]]]] = {
                 "sources": [
                     "docs/images/*.png",
                     "viewer/public/house/library/*.png",
+                    "/home/daniel/K3D_llama_cpp/datasets/galaxy_geometry/image/geometry_diagrams/*.png",
                 ],
             }
         ],
         "audio": [
             {
                 "name": "phi_recursion",
-                "sources": ["docs/spatial_web_k3d_discussion.mpga"],
+                "sources": [
+                    "docs/spatial_web_k3d_discussion.mpga",
+                    "/home/daniel/K3D_llama_cpp/datasets/galaxy_geometry/audio/phi_recursion/*",
+                ],
             }
         ],
         "video": [
@@ -81,13 +85,17 @@ THEME_MAP: Dict[str, Dict[str, List[Dict[str, Iterable[str]]]]] = {
                 "sources": [
                     "/home/daniel/K3D_llama_cpp/datasets/garden_images/*",
                     "viewer/public/house/garden/*.png",
+                    "/home/daniel/K3D_llama_cpp/datasets/house_zone5/image/garden_photos/*.png",
                 ],
             }
         ],
         "audio": [
             {
                 "name": "garden_audio",
-                "sources": ["/home/daniel/K3D_llama_cpp/datasets/garden_audio/*"],
+                "sources": [
+                    "/home/daniel/K3D_llama_cpp/datasets/garden_audio/*",
+                    "/home/daniel/K3D_llama_cpp/datasets/house_zone5/audio/garden_ambience/*",
+                ],
             }
         ],
         "video": [
@@ -116,13 +124,19 @@ THEME_MAP: Dict[str, Dict[str, List[Dict[str, Iterable[str]]]]] = {
         "image": [
             {
                 "name": "mirror_images",
-                "sources": ["/home/daniel/K3D_llama_cpp/datasets/mirror_images/*"],
+                "sources": [
+                    "/home/daniel/K3D_llama_cpp/datasets/mirror_images/*",
+                    "/home/daniel/K3D_llama_cpp/datasets/house_zone7/image/mirror_selfies/*.png",
+                ],
             }
         ],
         "audio": [
             {
                 "name": "mirror_audio",
-                "sources": ["/home/daniel/K3D_llama_cpp/datasets/mirror_audio/*"],
+                "sources": [
+                    "/home/daniel/K3D_llama_cpp/datasets/mirror_audio/*",
+                    "/home/daniel/K3D_llama_cpp/datasets/house_zone7/audio/whispered_critiques/*",
+                ],
             }
         ],
         "video": [
@@ -214,4 +228,9 @@ def _expand(pattern: str) -> List[Path]:
     return []
 
 
-__all__ = ["fetch_theme_data"]
+def symlink_all_themes(max_samples: int = 100) -> None:
+    for theme in THEME_MAP.keys():
+        fetch_theme_data(theme, max_samples=max_samples)
+
+
+__all__ = ["fetch_theme_data", "symlink_all_themes"]

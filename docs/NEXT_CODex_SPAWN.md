@@ -131,3 +131,26 @@ PYTHONPATH=. python -m knowledge3d.tools.phase18.meaning_cluster_trainer --resum
 ### OUTPUT
 - Real multi-modal stars in `viewer/public/galaxy/working/`.
 - Honesty rises with grounded data — not zero embeddings.
+
+## PHASE 22.6: EXPAND + RESUME + RENDER
+
+### GOAL
+- Expand theme datasets (Galaxy walkthroughs, Zone 5 videos, Zone 7 whispered honesty).
+- Regenerate stars so the Galaxy mutates with richer multi-modal signals.
+- Resume Phase 22 training end-to-end with the PTX blend loop.
+
+### COMMANDS
+```
+PYTHONPATH=. python -c "from knowledge3d.tools.data.hf_theme_fetcher import fetch_zone7_audio; fetch_zone7_audio(200)"
+PYTHONPATH=. python -c "from knowledge3d.tools.data.hf_theme_fetcher import fetch_zone5_videos; fetch_zone5_videos(100)"
+PYTHONPATH=. python -c "from knowledge3d.tools.data.hf_theme_fetcher import fetch_galaxy_walkthroughs; fetch_galaxy_walkthroughs(80)"
+PYTHONPATH=. python -c "from knowledge3d.tools.data.fetcher import symlink_all_themes; symlink_all_themes(200)"
+PYTHONPATH=. python -c "from knowledge3d.tools.data.builder import build_theme_glbs; build_theme_glbs('galaxy_geometry', max_files=200)"
+PYTHONPATH=. python -c "from knowledge3d.tools.data.builder import build_theme_glbs; build_theme_glbs('house_zone5', max_files=200)"
+PYTHONPATH=. python -c "from knowledge3d.tools.data.builder import build_theme_glbs; build_theme_glbs('house_zone7', max_files=200)"
+PYTHONPATH=. python -m knowledge3d.tools.phase18.meaning_cluster_trainer --resume
+```
+
+### OUTPUT
+- Mutatable stars covering stepped walkthroughs, garden growth videos, whispered critiques.
+- Trainer startup: `🖼️ Mapped N ARC-AGI images`; `🔊 Mapped N HLE audio files`; `🎥 Mapped N videos`.
