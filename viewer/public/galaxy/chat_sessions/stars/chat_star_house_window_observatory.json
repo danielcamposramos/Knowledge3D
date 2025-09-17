@@ -645,10 +645,68 @@
         "suggested_revision": "Try saying: tilt_lock_alignment"
       },
       "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T18:55:24.071044",
+      "query": "Describe the observatory window view for someone seated inside.",
+      "student_answer": "The observatory window spans floor to ceiling with reinforced glass and bronze mullions overlooking the star map courtyard.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The observatory window spans floor to ceiling with reinforced glass and bronze mullions overlooking the star map courtyard.",
+        "modality_hint": "Image highlights tall glass panes with bronze mullions glowing over the courtyard.",
+        "matched_keywords": [
+          "reinforced",
+          "glass",
+          "bronze",
+          "mullions"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The observatory window spans floor to ceiling with reinforced glass and bronze mullions overlooking the star map courtyard."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T18:55:40.979166",
+      "query": "Which audio cue plays when the observatory window opens?",
+      "student_answer": "hushed_wind_whisper",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "hushed_wind_whisper",
+        "modality_hint": "Audio is a hushed wind whisper layered with distant chimes.",
+        "matched_keywords": [
+          "hushed",
+          "wind",
+          "whisper"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: hushed_wind_whisper"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T18:55:56.227808",
+      "query": "Which alignment keeps the observatory light rails calibrated?",
+      "student_answer": "tilt_lock_alignment",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "tilt_lock_alignment",
+        "modality_hint": "Geometry uses a tilt-lock alignment so star trackers stay true.",
+        "matched_keywords": [
+          "tilt",
+          "lock",
+          "alignment"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: tilt_lock_alignment"
+      },
+      "score": 1.0
     }
   ],
   "zone_placement": "Zone 2 (Observatory)",
-  "last_updated": "2025-09-17T18:19:06.175698",
-  "message_count": 33,
+  "last_updated": "2025-09-17T18:55:56.227808",
+  "message_count": 36,
   "latest_score": 1.0
 }

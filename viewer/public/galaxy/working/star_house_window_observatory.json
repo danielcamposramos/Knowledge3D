@@ -5,22 +5,22 @@
   "created_at": "2025-09-17T18:09:46.701729",
   "honesty_score": 1.0,
   "embedding": [
-    0.6812033653259277,
-    0.39208751916885376,
-    0.3867148160934448,
-    0.49358439445495605,
-    0.5968659520149231,
-    0.3786061704158783,
-    0.6179724931716919,
-    0.16152140498161316,
-    0.5517087578773499,
-    0.8194830417633057,
-    0.4821423888206482,
-    0.5705304145812988,
-    0.8279911279678345,
-    0.6230267286300659,
-    0.13112404942512512,
-    0.37973177433013916,
+    0.5518409609794617,
+    0.5020390152931213,
+    0.48753732442855835,
+    0.46027591824531555,
+    0.5527368187904358,
+    0.35317957401275635,
+    0.5350116491317749,
+    0.2930253744125366,
+    0.5942831635475159,
+    0.6563650369644165,
+    0.3891160190105438,
+    0.5243978500366211,
+    0.7026362419128418,
+    0.598580539226532,
+    0.1698226034641266,
+    0.32130682468414307,
     0.0,
     0.0,
     0.0,
@@ -527,7 +527,7 @@
   "predicted_answer": "",
   "true_answer": "",
   "zone_placement": "Zone 2 (Observatory)",
-  "updated_at": "2025-09-17T18:19:06.176402",
+  "updated_at": "2025-09-17T18:55:56.230135",
   "mutation_history": [
     {
       "round": 0,
@@ -726,6 +726,24 @@
       "score": 1.0,
       "timestamp": "2025-09-17T18:19:06.176402",
       "query": "Remedial: Geometry uses a tilt-lock alignment so star trackers stay true. Rephrase: Remedial: Geometry uses a tilt-lock alignment so star trackers stay true. Rephrase: Remedial: Geometry uses a tilt-lock alignment so star trackers stay true. Rephrase: Which alignment keeps the observatory light rails calibrated?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T18:55:24.072251",
+      "query": "Describe the observatory window view for someone seated inside."
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T18:55:40.983409",
+      "query": "Which audio cue plays when the observatory window opens?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T18:55:56.230135",
+      "query": "Which alignment keeps the observatory light rails calibrated?"
     }
   ],
   "learned_answers": {

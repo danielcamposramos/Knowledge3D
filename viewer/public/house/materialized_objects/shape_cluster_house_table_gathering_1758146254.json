@@ -1,0 +1,20 @@
+{
+  "type": "generated_3d_shape",
+  "name": "Concept: house_table_gathering",
+  "created_at": "2025-09-17T18:57:34.175603",
+  "honesty_score": 1.0,
+  "embedding": [
+    0.13333333333333333,
+    0.6941176470588235,
+    0.25098039215686274,
+    0.3176470588235294,
+    0.7137254901960784,
+    0.7215686274509804,
+    0.9647058823529412,
+    0.5803921568627451
+  ],
+  "shape_type": "icosahedron",
+  "vertex_count": 100,
+  "zone_placement": "Zone 4 (Workshop)",
+  "ptx_kernel_used": "train_cluster_house_table_gathering_kernel"
+}
