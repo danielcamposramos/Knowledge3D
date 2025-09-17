@@ -131,16 +131,6 @@
       "timestamp": "2025-09-17T15:11:17.006962"
     },
     {
-      "cluster": "house_mirror_room_orientation",
-      "cluster_name": "house_mirror_room_orientation",
-      "initial_honesty": -0.5,
-      "final_honesty": -0.5,
-      "remediation_rounds": 3,
-      "consolidated": false,
-      "status": "needs_guidance",
-      "timestamp": "2025-09-17T17:00:15.822001"
-    },
-    {
       "cluster": "house_workshop_table",
       "cluster_name": "house_workshop_table",
       "initial_honesty": -0.5,
@@ -159,9 +149,19 @@
       "consolidated": true,
       "status": "consolidated",
       "timestamp": "2025-09-17T17:20:09.695462"
+    },
+    {
+      "cluster": "house_mirror_room_orientation",
+      "cluster_name": "house_mirror_room_orientation",
+      "initial_honesty": -0.5,
+      "final_honesty": 1.0,
+      "remediation_rounds": 4,
+      "consolidated": true,
+      "status": "consolidated",
+      "timestamp": "2025-09-17T17:20:10.079455"
     }
   ],
   "phase": 22,
-  "timestamp": "2025-09-17T17:20:09.695563",
+  "timestamp": "2025-09-17T17:20:10.079590",
   "total_clusters": 16
 }

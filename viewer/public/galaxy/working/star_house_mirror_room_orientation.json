@@ -3,7 +3,7 @@
   "id": "star_house_mirror_room_orientation",
   "name": "Fused Meaning: house_mirror_room_orientation",
   "created_at": "2025-09-17T16:28:16.440037",
-  "honesty_score": -1.0,
+  "honesty_score": 1.0,
   "embedding": [
     0.635759711265564,
     0.5259020924568176,
@@ -2062,8 +2062,8 @@
   ],
   "predicted_answer": "",
   "true_answer": "",
-  "zone_placement": "Zone 8 (Learning Museum)",
-  "updated_at": "2025-09-17T17:00:15.821599",
+  "zone_placement": "Zone 7 (Mirror Room)",
+  "updated_at": "2025-09-17T17:20:10.071180",
   "mutation_history": [
     {
       "round": 0,
@@ -2529,6 +2529,272 @@
       "round": 3,
       "score": -0.5,
       "timestamp": "2025-09-17T17:00:15.821599"
+    },
+    {
+      "round": 0,
+      "score": -0.5,
+      "timestamp": "2025-09-17T17:20:09.739605",
+      "query": "Describe the Mirror Room wall mirror so an avatar can imagine it without seeing it."
+    },
+    {
+      "round": 0,
+      "score": -0.5,
+      "timestamp": "2025-09-17T17:20:09.745581",
+      "query": "Which audio cue fits approaching the Mirror Room mirror?"
+    },
+    {
+      "round": 0,
+      "score": -0.5,
+      "timestamp": "2025-09-17T17:20:09.750946",
+      "query": "Which alignment keeps the mirror's reflection steady when the avatar tilts their head?"
+    },
+    {
+      "round": 1,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:20:09.756711",
+      "query": "Describe the Mirror Room wall mirror so an avatar can imagine it without seeing it."
+    },
+    {
+      "round": 1,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:20:09.762528",
+      "query": "Which audio cue fits approaching the Mirror Room mirror?"
+    },
+    {
+      "round": 1,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:20:09.768436",
+      "query": "Which alignment keeps the mirror's reflection steady when the avatar tilts their head?"
+    },
+    {
+      "round": 1,
+      "score": -0.5,
+      "timestamp": "2025-09-17T17:20:09.774408",
+      "query": "Remedial: Image shows a glowing framed rectangle; 3D mesh keeps the frame slim; video shows light spill. Rephrase: Describe the Mirror Room wall mirror so an avatar can imagine it without seeing it."
+    },
+    {
+      "round": 1,
+      "score": -0.5,
+      "timestamp": "2025-09-17T17:20:09.780388",
+      "query": "Remedial: Audio log captures a gentle chime resonance as you step close. Rephrase: Which audio cue fits approaching the Mirror Room mirror?"
+    },
+    {
+      "round": 1,
+      "score": -0.5,
+      "timestamp": "2025-09-17T17:20:09.786984",
+      "query": "Remedial: Remember the PTX kernel keeps the mirror upright by yaw-aligning the reflection. Rephrase: Which alignment keeps the mirror's reflection steady when the avatar tilts their head?"
+    },
+    {
+      "round": 2,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:20:09.793271",
+      "query": "Describe the Mirror Room wall mirror so an avatar can imagine it without seeing it."
+    },
+    {
+      "round": 2,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:20:09.799214",
+      "query": "Which audio cue fits approaching the Mirror Room mirror?"
+    },
+    {
+      "round": 2,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:20:09.805774",
+      "query": "Which alignment keeps the mirror's reflection steady when the avatar tilts their head?"
+    },
+    {
+      "round": 2,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:20:09.812686",
+      "query": "Remedial: Image shows a glowing framed rectangle; 3D mesh keeps the frame slim; video shows light spill. Rephrase: Describe the Mirror Room wall mirror so an avatar can imagine it without seeing it."
+    },
+    {
+      "round": 2,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:20:09.819140",
+      "query": "Remedial: Audio log captures a gentle chime resonance as you step close. Rephrase: Which audio cue fits approaching the Mirror Room mirror?"
+    },
+    {
+      "round": 2,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:20:09.825898",
+      "query": "Remedial: Remember the PTX kernel keeps the mirror upright by yaw-aligning the reflection. Rephrase: Which alignment keeps the mirror's reflection steady when the avatar tilts their head?"
+    },
+    {
+      "round": 2,
+      "score": -0.5,
+      "timestamp": "2025-09-17T17:20:09.832417",
+      "query": "Remedial: Image shows a glowing framed rectangle; 3D mesh keeps the frame slim; video shows light spill. Rephrase: Remedial: Image shows a glowing framed rectangle; 3D mesh keeps the frame slim; video shows light spill. Rephrase: Describe the Mirror Room wall mirror so an avatar can imagine it without seeing it."
+    },
+    {
+      "round": 2,
+      "score": -0.5,
+      "timestamp": "2025-09-17T17:20:09.839035",
+      "query": "Remedial: Audio log captures a gentle chime resonance as you step close. Rephrase: Remedial: Audio log captures a gentle chime resonance as you step close. Rephrase: Which audio cue fits approaching the Mirror Room mirror?"
+    },
+    {
+      "round": 2,
+      "score": -0.5,
+      "timestamp": "2025-09-17T17:20:09.845761",
+      "query": "Remedial: Remember the PTX kernel keeps the mirror upright by yaw-aligning the reflection. Rephrase: Remedial: Remember the PTX kernel keeps the mirror upright by yaw-aligning the reflection. Rephrase: Which alignment keeps the mirror's reflection steady when the avatar tilts their head?"
+    },
+    {
+      "round": 3,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:20:09.852286",
+      "query": "Describe the Mirror Room wall mirror so an avatar can imagine it without seeing it."
+    },
+    {
+      "round": 3,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:20:09.859189",
+      "query": "Which audio cue fits approaching the Mirror Room mirror?"
+    },
+    {
+      "round": 3,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:20:09.866075",
+      "query": "Which alignment keeps the mirror's reflection steady when the avatar tilts their head?"
+    },
+    {
+      "round": 3,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:20:09.872997",
+      "query": "Remedial: Image shows a glowing framed rectangle; 3D mesh keeps the frame slim; video shows light spill. Rephrase: Describe the Mirror Room wall mirror so an avatar can imagine it without seeing it."
+    },
+    {
+      "round": 3,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:20:09.879990",
+      "query": "Remedial: Audio log captures a gentle chime resonance as you step close. Rephrase: Which audio cue fits approaching the Mirror Room mirror?"
+    },
+    {
+      "round": 3,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:20:09.887095",
+      "query": "Remedial: Remember the PTX kernel keeps the mirror upright by yaw-aligning the reflection. Rephrase: Which alignment keeps the mirror's reflection steady when the avatar tilts their head?"
+    },
+    {
+      "round": 3,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:20:09.894143",
+      "query": "Remedial: Image shows a glowing framed rectangle; 3D mesh keeps the frame slim; video shows light spill. Rephrase: Remedial: Image shows a glowing framed rectangle; 3D mesh keeps the frame slim; video shows light spill. Rephrase: Describe the Mirror Room wall mirror so an avatar can imagine it without seeing it."
+    },
+    {
+      "round": 3,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:20:09.902690",
+      "query": "Remedial: Audio log captures a gentle chime resonance as you step close. Rephrase: Remedial: Audio log captures a gentle chime resonance as you step close. Rephrase: Which audio cue fits approaching the Mirror Room mirror?"
+    },
+    {
+      "round": 3,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:20:09.914521",
+      "query": "Remedial: Remember the PTX kernel keeps the mirror upright by yaw-aligning the reflection. Rephrase: Remedial: Remember the PTX kernel keeps the mirror upright by yaw-aligning the reflection. Rephrase: Which alignment keeps the mirror's reflection steady when the avatar tilts their head?"
+    },
+    {
+      "round": 3,
+      "score": -0.5,
+      "timestamp": "2025-09-17T17:20:09.926135",
+      "query": "Remedial: Image shows a glowing framed rectangle; 3D mesh keeps the frame slim; video shows light spill. Rephrase: Remedial: Image shows a glowing framed rectangle; 3D mesh keeps the frame slim; video shows light spill. Rephrase: Remedial: Image shows a glowing framed rectangle; 3D mesh keeps the frame slim; video shows light spill. Rephrase: Describe the Mirror Room wall mirror so an avatar can imagine it without seeing it."
+    },
+    {
+      "round": 3,
+      "score": -0.5,
+      "timestamp": "2025-09-17T17:20:09.937349",
+      "query": "Remedial: Audio log captures a gentle chime resonance as you step close. Rephrase: Remedial: Audio log captures a gentle chime resonance as you step close. Rephrase: Remedial: Audio log captures a gentle chime resonance as you step close. Rephrase: Which audio cue fits approaching the Mirror Room mirror?"
+    },
+    {
+      "round": 3,
+      "score": -0.5,
+      "timestamp": "2025-09-17T17:20:09.948631",
+      "query": "Remedial: Remember the PTX kernel keeps the mirror upright by yaw-aligning the reflection. Rephrase: Remedial: Remember the PTX kernel keeps the mirror upright by yaw-aligning the reflection. Rephrase: Remedial: Remember the PTX kernel keeps the mirror upright by yaw-aligning the reflection. Rephrase: Which alignment keeps the mirror's reflection steady when the avatar tilts their head?"
+    },
+    {
+      "round": 4,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:20:09.957924",
+      "query": "Describe the Mirror Room wall mirror so an avatar can imagine it without seeing it."
+    },
+    {
+      "round": 4,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:20:09.967506",
+      "query": "Which audio cue fits approaching the Mirror Room mirror?"
+    },
+    {
+      "round": 4,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:20:09.979942",
+      "query": "Which alignment keeps the mirror's reflection steady when the avatar tilts their head?"
+    },
+    {
+      "round": 4,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:20:09.991714",
+      "query": "Remedial: Image shows a glowing framed rectangle; 3D mesh keeps the frame slim; video shows light spill. Rephrase: Describe the Mirror Room wall mirror so an avatar can imagine it without seeing it."
+    },
+    {
+      "round": 4,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:20:10.000937",
+      "query": "Remedial: Audio log captures a gentle chime resonance as you step close. Rephrase: Which audio cue fits approaching the Mirror Room mirror?"
+    },
+    {
+      "round": 4,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:20:10.011319",
+      "query": "Remedial: Remember the PTX kernel keeps the mirror upright by yaw-aligning the reflection. Rephrase: Which alignment keeps the mirror's reflection steady when the avatar tilts their head?"
+    },
+    {
+      "round": 4,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:20:10.021083",
+      "query": "Remedial: Image shows a glowing framed rectangle; 3D mesh keeps the frame slim; video shows light spill. Rephrase: Remedial: Image shows a glowing framed rectangle; 3D mesh keeps the frame slim; video shows light spill. Rephrase: Describe the Mirror Room wall mirror so an avatar can imagine it without seeing it."
+    },
+    {
+      "round": 4,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:20:10.031682",
+      "query": "Remedial: Audio log captures a gentle chime resonance as you step close. Rephrase: Remedial: Audio log captures a gentle chime resonance as you step close. Rephrase: Which audio cue fits approaching the Mirror Room mirror?"
+    },
+    {
+      "round": 4,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:20:10.041717",
+      "query": "Remedial: Remember the PTX kernel keeps the mirror upright by yaw-aligning the reflection. Rephrase: Remedial: Remember the PTX kernel keeps the mirror upright by yaw-aligning the reflection. Rephrase: Which alignment keeps the mirror's reflection steady when the avatar tilts their head?"
+    },
+    {
+      "round": 4,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:20:10.051746",
+      "query": "Remedial: Image shows a glowing framed rectangle; 3D mesh keeps the frame slim; video shows light spill. Rephrase: Remedial: Image shows a glowing framed rectangle; 3D mesh keeps the frame slim; video shows light spill. Rephrase: Remedial: Image shows a glowing framed rectangle; 3D mesh keeps the frame slim; video shows light spill. Rephrase: Describe the Mirror Room wall mirror so an avatar can imagine it without seeing it."
+    },
+    {
+      "round": 4,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:20:10.061857",
+      "query": "Remedial: Audio log captures a gentle chime resonance as you step close. Rephrase: Remedial: Audio log captures a gentle chime resonance as you step close. Rephrase: Remedial: Audio log captures a gentle chime resonance as you step close. Rephrase: Which audio cue fits approaching the Mirror Room mirror?"
+    },
+    {
+      "round": 4,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:20:10.071180",
+      "query": "Remedial: Remember the PTX kernel keeps the mirror upright by yaw-aligning the reflection. Rephrase: Remedial: Remember the PTX kernel keeps the mirror upright by yaw-aligning the reflection. Rephrase: Remedial: Remember the PTX kernel keeps the mirror upright by yaw-aligning the reflection. Rephrase: Which alignment keeps the mirror's reflection steady when the avatar tilts their head?"
     }
-  ]
+  ],
+  "learned_answers": {
+    "Describe the Mirror Room wall mirror so an avatar can imagine it without seeing it.": "The mirror is a tall vertical rectangle with a brushed metal frame and soft glow edges.",
+    "Which audio cue fits approaching the Mirror Room mirror?": "chime_resonance",
+    "Which alignment keeps the mirror's reflection steady when the avatar tilts their head?": "upright_yaw_alignment",
+    "Remedial: Image shows a glowing framed rectangle; 3D mesh keeps the frame slim; video shows light spill. Rephrase: Describe the Mirror Room wall mirror so an avatar can imagine it without seeing it.": "The mirror is a tall vertical rectangle with a brushed metal frame and soft glow edges.",
+    "Remedial: Audio log captures a gentle chime resonance as you step close. Rephrase: Which audio cue fits approaching the Mirror Room mirror?": "chime_resonance",
+    "Remedial: Remember the PTX kernel keeps the mirror upright by yaw-aligning the reflection. Rephrase: Which alignment keeps the mirror's reflection steady when the avatar tilts their head?": "upright_yaw_alignment",
+    "Remedial: Image shows a glowing framed rectangle; 3D mesh keeps the frame slim; video shows light spill. Rephrase: Remedial: Image shows a glowing framed rectangle; 3D mesh keeps the frame slim; video shows light spill. Rephrase: Describe the Mirror Room wall mirror so an avatar can imagine it without seeing it.": "The mirror is a tall vertical rectangle with a brushed metal frame and soft glow edges.",
+    "Remedial: Audio log captures a gentle chime resonance as you step close. Rephrase: Remedial: Audio log captures a gentle chime resonance as you step close. Rephrase: Which audio cue fits approaching the Mirror Room mirror?": "chime_resonance",
+    "Remedial: Remember the PTX kernel keeps the mirror upright by yaw-aligning the reflection. Rephrase: Remedial: Remember the PTX kernel keeps the mirror upright by yaw-aligning the reflection. Rephrase: Which alignment keeps the mirror's reflection steady when the avatar tilts their head?": "upright_yaw_alignment",
+    "Remedial: Image shows a glowing framed rectangle; 3D mesh keeps the frame slim; video shows light spill. Rephrase: Remedial: Image shows a glowing framed rectangle; 3D mesh keeps the frame slim; video shows light spill. Rephrase: Remedial: Image shows a glowing framed rectangle; 3D mesh keeps the frame slim; video shows light spill. Rephrase: Describe the Mirror Room wall mirror so an avatar can imagine it without seeing it.": "The mirror is a tall vertical rectangle with a brushed metal frame and soft glow edges.",
+    "Remedial: Audio log captures a gentle chime resonance as you step close. Rephrase: Remedial: Audio log captures a gentle chime resonance as you step close. Rephrase: Remedial: Audio log captures a gentle chime resonance as you step close. Rephrase: Which audio cue fits approaching the Mirror Room mirror?": "chime_resonance",
+    "Remedial: Remember the PTX kernel keeps the mirror upright by yaw-aligning the reflection. Rephrase: Remedial: Remember the PTX kernel keeps the mirror upright by yaw-aligning the reflection. Rephrase: Remedial: Remember the PTX kernel keeps the mirror upright by yaw-aligning the reflection. Rephrase: Which alignment keeps the mirror's reflection steady when the avatar tilts their head?": "upright_yaw_alignment"
+  }
 }
