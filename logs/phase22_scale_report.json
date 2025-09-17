@@ -131,37 +131,37 @@
       "timestamp": "2025-09-17T15:11:17.006962"
     },
     {
-      "cluster": "house_book_foundations",
-      "cluster_name": "house_book_foundations",
-      "initial_honesty": -0.5,
-      "final_honesty": -0.5,
-      "remediation_rounds": 5,
-      "consolidated": false,
-      "status": "incomplete",
-      "timestamp": "2025-09-17T16:28:16.336790"
-    },
-    {
       "cluster": "house_mirror_room_orientation",
       "cluster_name": "house_mirror_room_orientation",
       "initial_honesty": -0.5,
       "final_honesty": -0.5,
-      "remediation_rounds": 5,
+      "remediation_rounds": 3,
       "consolidated": false,
-      "status": "incomplete",
-      "timestamp": "2025-09-17T16:28:17.304562"
+      "status": "needs_guidance",
+      "timestamp": "2025-09-17T17:00:15.822001"
     },
     {
       "cluster": "house_workshop_table",
       "cluster_name": "house_workshop_table",
       "initial_honesty": -0.5,
       "final_honesty": -0.5,
-      "remediation_rounds": 5,
+      "remediation_rounds": 3,
       "consolidated": false,
-      "status": "incomplete",
-      "timestamp": "2025-09-17T16:28:18.187909"
+      "status": "needs_guidance",
+      "timestamp": "2025-09-17T17:00:16.312097"
+    },
+    {
+      "cluster": "house_book_foundations",
+      "cluster_name": "house_book_foundations",
+      "initial_honesty": -0.16666666666666666,
+      "final_honesty": 1.0,
+      "remediation_rounds": 3,
+      "consolidated": true,
+      "status": "consolidated",
+      "timestamp": "2025-09-17T17:20:09.695462"
     }
   ],
   "phase": 22,
-  "timestamp": "2025-09-17T16:28:18.188036",
+  "timestamp": "2025-09-17T17:20:09.695563",
   "total_clusters": 16
 }
