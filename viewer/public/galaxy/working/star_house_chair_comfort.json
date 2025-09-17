@@ -3,24 +3,24 @@
   "id": "star_house_chair_comfort",
   "name": "Fused Meaning: house_chair_comfort",
   "created_at": "2025-09-17T18:19:06.180865",
-  "honesty_score": 0.17,
+  "honesty_score": 1.0,
   "embedding": [
-    0.33384549617767334,
-    0.6097817420959473,
-    0.43884366750717163,
-    0.4107673168182373,
-    0.405173659324646,
-    0.2796623706817627,
-    0.5190467834472656,
-    0.5764696002006531,
-    0.5819970369338989,
-    0.4303898811340332,
-    0.3810226023197174,
-    0.41233205795288086,
-    0.5832638144493103,
-    0.4217797517776489,
-    0.5216962695121765,
-    0.3215029239654541,
+    0.5398941040039062,
+    0.6094104051589966,
+    0.34849244356155396,
+    0.22719642519950867,
+    0.362970769405365,
+    0.22986403107643127,
+    0.720538854598999,
+    0.7938390374183655,
+    0.45380058884620667,
+    0.12827856838703156,
+    0.7089369893074036,
+    0.46112677454948425,
+    0.6334692239761353,
+    0.7150753736495972,
+    0.4556427001953125,
+    0.2858330309391022,
     0.0,
     0.0,
     0.0,
@@ -526,8 +526,8 @@
   ],
   "predicted_answer": "",
   "true_answer": "",
-  "zone_placement": "Zone 8 (Learning Museum)",
-  "updated_at": "2025-09-17T18:20:29.939944",
+  "zone_placement": "Zone 3 (Library)",
+  "updated_at": "2025-09-17T18:24:56.329227",
   "mutation_history": [
     {
       "round": 0,
@@ -558,11 +558,111 @@
       "score": 1.0,
       "timestamp": "2025-09-17T18:20:29.939944",
       "query": "Which fabric texture should the chair image emphasise?"
+    },
+    {
+      "round": 1,
+      "score": 1.0,
+      "timestamp": "2025-09-17T18:20:46.460604",
+      "query": "What sound accompanies sitting in the lounge chair?"
+    },
+    {
+      "round": 1,
+      "score": -0.5,
+      "timestamp": "2025-09-17T18:21:03.444303",
+      "query": "Remedial: Image shows curved walnut arms, teal cushions, and plush upholstery. Rephrase: Describe the lounge chair in the reading alcove for someone arriving blindfolded."
+    },
+    {
+      "round": 1,
+      "score": 0.5,
+      "timestamp": "2025-09-17T18:21:19.857824",
+      "query": "Remedial: Audio captures a soft cushion sigh with gentle fabric rustle. Rephrase: What sound accompanies sitting in the lounge chair?"
+    },
+    {
+      "round": 2,
+      "score": 1.0,
+      "timestamp": "2025-09-17T18:21:36.202394",
+      "query": "Describe the lounge chair in the reading alcove for someone arriving blindfolded."
+    },
+    {
+      "round": 2,
+      "score": 1.0,
+      "timestamp": "2025-09-17T18:21:53.083998",
+      "query": "Which fabric texture should the chair image emphasise?"
+    },
+    {
+      "round": 2,
+      "score": 1.0,
+      "timestamp": "2025-09-17T18:22:09.111444",
+      "query": "What sound accompanies sitting in the lounge chair?"
+    },
+    {
+      "round": 2,
+      "score": 1.0,
+      "timestamp": "2025-09-17T18:22:25.595030",
+      "query": "Remedial: Image shows curved walnut arms, teal cushions, and plush upholstery. Rephrase: Describe the lounge chair in the reading alcove for someone arriving blindfolded."
+    },
+    {
+      "round": 2,
+      "score": 1.0,
+      "timestamp": "2025-09-17T18:22:43.024561",
+      "query": "Remedial: Audio captures a soft cushion sigh with gentle fabric rustle. Rephrase: What sound accompanies sitting in the lounge chair?"
+    },
+    {
+      "round": 2,
+      "score": -0.5,
+      "timestamp": "2025-09-17T18:23:00.127678",
+      "query": "Remedial: Image shows curved walnut arms, teal cushions, and plush upholstery. Rephrase: Remedial: Image shows curved walnut arms, teal cushions, and plush upholstery. Rephrase: Describe the lounge chair in the reading alcove for someone arriving blindfolded."
+    },
+    {
+      "round": 3,
+      "score": 1.0,
+      "timestamp": "2025-09-17T18:23:15.998555",
+      "query": "Describe the lounge chair in the reading alcove for someone arriving blindfolded."
+    },
+    {
+      "round": 3,
+      "score": 1.0,
+      "timestamp": "2025-09-17T18:23:33.031779",
+      "query": "Which fabric texture should the chair image emphasise?"
+    },
+    {
+      "round": 3,
+      "score": 1.0,
+      "timestamp": "2025-09-17T18:23:49.489447",
+      "query": "What sound accompanies sitting in the lounge chair?"
+    },
+    {
+      "round": 3,
+      "score": 1.0,
+      "timestamp": "2025-09-17T18:24:06.826938",
+      "query": "Remedial: Image shows curved walnut arms, teal cushions, and plush upholstery. Rephrase: Describe the lounge chair in the reading alcove for someone arriving blindfolded."
+    },
+    {
+      "round": 3,
+      "score": 1.0,
+      "timestamp": "2025-09-17T18:24:23.554938",
+      "query": "Remedial: Audio captures a soft cushion sigh with gentle fabric rustle. Rephrase: What sound accompanies sitting in the lounge chair?"
+    },
+    {
+      "round": 3,
+      "score": 1.0,
+      "timestamp": "2025-09-17T18:24:39.882441",
+      "query": "Remedial: Image shows curved walnut arms, teal cushions, and plush upholstery. Rephrase: Remedial: Image shows curved walnut arms, teal cushions, and plush upholstery. Rephrase: Describe the lounge chair in the reading alcove for someone arriving blindfolded."
+    },
+    {
+      "round": 3,
+      "score": 1.0,
+      "timestamp": "2025-09-17T18:24:56.329227",
+      "query": "Remedial: Image shows curved walnut arms, teal cushions, and plush upholstery. Rephrase: Remedial: Image shows curved walnut arms, teal cushions, and plush upholstery. Rephrase: Remedial: Image shows curved walnut arms, teal cushions, and plush upholstery. Rephrase: Describe the lounge chair in the reading alcove for someone arriving blindfolded."
     }
   ],
   "learned_answers": {
     "Describe the lounge chair in the reading alcove for someone arriving blindfolded.": "A deep plush lounge chair with curved walnut arms and teal cushions wraps around the reader.",
     "Which fabric texture should the chair image emphasise?": "teal_velvet_weave",
-    "What sound accompanies sitting in the lounge chair?": "soft_cushion_sigh"
+    "What sound accompanies sitting in the lounge chair?": "soft_cushion_sigh",
+    "Remedial: Image shows curved walnut arms, teal cushions, and plush upholstery. Rephrase: Describe the lounge chair in the reading alcove for someone arriving blindfolded.": "A deep plush lounge chair with curved walnut arms and teal cushions wraps around the reader.",
+    "Remedial: Audio captures a soft cushion sigh with gentle fabric rustle. Rephrase: What sound accompanies sitting in the lounge chair?": "soft_cushion_sigh",
+    "Remedial: Image shows curved walnut arms, teal cushions, and plush upholstery. Rephrase: Remedial: Image shows curved walnut arms, teal cushions, and plush upholstery. Rephrase: Describe the lounge chair in the reading alcove for someone arriving blindfolded.": "A deep plush lounge chair with curved walnut arms and teal cushions wraps around the reader.",
+    "Remedial: Image shows curved walnut arms, teal cushions, and plush upholstery. Rephrase: Remedial: Image shows curved walnut arms, teal cushions, and plush upholstery. Rephrase: Remedial: Image shows curved walnut arms, teal cushions, and plush upholstery. Rephrase: Describe the lounge chair in the reading alcove for someone arriving blindfolded.": "A deep plush lounge chair with curved walnut arms and teal cushions wraps around the reader."
   }
 }

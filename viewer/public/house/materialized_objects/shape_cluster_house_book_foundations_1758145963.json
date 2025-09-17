@@ -1,7 +1,7 @@
 {
   "type": "generated_3d_shape",
   "name": "Concept: house_book_foundations",
-  "created_at": "2025-09-17T17:58:44.156501",
+  "created_at": "2025-09-17T18:52:43.371703",
   "honesty_score": 1.0,
   "embedding": [
     0.8117647058823529,
@@ -15,8 +15,6 @@
   ],
   "shape_type": "tetrahedron",
   "vertex_count": 100,
-  "zone_placement": "Zone 8 (Learning Museum)",
-  "ptx_kernel_used": "train_cluster_house_book_foundations_kernel",
-  "relocated_at": "2025-09-17T18:52:43.370685",
-  "previous_zone": "Zone 3 (Library)"
+  "zone_placement": "Zone 3 (Library)",
+  "ptx_kernel_used": "train_cluster_house_book_foundations_kernel"
 }

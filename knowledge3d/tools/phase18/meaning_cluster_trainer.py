@@ -643,6 +643,11 @@ class MeaningClusterTrainer:
                 'embedding_seed': seed_embedding,
                 'honesty_threshold': spec.get('honesty_threshold', 0.85),
             }
+        curated_path = self.logs_dir / 'phase22_house_clusters.json'
+        try:
+            curated_path.write_text(json.dumps(curriculum, ensure_ascii=False, indent=2), encoding='utf-8')
+        except Exception as exc:
+            print(f"⚠️  Failed to persist curated house clusters: {exc}")
         return curriculum
 
     def ensure_house_assets(

@@ -2,7 +2,7 @@
   "type": "diary_entry",
   "title": "Reflection: house_mirror_room_orientation",
   "author": "AI Self",
-  "created_at": "2025-09-17T17:59:34.498412",
+  "created_at": "2025-09-17T18:53:29.190356",
   "honesty_score": 1.0,
   "content": [
     "Trained on 3 queries about house_mirror_room_orientation.",
@@ -19,7 +19,5 @@
     0.8705882352941177,
     0.5254901960784314
   ],
-  "zone_placement": "Zone 8 (Learning Museum)",
-  "relocated_at": "2025-09-17T18:53:29.189507",
-  "previous_zone": "Zone 7 (Mirror Room)"
+  "zone_placement": "Zone 7 (Mirror Room)"
 }
