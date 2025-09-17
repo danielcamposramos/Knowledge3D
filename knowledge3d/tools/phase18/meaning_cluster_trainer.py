@@ -4,7 +4,7 @@ import argparse
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List, Optional, Set
 import os
 import subprocess
 import sys
@@ -68,6 +68,14 @@ class MeaningClusterTrainer:
         self.galaxy_dir = Path("viewer/public/galaxy/working"); self.galaxy_dir.mkdir(parents=True, exist_ok=True)
         self.session_memory_path = self.galaxy_dir / "phase22_session_memory.jsonl"
         self._last_teacher_feedback: Dict[str, Any] = {}
+        self._star_cache: Dict[str, Path] = {}
+        try:
+            from knowledge3d.cranium.phase22.galaxy_memory_updater import GalaxyMemoryUpdater  # type: ignore
+
+            self.galaxy_updater: Optional[GalaxyMemoryUpdater] = GalaxyMemoryUpdater(self.galaxy_dir)
+        except Exception as exc:  # pragma: no cover
+            print(f"⚠️  Galaxy updater unavailable, falling back to CPU blend: {exc}")
+            self.galaxy_updater = None
 
         # Auto‑scan datasets for real multi‑modal inputs
         self.arc_image_map = self.scan_dataset_images(self.arc_agi_path)
@@ -254,6 +262,7 @@ class MeaningClusterTrainer:
         round_index: int,
     ) -> None:
         """Persist per-question feedback into the Galaxy session memory."""
+        teacher_feedback = self._last_teacher_feedback or {}
         event = {
             'timestamp': datetime.now().isoformat(),
             'cluster': cluster_name,
@@ -262,7 +271,7 @@ class MeaningClusterTrainer:
             'predicted': predicted,
             'true_answer': true_answer,
             'score': score,
-            'teacher_feedback': self._last_teacher_feedback,
+            'teacher_feedback': teacher_feedback,
             'embedding_slice': embedding[:16],
         }
         try:
@@ -270,6 +279,129 @@ class MeaningClusterTrainer:
                 fh.write(json.dumps(event, ensure_ascii=False) + '\n')
         except Exception as exc:
             print(f"⚠️  Failed to record galaxy memory for {cluster_name}: {exc}")
+
+        explanation_text = ''
+        if isinstance(teacher_feedback, dict):
+            explanation_text = str(teacher_feedback.get('explanation', '')).strip()
+        if not explanation_text:
+            explanation_text = "Teacher explanation unavailable."
+        try:
+            teacher_embedding = self.generate_multi_modal_embedding(text=explanation_text)
+        except Exception:
+            teacher_embedding = [0.0] * len(embedding)
+        try:
+            self.mutate_star_embedding(
+                cluster_name=cluster_name,
+                teacher_embedding=teacher_embedding,
+                score=score,
+                cluster_round=round_index,
+            )
+        except Exception as exc:
+            print(f"⚠️  Failed to mutate galaxy star for {cluster_name}: {exc}")
+
+    def ensure_star_initialized(self, cluster_name: str, cluster: Dict[str, Any]) -> None:
+        path = self._resolve_star_path(cluster_name)
+        if path is not None and path.exists():
+            return
+        seed_embedding = self.generate_multi_modal_embedding(text=cluster.get('description', cluster_name))
+        star_data = {
+            'type': 'star',
+            'id': f'star_{cluster_name}',
+            'name': f'Fused Meaning: {cluster_name}',
+            'created_at': datetime.now().isoformat(),
+            'honesty_score': 0.0,
+            'embedding': seed_embedding,
+            'modality_fusion': ['text', 'image', 'audio', '3d'],
+            'predicted_answer': '',
+            'true_answer': '',
+            'zone_placement': cluster.get('zone', 'Zone 1 (Entrance)'),
+            'updated_at': datetime.now().isoformat(),
+            'mutation_history': [],
+        }
+        path = self.galaxy_dir / f'star_{cluster_name}.json'
+        path.write_text(json.dumps(star_data, ensure_ascii=False, indent=2), encoding='utf-8')
+        self._star_cache[cluster_name] = path
+
+    def _resolve_star_path(self, cluster_name: str) -> Optional[Path]:
+        cached = self._star_cache.get(cluster_name)
+        if cached and cached.exists():
+            return cached
+        matches = sorted(self.galaxy_dir.glob(f'star_{cluster_name}*.json'))
+        if matches:
+            self._star_cache[cluster_name] = matches[0]
+            return matches[0]
+        return None
+
+    def _numpy_blend(self, old: np.ndarray, teacher: np.ndarray, blend_factor: float) -> np.ndarray:
+        return (old * (1.0 - blend_factor)) + (teacher * blend_factor)
+
+    def mutate_star_embedding(
+        self,
+        cluster_name: str,
+        teacher_embedding: List[float],
+        score: float,
+        cluster_round: int,
+    ) -> None:
+        star_path = self._resolve_star_path(cluster_name)
+        if star_path is None:
+            cluster = self.meaning_clusters.get(cluster_name, {})
+            self.ensure_star_initialized(cluster_name, cluster)
+            star_path = self._resolve_star_path(cluster_name)
+            if star_path is None:
+                return
+        try:
+            star_data = json.loads(star_path.read_text(encoding='utf-8'))
+        except Exception:
+            star_data = {}
+        old_embedding = np.array(star_data.get('embedding', teacher_embedding), dtype=np.float32)
+        if old_embedding.ndim != 1:
+            old_embedding = old_embedding.flatten()
+        teacher_vec = np.array(teacher_embedding, dtype=np.float32)
+        if teacher_vec.size == 0:
+            teacher_vec = np.zeros_like(old_embedding, dtype=np.float32)
+        if teacher_vec.size != old_embedding.size:
+            if teacher_vec.size < old_embedding.size:
+                teacher_vec = np.pad(teacher_vec, (0, old_embedding.size - teacher_vec.size))
+            else:
+                teacher_vec = teacher_vec[: old_embedding.size]
+        blend_factor = 0.3
+        new_embedding: np.ndarray
+        if self.galaxy_updater is not None:
+            try:
+                new_embedding = self.galaxy_updater.blend(old_embedding, teacher_vec, blend_factor)
+            except Exception as exc:
+                print(f"⚠️  PTX blend failed for {cluster_name}; falling back to CPU: {exc}")
+                new_embedding = self._numpy_blend(old_embedding, teacher_vec, blend_factor)
+        else:
+            new_embedding = self._numpy_blend(old_embedding, teacher_vec, blend_factor)
+
+        honesty = float(star_data.get('honesty_score', 0.0))
+        if score >= 1.0:
+            honesty += 0.10
+        elif score >= 0.5:
+            honesty += 0.07
+        elif score == 0.0:
+            honesty += 0.05
+        elif score == -0.5:
+            honesty -= 0.05
+        else:
+            honesty -= 0.10
+        honesty = max(-1.0, min(1.0, honesty))
+
+        star_data['honesty_score'] = honesty
+        star_data['embedding'] = new_embedding.astype(float).tolist()
+        star_data['updated_at'] = datetime.now().isoformat()
+        star_data.setdefault('mutation_history', []).append({
+            'round': cluster_round,
+            'score': score,
+            'timestamp': star_data['updated_at'],
+        })
+        if honesty < 0.5:
+            star_data['zone_placement'] = 'Zone 8 (Learning Museum)'
+        else:
+            cluster = self.meaning_clusters.get(cluster_name, {})
+            star_data['zone_placement'] = cluster.get('zone', 'Zone 1 (Entrance)')
+        star_path.write_text(json.dumps(star_data, ensure_ascii=False, indent=2), encoding='utf-8')
 
     def train_on_meaning_cluster(self, cluster_name: str) -> Dict[str, Any]:
         """Train one cluster with honesty-weighted remediation and conditional consolidation."""
@@ -291,6 +423,11 @@ class MeaningClusterTrainer:
 
         print(f"\n🧠 TRAINING ON MEANING CLUSTER: {cluster_name}")
         print(f"   Description: {cluster.get('description','')}")
+
+        try:
+            self.ensure_star_initialized(cluster_name, cluster)
+        except Exception as exc:
+            print(f"⚠️  Galaxy star initialization failed for {cluster_name}: {exc}")
 
         max_remediation = 5
         remediation_count = 0
@@ -337,6 +474,10 @@ class MeaningClusterTrainer:
                     correct += 1
                 elif score == 0.5:
                     print("⚠️  +0.5 point. Partially correct — cross‑modal inconsistency detected.")
+                elif score == 0.0:
+                    print("🛑  0 point. Honest admission acknowledged; knowledge reinforced.")
+                elif score == -0.5:
+                    print("🚫 -0.5 point. Overconfident partial — correction recorded in Galaxy.")
                 else:
                     print("❌ -1 point. Incorrect or cross‑modally inconsistent.")
 
