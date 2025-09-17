@@ -102,3 +102,5 @@ PYTHONPATH=. python -m knowledge3d.tools.phase18.meaning_cluster_trainer --resum
 
 ### NO MANUAL MONITORING
 - No `tail -f`, no PID checks — fully automated.
+- Honest "I don't know" responses now earn 🛑 0 point; teacher explains the concept instead of penalizing honesty.
+- Honest partial answers that admit missing knowledge now receive ✅ +1, while overconfident partials are marked 🚫 -0.5.

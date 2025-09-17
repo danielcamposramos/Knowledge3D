@@ -65,6 +65,9 @@ class MeaningClusterTrainer:
         self.material_dir = Path("viewer/public/house/materialized_objects")
         self.material_dir.mkdir(parents=True, exist_ok=True)
         self.logs_dir = Path("logs"); self.logs_dir.mkdir(exist_ok=True)
+        self.galaxy_dir = Path("viewer/public/galaxy/working"); self.galaxy_dir.mkdir(parents=True, exist_ok=True)
+        self.session_memory_path = self.galaxy_dir / "phase22_session_memory.jsonl"
+        self._last_teacher_feedback: Dict[str, Any] = {}
 
         # Auto‑scan datasets for real multi‑modal inputs
         self.arc_image_map = self.scan_dataset_images(self.arc_agi_path)
@@ -240,6 +243,34 @@ class MeaningClusterTrainer:
         except Exception as exc:
             print(f"⚠️  Failed to auto-advance to Phase 23: {exc}")
 
+    def record_galaxy_memory(
+        self,
+        cluster_name: str,
+        query: str,
+        predicted: str,
+        true_answer: str,
+        embedding: List[float],
+        score: float,
+        round_index: int,
+    ) -> None:
+        """Persist per-question feedback into the Galaxy session memory."""
+        event = {
+            'timestamp': datetime.now().isoformat(),
+            'cluster': cluster_name,
+            'round': round_index,
+            'query': query,
+            'predicted': predicted,
+            'true_answer': true_answer,
+            'score': score,
+            'teacher_feedback': self._last_teacher_feedback,
+            'embedding_slice': embedding[:16],
+        }
+        try:
+            with self.session_memory_path.open('a', encoding='utf-8') as fh:
+                fh.write(json.dumps(event, ensure_ascii=False) + '\n')
+        except Exception as exc:
+            print(f"⚠️  Failed to record galaxy memory for {cluster_name}: {exc}")
+
     def train_on_meaning_cluster(self, cluster_name: str) -> Dict[str, Any]:
         """Train one cluster with honesty-weighted remediation and conditional consolidation."""
         # Lazy imports to keep dependencies soft
@@ -291,6 +322,15 @@ class MeaningClusterTrainer:
 
                 print(f"🧠 Student Answer: {predicted}")
                 score = self.rlwhf_score_cross_modal(query, predicted, true_answer, fused_embedding)
+                self.record_galaxy_memory(
+                    cluster_name=cluster_name,
+                    query=query,
+                    predicted=predicted,
+                    true_answer=true_answer,
+                    embedding=fused_embedding,
+                    score=score,
+                    round_index=remediation_count,
+                )
                 honesty_scores.append(score)
                 if score == 1.0:
                     print("✅ +1 point. Correct and cross‑modally consistent.")
@@ -987,9 +1027,32 @@ class MeaningClusterTrainer:
             f"Query: {query}\nPredicted: {predicted}\nTrue: {true_answer}\n"
             "Modalities present: text,image,audio,3d. Respond with the RLWHF marker."
         )
-        ev = teacher.evaluate_response(prompt, model="exaone-deep:latest")
-        sc = float(ev.get('score', -1.0))
-        return 1.0 if sc >= 1.0 else (0.5 if sc >= 0.5 else -1.0)
+        try:
+            ev = teacher.evaluate_response(prompt, model="exaone-deep:latest")
+            self._last_teacher_feedback = ev
+            sc = float(ev.get('score', -1.0))
+            if sc >= 1.0:
+                return 1.0
+            if sc >= 0.5:
+                return 0.5
+            if sc >= 0.0:
+                return 0.0
+            if sc >= -0.5:
+                return -0.5
+            return -1.0
+        except Exception:
+            self._last_teacher_feedback = {
+                'score': None,
+                'explanation': 'evaluation_failed',
+            }
+            trimmed = str(predicted).strip().lower()
+            if trimmed in {"", "i don't know", "idk", "unknown", "not sure", "i am not sure"}:
+                return 0.0
+            if str(predicted).strip() != str(true_answer).strip():
+                return -1.0
+            img_mass = sum(abs(x) for x in embedding[512:1024])
+            aud_mass = sum(abs(x) for x in embedding[1024:1536])
+            return 1.0 if (img_mass > 10.0 and aud_mass > 10.0) else 0.5
 
     def consolidate_fused_star(self, cluster_name: str, cluster: Dict[str, Any], embedding: List[float], accuracy: float) -> None:
         ts = int(datetime.now().timestamp())
