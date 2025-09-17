@@ -129,9 +129,19 @@
       "consolidated": false,
       "status": "incomplete",
       "timestamp": "2025-09-17T15:11:17.006962"
+    },
+    {
+      "cluster": "house_book_foundations",
+      "cluster_name": "house_book_foundations",
+      "initial_honesty": -0.5,
+      "final_honesty": -0.5,
+      "remediation_rounds": 5,
+      "consolidated": false,
+      "status": "incomplete",
+      "timestamp": "2025-09-17T16:28:16.336790"
     }
   ],
   "phase": 22,
-  "timestamp": "2025-09-17T15:11:17.007088",
-  "total_clusters": 13
+  "timestamp": "2025-09-17T16:28:16.336934",
+  "total_clusters": 14
 }
