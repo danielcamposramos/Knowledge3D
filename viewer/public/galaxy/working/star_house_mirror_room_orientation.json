@@ -5,22 +5,22 @@
   "created_at": "2025-09-17T16:28:16.440037",
   "honesty_score": 1.0,
   "embedding": [
-    0.635759711265564,
-    0.5259020924568176,
-    0.4718238115310669,
-    0.5469424724578857,
-    0.5533530712127686,
-    0.17958638072013855,
-    0.6541678309440613,
-    0.21330469846725464,
-    0.5897216200828552,
-    0.39674103260040283,
-    0.7767391204833984,
-    0.5191870331764221,
-    0.4571940004825592,
-    0.4224729537963867,
-    0.5627540349960327,
-    0.24557258188724518,
+    0.6162281632423401,
+    0.5334567427635193,
+    0.4581701457500458,
+    0.5962135791778564,
+    0.5447665452957153,
+    0.19042086601257324,
+    0.6517540216445923,
+    0.22909578680992126,
+    0.6245282888412476,
+    0.35994428396224976,
+    0.7542963027954102,
+    0.4905899167060852,
+    0.4004603624343872,
+    0.3929176330566406,
+    0.5353729724884033,
+    0.2793658673763275,
     0.0,
     0.0,
     0.0,
@@ -2063,7 +2063,7 @@
   "predicted_answer": "",
   "true_answer": "",
   "zone_placement": "Zone 7 (Mirror Room)",
-  "updated_at": "2025-09-17T17:20:10.071180",
+  "updated_at": "2025-09-17T17:59:34.488124",
   "mutation_history": [
     {
       "round": 0,
@@ -2781,6 +2781,36 @@
       "score": 1.0,
       "timestamp": "2025-09-17T17:20:10.071180",
       "query": "Remedial: Remember the PTX kernel keeps the mirror upright by yaw-aligning the reflection. Rephrase: Remedial: Remember the PTX kernel keeps the mirror upright by yaw-aligning the reflection. Rephrase: Remedial: Remember the PTX kernel keeps the mirror upright by yaw-aligning the reflection. Rephrase: Which alignment keeps the mirror's reflection steady when the avatar tilts their head?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:57:14.290096",
+      "query": "Describe the Mirror Room wall mirror so an avatar can imagine it without seeing it."
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:57:31.719713",
+      "query": "Which audio cue fits approaching the Mirror Room mirror?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:59:01.089911",
+      "query": "Describe the Mirror Room wall mirror so an avatar can imagine it without seeing it."
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:59:18.112560",
+      "query": "Which audio cue fits approaching the Mirror Room mirror?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:59:34.488124",
+      "query": "Which alignment keeps the mirror's reflection steady when the avatar tilts their head?"
     }
   ],
   "learned_answers": {

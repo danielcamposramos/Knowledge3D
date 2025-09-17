@@ -64,5 +64,7 @@
     0.64,
     0.38
   ],
-  "zone_placement": "Zone 4 (Workshop)"
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "relocated_at": "2025-09-17T18:00:24.798561",
+  "previous_zone": "Zone 4 (Workshop)"
 }

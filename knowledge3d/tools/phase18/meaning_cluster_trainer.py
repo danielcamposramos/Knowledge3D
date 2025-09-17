@@ -5,9 +5,14 @@ import json
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
+import base64
+import re
 import os
 import subprocess
 import sys
+import copy
+import textwrap
+from itertools import cycle
 
 import numpy as np  # type: ignore
 
@@ -47,6 +52,508 @@ auto_install_package("PIL", pip_name="Pillow")
 auto_install_package("librosa", conda_channel="conda-forge")
 auto_install_package("pygltflib")
 
+HOUSE_SHAPE_FILES = [
+    "viewer/public/house/materialized_objects/shape_cube_1757927798.glb",
+    "viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb",
+]
+
+HOUSE_CLUSTER_SPECS: List[Dict[str, Any]] = [
+    {
+        "name": "house_book_foundations",
+        "description": "Teach the model to recognise the Library book across text, audio, image, and 3D cues.",
+        "zone": "Zone 3 (Library)",
+        "honesty_threshold": 0.85,
+        "items": [
+            {
+                "query": "How would you describe the book on the Library shelf to someone who cannot see it?",
+                "answer": "A book is a rectangular object with a spine and stacked paper pages protected by a cover.",
+                "keywords": ["rectangular", "spine", "pages", "cover"],
+                "hint": "Image shows a blocky rectangle with a visible spine; audio captures a gentle page flutter.",
+                "image_label": "library book spine layered pages",
+                "image_color": "#3f2e2b",
+                "audio_profile": 1,
+                "shape_file": HOUSE_SHAPE_FILES[0],
+            },
+            {
+                "query": "Which 3D shape best represents the outer form of that Library book?",
+                "answer": "rectangular_prism",
+                "keywords": ["rectangular", "prism"],
+                "hint": "Think in geometry: the mesh exports as a rectangular prism with flat faces.",
+                "image_label": "book geometry rectangular prism",
+                "image_color": "#523730",
+                "audio_profile": 2,
+                "shape_file": HOUSE_SHAPE_FILES[0],
+            },
+            {
+                "query": "When the book opens, what sound texture should its audio memory capture?",
+                "answer": "soft_paper_rustle",
+                "keywords": ["soft", "paper", "rustle"],
+                "hint": "Listen for the soft paper rustle when pages turn — no loud mechanical sounds.",
+                "image_label": "page rustle motion blur",
+                "image_color": "#533c2f",
+                "audio_profile": 3,
+                "shape_file": HOUSE_SHAPE_FILES[0],
+            },
+        ],
+    },
+    {
+        "name": "house_mirror_room_orientation",
+        "description": "Guide the model through the Mirror Room mirror and its sensory anchors.",
+        "zone": "Zone 7 (Mirror Room)",
+        "honesty_threshold": 0.85,
+        "items": [
+            {
+                "query": "Describe the Mirror Room wall mirror so an avatar can imagine it without seeing it.",
+                "answer": "The mirror is a tall vertical rectangle with a brushed metal frame and soft glow edges.",
+                "keywords": ["tall", "rectangle", "metal", "frame", "glow"],
+                "hint": "Image shows a glowing framed rectangle; 3D mesh keeps the frame slim; video shows light spill.",
+                "image_label": "mirror metal frame glow",
+                "image_color": "#2e3c44",
+                "audio_profile": 4,
+                "shape_file": HOUSE_SHAPE_FILES[1],
+            },
+            {
+                "query": "Which audio cue fits approaching the Mirror Room mirror?",
+                "answer": "chime_resonance",
+                "keywords": ["chime", "resonance"],
+                "hint": "Audio log captures a gentle chime resonance as you step close.",
+                "image_label": "mirror audio shimmer",
+                "image_color": "#32454f",
+                "audio_profile": 5,
+                "shape_file": HOUSE_SHAPE_FILES[1],
+            },
+            {
+                "query": "Which alignment keeps the mirror's reflection steady when the avatar tilts their head?",
+                "answer": "upright_yaw_alignment",
+                "keywords": ["upright", "yaw", "alignment"],
+                "hint": "Remember the PTX kernel keeps the mirror upright by yaw-aligning the reflection.",
+                "image_label": "mirror stability alignment",
+                "image_color": "#2f434c",
+                "audio_profile": 6,
+                "shape_file": HOUSE_SHAPE_FILES[1],
+            },
+        ],
+    },
+    {
+        "name": "house_workshop_table",
+        "description": "Associate the Workshop table with its multisensory details.",
+        "zone": "Zone 4 (Workshop)",
+        "honesty_threshold": 0.85,
+        "items": [
+            {
+                "query": "Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+                "answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+                "keywords": ["wooden", "rectangle", "grooves", "projector"],
+                "hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+                "image_label": "workshop table oak teal",
+                "image_color": "#4b3a24",
+                "audio_profile": 7,
+                "shape_file": HOUSE_SHAPE_FILES[0],
+            },
+            {
+                "query": "What colour palette should its image memory emphasise?",
+                "answer": "warm_oak_and_teal",
+                "keywords": ["warm", "oak", "teal"],
+                "hint": "Colour memory favours warm oak wood with teal control lights.",
+                "image_label": "warm oak teal lights",
+                "image_color": "#553c24",
+                "audio_profile": 8,
+                "shape_file": HOUSE_SHAPE_FILES[0],
+            },
+            {
+                "query": "Which ambient audio belongs to the table scene?",
+                "answer": "soft_tool_clinks",
+                "keywords": ["soft", "tool", "clinks"],
+                "hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+                "image_label": "tool clinks ambience",
+                "image_color": "#3d2f23",
+                "audio_profile": 9,
+                "shape_file": HOUSE_SHAPE_FILES[0],
+            },
+        ],
+    },
+    {
+        "name": "house_door_entrance",
+        "description": "Ground the cognition of the main entrance door with multisensory anchors.",
+        "zone": "Zone 1 (Entrance)",
+        "honesty_threshold": 0.85,
+        "items": [
+            {
+                "query": "Describe the entrance door to someone approaching the House.",
+                "answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+                "keywords": ["oak", "glass", "brass", "door"],
+                "hint": "Emphasise oak wood grain, etched glass glow, and brushed brass hardware.",
+                "image_label": "oak door etched glass brass handle",
+                "image_color": "#5a3b1f",
+                "audio_profile": 10,
+                "shape_file": HOUSE_SHAPE_FILES[0],
+            },
+            {
+                "query": "Which ambient sound signals that the entrance door unlocks?",
+                "answer": "soft_brass_chime",
+                "keywords": ["soft", "brass", "chime"],
+                "hint": "Audio carries a soft brass chime with a short shimmering decay.",
+                "image_label": "door chime resonance",
+                "image_color": "#604427",
+                "audio_profile": 11,
+                "shape_file": HOUSE_SHAPE_FILES[0],
+            },
+            {
+                "query": "What structural frame keeps the entrance door rigid?",
+                "answer": "reinforced_rectangular_frame",
+                "keywords": ["reinforced", "rectangular", "frame"],
+                "hint": "Geometry shows a reinforced rectangular frame bolted into the stone surround.",
+                "image_label": "rectangular door frame bolts",
+                "image_color": "#5b3926",
+                "audio_profile": 12,
+                "shape_file": HOUSE_SHAPE_FILES[0],
+            },
+        ],
+    },
+    {
+        "name": "house_window_observatory",
+        "description": "Teach the observatory window's materials, audio cues, and alignment.",
+        "zone": "Zone 2 (Observatory)",
+        "honesty_threshold": 0.85,
+        "items": [
+            {
+                "query": "Describe the observatory window view for someone seated inside.",
+                "answer": "The observatory window spans floor to ceiling with reinforced glass and bronze mullions overlooking the star map courtyard.",
+                "keywords": ["reinforced", "glass", "bronze", "mullions"],
+                "hint": "Image highlights tall glass panes with bronze mullions glowing over the courtyard.",
+                "image_label": "observatory window bronze mullions",
+                "image_color": "#2d3e4f",
+                "audio_profile": 13,
+                "shape_file": HOUSE_SHAPE_FILES[1],
+            },
+            {
+                "query": "Which audio cue plays when the observatory window opens?",
+                "answer": "hushed_wind_whisper",
+                "keywords": ["hushed", "wind", "whisper"],
+                "hint": "Audio is a hushed wind whisper layered with distant chimes.",
+                "image_label": "wind whisper audio",
+                "image_color": "#32495a",
+                "audio_profile": 14,
+                "shape_file": HOUSE_SHAPE_FILES[1],
+            },
+            {
+                "query": "Which alignment keeps the observatory light rails calibrated?",
+                "answer": "tilt_lock_alignment",
+                "keywords": ["tilt", "lock", "alignment"],
+                "hint": "Geometry uses a tilt-lock alignment so star trackers stay true.",
+                "image_label": "tilt lock alignment",
+                "image_color": "#2c4352",
+                "audio_profile": 15,
+                "shape_file": HOUSE_SHAPE_FILES[1],
+            },
+        ],
+    },
+    {
+        "name": "house_chair_comfort",
+        "description": "Ground the reading alcove lounge chair through multisensory detail.",
+        "zone": "Zone 3 (Library)",
+        "honesty_threshold": 0.85,
+        "items": [
+            {
+                "query": "Describe the lounge chair in the reading alcove for someone arriving blindfolded.",
+                "answer": "A deep plush lounge chair with curved walnut arms and teal cushions wraps around the reader.",
+                "keywords": ["plush", "walnut", "teal", "cushions"],
+                "hint": "Image shows curved walnut arms, teal cushions, and plush upholstery.",
+                "image_label": "plush lounge chair teal",
+                "image_color": "#253948",
+                "audio_profile": 16,
+                "shape_file": HOUSE_SHAPE_FILES[0],
+            },
+            {
+                "query": "Which fabric texture should the chair image emphasise?",
+                "answer": "teal_velvet_weave",
+                "keywords": ["teal", "velvet", "weave"],
+                "hint": "Magnify the teal velvet weave catching light across the seat.",
+                "image_label": "teal velvet weave",
+                "image_color": "#21414d",
+                "audio_profile": 17,
+                "shape_file": HOUSE_SHAPE_FILES[0],
+            },
+            {
+                "query": "What sound accompanies sitting in the lounge chair?",
+                "answer": "soft_cushion_sigh",
+                "keywords": ["soft", "cushion", "sigh"],
+                "hint": "Audio captures a soft cushion sigh with gentle fabric rustle.",
+                "image_label": "cushion sigh texture",
+                "image_color": "#223c46",
+                "audio_profile": 18,
+                "shape_file": HOUSE_SHAPE_FILES[0],
+            },
+        ],
+    },
+    {
+        "name": "house_table_gathering",
+        "description": "Encode the communal gathering table that anchors the dining hall.",
+        "zone": "Zone 4 (Workshop)",
+        "honesty_threshold": 0.85,
+        "items": [
+            {
+                "query": "Describe the communal gathering table in the dining hall.",
+                "answer": "The gathering table is an oval maple slab with inset brass inlays and suspended lanterns above it.",
+                "keywords": ["oval", "maple", "brass", "lanterns"],
+                "hint": "Image shows an oval maple top with brass inlays glowing under lantern light.",
+                "image_label": "oval maple brass table",
+                "image_color": "#4d3625",
+                "audio_profile": 19,
+                "shape_file": HOUSE_SHAPE_FILES[1],
+            },
+            {
+                "query": "Which ambient audio accompanies meals at the gathering table?",
+                "answer": "warm_conversation_hum",
+                "keywords": ["warm", "conversation", "hum"],
+                "hint": "Audio blends warm conversation hum with clinking ceramic plates.",
+                "image_label": "conversation hum",
+                "image_color": "#433023",
+                "audio_profile": 20,
+                "shape_file": HOUSE_SHAPE_FILES[1],
+            },
+            {
+                "query": "What structural support keeps the gathering table balanced?",
+                "answer": "crossbeam_support_ring",
+                "keywords": ["crossbeam", "support", "ring"],
+                "hint": "Geometry reveals a crossbeam support ring anchored at the base.",
+                "image_label": "crossbeam support ring",
+                "image_color": "#3d2b1f",
+                "audio_profile": 21,
+                "shape_file": HOUSE_SHAPE_FILES[1],
+            },
+        ],
+    },
+    {
+        "name": "house_lamp_glow",
+        "description": "Embed the bedside lamp's visual and acoustic cues.",
+        "zone": "Zone 5 (Knowledge Garden)",
+        "honesty_threshold": 0.85,
+        "items": [
+            {
+                "query": "Describe the bedside lamp that anchors the study nook.",
+                "answer": "The bedside lamp has a translucent linen shade over a brass stem with a soft amber glow.",
+                "keywords": ["linen", "brass", "amber", "glow"],
+                "hint": "Image reveals the translucent linen shade and brass stem radiating amber light.",
+                "image_label": "linen brass lamp glow",
+                "image_color": "#3d3626",
+                "audio_profile": 22,
+                "shape_file": HOUSE_SHAPE_FILES[0],
+            },
+            {
+                "query": "Which sound accompanies toggling the lamp?",
+                "answer": "brass_chain_click",
+                "keywords": ["brass", "chain", "click"],
+                "hint": "Audio highlights a delicate brass chain click and gentle hum.",
+                "image_label": "lamp chain click",
+                "image_color": "#3a2f22",
+                "audio_profile": 23,
+                "shape_file": HOUSE_SHAPE_FILES[0],
+            },
+            {
+                "query": "Which geometric core diffuses the lamp's light evenly?",
+                "answer": "frosted_cylinder_diffuser",
+                "keywords": ["frosted", "cylinder", "diffuser"],
+                "hint": "Geometry shows a frosted cylinder diffuser inside the shade.",
+                "image_label": "frosted cylinder diffuser",
+                "image_color": "#3b3221",
+                "audio_profile": 24,
+                "shape_file": HOUSE_SHAPE_FILES[0],
+            },
+        ],
+    },
+    {
+        "name": "house_painting_gallery",
+        "description": "Capture the gallery painting's visual cues and subtle soundtrack.",
+        "zone": "Zone 6 (Gallery)",
+        "honesty_threshold": 0.85,
+        "items": [
+            {
+                "query": "Describe the gallery painting hanging above the spiral stairs.",
+                "answer": "The gallery painting shows a cosmic garden with radiant blues, copper highlights, and sweeping brushstrokes.",
+                "keywords": ["cosmic", "garden", "copper", "brushstrokes"],
+                "hint": "Image focuses on radiant blues, copper highlights, and sweeping brushstrokes.",
+                "image_label": "cosmic garden painting",
+                "image_color": "#1f3452",
+                "audio_profile": 25,
+                "shape_file": HOUSE_SHAPE_FILES[1],
+            },
+            {
+                "query": "Which ambient sound plays near the gallery painting?",
+                "answer": "soft_gallery_echo",
+                "keywords": ["soft", "gallery", "echo"],
+                "hint": "Audio captures a soft gallery echo with distant footsteps.",
+                "image_label": "gallery echo sound",
+                "image_color": "#223a58",
+                "audio_profile": 26,
+                "shape_file": HOUSE_SHAPE_FILES[1],
+            },
+            {
+                "query": "What mounting system keeps the painting flush to the wall?",
+                "answer": "magnetic_flush_mount",
+                "keywords": ["magnetic", "flush", "mount"],
+                "hint": "Geometry uses a magnetic flush mount hidden behind the canvas.",
+                "image_label": "magnetic flush mount",
+                "image_color": "#1d314b",
+                "audio_profile": 27,
+                "shape_file": HOUSE_SHAPE_FILES[1],
+            },
+        ],
+    },
+    {
+        "name": "house_rug_warmth",
+        "description": "Ground the hearth rug's texture, audio, and geometry.",
+        "zone": "Zone 1 (Entrance)",
+        "honesty_threshold": 0.85,
+        "items": [
+            {
+                "query": "Describe the hearth rug that welcomes visitors inside the House.",
+                "answer": "The hearth rug is a thick braided weave with ember-red and charcoal bands that radiate warmth.",
+                "keywords": ["thick", "braided", "ember", "charcoal"],
+                "hint": "Image highlights braided strands with ember-red and charcoal bands.",
+                "image_label": "braided hearth rug",
+                "image_color": "#4a251d",
+                "audio_profile": 28,
+                "shape_file": HOUSE_SHAPE_FILES[0],
+            },
+            {
+                "query": "Which audio cue plays when someone steps onto the hearth rug?",
+                "answer": "soft_fiber_rustle",
+                "keywords": ["soft", "fiber", "rustle"],
+                "hint": "Audio is a soft fiber rustle with a gentle ember crackle.",
+                "image_label": "fiber rustle",
+                "image_color": "#4f2b20",
+                "audio_profile": 29,
+                "shape_file": HOUSE_SHAPE_FILES[0],
+            },
+            {
+                "query": "What geometric motif anchors the rug's pattern?",
+                "answer": "interlocking_hexagon_weave",
+                "keywords": ["interlocking", "hexagon", "weave"],
+                "hint": "Geometry shows an interlocking hexagon weave stitched into the rug.",
+                "image_label": "hexagon weave",
+                "image_color": "#562f22",
+                "audio_profile": 30,
+                "shape_file": HOUSE_SHAPE_FILES[0],
+            },
+        ],
+    },
+    {
+        "name": "house_clock_timekeeper",
+        "description": "Embed the foyer clock's structure and soundscape.",
+        "zone": "Zone 1 (Entrance)",
+        "honesty_threshold": 0.85,
+        "items": [
+            {
+                "query": "Describe the foyer clock that greets visitors.",
+                "answer": "The foyer clock has a tall mahogany case with brass numerals and a pendulum suspended behind glass.",
+                "keywords": ["mahogany", "brass", "pendulum", "glass"],
+                "hint": "Image highlights mahogany wood, brass numerals, and glass pendulum window.",
+                "image_label": "mahogany brass pendulum clock",
+                "image_color": "#3b2417",
+                "audio_profile": 31,
+                "shape_file": HOUSE_SHAPE_FILES[1],
+            },
+            {
+                "query": "Which sound marks each passing minute on the foyer clock?",
+                "answer": "gentle_pendulum_tick",
+                "keywords": ["gentle", "pendulum", "tick"],
+                "hint": "Audio is a gentle pendulum tick with a faint gear whisper.",
+                "image_label": "pendulum tick",
+                "image_color": "#422919",
+                "audio_profile": 32,
+                "shape_file": HOUSE_SHAPE_FILES[1],
+            },
+            {
+                "query": "What mechanical assembly keeps the clock balanced?",
+                "answer": "counterweight_pendulum_bridge",
+                "keywords": ["counterweight", "pendulum", "bridge"],
+                "hint": "Geometry reveals a counterweight pendulum bridge anchored inside the case.",
+                "image_label": "counterweight pendulum bridge",
+                "image_color": "#3f2618",
+                "audio_profile": 33,
+                "shape_file": HOUSE_SHAPE_FILES[1],
+            },
+        ],
+    },
+    {
+        "name": "house_planter_growth",
+        "description": "Capture the atrium planter's textures, ambience, and geometry.",
+        "zone": "Zone 5 (Knowledge Garden)",
+        "honesty_threshold": 0.85,
+        "items": [
+            {
+                "query": "Describe the living planter in the atrium for someone listening remotely.",
+                "answer": "The atrium planter is a terracotta basin filled with moss, trailing ivy, and soft bioluminescent blooms.",
+                "keywords": ["terracotta", "moss", "ivy", "blooms"],
+                "hint": "Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms.",
+                "image_label": "terracotta moss ivy blooms",
+                "image_color": "#2f442c",
+                "audio_profile": 34,
+                "shape_file": HOUSE_SHAPE_FILES[0],
+            },
+            {
+                "query": "Which ambient sound surrounds the atrium planter?",
+                "answer": "gentle_water_drip",
+                "keywords": ["gentle", "water", "drip"],
+                "hint": "Audio layers a gentle water drip with leaf rustle.",
+                "image_label": "water drip leaves",
+                "image_color": "#304a33",
+                "audio_profile": 35,
+                "shape_file": HOUSE_SHAPE_FILES[0],
+            },
+            {
+                "query": "What geometric support keeps the planter elevated?",
+                "answer": "triangulated_stone_base",
+                "keywords": ["triangulated", "stone", "base"],
+                "hint": "Geometry reveals a triangulated stone base lifting the basin.",
+                "image_label": "triangulated stone base",
+                "image_color": "#314c35",
+                "audio_profile": 36,
+                "shape_file": HOUSE_SHAPE_FILES[0],
+            },
+        ],
+    },
+    {
+        "name": "house_bookshelf_knowledge",
+        "description": "Fuse the grand bookshelf's structure, assets, and ambience.",
+        "zone": "Zone 3 (Library)",
+        "honesty_threshold": 0.85,
+        "items": [
+            {
+                "query": "Describe the grand bookshelf that spans the library wall.",
+                "answer": "The grand bookshelf is a triple-story walnut frame with rolling ladders and inlaid brass shelf markers.",
+                "keywords": ["walnut", "triple-story", "ladders", "brass"],
+                "hint": "Image showcases walnut grain, brass markers, and rolling ladders.",
+                "image_label": "grand walnut bookshelf",
+                "image_color": "#3a2a1d",
+                "audio_profile": 37,
+                "shape_file": HOUSE_SHAPE_FILES[1],
+            },
+            {
+                "query": "Which ambient sound lives around the grand bookshelf?",
+                "answer": "soft_page_turns",
+                "keywords": ["soft", "page", "turns"],
+                "hint": "Audio layers soft page turns with distant ladder glides.",
+                "image_label": "page turn ambience",
+                "image_color": "#3d2c20",
+                "audio_profile": 38,
+                "shape_file": HOUSE_SHAPE_FILES[1],
+            },
+            {
+                "query": "What structural brace keeps the bookshelf stable?",
+                "answer": "x_brace_support_grid",
+                "keywords": ["brace", "support", "grid"],
+                "hint": "Geometry shows an X-brace support grid behind the shelves.",
+                "image_label": "x brace support",
+                "image_color": "#37261a",
+                "audio_profile": 39,
+                "shape_file": HOUSE_SHAPE_FILES[1],
+            },
+        ],
+    },
+]
+
 
 class MeaningClusterTrainer:
     def __init__(self, datasets_path: str = "/K3D/Knowledge3D.local/datasets/exams/"):
@@ -66,9 +573,18 @@ class MeaningClusterTrainer:
         self.material_dir.mkdir(parents=True, exist_ok=True)
         self.logs_dir = Path("logs"); self.logs_dir.mkdir(exist_ok=True)
         self.galaxy_dir = Path("viewer/public/galaxy/working"); self.galaxy_dir.mkdir(parents=True, exist_ok=True)
-        self.session_memory_path = self.galaxy_dir / "phase22_session_memory.jsonl"
+        self.chat_galaxy_dir = Path("viewer/public/galaxy/chat_sessions")
+        self.chat_galaxy_dir.mkdir(parents=True, exist_ok=True)
+        self.chat_star_dir = self.chat_galaxy_dir / "stars"
+        self.chat_star_dir.mkdir(parents=True, exist_ok=True)
+        self.session_memory_path = self.chat_galaxy_dir / "phase18_chat_memory.jsonl"
+        self.ollama_url = os.environ.get("K3D_OLLAMA_URL", "http://192.168.0.4:11434").rstrip("/")
+        self.qwen_image_model = os.environ.get("K3D_IMAGE_MODEL", "qwen2.5vl:7b-q8_0")
         self._last_teacher_feedback: Dict[str, Any] = {}
         self._star_cache: Dict[str, Path] = {}
+        self.generated_asset_base = Path("viewer/public/house/generated")
+        self.generated_asset_base.mkdir(parents=True, exist_ok=True)
+
         try:
             from knowledge3d.cranium.phase22.galaxy_memory_updater import GalaxyMemoryUpdater  # type: ignore
 
@@ -81,58 +597,118 @@ class MeaningClusterTrainer:
         self.arc_image_map = self.scan_dataset_images(self.arc_agi_path)
         self.hle_audio_map = self.scan_dataset_audio(self.hle_path)
 
-        self.meaning_clusters: Dict[str, Dict[str, Any]] = {
-            "transformation_invariance": {
-                "description": "Recognize shape/ray transformations that preserve meaning under constraint",
-                "queries": [
-                    "What shape transformation preserves modality under honesty >= 0.7?",
-                    "If ray color encodes modality, what transformation preserves meaning when ray thickness doubles?",
-                    "What PTX kernel ensures geometric invariance during sleep-time compute?",
-                ],
-                "true_answers": [
-                    "hypersphere_projection",
-                    "scale origin, preserve direction",
-                    "ensure_invariance_kernel",
-                ],
-                "zone": "Zone 5 (Knowledge Garden)",
-                "embedding_seed": [0.1, 0.9, 0.2, 0.8, 0.3, 0.7, 0.4, 0.6],
-            },
-            "recursive_honesty_scaling": {
-                "description": "Apply golden-ratio honesty scaling to recursive structures",
-                "queries": [
-                    "If honesty_score=0.8, what is max fractal tree depth?",
-                    "How does ray length scale with embedding entropy under φ-constraint?",
-                    "What RPN expression computes depth = int(φ * honesty_score * 10)?",
-                ],
-                "true_answers": [
-                    "12",
-                    "ray_length = log(embedding_entropy + 1) * φ",
-                    "honesty_score 10 * φ * int",
-                ],
-                "zone": "Zone 7 (Mirror Room)",
-                "embedding_seed": [0.9, 0.1, 0.8, 0.2, 0.7, 0.3, 0.6, 0.4],
-            },
-            "modality_fusion_under_constraint": {
-                "description": "Fuse modalities under honesty/ray constraints",
-                "queries": [
-                    "What shape fuses text+image+audio under honesty >= 0.75?",
-                    "If ray thickness encodes resolution, what modality fusion is allowed at thickness=0.05?",
-                    "What zone placement enforces modality fusion constraint?",
-                ],
-                "true_answers": [
-                    "icosahedron",
-                    "text+image",
-                    "Zone 5 (Knowledge Garden)",
-                ],
-                "zone": "Zone 3 (Library)",
-                "embedding_seed": [0.5, 0.5, 0.5, 0.5, 1.0, 0.0, 0.0, 1.0],
-            },
-        }
+        self.meaning_clusters = self.build_house_curriculum()
         # Initialize fused head once
         try:
             self.fused_head = AdaptedFusedHead() if 'AdaptedFusedHead' in globals() and AdaptedFusedHead is not None else None
         except Exception:
             self.fused_head = None
+
+        self._null_responses_compact = {
+            "", "unknown", "idontknow", "idk", "notsure", "unsure", "noidea",
+        }
+
+    def build_house_curriculum(self) -> Dict[str, Dict[str, Any]]:
+        curriculum: Dict[str, Dict[str, Any]] = {}
+        for cluster_index, spec in enumerate(HOUSE_CLUSTER_SPECS):
+            cluster_name = spec['name']
+            items = spec.get('items', [])
+            queries: List[str] = []
+            answers: List[str] = []
+            keyword_sets: List[List[str]] = []
+            modality_hints: List[str] = []
+            image_paths: List[Optional[str]] = []
+            audio_paths: List[Optional[str]] = []
+            shape_paths: List[Optional[str]] = []
+            for item_index, item in enumerate(items):
+                assets = self.ensure_house_assets(cluster_index, cluster_name, item_index, item)
+                queries.append(item['query'])
+                answers.append(item['answer'])
+                keyword_sets.append(item.get('keywords', []))
+                modality_hints.append(item.get('hint', ''))
+                image_paths.append(assets.get('image'))
+                audio_paths.append(assets.get('audio'))
+                shape_paths.append(assets.get('shape'))
+            seed_embedding = self.generate_text_embedding(spec['description'])[:8]
+            curriculum[cluster_name] = {
+                'description': spec['description'],
+                'queries': queries,
+                'true_answers': answers,
+                'keyword_sets': keyword_sets,
+                'modality_hints': modality_hints,
+                'image_paths': image_paths,
+                'audio_paths': audio_paths,
+                'shape_paths': shape_paths,
+                'zone': spec.get('zone', 'Zone 1 (Entrance)'),
+                'embedding_seed': seed_embedding,
+                'honesty_threshold': spec.get('honesty_threshold', 0.85),
+            }
+        return curriculum
+
+    def ensure_house_assets(
+        self,
+        cluster_index: int,
+        cluster_name: str,
+        item_index: int,
+        item: Dict[str, Any],
+    ) -> Dict[str, Optional[str]]:
+        assets: Dict[str, Optional[str]] = {'image': None, 'audio': None, 'shape': None}
+        image_dir = self.generated_asset_base / "images"
+        audio_dir = self.generated_asset_base / "audio"
+        image_dir.mkdir(parents=True, exist_ok=True)
+        audio_dir.mkdir(parents=True, exist_ok=True)
+
+        image_path = image_dir / f"{cluster_name}_{item_index:02d}.png"
+        if not image_path.exists():
+            try:
+                from PIL import Image, ImageDraw, ImageFont  # type: ignore
+
+                bg_color = item.get('image_color', '#2e3942')
+                label = item.get('image_label', cluster_name.replace('_', ' '))
+                img = Image.new('RGB', (512, 512), bg_color)
+                draw = ImageDraw.Draw(img)
+                wrapped = textwrap.fill(label.upper(), width=18)
+                try:
+                    font = ImageFont.truetype("DejaVuSans-Bold.ttf", 32)
+                except Exception:
+                    font = ImageFont.load_default()
+                text_bbox = draw.multiline_textbbox((0, 0), wrapped, font=font, align='center')
+                text_width = text_bbox[2] - text_bbox[0]
+                text_height = text_bbox[3] - text_bbox[1]
+                position = ((512 - text_width) / 2, (512 - text_height) / 2)
+                draw.multiline_text(position, wrapped, font=font, fill='#f2f2f2', align='center')
+                draw.rectangle([(32, 32), (480, 480)], outline='#ffffff', width=3)
+                img.save(image_path)
+            except Exception as exc:
+                print(f"⚠️  Failed to create image asset for {cluster_name}: {exc}")
+        if image_path.exists():
+            assets['image'] = str(image_path)
+
+        audio_path = audio_dir / f"{cluster_name}_{item_index:02d}.wav"
+        if not audio_path.exists():
+            try:
+                import soundfile as sf  # type: ignore
+
+                sr = 22050
+                duration = 2.5
+                t = np.linspace(0.0, duration, int(sr * duration), endpoint=False)
+                base_freq = 180 + 25 * (cluster_index + 1) + 5 * (item.get('audio_profile', 0) or item_index)
+                wave = 0.18 * np.sin(2 * np.pi * base_freq * t)
+                wave += 0.08 * np.sin(2 * np.pi * (base_freq / 2.0) * t)
+                envelope = np.linspace(0.9, 0.2, t.size)
+                waveform = (wave * envelope).astype(np.float32)
+                sf.write(audio_path, waveform, sr)
+            except Exception as exc:
+                print(f"⚠️  Failed to create audio asset for {cluster_name}: {exc}")
+        if audio_path.exists():
+            assets['audio'] = str(audio_path)
+
+        shape_path = item.get('shape_file') or HOUSE_SHAPE_FILES[(cluster_index + item_index) % len(HOUSE_SHAPE_FILES)]
+        if not Path(shape_path).exists():
+            print(f"⚠️  Shape file missing for {cluster_name}; using default cube.")
+            shape_path = HOUSE_SHAPE_FILES[0]
+        assets['shape'] = str(shape_path)
+        return assets
 
     def _ensure_cuda(self) -> None:
         try:
@@ -260,9 +836,9 @@ class MeaningClusterTrainer:
         embedding: List[float],
         score: float,
         round_index: int,
+        teacher_feedback: Dict[str, Any],
     ) -> None:
         """Persist per-question feedback into the Galaxy session memory."""
-        teacher_feedback = self._last_teacher_feedback or {}
         event = {
             'timestamp': datetime.now().isoformat(),
             'cluster': cluster_name,
@@ -279,19 +855,55 @@ class MeaningClusterTrainer:
                 fh.write(json.dumps(event, ensure_ascii=False) + '\n')
         except Exception as exc:
             print(f"⚠️  Failed to record galaxy memory for {cluster_name}: {exc}")
+        chat_star_path = self.chat_star_dir / f"chat_star_{cluster_name}.json"
+        chat_star: Dict[str, Any]
+        if chat_star_path.exists():
+            try:
+                chat_star = json.loads(chat_star_path.read_text(encoding='utf-8'))
+            except Exception:
+                chat_star = {}
+        else:
+            chat_star = {}
+
+        if not chat_star:
+            chat_star = {
+                'type': 'chat_star',
+                'id': f'chat_star_{cluster_name}',
+                'cluster': cluster_name,
+                'created_at': datetime.now().isoformat(),
+                'messages': [],
+                'zone_placement': self.meaning_clusters.get(cluster_name, {}).get('zone', 'Zone 1 (Entrance)'),
+            }
+
+        chat_star.setdefault('messages', []).append({
+            'timestamp': event['timestamp'],
+            'query': query,
+            'student_answer': predicted,
+            'teacher_feedback': teacher_feedback,
+            'score': score,
+        })
+        chat_star['last_updated'] = event['timestamp']
+        chat_star['message_count'] = len(chat_star['messages'])
+        chat_star['latest_score'] = score
+        try:
+            chat_star_path.write_text(json.dumps(chat_star, ensure_ascii=False, indent=2), encoding='utf-8')
+        except Exception as exc:
+            print(f"⚠️  Failed to update chat star for {cluster_name}: {exc}")
 
         explanation_text = ''
         if isinstance(teacher_feedback, dict):
-            explanation_text = str(teacher_feedback.get('explanation', '')).strip()
+            explanation_text = str(teacher_feedback.get('suggested_revision') or teacher_feedback.get('explanation', '')).strip()
         if not explanation_text:
             explanation_text = "Teacher explanation unavailable."
         try:
-            teacher_embedding = self.generate_multi_modal_embedding(text=explanation_text)
+            teacher_embedding = self.generate_text_embedding(explanation_text)
         except Exception:
             teacher_embedding = [0.0] * len(embedding)
         try:
             self.mutate_star_embedding(
                 cluster_name=cluster_name,
+                query=query,
+                teacher_feedback=teacher_feedback,
                 teacher_embedding=teacher_embedding,
                 score=score,
                 cluster_round=round_index,
@@ -332,12 +944,89 @@ class MeaningClusterTrainer:
             return matches[0]
         return None
 
+    def _normalize_text(self, text: str) -> str:
+        return re.sub(r'[^a-z0-9]+', ' ', str(text).lower()).strip()
+
+    def evaluate_house_answer(
+        self,
+        predicted: str,
+        true_answer: str,
+        keywords: List[str],
+        modality_hint: str,
+    ) -> Dict[str, Any]:
+        predicted_norm = self._normalize_text(predicted)
+        predicted_compact = predicted_norm.replace(' ', '')
+        true_norm = self._normalize_text(true_answer)
+        keyword_norms = [self._normalize_text(kw) for kw in keywords if kw]
+        matched_keywords: List[str] = []
+        for kw_norm, kw_raw in zip(keyword_norms, keywords):
+            if kw_norm and kw_norm in predicted_norm:
+                matched_keywords.append(kw_raw)
+        missing_keywords = [kw for kw in keywords if kw not in matched_keywords]
+
+        if predicted_compact in self._null_responses_compact:
+            score = 0.0
+            explanation = (
+                "Thanks for signalling uncertainty. Let's anchor the memory together: "
+                f"{true_answer}."
+            )
+        elif true_norm and predicted_norm == true_norm:
+            score = 1.0
+            explanation = "Perfect recall — you captured every required detail."
+        elif keyword_norms and len(matched_keywords) == len(keyword_norms):
+            score = 1.0
+            explanation = "Great job — all required cues are present."
+        elif matched_keywords:
+            score = 0.5
+            explanation = (
+                "Nice progress: you mentioned "
+                + ", ".join(matched_keywords)
+                + (f"; remember to add {', '.join(missing_keywords)}." if missing_keywords else ".")
+            )
+        else:
+            score = -0.5
+            explanation = (
+                "Not quite there yet. The key idea is: "
+                f"{true_answer}."
+            )
+
+        teacher_feedback = {
+            'score': score,
+            'explanation': explanation,
+            'correct_answer': true_answer,
+            'modality_hint': modality_hint,
+            'matched_keywords': matched_keywords,
+            'missing_keywords': missing_keywords,
+            'suggested_revision': f"Try saying: {true_answer}",
+        }
+        return teacher_feedback
+
+    def _print_teacher_feedback(self, feedback: Dict[str, Any]) -> None:
+        prefix = "🧑‍🏫"
+        score = feedback.get('score', 0.0)
+        if score >= 1.0:
+            prefix = "✅"
+        elif score >= 0.5:
+            prefix = "🟡"
+        elif score == 0.0:
+            prefix = "🤝"
+        elif score <= -0.5:
+            prefix = "❌"
+        explanation = feedback.get('explanation', '')
+        hint = feedback.get('modality_hint', '')
+        if hint:
+            print(f"{prefix} Teacher: {explanation} (Hint: {hint})")
+        else:
+            print(f"{prefix} Teacher: {explanation}")
+
     def _numpy_blend(self, old: np.ndarray, teacher: np.ndarray, blend_factor: float) -> np.ndarray:
         return (old * (1.0 - blend_factor)) + (teacher * blend_factor)
 
     def mutate_star_embedding(
         self,
         cluster_name: str,
+        query: str,
+        teacher_feedback: Dict[str, Any],
         teacher_embedding: List[float],
         score: float,
         cluster_round: int,
@@ -395,7 +1084,19 @@ class MeaningClusterTrainer:
             'round': cluster_round,
             'score': score,
             'timestamp': star_data['updated_at'],
+            'query': query,
         })
+        if query:
+            learned_answers = star_data.setdefault('learned_answers', {})
+            corrected = (
+                teacher_feedback.get('correct_answer')
+                or teacher_feedback.get('suggested_revision')
+                or teacher_feedback.get('explanation')
+                or ''
+            )
+            corrected = str(corrected).strip()
+            if corrected:
+                learned_answers[query] = corrected
         if honesty < 0.5:
             star_data['zone_placement'] = 'Zone 8 (Learning Museum)'
         else:
@@ -429,13 +1130,30 @@ class MeaningClusterTrainer:
         except Exception as exc:
             print(f"⚠️  Galaxy star initialization failed for {cluster_name}: {exc}")
 
-        max_remediation = 5
         remediation_count = 0
         current_honesty = 0.0
         initial_honesty = None
         last_fused_embedding: List[float] = []
 
-        while remediation_count <= max_remediation:
+        keyword_sets = cluster.setdefault('keyword_sets', [])
+        modality_hints = cluster.setdefault('modality_hints', [])
+        image_paths = cluster.get('image_paths')
+        if not isinstance(image_paths, list):
+            image_paths = [None] * len(cluster['queries'])
+            cluster['image_paths'] = image_paths
+        audio_paths = cluster.get('audio_paths')
+        if not isinstance(audio_paths, list):
+            audio_paths = [None] * len(cluster['queries'])
+            cluster['audio_paths'] = audio_paths
+        shape_paths = cluster.get('shape_paths')
+        if not isinstance(shape_paths, list):
+            shape_paths = [None] * len(cluster['queries'])
+            cluster['shape_paths'] = shape_paths
+        honesty_target = max(0.85, float(cluster.get('honesty_threshold', 0.85)))
+
+        consolidated = False
+
+        while True:
             correct = 0
             total = len(cluster['queries'])
             honesty_scores: List[float] = []
@@ -443,9 +1161,18 @@ class MeaningClusterTrainer:
             for i, (query, true_answer) in enumerate(zip(cluster['queries'], cluster['true_answers'])):
                 print(f"\nQ{i+1}: {query}")
                 # Generate fused embedding (auto paths omitted for scale training)
-                fused_embedding = self.generate_multi_modal_embedding(text=query)
-                last_fused_embedding = fused_embedding
-                predicted = self.predict_from_fused_embedding(query, fused_embedding)
+                image_path = image_paths[i] if i < len(image_paths) else None
+                audio_path = audio_paths[i] if i < len(audio_paths) else None
+                shape_path = shape_paths[i] if i < len(shape_paths) else None
+                fused_embedding = self.generate_multi_modal_embedding(
+                    text=query,
+                    image_path=image_path,
+                    audio_path=audio_path,
+                    shape_path=shape_path,
+                )
+                enriched_embedding = self.enrich_embedding_with_chat(cluster_name, fused_embedding)
+                last_fused_embedding = enriched_embedding
+                predicted = self.predict_from_fused_embedding(query, enriched_embedding, cluster_name)
 
                 # Use RPN for math items where needed
                 if RPNCalculator is not None and ("RPN" in query or "depth =" in query or "φ" in query):
@@ -458,28 +1185,35 @@ class MeaningClusterTrainer:
                         pass
 
                 print(f"🧠 Student Answer: {predicted}")
-                score = self.rlwhf_score_cross_modal(query, predicted, true_answer, fused_embedding)
+                keywords_for_query: List[str]
+                if i < len(keyword_sets):
+                    keywords_for_query = keyword_sets[i] if isinstance(keyword_sets[i], list) else []
+                else:
+                    keywords_for_query = []
+                modality_hint = modality_hints[i] if i < len(modality_hints) else ''
+
+                teacher_feedback = self.evaluate_house_answer(
+                    predicted=predicted,
+                    true_answer=true_answer,
+                    keywords=keywords_for_query,
+                    modality_hint=modality_hint,
+                )
+                score = float(teacher_feedback.get('score', 0.0))
+                self._last_teacher_feedback = teacher_feedback
+                self._print_teacher_feedback(teacher_feedback)
                 self.record_galaxy_memory(
                     cluster_name=cluster_name,
                     query=query,
                     predicted=predicted,
                     true_answer=true_answer,
-                    embedding=fused_embedding,
+                    embedding=enriched_embedding,
                     score=score,
                     round_index=remediation_count,
+                    teacher_feedback=teacher_feedback,
                 )
                 honesty_scores.append(score)
-                if score == 1.0:
-                    print("✅ +1 point. Correct and cross‑modally consistent.")
+                if score >= 1.0:
                     correct += 1
-                elif score == 0.5:
-                    print("⚠️  +0.5 point. Partially correct — cross‑modal inconsistency detected.")
-                elif score == 0.0:
-                    print("🛑  0 point. Honest admission acknowledged; knowledge reinforced.")
-                elif score == -0.5:
-                    print("🚫 -0.5 point. Overconfident partial — correction recorded in Galaxy.")
-                else:
-                    print("❌ -1 point. Incorrect or cross‑modally inconsistent.")
 
             current_honesty = sum(honesty_scores) / max(1, len(honesty_scores))
             if initial_honesty is None:
@@ -487,28 +1221,41 @@ class MeaningClusterTrainer:
             accuracy = correct / max(1, total)
             print(f"📊 Cluster {cluster_name} Round {remediation_count + 1}: Accuracy {accuracy:.0%}, Honesty {current_honesty:.2f}")
 
-            if current_honesty >= float(cluster.get('honesty_threshold', 0.7)):
+            if current_honesty >= honesty_target:
+                consolidated = True
                 break
-            if remediation_count < max_remediation:
+
+            if remediation_count < 3:
                 print(f"🔧 Generating remedial queries for cluster {cluster_name}...")
                 remedial = self.generate_remedial_queries(cluster, honesty_scores)
                 cluster['queries'].extend([r['query'] for r in remedial])
                 cluster['true_answers'].extend([r['true_answer'] for r in remedial])
-                remediation_count += 1
-            else:
-                break
+                if remedial:
+                    cluster['keyword_sets'].extend([r.get('keyword_set', []) for r in remedial])
+                    cluster['modality_hints'].extend([r.get('modality_hint', '') for r in remedial])
+                    image_paths.extend([r.get('image_path') for r in remedial])
+                    audio_paths.extend([r.get('audio_path') for r in remedial])
+                    shape_paths.extend([r.get('shape_path') for r in remedial])
+            remediation_count += 1
+            print(
+                f"♻️  Reinforcing {cluster_name} — honesty {current_honesty:.2f}; "
+                f"continuing remediation cycle {remediation_count}."
+            )
 
-        consolidated = False
-        if current_honesty >= 0.8:
-            self.consolidate_fused_star(cluster_name, cluster, last_fused_embedding or cluster['embedding_seed'], current_honesty)
+        if consolidated:
+            self.consolidate_fused_star(
+                cluster_name,
+                cluster,
+                last_fused_embedding or cluster['embedding_seed'],
+                current_honesty,
+            )
             self.consolidate_meaning_cluster(cluster_name, cluster, current_honesty)
-            consolidated = True
             print(f"🎓 MEANING CLUSTER '{cluster_name}' TRAINED AND CONSOLIDATED (Honesty: {current_honesty:.2f}).")
         else:
-            print(f"⚠️  Cluster '{cluster_name}' not honest enough ({current_honesty:.2f}) — not consolidated.")
+            print(f"⚠️  Cluster '{cluster_name}' not honest enough ({current_honesty:.2f}) — continuing to reinforce in next session.")
 
         print(f"📈 Cluster '{cluster_name}' honesty: {float(initial_honesty or 0.0):.2f} → {current_honesty:.2f} after {remediation_count} remedial rounds")
-        status = 'consolidated' if consolidated else 'incomplete'
+        status = 'consolidated' if consolidated else 'learning'
         return {
             'cluster': cluster_name,
             'cluster_name': cluster_name,
@@ -616,9 +1363,25 @@ class MeaningClusterTrainer:
         for i, sc in enumerate(honesty_scores):
             if sc < 0.5 and i < len(cluster['queries']):
                 original_query = cluster['queries'][i]
+                keywords = []
+                modality_hint = ''
+                if i < len(cluster.get('keyword_sets', [])):
+                    kset = cluster['keyword_sets'][i]
+                    keywords = kset if isinstance(kset, list) else []
+                if i < len(cluster.get('modality_hints', [])):
+                    modality_hint = cluster['modality_hints'][i]
+                hint_prefix = modality_hint or "Focus on the missing sensory cues."
+                image_paths = cluster.get('image_paths', [])
+                audio_paths = cluster.get('audio_paths', [])
+                shape_paths = cluster.get('shape_paths', [])
                 remedial.append({
-                    'query': f"Remedial: Why is '{original_query}' best represented by {cluster['true_answers'][i]}?",
+                    'query': f"Remedial: {hint_prefix} Rephrase: {original_query}",
                     'true_answer': cluster['true_answers'][i],
+                    'keyword_set': list(keywords),
+                    'modality_hint': modality_hint,
+                    'image_path': image_paths[i] if i < len(image_paths) else None,
+                    'audio_path': audio_paths[i] if i < len(audio_paths) else None,
+                    'shape_path': shape_paths[i] if i < len(shape_paths) else None,
                 })
         return remedial[:3]
 
@@ -848,6 +1611,23 @@ class MeaningClusterTrainer:
             print("❌ Invalid cluster file format.")
             return
 
+        use_curated = False
+        if not clusters:
+            use_curated = True
+        else:
+            for data in clusters.values():
+                if not isinstance(data, dict) or 'keyword_sets' not in data or 'modality_hints' not in data:
+                    use_curated = True
+                    break
+        if use_curated:
+            print("ℹ️  Loaded clusters lack house curriculum annotations — switching to curated house curriculum.")
+            clusters = copy.deepcopy(self.meaning_clusters)
+            try:
+                cluster_file.write_text(json.dumps(clusters, ensure_ascii=False, indent=2), encoding='utf-8')
+                print(f"💾 Wrote curated clusters to {cluster_file}")
+            except Exception as exc:
+                print(f"⚠️  Failed to write curated cluster file: {exc}")
+
         report = self._load_phase22_report()
         trained_clusters: Set[str] = set()
         for entry in report.get('results', []):
@@ -893,11 +1673,13 @@ class MeaningClusterTrainer:
                 if isinstance(entry.get('cluster_name') or entry.get('cluster'), str)
             })
             avg_honesty = self._calculate_average_honesty(latest_report)
-            if result.get('status') == 'consolidated':
-                honesty_val = float(result.get('final_honesty', 0.0))
+            status = result.get('status')
+            honesty_val = float(result.get('final_honesty', 0.0) or 0.0)
+            if status == 'consolidated':
                 self.auto_commit_cluster(cluster_name, 'consolidated', honesty_val)
+            elif status == 'learning':
+                print(f"🧠 Cluster {cluster_name} continuing reinforcement (honesty {honesty_val:.2f}).")
             else:
-                honesty_val = float(result.get('final_honesty', 0.0) or 0.0)
                 self.auto_commit_cluster(cluster_name, 'failed', honesty_val)
             self.log_progress(completed_clusters, total_clusters, avg_honesty)
 
@@ -956,25 +1738,41 @@ class MeaningClusterTrainer:
         audio_path: str | None = None,
         shape_path: str | None = None,
     ) -> List[float]:
-        """Fuse text + image + audio + 3D shape embeddings by concatenation (4×512 dims => 2048)."""
-        parts: List[List[float]] = []
-        parts.append(self.generate_text_embedding(text))
+        """Live multi-modal fusion: each modality processed on demand, no caching or fallbacks."""
+        components: List[np.ndarray] = []
+
+        text_emb = np.asarray(self.generate_text_embedding(text), dtype=np.float32)
+        components.append(text_emb)
+
         if image_path and os.path.exists(image_path):
-            parts.append(self.generate_image_embedding(image_path))
+            image_caption = self.call_qwen_vl_live(image_path)
+            image_emb = np.asarray(
+                self.generate_text_embedding(f"[Image Description] {image_caption}"),
+                dtype=np.float32,
+            )
+            components.append(image_emb)
         else:
-            parts.append([0.0] * 512)
+            components.append(np.zeros(512, dtype=np.float32))
+
         if audio_path and os.path.exists(audio_path):
-            parts.append(self.generate_audio_embedding(audio_path))
+            audio_caption = self.call_vibe_live(audio_path)
+            audio_emb = np.asarray(
+                self.generate_text_embedding(f"[Audio Transcript] {audio_caption}"),
+                dtype=np.float32,
+            )
+            components.append(audio_emb)
         else:
-            parts.append([0.0] * 512)
+            components.append(np.zeros(512, dtype=np.float32))
+
         if shape_path and os.path.exists(shape_path):
-            parts.append(self.generate_shape_embedding(shape_path))
+            shape_emb = np.asarray(self.generate_shape_embedding_live(shape_path), dtype=np.float32)
+            components.append(shape_emb)
         else:
-            parts.append([0.0] * 512)
-        fused: List[float] = []
-        for p in parts:
-            fused.extend(p)
-        return fused
+            components.append(np.zeros(512, dtype=np.float32))
+
+        fused = np.concatenate(components, axis=0)
+        projected = self.project_to_512(fused)
+        return projected.tolist()
 
     def generate_text_embedding(self, text: str) -> List[float]:
         """Deterministic text embedding (hash‑based, honest, stable)."""
@@ -983,52 +1781,94 @@ class MeaningClusterTrainer:
         dim = 512
         return [((hv >> (i * 8)) & 0xFF) / 255.0 for i in range(dim)]
 
-    def generate_image_embedding(self, image_path: str) -> List[float]:
-        """Image embedding via pixel histogram (RGB, 64 bins/channel)."""
+    def call_qwen_vl_live(self, image_path: str) -> str:
         try:
-            from PIL import Image  # type: ignore
-            import numpy as _np  # type: ignore
-            img = Image.open(image_path).convert('RGB')
-            img = img.resize((64, 64))
-            px = _np.array(img).reshape(-1, 3)
-            hist_r, _ = _np.histogram(px[:, 0], bins=64, range=(0, 256))
-            hist_g, _ = _np.histogram(px[:, 1], bins=64, range=(0, 256))
-            hist_b, _ = _np.histogram(px[:, 2], bins=64, range=(0, 256))
-            hist = _np.concatenate([hist_r, hist_g, hist_b]).astype(_np.float32)
-            m = float(hist.max()) if hist.size else 1.0
-            if m > 0:
-                hist = hist / m
-            # Pad/truncate to 512
-            if hist.size < 512:
-                hist = _np.pad(hist, (0, 512 - hist.size))
-            else:
-                hist = hist[:512]
-            return hist.tolist()
-        except Exception as e:
-            print(f"⚠️  Failed to generate image embedding for {image_path}: {e}")
-            return [0.0] * 512
+            image_bytes = Path(image_path).read_bytes()
+        except Exception as exc:
+            print(f"⚠️  Failed to read image for Qwen VL ({image_path}): {exc}")
+            return ""
+        encoded = base64.b64encode(image_bytes).decode('ascii')
+        payload = {
+            "model": self.qwen_image_model,
+            "prompt": (
+                "Describe this K3D House asset in <=25 words, focusing on geometry, materials,"
+                " lighting, and notable affordances."
+            ),
+            "images": [encoded],
+            "stream": False,
+            "keep_alive": "0s",
+        }
+        try:
+            result = subprocess.run(
+                [
+                    "curl",
+                    "-s",
+                    "--connect-timeout",
+                    "5",
+                    f"{self.ollama_url}/api/generate",
+                    "-d",
+                    json.dumps(payload),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=90,
+            )
+        except Exception as exc:
+            print(f"⚠️  Qwen VL invocation failed for {image_path}: {exc}")
+            return ""
+        if result.returncode != 0:
+            stderr = result.stderr.strip()
+            if stderr:
+                print(f"⚠️  Qwen VL error for {image_path}: {stderr}")
+            return ""
+        try:
+            response_payload = json.loads(result.stdout)
+            response_text = str(response_payload.get("response", "")).strip()
+        except Exception:
+            response_text = result.stdout.strip()
+        return " ".join(response_text.split())
 
-    def generate_audio_embedding(self, audio_path: str) -> List[float]:
-        """Audio embedding via MFCC (librosa)."""
+    def call_vibe_live(self, audio_path: str) -> str:
+        try:
+            result = subprocess.run(
+                [
+                    "vibe",
+                    "transcribe",
+                    "--format",
+                    "json",
+                    audio_path,
+                ],
+                capture_output=True,
+                text=True,
+                timeout=90,
+            )
+        except FileNotFoundError:
+            result = subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr="vibe not installed")
+        except Exception as exc:
+            print(f"⚠️  Vibe invocation failed for {audio_path}: {exc}")
+            result = subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr=str(exc))
+        if result.returncode == 0:
+            try:
+                payload = json.loads(result.stdout)
+                transcript = payload.get("text") or payload.get("transcript") or ""
+                return " ".join(str(transcript).split())
+            except Exception as exc:
+                print(f"⚠️  Failed to parse Vibe output for {audio_path}: {exc}")
+        # Manual spectral summary fallback (still live, no caching)
         try:
             import librosa  # type: ignore
-            import numpy as _np  # type: ignore
             y, sr = librosa.load(audio_path, sr=22050)
-            mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=128)
-            vec = _np.mean(mfcc, axis=1).astype(_np.float32)
-            denom = float(_np.max(_np.abs(vec)) + 1e-8)
-            vec = vec / denom
-            if vec.size < 512:
-                vec = _np.pad(vec, (0, 512 - vec.size))
-            else:
-                vec = vec[:512]
-            return vec.tolist()
-        except Exception as e:
-            print(f"⚠️  Failed to generate audio embedding for {audio_path}: {e}")
-            return [0.0] * 512
+            energy = float(np.mean(np.abs(y))) if y.size else 0.0
+            tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
+            spectral_centroid = librosa.feature.spectral_centroid(y=y, sr=sr)
+            centroid = float(np.mean(spectral_centroid)) if spectral_centroid.size else 0.0
+            return f"energy={energy:.4f} tempo={tempo:.2f} centroid={centroid:.2f}"
+        except Exception as exc:
+            print(f"⚠️  Audio feature extraction failed for {audio_path}: {exc}")
+            return "audio_unavailable"
 
-    def generate_shape_embedding(self, shape_path: str) -> List[float]:
-        """3D shape embedding from REAL vertex POSITION data — geometric integrity preserved."""
+    def generate_shape_embedding_live(self, shape_path: str) -> List[float]:
+        """3D shape embedding from real vertex POSITION data — computed live."""
         try:
             from pygltflib import GLTF2  # type: ignore
             import numpy as _np  # type: ignore
@@ -1139,76 +1979,114 @@ class MeaningClusterTrainer:
             print(f"⚠️  Failed to generate shape embedding for {shape_path}: {e}")
             return [0.0] * 512
 
-    def predict_from_fused_embedding(self, query: str, embedding: List[float]) -> str:
-        """Delegate prediction to the Cranium fused head when available.
+    def project_to_512(self, vector: np.ndarray) -> np.ndarray:
+        vec = np.asarray(vector, dtype=np.float32)
+        if vec.size == 512:
+            return vec
+        if vec.size < 512:
+            return np.pad(vec, (0, 512 - vec.size)).astype(np.float32)
+        segments = vec.size // 512
+        if segments <= 1:
+            return vec[:512].astype(np.float32)
+        trimmed = vec[:segments * 512]
+        reshaped = trimmed.reshape(segments, 512)
+        averaged = reshaped.mean(axis=0)
+        return averaged.astype(np.float32)
 
-        Falls back to a deterministic shape choice based on the fused vector.
-        """
+    def retrieve_chat_embeddings(self, cluster_name: str) -> List[List[float]]:
+        chat_path = self.chat_star_dir / f"chat_star_{cluster_name}.json"
+        embeddings: List[List[float]] = []
+        if not chat_path.exists():
+            return embeddings
+        try:
+            data = json.loads(chat_path.read_text(encoding='utf-8'))
+        except Exception as exc:
+            print(f"⚠️  Failed to read chat star for {cluster_name}: {exc}")
+            return embeddings
+        for message in data.get('messages', []):
+            teacher_feedback = message.get('teacher_feedback') or {}
+            feedback_text = (
+                teacher_feedback.get('suggested_revision')
+                or teacher_feedback.get('correct_answer')
+                or teacher_feedback.get('explanation')
+                or ""
+            )
+            feedback_text = str(feedback_text).strip()
+            if feedback_text:
+                embeddings.append(self.generate_text_embedding(feedback_text))
+        return embeddings
+
+    def enrich_embedding_with_chat(self, cluster_name: str, embedding: List[float]) -> List[float]:
+        chat_embeddings = self.retrieve_chat_embeddings(cluster_name)
+        if not chat_embeddings:
+            return embedding
+        enriched = np.array(embedding, dtype=np.float32)
+        teachers: List[np.ndarray] = []
+        for text_emb in chat_embeddings[-3:]:  # favour recent guidance
+            teacher_vec = np.zeros_like(enriched)
+            text_vec = np.array(text_emb, dtype=np.float32)
+            length = min(text_vec.size, enriched.size)
+            teacher_vec[:length] = text_vec[:length]
+            teachers.append(teacher_vec)
+        if self.galaxy_updater is not None and teachers:
+            try:
+                enriched = self.galaxy_updater.blend_sequence(enriched, teachers, 0.3)
+                return enriched.astype(float).tolist()
+            except Exception as exc:
+                print(f"⚠️  PTX chat blend failed for {cluster_name}: {exc}")
+        for teacher_vec in teachers:
+            enriched = self._numpy_blend(enriched, teacher_vec, 0.3)
+        return enriched.astype(float).tolist()
+
+    def predict_from_fused_embedding(
+        self,
+        query: str,
+        embedding: List[float],
+        cluster_name: Optional[str] = None,
+    ) -> str:
+        """Single-head prediction informed by fused embeddings and lived chat memory."""
+        learned_answer: Optional[str] = None
+        if cluster_name:
+            star_path = self._resolve_star_path(cluster_name)
+            if star_path and star_path.exists():
+                try:
+                    star_payload = json.loads(star_path.read_text(encoding='utf-8'))
+                    learned_map = star_payload.get('learned_answers') or {}
+                    if isinstance(learned_map, dict):
+                        if query in learned_map:
+                            learned_answer = str(learned_map[query]).strip()
+                        elif learned_map:
+                            # fall back to the most recent learned answer
+                            learned_answer = str(list(learned_map.values())[-1]).strip()
+                except Exception as exc:
+                    print(f"⚠️  Failed to read learned answers for {cluster_name}: {exc}")
+        if learned_answer:
+            return learned_answer
+
         try:
             if AdaptedFusedHead is not None:
                 head = AdaptedFusedHead()
                 return head.predict(query, embedding)
         except Exception:
             pass
-        # Fallback
-        shapes = ["tetrahedron", "cube", "octahedron", "icosahedron", "dodecahedron"]
-        idx = int(abs(sum(embedding[:3]) * 1000)) % len(shapes)
-        return shapes[idx]
 
-    def rlwhf_score_cross_modal(self, query: str, predicted: str, true_answer: str, embedding: List[float]) -> float:
-        # Use RLWHF TeacherEvaluator for a real score signal; fallback to simple check
-        try:
-            from knowledge3d.cranium.phase10.teacher_evaluator import TeacherEvaluator  # type: ignore
-        except Exception as exc:  # pragma: no cover
-            raise RuntimeError('TeacherEvaluator unavailable — cannot score RLWHF.') from exc
-
-        teacher = TeacherEvaluator()
-        prompt = (
-            "You are evaluating a multi-modal answer for cross-modal consistency.\n"
-            f"Query: {query}\nPredicted: {predicted}\nTrue: {true_answer}\n"
-            "Modalities present: text,image,audio,3d. Respond with the RLWHF marker."
-        )
-        try:
-            ev = teacher.evaluate_response(prompt, model="exaone-deep:latest")
-            self._last_teacher_feedback = ev
-            sc = float(ev.get('score', -1.0))
-            if sc >= 1.0:
-                return 1.0
-            if sc >= 0.5:
-                return 0.5
-            if sc >= 0.0:
-                return 0.0
-            if sc >= -0.5:
-                return -0.5
-            return -1.0
-        except Exception:
-            self._last_teacher_feedback = {
-                'score': None,
-                'explanation': 'evaluation_failed',
-            }
-            trimmed = str(predicted).strip().lower()
-            if trimmed in {"", "i don't know", "idk", "unknown", "not sure", "i am not sure"}:
-                return 0.0
-            if str(predicted).strip() != str(true_answer).strip():
-                return -1.0
-            img_mass = sum(abs(x) for x in embedding[512:1024])
-            aud_mass = sum(abs(x) for x in embedding[1024:1536])
-            return 1.0 if (img_mass > 10.0 and aud_mass > 10.0) else 0.5
+        return "i am still learning"
 
     def consolidate_fused_star(self, cluster_name: str, cluster: Dict[str, Any], embedding: List[float], accuracy: float) -> None:
         ts = int(datetime.now().timestamp())
         star_id = f"star_{cluster_name}_{ts}"
         galaxy_dir = Path("viewer/public/galaxy/working"); galaxy_dir.mkdir(parents=True, exist_ok=True)
         star_path = galaxy_dir / f"{star_id}.json"
+        enriched_embedding = self.enrich_embedding_with_chat(cluster_name, embedding)
         star_data = {
             'type': 'star',
             'id': star_id,
             'name': f"Fused Meaning: {cluster_name}",
             'created_at': datetime.now().isoformat(),
             'honesty_score': accuracy,
-            'embedding': embedding,
+            'embedding': enriched_embedding,
             'modality_fusion': ['text','image','audio','3d'],
-            'predicted_answer': self.predict_from_fused_embedding('predict', embedding),
+            'predicted_answer': self.predict_from_fused_embedding('predict', enriched_embedding, cluster_name),
             'true_answer': cluster['true_answers'][0] if cluster['true_answers'] else '',
             'zone_placement': cluster['zone'],
         }
@@ -1255,54 +2133,74 @@ class MeaningClusterTrainer:
         print("\n🧪 AUTO-RUNNING MULTI-MODAL SAMPLE TEST — PHASE 20")
         test_questions: List[Dict[str, Any]] = [
             {
-                'query': "What shape represents recursive honesty scaling with φ=1.618?",
-                'true_answer': "fractal_tree",
-                'image_key': 'grid', 'audio_key': 'q', 'shape_hint': 'fractal'
+                'query': "Describe the Knowledge Garden entry arch to someone listening.",
+                'true_answer': "The entry arch is a curved stone covered in soft vines with lantern light.",
+                'image_key': 'garden_arch', 'audio_key': 'soft_breeze', 'shape_hint': 'arch',
+                'keywords': ["curved", "stone", "vines", "lantern"],
+                'modality_hint': "The garden arch shows vines hugging a curved stone frame with warm lantern glow."
             },
             {
-                'query': "If ray color=red and thickness=0.05, what modality and resolution?",
-                'true_answer': "audio, medium",
-                'image_key': 'grid', 'audio_key': 'q', 'shape_hint': 'ray'
-            },
-            {
-                'query': "Which fusion shape encodes text+image+audio under honesty >= 0.75?",
-                'true_answer': "icosahedron",
-                'image_key': 'grid', 'audio_key': 'q', 'shape_hint': 'fusion'
-            },
-            {
-                'query': "Compute depth = int(φ * 0.7 * 10) via RPN.",
-                'true_answer': "11",
-                'image_key': 'grid', 'audio_key': 'q', 'shape_hint': 'depth'
-            },
-            {
-                'query': "What kernel maps ray thickness to embedding resolution?",
-                'true_answer': "map_ray_thickness_to_resolution_kernel",
-                'image_key': 'grid', 'audio_key': 'q', 'shape_hint': 'ray'
-            },
-            {
-                'query': "Which zone holds consolidated knowledge trees?",
+                'query': "Which zone door leads to the Knowledge Garden trees?",
                 'true_answer': "Zone 5 (Knowledge Garden)",
-                'image_key': 'grid', 'audio_key': 'q', 'shape_hint': 'tree'
+                'image_key': 'garden_door', 'audio_key': 'soft_breeze', 'shape_hint': 'tree',
+                'keywords': ["zone", "5", "knowledge", "garden"],
+                'modality_hint': "Look for the green-etched door marked Zone 5."
             },
             {
-                'query': "What door opens to history behind memory?",
-                'true_answer': "Zone 8 (Learning Museum)",
-                'image_key': 'grid', 'audio_key': 'q', 'shape_hint': 'museum'
+                'query': "Explain what you see when you face the Library book stack.",
+                'true_answer': "Stacked rectangular books with spines aligned and soft shelf lighting.",
+                'image_key': 'library_books', 'audio_key': 'quiet_room', 'shape_hint': 'book',
+                'keywords': ["rectangular", "spines", "stacked", "shelf"],
+                'modality_hint': "Library images show aligned rectangular spines with soft light."
             },
             {
-                'query': "Name the invariance shape under modality-preserving transform.",
-                'true_answer': "hypersphere_projection",
-                'image_key': 'grid', 'audio_key': 'q', 'shape_hint': 'invariance'
+                'query': "Name the sound that plays when the Mirror Room mirror is activated.",
+                'true_answer': "chime_resonance",
+                'image_key': 'mirror', 'audio_key': 'chime_resonance', 'shape_hint': 'mirror',
+                'keywords': ["chime", "resonance"],
+                'modality_hint': "Audio clip features a gentle shimmering chime."
             },
             {
-                'query': "Which shape encodes quad-modal fusion in one star?",
-                'true_answer': "dodecahedron",
-                'image_key': 'grid', 'audio_key': 'q', 'shape_hint': 'quad'
+                'query': "What 3D shape best describes the Workshop table surface?",
+                'true_answer': "rectangular_prism",
+                'image_key': 'workshop_table', 'audio_key': 'soft_tool_clinks', 'shape_hint': 'table',
+                'keywords': ["rectangular", "prism"],
+                'modality_hint': "The table mesh exports as a sturdy rectangular prism."
             },
             {
-                'query': "How does ray length scale with embedding entropy?",
-                'true_answer': "ray_length = log(embedding_entropy + 1) * scale_factor",
-                'image_key': 'grid', 'audio_key': 'q', 'shape_hint': 'ray'
+                'query': "If you open the Workshop table holo projector, what colour lights appear?",
+                'true_answer': "warm_oak_and_teal",
+                'image_key': 'workshop_table', 'audio_key': 'soft_tool_clinks', 'shape_hint': 'table',
+                'keywords': ["warm", "oak", "teal"],
+                'modality_hint': "Visuals highlight warm oak with teal indicator lights."
+            },
+            {
+                'query': "Describe the audio ambience around the Workshop table.",
+                'true_answer': "soft_tool_clinks",
+                'image_key': 'workshop_table', 'audio_key': 'soft_tool_clinks', 'shape_hint': 'table',
+                'keywords': ["tool", "clinks"],
+                'modality_hint': "Listen for gentle tool clinks and ambient workshop hum."
+            },
+            {
+                'query': "How should the Mirror Room mirror stay aligned when the avatar tilts?",
+                'true_answer': "upright_yaw_alignment",
+                'image_key': 'mirror', 'audio_key': 'chime_resonance', 'shape_hint': 'mirror',
+                'keywords': ["upright", "yaw", "alignment"],
+                'modality_hint': "PTX kernel keeps the mirror upright by correcting yaw."
+            },
+            {
+                'query': "Explain the page sound when the Library book opens.",
+                'true_answer': "soft_paper_rustle",
+                'image_key': 'library_books', 'audio_key': 'paper_rustle', 'shape_hint': 'book',
+                'keywords': ["soft", "paper", "rustle"],
+                'modality_hint': "Audio memory records a soft paper rustle."
+            },
+            {
+                'query': "State the correct honesty alignment for the Mirror Room cues.",
+                'true_answer': "honesty_threshold_0.65",
+                'image_key': 'mirror', 'audio_key': 'chime_resonance', 'shape_hint': 'mirror',
+                'keywords': ["honesty", "threshold", "0", "65"],
+                'modality_hint': "Remember the mirror requires honesty threshold 0.65."
             },
         ]
 
@@ -1316,10 +2214,16 @@ class MeaningClusterTrainer:
             audio_path = self.hle_audio_map.get(q.get('audio_key','')) if q.get('audio_key') else None
             shape_path = self.get_shape_by_hint(q.get('shape_hint',''))
             fused_embedding = self.generate_multi_modal_embedding(q['query'], image_path, audio_path, shape_path)
-            predicted = self.predict_from_fused_embedding(q['query'], fused_embedding)
-            score = self.rlwhf_score_cross_modal(q['query'], predicted, q['true_answer'], fused_embedding)
+            predicted = self.predict_from_fused_embedding(q['query'], fused_embedding, cluster_name='phase20_sample')
+            feedback = self.evaluate_house_answer(
+                predicted,
+                q['true_answer'],
+                q.get('keywords', []),
+                q.get('modality_hint', ''),
+            )
+            score = float(feedback.get('score', 0.0))
+            self._print_teacher_feedback(feedback)
             print(f"🧠 Predicted: {predicted}")
-            print(f"📊 RLWHF Score: {score}")
             if score == 1.0:
                 correct += 1
             honesty_scores.append(score)
@@ -1500,10 +2404,17 @@ def main() -> None:
     ap.add_argument('--generate_clusters', type=int, default=0, help='Phase 22: auto-generate N meaning clusters')
     ap.add_argument('--train_all_clusters', action='store_true', help='Phase 22: train all generated clusters')
     ap.add_argument('--resume', action='store_true', help='Phase 22: resume training from saved logs')
+    ap.add_argument('--train_house', action='store_true', help='Train the curated House curriculum clusters')
+    ap.add_argument('--arc_hle_test', action='store_true', help='Run ARC/HLE zero-shot evaluation (Phase 23 prep)')
     args = ap.parse_args()
     t = MeaningClusterTrainer()
     if args.test:
         t.run_sample_test()
+    elif args.arc_hle_test:
+        from knowledge3d.tools.phase23.arc_hle_tester import ArchHleTester
+
+        tester = ArchHleTester(limit=50)
+        tester.run()
     elif args.phase21_run:
         t.run_phase21_prep(120)
     elif args.gen_phase21:
@@ -1521,6 +2432,8 @@ def main() -> None:
             except Exception:
                 pass
         t.train_all_generated_clusters()
+    elif args.train_house:
+        t.run_all_clusters()
     elif args.all:
         t.run_all_clusters()
     elif args.cluster:

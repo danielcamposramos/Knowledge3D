@@ -1,0 +1,23 @@
+{
+  "type": "diary_entry",
+  "title": "Reflection: house_workshop_table",
+  "author": "AI Self",
+  "created_at": "2025-09-17T18:00:24.800376",
+  "honesty_score": 1.0,
+  "content": [
+    "Trained on 3 queries about house_workshop_table.",
+    "Accuracy: 100%.",
+    "Core insight: Associate the Workshop table with its multisensory details."
+  ],
+  "embedding": [
+    0.5568627450980392,
+    0.596078431372549,
+    0.16862745098039217,
+    0.796078431372549,
+    0.1803921568627451,
+    0.6196078431372549,
+    0.23137254901960785,
+    0.21176470588235294
+  ],
+  "zone_placement": "Zone 4 (Workshop)"
+}

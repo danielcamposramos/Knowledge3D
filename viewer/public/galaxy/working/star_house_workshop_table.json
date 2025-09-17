@@ -2063,7 +2063,7 @@
   "predicted_answer": "",
   "true_answer": "",
   "zone_placement": "Zone 4 (Workshop)",
-  "updated_at": "2025-09-17T17:20:10.433009",
+  "updated_at": "2025-09-17T18:00:24.786574",
   "mutation_history": [
     {
       "round": 0,
@@ -2781,6 +2781,24 @@
       "score": 1.0,
       "timestamp": "2025-09-17T17:20:10.433009",
       "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T17:59:51.114972",
+      "query": "Describe the wooden workshop table in the House workspace for someone relying on text and audio."
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T18:00:08.266653",
+      "query": "What colour palette should its image memory emphasise?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T18:00:24.786574",
+      "query": "Which ambient audio belongs to the table scene?"
     }
   ],
   "learned_answers": {

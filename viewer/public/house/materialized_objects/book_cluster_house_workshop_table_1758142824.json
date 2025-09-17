@@ -1,0 +1,32 @@
+{
+  "type": "chat_history_book",
+  "title": "Training Log: house_workshop_table",
+  "author": "AI Self",
+  "created_at": "2025-09-17T18:00:24.800023",
+  "honesty_score": 1.0,
+  "content": [
+    {
+      "query": "Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+    },
+    {
+      "query": "What colour palette should its image memory emphasise?",
+      "answer": "warm_oak_and_teal"
+    },
+    {
+      "query": "Which ambient audio belongs to the table scene?",
+      "answer": "soft_tool_clinks"
+    }
+  ],
+  "embedding": [
+    0.5568627450980392,
+    0.596078431372549,
+    0.16862745098039217,
+    0.796078431372549,
+    0.1803921568627451,
+    0.6196078431372549,
+    0.23137254901960785,
+    0.21176470588235294
+  ],
+  "zone_placement": "Zone 4 (Workshop)"
+}
