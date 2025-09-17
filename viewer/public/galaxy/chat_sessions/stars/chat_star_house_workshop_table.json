@@ -1,0 +1,2635 @@
+{
+  "type": "chat_star",
+  "id": "chat_star_house_workshop_table",
+  "cluster": "house_workshop_table",
+  "created_at": "2025-09-17T16:28:17.340649",
+  "messages": [
+    {
+      "timestamp": "2025-09-17T16:28:17.340442",
+      "query": "Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "fractal_tree",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.354040",
+      "query": "What colour palette should its image memory emphasise?",
+      "student_answer": "render_ray_if_honest_kernel",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.367542",
+      "query": "Which ambient audio belongs to the table scene?",
+      "student_answer": "octahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.380896",
+      "query": "Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "modality_ray",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.394282",
+      "query": "What colour palette should its image memory emphasise?",
+      "student_answer": "adjust_zone_position_kernel",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.407220",
+      "query": "Which ambient audio belongs to the table scene?",
+      "student_answer": "hypersphere_projection",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.420261",
+      "query": "Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "fractal_tree",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.433685",
+      "query": "Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: What colour palette should its image memory emphasise?",
+      "student_answer": "honesty_ray",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.447324",
+      "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?",
+      "student_answer": "dodecahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.461538",
+      "query": "Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "dodecahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.474167",
+      "query": "What colour palette should its image memory emphasise?",
+      "student_answer": "modality_ray",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.487316",
+      "query": "Which ambient audio belongs to the table scene?",
+      "student_answer": "dodecahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.500577",
+      "query": "Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "render_ray_if_honest_kernel",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.513684",
+      "query": "Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: What colour palette should its image memory emphasise?",
+      "student_answer": "icosahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.527056",
+      "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?",
+      "student_answer": "fractal_tree",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.540319",
+      "query": "Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "render_ray_if_honest_kernel",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.553556",
+      "query": "Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: What colour palette should its image memory emphasise?",
+      "student_answer": "adjust_zone_position_kernel",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.566306",
+      "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?",
+      "student_answer": "hypersphere_projection",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.579511",
+      "query": "Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "icosahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.592361",
+      "query": "What colour palette should its image memory emphasise?",
+      "student_answer": "cube",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.606101",
+      "query": "Which ambient audio belongs to the table scene?",
+      "student_answer": "modality_ray",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.619440",
+      "query": "Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "entropy_ray",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.635776",
+      "query": "Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: What colour palette should its image memory emphasise?",
+      "student_answer": "icosahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.649579",
+      "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?",
+      "student_answer": "octahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.663420",
+      "query": "Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "fractal_tree",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.677358",
+      "query": "Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: What colour palette should its image memory emphasise?",
+      "student_answer": "dodecahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.690803",
+      "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?",
+      "student_answer": "adjust_zone_position_kernel",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.704556",
+      "query": "Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "tetrahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.717316",
+      "query": "Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: What colour palette should its image memory emphasise?",
+      "student_answer": "icosahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.730638",
+      "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?",
+      "student_answer": "cube",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.744181",
+      "query": "Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "hypersphere_projection",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.757052",
+      "query": "What colour palette should its image memory emphasise?",
+      "student_answer": "adjust_zone_position_kernel",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.770584",
+      "query": "Which ambient audio belongs to the table scene?",
+      "student_answer": "tetrahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.783743",
+      "query": "Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "honesty_ray",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.797380",
+      "query": "Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: What colour palette should its image memory emphasise?",
+      "student_answer": "octahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.811054",
+      "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?",
+      "student_answer": "entropy_ray",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.824868",
+      "query": "Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "fractal_tree",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.839385",
+      "query": "Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: What colour palette should its image memory emphasise?",
+      "student_answer": "honesty_ray",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.852813",
+      "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?",
+      "student_answer": "map_ray_thickness_to_resolution_kernel",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.866455",
+      "query": "Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "hypersphere_projection",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.880733",
+      "query": "Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: What colour palette should its image memory emphasise?",
+      "student_answer": "dodecahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.894369",
+      "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?",
+      "student_answer": "render_ray_if_honest_kernel",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.909304",
+      "query": "Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "tetrahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.925367",
+      "query": "Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: What colour palette should its image memory emphasise?",
+      "student_answer": "cube",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.939360",
+      "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?",
+      "student_answer": "icosahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.952744",
+      "query": "Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "dodecahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.966117",
+      "query": "What colour palette should its image memory emphasise?",
+      "student_answer": "cube",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.980166",
+      "query": "Which ambient audio belongs to the table scene?",
+      "student_answer": "map_ray_thickness_to_resolution_kernel",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:17.993215",
+      "query": "Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "tetrahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:18.007000",
+      "query": "Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: What colour palette should its image memory emphasise?",
+      "student_answer": "modality_ray",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:18.020178",
+      "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?",
+      "student_answer": "render_ray_if_honest_kernel",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:18.032955",
+      "query": "Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "cube",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:18.046294",
+      "query": "Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: What colour palette should its image memory emphasise?",
+      "student_answer": "cube",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:18.059558",
+      "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?",
+      "student_answer": "fractal_tree",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:18.074166",
+      "query": "Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "tetrahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:18.089078",
+      "query": "Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: What colour palette should its image memory emphasise?",
+      "student_answer": "map_ray_thickness_to_resolution_kernel",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:18.102341",
+      "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?",
+      "student_answer": "hypersphere_projection",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:18.115613",
+      "query": "Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "render_ray_if_honest_kernel",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:18.129505",
+      "query": "Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: What colour palette should its image memory emphasise?",
+      "student_answer": "icosahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:18.142401",
+      "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?",
+      "student_answer": "modality_ray",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:18.156717",
+      "query": "Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "cube",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:18.171900",
+      "query": "Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: What colour palette should its image memory emphasise?",
+      "student_answer": "render_ray_if_honest_kernel",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T16:28:18.186113",
+      "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?",
+      "student_answer": "icosahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:00:15.837267",
+      "query": "Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "icosahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:00:15.852476",
+      "query": "What colour palette should its image memory emphasise?",
+      "student_answer": "dodecahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:00:15.867836",
+      "query": "Which ambient audio belongs to the table scene?",
+      "student_answer": "map_ray_thickness_to_resolution_kernel",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:00:15.882785",
+      "query": "Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "fractal_tree",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:00:15.901601",
+      "query": "What colour palette should its image memory emphasise?",
+      "student_answer": "render_ray_if_honest_kernel",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:00:15.918889",
+      "query": "Which ambient audio belongs to the table scene?",
+      "student_answer": "entropy_ray",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:00:15.935188",
+      "query": "Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "cube",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:00:15.951577",
+      "query": "Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: What colour palette should its image memory emphasise?",
+      "student_answer": "modality_ray",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:00:15.968223",
+      "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?",
+      "student_answer": "map_ray_thickness_to_resolution_kernel",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:00:15.984700",
+      "query": "Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "icosahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:00:16.001228",
+      "query": "What colour palette should its image memory emphasise?",
+      "student_answer": "hypersphere_projection",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:00:16.017038",
+      "query": "Which ambient audio belongs to the table scene?",
+      "student_answer": "dodecahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:00:16.032339",
+      "query": "Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "cube",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:00:16.047724",
+      "query": "Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: What colour palette should its image memory emphasise?",
+      "student_answer": "map_ray_thickness_to_resolution_kernel",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:00:16.064564",
+      "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?",
+      "student_answer": "modality_ray",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:00:16.079999",
+      "query": "Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "dodecahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:00:16.097862",
+      "query": "Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: What colour palette should its image memory emphasise?",
+      "student_answer": "map_ray_thickness_to_resolution_kernel",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:00:16.113709",
+      "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?",
+      "student_answer": "adjust_zone_position_kernel",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:00:16.131839",
+      "query": "Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "hypersphere_projection",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:00:16.147708",
+      "query": "What colour palette should its image memory emphasise?",
+      "student_answer": "tetrahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:00:16.163306",
+      "query": "Which ambient audio belongs to the table scene?",
+      "student_answer": "map_ray_thickness_to_resolution_kernel",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:00:16.179015",
+      "query": "Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "hypersphere_projection",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:00:16.194705",
+      "query": "Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: What colour palette should its image memory emphasise?",
+      "student_answer": "entropy_ray",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:00:16.210374",
+      "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?",
+      "student_answer": "fractal_tree",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:00:16.227573",
+      "query": "Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "dodecahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:00:16.243712",
+      "query": "Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: What colour palette should its image memory emphasise?",
+      "student_answer": "octahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:00:16.259777",
+      "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?",
+      "student_answer": "hypersphere_projection",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:00:16.275697",
+      "query": "Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "octahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:00:16.291577",
+      "query": "Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: What colour palette should its image memory emphasise?",
+      "student_answer": "honesty_ray",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:00:16.310010",
+      "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?",
+      "student_answer": "fractal_tree",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.120909",
+      "query": "Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "dodecahedron",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.126774",
+      "query": "What colour palette should its image memory emphasise?",
+      "student_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.132973",
+      "query": "Which ambient audio belongs to the table scene?",
+      "student_answer": "warm_oak_and_teal",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.139003",
+      "query": "Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.145026",
+      "query": "What colour palette should its image memory emphasise?",
+      "student_answer": "warm_oak_and_teal",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.151775",
+      "query": "Which ambient audio belongs to the table scene?",
+      "student_answer": "soft_tool_clinks",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.157968",
+      "query": "Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "soft_tool_clinks",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.164588",
+      "query": "Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: What colour palette should its image memory emphasise?",
+      "student_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.171385",
+      "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?",
+      "student_answer": "warm_oak_and_teal",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.177843",
+      "query": "Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.184843",
+      "query": "What colour palette should its image memory emphasise?",
+      "student_answer": "warm_oak_and_teal",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.191955",
+      "query": "Which ambient audio belongs to the table scene?",
+      "student_answer": "soft_tool_clinks",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.199750",
+      "query": "Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.207582",
+      "query": "Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: What colour palette should its image memory emphasise?",
+      "student_answer": "warm_oak_and_teal",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.214966",
+      "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?",
+      "student_answer": "soft_tool_clinks",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.223561",
+      "query": "Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "soft_tool_clinks",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.230715",
+      "query": "Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: What colour palette should its image memory emphasise?",
+      "student_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.238681",
+      "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?",
+      "student_answer": "warm_oak_and_teal",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.246370",
+      "query": "Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.253487",
+      "query": "What colour palette should its image memory emphasise?",
+      "student_answer": "warm_oak_and_teal",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.260775",
+      "query": "Which ambient audio belongs to the table scene?",
+      "student_answer": "soft_tool_clinks",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.267829",
+      "query": "Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.275036",
+      "query": "Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: What colour palette should its image memory emphasise?",
+      "student_answer": "warm_oak_and_teal",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.282103",
+      "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?",
+      "student_answer": "soft_tool_clinks",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.289493",
+      "query": "Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.297297",
+      "query": "Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: What colour palette should its image memory emphasise?",
+      "student_answer": "warm_oak_and_teal",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.306764",
+      "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?",
+      "student_answer": "soft_tool_clinks",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.314652",
+      "query": "Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "soft_tool_clinks",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector..",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.322557",
+      "query": "Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: What colour palette should its image memory emphasise?",
+      "student_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: warm_oak_and_teal.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.330810",
+      "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?",
+      "student_answer": "warm_oak_and_teal",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: soft_tool_clinks.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.338934",
+      "query": "Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.347446",
+      "query": "What colour palette should its image memory emphasise?",
+      "student_answer": "warm_oak_and_teal",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.356543",
+      "query": "Which ambient audio belongs to the table scene?",
+      "student_answer": "soft_tool_clinks",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.364951",
+      "query": "Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.373113",
+      "query": "Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: What colour palette should its image memory emphasise?",
+      "student_answer": "warm_oak_and_teal",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.381216",
+      "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?",
+      "student_answer": "soft_tool_clinks",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.389511",
+      "query": "Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.397874",
+      "query": "Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: What colour palette should its image memory emphasise?",
+      "student_answer": "warm_oak_and_teal",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.406677",
+      "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?",
+      "student_answer": "soft_tool_clinks",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.414935",
+      "query": "Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Remedial: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick. Rephrase: Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.423023",
+      "query": "Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: Remedial: Colour memory favours warm oak wood with teal control lights. Rephrase: What colour palette should its image memory emphasise?",
+      "student_answer": "warm_oak_and_teal",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T17:20:10.431284",
+      "query": "Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Remedial: Audio bed features soft tool clinks and quiet workshop ambience. Rephrase: Which ambient audio belongs to the table scene?",
+      "student_answer": "soft_tool_clinks",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [
+          "tool",
+          "clinks"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T17:59:51.111665",
+      "query": "Describe the wooden workshop table in the House workspace for someone relying on text and audio.",
+      "student_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.",
+        "modality_hint": "Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.",
+        "matched_keywords": [
+          "wooden",
+          "rectangle",
+          "grooves",
+          "projector"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T18:00:08.263535",
+      "query": "What colour palette should its image memory emphasise?",
+      "student_answer": "warm_oak_and_teal",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "warm_oak_and_teal",
+        "modality_hint": "Colour memory favours warm oak wood with teal control lights.",
+        "matched_keywords": [
+          "warm",
+          "oak",
+          "teal"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: warm_oak_and_teal"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T18:00:24.783641",
+      "query": "Which ambient audio belongs to the table scene?",
+      "student_answer": "soft_tool_clinks",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "soft_tool_clinks",
+        "modality_hint": "Audio bed features soft tool clinks and quiet workshop ambience.",
+        "matched_keywords": [
+          "soft",
+          "tool",
+          "clinks"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: soft_tool_clinks"
+      },
+      "score": 1.0
+    }
+  ],
+  "zone_placement": "Zone 4 (Workshop)",
+  "last_updated": "2025-09-17T18:00:24.783641",
+  "message_count": 138,
+  "latest_score": 1.0
+}

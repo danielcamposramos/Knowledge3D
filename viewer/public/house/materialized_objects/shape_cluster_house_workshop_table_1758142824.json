@@ -1,0 +1,20 @@
+{
+  "type": "generated_3d_shape",
+  "name": "Concept: house_workshop_table",
+  "created_at": "2025-09-17T18:00:24.800257",
+  "honesty_score": 1.0,
+  "embedding": [
+    0.5568627450980392,
+    0.596078431372549,
+    0.16862745098039217,
+    0.796078431372549,
+    0.1803921568627451,
+    0.6196078431372549,
+    0.23137254901960785,
+    0.21176470588235294
+  ],
+  "shape_type": "cube",
+  "vertex_count": 100,
+  "zone_placement": "Zone 4 (Workshop)",
+  "ptx_kernel_used": "train_cluster_house_workshop_table_kernel"
+}

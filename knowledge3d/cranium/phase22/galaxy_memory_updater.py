@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 import numpy as np  # type: ignore
 
@@ -57,6 +57,14 @@ class GalaxyMemoryUpdater:
         if self._kernel is None or self._cuda is None:
             return self._blend_numpy(old, teacher, blend_factor)
         return self._blend_cuda(old, teacher, blend_factor)
+
+    def blend_sequence(self, base: np.ndarray, teachers: List[np.ndarray], blend_factor: float = 0.3) -> np.ndarray:
+        out = np.array(base, dtype=np.float32)
+        if not teachers:
+            return out
+        for teacher in teachers:
+            out = self.blend(out, np.array(teacher, dtype=np.float32), blend_factor)
+        return out
 
     def _blend_cuda(self, old: np.ndarray, teacher: np.ndarray, blend_factor: float) -> np.ndarray:
         cuda = self._cuda

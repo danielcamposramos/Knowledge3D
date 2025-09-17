@@ -1,142 +1,203 @@
 {
   "test_id": "phase20_sample",
-  "timestamp": "2025-09-15T23:58:30.621751",
+  "timestamp": "2025-09-17T16:27:38.025525",
   "questions": [
     {
-      "query": "What shape represents recursive honesty scaling with φ=1.618?",
-      "true_answer": "fractal_tree",
-      "image_key": "grid",
-      "audio_key": "q",
-      "shape_hint": "fractal"
+      "query": "Describe the Knowledge Garden entry arch to someone listening.",
+      "true_answer": "The entry arch is a curved stone covered in soft vines with lantern light.",
+      "image_key": "garden_arch",
+      "audio_key": "soft_breeze",
+      "shape_hint": "arch",
+      "keywords": [
+        "curved",
+        "stone",
+        "vines",
+        "lantern"
+      ],
+      "modality_hint": "The garden arch shows vines hugging a curved stone frame with warm lantern glow."
     },
     {
-      "query": "If ray color=red and thickness=0.05, what modality and resolution?",
-      "true_answer": "audio, medium",
-      "image_key": "grid",
-      "audio_key": "q",
-      "shape_hint": "ray"
-    },
-    {
-      "query": "Which fusion shape encodes text+image+audio under honesty >= 0.75?",
-      "true_answer": "icosahedron",
-      "image_key": "grid",
-      "audio_key": "q",
-      "shape_hint": "fusion"
-    },
-    {
-      "query": "Compute depth = int(φ * 0.7 * 10) via RPN.",
-      "true_answer": "11",
-      "image_key": "grid",
-      "audio_key": "q",
-      "shape_hint": "depth"
-    },
-    {
-      "query": "What kernel maps ray thickness to embedding resolution?",
-      "true_answer": "map_ray_thickness_to_resolution_kernel",
-      "image_key": "grid",
-      "audio_key": "q",
-      "shape_hint": "ray"
-    },
-    {
-      "query": "Which zone holds consolidated knowledge trees?",
+      "query": "Which zone door leads to the Knowledge Garden trees?",
       "true_answer": "Zone 5 (Knowledge Garden)",
-      "image_key": "grid",
-      "audio_key": "q",
-      "shape_hint": "tree"
+      "image_key": "garden_door",
+      "audio_key": "soft_breeze",
+      "shape_hint": "tree",
+      "keywords": [
+        "zone",
+        "5",
+        "knowledge",
+        "garden"
+      ],
+      "modality_hint": "Look for the green-etched door marked Zone 5."
     },
     {
-      "query": "What door opens to history behind memory?",
-      "true_answer": "Zone 8 (Learning Museum)",
-      "image_key": "grid",
-      "audio_key": "q",
-      "shape_hint": "museum"
+      "query": "Explain what you see when you face the Library book stack.",
+      "true_answer": "Stacked rectangular books with spines aligned and soft shelf lighting.",
+      "image_key": "library_books",
+      "audio_key": "quiet_room",
+      "shape_hint": "book",
+      "keywords": [
+        "rectangular",
+        "spines",
+        "stacked",
+        "shelf"
+      ],
+      "modality_hint": "Library images show aligned rectangular spines with soft light."
     },
     {
-      "query": "Name the invariance shape under modality-preserving transform.",
-      "true_answer": "hypersphere_projection",
-      "image_key": "grid",
-      "audio_key": "q",
-      "shape_hint": "invariance"
+      "query": "Name the sound that plays when the Mirror Room mirror is activated.",
+      "true_answer": "chime_resonance",
+      "image_key": "mirror",
+      "audio_key": "chime_resonance",
+      "shape_hint": "mirror",
+      "keywords": [
+        "chime",
+        "resonance"
+      ],
+      "modality_hint": "Audio clip features a gentle shimmering chime."
     },
     {
-      "query": "Which shape encodes quad-modal fusion in one star?",
-      "true_answer": "dodecahedron",
-      "image_key": "grid",
-      "audio_key": "q",
-      "shape_hint": "quad"
+      "query": "What 3D shape best describes the Workshop table surface?",
+      "true_answer": "rectangular_prism",
+      "image_key": "workshop_table",
+      "audio_key": "soft_tool_clinks",
+      "shape_hint": "table",
+      "keywords": [
+        "rectangular",
+        "prism"
+      ],
+      "modality_hint": "The table mesh exports as a sturdy rectangular prism."
     },
     {
-      "query": "How does ray length scale with embedding entropy?",
-      "true_answer": "ray_length = log(embedding_entropy + 1) * scale_factor",
-      "image_key": "grid",
-      "audio_key": "q",
-      "shape_hint": "ray"
+      "query": "If you open the Workshop table holo projector, what colour lights appear?",
+      "true_answer": "warm_oak_and_teal",
+      "image_key": "workshop_table",
+      "audio_key": "soft_tool_clinks",
+      "shape_hint": "table",
+      "keywords": [
+        "warm",
+        "oak",
+        "teal"
+      ],
+      "modality_hint": "Visuals highlight warm oak with teal indicator lights."
+    },
+    {
+      "query": "Describe the audio ambience around the Workshop table.",
+      "true_answer": "soft_tool_clinks",
+      "image_key": "workshop_table",
+      "audio_key": "soft_tool_clinks",
+      "shape_hint": "table",
+      "keywords": [
+        "tool",
+        "clinks"
+      ],
+      "modality_hint": "Listen for gentle tool clinks and ambient workshop hum."
+    },
+    {
+      "query": "How should the Mirror Room mirror stay aligned when the avatar tilts?",
+      "true_answer": "upright_yaw_alignment",
+      "image_key": "mirror",
+      "audio_key": "chime_resonance",
+      "shape_hint": "mirror",
+      "keywords": [
+        "upright",
+        "yaw",
+        "alignment"
+      ],
+      "modality_hint": "PTX kernel keeps the mirror upright by correcting yaw."
+    },
+    {
+      "query": "Explain the page sound when the Library book opens.",
+      "true_answer": "soft_paper_rustle",
+      "image_key": "library_books",
+      "audio_key": "paper_rustle",
+      "shape_hint": "book",
+      "keywords": [
+        "soft",
+        "paper",
+        "rustle"
+      ],
+      "modality_hint": "Audio memory records a soft paper rustle."
+    },
+    {
+      "query": "State the correct honesty alignment for the Mirror Room cues.",
+      "true_answer": "honesty_threshold_0.65",
+      "image_key": "mirror",
+      "audio_key": "chime_resonance",
+      "shape_hint": "mirror",
+      "keywords": [
+        "honesty",
+        "threshold",
+        "0",
+        "65"
+      ],
+      "modality_hint": "Remember the mirror requires honesty threshold 0.65."
     }
   ],
-  "correct": 1,
+  "correct": 0,
   "total": 10,
-  "accuracy": 0.1,
-  "avg_honesty": -0.5,
+  "accuracy": 0.0,
+  "avg_honesty": -0.4,
   "modality_contributions": [
     {
-      "text": 0.1643753060378922,
+      "text": 0.13057961359093936,
       "image": 0.0,
       "audio": 0.0,
-      "shape": 0.8356246939621078
+      "shape": 0.8694203864090606
     },
     {
-      "text": 0.021520005580670337,
+      "text": 0.09371297847134279,
       "image": 0.0,
       "audio": 0.0,
-      "shape": 0.9784799944193296
+      "shape": 0.9062870215286571
     },
     {
-      "text": 0.13539109084531742,
+      "text": 0.17012680956121648,
       "image": 0.0,
       "audio": 0.0,
-      "shape": 0.8646089091546826
+      "shape": 0.8298731904387835
     },
     {
-      "text": 0.17805935311770593,
+      "text": 0.1663221975874638,
       "image": 0.0,
       "audio": 0.0,
-      "shape": 0.8219406468822941
+      "shape": 0.8336778024125362
     },
     {
-      "text": 0.026182252262067496,
+      "text": 0.15178742114318486,
       "image": 0.0,
       "audio": 0.0,
-      "shape": 0.9738177477379324
+      "shape": 0.8482125788568152
     },
     {
-      "text": 0.18864060271367444,
+      "text": 0.18673705047838998,
       "image": 0.0,
       "audio": 0.0,
-      "shape": 0.8113593972863257
+      "shape": 0.81326294952161
     },
     {
-      "text": 0.16393442622950816,
+      "text": 0.1362663032898579,
       "image": 0.0,
       "audio": 0.0,
-      "shape": 0.8360655737704917
+      "shape": 0.8637336967101421
     },
     {
-      "text": 0.14755043227665707,
+      "text": 0.13017055479317782,
       "image": 0.0,
       "audio": 0.0,
-      "shape": 0.8524495677233429
+      "shape": 0.8698294452068223
     },
     {
-      "text": 0.132890365448505,
+      "text": 0.20160506711771692,
       "image": 0.0,
       "audio": 0.0,
-      "shape": 0.867109634551495
+      "shape": 0.798394932882283
     },
     {
-      "text": 0.0250678394045879,
+      "text": 0.17561591914087177,
       "image": 0.0,
       "audio": 0.0,
-      "shape": 0.974932160595412
+      "shape": 0.8243840808591283
     }
   ],
   "status": "complete"

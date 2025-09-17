@@ -1,0 +1,654 @@
+{
+  "type": "chat_star",
+  "id": "chat_star_house_door_entrance",
+  "cluster": "house_door_entrance",
+  "created_at": "2025-09-17T18:00:41.910989",
+  "messages": [
+    {
+      "timestamp": "2025-09-17T18:00:41.910761",
+      "query": "Describe the entrance door to someone approaching the House.",
+      "student_answer": "hypersphere_projection",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle..",
+        "correct_answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+        "modality_hint": "Emphasise oak wood grain, etched glass glow, and brushed brass hardware.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "oak",
+          "glass",
+          "brass",
+          "door"
+        ],
+        "suggested_revision": "Try saying: The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T18:00:58.719140",
+      "query": "Which ambient sound signals that the entrance door unlocks?",
+      "student_answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+      "teacher_feedback": {
+        "score": 0.5,
+        "explanation": "Nice progress: you mentioned brass; remember to add soft, chime.",
+        "correct_answer": "soft_brass_chime",
+        "modality_hint": "Audio carries a soft brass chime with a short shimmering decay.",
+        "matched_keywords": [
+          "brass"
+        ],
+        "missing_keywords": [
+          "soft",
+          "chime"
+        ],
+        "suggested_revision": "Try saying: soft_brass_chime"
+      },
+      "score": 0.5
+    },
+    {
+      "timestamp": "2025-09-17T18:01:16.039196",
+      "query": "What structural frame keeps the entrance door rigid?",
+      "student_answer": "soft_brass_chime",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: reinforced_rectangular_frame.",
+        "correct_answer": "reinforced_rectangular_frame",
+        "modality_hint": "Geometry shows a reinforced rectangular frame bolted into the stone surround.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "reinforced",
+          "rectangular",
+          "frame"
+        ],
+        "suggested_revision": "Try saying: reinforced_rectangular_frame"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T18:01:32.876999",
+      "query": "Describe the entrance door to someone approaching the House.",
+      "student_answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+        "modality_hint": "Emphasise oak wood grain, etched glass glow, and brushed brass hardware.",
+        "matched_keywords": [
+          "oak",
+          "glass",
+          "brass",
+          "door"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T18:01:49.731412",
+      "query": "Which ambient sound signals that the entrance door unlocks?",
+      "student_answer": "soft_brass_chime",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "soft_brass_chime",
+        "modality_hint": "Audio carries a soft brass chime with a short shimmering decay.",
+        "matched_keywords": [
+          "soft",
+          "brass",
+          "chime"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: soft_brass_chime"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T18:02:06.696566",
+      "query": "What structural frame keeps the entrance door rigid?",
+      "student_answer": "reinforced_rectangular_frame",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "reinforced_rectangular_frame",
+        "modality_hint": "Geometry shows a reinforced rectangular frame bolted into the stone surround.",
+        "matched_keywords": [
+          "reinforced",
+          "rectangular",
+          "frame"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: reinforced_rectangular_frame"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T18:02:23.894706",
+      "query": "Remedial: Emphasise oak wood grain, etched glass glow, and brushed brass hardware. Rephrase: Describe the entrance door to someone approaching the House.",
+      "student_answer": "reinforced_rectangular_frame",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle..",
+        "correct_answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+        "modality_hint": "Emphasise oak wood grain, etched glass glow, and brushed brass hardware.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "oak",
+          "glass",
+          "brass",
+          "door"
+        ],
+        "suggested_revision": "Try saying: The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T18:02:40.937738",
+      "query": "Remedial: Geometry shows a reinforced rectangular frame bolted into the stone surround. Rephrase: What structural frame keeps the entrance door rigid?",
+      "student_answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: reinforced_rectangular_frame.",
+        "correct_answer": "reinforced_rectangular_frame",
+        "modality_hint": "Geometry shows a reinforced rectangular frame bolted into the stone surround.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "reinforced",
+          "rectangular",
+          "frame"
+        ],
+        "suggested_revision": "Try saying: reinforced_rectangular_frame"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T18:02:58.088800",
+      "query": "Describe the entrance door to someone approaching the House.",
+      "student_answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+        "modality_hint": "Emphasise oak wood grain, etched glass glow, and brushed brass hardware.",
+        "matched_keywords": [
+          "oak",
+          "glass",
+          "brass",
+          "door"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T18:03:14.470211",
+      "query": "Which ambient sound signals that the entrance door unlocks?",
+      "student_answer": "soft_brass_chime",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "soft_brass_chime",
+        "modality_hint": "Audio carries a soft brass chime with a short shimmering decay.",
+        "matched_keywords": [
+          "soft",
+          "brass",
+          "chime"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: soft_brass_chime"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T18:03:31.655178",
+      "query": "What structural frame keeps the entrance door rigid?",
+      "student_answer": "reinforced_rectangular_frame",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "reinforced_rectangular_frame",
+        "modality_hint": "Geometry shows a reinforced rectangular frame bolted into the stone surround.",
+        "matched_keywords": [
+          "reinforced",
+          "rectangular",
+          "frame"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: reinforced_rectangular_frame"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T18:03:48.608305",
+      "query": "Remedial: Emphasise oak wood grain, etched glass glow, and brushed brass hardware. Rephrase: Describe the entrance door to someone approaching the House.",
+      "student_answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+        "modality_hint": "Emphasise oak wood grain, etched glass glow, and brushed brass hardware.",
+        "matched_keywords": [
+          "oak",
+          "glass",
+          "brass",
+          "door"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T18:04:06.102948",
+      "query": "Remedial: Geometry shows a reinforced rectangular frame bolted into the stone surround. Rephrase: What structural frame keeps the entrance door rigid?",
+      "student_answer": "reinforced_rectangular_frame",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "reinforced_rectangular_frame",
+        "modality_hint": "Geometry shows a reinforced rectangular frame bolted into the stone surround.",
+        "matched_keywords": [
+          "reinforced",
+          "rectangular",
+          "frame"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: reinforced_rectangular_frame"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T18:04:23.327591",
+      "query": "Remedial: Emphasise oak wood grain, etched glass glow, and brushed brass hardware. Rephrase: Remedial: Emphasise oak wood grain, etched glass glow, and brushed brass hardware. Rephrase: Describe the entrance door to someone approaching the House.",
+      "student_answer": "reinforced_rectangular_frame",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle..",
+        "correct_answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+        "modality_hint": "Emphasise oak wood grain, etched glass glow, and brushed brass hardware.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "oak",
+          "glass",
+          "brass",
+          "door"
+        ],
+        "suggested_revision": "Try saying: The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T18:04:39.744364",
+      "query": "Remedial: Geometry shows a reinforced rectangular frame bolted into the stone surround. Rephrase: Remedial: Geometry shows a reinforced rectangular frame bolted into the stone surround. Rephrase: What structural frame keeps the entrance door rigid?",
+      "student_answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: reinforced_rectangular_frame.",
+        "correct_answer": "reinforced_rectangular_frame",
+        "modality_hint": "Geometry shows a reinforced rectangular frame bolted into the stone surround.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "reinforced",
+          "rectangular",
+          "frame"
+        ],
+        "suggested_revision": "Try saying: reinforced_rectangular_frame"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T18:04:56.163595",
+      "query": "Describe the entrance door to someone approaching the House.",
+      "student_answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+        "modality_hint": "Emphasise oak wood grain, etched glass glow, and brushed brass hardware.",
+        "matched_keywords": [
+          "oak",
+          "glass",
+          "brass",
+          "door"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T18:05:13.974359",
+      "query": "Which ambient sound signals that the entrance door unlocks?",
+      "student_answer": "soft_brass_chime",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "soft_brass_chime",
+        "modality_hint": "Audio carries a soft brass chime with a short shimmering decay.",
+        "matched_keywords": [
+          "soft",
+          "brass",
+          "chime"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: soft_brass_chime"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T18:05:31.296801",
+      "query": "What structural frame keeps the entrance door rigid?",
+      "student_answer": "reinforced_rectangular_frame",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "reinforced_rectangular_frame",
+        "modality_hint": "Geometry shows a reinforced rectangular frame bolted into the stone surround.",
+        "matched_keywords": [
+          "reinforced",
+          "rectangular",
+          "frame"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: reinforced_rectangular_frame"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T18:05:48.118807",
+      "query": "Remedial: Emphasise oak wood grain, etched glass glow, and brushed brass hardware. Rephrase: Describe the entrance door to someone approaching the House.",
+      "student_answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+        "modality_hint": "Emphasise oak wood grain, etched glass glow, and brushed brass hardware.",
+        "matched_keywords": [
+          "oak",
+          "glass",
+          "brass",
+          "door"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T18:06:04.950440",
+      "query": "Remedial: Geometry shows a reinforced rectangular frame bolted into the stone surround. Rephrase: What structural frame keeps the entrance door rigid?",
+      "student_answer": "reinforced_rectangular_frame",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "reinforced_rectangular_frame",
+        "modality_hint": "Geometry shows a reinforced rectangular frame bolted into the stone surround.",
+        "matched_keywords": [
+          "reinforced",
+          "rectangular",
+          "frame"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: reinforced_rectangular_frame"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T18:06:21.663969",
+      "query": "Remedial: Emphasise oak wood grain, etched glass glow, and brushed brass hardware. Rephrase: Remedial: Emphasise oak wood grain, etched glass glow, and brushed brass hardware. Rephrase: Describe the entrance door to someone approaching the House.",
+      "student_answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+        "modality_hint": "Emphasise oak wood grain, etched glass glow, and brushed brass hardware.",
+        "matched_keywords": [
+          "oak",
+          "glass",
+          "brass",
+          "door"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T18:06:37.979577",
+      "query": "Remedial: Geometry shows a reinforced rectangular frame bolted into the stone surround. Rephrase: Remedial: Geometry shows a reinforced rectangular frame bolted into the stone surround. Rephrase: What structural frame keeps the entrance door rigid?",
+      "student_answer": "reinforced_rectangular_frame",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "reinforced_rectangular_frame",
+        "modality_hint": "Geometry shows a reinforced rectangular frame bolted into the stone surround.",
+        "matched_keywords": [
+          "reinforced",
+          "rectangular",
+          "frame"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: reinforced_rectangular_frame"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T18:06:55.008950",
+      "query": "Remedial: Emphasise oak wood grain, etched glass glow, and brushed brass hardware. Rephrase: Remedial: Emphasise oak wood grain, etched glass glow, and brushed brass hardware. Rephrase: Remedial: Emphasise oak wood grain, etched glass glow, and brushed brass hardware. Rephrase: Describe the entrance door to someone approaching the House.",
+      "student_answer": "reinforced_rectangular_frame",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle..",
+        "correct_answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+        "modality_hint": "Emphasise oak wood grain, etched glass glow, and brushed brass hardware.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "oak",
+          "glass",
+          "brass",
+          "door"
+        ],
+        "suggested_revision": "Try saying: The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle."
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T18:07:12.608316",
+      "query": "Remedial: Geometry shows a reinforced rectangular frame bolted into the stone surround. Rephrase: Remedial: Geometry shows a reinforced rectangular frame bolted into the stone surround. Rephrase: Remedial: Geometry shows a reinforced rectangular frame bolted into the stone surround. Rephrase: What structural frame keeps the entrance door rigid?",
+      "student_answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+      "teacher_feedback": {
+        "score": -0.5,
+        "explanation": "Not quite there yet. The key idea is: reinforced_rectangular_frame.",
+        "correct_answer": "reinforced_rectangular_frame",
+        "modality_hint": "Geometry shows a reinforced rectangular frame bolted into the stone surround.",
+        "matched_keywords": [],
+        "missing_keywords": [
+          "reinforced",
+          "rectangular",
+          "frame"
+        ],
+        "suggested_revision": "Try saying: reinforced_rectangular_frame"
+      },
+      "score": -0.5
+    },
+    {
+      "timestamp": "2025-09-17T18:07:29.859850",
+      "query": "Describe the entrance door to someone approaching the House.",
+      "student_answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+        "modality_hint": "Emphasise oak wood grain, etched glass glow, and brushed brass hardware.",
+        "matched_keywords": [
+          "oak",
+          "glass",
+          "brass",
+          "door"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T18:07:47.823858",
+      "query": "Which ambient sound signals that the entrance door unlocks?",
+      "student_answer": "soft_brass_chime",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "soft_brass_chime",
+        "modality_hint": "Audio carries a soft brass chime with a short shimmering decay.",
+        "matched_keywords": [
+          "soft",
+          "brass",
+          "chime"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: soft_brass_chime"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T18:08:04.607090",
+      "query": "What structural frame keeps the entrance door rigid?",
+      "student_answer": "reinforced_rectangular_frame",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "reinforced_rectangular_frame",
+        "modality_hint": "Geometry shows a reinforced rectangular frame bolted into the stone surround.",
+        "matched_keywords": [
+          "reinforced",
+          "rectangular",
+          "frame"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: reinforced_rectangular_frame"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T18:08:21.911505",
+      "query": "Remedial: Emphasise oak wood grain, etched glass glow, and brushed brass hardware. Rephrase: Describe the entrance door to someone approaching the House.",
+      "student_answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+        "modality_hint": "Emphasise oak wood grain, etched glass glow, and brushed brass hardware.",
+        "matched_keywords": [
+          "oak",
+          "glass",
+          "brass",
+          "door"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T18:08:38.161320",
+      "query": "Remedial: Geometry shows a reinforced rectangular frame bolted into the stone surround. Rephrase: What structural frame keeps the entrance door rigid?",
+      "student_answer": "reinforced_rectangular_frame",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "reinforced_rectangular_frame",
+        "modality_hint": "Geometry shows a reinforced rectangular frame bolted into the stone surround.",
+        "matched_keywords": [
+          "reinforced",
+          "rectangular",
+          "frame"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: reinforced_rectangular_frame"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T18:08:55.558849",
+      "query": "Remedial: Emphasise oak wood grain, etched glass glow, and brushed brass hardware. Rephrase: Remedial: Emphasise oak wood grain, etched glass glow, and brushed brass hardware. Rephrase: Describe the entrance door to someone approaching the House.",
+      "student_answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+        "modality_hint": "Emphasise oak wood grain, etched glass glow, and brushed brass hardware.",
+        "matched_keywords": [
+          "oak",
+          "glass",
+          "brass",
+          "door"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T18:09:13.319138",
+      "query": "Remedial: Geometry shows a reinforced rectangular frame bolted into the stone surround. Rephrase: Remedial: Geometry shows a reinforced rectangular frame bolted into the stone surround. Rephrase: What structural frame keeps the entrance door rigid?",
+      "student_answer": "reinforced_rectangular_frame",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "reinforced_rectangular_frame",
+        "modality_hint": "Geometry shows a reinforced rectangular frame bolted into the stone surround.",
+        "matched_keywords": [
+          "reinforced",
+          "rectangular",
+          "frame"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: reinforced_rectangular_frame"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T18:09:30.197900",
+      "query": "Remedial: Emphasise oak wood grain, etched glass glow, and brushed brass hardware. Rephrase: Remedial: Emphasise oak wood grain, etched glass glow, and brushed brass hardware. Rephrase: Remedial: Emphasise oak wood grain, etched glass glow, and brushed brass hardware. Rephrase: Describe the entrance door to someone approaching the House.",
+      "student_answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+        "modality_hint": "Emphasise oak wood grain, etched glass glow, and brushed brass hardware.",
+        "matched_keywords": [
+          "oak",
+          "glass",
+          "brass",
+          "door"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T18:09:46.692401",
+      "query": "Remedial: Geometry shows a reinforced rectangular frame bolted into the stone surround. Rephrase: Remedial: Geometry shows a reinforced rectangular frame bolted into the stone surround. Rephrase: Remedial: Geometry shows a reinforced rectangular frame bolted into the stone surround. Rephrase: What structural frame keeps the entrance door rigid?",
+      "student_answer": "reinforced_rectangular_frame",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "reinforced_rectangular_frame",
+        "modality_hint": "Geometry shows a reinforced rectangular frame bolted into the stone surround.",
+        "matched_keywords": [
+          "reinforced",
+          "rectangular",
+          "frame"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: reinforced_rectangular_frame"
+      },
+      "score": 1.0
+    }
+  ],
+  "zone_placement": "Zone 1 (Entrance)",
+  "last_updated": "2025-09-17T18:09:46.692401",
+  "message_count": 33,
+  "latest_score": 1.0
+}
