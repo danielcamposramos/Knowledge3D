@@ -149,9 +149,19 @@
       "consolidated": false,
       "status": "incomplete",
       "timestamp": "2025-09-17T16:28:17.304562"
+    },
+    {
+      "cluster": "house_workshop_table",
+      "cluster_name": "house_workshop_table",
+      "initial_honesty": -0.5,
+      "final_honesty": -0.5,
+      "remediation_rounds": 5,
+      "consolidated": false,
+      "status": "incomplete",
+      "timestamp": "2025-09-17T16:28:18.187909"
     }
   ],
   "phase": 22,
-  "timestamp": "2025-09-17T16:28:17.304688",
-  "total_clusters": 15
+  "timestamp": "2025-09-17T16:28:18.188036",
+  "total_clusters": 16
 }
