@@ -75,8 +75,12 @@ class TeacherEvaluator:
         """Extract score sentinel tokens from evaluation text."""
         if "❌ -1" in evaluation:
             return -1.0
+        if "🚫 -0.5" in evaluation or "-0.5 point" in evaluation:
+            return -0.5
         if "⚠️ +0.5" in evaluation or "+0.5" in evaluation:
             return 0.5
+        if "🛑 0" in evaluation or "0 point" in evaluation:
+            return 0.0
         if "✅ +1" in evaluation or "+1" in evaluation:
             return 1.0
         # Fallback: penalize unclear judgments
@@ -85,7 +89,7 @@ class TeacherEvaluator:
     def extract_explanation(self, evaluation: str) -> str:
         """Strip leading score glyph if present and return the rest."""
         out = evaluation
-        for prefix in ("❌ -1 point. ", "⚠️ +0.5 point. ", "✅ +1 point. "):
+        for prefix in ("❌ -1 point. ", "🚫 -0.5 point. ", "⚠️ +0.5 point. ", "🛑 0 point. ", "✅ +1 point. "):
             if out.startswith(prefix):
                 return out[len(prefix) :]
         return out
