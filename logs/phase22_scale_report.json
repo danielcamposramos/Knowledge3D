@@ -119,9 +119,19 @@
       "consolidated": false,
       "status": "incomplete",
       "timestamp": "2025-09-17T14:17:23.334478"
+    },
+    {
+      "cluster": "cluster_0012",
+      "cluster_name": "cluster_0012",
+      "initial_honesty": -1.0,
+      "final_honesty": -0.6666666666666666,
+      "remediation_rounds": 5,
+      "consolidated": false,
+      "status": "incomplete",
+      "timestamp": "2025-09-17T15:11:17.006962"
     }
   ],
   "phase": 22,
-  "timestamp": "2025-09-17T14:17:23.334620",
-  "total_clusters": 12
+  "timestamp": "2025-09-17T15:11:17.007088",
+  "total_clusters": 13
 }
