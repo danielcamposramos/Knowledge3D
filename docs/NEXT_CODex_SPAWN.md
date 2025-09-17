@@ -113,3 +113,21 @@ PYTHONPATH=. python -m knowledge3d.tools.phase18.meaning_cluster_trainer --resum
 - No `tail -f`, no PID checks — fully automated.
 - Honest "I don't know" responses now earn 🛑 0 point; teacher explains the concept instead of penalizing honesty.
 - Honest partial answers that admit missing knowledge now receive ✅ +1, while overconfident partials are marked 🚫 -0.5.
+
+## PHASE 22.5: MEANING-TAILORED DATA INGESTION
+
+### GOAL
+- Download open-source datasets — tailored by meaning (Galaxy Geometry, House Zones).
+- Use HDD for raw assets, SSD for curated symlinks.
+- Generate stars/GLBs with `extras.k3d` so the Galaxy mutates using real multi-modal corrections.
+
+### COMMANDS
+```
+PYTHONPATH=. python -c "from knowledge3d.tools.data.fetcher import fetch_theme_data; fetch_theme_data('galaxy_geometry', 100)"
+PYTHONPATH=. python -c "from knowledge3d.tools.data.builder import build_theme_glbs; build_theme_glbs('galaxy_geometry')"
+PYTHONPATH=. python -m knowledge3d.tools.phase18.meaning_cluster_trainer --resume
+```
+
+### OUTPUT
+- Real multi-modal stars in `viewer/public/galaxy/working/`.
+- Honesty rises with grounded data — not zero embeddings.
