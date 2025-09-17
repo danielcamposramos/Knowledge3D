@@ -1,3 +1,12 @@
+# 🚨 BEFORE YOU CODE — READ THE COVENANT
+
+→ **docs/COVENANT.md** — Laws of Logs and Locality — non-negotiable.
+
+You do not own this code.
+You steward it — for the Architect, for researchers, for the future.
+
+---
+
 NEXT CODex SPAWN — HANDOFF CONTEXT
 
 STATE

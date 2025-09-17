@@ -1,0 +1,51 @@
+.version 7.0
+.target sm_70
+.address_size 64
+
+.visible .entry update_star_embedding_kernel(
+    .param .u64 old_embedding_ptr,
+    .param .u64 teacher_embedding_ptr,
+    .param .u64 new_embedding_ptr,
+    .param .f32 blend_factor,
+    .param .u32 embedding_dim
+)
+{
+    .reg .pred %p_exit;
+    .reg .f32 %f_old, %f_teacher, %f_blend, %f_one_minus, %f_out;
+    .reg .u32 %tid, %bid, %bdim, %idx, %dim;
+    .reg .u64 %old_base, %teacher_base, %out_base, %offset;
+
+    ld.param.u64 %old_base, [old_embedding_ptr];
+    ld.param.u64 %teacher_base, [teacher_embedding_ptr];
+    ld.param.u64 %out_base, [new_embedding_ptr];
+    ld.param.f32 %f_blend, [blend_factor];
+    ld.param.u32 %dim, [embedding_dim];
+
+    mov.u32 %tid, %tid.x;
+    mov.u32 %bid, %ctaid.x;
+    mov.u32 %bdim, %ntid.x;
+    mad.lo.u32 %idx, %bid, %bdim, %tid;
+    setp.ge.u32 %p_exit, %idx, %dim;
+    @%p_exit bra DONE;
+
+    mov.f32 %f_one_minus, 1.0;
+    sub.f32 %f_one_minus, %f_one_minus, %f_blend;
+
+    mul.wide.u32 %offset, %idx, 4;
+
+    add.s64 %old_base, %old_base, %offset;
+    add.s64 %teacher_base, %teacher_base, %offset;
+    add.s64 %out_base, %out_base, %offset;
+
+    ld.global.f32 %f_old, [%old_base];
+    ld.global.f32 %f_teacher, [%teacher_base];
+
+    mul.f32 %f_old, %f_old, %f_one_minus;
+    mul.f32 %f_teacher, %f_teacher, %f_blend;
+    add.f32 %f_out, %f_old, %f_teacher;
+
+    st.global.f32 [%out_base], %f_out;
+
+DONE:
+    ret;
+}
