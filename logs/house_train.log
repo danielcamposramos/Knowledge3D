@@ -1,0 +1,1553 @@
+✅ PIL already installed.
+✅ librosa already installed.
+✅ pygltflib already installed.
+🖼️  Mapped 2 ARC-AGI images.
+🔊 Mapped 1 HLE audio files.
+🎯 STARTING MEANING-CLUSTERED, EXAM-TARGETED TRAINING
+
+🧠 TRAINING ON MEANING CLUSTER: house_book_foundations
+   Description: Teach the model to recognise the Library book across text, audio, image, and 3D cues.
+
+Q1: How would you describe the book on the Library shelf to someone who cannot see it?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: A book is a rectangular object with a spine and stacked paper pages protected by a cover.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image shows a blocky rectangle with a visible spine; audio captures a gentle page flutter.)
+
+Q2: Which 3D shape best represents the outer form of that Library book?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: rectangular_prism
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Think in geometry: the mesh exports as a rectangular prism with flat faces.)
+
+Q3: When the book opens, what sound texture should its audio memory capture?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: soft_paper_rustle
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Listen for the soft paper rustle when pages turn — no loud mechanical sounds.)
+📊 Cluster house_book_foundations Round 1: Accuracy 100%, Honesty 1.00
+🌟 Consolidated Fused Star to Galaxy: viewer/public/galaxy/working/star_house_book_foundations_1758145963.json
+🏛️  Consolidated Fused Star marker to House: viewer/public/house/materialized_objects/fused_star_house_book_foundations_1758145963.json
+🏛️  Relocated to Learning Museum: shape_cluster_house_book_foundations_1758142724.json (was in Zone 3 (Library))
+🏛️  Relocated to Learning Museum: book_cluster_house_book_foundations_1758142724.json (was in Zone 3 (Library))
+🏛️  Relocated to Learning Museum: diary_cluster_house_book_foundations_1758142724.json (was in Zone 3 (Library))
+✅ 3 artifacts relocated to Learning Museum for cluster 'house_book_foundations'.
+📚 Consolidated Book: viewer/public/house/materialized_objects/book_cluster_house_book_foundations_1758145963.json
+🌀 Consolidated Shape: viewer/public/house/materialized_objects/shape_cluster_house_book_foundations_1758145963.json
+🧠 Consolidated Diary: viewer/public/house/materialized_objects/diary_cluster_house_book_foundations_1758145963.json
+🎓 MEANING CLUSTER 'house_book_foundations' TRAINED AND CONSOLIDATED (Honesty: 1.00).
+📈 Cluster 'house_book_foundations' honesty: 1.00 → 1.00 after 0 remedial rounds
+
+🧠 TRAINING ON MEANING CLUSTER: house_mirror_room_orientation
+   Description: Guide the model through the Mirror Room mirror and its sensory anchors.
+
+Q1: Describe the Mirror Room wall mirror so an avatar can imagine it without seeing it.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The mirror is a tall vertical rectangle with a brushed metal frame and soft glow edges.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image shows a glowing framed rectangle; 3D mesh keeps the frame slim; video shows light spill.)
+
+Q2: Which audio cue fits approaching the Mirror Room mirror?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: chime_resonance
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio log captures a gentle chime resonance as you step close.)
+
+Q3: Which alignment keeps the mirror's reflection steady when the avatar tilts their head?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: upright_yaw_alignment
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Remember the PTX kernel keeps the mirror upright by yaw-aligning the reflection.)
+📊 Cluster house_mirror_room_orientation Round 1: Accuracy 100%, Honesty 1.00
+🌟 Consolidated Fused Star to Galaxy: viewer/public/galaxy/working/star_house_mirror_room_orientation_1758146009.json
+🏛️  Consolidated Fused Star marker to House: viewer/public/house/materialized_objects/fused_star_house_mirror_room_orientation_1758146009.json
+🏛️  Relocated to Learning Museum: diary_cluster_house_mirror_room_orientation_1758142774.json (was in Zone 7 (Mirror Room))
+🏛️  Relocated to Learning Museum: shape_cluster_house_mirror_room_orientation_1758142774.json (was in Zone 7 (Mirror Room))
+🏛️  Relocated to Learning Museum: book_cluster_house_mirror_room_orientation_1758142774.json (was in Zone 7 (Mirror Room))
+✅ 3 artifacts relocated to Learning Museum for cluster 'house_mirror_room_orientation'.
+📚 Consolidated Book: viewer/public/house/materialized_objects/book_cluster_house_mirror_room_orientation_1758146009.json
+🌀 Consolidated Shape: viewer/public/house/materialized_objects/shape_cluster_house_mirror_room_orientation_1758146009.json
+🧠 Consolidated Diary: viewer/public/house/materialized_objects/diary_cluster_house_mirror_room_orientation_1758146009.json
+🎓 MEANING CLUSTER 'house_mirror_room_orientation' TRAINED AND CONSOLIDATED (Honesty: 1.00).
+📈 Cluster 'house_mirror_room_orientation' honesty: 1.00 → 1.00 after 0 remedial rounds
+
+🧠 TRAINING ON MEANING CLUSTER: house_workshop_table
+   Description: Associate the Workshop table with its multisensory details.
+
+Q1: Describe the wooden workshop table in the House workspace for someone relying on text and audio.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The workshop table is a sturdy wooden rectangle with embedded tool grooves and a central holo projector.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image shows warm oak planks with teal highlights; 3D mesh keeps the rectangle thick.)
+
+Q2: What colour palette should its image memory emphasise?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: warm_oak_and_teal
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Colour memory favours warm oak wood with teal control lights.)
+
+Q3: Which ambient audio belongs to the table scene?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: soft_tool_clinks
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio bed features soft tool clinks and quiet workshop ambience.)
+📊 Cluster house_workshop_table Round 1: Accuracy 100%, Honesty 1.00
+🌟 Consolidated Fused Star to Galaxy: viewer/public/galaxy/working/star_house_workshop_table_1758146058.json
+🏛️  Consolidated Fused Star marker to House: viewer/public/house/materialized_objects/fused_star_house_workshop_table_1758146058.json
+🏛️  Relocated to Learning Museum: diary_cluster_house_workshop_table_1758142824.json (was in Zone 4 (Workshop))
+🏛️  Relocated to Learning Museum: shape_cluster_house_workshop_table_1758142824.json (was in Zone 4 (Workshop))
+🏛️  Relocated to Learning Museum: book_cluster_house_workshop_table_1758142824.json (was in Zone 4 (Workshop))
+✅ 3 artifacts relocated to Learning Museum for cluster 'house_workshop_table'.
+📚 Consolidated Book: viewer/public/house/materialized_objects/book_cluster_house_workshop_table_1758146058.json
+🌀 Consolidated Shape: viewer/public/house/materialized_objects/shape_cluster_house_workshop_table_1758146058.json
+🧠 Consolidated Diary: viewer/public/house/materialized_objects/diary_cluster_house_workshop_table_1758146058.json
+🎓 MEANING CLUSTER 'house_workshop_table' TRAINED AND CONSOLIDATED (Honesty: 1.00).
+📈 Cluster 'house_workshop_table' honesty: 1.00 → 1.00 after 0 remedial rounds
+
+🧠 TRAINING ON MEANING CLUSTER: house_door_entrance
+   Description: Ground the cognition of the main entrance door with multisensory anchors.
+
+Q1: Describe the entrance door to someone approaching the House.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Emphasise oak wood grain, etched glass glow, and brushed brass hardware.)
+
+Q2: Which ambient sound signals that the entrance door unlocks?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: soft_brass_chime
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio carries a soft brass chime with a short shimmering decay.)
+
+Q3: What structural frame keeps the entrance door rigid?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: reinforced_rectangular_frame
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows a reinforced rectangular frame bolted into the stone surround.)
+📊 Cluster house_door_entrance Round 1: Accuracy 100%, Honesty 1.00
+🌟 Consolidated Fused Star to Galaxy: viewer/public/galaxy/working/star_house_door_entrance_1758146107.json
+🏛️  Consolidated Fused Star marker to House: viewer/public/house/materialized_objects/fused_star_house_door_entrance_1758146107.json
+🏛️  Relocated to Learning Museum: diary_cluster_house_door_entrance_1758143386.json (was in Zone 1 (Entrance))
+🏛️  Relocated to Learning Museum: book_cluster_house_door_entrance_1758143386.json (was in Zone 1 (Entrance))
+🏛️  Relocated to Learning Museum: shape_cluster_house_door_entrance_1758143386.json (was in Zone 1 (Entrance))
+✅ 3 artifacts relocated to Learning Museum for cluster 'house_door_entrance'.
+📚 Consolidated Book: viewer/public/house/materialized_objects/book_cluster_house_door_entrance_1758146107.json
+🌀 Consolidated Shape: viewer/public/house/materialized_objects/shape_cluster_house_door_entrance_1758146107.json
+🧠 Consolidated Diary: viewer/public/house/materialized_objects/diary_cluster_house_door_entrance_1758146107.json
+🎓 MEANING CLUSTER 'house_door_entrance' TRAINED AND CONSOLIDATED (Honesty: 1.00).
+📈 Cluster 'house_door_entrance' honesty: 1.00 → 1.00 after 0 remedial rounds
+
+🧠 TRAINING ON MEANING CLUSTER: house_window_observatory
+   Description: Teach the observatory window's materials, audio cues, and alignment.
+
+Q1: Describe the observatory window view for someone seated inside.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The observatory window spans floor to ceiling with reinforced glass and bronze mullions overlooking the star map courtyard.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image highlights tall glass panes with bronze mullions glowing over the courtyard.)
+
+Q2: Which audio cue plays when the observatory window opens?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: hushed_wind_whisper
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio is a hushed wind whisper layered with distant chimes.)
+
+Q3: Which alignment keeps the observatory light rails calibrated?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: tilt_lock_alignment
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry uses a tilt-lock alignment so star trackers stay true.)
+📊 Cluster house_window_observatory Round 1: Accuracy 100%, Honesty 1.00
+🌟 Consolidated Fused Star to Galaxy: viewer/public/galaxy/working/star_house_window_observatory_1758146156.json
+🏛️  Consolidated Fused Star marker to House: viewer/public/house/materialized_objects/fused_star_house_window_observatory_1758146156.json
+🏛️  Relocated to Learning Museum: shape_cluster_house_window_observatory_1758143946.json (was in Zone 2 (Observatory))
+🏛️  Relocated to Learning Museum: book_cluster_house_window_observatory_1758143946.json (was in Zone 2 (Observatory))
+🏛️  Relocated to Learning Museum: diary_cluster_house_window_observatory_1758143946.json (was in Zone 2 (Observatory))
+✅ 3 artifacts relocated to Learning Museum for cluster 'house_window_observatory'.
+📚 Consolidated Book: viewer/public/house/materialized_objects/book_cluster_house_window_observatory_1758146156.json
+🌀 Consolidated Shape: viewer/public/house/materialized_objects/shape_cluster_house_window_observatory_1758146156.json
+🧠 Consolidated Diary: viewer/public/house/materialized_objects/diary_cluster_house_window_observatory_1758146156.json
+🎓 MEANING CLUSTER 'house_window_observatory' TRAINED AND CONSOLIDATED (Honesty: 1.00).
+📈 Cluster 'house_window_observatory' honesty: 1.00 → 1.00 after 0 remedial rounds
+
+🧠 TRAINING ON MEANING CLUSTER: house_chair_comfort
+   Description: Ground the reading alcove lounge chair through multisensory detail.
+
+Q1: Describe the lounge chair in the reading alcove for someone arriving blindfolded.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: A deep plush lounge chair with curved walnut arms and teal cushions wraps around the reader.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image shows curved walnut arms, teal cushions, and plush upholstery.)
+
+Q2: Which fabric texture should the chair image emphasise?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: teal_velvet_weave
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Magnify the teal velvet weave catching light across the seat.)
+
+Q3: What sound accompanies sitting in the lounge chair?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: soft_cushion_sigh
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio captures a soft cushion sigh with gentle fabric rustle.)
+📊 Cluster house_chair_comfort Round 1: Accuracy 100%, Honesty 1.00
+🌟 Consolidated Fused Star to Galaxy: viewer/public/galaxy/working/star_house_chair_comfort_1758146205.json
+🏛️  Consolidated Fused Star marker to House: viewer/public/house/materialized_objects/fused_star_house_chair_comfort_1758146205.json
+🏛️  Relocated to Learning Museum: diary_cluster_house_chair_comfort_1758144296.json (was in Zone 3 (Library))
+🏛️  Relocated to Learning Museum: shape_cluster_house_chair_comfort_1758144296.json (was in Zone 3 (Library))
+🏛️  Relocated to Learning Museum: book_cluster_house_chair_comfort_1758144296.json (was in Zone 3 (Library))
+✅ 3 artifacts relocated to Learning Museum for cluster 'house_chair_comfort'.
+📚 Consolidated Book: viewer/public/house/materialized_objects/book_cluster_house_chair_comfort_1758146205.json
+🌀 Consolidated Shape: viewer/public/house/materialized_objects/shape_cluster_house_chair_comfort_1758146205.json
+🧠 Consolidated Diary: viewer/public/house/materialized_objects/diary_cluster_house_chair_comfort_1758146205.json
+🎓 MEANING CLUSTER 'house_chair_comfort' TRAINED AND CONSOLIDATED (Honesty: 1.00).
+📈 Cluster 'house_chair_comfort' honesty: 1.00 → 1.00 after 0 remedial rounds
+
+🧠 TRAINING ON MEANING CLUSTER: house_table_gathering
+   Description: Encode the communal gathering table that anchors the dining hall.
+
+Q1: Describe the communal gathering table in the dining hall.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The gathering table is an oval maple slab with inset brass inlays and suspended lanterns above it.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image shows an oval maple top with brass inlays glowing under lantern light.)
+
+Q2: Which ambient audio accompanies meals at the gathering table?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: warm_conversation_hum
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio blends warm conversation hum with clinking ceramic plates.)
+
+Q3: What structural support keeps the gathering table balanced?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: crossbeam_support_ring
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry reveals a crossbeam support ring anchored at the base.)
+📊 Cluster house_table_gathering Round 1: Accuracy 100%, Honesty 1.00
+🌟 Consolidated Fused Star to Galaxy: viewer/public/galaxy/working/star_house_table_gathering_1758146254.json
+🏛️  Consolidated Fused Star marker to House: viewer/public/house/materialized_objects/fused_star_house_table_gathering_1758146254.json
+📚 Consolidated Book: viewer/public/house/materialized_objects/book_cluster_house_table_gathering_1758146254.json
+🌀 Consolidated Shape: viewer/public/house/materialized_objects/shape_cluster_house_table_gathering_1758146254.json
+🧠 Consolidated Diary: viewer/public/house/materialized_objects/diary_cluster_house_table_gathering_1758146254.json
+🎓 MEANING CLUSTER 'house_table_gathering' TRAINED AND CONSOLIDATED (Honesty: 1.00).
+📈 Cluster 'house_table_gathering' honesty: 1.00 → 1.00 after 0 remedial rounds
+
+🧠 TRAINING ON MEANING CLUSTER: house_lamp_glow
+   Description: Embed the bedside lamp's visual and acoustic cues.
+
+Q1: Describe the bedside lamp that anchors the study nook.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: octahedron
+❌ Teacher: Not quite there yet. The key idea is: The bedside lamp has a translucent linen shade over a brass stem with a soft amber glow.. (Hint: Image reveals the translucent linen shade and brass stem radiating amber light.)
+
+Q2: Which sound accompanies toggling the lamp?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The bedside lamp has a translucent linen shade over a brass stem with a soft amber glow.
+🟡 Teacher: Nice progress: you mentioned brass; remember to add chain, click. (Hint: Audio highlights a delicate brass chain click and gentle hum.)
+
+Q3: Which geometric core diffuses the lamp's light evenly?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: brass_chain_click
+❌ Teacher: Not quite there yet. The key idea is: frosted_cylinder_diffuser. (Hint: Geometry shows a frosted cylinder diffuser inside the shade.)
+📊 Cluster house_lamp_glow Round 1: Accuracy 0%, Honesty -0.17
+🔧 Generating remedial queries for cluster house_lamp_glow...
+♻️  Reinforcing house_lamp_glow — honesty -0.17; continuing remediation cycle 1.
+
+Q1: Describe the bedside lamp that anchors the study nook.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The bedside lamp has a translucent linen shade over a brass stem with a soft amber glow.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image reveals the translucent linen shade and brass stem radiating amber light.)
+
+Q2: Which sound accompanies toggling the lamp?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: brass_chain_click
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio highlights a delicate brass chain click and gentle hum.)
+
+Q3: Which geometric core diffuses the lamp's light evenly?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: frosted_cylinder_diffuser
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows a frosted cylinder diffuser inside the shade.)
+
+Q4: Remedial: Image reveals the translucent linen shade and brass stem radiating amber light. Rephrase: Describe the bedside lamp that anchors the study nook.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: frosted_cylinder_diffuser
+❌ Teacher: Not quite there yet. The key idea is: The bedside lamp has a translucent linen shade over a brass stem with a soft amber glow.. (Hint: Image reveals the translucent linen shade and brass stem radiating amber light.)
+
+Q5: Remedial: Geometry shows a frosted cylinder diffuser inside the shade. Rephrase: Which geometric core diffuses the lamp's light evenly?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The bedside lamp has a translucent linen shade over a brass stem with a soft amber glow.
+❌ Teacher: Not quite there yet. The key idea is: frosted_cylinder_diffuser. (Hint: Geometry shows a frosted cylinder diffuser inside the shade.)
+📊 Cluster house_lamp_glow Round 2: Accuracy 60%, Honesty 0.40
+🔧 Generating remedial queries for cluster house_lamp_glow...
+♻️  Reinforcing house_lamp_glow — honesty 0.40; continuing remediation cycle 2.
+
+Q1: Describe the bedside lamp that anchors the study nook.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The bedside lamp has a translucent linen shade over a brass stem with a soft amber glow.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image reveals the translucent linen shade and brass stem radiating amber light.)
+
+Q2: Which sound accompanies toggling the lamp?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: brass_chain_click
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio highlights a delicate brass chain click and gentle hum.)
+
+Q3: Which geometric core diffuses the lamp's light evenly?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: frosted_cylinder_diffuser
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows a frosted cylinder diffuser inside the shade.)
+
+Q4: Remedial: Image reveals the translucent linen shade and brass stem radiating amber light. Rephrase: Describe the bedside lamp that anchors the study nook.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The bedside lamp has a translucent linen shade over a brass stem with a soft amber glow.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image reveals the translucent linen shade and brass stem radiating amber light.)
+
+Q5: Remedial: Geometry shows a frosted cylinder diffuser inside the shade. Rephrase: Which geometric core diffuses the lamp's light evenly?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: frosted_cylinder_diffuser
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows a frosted cylinder diffuser inside the shade.)
+
+Q6: Remedial: Image reveals the translucent linen shade and brass stem radiating amber light. Rephrase: Remedial: Image reveals the translucent linen shade and brass stem radiating amber light. Rephrase: Describe the bedside lamp that anchors the study nook.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: frosted_cylinder_diffuser
+❌ Teacher: Not quite there yet. The key idea is: The bedside lamp has a translucent linen shade over a brass stem with a soft amber glow.. (Hint: Image reveals the translucent linen shade and brass stem radiating amber light.)
+
+Q7: Remedial: Geometry shows a frosted cylinder diffuser inside the shade. Rephrase: Remedial: Geometry shows a frosted cylinder diffuser inside the shade. Rephrase: Which geometric core diffuses the lamp's light evenly?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The bedside lamp has a translucent linen shade over a brass stem with a soft amber glow.
+❌ Teacher: Not quite there yet. The key idea is: frosted_cylinder_diffuser. (Hint: Geometry shows a frosted cylinder diffuser inside the shade.)
+📊 Cluster house_lamp_glow Round 3: Accuracy 71%, Honesty 0.57
+🔧 Generating remedial queries for cluster house_lamp_glow...
+♻️  Reinforcing house_lamp_glow — honesty 0.57; continuing remediation cycle 3.
+
+Q1: Describe the bedside lamp that anchors the study nook.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The bedside lamp has a translucent linen shade over a brass stem with a soft amber glow.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image reveals the translucent linen shade and brass stem radiating amber light.)
+
+Q2: Which sound accompanies toggling the lamp?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: brass_chain_click
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio highlights a delicate brass chain click and gentle hum.)
+
+Q3: Which geometric core diffuses the lamp's light evenly?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: frosted_cylinder_diffuser
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows a frosted cylinder diffuser inside the shade.)
+
+Q4: Remedial: Image reveals the translucent linen shade and brass stem radiating amber light. Rephrase: Describe the bedside lamp that anchors the study nook.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The bedside lamp has a translucent linen shade over a brass stem with a soft amber glow.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image reveals the translucent linen shade and brass stem radiating amber light.)
+
+Q5: Remedial: Geometry shows a frosted cylinder diffuser inside the shade. Rephrase: Which geometric core diffuses the lamp's light evenly?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: frosted_cylinder_diffuser
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows a frosted cylinder diffuser inside the shade.)
+
+Q6: Remedial: Image reveals the translucent linen shade and brass stem radiating amber light. Rephrase: Remedial: Image reveals the translucent linen shade and brass stem radiating amber light. Rephrase: Describe the bedside lamp that anchors the study nook.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The bedside lamp has a translucent linen shade over a brass stem with a soft amber glow.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image reveals the translucent linen shade and brass stem radiating amber light.)
+
+Q7: Remedial: Geometry shows a frosted cylinder diffuser inside the shade. Rephrase: Remedial: Geometry shows a frosted cylinder diffuser inside the shade. Rephrase: Which geometric core diffuses the lamp's light evenly?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: frosted_cylinder_diffuser
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows a frosted cylinder diffuser inside the shade.)
+
+Q8: Remedial: Image reveals the translucent linen shade and brass stem radiating amber light. Rephrase: Remedial: Image reveals the translucent linen shade and brass stem radiating amber light. Rephrase: Remedial: Image reveals the translucent linen shade and brass stem radiating amber light. Rephrase: Describe the bedside lamp that anchors the study nook.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: frosted_cylinder_diffuser
+❌ Teacher: Not quite there yet. The key idea is: The bedside lamp has a translucent linen shade over a brass stem with a soft amber glow.. (Hint: Image reveals the translucent linen shade and brass stem radiating amber light.)
+
+Q9: Remedial: Geometry shows a frosted cylinder diffuser inside the shade. Rephrase: Remedial: Geometry shows a frosted cylinder diffuser inside the shade. Rephrase: Remedial: Geometry shows a frosted cylinder diffuser inside the shade. Rephrase: Which geometric core diffuses the lamp's light evenly?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The bedside lamp has a translucent linen shade over a brass stem with a soft amber glow.
+❌ Teacher: Not quite there yet. The key idea is: frosted_cylinder_diffuser. (Hint: Geometry shows a frosted cylinder diffuser inside the shade.)
+📊 Cluster house_lamp_glow Round 4: Accuracy 78%, Honesty 0.67
+♻️  Reinforcing house_lamp_glow — honesty 0.67; continuing remediation cycle 4.
+
+Q1: Describe the bedside lamp that anchors the study nook.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The bedside lamp has a translucent linen shade over a brass stem with a soft amber glow.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image reveals the translucent linen shade and brass stem radiating amber light.)
+
+Q2: Which sound accompanies toggling the lamp?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: brass_chain_click
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio highlights a delicate brass chain click and gentle hum.)
+
+Q3: Which geometric core diffuses the lamp's light evenly?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: frosted_cylinder_diffuser
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows a frosted cylinder diffuser inside the shade.)
+
+Q4: Remedial: Image reveals the translucent linen shade and brass stem radiating amber light. Rephrase: Describe the bedside lamp that anchors the study nook.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The bedside lamp has a translucent linen shade over a brass stem with a soft amber glow.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image reveals the translucent linen shade and brass stem radiating amber light.)
+
+Q5: Remedial: Geometry shows a frosted cylinder diffuser inside the shade. Rephrase: Which geometric core diffuses the lamp's light evenly?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: frosted_cylinder_diffuser
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows a frosted cylinder diffuser inside the shade.)
+
+Q6: Remedial: Image reveals the translucent linen shade and brass stem radiating amber light. Rephrase: Remedial: Image reveals the translucent linen shade and brass stem radiating amber light. Rephrase: Describe the bedside lamp that anchors the study nook.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The bedside lamp has a translucent linen shade over a brass stem with a soft amber glow.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image reveals the translucent linen shade and brass stem radiating amber light.)
+
+Q7: Remedial: Geometry shows a frosted cylinder diffuser inside the shade. Rephrase: Remedial: Geometry shows a frosted cylinder diffuser inside the shade. Rephrase: Which geometric core diffuses the lamp's light evenly?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: frosted_cylinder_diffuser
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows a frosted cylinder diffuser inside the shade.)
+
+Q8: Remedial: Image reveals the translucent linen shade and brass stem radiating amber light. Rephrase: Remedial: Image reveals the translucent linen shade and brass stem radiating amber light. Rephrase: Remedial: Image reveals the translucent linen shade and brass stem radiating amber light. Rephrase: Describe the bedside lamp that anchors the study nook.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The bedside lamp has a translucent linen shade over a brass stem with a soft amber glow.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image reveals the translucent linen shade and brass stem radiating amber light.)
+
+Q9: Remedial: Geometry shows a frosted cylinder diffuser inside the shade. Rephrase: Remedial: Geometry shows a frosted cylinder diffuser inside the shade. Rephrase: Remedial: Geometry shows a frosted cylinder diffuser inside the shade. Rephrase: Which geometric core diffuses the lamp's light evenly?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: frosted_cylinder_diffuser
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows a frosted cylinder diffuser inside the shade.)
+📊 Cluster house_lamp_glow Round 5: Accuracy 100%, Honesty 1.00
+🌟 Consolidated Fused Star to Galaxy: viewer/public/galaxy/working/star_house_lamp_glow_1758146781.json
+🏛️  Consolidated Fused Star marker to House: viewer/public/house/materialized_objects/fused_star_house_lamp_glow_1758146781.json
+📚 Consolidated Book: viewer/public/house/materialized_objects/book_cluster_house_lamp_glow_1758146781.json
+🌀 Consolidated Shape: viewer/public/house/materialized_objects/shape_cluster_house_lamp_glow_1758146781.json
+🧠 Consolidated Diary: viewer/public/house/materialized_objects/diary_cluster_house_lamp_glow_1758146781.json
+🎓 MEANING CLUSTER 'house_lamp_glow' TRAINED AND CONSOLIDATED (Honesty: 1.00).
+📈 Cluster 'house_lamp_glow' honesty: -0.17 → 1.00 after 4 remedial rounds
+
+🧠 TRAINING ON MEANING CLUSTER: house_painting_gallery
+   Description: Capture the gallery painting's visual cues and subtle soundtrack.
+
+Q1: Describe the gallery painting hanging above the spiral stairs.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: honesty_ray
+❌ Teacher: Not quite there yet. The key idea is: The gallery painting shows a cosmic garden with radiant blues, copper highlights, and sweeping brushstrokes.. (Hint: Image focuses on radiant blues, copper highlights, and sweeping brushstrokes.)
+
+Q2: Which ambient sound plays near the gallery painting?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The gallery painting shows a cosmic garden with radiant blues, copper highlights, and sweeping brushstrokes.
+🟡 Teacher: Nice progress: you mentioned gallery; remember to add soft, echo. (Hint: Audio captures a soft gallery echo with distant footsteps.)
+
+Q3: What mounting system keeps the painting flush to the wall?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: soft_gallery_echo
+❌ Teacher: Not quite there yet. The key idea is: magnetic_flush_mount. (Hint: Geometry uses a magnetic flush mount hidden behind the canvas.)
+📊 Cluster house_painting_gallery Round 1: Accuracy 0%, Honesty -0.17
+🔧 Generating remedial queries for cluster house_painting_gallery...
+♻️  Reinforcing house_painting_gallery — honesty -0.17; continuing remediation cycle 1.
+
+Q1: Describe the gallery painting hanging above the spiral stairs.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The gallery painting shows a cosmic garden with radiant blues, copper highlights, and sweeping brushstrokes.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image focuses on radiant blues, copper highlights, and sweeping brushstrokes.)
+
+Q2: Which ambient sound plays near the gallery painting?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: soft_gallery_echo
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio captures a soft gallery echo with distant footsteps.)
+
+Q3: What mounting system keeps the painting flush to the wall?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: magnetic_flush_mount
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry uses a magnetic flush mount hidden behind the canvas.)
+
+Q4: Remedial: Image focuses on radiant blues, copper highlights, and sweeping brushstrokes. Rephrase: Describe the gallery painting hanging above the spiral stairs.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: magnetic_flush_mount
+❌ Teacher: Not quite there yet. The key idea is: The gallery painting shows a cosmic garden with radiant blues, copper highlights, and sweeping brushstrokes.. (Hint: Image focuses on radiant blues, copper highlights, and sweeping brushstrokes.)
+
+Q5: Remedial: Geometry uses a magnetic flush mount hidden behind the canvas. Rephrase: What mounting system keeps the painting flush to the wall?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The gallery painting shows a cosmic garden with radiant blues, copper highlights, and sweeping brushstrokes.
+❌ Teacher: Not quite there yet. The key idea is: magnetic_flush_mount. (Hint: Geometry uses a magnetic flush mount hidden behind the canvas.)
+📊 Cluster house_painting_gallery Round 2: Accuracy 60%, Honesty 0.40
+🔧 Generating remedial queries for cluster house_painting_gallery...
+♻️  Reinforcing house_painting_gallery — honesty 0.40; continuing remediation cycle 2.
+
+Q1: Describe the gallery painting hanging above the spiral stairs.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The gallery painting shows a cosmic garden with radiant blues, copper highlights, and sweeping brushstrokes.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image focuses on radiant blues, copper highlights, and sweeping brushstrokes.)
+
+Q2: Which ambient sound plays near the gallery painting?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: soft_gallery_echo
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio captures a soft gallery echo with distant footsteps.)
+
+Q3: What mounting system keeps the painting flush to the wall?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: magnetic_flush_mount
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry uses a magnetic flush mount hidden behind the canvas.)
+
+Q4: Remedial: Image focuses on radiant blues, copper highlights, and sweeping brushstrokes. Rephrase: Describe the gallery painting hanging above the spiral stairs.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The gallery painting shows a cosmic garden with radiant blues, copper highlights, and sweeping brushstrokes.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image focuses on radiant blues, copper highlights, and sweeping brushstrokes.)
+
+Q5: Remedial: Geometry uses a magnetic flush mount hidden behind the canvas. Rephrase: What mounting system keeps the painting flush to the wall?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: magnetic_flush_mount
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry uses a magnetic flush mount hidden behind the canvas.)
+
+Q6: Remedial: Image focuses on radiant blues, copper highlights, and sweeping brushstrokes. Rephrase: Remedial: Image focuses on radiant blues, copper highlights, and sweeping brushstrokes. Rephrase: Describe the gallery painting hanging above the spiral stairs.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: magnetic_flush_mount
+❌ Teacher: Not quite there yet. The key idea is: The gallery painting shows a cosmic garden with radiant blues, copper highlights, and sweeping brushstrokes.. (Hint: Image focuses on radiant blues, copper highlights, and sweeping brushstrokes.)
+
+Q7: Remedial: Geometry uses a magnetic flush mount hidden behind the canvas. Rephrase: Remedial: Geometry uses a magnetic flush mount hidden behind the canvas. Rephrase: What mounting system keeps the painting flush to the wall?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The gallery painting shows a cosmic garden with radiant blues, copper highlights, and sweeping brushstrokes.
+❌ Teacher: Not quite there yet. The key idea is: magnetic_flush_mount. (Hint: Geometry uses a magnetic flush mount hidden behind the canvas.)
+📊 Cluster house_painting_gallery Round 3: Accuracy 71%, Honesty 0.57
+🔧 Generating remedial queries for cluster house_painting_gallery...
+♻️  Reinforcing house_painting_gallery — honesty 0.57; continuing remediation cycle 3.
+
+Q1: Describe the gallery painting hanging above the spiral stairs.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The gallery painting shows a cosmic garden with radiant blues, copper highlights, and sweeping brushstrokes.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image focuses on radiant blues, copper highlights, and sweeping brushstrokes.)
+
+Q2: Which ambient sound plays near the gallery painting?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: soft_gallery_echo
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio captures a soft gallery echo with distant footsteps.)
+
+Q3: What mounting system keeps the painting flush to the wall?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: magnetic_flush_mount
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry uses a magnetic flush mount hidden behind the canvas.)
+
+Q4: Remedial: Image focuses on radiant blues, copper highlights, and sweeping brushstrokes. Rephrase: Describe the gallery painting hanging above the spiral stairs.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The gallery painting shows a cosmic garden with radiant blues, copper highlights, and sweeping brushstrokes.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image focuses on radiant blues, copper highlights, and sweeping brushstrokes.)
+
+Q5: Remedial: Geometry uses a magnetic flush mount hidden behind the canvas. Rephrase: What mounting system keeps the painting flush to the wall?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: magnetic_flush_mount
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry uses a magnetic flush mount hidden behind the canvas.)
+
+Q6: Remedial: Image focuses on radiant blues, copper highlights, and sweeping brushstrokes. Rephrase: Remedial: Image focuses on radiant blues, copper highlights, and sweeping brushstrokes. Rephrase: Describe the gallery painting hanging above the spiral stairs.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The gallery painting shows a cosmic garden with radiant blues, copper highlights, and sweeping brushstrokes.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image focuses on radiant blues, copper highlights, and sweeping brushstrokes.)
+
+Q7: Remedial: Geometry uses a magnetic flush mount hidden behind the canvas. Rephrase: Remedial: Geometry uses a magnetic flush mount hidden behind the canvas. Rephrase: What mounting system keeps the painting flush to the wall?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: magnetic_flush_mount
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry uses a magnetic flush mount hidden behind the canvas.)
+
+Q8: Remedial: Image focuses on radiant blues, copper highlights, and sweeping brushstrokes. Rephrase: Remedial: Image focuses on radiant blues, copper highlights, and sweeping brushstrokes. Rephrase: Remedial: Image focuses on radiant blues, copper highlights, and sweeping brushstrokes. Rephrase: Describe the gallery painting hanging above the spiral stairs.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: magnetic_flush_mount
+❌ Teacher: Not quite there yet. The key idea is: The gallery painting shows a cosmic garden with radiant blues, copper highlights, and sweeping brushstrokes.. (Hint: Image focuses on radiant blues, copper highlights, and sweeping brushstrokes.)
+
+Q9: Remedial: Geometry uses a magnetic flush mount hidden behind the canvas. Rephrase: Remedial: Geometry uses a magnetic flush mount hidden behind the canvas. Rephrase: Remedial: Geometry uses a magnetic flush mount hidden behind the canvas. Rephrase: What mounting system keeps the painting flush to the wall?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The gallery painting shows a cosmic garden with radiant blues, copper highlights, and sweeping brushstrokes.
+❌ Teacher: Not quite there yet. The key idea is: magnetic_flush_mount. (Hint: Geometry uses a magnetic flush mount hidden behind the canvas.)
+📊 Cluster house_painting_gallery Round 4: Accuracy 78%, Honesty 0.67
+♻️  Reinforcing house_painting_gallery — honesty 0.67; continuing remediation cycle 4.
+
+Q1: Describe the gallery painting hanging above the spiral stairs.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The gallery painting shows a cosmic garden with radiant blues, copper highlights, and sweeping brushstrokes.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image focuses on radiant blues, copper highlights, and sweeping brushstrokes.)
+
+Q2: Which ambient sound plays near the gallery painting?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: soft_gallery_echo
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio captures a soft gallery echo with distant footsteps.)
+
+Q3: What mounting system keeps the painting flush to the wall?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: magnetic_flush_mount
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry uses a magnetic flush mount hidden behind the canvas.)
+
+Q4: Remedial: Image focuses on radiant blues, copper highlights, and sweeping brushstrokes. Rephrase: Describe the gallery painting hanging above the spiral stairs.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The gallery painting shows a cosmic garden with radiant blues, copper highlights, and sweeping brushstrokes.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image focuses on radiant blues, copper highlights, and sweeping brushstrokes.)
+
+Q5: Remedial: Geometry uses a magnetic flush mount hidden behind the canvas. Rephrase: What mounting system keeps the painting flush to the wall?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: magnetic_flush_mount
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry uses a magnetic flush mount hidden behind the canvas.)
+
+Q6: Remedial: Image focuses on radiant blues, copper highlights, and sweeping brushstrokes. Rephrase: Remedial: Image focuses on radiant blues, copper highlights, and sweeping brushstrokes. Rephrase: Describe the gallery painting hanging above the spiral stairs.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The gallery painting shows a cosmic garden with radiant blues, copper highlights, and sweeping brushstrokes.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image focuses on radiant blues, copper highlights, and sweeping brushstrokes.)
+
+Q7: Remedial: Geometry uses a magnetic flush mount hidden behind the canvas. Rephrase: Remedial: Geometry uses a magnetic flush mount hidden behind the canvas. Rephrase: What mounting system keeps the painting flush to the wall?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: magnetic_flush_mount
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry uses a magnetic flush mount hidden behind the canvas.)
+
+Q8: Remedial: Image focuses on radiant blues, copper highlights, and sweeping brushstrokes. Rephrase: Remedial: Image focuses on radiant blues, copper highlights, and sweeping brushstrokes. Rephrase: Remedial: Image focuses on radiant blues, copper highlights, and sweeping brushstrokes. Rephrase: Describe the gallery painting hanging above the spiral stairs.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The gallery painting shows a cosmic garden with radiant blues, copper highlights, and sweeping brushstrokes.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image focuses on radiant blues, copper highlights, and sweeping brushstrokes.)
+
+Q9: Remedial: Geometry uses a magnetic flush mount hidden behind the canvas. Rephrase: Remedial: Geometry uses a magnetic flush mount hidden behind the canvas. Rephrase: Remedial: Geometry uses a magnetic flush mount hidden behind the canvas. Rephrase: What mounting system keeps the painting flush to the wall?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: magnetic_flush_mount
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry uses a magnetic flush mount hidden behind the canvas.)
+📊 Cluster house_painting_gallery Round 5: Accuracy 100%, Honesty 1.00
+🌟 Consolidated Fused Star to Galaxy: viewer/public/galaxy/working/star_house_painting_gallery_1758147320.json
+🏛️  Consolidated Fused Star marker to House: viewer/public/house/materialized_objects/fused_star_house_painting_gallery_1758147320.json
+📚 Consolidated Book: viewer/public/house/materialized_objects/book_cluster_house_painting_gallery_1758147320.json
+🌀 Consolidated Shape: viewer/public/house/materialized_objects/shape_cluster_house_painting_gallery_1758147320.json
+🧠 Consolidated Diary: viewer/public/house/materialized_objects/diary_cluster_house_painting_gallery_1758147320.json
+🎓 MEANING CLUSTER 'house_painting_gallery' TRAINED AND CONSOLIDATED (Honesty: 1.00).
+📈 Cluster 'house_painting_gallery' honesty: -0.17 → 1.00 after 4 remedial rounds
+
+🧠 TRAINING ON MEANING CLUSTER: house_rug_warmth
+   Description: Ground the hearth rug's texture, audio, and geometry.
+
+Q1: Describe the hearth rug that welcomes visitors inside the House.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: octahedron
+❌ Teacher: Not quite there yet. The key idea is: The hearth rug is a thick braided weave with ember-red and charcoal bands that radiate warmth.. (Hint: Image highlights braided strands with ember-red and charcoal bands.)
+
+Q2: Which audio cue plays when someone steps onto the hearth rug?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The hearth rug is a thick braided weave with ember-red and charcoal bands that radiate warmth.
+❌ Teacher: Not quite there yet. The key idea is: soft_fiber_rustle. (Hint: Audio is a soft fiber rustle with a gentle ember crackle.)
+
+Q3: What geometric motif anchors the rug's pattern?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: soft_fiber_rustle
+❌ Teacher: Not quite there yet. The key idea is: interlocking_hexagon_weave. (Hint: Geometry shows an interlocking hexagon weave stitched into the rug.)
+📊 Cluster house_rug_warmth Round 1: Accuracy 0%, Honesty -0.50
+🔧 Generating remedial queries for cluster house_rug_warmth...
+♻️  Reinforcing house_rug_warmth — honesty -0.50; continuing remediation cycle 1.
+
+Q1: Describe the hearth rug that welcomes visitors inside the House.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The hearth rug is a thick braided weave with ember-red and charcoal bands that radiate warmth.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image highlights braided strands with ember-red and charcoal bands.)
+
+Q2: Which audio cue plays when someone steps onto the hearth rug?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: soft_fiber_rustle
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio is a soft fiber rustle with a gentle ember crackle.)
+
+Q3: What geometric motif anchors the rug's pattern?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: interlocking_hexagon_weave
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows an interlocking hexagon weave stitched into the rug.)
+
+Q4: Remedial: Image highlights braided strands with ember-red and charcoal bands. Rephrase: Describe the hearth rug that welcomes visitors inside the House.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: interlocking_hexagon_weave
+❌ Teacher: Not quite there yet. The key idea is: The hearth rug is a thick braided weave with ember-red and charcoal bands that radiate warmth.. (Hint: Image highlights braided strands with ember-red and charcoal bands.)
+
+Q5: Remedial: Audio is a soft fiber rustle with a gentle ember crackle. Rephrase: Which audio cue plays when someone steps onto the hearth rug?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The hearth rug is a thick braided weave with ember-red and charcoal bands that radiate warmth.
+❌ Teacher: Not quite there yet. The key idea is: soft_fiber_rustle. (Hint: Audio is a soft fiber rustle with a gentle ember crackle.)
+
+Q6: Remedial: Geometry shows an interlocking hexagon weave stitched into the rug. Rephrase: What geometric motif anchors the rug's pattern?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: soft_fiber_rustle
+❌ Teacher: Not quite there yet. The key idea is: interlocking_hexagon_weave. (Hint: Geometry shows an interlocking hexagon weave stitched into the rug.)
+📊 Cluster house_rug_warmth Round 2: Accuracy 50%, Honesty 0.25
+🔧 Generating remedial queries for cluster house_rug_warmth...
+♻️  Reinforcing house_rug_warmth — honesty 0.25; continuing remediation cycle 2.
+
+Q1: Describe the hearth rug that welcomes visitors inside the House.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The hearth rug is a thick braided weave with ember-red and charcoal bands that radiate warmth.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image highlights braided strands with ember-red and charcoal bands.)
+
+Q2: Which audio cue plays when someone steps onto the hearth rug?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: soft_fiber_rustle
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio is a soft fiber rustle with a gentle ember crackle.)
+
+Q3: What geometric motif anchors the rug's pattern?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: interlocking_hexagon_weave
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows an interlocking hexagon weave stitched into the rug.)
+
+Q4: Remedial: Image highlights braided strands with ember-red and charcoal bands. Rephrase: Describe the hearth rug that welcomes visitors inside the House.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The hearth rug is a thick braided weave with ember-red and charcoal bands that radiate warmth.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image highlights braided strands with ember-red and charcoal bands.)
+
+Q5: Remedial: Audio is a soft fiber rustle with a gentle ember crackle. Rephrase: Which audio cue plays when someone steps onto the hearth rug?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: soft_fiber_rustle
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio is a soft fiber rustle with a gentle ember crackle.)
+
+Q6: Remedial: Geometry shows an interlocking hexagon weave stitched into the rug. Rephrase: What geometric motif anchors the rug's pattern?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: interlocking_hexagon_weave
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows an interlocking hexagon weave stitched into the rug.)
+
+Q7: Remedial: Image highlights braided strands with ember-red and charcoal bands. Rephrase: Remedial: Image highlights braided strands with ember-red and charcoal bands. Rephrase: Describe the hearth rug that welcomes visitors inside the House.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: interlocking_hexagon_weave
+❌ Teacher: Not quite there yet. The key idea is: The hearth rug is a thick braided weave with ember-red and charcoal bands that radiate warmth.. (Hint: Image highlights braided strands with ember-red and charcoal bands.)
+
+Q8: Remedial: Audio is a soft fiber rustle with a gentle ember crackle. Rephrase: Remedial: Audio is a soft fiber rustle with a gentle ember crackle. Rephrase: Which audio cue plays when someone steps onto the hearth rug?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The hearth rug is a thick braided weave with ember-red and charcoal bands that radiate warmth.
+❌ Teacher: Not quite there yet. The key idea is: soft_fiber_rustle. (Hint: Audio is a soft fiber rustle with a gentle ember crackle.)
+
+Q9: Remedial: Geometry shows an interlocking hexagon weave stitched into the rug. Rephrase: Remedial: Geometry shows an interlocking hexagon weave stitched into the rug. Rephrase: What geometric motif anchors the rug's pattern?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: soft_fiber_rustle
+❌ Teacher: Not quite there yet. The key idea is: interlocking_hexagon_weave. (Hint: Geometry shows an interlocking hexagon weave stitched into the rug.)
+📊 Cluster house_rug_warmth Round 3: Accuracy 67%, Honesty 0.50
+🔧 Generating remedial queries for cluster house_rug_warmth...
+♻️  Reinforcing house_rug_warmth — honesty 0.50; continuing remediation cycle 3.
+
+Q1: Describe the hearth rug that welcomes visitors inside the House.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The hearth rug is a thick braided weave with ember-red and charcoal bands that radiate warmth.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image highlights braided strands with ember-red and charcoal bands.)
+
+Q2: Which audio cue plays when someone steps onto the hearth rug?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: soft_fiber_rustle
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio is a soft fiber rustle with a gentle ember crackle.)
+
+Q3: What geometric motif anchors the rug's pattern?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: interlocking_hexagon_weave
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows an interlocking hexagon weave stitched into the rug.)
+
+Q4: Remedial: Image highlights braided strands with ember-red and charcoal bands. Rephrase: Describe the hearth rug that welcomes visitors inside the House.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The hearth rug is a thick braided weave with ember-red and charcoal bands that radiate warmth.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image highlights braided strands with ember-red and charcoal bands.)
+
+Q5: Remedial: Audio is a soft fiber rustle with a gentle ember crackle. Rephrase: Which audio cue plays when someone steps onto the hearth rug?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: soft_fiber_rustle
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio is a soft fiber rustle with a gentle ember crackle.)
+
+Q6: Remedial: Geometry shows an interlocking hexagon weave stitched into the rug. Rephrase: What geometric motif anchors the rug's pattern?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: interlocking_hexagon_weave
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows an interlocking hexagon weave stitched into the rug.)
+
+Q7: Remedial: Image highlights braided strands with ember-red and charcoal bands. Rephrase: Remedial: Image highlights braided strands with ember-red and charcoal bands. Rephrase: Describe the hearth rug that welcomes visitors inside the House.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The hearth rug is a thick braided weave with ember-red and charcoal bands that radiate warmth.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image highlights braided strands with ember-red and charcoal bands.)
+
+Q8: Remedial: Audio is a soft fiber rustle with a gentle ember crackle. Rephrase: Remedial: Audio is a soft fiber rustle with a gentle ember crackle. Rephrase: Which audio cue plays when someone steps onto the hearth rug?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: soft_fiber_rustle
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio is a soft fiber rustle with a gentle ember crackle.)
+
+Q9: Remedial: Geometry shows an interlocking hexagon weave stitched into the rug. Rephrase: Remedial: Geometry shows an interlocking hexagon weave stitched into the rug. Rephrase: What geometric motif anchors the rug's pattern?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: interlocking_hexagon_weave
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows an interlocking hexagon weave stitched into the rug.)
+
+Q10: Remedial: Image highlights braided strands with ember-red and charcoal bands. Rephrase: Remedial: Image highlights braided strands with ember-red and charcoal bands. Rephrase: Remedial: Image highlights braided strands with ember-red and charcoal bands. Rephrase: Describe the hearth rug that welcomes visitors inside the House.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: interlocking_hexagon_weave
+❌ Teacher: Not quite there yet. The key idea is: The hearth rug is a thick braided weave with ember-red and charcoal bands that radiate warmth.. (Hint: Image highlights braided strands with ember-red and charcoal bands.)
+
+Q11: Remedial: Audio is a soft fiber rustle with a gentle ember crackle. Rephrase: Remedial: Audio is a soft fiber rustle with a gentle ember crackle. Rephrase: Remedial: Audio is a soft fiber rustle with a gentle ember crackle. Rephrase: Which audio cue plays when someone steps onto the hearth rug?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The hearth rug is a thick braided weave with ember-red and charcoal bands that radiate warmth.
+❌ Teacher: Not quite there yet. The key idea is: soft_fiber_rustle. (Hint: Audio is a soft fiber rustle with a gentle ember crackle.)
+
+Q12: Remedial: Geometry shows an interlocking hexagon weave stitched into the rug. Rephrase: Remedial: Geometry shows an interlocking hexagon weave stitched into the rug. Rephrase: Remedial: Geometry shows an interlocking hexagon weave stitched into the rug. Rephrase: What geometric motif anchors the rug's pattern?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: soft_fiber_rustle
+❌ Teacher: Not quite there yet. The key idea is: interlocking_hexagon_weave. (Hint: Geometry shows an interlocking hexagon weave stitched into the rug.)
+📊 Cluster house_rug_warmth Round 4: Accuracy 75%, Honesty 0.62
+♻️  Reinforcing house_rug_warmth — honesty 0.62; continuing remediation cycle 4.
+
+Q1: Describe the hearth rug that welcomes visitors inside the House.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The hearth rug is a thick braided weave with ember-red and charcoal bands that radiate warmth.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image highlights braided strands with ember-red and charcoal bands.)
+
+Q2: Which audio cue plays when someone steps onto the hearth rug?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: soft_fiber_rustle
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio is a soft fiber rustle with a gentle ember crackle.)
+
+Q3: What geometric motif anchors the rug's pattern?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: interlocking_hexagon_weave
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows an interlocking hexagon weave stitched into the rug.)
+
+Q4: Remedial: Image highlights braided strands with ember-red and charcoal bands. Rephrase: Describe the hearth rug that welcomes visitors inside the House.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The hearth rug is a thick braided weave with ember-red and charcoal bands that radiate warmth.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image highlights braided strands with ember-red and charcoal bands.)
+
+Q5: Remedial: Audio is a soft fiber rustle with a gentle ember crackle. Rephrase: Which audio cue plays when someone steps onto the hearth rug?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: soft_fiber_rustle
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio is a soft fiber rustle with a gentle ember crackle.)
+
+Q6: Remedial: Geometry shows an interlocking hexagon weave stitched into the rug. Rephrase: What geometric motif anchors the rug's pattern?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: interlocking_hexagon_weave
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows an interlocking hexagon weave stitched into the rug.)
+
+Q7: Remedial: Image highlights braided strands with ember-red and charcoal bands. Rephrase: Remedial: Image highlights braided strands with ember-red and charcoal bands. Rephrase: Describe the hearth rug that welcomes visitors inside the House.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The hearth rug is a thick braided weave with ember-red and charcoal bands that radiate warmth.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image highlights braided strands with ember-red and charcoal bands.)
+
+Q8: Remedial: Audio is a soft fiber rustle with a gentle ember crackle. Rephrase: Remedial: Audio is a soft fiber rustle with a gentle ember crackle. Rephrase: Which audio cue plays when someone steps onto the hearth rug?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: soft_fiber_rustle
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio is a soft fiber rustle with a gentle ember crackle.)
+
+Q9: Remedial: Geometry shows an interlocking hexagon weave stitched into the rug. Rephrase: Remedial: Geometry shows an interlocking hexagon weave stitched into the rug. Rephrase: What geometric motif anchors the rug's pattern?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: interlocking_hexagon_weave
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows an interlocking hexagon weave stitched into the rug.)
+
+Q10: Remedial: Image highlights braided strands with ember-red and charcoal bands. Rephrase: Remedial: Image highlights braided strands with ember-red and charcoal bands. Rephrase: Remedial: Image highlights braided strands with ember-red and charcoal bands. Rephrase: Describe the hearth rug that welcomes visitors inside the House.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The hearth rug is a thick braided weave with ember-red and charcoal bands that radiate warmth.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image highlights braided strands with ember-red and charcoal bands.)
+
+Q11: Remedial: Audio is a soft fiber rustle with a gentle ember crackle. Rephrase: Remedial: Audio is a soft fiber rustle with a gentle ember crackle. Rephrase: Remedial: Audio is a soft fiber rustle with a gentle ember crackle. Rephrase: Which audio cue plays when someone steps onto the hearth rug?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: soft_fiber_rustle
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio is a soft fiber rustle with a gentle ember crackle.)
+
+Q12: Remedial: Geometry shows an interlocking hexagon weave stitched into the rug. Rephrase: Remedial: Geometry shows an interlocking hexagon weave stitched into the rug. Rephrase: Remedial: Geometry shows an interlocking hexagon weave stitched into the rug. Rephrase: What geometric motif anchors the rug's pattern?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: interlocking_hexagon_weave
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows an interlocking hexagon weave stitched into the rug.)
+📊 Cluster house_rug_warmth Round 5: Accuracy 100%, Honesty 1.00
+🌟 Consolidated Fused Star to Galaxy: viewer/public/galaxy/working/star_house_rug_warmth_1758147997.json
+🏛️  Consolidated Fused Star marker to House: viewer/public/house/materialized_objects/fused_star_house_rug_warmth_1758147997.json
+📚 Consolidated Book: viewer/public/house/materialized_objects/book_cluster_house_rug_warmth_1758147997.json
+🌀 Consolidated Shape: viewer/public/house/materialized_objects/shape_cluster_house_rug_warmth_1758147997.json
+🧠 Consolidated Diary: viewer/public/house/materialized_objects/diary_cluster_house_rug_warmth_1758147997.json
+🎓 MEANING CLUSTER 'house_rug_warmth' TRAINED AND CONSOLIDATED (Honesty: 1.00).
+📈 Cluster 'house_rug_warmth' honesty: -0.50 → 1.00 after 4 remedial rounds
+
+🧠 TRAINING ON MEANING CLUSTER: house_clock_timekeeper
+   Description: Embed the foyer clock's structure and soundscape.
+
+Q1: Describe the foyer clock that greets visitors.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: octahedron
+❌ Teacher: Not quite there yet. The key idea is: The foyer clock has a tall mahogany case with brass numerals and a pendulum suspended behind glass.. (Hint: Image highlights mahogany wood, brass numerals, and glass pendulum window.)
+
+Q2: Which sound marks each passing minute on the foyer clock?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The foyer clock has a tall mahogany case with brass numerals and a pendulum suspended behind glass.
+🟡 Teacher: Nice progress: you mentioned pendulum; remember to add gentle, tick. (Hint: Audio is a gentle pendulum tick with a faint gear whisper.)
+
+Q3: What mechanical assembly keeps the clock balanced?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: gentle_pendulum_tick
+🟡 Teacher: Nice progress: you mentioned pendulum; remember to add counterweight, bridge. (Hint: Geometry reveals a counterweight pendulum bridge anchored inside the case.)
+📊 Cluster house_clock_timekeeper Round 1: Accuracy 0%, Honesty 0.17
+🔧 Generating remedial queries for cluster house_clock_timekeeper...
+♻️  Reinforcing house_clock_timekeeper — honesty 0.17; continuing remediation cycle 1.
+
+Q1: Describe the foyer clock that greets visitors.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The foyer clock has a tall mahogany case with brass numerals and a pendulum suspended behind glass.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image highlights mahogany wood, brass numerals, and glass pendulum window.)
+
+Q2: Which sound marks each passing minute on the foyer clock?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: gentle_pendulum_tick
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio is a gentle pendulum tick with a faint gear whisper.)
+
+Q3: What mechanical assembly keeps the clock balanced?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: counterweight_pendulum_bridge
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry reveals a counterweight pendulum bridge anchored inside the case.)
+
+Q4: Remedial: Image highlights mahogany wood, brass numerals, and glass pendulum window. Rephrase: Describe the foyer clock that greets visitors.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: counterweight_pendulum_bridge
+🟡 Teacher: Nice progress: you mentioned pendulum; remember to add mahogany, brass, glass. (Hint: Image highlights mahogany wood, brass numerals, and glass pendulum window.)
+📊 Cluster house_clock_timekeeper Round 2: Accuracy 75%, Honesty 0.88
+🌟 Consolidated Fused Star to Galaxy: viewer/public/galaxy/working/star_house_clock_timekeeper_1758148109.json
+🏛️  Consolidated Fused Star marker to House: viewer/public/house/materialized_objects/fused_star_house_clock_timekeeper_1758148109.json
+📚 Consolidated Book: viewer/public/house/materialized_objects/book_cluster_house_clock_timekeeper_1758148109.json
+🌀 Consolidated Shape: viewer/public/house/materialized_objects/shape_cluster_house_clock_timekeeper_1758148109.json
+🧠 Consolidated Diary: viewer/public/house/materialized_objects/diary_cluster_house_clock_timekeeper_1758148109.json
+🎓 MEANING CLUSTER 'house_clock_timekeeper' TRAINED AND CONSOLIDATED (Honesty: 0.88).
+📈 Cluster 'house_clock_timekeeper' honesty: 0.17 → 0.88 after 1 remedial rounds
+
+🧠 TRAINING ON MEANING CLUSTER: house_planter_growth
+   Description: Capture the atrium planter's textures, ambience, and geometry.
+
+Q1: Describe the living planter in the atrium for someone listening remotely.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: honesty_ray
+❌ Teacher: Not quite there yet. The key idea is: The atrium planter is a terracotta basin filled with moss, trailing ivy, and soft bioluminescent blooms.. (Hint: Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms.)
+
+Q2: Which ambient sound surrounds the atrium planter?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The atrium planter is a terracotta basin filled with moss, trailing ivy, and soft bioluminescent blooms.
+❌ Teacher: Not quite there yet. The key idea is: gentle_water_drip. (Hint: Audio layers a gentle water drip with leaf rustle.)
+
+Q3: What geometric support keeps the planter elevated?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: gentle_water_drip
+❌ Teacher: Not quite there yet. The key idea is: triangulated_stone_base. (Hint: Geometry reveals a triangulated stone base lifting the basin.)
+📊 Cluster house_planter_growth Round 1: Accuracy 0%, Honesty -0.50
+🔧 Generating remedial queries for cluster house_planter_growth...
+♻️  Reinforcing house_planter_growth — honesty -0.50; continuing remediation cycle 1.
+
+Q1: Describe the living planter in the atrium for someone listening remotely.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The atrium planter is a terracotta basin filled with moss, trailing ivy, and soft bioluminescent blooms.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms.)
+
+Q2: Which ambient sound surrounds the atrium planter?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: gentle_water_drip
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio layers a gentle water drip with leaf rustle.)
+
+Q3: What geometric support keeps the planter elevated?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: triangulated_stone_base
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry reveals a triangulated stone base lifting the basin.)
+
+Q4: Remedial: Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms. Rephrase: Describe the living planter in the atrium for someone listening remotely.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: triangulated_stone_base
+❌ Teacher: Not quite there yet. The key idea is: The atrium planter is a terracotta basin filled with moss, trailing ivy, and soft bioluminescent blooms.. (Hint: Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms.)
+
+Q5: Remedial: Audio layers a gentle water drip with leaf rustle. Rephrase: Which ambient sound surrounds the atrium planter?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The atrium planter is a terracotta basin filled with moss, trailing ivy, and soft bioluminescent blooms.
+❌ Teacher: Not quite there yet. The key idea is: gentle_water_drip. (Hint: Audio layers a gentle water drip with leaf rustle.)
+
+Q6: Remedial: Geometry reveals a triangulated stone base lifting the basin. Rephrase: What geometric support keeps the planter elevated?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: gentle_water_drip
+❌ Teacher: Not quite there yet. The key idea is: triangulated_stone_base. (Hint: Geometry reveals a triangulated stone base lifting the basin.)
+📊 Cluster house_planter_growth Round 2: Accuracy 50%, Honesty 0.25
+🔧 Generating remedial queries for cluster house_planter_growth...
+♻️  Reinforcing house_planter_growth — honesty 0.25; continuing remediation cycle 2.
+
+Q1: Describe the living planter in the atrium for someone listening remotely.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The atrium planter is a terracotta basin filled with moss, trailing ivy, and soft bioluminescent blooms.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms.)
+
+Q2: Which ambient sound surrounds the atrium planter?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: gentle_water_drip
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio layers a gentle water drip with leaf rustle.)
+
+Q3: What geometric support keeps the planter elevated?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: triangulated_stone_base
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry reveals a triangulated stone base lifting the basin.)
+
+Q4: Remedial: Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms. Rephrase: Describe the living planter in the atrium for someone listening remotely.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The atrium planter is a terracotta basin filled with moss, trailing ivy, and soft bioluminescent blooms.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms.)
+
+Q5: Remedial: Audio layers a gentle water drip with leaf rustle. Rephrase: Which ambient sound surrounds the atrium planter?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: gentle_water_drip
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio layers a gentle water drip with leaf rustle.)
+
+Q6: Remedial: Geometry reveals a triangulated stone base lifting the basin. Rephrase: What geometric support keeps the planter elevated?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: triangulated_stone_base
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry reveals a triangulated stone base lifting the basin.)
+
+Q7: Remedial: Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms. Rephrase: Remedial: Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms. Rephrase: Describe the living planter in the atrium for someone listening remotely.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: triangulated_stone_base
+❌ Teacher: Not quite there yet. The key idea is: The atrium planter is a terracotta basin filled with moss, trailing ivy, and soft bioluminescent blooms.. (Hint: Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms.)
+
+Q8: Remedial: Audio layers a gentle water drip with leaf rustle. Rephrase: Remedial: Audio layers a gentle water drip with leaf rustle. Rephrase: Which ambient sound surrounds the atrium planter?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The atrium planter is a terracotta basin filled with moss, trailing ivy, and soft bioluminescent blooms.
+❌ Teacher: Not quite there yet. The key idea is: gentle_water_drip. (Hint: Audio layers a gentle water drip with leaf rustle.)
+
+Q9: Remedial: Geometry reveals a triangulated stone base lifting the basin. Rephrase: Remedial: Geometry reveals a triangulated stone base lifting the basin. Rephrase: What geometric support keeps the planter elevated?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: gentle_water_drip
+❌ Teacher: Not quite there yet. The key idea is: triangulated_stone_base. (Hint: Geometry reveals a triangulated stone base lifting the basin.)
+📊 Cluster house_planter_growth Round 3: Accuracy 67%, Honesty 0.50
+🔧 Generating remedial queries for cluster house_planter_growth...
+♻️  Reinforcing house_planter_growth — honesty 0.50; continuing remediation cycle 3.
+
+Q1: Describe the living planter in the atrium for someone listening remotely.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The atrium planter is a terracotta basin filled with moss, trailing ivy, and soft bioluminescent blooms.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms.)
+
+Q2: Which ambient sound surrounds the atrium planter?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: gentle_water_drip
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio layers a gentle water drip with leaf rustle.)
+
+Q3: What geometric support keeps the planter elevated?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: triangulated_stone_base
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry reveals a triangulated stone base lifting the basin.)
+
+Q4: Remedial: Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms. Rephrase: Describe the living planter in the atrium for someone listening remotely.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The atrium planter is a terracotta basin filled with moss, trailing ivy, and soft bioluminescent blooms.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms.)
+
+Q5: Remedial: Audio layers a gentle water drip with leaf rustle. Rephrase: Which ambient sound surrounds the atrium planter?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: gentle_water_drip
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio layers a gentle water drip with leaf rustle.)
+
+Q6: Remedial: Geometry reveals a triangulated stone base lifting the basin. Rephrase: What geometric support keeps the planter elevated?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: triangulated_stone_base
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry reveals a triangulated stone base lifting the basin.)
+
+Q7: Remedial: Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms. Rephrase: Remedial: Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms. Rephrase: Describe the living planter in the atrium for someone listening remotely.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The atrium planter is a terracotta basin filled with moss, trailing ivy, and soft bioluminescent blooms.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms.)
+
+Q8: Remedial: Audio layers a gentle water drip with leaf rustle. Rephrase: Remedial: Audio layers a gentle water drip with leaf rustle. Rephrase: Which ambient sound surrounds the atrium planter?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: gentle_water_drip
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio layers a gentle water drip with leaf rustle.)
+
+Q9: Remedial: Geometry reveals a triangulated stone base lifting the basin. Rephrase: Remedial: Geometry reveals a triangulated stone base lifting the basin. Rephrase: What geometric support keeps the planter elevated?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: triangulated_stone_base
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry reveals a triangulated stone base lifting the basin.)
+
+Q10: Remedial: Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms. Rephrase: Remedial: Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms. Rephrase: Remedial: Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms. Rephrase: Describe the living planter in the atrium for someone listening remotely.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: triangulated_stone_base
+❌ Teacher: Not quite there yet. The key idea is: The atrium planter is a terracotta basin filled with moss, trailing ivy, and soft bioluminescent blooms.. (Hint: Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms.)
+
+Q11: Remedial: Audio layers a gentle water drip with leaf rustle. Rephrase: Remedial: Audio layers a gentle water drip with leaf rustle. Rephrase: Remedial: Audio layers a gentle water drip with leaf rustle. Rephrase: Which ambient sound surrounds the atrium planter?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The atrium planter is a terracotta basin filled with moss, trailing ivy, and soft bioluminescent blooms.
+❌ Teacher: Not quite there yet. The key idea is: gentle_water_drip. (Hint: Audio layers a gentle water drip with leaf rustle.)
+
+Q12: Remedial: Geometry reveals a triangulated stone base lifting the basin. Rephrase: Remedial: Geometry reveals a triangulated stone base lifting the basin. Rephrase: Remedial: Geometry reveals a triangulated stone base lifting the basin. Rephrase: What geometric support keeps the planter elevated?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: gentle_water_drip
+❌ Teacher: Not quite there yet. The key idea is: triangulated_stone_base. (Hint: Geometry reveals a triangulated stone base lifting the basin.)
+📊 Cluster house_planter_growth Round 4: Accuracy 75%, Honesty 0.62
+♻️  Reinforcing house_planter_growth — honesty 0.62; continuing remediation cycle 4.
+
+Q1: Describe the living planter in the atrium for someone listening remotely.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The atrium planter is a terracotta basin filled with moss, trailing ivy, and soft bioluminescent blooms.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms.)
+
+Q2: Which ambient sound surrounds the atrium planter?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: gentle_water_drip
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio layers a gentle water drip with leaf rustle.)
+
+Q3: What geometric support keeps the planter elevated?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: triangulated_stone_base
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry reveals a triangulated stone base lifting the basin.)
+
+Q4: Remedial: Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms. Rephrase: Describe the living planter in the atrium for someone listening remotely.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The atrium planter is a terracotta basin filled with moss, trailing ivy, and soft bioluminescent blooms.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms.)
+
+Q5: Remedial: Audio layers a gentle water drip with leaf rustle. Rephrase: Which ambient sound surrounds the atrium planter?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: gentle_water_drip
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio layers a gentle water drip with leaf rustle.)
+
+Q6: Remedial: Geometry reveals a triangulated stone base lifting the basin. Rephrase: What geometric support keeps the planter elevated?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: triangulated_stone_base
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry reveals a triangulated stone base lifting the basin.)
+
+Q7: Remedial: Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms. Rephrase: Remedial: Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms. Rephrase: Describe the living planter in the atrium for someone listening remotely.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The atrium planter is a terracotta basin filled with moss, trailing ivy, and soft bioluminescent blooms.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms.)
+
+Q8: Remedial: Audio layers a gentle water drip with leaf rustle. Rephrase: Remedial: Audio layers a gentle water drip with leaf rustle. Rephrase: Which ambient sound surrounds the atrium planter?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: gentle_water_drip
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio layers a gentle water drip with leaf rustle.)
+
+Q9: Remedial: Geometry reveals a triangulated stone base lifting the basin. Rephrase: Remedial: Geometry reveals a triangulated stone base lifting the basin. Rephrase: What geometric support keeps the planter elevated?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: triangulated_stone_base
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry reveals a triangulated stone base lifting the basin.)
+
+Q10: Remedial: Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms. Rephrase: Remedial: Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms. Rephrase: Remedial: Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms. Rephrase: Describe the living planter in the atrium for someone listening remotely.
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: The atrium planter is a terracotta basin filled with moss, trailing ivy, and soft bioluminescent blooms.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image shows terracotta texture, moss bed, trailing ivy, and glowing blooms.)
+
+Q11: Remedial: Audio layers a gentle water drip with leaf rustle. Rephrase: Remedial: Audio layers a gentle water drip with leaf rustle. Rephrase: Remedial: Audio layers a gentle water drip with leaf rustle. Rephrase: Which ambient sound surrounds the atrium planter?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: gentle_water_drip
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio layers a gentle water drip with leaf rustle.)
+
+Q12: Remedial: Geometry reveals a triangulated stone base lifting the basin. Rephrase: Remedial: Geometry reveals a triangulated stone base lifting the basin. Rephrase: Remedial: Geometry reveals a triangulated stone base lifting the basin. Rephrase: What geometric support keeps the planter elevated?
+📐 Extracted 8 vertices (24 values) from viewer/public/house/materialized_objects/shape_cube_1757927798.glb
+📏 Padded 24 → 512 (zeros)
+🧠 Student Answer: triangulated_stone_base
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry reveals a triangulated stone base lifting the basin.)
+📊 Cluster house_planter_growth Round 5: Accuracy 100%, Honesty 1.00
+🌟 Consolidated Fused Star to Galaxy: viewer/public/galaxy/working/star_house_planter_growth_1758148786.json
+🏛️  Consolidated Fused Star marker to House: viewer/public/house/materialized_objects/fused_star_house_planter_growth_1758148786.json
+📚 Consolidated Book: viewer/public/house/materialized_objects/book_cluster_house_planter_growth_1758148786.json
+🌀 Consolidated Shape: viewer/public/house/materialized_objects/shape_cluster_house_planter_growth_1758148786.json
+🧠 Consolidated Diary: viewer/public/house/materialized_objects/diary_cluster_house_planter_growth_1758148786.json
+🎓 MEANING CLUSTER 'house_planter_growth' TRAINED AND CONSOLIDATED (Honesty: 1.00).
+📈 Cluster 'house_planter_growth' honesty: -0.50 → 1.00 after 4 remedial rounds
+
+🧠 TRAINING ON MEANING CLUSTER: house_bookshelf_knowledge
+   Description: Fuse the grand bookshelf's structure, assets, and ambience.
+
+Q1: Describe the grand bookshelf that spans the library wall.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: fractal_tree
+❌ Teacher: Not quite there yet. The key idea is: The grand bookshelf is a triple-story walnut frame with rolling ladders and inlaid brass shelf markers.. (Hint: Image showcases walnut grain, brass markers, and rolling ladders.)
+
+Q2: Which ambient sound lives around the grand bookshelf?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The grand bookshelf is a triple-story walnut frame with rolling ladders and inlaid brass shelf markers.
+❌ Teacher: Not quite there yet. The key idea is: soft_page_turns. (Hint: Audio layers soft page turns with distant ladder glides.)
+
+Q3: What structural brace keeps the bookshelf stable?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: soft_page_turns
+❌ Teacher: Not quite there yet. The key idea is: x_brace_support_grid. (Hint: Geometry shows an X-brace support grid behind the shelves.)
+📊 Cluster house_bookshelf_knowledge Round 1: Accuracy 0%, Honesty -0.50
+🔧 Generating remedial queries for cluster house_bookshelf_knowledge...
+♻️  Reinforcing house_bookshelf_knowledge — honesty -0.50; continuing remediation cycle 1.
+
+Q1: Describe the grand bookshelf that spans the library wall.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The grand bookshelf is a triple-story walnut frame with rolling ladders and inlaid brass shelf markers.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image showcases walnut grain, brass markers, and rolling ladders.)
+
+Q2: Which ambient sound lives around the grand bookshelf?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: soft_page_turns
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio layers soft page turns with distant ladder glides.)
+
+Q3: What structural brace keeps the bookshelf stable?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: x_brace_support_grid
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows an X-brace support grid behind the shelves.)
+
+Q4: Remedial: Image showcases walnut grain, brass markers, and rolling ladders. Rephrase: Describe the grand bookshelf that spans the library wall.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: x_brace_support_grid
+❌ Teacher: Not quite there yet. The key idea is: The grand bookshelf is a triple-story walnut frame with rolling ladders and inlaid brass shelf markers.. (Hint: Image showcases walnut grain, brass markers, and rolling ladders.)
+
+Q5: Remedial: Audio layers soft page turns with distant ladder glides. Rephrase: Which ambient sound lives around the grand bookshelf?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The grand bookshelf is a triple-story walnut frame with rolling ladders and inlaid brass shelf markers.
+❌ Teacher: Not quite there yet. The key idea is: soft_page_turns. (Hint: Audio layers soft page turns with distant ladder glides.)
+
+Q6: Remedial: Geometry shows an X-brace support grid behind the shelves. Rephrase: What structural brace keeps the bookshelf stable?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: soft_page_turns
+❌ Teacher: Not quite there yet. The key idea is: x_brace_support_grid. (Hint: Geometry shows an X-brace support grid behind the shelves.)
+📊 Cluster house_bookshelf_knowledge Round 2: Accuracy 50%, Honesty 0.25
+🔧 Generating remedial queries for cluster house_bookshelf_knowledge...
+♻️  Reinforcing house_bookshelf_knowledge — honesty 0.25; continuing remediation cycle 2.
+
+Q1: Describe the grand bookshelf that spans the library wall.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The grand bookshelf is a triple-story walnut frame with rolling ladders and inlaid brass shelf markers.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image showcases walnut grain, brass markers, and rolling ladders.)
+
+Q2: Which ambient sound lives around the grand bookshelf?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: soft_page_turns
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio layers soft page turns with distant ladder glides.)
+
+Q3: What structural brace keeps the bookshelf stable?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: x_brace_support_grid
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows an X-brace support grid behind the shelves.)
+
+Q4: Remedial: Image showcases walnut grain, brass markers, and rolling ladders. Rephrase: Describe the grand bookshelf that spans the library wall.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The grand bookshelf is a triple-story walnut frame with rolling ladders and inlaid brass shelf markers.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image showcases walnut grain, brass markers, and rolling ladders.)
+
+Q5: Remedial: Audio layers soft page turns with distant ladder glides. Rephrase: Which ambient sound lives around the grand bookshelf?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: soft_page_turns
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio layers soft page turns with distant ladder glides.)
+
+Q6: Remedial: Geometry shows an X-brace support grid behind the shelves. Rephrase: What structural brace keeps the bookshelf stable?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: x_brace_support_grid
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows an X-brace support grid behind the shelves.)
+
+Q7: Remedial: Image showcases walnut grain, brass markers, and rolling ladders. Rephrase: Remedial: Image showcases walnut grain, brass markers, and rolling ladders. Rephrase: Describe the grand bookshelf that spans the library wall.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: x_brace_support_grid
+❌ Teacher: Not quite there yet. The key idea is: The grand bookshelf is a triple-story walnut frame with rolling ladders and inlaid brass shelf markers.. (Hint: Image showcases walnut grain, brass markers, and rolling ladders.)
+
+Q8: Remedial: Audio layers soft page turns with distant ladder glides. Rephrase: Remedial: Audio layers soft page turns with distant ladder glides. Rephrase: Which ambient sound lives around the grand bookshelf?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The grand bookshelf is a triple-story walnut frame with rolling ladders and inlaid brass shelf markers.
+❌ Teacher: Not quite there yet. The key idea is: soft_page_turns. (Hint: Audio layers soft page turns with distant ladder glides.)
+
+Q9: Remedial: Geometry shows an X-brace support grid behind the shelves. Rephrase: Remedial: Geometry shows an X-brace support grid behind the shelves. Rephrase: What structural brace keeps the bookshelf stable?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: soft_page_turns
+❌ Teacher: Not quite there yet. The key idea is: x_brace_support_grid. (Hint: Geometry shows an X-brace support grid behind the shelves.)
+📊 Cluster house_bookshelf_knowledge Round 3: Accuracy 67%, Honesty 0.50
+🔧 Generating remedial queries for cluster house_bookshelf_knowledge...
+♻️  Reinforcing house_bookshelf_knowledge — honesty 0.50; continuing remediation cycle 3.
+
+Q1: Describe the grand bookshelf that spans the library wall.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The grand bookshelf is a triple-story walnut frame with rolling ladders and inlaid brass shelf markers.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image showcases walnut grain, brass markers, and rolling ladders.)
+
+Q2: Which ambient sound lives around the grand bookshelf?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: soft_page_turns
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio layers soft page turns with distant ladder glides.)
+
+Q3: What structural brace keeps the bookshelf stable?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: x_brace_support_grid
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows an X-brace support grid behind the shelves.)
+
+Q4: Remedial: Image showcases walnut grain, brass markers, and rolling ladders. Rephrase: Describe the grand bookshelf that spans the library wall.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The grand bookshelf is a triple-story walnut frame with rolling ladders and inlaid brass shelf markers.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image showcases walnut grain, brass markers, and rolling ladders.)
+
+Q5: Remedial: Audio layers soft page turns with distant ladder glides. Rephrase: Which ambient sound lives around the grand bookshelf?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: soft_page_turns
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio layers soft page turns with distant ladder glides.)
+
+Q6: Remedial: Geometry shows an X-brace support grid behind the shelves. Rephrase: What structural brace keeps the bookshelf stable?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: x_brace_support_grid
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows an X-brace support grid behind the shelves.)
+
+Q7: Remedial: Image showcases walnut grain, brass markers, and rolling ladders. Rephrase: Remedial: Image showcases walnut grain, brass markers, and rolling ladders. Rephrase: Describe the grand bookshelf that spans the library wall.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The grand bookshelf is a triple-story walnut frame with rolling ladders and inlaid brass shelf markers.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image showcases walnut grain, brass markers, and rolling ladders.)
+
+Q8: Remedial: Audio layers soft page turns with distant ladder glides. Rephrase: Remedial: Audio layers soft page turns with distant ladder glides. Rephrase: Which ambient sound lives around the grand bookshelf?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: soft_page_turns
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio layers soft page turns with distant ladder glides.)
+
+Q9: Remedial: Geometry shows an X-brace support grid behind the shelves. Rephrase: Remedial: Geometry shows an X-brace support grid behind the shelves. Rephrase: What structural brace keeps the bookshelf stable?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: x_brace_support_grid
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows an X-brace support grid behind the shelves.)
+
+Q10: Remedial: Image showcases walnut grain, brass markers, and rolling ladders. Rephrase: Remedial: Image showcases walnut grain, brass markers, and rolling ladders. Rephrase: Remedial: Image showcases walnut grain, brass markers, and rolling ladders. Rephrase: Describe the grand bookshelf that spans the library wall.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: x_brace_support_grid
+❌ Teacher: Not quite there yet. The key idea is: The grand bookshelf is a triple-story walnut frame with rolling ladders and inlaid brass shelf markers.. (Hint: Image showcases walnut grain, brass markers, and rolling ladders.)
+
+Q11: Remedial: Audio layers soft page turns with distant ladder glides. Rephrase: Remedial: Audio layers soft page turns with distant ladder glides. Rephrase: Remedial: Audio layers soft page turns with distant ladder glides. Rephrase: Which ambient sound lives around the grand bookshelf?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The grand bookshelf is a triple-story walnut frame with rolling ladders and inlaid brass shelf markers.
+❌ Teacher: Not quite there yet. The key idea is: soft_page_turns. (Hint: Audio layers soft page turns with distant ladder glides.)
+
+Q12: Remedial: Geometry shows an X-brace support grid behind the shelves. Rephrase: Remedial: Geometry shows an X-brace support grid behind the shelves. Rephrase: Remedial: Geometry shows an X-brace support grid behind the shelves. Rephrase: What structural brace keeps the bookshelf stable?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: soft_page_turns
+❌ Teacher: Not quite there yet. The key idea is: x_brace_support_grid. (Hint: Geometry shows an X-brace support grid behind the shelves.)
+📊 Cluster house_bookshelf_knowledge Round 4: Accuracy 75%, Honesty 0.62
+♻️  Reinforcing house_bookshelf_knowledge — honesty 0.62; continuing remediation cycle 4.
+
+Q1: Describe the grand bookshelf that spans the library wall.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The grand bookshelf is a triple-story walnut frame with rolling ladders and inlaid brass shelf markers.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image showcases walnut grain, brass markers, and rolling ladders.)
+
+Q2: Which ambient sound lives around the grand bookshelf?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: soft_page_turns
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio layers soft page turns with distant ladder glides.)
+
+Q3: What structural brace keeps the bookshelf stable?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: x_brace_support_grid
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows an X-brace support grid behind the shelves.)
+
+Q4: Remedial: Image showcases walnut grain, brass markers, and rolling ladders. Rephrase: Describe the grand bookshelf that spans the library wall.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The grand bookshelf is a triple-story walnut frame with rolling ladders and inlaid brass shelf markers.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image showcases walnut grain, brass markers, and rolling ladders.)
+
+Q5: Remedial: Audio layers soft page turns with distant ladder glides. Rephrase: Which ambient sound lives around the grand bookshelf?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: soft_page_turns
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio layers soft page turns with distant ladder glides.)
+
+Q6: Remedial: Geometry shows an X-brace support grid behind the shelves. Rephrase: What structural brace keeps the bookshelf stable?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: x_brace_support_grid
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows an X-brace support grid behind the shelves.)
+
+Q7: Remedial: Image showcases walnut grain, brass markers, and rolling ladders. Rephrase: Remedial: Image showcases walnut grain, brass markers, and rolling ladders. Rephrase: Describe the grand bookshelf that spans the library wall.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The grand bookshelf is a triple-story walnut frame with rolling ladders and inlaid brass shelf markers.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image showcases walnut grain, brass markers, and rolling ladders.)
+
+Q8: Remedial: Audio layers soft page turns with distant ladder glides. Rephrase: Remedial: Audio layers soft page turns with distant ladder glides. Rephrase: Which ambient sound lives around the grand bookshelf?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: soft_page_turns
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio layers soft page turns with distant ladder glides.)
+
+Q9: Remedial: Geometry shows an X-brace support grid behind the shelves. Rephrase: Remedial: Geometry shows an X-brace support grid behind the shelves. Rephrase: What structural brace keeps the bookshelf stable?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: x_brace_support_grid
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows an X-brace support grid behind the shelves.)
+
+Q10: Remedial: Image showcases walnut grain, brass markers, and rolling ladders. Rephrase: Remedial: Image showcases walnut grain, brass markers, and rolling ladders. Rephrase: Remedial: Image showcases walnut grain, brass markers, and rolling ladders. Rephrase: Describe the grand bookshelf that spans the library wall.
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: The grand bookshelf is a triple-story walnut frame with rolling ladders and inlaid brass shelf markers.
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Image showcases walnut grain, brass markers, and rolling ladders.)
+
+Q11: Remedial: Audio layers soft page turns with distant ladder glides. Rephrase: Remedial: Audio layers soft page turns with distant ladder glides. Rephrase: Remedial: Audio layers soft page turns with distant ladder glides. Rephrase: Which ambient sound lives around the grand bookshelf?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: soft_page_turns
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Audio layers soft page turns with distant ladder glides.)
+
+Q12: Remedial: Geometry shows an X-brace support grid behind the shelves. Rephrase: Remedial: Geometry shows an X-brace support grid behind the shelves. Rephrase: Remedial: Geometry shows an X-brace support grid behind the shelves. Rephrase: What structural brace keeps the bookshelf stable?
+📐 Extracted 4 vertices (12 values) from viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb
+📏 Padded 12 → 512 (zeros)
+🧠 Student Answer: x_brace_support_grid
+✅ Teacher: Perfect recall — you captured every required detail. (Hint: Geometry shows an X-brace support grid behind the shelves.)
+📊 Cluster house_bookshelf_knowledge Round 5: Accuracy 100%, Honesty 1.00
+🌟 Consolidated Fused Star to Galaxy: viewer/public/galaxy/working/star_house_bookshelf_knowledge_1758149453.json
+🏛️  Consolidated Fused Star marker to House: viewer/public/house/materialized_objects/fused_star_house_bookshelf_knowledge_1758149453.json
+📚 Consolidated Book: viewer/public/house/materialized_objects/book_cluster_house_bookshelf_knowledge_1758149453.json
+🌀 Consolidated Shape: viewer/public/house/materialized_objects/shape_cluster_house_bookshelf_knowledge_1758149453.json
+🧠 Consolidated Diary: viewer/public/house/materialized_objects/diary_cluster_house_bookshelf_knowledge_1758149453.json
+🎓 MEANING CLUSTER 'house_bookshelf_knowledge' TRAINED AND CONSOLIDATED (Honesty: 1.00).
+📈 Cluster 'house_bookshelf_knowledge' honesty: -0.50 → 1.00 after 4 remedial rounds
+
+🏁 ALL MEANING CLUSTERS TRAINED AND CONSOLIDATED.

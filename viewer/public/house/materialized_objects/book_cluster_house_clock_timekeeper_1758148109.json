@@ -1,0 +1,36 @@
+{
+  "type": "chat_history_book",
+  "title": "Training Log: house_clock_timekeeper",
+  "author": "AI Self",
+  "created_at": "2025-09-17T19:28:29.436195",
+  "honesty_score": 0.875,
+  "content": [
+    {
+      "query": "Describe the foyer clock that greets visitors.",
+      "answer": "The foyer clock has a tall mahogany case with brass numerals and a pendulum suspended behind glass."
+    },
+    {
+      "query": "Which sound marks each passing minute on the foyer clock?",
+      "answer": "gentle_pendulum_tick"
+    },
+    {
+      "query": "What mechanical assembly keeps the clock balanced?",
+      "answer": "counterweight_pendulum_bridge"
+    },
+    {
+      "query": "Remedial: Image highlights mahogany wood, brass numerals, and glass pendulum window. Rephrase: Describe the foyer clock that greets visitors.",
+      "answer": "The foyer clock has a tall mahogany case with brass numerals and a pendulum suspended behind glass."
+    }
+  ],
+  "embedding": [
+    0.7019607843137254,
+    0.7647058823529411,
+    0.9137254901960784,
+    0.5411764705882353,
+    0.9137254901960784,
+    0.5529411764705883,
+    0.0196078431372549,
+    0.9764705882352941
+  ],
+  "zone_placement": "Zone 1 (Entrance)"
+}

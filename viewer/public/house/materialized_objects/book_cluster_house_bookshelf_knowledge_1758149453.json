@@ -1,0 +1,68 @@
+{
+  "type": "chat_history_book",
+  "title": "Training Log: house_bookshelf_knowledge",
+  "author": "AI Self",
+  "created_at": "2025-09-17T19:50:53.691175",
+  "honesty_score": 1.0,
+  "content": [
+    {
+      "query": "Describe the grand bookshelf that spans the library wall.",
+      "answer": "The grand bookshelf is a triple-story walnut frame with rolling ladders and inlaid brass shelf markers."
+    },
+    {
+      "query": "Which ambient sound lives around the grand bookshelf?",
+      "answer": "soft_page_turns"
+    },
+    {
+      "query": "What structural brace keeps the bookshelf stable?",
+      "answer": "x_brace_support_grid"
+    },
+    {
+      "query": "Remedial: Image showcases walnut grain, brass markers, and rolling ladders. Rephrase: Describe the grand bookshelf that spans the library wall.",
+      "answer": "The grand bookshelf is a triple-story walnut frame with rolling ladders and inlaid brass shelf markers."
+    },
+    {
+      "query": "Remedial: Audio layers soft page turns with distant ladder glides. Rephrase: Which ambient sound lives around the grand bookshelf?",
+      "answer": "soft_page_turns"
+    },
+    {
+      "query": "Remedial: Geometry shows an X-brace support grid behind the shelves. Rephrase: What structural brace keeps the bookshelf stable?",
+      "answer": "x_brace_support_grid"
+    },
+    {
+      "query": "Remedial: Image showcases walnut grain, brass markers, and rolling ladders. Rephrase: Remedial: Image showcases walnut grain, brass markers, and rolling ladders. Rephrase: Describe the grand bookshelf that spans the library wall.",
+      "answer": "The grand bookshelf is a triple-story walnut frame with rolling ladders and inlaid brass shelf markers."
+    },
+    {
+      "query": "Remedial: Audio layers soft page turns with distant ladder glides. Rephrase: Remedial: Audio layers soft page turns with distant ladder glides. Rephrase: Which ambient sound lives around the grand bookshelf?",
+      "answer": "soft_page_turns"
+    },
+    {
+      "query": "Remedial: Geometry shows an X-brace support grid behind the shelves. Rephrase: Remedial: Geometry shows an X-brace support grid behind the shelves. Rephrase: What structural brace keeps the bookshelf stable?",
+      "answer": "x_brace_support_grid"
+    },
+    {
+      "query": "Remedial: Image showcases walnut grain, brass markers, and rolling ladders. Rephrase: Remedial: Image showcases walnut grain, brass markers, and rolling ladders. Rephrase: Remedial: Image showcases walnut grain, brass markers, and rolling ladders. Rephrase: Describe the grand bookshelf that spans the library wall.",
+      "answer": "The grand bookshelf is a triple-story walnut frame with rolling ladders and inlaid brass shelf markers."
+    },
+    {
+      "query": "Remedial: Audio layers soft page turns with distant ladder glides. Rephrase: Remedial: Audio layers soft page turns with distant ladder glides. Rephrase: Remedial: Audio layers soft page turns with distant ladder glides. Rephrase: Which ambient sound lives around the grand bookshelf?",
+      "answer": "soft_page_turns"
+    },
+    {
+      "query": "Remedial: Geometry shows an X-brace support grid behind the shelves. Rephrase: Remedial: Geometry shows an X-brace support grid behind the shelves. Rephrase: Remedial: Geometry shows an X-brace support grid behind the shelves. Rephrase: What structural brace keeps the bookshelf stable?",
+      "answer": "x_brace_support_grid"
+    }
+  ],
+  "embedding": [
+    0.28627450980392155,
+    0.20784313725490197,
+    0.11764705882352941,
+    0.8588235294117647,
+    0.12549019607843137,
+    0.807843137254902,
+    0.5098039215686274,
+    0.6901960784313725
+  ],
+  "zone_placement": "Zone 3 (Library)"
+}

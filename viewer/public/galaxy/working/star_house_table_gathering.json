@@ -3,24 +3,24 @@
   "id": "star_house_table_gathering",
   "name": "Fused Meaning: house_table_gathering",
   "created_at": "2025-09-17T18:24:56.331921",
-  "honesty_score": 0.09999999999999999,
+  "honesty_score": 0.4,
   "embedding": [
-    0.742233395576477,
-    0.6312881112098694,
-    0.40240180492401123,
-    0.4480886459350586,
-    0.6287356615066528,
-    0.5463647246360779,
-    0.6921194791793823,
-    0.6518218517303467,
-    0.6210047006607056,
-    0.6294807195663452,
-    0.47328487038612366,
-    0.3814135193824768,
-    0.5991353988647461,
-    0.6590323448181152,
-    0.4669168293476105,
-    0.8989824056625366,
+    0.7333625555038452,
+    0.6036376953125,
+    0.3986826539039612,
+    0.41140031814575195,
+    0.6311975121498108,
+    0.5142736434936523,
+    0.7247028946876526,
+    0.5717160701751709,
+    0.5732399225234985,
+    0.5696412324905396,
+    0.5050190687179565,
+    0.4267424941062927,
+    0.5628681778907776,
+    0.6562363505363464,
+    0.4908113181591034,
+    0.8884097933769226,
     0.0,
     0.0,
     0.0,
@@ -527,7 +527,7 @@
   "predicted_answer": "",
   "true_answer": "",
   "zone_placement": "Zone 8 (Learning Museum)",
-  "updated_at": "2025-09-17T18:27:36.300267",
+  "updated_at": "2025-09-17T18:57:34.173747",
   "mutation_history": [
     {
       "round": 0,
@@ -588,6 +588,24 @@
       "score": 1.0,
       "timestamp": "2025-09-17T18:27:36.300267",
       "query": "Describe the communal gathering table in the dining hall."
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T18:57:01.799338",
+      "query": "Describe the communal gathering table in the dining hall."
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T18:57:17.730867",
+      "query": "Which ambient audio accompanies meals at the gathering table?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T18:57:34.173747",
+      "query": "What structural support keeps the gathering table balanced?"
     }
   ],
   "learned_answers": {

@@ -5,22 +5,22 @@
   "created_at": "2025-09-17T18:19:06.180865",
   "honesty_score": 1.0,
   "embedding": [
-    0.5398941040039062,
-    0.6094104051589966,
-    0.34849244356155396,
-    0.22719642519950867,
-    0.362970769405365,
-    0.22986403107643127,
-    0.720538854598999,
-    0.7938390374183655,
-    0.45380058884620667,
-    0.12827856838703156,
-    0.7089369893074036,
-    0.46112677454948425,
-    0.6334692239761353,
-    0.7150753736495972,
-    0.4556427001953125,
-    0.2858330309391022,
+    0.3839248716831207,
+    0.68280428647995,
+    0.44507408142089844,
+    0.32038721442222595,
+    0.38065192103385925,
+    0.3762434124946594,
+    0.5697448253631592,
+    0.7371338605880737,
+    0.47667714953422546,
+    0.2652701437473297,
+    0.5953889489173889,
+    0.4436606168746948,
+    0.5471740365028381,
+    0.5627767443656921,
+    0.4346972107887268,
+    0.3587113320827484,
     0.0,
     0.0,
     0.0,
@@ -527,7 +527,7 @@
   "predicted_answer": "",
   "true_answer": "",
   "zone_placement": "Zone 3 (Library)",
-  "updated_at": "2025-09-17T18:24:56.329227",
+  "updated_at": "2025-09-17T18:56:45.702459",
   "mutation_history": [
     {
       "round": 0,
@@ -654,6 +654,24 @@
       "score": 1.0,
       "timestamp": "2025-09-17T18:24:56.329227",
       "query": "Remedial: Image shows curved walnut arms, teal cushions, and plush upholstery. Rephrase: Remedial: Image shows curved walnut arms, teal cushions, and plush upholstery. Rephrase: Remedial: Image shows curved walnut arms, teal cushions, and plush upholstery. Rephrase: Describe the lounge chair in the reading alcove for someone arriving blindfolded."
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T18:56:12.354475",
+      "query": "Describe the lounge chair in the reading alcove for someone arriving blindfolded."
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T18:56:29.286330",
+      "query": "Which fabric texture should the chair image emphasise?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T18:56:45.702459",
+      "query": "What sound accompanies sitting in the lounge chair?"
     }
   ],
   "learned_answers": {
