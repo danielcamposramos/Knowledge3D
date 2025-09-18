@@ -7,27 +7,31 @@ import re
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 
+PARA_SPLIT = re.compile(r"\n{2,}")
 SENTENCE_PATTERN = re.compile(r"(?<=[.!?])\s+")
-WORD_PATTERN = re.compile(r"[A-Za-zÀ-ÿ]{4,}")
+WORD_PATTERN = re.compile(r"[A-Za-zÀ-ÿ']{4,}")
+TITLE_PATTERN = re.compile(r"^(chapter|section|lesson|practice|insight|exercise)\b", re.IGNORECASE)
 
 
-def split_sentences(text: str) -> Iterable[str]:
-    buffer = []
-    for chunk in re.split(r"(?<=[.!?])\s+", text):
+def split_sentences(text: str) -> List[str]:
+    sentences: List[str] = []
+    for chunk in SENTENCE_PATTERN.split(text):
         sentence = chunk.strip()
-        if len(sentence) < 40 or len(sentence) > 320:
+        if len(sentence) < 40 or len(sentence) > 420:
             continue
         if sentence.count(" ") < 3:
             continue
-        buffer.append(sentence)
-    return buffer
+        if TITLE_PATTERN.match(sentence):
+            continue
+        sentences.append(sentence)
+    return sentences
 
 
 def select_keyword(sentence: str) -> Optional[str]:
     candidates = WORD_PATTERN.findall(sentence)
     if not candidates:
         return None
-    candidates.sort(key=len, reverse=True)
+    candidates.sort(key=lambda w: (-len(w), sentence.lower().find(w.lower())))
     return candidates[0]
 
 
@@ -45,19 +49,16 @@ def extract_entries_from_json(obj: object) -> Iterable[Tuple[str, Optional[str]]
         page = str(obj.get("page")) if obj.get("page") is not None else None
         content = obj.get("content")
         if content is not None:
-            for item in extract_entries_from_json(content):
-                yield item
+            yield from extract_entries_from_json(content)
         else:
             for value in obj.values():
-                for item in extract_entries_from_json(value):
-                    yield item
+                yield from extract_entries_from_json(value)
     elif isinstance(obj, list):
         for item in obj:
-            for entry in extract_entries_from_json(item):
-                yield entry
+            yield from extract_entries_from_json(item)
 
 
-def build_corpus(source_dir: Path, output: Path, limit: int = 500) -> None:
+def build_corpus(source_dir: Path, output: Path, limit: int = 2000) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     total = 0
     with output.open("w", encoding="utf-8") as fh:
@@ -67,19 +68,26 @@ def build_corpus(source_dir: Path, output: Path, limit: int = 500) -> None:
             except Exception:
                 continue
             for text_block, _ in extract_entries_from_json(data):
-                for sentence in split_sentences(text_block):
-                    keyword = select_keyword(sentence)
-                    if not keyword:
+                paragraphs = [blk.strip() for blk in PARA_SPLIT.split(text_block) if blk.strip()]
+                for para in paragraphs:
+                    sentences = split_sentences(para)
+                    if not sentences:
                         continue
-                    question = create_cloze(sentence, keyword)
-                    record: Dict[str, object] = {
-                        "question": f"Fill in the missing concept: {question}",
-                        "answer": keyword,
-                        "source_file": json_path.name,
-                        "sentence": sentence,
-                    }
-                    fh.write(json.dumps(record, ensure_ascii=False) + "\n")
-                    total += 1
+                    for sentence in sentences[:5]:
+                        keyword = select_keyword(sentence)
+                        if not keyword:
+                            continue
+                        question = create_cloze(sentence, keyword)
+                        record: Dict[str, object] = {
+                            "question": f"Fill in the missing concept: {question}",
+                            "answer": keyword,
+                            "source_file": json_path.name,
+                            "sentence": sentence,
+                        }
+                        fh.write(json.dumps(record, ensure_ascii=False) + "\n")
+                        total += 1
+                        if total >= limit:
+                            break
                     if total >= limit:
                         break
                 if total >= limit:
@@ -93,7 +101,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Build Algorithmic Thinking corpus")
     parser.add_argument("--source", required=True, help="Directory containing How-to-think JSON files")
     parser.add_argument("--output", required=True, help="Output JSONL path")
-    parser.add_argument("--limit", type=int, default=500)
+    parser.add_argument("--limit", type=int, default=2000)
     args = parser.parse_args()
     build_corpus(Path(args.source), Path(args.output), limit=args.limit)
 
