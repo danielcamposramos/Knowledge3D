@@ -35,6 +35,7 @@ class AlgorithmicThinkingTrainer:
         self.galaxy_working_dir.mkdir(parents=True, exist_ok=True)
         self._trainer: Optional[MeaningClusterTrainer] = None
         self._rpn_corpus: List[Dict[str, Any]] = []
+        self._thinking_corpus: List[Dict[str, Any]] = []
         self._rpn_calculator: Optional[RPNCalculator] = RPNCalculator() if RPNCalculator is not None else None
         
     @property
@@ -77,6 +78,9 @@ class AlgorithmicThinkingTrainer:
 
         if not self._rpn_corpus:
             self._load_rpn_corpus()
+
+        if not hasattr(self, "_thinking_corpus") or not self._thinking_corpus:
+            self._load_thinking_corpus()
 
         # Warm the fused head (CPU) before spinning up Ollama teachers.
         try:
@@ -222,6 +226,16 @@ class AlgorithmicThinkingTrainer:
                     "true_answer": entry['formatted_result'],
                     "explanation": f"Tokens: {entry['rpn']} → {entry['formatted_result']}",
                     "keywords": ["rpn", "evaluation"],
+                }
+            )
+
+        for entry in getattr(self, "_thinking_corpus", []):
+            queries.append(
+                {
+                    "query": entry['question'],
+                    "true_answer": entry['answer'],
+                    "explanation": entry.get('sentence', ''),
+                    "keywords": ["thinking", "concept"],
                 }
             )
         return queries
@@ -390,7 +404,7 @@ class AlgorithmicThinkingTrainer:
         return current_zone or "Zone 2 (Study)"
 
     # ------------------------------------------------------------------
-    def _load_rpn_corpus(self, limit: int = 50) -> None:
+    def _load_rpn_corpus(self, limit: int = 20) -> None:
         corpus_path = Path("viewer/public/galaxy/working/rpn_corpus.jsonl")
         if not corpus_path.exists():
             print("⚠️  RPN corpus not found — skipping corpus-driven drills.")
@@ -432,3 +446,30 @@ class AlgorithmicThinkingTrainer:
                     break
         self._rpn_corpus = entries
         self._rpn_calculator.reset()
+
+    def _load_thinking_corpus(self, limit: int = 80) -> None:
+        corpus_path = Path("viewer/public/galaxy/working/thinking_corpus.jsonl")
+        if not corpus_path.exists():
+            print("⚠️  Thinking corpus not found — skipping conceptual drills.")
+            self._thinking_corpus = []
+            return
+        entries: List[Dict[str, str]] = []
+        with corpus_path.open("r", encoding="utf-8") as fh:
+            for line in fh:
+                try:
+                    obj = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                question = obj.get("question")
+                answer = obj.get("answer")
+                sentence = obj.get("sentence", "")
+                if not question or not answer:
+                    continue
+                entries.append({
+                    "question": question,
+                    "answer": answer,
+                    "sentence": sentence,
+                })
+                if len(entries) >= limit:
+                    break
+        self._thinking_corpus = entries
