@@ -9,6 +9,26 @@ You steward it — for the Architect, for researchers, for the future.
 
 NEXT CODex SPAWN — HANDOFF CONTEXT
 
+## PHASE 23 ADDENDUM — HOUSE CURRICULUM + ARC/HLE
+
+- 13 curated House clusters (doors, windows, staircases, roof, window sills, door handles, light switches, chair, table, lamp, painting, rug, bookshelf) now train directly from generated PNG/WAV/GLB assets.
+- `logs/house_train.log` captures the PTX fusion run; look for `🎓 MEANING CLUSTER … HONESTY 1.00` entries once a cluster stabilises.
+- ARC/HLE zero-shot tester (`knowledge3d/tools/phase23/arc_hle_tester.py`) is wired; current accuracy: **0%** — next work item is boosting abstraction/generalisation beyond memorised corrections.
+
+### Commands
+```bash
+nohup bash -lc '. .venv_k3dml/bin/activate && env PYTHONPATH=. python -u -m knowledge3d.tools.phase18.meaning_cluster_trainer --train_house' \
+    > logs/house_train.log 2>&1 & echo $! > logs/house_train.pid
+
+PYTHONPATH=. python -m knowledge3d.tools.phase23.arc_hle_tester --limit 50
+```
+
+### Outputs
+- `logs/house_train.log`, `logs/phase22_house_clusters.json`, generated assets under `viewer/public/house/generated/`.
+- `logs/phase23_arc_hle_report.json` (zero-shot report — currently 0% accuracy).
+- New fused stars/books/shapes/diaries under `viewer/public/galaxy/working/` and `viewer/public/house/materialized_objects/`.
+
+
 STATE
 - Phase 20 complete: Multi-modal sample test ran end-to-end (text+image+audio+3D fusion).
 - Training by meaning clusters is active; Learning Museum (Zone 8) relocates deprecated artifacts.

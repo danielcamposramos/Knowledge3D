@@ -5,22 +5,22 @@
   "created_at": "2025-09-17T19:28:29.437025",
   "honesty_score": 1.0,
   "embedding": [
-    0.6246395111083984,
-    0.44679009914398193,
-    0.5079236030578613,
-    0.1778135597705841,
-    0.46829602122306824,
-    0.45859065651893616,
-    0.18943503499031067,
-    0.24881364405155182,
-    0.5284625887870789,
-    0.7230547070503235,
-    0.6939742565155029,
-    0.6932937502861023,
-    0.5219266414642334,
-    0.38413459062576294,
-    0.6872950196266174,
-    0.35113251209259033,
+    0.624639630317688,
+    0.4467901587486267,
+    0.5079236626625061,
+    0.1778135895729065,
+    0.4682961106300354,
+    0.45859068632125854,
+    0.18943504989147186,
+    0.248813658952713,
+    0.5284626483917236,
+    0.7230547666549683,
+    0.6939743757247925,
+    0.6932938694953918,
+    0.5219267010688782,
+    0.3841346502304077,
+    0.6872950792312622,
+    0.3511325716972351,
     0.0,
     0.0,
     0.0,
@@ -527,7 +527,7 @@
   "predicted_answer": "",
   "true_answer": "",
   "zone_placement": "Zone 5 (Knowledge Garden)",
-  "updated_at": "2025-09-17T19:39:46.375860",
+  "updated_at": "2025-09-17T20:08:04.596282",
   "mutation_history": [
     {
       "round": 0,
@@ -780,6 +780,24 @@
       "score": 1.0,
       "timestamp": "2025-09-17T19:39:46.375860",
       "query": "Remedial: Geometry reveals a triangulated stone base lifting the basin. Rephrase: Remedial: Geometry reveals a triangulated stone base lifting the basin. Rephrase: Remedial: Geometry reveals a triangulated stone base lifting the basin. Rephrase: What geometric support keeps the planter elevated?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T20:07:32.441063",
+      "query": "Describe the living planter in the atrium for someone listening remotely."
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T20:07:48.657328",
+      "query": "Which ambient sound surrounds the atrium planter?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T20:08:04.596282",
+      "query": "What geometric support keeps the planter elevated?"
     }
   ],
   "learned_answers": {

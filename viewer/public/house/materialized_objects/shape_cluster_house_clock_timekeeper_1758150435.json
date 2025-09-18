@@ -1,0 +1,20 @@
+{
+  "type": "generated_3d_shape",
+  "name": "Concept: house_clock_timekeeper",
+  "created_at": "2025-09-17T20:07:15.612900",
+  "honesty_score": 1.0,
+  "embedding": [
+    0.7019607843137254,
+    0.7647058823529411,
+    0.9137254901960784,
+    0.5411764705882353,
+    0.9137254901960784,
+    0.5529411764705883,
+    0.0196078431372549,
+    0.9764705882352941
+  ],
+  "shape_type": "tetrahedron",
+  "vertex_count": 100,
+  "zone_placement": "Zone 1 (Entrance)",
+  "ptx_kernel_used": "train_cluster_house_clock_timekeeper_kernel"
+}

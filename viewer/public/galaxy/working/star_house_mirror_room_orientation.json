@@ -5,22 +5,22 @@
   "created_at": "2025-09-17T16:28:16.440037",
   "honesty_score": 1.0,
   "embedding": [
-    0.6290603876113892,
-    0.5284932851791382,
-    0.4671405851840973,
-    0.5638424754142761,
-    0.550407886505127,
-    0.18330258131027222,
-    0.6533398628234863,
-    0.21872103214263916,
-    0.6016603112220764,
-    0.38411974906921387,
-    0.7690412998199463,
-    0.5093782544136047,
-    0.43773436546325684,
-    0.41233545541763306,
-    0.5533623099327087,
-    0.2571636736392975,
+    0.615102231502533,
+    0.5338922142982483,
+    0.45738303661346436,
+    0.5990539789199829,
+    0.5442715287208557,
+    0.19104543328285217,
+    0.6516148447990417,
+    0.23000609874725342,
+    0.6265347599983215,
+    0.3578230142593384,
+    0.7530025243759155,
+    0.4889413118362427,
+    0.39718979597091675,
+    0.3912138342857361,
+    0.5337945222854614,
+    0.281313955783844,
     0.0,
     0.0,
     0.0,
@@ -2063,7 +2063,7 @@
   "predicted_answer": "",
   "true_answer": "",
   "zone_placement": "Zone 7 (Mirror Room)",
-  "updated_at": "2025-09-17T18:53:29.166759",
+  "updated_at": "2025-09-17T20:00:03.989918",
   "mutation_history": [
     {
       "round": 0,
@@ -2828,6 +2828,36 @@
       "round": 0,
       "score": 1.0,
       "timestamp": "2025-09-17T18:53:29.166759",
+      "query": "Which alignment keeps the mirror's reflection steady when the avatar tilts their head?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T19:57:56.994497",
+      "query": "Describe the Mirror Room wall mirror so an avatar can imagine it without seeing it."
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T19:58:12.898672",
+      "query": "Which audio cue fits approaching the Mirror Room mirror?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T19:59:33.340580",
+      "query": "Describe the Mirror Room wall mirror so an avatar can imagine it without seeing it."
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T19:59:48.358214",
+      "query": "Which audio cue fits approaching the Mirror Room mirror?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T20:00:03.989918",
       "query": "Which alignment keeps the mirror's reflection steady when the avatar tilts their head?"
     }
   ],

@@ -1,0 +1,20 @@
+{
+  "type": "generated_3d_shape",
+  "name": "Concept: house_door_entrance",
+  "created_at": "2025-09-17T20:01:40.143185",
+  "honesty_score": 1.0,
+  "embedding": [
+    0.803921568627451,
+    0.16862745098039217,
+    0.34509803921568627,
+    0.2627450980392157,
+    0.43137254901960786,
+    0.5176470588235295,
+    0.9686274509803922,
+    0.7686274509803922
+  ],
+  "shape_type": "octahedron",
+  "vertex_count": 100,
+  "zone_placement": "Zone 1 (Entrance)",
+  "ptx_kernel_used": "train_cluster_house_door_entrance_kernel"
+}

@@ -1,0 +1,23 @@
+{
+  "type": "diary_entry",
+  "title": "Reflection: house_chair_comfort",
+  "author": "AI Self",
+  "created_at": "2025-09-17T20:03:15.223677",
+  "honesty_score": 1.0,
+  "content": [
+    "Trained on 3 queries about house_chair_comfort.",
+    "Accuracy: 100%.",
+    "Core insight: Ground the reading alcove lounge chair through multisensory detail."
+  ],
+  "embedding": [
+    0.8705882352941177,
+    0.4392156862745098,
+    0.6196078431372549,
+    0.5450980392156862,
+    0.6666666666666666,
+    0.396078431372549,
+    0.4627450980392157,
+    0.6941176470588235
+  ],
+  "zone_placement": "Zone 3 (Library)"
+}

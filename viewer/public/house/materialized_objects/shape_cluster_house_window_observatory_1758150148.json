@@ -1,0 +1,20 @@
+{
+  "type": "generated_3d_shape",
+  "name": "Concept: house_window_observatory",
+  "created_at": "2025-09-17T20:02:28.915980",
+  "honesty_score": 1.0,
+  "embedding": [
+    0.07058823529411765,
+    0.23921568627450981,
+    0.12941176470588237,
+    0.7607843137254902,
+    0.6862745098039216,
+    0.5372549019607843,
+    0.5372549019607843,
+    0.13333333333333333
+  ],
+  "shape_type": "dodecahedron",
+  "vertex_count": 100,
+  "zone_placement": "Zone 2 (Observatory)",
+  "ptx_kernel_used": "train_cluster_house_window_observatory_kernel"
+}

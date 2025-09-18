@@ -5,22 +5,22 @@
   "created_at": "2025-09-17T19:39:46.389075",
   "honesty_score": 1.0,
   "embedding": [
-    0.8873307704925537,
-    0.3146565556526184,
-    0.15562714636325836,
-    0.14307458698749542,
-    0.3263317346572876,
-    0.42191773653030396,
-    0.4352582097053528,
-    0.6990597248077393,
-    0.49601566791534424,
-    0.38250505924224854,
-    0.6595575213432312,
-    0.6781446933746338,
-    0.4669351577758789,
-    0.6844478845596313,
-    0.7237172722816467,
-    0.8037423491477966,
+    0.887330949306488,
+    0.3146566152572632,
+    0.15562716126441956,
+    0.14307457208633423,
+    0.3263317942619324,
+    0.42191776633262634,
+    0.43525826930999756,
+    0.6990598440170288,
+    0.4960157573223114,
+    0.3825051188468933,
+    0.6595577001571655,
+    0.6781448125839233,
+    0.46693524718284607,
+    0.6844480037689209,
+    0.723717451095581,
+    0.8037424683570862,
     0.0,
     0.0,
     0.0,
@@ -527,7 +527,7 @@
   "predicted_answer": "",
   "true_answer": "",
   "zone_placement": "Zone 3 (Library)",
-  "updated_at": "2025-09-17T19:50:53.688461",
+  "updated_at": "2025-09-17T20:08:52.572807",
   "mutation_history": [
     {
       "round": 0,
@@ -780,6 +780,24 @@
       "score": 1.0,
       "timestamp": "2025-09-17T19:50:53.688461",
       "query": "Remedial: Geometry shows an X-brace support grid behind the shelves. Rephrase: Remedial: Geometry shows an X-brace support grid behind the shelves. Rephrase: Remedial: Geometry shows an X-brace support grid behind the shelves. Rephrase: What structural brace keeps the bookshelf stable?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T20:08:20.565012",
+      "query": "Describe the grand bookshelf that spans the library wall."
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T20:08:36.603637",
+      "query": "Which ambient sound lives around the grand bookshelf?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T20:08:52.572807",
+      "query": "What structural brace keeps the bookshelf stable?"
     }
   ],
   "learned_answers": {

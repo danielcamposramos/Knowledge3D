@@ -816,5 +816,327 @@
       0.6901960784313725
     ],
     "honesty_threshold": 0.85
+  },
+  "house_staircase_flow": {
+    "description": "Ground the spiral staircase's structure, acoustics, and navigation cues.",
+    "queries": [
+      "Describe the spiral staircase that connects the observatory levels.",
+      "Which ambient sound accompanies footsteps on the spiral staircase?",
+      "What structural support keeps the staircase anchored to the observatory wall?"
+    ],
+    "true_answers": [
+      "A bronze spiral staircase with glass treads wraps around a central light column leading to the observatory dome.",
+      "soft_glass_chime_steps",
+      "helical_support_spine"
+    ],
+    "keyword_sets": [
+      [
+        "bronze",
+        "spiral",
+        "glass",
+        "light",
+        "dome"
+      ],
+      [
+        "soft",
+        "glass",
+        "chime",
+        "steps"
+      ],
+      [
+        "helical",
+        "support",
+        "spine"
+      ]
+    ],
+    "modality_hints": [
+      "Image highlights bronze rails, translucent glass treads, and the central light column.",
+      "Audio blends soft glass chimes with reflective dome echoes as you climb.",
+      "Geometry reveals a helical support spine bolted into the observatory masonry."
+    ],
+    "image_paths": [
+      "viewer/public/house/generated/images/house_staircase_flow_00.png",
+      "viewer/public/house/generated/images/house_staircase_flow_01.png",
+      "viewer/public/house/generated/images/house_staircase_flow_02.png"
+    ],
+    "audio_paths": [
+      "viewer/public/house/generated/audio/house_staircase_flow_00.wav",
+      "viewer/public/house/generated/audio/house_staircase_flow_01.wav",
+      "viewer/public/house/generated/audio/house_staircase_flow_02.wav"
+    ],
+    "shape_paths": [
+      "viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb",
+      "viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb",
+      "viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb"
+    ],
+    "zone": "Zone 2 (Observatory)",
+    "embedding_seed": [
+      0.25098039215686274,
+      0.08235294117647059,
+      0.9450980392156862,
+      0.2196078431372549,
+      0.6823529411764706,
+      0.9803921568627451,
+      0.7098039215686275,
+      0.47843137254901963
+    ],
+    "honesty_threshold": 0.85
+  },
+  "house_roof_observatory": {
+    "description": "Capture the observatory roof's materials, mechanics, and ambient cues.",
+    "queries": [
+      "Describe the observatory roof that opens to the night sky.",
+      "Which sound accompanies the roof as it opens for observation?",
+      "What geometric structure locks the roof panels in place?"
+    ],
+    "true_answers": [
+      "The observatory roof is a retractable copper lattice with radial glass panels revealing the star field.",
+      "mechanized_copper_slide",
+      "radial_locking_ring"
+    ],
+    "keyword_sets": [
+      [
+        "retractable",
+        "copper",
+        "lattice",
+        "glass",
+        "radial"
+      ],
+      [
+        "mechanized",
+        "copper",
+        "slide"
+      ],
+      [
+        "radial",
+        "locking",
+        "ring"
+      ]
+    ],
+    "modality_hints": [
+      "Image shows copper lattice ribs and radial glass panels glowing with starlight.",
+      "Audio features a mechanized copper slide with faint gear resonance.",
+      "Geometry highlights a radial locking ring anchoring the glass panels."
+    ],
+    "image_paths": [
+      "viewer/public/house/generated/images/house_roof_observatory_00.png",
+      "viewer/public/house/generated/images/house_roof_observatory_01.png",
+      "viewer/public/house/generated/images/house_roof_observatory_02.png"
+    ],
+    "audio_paths": [
+      "viewer/public/house/generated/audio/house_roof_observatory_00.wav",
+      "viewer/public/house/generated/audio/house_roof_observatory_01.wav",
+      "viewer/public/house/generated/audio/house_roof_observatory_02.wav"
+    ],
+    "shape_paths": [
+      "viewer/public/house/materialized_objects/shape_cube_1757927798.glb",
+      "viewer/public/house/materialized_objects/shape_cube_1757927798.glb",
+      "viewer/public/house/materialized_objects/shape_cube_1757927798.glb"
+    ],
+    "zone": "Zone 2 (Observatory)",
+    "embedding_seed": [
+      0.5176470588235295,
+      0.9137254901960784,
+      0.792156862745098,
+      0.9019607843137255,
+      0.4745098039215686,
+      0.2901960784313726,
+      0.7568627450980392,
+      0.788235294117647
+    ],
+    "honesty_threshold": 0.85
+  },
+  "house_window_sill_insight": {
+    "description": "Teach the bay window sill's materials, acoustics, and structure.",
+    "queries": [
+      "Describe the library bay window sill for someone ready to sit and read.",
+      "Which ambient sound drifts through the bay window?",
+      "What structural bracket supports the bay window slope?"
+    ],
+    "true_answers": [
+      "The bay window sill is a carved walnut bench with velvet cushions and inset bronze reading lights.",
+      "garden_breeze_whisper",
+      "angled_walnut_corbel"
+    ],
+    "keyword_sets": [
+      [
+        "carved",
+        "walnut",
+        "velvet",
+        "cushions",
+        "bronze",
+        "lights"
+      ],
+      [
+        "garden",
+        "breeze",
+        "whisper"
+      ],
+      [
+        "angled",
+        "walnut",
+        "corbel"
+      ]
+    ],
+    "modality_hints": [
+      "Image shows carved walnut surfaces, velvet cushions, and bronze lights along the sill.",
+      "Audio mixes a garden breeze whisper with distant fountain trickles.",
+      "Geometry reveals angled walnut corbels tucked beneath the sill."
+    ],
+    "image_paths": [
+      "viewer/public/house/generated/images/house_window_sill_insight_00.png",
+      "viewer/public/house/generated/images/house_window_sill_insight_01.png",
+      "viewer/public/house/generated/images/house_window_sill_insight_02.png"
+    ],
+    "audio_paths": [
+      "viewer/public/house/generated/audio/house_window_sill_insight_00.wav",
+      "viewer/public/house/generated/audio/house_window_sill_insight_01.wav",
+      "viewer/public/house/generated/audio/house_window_sill_insight_02.wav"
+    ],
+    "shape_paths": [
+      "viewer/public/house/materialized_objects/shape_cube_1757927798.glb",
+      "viewer/public/house/materialized_objects/shape_cube_1757927798.glb",
+      "viewer/public/house/materialized_objects/shape_cube_1757927798.glb"
+    ],
+    "zone": "Zone 3 (Library)",
+    "embedding_seed": [
+      0.27058823529411763,
+      0.7725490196078432,
+      0.29411764705882354,
+      0.7490196078431373,
+      0.43137254901960786,
+      0.9647058823529412,
+      0.35294117647058826,
+      0.6470588235294118
+    ],
+    "honesty_threshold": 0.85
+  },
+  "house_door_handle_precision": {
+    "description": "Embed the precision mechanics of the entrance door handle.",
+    "queries": [
+      "Describe the entrance door handle to someone reaching for it in the dark.",
+      "Which sound plays when the handle recognizes an authorized grip?",
+      "What internal mechanism locks the handle after the door closes?"
+    ],
+    "true_answers": [
+      "The entrance door handle is a sculpted brass lever with etched grip lines and a hidden biometric reader.",
+      "brass_confirmation_tone",
+      "precision_cam_lock"
+    ],
+    "keyword_sets": [
+      [
+        "sculpted",
+        "brass",
+        "lever",
+        "etched",
+        "biometric"
+      ],
+      [
+        "brass",
+        "confirmation",
+        "tone"
+      ],
+      [
+        "precision",
+        "cam",
+        "lock"
+      ]
+    ],
+    "modality_hints": [
+      "Image highlights the sculpted brass lever, etched grip lines, and biometric reader glow.",
+      "Audio provides a brass confirmation tone with a short harmonic flourish.",
+      "Geometry displays a precision cam lock assembly tucked inside the handle housing."
+    ],
+    "image_paths": [
+      "viewer/public/house/generated/images/house_door_handle_precision_00.png",
+      "viewer/public/house/generated/images/house_door_handle_precision_01.png",
+      "viewer/public/house/generated/images/house_door_handle_precision_02.png"
+    ],
+    "audio_paths": [
+      "viewer/public/house/generated/audio/house_door_handle_precision_00.wav",
+      "viewer/public/house/generated/audio/house_door_handle_precision_01.wav",
+      "viewer/public/house/generated/audio/house_door_handle_precision_02.wav"
+    ],
+    "shape_paths": [
+      "viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb",
+      "viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb",
+      "viewer/public/house/materialized_objects/shape_tetrahedron_1757926925.glb"
+    ],
+    "zone": "Zone 1 (Entrance)",
+    "embedding_seed": [
+      0.2235294117647059,
+      0.8901960784313725,
+      0.24705882352941178,
+      0.38823529411764707,
+      0.9490196078431372,
+      0.8431372549019608,
+      0.15294117647058825,
+      0.11372549019607843
+    ],
+    "honesty_threshold": 0.85
+  },
+  "house_light_switch_control": {
+    "description": "Capture the hallway light switch's tactile and electronic cues.",
+    "queries": [
+      "Describe the hallway light switch for someone feeling along the wall.",
+      "Which sound accompanies the switch when lights engage?",
+      "What internal geometry diffuses the light switch indicator glow?"
+    ],
+    "true_answers": [
+      "The hallway light switch is a matte ceramic plate with a brass rocker and a subtle haptic pulse when toggled.",
+      "gentle_relay_click",
+      "frosted_prism_window"
+    ],
+    "keyword_sets": [
+      [
+        "matte",
+        "ceramic",
+        "brass",
+        "rocker",
+        "haptic"
+      ],
+      [
+        "gentle",
+        "relay",
+        "click"
+      ],
+      [
+        "frosted",
+        "prism",
+        "window"
+      ]
+    ],
+    "modality_hints": [
+      "Image focuses on the ceramic plate, brass rocker, and subtle indicator glow.",
+      "Audio captures a gentle relay click followed by a faint hum.",
+      "Geometry reveals a frosted prism window embedded above the rocker."
+    ],
+    "image_paths": [
+      "viewer/public/house/generated/images/house_light_switch_control_00.png",
+      "viewer/public/house/generated/images/house_light_switch_control_01.png",
+      "viewer/public/house/generated/images/house_light_switch_control_02.png"
+    ],
+    "audio_paths": [
+      "viewer/public/house/generated/audio/house_light_switch_control_00.wav",
+      "viewer/public/house/generated/audio/house_light_switch_control_01.wav",
+      "viewer/public/house/generated/audio/house_light_switch_control_02.wav"
+    ],
+    "shape_paths": [
+      "viewer/public/house/materialized_objects/shape_cube_1757927798.glb",
+      "viewer/public/house/materialized_objects/shape_cube_1757927798.glb",
+      "viewer/public/house/materialized_objects/shape_cube_1757927798.glb"
+    ],
+    "zone": "Zone 1 (Entrance)",
+    "embedding_seed": [
+      0.43529411764705883,
+      0.37254901960784315,
+      0.7137254901960784,
+      0.2980392156862745,
+      0.4666666666666667,
+      0.7372549019607844,
+      0.7725490196078432,
+      0.17647058823529413
+    ],
+    "honesty_threshold": 0.85
   }
 }

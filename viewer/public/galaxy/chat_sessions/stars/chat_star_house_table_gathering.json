@@ -255,10 +255,68 @@
         "suggested_revision": "Try saying: crossbeam_support_ring"
       },
       "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T20:03:31.211150",
+      "query": "Describe the communal gathering table in the dining hall.",
+      "student_answer": "The gathering table is an oval maple slab with inset brass inlays and suspended lanterns above it.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The gathering table is an oval maple slab with inset brass inlays and suspended lanterns above it.",
+        "modality_hint": "Image shows an oval maple top with brass inlays glowing under lantern light.",
+        "matched_keywords": [
+          "oval",
+          "maple",
+          "brass",
+          "lanterns"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The gathering table is an oval maple slab with inset brass inlays and suspended lanterns above it."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T20:03:47.041923",
+      "query": "Which ambient audio accompanies meals at the gathering table?",
+      "student_answer": "warm_conversation_hum",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "warm_conversation_hum",
+        "modality_hint": "Audio blends warm conversation hum with clinking ceramic plates.",
+        "matched_keywords": [
+          "warm",
+          "conversation",
+          "hum"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: warm_conversation_hum"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T20:04:03.166706",
+      "query": "What structural support keeps the gathering table balanced?",
+      "student_answer": "crossbeam_support_ring",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "crossbeam_support_ring",
+        "modality_hint": "Geometry reveals a crossbeam support ring anchored at the base.",
+        "matched_keywords": [
+          "crossbeam",
+          "support",
+          "ring"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: crossbeam_support_ring"
+      },
+      "score": 1.0
     }
   ],
   "zone_placement": "Zone 4 (Workshop)",
-  "last_updated": "2025-09-17T18:57:34.173099",
-  "message_count": 13,
+  "last_updated": "2025-09-17T20:04:03.166706",
+  "message_count": 16,
   "latest_score": 1.0
 }

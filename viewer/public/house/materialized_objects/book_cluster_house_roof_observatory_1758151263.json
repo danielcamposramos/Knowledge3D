@@ -1,0 +1,40 @@
+{
+  "type": "chat_history_book",
+  "title": "Training Log: house_roof_observatory",
+  "author": "AI Self",
+  "created_at": "2025-09-17T20:21:03.651924",
+  "honesty_score": 1.0,
+  "content": [
+    {
+      "query": "Describe the observatory roof that opens to the night sky.",
+      "answer": "The observatory roof is a retractable copper lattice with radial glass panels revealing the star field."
+    },
+    {
+      "query": "Which sound accompanies the roof as it opens for observation?",
+      "answer": "mechanized_copper_slide"
+    },
+    {
+      "query": "What geometric structure locks the roof panels in place?",
+      "answer": "radial_locking_ring"
+    },
+    {
+      "query": "Remedial: Image shows copper lattice ribs and radial glass panels glowing with starlight. Rephrase: Describe the observatory roof that opens to the night sky.",
+      "answer": "The observatory roof is a retractable copper lattice with radial glass panels revealing the star field."
+    },
+    {
+      "query": "Remedial: Geometry highlights a radial locking ring anchoring the glass panels. Rephrase: What geometric structure locks the roof panels in place?",
+      "answer": "radial_locking_ring"
+    }
+  ],
+  "embedding": [
+    0.5176470588235295,
+    0.9137254901960784,
+    0.792156862745098,
+    0.9019607843137255,
+    0.4745098039215686,
+    0.2901960784313726,
+    0.7568627450980392,
+    0.788235294117647
+  ],
+  "zone_placement": "Zone 2 (Observatory)"
+}

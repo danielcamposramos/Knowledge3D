@@ -1,0 +1,32 @@
+{
+  "type": "chat_history_book",
+  "title": "Training Log: house_lamp_glow",
+  "author": "AI Self",
+  "created_at": "2025-09-17T20:04:51.416158",
+  "honesty_score": 1.0,
+  "content": [
+    {
+      "query": "Describe the bedside lamp that anchors the study nook.",
+      "answer": "The bedside lamp has a translucent linen shade over a brass stem with a soft amber glow."
+    },
+    {
+      "query": "Which sound accompanies toggling the lamp?",
+      "answer": "brass_chain_click"
+    },
+    {
+      "query": "Which geometric core diffuses the lamp's light evenly?",
+      "answer": "frosted_cylinder_diffuser"
+    }
+  ],
+  "embedding": [
+    0.6313725490196078,
+    0.09803921568627451,
+    0.28627450980392155,
+    0.20392156862745098,
+    0.4392156862745098,
+    0.6549019607843137,
+    0.9725490196078431,
+    0.403921568627451
+  ],
+  "zone_placement": "Zone 5 (Knowledge Garden)"
+}

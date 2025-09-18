@@ -1,0 +1,32 @@
+{
+  "type": "chat_history_book",
+  "title": "Training Log: house_mirror_room_orientation",
+  "author": "AI Self",
+  "created_at": "2025-09-17T20:00:04.008820",
+  "honesty_score": 1.0,
+  "content": [
+    {
+      "query": "Describe the Mirror Room wall mirror so an avatar can imagine it without seeing it.",
+      "answer": "The mirror is a tall vertical rectangle with a brushed metal frame and soft glow edges."
+    },
+    {
+      "query": "Which audio cue fits approaching the Mirror Room mirror?",
+      "answer": "chime_resonance"
+    },
+    {
+      "query": "Which alignment keeps the mirror's reflection steady when the avatar tilts their head?",
+      "answer": "upright_yaw_alignment"
+    }
+  ],
+  "embedding": [
+    0.9882352941176471,
+    0.8666666666666667,
+    0.8274509803921568,
+    0.6,
+    0.6705882352941176,
+    0.3607843137254902,
+    0.8705882352941177,
+    0.5254901960784314
+  ],
+  "zone_placement": "Zone 7 (Mirror Room)"
+}

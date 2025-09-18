@@ -19,5 +19,7 @@
     0.8705882352941177,
     0.5254901960784314
   ],
-  "zone_placement": "Zone 7 (Mirror Room)"
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "relocated_at": "2025-09-17T20:00:04.008677",
+  "previous_zone": "Zone 7 (Mirror Room)"
 }

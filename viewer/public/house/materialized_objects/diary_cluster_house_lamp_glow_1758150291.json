@@ -1,0 +1,23 @@
+{
+  "type": "diary_entry",
+  "title": "Reflection: house_lamp_glow",
+  "author": "AI Self",
+  "created_at": "2025-09-17T20:04:51.416387",
+  "honesty_score": 1.0,
+  "content": [
+    "Trained on 3 queries about house_lamp_glow.",
+    "Accuracy: 100%.",
+    "Core insight: Embed the bedside lamp's visual and acoustic cues."
+  ],
+  "embedding": [
+    0.6313725490196078,
+    0.09803921568627451,
+    0.28627450980392155,
+    0.20392156862745098,
+    0.4392156862745098,
+    0.6549019607843137,
+    0.9725490196078431,
+    0.403921568627451
+  ],
+  "zone_placement": "Zone 5 (Knowledge Garden)"
+}

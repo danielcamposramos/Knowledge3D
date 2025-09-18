@@ -5,22 +5,22 @@
   "created_at": "2025-09-17T19:06:21.206422",
   "honesty_score": 1.0,
   "embedding": [
-    0.4409943222999573,
-    0.38783323764801025,
-    0.44340676069259644,
-    0.6095681190490723,
-    0.9564223289489746,
-    0.6467846632003784,
-    0.22704783082008362,
-    0.29582130908966064,
-    0.6219578981399536,
-    0.6842389106750488,
-    0.6766648292541504,
-    0.3718815743923187,
-    0.5470834374427795,
-    0.8590536117553711,
-    0.45435255765914917,
-    0.6283057332038879,
+    0.3645786941051483,
+    0.3693091869354248,
+    0.43681788444519043,
+    0.5966112613677979,
+    0.827194094657898,
+    0.6482118368148804,
+    0.32586565613746643,
+    0.36034905910491943,
+    0.663731575012207,
+    0.5827527642250061,
+    0.5789195895195007,
+    0.3392848074436188,
+    0.5636966824531555,
+    0.7469260096549988,
+    0.4727017283439636,
+    0.5864030122756958,
     0.0,
     0.0,
     0.0,
@@ -527,7 +527,7 @@
   "predicted_answer": "",
   "true_answer": "",
   "zone_placement": "Zone 6 (Gallery)",
-  "updated_at": "2025-09-17T19:15:20.233348",
+  "updated_at": "2025-09-17T20:05:39.914262",
   "mutation_history": [
     {
       "round": 0,
@@ -726,6 +726,24 @@
       "score": 1.0,
       "timestamp": "2025-09-17T19:15:20.233348",
       "query": "Remedial: Geometry uses a magnetic flush mount hidden behind the canvas. Rephrase: Remedial: Geometry uses a magnetic flush mount hidden behind the canvas. Rephrase: Remedial: Geometry uses a magnetic flush mount hidden behind the canvas. Rephrase: What mounting system keeps the painting flush to the wall?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T20:05:07.172989",
+      "query": "Describe the gallery painting hanging above the spiral stairs."
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T20:05:23.150873",
+      "query": "Which ambient sound plays near the gallery painting?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T20:05:39.914262",
+      "query": "What mounting system keeps the painting flush to the wall?"
     }
   ],
   "learned_answers": {
