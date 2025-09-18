@@ -1,63 +1,34 @@
 from __future__ import annotations
 
-from typing import List, Tuple
-import re
+from typing import Dict, Optional
+
+from .modular_rpn_engine import ModularRPNEngine
 
 
 class RPNCalculator:
-    def __init__(self, stack_size: int = 100, precision: int = 15):
-        self.stack_size = int(stack_size)
-        self.precision = int(precision)
-        self.stack: List[float] = []
-        self.history: List[Tuple[str, float]] = []
+    """Backward-compatible wrapper around the modular GPU RPN engine."""
 
-    def parse_expression(self, expression: str) -> List[str]:
-        """Parse expression into RPN tokens using regex (numbers and operators)."""
-        expr = (expression or '').strip()
-        # Allow decimals and scientific notation, ops: + - * / ^
-        tokens = re.findall(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?|[+\-*/^]", expr)
-        return tokens
+    _ENGINE: ModularRPNEngine | None = None
 
-    def evaluate(self, expression: str) -> float:
-        tokens = self.parse_expression(expression)
-        self.clear_stack()  # Auto-clean stack per spec
-        for tok in tokens:
-            if tok in {'+','-','*','/','^'}:
-                if len(self.stack) < 2:
-                    raise ValueError('Insufficient operands')
-                b = self.stack.pop()
-                a = self.stack.pop()
-                if tok == '+':
-                    res = a + b
-                elif tok == '-':
-                    res = a - b
-                elif tok == '*':
-                    res = a * b
-                elif tok == '/':
-                    if b == 0:
-                        raise ValueError('Division by zero')
-                    res = a / b
-                else:  # '^'
-                    res = a ** b
-                # Push rounded result
-                self.stack.append(round(res, self.precision))
-            else:
-                # number
-                if len(self.stack) >= self.stack_size:
-                    raise ValueError('Stack overflow')
-                self.stack.append(float(tok))
-        if len(self.stack) != 1:
-            raise ValueError('Invalid RPN expression')
-        result = self.stack[0]
-        self.history.append((expression, result))
-        return result
+    def __init__(self) -> None:
+        if RPNCalculator._ENGINE is None:
+            RPNCalculator._ENGINE = ModularRPNEngine()
+        self._engine = RPNCalculator._ENGINE
 
-    def get_stack(self) -> List[float]:
-        return list(self.stack)
+    def evaluate(self, expression: str, instance_id: int = 0, variables: Optional[Dict[str, float]] = None) -> float:
+        result = self._engine.evaluate(expression, instance_id=instance_id, variables=variables)
+        return float(result[0])
 
-    def clear_stack(self) -> None:
-        self.stack.clear()
+    def evaluate_vector(
+        self,
+        expression: str,
+        instance_id: int = 0,
+        variables: Optional[Dict[str, float]] = None,
+    ) -> List[float]:
+        return self._engine.evaluate(expression, instance_id=instance_id, variables=variables).tolist()
 
-    def get_history(self) -> List[Tuple[str, float]]:
-        return list(self.history)
+    def reset(self) -> None:
+        self._engine.reset()
 
+
+__all__ = ["RPNCalculator"]

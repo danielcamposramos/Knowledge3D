@@ -13,8 +13,13 @@ class NVRTCPTXLoader:
     or generate vertices will fallback (handled by caller).
     """
 
-    def __init__(self, ptx_path: str = "knowledge3d/cranium/ptx/generate_shape_kernel.ptx"):
+    def __init__(
+        self,
+        ptx_path: str = "knowledge3d/cranium/ptx/generate_shape_kernel.ptx",
+        kernel_name: str = "generate_shape_kernel",
+    ):
         self.ptx_path = ptx_path
+        self.kernel_name = kernel_name.encode("utf-8")
         self._cuda = None
         self._nvrtc = None
         self._module = None
@@ -46,7 +51,7 @@ class NVRTCPTXLoader:
         err, mod = cuda.cuModuleLoadData(ptx_code)
         if err != cuda.CUresult.CUDA_SUCCESS:
             raise RuntimeError(f"cuModuleLoadData failed: {err}")
-        err, func = cuda.cuModuleGetFunction(mod, b"generate_shape_kernel")
+        err, func = cuda.cuModuleGetFunction(mod, self.kernel_name)
         if err != cuda.CUresult.CUDA_SUCCESS:
             raise RuntimeError(f"cuModuleGetFunction failed: {err}")
         self._module = mod
@@ -94,4 +99,3 @@ class NVRTCPTXLoader:
         finally:
             cuda.cuMemFree(d_emb)
             cuda.cuMemFree(d_out)
-

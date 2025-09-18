@@ -18,10 +18,14 @@ class CognitiveValidator:
             ('3 4 +', 7.0),
             ('3 4 + 2 *', 14.0),
             ('5 1 2 + 4 * + 3 -', 14.0),
+            ('9 sqrt', 3.0),
+            ('2 3 ^', 8.0),
         ]
         for expr, exp in tests:
             res = self.rpn_calculator.evaluate(expr)
             assert abs(res - exp) < 1e-9, f'RPN failed: {expr} -> {res} != {exp}'
+        cross = self.rpn_calculator.evaluate_vector('[1,0,0] [0,1,0] cross')
+        assert abs(cross[0]) < 1e-6 and abs(cross[1]) < 1e-6 and abs(cross[2] - 1.0) < 1e-6, 'Cross product failed'
         print('✅ RPN Calculator: PASSED')
 
     def validate_self_reflection(self):
