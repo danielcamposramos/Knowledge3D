@@ -44,6 +44,8 @@ class AlgorithmicThinkingTrainer:
         if RPNCalculator is None:
             raise ImportError("RPNCalculator unavailable — ensure phase10 PTX engine is importable.")
         self._rpn_calculator: RPNCalculator = RPNCalculator()
+        self._since_sleep: int = 0
+        self._sleep_interval: int = 0
         
     @property
     def trainer(self) -> "MeaningClusterTrainer":
@@ -97,6 +99,17 @@ class AlgorithmicThinkingTrainer:
             self._teaching_corpus = self._load_jsonl(Path("viewer/public/galaxy/working/teaching_corpus.jsonl"), 200)
         if not self._research_corpus:
             self._research_corpus = self._load_jsonl(Path("viewer/public/galaxy/working/research_corpus.jsonl"), 100)
+
+        total_queries = (
+            len(self._rpn_corpus)
+            + len(self._thinking_corpus)
+            + len(self._time_corpus)
+            + len(self._reflection_corpus)
+            + len(self._context_corpus)
+            + len(self._teaching_corpus)
+            + len(self._research_corpus)
+        )
+        self._sleep_interval = max(200, (total_queries * 2) // 3 if total_queries else 200)
 
         # Warm the fused head (CPU) before spinning up Ollama teachers.
         try:
@@ -187,6 +200,10 @@ class AlgorithmicThinkingTrainer:
                     remedial_hint=explanation,
                     composite_explanation=composite_explanation,
                 )
+                self._since_sleep += 1
+                if self._since_sleep >= self._sleep_interval:
+                    self._run_sleep_cycle()
+                    self._since_sleep = 0
 
     def load_stars_by_tag(self, tag: str) -> List[Dict[str, Any]]:
         stars: List[Dict[str, Any]] = []
@@ -520,3 +537,26 @@ class AlgorithmicThinkingTrainer:
                 if len(entries) >= limit:
                     break
         return entries
+
+    def _run_sleep_cycle(self) -> None:
+        """Trigger sleep-time compute to consolidate newly learned content."""
+        try:
+            from knowledge3d.cranium.phase10.sleep_time_compute import SleepTimeCompute  # type: ignore
+
+            house_glb = Path("viewer/public/house/house_master_assembled.glb")
+            if not house_glb.exists():
+                house_glb = Path("viewer/public/house/house_master.glb")
+            galaxy_glb = Path("viewer/public/galaxy.v8.glb")
+            if not galaxy_glb.exists():
+                galaxy_glb = Path("viewer/public/galaxy.glb")
+
+            stc = SleepTimeCompute(
+                house_path=str(house_glb),
+                galaxy_path=str(galaxy_glb),
+                output_path=str(house_glb.parent / "house_post_sleep.glb"),
+                material_dir=str(house_glb.parent / "materialized_objects"),
+            )
+            stc.run()
+            print("🌙 Sleep-time consolidation complete.")
+        except Exception as exc:
+            print(f"⚠️  Sleep-time compute skipped: {exc}")

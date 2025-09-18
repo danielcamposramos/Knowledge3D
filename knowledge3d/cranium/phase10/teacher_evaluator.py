@@ -12,8 +12,8 @@ class TeacherEvaluator:
         self,
         ollama_url: str = "http://192.168.0.4:11434",
         *,
-        initial_timeout: int = 180,
-        timeout: int = 60,
+        initial_timeout: int = 300,
+        timeout: int = 150,
     ):
         self.ollama_url = ollama_url.rstrip("/")
         self.initial_timeout = max(initial_timeout, timeout)
