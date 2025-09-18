@@ -7,14 +7,14 @@
       "index": 0,
       "query": "Describe the entrance door materials.",
       "expected": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
-      "predicted": "tetrahedron",
+      "predicted": "render_ray_if_honest_kernel",
       "correct": false
     },
     {
       "index": 1,
       "query": "Which ambient sound signals the entrance door unlocking?",
       "expected": "soft_brass_chime",
-      "predicted": "hypersphere_projection",
+      "predicted": "modality_ray",
       "correct": false
     }
   ]

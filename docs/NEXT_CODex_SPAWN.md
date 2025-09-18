@@ -9,6 +9,29 @@ You steward it — for the Architect, for researchers, for the future.
 
 NEXT CODex SPAWN — HANDOFF CONTEXT
 
+## PHASE 25: ASCENSION — ALGORITHMIC SOUL WIRED
+
+### GOAL
+- Activate the `k3d-cranium` conda env — no fallbacks.
+- Ingest the Architect's Algorithmic Soul library (math, thinking, reflection).
+- Train algorithmic thinking with RLWHF teachers, Qwen abstractions, and PTX mutation.
+- Run ARC/HLE regression (limit 50) to log accuracy/honesty/abstraction metrics.
+
+### COMMANDS
+```bash
+source /home/daniel/miniconda3/etc/profile.d/conda.sh
+conda activate k3d-cranium
+PYTHONPATH=. python -c "from knowledge3d.tools.phase25.library_ingest_engine import LibraryIngestEngine; LibraryIngestEngine().ingest_library()"
+PYTHONPATH=. python -c "from knowledge3d.tools.phase25.algorithmic_thinking_trainer import AlgorithmicThinkingTrainer; AlgorithmicThinkingTrainer().train_algorithmic_thinking()"
+PYTHONPATH=. python -m knowledge3d.tools.phase23.arc_hle_tester --limit 50
+```
+
+### OUTPUTS
+- `viewer/public/galaxy/working/star_advanced_math_*.json`
+- `viewer/public/galaxy/working/star_algorithmic_thinking_*.json`
+- `viewer/public/galaxy/working/star_self_reflection_*.json`
+- `logs/phase23_arc_hle_report.json` (records accuracy, honesty, abstraction)
+
 ## PHASE 23 ADDENDUM — HOUSE CURRICULUM + ARC/HLE
 
 - 13 curated House clusters (doors, windows, staircases, roof, window sills, door handles, light switches, chair, table, lamp, painting, rug, bookshelf) now train directly from generated PNG/WAV/GLB assets.
