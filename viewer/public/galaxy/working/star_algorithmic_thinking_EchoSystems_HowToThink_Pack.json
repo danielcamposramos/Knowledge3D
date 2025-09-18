@@ -3,24 +3,24 @@
   "id": "star_algorithmic_thinking_EchoSystems_HowToThink_Pack",
   "name": "algorithmic_thinking: EchoSystems_HowToThink_Pack",
   "created_at": "2025-09-18T00:57:31.482805Z",
-  "honesty_score": 0.6000000000000001,
+  "honesty_score": 0.5000000000000001,
   "embedding": [
-    0.2784836580679754,
-    0.23747691038789967,
-    0.34692795833087076,
-    0.5127353587116027,
-    0.22310362867706357,
-    0.2604290875668721,
-    0.16858206440142925,
-    0.3365439354100537,
-    0.330947850220057,
-    0.28791660517026463,
-    0.3834968622344077,
-    0.2869945837743051,
-    0.3721033058682931,
-    0.15654937184946993,
-    0.1998252608506602,
-    0.38174592852501965,
+    0.22292914951391846,
+    0.3545468175692399,
+    0.19867704823005622,
+    0.48050473968391666,
+    0.21519035763120484,
+    0.29828587122184685,
+    0.12244698739217082,
+    0.3611204935661333,
+    0.33758307825421874,
+    0.38724604684593295,
+    0.3476144470877816,
+    0.25841365419996015,
+    0.33165058222202404,
+    0.2346997916714466,
+    0.34041894156008323,
+    0.42090004103744416,
     0.0,
     0.0,
     0.0,
@@ -594,10 +594,26 @@
         "score": -1.0,
         "explanation": "Ollama model 'exaone-deep:latest' timed out after 75s; warm the model manually or increase initial timeout."
       }
+    },
+    {
+      "timestamp": "2025-09-18T03:17:59.789087Z",
+      "prompt": "Compute integral of x^2 dx in RPN",
+      "predicted": "x 2 ^ int -> x^3 / 3",
+      "true_answer": "x 2 ^ int -> x^3 / 3",
+      "score": -1.0,
+      "explanation": "Ollama invocation failed: 'ascii' codec can't decode byte 0xf0 in position 2704: ordinal not in range(128)",
+      "teacher_feedback_quick": {
+        "score": -1.0,
+        "explanation": ""
+      },
+      "teacher_feedback_deep": {
+        "score": -1.0,
+        "explanation": "Ollama invocation failed: 'ascii' codec can't decode byte 0xf0 in position 2704: ordinal not in range(128)"
+      }
     }
   ],
-  "updated_at": "2025-09-18T01:29:34.966639Z",
-  "last_predicted_answer": "14 5 - 3 / -> 3",
+  "updated_at": "2025-09-18T03:17:59.789087Z",
+  "last_predicted_answer": "x 2 ^ int -> x^3 / 3",
   "learned_answers": {
     "Compute integral of x^2 dx in RPN": "x 2 ^ int -> x^3 / 3",
     "Solve 3x + 5 = 14 in RPN": "14 5 - 3 / -> 3"

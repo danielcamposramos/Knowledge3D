@@ -9,6 +9,7 @@ growing across sessions.
 from __future__ import annotations
 
 import json
+import math
 import os
 import shutil
 from datetime import datetime
@@ -20,6 +21,11 @@ try:  # Lazy import: resolved when ``trainer`` property first accessed.
 except Exception:  # pragma: no cover
     MeaningClusterTrainer = None  # type: ignore
 
+try:
+    from knowledge3d.cranium.phase10.rpn_calculator import RPNCalculator  # type: ignore
+except Exception:
+    RPNCalculator = None  # type: ignore
+
 
 class AlgorithmicThinkingTrainer:
     """RPN + honesty drills for Algorithmic Thinking stars."""
@@ -28,7 +34,9 @@ class AlgorithmicThinkingTrainer:
         self.galaxy_working_dir = Path("viewer/public/galaxy/working")
         self.galaxy_working_dir.mkdir(parents=True, exist_ok=True)
         self._trainer: Optional[MeaningClusterTrainer] = None
-
+        self._rpn_corpus: List[Dict[str, Any]] = []
+        self._rpn_calculator: Optional[RPNCalculator] = RPNCalculator() if RPNCalculator is not None else None
+        
     @property
     def trainer(self) -> "MeaningClusterTrainer":
         if self._trainer is None:
@@ -66,6 +74,9 @@ class AlgorithmicThinkingTrainer:
         if not stars:
             print("⚠️  No algorithmic thinking stars found — run library ingest first.")
             return
+
+        if not self._rpn_corpus:
+            self._load_rpn_corpus()
 
         # Warm the fused head (CPU) before spinning up Ollama teachers.
         try:
@@ -200,6 +211,17 @@ class AlgorithmicThinkingTrainer:
                     "true_answer": f"{label} d/dx -> result",
                     "explanation": f"RPN derivative: {label}, d/dx, -> result",
                     "keywords": [concept, "d/dx"],
+                }
+            )
+
+        # Append curated RPN expressions
+        for entry in self._rpn_corpus:
+            queries.append(
+                {
+                    "query": f"RPN: Evaluate {entry['infix']} using tokens {entry['rpn']}",
+                    "true_answer": entry['formatted_result'],
+                    "explanation": f"Tokens: {entry['rpn']} → {entry['formatted_result']}",
+                    "keywords": ["rpn", "evaluation"],
                 }
             )
         return queries
@@ -366,3 +388,47 @@ class AlgorithmicThinkingTrainer:
         if honesty < 0.5:
             return "Zone 8 (Learning Museum)"
         return current_zone or "Zone 2 (Study)"
+
+    # ------------------------------------------------------------------
+    def _load_rpn_corpus(self, limit: int = 50) -> None:
+        corpus_path = Path("viewer/public/galaxy/working/rpn_corpus.jsonl")
+        if not corpus_path.exists():
+            print("⚠️  RPN corpus not found — skipping corpus-driven drills.")
+            return
+        if self._rpn_calculator is None:
+            print("⚠️  RPN calculator unavailable — cannot integrate corpus drills.")
+            return
+
+        entries: List[Dict[str, Any]] = []
+        with corpus_path.open("r", encoding="utf-8") as fh:
+            for line in fh:
+                try:
+                    obj = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                tokens = obj.get("tokens")
+                if isinstance(tokens, list) and tokens:
+                    rpn_expr = " ".join(tokens)
+                else:
+                    rpn_expr = str(obj.get("rpn", "")).strip()
+                if not rpn_expr:
+                    continue
+                try:
+                    result = self._rpn_calculator.evaluate(rpn_expr, instance_id=len(entries) % 15)
+                except Exception:
+                    self._rpn_calculator.reset()
+                    continue
+                if not math.isfinite(result):
+                    continue
+                formatted = f"{result:.6g}"
+                entries.append(
+                    {
+                        "infix": obj.get("infix", rpn_expr),
+                        "rpn": rpn_expr,
+                        "formatted_result": formatted,
+                    }
+                )
+                if len(entries) >= limit:
+                    break
+        self._rpn_corpus = entries
+        self._rpn_calculator.reset()

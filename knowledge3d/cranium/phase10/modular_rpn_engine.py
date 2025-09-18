@@ -14,13 +14,28 @@ from typing import Dict, Iterable, List, Optional, Sequence
 import numpy as np  # type: ignore
 
 try:
-    from cuda import cuda, nvrtc  # type: ignore
+    from cuda.bindings import driver as cuda  # type: ignore
+    from cuda.bindings import nvrtc  # type: ignore
 except Exception as exc:  # pragma: no cover
     raise RuntimeError(
         "cuda-python bindings are required for ModularRPNEngine; install `cuda-python` and ensure a CUDA device is available"
     ) from exc
 
 CUDA_SOURCE = r"""
+extern "C" __device__ float sinf(float);
+extern "C" __device__ float cosf(float);
+extern "C" __device__ float tanf(float);
+extern "C" __device__ float asinf(float);
+extern "C" __device__ float acosf(float);
+extern "C" __device__ float atanf(float);
+extern "C" __device__ float sinhf(float);
+extern "C" __device__ float coshf(float);
+extern "C" __device__ float tanhf(float);
+extern "C" __device__ float expf(float);
+extern "C" __device__ float logf(float);
+extern "C" __device__ float log10f(float);
+extern "C" __device__ float powf(float, float);
+
 extern "C" {
 
 struct RPNValue {
@@ -122,7 +137,7 @@ __global__ void modular_rpn_geometric_kernel(
             case 14: { // pow (scalar only)
                 if (!pop(inst, b) || !pop(inst, a)) { inst.error = 1002; return; }
                 float base = clamp_min(fabsf(a.x), 1e-6f);
-                float val = __exp2f(b.x * __log2f(base));
+                float val = powf(base, b.x);
                 push(inst, make_float4(val, 0.f, 0.f, 0.f));
                 break;
             }
@@ -139,29 +154,65 @@ __global__ void modular_rpn_geometric_kernel(
             }
             case 21: { // exp
                 if (!pop(inst, a)) { inst.error = 1002; return; }
-                float val = __expf(a.x);
+                float val = expf(a.x);
                 push(inst, make_float4(val, 0.f, 0.f, 0.f));
                 break;
             }
             case 22: { // log
                 if (!pop(inst, a)) { inst.error = 1002; return; }
-                float val = __logf(clamp_min(a.x, 1e-6f));
+                float val = logf(clamp_min(a.x, 1e-6f));
+                push(inst, make_float4(val, 0.f, 0.f, 0.f));
+                break;
+            }
+            case 23: { // log10
+                if (!pop(inst, a)) { inst.error = 1002; return; }
+                float val = log10f(clamp_min(a.x, 1e-6f));
                 push(inst, make_float4(val, 0.f, 0.f, 0.f));
                 break;
             }
             case 24: { // sin
                 if (!pop(inst, a)) { inst.error = 1002; return; }
-                push(inst, make_float4(__sinf(a.x), 0.f, 0.f, 0.f));
+                push(inst, make_float4(sinf(a.x), 0.f, 0.f, 0.f));
                 break;
             }
             case 25: { // cos
                 if (!pop(inst, a)) { inst.error = 1002; return; }
-                push(inst, make_float4(__cosf(a.x), 0.f, 0.f, 0.f));
+                push(inst, make_float4(cosf(a.x), 0.f, 0.f, 0.f));
                 break;
             }
             case 26: { // tan
                 if (!pop(inst, a)) { inst.error = 1002; return; }
-                push(inst, make_float4(__tanf(a.x), 0.f, 0.f, 0.f));
+                push(inst, make_float4(tanf(a.x), 0.f, 0.f, 0.f));
+                break;
+            }
+            case 27: { // asin
+                if (!pop(inst, a)) { inst.error = 1002; return; }
+                push(inst, make_float4(asinf(a.x), 0.f, 0.f, 0.f));
+                break;
+            }
+            case 28: { // acos
+                if (!pop(inst, a)) { inst.error = 1002; return; }
+                push(inst, make_float4(acosf(a.x), 0.f, 0.f, 0.f));
+                break;
+            }
+            case 29: { // atan
+                if (!pop(inst, a)) { inst.error = 1002; return; }
+                push(inst, make_float4(atanf(a.x), 0.f, 0.f, 0.f));
+                break;
+            }
+            case 30: { // sinh
+                if (!pop(inst, a)) { inst.error = 1002; return; }
+                push(inst, make_float4(sinhf(a.x), 0.f, 0.f, 0.f));
+                break;
+            }
+            case 31: { // cosh
+                if (!pop(inst, a)) { inst.error = 1002; return; }
+                push(inst, make_float4(coshf(a.x), 0.f, 0.f, 0.f));
+                break;
+            }
+            case 32: { // tanh
+                if (!pop(inst, a)) { inst.error = 1002; return; }
+                push(inst, make_float4(tanhf(a.x), 0.f, 0.f, 0.f));
                 break;
             }
             case 40: { // gt
@@ -322,9 +373,16 @@ class ModularRPNEngine:
         "sqrt": 20,
         "exp": 21,
         "log": 22,
+        "log10": 23,
         "sin": 24,
         "cos": 25,
         "tan": 26,
+        "asin": 27,
+        "acos": 28,
+        "atan": 29,
+        "sinh": 30,
+        "cosh": 31,
+        "tanh": 32,
         "gt": 40,
         "lt": 42,
         "eq": 44,
@@ -363,19 +421,39 @@ class ModularRPNEngine:
 
     # -------------------------- CUDA setup --------------------------
     def _compile_kernel(self) -> None:
-        prog = nvrtc.nvrtcCreateProgram(
+        res, prog = nvrtc.nvrtcCreateProgram(
             CUDA_SOURCE.encode("utf-8"),
             b"modular_rpn.cu",
             0,
             [],
             []
         )
+        if res != 0:
+            raise RuntimeError(f"nvrtcCreateProgram failed: {res}")
+
         opts = [b"--gpu-architecture=compute_70", b"--fmad=false"]
-        res = nvrtc.nvrtcCompileProgram(prog, len(opts), opts)
-        if res != nvrtc.NVRTC_SUCCESS:
-            log = nvrtc.nvrtcGetProgramLog(prog)[1].decode("utf-8")
-            raise RuntimeError(f"NVRTC compilation failed:\n{log}")
-        ptx = nvrtc.nvrtcGetPTX(prog)[1]
+        res, = nvrtc.nvrtcCompileProgram(prog, len(opts), opts)
+        if res != 0:
+            log_size_res, log_size = nvrtc.nvrtcGetProgramLogSize(prog)
+            if log_size_res == 0 and log_size > 0:
+                log_buffer = bytearray(log_size)
+                nvrtc.nvrtcGetProgramLog(prog, log_buffer)
+                log_text = log_buffer.decode("utf-8", errors="replace")
+            else:
+                log_text = "<unavailable>"
+            nvrtc.nvrtcDestroyProgram(prog)
+            raise RuntimeError(f"NVRTC compilation failed (code {res}):\n{log_text}")
+
+        res, ptx_size = nvrtc.nvrtcGetPTXSize(prog)
+        if res != 0:
+            nvrtc.nvrtcDestroyProgram(prog)
+            raise RuntimeError(f"nvrtcGetPTXSize failed: {res}")
+        ptx_buffer = bytearray(ptx_size)
+        res, = nvrtc.nvrtcGetPTX(prog, ptx_buffer)
+        if res != 0:
+            nvrtc.nvrtcDestroyProgram(prog)
+            raise RuntimeError(f"nvrtcGetPTX failed: {res}")
+        ptx = bytes(ptx_buffer)
         nvrtc.nvrtcDestroyProgram(prog)
 
         err, = cuda.cuInit(0)
@@ -384,7 +462,7 @@ class ModularRPNEngine:
         err, dev = cuda.cuDeviceGet(0)
         if err != cuda.CUresult.CUDA_SUCCESS:
             raise RuntimeError(f"cuDeviceGet failed: {err}")
-        err, ctx = cuda.cuCtxCreate(0, dev)
+        err, ctx = cuda.cuCtxCreate(None, 0, dev)
         if err != cuda.CUresult.CUDA_SUCCESS:
             raise RuntimeError(f"cuCtxCreate failed: {err}")
         self._ctx = ctx
@@ -537,7 +615,8 @@ class ModularRPNEngine:
             # Copy the instance state back to host
             instance_struct = self._instance_struct()
             offset = instance_id * self._instance_size
-            cuda.cuMemcpyDtoH(ctypes.addressof(instance_struct), self._d_states + offset, self._instance_size)
+            state_ptr = cuda.CUdeviceptr(int(self._d_states) + offset)
+            cuda.cuMemcpyDtoH(ctypes.addressof(instance_struct), state_ptr, self._instance_size)
 
             if instance_struct.error != 0:
                 raise RuntimeError(f"RPN engine error code {instance_struct.error}")
