@@ -703,10 +703,68 @@
         "suggested_revision": "Try saying: reinforced_rectangular_frame"
       },
       "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T20:01:08.972710",
+      "query": "Describe the entrance door to someone approaching the House.",
+      "student_answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
+        "modality_hint": "Emphasise oak wood grain, etched glass glow, and brushed brass hardware.",
+        "matched_keywords": [
+          "oak",
+          "glass",
+          "brass",
+          "door"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T20:01:24.093927",
+      "query": "Which ambient sound signals that the entrance door unlocks?",
+      "student_answer": "soft_brass_chime",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "soft_brass_chime",
+        "modality_hint": "Audio carries a soft brass chime with a short shimmering decay.",
+        "matched_keywords": [
+          "soft",
+          "brass",
+          "chime"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: soft_brass_chime"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T20:01:40.137402",
+      "query": "What structural frame keeps the entrance door rigid?",
+      "student_answer": "reinforced_rectangular_frame",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "reinforced_rectangular_frame",
+        "modality_hint": "Geometry shows a reinforced rectangular frame bolted into the stone surround.",
+        "matched_keywords": [
+          "reinforced",
+          "rectangular",
+          "frame"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: reinforced_rectangular_frame"
+      },
+      "score": 1.0
     }
   ],
   "zone_placement": "Zone 1 (Entrance)",
-  "last_updated": "2025-09-17T18:55:07.367190",
-  "message_count": 36,
+  "last_updated": "2025-09-17T20:01:40.137402",
+  "message_count": 39,
   "latest_score": 1.0
 }

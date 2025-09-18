@@ -815,10 +815,68 @@
         "suggested_revision": "Try saying: x_brace_support_grid"
       },
       "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T20:08:20.563817",
+      "query": "Describe the grand bookshelf that spans the library wall.",
+      "student_answer": "The grand bookshelf is a triple-story walnut frame with rolling ladders and inlaid brass shelf markers.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The grand bookshelf is a triple-story walnut frame with rolling ladders and inlaid brass shelf markers.",
+        "modality_hint": "Image showcases walnut grain, brass markers, and rolling ladders.",
+        "matched_keywords": [
+          "walnut",
+          "triple-story",
+          "ladders",
+          "brass"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The grand bookshelf is a triple-story walnut frame with rolling ladders and inlaid brass shelf markers."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T20:08:36.602722",
+      "query": "Which ambient sound lives around the grand bookshelf?",
+      "student_answer": "soft_page_turns",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "soft_page_turns",
+        "modality_hint": "Audio layers soft page turns with distant ladder glides.",
+        "matched_keywords": [
+          "soft",
+          "page",
+          "turns"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: soft_page_turns"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T20:08:52.571551",
+      "query": "What structural brace keeps the bookshelf stable?",
+      "student_answer": "x_brace_support_grid",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "x_brace_support_grid",
+        "modality_hint": "Geometry shows an X-brace support grid behind the shelves.",
+        "matched_keywords": [
+          "brace",
+          "support",
+          "grid"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: x_brace_support_grid"
+      },
+      "score": 1.0
     }
   ],
   "zone_placement": "Zone 3 (Library)",
-  "last_updated": "2025-09-17T19:50:53.687696",
-  "message_count": 42,
+  "last_updated": "2025-09-17T20:08:52.571551",
+  "message_count": 45,
   "latest_score": 1.0
 }

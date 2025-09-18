@@ -1,0 +1,23 @@
+{
+  "type": "diary_entry",
+  "title": "Reflection: house_mirror_room_orientation",
+  "author": "AI Self",
+  "created_at": "2025-09-17T20:00:04.009021",
+  "honesty_score": 1.0,
+  "content": [
+    "Trained on 3 queries about house_mirror_room_orientation.",
+    "Accuracy: 100%.",
+    "Core insight: Guide the model through the Mirror Room mirror and its sensory anchors."
+  ],
+  "embedding": [
+    0.9882352941176471,
+    0.8666666666666667,
+    0.8274509803921568,
+    0.6,
+    0.6705882352941176,
+    0.3607843137254902,
+    0.8705882352941177,
+    0.5254901960784314
+  ],
+  "zone_placement": "Zone 7 (Mirror Room)"
+}

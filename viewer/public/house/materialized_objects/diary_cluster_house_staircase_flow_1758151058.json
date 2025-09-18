@@ -1,0 +1,23 @@
+{
+  "type": "diary_entry",
+  "title": "Reflection: house_staircase_flow",
+  "author": "AI Self",
+  "created_at": "2025-09-17T20:17:38.637030",
+  "honesty_score": 1.0,
+  "content": [
+    "Trained on 9 queries about house_staircase_flow.",
+    "Accuracy: 100%.",
+    "Core insight: Ground the spiral staircase's structure, acoustics, and navigation cues."
+  ],
+  "embedding": [
+    0.25098039215686274,
+    0.08235294117647059,
+    0.9450980392156862,
+    0.2196078431372549,
+    0.6823529411764706,
+    0.9803921568627451,
+    0.7098039215686275,
+    0.47843137254901963
+  ],
+  "zone_placement": "Zone 2 (Observatory)"
+}

@@ -5,22 +5,22 @@
   "created_at": "2025-09-17T16:28:15.385700",
   "honesty_score": 1.0,
   "embedding": [
-    0.4161475896835327,
-    0.5871766209602356,
-    0.45715704560279846,
-    0.5020341277122498,
-    0.4264664053916931,
-    0.5764118432998657,
-    0.633437991142273,
-    0.3231315612792969,
-    0.3629763126373291,
-    0.3107423782348633,
-    0.23468150198459625,
-    0.642411470413208,
-    0.19306692481040955,
-    0.42956721782684326,
-    0.6387869119644165,
-    0.49475592374801636,
+    0.4172573685646057,
+    0.5962319374084473,
+    0.4610132873058319,
+    0.4970872104167938,
+    0.41755494475364685,
+    0.5665571093559265,
+    0.638630747795105,
+    0.30969712138175964,
+    0.3589250445365906,
+    0.31497034430503845,
+    0.22975526750087738,
+    0.6439840793609619,
+    0.18869313597679138,
+    0.42357614636421204,
+    0.6434944868087769,
+    0.5012079477310181,
     0.0,
     0.0,
     0.0,
@@ -2063,7 +2063,7 @@
   "predicted_answer": "",
   "true_answer": "",
   "zone_placement": "Zone 3 (Library)",
-  "updated_at": "2025-09-17T18:52:43.352212",
+  "updated_at": "2025-09-17T19:59:17.392373",
   "mutation_history": [
     {
       "round": 0,
@@ -2708,6 +2708,42 @@
       "round": 0,
       "score": 1.0,
       "timestamp": "2025-09-17T18:52:43.352212",
+      "query": "When the book opens, what sound texture should its audio memory capture?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T19:57:08.731720",
+      "query": "How would you describe the book on the Library shelf to someone who cannot see it?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T19:57:24.659275",
+      "query": "Which 3D shape best represents the outer form of that Library book?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T19:57:40.937450",
+      "query": "When the book opens, what sound texture should its audio memory capture?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T19:58:45.924388",
+      "query": "How would you describe the book on the Library shelf to someone who cannot see it?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T19:59:01.575463",
+      "query": "Which 3D shape best represents the outer form of that Library book?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T19:59:17.392373",
       "query": "When the book opens, what sound texture should its audio memory capture?"
     }
   ],

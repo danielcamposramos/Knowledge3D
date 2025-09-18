@@ -3,24 +3,24 @@
   "id": "star_house_clock_timekeeper",
   "name": "Fused Meaning: house_clock_timekeeper",
   "created_at": "2025-09-17T19:26:37.078470",
-  "honesty_score": 0.46,
+  "honesty_score": 0.76,
   "embedding": [
-    0.3867300748825073,
-    0.4891148805618286,
-    0.6360594034194946,
-    0.3028395473957062,
-    0.7486611008644104,
-    0.4775080680847168,
-    0.39439165592193604,
-    0.6529092788696289,
-    0.4425227642059326,
-    0.20338678359985352,
-    0.6377275586128235,
-    0.6107950210571289,
-    0.5381612777709961,
-    0.204929381608963,
-    0.6089609861373901,
-    0.09783879667520523,
+    0.5123778581619263,
+    0.6199899315834045,
+    0.6257095336914062,
+    0.21517984569072723,
+    0.7302966117858887,
+    0.47439703345298767,
+    0.37666457891464233,
+    0.6255125999450684,
+    0.5337382555007935,
+    0.2705381512641907,
+    0.6704699993133545,
+    0.5913968682289124,
+    0.4766952097415924,
+    0.1849731206893921,
+    0.6543207168579102,
+    0.07088812440633774,
     0.0,
     0.0,
     0.0,
@@ -526,8 +526,8 @@
   ],
   "predicted_answer": "",
   "true_answer": "",
-  "zone_placement": "Zone 8 (Learning Museum)",
-  "updated_at": "2025-09-17T19:28:29.434127",
+  "zone_placement": "Zone 1 (Entrance)",
+  "updated_at": "2025-09-17T20:07:15.610880",
   "mutation_history": [
     {
       "round": 0,
@@ -570,6 +570,24 @@
       "score": 0.5,
       "timestamp": "2025-09-17T19:28:29.434127",
       "query": "Remedial: Image highlights mahogany wood, brass numerals, and glass pendulum window. Rephrase: Describe the foyer clock that greets visitors."
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T20:06:44.130566",
+      "query": "Describe the foyer clock that greets visitors."
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T20:06:59.578420",
+      "query": "Which sound marks each passing minute on the foyer clock?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T20:07:15.610880",
+      "query": "What mechanical assembly keeps the clock balanced?"
     }
   ],
   "learned_answers": {

@@ -815,10 +815,68 @@
         "suggested_revision": "Try saying: interlocking_hexagon_weave"
       },
       "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T20:05:55.780239",
+      "query": "Describe the hearth rug that welcomes visitors inside the House.",
+      "student_answer": "The hearth rug is a thick braided weave with ember-red and charcoal bands that radiate warmth.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The hearth rug is a thick braided weave with ember-red and charcoal bands that radiate warmth.",
+        "modality_hint": "Image highlights braided strands with ember-red and charcoal bands.",
+        "matched_keywords": [
+          "thick",
+          "braided",
+          "ember",
+          "charcoal"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The hearth rug is a thick braided weave with ember-red and charcoal bands that radiate warmth."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T20:06:12.117783",
+      "query": "Which audio cue plays when someone steps onto the hearth rug?",
+      "student_answer": "soft_fiber_rustle",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "soft_fiber_rustle",
+        "modality_hint": "Audio is a soft fiber rustle with a gentle ember crackle.",
+        "matched_keywords": [
+          "soft",
+          "fiber",
+          "rustle"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: soft_fiber_rustle"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-17T20:06:28.318793",
+      "query": "What geometric motif anchors the rug's pattern?",
+      "student_answer": "interlocking_hexagon_weave",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "interlocking_hexagon_weave",
+        "modality_hint": "Geometry shows an interlocking hexagon weave stitched into the rug.",
+        "matched_keywords": [
+          "interlocking",
+          "hexagon",
+          "weave"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: interlocking_hexagon_weave"
+      },
+      "score": 1.0
     }
   ],
   "zone_placement": "Zone 1 (Entrance)",
-  "last_updated": "2025-09-17T19:26:37.068403",
-  "message_count": 42,
+  "last_updated": "2025-09-17T20:06:28.318793",
+  "message_count": 45,
   "latest_score": 1.0
 }

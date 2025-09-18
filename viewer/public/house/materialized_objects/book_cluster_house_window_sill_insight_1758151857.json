@@ -1,0 +1,60 @@
+{
+  "type": "chat_history_book",
+  "title": "Training Log: house_window_sill_insight",
+  "author": "AI Self",
+  "created_at": "2025-09-17T20:30:57.755823",
+  "honesty_score": 1.0,
+  "content": [
+    {
+      "query": "Describe the library bay window sill for someone ready to sit and read.",
+      "answer": "The bay window sill is a carved walnut bench with velvet cushions and inset bronze reading lights."
+    },
+    {
+      "query": "Which ambient sound drifts through the bay window?",
+      "answer": "garden_breeze_whisper"
+    },
+    {
+      "query": "What structural bracket supports the bay window slope?",
+      "answer": "angled_walnut_corbel"
+    },
+    {
+      "query": "Remedial: Image shows carved walnut surfaces, velvet cushions, and bronze lights along the sill. Rephrase: Describe the library bay window sill for someone ready to sit and read.",
+      "answer": "The bay window sill is a carved walnut bench with velvet cushions and inset bronze reading lights."
+    },
+    {
+      "query": "Remedial: Audio mixes a garden breeze whisper with distant fountain trickles. Rephrase: Which ambient sound drifts through the bay window?",
+      "answer": "garden_breeze_whisper"
+    },
+    {
+      "query": "Remedial: Geometry reveals angled walnut corbels tucked beneath the sill. Rephrase: What structural bracket supports the bay window slope?",
+      "answer": "angled_walnut_corbel"
+    },
+    {
+      "query": "Remedial: Audio mixes a garden breeze whisper with distant fountain trickles. Rephrase: Remedial: Audio mixes a garden breeze whisper with distant fountain trickles. Rephrase: Which ambient sound drifts through the bay window?",
+      "answer": "garden_breeze_whisper"
+    },
+    {
+      "query": "Remedial: Geometry reveals angled walnut corbels tucked beneath the sill. Rephrase: Remedial: Geometry reveals angled walnut corbels tucked beneath the sill. Rephrase: What structural bracket supports the bay window slope?",
+      "answer": "angled_walnut_corbel"
+    },
+    {
+      "query": "Remedial: Audio mixes a garden breeze whisper with distant fountain trickles. Rephrase: Remedial: Audio mixes a garden breeze whisper with distant fountain trickles. Rephrase: Remedial: Audio mixes a garden breeze whisper with distant fountain trickles. Rephrase: Which ambient sound drifts through the bay window?",
+      "answer": "garden_breeze_whisper"
+    },
+    {
+      "query": "Remedial: Geometry reveals angled walnut corbels tucked beneath the sill. Rephrase: Remedial: Geometry reveals angled walnut corbels tucked beneath the sill. Rephrase: Remedial: Geometry reveals angled walnut corbels tucked beneath the sill. Rephrase: What structural bracket supports the bay window slope?",
+      "answer": "angled_walnut_corbel"
+    }
+  ],
+  "embedding": [
+    0.27058823529411763,
+    0.7725490196078432,
+    0.29411764705882354,
+    0.7490196078431373,
+    0.43137254901960786,
+    0.9647058823529412,
+    0.35294117647058826,
+    0.6470588235294118
+  ],
+  "zone_placement": "Zone 3 (Library)"
+}

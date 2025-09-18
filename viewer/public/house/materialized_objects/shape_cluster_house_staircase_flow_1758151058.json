@@ -1,0 +1,20 @@
+{
+  "type": "generated_3d_shape",
+  "name": "Concept: house_staircase_flow",
+  "created_at": "2025-09-17T20:17:38.636922",
+  "honesty_score": 1.0,
+  "embedding": [
+    0.25098039215686274,
+    0.08235294117647059,
+    0.9450980392156862,
+    0.2196078431372549,
+    0.6823529411764706,
+    0.9803921568627451,
+    0.7098039215686275,
+    0.47843137254901963
+  ],
+  "shape_type": "icosahedron",
+  "vertex_count": 100,
+  "zone_placement": "Zone 2 (Observatory)",
+  "ptx_kernel_used": "train_cluster_house_staircase_flow_kernel"
+}

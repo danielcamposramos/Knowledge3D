@@ -7,7 +7,7 @@
       "index": 0,
       "query": "Describe the entrance door materials.",
       "expected": "The entrance door is a heavy oak slab with an etched glass panel and a brushed brass handle.",
-      "predicted": "honesty_ray",
+      "predicted": "tetrahedron",
       "correct": false
     },
     {

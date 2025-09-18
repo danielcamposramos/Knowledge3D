@@ -5,22 +5,22 @@
   "created_at": "2025-09-17T19:15:20.237714",
   "honesty_score": 1.0,
   "embedding": [
-    0.36649641394615173,
-    0.6624584197998047,
-    0.5758974552154541,
-    0.4537200331687927,
-    0.7496640682220459,
+    0.3664965033531189,
+    0.6624585390090942,
+    0.5758975744247437,
+    0.4537200927734375,
+    0.7496641874313354,
     0.4021308422088623,
-    0.7538720965385437,
-    0.5469602346420288,
-    0.23294830322265625,
-    0.4308531880378723,
-    0.34364748001098633,
-    0.5987464189529419,
-    0.4948875606060028,
-    0.5202792882919312,
-    0.4826394021511078,
-    0.5409436225891113,
+    0.7538722157478333,
+    0.5469603538513184,
+    0.23294834792613983,
+    0.4308532476425171,
+    0.3436475396156311,
+    0.5987465381622314,
+    0.49488765001296997,
+    0.5202793478965759,
+    0.4826394319534302,
+    0.5409436821937561,
     0.0,
     0.0,
     0.0,
@@ -527,7 +527,7 @@
   "predicted_answer": "",
   "true_answer": "",
   "zone_placement": "Zone 1 (Entrance)",
-  "updated_at": "2025-09-17T19:26:37.069603",
+  "updated_at": "2025-09-17T20:06:28.320123",
   "mutation_history": [
     {
       "round": 0,
@@ -780,6 +780,24 @@
       "score": 1.0,
       "timestamp": "2025-09-17T19:26:37.069603",
       "query": "Remedial: Geometry shows an interlocking hexagon weave stitched into the rug. Rephrase: Remedial: Geometry shows an interlocking hexagon weave stitched into the rug. Rephrase: Remedial: Geometry shows an interlocking hexagon weave stitched into the rug. Rephrase: What geometric motif anchors the rug's pattern?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T20:05:55.781357",
+      "query": "Describe the hearth rug that welcomes visitors inside the House."
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T20:06:12.124134",
+      "query": "Which audio cue plays when someone steps onto the hearth rug?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-17T20:06:28.320123",
+      "query": "What geometric motif anchors the rug's pattern?"
     }
   ],
   "learned_answers": {

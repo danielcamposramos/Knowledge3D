@@ -1,0 +1,56 @@
+{
+  "type": "chat_history_book",
+  "title": "Training Log: house_staircase_flow",
+  "author": "AI Self",
+  "created_at": "2025-09-17T20:17:38.636794",
+  "honesty_score": 1.0,
+  "content": [
+    {
+      "query": "Describe the spiral staircase that connects the observatory levels.",
+      "answer": "A bronze spiral staircase with glass treads wraps around a central light column leading to the observatory dome."
+    },
+    {
+      "query": "Which ambient sound accompanies footsteps on the spiral staircase?",
+      "answer": "soft_glass_chime_steps"
+    },
+    {
+      "query": "What structural support keeps the staircase anchored to the observatory wall?",
+      "answer": "helical_support_spine"
+    },
+    {
+      "query": "Remedial: Image highlights bronze rails, translucent glass treads, and the central light column. Rephrase: Describe the spiral staircase that connects the observatory levels.",
+      "answer": "A bronze spiral staircase with glass treads wraps around a central light column leading to the observatory dome."
+    },
+    {
+      "query": "Remedial: Geometry reveals a helical support spine bolted into the observatory masonry. Rephrase: What structural support keeps the staircase anchored to the observatory wall?",
+      "answer": "helical_support_spine"
+    },
+    {
+      "query": "Remedial: Image highlights bronze rails, translucent glass treads, and the central light column. Rephrase: Remedial: Image highlights bronze rails, translucent glass treads, and the central light column. Rephrase: Describe the spiral staircase that connects the observatory levels.",
+      "answer": "A bronze spiral staircase with glass treads wraps around a central light column leading to the observatory dome."
+    },
+    {
+      "query": "Remedial: Geometry reveals a helical support spine bolted into the observatory masonry. Rephrase: Remedial: Geometry reveals a helical support spine bolted into the observatory masonry. Rephrase: What structural support keeps the staircase anchored to the observatory wall?",
+      "answer": "helical_support_spine"
+    },
+    {
+      "query": "Remedial: Image highlights bronze rails, translucent glass treads, and the central light column. Rephrase: Remedial: Image highlights bronze rails, translucent glass treads, and the central light column. Rephrase: Remedial: Image highlights bronze rails, translucent glass treads, and the central light column. Rephrase: Describe the spiral staircase that connects the observatory levels.",
+      "answer": "A bronze spiral staircase with glass treads wraps around a central light column leading to the observatory dome."
+    },
+    {
+      "query": "Remedial: Geometry reveals a helical support spine bolted into the observatory masonry. Rephrase: Remedial: Geometry reveals a helical support spine bolted into the observatory masonry. Rephrase: Remedial: Geometry reveals a helical support spine bolted into the observatory masonry. Rephrase: What structural support keeps the staircase anchored to the observatory wall?",
+      "answer": "helical_support_spine"
+    }
+  ],
+  "embedding": [
+    0.25098039215686274,
+    0.08235294117647059,
+    0.9450980392156862,
+    0.2196078431372549,
+    0.6823529411764706,
+    0.9803921568627451,
+    0.7098039215686275,
+    0.47843137254901963
+  ],
+  "zone_placement": "Zone 2 (Observatory)"
+}
