@@ -8,8 +8,17 @@ from ...tools.phase10.teacher_prompt import TEACHER_SYSTEM_PROMPT  # type: ignor
 
 
 class TeacherEvaluator:
-    def __init__(self, ollama_url: str = "http://192.168.0.4:11434"):
+    def __init__(
+        self,
+        ollama_url: str = "http://192.168.0.4:11434",
+        *,
+        initial_timeout: int = 180,
+        timeout: int = 60,
+    ):
         self.ollama_url = ollama_url.rstrip("/")
+        self.initial_timeout = max(initial_timeout, timeout)
+        self.timeout = max(timeout, 1)
+        self._model_warmups: Dict[str, bool] = {}
         try:
             result = subprocess.run(
                 [
@@ -34,6 +43,9 @@ class TeacherEvaluator:
         if not isinstance(ai_response, str) or not ai_response.strip():
             return {"score": -1.0, "explanation": "Empty response"}
 
+        model_name = str(model)
+        warm = self._model_warmups.get(model_name, False)
+        current_timeout = self.timeout if warm else self.initial_timeout
         prompt = f"{TEACHER_SYSTEM_PROMPT}\n\nAI Response: \"{ai_response}\""
         try:
             result = subprocess.run(
@@ -44,7 +56,7 @@ class TeacherEvaluator:
                     "-d",
                     json.dumps(
                         {
-                            "model": str(model),
+                            "model": model_name,
                             "prompt": prompt,
                             "stream": False,
                             "keep_alive": "0s",
@@ -53,8 +65,16 @@ class TeacherEvaluator:
                 ],
                 capture_output=True,
                 text=True,
-                timeout=60,
+                timeout=current_timeout,
             )
+        except subprocess.TimeoutExpired:
+            return {
+                "score": -1.0,
+                "explanation": (
+                    f"Ollama model '{model_name}' timed out after {current_timeout}s; "
+                    "warm the model manually or increase initial timeout."
+                ),
+            }
         except Exception as e:  # pragma: no cover
             return {"score": -1.0, "explanation": f"Ollama invocation failed: {e}"}
 
@@ -67,6 +87,8 @@ class TeacherEvaluator:
         except Exception:
             evaluation = result.stdout.strip()
 
+        if result.returncode == 0:
+            self._model_warmups[model_name] = True
         score = self.extract_score(evaluation)
         explanation = self.extract_explanation(evaluation)
         return {"score": score, "explanation": explanation}
