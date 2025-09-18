@@ -36,6 +36,11 @@ class AlgorithmicThinkingTrainer:
         self._trainer: Optional[MeaningClusterTrainer] = None
         self._rpn_corpus: List[Dict[str, Any]] = []
         self._thinking_corpus: List[Dict[str, Any]] = []
+        self._time_corpus: List[Dict[str, Any]] = []
+        self._reflection_corpus: List[Dict[str, Any]] = []
+        self._context_corpus: List[Dict[str, Any]] = []
+        self._teaching_corpus: List[Dict[str, Any]] = []
+        self._research_corpus: List[Dict[str, Any]] = []
         self._rpn_calculator: Optional[RPNCalculator] = RPNCalculator() if RPNCalculator is not None else None
         
     @property
@@ -81,6 +86,17 @@ class AlgorithmicThinkingTrainer:
 
         if not hasattr(self, "_thinking_corpus") or not self._thinking_corpus:
             self._load_thinking_corpus()
+
+        if not self._time_corpus:
+            self._time_corpus = self._load_jsonl(Path("viewer/public/galaxy/working/time_corpus.jsonl"), 200)
+        if not self._reflection_corpus:
+            self._reflection_corpus = self._load_jsonl(Path("viewer/public/galaxy/working/self_reflection_corpus.jsonl"), 200)
+        if not self._context_corpus:
+            self._context_corpus = self._load_jsonl(Path("viewer/public/galaxy/working/context_corpus.jsonl"), 200)
+        if not self._teaching_corpus:
+            self._teaching_corpus = self._load_jsonl(Path("viewer/public/galaxy/working/teaching_corpus.jsonl"), 200)
+        if not self._research_corpus:
+            self._research_corpus = self._load_jsonl(Path("viewer/public/galaxy/working/research_corpus.jsonl"), 100)
 
         # Warm the fused head (CPU) before spinning up Ollama teachers.
         try:
@@ -238,6 +254,23 @@ class AlgorithmicThinkingTrainer:
                     "keywords": ["thinking", "concept"],
                 }
             )
+
+        for dataset, tag in (
+            (self._time_corpus, "time"),
+            (self._reflection_corpus, "self_reflection"),
+            (self._context_corpus, "context"),
+            (self._teaching_corpus, "teaching"),
+            (self._research_corpus, "research"),
+        ):
+            for entry in dataset:
+                queries.append(
+                    {
+                        "query": entry.get('question', ''),
+                        "true_answer": entry.get('answer', ''),
+                        "explanation": entry.get('answer', ''),
+                        "keywords": [tag],
+                    }
+                )
         return queries
 
     def extract_concepts(self, text: str) -> List[str]:
@@ -447,7 +480,7 @@ class AlgorithmicThinkingTrainer:
         self._rpn_corpus = entries
         self._rpn_calculator.reset()
 
-    def _load_thinking_corpus(self, limit: int = 80) -> None:
+    def _load_thinking_corpus(self, limit: int = 200) -> None:
         corpus_path = Path("viewer/public/galaxy/working/thinking_corpus.jsonl")
         if not corpus_path.exists():
             print("⚠️  Thinking corpus not found — skipping conceptual drills.")
@@ -465,11 +498,27 @@ class AlgorithmicThinkingTrainer:
                 sentence = obj.get("sentence", "")
                 if not question or not answer:
                     continue
-                entries.append({
-                    "question": question,
-                    "answer": answer,
-                    "sentence": sentence,
-                })
+            entries.append({
+                "question": question,
+                "answer": answer,
+                "sentence": sentence,
+            })
+            if len(entries) >= limit:
+                break
+        self._thinking_corpus = entries
+
+    def _load_jsonl(self, path: Path, limit: int) -> List[Dict[str, Any]]:
+        if not path.exists():
+            print(f"⚠️  Corpus not found: {path}")
+            return []
+        entries: List[Dict[str, Any]] = []
+        with path.open("r", encoding="utf-8") as fh:
+            for line in fh:
+                try:
+                    obj = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                entries.append(obj)
                 if len(entries) >= limit:
                     break
-        self._thinking_corpus = entries
+        return entries
