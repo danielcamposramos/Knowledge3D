@@ -16,3 +16,14 @@
 ## Next Steps
 1. Rebuild the corpora with the updated filters (already done as part of this change).
 2. Relaunch the PTX + RLWHF training loop and monitor `logs/phase25_thinking_train.log` once exaone is ready.
+
+## Timeout Adjustments
+- TeacherEvaluator default timeout increased to 5 minutes (initial) / 2.5 minutes (subsequent) so exaone-deep evaluations no longer time out mid-run.
+
+## Sleep-Time Consolidation
+- Algorithmic Thinking trainer now triggers  automatically after processing roughly two-thirds of the corpus (mimicking an 8h sleep window in a 24h cycle).
+- Sleep writes materialised artifacts to  and logs adjustments under .
+
+## Sleep-Time Consolidation
+- Algorithmic Thinking trainer now triggers `SleepTimeCompute` automatically after processing roughly two-thirds of the active corpus (mirroring an 8h sleep window in a 24h cycle).
+- Sleep writes materialised artifacts to `viewer/public/house/materialized_objects/` and logs adjustments under `logs/sleep_time_adjustments.json`.
