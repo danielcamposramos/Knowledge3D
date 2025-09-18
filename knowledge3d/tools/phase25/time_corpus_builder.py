@@ -15,6 +15,14 @@ KEYWORDS = [
     "frequency", "sequence", "revolution", "time", "moment", "period",
     "cycle", "phase", "temporal", "chronicle"
 ]
+UNWANTED = (
+    "copyright",
+    "publisher",
+    "press",
+    "isbn",
+    "all rights reserved",
+    "©",
+)
 
 
 def split_sentences(text: str) -> List[str]:
@@ -24,6 +32,9 @@ def split_sentences(text: str) -> List[str]:
         if len(sentence) < 40 or len(sentence) > 480:
             continue
         if sentence.count(" ") < 3:
+            continue
+        lowered = sentence.lower()
+        if any(token in lowered for token in UNWANTED):
             continue
         sentences.append(sentence)
     return sentences

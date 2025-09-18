@@ -9,6 +9,7 @@ import base64
 import re
 import os
 import subprocess
+import shutil
 import sys
 import copy
 import textwrap
@@ -30,13 +31,20 @@ def auto_install_package(module_name: str, pip_name: str | None = None, conda_ch
     except Exception:
         pass
     pkg = pip_name or module_name
+    conda_exe = (
+        os.environ.get("CONDA_EXE")
+        or shutil.which("conda")
+        or ("/home/daniel/miniforge/bin/conda" if Path("/home/daniel/miniforge/bin/conda").exists() else None)
+    )
     try:
-        if conda_channel:
+        if conda_channel and conda_exe:
             print(f"📦 Installing {pkg} via conda ({conda_channel})...")
-            r = subprocess.run(["conda", "install", "-n", "k3d-cranium", "-c", conda_channel, pkg, "-y"], capture_output=True, text=True)
+            r = subprocess.run([conda_exe, "install", "-n", "k3d-cranium", "-c", conda_channel, pkg, "-y"], capture_output=True, text=True)
             if r.returncode == 0:
                 print(f"✅ {pkg} installed (conda).")
                 return
+        elif conda_channel:
+            print(f"⚠️  Conda executable not found; skipping conda install for {pkg}.")
         print(f"📦 Installing {pkg} via pip...")
         r = subprocess.run([sys.executable, "-m", "pip", "install", pkg], capture_output=True, text=True)
         if r.returncode == 0:

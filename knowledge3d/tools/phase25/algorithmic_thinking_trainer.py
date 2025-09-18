@@ -41,7 +41,9 @@ class AlgorithmicThinkingTrainer:
         self._context_corpus: List[Dict[str, Any]] = []
         self._teaching_corpus: List[Dict[str, Any]] = []
         self._research_corpus: List[Dict[str, Any]] = []
-        self._rpn_calculator: Optional[RPNCalculator] = RPNCalculator() if RPNCalculator is not None else None
+        if RPNCalculator is None:
+            raise ImportError("RPNCalculator unavailable — ensure phase10 PTX engine is importable.")
+        self._rpn_calculator: RPNCalculator = RPNCalculator()
         
     @property
     def trainer(self) -> "MeaningClusterTrainer":
@@ -55,21 +57,19 @@ class AlgorithmicThinkingTrainer:
 
     def ensure_env(self) -> None:
         """Emit guidance if the preferred conda environment is not active."""
-        conda_path = shutil.which("conda")
+        conda_path = (
+            shutil.which("conda")
+            or ("/home/daniel/miniforge/bin/conda" if Path("/home/daniel/miniforge/bin/conda").exists() else None)
+        )
         current_env = os.environ.get("CONDA_DEFAULT_ENV", "")
         if conda_path is None:
-            print("⚠️  Conda executable not found; ensure dependencies are available before running heavy trainers.")
-            return
+            raise RuntimeError("Conda executable not found; activate the k3d-cranium environment before training.")
         if current_env != "k3d-cranium":
             label = current_env or "unknown"
-            print(
-                "⚠️  Detected conda env '",
-                label,
-                "' — activate 'k3d-cranium' (conda activate k3d-cranium) for full GPU/RLWHF support.",
-                sep="",
+            raise RuntimeError(
+                f"Conda env '{label}' active — run 'conda activate k3d-cranium' before training."
             )
-        else:
-            print("✅ Conda env k3d-cranium detected.")
+        print("✅ Conda env k3d-cranium detected.")
 
     def train_algorithmic_thinking(self) -> None:
         """Execute algorithmic thinking drills across curated stars with RLWHF teachers."""
@@ -144,10 +144,14 @@ class AlgorithmicThinkingTrainer:
                     quick_feedback = teacher.evaluate_response(
                         ai_response=predicted,
                         model="exaone3.5:latest",
+                        question=prompt,
+                        expected_answer=true_answer,
                     )
                     deep_feedback = teacher.evaluate_response(
                         ai_response=predicted,
                         model="exaone-deep:latest",
+                        question=prompt,
+                        expected_answer=true_answer,
                     )
                     score = float(quick_feedback.get("score", 0.0))
                     deep_score = deep_feedback.get("score")
@@ -440,11 +444,7 @@ class AlgorithmicThinkingTrainer:
     def _load_rpn_corpus(self, limit: int = 20) -> None:
         corpus_path = Path("viewer/public/galaxy/working/rpn_corpus.jsonl")
         if not corpus_path.exists():
-            print("⚠️  RPN corpus not found — skipping corpus-driven drills.")
-            return
-        if self._rpn_calculator is None:
-            print("⚠️  RPN calculator unavailable — cannot integrate corpus drills.")
-            return
+            raise FileNotFoundError("RPN corpus not found — run rpn_corpus_builder before training.")
 
         entries: List[Dict[str, Any]] = []
         with corpus_path.open("r", encoding="utf-8") as fh:
@@ -483,9 +483,7 @@ class AlgorithmicThinkingTrainer:
     def _load_thinking_corpus(self, limit: int = 200) -> None:
         corpus_path = Path("viewer/public/galaxy/working/thinking_corpus.jsonl")
         if not corpus_path.exists():
-            print("⚠️  Thinking corpus not found — skipping conceptual drills.")
-            self._thinking_corpus = []
-            return
+            raise FileNotFoundError("Thinking corpus not found — run thinking_corpus_builder before training.")
         entries: List[Dict[str, str]] = []
         with corpus_path.open("r", encoding="utf-8") as fh:
             for line in fh:
@@ -498,13 +496,13 @@ class AlgorithmicThinkingTrainer:
                 sentence = obj.get("sentence", "")
                 if not question or not answer:
                     continue
-            entries.append({
-                "question": question,
-                "answer": answer,
-                "sentence": sentence,
-            })
-            if len(entries) >= limit:
-                break
+                entries.append({
+                    "question": question,
+                    "answer": answer,
+                    "sentence": sentence,
+                })
+                if len(entries) >= limit:
+                    break
         self._thinking_corpus = entries
 
     def _load_jsonl(self, path: Path, limit: int) -> List[Dict[str, Any]]:

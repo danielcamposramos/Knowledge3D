@@ -40,7 +40,14 @@ class TeacherEvaluator:
         except Exception as e:
             raise RuntimeError(f"❌ Ollama unreachable at {self.ollama_url} — aborting. Error: {e}")
 
-    def evaluate_response(self, ai_response: str, model: str = "exaone3.5:latest") -> Dict:
+    def evaluate_response(
+        self,
+        ai_response: str,
+        *,
+        model: str = "exaone3.5:latest",
+        question: str | None = None,
+        expected_answer: str | None = None,
+    ) -> Dict:
         """Evaluate AI response with RLWHF scoring via Ollama (non-stream)."""
         if not isinstance(ai_response, str) or not ai_response.strip():
             return {"score": -1.0, "explanation": "Empty response"}
@@ -48,7 +55,16 @@ class TeacherEvaluator:
         model_name = str(model)
         warm = self._model_warmups.get(model_name, False)
         current_timeout = self.timeout if warm else self.initial_timeout
-        prompt = f"{TEACHER_SYSTEM_PROMPT}\n\nAI Response: \"{ai_response}\""
+
+        if question or expected_answer:
+            prompt = (
+                f"{TEACHER_SYSTEM_PROMPT}\n\n"
+                f"Question: {question or 'Unknown question provided.'}\n"
+                f"Expected Answer: {expected_answer or 'Not supplied.'}\n"
+                f"Student Answer: \"{ai_response}\""
+            )
+        else:
+            prompt = f"{TEACHER_SYSTEM_PROMPT}\n\nAI Response: \"{ai_response}\""
         try:
             result = subprocess.run(
                 [

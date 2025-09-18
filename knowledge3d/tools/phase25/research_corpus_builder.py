@@ -13,6 +13,14 @@ KEYWORDS = [
     "variable", "observation", "evidence", "reasoning", "scientific",
     "data", "model", "theory", "result", "inference"
 ]
+UNWANTED = (
+    "copyright",
+    "publisher",
+    "press",
+    "isbn",
+    "©",
+    "all rights reserved",
+)
 
 
 def split_sentences(text: str) -> List[str]:
@@ -20,6 +28,9 @@ def split_sentences(text: str) -> List[str]:
     for chunk in SENTENCE_PATTERN.split(text):
         sentence = chunk.strip()
         if len(sentence) < 50 or len(sentence) > 480:
+            continue
+        lowered = sentence.lower()
+        if any(token in lowered for token in UNWANTED):
             continue
         sentences.append(sentence)
     return sentences

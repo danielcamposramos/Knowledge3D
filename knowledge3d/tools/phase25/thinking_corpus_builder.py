@@ -11,6 +11,17 @@ PARA_SPLIT = re.compile(r"\n{2,}")
 SENTENCE_PATTERN = re.compile(r"(?<=[.!?])\s+")
 WORD_PATTERN = re.compile(r"[A-Za-zÀ-ÿ']{4,}")
 TITLE_PATTERN = re.compile(r"^(chapter|section|lesson|practice|insight|exercise)\b", re.IGNORECASE)
+UNWANTED = (
+    "copyright",
+    "publisher",
+    "press",
+    "mcgraw",
+    "manning",
+    "isbn",
+    "all rights reserved",
+    "©",
+    "permission",
+)
 
 
 def split_sentences(text: str) -> List[str]:
@@ -22,6 +33,9 @@ def split_sentences(text: str) -> List[str]:
         if sentence.count(" ") < 3:
             continue
         if TITLE_PATTERN.match(sentence):
+            continue
+        lowered = sentence.lower()
+        if any(token in lowered for token in UNWANTED):
             continue
         sentences.append(sentence)
     return sentences
