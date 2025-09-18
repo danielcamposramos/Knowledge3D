@@ -751,7 +751,14 @@ class MeaningClusterTrainer:
         self.arc_agi_path = self.datasets_path / "arc-agi"
         self.hle_path = self.datasets_path / "humanitys_last_exam"
         # Fallbacks for local dataset layout
-        if not self.arc_agi_path.exists():
+        def _contains_arc_json(path: Path) -> bool:
+            if not path.exists():
+                return False
+            if (path / 'data' / 'training').exists():
+                return any((path / 'data' / 'training').glob('*.json'))
+            return any(path.glob('*.json'))
+
+        if not _contains_arc_json(self.arc_agi_path):
             alt = self.datasets_path / "arc-src"
             if alt.exists():
                 self.arc_agi_path = alt
@@ -1582,15 +1589,40 @@ class MeaningClusterTrainer:
 
     def load_all_dataset_questions(self) -> List[Dict[str, Any]]:
         questions: List[Dict[str, Any]] = []
-        # ARC-AGI style
+        # ARC-AGI / ARC-SRC dataset
+        arc_dirs: List[Path] = []
+        if self.arc_agi_path.exists():
+            if (self.arc_agi_path / 'data').exists():
+                for subset in ('training', 'evaluation'):
+                    subset_path = self.arc_agi_path / 'data' / subset
+                    if subset_path.exists():
+                        arc_dirs.append(subset_path)
+            else:
+                arc_dirs.append(self.arc_agi_path)
         try:
-            for fp in self.arc_agi_path.rglob('*.json'):
-                try:
-                    data = json.loads(Path(fp).read_text(encoding='utf-8'))
-                except Exception:
-                    continue
-                for pair in data.get('train', []) or []:
-                    questions.append({'query': f"ARC pattern from {Path(fp).stem}", 'true_answer': 'hypersphere_projection', 'dataset': 'arc-agi'})
+            for arc_root in arc_dirs:
+                for fp in arc_root.glob('*.json'):
+                    try:
+                        data = json.loads(Path(fp).read_text(encoding='utf-8'))
+                    except Exception:
+                        continue
+                    task_id = Path(fp).stem
+                    for split in ('train', 'test'):
+                        for idx, pair in enumerate(data.get(split, []) or []):
+                            if not isinstance(pair, dict):
+                                continue
+                            inp = pair.get('input')
+                            out = pair.get('output')
+                            if inp is None or out is None:
+                                continue
+                            query = json.dumps({
+                                'task': task_id,
+                                'split': split,
+                                'index': idx,
+                                'input': inp,
+                            }, ensure_ascii=False)
+                            answer = json.dumps(out, ensure_ascii=False)
+                            questions.append({'query': f"ARC {query}", 'true_answer': answer, 'dataset': 'arc-agi'})
         except Exception:
             pass
         # HLE style
@@ -1601,7 +1633,11 @@ class MeaningClusterTrainer:
                 except Exception:
                     continue
                 for q in data.get('questions', []) or []:
-                    questions.append({'query': q.get('question', ''), 'true_answer': q.get('correct_answer', ''), 'dataset': 'hle'})
+                    question_text = q.get('question', '')
+                    answer_text = q.get('correct_answer', '')
+                    if not question_text or answer_text is None:
+                        continue
+                    questions.append({'query': question_text, 'true_answer': answer_text, 'dataset': 'hle'})
         except Exception:
             pass
         # Fallback synthetic
