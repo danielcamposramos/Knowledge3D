@@ -27,6 +27,14 @@ except Exception:
     RPNCalculator = None  # type: ignore
 
 
+LEXICON_JSONL_FILES = [
+    Path("viewer/public/galaxy/working/lexicon_en_wordnet.jsonl"),
+    Path("viewer/public/galaxy/working/lexicon_pt_openwordnet.jsonl"),
+    Path("viewer/public/galaxy/working/lexicon_es_kaikki.jsonl"),
+    Path("viewer/public/galaxy/working/lexicon_zh_cedict.jsonl"),
+]
+
+
 class AlgorithmicThinkingTrainer:
     """RPN + honesty drills for Algorithmic Thinking stars."""
 
@@ -41,6 +49,7 @@ class AlgorithmicThinkingTrainer:
         self._context_corpus: List[Dict[str, Any]] = []
         self._teaching_corpus: List[Dict[str, Any]] = []
         self._research_corpus: List[Dict[str, Any]] = []
+        self._lexicon_corpus: List[Dict[str, Any]] = []
         if RPNCalculator is None:
             raise ImportError("RPNCalculator unavailable — ensure phase10 PTX engine is importable.")
         self._rpn_calculator: RPNCalculator = RPNCalculator()
@@ -99,6 +108,8 @@ class AlgorithmicThinkingTrainer:
             self._teaching_corpus = self._load_jsonl(Path("viewer/public/galaxy/working/teaching_corpus.jsonl"), 200)
         if not self._research_corpus:
             self._research_corpus = self._load_jsonl(Path("viewer/public/galaxy/working/research_corpus.jsonl"), 100)
+        if not self._lexicon_corpus:
+            self._lexicon_corpus = self._load_lexicon_corpus(per_file=300)
 
         total_queries = (
             len(self._rpn_corpus)
@@ -292,6 +303,15 @@ class AlgorithmicThinkingTrainer:
                         "keywords": [tag],
                     }
                 )
+        for entry in getattr(self, "_lexicon_corpus", []):
+            queries.append(
+                {
+                    "query": entry.get("question", ""),
+                    "true_answer": entry.get("answer", ""),
+                    "explanation": entry.get("explanation", ""),
+                    "keywords": [entry.get("lemma", ""), entry.get("language", "")],
+                }
+            )
         return queries
 
     def extract_concepts(self, text: str) -> List[str]:
@@ -521,6 +541,82 @@ class AlgorithmicThinkingTrainer:
                 if len(entries) >= limit:
                     break
         self._thinking_corpus = entries
+
+    def _load_lexicon_corpus(self, per_file: int = 200) -> List[Dict[str, Any]]:
+        corpus: List[Dict[str, Any]] = []
+        for path in LEXICON_JSONL_FILES:
+            if not path.exists():
+                continue
+            added = 0
+            try:
+                with path.open("r", encoding="utf-8") as fh:
+                    for line in fh:
+                        if added >= per_file:
+                            break
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            data = json.loads(line)
+                        except json.JSONDecodeError:
+                            continue
+                        lex = data.get("lexicon_entry")
+                        if not isinstance(lex, dict):
+                            continue
+                        lemma = lex.get("lemma") or lex.get("traditional")
+                        language = lex.get("language", "unknown")
+                        definition = lex.get("definition")
+                        if not definition:
+                            definitions = lex.get("definitions")
+                            if isinstance(definitions, list) and definitions:
+                                definition = definitions[0]
+                        if not lemma or not definition:
+                            continue
+                        lemma_str = str(lemma)
+                        synonyms = lex.get("synonyms") or []
+                        pronunciations = lex.get("pronunciations") or []
+                        corpus.append(
+                            {
+                                "question": f"Define '{lemma_str}' ({language}).",
+                                "answer": definition,
+                                "explanation": definition,
+                                "lemma": lemma_str,
+                                "language": language,
+                                "source": str(path),
+                            }
+                        )
+                        added += 1
+                        if added >= per_file:
+                            break
+                        if synonyms:
+                            corpus.append(
+                                {
+                                    "question": f"Give a synonym for '{lemma_str}' ({language}).",
+                                    "answer": synonyms[0],
+                                    "explanation": ", ".join(str(s) for s in synonyms if s),
+                                    "lemma": lemma_str,
+                                    "language": language,
+                                    "source": str(path),
+                                }
+                            )
+                            added += 1
+                            if added >= per_file:
+                                continue
+                        if pronunciations:
+                            corpus.append(
+                                {
+                                    "question": f"Provide the IPA pronunciation for '{lemma_str}' ({language}).",
+                                    "answer": str(pronunciations[0]),
+                                    "explanation": str(pronunciations[0]),
+                                    "lemma": lemma_str,
+                                    "language": language,
+                                    "source": str(path),
+                                }
+                            )
+                            added += 1
+            except Exception as exc:
+                print(f"⚠️  Failed to load lexicon prompts from {path}: {exc}")
+        return corpus
 
     def _load_jsonl(self, path: Path, limit: int) -> List[Dict[str, Any]]:
         if not path.exists():
