@@ -49,8 +49,10 @@ def write_manifest(path: Path, rows: Iterable[Dict[str, str]]) -> None:
 def fetch_subset(args: argparse.Namespace) -> None:
     clean_lang = sanitize_lang(args.language)
     split = args.split
-    if args.count:
+    max_items: Optional[int] = None
+    if args.count is not None and args.count > 0:
         split = f"{split}[:{args.count}]"
+        max_items = args.count
 
     if args.dataset == "common_voice":
         dataset = load_dataset(
@@ -61,6 +63,14 @@ def fetch_subset(args: argparse.Namespace) -> None:
         )
         transcript_field = "sentence"
         speaker_field = "client_id"
+    elif args.dataset == "multilingual_librispeech":
+        dataset = load_dataset(
+            "facebook/multilingual_librispeech",
+            args.language,
+            split=split,
+        )
+        transcript_field = "transcript"
+        speaker_field = "speaker_id"
     else:
         dataset = load_dataset(
             "PolyAI/minds14",
@@ -73,14 +83,15 @@ def fetch_subset(args: argparse.Namespace) -> None:
     out_dir = args.out_dir
     ensure_dir(out_dir)
     rows = []
-    max_items = len(dataset) if args.count is None else min(len(dataset), args.count)
+    if max_items is None:
+        max_items = len(dataset)
 
     audio_root = out_dir
     for idx, record in enumerate(dataset):
-        if args.count is not None and idx >= args.count:
+        if args.count is not None and args.count > 0 and idx >= args.count:
             break
         audio = record.get("audio")
-        if not audio:
+        if audio is None:
             continue
         if args.dataset == "common_voice":
             array = audio.get("array") if isinstance(audio, dict) else None
@@ -139,7 +150,7 @@ def fetch_subset(args: argparse.Namespace) -> None:
 
 def parse_args(argv: Optional[Iterable[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Fetch speech datasets for lexicon audio")
-    parser.add_argument("--dataset", choices=["common_voice", "minds14"], default="common_voice",
+    parser.add_argument("--dataset", choices=["common_voice", "minds14", "multilingual_librispeech"], default="common_voice",
                         help="Dataset to download (default: common_voice)")
     parser.add_argument("--language", required=True,
                         help="Language identifier (Common Voice code or PolyAI/minds14 config, e.g., en, pt, es, zh-CN, en-US)")

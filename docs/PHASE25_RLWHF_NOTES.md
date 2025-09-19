@@ -37,8 +37,12 @@
   - `env PYTHONPATH=. python -m knowledge3d.tools.lexicon_builder_pt --out viewer/public/galaxy/working/lexicon_pt_openwordnet.jsonl`
   - `env PYTHONPATH=. python -m knowledge3d.tools.lexicon_builder_es --out viewer/public/galaxy/working/lexicon_es_kaikki.jsonl`
   - `env PYTHONPATH=. python -m knowledge3d.tools.lexicon_builder_zh --out viewer/public/galaxy/working/lexicon_zh_cedict.jsonl`
+  - `env PYTHONPATH=. python -m knowledge3d.tools.lexicon_builder_pt_br --out viewer/public/galaxy/working/lexicon_pt_br_kaikki.jsonl`
+  - `env PYTHONPATH=. python -m knowledge3d.tools.lexicon_builder_pt_grammar --out viewer/public/galaxy/working/lexicon_pt_pt_grammar.jsonl`
 - Pass `--limit` while iterating to generate quick samples (e.g., `--limit 200`). Omitting the flag emits the full corpus.
 - Each star stores lemma, POS, definition(s), synonyms, pronunciations, and relations so the Galaxy can stitch lexical concepts into Phase 25 reasoning drills.
+  - The Kaikki Portuguese dump (`kaikki.org-dictionary-Portuguese.jsonl.gz`) sits under `/home/daniel/K3D_llama_cpp/datasets/lexicons/portuguese_br/`; it produces `viewer/public/galaxy/working/lexicon_pt_br_kaikki.jsonl` (~GBs). Keep this artifact out of git—regenerate on demand with the command above.
+  - Grammar scaffolding for pt-PT is curated in-code (see `knowledge3d/tools/lexicon_builder_pt_grammar.py`) so the variant keeps its structural rules.
 
 ## Pronunciation Audio Builder
 - `env PYTHONPATH=. python -m knowledge3d.tools.pronunciation_audio_builder --metadata <manifest.tsv> --audio-root <clips_dir> --language en --source commonvoice --out viewer/public/galaxy/working/lexicon_audio_en_commonvoice.jsonl`
@@ -53,10 +57,14 @@
     --out-dir /home/daniel/K3D_llama_cpp/datasets/audio \
     --manifest /home/daniel/K3D_llama_cpp/datasets/audio/en_us/minds14/manifest.csv \
     --mirror-root /K3D/Knowledge3D.local/datasets/audio \
-    --count 150
+    --count -1  # use -1 to pull the full split
   ```
 - Repeat for `pt-PT`, `es-ES`, and `zh-CN` to seed multilingual speech clips; manifests land under `../datasets/audio/<lang>/<dataset>/manifest.csv` and are mirrored into `Knowledge3D.local` for builders.
 - Common Voice remains the long-term target; once licensing access is approved, rerun the same command with `--dataset common_voice` to swap in the official corpora without changing downstream tooling.
+- Current `minds14` pulls yield: EN 563 clips (≈1.34 h), PT 604 (≈2.69 h), ES 486 (≈1.53 h), ZH 502 (≈1.26 h); average utterance lengths stay below 17 seconds which keeps audio builder runtime fast.
+- Brazilian Portuguese audio uses the 9-hour split of `facebook/multilingual_librispeech` (`env PYTHONPATH=. python -m knowledge3d.tools.fetch_common_voice_subset --dataset multilingual_librispeech --language portuguese --split 9_hours --count -1 ...`). The manifest lives at `/home/daniel/K3D_llama_cpp/datasets/audio/pt_br/multilingual_librispeech_9h/manifest.csv` and mirrors into `/K3D/Knowledge3D.local/datasets/audio/pt_br/multilingual_librispeech_9h/`.
+- Build the pt-BR pronunciation stars with `env PYTHONPATH=. python -m knowledge3d.tools.pronunciation_audio_builder --metadata /K3D/Knowledge3D.local/datasets/audio/pt_br/multilingual_librispeech_9h/manifest.csv --audio-root /K3D/Knowledge3D.local/datasets/audio --language pt --source multilingual_librispeech_9h --out viewer/public/galaxy/working/lexicon_audio_pt_br_librispeech9h.jsonl`.
+- All generated JSONL/WAV assets exceed the 99 MB git ceiling—do **not** commit them. Keep the commands above in this log for reproducibility.
 
 ## Trainer Integration
 - `AlgorithmicThinkingTrainer` now ingests lexicon prompts automatically. When any `lexicon_*.jsonl` file exists in `viewer/public/galaxy/working/`, the trainer samples per-language definition, synonym, and IPA questions before spawning RLWHF loops.
