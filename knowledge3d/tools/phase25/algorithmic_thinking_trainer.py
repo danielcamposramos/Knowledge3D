@@ -135,8 +135,8 @@ class AlgorithmicThinkingTrainer:
 
             teacher = TeacherEvaluator(
                 ollama_url="http://192.168.0.4:11434",
-                initial_timeout=240,
-                timeout=75,
+                initial_timeout=300,
+                timeout=240,
             )
         except Exception as exc:
             print(f"❌ TeacherEvaluator unavailable — RLWHF scoring skipped: {exc}")

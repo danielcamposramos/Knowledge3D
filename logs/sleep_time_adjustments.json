@@ -2,5 +2,27 @@
   "zone_shifts": [],
   "ray_adjustments": [],
   "pruned_rays": [],
-  "materialized_objects": []
+  "materialized_objects": [],
+  "post_consolidation_training": [
+    {
+      "query": "Why was shape dream_sphere_971343_1758383117_v1_v2_v3 discarded? What geometric property failed?",
+      "trained_at": "2025-09-20T12:45:17.415747"
+    },
+    {
+      "query": "What honesty constraint was violated in revision 3 of dream_sphere_971343_1758383117_v1_v2_v3?",
+      "trained_at": "2025-09-20T12:45:17.415758"
+    },
+    {
+      "query": "How to increase honesty for dream_sphere_971343_1758383117_v1_v2_v3 when embedding entropy is high?",
+      "trained_at": "2025-09-20T12:45:17.415765"
+    },
+    {
+      "query": "Why was shape dream_icosahedron_935153_1758383117_v1_v2_v3 discarded? What geometric property failed?",
+      "trained_at": "2025-09-20T12:45:17.415772"
+    },
+    {
+      "query": "What honesty constraint was violated in revision 3 of dream_icosahedron_935153_1758383117_v1_v2_v3?",
+      "trained_at": "2025-09-20T12:45:17.415779"
+    }
+  ]
 }
