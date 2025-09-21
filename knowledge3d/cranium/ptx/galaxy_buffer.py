@@ -23,10 +23,12 @@ class DeviceBuffer:
 @dataclass
 class MeshRecord:
     mesh_index: int
+    primitive_index: int
     vertex_offset: int
     vertex_count: int
     index_offset: int
     index_count: int
+    index_component_type: int
     material_id: Optional[int]
 
 
@@ -40,6 +42,13 @@ class GalaxyGPUMemory:
     node_table: List[Dict[str, int]] = field(default_factory=list)
     mesh_records: List[MeshRecord] = field(default_factory=list)
     glb_path: Optional[str] = None
+    embeddings_path: Optional[str] = None
+    embedding_shape: Tuple[int, ...] = field(default_factory=tuple)
+    vertices_dirty: bool = False
+    indices_dirty: bool = False
+    normals_dirty: bool = False
+    normals_stale: bool = False
+    embeddings_dirty: bool = False
 
     def __del__(self) -> None:  # pragma: no cover
         try:
@@ -119,7 +128,7 @@ def load_meshes_from_glb(
     mesh_records: List[MeshRecord] = []
 
     for mesh_index, mesh in enumerate(glb.meshes or []):
-        for prim in mesh.primitives:
+        for prim_index, prim in enumerate(mesh.primitives):
             accessor = glb.accessors[prim.attributes["POSITION"]]
             view = glb.bufferViews[accessor.bufferView]
             buf = glb.buffers[view.buffer]
@@ -139,10 +148,12 @@ def load_meshes_from_glb(
             mesh_records.append(
                 MeshRecord(
                     mesh_index=mesh_index,
+                    primitive_index=prim_index,
                     vertex_offset=vertex_offset,
                     vertex_count=verts.shape[0],
                     index_offset=index_offset,
                     index_count=raw_idx.size,
+                    index_component_type=index_accessor.componentType,
                     material_id=getattr(prim, "material", None),
                 )
             )
@@ -164,6 +175,7 @@ def load_meshes_from_glb(
     normals_array = np.concatenate(normal_chunks).astype(np.float32) if normal_chunks else np.array([], dtype=np.float32)
 
     embeddings_array = np.array([], dtype=np.float32)
+    embedding_shape: Tuple[int, ...] = tuple()
     node_table: List[Dict[str, int]] = []
     if embedding_json and Path(embedding_json).exists():
         data = json.loads(Path(embedding_json).read_text())
@@ -171,6 +183,7 @@ def load_meshes_from_glb(
         node_table = data.get("nodes", [])
         if embeddings:
             embeddings_array = np.array(embeddings, dtype=np.float32)
+            embedding_shape = tuple(embeddings_array.shape)
 
     ctx = _ensure_context()
     vertices_dev = _alloc_and_upload(vertices_array)
@@ -187,6 +200,8 @@ def load_meshes_from_glb(
         node_table=node_table,
         mesh_records=mesh_records,
         glb_path=str(glb_path),
+        embeddings_path=str(Path(embedding_json)) if embedding_json else None,
+        embedding_shape=embedding_shape,
     )
 
 
@@ -206,6 +221,10 @@ def save_meshes_to_glb(galaxy_memory: GalaxyGPUMemory, target_path: Optional[str
     if galaxy_memory.glb_path is None:
         raise ValueError("GalaxyGPUMemory missing original GLB path")
 
+    if not any([galaxy_memory.vertices_dirty, galaxy_memory.indices_dirty, galaxy_memory.normals_dirty]) and target_path is None:
+        # Nothing changed; skip disk churn unless explicitly requested.
+        return
+
     glb = GLTF2().load(galaxy_memory.glb_path)
 
     vertices_host = _download_buffer(galaxy_memory.vertices, np.float32)
@@ -215,9 +234,15 @@ def save_meshes_to_glb(galaxy_memory: GalaxyGPUMemory, target_path: Optional[str
     vertex_cursor = 0
     index_cursor = 0
     normal_cursor = 0
+    record_iter = iter(galaxy_memory.mesh_records)
 
     for mesh in glb.meshes or []:
         for prim in mesh.primitives:
+            try:
+                record = next(record_iter)
+            except StopIteration as exc:  # pragma: no cover
+                raise RuntimeError("Mesh record mismatch during save") from exc
+
             pos_accessor = glb.accessors[prim.attributes["POSITION"]]
             pos_view = glb.bufferViews[pos_accessor.bufferView]
             count = pos_accessor.count * pos_accessor.type.count
@@ -233,9 +258,11 @@ def save_meshes_to_glb(galaxy_memory: GalaxyGPUMemory, target_path: Optional[str
             idx_accessor = glb.accessors[prim.indices]
             idx_view = glb.bufferViews[idx_accessor.bufferView]
             idx_count = idx_accessor.count
-            idx_bytes = idx_count * 4
+            idx_dtype = np.uint16 if record.index_component_type == 5123 else np.uint32
+            idx_itemsize = np.dtype(idx_dtype).itemsize
+            idx_bytes = idx_count * idx_itemsize
             if idx_bytes:
-                idx_data = indices_host[index_cursor:index_cursor + idx_count].astype(np.uint32).tobytes()
+                idx_data = indices_host[index_cursor:index_cursor + idx_count].astype(idx_dtype).tobytes()
                 buffer = glb.buffers[idx_view.buffer]
                 original = buffer.data or b""
                 buffer.data = original[:idx_view.byteOffset] + idx_data + original[idx_view.byteOffset + idx_bytes:]
@@ -243,7 +270,7 @@ def save_meshes_to_glb(galaxy_memory: GalaxyGPUMemory, target_path: Optional[str
                 index_cursor += idx_count
 
             normal_attr = prim.attributes.get("NORMAL")
-            if normal_attr is not None and normals_host.size:
+            if normal_attr is not None and normals_host.size and galaxy_memory.normals_dirty and not galaxy_memory.normals_stale:
                 norm_accessor = glb.accessors[normal_attr]
                 norm_view = glb.bufferViews[norm_accessor.bufferView]
                 norm_count = norm_accessor.count * norm_accessor.type.count
@@ -258,3 +285,41 @@ def save_meshes_to_glb(galaxy_memory: GalaxyGPUMemory, target_path: Optional[str
 
     output = target_path or galaxy_memory.glb_path
     glb.save(output)
+
+    galaxy_memory.vertices_dirty = False
+    galaxy_memory.indices_dirty = False
+    galaxy_memory.normals_dirty = False
+
+
+def save_embeddings_to_json(galaxy_memory: GalaxyGPUMemory, target_path: Optional[str] = None) -> None:
+    """Persist embedding buffer + node table back to JSON."""
+
+    if galaxy_memory.embeddings.size == 0 or galaxy_memory.embeddings.ptr == 0:
+        return
+
+    if not galaxy_memory.embeddings_dirty and target_path is None:
+        return
+
+    path_str: Optional[str] = target_path or galaxy_memory.embeddings_path
+    if path_str is None:
+        raise ValueError("No embeddings path provided; pass target_path")
+
+    embeddings_host = _download_buffer(galaxy_memory.embeddings, np.float32)
+    if galaxy_memory.embedding_shape:
+        embeddings_host = embeddings_host.reshape(galaxy_memory.embedding_shape)
+
+    payload = {}
+    path = Path(path_str)
+    if path.exists():
+        try:
+            payload = json.loads(path.read_text())
+        except json.JSONDecodeError:  # pragma: no cover
+            payload = {}
+
+    payload["embeddings"] = embeddings_host.tolist()
+    if galaxy_memory.node_table:
+        payload["nodes"] = galaxy_memory.node_table
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2))
+    galaxy_memory.embeddings_dirty = False

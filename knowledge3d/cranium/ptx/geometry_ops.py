@@ -86,6 +86,9 @@ def apply_mesh_transform(
     _free_device(offsets_dev)
     _free_device(counts_dev)
 
+    galaxy_memory.vertices_dirty = True
+    galaxy_memory.normals_stale = True
+
 
 def recalc_mesh_normals(
     galaxy_memory: GalaxyGPUMemory,
@@ -93,11 +96,19 @@ def recalc_mesh_normals(
 ) -> None:
     if not galaxy_memory.mesh_records:
         raise ValueError("no mesh data loaded")
+    if galaxy_memory.normals.ptr == 0 or galaxy_memory.normals.size == 0:
+        raise ValueError("normal buffer unavailable; cannot recalc")
     record = galaxy_memory.mesh_records[mesh_index]
     offsets, counts = _prepare_offsets_counts(galaxy_memory, index_mode=True)
 
     offsets_dev = _alloc_upload(offsets)
     counts_dev = _alloc_upload(counts)
+
+    err, = cuda.cuMemsetD32(galaxy_memory.normals.ptr, 0, galaxy_memory.normals.size // 4)
+    if err != cuda.CUresult.CUDA_SUCCESS:
+        _free_device(offsets_dev)
+        _free_device(counts_dev)
+        raise RuntimeError(f"cuMemsetD32 failed: {err}")
 
     threads = 256
     blocks = math.ceil((record.index_count // 3) / threads)
@@ -105,7 +116,7 @@ def recalc_mesh_normals(
     params = (
         galaxy_memory.vertices.ptr,
         galaxy_memory.indices.ptr,
-        galaxy_memory.normals.ptr if hasattr(galaxy_memory, "normals") else 0,
+        galaxy_memory.normals.ptr,
         offsets_dev.ptr,
         counts_dev.ptr,
         np.uint32(mesh_index),
@@ -114,6 +125,9 @@ def recalc_mesh_normals(
 
     _free_device(offsets_dev)
     _free_device(counts_dev)
+
+    galaxy_memory.normals_dirty = True
+    galaxy_memory.normals_stale = False
 
 
 def blend_node_embedding(
@@ -125,6 +139,16 @@ def blend_node_embedding(
     if galaxy_memory.embeddings.size == 0:
         raise ValueError("embedding buffer is empty")
     embedding_dim = source_embedding.shape[-1]
+    if source_embedding.ndim != 1:
+        raise ValueError("source_embedding must be 1D")
+    if galaxy_memory.embedding_shape:
+        if len(galaxy_memory.embedding_shape) != 2:
+            raise ValueError("embedding buffer shape is invalid")
+        node_count, device_dim = galaxy_memory.embedding_shape
+        if embedding_dim != device_dim:
+            raise ValueError("source embedding dimension mismatch")
+        if node_index >= node_count:
+            raise IndexError("node_index out of range")
     source_dev = _alloc_upload(source_embedding.astype(np.float32).reshape(-1))
 
     threads = 256
@@ -139,6 +163,8 @@ def blend_node_embedding(
     )
     _launch_kernel(_BLEND_EMBED, blocks, threads, params)
     _free_device(source_dev)
+
+    galaxy_memory.embeddings_dirty = True
 
 
 def _alloc_upload(array: np.ndarray) -> DeviceBuffer:
@@ -161,13 +187,20 @@ def _free_device(buffer: DeviceBuffer) -> None:
 
 
 def _launch_kernel(func: int, blocks: int, threads: int, params: Tuple) -> None:
-    args = tuple(np.array([p], dtype=np.uint64) if isinstance(p, int) else np.array([p], dtype=np.float32) for p in params)
+    arg_arrays = []
+    for value in params:
+        if isinstance(value, (int, np.integer)):
+            arg_arrays.append(np.array([int(value)], dtype=np.uint64))
+        elif isinstance(value, (float, np.floating)):
+            arg_arrays.append(np.array([float(value)], dtype=np.float32))
+        else:  # pragma: no cover - unexpected parameter type
+            raise TypeError(f"Unsupported kernel parameter type: {type(value)!r}")
     err, = cuda.cuLaunchKernel(
         func,
         blocks, 1, 1,
         threads, 1, 1,
         0, 0,
-        tuple(arg.ctypes.data for arg in args),
+        tuple(arg.ctypes.data for arg in arg_arrays),
         0,
     )
     if err != cuda.CUresult.CUDA_SUCCESS:
