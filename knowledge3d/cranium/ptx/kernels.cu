@@ -77,3 +77,71 @@ extern "C" __global__ void blend_embeddings(
     float dst = target[idx];
     target[idx] = dst + alpha * (src - dst);
 }
+
+extern "C" __global__ void scale_vertices(
+    const float3 scale,
+    float3* vertices,
+    const unsigned int* __restrict__ mesh_offsets,
+    const unsigned int* __restrict__ mesh_counts,
+    unsigned int mesh_index
+) {
+    unsigned int start = mesh_offsets[mesh_index];
+    unsigned int count = mesh_counts[mesh_index];
+    unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid >= count) return;
+
+    unsigned int idx = start + tid;
+    float3 v = vertices[idx];
+    vertices[idx] = make_float3(v.x * scale.x, v.y * scale.y, v.z * scale.z);
+}
+
+extern "C" __global__ void offset_vertices(
+    const float3 offset,
+    float3* vertices,
+    const unsigned int* __restrict__ mesh_offsets,
+    const unsigned int* __restrict__ mesh_counts,
+    unsigned int mesh_index
+) {
+    unsigned int start = mesh_offsets[mesh_index];
+    unsigned int count = mesh_counts[mesh_index];
+    unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid >= count) return;
+
+    unsigned int idx = start + tid;
+    float3 v = vertices[idx];
+    vertices[idx] = make_float3(v.x + offset.x, v.y + offset.y, v.z + offset.z);
+}
+
+extern "C" __global__ void normalize_embedding(
+    float* embeddings,
+    unsigned int embedding_dim,
+    unsigned int node_index
+) {
+    extern __shared__ float shared[];
+    unsigned int tid = threadIdx.x;
+    unsigned int base = node_index * embedding_dim;
+
+    float accum = 0.0f;
+    for (unsigned int idx = tid; idx < embedding_dim; idx += blockDim.x) {
+        float val = embeddings[base + idx];
+        accum += val * val;
+    }
+    shared[tid] = accum;
+    __syncthreads();
+
+    for (unsigned int stride = blockDim.x >> 1; stride > 0; stride >>= 1) {
+        if (tid < stride) {
+            shared[tid] += shared[tid + stride];
+        }
+        __syncthreads();
+    }
+
+    float norm = sqrtf(shared[0]);
+    if (norm < 1e-8f) {
+        norm = 1e-8f;
+    }
+
+    for (unsigned int idx = tid; idx < embedding_dim; idx += blockDim.x) {
+        embeddings[base + idx] /= norm;
+    }
+}
