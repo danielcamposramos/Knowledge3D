@@ -5,6 +5,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
+import numpy as np  # type: ignore
+from pygltflib import GLTF2  # type: ignore
 
 _COMPONENT_SIZES = {
     "SCALAR": 1,
@@ -20,8 +22,11 @@ _COMPONENT_SIZES = {
 def _component_count(accessor_type: str) -> int:
     return _COMPONENT_SIZES.get(accessor_type, 3)
 
-import numpy as np  # type: ignore
-from pygltflib import GLTF2  # type: ignore
+
+def _attribute_index(attributes: Union[Dict[str, int], object], key: str) -> Optional[int]:
+    if isinstance(attributes, dict):
+        return attributes.get(key)
+    return getattr(attributes, key, None)
 
 try:
     from cuda import cuda  # type: ignore
@@ -158,14 +163,9 @@ def load_meshes_from_glb(
         end = start + (view.byteLength or 0)
         return memoryview(data)[start:end]
 
-    def attribute_index(attributes: Union[Dict[str, int], object], key: str) -> Optional[int]:
-        if isinstance(attributes, dict):
-            return attributes.get(key)
-        return getattr(attributes, key, None)
-
     for mesh_index, mesh in enumerate(glb.meshes or []):
         for prim_index, prim in enumerate(mesh.primitives):
-            attr_index = attribute_index(prim.attributes, "POSITION")
+            attr_index = _attribute_index(prim.attributes, "POSITION")
             if attr_index is None:
                 continue
             accessor = glb.accessors[attr_index]
@@ -208,7 +208,7 @@ def load_meshes_from_glb(
     normal_chunks: List[np.ndarray] = []
     for mesh in glb.meshes or []:
         for prim in mesh.primitives:
-            normal_attr = attribute_index(prim.attributes, "NORMAL")
+            normal_attr = _attribute_index(prim.attributes, "NORMAL")
             if normal_attr is None:
                 continue
             accessor = glb.accessors[normal_attr]
@@ -271,6 +271,25 @@ def save_meshes_to_glb(galaxy_memory: GalaxyGPUMemory, target_path: Optional[str
         return
 
     glb = GLTF2().load(galaxy_memory.glb_path)
+    binary_blob = glb.binary_blob()
+    if binary_blob is None:
+        raise RuntimeError("GLB is missing embedded binary blob; ensure assets use bufferViews")
+    blob = bytearray(binary_blob)
+
+    buffer_offsets: Dict[int, int] = {}
+    cursor = 0
+    for idx, buf in enumerate(glb.buffers or []):
+        if getattr(buf, "uri", None):
+            raise RuntimeError("GLB uses external URIs; convert to embedded buffers before PTX save")
+        buffer_offsets[idx] = cursor
+        cursor += buf.byteLength or 0
+
+    def write_view(view_index: int, data: bytes) -> None:
+        view = glb.bufferViews[view_index]
+        base = buffer_offsets.get(view.buffer, 0)
+        start = base + (view.byteOffset or 0)
+        end = start + len(data)
+        blob[start:end] = data
 
     vertices_host = _download_buffer(galaxy_memory.vertices, np.float32)
     indices_host = _download_buffer(galaxy_memory.indices, np.uint32)
@@ -288,47 +307,45 @@ def save_meshes_to_glb(galaxy_memory: GalaxyGPUMemory, target_path: Optional[str
             except StopIteration as exc:  # pragma: no cover
                 raise RuntimeError("Mesh record mismatch during save") from exc
 
-            pos_accessor = glb.accessors[prim.attributes["POSITION"]]
+            attr_index = _attribute_index(prim.attributes, "POSITION")
+            if attr_index is None:
+                continue
+            pos_accessor = glb.accessors[attr_index]
             pos_view = glb.bufferViews[pos_accessor.bufferView]
-            count = pos_accessor.count * pos_accessor.type.count
+            comp = _component_count(pos_accessor.type)
+            count = pos_accessor.count * comp
             byte_length = count * 4
             if byte_length:
                 data = vertices_host[vertex_cursor:vertex_cursor + count].astype(np.float32).tobytes()
-                buffer = glb.buffers[pos_view.buffer]
-                original = buffer.data or b""
-                buffer.data = original[:pos_view.byteOffset] + data + original[pos_view.byteOffset + byte_length:]
-                buffer.byteLength = len(buffer.data)
+                write_view(pos_accessor.bufferView, data)
                 vertex_cursor += count
 
-            idx_accessor = glb.accessors[prim.indices]
-            idx_view = glb.bufferViews[idx_accessor.bufferView]
-            idx_count = idx_accessor.count
-            idx_dtype = np.uint16 if record.index_component_type == 5123 else np.uint32
-            idx_itemsize = np.dtype(idx_dtype).itemsize
-            idx_bytes = idx_count * idx_itemsize
-            if idx_bytes:
-                idx_data = indices_host[index_cursor:index_cursor + idx_count].astype(idx_dtype).tobytes()
-                buffer = glb.buffers[idx_view.buffer]
-                original = buffer.data or b""
-                buffer.data = original[:idx_view.byteOffset] + idx_data + original[idx_view.byteOffset + idx_bytes:]
-                buffer.byteLength = len(buffer.data)
-                index_cursor += idx_count
+            if prim.indices is not None:
+                idx_accessor = glb.accessors[prim.indices]
+                idx_view = glb.bufferViews[idx_accessor.bufferView]
+                idx_count = idx_accessor.count
+                idx_dtype = np.uint16 if record.index_component_type == 5123 else np.uint32
+                idx_itemsize = np.dtype(idx_dtype).itemsize
+                idx_bytes = idx_count * idx_itemsize
+                if idx_bytes:
+                    idx_data = indices_host[index_cursor:index_cursor + idx_count].astype(idx_dtype).tobytes()
+                    write_view(idx_accessor.bufferView, idx_data)
+                    index_cursor += idx_count
 
-            normal_attr = prim.attributes.get("NORMAL")
+            normal_attr = _attribute_index(prim.attributes, "NORMAL")
             if normal_attr is not None and normals_host.size and galaxy_memory.normals_dirty and not galaxy_memory.normals_stale:
                 norm_accessor = glb.accessors[normal_attr]
                 norm_view = glb.bufferViews[norm_accessor.bufferView]
-                norm_count = norm_accessor.count * norm_accessor.type.count
+                comp = _component_count(norm_accessor.type)
+                norm_count = norm_accessor.count * comp
                 norm_bytes = norm_count * 4
                 if norm_bytes:
                     norm_data = normals_host[normal_cursor:normal_cursor + norm_count].astype(np.float32).tobytes()
-                    buffer = glb.buffers[norm_view.buffer]
-                    original = buffer.data or b""
-                    buffer.data = original[:norm_view.byteOffset] + norm_data + original[norm_view.byteOffset + norm_bytes:]
-                    buffer.byteLength = len(buffer.data)
+                    write_view(norm_accessor.bufferView, norm_data)
                     normal_cursor += norm_count
 
     output = target_path or galaxy_memory.glb_path
+    glb.set_binary_blob(bytes(blob))
     glb.save(output)
 
     galaxy_memory.vertices_dirty = False
