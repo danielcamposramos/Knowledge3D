@@ -462,7 +462,7 @@ class ModularRPNEngine:
         err, dev = cuda.cuDeviceGet(0)
         if err != cuda.CUresult.CUDA_SUCCESS:
             raise RuntimeError(f"cuDeviceGet failed: {err}")
-        err, ctx = cuda.cuCtxCreate(None, 0, dev)
+        err, ctx = cuda.cuCtxCreate(0, dev)
         if err != cuda.CUresult.CUDA_SUCCESS:
             raise RuntimeError(f"cuCtxCreate failed: {err}")
         self._ctx = ctx

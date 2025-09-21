@@ -655,13 +655,14 @@ class AlgorithmicThinkingTrainer:
             if not galaxy_glb.exists():
                 galaxy_glb = Path("viewer/public/galaxy.glb")
 
-            stc = SleepTimeCompute(
-                house_path=str(house_glb),
-                galaxy_path=str(galaxy_glb),
-                output_path=str(house_glb.parent / "house_post_sleep.glb"),
-                material_dir=str(house_glb.parent / "materialized_objects"),
-            )
-            stc.run()
-            print("🌙 Sleep-time consolidation complete.")
+            for cycle in range(3):
+                stc = SleepTimeCompute(
+                    house_path=str(house_glb),
+                    galaxy_path=str(galaxy_glb),
+                    output_path=str(house_glb.parent / f"house_post_sleep_cycle{cycle+1}.glb"),
+                    material_dir=str(house_glb.parent / "materialized_objects"),
+                )
+                stc.run()
+                print(f"🌙 Sleep-time consolidation cycle {cycle+1} complete.")
         except Exception as exc:
             print(f"⚠️  Sleep-time compute skipped: {exc}")
