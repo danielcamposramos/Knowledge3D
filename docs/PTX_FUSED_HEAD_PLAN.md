@@ -35,7 +35,8 @@ This log captures the outstanding work required to make the fused head read and 
 |------------|------|--------|-------|
 | 2025-09-21 | A1 | In Progress | Drafted GPU Galaxy buffer layout (see below). |
 | 2025-09-21 | A2 | In Progress | Added GPU upload scaffold (`galaxy_buffer.py`) to map GLB meshes into device buffers. |
-| 2025-09-21 | A3 | In Progress | Added PTX geometry kernels (`kernels.cu`) and wrappers (`geometry_ops.py`) for transforms, normal recompute, and embedding blend. Write-back still TODO. |
+| 2025-09-21 | A3 | Done | PTX geometry kernels + wrappers handle transforms, normal recompute, and embedding blending. |
+| 2025-09-21 | A4 | In Progress | GPU-to-GLB write-back helper (`save_meshes_to_glb`) added; needs integration with pipelines. |
 
 ### GPU Galaxy Buffer Layout (A1 draft)
 
