@@ -2291,12 +2291,8 @@ class MeaningClusterTrainer:
                 try:
                     star_payload = json.loads(star_path.read_text(encoding='utf-8'))
                     learned_map = star_payload.get('learned_answers') or {}
-                    if isinstance(learned_map, dict):
-                        if query in learned_map:
-                            learned_answer = str(learned_map[query]).strip()
-                        elif learned_map:
-                            # fall back to the most recent learned answer
-                            learned_answer = str(list(learned_map.values())[-1]).strip()
+                    if isinstance(learned_map, dict) and query in learned_map:
+                        learned_answer = str(learned_map[query]).strip()
                 except Exception as exc:
                     print(f"⚠️  Failed to read learned answers for {cluster_name}: {exc}")
         if learned_answer:

@@ -74,15 +74,15 @@ def evaluate_aime(limit: Optional[int] = None) -> List[EvalRecord]:
         question = str(row.get("Problem") or "")
         answer = int(row.get("Answer"))
         embedding = trainer.generate_multi_modal_embedding(question)
-        predicted = trainer.predict_from_fused_embedding(question, embedding, cluster_name=_CLUSTER_HINT)
-        parsed = _extract_numeric_answer(predicted)
+        prediction = trainer.predict_from_fused_embedding(question, embedding, cluster_name=_CLUSTER_HINT)
+        parsed = _extract_numeric_answer(prediction)
         correct = parsed == answer
         records.append(
             EvalRecord(
                 problem_id=problem_id,
                 question=question,
                 expected=answer,
-                prediction=predicted,
+                prediction=prediction,
                 parsed=parsed,
                 correct=correct,
             )
@@ -109,5 +109,11 @@ def write_report(records: List[EvalRecord], output_path: Path = _OUTPUT_PATH) ->
 
 
 if __name__ == "__main__":
-    results = evaluate_aime()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Evaluate AIME 2024 benchmark using the fused head only.")
+    parser.add_argument("--limit", type=int, default=None, help="Optional cap on the number of problems (default: all 30)")
+    args = parser.parse_args()
+
+    results = evaluate_aime(limit=args.limit)
     write_report(results)

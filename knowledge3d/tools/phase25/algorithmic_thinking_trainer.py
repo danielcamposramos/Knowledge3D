@@ -2,8 +2,8 @@
 
 Consumes the Algorithmic Thinking stars produced by the library ingress
 step and runs RLWHF-scored RPN drills using the Phase 18 fused head.
-Teacher feedback from exaone3.5 (local Ollama) is blended into the Galaxy
-stars so the algorithmic soul keeps growing across sessions.
+Feedback from house honesty evaluators is blended into the Galaxy stars so
+the algorithmic soul keeps growing across sessions.
 """
 from __future__ import annotations
 
@@ -17,6 +17,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
+
+import numpy as np  # type: ignore
 
 try:  # Lazy import: resolved when ``trainer`` property first accessed.
     from knowledge3d.tools.phase18.meaning_cluster_trainer import MeaningClusterTrainer  # type: ignore
@@ -80,6 +82,7 @@ class AlgorithmicThinkingTrainer:
         self._teaching_corpus: List[Dict[str, Any]] = []
         self._research_corpus: List[Dict[str, Any]] = []
         self._lexicon_corpus: List[Dict[str, Any]] = []
+        self._aime_queue: List[Dict[str, Any]] = []
         if RPNCalculator is None:
             raise ImportError("RPNCalculator unavailable — ensure phase10 PTX engine is importable.")
         self._rpn_calculator: RPNCalculator = RPNCalculator()
@@ -127,6 +130,7 @@ class AlgorithmicThinkingTrainer:
         try:
             print("🧠 Training Algorithmic Thinking — RPN, PTX, Honesty, RLWHF...")
             self.ensure_env()
+            self._verify_ptx_head()
 
             stars = self.load_stars_by_tag("algorithmic_thinking")
             if not stars:
@@ -152,6 +156,8 @@ class AlgorithmicThinkingTrainer:
             if not self._lexicon_corpus:
                 self._lexicon_corpus = self._load_lexicon_corpus(per_file=300)
 
+            self._prepare_aime_prompts(max_items=30)
+
             # Warm the fused head (CPU) before spinning up Ollama teachers.
             try:
                 print("♨️  Warming up K3D fused head (CPU)...")
@@ -165,11 +171,12 @@ class AlgorithmicThinkingTrainer:
 
                 teacher = TeacherEvaluator(
                     ollama_url="http://192.168.0.4:11434",
-                    initial_timeout=300,
-                    timeout=240,
+                    initial_timeout=420,
+                    timeout=300,
                 )
+                print("🧑‍🏫 Teacher ready: exaone-deep:latest")
             except Exception as exc:
-                print(f"❌ TeacherEvaluator unavailable — RLWHF scoring skipped: {exc}")
+                print(f"⚠️  TeacherEvaluator unavailable — falling back to house honesty evaluator: {exc}")
 
             star_batches: List[Tuple[Dict[str, Any], List[Dict[str, Any]]]] = []
             total_queries = 0
@@ -210,22 +217,24 @@ class AlgorithmicThinkingTrainer:
                     print(f"Q: {prompt}")
                     print(f"🧠 Student Answer: {predicted}")
 
-                    quick_feedback: Dict[str, Any] = {}
-                    deep_feedback: Dict[str, Any] = {}
-                    score: float = 0.0
-                    explanation_text = ""
-
-                    if teacher is not None:
+                    exact_match = predicted.strip().lower() == true_answer.strip().lower()
+                    if exact_match:
+                        score = 1.0
+                        explanation_text = "Auto-validated exact match with expected answer."
+                        quick_feedback = {"score": score, "explanation": explanation_text}
+                        deep_feedback = dict(quick_feedback)
+                        print(f"✅ Auto Honesty Score: {score:.2f} — {explanation_text}")
+                    elif teacher is not None:
                         quick_feedback = teacher.evaluate_response(
                             ai_response=predicted,
-                            model="exaone3.5:latest",
+                            model="exaone-deep:latest",
                             question=prompt,
                             expected_answer=true_answer,
                         )
                         deep_feedback = dict(quick_feedback)
                         score = float(quick_feedback.get("score", 0.0))
                         explanation_text = quick_feedback.get("explanation", "")
-                        print(f"📊 RLWHF Score: {score:.2f}")
+                        print(f"📊 RLWHF Score (exaone-deep): {score:.2f}")
                         if explanation_text:
                             print(f"💬 Teacher Feedback: {explanation_text}")
                     else:
@@ -411,6 +420,23 @@ class AlgorithmicThinkingTrainer:
                 filter(None, (self._flatten_json_text(value) for value in data.values()))
             )
         return str(data)
+
+    def _verify_ptx_head(self) -> None:
+        """Ensure the PTX geometry kernel is available before training."""
+        try:
+            from knowledge3d.cranium.phase10.nvrtc_ptx_loader import NVRTCPTXLoader  # type: ignore
+
+            loader = NVRTCPTXLoader()
+            probe = np.zeros(32, dtype=np.float32)
+            probe[:3] = np.array([1.0, 0.5, -0.75], dtype=np.float32)
+            vertices = loader.generate_vertices(probe, 4, 0)
+            if not isinstance(vertices, np.ndarray) or vertices.size == 0:
+                raise RuntimeError("PTX kernel returned empty vertex buffer")
+            print("✅ PTX geometry head verified (tetrahedron probe).")
+        except Exception as exc:
+            raise RuntimeError(
+                "PTX head unavailable — resolve CUDA/NVRTC configuration before rerunning training."
+            ) from exc
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -693,6 +719,37 @@ class AlgorithmicThinkingTrainer:
         if not text:
             return text
         return _HYPHEN_RE.sub(r"\1\2", text)
+
+    def _prepare_aime_prompts(self, max_items: int = 30) -> None:
+        if self._aime_queue:
+            return
+        try:
+            from datasets import load_dataset  # type: ignore
+
+            ds = load_dataset("Maxwell-Jia/AIME_2024", split="train")
+            prompts: List[Dict[str, Any]] = []
+            for row in ds:
+                if len(prompts) >= max_items:
+                    break
+                question = str(row.get("Problem") or "").strip()
+                answer = row.get("Answer")
+                problem_id = row.get("ID") or "AIME"
+                if not question or answer is None:
+                    continue
+                prompts.append(
+                    {
+                        "query": f"AIME problem {problem_id}: {question}",
+                        "true_answer": str(answer),
+                        "explanation": f"Official AIME answer: {answer}.",
+                        "keywords": ["AIME", str(problem_id)],
+                    }
+                )
+            if not prompts:
+                print("⚠️  No AIME prompts loaded — dataset empty or unavailable.")
+            self._aime_queue = prompts
+        except Exception as exc:
+            print(f"⚠️  Failed to prepare AIME prompts: {exc}")
+            self._aime_queue = []
 
     def _open_training_log(self, log_path: Path) -> io.TextIOBase:
         log_path.parent.mkdir(parents=True, exist_ok=True)

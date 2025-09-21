@@ -394,9 +394,7 @@ class SleepTimeCompute:
         try:
             from ..phase17.galaxy_state_serializer import GalaxyStateSerializer  # type: ignore
             print("💾 Saving Galaxy State for Eternal Continuity...")
-            repo_root = Path(__file__).resolve().parents[2]
-            gpath = repo_root / 'viewer' / 'public' / 'galaxy' / 'galaxy_memory.glb'
-            GalaxyStateSerializer(str(gpath)).serialize_galaxy_state()
+            GalaxyStateSerializer(str(self.galaxy_path)).serialize_galaxy_state()
         except Exception as e:
             print(f"⚠️  Galaxy state serialization skipped: {e}")
 
