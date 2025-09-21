@@ -233,12 +233,14 @@ scripts/k3d_env.sh run python -m knowledge3d.tools.gardens --gltf viewer/public/
 - Large assets are local-only; see `docs/LARGE_ASSETS.md` to reproduce.
 
 ### Phase 25 PT‑BR RLWHF Status (2025‑09)
-- `logs/phase25_pt_br_train.log` captures the most recent AlgorithmicThinkingTrainer run. The session executed successfully but halted during the sleep/consolidation phase because `cuda-python` is missing in `k3d-cranium`.
+- `logs/phase25_pt_br_train.log` now tees the full trainer transcript; the 2025‑09‑21 run processed 6409 queries with consolidated output logged end-to-end.
+- `SleepTimeCompute` fires three times per training pass (≈33 %, 66 %, and final completion). Reflection artefacts appear under `viewer/public/house/materialized_objects/reflection_diary_cycle_*.json`.
+- RLWHF prompts were regenerated with `exaone3.5` only (`viewer/public/galaxy/working/rlwhf_exaone3p5.jsonl`) to avoid exaone-deep thinking-tag noise in the training data.
+- AIME 2024 baseline: `0 / 30` correct (see `docs/benchmarks/aime_2024_results.json`). Use this as the starting point for fused-head fine-tuning.
 - **Action items**
-  - Install `cuda-python` (or spin a dedicated CUDA env) before invoking `SleepTimeCompute` so consolidated objects land under `viewer/public/house/materialized_objects/`.
-  - Increase RLWHF teacher timeouts (≥150 s; initial ≥300 s) to prevent exaone evaluations from timing out mid‑assessment.
-  - Load the balanced Wikipedia corpora (EN/ES/PT_PT/ZH) into the Galaxy working set so the algorithmic soul sees broad factual coverage.
-  - After consolidation, validate reasoning on `Maxwell-Jia/AIME_2024` to gauge math generalisation beyond the curated corpus.
+  - Improve fused-head reasoning so external benchmarks exceed the current `0 %` baseline; prioritise stabilising answers that currently collapse to the `chou2` placeholder.
+  - Audit teacher feedback/timeout settings to ensure exaone3.5 scoring remains stable on long prompts.
+  - Broaden Galaxy coverage (balanced EN/ES/PT_PT/ZH corpora) before the next RLWHF sweep to diversify question contexts.
 
 ### Knowledge Gardens (Ontology Room)
 - Build demo: `python3 -m knowledge3d.tools.gardens --gltf viewer/public/knowledge_garden.glb`

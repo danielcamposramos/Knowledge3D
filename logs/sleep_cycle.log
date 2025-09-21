@@ -1,0 +1,278 @@
+✅ PIL already installed.
+📦 Installing librosa via conda (conda-forge)...
+✅ librosa installed (conda).
+✅ pygltflib already installed.
+[SleepTest] Initialising AlgorithmicThinkingTrainer...
+✅ PIL already installed.
+📦 Installing librosa via conda (conda-forge)...
+✅ librosa installed (conda).
+✅ pygltflib already installed.
+[SleepTest] Initialising AlgorithmicThinkingTrainer...
+✅ PIL already installed.
+✅ librosa already installed.
+✅ pygltflib already installed.
+[SleepTest] Initialising AlgorithmicThinkingTrainer...
+
+✅ PIL already installed.
+✅ librosa already installed.
+✅ pygltflib already installed.
+[SleepTest] Initialising AlgorithmicThinkingTrainer...
+
+✅ PIL already installed.
+✅ librosa already installed.
+✅ pygltflib already installed.
+[SleepTest] Initialising AlgorithmicThinkingTrainer...
+[SleepTest] Invoking sleep cycle...
+🌙 Initiating Sleep-Time Compute & Permanent Materialization...
+🧠 Running Autonomous Meaning Synthesis...
+📚 Generating Self-Curated Curriculum...
+🌌 Dreaming New Geometry...
+🌌 Initiating Dream Sequence...
+⚠️  NVRTC PTX loader unavailable: cuModuleLoadData failed: 200. Falling back to torch.jit mock.
+⚠️  NVRTC PTX loader unavailable: cuModuleLoadData failed: 200. Falling back to torch.jit mock.
+⚠️  NVRTC PTX loader unavailable: cuModuleLoadData failed: 200. Falling back to torch.jit mock.
+🔍 Found 3 new shapes in Galaxy for pre-consolidation critique...
+🔧 Revised dream_octahedron_967567_1758426324_v1
+🔧 Revised dream_octahedron_967567_1758426324_v1_v2
+🔧 Revised dream_octahedron_967567_1758426324_v1_v2_v3
+❌ Shape dream_octahedron_967567_1758426324_v1_v2_v3 failed to reach honesty threshold after 3 revisions — NOT consolidated.
+🔧 Revised dream_dodecahedron_996910_1758426324_v1
+🔧 Revised dream_dodecahedron_996910_1758426324_v1_v2
+🔧 Revised dream_dodecahedron_996910_1758426324_v1_v2_v3
+❌ Shape dream_dodecahedron_996910_1758426324_v1_v2_v3 failed to reach honesty threshold after 3 revisions — NOT consolidated.
+🔧 Revised dream_dodecahedron_996910_1758426324_v1
+🔧 Revised dream_dodecahedron_996910_1758426324_v1_v2
+🔧 Revised dream_dodecahedron_996910_1758426324_v1_v2_v3
+❌ Shape dream_dodecahedron_996910_1758426324_v1_v2_v3 failed to reach honesty threshold after 3 revisions — NOT consolidated.
+📊 dream_octahedron_967567_1758426324_v1_v2_v3.glb: 3 revisions, final honesty 0.30 → discarded
+📊 dream_dodecahedron_996910_1758426324_v1_v2_v3.glb: 3 revisions, final honesty 0.39 → discarded
+📊 dream_dodecahedron_996910_1758426324_v1_v2_v3.glb: 3 revisions, final honesty 0.39 → discarded
+🧠 Running Post-Consolidation Reflection...
+🧠 Saved Reflection Diary: viewer/public/house/materialized_objects/reflection_diary_cycle_1758426325.json
+🎓 Generating 5 new training queries from reflection...
+  → Why was shape dream_octahedron_967567_1758426324_v1_v2_v3 discarded? What geometric property failed?
+  → What honesty constraint was violated in revision 3 of dream_octahedron_967567_1758426324_v1_v2_v3?
+  → How to increase honesty for dream_octahedron_967567_1758426324_v1_v2_v3 when embedding entropy is high?
+  → Why was shape dream_dodecahedron_996910_1758426324_v1_v2_v3 discarded? What geometric property failed?
+  → What honesty constraint was violated in revision 3 of dream_dodecahedron_996910_1758426324_v1_v2_v3?
+✅ Post-Consolidation Training Complete.
+💾 Saving Galaxy State for Eternal Continuity...
+⚠️  Galaxy state serialization skipped: Failed to load Galaxy GLB: /K3D/Knowledge3D/knowledge3d/viewer/public/galaxy/galaxy_memory.glb ([Errno 2] No such file or directory: '/K3D/Knowledge3D/knowledge3d/viewer/public/galaxy/galaxy_memory.glb')
+🌙 Sleep-Time Compute: Adjustments logged to logs/sleep_time_adjustments.json
+📚 Materialized 0 permanent objects.
+🌙 Modified House GLB would be saved to viewer/public/house/house_post_sleep_cycle1.glb (GLB writing stubbed for Phase 10.7)
+🌙 Sleep-Time Compute Complete. House ready for reload at viewer/public/house/house_post_sleep_cycle1.glb
+🏛️  All materialized objects stored in: viewer/public/house/materialized_objects
+🌙 Sleep-time consolidation cycle 1 complete.
+🌙 Initiating Sleep-Time Compute & Permanent Materialization...
+🧠 Running Autonomous Meaning Synthesis...
+📚 Generating Self-Curated Curriculum...
+🌌 Dreaming New Geometry...
+🌌 Initiating Dream Sequence...
+⚠️  NVRTC PTX loader unavailable: cuModuleLoadData failed: 200. Falling back to torch.jit mock.
+⚠️  NVRTC PTX loader unavailable: cuModuleLoadData failed: 200. Falling back to torch.jit mock.
+🔍 Found 3 new shapes in Galaxy for pre-consolidation critique...
+🔧 Revised dream_dodecahedron_5969_1758426325_v1
+🔧 Revised dream_dodecahedron_5969_1758426325_v1_v2
+🔧 Revised dream_dodecahedron_5969_1758426325_v1_v2_v3
+❌ Shape dream_dodecahedron_5969_1758426325_v1_v2_v3 failed to reach honesty threshold after 3 revisions — NOT consolidated.
+🔧 Revised dream_torus_992022_1758426325_v1
+🔧 Revised dream_torus_992022_1758426325_v1_v2
+🔧 Revised dream_torus_992022_1758426325_v1_v2_v3
+❌ Shape dream_torus_992022_1758426325_v1_v2_v3 failed to reach honesty threshold after 3 revisions — NOT consolidated.
+🔧 Revised dream_dodecahedron_5969_1758426325_v1
+🔧 Revised dream_dodecahedron_5969_1758426325_v1_v2
+🔧 Revised dream_dodecahedron_5969_1758426325_v1_v2_v3
+❌ Shape dream_dodecahedron_5969_1758426325_v1_v2_v3 failed to reach honesty threshold after 3 revisions — NOT consolidated.
+📊 dream_dodecahedron_5969_1758426325_v1_v2_v3.glb: 3 revisions, final honesty 0.38 → discarded
+📊 dream_torus_992022_1758426325_v1_v2_v3.glb: 3 revisions, final honesty 0.30 → discarded
+📊 dream_dodecahedron_5969_1758426325_v1_v2_v3.glb: 3 revisions, final honesty 0.38 → discarded
+🧠 Running Post-Consolidation Reflection...
+🧠 Saved Reflection Diary: viewer/public/house/materialized_objects/reflection_diary_cycle_1758426325.json
+🎓 Generating 5 new training queries from reflection...
+  → Why was shape dream_dodecahedron_5969_1758426325_v1_v2_v3 discarded? What geometric property failed?
+  → What honesty constraint was violated in revision 3 of dream_dodecahedron_5969_1758426325_v1_v2_v3?
+  → How to increase honesty for dream_dodecahedron_5969_1758426325_v1_v2_v3 when embedding entropy is high?
+  → Why was shape dream_torus_992022_1758426325_v1_v2_v3 discarded? What geometric property failed?
+  → What honesty constraint was violated in revision 3 of dream_torus_992022_1758426325_v1_v2_v3?
+✅ Post-Consolidation Training Complete.
+💾 Saving Galaxy State for Eternal Continuity...
+⚠️  Galaxy state serialization skipped: Failed to load Galaxy GLB: /K3D/Knowledge3D/knowledge3d/viewer/public/galaxy/galaxy_memory.glb ([Errno 2] No such file or directory: '/K3D/Knowledge3D/knowledge3d/viewer/public/galaxy/galaxy_memory.glb')
+🌙 Sleep-Time Compute: Adjustments logged to logs/sleep_time_adjustments.json
+📚 Materialized 0 permanent objects.
+🌙 Modified House GLB would be saved to viewer/public/house/house_post_sleep_cycle2.glb (GLB writing stubbed for Phase 10.7)
+🌙 Sleep-Time Compute Complete. House ready for reload at viewer/public/house/house_post_sleep_cycle2.glb
+🏛️  All materialized objects stored in: viewer/public/house/materialized_objects
+🌙 Sleep-time consolidation cycle 2 complete.
+🌙 Initiating Sleep-Time Compute & Permanent Materialization...
+🧠 Running Autonomous Meaning Synthesis...
+📚 Generating Self-Curated Curriculum...
+🌌 Dreaming New Geometry...
+🌌 Initiating Dream Sequence...
+⚠️  NVRTC PTX loader unavailable: cuModuleLoadData failed: 200. Falling back to torch.jit mock.
+⚠️  NVRTC PTX loader unavailable: cuModuleLoadData failed: 200. Falling back to torch.jit mock.
+⚠️  NVRTC PTX loader unavailable: cuModuleLoadData failed: 200. Falling back to torch.jit mock.
+🔍 Found 3 new shapes in Galaxy for pre-consolidation critique...
+🔧 Revised dream_dodecahedron_3190_1758426325_v1
+🔧 Revised dream_dodecahedron_3190_1758426325_v1_v2
+🔧 Revised dream_dodecahedron_3190_1758426325_v1_v2_v3
+❌ Shape dream_dodecahedron_3190_1758426325_v1_v2_v3 failed to reach honesty threshold after 3 revisions — NOT consolidated.
+🔧 Revised dream_dodecahedron_36685_1758426325_v1
+🔧 Revised dream_dodecahedron_36685_1758426325_v1_v2
+🔧 Revised dream_dodecahedron_36685_1758426325_v1_v2_v3
+❌ Shape dream_dodecahedron_36685_1758426325_v1_v2_v3 failed to reach honesty threshold after 3 revisions — NOT consolidated.
+🔧 Revised dream_cube_968453_1758426325_v1
+🔧 Revised dream_cube_968453_1758426325_v1_v2
+🔧 Revised dream_cube_968453_1758426325_v1_v2_v3
+❌ Shape dream_cube_968453_1758426325_v1_v2_v3 failed to reach honesty threshold after 3 revisions — NOT consolidated.
+📊 dream_dodecahedron_3190_1758426325_v1_v2_v3.glb: 3 revisions, final honesty 0.32 → discarded
+📊 dream_dodecahedron_36685_1758426325_v1_v2_v3.glb: 3 revisions, final honesty 0.32 → discarded
+📊 dream_cube_968453_1758426325_v1_v2_v3.glb: 3 revisions, final honesty 0.36 → discarded
+🧠 Running Post-Consolidation Reflection...
+🧠 Saved Reflection Diary: viewer/public/house/materialized_objects/reflection_diary_cycle_1758426325.json
+🎓 Generating 5 new training queries from reflection...
+  → Why was shape dream_dodecahedron_3190_1758426325_v1_v2_v3 discarded? What geometric property failed?
+  → What honesty constraint was violated in revision 3 of dream_dodecahedron_3190_1758426325_v1_v2_v3?
+  → How to increase honesty for dream_dodecahedron_3190_1758426325_v1_v2_v3 when embedding entropy is high?
+  → Why was shape dream_dodecahedron_36685_1758426325_v1_v2_v3 discarded? What geometric property failed?
+  → What honesty constraint was violated in revision 3 of dream_dodecahedron_36685_1758426325_v1_v2_v3?
+✅ Post-Consolidation Training Complete.
+💾 Saving Galaxy State for Eternal Continuity...
+⚠️  Galaxy state serialization skipped: Failed to load Galaxy GLB: /K3D/Knowledge3D/knowledge3d/viewer/public/galaxy/galaxy_memory.glb ([Errno 2] No such file or directory: '/K3D/Knowledge3D/knowledge3d/viewer/public/galaxy/galaxy_memory.glb')
+🌙 Sleep-Time Compute: Adjustments logged to logs/sleep_time_adjustments.json
+📚 Materialized 0 permanent objects.
+🌙 Modified House GLB would be saved to viewer/public/house/house_post_sleep_cycle3.glb (GLB writing stubbed for Phase 10.7)
+🌙 Sleep-Time Compute Complete. House ready for reload at viewer/public/house/house_post_sleep_cycle3.glb
+🏛️  All materialized objects stored in: viewer/public/house/materialized_objects
+🌙 Sleep-time consolidation cycle 3 complete.
+[SleepTest] Sleep cycle complete.
+
+✅ PIL already installed.
+✅ librosa already installed.
+✅ pygltflib already installed.
+[SleepTest] Initialising AlgorithmicThinkingTrainer...
+[SleepTest] Invoking sleep cycle (3 passes)...
+🌙 Initiating Sleep-Time Compute & Permanent Materialization...
+🧠 Running Autonomous Meaning Synthesis...
+📚 Generating Self-Curated Curriculum...
+🌌 Dreaming New Geometry...
+🌌 Initiating Dream Sequence...
+⚠️  NVRTC PTX loader unavailable: cuModuleLoadData failed: 200. Falling back to torch.jit mock.
+⚠️  NVRTC PTX loader unavailable: cuModuleLoadData failed: 200. Falling back to torch.jit mock.
+⚠️  NVRTC PTX loader unavailable: cuModuleLoadData failed: 200. Falling back to torch.jit mock.
+🔍 Found 3 new shapes in Galaxy for pre-consolidation critique...
+🔧 Revised dream_dodecahedron_997175_1758428020_v1
+🔧 Revised dream_dodecahedron_997175_1758428020_v1_v2
+🔧 Revised dream_dodecahedron_997175_1758428020_v1_v2_v3
+❌ Shape dream_dodecahedron_997175_1758428020_v1_v2_v3 failed to reach honesty threshold after 3 revisions — NOT consolidated.
+🔧 Revised dream_cube_33647_1758428020_v1
+🔧 Revised dream_cube_33647_1758428020_v1_v2
+🔧 Revised dream_cube_33647_1758428020_v1_v2_v3
+❌ Shape dream_cube_33647_1758428020_v1_v2_v3 failed to reach honesty threshold after 3 revisions — NOT consolidated.
+🔧 Revised dream_dodecahedron_997175_1758428020_v1
+🔧 Revised dream_dodecahedron_997175_1758428020_v1_v2
+🔧 Revised dream_dodecahedron_997175_1758428020_v1_v2_v3
+❌ Shape dream_dodecahedron_997175_1758428020_v1_v2_v3 failed to reach honesty threshold after 3 revisions — NOT consolidated.
+📊 dream_dodecahedron_997175_1758428020_v1_v2_v3.glb: 3 revisions, final honesty 0.30 → discarded
+📊 dream_cube_33647_1758428020_v1_v2_v3.glb: 3 revisions, final honesty 0.44 → discarded
+📊 dream_dodecahedron_997175_1758428020_v1_v2_v3.glb: 3 revisions, final honesty 0.30 → discarded
+🧠 Running Post-Consolidation Reflection...
+🧠 Saved Reflection Diary: viewer/public/house/materialized_objects/reflection_diary_cycle_1758428020.json
+🎓 Generating 5 new training queries from reflection...
+  → Why was shape dream_dodecahedron_997175_1758428020_v1_v2_v3 discarded? What geometric property failed?
+  → What honesty constraint was violated in revision 3 of dream_dodecahedron_997175_1758428020_v1_v2_v3?
+  → How to increase honesty for dream_dodecahedron_997175_1758428020_v1_v2_v3 when embedding entropy is high?
+  → Why was shape dream_cube_33647_1758428020_v1_v2_v3 discarded? What geometric property failed?
+  → What honesty constraint was violated in revision 3 of dream_cube_33647_1758428020_v1_v2_v3?
+✅ Post-Consolidation Training Complete.
+💾 Saving Galaxy State for Eternal Continuity...
+⚠️  Galaxy state serialization skipped: Failed to load Galaxy GLB: /K3D/Knowledge3D/knowledge3d/viewer/public/galaxy/galaxy_memory.glb ([Errno 2] No such file or directory: '/K3D/Knowledge3D/knowledge3d/viewer/public/galaxy/galaxy_memory.glb')
+🌙 Sleep-Time Compute: Adjustments logged to logs/sleep_time_adjustments.json
+📚 Materialized 0 permanent objects.
+🌙 Modified House GLB would be saved to viewer/public/house/house_post_sleep_cycle1.glb (GLB writing stubbed for Phase 10.7)
+🌙 Sleep-Time Compute Complete. House ready for reload at viewer/public/house/house_post_sleep_cycle1.glb
+🏛️  All materialized objects stored in: viewer/public/house/materialized_objects
+🌙 Sleep-time consolidation cycle 1 complete.
+🌙 Initiating Sleep-Time Compute & Permanent Materialization...
+🧠 Running Autonomous Meaning Synthesis...
+📚 Generating Self-Curated Curriculum...
+🌌 Dreaming New Geometry...
+🌌 Initiating Dream Sequence...
+⚠️  NVRTC PTX loader unavailable: cuModuleLoadData failed: 200. Falling back to torch.jit mock.
+⚠️  NVRTC PTX loader unavailable: cuModuleLoadData failed: 200. Falling back to torch.jit mock.
+🔍 Found 3 new shapes in Galaxy for pre-consolidation critique...
+🔧 Revised dream_cube_987280_1758428020_v1
+🔧 Revised dream_cube_987280_1758428020_v1_v2
+🔧 Revised dream_cube_987280_1758428020_v1_v2_v3
+❌ Shape dream_cube_987280_1758428020_v1_v2_v3 failed to reach honesty threshold after 3 revisions — NOT consolidated.
+🔧 Revised dream_sphere_992133_1758428020_v1
+🔧 Revised dream_sphere_992133_1758428020_v1_v2
+🔧 Revised dream_sphere_992133_1758428020_v1_v2_v3
+❌ Shape dream_sphere_992133_1758428020_v1_v2_v3 failed to reach honesty threshold after 3 revisions — NOT consolidated.
+🔧 Revised dream_icosahedron_972924_1758428021_v1
+🔧 Revised dream_icosahedron_972924_1758428021_v1_v2
+🔧 Revised dream_icosahedron_972924_1758428021_v1_v2_v3
+❌ Shape dream_icosahedron_972924_1758428021_v1_v2_v3 failed to reach honesty threshold after 3 revisions — NOT consolidated.
+📊 dream_cube_987280_1758428020_v1_v2_v3.glb: 3 revisions, final honesty 0.30 → discarded
+📊 dream_sphere_992133_1758428020_v1_v2_v3.glb: 3 revisions, final honesty 0.30 → discarded
+📊 dream_icosahedron_972924_1758428021_v1_v2_v3.glb: 3 revisions, final honesty 0.30 → discarded
+🧠 Running Post-Consolidation Reflection...
+🧠 Saved Reflection Diary: viewer/public/house/materialized_objects/reflection_diary_cycle_1758428021.json
+🎓 Generating 5 new training queries from reflection...
+  → Why was shape dream_cube_987280_1758428020_v1_v2_v3 discarded? What geometric property failed?
+  → What honesty constraint was violated in revision 3 of dream_cube_987280_1758428020_v1_v2_v3?
+  → How to increase honesty for dream_cube_987280_1758428020_v1_v2_v3 when embedding entropy is high?
+  → Why was shape dream_sphere_992133_1758428020_v1_v2_v3 discarded? What geometric property failed?
+  → What honesty constraint was violated in revision 3 of dream_sphere_992133_1758428020_v1_v2_v3?
+✅ Post-Consolidation Training Complete.
+💾 Saving Galaxy State for Eternal Continuity...
+⚠️  Galaxy state serialization skipped: Failed to load Galaxy GLB: /K3D/Knowledge3D/knowledge3d/viewer/public/galaxy/galaxy_memory.glb ([Errno 2] No such file or directory: '/K3D/Knowledge3D/knowledge3d/viewer/public/galaxy/galaxy_memory.glb')
+🌙 Sleep-Time Compute: Adjustments logged to logs/sleep_time_adjustments.json
+📚 Materialized 0 permanent objects.
+🌙 Modified House GLB would be saved to viewer/public/house/house_post_sleep_cycle2.glb (GLB writing stubbed for Phase 10.7)
+🌙 Sleep-Time Compute Complete. House ready for reload at viewer/public/house/house_post_sleep_cycle2.glb
+🏛️  All materialized objects stored in: viewer/public/house/materialized_objects
+🌙 Sleep-time consolidation cycle 2 complete.
+🌙 Initiating Sleep-Time Compute & Permanent Materialization...
+🧠 Running Autonomous Meaning Synthesis...
+📚 Generating Self-Curated Curriculum...
+🌌 Dreaming New Geometry...
+🌌 Initiating Dream Sequence...
+⚠️  NVRTC PTX loader unavailable: cuModuleLoadData failed: 200. Falling back to torch.jit mock.
+⚠️  NVRTC PTX loader unavailable: cuModuleLoadData failed: 200. Falling back to torch.jit mock.
+⚠️  NVRTC PTX loader unavailable: cuModuleLoadData failed: 200. Falling back to torch.jit mock.
+🔍 Found 3 new shapes in Galaxy for pre-consolidation critique...
+🔧 Revised dream_octahedron_991882_1758428021_v1
+🔧 Revised dream_octahedron_991882_1758428021_v1_v2
+🔧 Revised dream_octahedron_991882_1758428021_v1_v2_v3
+❌ Shape dream_octahedron_991882_1758428021_v1_v2_v3 failed to reach honesty threshold after 3 revisions — NOT consolidated.
+🔧 Revised dream_cube_997495_1758428021_v1
+🔧 Revised dream_cube_997495_1758428021_v1_v2
+🔧 Revised dream_cube_997495_1758428021_v1_v2_v3
+❌ Shape dream_cube_997495_1758428021_v1_v2_v3 failed to reach honesty threshold after 3 revisions — NOT consolidated.
+🔧 Revised dream_tetrahedron_992001_1758428021_v1
+🔧 Revised dream_tetrahedron_992001_1758428021_v1_v2
+🔧 Revised dream_tetrahedron_992001_1758428021_v1_v2_v3
+❌ Shape dream_tetrahedron_992001_1758428021_v1_v2_v3 failed to reach honesty threshold after 3 revisions — NOT consolidated.
+📊 dream_octahedron_991882_1758428021_v1_v2_v3.glb: 3 revisions, final honesty 0.30 → discarded
+📊 dream_cube_997495_1758428021_v1_v2_v3.glb: 3 revisions, final honesty 0.38 → discarded
+📊 dream_tetrahedron_992001_1758428021_v1_v2_v3.glb: 3 revisions, final honesty 0.30 → discarded
+🧠 Running Post-Consolidation Reflection...
+🧠 Saved Reflection Diary: viewer/public/house/materialized_objects/reflection_diary_cycle_1758428021.json
+🎓 Generating 5 new training queries from reflection...
+  → Why was shape dream_octahedron_991882_1758428021_v1_v2_v3 discarded? What geometric property failed?
+  → What honesty constraint was violated in revision 3 of dream_octahedron_991882_1758428021_v1_v2_v3?
+  → How to increase honesty for dream_octahedron_991882_1758428021_v1_v2_v3 when embedding entropy is high?
+  → Why was shape dream_cube_997495_1758428021_v1_v2_v3 discarded? What geometric property failed?
+  → What honesty constraint was violated in revision 3 of dream_cube_997495_1758428021_v1_v2_v3?
+✅ Post-Consolidation Training Complete.
+💾 Saving Galaxy State for Eternal Continuity...
+⚠️  Galaxy state serialization skipped: Failed to load Galaxy GLB: /K3D/Knowledge3D/knowledge3d/viewer/public/galaxy/galaxy_memory.glb ([Errno 2] No such file or directory: '/K3D/Knowledge3D/knowledge3d/viewer/public/galaxy/galaxy_memory.glb')
+🌙 Sleep-Time Compute: Adjustments logged to logs/sleep_time_adjustments.json
+📚 Materialized 0 permanent objects.
+🌙 Modified House GLB would be saved to viewer/public/house/house_post_sleep_cycle3.glb (GLB writing stubbed for Phase 10.7)
+🌙 Sleep-Time Compute Complete. House ready for reload at viewer/public/house/house_post_sleep_cycle3.glb
+🏛️  All materialized objects stored in: viewer/public/house/materialized_objects
+🌙 Sleep-time consolidation cycle 3 complete.
+[SleepTest] Sleep cycle complete.
+
