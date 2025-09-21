@@ -10,8 +10,8 @@
 - This keeps drill material focused on conceptual content, avoiding trivia about publication metadata.
 
 ## Training Loop Adjustments
-- `AlgorithmicThinkingTrainer` now supplies the question + expected answer to the consolidated exaone3.5 teacher (quick/deep paths merged) for each RLWHF check, keeping scoring grounded while avoiding exaone-deep thinking-tag spillover.
-- Trainer stdout/stderr is tee'd into `logs/phase25_pt_br_train.log`, so every background run leaves a full transcript without relying on shell redirection.
+- `AlgorithmicThinkingTrainer` verifies the CUDA PTX geometry head before each session; if the kernel cannot load, training aborts immediately with guidance.
+- RLWHF scoring now routes through `exaone-deep:latest` (Ollama); if the teacher is unavailable, the fallback remains the house honesty evaluator. Standard telemetry still lands in `logs/phase25_pt_br_train.log` thanks to the stdout/stderr tee.
 
 ## Next Steps
 1. Rebuild the corpora with the updated filters (already done as part of this change).
@@ -35,6 +35,7 @@
 - Algorithmic Thinking trainer now schedules three `SleepTimeCompute` passes per corpus (≈33 %, 66 %, and final completion) so consolidation brackets the full drill window.
 - Each pass appends adjustments to `logs/sleep_time_adjustments.json` and emits reflection diaries under `viewer/public/house/materialized_objects/reflection_diary_cycle_*.json`.
 - The 2025‑09‑21 run produced cycles `_1758436355`, `_1758443093`, and `_1758450824`, confirming persistence on every pass.
+- PTX fallback paths were removed; the geometry head must execute on the GPU, and any failure now surfaces before consolidation begins.
 
 ## Lexicon Resources
 - Downloaded English WordNet (2024 edition), OpenWordNet-PT, and CC-CEDICT into `/home/daniel/K3D_llama_cpp/datasets/lexicons/` and mirrored under `/K3D/Knowledge3D.local/datasets/lexicons/` for onboarding lexical meaning stars.
@@ -80,12 +81,13 @@
 - Repetition in the current run is expected—the corpora are finite—but consolidation now succeeds, so new reflection diaries land in the House after every sleep cycle.
 
 ## AIME 2024 Baseline (2025‑09‑21)
-- Harness: `PYTHONPATH=. conda run -n k3d-cranium python3 -m knowledge3d.tools.phase25.aime_evaluator`
-- Result: `0 / 30` correct (accuracy `0.0`). Report stored at `docs/benchmarks/aime_2024_results.json` with per-problem traces.
-- Observed failure mode: fused head collapses to the placeholder string `chou2`; next iteration should plug the RLWHF feedback loop into the fused head prior to re-running the benchmark.
+- Harness: `PYTHONPATH=. conda run -n k3d-cranium python3 -m knowledge3d.tools.phase25.aime_evaluator [--limit N]`
+- Current run (limit 1): `0 / 1` correct using the fused head only; see `docs/benchmarks/aime_2024_results.json` for the transcript. Expect a long runtime (~7 min/problem) when scaling to all 30 items.
+- Observed failure mode: the fused head emits geometry tokens (e.g., `icosahedron`) instead of numeric answers; integrate RLWHF feedback or retrain the head so arithmetic outputs emerge without assistance.
 
 ## Outstanding Issues (2025‑09‑21)
-- **Fused Head Calibration:** The AIME baseline exposed the `chou2` collapse. Feed recent RLWHF feedback into the fused head (or retrain) before retrying the benchmark.
-- **Teacher Stability:** Keep the exaone3.5 timeouts elevated (≥300 s initial, ≥150 s subsequent) and monitor for repeated `-1.00` scores at the start of new runs.
+- **Fused Head Calibration:** The AIME baseline shows geometry-token answers; integrate RLWHF feedback or retrain the fused head before retrying the benchmark.
+- **Teacher Monitoring:** Track early-session scores to ensure the `exaone-deep` teacher stays responsive and avoid repeated `-1.00` warmup penalties.
 - **Corpus Diversity:** Continue the plan to ingest the balanced Wikipedia splits (EN/ES/PT_PT/ZH) so the RLWHF loop sees broader contexts.
 - **Thinking Tags:** After each major RLWHF batch, rerun the Phase 10 thinking-tag trainer to surface reasoning labels in UI and logs.
+- **AIME Throughput:** The evaluation harness currently takes ~7 minutes/problem; schedule longer runs or parallelise once additional compute is available.

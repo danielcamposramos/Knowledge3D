@@ -3,15 +3,10 @@ from __future__ import annotations
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Optional
 
 import numpy as np  # type: ignore
 from pygltflib import GLTF2, Scene, Node, Mesh, Primitive, Buffer, BufferView, Accessor, Asset  # type: ignore
-try:
-    import torch  # type: ignore
-except Exception:
-    torch = None  # type: ignore
-from .ptx_kernel_loader import PTXKernelLoader  # type: ignore
 from .ray_bundle_generator import RayBundleGenerator  # type: ignore
 
 
@@ -19,15 +14,13 @@ class TextTo3DGenerator:
     def __init__(self, material_dir: str = "viewer/public/house/materialized_objects"):
         self.material_dir = Path(material_dir)
         self.material_dir.mkdir(parents=True, exist_ok=True)
-        # Prefer true CUDA driver loader; fallback to torch.jit mock
         try:
             from .nvrtc_ptx_loader import NVRTCPTXLoader  # type: ignore
             self._ptx = NVRTCPTXLoader()
-            self._ptx_mode = 'nvrtc'
-        except Exception as e:
-            print(f"⚠️  NVRTC PTX loader unavailable: {e}. Falling back to torch.jit mock.")
-            self._ptx = PTXKernelLoader()
-            self._ptx_mode = 'jit'
+        except Exception as exc:
+            raise RuntimeError(
+                "NVRTC PTX loader unavailable; ensure CUDA driver and cuda-python bindings are installed."
+            ) from exc
 
     def generate_3d_from_text(self, text: str, honesty_threshold: float = 0.7) -> str:
         """Generate 3D shape metadata from text using mock single‑head logic.
@@ -43,7 +36,7 @@ class TextTo3DGenerator:
         # Attempt GPU vertex generation via PTX mock
         faces: np.ndarray
         vertices: np.ndarray
-        vertices = None  # type: ignore
+        vertices: Optional[np.ndarray] = None
         # Determine desired vertex count per shape
         vcount = {
             "tetrahedron": 4,
@@ -52,25 +45,13 @@ class TextTo3DGenerator:
             "icosahedron": 12,
             "dodecahedron": 20,
         }.get(shape, 12)
-        try:
-            shape_idx = ["tetrahedron", "cube", "octahedron", "icosahedron", "dodecahedron"].index(shape) if shape in ["tetrahedron", "cube", "octahedron", "icosahedron", "dodecahedron"] else 3
-            if self._ptx_mode == 'nvrtc':
-                v = self._ptx.generate_vertices(np.asarray(emb, dtype=np.float32), int(vcount), int(shape_idx))  # type: ignore
-                if v is not None:
-                    vertices = np.asarray(v, dtype=np.float32)
-            elif torch is not None and getattr(torch, 'cuda', None) is not None and torch.cuda.is_available():  # type: ignore
-                emb_t = torch.tensor(emb, dtype=torch.float32)
-                if torch.cuda.is_available():  # type: ignore
-                    emb_t = emb_t.cuda()
-                v = self._ptx.generate_vertices(emb_t, int(vcount), int(shape_idx))  # type: ignore
-                if v is not None:
-                    vertices = np.asarray(v, dtype=np.float32)
-        except Exception:
-            vertices = None  # type: ignore
-        # Always compute faces on CPU and fallback vertices if needed
+        shape_lookup = ["tetrahedron", "cube", "octahedron", "icosahedron", "dodecahedron"]
+        shape_idx = shape_lookup.index(shape) if shape in shape_lookup else 3
+        v = self._ptx.generate_vertices(np.asarray(emb, dtype=np.float32), int(vcount), int(shape_idx))  # type: ignore[arg-type]
+        vertices = np.asarray(v, dtype=np.float32)
+
+        # Faces generated on CPU for now
         _, faces = self._generate_shape_geometry(shape, emb)
-        if vertices is None:
-            vertices, _ = self._generate_shape_geometry(shape, emb)
 
         gid = f"shape_{shape}_{int(datetime.now().timestamp())}"
         out = self.material_dir / f"{gid}.glb"

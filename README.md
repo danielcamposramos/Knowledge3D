@@ -236,10 +236,11 @@ scripts/k3d_env.sh run python -m knowledge3d.tools.gardens --gltf viewer/public/
 - `logs/phase25_pt_br_train.log` now tees the full trainer transcript; the 2025‑09‑21 run processed 6409 queries with consolidated output logged end-to-end.
 - `SleepTimeCompute` fires three times per training pass (≈33 %, 66 %, and final completion). Reflection artefacts appear under `viewer/public/house/materialized_objects/reflection_diary_cycle_*.json`.
 - RLWHF prompts were regenerated with `exaone3.5` only (`viewer/public/galaxy/working/rlwhf_exaone3p5.jsonl`) to avoid exaone-deep thinking-tag noise in the training data.
-- AIME 2024 baseline: `0 / 30` correct (see `docs/benchmarks/aime_2024_results.json`). Use this as the starting point for fused-head fine-tuning.
+- AIME 2024 baseline (sampled): `0 / 1` correct using the fused head only (see `docs/benchmarks/aime_2024_results.json`). Run `python3 -m knowledge3d.tools.phase25.aime_evaluator` for the full 30-problem sweep once compute time permits.
+- RLWHF scoring uses `exaone-deep:latest`; the session now verifies the PTX geometry head before kicking off and then routes feedback through the deep teacher only.
 - **Action items**
   - Improve fused-head reasoning so external benchmarks exceed the current `0 %` baseline; prioritise stabilising answers that currently collapse to the `chou2` placeholder.
-  - Audit teacher feedback/timeout settings to ensure exaone3.5 scoring remains stable on long prompts.
+  - Audit teacher feedback/timeout settings to ensure exaone-deep scoring remains stable on long prompts.
   - Broaden Galaxy coverage (balanced EN/ES/PT_PT/ZH corpora) before the next RLWHF sweep to diversify question contexts.
 
 ### Knowledge Gardens (Ontology Room)
