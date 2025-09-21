@@ -168,6 +168,74 @@ def recalc_mesh_normals(
     galaxy_memory.normals_stale = False
 
 
+def scale_mesh_vertices(
+    galaxy_memory: GalaxyGPUMemory,
+    mesh_index: int,
+    scale: np.ndarray,
+) -> None:
+    scale_vec = np.asarray(scale, dtype=np.float32).reshape(-1)
+    if scale_vec.size != 3:
+        raise ValueError("scale must be length-3 vector")
+    offsets, counts = _prepare_offsets_counts(galaxy_memory)
+    scale_dev = _alloc_upload(scale_vec)
+    offsets_dev = _alloc_upload(offsets)
+    counts_dev = _alloc_upload(counts)
+
+    record = galaxy_memory.mesh_records[mesh_index]
+    threads = 256
+    blocks = math.ceil(record.vertex_count / threads)
+
+    params = (
+        scale_dev.ptr,
+        galaxy_memory.vertices.ptr,
+        offsets_dev.ptr,
+        counts_dev.ptr,
+        np.uint32(mesh_index),
+    )
+    _launch_kernel(_get_kernel("scale_vertices"), blocks, threads, params)
+
+    _free_device(scale_dev)
+    _free_device(offsets_dev)
+    _free_device(counts_dev)
+
+    galaxy_memory.vertices_dirty = True
+    galaxy_memory.normals_stale = True
+
+
+def offset_mesh_vertices(
+    galaxy_memory: GalaxyGPUMemory,
+    mesh_index: int,
+    offset: np.ndarray,
+) -> None:
+    offset_vec = np.asarray(offset, dtype=np.float32).reshape(-1)
+    if offset_vec.size != 3:
+        raise ValueError("offset must be length-3 vector")
+    offsets, counts = _prepare_offsets_counts(galaxy_memory)
+    offset_dev = _alloc_upload(offset_vec)
+    offsets_dev = _alloc_upload(offsets)
+    counts_dev = _alloc_upload(counts)
+
+    record = galaxy_memory.mesh_records[mesh_index]
+    threads = 256
+    blocks = math.ceil(record.vertex_count / threads)
+
+    params = (
+        offset_dev.ptr,
+        galaxy_memory.vertices.ptr,
+        offsets_dev.ptr,
+        counts_dev.ptr,
+        np.uint32(mesh_index),
+    )
+    _launch_kernel(_get_kernel("offset_vertices"), blocks, threads, params)
+
+    _free_device(offset_dev)
+    _free_device(offsets_dev)
+    _free_device(counts_dev)
+
+    galaxy_memory.vertices_dirty = True
+    galaxy_memory.normals_stale = True
+
+
 def blend_node_embedding(
     galaxy_memory: GalaxyGPUMemory,
     node_index: int,
@@ -207,6 +275,31 @@ def blend_node_embedding(
     galaxy_memory.embeddings_dirty = True
 
 
+def normalize_node_embedding(
+    galaxy_memory: GalaxyGPUMemory,
+    node_index: int,
+) -> None:
+    if galaxy_memory.embeddings.ptr == 0 or galaxy_memory.embeddings.size == 0:
+        raise ValueError("embedding buffer is empty")
+    if not galaxy_memory.embedding_shape or len(galaxy_memory.embedding_shape) != 2:
+        raise ValueError("embedding shape metadata unavailable")
+    node_count, embedding_dim = galaxy_memory.embedding_shape
+    if node_index >= node_count:
+        raise IndexError("node_index out of range")
+
+    threads = min(256, int(embedding_dim))
+    if threads == 0:
+        return
+    shared_mem = threads * np.dtype(np.float32).itemsize
+    params = (
+        galaxy_memory.embeddings.ptr,
+        np.uint32(embedding_dim),
+        np.uint32(node_index),
+    )
+    _launch_kernel(_get_kernel("normalize_embedding"), 1, threads, params, shared_mem=shared_mem)
+    galaxy_memory.embeddings_dirty = True
+
+
 def _alloc_upload(array: np.ndarray) -> DeviceBuffer:
     size = int(array.nbytes)
     if size == 0:
@@ -226,7 +319,7 @@ def _free_device(buffer: DeviceBuffer) -> None:
         cuda.cuMemFree(buffer.ptr)
 
 
-def _launch_kernel(func: int, blocks: int, threads: int, params: Tuple) -> None:
+def _launch_kernel(func: int, blocks: int, threads: int, params: Tuple, *, shared_mem: int = 0) -> None:
     arg_arrays = []
     for value in params:
         if isinstance(value, (int, np.integer)):
@@ -239,7 +332,8 @@ def _launch_kernel(func: int, blocks: int, threads: int, params: Tuple) -> None:
         func,
         blocks, 1, 1,
         threads, 1, 1,
-        0, 0,
+        shared_mem,
+        0,
         tuple(arg.ctypes.data for arg in arg_arrays),
         0,
     )
@@ -340,14 +434,52 @@ class PTXGeometrySession:
         vec = np.asarray(translation, dtype=np.float32)
         if vec.shape != (3,):
             raise ValueError("translation must be length-3 vector")
-        matrix = np.eye(4, dtype=np.float32)
-        matrix[:3, 3] = vec
-        self.apply_transform_for_mesh(
-            mesh_id,
-            matrix,
-            primitive_index=primitive_index,
-            recalc_normals=recalc_normals,
-        )
+        galaxy = self._require_memory()
+        matching = [idx for idx, record in enumerate(galaxy.mesh_records) if record.mesh_index == mesh_id]
+        if primitive_index is not None:
+            matching = [idx for idx in matching if galaxy.mesh_records[idx].primitive_index == primitive_index]
+            if not matching:
+                raise IndexError("primitive_index out of range")
+        if not matching:
+            raise IndexError("mesh_id has no primitives in GPU memory")
+        for idx in matching:
+            offset_mesh_vertices(galaxy, idx, vec)
+            if recalc_normals:
+                try:
+                    recalc_mesh_normals(galaxy, idx)
+                except ValueError:
+                    pass
+
+    def scale_mesh(
+        self,
+        mesh_id: int,
+        scale: np.ndarray | List[float],
+        *,
+        primitive_index: Optional[int] = None,
+        recalc_normals: bool = False,
+    ) -> None:
+        vec = np.asarray(scale, dtype=np.float32)
+        if vec.shape != (3,):
+            raise ValueError("scale must be length-3 vector")
+        galaxy = self._require_memory()
+        matching = [idx for idx, record in enumerate(galaxy.mesh_records) if record.mesh_index == mesh_id]
+        if primitive_index is not None:
+            matching = [idx for idx in matching if galaxy.mesh_records[idx].primitive_index == primitive_index]
+            if not matching:
+                raise IndexError("primitive_index out of range")
+        if not matching:
+            raise IndexError("mesh_id has no primitives in GPU memory")
+        for idx in matching:
+            scale_mesh_vertices(galaxy, idx, vec)
+            if recalc_normals:
+                try:
+                    recalc_mesh_normals(galaxy, idx)
+                except ValueError:
+                    pass
+
+    def normalize_embedding(self, node_index: int) -> None:
+        galaxy = self._require_memory()
+        normalize_node_embedding(galaxy, node_index)
 
     # ------------------------------------------------------------------
     def save(
