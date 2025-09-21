@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import re
+from typing import Iterable
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Union
@@ -69,7 +70,12 @@ class LibraryIngestEngine:
                     print(f"⚠️  No textual content found in {filepath}")
                     continue
 
-                embedding = self.trainer.generate_text_embedding(text)
+                try:
+                    embedding = self.trainer.generate_text_embedding(text)
+                except Exception:
+                    from knowledge3d.tools.data.builder import hashed_embedding  # type: ignore
+
+                    embedding = hashed_embedding(text)
                 star_id = self._build_star_id(category, filepath.stem)
                 star_data = self._build_star_payload(
                     star_id=star_id,
