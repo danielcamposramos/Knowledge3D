@@ -9,6 +9,7 @@ This log captures the outstanding work required to make the fused head read and 
 - [x] A4. Implement PTX write-back path that emits updated bufferViews/embeddings back into GLB/JSON.
 - [x] A5. Extend `PTXGeometryOps` to expose `load_mesh`, `transform_mesh`, `save_mesh` APIs.
 - [x] A6. Update `SleepTimeCompute`/trainer to use PTX geometry read/write instead of CPU GLTF edits.
+- [ ] A7. Generate PTX-ready base language galaxies and integrate them into default training flows.
 
 ## Milestone B — Text Embedding Operations
 - [ ] B1. Implement PTX kernels for token embedding lookup and cosine similarity search.
@@ -39,6 +40,7 @@ This log captures the outstanding work required to make the fused head read and 
 | 2025-09-21 | A4 | Done | Dirty tracking + GLB/JSON write-back helpers (`save_meshes_to_glb`, `save_embeddings_to_json`). |
 | 2025-09-21 | A5 | Done | `PTXGeometrySession` + PTXOps wiring provide load/transform/save API surface. |
 | 2025-09-21 | A6 | Done | SleepTimeCompute now loads/saves House GLB via PTX and updates zone meshes/metadata on GPU. |
+| 2025-09-21 | A7 | In Progress | Language galaxy builder emits PTX-ready GLBs; next wire-in documentation + trainer defaults. |
 
 ### GPU Galaxy Buffer Layout (A1 draft)
 
@@ -55,3 +57,8 @@ This log captures the outstanding work required to make the fused head read and 
 Next steps (A1 → A2): formalise SoA vs AoS decision for vertices, write helper that maps GLB bufferViews into this layout, and prototype CUDA memcpy wrappers.
 
 Update the status column with `Pending`, `In Progress`, or `Done`, plus short notes (commit hash, branch, etc.).
+
+### Language Galaxy Builder
+- Tool: `python -m knowledge3d.tools.language_galaxy_builder --input viewer/public/galaxy/working/lexicon_pt_br_kaikki.jsonl --input viewer/public/galaxy/working/lexicon_audio_pt_br_librispeech9h.jsonl --language-id pt-BR --label "Portuguese (BR) Language Galaxy" --out viewer/public/galaxy/pt_br_language.glb --manifest viewer/public/galaxy/pt_br_language.json`
+- Emits binary GLBs with `vectorsView`/`embeddingsView` so PTX loads them directly; manifests capture bounding boxes + modality counts for placement in the language quadrant.
+- Use `python -m knowledge3d.tools.convert_gltf_to_glb src.gltf dst.glb` to migrate legacy assets before PTX-only pipelines run.

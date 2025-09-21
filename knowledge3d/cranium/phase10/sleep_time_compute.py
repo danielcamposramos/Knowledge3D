@@ -15,24 +15,19 @@ class _Model:
         self.gltf = gltf
 
 
-class _GLBLoaderFallback:
-    def load(self, path: str) -> _Model:  # pragma: no cover
-        # Fallback: return empty model if parsing not available or file missing
-        try:
-            p = Path(path)
-            if not p.exists():
-                return _Model([], None)
-        except Exception:
-            pass
-        return _Model([], None)
-
-
 def _load_glb(path: str) -> _Model:
+    from pygltflib import GLTF2  # type: ignore
+
+    p = Path(path)
+    if not p.exists():
+        raise FileNotFoundError(f"House path not found: {p}")
+    if p.suffix.lower() != ".glb":
+        raise RuntimeError(
+            "SleepTimeCompute requires binary .glb assets. "
+            "Convert legacy .gltf files using knowledge3d.tools.convert_gltf_to_glb before running."
+        )
+
     try:
-        from pygltflib import GLTF2  # type: ignore
-        p = Path(path)
-        if not p.exists():
-            return _Model([])
         gltf = GLTF2().load(str(p))
         nodes: List[Dict[str, Any]] = []
         for idx, node in enumerate(gltf.nodes or []):
@@ -53,8 +48,11 @@ def _load_glb(path: str) -> _Model:
                 "node_index": idx,
             })
         return _Model(nodes, gltf)
-    except Exception:
-        return _GLBLoaderFallback().load(path)
+    except Exception as exc:
+        raise RuntimeError(
+            f"Failed to load GLB '{path}'. Ensure the file uses embedded bufferViews "
+            "(see language_galaxy_builder and convert_gltf_to_glb tools)."
+        ) from exc
 
 
 class SleepTimeCompute:
