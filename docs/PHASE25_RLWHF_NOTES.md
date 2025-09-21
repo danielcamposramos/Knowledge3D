@@ -69,3 +69,12 @@
 ## Trainer Integration
 - `AlgorithmicThinkingTrainer` now ingests lexicon prompts automatically. When any `lexicon_*.jsonl` file exists in `viewer/public/galaxy/working/`, the trainer samples per-language definition, synonym, and IPA questions before spawning RLWHF loops.
 - Lexicon prompts join the existing corpora in `generate_rpn_queries`, ensuring every session interleaves lexical mastery with algorithmic drills.
+- Repetition in the current run is expected—the corpora are finite—but we observed identical mistakes resurfacing, signalling that consolidation did not write back to the House because `SleepTimeCompute` aborted (missing `cuda-python`).
+
+## Outstanding Issues (2025‑09‑19)
+- **Sleep-Time Compute:** Install `cuda-python` within `k3d-cranium` (or launch the sleep step from a CUDA-enabled env) so Phase 25 knowledge settles into `viewer/public/house/materialized_objects/`.
+- **Teacher Timeouts:** Boost `TeacherEvaluator` timeouts (initial ≥300 s, subsequent ≥150 s) to prevent exaone-deep timeouts mid-evaluation.
+- **Lexicon Clean-up:** Regenerate the Q&A corpora from the cleaned book sources using exaone3.5 with full-document prompts to avoid hyphenated split words.
+- **Galaxy Coverage:** Load the remaining Wikipedia splits (EN/ES/PT_PT/ZH) into the Galaxy to expand factual coverage.
+- **Thinking Tags:** After each major RLWHF batch, run the Phase 10 thinking-tag trainer so reasoning labels stay visible in the UI/logs.
+- **Generalisation Test:** Once consolidation succeeds, evaluate on `Maxwell-Jia/AIME_2024` to verify mathematical generalisation beyond memorised corpus questions.
