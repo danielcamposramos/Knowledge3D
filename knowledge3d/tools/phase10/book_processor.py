@@ -43,7 +43,24 @@ class BookProcessor:
         count = 0
         for fp in sorted(self.book_dir.glob("*.json")):
             try:
-                book = self.load_book(fp)
+                raw_book = self.load_book(fp)
+                if isinstance(raw_book, list):
+                    meta: Dict[str, str] = {"title": "", "content": ""}
+                    titles = []
+                    parts = []
+                    for entry in raw_book:
+                        if not isinstance(entry, dict):
+                            continue
+                        if isinstance(entry.get("title"), str):
+                            titles.append(str(entry["title"]))
+                        text = entry.get("content") or entry.get("text")
+                        if isinstance(text, str) and text.strip():
+                            parts.append(text)
+                    meta["title"] = " ".join(titles).strip()
+                    meta["content"] = "\n".join(parts)
+                    book = meta
+                else:
+                    book = raw_book
                 tags = self.distill_thinking_tags(book)
                 thinking_tags.append({
                     'book_id': fp.stem,
@@ -65,10 +82,7 @@ class BookProcessor:
             return json.load(f)
 
     def extract_content(self, book: dict) -> str:
-        if isinstance(book, list):
-            # Assume list of pages
-            txt = " ".join([str(p.get('content','')) for p in book if isinstance(p, dict)])
-        elif isinstance(book, dict):
+        if isinstance(book, dict):
             # Common fields: title, content, chapters
             parts: List[str] = []
             if isinstance(book.get('title'), str):

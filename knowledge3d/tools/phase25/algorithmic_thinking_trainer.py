@@ -15,6 +15,7 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
+import re
 
 try:  # Lazy import: resolved when ``trainer`` property first accessed.
     from knowledge3d.tools.phase18.meaning_cluster_trainer import MeaningClusterTrainer  # type: ignore
@@ -33,6 +34,8 @@ LEXICON_JSONL_FILES = [
     Path("viewer/public/galaxy/working/lexicon_es_kaikki.jsonl"),
     Path("viewer/public/galaxy/working/lexicon_zh_cedict.jsonl"),
 ]
+
+_HYPHEN_RE = re.compile(r"(\w)-\s+(\w)")
 
 
 class AlgorithmicThinkingTrainer:
@@ -572,9 +575,10 @@ class AlgorithmicThinkingTrainer:
                                 definition = definitions[0]
                         if not lemma or not definition:
                             continue
-                        lemma_str = str(lemma)
-                        synonyms = lex.get("synonyms") or []
-                        pronunciations = lex.get("pronunciations") or []
+                        lemma_str = self._normalize_text(str(lemma))
+                        synonyms = [self._normalize_text(str(s)) for s in (lex.get("synonyms") or []) if s]
+                        pronunciations = [self._normalize_text(str(p)) for p in (lex.get("pronunciations") or []) if p]
+                        definition = self._normalize_text(str(definition))
                         corpus.append(
                             {
                                 "question": f"Define '{lemma_str}' ({language}).",
@@ -633,6 +637,11 @@ class AlgorithmicThinkingTrainer:
                 if len(entries) >= limit:
                     break
         return entries
+
+    def _normalize_text(self, text: str) -> str:
+        if not text:
+            return text
+        return _HYPHEN_RE.sub(r"\1\2", text)
 
     def _run_sleep_cycle(self) -> None:
         """Trigger sleep-time compute to consolidate newly learned content."""

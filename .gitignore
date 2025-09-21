@@ -16,3 +16,8 @@ viewer/public/knowledge_garden.library.glb
 viewer/public/knowledge_garden.gigabyte_compendium.glb
 # Large assets excluded from Git; recreate using docs/LARGE_ASSETS.md
 viewer/public/galaxy/working/lexicon*.jsonl
+viewer/public/books/thinking_tags*.json
+viewer/public/models/*.pth
+viewer/public/models/tag_names*.json
+logs/phase10.3_*.log
+logs/phase10.3_*.err
