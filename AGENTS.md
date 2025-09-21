@@ -137,3 +137,5 @@ Figure: The avatar reasoning at a network door in the Workshop. The translucent 
 - Always run Python/ML tasks inside a managed env (Conda preferred, venv fallback). Do not invoke system Python directly.
 - Follow `docs/ENV_POLICY.md` to create the `k3dml` env and run commands via `conda run -n k3dml env PYTHONPATH=. python -m ...`.
 - For heavy ingestion/builds, prefer storing raw media under `/home/daniel/K3D_llama_cpp/datasets` and curated subsets under `../Knowledge3D.local/datasets`.
+- Phase 25 sleep consolidation requires a CUDA-enabled Python; install `cuda-python` inside `k3d-cranium` (or a sibling env) before calling `SleepTimeCompute`, otherwise RLWHF sessions will skip materialising House objects.
+- After long RLWHF batches, refresh Phase 10 "thinking tags" (see `knowledge3d/tools/phase10/thinking_tag_trainer.py`) so the UI exposes the model’s active reasoning labels.
