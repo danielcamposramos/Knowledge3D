@@ -2,12 +2,19 @@ from __future__ import annotations
 
 import math
 from pathlib import Path
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np  # type: ignore
 from cuda import cuda, nvrtc  # type: ignore
 
-from knowledge3d.cranium.ptx.galaxy_buffer import GalaxyGPUMemory, DeviceBuffer
+from knowledge3d.cranium.ptx.galaxy_buffer import (
+    GalaxyGPUMemory,
+    DeviceBuffer,
+    load_meshes_from_glb,
+    release_galaxy_memory,
+    save_embeddings_to_json,
+    save_meshes_to_glb,
+)
 
 
 def _compile_kernel(source: str, name: str) -> int:
@@ -215,3 +222,82 @@ def _prepare_offsets_counts(galaxy_memory: GalaxyGPUMemory, *, index_mode: bool 
         offsets = np.array([r.vertex_offset for r in galaxy_memory.mesh_records], dtype=np.uint32)
         counts = np.array([r.vertex_count for r in galaxy_memory.mesh_records], dtype=np.uint32)
     return offsets, counts
+
+
+class PTXGeometrySession:
+    """High-level helper that manages GPU geometry state for a GLB scene."""
+
+    def __init__(self) -> None:
+        self._galaxy: Optional[GalaxyGPUMemory] = None
+
+    # ------------------------------------------------------------------
+    def load_scene(self, glb_path: str, *, embedding_json: Optional[str] = None) -> GalaxyGPUMemory:
+        """Load a GLB + optional embedding JSON into GPU memory, replacing any existing scene."""
+
+        self.close()
+        self._galaxy = load_meshes_from_glb(glb_path, embedding_json=embedding_json)
+        return self._galaxy
+
+    # ------------------------------------------------------------------
+    def apply_transform(
+        self,
+        mesh_index: int,
+        matrix: np.ndarray,
+        *,
+        recalc_normals: bool = False,
+    ) -> None:
+        galaxy = self._require_memory()
+        matrix_arr = np.asarray(matrix, dtype=np.float32)
+        if matrix_arr.shape != (4, 4):
+            raise ValueError("matrix must be shape (4, 4)")
+        apply_mesh_transform(galaxy, mesh_index, matrix_arr)
+        if recalc_normals:
+            recalc_mesh_normals(galaxy, mesh_index)
+
+    def recalc_normals(self, mesh_index: int) -> None:
+        galaxy = self._require_memory()
+        recalc_mesh_normals(galaxy, mesh_index)
+
+    def blend_embedding(self, node_index: int, embedding: np.ndarray, alpha: float) -> None:
+        galaxy = self._require_memory()
+        emb_arr = np.asarray(embedding, dtype=np.float32)
+        if emb_arr.ndim != 1:
+            raise ValueError("embedding must be 1D")
+        blend_node_embedding(galaxy, node_index, emb_arr, alpha)
+
+    # ------------------------------------------------------------------
+    def save(
+        self,
+        *,
+        target_glb: Optional[str] = None,
+        target_embeddings: Optional[str] = None,
+    ) -> None:
+        galaxy = self._require_memory()
+        save_meshes_to_glb(galaxy, target_path=target_glb)
+        save_embeddings_to_json(galaxy, target_path=target_embeddings)
+
+    # ------------------------------------------------------------------
+    def close(self) -> None:
+        if self._galaxy is not None:
+            release_galaxy_memory(self._galaxy)
+            self._galaxy = None
+
+    # Context manager helpers ------------------------------------------------
+    def __enter__(self) -> "PTXGeometrySession":  # pragma: no cover - convenience
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> None:  # pragma: no cover - convenience
+        self.close()
+
+    def __del__(self) -> None:  # pragma: no cover
+        self.close()
+
+    # Internal ----------------------------------------------------------------
+    def _require_memory(self) -> GalaxyGPUMemory:
+        if self._galaxy is None:
+            raise RuntimeError("No Galaxy scene loaded. Call load_scene first.")
+        return self._galaxy
+
+    @property
+    def galaxy_memory(self) -> GalaxyGPUMemory:
+        return self._require_memory()

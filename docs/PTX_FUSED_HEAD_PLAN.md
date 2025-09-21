@@ -7,7 +7,7 @@ This log captures the outstanding work required to make the fused head read and 
 - [x] A2. Implement PTX kernels to load existing mesh buffers from GLB extras into GPU memory.
 - [x] A3. Implement PTX kernels for mesh transforms (scale/rotate/blend) and embedding updates.
 - [x] A4. Implement PTX write-back path that emits updated bufferViews/embeddings back into GLB/JSON.
-- [ ] A5. Extend `PTXGeometryOps` to expose `load_mesh`, `transform_mesh`, `save_mesh` APIs.
+- [x] A5. Extend `PTXGeometryOps` to expose `load_mesh`, `transform_mesh`, `save_mesh` APIs.
 - [ ] A6. Update `SleepTimeCompute`/trainer to use PTX geometry read/write instead of CPU GLTF edits.
 
 ## Milestone B — Text Embedding Operations
@@ -37,6 +37,7 @@ This log captures the outstanding work required to make the fused head read and 
 | 2025-09-21 | A2 | Done | Added GPU upload scaffold (`galaxy_buffer.py`) to map GLB meshes into device buffers. |
 | 2025-09-21 | A3 | Done | PTX geometry kernels + wrappers handle transforms, normal recompute, and embedding blending. |
 | 2025-09-21 | A4 | Done | Dirty tracking + GLB/JSON write-back helpers (`save_meshes_to_glb`, `save_embeddings_to_json`). |
+| 2025-09-21 | A5 | Done | `PTXGeometrySession` + PTXOps wiring provide load/transform/save API surface. |
 
 ### GPU Galaxy Buffer Layout (A1 draft)
 

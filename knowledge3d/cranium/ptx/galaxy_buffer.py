@@ -323,3 +323,35 @@ def save_embeddings_to_json(galaxy_memory: GalaxyGPUMemory, target_path: Optiona
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2))
     galaxy_memory.embeddings_dirty = False
+
+
+def release_galaxy_memory(galaxy_memory: GalaxyGPUMemory) -> None:
+    """Free GPU resources associated with a GalaxyGPUMemory instance."""
+
+    try:
+        if galaxy_memory.vertices.ptr:
+            cuda.cuMemFree(galaxy_memory.vertices.ptr)
+    finally:
+        galaxy_memory.vertices = DeviceBuffer(ptr=0, size=0)
+
+    try:
+        if galaxy_memory.indices.ptr:
+            cuda.cuMemFree(galaxy_memory.indices.ptr)
+    finally:
+        galaxy_memory.indices = DeviceBuffer(ptr=0, size=0)
+
+    try:
+        if galaxy_memory.embeddings.ptr:
+            cuda.cuMemFree(galaxy_memory.embeddings.ptr)
+    finally:
+        galaxy_memory.embeddings = DeviceBuffer(ptr=0, size=0)
+
+    try:
+        if galaxy_memory.normals.ptr:
+            cuda.cuMemFree(galaxy_memory.normals.ptr)
+    finally:
+        galaxy_memory.normals = DeviceBuffer(ptr=0, size=0)
+
+    if galaxy_memory.ctx:
+        cuda.cuCtxDestroy(galaxy_memory.ctx)
+        galaxy_memory.ctx = 0

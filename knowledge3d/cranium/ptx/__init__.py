@@ -5,6 +5,7 @@ from .galaxy_buffer import (  # noqa: F401
     GalaxyGPUMemory,
     MeshRecord,
     load_meshes_from_glb,
+    release_galaxy_memory,
     save_embeddings_to_json,
     save_meshes_to_glb,
 )
