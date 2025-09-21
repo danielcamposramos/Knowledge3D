@@ -10,8 +10,8 @@
 - This keeps drill material focused on conceptual content, avoiding trivia about publication metadata.
 
 ## Training Loop Adjustments
-- `AlgorithmicThinkingTrainer` now supplies question + expected answer to both exaone models for each RLWHF check.
-- Teacher evaluations therefore operate with full context, eliminating guesses when scoring.
+- `AlgorithmicThinkingTrainer` now supplies the question + expected answer to the consolidated exaone3.5 teacher (quick/deep paths merged) for each RLWHF check, keeping scoring grounded while avoiding exaone-deep thinking-tag spillover.
+- Trainer stdout/stderr is tee'd into `logs/phase25_pt_br_train.log`, so every background run leaves a full transcript without relying on shell redirection.
 
 ## Next Steps
 1. Rebuild the corpora with the updated filters (already done as part of this change).
@@ -20,13 +20,21 @@
 ## Timeout Adjustments
 - TeacherEvaluator default timeout increased to 5 minutes (initial) / 2.5 minutes (subsequent) so exaone-deep evaluations no longer time out mid-run.
 
-## Sleep-Time Consolidation
-- Algorithmic Thinking trainer now triggers  automatically after processing roughly two-thirds of the corpus (mimicking an 8h sleep window in a 24h cycle).
-- Sleep writes materialised artifacts to  and logs adjustments under .
+## RLWHF Prompt Refresh (2025‑09‑21)
+- Rebuilt RLWHF drills with `exaone3.5` only to avoid exaone-deep thinking-tag injections.
+- Artifact: `viewer/public/galaxy/working/rlwhf_exaone3p5.jsonl` (60 question/answer/feedback triples).
+- Regeneration command:
+  ```bash
+  PYTHONPATH=. conda run -n k3d-cranium python3 -m knowledge3d.tools.gen_rlwhf_exaone \
+    --gltf viewer/public/galaxy.v8.glb \
+    --out viewer/public/galaxy/working/rlwhf_exaone3p5.jsonl \
+    --n 60 --ollama http://127.0.0.1:11434 --model exaone3.5:latest
+  ```
 
 ## Sleep-Time Consolidation
-- Algorithmic Thinking trainer now triggers `SleepTimeCompute` automatically after processing roughly two-thirds of the active corpus (mirroring an 8h sleep window in a 24h cycle).
-- Sleep writes materialised artifacts to `viewer/public/house/materialized_objects/` and logs adjustments under `logs/sleep_time_adjustments.json`.
+- Algorithmic Thinking trainer now schedules three `SleepTimeCompute` passes per corpus (≈33 %, 66 %, and final completion) so consolidation brackets the full drill window.
+- Each pass appends adjustments to `logs/sleep_time_adjustments.json` and emits reflection diaries under `viewer/public/house/materialized_objects/reflection_diary_cycle_*.json`.
+- The 2025‑09‑21 run produced cycles `_1758436355`, `_1758443093`, and `_1758450824`, confirming persistence on every pass.
 
 ## Lexicon Resources
 - Downloaded English WordNet (2024 edition), OpenWordNet-PT, and CC-CEDICT into `/home/daniel/K3D_llama_cpp/datasets/lexicons/` and mirrored under `/K3D/Knowledge3D.local/datasets/lexicons/` for onboarding lexical meaning stars.
@@ -69,12 +77,15 @@
 ## Trainer Integration
 - `AlgorithmicThinkingTrainer` now ingests lexicon prompts automatically. When any `lexicon_*.jsonl` file exists in `viewer/public/galaxy/working/`, the trainer samples per-language definition, synonym, and IPA questions before spawning RLWHF loops.
 - Lexicon prompts join the existing corpora in `generate_rpn_queries`, ensuring every session interleaves lexical mastery with algorithmic drills.
-- Repetition in the current run is expected—the corpora are finite—but we observed identical mistakes resurfacing, signalling that consolidation did not write back to the House because `SleepTimeCompute` aborted (missing `cuda-python`).
+- Repetition in the current run is expected—the corpora are finite—but consolidation now succeeds, so new reflection diaries land in the House after every sleep cycle.
 
-## Outstanding Issues (2025‑09‑19)
-- **Sleep-Time Compute:** Install `cuda-python` within `k3d-cranium` (or launch the sleep step from a CUDA-enabled env) so Phase 25 knowledge settles into `viewer/public/house/materialized_objects/`.
-- **Teacher Timeouts:** Boost `TeacherEvaluator` timeouts (initial ≥300 s, subsequent ≥150 s) to prevent exaone-deep timeouts mid-evaluation.
-- **Lexicon Clean-up:** Regenerate the Q&A corpora from the cleaned book sources using exaone3.5 with full-document prompts to avoid hyphenated split words.
-- **Galaxy Coverage:** Load the remaining Wikipedia splits (EN/ES/PT_PT/ZH) into the Galaxy to expand factual coverage.
-- **Thinking Tags:** After each major RLWHF batch, run the Phase 10 thinking-tag trainer so reasoning labels stay visible in the UI/logs.
-- **Generalisation Test:** Once consolidation succeeds, evaluate on `Maxwell-Jia/AIME_2024` to verify mathematical generalisation beyond memorised corpus questions.
+## AIME 2024 Baseline (2025‑09‑21)
+- Harness: `PYTHONPATH=. conda run -n k3d-cranium python3 -m knowledge3d.tools.phase25.aime_evaluator`
+- Result: `0 / 30` correct (accuracy `0.0`). Report stored at `docs/benchmarks/aime_2024_results.json` with per-problem traces.
+- Observed failure mode: fused head collapses to the placeholder string `chou2`; next iteration should plug the RLWHF feedback loop into the fused head prior to re-running the benchmark.
+
+## Outstanding Issues (2025‑09‑21)
+- **Fused Head Calibration:** The AIME baseline exposed the `chou2` collapse. Feed recent RLWHF feedback into the fused head (or retrain) before retrying the benchmark.
+- **Teacher Stability:** Keep the exaone3.5 timeouts elevated (≥300 s initial, ≥150 s subsequent) and monitor for repeated `-1.00` scores at the start of new runs.
+- **Corpus Diversity:** Continue the plan to ingest the balanced Wikipedia splits (EN/ES/PT_PT/ZH) so the RLWHF loop sees broader contexts.
+- **Thinking Tags:** After each major RLWHF batch, rerun the Phase 10 thinking-tag trainer to surface reasoning labels in UI and logs.

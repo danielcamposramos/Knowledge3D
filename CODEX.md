@@ -89,7 +89,7 @@ This file lists actionable tasks for AI agents working on the Knowledge3D reposi
 -   **Knowledge Graph & RAG:** Research and develop a robust backend using a knowledge graph and a Retrieval-Augmented Generation (RAG) system.
 -   **3D Data Standards:** Continue to monitor and align with standards like glTF, OpenUSD, and 3D Tiles.
 -   **Graph Database Standards:** Continue to align K3D's data model with standards like openCypher and RDF.
--   **Phase 25 Sleep Consolidation:** Ensure `cuda-python` is available inside `k3d-cranium` (or a dedicated CUDA env) so `SleepTimeCompute` can persist Phase 25 knowledge into the House.
+-   **Phase 25 Sleep Consolidation:** Keep the `k3d-cranium` CUDA toolchain (with `cuda-python`) ready so `SleepTimeCompute` continues persisting Phase 25 knowledge into the House.
 -   **Lexicon Refinement:** Rebuild Q&A material from the cleaned book sources using exaone3.5 with full-document context to avoid page-break artifacts (e.g., `ma- chine`).
 -   **Galaxy Coverage:** Ingest the balanced EN/ES/PT_PT/ZH Wikipedia splits into `viewer/public/galaxy/working/` so algorithmic runs have broad factual grounding.
 -   **Thinking Tags Visibility:** Run the Phase 10 thinking-tag trainer after long RLWHF sessions to keep reasoning labels exposed during evaluation.

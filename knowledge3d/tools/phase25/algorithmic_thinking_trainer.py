@@ -2,20 +2,21 @@
 
 Consumes the Algorithmic Thinking stars produced by the library ingress
 step and runs RLWHF-scored RPN drills using the Phase 18 fused head.
-Teacher feedback from exaone (quick scoring) and exaone-deep (conceptual
-analysis) is blended into the Galaxy stars so the algorithmic soul keeps
-growing across sessions.
+Teacher feedback from exaone3.5 (local Ollama) is blended into the Galaxy
+stars so the algorithmic soul keeps growing across sessions.
 """
 from __future__ import annotations
 
+import io
 import json
 import math
 import os
+import re
 import shutil
+import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
-import re
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 try:  # Lazy import: resolved when ``trainer`` property first accessed.
     from knowledge3d.tools.phase18.meaning_cluster_trainer import MeaningClusterTrainer  # type: ignore
@@ -38,6 +39,32 @@ LEXICON_JSONL_FILES = [
 _HYPHEN_RE = re.compile(r"(\w)-\s+(\w)")
 
 
+class _TeeStream(io.TextIOBase):
+    """Duplicate writes to multiple text streams (stdout + log file)."""
+
+    def __init__(self, *streams: io.TextIOBase) -> None:
+        super().__init__()
+        self._streams: Tuple[io.TextIOBase, ...] = streams
+        self._encoding = getattr(streams[0], "encoding", "utf-8") if streams else "utf-8"
+
+    @property
+    def encoding(self) -> str:  # type: ignore[override]
+        return self._encoding
+
+    def write(self, data: str) -> int:  # type: ignore[override]
+        for stream in self._streams:
+            stream.write(data)
+            stream.flush()
+        return len(data)
+
+    def flush(self) -> None:  # type: ignore[override]
+        for stream in self._streams:
+            stream.flush()
+
+    def isatty(self) -> bool:  # type: ignore[override]
+        return any(getattr(stream, "isatty", lambda: False)() for stream in self._streams)
+
+
 class AlgorithmicThinkingTrainer:
     """RPN + honesty drills for Algorithmic Thinking stars."""
 
@@ -56,8 +83,11 @@ class AlgorithmicThinkingTrainer:
         if RPNCalculator is None:
             raise ImportError("RPNCalculator unavailable — ensure phase10 PTX engine is importable.")
         self._rpn_calculator: RPNCalculator = RPNCalculator()
-        self._since_sleep: int = 0
-        self._sleep_interval: int = 0
+        self._total_queries: int = 0
+        self._queries_processed: int = 0
+        self._sleep_targets: List[int] = []
+        self._sleep_cycle_index: int = 0
+        self._sleep_cycles_completed: int = 0
         
     @property
     def trainer(self) -> "MeaningClusterTrainer":
@@ -87,137 +117,158 @@ class AlgorithmicThinkingTrainer:
 
     def train_algorithmic_thinking(self) -> None:
         """Execute algorithmic thinking drills across curated stars with RLWHF teachers."""
-        print("🧠 Training Algorithmic Thinking — RPN, PTX, Honesty, RLWHF...")
-        self.ensure_env()
+        log_path = Path("logs/phase25_pt_br_train.log")
+        saved_stdout = sys.stdout
+        saved_stderr = sys.stderr
+        log_file = self._open_training_log(log_path)
+        sys.stdout = _TeeStream(saved_stdout, log_file)
+        sys.stderr = _TeeStream(saved_stderr, log_file)
 
-        stars = self.load_stars_by_tag("algorithmic_thinking")
-        if not stars:
-            print("⚠️  No algorithmic thinking stars found — run library ingest first.")
-            return
-
-        if not self._rpn_corpus:
-            self._load_rpn_corpus()
-
-        if not hasattr(self, "_thinking_corpus") or not self._thinking_corpus:
-            self._load_thinking_corpus()
-
-        if not self._time_corpus:
-            self._time_corpus = self._load_jsonl(Path("viewer/public/galaxy/working/time_corpus.jsonl"), 200)
-        if not self._reflection_corpus:
-            self._reflection_corpus = self._load_jsonl(Path("viewer/public/galaxy/working/self_reflection_corpus.jsonl"), 200)
-        if not self._context_corpus:
-            self._context_corpus = self._load_jsonl(Path("viewer/public/galaxy/working/context_corpus.jsonl"), 200)
-        if not self._teaching_corpus:
-            self._teaching_corpus = self._load_jsonl(Path("viewer/public/galaxy/working/teaching_corpus.jsonl"), 200)
-        if not self._research_corpus:
-            self._research_corpus = self._load_jsonl(Path("viewer/public/galaxy/working/research_corpus.jsonl"), 100)
-        if not self._lexicon_corpus:
-            self._lexicon_corpus = self._load_lexicon_corpus(per_file=300)
-
-        total_queries = (
-            len(self._rpn_corpus)
-            + len(self._thinking_corpus)
-            + len(self._time_corpus)
-            + len(self._reflection_corpus)
-            + len(self._context_corpus)
-            + len(self._teaching_corpus)
-            + len(self._research_corpus)
-        )
-        self._sleep_interval = max(200, (total_queries * 2) // 3 if total_queries else 200)
-
-        # Warm the fused head (CPU) before spinning up Ollama teachers.
         try:
-            print("♨️  Warming up K3D fused head (CPU)...")
-            _ = self.trainer.generate_text_embedding("algorithmic soul warmup")
-        except Exception as exc:
-            print(f"⚠️  K3D fused head warmup failed: {exc}")
+            print("🧠 Training Algorithmic Thinking — RPN, PTX, Honesty, RLWHF...")
+            self.ensure_env()
 
-        teacher = None
-        try:
-            from knowledge3d.cranium.phase10.teacher_evaluator import TeacherEvaluator  # type: ignore
+            stars = self.load_stars_by_tag("algorithmic_thinking")
+            if not stars:
+                print("⚠️  No algorithmic thinking stars found — run library ingest first.")
+                return
 
-            teacher = TeacherEvaluator(
-                ollama_url="http://192.168.0.4:11434",
-                initial_timeout=300,
-                timeout=240,
+            if not self._rpn_corpus:
+                self._load_rpn_corpus()
+
+            if not hasattr(self, "_thinking_corpus") or not self._thinking_corpus:
+                self._load_thinking_corpus()
+
+            if not self._time_corpus:
+                self._time_corpus = self._load_jsonl(Path("viewer/public/galaxy/working/time_corpus.jsonl"), 200)
+            if not self._reflection_corpus:
+                self._reflection_corpus = self._load_jsonl(Path("viewer/public/galaxy/working/self_reflection_corpus.jsonl"), 200)
+            if not self._context_corpus:
+                self._context_corpus = self._load_jsonl(Path("viewer/public/galaxy/working/context_corpus.jsonl"), 200)
+            if not self._teaching_corpus:
+                self._teaching_corpus = self._load_jsonl(Path("viewer/public/galaxy/working/teaching_corpus.jsonl"), 200)
+            if not self._research_corpus:
+                self._research_corpus = self._load_jsonl(Path("viewer/public/galaxy/working/research_corpus.jsonl"), 100)
+            if not self._lexicon_corpus:
+                self._lexicon_corpus = self._load_lexicon_corpus(per_file=300)
+
+            # Warm the fused head (CPU) before spinning up Ollama teachers.
+            try:
+                print("♨️  Warming up K3D fused head (CPU)...")
+                _ = self.trainer.generate_text_embedding("algorithmic soul warmup")
+            except Exception as exc:
+                print(f"⚠️  K3D fused head warmup failed: {exc}")
+
+            teacher = None
+            try:
+                from knowledge3d.cranium.phase10.teacher_evaluator import TeacherEvaluator  # type: ignore
+
+                teacher = TeacherEvaluator(
+                    ollama_url="http://192.168.0.4:11434",
+                    initial_timeout=300,
+                    timeout=240,
+                )
+            except Exception as exc:
+                print(f"❌ TeacherEvaluator unavailable — RLWHF scoring skipped: {exc}")
+
+            star_batches: List[Tuple[Dict[str, Any], List[Dict[str, Any]]]] = []
+            total_queries = 0
+            for star in stars:
+                queries = self.generate_rpn_queries(star)
+                if not queries:
+                    star_name = star.get("name", star.get("id", "unknown"))
+                    print(f"⚠️  No queries generated for star {star_name} — skipping.")
+                    continue
+                star_batches.append((star, queries))
+                total_queries += len(queries)
+
+            if not star_batches:
+                print("⚠️  No training queries produced from algorithmic thinking stars.")
+                return
+
+            self._initialize_sleep_schedule(total_queries)
+            print(
+                f"🧮 Prepared {len(star_batches)} stars with {total_queries} queries. "
+                f"Sleep targets: {self._sleep_targets or ['(none)']}"
             )
-        except Exception as exc:
-            print(f"❌ TeacherEvaluator unavailable — RLWHF scoring skipped: {exc}")
 
-        for star in stars:
-            star_name = star.get("name", star.get("id", "unknown"))
-            print(f"\n📌 Star: {star_name}")
-            for query in self.generate_rpn_queries(star):
-                prompt = query["query"]
-                true_answer = query["true_answer"]
-                keywords = query.get("keywords", [])
-                explanation = query.get("explanation", "")
+            for star, queries in star_batches:
+                star_name = star.get("name", star.get("id", "unknown"))
+                print(f"\n📌 Star: {star_name} ({len(queries)} queries)")
+                for query in queries:
+                    prompt = query["query"]
+                    true_answer = query["true_answer"]
+                    keywords = query.get("keywords", [])
+                    explanation = query.get("explanation", "")
 
-                fused_embedding = self.trainer.generate_multi_modal_embedding(prompt)
-                cluster_name = star.get("id", "star_unknown").replace("star_", "", 1)
-                predicted = self.trainer.predict_from_fused_embedding(
-                    prompt, fused_embedding, cluster_name=cluster_name
-                )
-
-                print(f"Q: {prompt}")
-                print(f"🧠 Student Answer: {predicted}")
-
-                quick_feedback: Dict[str, Any] = {}
-                deep_feedback: Dict[str, Any] = {}
-                score: float = 0.0
-                explanation_text = ""
-
-                if teacher is not None:
-                    quick_feedback = teacher.evaluate_response(
-                        ai_response=predicted,
-                        model="exaone3.5:latest",
-                        question=prompt,
-                        expected_answer=true_answer,
+                    fused_embedding = self.trainer.generate_multi_modal_embedding(prompt)
+                    cluster_name = star.get("id", "star_unknown").replace("star_", "", 1)
+                    predicted = self.trainer.predict_from_fused_embedding(
+                        prompt, fused_embedding, cluster_name=cluster_name
                     )
-                    deep_feedback = teacher.evaluate_response(
-                        ai_response=predicted,
-                        model="exaone-deep:latest",
-                        question=prompt,
-                        expected_answer=true_answer,
-                    )
-                    score = float(quick_feedback.get("score", 0.0))
-                    deep_score = deep_feedback.get("score")
-                    if isinstance(deep_score, (int, float)) and deep_score > score:
-                        score = float(deep_score)
-                    explanation_text = deep_feedback.get("explanation") or quick_feedback.get("explanation", "")
-                    print(f"📊 RLWHF Score: {score:.2f}")
-                    if explanation_text:
-                        print(f"💬 Teacher Feedback: {explanation_text}")
-                else:
-                    fallback = self.trainer.evaluate_house_answer(
-                        predicted=predicted,
+
+                    print(f"Q: {prompt}")
+                    print(f"🧠 Student Answer: {predicted}")
+
+                    quick_feedback: Dict[str, Any] = {}
+                    deep_feedback: Dict[str, Any] = {}
+                    score: float = 0.0
+                    explanation_text = ""
+
+                    if teacher is not None:
+                        quick_feedback = teacher.evaluate_response(
+                            ai_response=predicted,
+                            model="exaone3.5:latest",
+                            question=prompt,
+                            expected_answer=true_answer,
+                        )
+                        deep_feedback = dict(quick_feedback)
+                        score = float(quick_feedback.get("score", 0.0))
+                        explanation_text = quick_feedback.get("explanation", "")
+                        print(f"📊 RLWHF Score: {score:.2f}")
+                        if explanation_text:
+                            print(f"💬 Teacher Feedback: {explanation_text}")
+                    else:
+                        fallback = self.trainer.evaluate_house_answer(
+                            predicted=predicted,
+                            true_answer=true_answer,
+                            keywords=keywords,
+                            modality_hint=query.get("modality_hint", ""),
+                        )
+                        quick_feedback = fallback
+                        deep_feedback = dict(fallback)
+                        score = float(fallback.get("score", 0.0))
+                        explanation_text = fallback.get("explanation", "")
+                        print(f"📊 Honesty Score: {score:.2f} — {explanation_text}")
+
+                    composite_explanation = explanation_text or explanation
+
+                    self._update_star_with_feedback(
+                        star=star,
+                        prompt=prompt,
                         true_answer=true_answer,
-                        keywords=keywords,
-                        modality_hint=query.get("modality_hint", ""),
+                        predicted=predicted,
+                        fused_embedding=fused_embedding,
+                        quick_feedback=quick_feedback,
+                        deep_feedback=deep_feedback,
+                        score=score,
+                        remedial_hint=explanation,
+                        composite_explanation=composite_explanation,
                     )
-                    quick_feedback = fallback
-                    score = float(fallback.get("score", 0.0))
-                    explanation_text = fallback.get("explanation", "")
-                    print(f"📊 Honesty Score: {score:.2f} — {explanation_text}")
 
-                composite_explanation = explanation_text or explanation
+                    self._queries_processed += 1
+                    self._maybe_run_sleep_cycle()
 
-                self._update_star_with_feedback(
-                    star=star,
-                    prompt=prompt,
-                    true_answer=true_answer,
-                    predicted=predicted,
-                    fused_embedding=fused_embedding,
-                    quick_feedback=quick_feedback,
-                    deep_feedback=deep_feedback,
-                    score=score,
-                    remedial_hint=explanation,
-                    composite_explanation=composite_explanation,
-                )
-                self._since_sleep += 1
-                if self._since_sleep >= self._sleep_interval:
-                    self._run_sleep_cycle()
-                    self._since_sleep = 0
+            self._finalize_sleep_schedule()
+            print(
+                f"✅ Phase 25 training run complete — processed {self._queries_processed} queries, "
+                f"sleep cycles executed: {self._sleep_cycles_completed}."
+            )
+        finally:
+            sys.stdout = saved_stdout
+            sys.stderr = saved_stderr
+            log_file.flush()
+            log_file.close()
 
     def load_stars_by_tag(self, tag: str) -> List[Dict[str, Any]]:
         stars: List[Dict[str, Any]] = []
@@ -643,26 +694,71 @@ class AlgorithmicThinkingTrainer:
             return text
         return _HYPHEN_RE.sub(r"\1\2", text)
 
-    def _run_sleep_cycle(self) -> None:
-        """Trigger sleep-time compute to consolidate newly learned content."""
-        try:
-            from knowledge3d.cranium.phase10.sleep_time_compute import SleepTimeCompute  # type: ignore
+    def _open_training_log(self, log_path: Path) -> io.TextIOBase:
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        handle = log_path.open("w", encoding="utf-8")
+        timestamp = datetime.utcnow().isoformat() + "Z"
+        handle.write(f"=== Phase25 AlgorithmicThinkingTrainer run @ {timestamp} ===\n")
+        handle.flush()
+        return handle
 
-            house_glb = Path("viewer/public/house/house_master_assembled.glb")
-            if not house_glb.exists():
-                house_glb = Path("viewer/public/house/house_master.glb")
-            galaxy_glb = Path("viewer/public/galaxy.v8.glb")
-            if not galaxy_glb.exists():
-                galaxy_glb = Path("viewer/public/galaxy.glb")
+    def _initialize_sleep_schedule(self, total_queries: int) -> None:
+        self._total_queries = max(0, int(total_queries))
+        self._queries_processed = 0
+        self._sleep_cycle_index = 0
+        self._sleep_cycles_completed = 0
+        self._sleep_targets = []
+        if self._total_queries <= 0:
+            return
+        for idx in range(3):
+            if idx == 2:
+                target = self._total_queries
+            else:
+                target = math.ceil(self._total_queries * (idx + 1) / 3)
+            if self._sleep_targets and target <= self._sleep_targets[-1]:
+                target = self._sleep_targets[-1] + 1
+            self._sleep_targets.append(target)
 
-            for cycle in range(3):
+    def _maybe_run_sleep_cycle(self) -> None:
+        while (
+            self._sleep_cycle_index < len(self._sleep_targets)
+            and self._queries_processed >= self._sleep_targets[self._sleep_cycle_index]
+        ):
+            self._run_sleep_cycle()
+            self._sleep_cycle_index += 1
+
+    def _finalize_sleep_schedule(self) -> None:
+        while self._sleep_cycle_index < len(self._sleep_targets):
+            self._run_sleep_cycle()
+            self._sleep_cycle_index += 1
+
+    def _run_sleep_cycle(self, cycles: int = 1) -> None:
+        """Trigger one or more sleep cycles to consolidate newly learned content."""
+        iterations = max(1, int(cycles))
+        for _ in range(iterations):
+            if self._sleep_cycles_completed >= 3:
+                print("🌙 Sleep-time compute already executed three times — skipping extra cycle.")
+                return
+            try:
+                from knowledge3d.cranium.phase10.sleep_time_compute import SleepTimeCompute  # type: ignore
+
+                house_glb = Path("viewer/public/house/house_master_assembled.glb")
+                if not house_glb.exists():
+                    house_glb = Path("viewer/public/house/house_master.glb")
+                galaxy_glb = Path("viewer/public/galaxy.v8.glb")
+                if not galaxy_glb.exists():
+                    galaxy_glb = Path("viewer/public/galaxy.glb")
+
+                cycle_number = self._sleep_cycles_completed + 1
                 stc = SleepTimeCompute(
                     house_path=str(house_glb),
                     galaxy_path=str(galaxy_glb),
-                    output_path=str(house_glb.parent / f"house_post_sleep_cycle{cycle+1}.glb"),
+                    output_path=str(house_glb.parent / f"house_post_sleep_cycle{cycle_number}.glb"),
                     material_dir=str(house_glb.parent / "materialized_objects"),
                 )
                 stc.run()
-                print(f"🌙 Sleep-time consolidation cycle {cycle+1} complete.")
-        except Exception as exc:
-            print(f"⚠️  Sleep-time compute skipped: {exc}")
+                self._sleep_cycles_completed += 1
+                print(f"🌙 Sleep-time consolidation cycle {cycle_number} complete.")
+            except Exception as exc:
+                print(f"⚠️  Sleep-time compute skipped: {exc}")
+                break

@@ -5,24 +5,24 @@
   "materialized_objects": [],
   "post_consolidation_training": [
     {
-      "query": "Why was shape dream_torus_25528_1758422382_v1_v2_v3 discarded? What geometric property failed?",
-      "trained_at": "2025-09-20T23:39:42.374188"
+      "query": "Why was shape dream_icosahedron_999126_1758450824_v1_v2_v3 discarded? What geometric property failed?",
+      "trained_at": "2025-09-21T07:33:44.375168"
     },
     {
-      "query": "What honesty constraint was violated in revision 3 of dream_torus_25528_1758422382_v1_v2_v3?",
-      "trained_at": "2025-09-20T23:39:42.374195"
+      "query": "What honesty constraint was violated in revision 3 of dream_icosahedron_999126_1758450824_v1_v2_v3?",
+      "trained_at": "2025-09-21T07:33:44.375203"
     },
     {
-      "query": "How to increase honesty for dream_torus_25528_1758422382_v1_v2_v3 when embedding entropy is high?",
-      "trained_at": "2025-09-20T23:39:42.374199"
+      "query": "How to increase honesty for dream_icosahedron_999126_1758450824_v1_v2_v3 when embedding entropy is high?",
+      "trained_at": "2025-09-21T07:33:44.375245"
     },
     {
-      "query": "Why was shape dream_icosahedron_968238_1758422382_v1_v2_v3 discarded? What geometric property failed?",
-      "trained_at": "2025-09-20T23:39:42.374205"
+      "query": "Why was shape dream_sphere_980392_1758450824_v1_v2_v3 discarded? What geometric property failed?",
+      "trained_at": "2025-09-21T07:33:44.375266"
     },
     {
-      "query": "What honesty constraint was violated in revision 3 of dream_icosahedron_968238_1758422382_v1_v2_v3?",
-      "trained_at": "2025-09-20T23:39:42.374208"
+      "query": "What honesty constraint was violated in revision 3 of dream_sphere_980392_1758450824_v1_v2_v3?",
+      "trained_at": "2025-09-21T07:33:44.375286"
     }
   ]
 }
