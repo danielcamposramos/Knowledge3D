@@ -49,6 +49,40 @@ class PTXOps:
 
         self._geometry_session.apply_transform(mesh_index, matrix, recalc_normals=recalc_normals)
 
+    def geometry_apply_transform_for_mesh(
+        self,
+        mesh_id: int,
+        matrix: np.ndarray,
+        *,
+        primitive_index: Optional[int] = None,
+        recalc_normals: bool = False,
+    ) -> None:
+        """Apply a transform matrix to every primitive of a glTF mesh ID."""
+
+        self._geometry_session.apply_transform_for_mesh(
+            mesh_id,
+            matrix,
+            primitive_index=primitive_index,
+            recalc_normals=recalc_normals,
+        )
+
+    def geometry_translate_mesh(
+        self,
+        mesh_id: int,
+        translation: np.ndarray,
+        *,
+        primitive_index: Optional[int] = None,
+        recalc_normals: bool = False,
+    ) -> None:
+        """Translate a glTF mesh ID by the given XYZ vector."""
+
+        self._geometry_session.translate_mesh(
+            mesh_id,
+            translation,
+            primitive_index=primitive_index,
+            recalc_normals=recalc_normals,
+        )
+
     def geometry_recalc_normals(self, mesh_index: int) -> None:
         """Recalculate normals on a mesh primitive in the loaded scene."""
 

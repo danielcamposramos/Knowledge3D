@@ -6,10 +6,13 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
+from knowledge3d.cranium.ptx import PTX_OPS
+
 
 class _Model:
-    def __init__(self, nodes: List[Dict[str, Any]]):
+    def __init__(self, nodes: List[Dict[str, Any]], gltf: Any | None = None):
         self.nodes = nodes
+        self.gltf = gltf
 
 
 class _GLBLoaderFallback:
@@ -18,10 +21,10 @@ class _GLBLoaderFallback:
         try:
             p = Path(path)
             if not p.exists():
-                return _Model([])
+                return _Model([], None)
         except Exception:
             pass
-        return _Model([])
+        return _Model([], None)
 
 
 def _load_glb(path: str) -> _Model:
@@ -32,7 +35,7 @@ def _load_glb(path: str) -> _Model:
             return _Model([])
         gltf = GLTF2().load(str(p))
         nodes: List[Dict[str, Any]] = []
-        for node in (gltf.nodes or []):
+        for idx, node in enumerate(gltf.nodes or []):
             # Normalize to dict with extras for our traversal
             extras = getattr(node, "extras", None)
             # Ensure dict
@@ -46,8 +49,10 @@ def _load_glb(path: str) -> _Model:
             nodes.append({
                 "name": getattr(node, "name", None),
                 "extras": extras,
+                "mesh": getattr(node, "mesh", None),
+                "node_index": idx,
             })
-        return _Model(nodes)
+        return _Model(nodes, gltf)
     except Exception:
         return _GLBLoaderFallback().load(path)
 
@@ -57,14 +62,18 @@ class SleepTimeCompute:
         self.house_path = Path(house_path)
         self.galaxy_path = Path(galaxy_path)
         self.output_path = Path(output_path) if output_path else self.house_path.parent / "house_post_sleep.glb"
+        self.output_path.parent.mkdir(parents=True, exist_ok=True)
         self.material_dir = Path(material_dir) if material_dir else self.house_path.parent / "materialized_objects"
         self.material_dir.mkdir(parents=True, exist_ok=True)
         self.house: Optional[Dict[str, Any]] = None
         self.galaxy: Optional[List[Dict[str, Any]]] = None
+        self._house_model: Optional[_Model] = None
+        self._ptx_scene_loaded: bool = False
 
     def load_house(self) -> Dict[str, Any]:
         """Load House GLB — extract zones, rays, embeddings (best-effort)."""
         model = _load_glb(str(self.house_path))
+        self._house_model = model
         house_data: Dict[str, Any] = {
             'zones': [],
             'rays': [],
@@ -81,6 +90,9 @@ class SleepTimeCompute:
                     'name': k3d.get('name') or node.get('name'),
                     'position': list(k3d.get('position', [0.0, 0.0, 0.0])),
                     'honesty_score': float(k3d.get('honesty_score', 0.5)),
+                    'mesh_id': node.get('mesh'),
+                    'primitive_index': k3d.get('primitive_index'),
+                    'node_index': node.get('node_index'),
                 })
             elif k3d.get('type') == 'ray':
                 house_data['rays'].append({
@@ -178,6 +190,8 @@ class SleepTimeCompute:
         self.house = self.load_house()
         self.galaxy = self.load_galaxy()
 
+        self._ensure_ptx_scene()
+
         adjustments: Dict[str, Any] = {
             'zone_shifts': [],
             'ray_adjustments': [],
@@ -211,6 +225,7 @@ class SleepTimeCompute:
                 'shift_vector': shift,
                 'honesty_score': h,
             })
+            self._apply_zone_translation(z, shift)
 
         # Adjust ray origins to updated zone positions; prune low-honesty rays
         kept_rays = []
@@ -400,9 +415,91 @@ class SleepTimeCompute:
 
         return adjustments
 
+    # PTX helpers -------------------------------------------------------------
+    def _ensure_ptx_scene(self) -> None:
+        if self._ptx_scene_loaded:
+            return
+        try:
+            PTX_OPS.geometry_load_scene(str(self.house_path))
+            self._ptx_scene_loaded = True
+        except Exception as exc:
+            print(f"⚠️  PTX geometry scene load skipped: {exc}")
+
+    def _apply_zone_translation(self, zone: Dict[str, Any], shift: List[float]) -> None:
+        if not self._ptx_scene_loaded:
+            return
+        mesh_id = zone.get('mesh_id')
+        if mesh_id is None:
+            return
+        primitive_index = zone.get('primitive_index')
+        try:
+            PTX_OPS.geometry_translate_mesh(
+                int(mesh_id),
+                shift,
+                primitive_index=int(primitive_index) if primitive_index is not None else None,
+                recalc_normals=False,
+            )
+        except Exception as exc:
+            print(f"⚠️  PTX zone translation failed for zone {zone.get('id')}: {exc}")
+
+    def _persist_ptx_updates(self) -> None:
+        if not self._ptx_scene_loaded:
+            return
+        try:
+            PTX_OPS.geometry_save(target_glb=str(self.output_path))
+            self._update_zone_positions_in_glb(self.output_path)
+        except Exception as exc:
+            print(f"⚠️  PTX geometry save skipped: {exc}")
+        finally:
+            try:
+                PTX_OPS.geometry_release()
+            except Exception as rel_exc:
+                print(f"⚠️  PTX geometry release failed: {rel_exc}")
+            self._ptx_scene_loaded = False
+
+    def _update_zone_positions_in_glb(self, glb_path: Path) -> None:
+        try:
+            from pygltflib import GLTF2  # type: ignore
+        except Exception as exc:  # pragma: no cover
+            print(f"⚠️  Unable to update zone positions in GLB (pygltflib missing): {exc}")
+            return
+
+        zone_map = {}
+        if self.house:
+            for zone in self.house.get('zones', []):
+                zone_map[zone.get('id')] = zone
+        if not zone_map:
+            return
+
+        gltf = GLTF2().load(str(glb_path))
+        updated = False
+        for node in gltf.nodes or []:
+            extras = getattr(node, 'extras', None)
+            if not extras:
+                continue
+            if hasattr(extras, 'to_dict'):
+                extras = extras.to_dict()
+            if not isinstance(extras, dict):
+                continue
+            k3d = extras.get('k3d')
+            if not isinstance(k3d, dict):
+                continue
+            if k3d.get('type') != 'zone':
+                continue
+            zone_id = k3d.get('id')
+            zone = zone_map.get(zone_id)
+            if not zone:
+                continue
+            k3d['position'] = list(zone.get('position', [0.0, 0.0, 0.0]))
+            updated = True
+            node.extras = extras
+        if updated:
+            gltf.save(str(glb_path))
+
     def save_house(self) -> str:
         """Save modified House GLB (stub). Logs adjustments and materializations."""
         adjustments = self.compute_nightly_adjustments()
+        self._persist_ptx_updates()
         # Always log to central logs directory
         logs_dir = Path('logs')
         logs_dir.mkdir(parents=True, exist_ok=True)
@@ -411,7 +508,10 @@ class SleepTimeCompute:
             json.dump(adjustments, f, ensure_ascii=False, indent=2)
         print(f"🌙 Sleep-Time Compute: Adjustments logged to {log_path}")
         print(f"📚 Materialized {len(adjustments['materialized_objects'])} permanent objects.")
-        print(f"🌙 Modified House GLB would be saved to {self.output_path} (GLB writing stubbed for Phase 10.7)")
+        if self.output_path.exists():
+            print(f"🌙 Modified House GLB saved to {self.output_path}")
+        else:
+            print(f"🌙 PTX geometry save skipped; no GLB written (see warnings above)")
         return str(self.output_path)
 
     def run(self) -> None:
