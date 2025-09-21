@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np  # type: ignore
 from cuda import cuda, nvrtc  # type: ignore
@@ -17,7 +17,28 @@ from knowledge3d.cranium.ptx.galaxy_buffer import (
 )
 
 
+_MODULE_HANDLES: List[int] = []
+_KERNEL_CACHE: Dict[str, int] = {}
+
+
+def _ensure_cuda_context() -> int:
+    err, ctx = cuda.cuCtxGetCurrent()
+    if err == cuda.CUresult.CUDA_SUCCESS and ctx:
+        return ctx
+    err, = cuda.cuInit(0)
+    if err != cuda.CUresult.CUDA_SUCCESS:
+        raise RuntimeError(f"cuInit failed: {err}")
+    err, dev = cuda.cuDeviceGet(0)
+    if err != cuda.CUresult.CUDA_SUCCESS:
+        raise RuntimeError(f"cuDeviceGet failed: {err}")
+    err, ctx = cuda.cuCtxCreate(0, dev)
+    if err != cuda.CUresult.CUDA_SUCCESS:
+        raise RuntimeError(f"cuCtxCreate failed: {err}")
+    return ctx
+
+
 def _compile_kernel(source: str, name: str) -> int:
+    _ensure_cuda_context()
     res, prog = nvrtc.nvrtcCreateProgram(source.encode("utf-8"), b"kernels.cu", 0, [], [])
     if res != nvrtc.nvrtcResult.NVRTC_SUCCESS:
         raise RuntimeError(f"nvrtcCreateProgram failed: {res}")
@@ -52,13 +73,19 @@ def _compile_kernel(source: str, name: str) -> int:
     err, func = cuda.cuModuleGetFunction(module, name.encode("utf-8"))
     if err != cuda.CUresult.CUDA_SUCCESS:
         raise RuntimeError(f"cuModuleGetFunction failed: {err}")
+    _MODULE_HANDLES.append(module)
     return func
 
 
 _KERNEL_SOURCE = Path(__file__).with_name("kernels.cu").read_text(encoding="utf-8")
-_APPLY_TRANSFORM = _compile_kernel(_KERNEL_SOURCE, "apply_transform")
-_RECALC_NORMALS = _compile_kernel(_KERNEL_SOURCE, "recalc_normals")
-_BLEND_EMBED = _compile_kernel(_KERNEL_SOURCE, "blend_embeddings")
+
+
+def _get_kernel(name: str) -> int:
+    if name in _KERNEL_CACHE:
+        return _KERNEL_CACHE[name]
+    func = _compile_kernel(_KERNEL_SOURCE, name)
+    _KERNEL_CACHE[name] = func
+    return func
 
 
 def apply_mesh_transform(
@@ -80,6 +107,8 @@ def apply_mesh_transform(
     threads = 256
     blocks = math.ceil(record.vertex_count / threads)
 
+    kernel = _get_kernel("apply_transform")
+
     params = (
         matrix_dev.ptr,
         galaxy_memory.vertices.ptr,
@@ -87,7 +116,7 @@ def apply_mesh_transform(
         counts_dev.ptr,
         np.uint32(mesh_index),
     )
-    _launch_kernel(_APPLY_TRANSFORM, blocks, threads, params)
+    _launch_kernel(kernel, blocks, threads, params)
 
     _free_device(matrix_dev)
     _free_device(offsets_dev)
@@ -120,6 +149,8 @@ def recalc_mesh_normals(
     threads = 256
     blocks = math.ceil((record.index_count // 3) / threads)
 
+    kernel = _get_kernel("recalc_normals")
+
     params = (
         galaxy_memory.vertices.ptr,
         galaxy_memory.indices.ptr,
@@ -128,7 +159,7 @@ def recalc_mesh_normals(
         counts_dev.ptr,
         np.uint32(mesh_index),
     )
-    _launch_kernel(_RECALC_NORMALS, blocks, threads, params)
+    _launch_kernel(kernel, blocks, threads, params)
 
     _free_device(offsets_dev)
     _free_device(counts_dev)
@@ -161,6 +192,8 @@ def blend_node_embedding(
     threads = 256
     blocks = math.ceil(embedding_dim / threads)
 
+    kernel = _get_kernel("blend_embeddings")
+
     params = (
         source_dev.ptr,
         galaxy_memory.embeddings.ptr,
@@ -168,7 +201,7 @@ def blend_node_embedding(
         np.uint32(embedding_dim),
         np.uint32(node_index),
     )
-    _launch_kernel(_BLEND_EMBED, blocks, threads, params)
+    _launch_kernel(kernel, blocks, threads, params)
     _free_device(source_dev)
 
     galaxy_memory.embeddings_dirty = True
