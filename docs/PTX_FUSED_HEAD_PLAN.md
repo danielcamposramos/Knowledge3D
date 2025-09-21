@@ -62,5 +62,5 @@ Update the status column with `Pending`, `In Progress`, or `Done`, plus short no
 ### Language Galaxy Builder
 - Tool: `python -m knowledge3d.tools.language_galaxy_builder --input viewer/public/galaxy/working/lexicon_pt_br_kaikki.jsonl --input viewer/public/galaxy/working/lexicon_audio_pt_br_librispeech9h.jsonl --language-id pt-BR --label "Portuguese (BR) Language Galaxy" --out viewer/public/galaxy/pt_br_language.glb --manifest viewer/public/galaxy/pt_br_language.json`
 - Emits binary GLBs with `vectorsView`/`embeddingsView` so PTX loads them directly; manifests capture bounding boxes + modality counts for placement in the language quadrant.
-- Use `python -m knowledge3d.tools.convert_gltf_to_glb src.gltf dst.glb` to migrate legacy assets before PTX-only pipelines run.
+- Use `python -m knowledge3d.tools.convert_gltf_to_glb src.gltf dst.glb` for generic GLTFs with valid bufferViews, otherwise rebuild Houses via the tool below before PTX-only pipelines run.
 - Rebuild legacy Houses via `python -m knowledge3d.tools.rebuild_house_glb viewer/public/houses/<id>/memory_house.gltf viewer/public/houses/<id>/memory_house.glb` and delete the JSON `.gltf` to avoid CPU fallbacks.
