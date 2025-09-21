@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np  # type: ignore
 from cuda import cuda, nvrtc  # type: ignore
@@ -264,6 +264,57 @@ class PTXGeometrySession:
         if emb_arr.ndim != 1:
             raise ValueError("embedding must be 1D")
         blend_node_embedding(galaxy, node_index, emb_arr, alpha)
+
+    def apply_transform_for_mesh(
+        self,
+        mesh_id: int,
+        matrix: np.ndarray,
+        *,
+        primitive_index: Optional[int] = None,
+        recalc_normals: bool = False,
+    ) -> None:
+        galaxy = self._require_memory()
+        matrix_arr = np.asarray(matrix, dtype=np.float32)
+        if matrix_arr.shape != (4, 4):
+            raise ValueError("matrix must be shape (4, 4)")
+
+        matched = False
+        for idx, record in enumerate(galaxy.mesh_records):
+            if record.mesh_index != mesh_id:
+                continue
+            if primitive_index is not None and record.primitive_index != primitive_index:
+                continue
+            apply_mesh_transform(galaxy, idx, matrix_arr)
+            matched = True
+            if recalc_normals and galaxy.normals.ptr:
+                try:
+                    recalc_mesh_normals(galaxy, idx)
+                except ValueError:
+                    # Normals may be missing for this primitive; ignore.
+                    pass
+
+        if not matched:
+            raise ValueError(f"No mesh record found for mesh_id={mesh_id} (primitive_index={primitive_index})")
+
+    def translate_mesh(
+        self,
+        mesh_id: int,
+        translation: np.ndarray | List[float],
+        *,
+        primitive_index: Optional[int] = None,
+        recalc_normals: bool = False,
+    ) -> None:
+        vec = np.asarray(translation, dtype=np.float32)
+        if vec.shape != (3,):
+            raise ValueError("translation must be length-3 vector")
+        matrix = np.eye(4, dtype=np.float32)
+        matrix[:3, 3] = vec
+        self.apply_transform_for_mesh(
+            mesh_id,
+            matrix,
+            primitive_index=primitive_index,
+            recalc_normals=recalc_normals,
+        )
 
     # ------------------------------------------------------------------
     def save(
