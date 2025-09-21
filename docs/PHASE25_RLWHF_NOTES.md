@@ -83,7 +83,8 @@
 ## AIME 2024 Baseline (2025‑09‑21)
 - Harness: `PYTHONPATH=. conda run -n k3d-cranium python3 -m knowledge3d.tools.phase25.aime_evaluator [--limit N]`
 - Current run (limit 1): `0 / 1` correct using the fused head only; see `docs/benchmarks/aime_2024_results.json` for the transcript. Expect a long runtime (~7 min/problem) when scaling to all 30 items.
-- Observed failure mode: the fused head emits geometry tokens (e.g., `icosahedron`) instead of numeric answers; integrate RLWHF feedback or retrain the head so arithmetic outputs emerge without assistance.
+- Observed failure mode: the fused head emits geometry tokens (e.g., `icosahedron`) instead of numeric answers; integrate RLWHF feedback or retrain the head so arithmetic outputs emerge without assistance. During training, a rotating queue of AIME prompts is now mixed into the RLWHF loop to expose the model to real exam statements.
+- The fused head now calls PTX-native helpers (ModularRPNEngine + shape generator) before logits, so GPU computations can yield numerical or spatial answers when the prompt allows.
 
 ## Outstanding Issues (2025‑09‑21)
 - **Fused Head Calibration:** The AIME baseline shows geometry-token answers; integrate RLWHF feedback or retrain the fused head before retrying the benchmark.
