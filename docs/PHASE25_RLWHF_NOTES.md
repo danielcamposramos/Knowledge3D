@@ -47,11 +47,21 @@
   - `env PYTHONPATH=. python -m knowledge3d.tools.lexicon_builder_es --out viewer/public/galaxy/working/lexicon_es_kaikki.jsonl`
   - `env PYTHONPATH=. python -m knowledge3d.tools.lexicon_builder_zh --out viewer/public/galaxy/working/lexicon_zh_cedict.jsonl`
   - `env PYTHONPATH=. python -m knowledge3d.tools.lexicon_builder_pt_br --out viewer/public/galaxy/working/lexicon_pt_br_kaikki.jsonl`
-  - `env PYTHONPATH=. python -m knowledge3d.tools.lexicon_builder_pt_grammar --out viewer/public/galaxy/working/lexicon_pt_pt_grammar.jsonl`
+- `env PYTHONPATH=. python -m knowledge3d.tools.lexicon_builder_pt_grammar --out viewer/public/galaxy/working/lexicon_pt_pt_grammar.jsonl`
 - Pass `--limit` while iterating to generate quick samples (e.g., `--limit 200`). Omitting the flag emits the full corpus.
 - Each star stores lemma, POS, definition(s), synonyms, pronunciations, and relations so the Galaxy can stitch lexical concepts into Phase 25 reasoning drills.
   - The Kaikki Portuguese dump (`kaikki.org-dictionary-Portuguese.jsonl.gz`) sits under `/home/daniel/K3D_llama_cpp/datasets/lexicons/portuguese_br/`; it produces `viewer/public/galaxy/working/lexicon_pt_br_kaikki.jsonl` (~GBs). Keep this artifact out of git—regenerate on demand with the command above.
   - Grammar scaffolding for pt-PT is curated in-code (see `knowledge3d/tools/lexicon_builder_pt_grammar.py`) so the variant keeps its structural rules.
+- PTX-first galaxy packaging:
+  - `env PYTHONPATH=. python -m knowledge3d.tools.language_galaxy_builder \
+      --input viewer/public/galaxy/working/lexicon_pt_br_kaikki.jsonl \
+      --input viewer/public/galaxy/working/lexicon_audio_pt_br_librispeech9h.jsonl \
+      --language-id pt-BR \
+      --label "Portuguese (BR) Language Galaxy" \
+      --out viewer/public/galaxy/language_pt_br.glb \
+      --manifest viewer/public/galaxy/language_pt_br.json`
+  - Repeat for EN/ES/ZH, swapping the language corpora and IDs. The builder emits binary GLBs with embedded bufferViews so `PTXGeometrySession` can load them directly.
+  - Legacy JSON `.gltf` assets must be converted via `env PYTHONPATH=. python -m knowledge3d.tools.convert_gltf_to_glb memory_house.gltf memory_house.glb` before SleepTimeCompute or trainer runs; CPU fallbacks have been removed.
 
 ## Pronunciation Audio Builder
 - `env PYTHONPATH=. python -m knowledge3d.tools.pronunciation_audio_builder --metadata <manifest.tsv> --audio-root <clips_dir> --language en --source commonvoice --out viewer/public/galaxy/working/lexicon_audio_en_commonvoice.jsonl`
