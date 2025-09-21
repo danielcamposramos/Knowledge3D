@@ -331,11 +331,13 @@ class AlgorithmicThinkingTrainer:
 
         # Append curated RPN expressions
         for entry in self._rpn_corpus:
+            rpn_expr = entry['rpn']
+            result = entry['formatted_result']
             queries.append(
                 {
-                    "query": f"RPN: Evaluate {entry['infix']} using tokens {entry['rpn']}",
-                    "true_answer": entry['formatted_result'],
-                    "explanation": f"Tokens: {entry['rpn']} → {entry['formatted_result']}",
+                    "query": f"Evaluate the RPN expression '{rpn_expr}'.",
+                    "true_answer": result,
+                    "explanation": f"The RPN stack reduces to {result}.",
                     "keywords": ["rpn", "evaluation"],
                 }
             )
@@ -375,6 +377,8 @@ class AlgorithmicThinkingTrainer:
                     "keywords": [entry.get("lemma", ""), entry.get("language", "")],
                 }
             )
+        if self._aime_queue:
+            queries.append(self._aime_queue.pop(0))
         return queries
 
     def extract_concepts(self, text: str) -> List[str]:
@@ -576,6 +580,12 @@ class AlgorithmicThinkingTrainer:
                 else:
                     rpn_expr = str(obj.get("rpn", "")).strip()
                 if not rpn_expr:
+                    continue
+                tokens_list = rpn_expr.split()
+                if len(tokens_list) < 2:
+                    continue
+                operator_tokens = {"+", "-", "*", "/", "^", "neg", "sqrt", "sin", "cos", "tan", "log", "ln", "exp", "int", "d/dx"}
+                if not any(tok in operator_tokens for tok in tokens_list):
                     continue
                 try:
                     result = self._rpn_calculator.evaluate(rpn_expr, instance_id=len(entries) % 15)

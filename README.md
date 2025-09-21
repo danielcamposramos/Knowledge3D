@@ -238,6 +238,8 @@ scripts/k3d_env.sh run python -m knowledge3d.tools.gardens --gltf viewer/public/
 - RLWHF prompts were regenerated with `exaone3.5` only (`viewer/public/galaxy/working/rlwhf_exaone3p5.jsonl`) to avoid exaone-deep thinking-tag noise in the training data.
 - AIME 2024 baseline (sampled): `0 / 1` correct using the fused head only (see `docs/benchmarks/aime_2024_results.json`). Run `python3 -m knowledge3d.tools.phase25.aime_evaluator` for the full 30-problem sweep once compute time permits.
 - RLWHF scoring uses `exaone-deep:latest`; the session now verifies the PTX geometry head before kicking off and then routes feedback through the deep teacher only.
+- Each training pass now injects a rotating queue of real AIME problems so the fused head sees authentic competition questions alongside RPN drills.
+- The fused head now routes questions through the PTX-backed RPN engine and geometry generator before falling back to logits, so GPU-native operations power both numeric and spatial answers.
 - **Action items**
   - Improve fused-head reasoning so external benchmarks exceed the current `0 %` baseline; prioritise stabilising answers that currently collapse to the `chou2` placeholder.
   - Audit teacher feedback/timeout settings to ensure exaone-deep scoring remains stable on long prompts.
