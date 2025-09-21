@@ -73,7 +73,7 @@ extern "C" __global__ void blend_embeddings(
     if (tid >= embedding_dim) return;
 
     unsigned int idx = node_offset * embedding_dim + tid;
-    float src = source[idx];
+    float src = source[tid];
     float dst = target[idx];
     target[idx] = dst + alpha * (src - dst);
 }
