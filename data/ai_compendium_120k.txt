@@ -1351,11 +1351,11 @@ HR TRAINING AND MEMORY — House Memory (Rooms + Objects)
 HR TRAINING AND MEMORY — We added a persistent “House Memory” that stores rooms (e.g., “Books”) and objects (e.g., book titles). It exports as a K3D GLTF the viewer can load.
 HR TRAINING AND MEMORY — Tool: `knowledge3d/tools/house_memory.py`
 HR TRAINING AND MEMORY — State: `data/memory_house.json`
-HR TRAINING AND MEMORY — Export: `viewer/public/memory_house.gltf`
+HR TRAINING AND MEMORY — Export: `viewer/public/memory_house.glb`
 HR TRAINING AND MEMORY — Viewer selector: `viewer/public/condo.json` (entry “memory”)
-HR TRAINING AND MEMORY — Bootstrap: `python3 -m knowledge3d.tools.house_memory --bootstrap-books 24 --export viewer/public/memory_house.gltf`
-HR TRAINING AND MEMORY — Add room: `python3 -m knowledge3d.tools.house_memory --add-room "Research" "Long-term domain studies" --export viewer/public/memory_house.gltf`
-HR TRAINING AND MEMORY — Add object: `python3 -m knowledge3d.tools.house_memory --add-object "Research" "Vector databases" "Key patterns" --export viewer/public/memory_house.gltf`
+HR TRAINING AND MEMORY — Bootstrap: `python3 -m knowledge3d.tools.house_memory --bootstrap-books 24 --export viewer/public/memory_house.glb`
+HR TRAINING AND MEMORY — Add room: `python3 -m knowledge3d.tools.house_memory --add-room "Research" "Long-term domain studies" --export viewer/public/memory_house.glb`
+HR TRAINING AND MEMORY — Add object: `python3 -m knowledge3d.tools.house_memory --add-object "Research" "Vector databases" "Key patterns" --export viewer/public/memory_house.glb`
 HR TRAINING AND MEMORY — Rooms form a circle in 3D; each room has objects arranged around it.
 HR TRAINING AND MEMORY — Metadata: `type: room|object`, `layer: rooms|<room>`, plus `label`, `desc|room`.
 HR TRAINING AND MEMORY — Embeddings: small deterministic pseudo-vectors (32-dim) ensure basic similarity.
@@ -1364,7 +1364,7 @@ HR TRAINING AND MEMORY — Live Mode: Memory Commands
 HR TRAINING AND MEMORY — We extended the live chat with `/mem` to update memory without leaving the session:
 HR TRAINING AND MEMORY — `/mem room <name> [desc]` — create/update a room
 HR TRAINING AND MEMORY — `/mem add <room>|<label>|<text>` — add an object into a room
-HR TRAINING AND MEMORY — `/mem export` — write `viewer/public/memory_house.gltf`
+HR TRAINING AND MEMORY — `/mem export` — write `viewer/public/memory_house.glb`
 HR TRAINING AND MEMORY — Switch to the “memory” house in the viewer dropdown to browse rooms + objects.
 HR TRAINING AND MEMORY — Galaxy vs House
 HR TRAINING AND MEMORY — House (rooms/objects) = long-term memory; curated and persistent.
@@ -88503,11 +88503,11 @@ HR TRAINING AND MEMORY — House Memory (Rooms + Objects)
 HR TRAINING AND MEMORY — We added a persistent “House Memory” that stores rooms (e.g., “Books”) and objects (e.g., book titles). It exports as a K3D GLTF the viewer can load.
 HR TRAINING AND MEMORY — Tool: `knowledge3d/tools/house_memory.py`
 HR TRAINING AND MEMORY — State: `data/memory_house.json`
-HR TRAINING AND MEMORY — Export: `viewer/public/memory_house.gltf`
+HR TRAINING AND MEMORY — Export: `viewer/public/memory_house.glb`
 HR TRAINING AND MEMORY — Viewer selector: `viewer/public/condo.json` (entry “memory”)
-HR TRAINING AND MEMORY — Bootstrap: `python3 -m knowledge3d.tools.house_memory --bootstrap-books 24 --export viewer/public/memory_house.gltf`
-HR TRAINING AND MEMORY — Add room: `python3 -m knowledge3d.tools.house_memory --add-room "Research" "Long-term domain studies" --export viewer/public/memory_house.gltf`
-HR TRAINING AND MEMORY — Add object: `python3 -m knowledge3d.tools.house_memory --add-object "Research" "Vector databases" "Key patterns" --export viewer/public/memory_house.gltf`
+HR TRAINING AND MEMORY — Bootstrap: `python3 -m knowledge3d.tools.house_memory --bootstrap-books 24 --export viewer/public/memory_house.glb`
+HR TRAINING AND MEMORY — Add room: `python3 -m knowledge3d.tools.house_memory --add-room "Research" "Long-term domain studies" --export viewer/public/memory_house.glb`
+HR TRAINING AND MEMORY — Add object: `python3 -m knowledge3d.tools.house_memory --add-object "Research" "Vector databases" "Key patterns" --export viewer/public/memory_house.glb`
 HR TRAINING AND MEMORY — Rooms form a circle in 3D; each room has objects arranged around it.
 HR TRAINING AND MEMORY — Metadata: `type: room|object`, `layer: rooms|<room>`, plus `label`, `desc|room`.
 HR TRAINING AND MEMORY — Embeddings: small deterministic pseudo-vectors (32-dim) ensure basic similarity.
@@ -88516,7 +88516,7 @@ HR TRAINING AND MEMORY — Live Mode: Memory Commands
 HR TRAINING AND MEMORY — We extended the live chat with `/mem` to update memory without leaving the session:
 HR TRAINING AND MEMORY — `/mem room <name> [desc]` — create/update a room
 HR TRAINING AND MEMORY — `/mem add <room>|<label>|<text>` — add an object into a room
-HR TRAINING AND MEMORY — `/mem export` — write `viewer/public/memory_house.gltf`
+HR TRAINING AND MEMORY — `/mem export` — write `viewer/public/memory_house.glb`
 HR TRAINING AND MEMORY — Switch to the “memory” house in the viewer dropdown to browse rooms + objects.
 HR TRAINING AND MEMORY — Galaxy vs House
 HR TRAINING AND MEMORY — House (rooms/objects) = long-term memory; curated and persistent.

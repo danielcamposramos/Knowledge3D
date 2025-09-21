@@ -18,7 +18,7 @@ Policy
 Per‑agent House
 - Each avatar owns a House, set via `K3D_HOUSE_ID`.
 - State: `data/houses/<id>/memory_house.json`
-- Export: `viewer/public/houses/<id>/memory_house.gltf`
+- Export: `viewer/public/houses/<id>/memory_house.glb`
 
 Commands
 - `/diary read [book_label] [page_id|label]` — translate the latest (or chosen) page to human text.

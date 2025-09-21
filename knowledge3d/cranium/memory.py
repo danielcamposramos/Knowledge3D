@@ -163,7 +163,7 @@ class ShortTermGalaxy:
                 out = _Path(out_gltf)
             else:
                 hid = (_os.getenv("K3D_HOUSE_ID", "").strip() or "default")
-                out = root / "viewer" / "public" / "houses" / hid / "memory_house.gltf"
+                out = root / "viewer" / "public" / "houses" / hid / "memory_house.glb"
             h.export_gltf(out)
             return f"sleep: wrote diary page and consolidated media to {out}"
         except Exception as e:  # pragma: no cover

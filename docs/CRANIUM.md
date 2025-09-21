@@ -29,7 +29,7 @@ Live mode integration
   - Enforces AI‑only Diary writes and event‑based policy (no generic dumping).
 
 Sleep‑time consolidation
-- `CraniumCore.sleep_consolidate()` writes recent STM notes to the House via `tools/house_memory.py`, exporting to `viewer/public/memory_house.gltf` by default.
+- `CraniumCore.sleep_consolidate()` writes recent STM notes to the House via `tools/house_memory.py`, exporting to `viewer/public/memory_house.glb` by default.
 - Existing `/sleep consolidate` remains and augments from diaries/reflections; the Cranium path is additive.
 
 Usage (live server)
@@ -37,7 +37,7 @@ Usage (live server)
 - In chat:
   - `/ask <text>` → unified Cranium answer + navigation gating.
   - `/brain reflect` → short self‑reflection.
-  - `/brain sleep` → consolidate STM into `memory_house.gltf`.
+  - `/brain sleep` → consolidate STM into `memory_house.glb`.
 Autonomy (idle behavior)
 - Enabled by default. Env:
   - `K3D_AUTONOMY=1|0` — turn autonomy on/off.

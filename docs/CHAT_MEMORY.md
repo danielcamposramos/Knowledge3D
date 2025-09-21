@@ -16,7 +16,7 @@ Representation (embedded in GLB)
 
 Runtime
 - The live server writes each chat turn into the active House memory (`data/houses/<K3D_HOUSE_ID>/memory_house.json`), under a `chat_book` per channel.
-- Export happens during `/sleep consolidate` (or `/mem export`), producing `viewer/public/houses/<id>/memory_house.gltf`.
+- Export happens during `/sleep consolidate` (or `/mem export`), producing `viewer/public/houses/<id>/memory_house.glb`.
 
 APIs
 - Creation and updates are handled by `knowledge3d.tools.house_memory.MemoryHouse`:

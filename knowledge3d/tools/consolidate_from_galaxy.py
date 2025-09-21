@@ -2,13 +2,13 @@ from __future__ import annotations
 
 """
 Sleep-time consolidation: pick top hubs from Galaxy and materialize them
-as objects inside the House (memory_house.gltf).
+as objects inside the House (memory_house.glb).
 
 Usage
   python -m knowledge3d.tools.consolidate_from_galaxy \
     --gltf viewer/public/galaxy.glb \
     --top 24 \
-    --out viewer/public/memory_house.gltf
+    --out viewer/public/memory_house.glb
 """
 
 import argparse

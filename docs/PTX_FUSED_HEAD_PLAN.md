@@ -41,6 +41,7 @@ This log captures the outstanding work required to make the fused head read and 
 | 2025-09-21 | A5 | Done | `PTXGeometrySession` + PTXOps wiring provide load/transform/save API surface. |
 | 2025-09-21 | A6 | Done | SleepTimeCompute now loads/saves House GLB via PTX and updates zone meshes/metadata on GPU. |
 | 2025-09-21 | A7 | In Progress | Language galaxy builder emits PTX-ready GLBs; next wire-in documentation + trainer defaults. |
+| 2025-09-21 | A8 | In Progress | House asset rebuilt as binary GLB; codebase now references `memory_house.glb` exclusively. |
 
 ### GPU Galaxy Buffer Layout (A1 draft)
 
@@ -62,3 +63,4 @@ Update the status column with `Pending`, `In Progress`, or `Done`, plus short no
 - Tool: `python -m knowledge3d.tools.language_galaxy_builder --input viewer/public/galaxy/working/lexicon_pt_br_kaikki.jsonl --input viewer/public/galaxy/working/lexicon_audio_pt_br_librispeech9h.jsonl --language-id pt-BR --label "Portuguese (BR) Language Galaxy" --out viewer/public/galaxy/pt_br_language.glb --manifest viewer/public/galaxy/pt_br_language.json`
 - Emits binary GLBs with `vectorsView`/`embeddingsView` so PTX loads them directly; manifests capture bounding boxes + modality counts for placement in the language quadrant.
 - Use `python -m knowledge3d.tools.convert_gltf_to_glb src.gltf dst.glb` to migrate legacy assets before PTX-only pipelines run.
+- Rebuild legacy Houses via `python -m knowledge3d.tools.rebuild_house_glb viewer/public/houses/<id>/memory_house.gltf viewer/public/houses/<id>/memory_house.glb` and delete the JSON `.gltf` to avoid CPU fallbacks.

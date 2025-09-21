@@ -22,13 +22,13 @@ We added a persistent “House Memory” that stores rooms (e.g., “Books”) a
 Files
 - Tool: `knowledge3d/tools/house_memory.py`
 - State: `data/memory_house.json`
-- Export: `viewer/public/memory_house.gltf`
+- Export: `viewer/public/memory_house.glb`
 - Viewer selector: `viewer/public/condo.json` (entry “memory”)
 
 Usage
-- Bootstrap: `python3 -m knowledge3d.tools.house_memory --bootstrap-books 24 --export viewer/public/memory_house.gltf`
-- Add room: `python3 -m knowledge3d.tools.house_memory --add-room "Research" "Long-term domain studies" --export viewer/public/memory_house.gltf`
-- Add object: `python3 -m knowledge3d.tools.house_memory --add-object "Research" "Vector databases" "Key patterns" --export viewer/public/memory_house.gltf`
+- Bootstrap: `python3 -m knowledge3d.tools.house_memory --bootstrap-books 24 --export viewer/public/memory_house.glb`
+- Add room: `python3 -m knowledge3d.tools.house_memory --add-room "Research" "Long-term domain studies" --export viewer/public/memory_house.glb`
+- Add object: `python3 -m knowledge3d.tools.house_memory --add-object "Research" "Vector databases" "Key patterns" --export viewer/public/memory_house.glb`
 
 Design
 - Rooms form a circle in 3D; each room has objects arranged around it.
@@ -40,7 +40,7 @@ Design
 We extended the live chat with `/mem` to update memory without leaving the session:
 - `/mem room <name> [desc]` — create/update a room
 - `/mem add <room>|<label>|<text>` — add an object into a room
-- `/mem export` — write `viewer/public/memory_house.gltf`
+- `/mem export` — write `viewer/public/memory_house.glb`
 
 Switch to the “memory” house in the viewer dropdown to browse rooms + objects.
 

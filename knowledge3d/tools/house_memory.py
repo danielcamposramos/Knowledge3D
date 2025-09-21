@@ -9,10 +9,10 @@ Usage
   # add a room and an object, then export
   python3 -m knowledge3d.tools.house_memory --add-room "Books" --desc "Long-term knowledge books"
   python3 -m knowledge3d.tools.house_memory --add-object "Books" "Fine art" "Canonical article"
-  python3 -m knowledge3d.tools.house_memory --export viewer/public/memory_house.gltf
+  python3 -m knowledge3d.tools.house_memory --export viewer/public/memory_house.glb
 
   # bootstrap from AI books (first N titles)
-  python3 -m knowledge3d.tools.house_memory --bootstrap-books 24 --export viewer/public/memory_house.gltf
+  python3 -m knowledge3d.tools.house_memory --bootstrap-books 24 --export viewer/public/memory_house.glb
 """
 from __future__ import annotations
 
@@ -21,10 +21,23 @@ import hashlib
 import json
 import math
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
-import math as _math
-from datetime import datetime
+
+import numpy as np  # type: ignore
+from pygltflib import (  # type: ignore
+    ARRAY_BUFFER,
+    Accessor,
+    Asset,
+    Buffer,
+    BufferView,
+    GLTF2,
+    Mesh,
+    Node,
+    Primitive,
+    Scene,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 def _default_state_path() -> Path:
@@ -439,7 +452,7 @@ class MemoryHouse:
         """Add inter-house doors to the Network room for quick navigation."""
         self.add_room("Network", "OSI doors and ports")
         doors = [
-            ("Memory House", "/memory_house.gltf"),
+            ("Memory House", "/memory_house.glb"),
             ("Knowledge Garden", "/knowledge_garden.glb"),
             ("AI Compendium 1k", "/ai_compendium.1k.umap.doors.glb"),
             ("AI Compendium 4k", "/ai_compendium.4k.umap.doors.glb"),
@@ -579,26 +592,56 @@ class MemoryHouse:
         except Exception:
             pass
 
-        # pack GLTF json with embedded arrays
-        payload = {
+        vectors_np = np.asarray(vectors, dtype=np.float32)
+        embeddings_np = np.asarray(embeddings, dtype=np.float32)
+
+        pos_bytes = vectors_np.tobytes()
+        emb_bytes = embeddings_np.tobytes()
+        blob = pos_bytes + emb_bytes
+
+        buffer = Buffer(byteLength=len(blob))
+        view_pos = BufferView(buffer=0, byteOffset=0, byteLength=len(pos_bytes), target=ARRAY_BUFFER)
+        view_emb = BufferView(buffer=0, byteOffset=len(pos_bytes), byteLength=len(emb_bytes))
+        accessor = Accessor(
+            bufferView=0,
+            byteOffset=0,
+            componentType=5126,
+            count=vectors_np.shape[0],
+            type="VEC3",
+            max=vectors_np.max(axis=0).tolist(),
+            min=vectors_np.min(axis=0).tolist(),
+        )
+
+        k3d_payload = {
             "ids": ids,
-            "vectors": vectors,
-            "embeddings": embeddings,
-            "embeddingPrecision": "f32",
-            "embeddingDims": 32,
             "metadata": metadata,
             "neighbors": neighbors,
+            "vectorsView": 0,
+            "embeddingsView": 1,
+            "embeddingPrecision": "f32",
+            "embeddingDims": int(embeddings_np.shape[1]),
             "ai_interaction_protocol": "direct_vector_manipulation",
             "ai_state_flags": {"is_active": True, "is_traversable": True},
         }
-        gltf = {
-            "asset": {"version": "2.0"},
-            "scenes": [{"nodes": [0]}],
-            "nodes": [{"mesh": 0, "name": "k3d-house-memory"}],
-            "meshes": [{"primitives": [{"mode": 0, "extras": {"k3d": payload}}]}],
-        }
+
+        primitive = Primitive(attributes={"POSITION": 0}, mode=0, extras={"k3d": k3d_payload})
+        mesh = Mesh(primitives=[primitive])
+        node = Node(mesh=0, name="k3d-house-memory")
+        scene = Scene(nodes=[0])
+
+        gltf = GLTF2(
+            asset=Asset(generator="knowledge3d.tools.house_memory"),
+            buffers=[buffer],
+            bufferViews=[view_pos, view_emb],
+            accessors=[accessor],
+            meshes=[mesh],
+            nodes=[node],
+            scenes=[scene],
+            scene=0,
+        )
+        gltf.set_binary_blob(blob)
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(json.dumps(gltf, ensure_ascii=False, indent=2), encoding="utf-8")
+        gltf.save(out_path.as_posix())
 
 
 def main() -> None:  # pragma: no cover
@@ -614,7 +657,7 @@ def main() -> None:  # pragma: no cover
     p.add_argument("--bootstrap-standard", action="store_true")
     p.add_argument("--bootstrap-doors", action="store_true")
     p.add_argument("--bootstrap-diary", action="store_true")
-    p.add_argument("--export", help="Output GLTF path", default=str(ROOT / "viewer" / "public" / "memory_house.gltf"))
+    p.add_argument("--export", help="Output GLTF path", default=str(ROOT / "viewer" / "public" / "memory_house.glb"))
     args = p.parse_args()
     h = MemoryHouse()
     if args.add_room:

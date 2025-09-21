@@ -25,7 +25,7 @@ Runtime behavior
 - Pausing: when paused, navigation is suppressed until `/resume`.
 
 Multi‑house (LAN)
-- Each avatar has a House (`K3D_HOUSE_ID`). Linking Houses is modeled by creating doors whose `metadata.address` points to the neighbor House asset (e.g., `/houses/<id>/memory_house.gltf`).
+- Each avatar has a House (`K3D_HOUSE_ID`). Linking Houses is modeled by creating doors whose `metadata.address` points to the neighbor House asset (e.g., `/houses/<id>/memory_house.glb`).
 - Agents remain grounded in their own House; doors provide the bridge to others.
 
 Viewer UI (suggested)

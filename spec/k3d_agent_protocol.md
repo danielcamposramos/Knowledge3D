@@ -38,5 +38,5 @@ Diary nodes (AI-native)
 - `metadata.embedding32: number[32]` — native page content; also reflected in the packed `embeddings` buffer.
 
 Door nodes (network)
-- `metadata.type = "door"` and `metadata.address: string` — `k3d://...` or asset path (`/houses/<id>/memory_house.gltf`).
+- `metadata.type = "door"` and `metadata.address: string` — `k3d://...` or asset path (`/houses/<id>/memory_house.glb`).
 - Doors may be used to connect Houses (LAN) or external services.
