@@ -8,7 +8,7 @@ Inputs
 - Logs: navigation/chat/events for optional temporal signals.
 
 Outputs
-- Updated House `memory_house.gltf` (rooms, objects, books, doors).
+- Updated House `memory_house.glb` (rooms, objects, books, doors).
 - `knowledge_garden.glb` with trees grown from meaning (embedded `extras.k3d`, explicit edges).
 - Optional retrained small models (intent classifier; optional dynamics).
 
@@ -23,7 +23,7 @@ Pipeline Sketch
 - Cranium.sleep():
   - snapshot Galaxy → `../Knowledge3D.local/logs/`
   - run garden builder on snapshot → write `viewer/public/knowledge_garden.glb`
-  - consolidate House notes/books/doors → write `viewer/public/memory_house.gltf`
+  - consolidate House notes/books/doors → write `viewer/public/memory_house.glb`
   - (optional) retrain tiny intent model from fresh logs
 
 Implementation Notes

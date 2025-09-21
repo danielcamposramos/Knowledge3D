@@ -5,6 +5,8 @@ data/ai_compendium_80k_vectors.csv
 .venv*/
 # Galaxy GLBs are large and generated locally
 viewer/public/galaxy*.glb
+viewer/public/galaxy/**/*.glb
+viewer/public/galaxy/**/*.json
 viewer/public/ai_compendium.80k*.glb
 viewer/public/ai_compendium.40k*.glb
 viewer/public/ai_compendium.20k*.glb

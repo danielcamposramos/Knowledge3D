@@ -335,15 +335,15 @@ async function loadHouse(k3dUrl: string) {
                 } catch { return null; }
             };
             // Place house near origin; garden to the side
-            await tryAsset('/memory_house.gltf', new THREE.Vector3(-6, -2, 0), 1.0, true);
+            await tryAsset('/memory_house.glb', new THREE.Vector3(-6, -2, 0), 1.0, true);
             await tryAsset('/knowledge_garden.glb', new THREE.Vector3(6, -2, 0), 1.0, true);
         } catch {}
 
         // Start chat connection (prefer HUD elements if present)
         const chatLog = (document.getElementById('hud-chat-log') as HTMLDivElement) || (document.getElementById('chat-log') as HTMLDivElement);
-        // Load persisted chat history from memory_house.gltf (if present)
+        // Load persisted chat history from memory_house.glb (if present)
         try {
-            const res = await fetch('/memory_house.gltf', { cache: 'no-store' });
+            const res = await fetch('/memory_house.glb', { cache: 'no-store' });
             if (res.ok) {
                 const gltfJson = await res.json();
                 const prim = gltfJson?.meshes?.[0]?.primitives?.[0];

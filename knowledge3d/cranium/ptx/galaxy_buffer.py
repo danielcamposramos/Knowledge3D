@@ -3,7 +3,22 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
+
+
+_COMPONENT_SIZES = {
+    "SCALAR": 1,
+    "VEC2": 2,
+    "VEC3": 3,
+    "VEC4": 4,
+    "MAT2": 4,
+    "MAT3": 9,
+    "MAT4": 16,
+}
+
+
+def _component_count(accessor_type: str) -> int:
+    return _COMPONENT_SIZES.get(accessor_type, 3)
 
 import numpy as np  # type: ignore
 from pygltflib import GLTF2  # type: ignore
@@ -127,23 +142,52 @@ def load_meshes_from_glb(
     index_chunks: List[np.ndarray] = []
     mesh_records: List[MeshRecord] = []
 
+    binary_blob = glb.binary_blob()
+
+    def slice_view(view: "BufferView") -> memoryview:
+        buf = glb.buffers[view.buffer]
+        if getattr(buf, "uri", None):
+            data = glb.get_data_from_buffer_uri(buf.uri)
+        elif binary_blob is not None:
+            data = binary_blob
+        else:
+            data = getattr(buf, "data", None)
+        if data is None:
+            raise ValueError("Unable to resolve buffer data; ensure GLB has embedded buffers")
+        start = view.byteOffset or 0
+        end = start + (view.byteLength or 0)
+        return memoryview(data)[start:end]
+
+    def attribute_index(attributes: Union[Dict[str, int], object], key: str) -> Optional[int]:
+        if isinstance(attributes, dict):
+            return attributes.get(key)
+        return getattr(attributes, key, None)
+
     for mesh_index, mesh in enumerate(glb.meshes or []):
         for prim_index, prim in enumerate(mesh.primitives):
-            accessor = glb.accessors[prim.attributes["POSITION"]]
+            attr_index = attribute_index(prim.attributes, "POSITION")
+            if attr_index is None:
+                continue
+            accessor = glb.accessors[attr_index]
             view = glb.bufferViews[accessor.bufferView]
-            buf = glb.buffers[view.buffer]
-            raw = np.frombuffer(buf.data[view.byteOffset:view.byteOffset + view.byteLength], dtype=np.float32)
-            verts = raw.reshape((-1, accessor.type.count))
+            raw = np.frombuffer(slice_view(view), dtype=np.float32)
+            comp = _component_count(accessor.type)
+            verts = raw.reshape((-1, comp))
             vertex_offset = sum(chunk.size for chunk in vertex_chunks) // 3
             vertex_chunks.append(verts.reshape(-1))
 
-            index_accessor = glb.accessors[prim.indices]
-            index_view = glb.bufferViews[index_accessor.bufferView]
-            index_buf = glb.buffers[index_view.buffer]
-            idx_dtype = np.uint16 if index_accessor.componentType == 5123 else np.uint32
-            raw_idx = np.frombuffer(index_buf.data[index_view.byteOffset:index_view.byteOffset + index_view.byteLength], dtype=idx_dtype)
+            if prim.indices is not None:
+                index_accessor = glb.accessors[prim.indices]
+                index_view = glb.bufferViews[index_accessor.bufferView]
+                idx_dtype = np.uint16 if index_accessor.componentType == 5123 else np.uint32
+                raw_idx = np.frombuffer(slice_view(index_view), dtype=idx_dtype)
+                index_array = raw_idx.astype(np.uint32)
+            else:
+                index_array = np.arange(verts.shape[0], dtype=np.uint32)
+                index_accessor = None
+                index_view = None
             index_offset = sum(chunk.size for chunk in index_chunks)
-            index_chunks.append(raw_idx.astype(np.uint32))
+            index_chunks.append(index_array)
 
             mesh_records.append(
                 MeshRecord(
@@ -152,8 +196,8 @@ def load_meshes_from_glb(
                     vertex_offset=vertex_offset,
                     vertex_count=verts.shape[0],
                     index_offset=index_offset,
-                    index_count=raw_idx.size,
-                    index_component_type=index_accessor.componentType,
+                    index_count=index_array.size,
+                    index_component_type=(index_accessor.componentType if index_accessor else 5125),
                     material_id=getattr(prim, "material", None),
                 )
             )
@@ -164,14 +208,14 @@ def load_meshes_from_glb(
     normal_chunks: List[np.ndarray] = []
     for mesh in glb.meshes or []:
         for prim in mesh.primitives:
-            normal_attr = prim.attributes.get("NORMAL")
+            normal_attr = attribute_index(prim.attributes, "NORMAL")
             if normal_attr is None:
                 continue
             accessor = glb.accessors[normal_attr]
             view = glb.bufferViews[accessor.bufferView]
-            buf = glb.buffers[view.buffer]
-            raw = np.frombuffer(buf.data[view.byteOffset:view.byteOffset + view.byteLength], dtype=np.float32)
-            normal_chunks.append(raw)
+            raw = np.frombuffer(slice_view(view), dtype=np.float32)
+            comp = _component_count(accessor.type)
+            normal_chunks.append(raw.reshape(-1))
     normals_array = np.concatenate(normal_chunks).astype(np.float32) if normal_chunks else np.array([], dtype=np.float32)
 
     embeddings_array = np.array([], dtype=np.float32)
@@ -206,6 +250,7 @@ def load_meshes_from_glb(
 
 
 def _download_buffer(buffer: DeviceBuffer, dtype: np.dtype) -> np.ndarray:
+    dtype = np.dtype(dtype)
     if buffer.ptr == 0 or buffer.size == 0:
         return np.array([], dtype=dtype)
     host = np.empty(buffer.size // dtype.itemsize, dtype=dtype)

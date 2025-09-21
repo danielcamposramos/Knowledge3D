@@ -5,14 +5,14 @@ Phase 7 — Chat history consolidation -> Book in Library.
 
 MVP: read recent chat_message embeddings (32-d) from House Memory Chat Book
 for the current channel, summarize via average, and add a 'book' object in
-the 'Books' room with extra.embedding32. Export updated memory_house.gltf.
+the 'Books' room with extra.embedding32. Export updated memory_house.glb.
 
 CLI:
   python -m knowledge3d.tools.phase7.consolidation \
     --title "Our Quantum Physics Discussion" \
     --channel "#general" \
     --last 100 \
-    --out viewer/public/memory_house.gltf
+    --out viewer/public/memory_house.glb
 """
 
 from dataclasses import dataclass
@@ -75,7 +75,7 @@ class ChatHistoryConsolidator:
         extra = {'embedding32': emb, 'source': 'chat_history', 'author': 'AI Self', 'created_at': datetime.utcnow().isoformat() + 'Z'}
         house.add_object('Books', title[:80], text='consolidated from chat', kind='book', extra=extra)
         # repo root = parents[3] (knowledge3d/tools/phase7 -> knowledge3d -> repo)
-        out = out_path or (Path(__file__).resolve().parents[3] / 'viewer' / 'public' / 'memory_house.gltf')
+        out = out_path or (Path(__file__).resolve().parents[3] / 'viewer' / 'public' / 'memory_house.glb')
         house.export_gltf(out)
         return out
 
@@ -86,7 +86,7 @@ def main():  # pragma: no cover
     ap.add_argument('--title', required=True)
     ap.add_argument('--channel', default='#general')
     ap.add_argument('--last', type=int, default=100)
-    ap.add_argument('--out', default=str(Path(__file__).resolve().parents[3] / 'viewer' / 'public' / 'memory_house.gltf'))
+    ap.add_argument('--out', default=str(Path(__file__).resolve().parents[3] / 'viewer' / 'public' / 'memory_house.glb'))
     args = ap.parse_args()
     c = ChatHistoryConsolidator()
     path = c.consolidate_chat_to_book(args.title, channel=args.channel, last=int(args.last), out_path=Path(args.out))

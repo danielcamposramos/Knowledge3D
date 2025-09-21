@@ -179,7 +179,7 @@ class CraniumCore:
     def sleep_consolidate(self, out_gltf: Optional[str] = None) -> str:
         """Consolidate STM into the House GLTF as durable objects.
 
-        Returns a small status string; out_gltf defaults to viewer/public/memory_house.gltf
+        Returns a small status string; out_glb defaults to viewer/public/memory_house.glb
         """
         if not self._stm:
             return "sleep: no STM available"

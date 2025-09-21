@@ -30,6 +30,11 @@ try:
 except Exception:
     RPNCalculator = None  # type: ignore
 
+try:
+    from knowledge3d.cranium.ptx import PTX_OPS  # type: ignore
+except Exception:  # pragma: no cover
+    PTX_OPS = None  # type: ignore
+
 
 LEXICON_JSONL_FILES = [
     Path("viewer/public/galaxy/working/lexicon_en_wordnet.jsonl"),
@@ -37,6 +42,8 @@ LEXICON_JSONL_FILES = [
     Path("viewer/public/galaxy/working/lexicon_es_kaikki.jsonl"),
     Path("viewer/public/galaxy/working/lexicon_zh_cedict.jsonl"),
 ]
+
+LANGUAGE_GALAXY_DIR = Path("viewer/public/galaxy")
 
 _HYPHEN_RE = re.compile(r"(\w)-\s+(\w)")
 
@@ -83,6 +90,7 @@ class AlgorithmicThinkingTrainer:
         self._research_corpus: List[Dict[str, Any]] = []
         self._lexicon_corpus: List[Dict[str, Any]] = []
         self._aime_queue: List[Dict[str, Any]] = []
+        self._language_galaxies: List[Dict[str, Any]] = []
         if RPNCalculator is None:
             raise ImportError("RPNCalculator unavailable — ensure phase10 PTX engine is importable.")
         self._rpn_calculator: RPNCalculator = RPNCalculator()
@@ -155,6 +163,9 @@ class AlgorithmicThinkingTrainer:
                 self._research_corpus = self._load_jsonl(Path("viewer/public/galaxy/working/research_corpus.jsonl"), 100)
             if not self._lexicon_corpus:
                 self._lexicon_corpus = self._load_lexicon_corpus(per_file=300)
+
+            self._refresh_language_galaxies()
+            self._warm_language_galaxies()
 
             self._prepare_aime_prompts(max_items=30)
 
@@ -708,6 +719,51 @@ class AlgorithmicThinkingTrainer:
             except Exception as exc:
                 print(f"⚠️  Failed to load lexicon prompts from {path}: {exc}")
         return corpus
+
+    def _refresh_language_galaxies(self) -> None:
+        manifests = sorted(LANGUAGE_GALAXY_DIR.glob("language_*.json"))
+        galaxies: List[Dict[str, Any]] = []
+        for manifest in manifests:
+            try:
+                data = json.loads(manifest.read_text(encoding="utf-8"))
+            except Exception as exc:
+                print(f"⚠️  Unable to read language manifest {manifest}: {exc}")
+                continue
+            glb_path = manifest.with_suffix(".glb")
+            if not glb_path.exists():
+                print(f"⚠️  Language galaxy GLB missing for manifest {manifest}")
+                continue
+            galaxies.append(
+                {
+                    "manifest": manifest,
+                    "glb": glb_path,
+                    "language": data.get("language", manifest.stem.split("_")[1]),
+                    "label": data.get("label", manifest.stem),
+                    "count": data.get("count"),
+                }
+            )
+        self._language_galaxies = galaxies
+        if galaxies:
+            summary = ", ".join(f"{g['label']} ({g.get('count','?')} stars)" for g in galaxies)
+            print(f"🗺️  Language galaxies discovered: {summary}")
+        else:
+            print("⚠️  No PTX language galaxies found under viewer/public/galaxy/")
+
+    def _warm_language_galaxies(self) -> None:
+        if not self._language_galaxies:
+            return
+        if PTX_OPS is None:
+            print("⚠️  PTX ops unavailable — skipping language galaxy warmup.")
+            return
+        for galaxy in self._language_galaxies:
+            glb_path = galaxy["glb"]
+            label = galaxy.get("label", glb_path.stem)
+            try:
+                PTX_OPS.geometry_load_scene(glb_path.as_posix())
+                PTX_OPS.geometry_release()
+                print(f"🌐 PTX-warmed language galaxy: {label}")
+            except Exception as exc:
+                print(f"⚠️  Failed to load language galaxy {label}: {exc}")
 
     def _load_jsonl(self, path: Path, limit: int) -> List[Dict[str, Any]]:
         if not path.exists():

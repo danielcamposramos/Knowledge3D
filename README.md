@@ -156,7 +156,7 @@ Then open the viewer (`npm run dev`) and use the Chat box. Try messages like:
 Brain controls:
 - `/ask <text>` — unified Cranium response (navigation is gated by confidence)
 - `/brain reflect` — summarize short‑term galaxy
-- `/brain sleep` — consolidate recent notes into `viewer/public/memory_house.gltf`
+- `/brain sleep` — consolidate recent notes into `viewer/public/memory_house.glb`
 Diary:
 - `/diary read [book_label] [page_id|label]` — translate a diary page (AI writes its own pages).
 Model controls (inline):
@@ -188,7 +188,7 @@ Each line is a training example with from/next labels and optional embeddings wh
 
 ## Galaxy + House
 - One Galaxy: all knowledge lives in one virtual space (`viewer/public/galaxy.glb`). The viewer auto‑loads it when present.
-- The House: consolidated knowledge becomes 3D objects inside the House (e.g., `viewer/public/memory_house.gltf`). The viewer loads the House and the Knowledge Garden (`viewer/public/knowledge_garden.glb`) into the same scene.
+- The House: consolidated knowledge becomes 3D objects inside the House (e.g., `viewer/public/memory_house.glb`). The viewer loads the House and the Knowledge Garden (`viewer/public/knowledge_garden.glb`) into the same scene.
 - Dev selector is off by default; use `?dev=1` if you need to debug per‑modality GLBs.
 
 ### Visual Standards (Meaning‑First)
@@ -222,7 +222,7 @@ Open with `?gltf=/galaxy.cross.glb` or replace `galaxy.glb`.
 Build a minimal House and Garden for demo:
 ```bash
 # House with a few rooms and book objects
-scripts/k3d_env.sh run python -m knowledge3d.tools.house_memory --bootstrap-books 24 --export viewer/public/memory_house.gltf
+scripts/k3d_env.sh run python -m knowledge3d.tools.house_memory --bootstrap-books 24 --export viewer/public/memory_house.glb
 # Knowledge Garden (ontology demo)
 scripts/k3d_env.sh run python -m knowledge3d.tools.gardens --gltf viewer/public/knowledge_garden.glb
 ```

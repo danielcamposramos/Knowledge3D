@@ -743,7 +743,7 @@ class LiveServer:
                         pol = DiaryPolicy()
                         if pol.should_write(vec, last, event="reflect_init", meta={"by": who}):
                             pid = h.add_diary_page_embedding(self._diary_book, vec, meta={"event": "reflect_init", "by": who})
-                            out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "houses" / (os.getenv("K3D_HOUSE_ID","default")) / "memory_house.gltf")
+                            out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "houses" / (os.getenv("K3D_HOUSE_ID","default")) / "memory_house.glb")
                             h.export_gltf(out)
                 except Exception:
                     pass
@@ -886,7 +886,7 @@ class LiveServer:
                     meta = {"event": "reflect", "by": client.nick}
                     if pol.should_write(vec, last, event="reflect", meta=meta):
                         h.add_diary_page_embedding(self._diary_book, vec, meta=meta)
-                        out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "houses" / (os.getenv("K3D_HOUSE_ID","default")) / "memory_house.gltf")
+                        out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "houses" / (os.getenv("K3D_HOUSE_ID","default")) / "memory_house.glb")
                         h.export_gltf(out)
             except Exception:
                 pass
@@ -1472,7 +1472,7 @@ class LiveServer:
                 vec = _hash_vec(text, 32)
                 h = MemoryHouse()
                 h.add_diary_page_embedding(self._diary_book, vec, meta={"event":"reflect","by":"agent","channel":client.channel})
-                out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "memory_house.gltf")
+                out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "memory_house.glb")
                 h.export_gltf(out)
                 await self.send_chat(sender='agent', text=f"🧠 AI reflected: {text}", channel=client.channel)
                 await self.log({"type":"diary","action":"reflect","text":text})
@@ -1525,7 +1525,7 @@ class LiveServer:
                         meta = {"event": "brain_reflect"}
                         if pol.should_write(vec, last, event="brain_reflect", meta=meta):
                             h.add_diary_page_embedding(self._diary_book, vec, meta=meta)
-                            out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "houses" / (os.getenv("K3D_HOUSE_ID","default")) / "memory_house.gltf")
+                            out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "houses" / (os.getenv("K3D_HOUSE_ID","default")) / "memory_house.glb")
                             h.export_gltf(out)
                 except Exception:
                     pass
@@ -1538,7 +1538,7 @@ class LiveServer:
                 await self.send_chat(sender="agent", text=status, channel=client.channel)
                 await self.log({"type":"brain","action":"sleep","status":status})
                 return
-            await self.send_system(client.channel, "Usage: /brain reflect | /brain sleep [viewer/public/memory_house.gltf]")
+            await self.send_system(client.channel, "Usage: /brain reflect | /brain sleep [viewer/public/memory_house.glb]")
             return
         if cmd == "/mem" and len(parts) >= 2:
             await self._handle_mem(parts[1:], client)
@@ -1611,7 +1611,7 @@ class LiveServer:
         await self.send_chat(sender="system", text=f"Opening door to {label} via {hops} hops", channel=client.channel)
 
     async def _handle_mem(self, args, client: Client):
-        """Manage House Memory: rooms + objects; export GLTF to viewer/public/memory_house.gltf.
+        """Manage House Memory: rooms + objects; export GLTF to viewer/public/memory_house.glb.
 
         Commands:
           /mem room <name> [desc]
@@ -1686,7 +1686,7 @@ class LiveServer:
             await self.send_system(client.channel, "Usage: /mem bootstrap defaults|books|reflections|training")
             return
         if sub == "export":
-            out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "memory_house.gltf")
+            out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "memory_house.glb")
             h.export_gltf(out)
             await self.send_chat(sender="agent", text=f"Memory: exported to {out}", channel=client.channel)
             return
@@ -1737,7 +1737,7 @@ class LiveServer:
                 except Exception:
                     n_chat = 0
                 h.bootstrap_defaults()  # ensure furniture/doors exist
-                out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "memory_house.gltf")
+                out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "memory_house.glb")
                 h.export_gltf(out)
                 # Grow Knowledge Garden from current Galaxy (best-effort)
                 try:
@@ -1755,7 +1755,7 @@ class LiveServer:
                             _sys.argv = saved
                 except Exception:
                     pass
-                await self.send_chat(sender="agent", text=f"Sleep: consolidated memory (reflections+{n_ref}, training+{n_tr}, diary+{n_diary}, chat_reembed+{n_chat}). Exported memory_house.gltf.", channel=client.channel)
+                await self.send_chat(sender="agent", text=f"Sleep: consolidated memory (reflections+{n_ref}, training+{n_tr}, diary+{n_diary}, chat_reembed+{n_chat}). Exported memory_house.glb.", channel=client.channel)
                 await self.log({"type":"sleep","action":"consolidate","reflections":n_ref,"training":n_tr,"diary":n_diary,"chat_reembed":n_chat})
             except Exception as e:
                 await self.send_system(client.channel, f"Sleep consolidation error: {e}")
@@ -1878,7 +1878,7 @@ class LiveServer:
                     h2.bootstrap_defaults()
                     label = f"Crystallized {item['star_id']}"
                     h2.add_furniture('Workshop', item['furniture_kind'], label)
-                    h2.export_gltf(repo_root / 'viewer' / 'public' / 'memory_house.gltf')
+                    h2.export_gltf(repo_root / 'viewer' / 'public' / 'memory_house.glb')
                 except Exception:
                     pass
 
@@ -2389,7 +2389,7 @@ class LiveServer:
                                 pol = DiaryPolicy()
                                 if pol.should_write(vec, last, event="auto", meta={"by":"autonomy"}):
                                     pid = h.add_diary_page_embedding(self._diary_book, vec, meta={"event":"auto"})
-                                    out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "houses" / (os.getenv("K3D_HOUSE_ID","default")) / "memory_house.gltf")
+                                    out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "houses" / (os.getenv("K3D_HOUSE_ID","default")) / "memory_house.glb")
                                     h.export_gltf(out)
                                     await self.send_chat(sender="agent", text=f"[diary] wrote page in '{self._diary_book}' (id={pid})", channel=ch)
                                     await self.log({"type":"diary","action":"auto","book":self._diary_book,"page_id":pid,"channel":ch})
@@ -2495,7 +2495,7 @@ class LiveServer:
                 meta = {"event": "navigate", "target": target, "query": q, "source": source, "score": score if score is not None else 0.0}
                 if pol.should_write(vec, last, event="navigate", meta=meta):
                     h.add_diary_page_embedding(self._diary_book, vec, meta=meta)
-                    out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "houses" / (os.getenv("K3D_HOUSE_ID","default")) / "memory_house.gltf")
+                    out = (Path(__file__).resolve().parents[2] / "viewer" / "public" / "houses" / (os.getenv("K3D_HOUSE_ID","default")) / "memory_house.glb")
                     h.export_gltf(out)
         except Exception:
             pass

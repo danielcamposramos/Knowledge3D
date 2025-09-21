@@ -61,7 +61,7 @@
       --out viewer/public/galaxy/language_pt_br.glb \
       --manifest viewer/public/galaxy/language_pt_br.json`
   - Repeat for EN/ES/ZH, swapping the language corpora and IDs. The builder emits binary GLBs with embedded bufferViews so `PTXGeometrySession` can load them directly.
-  - Legacy JSON `.gltf` assets must be converted via `env PYTHONPATH=. python -m knowledge3d.tools.convert_gltf_to_glb memory_house.gltf memory_house.glb` before SleepTimeCompute or trainer runs; CPU fallbacks have been removed.
+  - Legacy JSON `.gltf` assets must be rebuilt via `env PYTHONPATH=. python -m knowledge3d.tools.rebuild_house_glb viewer/public/houses/<id>/memory_house.gltf viewer/public/houses/<id>/memory_house.glb` before SleepTimeCompute or trainer runs; CPU fallbacks have been removed.
 
 ## Pronunciation Audio Builder
 - `env PYTHONPATH=. python -m knowledge3d.tools.pronunciation_audio_builder --metadata <manifest.tsv> --audio-root <clips_dir> --language en --source commonvoice --out viewer/public/galaxy/working/lexicon_audio_en_commonvoice.jsonl`

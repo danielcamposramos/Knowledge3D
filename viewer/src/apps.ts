@@ -710,7 +710,7 @@ export class ControlApp implements TabletApp {
     const wake = document.createElement('button'); wake.textContent='Wake (resume)'; wake.onclick=()=>{ this.publish?.({ type:'wake' }); };
     row.appendChild(sleep); row.appendChild(consolidate); row.appendChild(wake);
     el.appendChild(row);
-    const p = document.createElement('div'); p.style.color='#ddd'; p.style.marginTop='8px'; p.textContent = 'Sleep consolidates diary/reflections/training and re-exports memory_house.gltf (GMT-3 timestamps).'; el.appendChild(p);
+    const p = document.createElement('div'); p.style.color='#ddd'; p.style.marginTop='8px'; p.textContent = 'Sleep consolidates diary/reflections/training and re-exports memory_house.glb (GMT-3 timestamps).'; el.appendChild(p);
   }
 }
 
