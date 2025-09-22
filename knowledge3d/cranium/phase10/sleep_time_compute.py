@@ -262,6 +262,14 @@ class SleepTimeCompute:
                     )
                     build_learning_memory(args)
                     print("💾 Learning memory GLB rebuilt.")
+                    try:
+                        from knowledge3d.cranium.fused_head import AdaptedFusedHead  # type: ignore
+
+                        head = AdaptedFusedHead()
+                        if head.reload_learning_memory():
+                            print("♻️  Fused head learning cache refreshed (sleep compute).")
+                    except Exception as exc:
+                        print(f"⚠️  Fused head reload skipped: {exc}")
                 except Exception as exc:
                     print(f"⚠️  Failed to rebuild learning memory GLB: {exc}")
         except Exception as exc:

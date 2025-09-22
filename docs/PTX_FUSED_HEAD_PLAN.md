@@ -45,7 +45,7 @@ This log captures the outstanding work required to make the fused head read and 
 | 2025-09-21 | A7 | Done | Language galaxies generated (EN/PT/ES/ZH) with PTX cosine retrieval wired into fused head. |
 | 2025-09-21 | A8 | Done | House asset rebuilt as binary GLB; codebase now references `memory_house.glb` exclusively. |
 | 2025-09-21 | A9 | In Progress | Plan drafted: log teacher tags into JSONL, convert to GLB, load during fused head init. |
-| 2025-09-22 | A9 | Done | Learning memory logging, GLB builder, fused head routing, trainer refresh, and reload sanity helper wired. |
+| 2025-09-22 | A9 | Done | Learning memory logging, GLB builder, fused head routing, trainer + sleep refresh hooks, and reload helper wired. |
 
 ### GPU Galaxy Buffer Layout (A1 draft)
 
