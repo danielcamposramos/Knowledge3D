@@ -2,10 +2,15 @@ from __future__ import annotations
 
 import math
 import re
-from typing import List, Optional
+import json
+import hashlib
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
+import numpy as np
 import torch
 import torch.nn as nn
+from pygltflib import GLTF2  # type: ignore
 
 from knowledge3d.cranium.ptx.ptx_ops import PTX_OPS
 
@@ -41,6 +46,8 @@ class AdaptedFusedHead:
             "adjust_zone_position_kernel",
         ]
         self._rays = ["modality_ray", "entropy_ray", "honesty_ray"]
+        self._language_catalog = self._discover_language_galaxies()
+        self._language_metadata_cache: Dict[Path, List[Dict[str, object]]] = {}
 
     # ------------------------------------------------------------------
     def predict(self, query: str, fused_embedding: List[float]) -> str:
@@ -62,6 +69,10 @@ class AdaptedFusedHead:
         numeric = self._simple_numeric_solver(query)
         if numeric is not None:
             return PTX_OPS.format_numeric(numeric)
+
+        language_answer = self._attempt_language_lookup(query)
+        if language_answer is not None:
+            return language_answer
 
         x = torch.tensor(fused_embedding, dtype=torch.float32, device=self.device)
         if x.dim() == 1:
@@ -136,3 +147,158 @@ class AdaptedFusedHead:
                 except Exception:
                     return None
         return None
+
+    # ------------------------------------------------------------------
+    def _discover_language_galaxies(self) -> List[Dict[str, object]]:
+        base = Path("viewer/public/galaxy")
+        catalog: List[Dict[str, object]] = []
+        if not base.exists():
+            return catalog
+        for manifest in sorted(base.glob("language_*.json")):
+            glb = manifest.with_suffix(".glb")
+            if not glb.exists():
+                continue
+            try:
+                data = json.loads(manifest.read_text(encoding="utf-8"))
+            except Exception:
+                data = {}
+            catalog.append(
+                {
+                    "manifest": manifest,
+                    "glb": glb,
+                    "language": str(data.get("language", manifest.stem)).lower(),
+                    "label": data.get("label", glb.stem),
+                    "embedding_dim": int(data.get("embedding_dim", 512)),
+                }
+            )
+        return catalog
+
+    def _attempt_language_lookup(self, query: str) -> Optional[str]:
+        if not query or not self._language_catalog:
+            return None
+        patterns = [
+            (re.compile(r"^define\s+'([^']+)'(?:\s*\(([^)]+)\))?", re.IGNORECASE), "definition"),
+            (re.compile(r"^give a synonym for\s+'([^']+)'(?:\s*\(([^)]+)\))?", re.IGNORECASE), "synonym"),
+            (re.compile(r"^provide the ipa pronunciation for\s+'([^']+)'(?:\s*\(([^)]+)\))?", re.IGNORECASE), "ipa"),
+        ]
+        lemma = None
+        lang_hint = None
+        action = None
+        stripped = query.strip()
+        for pattern, act in patterns:
+            match = pattern.match(stripped)
+            if match:
+                lemma = match.group(1).strip()
+                lang_hint = match.group(2).strip().lower() if match.group(2) else None
+                action = act
+                break
+        if lemma is None or action is None:
+            return None
+
+        candidates = self._select_language_candidates(lang_hint)
+        if not candidates:
+            return None
+
+        best_answer: Optional[str] = None
+        best_score = -1.0
+        lemma_lower = lemma.lower()
+
+        for entry in candidates:
+            glb_path: Path = entry["glb"]
+            embedding_dim = int(entry["embedding_dim"])
+            query_vec = self._hash_embedding(f"{action}:{lemma_lower}", embedding_dim)
+            try:
+                PTX_OPS.geometry_load_scene(glb_path.as_posix())
+                top_idx, scores = PTX_OPS.embedding_cosine_topk(query_vec, 5)
+            except Exception:
+                top_idx = np.array([], dtype=np.int32)
+                scores = np.array([], dtype=np.float32)
+            finally:
+                PTX_OPS.geometry_release()
+
+            if top_idx.size == 0:
+                continue
+            metadata = self._load_language_metadata(glb_path)
+            for idx, score in zip(top_idx.tolist(), scores.tolist()):
+                if idx < 0 or idx >= len(metadata):
+                    continue
+                meta = metadata[idx] if isinstance(metadata[idx], dict) else {}
+                payload = meta.get("payload", {}) if isinstance(meta, dict) else {}
+                lemma_meta = str(payload.get("lemma") or meta.get("name") or "").lower()
+                answer = self._format_language_answer(action, payload)
+                if not answer:
+                    continue
+                exact_match = lemma_meta == lemma_lower
+                effective_score = score + (0.5 if exact_match else 0.0)
+                if effective_score > best_score:
+                    best_score = effective_score
+                    best_answer = answer
+                if exact_match:
+                    break
+        return best_answer
+
+    def _select_language_candidates(self, lang_hint: Optional[str]) -> List[Dict[str, object]]:
+        if not lang_hint:
+            return self._language_catalog
+        lang_hint = lang_hint.lower()
+        candidates = [entry for entry in self._language_catalog if entry["language"].startswith(lang_hint)]
+        if not candidates:
+            candidates = [entry for entry in self._language_catalog if lang_hint in entry["language"]]
+        return candidates or self._language_catalog
+
+    def _load_language_metadata(self, glb_path: Path) -> List[Dict[str, object]]:
+        cached = self._language_metadata_cache.get(glb_path)
+        if cached is not None:
+            return cached
+        try:
+            gltf = GLTF2().load(glb_path.as_posix())
+            meta = (
+                gltf.meshes[0]
+                .primitives[0]
+                .extras
+                .get("k3d", {})
+                .get("metadata", [])
+            )
+            if isinstance(meta, list):
+                self._language_metadata_cache[glb_path] = meta
+                return meta
+        except Exception:
+            pass
+        self._language_metadata_cache[glb_path] = []
+        return []
+
+    def _format_language_answer(self, action: str, payload: Dict[str, object]) -> Optional[str]:
+        if action == "definition":
+            definition = payload.get("definition")
+            if not definition:
+                glosses = payload.get("glosses")
+                if isinstance(glosses, list) and glosses:
+                    definition = glosses[0]
+            return str(definition) if definition else None
+        if action == "ipa":
+            pronunciations = payload.get("pronunciations")
+            if isinstance(pronunciations, list) and pronunciations:
+                return " / ".join(str(p) for p in pronunciations if p)
+            ipa = payload.get("ipa")
+            if isinstance(ipa, str):
+                return ipa
+            return None
+        if action == "synonym":
+            synonyms = payload.get("synonyms")
+            if isinstance(synonyms, list) and synonyms:
+                return synonyms[0]
+            return None
+        return None
+
+    def _hash_embedding(self, text: str, dim: int) -> np.ndarray:
+        joined = text.strip() or "language_query"
+        digest = hashlib.sha256(joined.encode("utf-8")).digest()
+        values: List[float] = []
+        seed = digest
+        while len(values) < dim:
+            for byte in seed:
+                values.append(((byte / 255.0) * 2.0) - 1.0)
+                if len(values) >= dim:
+                    break
+            seed = hashlib.sha256(seed).digest()
+        return np.asarray(values[:dim], dtype=np.float32)
