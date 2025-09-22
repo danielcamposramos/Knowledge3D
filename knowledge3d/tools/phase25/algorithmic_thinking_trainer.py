@@ -8,6 +8,7 @@ the algorithmic soul keeps growing across sessions.
 from __future__ import annotations
 
 import io
+import hashlib
 import json
 import math
 import os
@@ -80,6 +81,7 @@ class AlgorithmicThinkingTrainer:
     def __init__(self) -> None:
         self.galaxy_working_dir = Path("viewer/public/galaxy/working")
         self.galaxy_working_dir.mkdir(parents=True, exist_ok=True)
+        self.learning_memory_path = self.galaxy_working_dir / "learning_memory.jsonl"
         self._trainer: Optional[MeaningClusterTrainer] = None
         self._rpn_corpus: List[Dict[str, Any]] = []
         self._thinking_corpus: List[Dict[str, Any]] = []
@@ -408,6 +410,58 @@ class AlgorithmicThinkingTrainer:
         concepts = [kw for kw in keywords if kw in lowered]
         return concepts[:3]
 
+    def _log_learning_memory(
+        self,
+        *,
+        timestamp: str,
+        prompt: str,
+        true_answer: str,
+        predicted: str,
+        score: float,
+        quick_feedback: Dict[str, Any],
+        deep_feedback: Dict[str, Any],
+        star: Dict[str, Any],
+    ) -> None:
+        try:
+            self.learning_memory_path.parent.mkdir(parents=True, exist_ok=True)
+            language_hint = self._parse_language_hint(prompt)
+            record_id = f"learning_{hashlib.sha256((timestamp + prompt).encode('utf-8')).hexdigest()[:16]}"
+            record = {
+                "id": record_id,
+                "timestamp": timestamp,
+                "prompt": prompt,
+                "true_answer": true_answer,
+                "predicted": predicted,
+                "score": float(score),
+                "quick_feedback": quick_feedback,
+                "deep_feedback": deep_feedback,
+                "language": language_hint or star.get("language"),
+                "star_id": star.get("id"),
+                "tags": star.get("tags", []),
+                "concepts": self.extract_concepts(prompt),
+            }
+            with self.learning_memory_path.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+        except Exception as exc:
+            print(f"⚠️  Failed to log learning memory: {exc}")
+
+    def _parse_language_hint(self, query: str) -> Optional[str]:
+        if not query:
+            return None
+        trimmed = query.strip()
+        patterns = [
+            re.compile(
+                r"^(?:define|give a synonym for|provide the ipa pronunciation for)\s+'[^']+'\s*\(([^)]+)\)",
+                re.IGNORECASE,
+            ),
+            re.compile(r"\(([^)]+)\)\s*$"),
+        ]
+        for pattern in patterns:
+            match = pattern.search(trimmed)
+            if match:
+                return match.group(1).strip().lower()
+        return None
+
     def _load_star_source_text(self, star: Dict[str, Any]) -> str:
         cached = str(star.get("source_text", ""))
         if cached:
@@ -532,6 +586,16 @@ class AlgorithmicThinkingTrainer:
 
         # Keep in-memory reference aligned for downstream queries
         star.update(star_payload)
+        self._log_learning_memory(
+            timestamp=timestamp,
+            prompt=prompt,
+            true_answer=true_answer,
+            predicted=predicted,
+            score=score,
+            quick_feedback=quick_feedback,
+            deep_feedback=deep_feedback,
+            star=star,
+        )
 
     def _blend_embeddings(
         self,

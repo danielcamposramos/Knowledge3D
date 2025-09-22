@@ -9,7 +9,9 @@ This log captures the outstanding work required to make the fused head read and 
 - [x] A4. Implement PTX write-back path that emits updated bufferViews/embeddings back into GLB/JSON.
 - [x] A5. Extend `PTXGeometryOps` to expose `load_mesh`, `transform_mesh`, `save_mesh` APIs.
 - [x] A6. Update `SleepTimeCompute`/trainer to use PTX geometry read/write instead of CPU GLTF edits.
-- [ ] A7. Generate PTX-ready base language galaxies and integrate them into default training flows.
+- [x] A7. Generate PTX-ready base language galaxies and integrate them into default training flows.
+- [x] A8. Ensure House exports reference `memory_house.glb` (no JSON fallback) and all PTX loaders/writers assume binary GLBs.
+- [ ] A9. Build PTX learning memory for teacher tags + generated insights (GLB + PTX cosine).
 
 ## Milestone B — Text Embedding Operations
 - [ ] B1. Implement PTX kernels for token embedding lookup and cosine similarity search.
@@ -40,8 +42,9 @@ This log captures the outstanding work required to make the fused head read and 
 | 2025-09-21 | A4 | Done | Dirty tracking + GLB/JSON write-back helpers (`save_meshes_to_glb`, `save_embeddings_to_json`). |
 | 2025-09-21 | A5 | Done | `PTXGeometrySession` + PTXOps wiring provide load/transform/save API surface. |
 | 2025-09-21 | A6 | Done | SleepTimeCompute now loads/saves House GLB via PTX and updates zone meshes/metadata on GPU. |
-| 2025-09-21 | A7 | In Progress | Language galaxy builder emits PTX-ready GLBs; next wire-in documentation + trainer defaults. |
-| 2025-09-21 | A8 | In Progress | House asset rebuilt as binary GLB; codebase now references `memory_house.glb` exclusively. |
+| 2025-09-21 | A7 | Done | Language galaxies generated (EN/PT/ES/ZH) with PTX cosine retrieval wired into fused head. |
+| 2025-09-21 | A8 | Done | House asset rebuilt as binary GLB; codebase now references `memory_house.glb` exclusively. |
+| 2025-09-21 | A9 | In Progress | Plan drafted: log teacher tags into JSONL, convert to GLB, load during fused head init. |
 
 ### GPU Galaxy Buffer Layout (A1 draft)
 
@@ -64,3 +67,10 @@ Update the status column with `Pending`, `In Progress`, or `Done`, plus short no
 - Emits binary GLBs with `vectorsView`/`embeddingsView` so PTX loads them directly; manifests capture bounding boxes + modality counts for placement in the language quadrant.
 - Use `python -m knowledge3d.tools.convert_gltf_to_glb src.gltf dst.glb` for generic GLTFs with valid bufferViews, otherwise rebuild Houses via the tool below before PTX-only pipelines run.
 - Rebuild legacy Houses via `python -m knowledge3d.tools.rebuild_house_glb viewer/public/houses/<id>/memory_house.gltf viewer/public/houses/<id>/memory_house.glb` and delete the JSON `.gltf` to avoid CPU fallbacks.
+## Milestone L — Learning Memory + PTX Generation
+- [ ] L1. Log teacher tags, feedback, and generated insights into standard JSONL (learning_memory.jsonl).
+- [ ] L2. Build `learning_memory_builder` to convert the JSONL into a PTX-ready GLB with metadata.
+- [ ] L3. Update fused head to log teacher tags into learning memory and consult it via PTX cosine before neural fallback.
+- [ ] L4. Extend trainer to rebuild/reload learning GLB between sessions.
+- [ ] L5. Add sanity check ensuring new memories can be appended and reloaded without restart.
+
