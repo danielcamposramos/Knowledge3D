@@ -45,6 +45,7 @@ This log captures the outstanding work required to make the fused head read and 
 | 2025-09-21 | A7 | Done | Language galaxies generated (EN/PT/ES/ZH) with PTX cosine retrieval wired into fused head. |
 | 2025-09-21 | A8 | Done | House asset rebuilt as binary GLB; codebase now references `memory_house.glb` exclusively. |
 | 2025-09-21 | A9 | In Progress | Plan drafted: log teacher tags into JSONL, convert to GLB, load during fused head init. |
+| 2025-09-22 | A9 | Done | Learning memory logging, GLB builder, fused head routing, trainer refresh, and reload sanity helper wired. |
 
 ### GPU Galaxy Buffer Layout (A1 draft)
 
@@ -68,9 +69,8 @@ Update the status column with `Pending`, `In Progress`, or `Done`, plus short no
 - Use `python -m knowledge3d.tools.convert_gltf_to_glb src.gltf dst.glb` for generic GLTFs with valid bufferViews, otherwise rebuild Houses via the tool below before PTX-only pipelines run.
 - Rebuild legacy Houses via `python -m knowledge3d.tools.rebuild_house_glb viewer/public/houses/<id>/memory_house.gltf viewer/public/houses/<id>/memory_house.glb` and delete the JSON `.gltf` to avoid CPU fallbacks.
 ## Milestone L — Learning Memory + PTX Generation
-- [ ] L1. Log teacher tags, feedback, and generated insights into standard JSONL (learning_memory.jsonl).
-- [ ] L2. Build `learning_memory_builder` to convert the JSONL into a PTX-ready GLB with metadata.
-- [ ] L3. Update fused head to log teacher tags into learning memory and consult it via PTX cosine before neural fallback.
-- [ ] L4. Extend trainer to rebuild/reload learning GLB between sessions.
-- [ ] L5. Add sanity check ensuring new memories can be appended and reloaded without restart.
-
+- [x] L1. Log teacher tags, feedback, and generated insights into standard JSONL (learning_memory.jsonl).
+- [x] L2. Build `learning_memory_builder` to convert the JSONL into a PTX-ready GLB with metadata.
+- [x] L3. Update fused head to log teacher tags into learning memory and consult it via PTX cosine before neural fallback.
+- [x] L4. Extend trainer to rebuild/reload learning GLB between sessions.
+- [x] L5. Add sanity check ensuring new memories can be appended and reloaded without restart.
