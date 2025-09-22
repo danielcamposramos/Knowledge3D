@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'K书' (zh).",
+  "created_at": "2025-09-22T22:57:09.392257Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'K书' (zh).",
+  "predicted": "(Tw) to cram; to study (from Taiwanese 齧書, Tai-lo pr. [khè-su], lit. to gnaw a book, similar to Mandarin 啃書|啃书[ken3 shu1])",
+  "true_answer": "(Tw) to cram; to study (from Taiwanese 齧書, Tai-lo pr. [khè-su], lit. to gnaw a book, similar to Mandarin 啃書|啃书[ken3 shu1])",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

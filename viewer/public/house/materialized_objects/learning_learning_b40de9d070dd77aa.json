@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: Since our _____ read from standard input, one thing you can do is run the program and type a test case by hand.",
+  "created_at": "2025-09-22T18:51:13.311414Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: Since our _____ read from standard input, one thing you can do is run the program and type a test case by hand.",
+  "predicted": "programs",
+  "true_answer": "programs",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

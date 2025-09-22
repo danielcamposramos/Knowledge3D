@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "What significant event happened in 118?",
+  "created_at": "2025-09-22T18:55:44.971251Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "What significant event happened in 118?",
+  "predicted": "118  4 GRAPHS AND BREADTH-FIRST SEARCH 119  Problem 1: Knight Chase  .",
+  "true_answer": "118  4 GRAPHS AND BREADTH-FIRST SEARCH 119  Problem 1: Knight Chase  .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

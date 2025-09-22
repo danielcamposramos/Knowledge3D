@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '88' (zh).",
+  "created_at": "2025-09-22T22:56:26.062139Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '88' (zh).",
+  "predicted": "(Internet slang) bye-bye (alternative for 拜拜[bai2 bai2])",
+  "true_answer": "(Internet slang) bye-bye (alternative for 拜拜[bai2 bai2])",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

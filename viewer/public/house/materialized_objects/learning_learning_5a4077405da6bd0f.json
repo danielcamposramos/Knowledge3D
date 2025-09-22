@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: See also  dynamic programming memory allocation, xxii  Methods to Solve page (Halim and Halim), xxiii Mice Maze problem, 166–177.",
+  "created_at": "2025-09-22T21:01:38.897730Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: See also  dynamic programming memory allocation, xxii  Methods to Solve page (Halim and Halim), xxiii Mice Maze problem, 166–177.",
+  "predicted": "See also  dynamic programming memory allocation, xxii  Methods to Solve page (Halim and Halim), xxiii Mice Maze problem, 166–177.",
+  "true_answer": "See also  dynamic programming memory allocation, xxii  Methods to Solve page (Halim and Halim), xxiii Mice Maze problem, 166–177.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

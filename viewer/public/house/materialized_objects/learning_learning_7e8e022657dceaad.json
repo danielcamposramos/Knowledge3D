@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Apply scientific reasoning to: #define MAX_SCHEMES 20 int main(void) { int test_case, num_schemes, num_items, more, i; double unit_price, result; int num[MAX_SCHEMES]; double price[MAX_SCHEMES]; test_case = 0;  ∂ while (scanf('%lf%d', &unit_price, &num_schemes) != -1) { test_case++; for (i = 0; i < num_schemes; i++)  ∑ scanf('%d%lf', &num[i], &price[i]);  ∏ scanf(' '); printf('Case %d:', test_case); more = get_number(&num_items); while (more) {  98 Chapter 3",
+  "created_at": "2025-09-22T21:04:54.409296Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Apply scientific reasoning to: #define MAX_SCHEMES 20 int main(void) { int test_case, num_schemes, num_items, more, i; double unit_price, result; int num[MAX_SCHEMES]; double price[MAX_SCHEMES]; test_case = 0;  ∂ while (scanf('%lf%d', &unit_price, &num_schemes) != -1) { test_case++; for (i = 0; i < num_schemes; i++)  ∑ scanf('%d%lf', &num[i], &price[i]);  ∏ scanf(' '); printf('Case %d:', test_case); more = get_number(&num_items); while (more) {  98 Chapter 3",
+  "predicted": "#define MAX_SCHEMES 20 int main(void) { int test_case, num_schemes, num_items, more, i; double unit_price, result; int num[MAX_SCHEMES]; double price[MAX_SCHEMES]; test_case = 0;  ∂ while (scanf('%lf%d', &unit_price, &num_schemes) != -1) { test_case++; for (i = 0; i < num_schemes; i++)  ∑ scanf('%d%lf', &num[i], &price[i]);  ∏ scanf(' '); printf('Case %d:', test_case); more = get_number(&num_items); while (more) {  98 Chapter 3",
+  "true_answer": "#define MAX_SCHEMES 20 int main(void) { int test_case, num_schemes, num_items, more, i; double unit_price, result; int num[MAX_SCHEMES]; double price[MAX_SCHEMES]; test_case = 0;  ∂ while (scanf('%lf%d', &unit_price, &num_schemes) != -1) { test_case++; for (i = 0; i < num_schemes; i++)  ∑ scanf('%d%lf', &num[i], &price[i]);  ∏ scanf(' '); printf('Case %d:', test_case); more = get_number(&num_items); while (more) {  98 Chapter 3",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

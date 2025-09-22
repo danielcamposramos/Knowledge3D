@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: Sobre a diminuição da memória de trabalho, vide Toni Schmader e Michael Johns, “Converging Evidence that Stereotype Threat Reduces Working Memory Capacity”,  Journal of Personality and Social Psychology  85 (2003), pp.",
+  "created_at": "2025-09-22T21:02:07.000317Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: Sobre a diminuição da memória de trabalho, vide Toni Schmader e Michael Johns, “Converging Evidence that Stereotype Threat Reduces Working Memory Capacity”,  Journal of Personality and Social Psychology  85 (2003), pp.",
+  "predicted": "Sobre a diminuição da memória de trabalho, vide Toni Schmader e Michael Johns, “Converging Evidence that Stereotype Threat Reduces Working Memory Capacity”,  Journal of Personality and Social Psychology  85 (2003), pp.",
+  "true_answer": "Sobre a diminuição da memória de trabalho, vide Toni Schmader e Michael Johns, “Converging Evidence that Stereotype Threat Reduces Working Memory Capacity”,  Journal of Personality and Social Psychology  85 (2003), pp.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

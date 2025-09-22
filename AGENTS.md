@@ -10,9 +10,11 @@ The primary guiding documents for this project are:
 
 3.  **[Codex Tasks (CODEX.md)](CODEX.md)**: This file provides a detailed, actionable task list that corresponds to the current phase of the roadmap. Agents should consult this file for specific implementation tasks.
 
+4.  **[Memory Tablet & Dual-Space Architecture](docs/HOUSE_GALAXY_TABLET.md)**: Defines how Galaxy (RAM), House (persistent memory), Museum (deprecated archive), and the new Memory Tablet interact. Any knowledge-management change must follow this workflow.
+
 Additional local environment reference (hardware, GPU, and folder layout): see `docs/LOCAL_ENV.md`.
 
-**Your primary directive is to follow the phased plan outlined in the [Project Roadmap](docs/ROADMAP.md).** Ensure that any contributions directly support the goals of the current phase.
+**Your primary directive is to follow the phased plan outlined in the [Project Roadmap](docs/ROADMAP.md)** _and_ uphold the memory policy in `docs/HOUSE_GALAXY_TABLET.md`. Contributions must keep Galaxy (active), House (persistent), and Museum (deprecated) in sync.
 
 We are a team of humans and AI working together. Clear communication and alignment with the project's strategic vision are essential for our success.
 
@@ -39,6 +41,8 @@ We are a team of humans and AI working together. Clear communication and alignme
 - Logging for iteration: Session logs are written as JSONL to a sibling folder outside the repo: `../Knowledge3D.local/logs/session-<ts>.jsonl`. Treat them as training data and do not commit them to the repo.
 
 - Knowledge Garden: Every House includes a standard room “Knowledge Garden” (ontology greenhouse). Build the GLB via `python -m knowledge3d.tools.gardens` and access via the “Knowledge Garden” door in the Network room.
+- Memory Tablet integration: any feature that surfaces or edits consolidated knowledge must go through the tablet contract (search House index, trigger on-demand loads into Galaxy, and log mutations for SleepTime). See `docs/HOUSE_GALAXY_TABLET.md` before touching tablet UX, house builders, or PTX loaders.
+- Embodiment first: treat the avatar as resident inside the House. Use Galaxy views strictly for introspection/diagnostics and only via the tablet; do not design workflows that place the avatar “inside” the Galaxy.
 - External world models: Study and leverage HunyuanWorld (ext/HunyuanWorld-1.0). See `docs/HUNYUANWORLD_INTEGRATION.md`. Use it to generate room‑scale scenes, then convert to K3D glTF with `extras.k3d` via an adapter. Keep permanent memory in GLB; keep logic small.
   - Also supported: Microsoft TRELLIS for asset generation. See `docs/TRELLIS_INTEGRATION.md` and `knowledge3d/tools/trellis_adapter.py` to convert meshes or CSV+metadata into K3D GLBs.
 - Dual code (HR/MR): Generate machine‑runtime sources outside the repo with the `codeopt` CLI. See `docs/DUAL_CODE.md`.
@@ -47,12 +51,18 @@ We are a team of humans and AI working together. Clear communication and alignme
   - Text: `python -m k3dgen --text lines.txt --gltf books.glb --k 5 --model sentence-transformers/all-MiniLM-L6-v2`
   - UMAP is default; for tiny datasets the tool falls back to PCA automatically.
 - Multimodal ingest: use `knowledge3d/tools/ingest_wit.py` (text+images), `ingest_video.py` (video→CLIP), `ingest_audio.py` (audio→CLAP). See `docs/MULTIMODAL_BABY.md`.
-- Cranium skills: integrated logic bus that connects intent, vision (CLIP), audio (CLAP), video (OpenCLIP), dynamics (RSSM), and RPN to the House. See `docs/CRANIUM_SKILLS.md`.
+- Cranium skills: integrated logic bus that connects intent, vision (CLIP), audio (CLAP), video (OpenCLIP), dynamics (RSSM), and RPN to the House. See `docs/CRANIUM_SKILLS.md` and ensure fused-head routing consults the House index via the tablet before language galaxies.
 - Note: External LLM wrappers and wrapper‑style TTS are deprecated for core runs. Use the single unified head in `docs/CRANIUM_CORE.md` (navigation+text in Phase A; stems and first‑class TTS follow).
 - Testing expectations:
   - Python: `pytest -q`
   - Viewer: `npm install --ignore-scripts --no-bin-links && node ./node_modules/jest/bin/jest.js --runInBand`
   - Commit early and often with clear messages. Keep changes scoped.
+
+### Memory Stewardship Guidelines
+
+- **Consolidation is authoritative**: once SleepTime materialises a book/diary/tree in the House, treat it as the canonical source. Remove the corresponding prompt from active drills after one successful verification run unless the roadmap states otherwise.
+- **Museum is for deprecated items only**: when knowledge changes, relocate the previous artifact to Zone 8 using the relocation utilities. Do _not_ repopulate Galaxy with museum artifacts unless explicitly asked.
+- **Tablet-first UX**: new tools should expose knowledge through the tablet (search + on-demand load) rather than ad-hoc viewers. If a feature bypasses the tablet, add an explicit justification in PR notes.
 
 ### Recent Improvements (2025‑09‑10)
 - WebSocket stability: the live server’s log maintenance loop now yields each pass to avoid event‑loop starvation; handshakes are reliable.

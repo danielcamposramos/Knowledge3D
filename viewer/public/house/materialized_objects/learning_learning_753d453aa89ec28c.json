@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'contagiar-se' (pt).",
+  "created_at": "2025-09-22T21:32:19.367273Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'contagiar-se' (pt).",
+  "predicted": "be stricken by an illness, fall victim to an illness; \"He got AIDS\"; \"She came down with pneumonia\"; \"She took a chill\"",
+  "true_answer": "be stricken by an illness, fall victim to an illness; \"He got AIDS\"; \"She came down with pneumonia\"; \"She took a chill\"",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

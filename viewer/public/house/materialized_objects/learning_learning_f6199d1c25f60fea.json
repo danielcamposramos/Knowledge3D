@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "What significant event happened in 329?",
+  "created_at": "2025-09-22T16:10:02.839981Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "What significant event happened in 329?",
+  "predicted": "329 The main Function  334 Find and Union 335 Summary  .",
+  "true_answer": "329 The main Function  334 Find and Union 335 Summary  .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

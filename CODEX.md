@@ -1,17 +1,12 @@
-> **Note: This document is outdated.**
->
-> The information in this file has been superseded by the new, consolidated vision document. For the most current and authoritative information on the project's vision, architecture, and roadmap, please see:
->
-> **[`docs/VISION.md`](docs/VISION.md)**
----
-
 # Codex Tasks
 
 This file lists actionable tasks for AI agents working on the Knowledge3D repository. All tasks are derived from the official **[Project Roadmap](docs/ROADMAP.md)** and should be executed in accordance with the vision outlined in the **[K3D Research Report](docs/k3d-research.md)**.
 
+⚠️ **Memory Policy Reminder**: every task touching Galaxy, House, or Museum must follow [`docs/HOUSE_GALAXY_TABLET.md`](docs/HOUSE_GALAXY_TABLET.md). The Memory Tablet is now the primary interface for consolidated knowledge.
+
 ---
 
-## Phase 1 Tasks: The MVP - The Static Knowledge Graph
+## Phase 1 Tasks: The MVP - The Static Knowledge Graph (Historical)
 
 **Objective:** Prove the core data-to-spatial pipeline by creating a non-interactive, read-only visualization of a knowledge corpus.
 
@@ -38,7 +33,7 @@ This file lists actionable tasks for AI agents working on the Knowledge3D reposi
 
 ---
 
-## Phase 2 Tasks: The Interactive Agent
+## Phase 2 Tasks: The Interactive Agent (In Progress)
 
 **Objective:** Transform the passive viewing experience into an active, conversational one by integrating an embodied AI agent.
 
@@ -48,7 +43,7 @@ This file lists actionable tasks for AI agents working on the Knowledge3D reposi
 
 2.  **Develop Agent World Model:**
     -   [ ] **Task:** Implement the agent's spatial reasoning capabilities.
-    -   **Details:** Create data structures that allow the agent to understand the location, properties, and relationships of the knowledge nodes in its environment.
+    -   **Details:** Create data structures that allow the agent to understand the location, properties, and relationships of the knowledge nodes in its environment. Ensure the fused head consumes the house-memory index produced during SleepTime before querying modality galaxies.
 
 3.  **Implement Basic Interactivity:**
     -   [ ] **Task:** Develop the user-to-agent interaction loop.
@@ -58,6 +53,7 @@ This file lists actionable tasks for AI agents working on the Knowledge3D reposi
     - [ ] Add viewer UI to open a diary book, list pages, and call `/diary read` to render translated text.
     - [ ] Enforce AI‑only writes; ensure `/mem add` cannot target the `Diary` room.
     - [ ] Add “promote to Garden” action to curate a diary page into the Knowledge Garden.
+    - [ ] Surface diaries through the tablet inventory so the avatar can review consolidated reflections without leaving the workspace.
 
 5.  **Doors & Address Bar:**
     - [ ] Add an address bar UI to door meshes; integrate `/open <label|k3d://...>` and show route previews.
@@ -65,7 +61,7 @@ This file lists actionable tasks for AI agents working on the Knowledge3D reposi
 
 ---
 
-## Phase 3 Tasks: The Collaborative Knowledge Habitat
+## Phase 3 Tasks: The Collaborative Knowledge Habitat (Upcoming)
 
 **Objective:** Expand the single-user experience into a fully-featured, multiplayer, real-time collaborative environment.
 
@@ -81,6 +77,38 @@ This file lists actionable tasks for AI agents working on the Knowledge3D reposi
     -   [ ] **Task:** Develop features for shared interaction.
     -   **Details:** Implement tools for real-time annotations, data manipulation, and other collaborative activities.
 
+## Phase 4 Tasks: Memory Tablet & Dual-Space Operations
+
+**Objective:** Make the House “disk” and Galaxy “RAM” operate through the Memory Tablet, with SleepTime consolidating and relocating knowledge automatically.
+
+1. **House Memory Builder**
+    - [ ] **Task:** Extend SleepTime to emit a PTX-ready `house_memory.glb` + manifest summarising consolidated artifacts (books, diaries, learning insights, dream records).
+    - **Details:** Mirror `learning_memory_builder` but source `viewer/public/house/materialized_objects/`. Tag nodes with artifact type and zone for tablet filtering.
+
+2. **Tablet Viewer & Search**
+    - [ ] **Task:** Implement the 3D tablet UI in the viewer. Support search, filters, LOD toggles, and on-demand loads from House → Galaxy.
+    - **Details:** The tablet must query the house-memory index first, show provenance (Galaxy / House / Museum), and expose actions to promote, archive, or relocate artifacts.
+
+3. **Browser Bridge**
+    - [ ] **Task:** Integrate the Firefox-based (or existing) browser container with the tablet so the avatar can open legacy web pages and capture them as structured notes.
+    - **Details:** Each browsing session should produce a tablet note that SleepTime can consolidate into the House and tag with source metadata.
+
+4. **Prompt Pruning & Verification Loop**
+    - [ ] **Task:** Update Phase18/Phase25 trainers to retire prompts once the fused head + house confirmation succeeds twice (active + consolidated run).
+    - **Details:** Remove retired prompts from active drill sets, move them to a “verification” list, and log the decision in `learning_memory.jsonl`.
+
+5. **Museum Relocation Automation**
+    - [ ] **Task:** Automate calls to `relocate_to_museum` (or a refactored helper) whenever SleepTime supersedes an artifact.
+    - **Details:** Deprecation records should include `relocated_at`, `previous_zone`, and a pointer to the superseding artifact. The tablet must surface these in “Museum mode”.
+
+6. **LOD Streaming Pipeline**
+    - [ ] **Task:** Implement game-style LOD tiers for memory streaming (coarse centroids, medium embeddings, full GLBs).
+    - **Details:** Respect GPU budgets; allow the tablet to request upgrades/downgrades per artifact. Expose current LOD state to the fused head so PTX kernels know what data is loaded.
+
+7. **Telemetry & Confidence**
+    - [ ] **Task:** Instrument tablet interactions so we can measure how often the avatar consults House vs Galaxy vs Museum.
+    - **Details:** Store telemetry alongside learning-memory entries to help tune SleepTime thresholds.
+
 ---
 
 ## Ongoing Research Tasks
@@ -89,9 +117,9 @@ This file lists actionable tasks for AI agents working on the Knowledge3D reposi
 -   **Knowledge Graph & RAG:** Research and develop a robust backend using a knowledge graph and a Retrieval-Augmented Generation (RAG) system.
 -   **3D Data Standards:** Continue to monitor and align with standards like glTF, OpenUSD, and 3D Tiles.
 -   **Graph Database Standards:** Continue to align K3D's data model with standards like openCypher and RDF.
--   **Phase 25 Sleep Consolidation:** Keep the `k3d-cranium` CUDA toolchain (with `cuda-python`) ready so `SleepTimeCompute` continues persisting Phase 25 knowledge into the House.
+-   **Phase 25 Sleep Consolidation:** Keep the `k3d-cranium` CUDA toolchain (with `cuda-python`) ready so `SleepTimeCompute` continues persisting Phase 25 knowledge into the House. Verify that each cycle rebuilds both `learning_memory.glb` and the new `house_memory.glb` for the tablet.
 -   **Lexicon Refinement:** Rebuild Q&A material from the cleaned book sources using exaone3.5 with full-document context to avoid page-break artifacts (e.g., `ma- chine`).
--   **Galaxy Coverage:** Ingest the balanced EN/ES/PT_PT/ZH Wikipedia splits into `viewer/public/galaxy/working/` so algorithmic runs have broad factual grounding.
+-   **Galaxy Coverage:** Ingest the balanced EN/ES/PT_PT/ZH Wikipedia splits into `viewer/public/galaxy/working/` so algorithmic runs have broad factual grounding while keeping mastered prompts out of the active drill queues.
 -   **Thinking Tags Visibility:** Run the Phase 10 thinking-tag trainer after long RLWHF sessions to keep reasoning labels exposed during evaluation.
 -   **Generalisation Benchmarks:** After consolidation, measure zero-shot math reasoning on `Maxwell-Jia/AIME_2024` to confirm the model generalises beyond retrievable content.
 

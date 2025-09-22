@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: Here are some of the competitions from which problems in this book originate: _____ Olympiad in Informatics (IOI): this is a prestigious an- nual competition for high school students.",
+  "created_at": "2025-09-22T18:51:06.226854Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: Here are some of the competitions from which problems in this book originate: _____ Olympiad in Informatics (IOI): this is a prestigious an- nual competition for high school students.",
+  "predicted": "International",
+  "true_answer": "International",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

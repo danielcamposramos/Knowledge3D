@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'votar' (pt).",
+  "created_at": "2025-09-22T21:32:40.329726Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'votar' (pt).",
+  "predicted": "bring into existence or make available by vote; \"They voted aid for the underdeveloped countries in Asia\"",
+  "true_answer": "bring into existence or make available by vote; \"They voted aid for the underdeveloped countries in Asia\"",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: You’ll learn how  to classify problems, choose data structures, and  identify _____ algorithms.",
+  "created_at": "2025-09-22T18:50:37.627190Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: You’ll learn how  to classify problems, choose data structures, and  identify _____ algorithms.",
+  "predicted": "appropriate",
+  "true_answer": "appropriate",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

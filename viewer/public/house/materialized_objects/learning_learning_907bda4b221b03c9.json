@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: Similar reason- ing shows that, if greedy removes a rock because it’s too close to the end of the river, then S must remove that rock, too.",
+  "created_at": "2025-09-22T21:01:30.266334Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: Similar reason- ing shows that, if greedy removes a rock because it’s too close to the end of the river, then S must remove that rock, too.",
+  "predicted": "Similar reason- ing shows that, if greedy removes a rock because it’s too close to the end of the river, then S must remove that rock, too.",
+  "true_answer": "Similar reason- ing shows that, if greedy removes a rock because it’s too close to the end of the river, then S must remove that rock, too.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

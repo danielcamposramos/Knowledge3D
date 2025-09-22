@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "RPN: Express the derivative of Recursion with respect to x",
+  "created_at": "2025-09-22T18:50:34.474814Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "RPN: Express the derivative of Recursion with respect to x",
+  "predicted": "Recursion d/dx -> result",
+  "true_answer": "Recursion d/dx -> result",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

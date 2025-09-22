@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Apply scientific reasoning to: Surprisingly, if we’re not careful, we may get baffling results.",
+  "created_at": "2025-09-22T21:04:41.880994Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Apply scientific reasoning to: Surprisingly, if we’re not careful, we may get baffling results.",
+  "predicted": "Surprisingly, if we’re not careful, we may get baffling results.",
+  "true_answer": "Surprisingly, if we’re not careful, we may get baffling results.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

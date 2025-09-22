@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'refrigeração' (pt).",
+  "created_at": "2025-09-22T21:33:14.980860Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'refrigeração' (pt).",
+  "predicted": "the process of cooling or freezing (e.g., food) for preservative purposes",
+  "true_answer": "the process of cooling or freezing (e.g., food) for preservative purposes",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

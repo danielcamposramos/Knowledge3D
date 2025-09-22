@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: All we did was _____ the offset instead of add it, and change the bounds check at 6 to a bounds check at -1 .",
+  "created_at": "2025-09-22T16:03:49.461888Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: All we did was _____ the offset instead of add it, and change the bounds check at 6 to a bounds check at -1 .",
+  "predicted": "subtract",
+  "true_answer": "subtract",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'ㄏㄤ' (zh).",
+  "created_at": "2025-09-22T23:02:13.009982Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'ㄏㄤ' (zh).",
+  "predicted": "(Tw) (slang) popular; hot (from Taiwanese 烘, Tai-lo pr. [hang])",
+  "true_answer": "(Tw) (slang) popular; hot (from Taiwanese 烘, Tai-lo pr. [hang])",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

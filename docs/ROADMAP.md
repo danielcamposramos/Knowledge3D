@@ -1,15 +1,12 @@
-> **Note: This document is outdated.**
->
-> The information in this file has been superseded by the new, consolidated vision document. For the most current and authoritative information on the project's vision, architecture, and roadmap, please see:
->
-> **[`docs/VISION.md`](VISION.md)**
----
+# Knowledge3D Project Roadmap — Toward the First Working AGI MVP
 
-# Knowledge3D Project Roadmap
+This roadmap captures the current priorities for delivering the first production-ready AGI MVP built on the K3D paradigm. It supersedes earlier drafts and is aligned with the latest memory architecture described in:
 
-This document outlines the strategic, phased development plan for the Knowledge3D (K3D) project, as detailed in the **[Knowledge3D Project Research Report](k3d-research.md)**. The vision is to build a unified framework for embodied spatial intelligence, and this roadmap provides a clear, actionable path to achieving that goal.
+- [`docs/VISION.md`](VISION.md)
+- [`docs/HOUSE_GALAXY_TABLET.md`](HOUSE_GALAXY_TABLET.md)
+- [`docs/PTX_FUSED_HEAD_PLAN.md`](PTX_FUSED_HEAD_PLAN.md)
 
-The development is divided into three main phases, each building upon the last to progressively realize the full K3D vision.
+Each phase builds on the previous one. Status labels reflect our current progress and guide agent focus.
 
 ![Cognitive House](images/cognitive_house.png)
 
@@ -17,48 +14,63 @@ Figure: The Cognitive House illustrates the House (persistent memory), Cranium (
 
 ---
 
-## Phase 1: The MVP - The Static Knowledge Graph
+## Phase A — PTX Fused Head & Dual Memory Spine _(Status: Partially Complete)_
 
-The initial focus is on proving the core data-to-spatial pipeline and validating the fundamental concept of transforming complex, high-dimensional data into an understandable 3D spatial representation. This phase will deliver a non-interactive, read-only visualization of a knowledge corpus.
+**Objective:** deliver a deterministic PTX-first fused head that learns from Galaxy (RAM) and House (disk) through nightly consolidation.
 
-| Deliverable | Purpose | Key Technologies | Status |
-|---|---|---|---|
-| **Data-to-Spatial Pipeline** | Ingest raw data (e.g., text), generate high-dimensional embeddings, and use UMAP for dimensionality reduction. | Python, Pandas, Hugging Face (BERT), UMAP-learn | Not Started |
-| **Static 3D Visualization** | Render the generated 3D point cloud in a simple, navigable environment. | Web viewer (Three.js); Unity later | In Progress |
-| **Embedded Data Model** | Embed ids, vectors, embeddings, metadata directly in glTF (`primitive.extras.k3d`). | glTF 2.0 (extras) | In Progress |
-| **Core Documentation** | Update project documentation (`README.md`, `AGENTS.md`) to reflect the new vision and this roadmap. | Markdown | In Progress |
+| Deliverable | Purpose | Status |
+|-------------|---------|--------|
+| Embodied fused head | Keep reasoning embodied in the House while PTX kernels manage galaxy introspection. | ✅ Complete |
+| PTX RPN + cosine kernels | Keep all math/lookup reasoning inside PTX to avoid hallucination drift. | ✅ Complete (context binding fix: Sept 2025) |
+| Learning Memory GLB | Log teacher tags and rebuild a PTX-ready galaxy each sleep cycle. | ✅ Complete |
+| SleepTime consolidation | Materialise insights into House, relocate deprecated artifacts to Museum. | ✅ Complete |
+| House memory builder | Emit PTX-ready index of consolidated artifacts for the tablet. | 🔄 In Progress (highest priority) |
 
-**Goal:** Prove the viability of the core visualization pipeline and establish a solid foundation for future development.
+**Exit criteria:** fused head successfully answers PTX benchmarks using both Galaxy and House without Python fallbacks; nightly sleep cycle keeps memories synced.
+
+## Phase B — Memory Tablet & Tool Bridge _(Status: Active)_
+
+**Objective:** make the avatar’s tablet the primary interface to House, Galaxy, Museum, and external tools (MCP, VMs, browsers).
+
+| Deliverable | Purpose | Status |
+|-------------|---------|--------|
+| Tablet UX prototype | Search House inventory, inspect artifacts, show provenance while respecting embodiment. | 🔄 In Progress |
+| On-demand Galaxy streaming | Load House artifacts into Galaxy with LOD controls (centroid → full GLB). | 🔄 In Progress |
+| Tool manifest & MCP bridge | Launch existing tool containers (Firefox, VMs, MCP) from the tablet; log transcripts. | 🔄 In Progress |
+| Session capture pipeline | Store tablet sessions as structured notes → SleepTime consolidates into House, relocates older versions to Museum. | ⏳ Planned |
+| Prompt verification loop | Retire prompts once fused head + tablet confirmation succeed twice; move to verification list. | ⏳ Planned |
+
+**Exit criteria:** the avatar can solve tasks using PTX reasoning plus tablet tools; consolidated knowledge is always reachable through the tablet before querying external sources.
+
+## Phase C — Self-Supervised Consolidation & Autonomy _(Status: Planned)_
+
+**Objective:** let the model curate its own drills, retire solved prompts, and expand the dream/critique loop without human intervention.
+
+| Deliverable | Purpose |
+|-------------|---------|
+| Autonomous curriculum engine | Use reflection diaries + museum analytics to propose new drills and retire stale ones, keeping the avatar embodied in-house while planning. |
+| Honesty & confidence gating | Tablet and fused head report provenance + confidence for every response. |
+| Museum analytics | Mine deprecated artifacts for error signatures and retro-train corrections. |
+| Continuous tool adaptation | Benchmark external tool usage; prioritise open-source replacements where feasible. |
+
+**Exit criteria:** daily cycles run end-to-end without manual intervention; the model promotes/demotes knowledge and tools based on performance.
+
+## Phase D — Collaborative Habitat & External Interfaces _(Status: Planned)_
+
+**Objective:** extend the AGI MVP into a shared environment where multiple humans and agents collaborate.
+
+| Deliverable | Purpose |
+|-------------|---------|
+| Multi-user house/galaxy sync | Keep tablet and memory state coherent across avatars. |
+| Shared tool sessions | Let multiple avatars co-drive browser/VM sessions while logging provenance. |
+| API & door federation | Expose the tablet + memory services over doors for third-party integrations. |
+| High-fidelity rendering | Adopt game-engine LOD and streaming techniques as memory scales. |
+
+**Exit criteria:** humans and AI cohabit the space, sharing memories, tools, and consolidations in real time.
 
 ---
 
-## Phase 2: The Interactive Agent
-
-Once the core visualization is stable, this phase will introduce the embodied AI agent and interactive features. The goal is to transform the passive viewing experience into an active, conversational one, increasing user engagement and trust.
-
-| Deliverable | Purpose | Key Technologies | Status |
-|---|---|---|---|
-| **Embodied AI Agent** | Integrate a conversational AI agent into the 3D environment to act as a guide and interpreter. | Unity Engine, LLM (e.g., GPT-4o, Llama), Convai API (or similar) | Not Started |
-| **Agent World Model** | Develop the agent's internal representation of the virtual environment, enabling it to reason about the space and user intentions. | Custom spatial data structures | Not Started |
-| **Interactive UI/UX** | Implement basic user interactions, such as selecting data points, issuing voice commands, and receiving multimodal feedback from the agent. | Unity UI, Speech-to-text libraries | Not Started |
-| **XAI Integration** | Begin integrating Explainable AI (XAI) methods (e.g., SHAP) to allow the agent to answer "why" questions about the data. | SHAP, Python backend | Not Started |
-
-**Goal:** Create an engaging, interactive experience where users can converse with an AI to explore and understand the knowledge space.
-
----
-
-## Phase 3: The Collaborative Knowledge Habitat
-
-The final phase will expand the single-user experience into a fully-featured, multiplayer, and real-time collaborative environment. This will realize the full vision of K3D as a platform for remote collaboration and shared knowledge exploration.
-
-| Deliverable | Purpose | Key Technologies | Status |
-|---|---|---|---|
-| **Multiplayer Environment** | Enable multiple users and AI agents to co-exist and interact within the same shared 3D space. | Unreal Engine (recommended for high-fidelity graphics), Photon/Netcode for GameObjects | Not Started |
-| **Real-time Collaboration Tools** | Develop tools for shared annotations, real-time data manipulation, and collaborative problem-solving. | Custom UI/UX components | Not Started |
-| **Advanced RAG Integration** | Implement a sophisticated Retrieval-Augmented Generation (RAG) system connected to a knowledge graph to ensure agent responses are accurate and grounded. | Knowledge Graph DB (e.g., Neo4j), RAG frameworks | Not Started |
-| **Full Ecosystem API** | Develop a comprehensive API for third-party developers to extend the K3D platform and integrate their own data and models. | REST/GraphQL | Not Started |
-
-**Goal:** Deliver a rich, collaborative platform for collective intelligence, where teams of humans and AIs can explore complex data together.
+This roadmap is a living document. Update it whenever milestones shift, and cross-link new specs or implementation guides when a deliverable begins.
 
 ---
 

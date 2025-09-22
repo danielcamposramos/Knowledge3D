@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: Ev- ery year, thousands of people participate in programming _____, and these competitions require new problems to avoid simply measuring which participants can rehash or google the fastest.",
+  "created_at": "2025-09-22T16:03:32.471591Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: Ev- ery year, thousands of people participate in programming _____, and these competitions require new problems to avoid simply measuring which participants can rehash or google the fastest.",
+  "predicted": "competitions",
+  "true_answer": "competitions",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'supuração' (pt).",
+  "created_at": "2025-09-22T21:33:10.967465Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'supuração' (pt).",
+  "predicted": "(medicine) the formation of morbific matter in an abscess or a vesicle and the discharge of pus",
+  "true_answer": "(medicine) the formation of morbific matter in an abscess or a vesicle and the discharge of pus",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

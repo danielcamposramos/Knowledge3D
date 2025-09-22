@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How does context influence this statement? Dunn, “Nonshared Environment in Middle Childhood”, in J.",
+  "created_at": "2025-09-22T21:02:43.908593Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How does context influence this statement? Dunn, “Nonshared Environment in Middle Childhood”, in J.",
+  "predicted": "Dunn, “Nonshared Environment in Middle Childhood”, in J.",
+  "true_answer": "Dunn, “Nonshared Environment in Middle Childhood”, in J.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

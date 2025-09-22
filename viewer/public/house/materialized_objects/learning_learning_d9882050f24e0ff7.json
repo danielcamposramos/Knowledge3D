@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'gametófito' (pt).",
+  "created_at": "2025-09-22T21:32:57.312350Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'gametófito' (pt).",
+  "predicted": "the gamete-bearing individual or phase in the life cycle of a plant having alternation of generations",
+  "true_answer": "the gamete-bearing individual or phase in the life cycle of a plant having alternation of generations",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

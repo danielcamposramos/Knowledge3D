@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'alien' (es).",
+  "created_at": "2025-09-22T22:15:12.621329Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'alien' (es).",
+  "predicted": "alien; extraterrestrial life form",
+  "true_answer": "alien; extraterrestrial life form",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

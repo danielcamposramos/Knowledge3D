@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: A snowflake is _____ by six integers, where each integer gives the length of one of the snowflake’s arms.",
+  "created_at": "2025-09-22T18:51:16.390087Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: A snowflake is _____ by six integers, where each integer gives the length of one of the snowflake’s arms.",
+  "predicted": "represented",
+  "true_answer": "represented",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}
