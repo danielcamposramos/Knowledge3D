@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? First, freeing mem- ory adds clutter, distracting from the primary teaching purpose of the code.",
+  "created_at": "2025-09-22T21:02:58.742081Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? First, freeing mem- ory adds clutter, distracting from the primary teaching purpose of the code.",
+  "predicted": "First, freeing mem- ory adds clutter, distracting from the primary teaching purpose of the code.",
+  "true_answer": "First, freeing mem- ory adds clutter, distracting from the primary teaching purpose of the code.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

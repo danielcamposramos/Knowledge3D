@@ -23,6 +23,10 @@ class PTXOps:
     def evaluate_rpn(self, expression: str) -> float:
         """Evaluate an RPN expression on the GPU and return the first scalar result."""
         result = self._rpn_engine.evaluate(expression)
+        if isinstance(result, np.ndarray):
+            if result.size == 0:
+                raise RuntimeError("RPN engine returned empty result vector")
+            return float(result.ravel()[0])
         return float(result)
 
     def generate_shape(self, prompt: str, vertex_count: int = 32, shape_hint: Optional[int] = None) -> str:

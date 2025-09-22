@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Apply scientific reasoning to: For additional information about hash table applications and implemen- tations, see Algorithms Illuminated (Part 2): Graph Algorithms and Data Struc- tures by Tim Roughgarden (2018).",
+  "created_at": "2025-09-22T21:04:36.303168Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Apply scientific reasoning to: For additional information about hash table applications and implemen- tations, see Algorithms Illuminated (Part 2): Graph Algorithms and Data Struc- tures by Tim Roughgarden (2018).",
+  "predicted": "For additional information about hash table applications and implemen- tations, see Algorithms Illuminated (Part 2): Graph Algorithms and Data Struc- tures by Tim Roughgarden (2018).",
+  "true_answer": "For additional information about hash table applications and implemen- tations, see Algorithms Illuminated (Part 2): Graph Algorithms and Data Struc- tures by Tim Roughgarden (2018).",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

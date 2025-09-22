@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: 329 The main _____  334 Find and Union 335 Summary  .",
+  "created_at": "2025-09-22T18:50:50.783715Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: 329 The main _____  334 Find and Union 335 Summary  .",
+  "predicted": "Function",
+  "true_answer": "Function",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

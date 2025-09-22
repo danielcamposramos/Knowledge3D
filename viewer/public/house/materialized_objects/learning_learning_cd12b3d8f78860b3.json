@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: That’s our third way for two _____ to be identical: two snowflakes are called identical if they match when we move leftward through the numbers.",
+  "created_at": "2025-09-22T16:03:45.290490Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: That’s our third way for two _____ to be identical: two snowflakes are called identical if they match when we move leftward through the numbers.",
+  "predicted": "snowflakes",
+  "true_answer": "snowflakes",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

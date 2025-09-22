@@ -564,6 +564,11 @@ class ModularRPNEngine:
         op_codes, scalars, vectors = self.compile_tokens(tokens, variables)
         token_count = op_codes.shape[0]
 
+        # Ensure the original CUDA context associated with this engine is current.
+        err, = cuda.cuCtxSetCurrent(self._ctx)
+        if err != cuda.CUresult.CUDA_SUCCESS:
+            raise RuntimeError(f"cuCtxSetCurrent failed: {err}")
+
         # Allocate device buffers
         err, d_ops = cuda.cuMemAlloc(op_codes.nbytes)
         if err != cuda.CUresult.CUDA_SUCCESS:

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "What significant event happened in 245?",
+  "created_at": "2025-09-22T16:05:04.533266Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "What significant event happened in 245?",
+  "predicted": "245 8th Street, San Francisco, CA 94103 phone: 1-415-863-9900; info@nostarch.com www.nostarch.com  Library of Congress Cataloging-in-Publication Data  Names: Zingaro, Daniel, author.",
+  "true_answer": "245 8th Street, San Francisco, CA 94103 phone: 1-415-863-9900; info@nostarch.com www.nostarch.com  Library of Congress Cataloging-in-Publication Data  Names: Zingaro, Daniel, author.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

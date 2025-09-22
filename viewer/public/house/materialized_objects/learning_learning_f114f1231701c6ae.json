@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'loxodrómia' (pt).",
+  "created_at": "2025-09-22T21:33:19.811868Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'loxodrómia' (pt).",
+  "predicted": "a line on a sphere that cuts all meridians at the same angle; the path taken by a ship or plane that maintains a constant compass direction",
+  "true_answer": "a line on a sphere that cuts all meridians at the same angle; the path taken by a ship or plane that maintains a constant compass direction",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

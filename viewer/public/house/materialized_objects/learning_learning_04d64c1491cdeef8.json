@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'word姐' (zh).",
+  "created_at": "2025-09-22T22:58:23.721893Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'word姐' (zh).",
+  "predicted": "my big sister (Internet slang version of 我的姐[wo3 de5 jie3])",
+  "true_answer": "my big sister (Internet slang version of 我的姐[wo3 de5 jie3])",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

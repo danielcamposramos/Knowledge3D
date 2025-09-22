@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: 325 _____ and AreEnemies 327 Problem 3: Drawer Chore  328 The Problem 328 Equivalent Drawers .",
+  "created_at": "2025-09-22T16:03:26.143702Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: 325 _____ and AreEnemies 327 Problem 3: Drawer Chore  328 The Problem 328 Equivalent Drawers .",
+  "predicted": "AreFriends",
+  "true_answer": "AreFriends",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

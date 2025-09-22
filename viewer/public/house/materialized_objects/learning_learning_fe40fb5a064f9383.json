@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: As such, keeping the entire two-dimensional array in memory is wasteful.",
+  "created_at": "2025-09-22T21:01:25.109940Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: As such, keeping the entire two-dimensional array in memory is wasteful.",
+  "predicted": "As such, keeping the entire two-dimensional array in memory is wasteful.",
+  "true_answer": "As such, keeping the entire two-dimensional array in memory is wasteful.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '160' (en).",
+  "created_at": "2025-09-22T21:27:32.552046Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '160' (en).",
+  "predicted": "being ten more than one hundred fifty",
+  "true_answer": "being ten more than one hundred fifty",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

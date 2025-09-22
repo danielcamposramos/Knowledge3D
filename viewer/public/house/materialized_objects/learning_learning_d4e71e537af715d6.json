@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'noite' (pt).",
+  "created_at": "2025-09-22T21:32:10.625146Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'noite' (pt).",
+  "predicted": "darkness; \"it vanished into the night\"",
+  "true_answer": "darkness; \"it vanished into the night\"",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

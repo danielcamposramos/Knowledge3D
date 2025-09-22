@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'Classe Económica' (pt).",
+  "created_at": "2025-09-22T21:32:17.902966Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'Classe Económica' (pt).",
+  "predicted": "a class of accommodations on a ship or train or plane that are less expensive than first class accommodations",
+  "true_answer": "a class of accommodations on a ship or train or plane that are less expensive than first class accommodations",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: I want you to know _____ what’s going on, with no tricks up my sleeve.",
+  "created_at": "2025-09-22T18:51:01.894269Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: I want you to know _____ what’s going on, with no tricks up my sleeve.",
+  "predicted": "exactly",
+  "true_answer": "exactly",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

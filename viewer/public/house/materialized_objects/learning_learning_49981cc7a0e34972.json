@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'PA部' (zh).",
+  "created_at": "2025-09-22T22:57:33.286870Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'PA部' (zh).",
+  "predicted": "hotel staff work unit tasked with keeping the public areas of a hotel clean",
+  "true_answer": "hotel staff work unit tasked with keeping the public areas of a hotel clean",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

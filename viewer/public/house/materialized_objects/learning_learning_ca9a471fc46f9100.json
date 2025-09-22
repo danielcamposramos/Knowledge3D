@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: In particular, I’ll use pointers and dynamic memory allocation, so, no matter what your prior experience, you might like to brush up on those topics.",
+  "created_at": "2025-09-22T21:01:02.433837Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: In particular, I’ll use pointers and dynamic memory allocation, so, no matter what your prior experience, you might like to brush up on those topics.",
+  "predicted": "In particular, I’ll use pointers and dynamic memory allocation, so, no matter what your prior experience, you might like to brush up on those topics.",
+  "true_answer": "In particular, I’ll use pointers and dynamic memory allocation, so, no matter what your prior experience, you might like to brush up on those topics.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

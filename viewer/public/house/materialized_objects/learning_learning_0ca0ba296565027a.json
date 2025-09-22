@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: However, in the second problem, we go further, tweaking Dijkstra’s _____ to find not only the shortest path but also the number of shortest paths.",
+  "created_at": "2025-09-22T16:03:35.695452Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: However, in the second problem, we go further, tweaking Dijkstra’s _____ to find not only the shortest path but also the number of shortest paths.",
+  "predicted": "algorithm",
+  "true_answer": "algorithm",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

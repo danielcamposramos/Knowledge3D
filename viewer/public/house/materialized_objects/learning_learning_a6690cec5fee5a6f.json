@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? Performance is used to select students to represent South Africa at the IOI.",
+  "created_at": "2025-09-22T21:03:03.567382Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? Performance is used to select students to represent South Africa at the IOI.",
+  "predicted": "Performance is used to select students to represent South Africa at the IOI.",
+  "true_answer": "Performance is used to select students to represent South Africa at the IOI.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

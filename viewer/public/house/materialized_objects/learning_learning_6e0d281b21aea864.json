@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "What significant event happened in 220?",
+  "created_at": "2025-09-22T16:09:59.756032Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "What significant event happened in 220?",
+  "predicted": "220 The Problem 220 Sorting Every Rectangle 221 Binary Search  224 Testing Feasibility  225 Testing Feasibility More Quickly 227  x Contents in Detail",
+  "true_answer": "220 The Problem 220 Sorting Every Rectangle 221 Binary Search  224 Testing Feasibility  225 Testing Feasibility More Quickly 227  x Contents in Detail",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '14th' (en).",
+  "created_at": "2025-09-22T21:25:15.781352Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '14th' (en).",
+  "predicted": "coming next after the thirteenth in position",
+  "true_answer": "coming next after the thirteenth in position",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

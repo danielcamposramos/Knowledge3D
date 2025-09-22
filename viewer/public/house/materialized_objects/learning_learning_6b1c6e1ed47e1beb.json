@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Give a synonym for 'Espécie-tipo' (pt).",
+  "created_at": "2025-09-22T21:31:45.848875Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Give a synonym for 'Espécie-tipo' (pt).",
+  "predicted": "Espécie tipo",
+  "true_answer": "Espécie tipo",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

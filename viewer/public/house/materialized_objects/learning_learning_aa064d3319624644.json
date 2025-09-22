@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: 0 1 2 3 4 5 6 8 7  Figure 8-10: The data structure after a final SetFriends operation  The reason that I’ve not drawn the enemy links from person 2 to person 7 and from person 7 to person 1 is because we maintain enemy links only from root nodes.",
+  "created_at": "2025-09-22T21:01:35.051103Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: 0 1 2 3 4 5 6 8 7  Figure 8-10: The data structure after a final SetFriends operation  The reason that I’ve not drawn the enemy links from person 2 to person 7 and from person 7 to person 1 is because we maintain enemy links only from root nodes.",
+  "predicted": "0 1 2 3 4 5 6 8 7  Figure 8-10: The data structure after a final SetFriends operation  The reason that I’ve not drawn the enemy links from person 2 to person 7 and from person 7 to person 1 is because we maintain enemy links only from root nodes.",
+  "true_answer": "0 1 2 3 4 5 6 8 7  Figure 8-10: The data structure after a final SetFriends operation  The reason that I’ve not drawn the enemy links from person 2 to person 7 and from person 7 to person 1 is because we maintain enemy links only from root nodes.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

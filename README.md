@@ -10,6 +10,7 @@
 >
 > For the unified multimodal core (Cranium), see `docs/CRANIUM.md`.
 > For the single unified head (all modalities inside Cranium), see `docs/CRANIUM_CORE.md`.
+> For the dual-space memory and tablet workflow, see `docs/HOUSE_GALAXY_TABLET.md`.
 > For OSI‑style doors and addressing, see `docs/DOORS_AND_NETWORK.md`.
 > For vector‑native diaries, see `docs/DIARY.md`.
 > For local hygiene tasks, see `docs/MAINTENANCE.md`.
@@ -28,6 +29,7 @@ Benefits include:
 - Shared understanding through dual representations of every object.
 - Natural collaboration via resonance between human and AI energy patterns.
 - Persistent houses and galaxy memories that evolve through interaction.
+- Embodied cognition: the AI avatar lives inside the House, perceiving rooms, artifacts, and doors the way a child learns its surroundings, while the Galaxy remains an introspective “brain view” the avatar opens only during focused reasoning.
 
 ## Cognitive House Illustration
 
@@ -52,6 +54,7 @@ Reference prompt: see `docs/images/avatar_workshop_prompt.md`.
 - **Spatial Databases**: Knowledge is stored in 3D coordinates with semantic metadata, enabling geometry and meaning to coexist.
 - **Training Through Observation**: Embodied models learn by watching behavior in shared environments, similar to human developmental learning.
 - **Knowledge Gardens**: An inner greenhouse where ontology trees (roots→branches→leaves) organize crystallized knowledge with explicit parent→child edges.
+- **Memory Tablet & Dual-Space Memory**: The avatar carries a persistent tablet that bridges Galaxy (active RAM) and House (persistent disk). The tablet can stream consolidated artifacts into the Galaxy on demand, reach deprecated items in the Learning Museum, and embed a lightweight browser for legacy web content. Sleep-time compute rebuilds both the house index and PTX learning memory so the fused head consults house knowledge before language galaxies. See `docs/HOUSE_GALAXY_TABLET.md`.
 
 ## Getting Started
 
@@ -82,7 +85,7 @@ cd viewer && npm run dev
 ```
 
 ### K3D Cranium Core (Single Head)
-K3D uses one in‑process, multi‑modal core head that conditions on the unified Galaxy memory (256‑D). Navigation is a first‑class head; TTS is a first‑class head (no external wrappers). See `docs/CRANIUM_CORE.md`.
+K3D uses one in‑process, multi‑modal core head that conditions on the unified Galaxy memory (256‑D) and now streams consolidated house knowledge via the tablet index before falling back to modality galaxies. Navigation is a first‑class head; TTS is a first‑class head (no external wrappers). See `docs/CRANIUM_CORE.md` and `docs/HOUSE_GALAXY_TABLET.md` for routing details.
 
 ### Balanced Galaxy (v7)
 Build a small, modality‑balanced Galaxy (equal counts per type) to validate cross‑modal behavior under low‑dimension, high‑density embeddings.

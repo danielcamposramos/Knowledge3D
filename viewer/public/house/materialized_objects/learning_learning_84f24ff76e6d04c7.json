@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "What significant event happened in 210?",
+  "created_at": "2025-09-22T18:57:33.766481Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "What significant event happened in 210?",
+  "predicted": "210 Testing Feasibility  212 Searching for a Solution 216 Reading the Input  219 Problem 3: Living Quality  .",
+  "true_answer": "210 Testing Feasibility  212 Searching for a Solution 216 Reading the Input  219 Problem 3: Living Quality  .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '〧' (zh).",
+  "created_at": "2025-09-22T23:02:06.028078Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '〧' (zh).",
+  "predicted": "numeral 7 in the Suzhou numeral system 蘇州碼子|苏州码子[Su1 zhou1 ma3 zi5]",
+  "true_answer": "numeral 7 in the Suzhou numeral system 蘇州碼子|苏州码子[Su1 zhou1 ma3 zi5]",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

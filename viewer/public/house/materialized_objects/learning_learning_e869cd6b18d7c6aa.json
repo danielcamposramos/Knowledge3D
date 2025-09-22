@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "What significant event happened in 197?",
+  "created_at": "2025-09-22T16:09:58.872582Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "What significant event happened in 197?",
+  "predicted": "197 The Problem 198 A New Flavor of Tree Problem .",
+  "true_answer": "197 The Problem 198 A New Flavor of Tree Problem .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

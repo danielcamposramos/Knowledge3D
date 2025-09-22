@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? While there’s no silver-bullet approach that solves every com- putational problem efficiently, there are enduringly useful advanced tools and strategies: hash tables, search trees, recursion, memoization, dynamic",
+  "created_at": "2025-09-22T21:02:52.227016Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? While there’s no silver-bullet approach that solves every com- putational problem efficiently, there are enduringly useful advanced tools and strategies: hash tables, search trees, recursion, memoization, dynamic",
+  "predicted": "While there’s no silver-bullet approach that solves every com- putational problem efficiently, there are enduringly useful advanced tools and strategies: hash tables, search trees, recursion, memoization, dynamic",
+  "true_answer": "While there’s no silver-bullet approach that solves every com- putational problem efficiently, there are enduringly useful advanced tools and strategies: hash tables, search trees, recursion, memoization, dynamic",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: The reason is that we al- ways have the option of buying one apple, and we can do that as many times as we like.",
+  "created_at": "2025-09-22T21:01:24.226540Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: The reason is that we al- ways have the option of buying one apple, and we can do that as many times as we like.",
+  "predicted": "The reason is that we al- ways have the option of buying one apple, and we can do that as many times as we like.",
+  "true_answer": "The reason is that we al- ways have the option of buying one apple, and we can do that as many times as we like.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}
