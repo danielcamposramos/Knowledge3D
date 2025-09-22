@@ -804,10 +804,12 @@ class MeaningClusterTrainer:
 
         self.meaning_clusters = self.build_house_curriculum()
         # Initialize fused head once
+        if AdaptedFusedHead is None:
+            raise RuntimeError("AdaptedFusedHead import failed — Phase18 trainer requires fused head active.")
         try:
-            self.fused_head = AdaptedFusedHead() if 'AdaptedFusedHead' in globals() and AdaptedFusedHead is not None else None
-        except Exception:
-            self.fused_head = None
+            self.fused_head = AdaptedFusedHead()
+        except Exception as exc:
+            raise RuntimeError("Failed to initialise AdaptedFusedHead for Phase18 trainer.") from exc
 
         self._null_responses_compact = {
             "", "unknown", "idontknow", "idk", "notsure", "unsure", "noidea",
@@ -1105,6 +1107,14 @@ class MeaningClusterTrainer:
             explanation_text = str(teacher_feedback.get('suggested_revision') or teacher_feedback.get('explanation', '')).strip()
         if not explanation_text:
             explanation_text = "Teacher explanation unavailable."
+        self._log_learning_memory_entry(
+            cluster_name=cluster_name,
+            query=query,
+            predicted=predicted,
+            true_answer=true_answer,
+            score=score,
+            teacher_feedback=teacher_feedback,
+        )
         try:
             teacher_embedding = self.generate_text_embedding(explanation_text)
         except Exception:
@@ -1120,6 +1130,51 @@ class MeaningClusterTrainer:
             )
         except Exception as exc:
             print(f"⚠️  Failed to mutate galaxy star for {cluster_name}: {exc}")
+
+    def _log_learning_memory_entry(
+        self,
+        *,
+        cluster_name: str,
+        query: str,
+        predicted: str,
+        true_answer: str,
+        score: float,
+        teacher_feedback: Dict[str, Any],
+    ) -> None:
+        fused_head = getattr(self, "fused_head", None)
+        if fused_head is None:
+            raise RuntimeError("Fused head unavailable during learning-memory logging (Phase18).")
+        cluster = self.meaning_clusters.get(cluster_name, {})
+        base_tags: List[str] = []
+        zone = cluster.get('zone')
+        if cluster_name:
+            base_tags.append(cluster_name)
+        for tag in cluster.get('tags', []) if isinstance(cluster.get('tags'), list) else []:
+            if tag and tag not in base_tags:
+                base_tags.append(tag)
+        if zone and zone not in base_tags:
+            base_tags.append(zone)
+        metadata = {
+            'cluster': cluster_name,
+            'zone': zone,
+            'teacher_feedback': teacher_feedback,
+        }
+        language = cluster.get('language') if isinstance(cluster, dict) else None
+        if not hasattr(fused_head, 'append_learning_memory'):
+            raise RuntimeError("AdaptedFusedHead missing append_learning_memory API.")
+        result = fused_head.append_learning_memory(
+            prompt=query,
+            true_answer=true_answer,
+            predicted=predicted,
+            score=float(score),
+            quick_feedback=teacher_feedback,
+            deep_feedback={},
+            tags=base_tags,
+            language=str(language).lower() if language else None,
+            metadata=metadata,
+        )
+        if result is None:
+            raise RuntimeError(f"Fused head failed to persist learning memory for cluster '{cluster_name}'.")
 
     def ensure_star_initialized(self, cluster_name: str, cluster: Dict[str, Any]) -> None:
         path = self._resolve_star_path(cluster_name)

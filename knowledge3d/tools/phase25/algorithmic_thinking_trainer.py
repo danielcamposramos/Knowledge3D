@@ -431,12 +431,10 @@ class AlgorithmicThinkingTrainer:
             self.learning_memory_path.parent.mkdir(parents=True, exist_ok=True)
             language_hint = self._parse_language_hint(prompt)
             record_id = f"learning_{hashlib.sha256((timestamp + prompt).encode('utf-8')).hexdigest()[:16]}"
-            fused_head = None
             try:
-                fused_head = getattr(self.trainer, "fused_head", None)
-            except Exception:
-                fused_head = None
-
+                fused_head = getattr(self.trainer, "fused_head")
+            except AttributeError as exc:
+                raise RuntimeError("Phase25 trainer requires fused head instance; missing on Phase18 trainer.") from exc
             concepts = self.extract_concepts(prompt)
             base_tags = list(star.get("tags", [])) if isinstance(star.get("tags"), list) else []
             merged_tags: List[str] = []
@@ -449,43 +447,23 @@ class AlgorithmicThinkingTrainer:
                 "concepts": concepts,
                 "trainer_record_id": record_id,
             }
-            appended = False
-            if fused_head and hasattr(fused_head, "append_learning_memory"):
-                try:
-                    fused_head.append_learning_memory(
-                        prompt=prompt,
-                        true_answer=true_answer,
-                        predicted=predicted,
-                        score=float(score),
-                        quick_feedback=quick_feedback,
-                        deep_feedback=deep_feedback,
-                        tags=merged_tags,
-                        language=language_hint or star.get("language"),
-                        metadata=metadata,
-                    )
-                    appended = True
-                except Exception as exc:
-                    print(f"⚠️  Fused head learning append failed; using file fallback: {exc}")
-
-            if not appended:
-                record = {
-                    "id": record_id,
-                    "timestamp": timestamp,
-                    "prompt": prompt,
-                    "true_answer": true_answer,
-                    "predicted": predicted,
-                    "score": float(score),
-                    "quick_feedback": quick_feedback,
-                    "deep_feedback": deep_feedback,
-                    "language": language_hint or star.get("language"),
-                    "star_id": star.get("id"),
-                    "tags": merged_tags,
-                    "concepts": concepts,
-                }
-                with self.learning_memory_path.open("a", encoding="utf-8") as handle:
-                    handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+            if not hasattr(fused_head, "append_learning_memory"):
+                raise RuntimeError("AdaptedFusedHead missing append_learning_memory during Phase25 logging.")
+            result = fused_head.append_learning_memory(
+                prompt=prompt,
+                true_answer=true_answer,
+                predicted=predicted,
+                score=float(score),
+                quick_feedback=quick_feedback,
+                deep_feedback=deep_feedback,
+                tags=merged_tags,
+                language=language_hint or star.get("language"),
+                metadata=metadata,
+            )
+            if result is None:
+                raise RuntimeError("Fused head failed to persist Phase25 learning memory entry.")
         except Exception as exc:
-            print(f"⚠️  Failed to log learning memory: {exc}")
+            raise RuntimeError("Phase25 learning memory logging failed; resolve fused head pipeline.") from exc
 
     def _parse_language_hint(self, query: str) -> Optional[str]:
         if not query:
