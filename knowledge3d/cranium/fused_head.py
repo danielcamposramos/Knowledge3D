@@ -435,6 +435,7 @@ class AdaptedFusedHead:
         deep_feedback: Optional[Dict[str, object]] = None,
         tags: Optional[List[str]] = None,
         language: Optional[str] = None,
+        metadata: Optional[Dict[str, object]] = None,
     ) -> Optional[Path]:
         timestamp = datetime.utcnow().isoformat() + "Z"
         record_id = f"learning_{hashlib.sha256((timestamp + prompt).encode('utf-8')).hexdigest()[:16]}"
@@ -450,6 +451,14 @@ class AdaptedFusedHead:
             "language": (language or "").lower() or None,
             "tags": tags or [],
         }
+        if metadata:
+            for key, value in metadata.items():
+                if key in record and isinstance(record[key], (dict, list)) and isinstance(value, (dict, list)):
+                    record[key] = value
+                elif key not in record:
+                    record[key] = value
+                else:
+                    record[key] = value
         try:
             self.learning_memory_jsonl.parent.mkdir(parents=True, exist_ok=True)
             with self.learning_memory_jsonl.open("a", encoding="utf-8") as handle:

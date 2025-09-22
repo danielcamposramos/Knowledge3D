@@ -431,22 +431,59 @@ class AlgorithmicThinkingTrainer:
             self.learning_memory_path.parent.mkdir(parents=True, exist_ok=True)
             language_hint = self._parse_language_hint(prompt)
             record_id = f"learning_{hashlib.sha256((timestamp + prompt).encode('utf-8')).hexdigest()[:16]}"
-            record = {
-                "id": record_id,
-                "timestamp": timestamp,
-                "prompt": prompt,
-                "true_answer": true_answer,
-                "predicted": predicted,
-                "score": float(score),
-                "quick_feedback": quick_feedback,
-                "deep_feedback": deep_feedback,
-                "language": language_hint or star.get("language"),
+            fused_head = None
+            try:
+                fused_head = getattr(self.trainer, "fused_head", None)
+            except Exception:
+                fused_head = None
+
+            concepts = self.extract_concepts(prompt)
+            base_tags = list(star.get("tags", [])) if isinstance(star.get("tags"), list) else []
+            merged_tags: List[str] = []
+            for value in base_tags + concepts:
+                if value and value not in merged_tags:
+                    merged_tags.append(value)
+
+            metadata = {
                 "star_id": star.get("id"),
-                "tags": star.get("tags", []),
-                "concepts": self.extract_concepts(prompt),
+                "concepts": concepts,
+                "trainer_record_id": record_id,
             }
-            with self.learning_memory_path.open("a", encoding="utf-8") as handle:
-                handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+            appended = False
+            if fused_head and hasattr(fused_head, "append_learning_memory"):
+                try:
+                    fused_head.append_learning_memory(
+                        prompt=prompt,
+                        true_answer=true_answer,
+                        predicted=predicted,
+                        score=float(score),
+                        quick_feedback=quick_feedback,
+                        deep_feedback=deep_feedback,
+                        tags=merged_tags,
+                        language=language_hint or star.get("language"),
+                        metadata=metadata,
+                    )
+                    appended = True
+                except Exception as exc:
+                    print(f"⚠️  Fused head learning append failed; using file fallback: {exc}")
+
+            if not appended:
+                record = {
+                    "id": record_id,
+                    "timestamp": timestamp,
+                    "prompt": prompt,
+                    "true_answer": true_answer,
+                    "predicted": predicted,
+                    "score": float(score),
+                    "quick_feedback": quick_feedback,
+                    "deep_feedback": deep_feedback,
+                    "language": language_hint or star.get("language"),
+                    "star_id": star.get("id"),
+                    "tags": merged_tags,
+                    "concepts": concepts,
+                }
+                with self.learning_memory_path.open("a", encoding="utf-8") as handle:
+                    handle.write(json.dumps(record, ensure_ascii=False) + "\n")
         except Exception as exc:
             print(f"⚠️  Failed to log learning memory: {exc}")
 
