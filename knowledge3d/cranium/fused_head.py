@@ -4,6 +4,7 @@ import math
 import re
 import json
 import hashlib
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -48,6 +49,9 @@ class AdaptedFusedHead:
         self._rays = ["modality_ray", "entropy_ray", "honesty_ray"]
         self._language_catalog = self._discover_language_galaxies()
         self._language_metadata_cache: Dict[Path, List[Dict[str, object]]] = {}
+        self.learning_memory_jsonl = Path("viewer/public/galaxy/working/learning_memory.jsonl")
+        self._learning_memory_entry = self._discover_learning_memory()
+        self._learning_metadata_cache: Optional[List[Dict[str, object]]] = None
 
     # ------------------------------------------------------------------
     def predict(self, query: str, fused_embedding: List[float]) -> str:
@@ -73,6 +77,10 @@ class AdaptedFusedHead:
         language_answer = self._attempt_language_lookup(query)
         if language_answer is not None:
             return language_answer
+
+        learning_answer = self._attempt_learning_memory_lookup(query, fused_embedding)
+        if learning_answer is not None:
+            return learning_answer
 
         x = torch.tensor(fused_embedding, dtype=torch.float32, device=self.device)
         if x.dim() == 1:
@@ -302,3 +310,156 @@ class AdaptedFusedHead:
                     break
             seed = hashlib.sha256(seed).digest()
         return np.asarray(values[:dim], dtype=np.float32)
+
+    # ------------------------------------------------------------------
+    # Learning memory integration
+    # ------------------------------------------------------------------
+    def _discover_learning_memory(self) -> Optional[Dict[str, object]]:
+        base = Path("viewer/public/galaxy")
+        glb_path = base / "learning_memory.glb"
+        manifest_path = base / "learning_memory.json"
+        if not glb_path.exists():
+            return None
+        embedding_dim = 512
+        if manifest_path.exists():
+            try:
+                meta = json.loads(manifest_path.read_text(encoding="utf-8"))
+                embedding_dim = int(meta.get("embedding_dim", embedding_dim))
+            except Exception:
+                pass
+        return {
+            "glb": glb_path,
+            "manifest": manifest_path,
+            "embedding_dim": embedding_dim,
+        }
+
+    def _load_learning_metadata(self) -> List[Dict[str, object]]:
+        if self._learning_metadata_cache is not None:
+            return self._learning_metadata_cache
+        entry = self._learning_memory_entry
+        if entry is None:
+            self._learning_metadata_cache = []
+            return self._learning_metadata_cache
+        glb_path: Path = entry["glb"]
+        try:
+            gltf = GLTF2().load(glb_path.as_posix())
+            meta = (
+                gltf.meshes[0]
+                .primitives[0]
+                .extras
+                .get("k3d", {})
+                .get("metadata", [])
+            )
+            if isinstance(meta, list):
+                self._learning_metadata_cache = meta
+                return meta
+        except Exception:
+            pass
+        self._learning_metadata_cache = []
+        return self._learning_metadata_cache
+
+    def _attempt_learning_memory_lookup(self, query: str, fused_embedding: List[float]) -> Optional[str]:
+        entry = self._learning_memory_entry
+        if entry is None or not Path(entry["glb"]).exists():
+            entry = self._discover_learning_memory()
+            self._learning_memory_entry = entry
+            self._learning_metadata_cache = None
+        if entry is None or not query:
+            return None
+        glb_path: Path = entry["glb"]
+        embedding_dim = int(entry.get("embedding_dim", 512))
+        query_vec = self._learning_query_vector(query, fused_embedding, embedding_dim)
+        scene_loaded = False
+        try:
+            PTX_OPS.geometry_load_scene(glb_path.as_posix())
+            scene_loaded = True
+            top_idx, scores = PTX_OPS.embedding_cosine_topk(query_vec, 5)
+        except Exception:
+            return None
+        finally:
+            if scene_loaded:
+                try:
+                    PTX_OPS.geometry_release()
+                except Exception:
+                    pass
+        if top_idx.size == 0:
+            return None
+        metadata = self._load_learning_metadata()
+        best_answer = None
+        best_score = -1.0
+        for idx, score in zip(top_idx.tolist(), scores.tolist()):
+            if idx < 0 or idx >= len(metadata):
+                continue
+            if score < 0.62:
+                continue
+            meta = metadata[idx] if isinstance(metadata[idx], dict) else {}
+            payload = meta.get("payload", {}) if isinstance(meta, dict) else {}
+            answer = payload.get("true_answer") or payload.get("predicted")
+            if not answer:
+                continue
+            effective = float(score)
+            prompt = payload.get("prompt")
+            if isinstance(prompt, str) and prompt.strip().lower() == query.strip().lower():
+                effective += 0.2
+            if effective > best_score:
+                best_score = effective
+                best_answer = str(answer)
+        return best_answer
+
+    def _learning_query_vector(
+        self, query: str, fused_embedding: List[float], dim: int
+    ) -> np.ndarray:
+        hashed = self._hash_embedding(f"learning:{query.lower()}", dim)
+        fused = np.asarray(fused_embedding, dtype=np.float32) if fused_embedding else np.asarray([], dtype=np.float32)
+        if fused.size:
+            if fused.size < dim:
+                fused = np.pad(fused, (0, dim - fused.size))
+            elif fused.size > dim:
+                fused = fused[:dim]
+            combined = 0.6 * hashed + 0.4 * fused
+        else:
+            combined = hashed
+        norm = np.linalg.norm(combined)
+        if norm > 0:
+            combined = combined / norm
+        return combined.astype(np.float32)
+
+    def append_learning_memory(
+        self,
+        *,
+        prompt: str,
+        true_answer: str,
+        predicted: str,
+        score: float,
+        quick_feedback: Optional[Dict[str, object]] = None,
+        deep_feedback: Optional[Dict[str, object]] = None,
+        tags: Optional[List[str]] = None,
+        language: Optional[str] = None,
+    ) -> Optional[Path]:
+        timestamp = datetime.utcnow().isoformat() + "Z"
+        record_id = f"learning_{hashlib.sha256((timestamp + prompt).encode('utf-8')).hexdigest()[:16]}"
+        record = {
+            "id": record_id,
+            "timestamp": timestamp,
+            "prompt": prompt,
+            "true_answer": true_answer,
+            "predicted": predicted,
+            "score": float(score),
+            "quick_feedback": quick_feedback or {},
+            "deep_feedback": deep_feedback or {},
+            "language": (language or "").lower() or None,
+            "tags": tags or [],
+        }
+        try:
+            self.learning_memory_jsonl.parent.mkdir(parents=True, exist_ok=True)
+            with self.learning_memory_jsonl.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+            self.reload_learning_memory()
+            return self.learning_memory_jsonl
+        except Exception:
+            return None
+
+    def reload_learning_memory(self) -> bool:
+        self._learning_memory_entry = self._discover_learning_memory()
+        self._learning_metadata_cache = None
+        return self._learning_memory_entry is not None

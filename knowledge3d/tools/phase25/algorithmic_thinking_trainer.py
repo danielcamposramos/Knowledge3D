@@ -17,6 +17,7 @@ import shutil
 import sys
 from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import numpy as np  # type: ignore
@@ -288,6 +289,10 @@ class AlgorithmicThinkingTrainer:
                 f"sleep cycles executed: {self._sleep_cycles_completed}."
             )
         finally:
+            try:
+                self._rebuild_learning_memory_glb()
+            except Exception as exc:
+                print(f"⚠️  Learning memory rebuild skipped: {exc}")
             sys.stdout = saved_stdout
             sys.stderr = saved_stderr
             log_file.flush()
@@ -461,6 +466,23 @@ class AlgorithmicThinkingTrainer:
             if match:
                 return match.group(1).strip().lower()
         return None
+
+    def _rebuild_learning_memory_glb(self) -> None:
+        if not self.learning_memory_path.exists():
+            return
+        try:
+            from knowledge3d.tools.learning_memory_builder import build_learning_memory  # type: ignore
+        except Exception as exc:  # pragma: no cover
+            raise RuntimeError(f"learning_memory_builder unavailable: {exc}")
+        args = SimpleNamespace(
+            input=[str(self.learning_memory_path)],
+            out=str(Path("viewer/public/galaxy/learning_memory.glb")),
+            manifest=str(Path("viewer/public/galaxy/learning_memory.json")),
+            limit=None,
+            label="Learning Memory Galaxy",
+        )
+        build_learning_memory(args)
+        print("💾 Learning memory galaxy refreshed (trainer).")
 
     def _load_star_source_text(self, star: Dict[str, Any]) -> str:
         cached = str(star.get("source_text", ""))
