@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import json
 import time
+import hashlib
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Set
 from datetime import datetime
+from types import SimpleNamespace
 
 from knowledge3d.cranium.ptx import PTX_OPS
 
@@ -67,6 +69,10 @@ class SleepTimeCompute:
         self.galaxy: Optional[List[Dict[str, Any]]] = None
         self._house_model: Optional[_Model] = None
         self._ptx_scene_loaded: bool = False
+        self.learning_memory_path = Path("viewer/public/galaxy/working/learning_memory.jsonl")
+        self.learning_memory_glb = Path("viewer/public/galaxy/learning_memory.glb")
+        self.learning_memory_manifest = Path("viewer/public/galaxy/learning_memory.json")
+        self._learning_processed_path = self.material_dir / "learning_memory_processed.txt"
 
     def load_house(self) -> Dict[str, Any]:
         """Load House GLB — extract zones, rays, embeddings (best-effort)."""
@@ -183,6 +189,84 @@ class SleepTimeCompute:
         }
         return self._write_json(tree_meta_path, tree_data)
 
+    def materialize_learning_insight(self, record: Dict[str, Any]) -> Optional[str]:
+        insight_id = record.get("id") or f"learning_{int(time.time())}"
+        file_path = self.material_dir / f"learning_{insight_id}.json"
+        if file_path.exists():
+            return None
+        payload = {
+            'type': 'learning_insight',
+            'title': record.get("prompt", "Learning Insight"),
+            'created_at': record.get("timestamp") or datetime.now().isoformat(),
+            'zone_placement': 'Zone 8 (Learning Museum)',
+            'score': record.get("score"),
+            'prompt': record.get("prompt"),
+            'predicted': record.get("predicted"),
+            'true_answer': record.get("true_answer"),
+            'quick_feedback': record.get("quick_feedback"),
+            'deep_feedback': record.get("deep_feedback"),
+        }
+        return self._write_json(file_path, payload)
+
+    def _process_learning_memory(self, adjustments: Dict[str, Any]) -> None:
+        if not self.learning_memory_path.exists():
+            return
+        try:
+            processed: Set[str] = set()
+            if self._learning_processed_path.exists():
+                processed = {line.strip() for line in self._learning_processed_path.read_text(encoding='utf-8').splitlines() if line.strip()}
+
+            new_processed: Set[str] = set()
+            records: List[Dict[str, Any]] = []
+            with self.learning_memory_path.open("r", encoding="utf-8") as handle:
+                for line in handle:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        data = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    record_id = str(data.get("id") or hashlib.sha256(line.encode("utf-8")).hexdigest()[:16])
+                    data["id"] = record_id
+                    records.append(data)
+                    if record_id in processed:
+                        continue
+                    insight_path = self.materialize_learning_insight(data)
+                    if insight_path:
+                        adjustments['materialized_objects'].append(
+                            {
+                                'type': 'learning_insight',
+                                'path': insight_path,
+                                'zone': 'Zone 8 (Learning Museum)',
+                                'learning_id': record_id,
+                            }
+                        )
+                    new_processed.add(record_id)
+
+            if new_processed:
+                processed.update(new_processed)
+                with self._learning_processed_path.open("w", encoding="utf-8") as handle:
+                    handle.write("\n".join(sorted(processed)))
+
+            if records:
+                try:
+                    from knowledge3d.tools.learning_memory_builder import build_learning_memory  # type: ignore
+
+                    args = SimpleNamespace(
+                        input=[str(self.learning_memory_path)],
+                        out=str(self.learning_memory_glb),
+                        manifest=str(self.learning_memory_manifest),
+                        limit=None,
+                        label="Learning Memory Galaxy",
+                    )
+                    build_learning_memory(args)
+                    print("💾 Learning memory GLB rebuilt.")
+                except Exception as exc:
+                    print(f"⚠️  Failed to rebuild learning memory GLB: {exc}")
+        except Exception as exc:
+            print(f"⚠️  Learning memory processing skipped: {exc}")
+
     def compute_nightly_adjustments(self) -> Dict[str, Any]:
         """Adjust House zones, prune rays, and materialize knowledge into permanent objects."""
         self.house = self.load_house()
@@ -260,6 +344,7 @@ class SleepTimeCompute:
                 p = self.materialize_fractal_tree(s)
                 if p:
                     adjustments['materialized_objects'].append({'type': 'fractal_tree', 'path': p, 'zone': 'Zone 5 (Knowledge Garden)', 'star_id': s.get('id')})
+        self._process_learning_memory(adjustments)
         # Prepare Galaxy working dir for pre‑consolidation drafts
         working_dir = Path('viewer/public/galaxy/working')
         working_dir.mkdir(parents=True, exist_ok=True)
