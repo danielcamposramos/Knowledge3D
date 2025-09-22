@@ -119,12 +119,13 @@ class AlgorithmicThinkingTrainer:
         current_env = os.environ.get("CONDA_DEFAULT_ENV", "")
         if conda_path is None:
             raise RuntimeError("Conda executable not found; activate the k3d-cranium environment before training.")
-        if current_env != "k3d-cranium":
+        allowed_envs = {"k3d-cranium", "k3d-ptx"}
+        if current_env not in allowed_envs:
             label = current_env or "unknown"
             raise RuntimeError(
                 f"Conda env '{label}' active — run 'conda activate k3d-cranium' before training."
             )
-        print("✅ Conda env k3d-cranium detected.")
+        print(f"✅ Conda env {current_env or 'k3d-cranium'} detected.")
 
     def train_algorithmic_thinking(self) -> None:
         """Execute algorithmic thinking drills across curated stars with RLWHF teachers."""

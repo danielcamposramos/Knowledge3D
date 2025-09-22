@@ -145,3 +145,50 @@ extern "C" __global__ void normalize_embedding(
         embeddings[base + idx] /= norm;
     }
 }
+
+extern "C" __global__ void cosine_similarity(
+    const float* __restrict__ embeddings,
+    const float* __restrict__ query,
+    float query_norm,
+    unsigned int embedding_dim,
+    unsigned int node_count,
+    float* __restrict__ output
+) {
+    unsigned int node = blockIdx.x;
+    if (node >= node_count) return;
+
+    unsigned int tid = threadIdx.x;
+    unsigned int stride = blockDim.x;
+    unsigned int base = node * embedding_dim;
+
+    extern __shared__ float shared[];
+    float* dot_shared = shared;
+    float* norm_shared = shared + blockDim.x;
+
+    float dot = 0.0f;
+    float norm = 0.0f;
+    for (unsigned int idx = tid; idx < embedding_dim; idx += stride) {
+        float val = embeddings[base + idx];
+        dot += val * query[idx];
+        norm += val * val;
+    }
+    dot_shared[tid] = dot;
+    norm_shared[tid] = norm;
+    __syncthreads();
+
+    for (unsigned int step = blockDim.x >> 1; step > 0; step >>= 1) {
+        if (tid < step) {
+            dot_shared[tid] += dot_shared[tid + step];
+            norm_shared[tid] += norm_shared[tid + step];
+        }
+        __syncthreads();
+    }
+
+    if (tid == 0) {
+        float denom = sqrtf(norm_shared[0]) * query_norm;
+        if (denom < 1e-8f) {
+            denom = 1e-8f;
+        }
+        output[node] = dot_shared[0] / denom;
+    }
+}

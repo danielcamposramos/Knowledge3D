@@ -300,6 +300,67 @@ def normalize_node_embedding(
     galaxy_memory.embeddings_dirty = True
 
 
+def compute_cosine_similarity(
+    galaxy_memory: GalaxyGPUMemory,
+    query_vector: np.ndarray,
+) -> np.ndarray:
+    if galaxy_memory.embeddings.ptr == 0 or galaxy_memory.embeddings.size == 0:
+        raise ValueError("embedding buffer is empty")
+    if not galaxy_memory.embedding_shape or len(galaxy_memory.embedding_shape) != 2:
+        raise ValueError("embedding shape metadata unavailable")
+    node_count, embedding_dim = galaxy_memory.embedding_shape
+    if node_count == 0:
+        return np.array([], dtype=np.float32)
+
+    query = np.asarray(query_vector, dtype=np.float32).reshape(-1)
+    if query.size != embedding_dim:
+        raise ValueError("query dimensionality mismatch")
+
+    query_norm = float(np.linalg.norm(query))
+    if query_norm < 1e-8:
+        return np.zeros(node_count, dtype=np.float32)
+
+    query_dev = _alloc_upload(query)
+    out_dev = _alloc_device(node_count * np.dtype(np.float32).itemsize)
+
+    threads = min(256, embedding_dim)
+    shared_mem = threads * 2 * np.dtype(np.float32).itemsize
+    params = (
+        galaxy_memory.embeddings.ptr,
+        query_dev.ptr,
+        np.float32(query_norm),
+        np.uint32(embedding_dim),
+        np.uint32(node_count),
+        out_dev.ptr,
+    )
+    _launch_kernel(
+        _get_kernel("cosine_similarity"),
+        node_count,
+        threads,
+        params,
+        shared_mem=shared_mem,
+    )
+
+    sims = _download_device(out_dev, np.float32)
+    _free_device(query_dev)
+    _free_device(out_dev)
+    return sims
+
+
+def cosine_topk(
+    galaxy_memory: GalaxyGPUMemory,
+    query_vector: np.ndarray,
+    k: int,
+) -> Tuple[np.ndarray, np.ndarray]:
+    sims = compute_cosine_similarity(galaxy_memory, query_vector)
+    if k <= 0 or sims.size == 0:
+        return np.array([], dtype=np.int32), np.array([], dtype=np.float32)
+    k = min(k, sims.size)
+    idx = np.argpartition(-sims, k - 1)[:k]
+    idx = idx[np.argsort(-sims[idx])]
+    return idx.astype(np.int32), sims[idx]
+
+
 def _alloc_upload(array: np.ndarray) -> DeviceBuffer:
     size = int(array.nbytes)
     if size == 0:
@@ -314,9 +375,29 @@ def _alloc_upload(array: np.ndarray) -> DeviceBuffer:
     return DeviceBuffer(ptr=int(dptr), size=size)
 
 
+def _alloc_device(size: int) -> DeviceBuffer:
+    if size <= 0:
+        return DeviceBuffer(ptr=0, size=0)
+    err, dptr = cuda.cuMemAlloc(size)
+    if err != cuda.CUresult.CUDA_SUCCESS:
+        raise RuntimeError(f"cuMemAlloc failed: {err}")
+    return DeviceBuffer(ptr=int(dptr), size=size)
+
+
 def _free_device(buffer: DeviceBuffer) -> None:
     if buffer.ptr:
         cuda.cuMemFree(buffer.ptr)
+
+
+def _download_device(buffer: DeviceBuffer, dtype: np.dtype) -> np.ndarray:
+    dtype = np.dtype(dtype)
+    if buffer.ptr == 0 or buffer.size == 0:
+        return np.array([], dtype=dtype)
+    host = np.empty(buffer.size // dtype.itemsize, dtype=dtype)
+    err, = cuda.cuMemcpyDtoH(host.ctypes.data, buffer.ptr, buffer.size)
+    if err != cuda.CUresult.CUDA_SUCCESS:
+        raise RuntimeError(f"cuMemcpyDtoH failed: {err}")
+    return host
 
 
 def _launch_kernel(func: int, blocks: int, threads: int, params: Tuple, *, shared_mem: int = 0) -> None:
@@ -480,6 +561,14 @@ class PTXGeometrySession:
     def normalize_embedding(self, node_index: int) -> None:
         galaxy = self._require_memory()
         normalize_node_embedding(galaxy, node_index)
+
+    def cosine_similarity(self, query_vector: np.ndarray) -> np.ndarray:
+        galaxy = self._require_memory()
+        return compute_cosine_similarity(galaxy, query_vector)
+
+    def cosine_topk(self, query_vector: np.ndarray, k: int) -> Tuple[np.ndarray, np.ndarray]:
+        galaxy = self._require_memory()
+        return cosine_topk(galaxy, query_vector, k)
 
     # ------------------------------------------------------------------
     def save(
