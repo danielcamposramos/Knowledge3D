@@ -1,6 +1,6 @@
 {
   "test_id": "phase20_sample",
-  "timestamp": "2025-09-17T16:27:38.025525",
+  "timestamp": "2025-09-22T12:59:24.096492",
   "questions": [
     {
       "query": "Describe the Knowledge Garden entry arch to someone listening.",
@@ -140,64 +140,64 @@
   "avg_honesty": -0.4,
   "modality_contributions": [
     {
-      "text": 0.13057961359093936,
+      "text": 1.0,
       "image": 0.0,
       "audio": 0.0,
-      "shape": 0.8694203864090606
+      "shape": 0.0
     },
     {
-      "text": 0.09371297847134279,
+      "text": 1.0,
       "image": 0.0,
       "audio": 0.0,
-      "shape": 0.9062870215286571
+      "shape": 0.0
     },
     {
-      "text": 0.17012680956121648,
+      "text": 1.0,
       "image": 0.0,
       "audio": 0.0,
-      "shape": 0.8298731904387835
+      "shape": 0.0
     },
     {
-      "text": 0.1663221975874638,
+      "text": 1.0,
       "image": 0.0,
       "audio": 0.0,
-      "shape": 0.8336778024125362
+      "shape": 0.0
     },
     {
-      "text": 0.15178742114318486,
+      "text": 1.0,
       "image": 0.0,
       "audio": 0.0,
-      "shape": 0.8482125788568152
+      "shape": 0.0
     },
     {
-      "text": 0.18673705047838998,
+      "text": 1.0,
       "image": 0.0,
       "audio": 0.0,
-      "shape": 0.81326294952161
+      "shape": 0.0
     },
     {
-      "text": 0.1362663032898579,
+      "text": 1.0,
       "image": 0.0,
       "audio": 0.0,
-      "shape": 0.8637336967101421
+      "shape": 0.0
     },
     {
-      "text": 0.13017055479317782,
+      "text": 1.0,
       "image": 0.0,
       "audio": 0.0,
-      "shape": 0.8698294452068223
+      "shape": 0.0
     },
     {
-      "text": 0.20160506711771692,
+      "text": 1.0,
       "image": 0.0,
       "audio": 0.0,
-      "shape": 0.798394932882283
+      "shape": 0.0
     },
     {
-      "text": 0.17561591914087177,
+      "text": 1.0,
       "image": 0.0,
       "audio": 0.0,
-      "shape": 0.8243840808591283
+      "shape": 0.0
     }
   ],
   "status": "complete"
