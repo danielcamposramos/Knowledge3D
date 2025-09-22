@@ -51,3 +51,9 @@ Notes
 -----
 - Avoid CPU fallbacks; if CUDA is unavailable, abort and fix env.
 - Keep disk usage in check: prune obsolete subsets after GLBs are built; stage raw media to `/K3D/K3D_llama_cpp/datasets`.
+# Learning Memory Integration
+- [ ] L1. Log teacher tags/feedback into `viewer/public/galaxy/working/learning_memory.jsonl` during training.
+- [ ] L2. Build `learning_memory_builder` to emit PTX-ready GLB + manifest.
+- [ ] L3. Update fused head to load `learning_memory.glb`, consult via PTX cosine before neural fallback, and append new memories.
+- [ ] L4. Extend SleepTimeCompute/trainer to rebuild/reload learning GLB each session.
+- [ ] L5. Add regression check ensuring incremental append/reload works without restart.
