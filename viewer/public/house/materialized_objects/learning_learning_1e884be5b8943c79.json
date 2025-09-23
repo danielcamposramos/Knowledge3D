@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "What significant event happened in 2007?",
+  "created_at": "2025-09-23T06:52:21.667893Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "What significant event happened in 2007?",
+  "predicted": "Notes  Unique Snowflakes is originally from the 2007 Canadian Computing Olympiad.",
+  "true_answer": "Notes  Unique Snowflakes is originally from the 2007 Canadian Computing Olympiad.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'Marsúpio' (pt).",
+  "created_at": "2025-09-23T03:23:01.871470Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'Marsúpio' (pt).",
+  "predicted": "a small or medium size container for holding or carrying things",
+  "true_answer": "a small or medium size container for holding or carrying things",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

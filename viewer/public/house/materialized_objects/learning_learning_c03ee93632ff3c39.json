@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'MC' (zh).",
+  "created_at": "2025-09-23T13:49:45.403535Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'MC' (zh).",
+  "predicted": "(Tw) (coll.) menstruation (from \"menstrual cycle\")",
+  "true_answer": "(Tw) (coll.) menstruation (from \"menstrual cycle\")",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

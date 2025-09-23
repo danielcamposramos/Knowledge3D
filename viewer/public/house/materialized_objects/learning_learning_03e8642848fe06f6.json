@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Compute integral of x^2 dx in RPN",
+  "created_at": "2025-09-23T00:18:24.065230Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Compute integral of x^2 dx in RPN",
+  "predicted": "x 2 ^ int -> x^3 / 3",
+  "true_answer": "x 2 ^ int -> x^3 / 3",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

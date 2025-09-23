@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: All that’s left is to read the input and call solve ; that’s done in _____ 4.",
+  "created_at": "2025-09-23T09:30:13.799475Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: All that’s left is to read the input and call solve ; that’s done in _____ 4.",
+  "predicted": "Listing",
+  "true_answer": "Listing",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

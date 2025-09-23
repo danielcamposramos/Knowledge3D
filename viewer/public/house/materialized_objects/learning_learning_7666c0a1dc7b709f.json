@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'PO' (zh).",
+  "created_at": "2025-09-23T09:24:05.521538Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'PO' (zh).",
+  "predicted": "(Tw) (coll.) to post (online)",
+  "true_answer": "(Tw) (coll.) to post (online)",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

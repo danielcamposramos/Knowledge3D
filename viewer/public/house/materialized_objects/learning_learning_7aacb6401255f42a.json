@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'agrafar' (pt).",
+  "created_at": "2025-09-23T12:27:54.621604Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'agrafar' (pt).",
+  "predicted": "secure or fasten with a staple or staples; \"staple the papers together\"",
+  "true_answer": "secure or fasten with a staple or staples; \"staple the papers together\"",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

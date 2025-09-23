@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'boca' (pt).",
+  "created_at": "2025-09-23T03:22:46.710675Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'boca' (pt).",
+  "predicted": "an opening that resembles a mouth (as of a cave or a gorge); \"he rode into the mouth of the canyon\"; \"they built a fire at the mouth of the cave\"",
+  "true_answer": "an opening that resembles a mouth (as of a cave or a gorge); \"he rode into the mouth of the canyon\"; \"they built a fire at the mouth of the cave\"",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

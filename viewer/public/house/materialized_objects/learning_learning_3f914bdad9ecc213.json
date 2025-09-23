@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: We say that the code for the former _____ is 21 and the code for the latter is 1187.",
+  "created_at": "2025-09-23T09:30:20.671134Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: We say that the code for the former _____ is 21 and the code for the latter is 1187.",
+  "predicted": "snowflake",
+  "true_answer": "snowflake",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

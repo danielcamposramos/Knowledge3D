@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: The primary reason is that such times can give us intuitive understanding of the efficiency of our programs.",
+  "created_at": "2025-09-23T02:44:35.960794Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: The primary reason is that such times can give us intuitive understanding of the efficiency of our programs.",
+  "predicted": "The primary reason is that such times can give us intuitive understanding of the efficiency of our programs.",
+  "true_answer": "The primary reason is that such times can give us intuitive understanding of the efficiency of our programs.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

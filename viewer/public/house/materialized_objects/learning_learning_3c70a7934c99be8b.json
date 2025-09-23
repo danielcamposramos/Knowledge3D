@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '㍾' (zh).",
+  "created_at": "2025-09-23T09:29:04.707277Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '㍾' (zh).",
+  "predicted": "明治[Ming2 zhi4] written as a single character",
+  "true_answer": "明治[Ming2 zhi4] written as a single character",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

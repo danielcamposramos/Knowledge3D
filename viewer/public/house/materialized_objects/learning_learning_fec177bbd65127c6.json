@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Explain the concept of 'era' as described.",
+  "created_at": "2025-09-23T06:24:52.159965Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": -1.0,
+  "prompt": "Explain the concept of 'era' as described.",
+  "predicted": "One way to do this is to break out the % mod operator again.",
+  "true_answer": "The second consideration is our hash function.",
+  "quick_feedback": {
+    "score": -1.0,
+    "explanation": "Ollama model 'exaone-deep:latest' timed out after 300s; warm the model manually or increase initial timeout."
+  },
+  "deep_feedback": {
+    "score": -1.0,
+    "explanation": "Ollama model 'exaone-deep:latest' timed out after 300s; warm the model manually or increase initial timeout."
+  }
+}

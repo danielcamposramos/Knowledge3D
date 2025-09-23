@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'animador' (pt).",
+  "created_at": "2025-09-23T12:28:28.459650Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'animador' (pt).",
+  "predicted": "the technician who produces animated cartoons",
+  "true_answer": "the technician who produces animated cartoons",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

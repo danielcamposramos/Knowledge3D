@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: The primary reason for using C is that I want to teach you data structures and algorithms from the ground up.",
+  "created_at": "2025-09-23T07:36:30.643902Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: The primary reason for using C is that I want to teach you data structures and algorithms from the ground up.",
+  "predicted": "The primary reason for using C is that I want to teach you data structures and algorithms from the ground up.",
+  "true_answer": "The primary reason for using C is that I want to teach you data structures and algorithms from the ground up.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

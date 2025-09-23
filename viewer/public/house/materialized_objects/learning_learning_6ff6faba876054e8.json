@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Apply scientific reasoning to: The key data that we need to maintain are the number of people in each line.",
+  "created_at": "2025-09-23T11:54:17.613555Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Apply scientific reasoning to: The key data that we need to maintain are the number of people in each line.",
+  "predicted": "The key data that we need to maintain are the number of people in each line.",
+  "true_answer": "The key data that we need to maintain are the number of people in each line.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

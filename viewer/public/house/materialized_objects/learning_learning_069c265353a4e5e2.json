@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'T裇' (zh).",
+  "created_at": "2025-09-23T04:54:10.689424Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'T裇' (zh).",
+  "predicted": "T-shirt",
+  "true_answer": "T-shirt",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

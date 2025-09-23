@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '1960s' (en).",
+  "created_at": "2025-09-23T12:27:46.497042Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '1960s' (en).",
+  "predicted": "the decade from 1960 to 1969",
+  "true_answer": "the decade from 1960 to 1969",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

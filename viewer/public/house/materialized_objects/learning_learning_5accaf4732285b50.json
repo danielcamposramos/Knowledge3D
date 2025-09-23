@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'ins' (zh).",
+  "created_at": "2025-09-23T13:50:21.867628Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'ins' (zh).",
+  "predicted": "Instagram",
+  "true_answer": "Instagram",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

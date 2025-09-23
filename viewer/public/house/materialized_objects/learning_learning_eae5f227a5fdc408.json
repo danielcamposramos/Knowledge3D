@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: For that reason, I’ve written a helper function, malloc_safe , that we can call whenever we need it.",
+  "created_at": "2025-09-23T11:52:49.036774Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: For that reason, I’ve written a helper function, malloc_safe , that we can call whenever we need it.",
+  "predicted": "For that reason, I’ve written a helper function, malloc_safe , that we can call whenever we need it.",
+  "true_answer": "For that reason, I’ve written a helper function, malloc_safe , that we can call whenever we need it.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

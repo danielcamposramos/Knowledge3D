@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'MV' (zh).",
+  "created_at": "2025-09-23T04:53:09.636977Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'MV' (zh).",
+  "predicted": "desirability as a partner (abbr. for \"mate value\")",
+  "true_answer": "desirability as a partner (abbr. for \"mate value\")",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

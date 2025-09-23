@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'ficar parado' (pt).",
+  "created_at": "2025-09-23T12:28:03.380739Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'ficar parado' (pt).",
+  "predicted": "cause to stagnate; \"There are marshes that stagnate the waters\"",
+  "true_answer": "cause to stagnate; \"There are marshes that stagnate the waters\"",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

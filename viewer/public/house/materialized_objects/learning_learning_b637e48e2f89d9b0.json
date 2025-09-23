@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Apply scientific reasoning to: void solve(int m, int n, int t) { int result, i;  ∂ result = solve_t(m, n, t); if (result >= 0)  ∑ printf('%d', result); else { i = t - 1;  ∏ result = solve_t(m, n, i); while (result == -1) { i--;  π result = solve_t(m, n, i); }  ∫ printf('%d %d', result, t - i); } }  Listing 3-2: Solution 1  First, we solve the problem for exactly t minutes ∂ .",
+  "created_at": "2025-09-23T11:54:27.397939Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Apply scientific reasoning to: void solve(int m, int n, int t) { int result, i;  ∂ result = solve_t(m, n, t); if (result >= 0)  ∑ printf('%d', result); else { i = t - 1;  ∏ result = solve_t(m, n, i); while (result == -1) { i--;  π result = solve_t(m, n, i); }  ∫ printf('%d %d', result, t - i); } }  Listing 3-2: Solution 1  First, we solve the problem for exactly t minutes ∂ .",
+  "predicted": "void solve(int m, int n, int t) { int result, i;  ∂ result = solve_t(m, n, t); if (result >= 0)  ∑ printf('%d', result); else { i = t - 1;  ∏ result = solve_t(m, n, i); while (result == -1) { i--;  π result = solve_t(m, n, i); }  ∫ printf('%d %d', result, t - i); } }  Listing 3-2: Solution 1  First, we solve the problem for exactly t minutes ∂ .",
+  "true_answer": "void solve(int m, int n, int t) { int result, i;  ∂ result = solve_t(m, n, t); if (result >= 0)  ∑ printf('%d', result); else { i = t - 1;  ∏ result = solve_t(m, n, i); while (result == -1) { i--;  π result = solve_t(m, n, i); }  ∫ printf('%d %d', result, t - i); } }  Listing 3-2: Solution 1  First, we solve the problem for exactly t minutes ∂ .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

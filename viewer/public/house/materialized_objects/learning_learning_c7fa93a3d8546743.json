@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '17th' (en).",
+  "created_at": "2025-09-23T03:17:58.302611Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '17th' (en).",
+  "predicted": "coming next after the sixteenth in position",
+  "true_answer": "coming next after the sixteenth in position",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

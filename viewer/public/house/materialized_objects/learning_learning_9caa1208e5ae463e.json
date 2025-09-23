@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '1870s' (en).",
+  "created_at": "2025-09-23T12:26:46.923957Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '1870s' (en).",
+  "predicted": "the decade from 1870 to 1879",
+  "true_answer": "the decade from 1870 to 1879",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

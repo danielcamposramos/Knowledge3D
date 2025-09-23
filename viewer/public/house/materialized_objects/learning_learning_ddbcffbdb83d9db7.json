@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: We’re going to stick with an array that has room for 100,000 _____.",
+  "created_at": "2025-09-23T05:01:41.574030Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: We’re going to stick with an array that has room for 100,000 _____.",
+  "predicted": "elements",
+  "true_answer": "elements",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

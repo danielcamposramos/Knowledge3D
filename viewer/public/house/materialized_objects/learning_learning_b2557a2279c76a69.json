@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '3C' (zh).",
+  "created_at": "2025-09-23T13:49:09.904597Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '3C' (zh).",
+  "predicted": "computers, communications, and consumer electronics",
+  "true_answer": "computers, communications, and consumer electronics",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

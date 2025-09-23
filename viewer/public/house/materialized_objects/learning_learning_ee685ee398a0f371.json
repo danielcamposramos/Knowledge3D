@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'afetado' (pt).",
+  "created_at": "2025-09-23T03:23:48.942612Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'afetado' (pt).",
+  "predicted": "speaking or behaving in an artificial way to make an impression",
+  "true_answer": "speaking or behaving in an artificial way to make an impression",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

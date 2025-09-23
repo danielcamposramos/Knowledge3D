@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'abaxial' (es).",
+  "created_at": "2025-09-23T08:30:00.156233Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'abaxial' (es).",
+  "predicted": "abaxial",
+  "true_answer": "abaxial",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

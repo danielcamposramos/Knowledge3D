@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? With Zingaro as a tutor by your side, you’ll learn, through practice on chal- lenging competition problems, a repeatable process for figuring out and deftly applying the right algorithmic tools for the job.",
+  "created_at": "2025-09-23T07:37:28.877182Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? With Zingaro as a tutor by your side, you’ll learn, through practice on chal- lenging competition problems, a repeatable process for figuring out and deftly applying the right algorithmic tools for the job.",
+  "predicted": "With Zingaro as a tutor by your side, you’ll learn, through practice on chal- lenging competition problems, a repeatable process for figuring out and deftly applying the right algorithmic tools for the job.",
+  "true_answer": "With Zingaro as a tutor by your side, you’ll learn, through practice on chal- lenging competition problems, a repeatable process for figuring out and deftly applying the right algorithmic tools for the job.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

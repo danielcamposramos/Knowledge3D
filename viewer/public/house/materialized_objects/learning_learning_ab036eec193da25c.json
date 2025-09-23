@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'aceleração' (pt).",
+  "created_at": "2025-09-23T08:09:22.448153Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'aceleração' (pt).",
+  "predicted": "an increase in rate of change; \"modern science caused an acceleration of cultural change\"",
+  "true_answer": "an increase in rate of change; \"modern science caused an acceleration of cultural change\"",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

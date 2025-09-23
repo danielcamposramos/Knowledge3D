@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'gratis' (es).",
+  "created_at": "2025-09-23T03:23:50.402241Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'gratis' (es).",
+  "predicted": "free, without charge",
+  "true_answer": "free, without charge",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

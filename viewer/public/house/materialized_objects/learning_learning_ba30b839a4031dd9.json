@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'Tony老师' (zh).",
+  "created_at": "2025-09-23T09:24:14.991639Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'Tony老师' (zh).",
+  "predicted": "(slang) hairdresser",
+  "true_answer": "(slang) hairdresser",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

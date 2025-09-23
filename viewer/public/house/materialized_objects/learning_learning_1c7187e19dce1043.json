@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'radiação de fundo' (pt).",
+  "created_at": "2025-09-23T03:23:12.004369Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'radiação de fundo' (pt).",
+  "predicted": "radiation coming from sources other than those being observed",
+  "true_answer": "radiation coming from sources other than those being observed",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

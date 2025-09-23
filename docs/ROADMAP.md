@@ -24,7 +24,7 @@ Figure: The Cognitive House illustrates the House (persistent memory), Cranium (
 | PTX RPN + cosine kernels | Keep all math/lookup reasoning inside PTX to avoid hallucination drift. | ✅ Complete (context binding fix: Sept 2025) |
 | Learning Memory GLB | Log teacher tags and rebuild a PTX-ready galaxy each sleep cycle. | ✅ Complete |
 | SleepTime consolidation | Materialise insights into House, relocate deprecated artifacts to Museum. | ✅ Complete |
-| House memory builder | Emit PTX-ready index of consolidated artifacts for the tablet. | 🔄 In Progress (highest priority) |
+| House memory builder | Emit PTX-ready index of consolidated artifacts for the tablet. | ✅ Complete |
 
 **Exit criteria:** fused head successfully answers PTX benchmarks using both Galaxy and House without Python fallbacks; nightly sleep cycle keeps memories synced.
 
@@ -38,7 +38,7 @@ Figure: The Cognitive House illustrates the House (persistent memory), Cranium (
 | On-demand Galaxy streaming | Load House artifacts into Galaxy with LOD controls (centroid → full GLB). | 🔄 In Progress |
 | Tool manifest & MCP bridge | Launch existing tool containers (Firefox, VMs, MCP) from the tablet; log transcripts. | 🔄 In Progress |
 | Session capture pipeline | Store tablet sessions as structured notes → SleepTime consolidates into House, relocates older versions to Museum. | ⏳ Planned |
-| Prompt verification loop | Retire prompts once fused head + tablet confirmation succeed twice; move to verification list. | ⏳ Planned |
+| Prompt hygiene & verification loop | Remove nonsense prompts, retire mastered ones after two perfect runs, and log timezone-aware timestamps. | 🔄 In Progress |
 
 **Exit criteria:** the avatar can solve tasks using PTX reasoning plus tablet tools; consolidated knowledge is always reachable through the tablet before querying external sources.
 
@@ -48,10 +48,11 @@ Figure: The Cognitive House illustrates the House (persistent memory), Cranium (
 
 | Deliverable | Purpose |
 |-------------|---------|
-| Autonomous curriculum engine | Use reflection diaries + museum analytics to propose new drills and retire stale ones, keeping the avatar embodied in-house while planning. |
+| Autonomous curriculum engine | Use reflection diaries + museum analytics to propose new drills, retire stale ones, and respect lesson vs inference modes. |
 | Honesty & confidence gating | Tablet and fused head report provenance + confidence for every response. |
 | Museum analytics | Mine deprecated artifacts for error signatures and retro-train corrections. |
 | Continuous tool adaptation | Benchmark external tool usage; prioritise open-source replacements where feasible. |
+| Time & math enrichment | Expand curated datasets (machine/human time, basic & financial math) via exaone models, feeding them through the house-tablet pipeline. |
 
 **Exit criteria:** daily cycles run end-to-end without manual intervention; the model promotes/demotes knowledge and tools based on performance.
 

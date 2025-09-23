@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: It could go at the _____, the end, or some- where in the middle—it’s our choice.",
+  "created_at": "2025-09-23T09:30:22.261910Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: It could go at the _____, the end, or some- where in the middle—it’s our choice.",
+  "predicted": "beginning",
+  "true_answer": "beginning",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

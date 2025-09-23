@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: You’ll be safe if you include the follow- ing:  #include <stdio.h> #include <stdlib.h> #include <string.h>  Freeing Memory  Unlike Java or Python, C requires the programmer to free all memory that is manually allocated.",
+  "created_at": "2025-09-23T02:43:49.886438Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: You’ll be safe if you include the follow- ing:  #include <stdio.h> #include <stdlib.h> #include <string.h>  Freeing Memory  Unlike Java or Python, C requires the programmer to free all memory that is manually allocated.",
+  "predicted": "You’ll be safe if you include the follow- ing:  #include <stdio.h> #include <stdlib.h> #include <string.h>  Freeing Memory  Unlike Java or Python, C requires the programmer to free all memory that is manually allocated.",
+  "true_answer": "You’ll be safe if you include the follow- ing:  #include <stdio.h> #include <stdlib.h> #include <string.h>  Freeing Memory  Unlike Java or Python, C requires the programmer to free all memory that is manually allocated.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

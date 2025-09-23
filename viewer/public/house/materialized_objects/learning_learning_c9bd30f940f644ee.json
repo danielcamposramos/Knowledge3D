@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How does context influence this statement? Haber, “Anxiety in Academic Achievement Situations”,  Journal of Abnormal  and  Social Psychology  61 (1960), pp.",
+  "created_at": "2025-09-23T07:37:18.195496Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How does context influence this statement? Haber, “Anxiety in Academic Achievement Situations”,  Journal of Abnormal  and  Social Psychology  61 (1960), pp.",
+  "predicted": "Haber, “Anxiety in Academic Achievement Situations”,  Journal of Abnormal  and  Social Psychology  61 (1960), pp.",
+  "true_answer": "Haber, “Anxiety in Academic Achievement Situations”,  Journal of Abnormal  and  Social Psychology  61 (1960), pp.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

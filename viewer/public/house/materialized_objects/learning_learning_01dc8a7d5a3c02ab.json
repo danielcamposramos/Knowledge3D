@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'plural' (es).",
+  "created_at": "2025-09-23T13:11:16.365194Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": -1.0,
+  "prompt": "Define 'plural' (es).",
+  "predicted": "plural",
+  "true_answer": "plural, multiple",
+  "quick_feedback": {
+    "score": -1.0,
+    "explanation": "Ollama model 'exaone-deep:latest' timed out after 300s; warm the model manually or increase initial timeout."
+  },
+  "deep_feedback": {
+    "score": -1.0,
+    "explanation": "Ollama model 'exaone-deep:latest' timed out after 300s; warm the model manually or increase initial timeout."
+  }
+}

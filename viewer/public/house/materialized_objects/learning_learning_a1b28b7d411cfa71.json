@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'esbelto' (pt).",
+  "created_at": "2025-09-23T03:23:34.550960Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'esbelto' (pt).",
+  "predicted": "refined and tasteful in appearance or behavior or style; \"elegant handwriting\"; \"an elegant dark suit\"; \"she was elegant to her fingertips\"; \"small churches with elegant white spires\"; \"an elegant mathematical solution--simple and precise and lucid\"",
+  "true_answer": "refined and tasteful in appearance or behavior or style; \"elegant handwriting\"; \"an elegant dark suit\"; \"she was elegant to her fingertips\"; \"small churches with elegant white spires\"; \"an elegant mathematical solution--simple and precise and lucid\"",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

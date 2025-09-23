@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'U盘' (zh).",
+  "created_at": "2025-09-23T09:24:23.387822Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'U盘' (zh).",
+  "predicted": "USB flash drive; thumb drive",
+  "true_answer": "USB flash drive; thumb drive",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

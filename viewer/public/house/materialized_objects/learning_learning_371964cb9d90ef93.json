@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? These are problems that I hope you cannot solve, problems that I hope stymie your current approaches.",
+  "created_at": "2025-09-23T11:53:34.641845Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? These are problems that I hope you cannot solve, problems that I hope stymie your current approaches.",
+  "predicted": "These are problems that I hope you cannot solve, problems that I hope stymie your current approaches.",
+  "true_answer": "These are problems that I hope you cannot solve, problems that I hope stymie your current approaches.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: _____ that we start the inner loop at i + 1 and not 0 ∂ .",
+  "created_at": "2025-09-23T00:19:43.762819Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: _____ that we start the inner loop at i + 1 and not 0 ∂ .",
+  "predicted": "Notice",
+  "true_answer": "Notice",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

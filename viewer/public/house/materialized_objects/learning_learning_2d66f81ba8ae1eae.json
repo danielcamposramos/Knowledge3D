@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How does context influence this statement? Definition: Binary  In the context of trees, binary simply means that each node in our trees has at most two children.",
+  "created_at": "2025-09-23T07:37:06.153204Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How does context influence this statement? Definition: Binary  In the context of trees, binary simply means that each node in our trees has at most two children.",
+  "predicted": "Definition: Binary  In the context of trees, binary simply means that each node in our trees has at most two children.",
+  "true_answer": "Definition: Binary  In the context of trees, binary simply means that each node in our trees has at most two children.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -11,6 +11,7 @@ The primary guiding documents for this project are:
 3.  **[Codex Tasks (CODEX.md)](CODEX.md)**: This file provides a detailed, actionable task list that corresponds to the current phase of the roadmap. Agents should consult this file for specific implementation tasks.
 
 4.  **[Memory Tablet & Dual-Space Architecture](docs/HOUSE_GALAXY_TABLET.md)**: Defines how Galaxy (RAM), House (persistent memory), Museum (deprecated archive), and the new Memory Tablet interact. Any knowledge-management change must follow this workflow.
+5.  **[Training Directives](docs/TRAINING_DIRECTIVES.md)**: Prompt hygiene, timestamp policies, dataset priorities, and lesson vs inference rules.
 
 Additional local environment reference (hardware, GPU, and folder layout): see `docs/LOCAL_ENV.md`.
 

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: As a quick aside, there’s actually no reason to know which house is the furthest, or even to know how to perform a walk to make that house be last.",
+  "created_at": "2025-09-23T11:52:48.572932Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: As a quick aside, there’s actually no reason to know which house is the furthest, or even to know how to perform a walk to make that house be last.",
+  "predicted": "As a quick aside, there’s actually no reason to know which house is the furthest, or even to know how to perform a walk to make that house be last.",
+  "true_answer": "As a quick aside, there’s actually no reason to know which house is the furthest, or even to know how to perform a walk to make that house be last.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'Hipocrates' (pt).",
+  "created_at": "2025-09-23T12:28:04.344049Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'Hipocrates' (pt).",
+  "predicted": "medical practitioner who is regarded as the father of medicine; author of the Hippocratic oath (circa 460-377 BC)",
+  "true_answer": "medical practitioner who is regarded as the father of medicine; author of the Hippocratic oath (circa 460-377 BC)",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

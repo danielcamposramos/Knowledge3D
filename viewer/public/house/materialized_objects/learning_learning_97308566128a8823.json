@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: Regular local variables are _____ on each call of a function, but static ones retain whatever value they had on the previous function call (see 'Static Keyword' on page xxi).",
+  "created_at": "2025-09-23T05:01:39.284326Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: Regular local variables are _____ on each call of a function, but static ones retain whatever value they had on the previous function call (see 'Static Keyword' on page xxi).",
+  "predicted": "initialized",
+  "true_answer": "initialized",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Explain the concept of 'era' as described.",
+  "created_at": "2025-09-23T10:56:01.939626Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": -1.0,
+  "prompt": "Explain the concept of 'era' as described.",
+  "predicted": "If creat is a word and e is a word On the first iteration, we should search the wordlist for c and reate .",
+  "true_answer": "On the second iteration, we should search the wordlist for cr and eate .",
+  "quick_feedback": {
+    "score": -1.0,
+    "explanation": "Ollama model 'exaone-deep:latest' timed out after 300s; warm the model manually or increase initial timeout."
+  },
+  "deep_feedback": {
+    "score": -1.0,
+    "explanation": "Ollama model 'exaone-deep:latest' timed out after 300s; warm the model manually or increase initial timeout."
+  }
+}

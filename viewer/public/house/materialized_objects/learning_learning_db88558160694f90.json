@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '125th' (en).",
+  "created_at": "2025-09-23T03:10:43.143971Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '125th' (en).",
+  "predicted": "the ordinal number of one hundred twenty-five in counting order",
+  "true_answer": "the ordinal number of one hundred twenty-five in counting order",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

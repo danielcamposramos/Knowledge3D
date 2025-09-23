@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '170th' (en).",
+  "created_at": "2025-09-23T03:17:45.542988Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '170th' (en).",
+  "predicted": "the ordinal number of one hundred seventy in counting order",
+  "true_answer": "the ordinal number of one hundred seventy in counting order",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'en' (es).",
+  "created_at": "2025-09-23T04:41:41.065608Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": -1.0,
+  "prompt": "Define 'en' (es).",
+  "predicted": "in, at, on",
+  "true_answer": "in (a time)",
+  "quick_feedback": {
+    "score": -1.0,
+    "explanation": "Ollama model 'exaone-deep:latest' timed out after 300s; warm the model manually or increase initial timeout."
+  },
+  "deep_feedback": {
+    "score": -1.0,
+    "explanation": "Ollama model 'exaone-deep:latest' timed out after 300s; warm the model manually or increase initial timeout."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: Drigotas et al., “Close Partner as Sculptor of the Ideal Self”,  Journal of Personality and Social Psychology  77 (1999), pp.",
+  "created_at": "2025-09-23T07:37:02.200700Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: Drigotas et al., “Close Partner as Sculptor of the Ideal Self”,  Journal of Personality and Social Psychology  77 (1999), pp.",
+  "predicted": "Drigotas et al., “Close Partner as Sculptor of the Ideal Self”,  Journal of Personality and Social Psychology  77 (1999), pp.",
+  "true_answer": "Drigotas et al., “Close Partner as Sculptor of the Ideal Self”,  Journal of Personality and Social Psychology  77 (1999), pp.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: When we’re using at most 100,000 elements, this is an outrageous waste of memory.",
+  "created_at": "2025-09-23T02:43:57.302470Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: When we’re using at most 100,000 elements, this is an outrageous waste of memory.",
+  "predicted": "When we’re using at most 100,000 elements, this is an outrageous waste of memory.",
+  "true_answer": "When we’re using at most 100,000 elements, this is an outrageous waste of memory.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

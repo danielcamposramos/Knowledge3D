@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? Here is the input for the above example:  1 2 9 3  Output  For each test case, output the number of ways that the marks can be dis- tributed so that the student passes all courses.",
+  "created_at": "2025-09-23T02:47:07.892231Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? Here is the input for the above example:  1 2 9 3  Output  For each test case, output the number of ways that the marks can be dis- tributed so that the student passes all courses.",
+  "predicted": "Here is the input for the above example:  1 2 9 3  Output  For each test case, output the number of ways that the marks can be dis- tributed so that the student passes all courses.",
+  "true_answer": "Here is the input for the above example:  1 2 9 3  Output  For each test case, output the number of ways that the marks can be dis- tributed so that the student passes all courses.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

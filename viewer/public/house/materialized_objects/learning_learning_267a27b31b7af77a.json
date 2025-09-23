@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How does context influence this statement? The one-dimensional case uses similar ideas but in a simpler context, so we’ll briefly study that before re- turning to finish the Living Quality problem.",
+  "created_at": "2025-09-23T11:53:16.161313Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How does context influence this statement? The one-dimensional case uses similar ideas but in a simpler context, so we’ll briefly study that before re- turning to finish the Living Quality problem.",
+  "predicted": "The one-dimensional case uses similar ideas but in a simpler context, so we’ll briefly study that before re- turning to finish the Living Quality problem.",
+  "true_answer": "The one-dimensional case uses similar ideas but in a simpler context, so we’ll briefly study that before re- turning to finish the Living Quality problem.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

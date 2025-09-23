@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: Na  empatia , o observador assume um estado emocional semelhante – embora mais fraco –, mas mantém uma fronteira nítida entre o self e o outro.",
+  "created_at": "2025-09-23T02:44:47.263844Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: Na  empatia , o observador assume um estado emocional semelhante – embora mais fraco –, mas mantém uma fronteira nítida entre o self e o outro.",
+  "predicted": "Na  empatia , o observador assume um estado emocional semelhante – embora mais fraco –, mas mantém uma fronteira nítida entre o self e o outro.",
+  "true_answer": "Na  empatia , o observador assume um estado emocional semelhante – embora mais fraco –, mas mantém uma fronteira nítida entre o self e o outro.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? Morris et al., “Conscious and Unconscious Emotional Learning in the",
+  "created_at": "2025-09-23T07:37:54.770450Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? Morris et al., “Conscious and Unconscious Emotional Learning in the",
+  "predicted": "Morris et al., “Conscious and Unconscious Emotional Learning in the",
+  "true_answer": "Morris et al., “Conscious and Unconscious Emotional Learning in the",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: The reason I’m doing it now is to emphasize the way that we’ll be navigating these trees.",
+  "created_at": "2025-09-23T11:52:56.498003Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: The reason I’m doing it now is to emphasize the way that we’ll be navigating these trees.",
+  "predicted": "The reason I’m doing it now is to emphasize the way that we’ll be navigating these trees.",
+  "true_answer": "The reason I’m doing it now is to emphasize the way that we’ll be navigating these trees.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

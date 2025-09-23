@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '.45-calibre' (en).",
+  "created_at": "2025-09-23T07:38:43.800288Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '.45-calibre' (en).",
+  "predicted": "of or relating to the bore of a gun (or its ammunition) that measures forty-five hundredths of an inch in diameter",
+  "true_answer": "of or relating to the bore of a gun (or its ammunition) that measures forty-five hundredths of an inch in diameter",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

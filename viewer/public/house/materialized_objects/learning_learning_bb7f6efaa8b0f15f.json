@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '16 PF' (en).",
+  "created_at": "2025-09-23T03:16:02.107481Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '16 PF' (en).",
+  "predicted": "a self-report personality inventory developed by Raymond B. Cattell to measure the 16 personality dimensions that emerged from his factor analysis of a wide range of traits",
+  "true_answer": "a self-report personality inventory developed by Raymond B. Cattell to measure the 16 personality dimensions that emerged from his factor analysis of a wide range of traits",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

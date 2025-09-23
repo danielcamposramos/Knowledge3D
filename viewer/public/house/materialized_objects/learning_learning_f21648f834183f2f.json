@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: For example, this is a snowflake:  3, 9, 15, 2, 1, 10  _____ can also have repeated integers, such as  8, 4, 8, 9, 2, 8  What does it mean for two snowflakes to be identical?",
+  "created_at": "2025-09-23T09:30:15.214825Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: For example, this is a snowflake:  3, 9, 15, 2, 1, 10  _____ can also have repeated integers, such as  8, 4, 8, 9, 2, 8  What does it mean for two snowflakes to be identical?",
+  "predicted": "Snowflakes",
+  "true_answer": "Snowflakes",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

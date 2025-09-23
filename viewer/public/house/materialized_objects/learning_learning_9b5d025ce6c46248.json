@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '1 Chronicles' (en).",
+  "created_at": "2025-09-23T02:55:26.431555Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '1 Chronicles' (en).",
+  "predicted": "the first of two Old Testament books telling the history of Judah and Israel until the return from the Babylonian Captivity in 536 BC",
+  "true_answer": "the first of two Old Testament books telling the history of Judah and Israel until the return from the Babylonian Captivity in 536 BC",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

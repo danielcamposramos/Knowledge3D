@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'teologia' (pt).",
+  "created_at": "2025-09-23T12:28:10.346480Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'teologia' (pt).",
+  "predicted": "the rational and systematic study of religion and its influences and of the nature of religious truth",
+  "true_answer": "the rational and systematic study of religion and its influences and of the nature of religious truth",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

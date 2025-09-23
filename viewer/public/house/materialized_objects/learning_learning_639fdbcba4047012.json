@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: When we don’t know the maximum length of a string, we’ll build an extensible array: we won’t let the language handle memory allocation for us.",
+  "created_at": "2025-09-23T07:36:30.949064Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: When we don’t know the maximum length of a string, we’ll build an extensible array: we won’t let the language handle memory allocation for us.",
+  "predicted": "When we don’t know the maximum length of a string, we’ll build an extensible array: we won’t let the language handle memory allocation for us.",
+  "true_answer": "When we don’t know the maximum length of a string, we’ll build an extensible array: we won’t let the language handle memory allocation for us.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

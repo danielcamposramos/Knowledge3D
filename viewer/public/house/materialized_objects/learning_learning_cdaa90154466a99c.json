@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'angústia' (pt).",
+  "created_at": "2025-09-23T12:28:13.970583Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'angústia' (pt).",
+  "predicted": "extreme mental distress",
+  "true_answer": "extreme mental distress",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

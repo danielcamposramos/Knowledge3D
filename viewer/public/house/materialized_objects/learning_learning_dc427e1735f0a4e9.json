@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? Wilmington, “Oral Communication Skills Necessary for Successful Teaching”,  Educational Research Quarterly  16 (1992), pp.",
+  "created_at": "2025-09-23T07:38:05.172807Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? Wilmington, “Oral Communication Skills Necessary for Successful Teaching”,  Educational Research Quarterly  16 (1992), pp.",
+  "predicted": "Wilmington, “Oral Communication Skills Necessary for Successful Teaching”,  Educational Research Quarterly  16 (1992), pp.",
+  "true_answer": "Wilmington, “Oral Communication Skills Necessary for Successful Teaching”,  Educational Research Quarterly  16 (1992), pp.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

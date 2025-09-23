@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define ''hood' (en).",
+  "created_at": "2025-09-23T07:38:35.871431Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define ''hood' (en).",
+  "predicted": "(slang) a neighborhood or community",
+  "true_answer": "(slang) a neighborhood or community",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'acid' (es).",
+  "created_at": "2025-09-23T04:51:14.555367Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'acid' (es).",
+  "predicted": "acid",
+  "true_answer": "acid",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

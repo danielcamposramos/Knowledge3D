@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: 259 Solution 2: Heaps  261 Heaps  263 Two More _____ 264 Choosing a Data Structure .",
+  "created_at": "2025-09-23T00:18:50.639599Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: 259 Solution 2: Heaps  261 Heaps  263 Two More _____ 264 Choosing a Data Structure .",
+  "predicted": "Applications",
+  "true_answer": "Applications",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

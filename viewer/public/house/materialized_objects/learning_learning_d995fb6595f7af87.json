@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'Antirrhinum' (pt).",
+  "created_at": "2025-09-23T03:20:13.862831Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'Antirrhinum' (pt).",
+  "predicted": "a genus of herbs of the family Scrophulariaceae with brightly colored irregular flowers",
+  "true_answer": "a genus of herbs of the family Scrophulariaceae with brightly colored irregular flowers",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

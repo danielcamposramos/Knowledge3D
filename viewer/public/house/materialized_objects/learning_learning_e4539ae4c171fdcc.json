@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How does context influence this statement? O inventário psicológico não faz julgamentos morais e, em contextos que variam de vendas e diplomacia  até  política,  os  talentos  dos  maquiavélicos  –  entre  eles,  charme,  dissimulação  e confiança fluentes – podem ser ativos desejáveis.",
+  "created_at": "2025-09-23T07:37:20.413531Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How does context influence this statement? O inventário psicológico não faz julgamentos morais e, em contextos que variam de vendas e diplomacia  até  política,  os  talentos  dos  maquiavélicos  –  entre  eles,  charme,  dissimulação  e confiança fluentes – podem ser ativos desejáveis.",
+  "predicted": "O inventário psicológico não faz julgamentos morais e, em contextos que variam de vendas e diplomacia  até  política,  os  talentos  dos  maquiavélicos  –  entre  eles,  charme,  dissimulação  e confiança fluentes – podem ser ativos desejáveis.",
+  "true_answer": "O inventário psicológico não faz julgamentos morais e, em contextos que variam de vendas e diplomacia  até  política,  os  talentos  dos  maquiavélicos  –  entre  eles,  charme,  dissimulação  e confiança fluentes – podem ser ativos desejáveis.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

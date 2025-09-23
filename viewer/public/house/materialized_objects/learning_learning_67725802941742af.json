@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? The problems dictate what I can teach you about the relevant data structure or algorithm.",
+  "created_at": "2025-09-23T11:53:40.021106Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? The problems dictate what I can teach you about the relevant data structure or algorithm.",
+  "predicted": "The problems dictate what I can teach you about the relevant data structure or algorithm.",
+  "true_answer": "The problems dictate what I can teach you about the relevant data structure or algorithm.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '1000' (en).",
+  "created_at": "2025-09-23T07:51:27.633690Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": -1.0,
+  "prompt": "Define '1000' (en).",
+  "predicted": "denoting a quantity consisting of 1,000 items or units",
+  "true_answer": "the cardinal number that is the product of 10 and 100",
+  "quick_feedback": {
+    "score": -1.0,
+    "explanation": "Ollama model 'exaone-deep:latest' timed out after 300s; warm the model manually or increase initial timeout."
+  },
+  "deep_feedback": {
+    "score": -1.0,
+    "explanation": "Ollama model 'exaone-deep:latest' timed out after 300s; warm the model manually or increase initial timeout."
+  }
+}

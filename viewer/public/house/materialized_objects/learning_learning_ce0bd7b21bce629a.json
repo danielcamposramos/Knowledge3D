@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "What significant event happened in 352?",
+  "created_at": "2025-09-23T09:36:43.128494Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "What significant event happened in 352?",
+  "predicted": "352 Dijkstra's Algorithm: Using a Heap .",
+  "true_answer": "352 Dijkstra's Algorithm: Using a Heap .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

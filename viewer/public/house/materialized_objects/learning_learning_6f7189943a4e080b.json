@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: That solves the con- cerns of memory use, but it doesn’t free us from having to compare these extra-long strings whenever we perform a search using the hash table.",
+  "created_at": "2025-09-23T07:36:36.668386Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: That solves the con- cerns of memory use, but it doesn’t free us from having to compare these extra-long strings whenever we perform a search using the hash table.",
+  "predicted": "That solves the con- cerns of memory use, but it doesn’t free us from having to compare these extra-long strings whenever we perform a search using the hash table.",
+  "true_answer": "That solves the con- cerns of memory use, but it doesn’t free us from having to compare these extra-long strings whenever we perform a search using the hash table.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

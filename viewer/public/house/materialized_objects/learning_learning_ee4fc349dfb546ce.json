@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "What significant event happened in 2010?",
+  "created_at": "2025-09-23T06:52:22.046466Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "What significant event happened in 2010?",
+  "predicted": "Spelling Check is originally from the 2010 School Team Contest #1, hosted by Codeforces.",
+  "true_answer": "Spelling Check is originally from the 2010 School Team Contest #1, hosted by Codeforces.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}
