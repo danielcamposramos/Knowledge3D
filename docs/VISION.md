@@ -84,46 +84,11 @@ Interaction with the K3D world is managed by a live WebSocket bridge, enabling r
 -   **Client Connection:** A client (like the web viewer or an AI script) connects to this server (e.g., at `ws://127.0.0.1:8765`).
 -   **Agent Protocol:** Once connected, a client can interact with the world using a simple chat-like protocol. Commands like `/join`, `/nick`, and `/msg` are used for basic interaction, while commands like `goto <label>` allow the agent to navigate the knowledge space by traversing the spatial graph. The agent's movements and reasoning are traced and logged for analysis and training.
 
-## Part 4: Phased Roadmap
+## Part 4: Project Roadmap & Current Status
 
-The development of K3D is guided by a phased roadmap. Each phase builds upon the last to progressively realize the full vision of a collaborative spatial knowledge environment.
-
-### Phase 1: The Static Knowledge Graph (MVP)
-
-**Objective:** To prove the core data-to-spatial pipeline by creating a non-interactive, read-only visualization of a knowledge corpus.
-
-| Deliverable | Purpose | Status |
-|---|---|---|
-| **Data-to-Spatial Pipeline** | Ingest raw text, generate embeddings, and use UMAP to create a 3D point cloud. | Mostly Complete |
-| **Embedded Data Model** | Embed all node data (IDs, vectors, embeddings, etc.) directly into a single glTF file. | Complete |
-| **Static 3D Visualization** | Create a basic web viewer to load and navigate the static 3D knowledge graph. | In Progress |
-| **Core Documentation** | Consolidate project vision, architecture, and roadmap into a unified document. | In Progress (Jules) |
-
----
-
-### Phase 2: The Interactive Agent
-
-**Objective:** To transform the passive viewing experience into an active, conversational one by integrating an embodied AI agent.
-
-| Deliverable | Purpose | Status |
-|---|---|---|
-| **Embodied AI Agent** | Integrate a conversational AI agent into the 3D environment with a visible avatar. | Not Started |
-| **Agent World Model** | Develop the agent's spatial reasoning to understand its environment and user intent. | Not Started |
-| **Interactive UI/UX** | Implement user interactions like voice commands and multimodal feedback from the agent. | Not Started |
-| **Live Server Bridge** | Enable real-time communication between the agent and the 3D world. | Complete |
-
----
-
-### Phase 3: The Collaborative Knowledge Habitat
-
-**Objective:** To expand the single-user experience into a fully-featured, multiplayer, real-time collaborative environment.
-
-| Deliverable | Purpose | Status |
-|---|---|---|
-| **Multiplayer Environment** | Allow multiple users and AI agents to share and interact in the same 3D space. | Not Started |
-| **Real-time Collaboration Tools** | Develop tools for shared annotations, data manipulation, and collaborative problem-solving. | Not Started |
-| **Advanced RAG Integration** | Implement a sophisticated RAG system connected to a knowledge graph for grounded AI responses. | Not Started |
-| **Ecosystem API** | Develop a public API for third-party developers to extend the K3D platform. | Not Started |
+> **Note:** The original phased roadmap below is outdated. For the current, authoritative roadmap and project status, please see the official project whitepaper:
+>
+> **[Knowledge3D (K3D) — Unified Project Brief & Technical Whitepaper](Jules_K3D_Whitepaper.md)**
 
 ## Part 5: Contributor Guidelines
 
