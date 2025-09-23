@@ -5,7 +5,7 @@ import argparse
 import json
 import re
 from pathlib import Path
-from typing import Dict, Iterable, Iterator, List, Sequence, Tuple
+from typing import Dict, Iterable, Iterator, List, Optional, Sequence, Tuple
 
 
 DEFAULT_MAX_LEN = 600
@@ -75,7 +75,12 @@ def _build_entries(source_path: Path, topic: str, max_len: int) -> List[Dict[str
     return entries
 
 
-def build_corpus(sources: Sequence[Tuple[str, str]], output: Path, max_len: int) -> None:
+def build_corpus(
+    sources: Sequence[Tuple[str, str]],
+    output: Path,
+    max_len: int,
+    limit: Optional[int] = None,
+) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     entries: List[Dict[str, str]] = []
     for directory, topic in sources:
@@ -84,6 +89,9 @@ def build_corpus(sources: Sequence[Tuple[str, str]], output: Path, max_len: int)
 
     if not entries:
         raise RuntimeError(f"No entries generated for {output}")
+
+    if limit is not None and limit > 0:
+        entries = entries[:limit]
 
     with output.open("w", encoding="utf-8") as fh:
         for entry in entries:
@@ -95,6 +103,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--time-out", default="viewer/public/galaxy/working/time_corpus.jsonl")
     parser.add_argument("--math-out", default="viewer/public/galaxy/working/math_corpus.jsonl")
     parser.add_argument("--max-len", type=int, default=DEFAULT_MAX_LEN, help="Maximum characters per answer chunk")
+    parser.add_argument("--time-limit", type=int, default=1200, help="Maximum entries in time corpus")
+    parser.add_argument("--math-limit", type=int, default=3000, help="Maximum entries in math corpus")
     parser.add_argument(
         "--time-sources",
         nargs="*",
@@ -119,8 +129,8 @@ def main() -> None:  # pragma: no cover - CLI utility
     args = parse_args()
     time_sources = [(path, "time") for path in args.time_sources]
     math_sources = [(path, "mathematics") for path in args.math_sources]
-    build_corpus(time_sources, Path(args.time_out), args.max_len)
-    build_corpus(math_sources, Path(args.math_out), args.max_len)
+    build_corpus(time_sources, Path(args.time_out), args.max_len, args.time_limit)
+    build_corpus(math_sources, Path(args.math_out), args.max_len, args.math_limit)
 
 
 if __name__ == "__main__":  # pragma: no cover

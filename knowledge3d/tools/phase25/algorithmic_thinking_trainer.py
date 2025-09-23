@@ -167,6 +167,8 @@ class AlgorithmicThinkingTrainer:
 
             if not self._time_corpus:
                 self._time_corpus = self._load_jsonl(Path("viewer/public/galaxy/working/time_corpus.jsonl"), 200)
+            if not self._math_corpus:
+                self._math_corpus = self._load_jsonl(Path("viewer/public/galaxy/working/math_corpus.jsonl"), 300)
             if not self._reflection_corpus:
                 self._reflection_corpus = self._load_jsonl(Path("viewer/public/galaxy/working/self_reflection_corpus.jsonl"), 200)
             if not self._context_corpus:
@@ -298,11 +300,16 @@ class AlgorithmicThinkingTrainer:
                 f"✅ Phase 25 training run complete — processed {self._queries_processed} queries, "
                 f"sleep cycles executed: {self._sleep_cycles_completed}."
             )
+            print(f"🕒 Session timestamp: {datetime.now(timezone.utc).isoformat()}")
         finally:
             try:
                 self._rebuild_learning_memory_glb()
             except Exception as exc:
                 print(f"⚠️  Learning memory rebuild skipped: {exc}")
+            try:
+                self._save_mastered_prompts()
+            except Exception as exc:
+                print(f"⚠️  Mastered prompt log skipped: {exc}")
             sys.stdout = saved_stdout
             sys.stderr = saved_stderr
             log_file.flush()
@@ -655,6 +662,7 @@ class AlgorithmicThinkingTrainer:
             deep_feedback=deep_feedback,
             star=star,
         )
+        self._track_mastered_prompt(prompt, score)
 
     def _blend_embeddings(
         self,
