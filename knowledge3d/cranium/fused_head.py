@@ -49,6 +49,8 @@ class AdaptedFusedHead:
         self._rays = ["modality_ray", "entropy_ray", "honesty_ray"]
         self._language_catalog = self._discover_language_galaxies()
         self._language_metadata_cache: Dict[Path, List[Dict[str, object]]] = {}
+        self._house_memory_entry = self._discover_house_memory()
+        self._house_metadata_cache: Optional[List[Dict[str, object]]] = None
         self.learning_memory_jsonl = Path("viewer/public/galaxy/working/learning_memory.jsonl")
         self._learning_memory_entry = self._discover_learning_memory()
         self._learning_metadata_cache: Optional[List[Dict[str, object]]] = None
@@ -73,6 +75,10 @@ class AdaptedFusedHead:
         numeric = self._simple_numeric_solver(query)
         if numeric is not None:
             return PTX_OPS.format_numeric(numeric)
+
+        house_answer = self._attempt_house_memory_lookup(query, fused_embedding)
+        if house_answer is not None:
+            return house_answer
 
         language_answer = self._attempt_language_lookup(query)
         if language_answer is not None:
@@ -312,6 +318,121 @@ class AdaptedFusedHead:
         return np.asarray(values[:dim], dtype=np.float32)
 
     # ------------------------------------------------------------------
+    # House memory integration
+    # ------------------------------------------------------------------
+    def _discover_house_memory(self) -> Optional[Dict[str, object]]:
+        base = Path("viewer/public/house")
+        glb_path = base / "house_memory.glb"
+        manifest_path = base / "house_memory.json"
+        if not glb_path.exists():
+            return None
+        embedding_dim = 512
+        if manifest_path.exists():
+            try:
+                meta = json.loads(manifest_path.read_text(encoding="utf-8"))
+                embedding_dim = int(meta.get("embedding_dim", embedding_dim))
+            except Exception:
+                pass
+        return {
+            "glb": glb_path,
+            "manifest": manifest_path,
+            "embedding_dim": embedding_dim,
+        }
+
+    def _load_house_metadata(self) -> List[Dict[str, object]]:
+        if self._house_metadata_cache is not None:
+            return self._house_metadata_cache
+        entry = self._house_memory_entry
+        if entry is None:
+            self._house_metadata_cache = []
+            return self._house_metadata_cache
+        glb_path: Path = entry["glb"]
+        try:
+            gltf = GLTF2().load(glb_path.as_posix())
+            meta = (
+                gltf.meshes[0]
+                .primitives[0]
+                .extras
+                .get("k3d", {})
+                .get("metadata", [])
+            )
+            if isinstance(meta, list):
+                self._house_metadata_cache = meta
+                return meta
+        except Exception:
+            pass
+        self._house_metadata_cache = []
+        return self._house_metadata_cache
+
+    def _house_query_vector(
+        self, query: str, fused_embedding: List[float], dim: int
+    ) -> np.ndarray:
+        hashed = self._hash_embedding(f"house:{query.lower()}", dim)
+        fused = np.asarray(fused_embedding, dtype=np.float32) if fused_embedding else np.asarray([], dtype=np.float32)
+        if fused.size:
+            if fused.size < dim:
+                fused = np.pad(fused, (0, dim - fused.size))
+            elif fused.size > dim:
+                fused = fused[:dim]
+            combined = 0.7 * hashed + 0.3 * fused
+        else:
+            combined = hashed
+        norm = np.linalg.norm(combined)
+        if norm > 0:
+            combined = combined / norm
+        return combined.astype(np.float32)
+
+    def _attempt_house_memory_lookup(self, query: str, fused_embedding: List[float]) -> Optional[str]:
+        entry = self._house_memory_entry
+        if entry is None or not Path(entry["glb"]).exists():
+            entry = self._discover_house_memory()
+            self._house_memory_entry = entry
+            self._house_metadata_cache = None
+        if entry is None or not query:
+            return None
+        glb_path: Path = entry["glb"]
+        embedding_dim = int(entry.get("embedding_dim", 512))
+        query_vec = self._house_query_vector(query, fused_embedding, embedding_dim)
+        scene_loaded = False
+        try:
+            PTX_OPS.geometry_load_scene(glb_path.as_posix())
+            scene_loaded = True
+            top_idx, scores = PTX_OPS.embedding_cosine_topk(query_vec, 5)
+        except Exception:
+            return None
+        finally:
+            if scene_loaded:
+                try:
+                    PTX_OPS.geometry_release()
+                except Exception:
+                    pass
+        if top_idx.size == 0:
+            return None
+        metadata = self._load_house_metadata()
+        best_answer: Optional[str] = None
+        best_score = -1.0
+        for idx, score in zip(top_idx.tolist(), scores.tolist()):
+            if idx < 0 or idx >= len(metadata):
+                continue
+            if score < 0.58:
+                continue
+            meta = metadata[idx] if isinstance(metadata[idx], dict) else {}
+            payload = meta.get("payload", {}) if isinstance(meta, dict) else {}
+            answer = payload.get("summary") or payload.get("title") or payload.get("path")
+            if not answer:
+                name = meta.get("name") if isinstance(meta, dict) else None
+                artifact_type = payload.get("type") if isinstance(payload, dict) else None
+                pieces = [str(part) for part in [name, artifact_type] if part]
+                answer = " | ".join(pieces) if pieces else None
+            if not answer:
+                continue
+            effective = float(score)
+            if effective > best_score:
+                best_score = effective
+                best_answer = str(answer)
+        return best_answer
+
+    # ------------------------------------------------------------------
     # Learning memory integration
     # ------------------------------------------------------------------
     def _discover_learning_memory(self) -> Optional[Dict[str, object]]:
@@ -472,3 +593,8 @@ class AdaptedFusedHead:
         self._learning_memory_entry = self._discover_learning_memory()
         self._learning_metadata_cache = None
         return self._learning_memory_entry is not None
+
+    def reload_house_memory(self) -> bool:
+        self._house_memory_entry = self._discover_house_memory()
+        self._house_metadata_cache = None
+        return self._house_memory_entry is not None

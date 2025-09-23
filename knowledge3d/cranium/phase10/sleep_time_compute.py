@@ -73,6 +73,8 @@ class SleepTimeCompute:
         self.learning_memory_glb = Path("viewer/public/galaxy/learning_memory.glb")
         self.learning_memory_manifest = Path("viewer/public/galaxy/learning_memory.json")
         self._learning_processed_path = self.material_dir / "learning_memory_processed.txt"
+        self.house_memory_glb = Path("viewer/public/house/house_memory.glb")
+        self.house_memory_manifest = Path("viewer/public/house/house_memory.json")
 
     def load_house(self) -> Dict[str, Any]:
         """Load House GLB — extract zones, rays, embeddings (best-effort)."""
@@ -268,12 +270,43 @@ class SleepTimeCompute:
                         head = AdaptedFusedHead()
                         if head.reload_learning_memory():
                             print("♻️  Fused head learning cache refreshed (sleep compute).")
+                        if head.reload_house_memory():
+                            print("🏠  Fused head house cache refreshed (sleep compute).")
                     except Exception as exc:
                         print(f"⚠️  Fused head reload skipped: {exc}")
                 except Exception as exc:
                     print(f"⚠️  Failed to rebuild learning memory GLB: {exc}")
         except Exception as exc:
             print(f"⚠️  Learning memory processing skipped: {exc}")
+
+    def _rebuild_house_memory(self) -> None:
+        try:
+            from knowledge3d.tools.house_memory_builder import build_house_memory  # type: ignore
+
+            args = SimpleNamespace(
+                root=str(self.material_dir),
+                out=str(self.house_memory_glb),
+                manifest=str(self.house_memory_manifest),
+                limit=None,
+                embedding_dim=512,
+                label="House Memory Index",
+            )
+            build_house_memory(args)
+            print("📦 House memory GLB rebuilt.")
+            try:
+                from knowledge3d.cranium.fused_head import AdaptedFusedHead  # type: ignore
+
+                head = AdaptedFusedHead()
+                if head.reload_house_memory():
+                    print("🏠  Fused head house cache refreshed (sleep compute).")
+            except Exception as exc:
+                print(f"⚠️  Fused head house reload skipped: {exc}")
+        except FileNotFoundError:
+            print("⚠️  House materialized directory missing; skipping house memory build.")
+        except ValueError as exc:
+            print(f"⚠️  House memory build skipped: {exc}")
+        except Exception as exc:
+            print(f"⚠️  Failed to rebuild house memory GLB: {exc}")
 
     def compute_nightly_adjustments(self) -> Dict[str, Any]:
         """Adjust House zones, prune rays, and materialize knowledge into permanent objects."""
@@ -353,6 +386,7 @@ class SleepTimeCompute:
                 if p:
                     adjustments['materialized_objects'].append({'type': 'fractal_tree', 'path': p, 'zone': 'Zone 5 (Knowledge Garden)', 'star_id': s.get('id')})
         self._process_learning_memory(adjustments)
+        self._rebuild_house_memory()
         # Prepare Galaxy working dir for pre‑consolidation drafts
         working_dir = Path('viewer/public/galaxy/working')
         working_dir.mkdir(parents=True, exist_ok=True)
