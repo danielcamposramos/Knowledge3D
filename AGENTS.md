@@ -4,11 +4,9 @@ This repository uses AI agents like Codex and Jules to automate development task
 
 The primary guiding documents for this project are:
 
-1.  **[The Knowledge3D Project Research Report](docs/k3d-research.md)**: This document contains the core vision, architecture, and technical foundation for the project. All work should be grounded in this research.
+1.  **[Knowledge3D (K3D) — Unified Project Brief & Technical Whitepaper](docs/Jules_K3D_Whitepaper.md)**: This is the new, authoritative single source of truth for the project. It contains the core vision, architecture, training methodology, and current roadmap. All work must be grounded in this document.
 
-2.  **[Project Roadmap](docs/ROADMAP.md)**: This document outlines the current development phase and the deliverables for each stage. Please consult the roadmap to understand the current priorities.
-
-3.  **[Codex Tasks (CODEX.md)](CODEX.md)**: This file provides a detailed, actionable task list that corresponds to the current phase of the roadmap. Agents should consult this file for specific implementation tasks.
+2.  **[Codex Tasks (CODEX.md)](CODEX.md)**: This file provides a detailed, actionable task list that corresponds to the current phase of the roadmap outlined in the whitepaper. Agents should consult this file for specific implementation tasks.
 
 4.  **[Memory Tablet & Dual-Space Architecture](docs/HOUSE_GALAXY_TABLET.md)**: Defines how Galaxy (RAM), House (persistent memory), Museum (deprecated archive), and the new Memory Tablet interact. Any knowledge-management change must follow this workflow.
 5.  **[Training Directives](docs/TRAINING_DIRECTIVES.md)**: Prompt hygiene, timestamp policies, dataset priorities, and lesson vs inference rules.
