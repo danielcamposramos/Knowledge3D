@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "What significant event happened in 199?",
+  "created_at": "2025-09-23T05:08:59.827931Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "What significant event happened in 199?",
+  "predicted": "199 Reading the Input  201 Testing Feasibility  203 Searching for a Solution 205 Binary Search  206 Runtime of Binary Search  .",
+  "true_answer": "199 Reading the Input  201 Testing Feasibility  203 Searching for a Solution 205 Binary Search  206 Runtime of Binary Search  .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

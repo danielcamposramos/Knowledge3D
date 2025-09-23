@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'A片' (zh).",
+  "created_at": "2025-09-23T09:23:32.216893Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'A片' (zh).",
+  "predicted": "adult movie; pornography",
+  "true_answer": "adult movie; pornography",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

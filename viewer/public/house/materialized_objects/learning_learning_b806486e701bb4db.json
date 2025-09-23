@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "What significant event happened in 259?",
+  "created_at": "2025-09-23T09:36:41.320294Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "What significant event happened in 259?",
+  "predicted": "259 Solution 2: Heaps  261 Heaps  263 Two More Applications 264 Choosing a Data Structure .",
+  "true_answer": "259 Solution 2: Heaps  261 Heaps  263 Two More Applications 264 Choosing a Data Structure .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

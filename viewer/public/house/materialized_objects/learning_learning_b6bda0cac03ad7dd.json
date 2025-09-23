@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? That strategy is simple: figure out how to open each door and never let that door interfere again.",
+  "created_at": "2025-09-23T11:53:48.764978Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? That strategy is simple: figure out how to open each door and never let that door interfere again.",
+  "predicted": "That strategy is simple: figure out how to open each door and never let that door interfere again.",
+  "true_answer": "That strategy is simple: figure out how to open each door and never let that door interfere again.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -13,6 +13,7 @@
 > For the dual-space memory and tablet workflow, see `docs/HOUSE_GALAXY_TABLET.md`.
 > For OSI‑style doors and addressing, see `docs/DOORS_AND_NETWORK.md`.
 > For vector‑native diaries, see `docs/DIARY.md`.
+> For training directives (prompt hygiene, timestamps, embodiment), see `docs/TRAINING_DIRECTIVES.md`.
 > For local hygiene tasks, see `docs/MAINTENANCE.md`.
 > For environment rules on Debian, see `docs/ENV_POLICY.md`.
 > For the end‑to‑end ingest/build operator steps, see `docs/RUNBOOK_MULTIMODAL_50K.md`.

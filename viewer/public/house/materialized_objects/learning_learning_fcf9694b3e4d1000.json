@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'O型腿' (zh).",
+  "created_at": "2025-09-23T13:49:52.973031Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'O型腿' (zh).",
+  "predicted": "bow legs; bow-leggedness",
+  "true_answer": "bow legs; bow-leggedness",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

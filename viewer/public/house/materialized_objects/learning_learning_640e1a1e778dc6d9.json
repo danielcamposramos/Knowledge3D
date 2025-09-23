@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'Augustin-Jean Fresnel' (pt).",
+  "created_at": "2025-09-23T03:20:26.236283Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'Augustin-Jean Fresnel' (pt).",
+  "predicted": "French physicist who invented polarized light and invented the Fresnel lens (1788-1827)",
+  "true_answer": "French physicist who invented polarized light and invented the Fresnel lens (1788-1827)",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

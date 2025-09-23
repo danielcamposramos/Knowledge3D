@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? Sobre relacionamentos como reguladores emocionais, consulte Lisa Diamond e Lisa Aspinwall, “Emotion Regulation Across the Life Span: An Integrative Perspective Emphasizing Self-regulation, Positive Affect, and Dyadic Processes”,  Motivation and Emotion  27, n.",
+  "created_at": "2025-09-23T02:47:52.467458Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? Sobre relacionamentos como reguladores emocionais, consulte Lisa Diamond e Lisa Aspinwall, “Emotion Regulation Across the Life Span: An Integrative Perspective Emphasizing Self-regulation, Positive Affect, and Dyadic Processes”,  Motivation and Emotion  27, n.",
+  "predicted": "Sobre relacionamentos como reguladores emocionais, consulte Lisa Diamond e Lisa Aspinwall, “Emotion Regulation Across the Life Span: An Integrative Perspective Emphasizing Self-regulation, Positive Affect, and Dyadic Processes”,  Motivation and Emotion  27, n.",
+  "true_answer": "Sobre relacionamentos como reguladores emocionais, consulte Lisa Diamond e Lisa Aspinwall, “Emotion Regulation Across the Life Span: An Integrative Perspective Emphasizing Self-regulation, Positive Affect, and Dyadic Processes”,  Motivation and Emotion  27, n.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

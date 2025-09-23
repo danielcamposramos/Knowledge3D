@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'hebreu' (pt).",
+  "created_at": "2025-09-23T03:21:36.786499Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'hebreu' (pt).",
+  "predicted": "a person belonging to the worldwide group claiming descent from Jacob (or converted to it) and connected by cultural or religious ties",
+  "true_answer": "a person belonging to the worldwide group claiming descent from Jacob (or converted to it) and connected by cultural or religious ties",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

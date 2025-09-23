@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: Does your _____ perform repeated lookups or minimum com- putations?",
+  "created_at": "2025-09-23T05:01:26.536440Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: Does your _____ perform repeated lookups or minimum com- putations?",
+  "predicted": "algorithm",
+  "true_answer": "algorithm",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

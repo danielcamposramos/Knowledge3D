@@ -15,7 +15,7 @@ import os
 import re
 import shutil
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Dict, Iterable, List, Optional, Tuple
@@ -48,6 +48,7 @@ LEXICON_JSONL_FILES = [
 LANGUAGE_GALAXY_DIR = Path("viewer/public/galaxy")
 
 _HYPHEN_RE = re.compile(r"(\w)-\s+(\w)")
+_SIGNIFICANT_EVENT_RE = re.compile(r"^what significant event happened in \d{1,3}\??$", re.IGNORECASE)
 
 
 class _TeeStream(io.TextIOBase):
@@ -87,6 +88,7 @@ class AlgorithmicThinkingTrainer:
         self._rpn_corpus: List[Dict[str, Any]] = []
         self._thinking_corpus: List[Dict[str, Any]] = []
         self._time_corpus: List[Dict[str, Any]] = []
+        self._math_corpus: List[Dict[str, Any]] = []
         self._reflection_corpus: List[Dict[str, Any]] = []
         self._context_corpus: List[Dict[str, Any]] = []
         self._teaching_corpus: List[Dict[str, Any]] = []
@@ -102,6 +104,14 @@ class AlgorithmicThinkingTrainer:
         self._sleep_targets: List[int] = []
         self._sleep_cycle_index: int = 0
         self._sleep_cycles_completed: int = 0
+        self.mastery_threshold: int = 2
+        self.mastered_prompts_path = self.galaxy_working_dir / "mastered_prompts.jsonl"
+        self._mastered_prompts: Dict[str, Dict[str, Any]] = self._load_mastered_prompts()
+        self._retired_prompts: set[str] = {
+            prompt
+            for prompt, meta in self._mastered_prompts.items()
+            if meta.get("retired") or int(meta.get("count", 0)) >= self.mastery_threshold
+        }
         
     @property
     def trainer(self) -> "MeaningClusterTrainer":
@@ -373,32 +383,44 @@ class AlgorithmicThinkingTrainer:
 
         for dataset, tag in (
             (self._time_corpus, "time"),
+            (self._math_corpus, "math"),
             (self._reflection_corpus, "self_reflection"),
             (self._context_corpus, "context"),
             (self._teaching_corpus, "teaching"),
             (self._research_corpus, "research"),
         ):
+            if not dataset:
+                continue
             for entry in dataset:
+                question = self._normalize_text(entry.get('question', ''))
+                answer = str(entry.get('answer', '')).strip()
+                if not question or not answer:
+                    continue
                 queries.append(
                     {
-                        "query": entry.get('question', ''),
-                        "true_answer": entry.get('answer', ''),
-                        "explanation": entry.get('answer', ''),
+                        "query": question,
+                        "true_answer": answer,
+                        "explanation": entry.get('explanation', answer),
                         "keywords": [tag],
                     }
                 )
         for entry in getattr(self, "_lexicon_corpus", []):
+            question = entry.get("question", "")
+            answer = entry.get("answer", "")
+            if not question or not answer:
+                continue
             queries.append(
                 {
-                    "query": entry.get("question", ""),
-                    "true_answer": entry.get("answer", ""),
-                    "explanation": entry.get("explanation", ""),
+                    "query": question,
+                    "true_answer": answer,
+                    "explanation": entry.get("explanation", answer),
                     "keywords": [entry.get("lemma", ""), entry.get("language", "")],
                 }
             )
         if self._aime_queue:
             queries.append(self._aime_queue.pop(0))
-        return queries
+        filtered = [q for q in queries if self._should_use_prompt(q.get("query", ""))]
+        return filtered
 
     def extract_concepts(self, text: str) -> List[str]:
         keywords = [
@@ -878,6 +900,8 @@ class AlgorithmicThinkingTrainer:
                     obj = json.loads(line)
                 except json.JSONDecodeError:
                     continue
+                if not self._is_valid_corpus_entry(obj):
+                    continue
                 entries.append(obj)
                 if len(entries) >= limit:
                     break
@@ -887,6 +911,71 @@ class AlgorithmicThinkingTrainer:
         if not text:
             return text
         return _HYPHEN_RE.sub(r"\1\2", text)
+
+    def _is_valid_corpus_entry(self, entry: Dict[str, Any]) -> bool:
+        question = str(entry.get("question") or entry.get("query") or "").strip()
+        answer = str(entry.get("answer") or entry.get("true_answer") or "").strip()
+        if not question or not answer:
+            return False
+        normalized = question.lower()
+        if _SIGNIFICANT_EVENT_RE.match(normalized):
+            return False
+        if question in self._retired_prompts:
+            return False
+        return True
+
+    def _load_mastered_prompts(self) -> Dict[str, Dict[str, Any]]:
+        data: Dict[str, Dict[str, Any]] = {}
+        path = self.mastered_prompts_path
+        if not path.exists():
+            return data
+        with path.open("r", encoding="utf-8") as fh:
+            for line in fh:
+                try:
+                    obj = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                prompt = obj.get("prompt")
+                if not prompt:
+                    continue
+                data[str(prompt)] = obj
+        return data
+
+    def _save_mastered_prompts(self) -> None:
+        entries = [self._mastered_prompts[prompt] for prompt in sorted(self._mastered_prompts.keys())]
+        self.mastered_prompts_path.parent.mkdir(parents=True, exist_ok=True)
+        with self.mastered_prompts_path.open("w", encoding="utf-8") as fh:
+            for entry in entries:
+                fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+    def _track_mastered_prompt(self, prompt: str, score: float) -> None:
+        normalized = prompt.strip()
+        if not normalized or score < 1.0:
+            return
+        meta = self._mastered_prompts.setdefault(
+            normalized,
+            {
+                "prompt": normalized,
+                "count": 0,
+                "first_mastered": datetime.now(timezone.utc).isoformat(),
+            },
+        )
+        meta["count"] = int(meta.get("count", 0)) + 1
+        meta["last_mastered"] = datetime.now(timezone.utc).isoformat()
+        if meta["count"] >= self.mastery_threshold and not meta.get("retired"):
+            meta["retired"] = True
+            meta["retired_at"] = datetime.now(timezone.utc).isoformat()
+            self._retired_prompts.add(normalized)
+
+    def _should_use_prompt(self, prompt: str) -> bool:
+        if not prompt or not prompt.strip():
+            return False
+        normalized = prompt.strip().lower()
+        if _SIGNIFICANT_EVENT_RE.match(normalized):
+            return False
+        if prompt.strip() in self._retired_prompts:
+            return False
+        return True
 
     def _prepare_aime_prompts(self, max_items: int = 30) -> None:
         if self._aime_queue:

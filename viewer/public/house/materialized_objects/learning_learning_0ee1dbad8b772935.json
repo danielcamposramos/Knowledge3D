@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'T字帐' (zh).",
+  "created_at": "2025-09-23T09:24:16.898117Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'T字帐' (zh).",
+  "predicted": "T-account (accounting)",
+  "true_answer": "T-account (accounting)",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

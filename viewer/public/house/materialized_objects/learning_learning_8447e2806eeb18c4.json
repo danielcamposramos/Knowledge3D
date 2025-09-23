@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: They’re all laser-_____ on writ- ing books to help readers learn.",
+  "created_at": "2025-09-23T09:30:07.656071Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: They’re all laser-_____ on writ- ing books to help readers learn.",
+  "predicted": "focused",
+  "true_answer": "focused",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

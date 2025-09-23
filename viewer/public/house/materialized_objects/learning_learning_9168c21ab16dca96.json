@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "What significant event happened in 255?",
+  "created_at": "2025-09-23T11:25:40.953313Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": -1.0,
+  "prompt": "What significant event happened in 255?",
+  "predicted": "(In Halloween Haul, we need only one stack, but you might use this code in other settings where multiple stacks are required.) Here’s our definition:  #define SIZE 255 typedef struct stack { node * values[SIZE]; int highest_used; } stack;  Recall that each input line is at most 255 characters.",
+  "true_answer": "Each tree that we deal with will therefore have at most 255 nodes, and this is why our values array has space for 255 ele- ments.",
+  "quick_feedback": {
+    "score": -1.0,
+    "explanation": "Ollama model 'exaone-deep:latest' timed out after 300s; warm the model manually or increase initial timeout."
+  },
+  "deep_feedback": {
+    "score": -1.0,
+    "explanation": "Ollama model 'exaone-deep:latest' timed out after 300s; warm the model manually or increase initial timeout."
+  }
+}

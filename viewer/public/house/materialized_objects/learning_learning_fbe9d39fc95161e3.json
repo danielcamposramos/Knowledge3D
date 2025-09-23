@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Provide the IPA pronunciation for 'NG镜头' (zh).",
+  "created_at": "2025-09-23T04:53:17.215650Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Provide the IPA pronunciation for 'NG镜头' (zh).",
+  "predicted": "N G jing4 tou2",
+  "true_answer": "N G jing4 tou2",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

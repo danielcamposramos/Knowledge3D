@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: We’ll need to _____ a snowflake’s code as before, but then we must force that code to be a number between 0 and 99999 (the minimum and maximum index in our array).",
+  "created_at": "2025-09-23T05:01:41.686501Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: We’ll need to _____ a snowflake’s code as before, but then we must force that code to be a number between 0 and 99999 (the minimum and maximum index in our array).",
+  "predicted": "calculate",
+  "true_answer": "calculate",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: The reason is that we’re required to output the words in sorted order!",
+  "created_at": "2025-09-23T07:36:35.990539Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: The reason is that we’re required to output the words in sorted order!",
+  "predicted": "The reason is that we’re required to output the words in sorted order!",
+  "true_answer": "The reason is that we’re required to output the words in sorted order!",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

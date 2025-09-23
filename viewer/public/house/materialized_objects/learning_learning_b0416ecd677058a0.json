@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'emu' (pt).",
+  "created_at": "2025-09-23T03:21:13.958049Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'emu' (pt).",
+  "predicted": "large Australian flightless bird similar to the ostrich but smaller",
+  "true_answer": "large Australian flightless bird similar to the ostrich but smaller",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'leitura' (pt).",
+  "created_at": "2025-09-23T03:20:59.994609Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'leitura' (pt).",
+  "predicted": "a particular interpretation or performance; \"on that reading it was an insult\"; \"he was famous for his reading of Mozart\"",
+  "true_answer": "a particular interpretation or performance; \"on that reading it was an insult\"; \"he was famous for his reading of Mozart\"",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

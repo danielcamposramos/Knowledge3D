@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: We’ll update the switch positions when needed, but (as per the subtask constraints) we’ll have no reason to touch the door associations again.",
+  "created_at": "2025-09-23T11:52:54.605782Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: We’ll update the switch positions when needed, but (as per the subtask constraints) we’ll have no reason to touch the door associations again.",
+  "predicted": "We’ll update the switch positions when needed, but (as per the subtask constraints) we’ll have no reason to touch the door associations again.",
+  "true_answer": "We’ll update the switch positions when needed, but (as per the subtask constraints) we’ll have no reason to touch the door associations again.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

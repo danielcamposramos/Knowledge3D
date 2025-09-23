@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: About the Technical Reviewer  Larry Yueli Zhang is an Assistant Professor, Teaching Stream of Computer Science at the University of Toronto _____.",
+  "created_at": "2025-09-23T05:01:21.958196Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: About the Technical Reviewer  Larry Yueli Zhang is an Assistant Professor, Teaching Stream of Computer Science at the University of Toronto _____.",
+  "predicted": "Mississauga",
+  "true_answer": "Mississauga",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

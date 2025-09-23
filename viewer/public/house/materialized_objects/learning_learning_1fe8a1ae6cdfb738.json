@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Give a synonym for '101st' (en).",
+  "created_at": "2025-09-23T07:56:02.684154Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Give a synonym for '101st' (en).",
+  "predicted": "hundred-and-first",
+  "true_answer": "hundred-and-first",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

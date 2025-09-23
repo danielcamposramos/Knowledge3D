@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "What significant event happened in 900?",
+  "created_at": "2025-09-23T06:48:08.610041Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "What significant event happened in 900?",
+  "predicted": "We might call oaat on a string of length 900,000, and then call it again on a string with one additional character.",
+  "true_answer": "We might call oaat on a string of length 900,000, and then call it again on a string with one additional character.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

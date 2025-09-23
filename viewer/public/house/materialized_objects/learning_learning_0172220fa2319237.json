@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'refracção' (pt).",
+  "created_at": "2025-09-23T03:22:42.452362Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'refracção' (pt).",
+  "predicted": "the amount by which a propagating wave is bent",
+  "true_answer": "the amount by which a propagating wave is bent",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

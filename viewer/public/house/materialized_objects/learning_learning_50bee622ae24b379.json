@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? Using Binary Search  The numbers 5,000 (maximum number of doors) and 70,000 (maximum number of guesses) subtly encode the fact that binary search is a plausible solution strategy.",
+  "created_at": "2025-09-23T11:53:48.968268Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? Using Binary Search  The numbers 5,000 (maximum number of doors) and 70,000 (maximum number of guesses) subtly encode the fact that binary search is a plausible solution strategy.",
+  "predicted": "Using Binary Search  The numbers 5,000 (maximum number of doors) and 70,000 (maximum number of guesses) subtly encode the fact that binary search is a plausible solution strategy.",
+  "true_answer": "Using Binary Search  The numbers 5,000 (maximum number of doors) and 70,000 (maximum number of guesses) subtly encode the fact that binary search is a plausible solution strategy.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

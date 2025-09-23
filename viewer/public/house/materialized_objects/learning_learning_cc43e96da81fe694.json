@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "What significant event happened in 2012?",
+  "created_at": "2025-09-23T11:46:35.442806Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "What significant event happened in 2012?",
+  "predicted": "Notes  Halloween Haul is originally from the 2012 DWITE Programming Compe- tition, Round 1.",
+  "true_answer": "Notes  Halloween Haul is originally from the 2012 DWITE Programming Compe- tition, Round 1.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

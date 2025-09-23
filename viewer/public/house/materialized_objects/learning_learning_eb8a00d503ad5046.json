@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Provide the IPA pronunciation for 'Q劲' (zh).",
+  "created_at": "2025-09-23T04:53:51.108503Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Provide the IPA pronunciation for 'Q劲' (zh).",
+  "predicted": "Q jin4",
+  "true_answer": "Q jin4",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

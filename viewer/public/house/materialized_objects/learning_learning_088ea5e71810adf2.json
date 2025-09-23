@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'Espaço verde' (pt).",
+  "created_at": "2025-09-23T03:22:57.534252Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'Espaço verde' (pt).",
+  "predicted": "a village park consisting of a plot of grassy land",
+  "true_answer": "a village park consisting of a plot of grassy land",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

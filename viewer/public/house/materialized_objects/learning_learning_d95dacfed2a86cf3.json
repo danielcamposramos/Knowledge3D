@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Give a synonym for '.22' (en).",
+  "created_at": "2025-09-23T11:54:34.899088Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Give a synonym for '.22' (en).",
+  "predicted": "twenty-two",
+  "true_answer": "twenty-two",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

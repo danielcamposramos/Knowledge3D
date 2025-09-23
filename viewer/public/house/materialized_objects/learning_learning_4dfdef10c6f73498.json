@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: You might be concerned that this is a waste of memory.",
+  "created_at": "2025-09-23T07:36:34.119350Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: You might be concerned that this is a waste of memory.",
+  "predicted": "You might be concerned that this is a waste of memory.",
+  "true_answer": "You might be concerned that this is a waste of memory.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

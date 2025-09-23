@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'corpos administrativos' (pt).",
+  "created_at": "2025-09-23T08:09:29.056354Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'corpos administrativos' (pt).",
+  "predicted": "a unit with administrative responsibilities",
+  "true_answer": "a unit with administrative responsibilities",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'quiz' (es).",
+  "created_at": "2025-09-23T08:33:13.796361Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'quiz' (es).",
+  "predicted": "quiz show",
+  "true_answer": "quiz show",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

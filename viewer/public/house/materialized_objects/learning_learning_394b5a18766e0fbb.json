@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: That’s a _____ thing to do for small test cases, but it’s tedious doing that over and over and especially for large test cases.",
+  "created_at": "2025-09-23T00:19:32.551735Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: That’s a _____ thing to do for small test cases, but it’s tedious doing that over and over and especially for large test cases.",
+  "predicted": "reasonable",
+  "true_answer": "reasonable",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

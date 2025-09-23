@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'chanfro' (pt).",
+  "created_at": "2025-09-23T03:23:09.892280Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'chanfro' (pt).",
+  "predicted": "the intersection of two streets; \"standing on the corner watching all the girls go by\"",
+  "true_answer": "the intersection of two streets; \"standing on the corner watching all the girls go by\"",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

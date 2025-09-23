@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "What significant event happened in 2005?",
+  "created_at": "2025-09-23T07:31:01.909513Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": -1.0,
+  "prompt": "What significant event happened in 2005?",
+  "predicted": "Descendant Distance is originally from the 2005 ACM East Central North America Regional Programming Contest.",
+  "true_answer": "For a book-length treatment of recursion, check out Thinking Recursively with Java by Eric Roberts (Wiley, 2005).",
+  "quick_feedback": {
+    "score": -1.0,
+    "explanation": "Ollama model 'exaone-deep:latest' timed out after 300s; warm the model manually or increase initial timeout."
+  },
+  "deep_feedback": {
+    "score": -1.0,
+    "explanation": "Ollama model 'exaone-deep:latest' timed out after 300s; warm the model manually or increase initial timeout."
+  }
+}

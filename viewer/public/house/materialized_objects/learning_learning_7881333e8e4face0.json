@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '1840s' (en).",
+  "created_at": "2025-09-23T08:07:36.027539Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '1840s' (en).",
+  "predicted": "the decade from 1840 to 1849",
+  "true_answer": "the decade from 1840 to 1849",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

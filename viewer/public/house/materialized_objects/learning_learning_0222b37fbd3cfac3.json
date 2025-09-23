@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: Only after months of practice, once the basic rallying skills have been mastered, does the sport and its _____ nature begin to reveal itself.",
+  "created_at": "2025-09-23T05:01:25.920374Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: Only after months of practice, once the basic rallying skills have been mastered, does the sport and its _____ nature begin to reveal itself.",
+  "predicted": "addictive",
+  "true_answer": "addictive",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

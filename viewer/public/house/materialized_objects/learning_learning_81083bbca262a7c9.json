@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'convenção' (pt).",
+  "created_at": "2025-09-23T08:08:29.782961Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'convenção' (pt).",
+  "predicted": "orthodoxy as a consequence of being conventional",
+  "true_answer": "orthodoxy as a consequence of being conventional",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

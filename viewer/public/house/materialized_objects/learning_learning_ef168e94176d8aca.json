@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'K人' (zh).",
+  "created_at": "2025-09-23T09:23:48.214276Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'K人' (zh).",
+  "predicted": "(slang) to hit sb; to beat sb",
+  "true_answer": "(slang) to hit sb; to beat sb",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

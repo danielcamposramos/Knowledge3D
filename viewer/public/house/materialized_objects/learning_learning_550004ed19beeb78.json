@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Apply scientific reasoning to: As you’ll see, while in theory we can use re- cursion, in practice it leads to an explosion of work that renders the problems unsolvable.",
+  "created_at": "2025-09-23T02:49:14.936695Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Apply scientific reasoning to: As you’ll see, while in theory we can use re- cursion, in practice it leads to an explosion of work that renders the problems unsolvable.",
+  "predicted": "As you’ll see, while in theory we can use re- cursion, in practice it leads to an explosion of work that renders the problems unsolvable.",
+  "true_answer": "As you’ll see, while in theory we can use re- cursion, in practice it leads to an explosion of work that renders the problems unsolvable.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

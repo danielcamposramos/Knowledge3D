@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'registro' (pt).",
+  "created_at": "2025-09-23T08:08:41.574926Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'registro' (pt).",
+  "predicted": "an official written record of names or events or transactions",
+  "true_answer": "an official written record of names or events or transactions",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

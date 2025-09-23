@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'carícia' (pt).",
+  "created_at": "2025-09-23T03:23:46.799754Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'carícia' (pt).",
+  "predicted": "a close and affectionate (and often prolonged) embrace",
+  "true_answer": "a close and affectionate (and often prolonged) embrace",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

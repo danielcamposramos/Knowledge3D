@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'cobrir' (pt).",
+  "created_at": "2025-09-23T12:28:22.736644Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'cobrir' (pt).",
+  "predicted": "cover with wooden boards; \"board up windows before the hurricane\"",
+  "true_answer": "cover with wooden boards; \"board up windows before the hurricane\"",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'Marcha nupcial' (pt).",
+  "created_at": "2025-09-23T03:21:46.217179Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'Marcha nupcial' (pt).",
+  "predicted": "a march to be played for a wedding procession",
+  "true_answer": "a march to be played for a wedding procession",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'quid pro quo' (es).",
+  "created_at": "2025-09-23T12:38:56.147977Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'quid pro quo' (es).",
+  "predicted": "quid pro quo",
+  "true_answer": "quid pro quo",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

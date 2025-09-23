@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'numeral' (es).",
+  "created_at": "2025-09-23T13:48:58.692181Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'numeral' (es).",
+  "predicted": "numeral",
+  "true_answer": "numeral",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

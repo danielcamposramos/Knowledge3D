@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '165' (en).",
+  "created_at": "2025-09-23T12:24:13.689363Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '165' (en).",
+  "predicted": "being five more than one hundred sixty",
+  "true_answer": "being five more than one hundred sixty",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

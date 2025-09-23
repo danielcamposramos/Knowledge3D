@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? ABOUT THE AUTHOR  Daniel Zingaro is an award-winning Assistant Professor  of Mathematical and Computational Sciences at the University of Toronto Mississauga, where he is well known  for his uniquely interactive approach to teaching, and  internationally recognized for his expertise in Active  Learning.",
+  "created_at": "2025-09-23T02:46:25.537551Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? ABOUT THE AUTHOR  Daniel Zingaro is an award-winning Assistant Professor  of Mathematical and Computational Sciences at the University of Toronto Mississauga, where he is well known  for his uniquely interactive approach to teaching, and  internationally recognized for his expertise in Active  Learning.",
+  "predicted": "ABOUT THE AUTHOR  Daniel Zingaro is an award-winning Assistant Professor  of Mathematical and Computational Sciences at the University of Toronto Mississauga, where he is well known  for his uniquely interactive approach to teaching, and  internationally recognized for his expertise in Active  Learning.",
+  "true_answer": "ABOUT THE AUTHOR  Daniel Zingaro is an award-winning Assistant Professor  of Mathematical and Computational Sciences at the University of Toronto Mississauga, where he is well known  for his uniquely interactive approach to teaching, and  internationally recognized for his expertise in Active  Learning.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

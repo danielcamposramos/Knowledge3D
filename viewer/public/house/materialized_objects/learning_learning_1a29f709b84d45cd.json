@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Apply scientific reasoning to: The result is similar to the recursive call for second ∑ :  78 Chapter 3",
+  "created_at": "2025-09-23T02:49:18.967835Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Apply scientific reasoning to: The result is similar to the recursive call for second ∑ :  78 Chapter 3",
+  "predicted": "The result is similar to the recursive call for second ∑ :  78 Chapter 3",
+  "true_answer": "The result is similar to the recursive call for second ∑ :  78 Chapter 3",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

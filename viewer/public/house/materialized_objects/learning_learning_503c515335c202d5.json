@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: Lane et al., “Neural Correlates of Levels of Emotional Awareness: Evidence of an Interaction Between Emotion and Attention in the Anterior Cingulate Cortex”,  Journal of Cognitive Neuroscience  10 (1998), pp.",
+  "created_at": "2025-09-23T11:53:07.968757Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: Lane et al., “Neural Correlates of Levels of Emotional Awareness: Evidence of an Interaction Between Emotion and Attention in the Anterior Cingulate Cortex”,  Journal of Cognitive Neuroscience  10 (1998), pp.",
+  "predicted": "Lane et al., “Neural Correlates of Levels of Emotional Awareness: Evidence of an Interaction Between Emotion and Attention in the Anterior Cingulate Cortex”,  Journal of Cognitive Neuroscience  10 (1998), pp.",
+  "true_answer": "Lane et al., “Neural Correlates of Levels of Emotional Awareness: Evidence of an Interaction Between Emotion and Attention in the Anterior Cingulate Cortex”,  Journal of Cognitive Neuroscience  10 (1998), pp.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

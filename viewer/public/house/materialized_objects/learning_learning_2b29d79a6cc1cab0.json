@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'abjure' (es).",
+  "created_at": "2025-09-23T08:33:06.294331Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'abjure' (es).",
+  "predicted": "inflection of abjurar:",
+  "true_answer": "inflection of abjurar:",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

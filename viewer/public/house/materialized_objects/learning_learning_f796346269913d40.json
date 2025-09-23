@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Give a synonym for '120th' (en).",
+  "created_at": "2025-09-23T08:01:19.195072Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Give a synonym for '120th' (en).",
+  "predicted": "hundred-and-twentieth",
+  "true_answer": "hundred-and-twentieth",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

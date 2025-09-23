@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '18-karat gold' (en).",
+  "created_at": "2025-09-23T08:07:33.298587Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '18-karat gold' (en).",
+  "predicted": "an alloy that contains 75 per cent gold",
+  "true_answer": "an alloy that contains 75 per cent gold",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

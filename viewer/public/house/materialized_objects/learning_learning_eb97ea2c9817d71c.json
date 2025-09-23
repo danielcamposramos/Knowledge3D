@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How does context influence this statement? Uma  parceria  emblemática  para  pesquisas  nesse  novo  campo  se  dá  entre  psicólogos  e neurocientistas para a utilização de equipamentos de ressonância magnética funcional (RMf) que, antes,  eram  normalmente  utilizados  para  diagnósticos  clínicos  no  contexto  hospitalar.",
+  "created_at": "2025-09-23T07:37:11.755434Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How does context influence this statement? Uma  parceria  emblemática  para  pesquisas  nesse  novo  campo  se  dá  entre  psicólogos  e neurocientistas para a utilização de equipamentos de ressonância magnética funcional (RMf) que, antes,  eram  normalmente  utilizados  para  diagnósticos  clínicos  no  contexto  hospitalar.",
+  "predicted": "Uma  parceria  emblemática  para  pesquisas  nesse  novo  campo  se  dá  entre  psicólogos  e neurocientistas para a utilização de equipamentos de ressonância magnética funcional (RMf) que, antes,  eram  normalmente  utilizados  para  diagnósticos  clínicos  no  contexto  hospitalar.",
+  "true_answer": "Uma  parceria  emblemática  para  pesquisas  nesse  novo  campo  se  dá  entre  psicólogos  e neurocientistas para a utilização de equipamentos de ressonância magnética funcional (RMf) que, antes,  eram  normalmente  utilizados  para  diagnósticos  clínicos  no  contexto  hospitalar.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

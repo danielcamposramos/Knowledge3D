@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '1530s' (en).",
+  "created_at": "2025-09-23T12:22:42.922595Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '1530s' (en).",
+  "predicted": "the decade from 1530 to 1539",
+  "true_answer": "the decade from 1530 to 1539",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

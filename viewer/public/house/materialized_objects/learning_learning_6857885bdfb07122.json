@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How does context influence this statement? As heaps are useful in many contexts beyond Dijkstra’s algorithm, I’ll discuss them later, in Chapter 7.",
+  "created_at": "2025-09-23T11:53:15.349661Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How does context influence this statement? As heaps are useful in many contexts beyond Dijkstra’s algorithm, I’ll discuss them later, in Chapter 7.",
+  "predicted": "As heaps are useful in many contexts beyond Dijkstra’s algorithm, I’ll discuss them later, in Chapter 7.",
+  "true_answer": "As heaps are useful in many contexts beyond Dijkstra’s algorithm, I’ll discuss them later, in Chapter 7.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

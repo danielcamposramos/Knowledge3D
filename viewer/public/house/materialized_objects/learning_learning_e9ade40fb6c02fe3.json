@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: There is a seemingly endless stream of pro- gramming and computing knowledge _____ by these problems.",
+  "created_at": "2025-09-23T00:19:09.684577Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: There is a seemingly endless stream of pro- gramming and computing knowledge _____ by these problems.",
+  "predicted": "encompassed",
+  "true_answer": "encompassed",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

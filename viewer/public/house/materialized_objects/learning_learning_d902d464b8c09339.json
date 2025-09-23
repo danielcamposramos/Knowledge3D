@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Provide the IPA pronunciation for '1st' (en).",
+  "created_at": "2025-09-23T03:20:08.745739Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Provide the IPA pronunciation for '1st' (en).",
+  "predicted": "fɝst",
+  "true_answer": "fɝst",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

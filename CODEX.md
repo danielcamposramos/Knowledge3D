@@ -93,9 +93,9 @@ This file lists actionable tasks for AI agents working on the Knowledge3D reposi
     - [ ] **Task:** Integrate the Firefox-based (or existing) browser container with the tablet so the avatar can open legacy web pages and capture them as structured notes.
     - **Details:** Each browsing session should produce a tablet note that SleepTime can consolidate into the House and tag with source metadata.
 
-4. **Prompt Pruning & Verification Loop**
-    - [ ] **Task:** Update Phase18/Phase25 trainers to retire prompts once the fused head + house confirmation succeeds twice (active + consolidated run).
-    - **Details:** Remove retired prompts from active drill sets, move them to a “verification” list, and log the decision in `learning_memory.jsonl`.
+4. **Prompt Hygiene & Verification Loop**
+    - [ ] **Task:** Remove nonsensical prompts (e.g., “What happened in 000?”), retire prompts after two perfect runs, and ensure every session logs timezone-aware timestamps.
+    - **Details:** Update Phase18/Phase25 trainers to maintain mastered vs active pools, record retirement decisions, and follow `docs/TRAINING_DIRECTIVES.md`.
 
 5. **Museum Relocation Automation**
     - [ ] **Task:** Automate calls to `relocate_to_museum` (or a refactored helper) whenever SleepTime supersedes an artifact.
@@ -106,8 +106,8 @@ This file lists actionable tasks for AI agents working on the Knowledge3D reposi
     - **Details:** Respect GPU budgets; allow the tablet to request upgrades/downgrades per artifact. Expose current LOD state to the fused head so PTX kernels know what data is loaded.
 
 7. **Telemetry & Confidence**
-    - [ ] **Task:** Instrument tablet interactions so we can measure how often the avatar consults House vs Galaxy vs Museum.
-    - **Details:** Store telemetry alongside learning-memory entries to help tune SleepTime thresholds.
+    - [ ] **Task:** Instrument tablet interactions so we can measure how often the avatar consults House vs Galaxy vs Museum, including timezone-aware timestamps.
+    - **Details:** Store telemetry alongside learning-memory entries to help tune SleepTime thresholds and critical reflection.
 
 ---
 
@@ -117,9 +117,10 @@ This file lists actionable tasks for AI agents working on the Knowledge3D reposi
 -   **Knowledge Graph & RAG:** Research and develop a robust backend using a knowledge graph and a Retrieval-Augmented Generation (RAG) system.
 -   **3D Data Standards:** Continue to monitor and align with standards like glTF, OpenUSD, and 3D Tiles.
 -   **Graph Database Standards:** Continue to align K3D's data model with standards like openCypher and RDF.
--   **Phase 25 Sleep Consolidation:** Keep the `k3d-cranium` CUDA toolchain (with `cuda-python`) ready so `SleepTimeCompute` continues persisting Phase 25 knowledge into the House. Verify that each cycle rebuilds both `learning_memory.glb` and the new `house_memory.glb` for the tablet.
+-   **Phase 25 Sleep Consolidation:** Keep the `k3d-cranium` CUDA toolchain (with `cuda-python`) ready so `SleepTimeCompute` continues persisting Phase 25 knowledge into the House. Verify that each cycle rebuilds both `learning_memory.glb` and `house_memory.glb`, absorbs trusted teacher feedback immediately, and records timezone-aware timestamps.
 -   **Lexicon Refinement:** Rebuild Q&A material from the cleaned book sources using exaone3.5 with full-document context to avoid page-break artifacts (e.g., `ma- chine`).
--   **Galaxy Coverage:** Ingest the balanced EN/ES/PT_PT/ZH Wikipedia splits into `viewer/public/galaxy/working/` so algorithmic runs have broad factual grounding while keeping mastered prompts out of the active drill queues.
+-   **Galaxy Coverage:** Ingest the balanced EN/ES/PT_PT/ZH Wikipedia splits into `viewer/public/galaxy/working/` while keeping mastered prompts out of the active drill queues.
+-   **Time & Math Enrichment:** Pull curated time and math corpora from `/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/...` directories, augment with exaone models, and feed them through the Phase18/Phase25 trainers following `docs/TRAINING_DIRECTIVES.md`.
 -   **Thinking Tags Visibility:** Run the Phase 10 thinking-tag trainer after long RLWHF sessions to keep reasoning labels exposed during evaluation.
 -   **Generalisation Benchmarks:** After consolidation, measure zero-shot math reasoning on `Maxwell-Jia/AIME_2024` to confirm the model generalises beyond retrievable content.
 

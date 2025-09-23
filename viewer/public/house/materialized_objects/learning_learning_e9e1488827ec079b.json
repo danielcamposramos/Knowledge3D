@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '1750s' (en).",
+  "created_at": "2025-09-23T12:25:44.001486Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '1750s' (en).",
+  "predicted": "the decade from 1750 to 1759",
+  "true_answer": "the decade from 1750 to 1759",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

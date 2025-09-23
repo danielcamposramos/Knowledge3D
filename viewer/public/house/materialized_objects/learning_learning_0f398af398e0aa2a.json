@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: Consequently, they’re stored in their own, separate segment of memory, where they don’t have to compete with whatever else might be on the call stack.",
+  "created_at": "2025-09-23T02:43:49.255194Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: Consequently, they’re stored in their own, separate segment of memory, where they don’t have to compete with whatever else might be on the call stack.",
+  "predicted": "Consequently, they’re stored in their own, separate segment of memory, where they don’t have to compete with whatever else might be on the call stack.",
+  "true_answer": "Consequently, they’re stored in their own, separate segment of memory, where they don’t have to compete with whatever else might be on the call stack.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

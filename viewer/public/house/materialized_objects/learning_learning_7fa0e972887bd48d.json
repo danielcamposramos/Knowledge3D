@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Provide the IPA pronunciation for 'pez' (es).",
+  "created_at": "2025-09-23T04:09:27.546375Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Provide the IPA pronunciation for 'pez' (es).",
+  "predicted": "/ˈpeθ/",
+  "true_answer": "/ˈpeθ/",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

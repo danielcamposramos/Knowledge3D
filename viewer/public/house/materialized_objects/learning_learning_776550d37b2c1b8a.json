@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'notificar' (pt).",
+  "created_at": "2025-09-23T12:28:30.958102Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'notificar' (pt).",
+  "predicted": "make known to the authorities; \"One student reported the other to the principal\"",
+  "true_answer": "make known to the authorities; \"One student reported the other to the principal\"",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

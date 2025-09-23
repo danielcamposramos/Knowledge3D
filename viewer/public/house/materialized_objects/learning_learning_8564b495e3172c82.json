@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '1862 Apollo' (en).",
+  "created_at": "2025-09-23T08:07:37.659000Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '1862 Apollo' (en).",
+  "predicted": "an asteroid whose orbit crosses the Earth's orbit",
+  "true_answer": "an asteroid whose orbit crosses the Earth's orbit",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'divisão' (pt).",
+  "created_at": "2025-09-23T12:28:17.322041Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'divisão' (pt).",
+  "predicted": "an arithmetic operation that is the inverse of multiplication; the quotient of two numbers is computed",
+  "true_answer": "an arithmetic operation that is the inverse of multiplication; the quotient of two numbers is computed",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

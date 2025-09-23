@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "What significant event happened in 345?",
+  "created_at": "2025-09-23T05:09:02.323716Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "What significant event happened in 345?",
+  "predicted": "345 Quadratic Time 345 Big O in This Book .",
+  "true_answer": "345 Quadratic Time 345 Big O in This Book .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

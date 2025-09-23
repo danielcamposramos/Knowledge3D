@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "What significant event happened in 296?",
+  "created_at": "2025-09-23T00:26:03.858600Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "What significant event happened in 296?",
+  "predicted": "296 The Problem 296 Modeling as a Graph  297 Solution 1: BFS 300 Union-Find .",
+  "true_answer": "296 The Problem 296 Modeling as a Graph  297 Solution 1: BFS 300 Union-Find .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '1000000' (en).",
+  "created_at": "2025-09-23T12:03:46.346999Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '1000000' (en).",
+  "predicted": "the number that is represented as a one followed by 6 zeros",
+  "true_answer": "the number that is represented as a one followed by 6 zeros",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

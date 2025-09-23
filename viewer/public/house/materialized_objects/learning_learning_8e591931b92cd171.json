@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: When we don’t know the maximum length of a string, we’ll build an _____ array: we won’t let the language handle memory allocation for us.",
+  "created_at": "2025-09-23T00:19:11.847878Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: When we don’t know the maximum length of a string, we’ll build an _____ array: we won’t let the language handle memory allocation for us.",
+  "predicted": "extensible",
+  "true_answer": "extensible",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

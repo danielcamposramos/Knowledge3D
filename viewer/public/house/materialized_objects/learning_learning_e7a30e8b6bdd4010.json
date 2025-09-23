@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '100 mL' (en).",
+  "created_at": "2025-09-23T12:02:11.543652Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '100 mL' (en).",
+  "predicted": "100 mL of liquor, drunk from a shot glass.",
+  "true_answer": "100 mL of liquor, drunk from a shot glass.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

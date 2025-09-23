@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? Tree-Based Approach  The most efficient union-find data structures are based on trees.",
+  "created_at": "2025-09-23T07:37:47.774029Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? Tree-Based Approach  The most efficient union-find data structures are based on trees.",
+  "predicted": "Tree-Based Approach  The most efficient union-find data structures are based on trees.",
+  "true_answer": "Tree-Based Approach  The most efficient union-find data structures are based on trees.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

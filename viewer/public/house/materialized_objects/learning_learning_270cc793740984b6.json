@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? Porque jamais tínhamos obtido o feedback adequado”, disse-me Ekman.",
+  "created_at": "2025-09-23T11:54:03.482099Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? Porque jamais tínhamos obtido o feedback adequado”, disse-me Ekman.",
+  "predicted": "Porque jamais tínhamos obtido o feedback adequado”, disse-me Ekman.",
+  "true_answer": "Porque jamais tínhamos obtido o feedback adequado”, disse-me Ekman.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

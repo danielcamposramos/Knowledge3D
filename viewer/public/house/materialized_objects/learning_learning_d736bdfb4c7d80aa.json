@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '120' (zh).",
+  "created_at": "2025-09-23T13:49:07.804305Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '120' (zh).",
+  "predicted": "the emergency number for medical assistance and first aid in Mainland China",
+  "true_answer": "the emergency number for medical assistance and first aid in Mainland China",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

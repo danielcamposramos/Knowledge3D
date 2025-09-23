@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'substantive' (es).",
+  "created_at": "2025-09-23T12:38:56.421337Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'substantive' (es).",
+  "predicted": "inflection of substantivar:",
+  "true_answer": "inflection of substantivar:",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

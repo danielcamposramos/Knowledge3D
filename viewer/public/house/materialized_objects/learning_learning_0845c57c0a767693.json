@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'harmonia' (pt).",
+  "created_at": "2025-09-23T03:20:17.488325Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'harmonia' (pt).",
+  "predicted": "the structure of music with respect to the composition and progression of chords",
+  "true_answer": "the structure of music with respect to the composition and progression of chords",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

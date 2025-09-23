@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Apply scientific reasoning to: The code for this case is analogous to the m -minute burger case, this time using the variable second instead of first :  int second; if (t >= n) second = solve_t(m, n, t - n); else second = -1;  Let’s summarize our current progress: • The variable first is the solution to the t - m subproblem.",
+  "created_at": "2025-09-23T11:54:26.549189Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Apply scientific reasoning to: The code for this case is analogous to the m -minute burger case, this time using the variable second instead of first :  int second; if (t >= n) second = solve_t(m, n, t - n); else second = -1;  Let’s summarize our current progress: • The variable first is the solution to the t - m subproblem.",
+  "predicted": "The code for this case is analogous to the m -minute burger case, this time using the variable second instead of first :  int second; if (t >= n) second = solve_t(m, n, t - n); else second = -1;  Let’s summarize our current progress: • The variable first is the solution to the t - m subproblem.",
+  "true_answer": "The code for this case is analogous to the m -minute burger case, this time using the variable second instead of first :  int second; if (t >= n) second = solve_t(m, n, t - n); else second = -1;  Let’s summarize our current progress: • The variable first is the solution to the t - m subproblem.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

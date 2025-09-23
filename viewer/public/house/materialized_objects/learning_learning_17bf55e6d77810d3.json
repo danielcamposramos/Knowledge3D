@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'i人' (zh).",
+  "created_at": "2025-09-23T09:24:29.879207Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'i人' (zh).",
+  "predicted": "(slang) introverted person",
+  "true_answer": "(slang) introverted person",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

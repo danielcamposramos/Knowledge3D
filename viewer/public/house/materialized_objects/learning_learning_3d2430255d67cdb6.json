@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'NG镜头' (zh).",
+  "created_at": "2025-09-23T09:23:58.473580Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'NG镜头' (zh).",
+  "predicted": "(film and TV) blooper",
+  "true_answer": "(film and TV) blooper",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

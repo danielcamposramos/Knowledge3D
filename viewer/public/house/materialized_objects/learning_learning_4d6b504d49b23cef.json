@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'anfiteatro' (pt).",
+  "created_at": "2025-09-23T12:28:49.247574Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'anfiteatro' (pt).",
+  "predicted": "a sloping gallery with seats for spectators (as in an operating room or theater)",
+  "true_answer": "a sloping gallery with seats for spectators (as in an operating room or theater)",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

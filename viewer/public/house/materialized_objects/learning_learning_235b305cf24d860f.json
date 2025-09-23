@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'JK制服' (zh).",
+  "created_at": "2025-09-23T09:23:47.607741Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'JK制服' (zh).",
+  "predicted": "(Japanese) high school girl’s uniform",
+  "true_answer": "(Japanese) high school girl’s uniform",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

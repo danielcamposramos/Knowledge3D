@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'ralhar' (pt).",
+  "created_at": "2025-09-23T08:08:30.850899Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'ralhar' (pt).",
+  "predicted": "show one's unhappiness or critical attitude; \"He scolded about anything that he thought was wrong\"; \"We grumbled about the increased work load\"",
+  "true_answer": "show one's unhappiness or critical attitude; \"He scolded about anything that he thought was wrong\"; \"We grumbled about the increased work load\"",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

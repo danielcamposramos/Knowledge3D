@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '17 November' (en).",
+  "created_at": "2025-09-23T03:17:42.777848Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '17 November' (en).",
+  "predicted": "a Marxist-Leninist terrorist organization in Greece that is violently opposed to imperialism and capitalism and NATO and the United States; an active terrorist group during the 1980s",
+  "true_answer": "a Marxist-Leninist terrorist organization in Greece that is violently opposed to imperialism and capitalism and NATO and the United States; an active terrorist group during the 1980s",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

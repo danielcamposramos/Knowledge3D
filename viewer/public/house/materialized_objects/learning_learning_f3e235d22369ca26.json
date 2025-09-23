@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Apply scientific reasoning to: result = solve(num, price, num_schemes, unit_price, num_items); printf('Buy %d for $%.2f', num_items, result); more = get_number(&num_items); }  π result = solve(num, price, num_schemes, unit_price, num_items);  ∫ printf('Buy %d for $%.2f', num_items, result); } return 0; }  Listing 3-11: The main function  We begin by trying to read the first line of the next test case from the in- put ∂ .",
+  "created_at": "2025-09-23T11:54:31.652278Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Apply scientific reasoning to: result = solve(num, price, num_schemes, unit_price, num_items); printf('Buy %d for $%.2f', num_items, result); more = get_number(&num_items); }  π result = solve(num, price, num_schemes, unit_price, num_items);  ∫ printf('Buy %d for $%.2f', num_items, result); } return 0; }  Listing 3-11: The main function  We begin by trying to read the first line of the next test case from the in- put ∂ .",
+  "predicted": "result = solve(num, price, num_schemes, unit_price, num_items); printf('Buy %d for $%.2f', num_items, result); more = get_number(&num_items); }  π result = solve(num, price, num_schemes, unit_price, num_items);  ∫ printf('Buy %d for $%.2f', num_items, result); } return 0; }  Listing 3-11: The main function  We begin by trying to read the first line of the next test case from the in- put ∂ .",
+  "true_answer": "result = solve(num, price, num_schemes, unit_price, num_items); printf('Buy %d for $%.2f', num_items, result); more = get_number(&num_items); }  π result = solve(num, price, num_schemes, unit_price, num_items);  ∫ printf('Buy %d for $%.2f', num_items, result); } return 0; }  Listing 3-11: The main function  We begin by trying to read the first line of the next test case from the in- put ∂ .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

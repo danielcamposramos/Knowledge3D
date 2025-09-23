@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Apply scientific reasoning to: void solve(int m, int n, int t) { int result, i, first, second; int dp[SIZE];  ∂ dp[0] = 0;  for (i = 1; i <= t; i++) {  86 Chapter 3",
+  "created_at": "2025-09-23T02:49:25.719867Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Apply scientific reasoning to: void solve(int m, int n, int t) { int result, i, first, second; int dp[SIZE];  ∂ dp[0] = 0;  for (i = 1; i <= t; i++) {  86 Chapter 3",
+  "predicted": "void solve(int m, int n, int t) { int result, i, first, second; int dp[SIZE];  ∂ dp[0] = 0;  for (i = 1; i <= t; i++) {  86 Chapter 3",
+  "true_answer": "void solve(int m, int n, int t) { int result, i, first, second; int dp[SIZE];  ∂ dp[0] = 0;  for (i = 1; i <= t; i++) {  86 Chapter 3",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

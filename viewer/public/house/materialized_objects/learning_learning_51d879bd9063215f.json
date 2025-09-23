@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: If we _____ n ( n – 1)/2, we get n 2 /2 – n /2.",
+  "created_at": "2025-09-23T00:19:59.944107Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: If we _____ n ( n – 1)/2, we get n 2 /2 – n /2.",
+  "predicted": "expand",
+  "true_answer": "expand",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

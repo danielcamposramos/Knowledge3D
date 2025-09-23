@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? That lesson is worth remember- ing: while it’s easy to propose a greedy algorithm, it’s not easy to find one that’s correct.",
+  "created_at": "2025-09-23T07:37:44.858732Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? That lesson is worth remember- ing: while it’s easy to propose a greedy algorithm, it’s not easy to find one that’s correct.",
+  "predicted": "That lesson is worth remember- ing: while it’s easy to propose a greedy algorithm, it’s not easy to find one that’s correct.",
+  "true_answer": "That lesson is worth remember- ing: while it’s easy to propose a greedy algorithm, it’s not easy to find one that’s correct.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

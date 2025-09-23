@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'monofonia' (pt).",
+  "created_at": "2025-09-23T08:08:36.137208Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'monofonia' (pt).",
+  "predicted": "music consisting of a single vocal part (usually with accompaniment)",
+  "true_answer": "music consisting of a single vocal part (usually with accompaniment)",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

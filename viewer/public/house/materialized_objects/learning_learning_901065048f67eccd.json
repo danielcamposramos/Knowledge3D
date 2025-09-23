@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'medicina de Família' (pt).",
+  "created_at": "2025-09-23T03:21:24.921847Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'medicina de Família' (pt).",
+  "predicted": "a general practitioner who treats all the family members",
+  "true_answer": "a general practitioner who treats all the family members",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

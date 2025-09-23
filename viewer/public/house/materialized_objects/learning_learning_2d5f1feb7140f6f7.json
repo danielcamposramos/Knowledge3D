@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? This book teaches all the concepts that I’ve mentioned, but it is no mere laundry list.",
+  "created_at": "2025-09-23T02:46:30.901733Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? This book teaches all the concepts that I’ve mentioned, but it is no mere laundry list.",
+  "predicted": "This book teaches all the concepts that I’ve mentioned, but it is no mere laundry list.",
+  "true_answer": "This book teaches all the concepts that I’ve mentioned, but it is no mere laundry list.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

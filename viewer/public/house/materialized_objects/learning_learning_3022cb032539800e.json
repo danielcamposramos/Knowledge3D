@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'Hectômetro' (pt).",
+  "created_at": "2025-09-23T12:28:58.635603Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'Hectômetro' (pt).",
+  "predicted": "a metric unit of length equal to 100 meters",
+  "true_answer": "a metric unit of length equal to 100 meters",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

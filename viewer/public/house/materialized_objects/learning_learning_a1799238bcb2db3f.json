@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: To summarize, we have a memory–time tradeoff here.",
+  "created_at": "2025-09-23T11:52:45.506625Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: To summarize, we have a memory–time tradeoff here.",
+  "predicted": "To summarize, we have a memory–time tradeoff here.",
+  "true_answer": "To summarize, we have a memory–time tradeoff here.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}
