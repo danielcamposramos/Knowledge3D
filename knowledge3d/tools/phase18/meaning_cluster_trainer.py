@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 import base64
 import re
 import os
@@ -16,6 +16,8 @@ import textwrap
 from itertools import cycle
 
 import numpy as np  # type: ignore
+
+_SIGNIFICANT_EVENT_RE = re.compile(r"^what significant event happened in \d{1,3}\??$", re.IGNORECASE)
 
 try:
     from knowledge3d.cranium.fused_head import AdaptedFusedHead  # type: ignore
@@ -790,6 +792,15 @@ class MeaningClusterTrainer:
         self.generated_asset_base = Path("viewer/public/house/generated")
         self.generated_asset_base.mkdir(parents=True, exist_ok=True)
 
+        self.mastery_threshold: int = 2
+        self.mastered_prompts_path = Path("viewer/public/galaxy/working/mastered_prompts.jsonl")
+        self._mastered_prompts: Dict[str, Dict[str, Any]] = self._load_mastered_prompts()
+        self._retired_prompts: set[str] = {
+            prompt
+            for prompt, meta in self._mastered_prompts.items()
+            if meta.get("retired") or int(meta.get("count", 0)) >= self.mastery_threshold
+        }
+
         try:
             from knowledge3d.cranium.phase22.galaxy_memory_updater import GalaxyMemoryUpdater  # type: ignore
 
@@ -1212,6 +1223,59 @@ class MeaningClusterTrainer:
     def _normalize_text(self, text: str) -> str:
         return re.sub(r'[^a-z0-9]+', ' ', str(text).lower()).strip()
 
+    def _should_use_prompt(self, prompt: str) -> bool:
+        if not prompt or not prompt.strip():
+            return False
+        normalized = prompt.strip().lower()
+        if _SIGNIFICANT_EVENT_RE.match(normalized):
+            return False
+        if prompt.strip() in self._retired_prompts:
+            return False
+        return True
+
+    def _load_mastered_prompts(self) -> Dict[str, Dict[str, Any]]:
+        data: Dict[str, Dict[str, Any]] = {}
+        path = self.mastered_prompts_path
+        if not path.exists():
+            return data
+        with path.open("r", encoding="utf-8") as fh:
+            for line in fh:
+                try:
+                    obj = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                prompt = obj.get("prompt")
+                if not prompt:
+                    continue
+                data[str(prompt)] = obj
+        return data
+
+    def _save_mastered_prompts(self) -> None:
+        entries = [self._mastered_prompts[prompt] for prompt in sorted(self._mastered_prompts.keys())]
+        self.mastered_prompts_path.parent.mkdir(parents=True, exist_ok=True)
+        with self.mastered_prompts_path.open("w", encoding="utf-8") as fh:
+            for entry in entries:
+                fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+    def _track_mastered_prompt(self, prompt: str, score: float) -> None:
+        normalized = prompt.strip()
+        if not normalized or score < 1.0:
+            return
+        meta = self._mastered_prompts.setdefault(
+            normalized,
+            {
+                "prompt": normalized,
+                "count": 0,
+                "first_mastered": datetime.now(timezone.utc).isoformat(),
+            },
+        )
+        meta["count"] = int(meta.get("count", 0)) + 1
+        meta["last_mastered"] = datetime.now(timezone.utc).isoformat()
+        if meta["count"] >= self.mastery_threshold and not meta.get("retired"):
+            meta["retired"] = True
+            meta["retired_at"] = datetime.now(timezone.utc).isoformat()
+            self._retired_prompts.add(normalized)
+
     def evaluate_house_answer(
         self,
         predicted: str,
@@ -1419,16 +1483,25 @@ class MeaningClusterTrainer:
         consolidated = False
 
         while True:
-            correct = 0
-            total = len(cluster['queries'])
-            honesty_scores: List[float] = []
+            usable_indices = [i for i, query in enumerate(cluster['queries']) if self._should_use_prompt(query)]
+            if not usable_indices:
+                print(f"⚠️  No usable prompts for cluster {cluster_name}; skipping to next.")
+                consolidated = True
+                current_honesty = float(initial_honesty or 0.0)
+                break
 
-            for i, (query, true_answer) in enumerate(zip(cluster['queries'], cluster['true_answers'])):
-                print(f"\nQ{i+1}: {query}")
+            correct = 0
+            total = len(usable_indices)
+            honesty_records: List[Tuple[int, float]] = []
+
+            for rank, idx in enumerate(usable_indices, start=1):
+                query = cluster['queries'][idx]
+                true_answer = cluster['true_answers'][idx]
+                print(f"\nQ{rank}: {query}")
                 # Generate fused embedding (auto paths omitted for scale training)
-                image_path = image_paths[i] if i < len(image_paths) else None
-                audio_path = audio_paths[i] if i < len(audio_paths) else None
-                shape_path = shape_paths[i] if i < len(shape_paths) else None
+                image_path = image_paths[idx] if idx < len(image_paths) else None
+                audio_path = audio_paths[idx] if idx < len(audio_paths) else None
+                shape_path = shape_paths[idx] if idx < len(shape_paths) else None
                 fused_embedding = self.generate_multi_modal_embedding(
                     text=query,
                     image_path=image_path,
@@ -1450,12 +1523,10 @@ class MeaningClusterTrainer:
                         pass
 
                 print(f"🧠 Student Answer: {predicted}")
-                keywords_for_query: List[str]
-                if i < len(keyword_sets):
-                    keywords_for_query = keyword_sets[i] if isinstance(keyword_sets[i], list) else []
-                else:
-                    keywords_for_query = []
-                modality_hint = modality_hints[i] if i < len(modality_hints) else ''
+                keywords_for_query: List[str] = []
+                if idx < len(keyword_sets):
+                    keywords_for_query = keyword_sets[idx] if isinstance(keyword_sets[idx], list) else []
+                modality_hint = modality_hints[idx] if idx < len(modality_hints) else ''
 
                 teacher_feedback = self.evaluate_house_answer(
                     predicted=predicted,
@@ -1476,10 +1547,12 @@ class MeaningClusterTrainer:
                     round_index=remediation_count,
                     teacher_feedback=teacher_feedback,
                 )
-                honesty_scores.append(score)
+                self._track_mastered_prompt(query, score)
+                honesty_records.append((idx, score))
                 if score >= 1.0:
                     correct += 1
 
+            honesty_scores = [score for _, score in honesty_records]
             current_honesty = sum(honesty_scores) / max(1, len(honesty_scores))
             if initial_honesty is None:
                 initial_honesty = current_honesty
@@ -1492,7 +1565,7 @@ class MeaningClusterTrainer:
 
             if remediation_count < 3:
                 print(f"🔧 Generating remedial queries for cluster {cluster_name}...")
-                remedial = self.generate_remedial_queries(cluster, honesty_scores)
+                remedial = self.generate_remedial_queries(cluster, honesty_records)
                 cluster['queries'].extend([r['query'] for r in remedial])
                 cluster['true_answers'].extend([r['true_answer'] for r in remedial])
                 if remedial:
@@ -1521,6 +1594,7 @@ class MeaningClusterTrainer:
 
         print(f"📈 Cluster '{cluster_name}' honesty: {float(initial_honesty or 0.0):.2f} → {current_honesty:.2f} after {remediation_count} remedial rounds")
         status = 'consolidated' if consolidated else 'learning'
+        self._save_mastered_prompts()
         return {
             'cluster': cluster_name,
             'cluster_name': cluster_name,
@@ -1529,7 +1603,7 @@ class MeaningClusterTrainer:
             'remediation_rounds': remediation_count,
             'consolidated': consolidated,
             'status': status,
-            'timestamp': datetime.now().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
         }
 
     def consolidate_meaning_cluster(self, cluster_name: str, cluster: Dict[str, Any], accuracy: float) -> None:
@@ -1623,30 +1697,30 @@ class MeaningClusterTrainer:
             print(f"✅ {relocated} artifacts relocated to Learning Museum for cluster '{cluster_name}'.")
 
     # ---------- Phase 22: scale helpers ----------
-    def generate_remedial_queries(self, cluster: Dict[str, Any], honesty_scores: List[float]) -> List[Dict[str, Any]]:
+    def generate_remedial_queries(self, cluster: Dict[str, Any], honesty_records: List[Tuple[int, float]]) -> List[Dict[str, Any]]:
         remedial: List[Dict[str, Any]] = []
-        for i, sc in enumerate(honesty_scores):
-            if sc < 0.5 and i < len(cluster['queries']):
-                original_query = cluster['queries'][i]
+        for idx, sc in honesty_records:
+            if sc < 0.5 and idx < len(cluster['queries']):
+                original_query = cluster['queries'][idx]
                 keywords = []
                 modality_hint = ''
-                if i < len(cluster.get('keyword_sets', [])):
-                    kset = cluster['keyword_sets'][i]
+                if idx < len(cluster.get('keyword_sets', [])):
+                    kset = cluster['keyword_sets'][idx]
                     keywords = kset if isinstance(kset, list) else []
-                if i < len(cluster.get('modality_hints', [])):
-                    modality_hint = cluster['modality_hints'][i]
+                if idx < len(cluster.get('modality_hints', [])):
+                    modality_hint = cluster['modality_hints'][idx]
                 hint_prefix = modality_hint or "Focus on the missing sensory cues."
                 image_paths = cluster.get('image_paths', [])
                 audio_paths = cluster.get('audio_paths', [])
                 shape_paths = cluster.get('shape_paths', [])
                 remedial.append({
                     'query': f"Remedial: {hint_prefix} Rephrase: {original_query}",
-                    'true_answer': cluster['true_answers'][i],
+                    'true_answer': cluster['true_answers'][idx],
                     'keyword_set': list(keywords),
                     'modality_hint': modality_hint,
-                    'image_path': image_paths[i] if i < len(image_paths) else None,
-                    'audio_path': audio_paths[i] if i < len(audio_paths) else None,
-                    'shape_path': shape_paths[i] if i < len(shape_paths) else None,
+                    'image_path': image_paths[idx] if idx < len(image_paths) else None,
+                    'audio_path': audio_paths[idx] if idx < len(audio_paths) else None,
+                    'shape_path': shape_paths[idx] if idx < len(shape_paths) else None,
                 })
         return remedial[:3]
 
