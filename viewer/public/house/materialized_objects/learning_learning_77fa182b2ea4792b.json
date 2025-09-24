@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.58) about time: Events that have a space-like separation will be simultaneous in some frame of reference, and there is no frame of refer",
+  "created_at": "2025-09-24T15:08:58.990113Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.58) about time: Events that have a space-like separation will be simultaneous in some frame of reference, and there is no frame of refer",
+  "predicted": "Events that have a space-like separation will be simultaneous in some frame of reference, and there is no frame of reference in which they do not have a spatial separation. Diﬀerent observers may calculate diﬀerent distances and diﬀerent time intervals between two events, but the invariant interval between the events is independent of the observer and their velocity.",
+  "true_answer": "Events that have a space-like separation will be simultaneous in some frame of reference, and there is no frame of reference in which they do not have a spatial separation. Diﬀerent observers may calculate diﬀerent distances and diﬀerent time intervals between two events, but the invariant interval between the events is independent of the observer and their velocity.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

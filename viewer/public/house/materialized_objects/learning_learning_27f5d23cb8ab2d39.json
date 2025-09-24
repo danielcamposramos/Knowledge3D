@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: The Problem  We’re given a _____ of snowflakes, and we have to determine whether any of the snowflakes in the collection are identical.",
+  "created_at": "2025-09-24T05:10:12.061980Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: The Problem  We’re given a _____ of snowflakes, and we have to determine whether any of the snowflakes in the collection are identical.",
+  "predicted": "collection",
+  "true_answer": "collection",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

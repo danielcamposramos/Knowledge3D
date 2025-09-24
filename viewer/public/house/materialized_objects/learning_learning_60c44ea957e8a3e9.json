@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 36.3) about mathematics: The set of integers that pass the condition that their square is a natural number. Well, every integer, when you square ",
+  "created_at": "2025-09-24T15:12:52.760426Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 36.3) about mathematics: The set of integers that pass the condition that their square is a natural number. Well, every integer, when you square ",
+  "predicted": "The set of integers that pass the condition that their square is a natural number. Well, every integer, when you square it, gives you a non-negative integer, so a natural number. Thus A | Z | { ..., − 2 , − 1 , 0 , 1 , 2 , 3 ,... } . 2. Here we are looking for the set of all x 2 s where x is a natural number. So this set is simply the set of perfect squares. B | { 0 , 1 , 4 , 9 , 16 ,... } . Another way we could have written this set, using more strict set builder notation, would be as B | { x ∈ N : x | n 2 for some n ∈ N } .",
+  "true_answer": "The set of integers that pass the condition that their square is a natural number. Well, every integer, when you square it, gives you a non-negative integer, so a natural number. Thus A | Z | { ..., − 2 , − 1 , 0 , 1 , 2 , 3 ,... } . 2. Here we are looking for the set of all x 2 s where x is a natural number. So this set is simply the set of perfect squares. B | { 0 , 1 , 4 , 9 , 16 ,... } . Another way we could have written this set, using more strict set builder notation, would be as B | { x ∈ N : x | n 2 for some n ∈ N } .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

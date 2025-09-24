@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.10) about time: Calendars that contain one level of cycles: Systems A universal calendar, combining diﬀerent calendars ▪ week and weekda",
+  "created_at": "2025-09-24T15:06:32.234109Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.10) about time: Calendars that contain one level of cycles: Systems A universal calendar, combining diﬀerent calendars ▪ week and weekda",
+  "predicted": "Calendars that contain one level of cycles: Systems A universal calendar, combining diﬀerent calendars ▪ week and weekday – this system (without year, the week number keeps on increasing) is not very common ▪ year and ordinal date within the year, e.g., the ISO 8601 ordinal date system Calendars with two levels of cycles: ▪ year, month, and day – most systems, including the Gregorian calendar (and its very similar predecessor, the Julian calendar), the Islamic calendar, the Solar Hijri calendar and the Hebrew calendar ▪ year, week, and weekday – e.g., the ISO week date Cycles can be synchronized with periodic phenomena: ▪ Lunar calendars are synchronized to the motion of the Moon (lunar phases); an example is the Islamic calendar.",
+  "true_answer": "Calendars that contain one level of cycles: Systems A universal calendar, combining diﬀerent calendars ▪ week and weekday – this system (without year, the week number keeps on increasing) is not very common ▪ year and ordinal date within the year, e.g., the ISO 8601 ordinal date system Calendars with two levels of cycles: ▪ year, month, and day – most systems, including the Gregorian calendar (and its very similar predecessor, the Julian calendar), the Islamic calendar, the Solar Hijri calendar and the Hebrew calendar ▪ year, week, and weekday – e.g., the ISO week date Cycles can be synchronized with periodic phenomena: ▪ Lunar calendars are synchronized to the motion of the Moon (lunar phases); an example is the Islamic calendar.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

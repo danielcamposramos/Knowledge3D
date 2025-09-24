@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Apply scientific reasoning to: The Methods to Solve page by Steven Halim and Felix Halim is the most comprehensive that I’ve found: see https://cpbook.net/methodstosolve .",
+  "created_at": "2025-09-24T15:25:31.658108Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Apply scientific reasoning to: The Methods to Solve page by Steven Halim and Felix Halim is the most comprehensive that I’ve found: see https://cpbook.net/methodstosolve .",
+  "predicted": "The Meth- ods to Solve page by Steven Halim and Felix Halim is the most comprehensive that I’ve found: see https://cpbook.net/methodstosolve .",
+  "true_answer": "The Meth- ods to Solve page by Steven Halim and Felix Halim is the most comprehensive that I’ve found: see https://cpbook.net/methodstosolve .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

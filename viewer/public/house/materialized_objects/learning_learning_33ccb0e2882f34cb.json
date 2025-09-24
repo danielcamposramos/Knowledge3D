@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.14) about time: e Egyptians appear to have been the ﬁrst to develop a solar calendar,[27] using as a ﬁxed point the annual sunrise reap",
+  "created_at": "2025-09-24T15:06:36.926214Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.14) about time: e Egyptians appear to have been the ﬁrst to develop a solar calendar,[27] using as a ﬁxed point the annual sunrise reap",
+  "predicted": "e Egyptians appear to have been the ﬁrst to develop a solar calendar,[27] using as a ﬁxed point the annual sunrise reappearance of the Dog Star—Sirius, or Sothis—in the eastern sky, which coincided with the annual ﬂooding of the Nile River.[28][29][30] ey built a calendar with 365 days, divided into 12 months of 30 days each, with 5 extra days at the end of the year.",
+  "true_answer": "e Egyptians appear to have been the ﬁrst to develop a solar calendar,[27] using as a ﬁxed point the annual sunrise reappearance of the Dog Star—Sirius, or Sothis—in the eastern sky, which coincided with the annual ﬂooding of the Nile River.[28][29][30] ey built a calendar with 365 days, divided into 12 months of 30 days each, with 5 extra days at the end of the year.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

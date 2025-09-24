@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 74.2) about mathematics: Also, explain why the answer is not 95. While we are thinking about sets, consider what happens to the additive princi",
+  "created_at": "2025-09-24T15:15:32.878173Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 74.2) about mathematics: Also, explain why the answer is not 95. While we are thinking about sets, consider what happens to the additive princi",
+  "predicted": "Also, explain why the answer is not 95. While we are thinking about sets, consider what happens to the addi- tive principle when the sets are NOT disjoint. Suppose we want to find | A ∪ B | and know that | A | | 10 and | B | | 8 . This is not enough informa- tion though. We do not know how many of the 8 elements in B are also elements of A . However, if we also know that | A ∩ B | | 6 , then we can say exactly how many elements are in A , and, of those, how many are in B and how many are not (6 of the 10 elements are in B , so 4 are in A but not in B ).",
+  "true_answer": "Also, explain why the answer is not 95. While we are thinking about sets, consider what happens to the addi- tive principle when the sets are NOT disjoint. Suppose we want to find | A ∪ B | and know that | A | | 10 and | B | | 8 . This is not enough informa- tion though. We do not know how many of the 8 elements in B are also elements of A . However, if we also know that | A ∩ B | | 6 , then we can say exactly how many elements are in A , and, of those, how many are in B and how many are not (6 of the 10 elements are in B , so 4 are in A but not in B ).",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

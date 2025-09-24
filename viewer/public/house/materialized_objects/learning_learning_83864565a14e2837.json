@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.22) about time: Antoine Redier was also credited as the ﬁrst person to patent an adjustable mechanical alarm clock in 1847.[41] Digital ",
+  "created_at": "2025-09-24T15:08:16.044368Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.22) about time: Antoine Redier was also credited as the ﬁrst person to patent an adjustable mechanical alarm clock in 1847.[41] Digital ",
+  "predicted": "Antoine Redier was also credited as the ﬁrst person to patent an adjustable mechanical alarm clock in 1847.[41] Digital forms of alarm clocks became more accessible through digitization A contemporary quartz watch, 2007 Chip-scale atomic clocks, such as this one unveiled in 2004, are expected to greatly improve GPS location.[42] and integration with other technologies, such as smartphones. e most accurate timekeeping devices are atomic clocks, which are accurate to seconds in many millions of years,[43] and are used to calibrate other clocks and timekeeping instruments.",
+  "true_answer": "Antoine Redier was also credited as the ﬁrst person to patent an adjustable mechanical alarm clock in 1847.[41] Digital forms of alarm clocks became more accessible through digitization A contemporary quartz watch, 2007 Chip-scale atomic clocks, such as this one unveiled in 2004, are expected to greatly improve GPS location.[42] and integration with other technologies, such as smartphones. e most accurate timekeeping devices are atomic clocks, which are accurate to seconds in many millions of years,[43] and are used to calibrate other clocks and timekeeping instruments.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

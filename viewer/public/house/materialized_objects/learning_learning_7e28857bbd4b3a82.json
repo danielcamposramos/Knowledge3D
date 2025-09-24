@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 28.2) about mathematics: (d) 13 is my favorite number or 13 is prime. (e) 13 is my favorite number and 13 is prime. (f) 7 is my favorite number a",
+  "created_at": "2025-09-24T15:12:20.301705Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 28.2) about mathematics: (d) 13 is my favorite number or 13 is prime. (e) 13 is my favorite number and 13 is prime. (f) 7 is my favorite number a",
+  "predicted": "(d) 13 is my favorite number or 13 is prime. (e) 13 is my favorite number and 13 is prime. (f) 7 is my favorite number and 13 is not prime. (g) 13 is my favorite number or 13 is not my favorite number. 5 . In my safe is a sheet of paper with two shapes drawn on it in colored crayon. One is a square, and the other is a triangle. Each shape is drawn in a single color. Suppose you believe me when I tell you that if the square is blue, then the triangle is green . What do you therefore know about the truth value of the following statements? (a) The square and the triangle are both blue.",
+  "true_answer": "(d) 13 is my favorite number or 13 is prime. (e) 13 is my favorite number and 13 is prime. (f) 7 is my favorite number and 13 is not prime. (g) 13 is my favorite number or 13 is not my favorite number. 5 . In my safe is a sheet of paper with two shapes drawn on it in colored crayon. One is a square, and the other is a triangle. Each shape is drawn in a single color. Suppose you believe me when I tell you that if the square is blue, then the triangle is green . What do you therefore know about the truth value of the following statements? (a) The square and the triangle are both blue.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

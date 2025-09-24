@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '100000' (en).",
+  "created_at": "2025-09-24T09:49:55.808489Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '100000' (en).",
+  "predicted": "the cardinal number that is the fifth power of ten",
+  "true_answer": "the cardinal number that is the fifth power of ten",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 69.3) about mathematics: The multiplicative principle states that if event A can occur in m ways, and each possibility for A allows for exactly n",
+  "created_at": "2025-09-24T15:15:08.559100Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 69.3) about mathematics: The multiplicative principle states that if event A can occur in m ways, and each possibility for A allows for exactly n",
+  "predicted": "The multiplicative principle states that if event A can occur in m ways, and each possibility for A allows for exactly n ways for event B , then the event “ A and B ” can occur in m · n ways. The multiplicative principle generalizes to more than two events as well. Example 1.1.4 How many license plates can you make out of three letters followed by three numerical digits? Solution . Here we have six events: the first letter, the second letter, the third letter, the first digit, the second digit, and the third digit.",
+  "true_answer": "The multiplicative principle states that if event A can occur in m ways, and each possibility for A allows for exactly n ways for event B , then the event “ A and B ” can occur in m · n ways. The multiplicative principle generalizes to more than two events as well. Example 1.1.4 How many license plates can you make out of three letters followed by three numerical digits? Solution . Here we have six events: the first letter, the second letter, the third letter, the first digit, the second digit, and the third digit.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

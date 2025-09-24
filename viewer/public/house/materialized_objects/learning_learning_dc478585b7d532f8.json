@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.40) about time: e US calendar display is also used in Britain. It is common to display the Gregorian calendar in separate monthly grids",
+  "created_at": "2025-09-24T15:07:07.284837Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.40) about time: e US calendar display is also used in Britain. It is common to display the Gregorian calendar in separate monthly grids",
+  "predicted": "e US calendar display is also used in Britain. It is common to display the Gregorian calendar in separate monthly grids of seven columns (from Monday to Sunday, or Sunday to Saturday depending on which day is considered to start the week – this varies according to country) and ﬁve to six rows (or rarely, four rows when the month of February contains 28 days in common years beginning on the ﬁrst day of the week), with the day of the month numbered in each cell, beginning with 1. e sixth row is sometimes eliminated by marking 23/30 and 24/31 together as necessary.",
+  "true_answer": "e US calendar display is also used in Britain. It is common to display the Gregorian calendar in separate monthly grids of seven columns (from Monday to Sunday, or Sunday to Saturday depending on which day is considered to start the week – this varies according to country) and ﬁve to six rows (or rarely, four rows when the month of February contains 28 days in common years beginning on the ﬁrst day of the week), with the day of the month numbered in each cell, beginning with 1. e sixth row is sometimes eliminated by marking 23/30 and 24/31 together as necessary.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

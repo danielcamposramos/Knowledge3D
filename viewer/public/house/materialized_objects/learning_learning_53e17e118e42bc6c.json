@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '3D打印' (zh).",
+  "created_at": "2025-09-24T11:30:53.192992Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '3D打印' (zh).",
+  "predicted": "to 3D print; 3D printing",
+  "true_answer": "to 3D print; 3D printing",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

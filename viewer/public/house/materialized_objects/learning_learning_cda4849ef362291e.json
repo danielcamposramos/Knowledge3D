@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.64) about time: e 1860s Maxwell's equations described that light always travels at a constant speed (in a vacuum). [96] However, classi",
+  "created_at": "2025-09-24T15:09:06.107275Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.64) about time: e 1860s Maxwell's equations described that light always travels at a constant speed (in a vacuum). [96] However, classi",
+  "predicted": "e 1860s Maxwell's equations described that light always travels at a constant speed (in a vacuum). [96] However, classical mechanics assumed that motion was measured relative to a ﬁxed reference frame. e Michelson–Morley experiment contradicted the assumption. Einstein later proposed a method of synchronizing clocks using the constant, ﬁnite speed of light as the maximum signal velocity. is led directly to the conclusion that observers in motion relative to one another measure diﬀerent elapsed times for the same event.",
+  "true_answer": "e 1860s Maxwell's equations described that light always travels at a constant speed (in a vacuum). [96] However, classical mechanics assumed that motion was measured relative to a ﬁxed reference frame. e Michelson–Morley experiment contradicted the assumption. Einstein later proposed a method of synchronizing clocks using the constant, ﬁnite speed of light as the maximum signal velocity. is led directly to the conclusion that observers in motion relative to one another measure diﬀerent elapsed times for the same event.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

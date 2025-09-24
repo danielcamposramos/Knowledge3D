@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.80) about time: Loop quantum gravity suggests that time is quantized; if gravity is quantized, spacetime is also quantized.[103] Time tr",
+  "created_at": "2025-09-24T15:09:25.244565Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.80) about time: Loop quantum gravity suggests that time is quantized; if gravity is quantized, spacetime is also quantized.[103] Time tr",
+  "predicted": "Loop quantum gravity suggests that time is quantized; if gravity is quantized, spacetime is also quantized.[103] Time travel is the concept of moving backwards or forwards to diﬀerent points in time, in a manner analogous to moving through space, and diﬀerent from the normal 'ﬂow' of time to an earthbound observer. In this view, all points in time (including future times) 'persist' in some way. Time travel has been a plot device in ﬁction since the 19th century.",
+  "true_answer": "Loop quantum gravity suggests that time is quantized; if gravity is quantized, spacetime is also quantized.[103] Time travel is the concept of moving backwards or forwards to diﬀerent points in time, in a manner analogous to moving through space, and diﬀerent from the normal 'ﬂow' of time to an earthbound observer. In this view, all points in time (including future times) 'persist' in some way. Time travel has been a plot device in ﬁction since the 19th century.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

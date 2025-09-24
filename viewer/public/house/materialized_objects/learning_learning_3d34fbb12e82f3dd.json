@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? For example, suppose that the student took two courses and earned a total of nine marks and that each course requires at least three marks to pass.",
+  "created_at": "2025-09-24T15:22:27.141521Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? For example, suppose that the student took two courses and earned a total of nine marks and that each course requires at least three marks to pass.",
+  "predicted": "For example, suppose that the student took two courses and earned a total of nine marks and that each course requires at least three marks to pass.",
+  "true_answer": "For example, suppose that the student took two courses and earned a total of nine marks and that each course requires at least three marks to pass.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

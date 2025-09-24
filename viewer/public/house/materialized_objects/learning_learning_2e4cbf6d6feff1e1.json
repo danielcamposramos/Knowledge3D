@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: The reason for this difference is that your operating system is managing your computing resources, shunting them around to different tasks as needed.",
+  "created_at": "2025-09-24T09:11:03.481469Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: The reason for this difference is that your operating system is managing your computing resources, shunting them around to different tasks as needed.",
+  "predicted": "The reason for this difference is that your operating system is managing your computing resources, shunting them around to different tasks as needed.",
+  "true_answer": "The reason for this difference is that your operating system is managing your computing resources, shunting them around to different tasks as needed.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

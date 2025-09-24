@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.110) about time: 'A quantity used to specify the order in which events occurred and measure the amount by which one event preceded or fol",
+  "created_at": "2025-09-24T15:10:01.160586Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.110) about time: 'A quantity used to specify the order in which events occurred and measure the amount by which one event preceded or fol",
+  "predicted": "'A quantity used to specify the order in which events occurred and measure the amount by which one event preceded or followed another. In special relativity, ct (where c is the speed of light and t is time), plays the role of a fourth dimension.' 3. 'Time' (http://ahdictionary.com/word/search.html?q=time). The American Heritage Dictionary of the English Language (Fourth ed.). 2011. Archived (http://archive.wikiwix.com/cache/20120719114813/h ttp://ahdictionary.com/word/search.html?q=time) from the original on 19 July 2012.",
+  "true_answer": "'A quantity used to specify the order in which events occurred and measure the amount by which one event preceded or followed another. In special relativity, ct (where c is the speed of light and t is time), plays the role of a fourth dimension.' 3. 'Time' (http://ahdictionary.com/word/search.html?q=time). The American Heritage Dictionary of the English Language (Fourth ed.). 2011. Archived (http://archive.wikiwix.com/cache/20120719114813/h ttp://ahdictionary.com/word/search.html?q=time) from the original on 19 July 2012.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

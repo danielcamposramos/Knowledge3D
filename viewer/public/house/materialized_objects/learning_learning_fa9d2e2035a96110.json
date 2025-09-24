@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.27) about time: e last European country to adopt it was Greece, in 1923.[40] Gregorian e calendar epoch used by the Gregorian calendar",
+  "created_at": "2025-09-24T15:06:52.076831Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.27) about time: e last European country to adopt it was Greece, in 1923.[40] Gregorian e calendar epoch used by the Gregorian calendar",
+  "predicted": "e last European country to adopt it was Greece, in 1923.[40] Gregorian e calendar epoch used by the Gregorian calendar is inherited from the medieval convention established by Dionysius Exiguus and associated with the Julian calendar. e year number is variously given as AD (for Anno Domini) or CE (for Common Era or Christian Era).[41] e most important use of pre-modern calendars is keeping track of the liturgical year and the observation of religious feast days.",
+  "true_answer": "e last European country to adopt it was Greece, in 1923.[40] Gregorian e calendar epoch used by the Gregorian calendar is inherited from the medieval convention established by Dionysius Exiguus and associated with the Julian calendar. e year number is variously given as AD (for Anno Domini) or CE (for Common Era or Christian Era).[41] e most important use of pre-modern calendars is keeping track of the liturgical year and the observation of religious feast days.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

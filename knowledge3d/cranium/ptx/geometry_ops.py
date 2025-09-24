@@ -409,13 +409,14 @@ def _launch_kernel(func: int, blocks: int, threads: int, params: Tuple, *, share
             arg_arrays.append(np.array([float(value)], dtype=np.float32))
         else:  # pragma: no cover - unexpected parameter type
             raise TypeError(f"Unsupported kernel parameter type: {type(value)!r}")
+    kernel_params = np.asarray([arg.ctypes.data for arg in arg_arrays], dtype=np.uint64)
     err, = cuda.cuLaunchKernel(
         func,
         blocks, 1, 1,
         threads, 1, 1,
         shared_mem,
         0,
-        tuple(arg.ctypes.data for arg in arg_arrays),
+        kernel_params,
         0,
     )
     if err != cuda.CUresult.CUDA_SUCCESS:

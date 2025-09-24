@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How does context influence this statement? John Crabbe et al., “Genetics of Mouse Behavior: Interactions with Laboratory Environment”,  Science  284 (1999), pp.",
+  "created_at": "2025-09-24T09:17:24.797815Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How does context influence this statement? John Crabbe et al., “Genetics of Mouse Behavior: Interactions with Laboratory Environment”,  Science  284 (1999), pp.",
+  "predicted": "John Crabbe et al., “Genetics of Mouse Behavior: Interactions with Laboratory Environment”,  Science  284 (1999), pp.",
+  "true_answer": "John Crabbe et al., “Genetics of Mouse Behavior: Interactions with Laboratory Environment”,  Science  284 (1999), pp.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

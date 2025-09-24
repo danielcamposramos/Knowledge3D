@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 53.1) about mathematics: 0.4. Functions 43 We will also be interested in functions with domain N . Here twoline notation is no good, but descri",
+  "created_at": "2025-09-24T15:13:57.980798Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 53.1) about mathematics: 0.4. Functions 43 We will also be interested in functions with domain N . Here twoline notation is no good, but descri",
+  "predicted": "0.4. Functions 43 We will also be interested in functions with domain N . Here two- line notation is no good, but describing the function algebraically is often possible. Even tables are a little awkward, since they do not describe the function completely. For example, consider the function f : N → N given by the table below. x 0 1 2 3 4 5 ... f ( x ) 0 1 4 9 16 25 ... Have I given you enough entries for you to be able to determine f ( 6 ) ? You might guess that f ( 6 ) | 36 , but there is no way for you to know this for sure. Maybe I am being a jerk and intended f ( 6 ) | 42 .",
+  "true_answer": "0.4. Functions 43 We will also be interested in functions with domain N . Here two- line notation is no good, but describing the function algebraically is often possible. Even tables are a little awkward, since they do not describe the function completely. For example, consider the function f : N → N given by the table below. x 0 1 2 3 4 5 ... f ( x ) 0 1 4 9 16 25 ... Have I given you enough entries for you to be able to determine f ( 6 ) ? You might guess that f ( 6 ) | 36 , but there is no way for you to know this for sure. Maybe I am being a jerk and intended f ( 6 ) | 42 .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

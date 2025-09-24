@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 20.3) about mathematics: If a shape is a square, then it is a rectangle. But it is false that if a shape is a rectangle, then it is a square. How",
+  "created_at": "2025-09-24T15:11:46.594495Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 20.3) about mathematics: If a shape is a square, then it is a rectangle. But it is false that if a shape is a rectangle, then it is a square. How",
+  "predicted": "If a shape is a square, then it is a rectangle. But it is false that if a shape is a rectangle, then it is a square. However, sometimes the converse of a true statement is also true. For example, the Pythagorean theorem has a true converse: if a 2 + b 2 | c 2 , then the triangle with sides a , b , and c is a right triangle. Whenever you encounter an implication in mathematics, it is always reasonable to ask whether the converse is true. The contrapositive, on the other hand, always has the same truth value as its original implication.",
+  "true_answer": "If a shape is a square, then it is a rectangle. But it is false that if a shape is a rectangle, then it is a square. However, sometimes the converse of a true statement is also true. For example, the Pythagorean theorem has a true converse: if a 2 + b 2 | c 2 , then the triangle with sides a , b , and c is a right triangle. Whenever you encounter an implication in mathematics, it is always reasonable to ask whether the converse is true. The contrapositive, on the other hand, always has the same truth value as its original implication.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

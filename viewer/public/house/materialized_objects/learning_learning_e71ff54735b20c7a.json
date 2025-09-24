@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? Consulte também “Best Practices” no seguinte endereço: www.eiconsortium.org.",
+  "created_at": "2025-09-24T09:29:02.756820Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? Consulte também “Best Practices” no seguinte endereço: www.eiconsortium.org.",
+  "predicted": "Consulte também “Best Practices” no seguinte endereço: www.eiconsortium.org.",
+  "true_answer": "Consulte também “Best Practices” no seguinte endereço: www.eiconsortium.org.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

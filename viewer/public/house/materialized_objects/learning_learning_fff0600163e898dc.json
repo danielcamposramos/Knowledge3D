@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'siso' (pt).",
+  "created_at": "2025-09-24T10:11:08.521278Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'siso' (pt).",
+  "predicted": "any of the last 4 teeth on each side of the upper and lower jaw; the last of the permanent teeth to erupt (between ages 16 and 21)",
+  "true_answer": "any of the last 4 teeth on each side of the upper and lower jaw; the last of the permanent teeth to erupt (between ages 16 and 21)",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

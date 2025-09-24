@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.113) about time: Among philosophers of physics, the most popular short answer to the question 'What is physical time?' is that it is not ",
+  "created_at": "2025-09-24T15:10:04.746116Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.113) about time: Among philosophers of physics, the most popular short answer to the question 'What is physical time?' is that it is not ",
+  "predicted": "Among philosophers of physics, the most popular short answer to the question 'What is physical time?' is that it is not a substance or object but rather a special system of relations among instantaneous events. This working deﬁnition is oﬀered by Adolf Grünbaum who applies the contemporary mathematical theory of continuity to physical processes, and he says time is a linear continuum of instants and is a distinguished one- dimensional sub-space of four-dimensional spacetime.' ▪ 'Dictionary.com Unabridged, based on Random House Dictionary' (http://dictionary.reference.com/browse/time?r=66).",
+  "true_answer": "Among philosophers of physics, the most popular short answer to the question 'What is physical time?' is that it is not a substance or object but rather a special system of relations among instantaneous events. This working deﬁnition is oﬀered by Adolf Grünbaum who applies the contemporary mathematical theory of continuity to physical processes, and he says time is a linear continuum of instants and is a distinguished one- dimensional sub-space of four-dimensional spacetime.' ▪ 'Dictionary.com Unabridged, based on Random House Dictionary' (http://dictionary.reference.com/browse/time?r=66).",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

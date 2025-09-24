@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 29.3) about mathematics: Can you conclude anything (about his eating Chinese food)? Explain. 9 . You have discovered an old paper on graph theory",
+  "created_at": "2025-09-24T15:12:25.039497Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 29.3) about mathematics: Can you conclude anything (about his eating Chinese food)? Explain. 9 . You have discovered an old paper on graph theory",
+  "predicted": "Can you conclude anything (about his eating Chinese food)? Explain. 9 . You have discovered an old paper on graph theory that discusses the viscosity of a graph (which for all you know, is something completely made up by the author). A theorem in the paper claims that “if a graph satisfies condition (V) , then the graph is viscous .” Which of the following are equivalent ways of stating this claim? Which are equivalent to the converse of the claim? (a) A graph is viscous only if it satisfies condition (V). (b) A graph is viscous if it satisfies condition (V).",
+  "true_answer": "Can you conclude anything (about his eating Chinese food)? Explain. 9 . You have discovered an old paper on graph theory that discusses the viscosity of a graph (which for all you know, is something completely made up by the author). A theorem in the paper claims that “if a graph satisfies condition (V) , then the graph is viscous .” Which of the following are equivalent ways of stating this claim? Which are equivalent to the converse of the claim? (a) A graph is viscous only if it satisfies condition (V). (b) A graph is viscous if it satisfies condition (V).",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

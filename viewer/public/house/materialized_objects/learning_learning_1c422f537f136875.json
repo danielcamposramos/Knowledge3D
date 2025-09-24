@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 37.3) about mathematics: ∩ A ∩ B is the intersection of A and B : the set containing all elements which are elements of both A and B . ∪ A ∪ B is",
+  "created_at": "2025-09-24T15:12:56.357268Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 37.3) about mathematics: ∩ A ∩ B is the intersection of A and B : the set containing all elements which are elements of both A and B . ∪ A ∪ B is",
+  "predicted": "∩ A ∩ B is the intersection of A and B : the set containing all elements which are elements of both A and B . ∪ A ∪ B is the union of A and B : is the set containing all elements which are elements of A or B or both. × A × B is the Cartesian product of A and B : the set of all ordered pairs ( a , b ) with a ∈ A and b ∈ B . \\ A \\ B is A set-minus B : the set containing all elements of A which are not elements of B . A The complement of A is the set of everything which is not an element of A . | A | The cardinality (or size) of A is the number of elements in A .",
+  "true_answer": "∩ A ∩ B is the intersection of A and B : the set containing all elements which are elements of both A and B . ∪ A ∪ B is the union of A and B : is the set containing all elements which are elements of A or B or both. × A × B is the Cartesian product of A and B : the set of all ordered pairs ( a , b ) with a ∈ A and b ∈ B . \\ A \\ B is A set-minus B : the set containing all elements of A which are not elements of B . A The complement of A is the set of everything which is not an element of A . | A | The cardinality (or size) of A is the number of elements in A .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

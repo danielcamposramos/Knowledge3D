@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.56) about time: He showed that this postulate, together with a reasonable deﬁnition for what it means for two events to be simultaneous,",
+  "created_at": "2025-09-24T15:08:56.601637Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.56) about time: He showed that this postulate, together with a reasonable deﬁnition for what it means for two events to be simultaneous,",
+  "predicted": "He showed that this postulate, together with a reasonable deﬁnition for what it means for two events to be simultaneous, requires that distances appear compressed and time intervals appear lengthened for events associated with objects in motion relative to an inertial observer. e theory of special relativity ﬁnds a convenient formulation in Minkowski spacetime, a mathematical structure that combines three dimensions of space with a single dimension of time.",
+  "true_answer": "He showed that this postulate, together with a reasonable deﬁnition for what it means for two events to be simultaneous, requires that distances appear compressed and time intervals appear lengthened for events associated with objects in motion relative to an inertial observer. e theory of special relativity ﬁnds a convenient formulation in Minkowski spacetime, a mathematical structure that combines three dimensions of space with a single dimension of time.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

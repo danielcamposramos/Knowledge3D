@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Provide the IPA pronunciation for '4S店' (zh).",
+  "created_at": "2025-09-24T17:44:11.135438Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Provide the IPA pronunciation for '4S店' (zh).",
+  "predicted": "4S dian4",
+  "true_answer": "4S dian4",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

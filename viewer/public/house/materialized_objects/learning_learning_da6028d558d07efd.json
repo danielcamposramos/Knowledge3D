@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? Zajonc et al.,  “Convergence in the Physical Appearance of Spouses” ,  Motivation and Emotion  11 (1987), pp.",
+  "created_at": "2025-09-24T09:29:30.743179Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? Zajonc et al.,  “Convergence in the Physical Appearance of Spouses” ,  Motivation and Emotion  11 (1987), pp.",
+  "predicted": "Zajonc et al.,  “Convergence in the Physical Appearance of Spouses” ,  Motivation and Emotion  11 (1987), pp.",
+  "true_answer": "Zajonc et al.,  “Convergence in the Physical Appearance of Spouses” ,  Motivation and Emotion  11 (1987), pp.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

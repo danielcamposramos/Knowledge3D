@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'abduce' (es).",
+  "created_at": "2025-09-24T10:36:54.068983Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'abduce' (es).",
+  "predicted": "inflection of abducir:",
+  "true_answer": "inflection of abducir:",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

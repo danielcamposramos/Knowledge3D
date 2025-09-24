@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.62) about time: So entropy tends to increase in either direction, and our current low-entropy universe is a statistical aberration, in a",
+  "created_at": "2025-09-24T15:09:03.824301Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.62) about time: So entropy tends to increase in either direction, and our current low-entropy universe is a statistical aberration, in a",
+  "predicted": "So entropy tends to increase in either direction, and our current low-entropy universe is a statistical aberration, in a similar manner as tossing a coin oen enough that eventually heads will result ten times in a row. However, this theory is not supported empirically in local experiment.[95] Arrow of time Two-dimensional space depicted in three- dimensional spacetime. The past and future light cones are absolute, the 'present' is a relative concept diﬀerent for observers in relative motion.",
+  "true_answer": "So entropy tends to increase in either direction, and our current low-entropy universe is a statistical aberration, in a similar manner as tossing a coin oen enough that eventually heads will result ten times in a row. However, this theory is not supported empirically in local experiment.[95] Arrow of time Two-dimensional space depicted in three- dimensional spacetime. The past and future light cones are absolute, the 'present' is a relative concept diﬀerent for observers in relative motion.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

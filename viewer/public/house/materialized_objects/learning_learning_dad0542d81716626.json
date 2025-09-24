@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 25.2) about mathematics: I would like to write something like P ( n )→¬ P ( n + 7 ) where P ( n ) means “ n is prime.” But this is not quite righ",
+  "created_at": "2025-09-24T15:12:07.051250Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 25.2) about mathematics: I would like to write something like P ( n )→¬ P ( n + 7 ) where P ( n ) means “ n is prime.” But this is not quite righ",
+  "predicted": "I would like to write something like P ( n )→¬ P ( n + 7 ) where P ( n ) means “ n is prime.” But this is not quite right. For one thing, because this sentence has a free variable (that is, a variable that we have not specified anything about), it is not a statement. A sentence that contains variables is called a predicate . Now, if we plug in a specific value for n , we do get a statement. In fact, it turns out that no matter what value we plug in for n , we get a true implication in this case. What we really want to say is that for all values of n , if n is prime, then n + 7 is not.",
+  "true_answer": "I would like to write something like P ( n )→¬ P ( n + 7 ) where P ( n ) means “ n is prime.” But this is not quite right. For one thing, because this sentence has a free variable (that is, a variable that we have not specified anything about), it is not a statement. A sentence that contains variables is called a predicate . Now, if we plug in a specific value for n , we do get a statement. In fact, it turns out that no matter what value we plug in for n , we get a true implication in this case. What we really want to say is that for all values of n , if n is prime, then n + 7 is not.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 75.1) about mathematics: 1.1. Additive and Multiplicative Principles 65 be | A ∩ B | . So perhaps we guess, | A ∪ B | | | A | + | B |−| A ∩ B | .",
+  "created_at": "2025-09-24T15:15:36.483889Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 75.1) about mathematics: 1.1. Additive and Multiplicative Principles 65 be | A ∩ B | . So perhaps we guess, | A ∪ B | | | A | + | B |−| A ∩ B | .",
+  "predicted": "1.1. Additive and Multiplicative Principles 65 be | A ∩ B | . So perhaps we guess, | A ∪ B | | | A | + | B |−| A ∩ B | . This works for this one example. Will it always work? Think about what we are doing here. We want to know how many things are either in A or B (or both). We can throw in everything in A , and everything in B . This would give | A | + | B | many elements. But of course when you actually take the union, you do not repeat elements that are in both.",
+  "true_answer": "1.1. Additive and Multiplicative Principles 65 be | A ∩ B | . So perhaps we guess, | A ∪ B | | | A | + | B |−| A ∩ B | . This works for this one example. Will it always work? Think about what we are doing here. We want to know how many things are either in A or B (or both). We can throw in everything in A , and everything in B . This would give | A | + | B | many elements. But of course when you actually take the union, you do not repeat elements that are in both.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

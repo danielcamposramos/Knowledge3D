@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.20) about time: Richard of Wallingford (1292–1336), abbot of St. Alban's abbey, famously built a mechanical clock as an astronomical orr",
+  "created_at": "2025-09-24T15:08:13.681240Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.20) about time: Richard of Wallingford (1292–1336), abbot of St. Alban's abbey, famously built a mechanical clock as an astronomical orr",
+  "predicted": "Richard of Wallingford (1292–1336), abbot of St. Alban's abbey, famously built a mechanical clock as an astronomical orrery about 1330.[37][38] e hourglass uses the ﬂow of sand to measure the ﬂow of time. ey were also used in navigation. Ferdinand Magellan used 18 glasses on each ship for his circumnavigation of the globe (1522).[39] e English word clock probably comes from the Middle Dutch word klocke which, in turn, derives from the medieval Latin word clocca, which ultimately derives from Celtic and is cognate with French, Latin, and German words that mean bell.",
+  "true_answer": "Richard of Wallingford (1292–1336), abbot of St. Alban's abbey, famously built a mechanical clock as an astronomical orrery about 1330.[37][38] e hourglass uses the ﬂow of sand to measure the ﬂow of time. ey were also used in navigation. Ferdinand Magellan used 18 glasses on each ship for his circumnavigation of the globe (1522).[39] e English word clock probably comes from the Middle Dutch word klocke which, in turn, derives from the medieval Latin word clocca, which ultimately derives from Celtic and is cognate with French, Latin, and German words that mean bell.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

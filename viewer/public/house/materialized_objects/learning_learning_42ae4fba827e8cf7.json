@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.8) about time: A full calendar system has a diﬀerent calendar date for every day.[20][21] us the week cycle is by itself not a full ca",
+  "created_at": "2025-09-24T15:06:29.889028Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.8) about time: A full calendar system has a diﬀerent calendar date for every day.[20][21] us the week cycle is by itself not a full ca",
+  "predicted": "A full calendar system has a diﬀerent calendar date for every day.[20][21] us the week cycle is by itself not a full calendar system;[22] neither is a system to name the days within a year without a system for identifying the years. e simplest calendar system just counts time periods from a reference date, or epoch.[23] is applies for the Julian day or Unix Time. Virtually the only possible variation is using a diﬀerent reference date, in particular, one less distant in the past to make the numbers smaller. Computations in these systems are just a maer of addition and subtraction.",
+  "true_answer": "A full calendar system has a diﬀerent calendar date for every day.[20][21] us the week cycle is by itself not a full calendar system;[22] neither is a system to name the days within a year without a system for identifying the years. e simplest calendar system just counts time periods from a reference date, or epoch.[23] is applies for the Julian day or Unix Time. Virtually the only possible variation is using a diﬀerent reference date, in particular, one less distant in the past to make the numbers smaller. Computations in these systems are just a maer of addition and subtraction.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

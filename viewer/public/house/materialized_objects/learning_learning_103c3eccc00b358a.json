@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 48.1) about mathematics: 38 0. Introduction and Preliminaries 26. In a regular deck of playing cards there are 26 red cards and 12 face cards. Ex",
+  "created_at": "2025-09-24T15:13:37.554621Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 48.1) about mathematics: 38 0. Introduction and Preliminaries 26. In a regular deck of playing cards there are 26 red cards and 12 face cards. Ex",
+  "predicted": "38 0. Introduction and Preliminaries 26. In a regular deck of playing cards there are 26 red cards and 12 face cards. Explain, using sets and what you have learned about cardinalities, why there are only 32 cards which are either red or a face card. 27. Find an example of a set A with | A | | 3 which contains only other sets and has the following property: for all sets B ∈ A , we also have B ⊆ A . Explain why your example works. (FYI: sets that have this property are called transitive .) 28 . Consider the sets A and B , where A | { 3 , | B |} and B | { 1 , | A | , | B |} . What are the sets?",
+  "true_answer": "38 0. Introduction and Preliminaries 26. In a regular deck of playing cards there are 26 red cards and 12 face cards. Explain, using sets and what you have learned about cardinalities, why there are only 32 cards which are either red or a face card. 27. Find an example of a set A with | A | | 3 which contains only other sets and has the following property: for all sets B ∈ A , we also have B ⊆ A . Explain why your example works. (FYI: sets that have this property are called transitive .) 28 . Consider the sets A and B , where A | { 3 , | B |} and B | { 1 , | A | , | B |} . What are the sets?",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

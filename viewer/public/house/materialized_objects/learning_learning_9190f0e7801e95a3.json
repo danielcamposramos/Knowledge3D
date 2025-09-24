@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 47.1) about mathematics: 0.3. Sets 37 17 . Let A | { a , b , c , d } . Find P( A ) . 18 . Let A | { 1 , 2 ,..., 10 } . How many subsets of A cont",
+  "created_at": "2025-09-24T15:13:33.955540Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 47.1) about mathematics: 0.3. Sets 37 17 . Let A | { a , b , c , d } . Find P( A ) . 18 . Let A | { 1 , 2 ,..., 10 } . How many subsets of A cont",
+  "predicted": "0.3. Sets 37 17 . Let A | { a , b , c , d } . Find P( A ) . 18 . Let A | { 1 , 2 ,..., 10 } . How many subsets of A contain exactly one element (i.e., how many singleton subsets are there)? How many doubleton subsets (containing exactly two elements) are there? 19. Let A | { 1 , 2 , 3 , 4 , 5 , 6 } . Find all sets B ∈ P( A ) which have the prop- erty { 2 , 3 , 5 } ⊆ B . 20 . Find an example of sets A and B such that | A | | 4 , | B | | 5 , and | A ∪ B | | 9 . 21. Find an example of sets A and B such that | A | | 3 , | B | | 4 , and | A ∪ B | | 5 . 22.",
+  "true_answer": "0.3. Sets 37 17 . Let A | { a , b , c , d } . Find P( A ) . 18 . Let A | { 1 , 2 ,..., 10 } . How many subsets of A contain exactly one element (i.e., how many singleton subsets are there)? How many doubleton subsets (containing exactly two elements) are there? 19. Let A | { 1 , 2 , 3 , 4 , 5 , 6 } . Find all sets B ∈ P( A ) which have the prop- erty { 2 , 3 , 5 } ⊆ B . 20 . Find an example of sets A and B such that | A | | 4 , | B | | 5 , and | A ∪ B | | 9 . 21. Find an example of sets A and B such that | A | | 3 , | B | | 4 , and | A ∪ B | | 5 . 22.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

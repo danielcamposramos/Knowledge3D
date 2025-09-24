@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? It’s better than BFS in practice, because most test cases will not produce long chains of nodes  .",
+  "created_at": "2025-09-24T09:27:30.401701Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? It’s better than BFS in practice, because most test cases will not produce long chains of nodes  .",
+  "predicted": "It’s better than BFS in practice, because most test cases will not produce long chains of nodes  .",
+  "true_answer": "It’s better than BFS in practice, because most test cases will not produce long chains of nodes  .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'Diff Eq Intro' (chunk 3.6) about mathematics: The GET command deletes the matrix from level 2 of the stack, which is why we needed to put a second copy of the matrix ",
+  "created_at": "2025-09-24T15:10:32.232664Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'Diff Eq Intro' (chunk 3.6) about mathematics: The GET command deletes the matrix from level 2 of the stack, which is why we needed to put a second copy of the matrix ",
+  "predicted": "The GET command deletes the matrix from level 2 of the stack, which is why we needed to put a second copy of the matrix on the stack. Drop this solution then repeat the steps above with {2 4} to get the next solution. Now integrate (See CTL 17) to get 1 2 31 0. We now combine these results and the solutions to the homogeneous case as indicated in our assumption (3) to get a particular solution to the non-homogeneous case: 1 2 2 2 310 0 . 0 9 Combining this with the solution to the homogeneous case, we have the general solution to our system in scalar form: 22 31 . Return to List of Lessons 10",
+  "true_answer": "The GET command deletes the matrix from level 2 of the stack, which is why we needed to put a second copy of the matrix on the stack. Drop this solution then repeat the steps above with {2 4} to get the next solution. Now integrate (See CTL 17) to get 1 2 31 0. We now combine these results and the solutions to the homogeneous case as indicated in our assumption (3) to get a particular solution to the non-homogeneous case: 1 2 2 2 310 0 . 0 9 Combining this with the solution to the homogeneous case, we have the general solution to our system in scalar form: 22 31 . Return to List of Lessons 10",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

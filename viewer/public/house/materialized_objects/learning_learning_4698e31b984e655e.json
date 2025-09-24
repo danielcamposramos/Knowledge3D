@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'Odontoceti' (pt).",
+  "created_at": "2025-09-24T10:13:46.961730Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'Odontoceti' (pt).",
+  "predicted": "any of several whales having simple conical teeth and feeding on fish etc.",
+  "true_answer": "any of several whales having simple conical teeth and feeding on fish etc.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

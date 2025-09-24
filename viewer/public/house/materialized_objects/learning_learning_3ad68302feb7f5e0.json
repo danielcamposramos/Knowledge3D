@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'Rio das Pérolas' (pt).",
+  "created_at": "2025-09-24T10:11:05.320665Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'Rio das Pérolas' (pt).",
+  "predicted": "a river in southeast China that flows into the South China Sea",
+  "true_answer": "a river in southeast China that flows into the South China Sea",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

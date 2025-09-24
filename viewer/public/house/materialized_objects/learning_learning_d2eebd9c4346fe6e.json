@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 72.1) about mathematics: 62 1. Counting There are two events: picking a shirt and picking a pair of pants. The first event can happen in 9 ways a",
+  "created_at": "2025-09-24T15:15:23.100520Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 72.1) about mathematics: 62 1. Counting There are two events: picking a shirt and picking a pair of pants. The first event can happen in 9 ways a",
+  "predicted": "62 1. Counting There are two events: picking a shirt and picking a pair of pants. The first event can happen in 9 ways and the second event can happen in 5 ways. To get both a shirt and a pair of pants, you multiply. To get just one article of clothing, you add. Now look at this using sets. There are two sets, call them S and P . The set S contains all 9 shirts so | S | | 9 while | P | | 5 , since there are 5 elements in the set P (namely your 5 pairs of pants). What are we asking in terms of these sets?",
+  "true_answer": "62 1. Counting There are two events: picking a shirt and picking a pair of pants. The first event can happen in 9 ways and the second event can happen in 5 ways. To get both a shirt and a pair of pants, you multiply. To get just one article of clothing, you add. Now look at this using sets. There are two sets, call them S and P . The set S contains all 9 shirts so | S | | 9 while | P | | 5 , since there are 5 elements in the set P (namely your 5 pairs of pants). What are we asking in terms of these sets?",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

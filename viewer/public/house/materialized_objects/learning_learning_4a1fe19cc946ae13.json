@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: Notice that, in terms of _____, it doesn’t matter where in the linked list we add the new node.",
+  "created_at": "2025-09-24T04:24:02.901681Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: Notice that, in terms of _____, it doesn’t matter where in the linked list we add the new node.",
+  "predicted": "correctness",
+  "true_answer": "correctness",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

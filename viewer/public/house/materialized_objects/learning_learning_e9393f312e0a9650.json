@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: I thank my _____ Jan Vahrenhold, Mahika Phutane, and Naaz Sibia for their review of draft chapters.",
+  "created_at": "2025-09-24T05:09:19.906390Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: I thank my _____ Jan Vahrenhold, Mahika Phutane, and Naaz Sibia for their review of draft chapters.",
+  "predicted": "colleagues",
+  "true_answer": "colleagues",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

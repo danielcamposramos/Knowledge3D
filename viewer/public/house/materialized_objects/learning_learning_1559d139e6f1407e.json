@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.59) about time: Blackburn & Holford-Strevens 2003, pp. 817–820. 39. Dershowitz & Reingold 2008, pp. 47, 187. 40. Blackburn & Holford-Str",
+  "created_at": "2025-09-24T15:07:29.688822Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.59) about time: Blackburn & Holford-Strevens 2003, pp. 817–820. 39. Dershowitz & Reingold 2008, pp. 47, 187. 40. Blackburn & Holford-Str",
+  "predicted": "Blackburn & Holford-Strevens 2003, pp. 817–820. 39. Dershowitz & Reingold 2008, pp. 47, 187. 40. Blackburn & Holford-Strevens 2003, pp. 682–689. 41. Blackburn & Holford-Strevens 2003, Chapter: 'Christian Chronology'. 42. 'The Revised Julian Calendar' (https://www.timeanddate.com/calend ar/revised-julian-calendar.html). www.timeanddate.com. Retrieved 5 June 2024. 43. 'About the Hebrew Calendar | Yale University Library' (https://web.li brary.yale.edu/cataloging/hebraica/about-hebrew-calendar). web.library.yale.edu. Retrieved 18 March 2024.",
+  "true_answer": "Blackburn & Holford-Strevens 2003, pp. 817–820. 39. Dershowitz & Reingold 2008, pp. 47, 187. 40. Blackburn & Holford-Strevens 2003, pp. 682–689. 41. Blackburn & Holford-Strevens 2003, Chapter: 'Christian Chronology'. 42. 'The Revised Julian Calendar' (https://www.timeanddate.com/calend ar/revised-julian-calendar.html). www.timeanddate.com. Retrieved 5 June 2024. 43. 'About the Hebrew Calendar | Yale University Library' (https://web.li brary.yale.edu/cataloging/hebraica/about-hebrew-calendar). web.library.yale.edu. Retrieved 18 March 2024.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

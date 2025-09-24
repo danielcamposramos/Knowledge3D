@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How does context influence this statement? I presented its code in the context of the Social Network problem in Listing 88.",
+  "created_at": "2025-09-24T15:19:54.762177Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How does context influence this statement? I presented its code in the context of the Social Network problem in Listing 88.",
+  "predicted": "I presented its code in the context of the Social Network problem in Listing 8- 8.",
+  "true_answer": "I presented its code in the context of the Social Network problem in Listing 8- 8.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

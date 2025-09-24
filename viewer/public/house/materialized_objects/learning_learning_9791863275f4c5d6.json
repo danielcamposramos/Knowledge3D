@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 77.4) about mathematics: You own 3 regular (boring) ties and 5 (cool) bow ties. (a) How many choices do you have for your neck-wear? (b) You real",
+  "created_at": "2025-09-24T15:15:49.739752Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 77.4) about mathematics: You own 3 regular (boring) ties and 5 (cool) bow ties. (a) How many choices do you have for your neck-wear? (b) You real",
+  "predicted": "You own 3 regular (boring) ties and 5 (cool) bow ties. (a) How many choices do you have for your neck-wear? (b) You realize that the interview is for clown college, so you should probably wear both a regular tie and a bow tie. How many choices do you have now? (c) For the rest of your outfit, you have 5 shirts, 4 skirts, 3 pants, and 7 dresses. You want to select either a shirt to wear with a skirt or pants, or just a dress. How many outfits do you have to choose from?",
+  "true_answer": "You own 3 regular (boring) ties and 5 (cool) bow ties. (a) How many choices do you have for your neck-wear? (b) You realize that the interview is for clown college, so you should probably wear both a regular tie and a bow tie. How many choices do you have now? (c) For the rest of your outfit, you have 5 shirts, 4 skirts, 3 pants, and 7 dresses. You want to select either a shirt to wear with a skirt or pants, or just a dress. How many outfits do you have to choose from?",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

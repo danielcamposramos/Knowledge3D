@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: _____ the Input  We’re not quite ready to submit to our judge.",
+  "created_at": "2025-09-24T15:05:34.116381Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: _____ the Input  We’re not quite ready to submit to our judge.",
+  "predicted": "Reading",
+  "true_answer": "Reading",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

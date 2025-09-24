@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 41.1) about mathematics: 0.3. Sets 31 Operations On Sets Is it possible to add two sets? Not really, however there is something similar. If we wa",
+  "created_at": "2025-09-24T15:13:10.911301Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 41.1) about mathematics: 0.3. Sets 31 Operations On Sets Is it possible to add two sets? Not really, however there is something similar. If we wa",
+  "predicted": "0.3. Sets 31 Operations On Sets Is it possible to add two sets? Not really, however there is something similar. If we want to combine two sets to get the collection of objects that are in either set, then we can take the union of the two sets. Symbolically, C | A ∪ B , read, “ C is the union of A and B ,” means that the elements of C are exactly the elements which are either an element of A or an element of B (or an element of both). For example, if A | { 1 , 2 , 3 } and B | { 2 , 3 , 4 } , then A ∪ B | { 1 , 2 , 3 , 4 } . The other common operation on sets is intersection .",
+  "true_answer": "0.3. Sets 31 Operations On Sets Is it possible to add two sets? Not really, however there is something similar. If we want to combine two sets to get the collection of objects that are in either set, then we can take the union of the two sets. Symbolically, C | A ∪ B , read, “ C is the union of A and B ,” means that the elements of C are exactly the elements which are either an element of A or an element of B (or an element of both). For example, if A | { 1 , 2 , 3 } and B | { 2 , 3 , 4 } , then A ∪ B | { 1 , 2 , 3 , 4 } . The other common operation on sets is intersection .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

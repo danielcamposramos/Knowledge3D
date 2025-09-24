@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 3.3) about mathematics: When I teach the class, I will assign sections for reading after first introducing them in class by using a mix of group",
+  "created_at": "2025-09-24T15:10:38.279430Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 3.3) about mathematics: When I teach the class, I will assign sections for reading after first introducing them in class by using a mix of group",
+  "predicted": "When I teach the class, I will assign sections for reading after first introducing them in class by using a mix of group work and class discussion on a few interesting problems. The text is meant to consolidate what we discover in class and serve as a reference for students as they master the concepts and techniques covered in the unit. None-the-less, every attempt has been made to make the text sufficient for self study as well, in a way that hopefully mimics an inquiry based classroom. The topics covered in this text were chosen to match the needs of the students I teach at UNC.",
+  "true_answer": "When I teach the class, I will assign sections for reading after first introducing them in class by using a mix of group work and class discussion on a few interesting problems. The text is meant to consolidate what we discover in class and serve as a reference for students as they master the concepts and techniques covered in the unit. None-the-less, every attempt has been made to make the text sufficient for self study as well, in a way that hopefully mimics an inquiry based classroom. The topics covered in this text were chosen to match the needs of the students I teach at UNC.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

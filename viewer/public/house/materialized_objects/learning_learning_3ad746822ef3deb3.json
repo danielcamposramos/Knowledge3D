@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.52) about time: Archived (https://web.archive.org/web/20210104181246/https://ww w.britannica.com/science/calendar) from the original on ",
+  "created_at": "2025-09-24T15:07:21.481572Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.52) about time: Archived (https://web.archive.org/web/20210104181246/https://ww w.britannica.com/science/calendar) from the original on ",
+  "predicted": "Archived (https://web.archive.org/web/20210104181246/https://ww w.britannica.com/science/calendar) from the original on 4 January 2021. Retrieved 19 January 2021. 19. 'The History of the Calendar' (https://web.archive.org/web/2020120 2131025/https://www.calendar.com/history-of-the-calendar/). Archived from the original (https://www.calendar.com/history-of-the- calendar/) on 2 December 2020. 20. Onlineverdan. APTITUDE & REASONING for GATE & ESE 2020 (https://bo oks.google.com/books?id=f3uMDwAAQBAJ&dq=A+full+calendar+sys tem+has+a+diﬀerent+calendar+date+for+every+day&pg=SA10-PA6).",
+  "true_answer": "Archived (https://web.archive.org/web/20210104181246/https://ww w.britannica.com/science/calendar) from the original on 4 January 2021. Retrieved 19 January 2021. 19. 'The History of the Calendar' (https://web.archive.org/web/2020120 2131025/https://www.calendar.com/history-of-the-calendar/). Archived from the original (https://www.calendar.com/history-of-the- calendar/) on 2 December 2020. 20. Onlineverdan. APTITUDE & REASONING for GATE & ESE 2020 (https://bo oks.google.com/books?id=f3uMDwAAQBAJ&dq=A+full+calendar+sys tem+has+a+diﬀerent+calendar+date+for+every+day&pg=SA10-PA6).",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'euforia' (pt).",
+  "created_at": "2025-09-24T16:15:38.614030Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'euforia' (pt).",
+  "predicted": "a feeling of joy and pride",
+  "true_answer": "a feeling of joy and pride",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

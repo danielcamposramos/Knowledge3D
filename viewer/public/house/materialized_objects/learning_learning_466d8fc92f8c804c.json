@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? Ainda melhor, avaliava como certo ou errado cada adivinhação que eu fizera, oferecendo um feedback importante (que praticamente nunca conseguimos na vida real) que permite o aperfeiçoamento dos circuitos neurais ansiosos nessa tarefa capciosa.",
+  "created_at": "2025-09-24T09:28:29.643980Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? Ainda melhor, avaliava como certo ou errado cada adivinhação que eu fizera, oferecendo um feedback importante (que praticamente nunca conseguimos na vida real) que permite o aperfeiçoamento dos circuitos neurais ansiosos nessa tarefa capciosa.",
+  "predicted": "Ainda melhor, avaliava como certo ou errado cada adivinhação que eu fizera, oferecendo um feedback importante (que praticamente nunca conseguimos na vida real) que permite o aperfeiçoamento dos circuitos neurais ansiosos nessa tarefa capciosa.",
+  "true_answer": "Ainda melhor, avaliava como certo ou errado cada adivinhação que eu fizera, oferecendo um feedback importante (que praticamente nunca conseguimos na vida real) que permite o aperfeiçoamento dos circuitos neurais ansiosos nessa tarefa capciosa.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

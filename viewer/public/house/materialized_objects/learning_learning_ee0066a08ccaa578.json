@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.29) about time: Most time zones are exactly one hour apart, and by convention compute their local time as an oﬀset from UTC. For example",
+  "created_at": "2025-09-24T15:08:24.477211Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.29) about time: Most time zones are exactly one hour apart, and by convention compute their local time as an oﬀset from UTC. For example",
+  "predicted": "Most time zones are exactly one hour apart, and by convention compute their local time as an oﬀset from UTC. For example, time zones at sea are based on UTC. In many locations (but not at sea) these oﬀsets vary twice yearly due to daylight saving time transitions. Some other time standards are used mainly for scientiﬁc work. Terrestrial Time is a theoretical ideal scale realized by TAI.",
+  "true_answer": "Most time zones are exactly one hour apart, and by convention compute their local time as an oﬀset from UTC. For example, time zones at sea are based on UTC. In many locations (but not at sea) these oﬀsets vary twice yearly due to daylight saving time transitions. Some other time standards are used mainly for scientiﬁc work. Terrestrial Time is a theoretical ideal scale realized by TAI.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

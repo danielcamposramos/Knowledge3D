@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.101) about time: A sequence of events may be focused on past events (e.g., stories, history, chronology), on future events that must be i",
+  "created_at": "2025-09-24T15:09:50.480752Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.101) about time: A sequence of events may be focused on past events (e.g., stories, history, chronology), on future events that must be i",
+  "predicted": "A sequence of events may be focused on past events (e.g., stories, history, chronology), on future events that must be in a predetermined order (e.g., plans, schedules, procedures, timetables), or focused on the observation of past events with the expectation that the events will occur in the future (e.g., processes, projections).",
+  "true_answer": "A sequence of events may be focused on past events (e.g., stories, history, chronology), on future events that must be in a predetermined order (e.g., plans, schedules, procedures, timetables), or focused on the observation of past events with the expectation that the events will occur in the future (e.g., processes, projections).",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'Diff Eq Intro' (chunk 1.4) about mathematics: After completing steps 3 through 8 we see the matrix 1. ,0. 0. ,0. 0. , .5 0. ,0. . This tells us that the eigenvector h",
+  "created_at": "2025-09-24T15:10:22.641800Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'Diff Eq Intro' (chunk 1.4) about mathematics: After completing steps 3 through 8 we see the matrix 1. ,0. 0. ,0. 0. , .5 0. ,0. . This tells us that the eigenvector h",
+  "predicted": "After completing steps 3 through 8 we see the matrix 1. ,0. 0. ,0. 0. , .5 0. ,0. . This tells us that the eigenvector has .5. To make our life easy, we choose 2, so the corresponding eigenvector is 2. Our two independent solutions, then, are Re cos2sin2 2esin2 and 4 Im cos2sin2 2cos2 2sin2. Thus, the general solution is 2cos2cos2 Returning to scalar form, we now have the solutions sin2 cos2 2ecos22sin2. Another potential source of complication is when some of the eigenvalues have multiplicity greater than 1.",
+  "true_answer": "After completing steps 3 through 8 we see the matrix 1. ,0. 0. ,0. 0. , .5 0. ,0. . This tells us that the eigenvector has .5. To make our life easy, we choose 2, so the corresponding eigenvector is 2. Our two independent solutions, then, are Re cos2sin2 2esin2 and 4 Im cos2sin2 2cos2 2sin2. Thus, the general solution is 2cos2cos2 Returning to scalar form, we now have the solutions sin2 cos2 2ecos22sin2. Another potential source of complication is when some of the eigenvalues have multiplicity greater than 1.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

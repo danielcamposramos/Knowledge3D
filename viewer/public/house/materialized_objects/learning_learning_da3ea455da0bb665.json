@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How does context influence this statement? O COF, com base em dados como contexto, atinge um equilíbrio entre um impulso primário ( saia daqui ) e o que funciona melhor ( dê uma desculpa aceitável para sair ).",
+  "created_at": "2025-09-24T15:20:00.773842Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How does context influence this statement? O COF, com base em dados como contexto, atinge um equilíbrio entre um impulso primário ( saia daqui ) e o que funciona melhor ( dê uma desculpa aceitável para sair ).",
+  "predicted": "O COF, com base em dados como contexto, atinge um equilíbrio entre um impulso primário ( saia daqui ) e o que funciona melhor ( dê uma desculpa aceitável para sair ).",
+  "true_answer": "O COF, com base em dados como contexto, atinge um equilíbrio entre um impulso primário ( saia daqui ) e o que funciona melhor ( dê uma desculpa aceitável para sair ).",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

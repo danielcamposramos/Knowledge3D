@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? Whatever you call them, segment trees are must-know structures for those learning algorithms and those interested in competitive programming.",
+  "created_at": "2025-09-24T15:22:57.873097Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? Whatever you call them, segment trees are must-know structures for those learning algorithms and those interested in competitive programming.",
+  "predicted": "Whatever you call them, segment trees are must-know structures for those learning algorithms and those interested in competitive program- ming.",
+  "true_answer": "Whatever you call them, segment trees are must-know structures for those learning algorithms and those interested in competitive program- ming.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

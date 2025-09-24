@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 42.3) about mathematics: We will often want to add or remove elements from sets, and our notation allows us to do so precisely. Example 0.3.7 If ",
+  "created_at": "2025-09-24T15:13:18.248343Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 42.3) about mathematics: We will often want to add or remove elements from sets, and our notation allows us to do so precisely. Example 0.3.7 If ",
+  "predicted": "We will often want to add or remove elements from sets, and our notation allows us to do so precisely. Example 0.3.7 If A | { 1 , 2 , 3 } , then we can describe the set we get by adding the number 4 as A ∪{ 4 } . If we want to express the set we get by removing the number 2 from A we can do so by writing A \\{ 2 } . Careful though. If you add an element to the set, you get a new set! So you would have B | A ∪{ 4 } and then correctly say that B contains 4, but A does not.",
+  "true_answer": "We will often want to add or remove elements from sets, and our notation allows us to do so precisely. Example 0.3.7 If A | { 1 , 2 , 3 } , then we can describe the set we get by adding the number 4 as A ∪{ 4 } . If we want to express the set we get by removing the number 2 from A we can do so by writing A \\{ 2 } . Careful though. If you add an element to the set, you get a new set! So you would have B | A ∪{ 4 } and then correctly say that B contains 4, but A does not.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

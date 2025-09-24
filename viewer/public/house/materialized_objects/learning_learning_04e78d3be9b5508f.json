@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.54) about time: ISBN 978-81-939356-9-9. 23. Jain, Hemant (21 January 2019). RRB Junior Engineer (2019) - MATHEMATICS for 1st STAGE CBT (",
+  "created_at": "2025-09-24T15:07:23.837299Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.54) about time: ISBN 978-81-939356-9-9. 23. Jain, Hemant (21 January 2019). RRB Junior Engineer (2019) - MATHEMATICS for 1st STAGE CBT (",
+  "predicted": "ISBN 978-81-939356-9-9. 23. Jain, Hemant (21 January 2019). RRB Junior Engineer (2019) - MATHEMATICS for 1st STAGE CBT (https://books.google.com/books?id= G4yEDwAAQBAJ&dq=The+simplest+calendar+system+just+counts+ti me+periods+from+a+reference+date.&pg=SA8-PA6). Inﬁnity Educations. pp. 8–6. ISBN 978-81-939356-9-9. 24. Zerubavel 1985. 25. The Jurist (https://books.google.com/books?id=drMzAQAAMAAJ&dq= A+day+may+consist+of+the+period+between+sunrise+and+sunset, +with+a+following+period+of+night&pg=PA983). S. Sweet. 1861. p. 983. 26. Oxossi, Diego de (8 July 2022).",
+  "true_answer": "ISBN 978-81-939356-9-9. 23. Jain, Hemant (21 January 2019). RRB Junior Engineer (2019) - MATHEMATICS for 1st STAGE CBT (https://books.google.com/books?id= G4yEDwAAQBAJ&dq=The+simplest+calendar+system+just+counts+ti me+periods+from+a+reference+date.&pg=SA8-PA6). Inﬁnity Educations. pp. 8–6. ISBN 978-81-939356-9-9. 24. Zerubavel 1985. 25. The Jurist (https://books.google.com/books?id=drMzAQAAMAAJ&dq= A+day+may+consist+of+the+period+between+sunrise+and+sunset, +with+a+following+period+of+night&pg=PA983). S. Sweet. 1861. p. 983. 26. Oxossi, Diego de (8 July 2022).",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

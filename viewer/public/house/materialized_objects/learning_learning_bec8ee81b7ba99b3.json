@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.44) about time: However, Augustine ends up calling time a 'distention' of the mind (Confessions 11.26) by which we simultaneously grasp ",
+  "created_at": "2025-09-24T15:08:42.294843Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.44) about time: However, Augustine ends up calling time a 'distention' of the mind (Confessions 11.26) by which we simultaneously grasp ",
+  "predicted": "However, Augustine ends up calling time a 'distention' of the mind (Confessions 11.26) by which we simultaneously grasp the past in memory, the present by aention, and the future by expectation.",
+  "true_answer": "However, Augustine ends up calling time a 'distention' of the mind (Confessions 11.26) by which we simultaneously grasp the past in memory, the present by aention, and the future by expectation.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

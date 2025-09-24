@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 84.1) about mathematics: 74 1. Counting what path we take, we must make three steps right and two steps up. No matter what order we make these st",
+  "created_at": "2025-09-24T15:16:19.932415Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 84.1) about mathematics: 74 1. Counting what path we take, we must make three steps right and two steps up. No matter what order we make these st",
+  "predicted": "74 1. Counting what path we take, we must make three steps right and two steps up. No matter what order we make these steps, there will always be 5 steps. Thus each path has length 5. The counting question: how many lattice paths are there between ( 0 , 0 ) and ( 3 , 2 ) ? We could try to draw all of these, or instead of drawing them, maybe just list which direction we travel on each of the 5 steps. One path might be RRUUR, or maybe UURRR, or perhaps RURRU (those correspond to the three paths drawn above). So how many such strings of R’s and U’s are there?",
+  "true_answer": "74 1. Counting what path we take, we must make three steps right and two steps up. No matter what order we make these steps, there will always be 5 steps. Thus each path has length 5. The counting question: how many lattice paths are there between ( 0 , 0 ) and ( 3 , 2 ) ? We could try to draw all of these, or instead of drawing them, maybe just list which direction we travel on each of the 5 steps. One path might be RRUUR, or maybe UURRR, or perhaps RURRU (those correspond to the three paths drawn above). So how many such strings of R’s and U’s are there?",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

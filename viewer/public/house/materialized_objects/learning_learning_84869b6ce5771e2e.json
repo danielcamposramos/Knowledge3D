@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 52.3) about mathematics: Second, the element 2 from the domain has been mapped to more than one element from the codomain ( a and c ). Note that ",
+  "created_at": "2025-09-24T15:13:56.791464Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 52.3) about mathematics: Second, the element 2 from the domain has been mapped to more than one element from the codomain ( a and c ). Note that ",
+  "predicted": "Second, the element 2 from the domain has been mapped to more than one element from the codomain ( a and c ). Note that either one of these problems is enough to make a rule not a function. In general, neither of the following mappings are functions: It might also be helpful to think about how you would write the two-line notation for h . We would have something like: h | ( 1 2 3 4 a , c ? d b ) . There is nothing under 1 (bad) and we needed to put more than one thing under 2 (very bad). With a rule that is actually a function, the two-line notation will always “work”.",
+  "true_answer": "Second, the element 2 from the domain has been mapped to more than one element from the codomain ( a and c ). Note that either one of these problems is enough to make a rule not a function. In general, neither of the following mappings are functions: It might also be helpful to think about how you would write the two-line notation for h . We would have something like: h | ( 1 2 3 4 a , c ? d b ) . There is nothing under 1 (bad) and we needed to put more than one thing under 2 (very bad). With a rule that is actually a function, the two-line notation will always “work”.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

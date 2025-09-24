@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? Na Internet, porém, não há o tipo de feedback de que o córtex orbitofrontal necessita para ajudar a nos manter nos trilhos socialmente.",
+  "created_at": "2025-09-24T09:29:08.886122Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? Na Internet, porém, não há o tipo de feedback de que o córtex orbitofrontal necessita para ajudar a nos manter nos trilhos socialmente.",
+  "predicted": "Na Internet, porém, não há o tipo de feedback de que o córtex orbitofrontal necessita para ajudar a nos manter nos trilhos socialmente.",
+  "true_answer": "Na Internet, porém, não há o tipo de feedback de que o córtex orbitofrontal necessita para ajudar a nos manter nos trilhos socialmente.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

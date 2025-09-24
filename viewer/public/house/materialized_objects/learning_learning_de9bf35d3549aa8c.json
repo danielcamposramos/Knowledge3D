@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? Whatever the case, I hope that I’ve helped you develop your skills and motivation to pursue what matters.",
+  "created_at": "2025-09-24T15:23:10.281859Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? Whatever the case, I hope that I’ve helped you develop your skills and motivation to pursue what matters.",
+  "predicted": "Whatever the case, I hope that I’ve helped you develop your skills and motivation to pursue what matters.",
+  "true_answer": "Whatever the case, I hope that I’ve helped you develop your skills and motivation to pursue what matters.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

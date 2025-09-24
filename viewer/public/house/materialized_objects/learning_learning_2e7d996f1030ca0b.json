@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'feijoa' (pt).",
+  "created_at": "2025-09-24T16:12:06.173713Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'feijoa' (pt).",
+  "predicted": "South American shrub having edible greenish plumlike fruit",
+  "true_answer": "South American shrub having edible greenish plumlike fruit",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

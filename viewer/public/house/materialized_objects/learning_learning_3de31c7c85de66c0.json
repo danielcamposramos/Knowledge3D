@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.7) about time: ere have been several modern proposals for reform of the modern calendar, such as the World Calendar, the International",
+  "created_at": "2025-09-24T15:06:28.765014Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.7) about time: ere have been several modern proposals for reform of the modern calendar, such as the World Calendar, the International",
+  "predicted": "ere have been several modern proposals for reform of the modern calendar, such as the World Calendar, the International Fixed Calendar, the Holocene calendar, and the Hanke–Henry Permanent Calendar. Such ideas are promoted from time to time, but have failed to gain traction because of the loss of continuity and the massive upheaval that implementing them would involve, as well as their eﬀect on cycles of religious activity.",
+  "true_answer": "ere have been several modern proposals for reform of the modern calendar, such as the World Calendar, the International Fixed Calendar, the Holocene calendar, and the Hanke–Henry Permanent Calendar. Such ideas are promoted from time to time, but have failed to gain traction because of the loss of continuity and the massive upheaval that implementing them would involve, as well as their eﬀect on cycles of religious activity.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

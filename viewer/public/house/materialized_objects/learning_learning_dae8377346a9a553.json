@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '16th' (en).",
+  "created_at": "2025-09-24T16:05:09.137267Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '16th' (en).",
+  "predicted": "coming next after the fifteenth in position",
+  "true_answer": "coming next after the fifteenth in position",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

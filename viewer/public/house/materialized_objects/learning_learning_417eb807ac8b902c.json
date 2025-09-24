@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 29.1) about mathematics: 0.2. Mathematical Statements 19 7 . Consider the statement, “If you will give me a cow, then I will give you magic beans",
+  "created_at": "2025-09-24T15:12:22.632599Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 29.1) about mathematics: 0.2. Mathematical Statements 19 7 . Consider the statement, “If you will give me a cow, then I will give you magic beans",
+  "predicted": "0.2. Mathematical Statements 19 7 . Consider the statement, “If you will give me a cow, then I will give you magic beans.” Decide whether each statement below is the converse, the contrapositive, or neither. (a) If you will give me a cow, then I will not give you magic beans. (b) If I will not give you magic beans, then you will not give me a cow. (c) If I will give you magic beans, then you will give me a cow. (d) If you will not give me a cow, then I will not give you magic beans. (e) You will give me a cow and I will not give you magic beans.",
+  "true_answer": "0.2. Mathematical Statements 19 7 . Consider the statement, “If you will give me a cow, then I will give you magic beans.” Decide whether each statement below is the converse, the contrapositive, or neither. (a) If you will give me a cow, then I will not give you magic beans. (b) If I will not give you magic beans, then you will not give me a cow. (c) If I will give you magic beans, then you will give me a cow. (d) If you will not give me a cow, then I will not give you magic beans. (e) You will give me a cow and I will not give you magic beans.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

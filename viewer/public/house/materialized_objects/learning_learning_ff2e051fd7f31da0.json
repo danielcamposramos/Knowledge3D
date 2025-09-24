@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '1930s' (en).",
+  "created_at": "2025-09-24T16:10:07.507633Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '1930s' (en).",
+  "predicted": "the decade from 1930 to 1939",
+  "true_answer": "the decade from 1930 to 1939",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 5.1) about mathematics: How to use this book In addition to expository text, this book has a few features designed to encourage you to interact ",
+  "created_at": "2025-09-24T15:10:46.761266Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 5.1) about mathematics: How to use this book In addition to expository text, this book has a few features designed to encourage you to interact ",
+  "predicted": "How to use this book In addition to expository text, this book has a few features designed to encourage you to interact with the mathematics. Investigate! activities. Sprinkled throughout the sections (usually at the very beginning of a topic) you will find activities designed to get you acquainted with the topic soon to be discussed. These are similar (sometimes identical) to group activities I give students to introduce material. You really should spend some time thinking about, or even working through, these problems before reading the section.",
+  "true_answer": "How to use this book In addition to expository text, this book has a few features designed to encourage you to interact with the mathematics. Investigate! activities. Sprinkled throughout the sections (usually at the very beginning of a topic) you will find activities designed to get you acquainted with the topic soon to be discussed. These are similar (sometimes identical) to group activities I give students to introduce material. You really should spend some time thinking about, or even working through, these problems before reading the section.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

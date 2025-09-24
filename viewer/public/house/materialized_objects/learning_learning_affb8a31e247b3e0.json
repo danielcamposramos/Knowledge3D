@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.25) about time: Some may also show the lunar phase. e Gregorian calendar is the de facto international standard and is used almost ever",
+  "created_at": "2025-09-24T15:06:49.709885Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.25) about time: Some may also show the lunar phase. e Gregorian calendar is the de facto international standard and is used almost ever",
+  "predicted": "Some may also show the lunar phase. e Gregorian calendar is the de facto international standard and is used almost everywhere in the world for civil purposes.",
+  "true_answer": "Some may also show the lunar phase. e Gregorian calendar is the de facto international standard and is used almost everywhere in the world for civil purposes.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

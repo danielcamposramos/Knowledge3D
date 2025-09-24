@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: I thank all those involved in the _____ of the book, including my copyeditor David Couzens, production editor Kassie Andreadis, creative director Derek Yee, and cover designer Rob Gale.",
+  "created_at": "2025-09-24T11:40:53.636946Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: I thank all those involved in the _____ of the book, including my copyeditor David Couzens, production editor Kassie Andreadis, creative director Derek Yee, and cover designer Rob Gale.",
+  "predicted": "production",
+  "true_answer": "production",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

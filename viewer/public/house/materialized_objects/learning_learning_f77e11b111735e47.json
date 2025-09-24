@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '0' (en).",
+  "created_at": "2025-09-24T15:33:06.556214Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": -1.0,
+  "prompt": "Define '0' (en).",
+  "predicted": "indicating the absence of any or all units under consideration",
+  "true_answer": "a mathematical element that when added to another number yields the same number",
+  "quick_feedback": {
+    "score": -1.0,
+    "explanation": "Ollama model 'exaone-deep:latest' timed out after 300s; warm the model manually or increase initial timeout."
+  },
+  "deep_feedback": {
+    "score": -1.0,
+    "explanation": "Ollama model 'exaone-deep:latest' timed out after 300s; warm the model manually or increase initial timeout."
+  }
+}

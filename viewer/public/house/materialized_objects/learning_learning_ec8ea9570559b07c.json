@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 63.1) about mathematics: 0.4. Functions 53 9 . Consider the function f : N → N given recursively by f ( 0 ) | 1 and f ( n + 1 ) | 2 · f ( n ) . F",
+  "created_at": "2025-09-24T15:14:39.441045Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 63.1) about mathematics: 0.4. Functions 53 9 . Consider the function f : N → N given recursively by f ( 0 ) | 1 and f ( n + 1 ) | 2 · f ( n ) . F",
+  "predicted": "0.4. Functions 53 9 . Consider the function f : N → N given recursively by f ( 0 ) | 1 and f ( n + 1 ) | 2 · f ( n ) . Find f ( 10 ) . 10 . Suppose f : N → N satisfies the recurrence f ( n + 1 ) | f ( n ) + 3 . Note that this is not enough information to define the function, since we don’t have an initial condition. For each of the initial conditions below, find the value of f ( 5 ) . (a) f ( 0 ) | 0 . (b) f ( 0 ) | 1 . (c) f ( 0 ) | 2 . (d) f ( 0 ) | 100 . 11. Suppose f : N → N satisfies the recurrence relation f ( n + 1 ) | { f ( n ) 2 if f ( n ) is even 3 f ( n ) + 1 if f ( n ) is odd .",
+  "true_answer": "0.4. Functions 53 9 . Consider the function f : N → N given recursively by f ( 0 ) | 1 and f ( n + 1 ) | 2 · f ( n ) . Find f ( 10 ) . 10 . Suppose f : N → N satisfies the recurrence f ( n + 1 ) | f ( n ) + 3 . Note that this is not enough information to define the function, since we don’t have an initial condition. For each of the initial conditions below, find the value of f ( 5 ) . (a) f ( 0 ) | 0 . (b) f ( 0 ) | 1 . (c) f ( 0 ) | 2 . (d) f ( 0 ) | 100 . 11. Suppose f : N → N satisfies the recurrence relation f ( n + 1 ) | { f ( n ) 2 if f ( n ) is even 3 f ( n ) + 1 if f ( n ) is odd .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

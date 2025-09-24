@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.65) about time: Time has historically been closely related with space, the two together merging into spacetime in Einstein's special rel",
+  "created_at": "2025-09-24T15:09:07.350038Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.65) about time: Time has historically been closely related with space, the two together merging into spacetime in Einstein's special rel",
+  "predicted": "Time has historically been closely related with space, the two together merging into spacetime in Einstein's special relativity and general relativity. According to these theories, the concept of time depends on the spatial reference frame of the observer, and the human perception, as well as the measurement by instruments such as clocks, are diﬀerent for observers in relative motion.",
+  "true_answer": "Time has historically been closely related with space, the two together merging into spacetime in Einstein's special relativity and general relativity. According to these theories, the concept of time depends on the spatial reference frame of the observer, and the human perception, as well as the measurement by instruments such as clocks, are diﬀerent for observers in relative motion.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

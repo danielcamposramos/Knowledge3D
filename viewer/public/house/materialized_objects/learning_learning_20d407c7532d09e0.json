@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 58.4) about mathematics: Often we are interested in the element(s) whose image is a particular element y of in the codomain. The notation above w",
+  "created_at": "2025-09-24T15:14:22.382953Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 58.4) about mathematics: Often we are interested in the element(s) whose image is a particular element y of in the codomain. The notation above w",
+  "predicted": "Often we are interested in the element(s) whose image is a particular element y of in the codomain. The notation above works: f − 1 ({ y }) is the set of all elements in the domain that f sends to y . It makes sense to think of this as a set: there might not be anything sent to y (if y is not in the range), in which case f − 1 ({ y }) | ∅ . Or f might send multiple elements to y (if f is not injective). As a notational convenience, we usually drop the set braces around the y and write f inf ( y ) instead for this set. WARNING: f − 1 ( y ) is not an inverse function!",
+  "true_answer": "Often we are interested in the element(s) whose image is a particular element y of in the codomain. The notation above works: f − 1 ({ y }) is the set of all elements in the domain that f sends to y . It makes sense to think of this as a set: there might not be anything sent to y (if y is not in the range), in which case f − 1 ({ y }) | ∅ . Or f might send multiple elements to y (if f is not injective). As a notational convenience, we usually drop the set braces around the y and write f inf ( y ) instead for this set. WARNING: f − 1 ( y ) is not an inverse function!",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

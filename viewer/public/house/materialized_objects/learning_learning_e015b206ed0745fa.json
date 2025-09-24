@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.16) about time: At noon, the device was turned around so that it could cast its shadow in the evening direction.[30] Alarm clocks report",
+  "created_at": "2025-09-24T15:08:08.835904Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.16) about time: At noon, the device was turned around so that it could cast its shadow in the evening direction.[30] Alarm clocks report",
+  "predicted": "At noon, the device was turned around so that it could cast its shadow in the evening direction.[30] Alarm clocks reportedly ﬁrst appeared in ancient Greece c. 250 BC with a water clock made by Plato that would set oﬀ a whistle.[31] e hydraulic alarm worked by gradually ﬁlling a series of vessels with water.",
+  "true_answer": "At noon, the device was turned around so that it could cast its shadow in the evening direction.[30] Alarm clocks reportedly ﬁrst appeared in ancient Greece c. 250 BC with a water clock made by Plato that would set oﬀ a whistle.[31] e hydraulic alarm worked by gradually ﬁlling a series of vessels with water.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

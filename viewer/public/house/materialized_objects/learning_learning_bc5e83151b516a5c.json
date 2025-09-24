@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 60.2) about mathematics: • To specify the rule for a function with small domain, use two-line notation by writing a matrix with each output direc",
+  "created_at": "2025-09-24T15:14:29.614433Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 60.2) about mathematics: • To specify the rule for a function with small domain, use two-line notation by writing a matrix with each output direc",
+  "predicted": "• To specify the rule for a function with small domain, use two-line notation by writing a matrix with each output directly below its corresponding input, as in: f | ( 1 2 3 4 2 1 3 1 ) . • f ( x ) | y means the element x of the domain (input) is assigned to the element y of the codomain. We say y is an output. Alternatively, we call y the image of x under f . • The range is a subset of the codomain. It is the set of all elements which are assigned to at least one element of the domain by the function. That is, the range is the set of all outputs.",
+  "true_answer": "• To specify the rule for a function with small domain, use two-line notation by writing a matrix with each output directly below its corresponding input, as in: f | ( 1 2 3 4 2 1 3 1 ) . • f ( x ) | y means the element x of the domain (input) is assigned to the element y of the codomain. We say y is an output. Alternatively, we call y the image of x under f . • The range is a subset of the codomain. It is the set of all elements which are assigned to at least one element of the domain by the function. That is, the range is the set of all outputs.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

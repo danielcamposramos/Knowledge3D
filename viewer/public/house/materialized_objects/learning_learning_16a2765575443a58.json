@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 76.1) about mathematics: 66 1. Counting A B C 1 Now let’s fill in the other intersections. We know A ∩ B contains 2 elements, but 1 element has a",
+  "created_at": "2025-09-24T15:15:41.259584Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 76.1) about mathematics: 66 1. Counting A B C 1 Now let’s fill in the other intersections. We know A ∩ B contains 2 elements, but 1 element has a",
+  "predicted": "66 1. Counting A B C 1 Now let’s fill in the other intersections. We know A ∩ B contains 2 elements, but 1 element has already been counted. So we should put a 1 in the region where A and B intersect (but C does not). Similarly, we calculate the cardinality of ( A ∩ C )\\ B , and ( B ∩ C )\\ A : A B C 1 1 5 2 Next, we determine the numbers which should go in the re- maining regions, including outside of all three circles.",
+  "true_answer": "66 1. Counting A B C 1 Now let’s fill in the other intersections. We know A ∩ B contains 2 elements, but 1 element has already been counted. So we should put a 1 in the region where A and B intersect (but C does not). Similarly, we calculate the cardinality of ( A ∩ C )\\ B , and ( B ∩ C )\\ A : A B C 1 1 5 2 Next, we determine the numbers which should go in the re- maining regions, including outside of all three circles.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

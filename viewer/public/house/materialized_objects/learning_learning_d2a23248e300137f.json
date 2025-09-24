@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Apply scientific reasoning to: As a side effect, these variables are not stored in memory along with regular local variables, since then their values would be lost when a function terminated.",
+  "created_at": "2025-09-24T09:31:07.935939Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Apply scientific reasoning to: As a side effect, these variables are not stored in memory along with regular local variables, since then their values would be lost when a function terminated.",
+  "predicted": "As a side effect, these variables are not stored in memory along with regular local variables, since then their values would be lost when a function terminated.",
+  "true_answer": "As a side effect, these variables are not stored in memory along with regular local variables, since then their values would be lost when a function terminated.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Give a synonym for '175' (en).",
+  "created_at": "2025-09-24T16:06:43.959946Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Give a synonym for '175' (en).",
+  "predicted": "one hundred seventy-five",
+  "true_answer": "one hundred seventy-five",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

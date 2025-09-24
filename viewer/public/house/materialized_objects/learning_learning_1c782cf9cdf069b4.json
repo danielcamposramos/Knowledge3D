@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: The _____ person joins a line with three people, line 1 or line 2—let’s say line 1; line 1 now has four people.",
+  "created_at": "2025-09-24T15:04:35.817081Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: The _____ person joins a line with three people, line 1 or line 2—let’s say line 1; line 1 now has four people.",
+  "predicted": "second",
+  "true_answer": "second",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

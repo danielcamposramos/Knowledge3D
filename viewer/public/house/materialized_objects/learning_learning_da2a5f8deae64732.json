@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 75.3) about mathematics: The following table shows how many students failed in each single subject and in their various combinations: Subject: ",
+  "created_at": "2025-09-24T15:15:38.914353Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 75.3) about mathematics: The following table shows how many students failed in each single subject and in their various combinations: Subject: ",
+  "predicted": "The following table shows how many students failed in each single subject and in their various combina- tions: Subject: A B C AB AC BC ABC Failed: 12 5 8 2 6 3 1 How many students failed at least one subject? Solution . The answer is not 37, even though the sum of the num- bers above is 37. For example, while 12 students failed Algebra, 2 of those students also failed Biology, 6 also failed Chemestry, and 1 of those failed all three subjects. In fact, that 1 student who failed all three subjects is counted a total of 7 times in the total 37.",
+  "true_answer": "The following table shows how many students failed in each single subject and in their various combina- tions: Subject: A B C AB AC BC ABC Failed: 12 5 8 2 6 3 1 How many students failed at least one subject? Solution . The answer is not 37, even though the sum of the num- bers above is 37. For example, while 12 students failed Algebra, 2 of those students also failed Biology, 6 also failed Chemestry, and 1 of those failed all three subjects. In fact, that 1 student who failed all three subjects is counted a total of 7 times in the total 37.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

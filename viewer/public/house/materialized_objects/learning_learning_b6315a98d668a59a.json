@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.25) about time: As of May 2010, the smallest time interval uncertainty in direct measurements is on the order of 12 aoseconds (1.2 × 10",
+  "created_at": "2025-09-24T15:08:19.644829Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.25) about time: As of May 2010, the smallest time interval uncertainty in direct measurements is on the order of 12 aoseconds (1.2 × 10",
+  "predicted": "As of May 2010, the smallest time interval uncertainty in direct measurements is on the order of 12 aoseconds (1.2 × 10−17 seconds), about 3.7 × 1026 Planck times.[45] e time measured was the delay caused by out-of-sync electron waves' interference paerns.[46] e second (s) is the SI base unit. A minute (min) is 60 seconds in length (or, rarely, 59 or 61 seconds when leap seconds are employed), and an hour is 60 minutes or 3600 seconds in length.",
+  "true_answer": "As of May 2010, the smallest time interval uncertainty in direct measurements is on the order of 12 aoseconds (1.2 × 10−17 seconds), about 3.7 × 1026 Planck times.[45] e time measured was the delay caused by out-of-sync electron waves' interference paerns.[46] e second (s) is the SI base unit. A minute (min) is 60 seconds in length (or, rarely, 59 or 61 seconds when leap seconds are employed), and an hour is 60 minutes or 3600 seconds in length.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

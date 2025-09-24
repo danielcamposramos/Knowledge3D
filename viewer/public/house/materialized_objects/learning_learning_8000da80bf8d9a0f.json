@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'parecer' (pt).",
+  "created_at": "2025-09-24T16:14:09.318549Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'parecer' (pt).",
+  "predicted": "give a certain impression or have a certain outward aspect; \"She seems to be sleeping\"; \"This appears to be a very difficult problem\"; \"This project looks fishy\"; \"They appeared like people who had not eaten or slept for a long time\"",
+  "true_answer": "give a certain impression or have a certain outward aspect; \"She seems to be sleeping\"; \"This appears to be a very difficult problem\"; \"This project looks fishy\"; \"They appeared like people who had not eaten or slept for a long time\"",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

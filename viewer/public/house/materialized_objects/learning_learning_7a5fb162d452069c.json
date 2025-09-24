@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '15 August 1945' (en).",
+  "created_at": "2025-09-24T10:02:02.206201Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '15 August 1945' (en).",
+  "predicted": "the date of Allied victory over Japan, World War II",
+  "true_answer": "the date of Allied victory over Japan, World War II",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

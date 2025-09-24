@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.39) about time: With a special pointing device, or by crossing out past days, it may indicate the current date and weekday. is is the m",
+  "created_at": "2025-09-24T15:07:06.140996Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.39) about time: With a special pointing device, or by crossing out past days, it may indicate the current date and weekday. is is the m",
+  "predicted": "With a special pointing device, or by crossing out past days, it may indicate the current date and weekday. is is the most common usage of the word. In the US Sunday is considered the ﬁrst day of the week and so appears on the far le and Saturday the last day of the week appearing on the far right. In Britain, the weekend may appear at the end of the week so the ﬁrst day is Monday and the last Fiscal Formats The Payment of the Tithes (The tax- collector), also known as Village Lawyer, by Pieter Brueghel the Younger A calendar from the Petaluma and Santa Rosa Railroad day is Sunday.",
+  "true_answer": "With a special pointing device, or by crossing out past days, it may indicate the current date and weekday. is is the most common usage of the word. In the US Sunday is considered the ﬁrst day of the week and so appears on the far le and Saturday the last day of the week appearing on the far right. In Britain, the weekend may appear at the end of the week so the ﬁrst day is Monday and the last Fiscal Formats The Payment of the Tithes (The tax- collector), also known as Village Lawyer, by Pieter Brueghel the Younger A calendar from the Petaluma and Santa Rosa Railroad day is Sunday.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

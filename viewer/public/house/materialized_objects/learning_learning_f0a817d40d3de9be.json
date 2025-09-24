@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.61) about time: (1992), 'Calendars' (https://archive.org/details/131123ExplanatorySupplementAstronomicalAlmanac/page/n301/mode/1up), in ",
+  "created_at": "2025-09-24T15:07:31.966166Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.61) about time: (1992), 'Calendars' (https://archive.org/details/131123ExplanatorySupplementAstronomicalAlmanac/page/n301/mode/1up), in ",
+  "predicted": "(1992), 'Calendars' (https://archive.org/details/131123ExplanatorySupplementAstronomicalAlmanac/page/n301/mode/1up), in Seidelmann, P. Kenneth (ed.), Explanatory Supplement to the Astronomical Almanac, University Science Books, ISBN 978-0-935702-68-2 ▪ Richards, E.G. (1998), Mapping Time, the calendar and its history (https://archive.org/details/mappingtimecalen00rich), Oxford University Press, ISBN 978-0-19-850413-9 ▪ Rose, Lynn E.",
+  "true_answer": "(1992), 'Calendars' (https://archive.org/details/131123ExplanatorySupplementAstronomicalAlmanac/page/n301/mode/1up), in Seidelmann, P. Kenneth (ed.), Explanatory Supplement to the Astronomical Almanac, University Science Books, ISBN 978-0-935702-68-2 ▪ Richards, E.G. (1998), Mapping Time, the calendar and its history (https://archive.org/details/mappingtimecalen00rich), Oxford University Press, ISBN 978-0-19-850413-9 ▪ Rose, Lynn E.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

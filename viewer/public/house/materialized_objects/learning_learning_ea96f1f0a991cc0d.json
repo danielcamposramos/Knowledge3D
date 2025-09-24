@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 34.1) about mathematics: 24 0. Introduction and Preliminaries 0.3 Sets The most fundamental objects we will use in our studies (and really in all",
+  "created_at": "2025-09-24T15:12:40.711998Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 34.1) about mathematics: 24 0. Introduction and Preliminaries 0.3 Sets The most fundamental objects we will use in our studies (and really in all",
+  "predicted": "24 0. Introduction and Preliminaries 0.3 Sets The most fundamental objects we will use in our studies (and really in all of math) are sets . Much of what follows might be review, but it is very important that you are fluent in the language of set theory. Most of the notation we use below is standard, although some might be a little different than what you have seen before. For us, a set will simply be an unordered collection of objects. Two examples: we could consider the set of all actors who have played The Doctor on Doctor Who , or the set of natural numbers between 1 and 10 inclusive.",
+  "true_answer": "24 0. Introduction and Preliminaries 0.3 Sets The most fundamental objects we will use in our studies (and really in all of math) are sets . Much of what follows might be review, but it is very important that you are fluent in the language of set theory. Most of the notation we use below is standard, although some might be a little different than what you have seen before. For us, a set will simply be an unordered collection of objects. Two examples: we could consider the set of all actors who have played The Doctor on Doctor Who , or the set of natural numbers between 1 and 10 inclusive.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

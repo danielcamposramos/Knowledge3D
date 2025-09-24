@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 27.4) about mathematics: (b) Translate “If Jack passed math, then Jill did not” into symbols. (c) Translate “ P ∨ Q ” into English.",
+  "created_at": "2025-09-24T15:12:17.894031Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 27.4) about mathematics: (b) Translate “If Jack passed math, then Jill did not” into symbols. (c) Translate “ P ∨ Q ” into English.",
+  "predicted": "(b) Translate “If Jack passed math, then Jill did not” into symbols. (c) Translate “ P ∨ Q ” into English.",
+  "true_answer": "(b) Translate “If Jack passed math, then Jill did not” into symbols. (c) Translate “ P ∨ Q ” into English.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

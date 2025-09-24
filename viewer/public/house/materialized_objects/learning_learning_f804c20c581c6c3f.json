@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.9) about time: e ﬁrst is a calendar, a mathematical tool for organising intervals of time on Earth,[22] consulted for periods longer t",
+  "created_at": "2025-09-24T15:08:00.545866Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.9) about time: e ﬁrst is a calendar, a mathematical tool for organising intervals of time on Earth,[22] consulted for periods longer t",
+  "predicted": "e ﬁrst is a calendar, a mathematical tool for organising intervals of time on Earth,[22] consulted for periods longer than a day. e second is a clock, a physical mechanism that indicates the passage of time, consulted for periods less than a day. e combined measurement marks a speciﬁc moment in time from a reference point, or epoch. Artifacts from the Paleolithic suggest that the moon was used to reckon time as early as 6,000 years ago.[23] Lunar calendars were among the ﬁrst to appear, with years of either 12 or 13 lunar months (either 354 or 384 days).",
+  "true_answer": "e ﬁrst is a calendar, a mathematical tool for organising intervals of time on Earth,[22] consulted for periods longer than a day. e second is a clock, a physical mechanism that indicates the passage of time, consulted for periods less than a day. e combined measurement marks a speciﬁc moment in time from a reference point, or epoch. Artifacts from the Paleolithic suggest that the moon was used to reckon time as early as 6,000 years ago.[23] Lunar calendars were among the ﬁrst to appear, with years of either 12 or 13 lunar months (either 354 or 384 days).",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

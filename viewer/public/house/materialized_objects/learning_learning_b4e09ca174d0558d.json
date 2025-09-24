@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.1) about time: Time Time is the continuous progression of existence that occurs in an apparently irreversible succession from the past,",
+  "created_at": "2025-09-24T15:07:51.111454Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.1) about time: Time Time is the continuous progression of existence that occurs in an apparently irreversible succession from the past,",
+  "predicted": "Time Time is the continuous progression of existence that occurs in an apparently irreversible succession from the past, through the present, and into the future.[1][2][3] It is a component quantity of various measurements used to sequence events, to compare the duration of events (or the intervals between them), and to quantify rates of change of quantities in material reality or in the conscious experience.[4][5][6][7] Time is oen referred to as a fourth dimension, along with three spatial dimensions.[8] Time is one of the seven fundamental physical quantities in both the International System of Units (SI) and International System of antities.",
+  "true_answer": "Time Time is the continuous progression of existence that occurs in an apparently irreversible succession from the past, through the present, and into the future.[1][2][3] It is a component quantity of various measurements used to sequence events, to compare the duration of events (or the intervals between them), and to quantify rates of change of quantities in material reality or in the conscious experience.[4][5][6][7] Time is oen referred to as a fourth dimension, along with three spatial dimensions.[8] Time is one of the seven fundamental physical quantities in both the International System of Units (SI) and International System of antities.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

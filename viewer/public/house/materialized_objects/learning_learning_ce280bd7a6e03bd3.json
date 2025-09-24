@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 78.4) about mathematics: Additionally, 16 watch The Walking Dead and The Blacklist , 14 watch The Walking Dead and Game of Thrones , and 10 watch",
+  "created_at": "2025-09-24T15:15:54.599364Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 78.4) about mathematics: Additionally, 16 watch The Walking Dead and The Blacklist , 14 watch The Walking Dead and Game of Thrones , and 10 watch",
+  "predicted": "Additionally, 16 watch The Walking Dead and The Blacklist , 14 watch The Walking Dead and Game of Thrones , and 10 watch The Blacklist and Game of Thrones . There are 8 students who watch all three shows. How many students surveyed watched at least one of the shows? 8 . In a recent survey, 30 students reported whether they liked their pota- toes Mashed, French-fried, or Twice-baked. 15 liked them mashed, 20 liked French fries, and 9 liked twice baked potatoes. Additionally, 12 students liked both mashed and fried potatoes, 5 liked French fries",
+  "true_answer": "Additionally, 16 watch The Walking Dead and The Blacklist , 14 watch The Walking Dead and Game of Thrones , and 10 watch The Blacklist and Game of Thrones . There are 8 students who watch all three shows. How many students surveyed watched at least one of the shows? 8 . In a recent survey, 30 students reported whether they liked their pota- toes Mashed, French-fried, or Twice-baked. 15 liked them mashed, 20 liked French fries, and 9 liked twice baked potatoes. Additionally, 12 students liked both mashed and fried potatoes, 5 liked French fries",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

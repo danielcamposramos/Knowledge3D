@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 74.4) about mathematics: This is 10 + 8 | 18 , which would be the answer if | A ∩ B | | 0 . We see that we are off by exactly 6, which just so ha",
+  "created_at": "2025-09-24T15:15:35.219331Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 74.4) about mathematics: This is 10 + 8 | 18 , which would be the answer if | A ∩ B | | 0 . We see that we are off by exactly 6, which just so ha",
+  "predicted": "This is 10 + 8 | 18 , which would be the answer if | A ∩ B | | 0 . We see that we are off by exactly 6, which just so happens to",
+  "true_answer": "This is 10 + 8 | 18 , which would be the answer if | A ∩ B | | 0 . We see that we are off by exactly 6, which just so happens to",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

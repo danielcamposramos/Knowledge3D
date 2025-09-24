@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: 314 Union-Find  316 _____: Three Requirements  316 Choosing Union-Find  .",
+  "created_at": "2025-09-24T15:03:21.855316Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: 314 Union-Find  316 _____: Three Requirements  316 Choosing Union-Find  .",
+  "predicted": "Relationships",
+  "true_answer": "Relationships",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

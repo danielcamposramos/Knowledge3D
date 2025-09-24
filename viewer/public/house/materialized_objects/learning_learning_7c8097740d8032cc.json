@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: Here’s a self-check: change the knight’s starting point from (3, 1) to (5, 3).",
+  "created_at": "2025-09-24T15:17:27.756976Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: Here’s a self-check: change the knight’s starting point from (3, 1) to (5, 3).",
+  "predicted": "Here’s a self-check: change the knight’s starting point from (3, 1) to (5, 3).",
+  "true_answer": "Here’s a self-check: change the knight’s starting point from (3, 1) to (5, 3).",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

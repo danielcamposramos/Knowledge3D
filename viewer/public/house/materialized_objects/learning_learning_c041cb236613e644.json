@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? Wentzel, “Are Effective Teachers Like Good Parents?",
+  "created_at": "2025-09-24T15:24:49.667492Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? Wentzel, “Are Effective Teachers Like Good Parents?",
+  "predicted": "Wentzel, “Are Effective Teachers Like Good Parents?",
+  "true_answer": "Wentzel, “Are Effective Teachers Like Good Parents?",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 49.2) about mathematics: For example, consider the function f : N → N defined by f ( x ) | x 2 + 3 . Here the domain and codomain are the same se",
+  "created_at": "2025-09-24T15:13:41.250586Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 49.2) about mathematics: For example, consider the function f : N → N defined by f ( x ) | x 2 + 3 . Here the domain and codomain are the same se",
+  "predicted": "For example, consider the function f : N → N defined by f ( x ) | x 2 + 3 . Here the domain and codomain are the same set (the natural numbers). The rule is: take your input, multiply it by itself and add 3. This works because we can apply this rule to every natural number (every element of the domain) and the result is always a natural number (an element of the codomain). Notice though that not every natural number is actually an output (there is no way to get 0, 1, 2, 5, etc.).",
+  "true_answer": "For example, consider the function f : N → N defined by f ( x ) | x 2 + 3 . Here the domain and codomain are the same set (the natural numbers). The rule is: take your input, multiply it by itself and add 3. This works because we can apply this rule to every natural number (every element of the domain) and the result is always a natural number (an element of the codomain). Notice though that not every natural number is actually an output (there is no way to get 0, 1, 2, 5, etc.).",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

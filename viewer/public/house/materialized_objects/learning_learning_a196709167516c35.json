@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.70) about time: ough these eﬀects are typically minute in the human experience, the eﬀect becomes much more pronounced for objects movi",
+  "created_at": "2025-09-24T15:09:13.298173Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.70) about time: ough these eﬀects are typically minute in the human experience, the eﬀect becomes much more pronounced for objects movi",
+  "predicted": "ough these eﬀects are typically minute in the human experience, the eﬀect becomes much more pronounced for objects moving at speeds approaching the speed of light. Subatomic particles exist for a well-known average fraction of a second in a lab relatively at rest, but when travelling close to the speed of light they are measured to travel farther and exist for much longer than when at rest. Classical mechanics Spacetime Dilation Relativity of simultaneity: Event B is simultaneous with A in the green reference frame, but it occurred before in the blue frame, and occurs later in the red frame.",
+  "true_answer": "ough these eﬀects are typically minute in the human experience, the eﬀect becomes much more pronounced for objects moving at speeds approaching the speed of light. Subatomic particles exist for a well-known average fraction of a second in a lab relatively at rest, but when travelling close to the speed of light they are measured to travel farther and exist for much longer than when at rest. Classical mechanics Spacetime Dilation Relativity of simultaneity: Event B is simultaneous with A in the green reference frame, but it occurred before in the blue frame, and occurs later in the red frame.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

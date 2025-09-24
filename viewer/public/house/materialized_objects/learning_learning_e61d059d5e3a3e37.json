@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.15) about time: e idea to separate the day into smaller parts is credited to Egyptians because of their sundials, which operated on a d",
+  "created_at": "2025-09-24T15:08:07.557702Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.15) about time: e idea to separate the day into smaller parts is credited to Egyptians because of their sundials, which operated on a d",
+  "predicted": "e idea to separate the day into smaller parts is credited to Egyptians because of their sundials, which operated on a duodecimal system. e importance of the number 12 is due to the number of lunar cycles in a year and the number of stars used to count the passage of night.[28] Obelisks made as a gnomon were built as early as c. 3500 BC.[29] An Egyptian device that dates to c. 1500 BC, similar in shape to a bent T-square, also measured the passage of time from the shadow cast by its crossbar on a nonlinear rule. e T was oriented eastward in the mornings.",
+  "true_answer": "e idea to separate the day into smaller parts is credited to Egyptians because of their sundials, which operated on a duodecimal system. e importance of the number 12 is due to the number of lunar cycles in a year and the number of stars used to count the passage of night.[28] Obelisks made as a gnomon were built as early as c. 3500 BC.[29] An Egyptian device that dates to c. 1500 BC, similar in shape to a bent T-square, also measured the passage of time from the shadow cast by its crossbar on a nonlinear rule. e T was oriented eastward in the mornings.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

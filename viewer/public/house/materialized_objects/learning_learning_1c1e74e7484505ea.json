@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.30) about time: 2000 and 2400 as in the Gregorian calendar.[42] e Islamic calendar or Hijri calendar is a lunar calendar consisting of ",
+  "created_at": "2025-09-24T15:06:55.567940Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.30) about time: 2000 and 2400 as in the Gregorian calendar.[42] e Islamic calendar or Hijri calendar is a lunar calendar consisting of ",
+  "predicted": "2000 and 2400 as in the Gregorian calendar.[42] e Islamic calendar or Hijri calendar is a lunar calendar consisting of 12 lunar months in a year of 354 or 355 days. It is used to date events in most of the Muslim countries (concurrently with the Gregorian calendar) and used by Muslims everywhere to determine the proper day on which to celebrate Islamic holy days and festivals. Its epoch is the Hijra (corresponding to AD 622). With an annual dri of 11 or 12 days, the seasonal relation is repeated approximately every 33 Islamic years.",
+  "true_answer": "2000 and 2400 as in the Gregorian calendar.[42] e Islamic calendar or Hijri calendar is a lunar calendar consisting of 12 lunar months in a year of 354 or 355 days. It is used to date events in most of the Muslim countries (concurrently with the Gregorian calendar) and used by Muslims everywhere to determine the proper day on which to celebrate Islamic holy days and festivals. Its epoch is the Hijra (corresponding to AD 622). With an annual dri of 11 or 12 days, the seasonal relation is repeated approximately every 33 Islamic years.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

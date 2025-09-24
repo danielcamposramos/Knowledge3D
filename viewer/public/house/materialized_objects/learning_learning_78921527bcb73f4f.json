@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'empunhadura' (pt).",
+  "created_at": "2025-09-24T10:12:09.254363Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'empunhadura' (pt).",
+  "predicted": "the handle of a sword or dagger",
+  "true_answer": "the handle of a sword or dagger",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

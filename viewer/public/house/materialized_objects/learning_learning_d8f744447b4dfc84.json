@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define ''tween' (en).",
+  "created_at": "2025-09-24T09:40:16.603519Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define ''tween' (en).",
+  "predicted": "in between",
+  "true_answer": "in between",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

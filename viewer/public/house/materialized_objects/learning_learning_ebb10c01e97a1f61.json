@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 21.1) about mathematics: 0.2. Mathematical Statements 11 why this is true: you can at most have two cards of each of the four suits, for a total ",
+  "created_at": "2025-09-24T15:11:49.085125Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 21.1) about mathematics: 0.2. Mathematical Statements 11 why this is true: you can at most have two cards of each of the four suits, for a total ",
+  "predicted": "0.2. Mathematical Statements 11 why this is true: you can at most have two cards of each of the four suits, for a total of eight cards (or fewer). The converse: If you have at least three cards all of the same suit, then you have nine cards. This is false. You could have three spades and nothing else. Note that to demonstrate that the converse (an implication) is false, we provided an example where the hypothesis is true (you do have three cards of the same suit), but where the conclusion is false (you do not have nine cards).",
+  "true_answer": "0.2. Mathematical Statements 11 why this is true: you can at most have two cards of each of the four suits, for a total of eight cards (or fewer). The converse: If you have at least three cards all of the same suit, then you have nine cards. This is false. You could have three spades and nothing else. Note that to demonstrate that the converse (an implication) is false, we provided an example where the hypothesis is true (you do have three cards of the same suit), but where the conclusion is false (you do not have nine cards).",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

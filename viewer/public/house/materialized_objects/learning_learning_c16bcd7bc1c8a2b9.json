@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.51) about time: We are able to remember the past and project into the future; we have a kind of random access to our representation of t",
+  "created_at": "2025-09-24T15:08:50.593092Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.51) about time: We are able to remember the past and project into the future; we have a kind of random access to our representation of t",
+  "predicted": "We are able to remember the past and project into the future; we have a kind of random access to our representation of temporal existence; we can, in our thoughts, step out of (ecstasis) sequential time.[82] Modern era philosophers asked: is time real or unreal, is time happening all at once or a duration, is time tensed or tenseless, and is there a future to be?[69] ere is a theory called the tenseless or B-theory; this theory says that any tensed terminology can be replaced with tenseless terminology.[83] For example, 'we will win the game' can be replaced with 'we do win the game', taking out the future tense.",
+  "true_answer": "We are able to remember the past and project into the future; we have a kind of random access to our representation of temporal existence; we can, in our thoughts, step out of (ecstasis) sequential time.[82] Modern era philosophers asked: is time real or unreal, is time happening all at once or a duration, is time tensed or tenseless, and is there a future to be?[69] ere is a theory called the tenseless or B-theory; this theory says that any tensed terminology can be replaced with tenseless terminology.[83] For example, 'we will win the game' can be replaced with 'we do win the game', taking out the future tense.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

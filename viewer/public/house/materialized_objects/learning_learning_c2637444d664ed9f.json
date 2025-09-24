@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 60.3) about mathematics: • A function is injective (an injection or one-to-one ) if every element of the codomain is the image of at most one ele",
+  "created_at": "2025-09-24T15:14:30.913196Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 60.3) about mathematics: • A function is injective (an injection or one-to-one ) if every element of the codomain is the image of at most one ele",
+  "predicted": "• A function is injective (an injection or one-to-one ) if every element of the codomain is the image of at most one element from the domain. • A function is surjective (a surjection or onto ) if every element of the codomain is the image of at least one element from the domain. • A bijection is a function which is both an injection and surjection. In other words, if every element of the codomain is the image of exactly one element from the domain. • The image of an element x in the domain is the element y in the codomain that x is mapped to. That is, the image of x under f is f ( x ) .",
+  "true_answer": "• A function is injective (an injection or one-to-one ) if every element of the codomain is the image of at most one element from the domain. • A function is surjective (a surjection or onto ) if every element of the codomain is the image of at least one element from the domain. • A bijection is a function which is both an injection and surjection. In other words, if every element of the codomain is the image of exactly one element from the domain. • The image of an element x in the domain is the element y in the codomain that x is mapped to. That is, the image of x under f is f ( x ) .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

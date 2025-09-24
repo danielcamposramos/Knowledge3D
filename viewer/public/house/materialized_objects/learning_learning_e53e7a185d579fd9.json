@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How does context influence this statement? Considere estudos de pessoas em situações de estresse extremo em contexto como incêndios, unidades de",
+  "created_at": "2025-09-24T15:21:06.452782Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How does context influence this statement? Considere estudos de pessoas em situações de estresse extremo em contexto como incêndios, unidades de",
+  "predicted": "Considere estudos de pessoas em situações de estresse extremo em contexto como incêndios, unidades de",
+  "true_answer": "Considere estudos de pessoas em situações de estresse extremo em contexto como incêndios, unidades de",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -228,6 +228,36 @@ def load_meshes_from_glb(
         if embeddings:
             embeddings_array = np.array(embeddings, dtype=np.float32)
             embedding_shape = tuple(embeddings_array.shape)
+    else:
+        for mesh in glb.meshes or []:
+            for prim in mesh.primitives:
+                extras = getattr(prim, "extras", None)
+                if not isinstance(extras, dict):
+                    continue
+                k3d_info = extras.get("k3d")
+                if not isinstance(k3d_info, dict):
+                    continue
+                emb_view_index = k3d_info.get("embeddingsView")
+                emb_dim = int(k3d_info.get("embeddingDims", 0))
+                metadata = k3d_info.get("metadata")
+                if emb_view_index is None or emb_dim <= 0:
+                    continue
+                view = glb.bufferViews[emb_view_index]
+                raw = np.frombuffer(slice_view(view), dtype=np.float32)
+                if raw.size == 0:
+                    continue
+                try:
+                    embeddings_array = raw.reshape((-1, emb_dim))
+                except ValueError:
+                    embeddings_array = raw
+                    embedding_shape = (raw.size,)
+                else:
+                    embedding_shape = embeddings_array.shape
+                if isinstance(metadata, list):
+                    node_table = metadata
+                break
+            if embeddings_array.size:
+                break
 
     ctx = _ensure_context()
     vertices_dev = _alloc_and_upload(vertices_array)

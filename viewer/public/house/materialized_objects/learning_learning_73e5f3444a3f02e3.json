@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 6.2) about mathematics: For those of you reading this in a pdf or in print, I encourage you to also check out the interactive online version, wh",
+  "created_at": "2025-09-24T15:10:52.783669Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 6.2) about mathematics: For those of you reading this in a pdf or in print, I encourage you to also check out the interactive online version, wh",
+  "predicted": "For those of you reading this in a pdf or in print, I encourage you to also check out the interactive online version, which makes navigating the book a little easier. Additionally, some of the exercises are implemented as WeBWorK problems, which allow you to check your work without see- ing the correct answer immediately. Additional interactivity is planned, including instructional videos for examples and additional exercises at the end of sections. These “bonus” features will be added on a rolling basis, so keep an eye out!",
+  "true_answer": "For those of you reading this in a pdf or in print, I encourage you to also check out the interactive online version, which makes navigating the book a little easier. Additionally, some of the exercises are implemented as WeBWorK problems, which allow you to check your work without see- ing the correct answer immediately. Additional interactivity is planned, including instructional videos for examples and additional exercises at the end of sections. These “bonus” features will be added on a rolling basis, so keep an eye out!",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 6.1) about mathematics: x bring you back to the exercise). Readers are encouraged to try these exercises before looking at the help. Both hints ",
+  "created_at": "2025-09-24T15:10:51.513935Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 6.1) about mathematics: x bring you back to the exercise). Readers are encouraged to try these exercises before looking at the help. Both hints ",
+  "predicted": "x bring you back to the exercise). Readers are encouraged to try these exercises before looking at the help. Both hints and solutions are intended as a way to check your work, but often what would “count” as a correct solution in a math class would be quite a bit more. When I teach with this book, I assign exercises that have solutions as practice and then use them, or similar problems, on quizzes and exams. There are also problems without solutions to challenge yourself (or to be assigned as homework). Interactive Online Version.",
+  "true_answer": "x bring you back to the exercise). Readers are encouraged to try these exercises before looking at the help. Both hints and solutions are intended as a way to check your work, but often what would “count” as a correct solution in a math class would be quite a bit more. When I teach with this book, I assign exercises that have solutions as practice and then use them, or similar problems, on quizzes and exams. There are also problems without solutions to challenge yourself (or to be assigned as homework). Interactive Online Version.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

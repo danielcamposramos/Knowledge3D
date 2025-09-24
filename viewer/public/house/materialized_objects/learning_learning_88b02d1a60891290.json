@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.5) about time: More modern systems include the Global Positioning System, other satellite systems, Coordinated Universal Time and mean ",
+  "created_at": "2025-09-24T15:07:55.816659Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.5) about time: More modern systems include the Global Positioning System, other satellite systems, Coordinated Universal Time and mean ",
+  "predicted": "More modern systems include the Global Positioning System, other satellite systems, Coordinated Universal Time and mean solar time. Although these systems diﬀer from one another, with careful measurements they can be synchronized. In physics, time is a fundamental concept to deﬁne other quantities, such as velocity. To avoid a circular deﬁnition,[15] time in physics is operationally deﬁned as 'what a clock reads', speciﬁcally a count of repeating events such as the SI second.[6][16][17] Although this aids in practical measurements, it does not address the essence of time.",
+  "true_answer": "More modern systems include the Global Positioning System, other satellite systems, Coordinated Universal Time and mean solar time. Although these systems diﬀer from one another, with careful measurements they can be synchronized. In physics, time is a fundamental concept to deﬁne other quantities, such as velocity. To avoid a circular deﬁnition,[15] time in physics is operationally deﬁned as 'what a clock reads', speciﬁcally a count of repeating events such as the SI second.[6][16][17] Although this aids in practical measurements, it does not address the essence of time.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

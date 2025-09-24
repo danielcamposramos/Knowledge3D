@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: Consulte Tara Gruenewald et al., “Acute Threat to the Social Self: Shame, Social Selfesteem, and Cortisol Activity”,  Psychosomatic Medicine  66 (2004), pp.",
+  "created_at": "2025-09-24T09:13:43.793439Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: Consulte Tara Gruenewald et al., “Acute Threat to the Social Self: Shame, Social Selfesteem, and Cortisol Activity”,  Psychosomatic Medicine  66 (2004), pp.",
+  "predicted": "Consulte Tara Gruenewald et al., “Acute Threat to the Social Self: Shame, Social Selfesteem, and Cortisol Activity”,  Psychosomatic Medicine  66 (2004), pp.",
+  "true_answer": "Consulte Tara Gruenewald et al., “Acute Threat to the Social Self: Shame, Social Selfesteem, and Cortisol Activity”,  Psychosomatic Medicine  66 (2004), pp.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

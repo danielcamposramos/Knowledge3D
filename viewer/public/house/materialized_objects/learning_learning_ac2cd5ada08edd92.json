@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: You develop intuition for which tools and _____ will be most effective against different types of opponents—there’s no silver-bullet approach that works well against everyone.",
+  "created_at": "2025-09-24T15:03:32.207417Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: You develop intuition for which tools and _____ will be most effective against different types of opponents—there’s no silver-bullet approach that works well against everyone.",
+  "predicted": "strategies",
+  "true_answer": "strategies",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

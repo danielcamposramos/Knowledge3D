@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? the shortest path.' We’re learning algorithms—deservedly famous ones—but also stocking up on flexible problem-solving tools.",
+  "created_at": "2025-09-24T09:25:19.351945Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? the shortest path.' We’re learning algorithms—deservedly famous ones—but also stocking up on flexible problem-solving tools.",
+  "predicted": "the shortest path.' We’re learning algorithms—deservedly famous ones—but also stocking up on flexible problem-solving tools.",
+  "true_answer": "the shortest path.' We’re learning algorithms—deservedly famous ones—but also stocking up on flexible problem-solving tools.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

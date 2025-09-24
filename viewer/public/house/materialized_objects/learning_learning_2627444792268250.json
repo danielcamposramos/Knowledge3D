@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 58.5) about mathematics: Inverse functions only exist for bijections, but f − 1 ( y ) is defined for any function f . The point: f − 1 ( y ) is a",
+  "created_at": "2025-09-24T15:14:23.559676Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 58.5) about mathematics: Inverse functions only exist for bijections, but f − 1 ( y ) is defined for any function f . The point: f − 1 ( y ) is a",
+  "predicted": "Inverse functions only exist for bijections, but f − 1 ( y ) is defined for any function f . The point: f − 1 ( y ) is a set , not an element of the domain. This is just sloppy notation for f − 1 ({ y }) . To help make this distinction, we would call f − 1 ( y ) the complete inverse image of y under f . It is not the image of y under f − 1 (since the function f − 1 might not exist).",
+  "true_answer": "Inverse functions only exist for bijections, but f − 1 ( y ) is defined for any function f . The point: f − 1 ( y ) is a set , not an element of the domain. This is just sloppy notation for f − 1 ({ y }) . To help make this distinction, we would call f − 1 ( y ) the complete inverse image of y under f . It is not the image of y under f − 1 (since the function f − 1 might not exist).",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

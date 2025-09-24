@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.4) about time: Nevertheless, the Roman calendar contained remnants of a very ancient pre-Etruscan 10-month solar year.[11] e ﬁrst reco",
+  "created_at": "2025-09-24T15:06:25.288510Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.4) about time: Nevertheless, the Roman calendar contained remnants of a very ancient pre-Etruscan 10-month solar year.[11] e ﬁrst reco",
+  "predicted": "Nevertheless, the Roman calendar contained remnants of a very ancient pre-Etruscan 10-month solar year.[11] e ﬁrst recorded physical calendars, dependent on the development of writing in the Ancient Near East, are the Bronze Age Egyptian and Sumerian calendars.[12] During the Vedic period India developed a sophisticated timekeeping methodology and calendars for Vedic rituals.[13] According to Yukio Ohashi, the Vedanga calendar in ancient India was based on astronomical studies during the Vedic Period and was not derived from other cultures.[14] Etymology History British calendar, 1851, gilt bronze and malachite, height: 20.3 cm, Metropolitan Museum of Art (New York City) Equinox seen from the astronomic calendar of Pizzo Vento at Fondachelli Fantina, Sicily A large number of calendar systems in the Ancient Near East were based on the Babylonian calendar dating from the Iron Age,[15] among them the calendar system of the Persian Empire, which in turn gave rise to the Zoroastrian calendar and the Hebrew calendar.[16][17] A great number of Hellenic calendars were developed in Classical Greece, and during the Hellenistic period they gave rise to the ancient Roman calendar and to various Hindu calendars.[18] Calendars in antiquity were lunisolar, depending on the introduction of intercalary months to align the solar and the lunar years.",
+  "true_answer": "Nevertheless, the Roman calendar contained remnants of a very ancient pre-Etruscan 10-month solar year.[11] e ﬁrst recorded physical calendars, dependent on the development of writing in the Ancient Near East, are the Bronze Age Egyptian and Sumerian calendars.[12] During the Vedic period India developed a sophisticated timekeeping methodology and calendars for Vedic rituals.[13] According to Yukio Ohashi, the Vedanga calendar in ancient India was based on astronomical studies during the Vedic Period and was not derived from other cultures.[14] Etymology History British calendar, 1851, gilt bronze and malachite, height: 20.3 cm, Metropolitan Museum of Art (New York City) Equinox seen from the astronomic calendar of Pizzo Vento at Fondachelli Fantina, Sicily A large number of calendar systems in the Ancient Near East were based on the Babylonian calendar dating from the Iron Age,[15] among them the calendar system of the Persian Empire, which in turn gave rise to the Zoroastrian calendar and the Hebrew calendar.[16][17] A great number of Hellenic calendars were developed in Classical Greece, and during the Hellenistic period they gave rise to the ancient Roman calendar and to various Hindu calendars.[18] Calendars in antiquity were lunisolar, depending on the introduction of intercalary months to align the solar and the lunar years.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

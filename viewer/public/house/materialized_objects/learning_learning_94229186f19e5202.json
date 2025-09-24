@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.78) about time: In the modern established physical theories like the Standard Model of particle physics and general relativity time is n",
+  "created_at": "2025-09-24T15:09:22.795653Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.78) about time: In the modern established physical theories like the Standard Model of particle physics and general relativity time is n",
+  "predicted": "In the modern established physical theories like the Standard Model of particle physics and general relativity time is not quantized. Planck time (~ 5.4 × 10−44 seconds) is the unit of time in the system of natural units known as Planck units. Current established physical theories are believed to fail at this time scale, and many physicists expect that the Planck time might be the smallest unit of time that could ever be measured, even in principle.",
+  "true_answer": "In the modern established physical theories like the Standard Model of particle physics and general relativity time is not quantized. Planck time (~ 5.4 × 10−44 seconds) is the unit of time in the system of natural units known as Planck units. Current established physical theories are believed to fail at this time scale, and many physicists expect that the Planck time might be the smallest unit of time that could ever be measured, even in principle.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

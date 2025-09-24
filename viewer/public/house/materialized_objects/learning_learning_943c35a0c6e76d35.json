@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: Sobre estresse social e prejuízo da memória de trabalho, consulte Bernet Elizuya e Karin Rochlofs, “Cortisol-Induced Impairments of Working Memory Requires Acute Sympathetic Activation”,  Behavioral Neuroscience  119 (2005), pp.",
+  "created_at": "2025-09-24T09:13:17.495965Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: Sobre estresse social e prejuízo da memória de trabalho, consulte Bernet Elizuya e Karin Rochlofs, “Cortisol-Induced Impairments of Working Memory Requires Acute Sympathetic Activation”,  Behavioral Neuroscience  119 (2005), pp.",
+  "predicted": "Sobre estresse social e prejuízo da memória de trabalho, consulte Bernet Elizuya e Karin Rochlofs, “Cortisol-Induced Impairments of Working Memory Requires Acute Sympathetic Activation”,  Behavioral Neuroscience  119 (2005), pp.",
+  "true_answer": "Sobre estresse social e prejuízo da memória de trabalho, consulte Bernet Elizuya e Karin Rochlofs, “Cortisol-Induced Impairments of Working Memory Requires Acute Sympathetic Activation”,  Behavioral Neuroscience  119 (2005), pp.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

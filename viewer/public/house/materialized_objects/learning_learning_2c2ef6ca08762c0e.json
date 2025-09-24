@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 11.2) about mathematics: Defining discrete mathematics is hard because defining mathematics is hard. What is mathematics? The study of numbers? I",
+  "created_at": "2025-09-24T15:11:04.702108Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 11.2) about mathematics: Defining discrete mathematics is hard because defining mathematics is hard. What is mathematics? The study of numbers? I",
+  "predicted": "Defining discrete mathematics is hard because defining mathematics is hard. What is mathematics? The study of numbers? In part, but you also study functions and lines and triangles and parallelepipeds and vectors and Or perhaps you want to say that mathematics is a collection of tools that allow you to solve problems. What sort of problems? Okay, those that involve numbers, functions, lines, triangles, Whatever your conception of what mathematics is, try applying the concept of “discrete” to it, as defined above.",
+  "true_answer": "Defining discrete mathematics is hard because defining mathematics is hard. What is mathematics? The study of numbers? In part, but you also study functions and lines and triangles and parallelepipeds and vectors and Or perhaps you want to say that mathematics is a collection of tools that allow you to solve problems. What sort of problems? Okay, those that involve numbers, functions, lines, triangles, Whatever your conception of what mathematics is, try applying the concept of “discrete” to it, as defined above.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.40) about time: It is believed that there was repeating ages over the lifespan of the universe.[70] is led to beliefs like cycles of re",
+  "created_at": "2025-09-24T15:08:37.579159Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.40) about time: It is believed that there was repeating ages over the lifespan of the universe.[70] is led to beliefs like cycles of re",
+  "predicted": "It is believed that there was repeating ages over the lifespan of the universe.[70] is led to beliefs like cycles of rebirth and reincarnation.[70] e Greek Time in Kabbalah & Rabbinical thought Time in Advaita Vedanta In Western philosophy Time's mortal aspect is personiﬁed in this bronze statue by Charles van der Stappen.",
+  "true_answer": "It is believed that there was repeating ages over the lifespan of the universe.[70] is led to beliefs like cycles of rebirth and reincarnation.[70] e Greek Time in Kabbalah & Rabbinical thought Time in Advaita Vedanta In Western philosophy Time's mortal aspect is personiﬁed in this bronze statue by Charles van der Stappen.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

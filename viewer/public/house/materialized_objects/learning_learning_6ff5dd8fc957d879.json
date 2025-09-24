@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 14.1) about mathematics: 4 0. Introduction and Preliminaries 0.2 Mathematical Statements Investigate! ! Attempt the above activity before proceed",
+  "created_at": "2025-09-24T15:11:16.658708Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 14.1) about mathematics: 4 0. Introduction and Preliminaries 0.2 Mathematical Statements Investigate! ! Attempt the above activity before proceed",
+  "predicted": "4 0. Introduction and Preliminaries 0.2 Mathematical Statements Investigate! ! Attempt the above activity before proceeding ! While walking through a fictional forest, you encounter three trolls guarding a bridge. Each is either a knight , who always tells the truth, or a knave , who always lies. The trolls will not let you pass until you correctly identify each as either a knight or a knave. Each troll makes a single statement: Troll 1: If I am a knave, then there are exactly two knights here. Troll 2: Troll 1 is lying. Troll 3: Either we are all knaves or at least one of us is a knight.",
+  "true_answer": "4 0. Introduction and Preliminaries 0.2 Mathematical Statements Investigate! ! Attempt the above activity before proceeding ! While walking through a fictional forest, you encounter three trolls guarding a bridge. Each is either a knight , who always tells the truth, or a knave , who always lies. The trolls will not let you pass until you correctly identify each as either a knight or a knave. Each troll makes a single statement: Troll 1: If I am a knave, then there are exactly two knights here. Troll 2: Troll 1 is lying. Troll 3: Either we are all knaves or at least one of us is a knight.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

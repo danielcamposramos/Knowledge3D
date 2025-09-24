@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 50.4) about mathematics: In discrete math, we can still use any of these to describe functions, but we can also be more specific since we are pri",
+  "created_at": "2025-09-24T15:13:49.644261Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 50.4) about mathematics: In discrete math, we can still use any of these to describe functions, but we can also be more specific since we are pri",
+  "predicted": "In discrete math, we can still use any of these to describe functions, but we can also be more specific since we are primarily concerned with functions that have N or a finite subset of N as their domain. Describing a function graphically usually means drawing the graph of the function: plotting the points on the plane. We can do this, and might get a graph like the following for a function f : { 1 , 2 , 3 }→{ 1 , 2 , 3 } .",
+  "true_answer": "In discrete math, we can still use any of these to describe functions, but we can also be more specific since we are primarily concerned with functions that have N or a finite subset of N as their domain. Describing a function graphically usually means drawing the graph of the function: plotting the points on the plane. We can do this, and might get a graph like the following for a function f : { 1 , 2 , 3 }→{ 1 , 2 , 3 } .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

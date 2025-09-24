@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'Diff Eq Intro' (chunk 2.1) about mathematics: 3 in this case. Let us consider the following example: . 6 After steps 1 and 2 we find that there is only one eigenvalue",
+  "created_at": "2025-09-24T15:10:24.953416Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'Diff Eq Intro' (chunk 2.1) about mathematics: 3 in this case. Let us consider the following example: . 6 After steps 1 and 2 we find that there is only one eigenvalue",
+  "predicted": "3 in this case. Let us consider the following example: . 6 After steps 1 and 2 we find that there is only one eigenvalue, -1, with multiplicity 3",
+  "true_answer": "3 in this case. Let us consider the following example: . 6 After steps 1 and 2 we find that there is only one eigenvalue, -1, with multiplicity 3",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

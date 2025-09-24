@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'Diff Eq Intro' (chunk 3.1) about mathematics: 1, 2, …, p: a.Press F4-AαI b.Press RA c.Press . d.Put k on the stack e.Press . f.Write down wk. 15. Write the solution a",
+  "created_at": "2025-09-24T15:10:26.206316Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'Diff Eq Intro' (chunk 3.1) about mathematics: 1, 2, …, p: a.Press F4-AαI b.Press RA c.Press . d.Put k on the stack e.Press . f.Write down wk. 15. Write the solution a",
+  "predicted": "1, 2, …, p: a.Press F4-AαI b.Press RA c.Press . d.Put k on the stack e.Press . f.Write down wk. 15. Write the solution as given in (1). Note that when we do the above steps with our choice for w0 that 2 .5 0 . I prefer to avoid . 5 . fractions, so I went back and chose 0 . Now the solution is 2 0 0 1 2 0 2 0 2 0 0 1 To find the third solution we choose 7 The solution to the system, then is 0 0 1 2 . . 1 0 0 1 2 Converting back to scalar form, we have 2 2 .",
+  "true_answer": "1, 2, …, p: a.Press F4-AαI b.Press RA c.Press . d.Put k on the stack e.Press . f.Write down wk. 15. Write the solution as given in (1). Note that when we do the above steps with our choice for w0 that 2 .5 0 . I prefer to avoid . 5 . fractions, so I went back and chose 0 . Now the solution is 2 0 0 1 2 0 2 0 2 0 0 1 To find the third solution we choose 7 The solution to the system, then is 0 0 1 2 . . 1 0 0 1 2 Converting back to scalar form, we have 2 2 .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

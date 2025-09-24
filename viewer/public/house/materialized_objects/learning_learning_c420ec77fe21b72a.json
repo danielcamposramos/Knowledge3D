@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.11) about time: ▪ Solar calendars are based on perceived seasonal changes synchronized to the apparent motion of the Sun; an example is ",
+  "created_at": "2025-09-24T15:06:33.365030Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.11) about time: ▪ Solar calendars are based on perceived seasonal changes synchronized to the apparent motion of the Sun; an example is ",
+  "predicted": "▪ Solar calendars are based on perceived seasonal changes synchronized to the apparent motion of the Sun; an example is the Persian calendar. ▪ Lunisolar calendars are based on a combination of both solar and lunar reckonings; examples include the traditional calendar of China, the Hindu calendar in India and Nepal, and the Hebrew calendar. ▪ The week cycle is an example of one that is not synchronized to any external phenomenon (although it may have been derived from lunar phases, beginning anew every month).",
+  "true_answer": "▪ Solar calendars are based on perceived seasonal changes synchronized to the apparent motion of the Sun; an example is the Persian calendar. ▪ Lunisolar calendars are based on a combination of both solar and lunar reckonings; examples include the traditional calendar of China, the Hindu calendar in India and Nepal, and the Hebrew calendar. ▪ The week cycle is an example of one that is not synchronized to any external phenomenon (although it may have been derived from lunar phases, beginning anew every month).",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

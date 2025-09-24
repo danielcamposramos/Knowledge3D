@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.119) about time: Archived (https://web.archive.org/we b/20170701102437/http://mlb.mlb.com/mlb/downloads/y2011/Oﬃci al_Baseball_Rules.pdf)",
+  "created_at": "2025-09-24T15:10:11.936954Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.119) about time: Archived (https://web.archive.org/we b/20170701102437/http://mlb.mlb.com/mlb/downloads/y2011/Oﬃci al_Baseball_Rules.pdf)",
+  "predicted": "Archived (https://web.archive.org/we b/20170701102437/http://mlb.mlb.com/mlb/downloads/y2011/Oﬃci al_Baseball_Rules.pdf) (PDF) from the original on 1 July 2017. Retrieved 18 May 2017. 'Rule 8.03 Such preparatory pitches shall not consume more than one minute of time...Rule 8.04 When the bases are unoccupied, the pitcher shall deliver the ball to the batter within 12 seconds...The 12-second timing starts when the pitcher is in possession of the ball and the batter is in the box, alert to the pitcher. The timing stops when the pitcher releases the ball.' 13.",
+  "true_answer": "Archived (https://web.archive.org/we b/20170701102437/http://mlb.mlb.com/mlb/downloads/y2011/Oﬃci al_Baseball_Rules.pdf) (PDF) from the original on 1 July 2017. Retrieved 18 May 2017. 'Rule 8.03 Such preparatory pitches shall not consume more than one minute of time...Rule 8.04 When the bases are unoccupied, the pitcher shall deliver the ball to the batter within 12 seconds...The 12-second timing starts when the pitcher is in possession of the ball and the batter is in the box, alert to the pitcher. The timing stops when the pitcher releases the ball.' 13.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

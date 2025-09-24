@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'teletransportar' (pt).",
+  "created_at": "2025-09-24T16:13:55.955018Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'teletransportar' (pt).",
+  "predicted": "transport by dematerializing at one point and assembling at another",
+  "true_answer": "transport by dematerializing at one point and assembling at another",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? Through my students, however, I’ve observed a disconnect between the way that recursion is touted and the way it is learned.",
+  "created_at": "2025-09-24T09:21:45.581512Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? Through my students, however, I’ve observed a disconnect between the way that recursion is touted and the way it is learned.",
+  "predicted": "Through my students, however, I’ve observed a disconnect between the way that recursion is touted and the way it is learned.",
+  "true_answer": "Through my students, however, I’ve observed a disconnect between the way that recursion is touted and the way it is learned.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

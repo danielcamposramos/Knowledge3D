@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.99) about time: A sequence of events, or series of events, is a sequence of items, facts, events, actions, changes, or procedural steps,",
+  "created_at": "2025-09-24T15:09:48.102958Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.99) about time: A sequence of events, or series of events, is a sequence of items, facts, events, actions, changes, or procedural steps,",
+  "predicted": "A sequence of events, or series of events, is a sequence of items, facts, events, actions, changes, or procedural steps, arranged in time order (chronological order), oen with causality relationships among the items.[128][129][130] Because of causality, cause precedes eﬀect, or cause and eﬀect may appear together in a single item, but eﬀect never precedes cause. A sequence of events can be presented in text, tables, charts, or timelines. e description of the items or events may include a timestamp.",
+  "true_answer": "A sequence of events, or series of events, is a sequence of items, facts, events, actions, changes, or procedural steps, arranged in time order (chronological order), oen with causality relationships among the items.[128][129][130] Because of causality, cause precedes eﬀect, or cause and eﬀect may appear together in a single item, but eﬀect never precedes cause. A sequence of events can be presented in text, tables, charts, or timelines. e description of the items or events may include a timestamp.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

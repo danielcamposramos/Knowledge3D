@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: It’s for this reason that you don’t guess 10 as your first guess when someone asks you to guess their number between 1 and 1,000.",
+  "created_at": "2025-09-24T15:17:36.327154Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: It’s for this reason that you don’t guess 10 as your first guess when someone asks you to guess their number between 1 and 1,000.",
+  "predicted": "It’s for this reason that you don’t guess 10 as your first guess when someone asks you to guess their number between 1 and 1,000.",
+  "true_answer": "It’s for this reason that you don’t guess 10 as your first guess when someone asks you to guess their number between 1 and 1,000.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

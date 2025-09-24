@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '4S店' (zh).",
+  "created_at": "2025-09-24T11:31:02.512638Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '4S店' (zh).",
+  "predicted": "authorized full-service car dealership (offering sales, spare parts, after-sales service and customer support)",
+  "true_answer": "authorized full-service car dealership (offering sales, spare parts, after-sales service and customer support)",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

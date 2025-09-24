@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 75.2) about mathematics: So far we have counted every element in A ∩ B exactly twice: once when we put in the elements from A and once when we in",
+  "created_at": "2025-09-24T15:15:37.646567Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 75.2) about mathematics: So far we have counted every element in A ∩ B exactly twice: once when we put in the elements from A and once when we in",
+  "predicted": "So far we have counted every element in A ∩ B exactly twice: once when we put in the elements from A and once when we included the elements from B . We correct by subtracting out the number of elements we have counted twice. So we added them in twice, subtracted once, leaving them counted only one time. In other words, we have: Cardinality of a union (2 sets). For any finite sets A and B , | A ∪ B | | | A | + | B |−| A ∩ B | . We can do something similar with three sets. Example 1.1.8 An examination in three subjects, Algebra, Biology, and Chemistry, was taken by 41 students.",
+  "true_answer": "So far we have counted every element in A ∩ B exactly twice: once when we put in the elements from A and once when we included the elements from B . We correct by subtracting out the number of elements we have counted twice. So we added them in twice, subtracted once, leaving them counted only one time. In other words, we have: Cardinality of a union (2 sets). For any finite sets A and B , | A ∪ B | | | A | + | B |−| A ∩ B | . We can do something similar with three sets. Example 1.1.8 An examination in three subjects, Algebra, Biology, and Chemistry, was taken by 41 students.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

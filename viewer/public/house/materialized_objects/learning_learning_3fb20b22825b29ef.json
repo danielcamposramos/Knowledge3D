@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: O circuito neural para os nossos sentimentos e os dos outros é discutido em Kevin Ochsner et al., “Reflecting upon Feelings: An fMRI Study of Neural Systems Supporting the Attribution of Emotion to Self and Other”,  Journal of Cognitive Neuroscience  16 (2004), pp.",
+  "created_at": "2025-09-24T09:13:28.611260Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: O circuito neural para os nossos sentimentos e os dos outros é discutido em Kevin Ochsner et al., “Reflecting upon Feelings: An fMRI Study of Neural Systems Supporting the Attribution of Emotion to Self and Other”,  Journal of Cognitive Neuroscience  16 (2004), pp.",
+  "predicted": "O circuito neural para os nossos sentimentos e os dos outros é discutido em Kevin Ochsner et al., “Reflecting upon Feelings: An fMRI Study of Neural Systems Supporting the Attribution of Emotion to Self and Other”,  Journal of Cognitive Neuroscience  16 (2004), pp.",
+  "true_answer": "O circuito neural para os nossos sentimentos e os dos outros é discutido em Kevin Ochsner et al., “Reflecting upon Feelings: An fMRI Study of Neural Systems Supporting the Attribution of Emotion to Self and Other”,  Journal of Cognitive Neuroscience  16 (2004), pp.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

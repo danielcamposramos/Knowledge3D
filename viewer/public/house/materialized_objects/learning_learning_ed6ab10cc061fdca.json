@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.47) about time: Kant thought of time as a fundamental part of an abstract conceptual framework, together with space and number, within w",
+  "created_at": "2025-09-24T15:08:45.915152Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.47) about time: Kant thought of time as a fundamental part of an abstract conceptual framework, together with space and number, within w",
+  "predicted": "Kant thought of time as a fundamental part of an abstract conceptual framework, together with space and number, within which we sequence events, quantify their duration, and compare the motions of objects. In this view, time does not refer to any kind of entity that 'ﬂows,' that objects 'move through,' or that is a 'container' for events. Spatial measurements are used to quantify the extent of and distances between objects, and temporal measurements are used to quantify the durations of and between events. Time was designated by Kant as the purest possible schema of a pure concept or category.",
+  "true_answer": "Kant thought of time as a fundamental part of an abstract conceptual framework, together with space and number, within which we sequence events, quantify their duration, and compare the motions of objects. In this view, time does not refer to any kind of entity that 'ﬂows,' that objects 'move through,' or that is a 'container' for events. Spatial measurements are used to quantify the extent of and distances between objects, and temporal measurements are used to quantify the durations of and between events. Time was designated by Kant as the purest possible schema of a pure concept or category.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

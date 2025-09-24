@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 30.3) about mathematics: (d) You will be rich if you win the lottery. (e) You will win the lottery if you are rich. (f) It is necessary for you t",
+  "created_at": "2025-09-24T15:12:29.849358Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 30.3) about mathematics: (d) You will be rich if you win the lottery. (e) You will win the lottery if you are rich. (f) It is necessary for you t",
+  "predicted": "(d) You will be rich if you win the lottery. (e) You will win the lottery if you are rich. (f) It is necessary for you to win the lottery to be rich. (g) It is sufficient to win the lottery to be rich. (h) You will be rich only if you win the lottery. (i) Unless you win the lottery, you won’t be rich. (j) If you are rich, you must have won the lottery. (k) If you are not rich, then you did not win the lottery. (l) You will win the lottery if and only if you are rich.",
+  "true_answer": "(d) You will be rich if you win the lottery. (e) You will win the lottery if you are rich. (f) It is necessary for you to win the lottery to be rich. (g) It is sufficient to win the lottery to be rich. (h) You will be rich only if you win the lottery. (i) Unless you win the lottery, you won’t be rich. (j) If you are rich, you must have won the lottery. (k) If you are not rich, then you did not win the lottery. (l) You will win the lottery if and only if you are rich.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 27.3) about mathematics: If the statement is molecular, say what kind it is (conjuction, disjunction, conditional, biconditional, negation). (a) ",
+  "created_at": "2025-09-24T15:12:16.640245Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 27.3) about mathematics: If the statement is molecular, say what kind it is (conjuction, disjunction, conditional, biconditional, negation). (a) ",
+  "predicted": "If the statement is molecular, say what kind it is (conjuction, disjunction, conditional, biconditional, negation). (a) The sum of the first 100 odd positive integers. (b) Everybody needs somebody sometime. (c) The Broncos will win the Super Bowl or I’ll eat my hat. (d) We can have donuts for dinner, but only if it rains. (e) Every natural number greater than 1 is either prime or compos- ite. (f) This sentence is false. 3 . Suppose P and Q are the statements: P : Jack passed math. Q : Jill passed math. (a) Translate “Jack and Jill both passed math” into symbols.",
+  "true_answer": "If the statement is molecular, say what kind it is (conjuction, disjunction, conditional, biconditional, negation). (a) The sum of the first 100 odd positive integers. (b) Everybody needs somebody sometime. (c) The Broncos will win the Super Bowl or I’ll eat my hat. (d) We can have donuts for dinner, but only if it rains. (e) Every natural number greater than 1 is either prime or compos- ite. (f) This sentence is false. 3 . Suppose P and Q are the statements: P : Jack passed math. Q : Jill passed math. (a) Translate “Jack and Jill both passed math” into symbols.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

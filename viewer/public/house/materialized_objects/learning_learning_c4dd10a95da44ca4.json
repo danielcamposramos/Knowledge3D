@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 11.1) about mathematics: Chapter 0 Introduction and Preliminaries Welcome to Discrete Mathematics. If this is your first time encountering the su",
+  "created_at": "2025-09-24T15:11:03.448973Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 11.1) about mathematics: Chapter 0 Introduction and Preliminaries Welcome to Discrete Mathematics. If this is your first time encountering the su",
+  "predicted": "Chapter 0 Introduction and Preliminaries Welcome to Discrete Mathematics. If this is your first time encountering the subject, you will probably find discrete mathematics quite different from other math subjects. You might not even know what discrete math is! Hopefully this short introduction will shed some light on what the subject is about and what you can expect as you move forward in your studies. 0.1 What is Discrete Mathematics? dis · crete / dis’krët. Adjective : Individually separate and distinct. Synonyms : separate - detached - distinct - abstract.",
+  "true_answer": "Chapter 0 Introduction and Preliminaries Welcome to Discrete Mathematics. If this is your first time encountering the subject, you will probably find discrete mathematics quite different from other math subjects. You might not even know what discrete math is! Hopefully this short introduction will shed some light on what the subject is about and what you can expect as you move forward in your studies. 0.1 What is Discrete Mathematics? dis · crete / dis’krët. Adjective : Individually separate and distinct. Synonyms : separate - detached - distinct - abstract.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 26.1) about mathematics: 16 0. Introduction and Preliminaries As with all mathematical statements, we would like to decide whether quantified sta",
+  "created_at": "2025-09-24T15:12:09.462149Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 26.1) about mathematics: 16 0. Introduction and Preliminaries As with all mathematical statements, we would like to decide whether quantified sta",
+  "predicted": "16 0. Introduction and Preliminaries As with all mathematical statements, we would like to decide whether quantified statements are true or false. Consider the statement ∀ x ∃ y ( y < x ) . You would read this, “for every x there is some y such that y is less than x .” Is this true? The answer depends on what our domain of discourse is: when we say “for all” x , do we mean all positive integers or all real numbers or all elements of some other set? Usually this information is implied. In discrete mathematics, we almost always quantify over the natural numbers , 0, 1, 2, .",
+  "true_answer": "16 0. Introduction and Preliminaries As with all mathematical statements, we would like to decide whether quantified statements are true or false. Consider the statement ∀ x ∃ y ( y < x ) . You would read this, “for every x there is some y such that y is less than x .” Is this true? The answer depends on what our domain of discourse is: when we say “for all” x , do we mean all positive integers or all real numbers or all elements of some other set? Usually this information is implied. In discrete mathematics, we almost always quantify over the natural numbers , 0, 1, 2, .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

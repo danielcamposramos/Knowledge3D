@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 16.2) about mathematics: The truth value of a statement is determined by the truth value(s) of its part(s), depending on the connectives: Truth C",
+  "created_at": "2025-09-24T15:11:26.168917Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 16.2) about mathematics: The truth value of a statement is determined by the truth value(s) of its part(s), depending on the connectives: Truth C",
+  "predicted": "The truth value of a statement is determined by the truth value(s) of its part(s), depending on the connectives: Truth Conditions for Connectives. • P ∧ Q is true when both P and Q are true • P ∨ Q is true when P or Q or both are true. • P → Q is true when P is false or Q is true or both. • P ↔ Q is true when P and Q are both true, or both false. • ¬ P is true when P is false. Note that for us, or is the inclusive or (and not the sometimes used exclusive or ) meaning that P ∨ Q is in fact true when both P and Q are true.",
+  "true_answer": "The truth value of a statement is determined by the truth value(s) of its part(s), depending on the connectives: Truth Conditions for Connectives. • P ∧ Q is true when both P and Q are true • P ∨ Q is true when P or Q or both are true. • P → Q is true when P is false or Q is true or both. • P ↔ Q is true when P and Q are both true, or both false. • ¬ P is true when P is false. Note that for us, or is the inclusive or (and not the sometimes used exclusive or ) meaning that P ∨ Q is in fact true when both P and Q are true.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

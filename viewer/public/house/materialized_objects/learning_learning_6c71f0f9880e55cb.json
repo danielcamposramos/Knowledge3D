@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Apply scientific reasoning to: This is a book about teaching data structures and algorithms, not squeezing further performance out of a program that otherwise gets the job done.",
+  "created_at": "2025-09-24T15:25:32.970849Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Apply scientific reasoning to: This is a book about teaching data structures and algorithms, not squeezing further performance out of a program that otherwise gets the job done.",
+  "predicted": "This is a book about teaching data structures and algorithms, not squeezing further performance out of a program that otherwise gets the job done.",
+  "true_answer": "This is a book about teaching data structures and algorithms, not squeezing further performance out of a program that otherwise gets the job done.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

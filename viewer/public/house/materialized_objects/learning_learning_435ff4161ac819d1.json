@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: The New main  You can see the _____ main code in Listing 1-11.",
+  "created_at": "2025-09-24T15:06:07.940827Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: The New main  You can see the _____ main code in Listing 1-11.",
+  "predicted": "updated",
+  "true_answer": "updated",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

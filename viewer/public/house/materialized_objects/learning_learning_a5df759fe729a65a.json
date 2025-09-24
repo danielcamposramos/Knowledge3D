@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 29.2) about mathematics: (f) If I will give you magic beans, then you will not give me a cow. 8. Consider the statement “If Oscar eats Chinese fo",
+  "created_at": "2025-09-24T15:12:23.885713Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 29.2) about mathematics: (f) If I will give you magic beans, then you will not give me a cow. 8. Consider the statement “If Oscar eats Chinese fo",
+  "predicted": "(f) If I will give you magic beans, then you will not give me a cow. 8. Consider the statement “If Oscar eats Chinese food, then he drinks milk.” (a) Write the converse of the statement. (b) Write the contrapositive of the statement. (c) Is it possible for the contrapositive to be false? If it was, what would that tell you? (d) Suppose the original statement is true, and that Oscar drinks milk. Can you conclude anything (about his eating Chinese food)? Explain. (e) Suppose the original statement is true, and that Oscar does not drink milk.",
+  "true_answer": "(f) If I will give you magic beans, then you will not give me a cow. 8. Consider the statement “If Oscar eats Chinese food, then he drinks milk.” (a) Write the converse of the statement. (b) Write the contrapositive of the statement. (c) Is it possible for the contrapositive to be false? If it was, what would that tell you? (d) Suppose the original statement is true, and that Oscar drinks milk. Can you conclude anything (about his eating Chinese food)? Explain. (e) Suppose the original statement is true, and that Oscar does not drink milk.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

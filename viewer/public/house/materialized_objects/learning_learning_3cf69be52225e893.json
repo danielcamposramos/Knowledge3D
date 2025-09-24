@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 28.1) about mathematics: 18 0. Introduction and Preliminaries (d) Translate “ ¬( P ∧ Q )→ Q ” into English. (e) Suppose you know that if Jack pas",
+  "created_at": "2025-09-24T15:12:19.052415Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 28.1) about mathematics: 18 0. Introduction and Preliminaries (d) Translate “ ¬( P ∧ Q )→ Q ” into English. (e) Suppose you know that if Jack pas",
+  "predicted": "18 0. Introduction and Preliminaries (d) Translate “ ¬( P ∧ Q )→ Q ” into English. (e) Suppose you know that if Jack passed math, then so did Jill. What can you conclude if you know that: i. Jill passed math? ii. Jill did not pass math? 4 . Determine whether each molecular statement below is true or false, or whether it is impossible to determine. Assume you do not know what my favorite number is (but you do know that 13 is prime). (a) If 13 is prime, then 13 is my favorite number. (b) If 13 is my favorite number, then 13 is prime. (c) If 13 is not prime, then 13 is my favorite number.",
+  "true_answer": "18 0. Introduction and Preliminaries (d) Translate “ ¬( P ∧ Q )→ Q ” into English. (e) Suppose you know that if Jack passed math, then so did Jill. What can you conclude if you know that: i. Jill passed math? ii. Jill did not pass math? 4 . Determine whether each molecular statement below is true or false, or whether it is impossible to determine. Assume you do not know what my favorite number is (but you do know that 13 is prime). (a) If 13 is prime, then 13 is my favorite number. (b) If 13 is my favorite number, then 13 is prime. (c) If 13 is not prime, then 13 is my favorite number.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

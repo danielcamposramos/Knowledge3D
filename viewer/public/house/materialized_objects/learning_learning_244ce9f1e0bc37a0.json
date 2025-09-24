@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '110' (en).",
+  "created_at": "2025-09-24T09:54:46.398173Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '110' (en).",
+  "predicted": "being ten more than one hundred",
+  "true_answer": "being ten more than one hundred",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

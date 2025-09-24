@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '180th' (en).",
+  "created_at": "2025-09-24T16:08:40.614160Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '180th' (en).",
+  "predicted": "the ordinal number of one hundred eighty in counting order",
+  "true_answer": "the ordinal number of one hundred eighty in counting order",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

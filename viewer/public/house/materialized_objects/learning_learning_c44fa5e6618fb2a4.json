@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'OK镜' (zh).",
+  "created_at": "2025-09-24T17:46:41.233173Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'OK镜' (zh).",
+  "predicted": "OK lens, orthokeratology contact lens that helps reshape the cornea in order to eliminate nearsightedness or myopia",
+  "true_answer": "OK lens, orthokeratology contact lens that helps reshape the cornea in order to eliminate nearsightedness or myopia",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

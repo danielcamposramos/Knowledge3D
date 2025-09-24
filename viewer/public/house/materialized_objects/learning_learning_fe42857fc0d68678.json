@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 77.3) about mathematics: Therefore: | A ∪ B ∪ C | | 12 + 5 + 8 − 2 − 6 − 3 + 1 | 15 . This is what we got when we solved the problem using Venn d",
+  "created_at": "2025-09-24T15:15:48.572280Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 77.3) about mathematics: Therefore: | A ∪ B ∪ C | | 12 + 5 + 8 − 2 − 6 − 3 + 1 | 15 . This is what we got when we solved the problem using Venn d",
+  "predicted": "Therefore: | A ∪ B ∪ C | | 12 + 5 + 8 − 2 − 6 − 3 + 1 | 15 . This is what we got when we solved the problem using Venn diagrams. This process of adding in, then taking out, then adding back in, and so on is called the Principle of Inclusion/Exclusion , or simply PIE. We will return to this counting technique later to solve for more complicated problems (involving more than 3 sets). Exercises 1 . Your wardrobe consists of 5 shirts, 3 pairs of pants, and 17 bow ties. bow ties How many different outfits can you make? 2 . For your college interview, you must wear a tie.",
+  "true_answer": "Therefore: | A ∪ B ∪ C | | 12 + 5 + 8 − 2 − 6 − 3 + 1 | 15 . This is what we got when we solved the problem using Venn diagrams. This process of adding in, then taking out, then adding back in, and so on is called the Principle of Inclusion/Exclusion , or simply PIE. We will return to this counting technique later to solve for more complicated problems (involving more than 3 sets). Exercises 1 . Your wardrobe consists of 5 shirts, 3 pairs of pants, and 17 bow ties. bow ties How many different outfits can you make? 2 . For your college interview, you must wear a tie.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

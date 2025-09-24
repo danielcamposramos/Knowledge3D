@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 12.4) about mathematics: Also, tunnels and bridges were not allowed. Is it possible for each of these towns to build a road to each of the four o",
+  "created_at": "2025-09-24T15:11:13.127737Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 12.4) about mathematics: Also, tunnels and bridges were not allowed. Is it possible for each of these towns to build a road to each of the four o",
+  "predicted": "Also, tunnels and bridges were not allowed. Is it possible for each of these towns to build a road to each of the four other towns without creating any intersections? One reason it is difficult to define discrete math is that it is a very broad description which encapsulates a large number of subjects. In",
+  "true_answer": "Also, tunnels and bridges were not allowed. Is it possible for each of these towns to build a road to each of the four other towns without creating any intersections? One reason it is difficult to define discrete math is that it is a very broad description which encapsulates a large number of subjects. In",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

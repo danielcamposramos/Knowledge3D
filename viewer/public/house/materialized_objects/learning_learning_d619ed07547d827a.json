@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 3.5) about mathematics: Also, after spending a couple weeks on proofs, we would hardly use that at all when covering combinatorics, so much of t",
+  "created_at": "2025-09-24T15:10:40.784749Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 3.5) about mathematics: Also, after spending a couple weeks on proofs, we would hardly use that at all when covering combinatorics, so much of t",
+  "predicted": "Also, after spending a couple weeks on proofs, we would hardly use that at all when covering combinatorics, so much of the progress we made was quickly lost. Instead, there is a short introduction section on mathematical statements, which should provide enough common language to discuss the logical content of combinatorics and sequences. Depending on the speed of the class, it might be possible to include ad- ditional material. In past semesters I have included generating functions (after sequences) and some basic number theory (either after the logic vii",
+  "true_answer": "Also, after spending a couple weeks on proofs, we would hardly use that at all when covering combinatorics, so much of the progress we made was quickly lost. Instead, there is a short introduction section on mathematical statements, which should provide enough common language to discuss the logical content of combinatorics and sequences. Depending on the speed of the class, it might be possible to include ad- ditional material. In past semesters I have included generating functions (after sequences) and some basic number theory (either after the logic vii",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

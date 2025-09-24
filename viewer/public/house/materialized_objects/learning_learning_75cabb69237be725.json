@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.112) about time: Compact Oxford English Dictionary A limited stretch or space of continued existence, as the interval between two success",
+  "created_at": "2025-09-24T15:10:03.565684Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.112) about time: Compact Oxford English Dictionary A limited stretch or space of continued existence, as the interval between two success",
+  "predicted": "Compact Oxford English Dictionary A limited stretch or space of continued existence, as the interval between two successive events or acts, or the period through which an action, condition, or state continues. (1971). 6. *'Internet Encyclopedia of Philosophy' (http://www.iep.utm.edu/tim e/). 2010. Archived (https://web.archive.org/web/20110411140140/ht tp://www.iep.utm.edu/time/) from the original on 11 April 2011. Retrieved 9 April 2011. 'Time is what clocks measure. We use time to place events in sequence one after the other, and we use time to compare how long events last...",
+  "true_answer": "Compact Oxford English Dictionary A limited stretch or space of continued existence, as the interval between two successive events or acts, or the period through which an action, condition, or state continues. (1971). 6. *'Internet Encyclopedia of Philosophy' (http://www.iep.utm.edu/tim e/). 2010. Archived (https://web.archive.org/web/20110411140140/ht tp://www.iep.utm.edu/time/) from the original on 11 April 2011. Retrieved 9 April 2011. 'Time is what clocks measure. We use time to place events in sequence one after the other, and we use time to compare how long events last...",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

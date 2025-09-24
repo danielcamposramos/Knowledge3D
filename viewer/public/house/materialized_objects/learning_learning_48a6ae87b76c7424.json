@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.32) about time: e cyclical view of time contrasts with the linear concept of time more common in Western thought, where time is seen as",
+  "created_at": "2025-09-24T15:08:27.980144Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.32) about time: e cyclical view of time contrasts with the linear concept of time more common in Western thought, where time is seen as",
+  "predicted": "e cyclical view of time contrasts with the linear concept of time more common in Western thought, where time is seen as progressing in a straight line from past to future without repetition.[49] In general, the Islamic and Judeo-Christian world-view regards time as linear[50] and directional,[51] beginning with the act of creation by God. e traditional Christian view sees time ending, teleologically,[52] with the eschatological end of the present order of things, the 'end time'.",
+  "true_answer": "e cyclical view of time contrasts with the linear concept of time more common in Western thought, where time is seen as progressing in a straight line from past to future without repetition.[49] In general, the Islamic and Judeo-Christian world-view regards time as linear[50] and directional,[51] beginning with the act of creation by God. e traditional Christian view sees time ending, teleologically,[52] with the eschatological end of the present order of things, the 'end time'.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}
