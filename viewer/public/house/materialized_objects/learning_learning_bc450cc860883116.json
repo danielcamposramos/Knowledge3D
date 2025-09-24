@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.53) about time: Inﬁnity Educations. pp. 10–6. ISBN 978-81-940294-3-4. 21. Jain, Hemant (21 January 2019). RRB Junior Engineer (2019) - M",
+  "created_at": "2025-09-24T15:07:22.622257Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.53) about time: Inﬁnity Educations. pp. 10–6. ISBN 978-81-940294-3-4. 21. Jain, Hemant (21 January 2019). RRB Junior Engineer (2019) - M",
+  "predicted": "Inﬁnity Educations. pp. 10–6. ISBN 978-81-940294-3-4. 21. Jain, Hemant (21 January 2019). RRB Junior Engineer (2019) - MATHEMATICS for 1st STAGE CBT (https://books.google.com/books?id= G4yEDwAAQBAJ&dq=A+full+calendar+system+has+a+diﬀerent+calen dar+date+for+every+day&pg=SA8-PA5). Inﬁnity Educations. pp. 8–5. ISBN 978-81-939356-9-9. 22. Jain, Hemant (21 January 2019). RRB Junior Engineer (2019) - MATHEMATICS for 1st STAGE CBT (https://books.google.com/books?id= G4yEDwAAQBAJ&dq=Thus+the+week+cycle+is+by+itself+not+a+full +calendar+system&pg=SA8-PA5). Inﬁnity Educations. pp. 8–5.",
+  "true_answer": "Inﬁnity Educations. pp. 10–6. ISBN 978-81-940294-3-4. 21. Jain, Hemant (21 January 2019). RRB Junior Engineer (2019) - MATHEMATICS for 1st STAGE CBT (https://books.google.com/books?id= G4yEDwAAQBAJ&dq=A+full+calendar+system+has+a+diﬀerent+calen dar+date+for+every+day&pg=SA8-PA5). Inﬁnity Educations. pp. 8–5. ISBN 978-81-939356-9-9. 22. Jain, Hemant (21 January 2019). RRB Junior Engineer (2019) - MATHEMATICS for 1st STAGE CBT (https://books.google.com/books?id= G4yEDwAAQBAJ&dq=Thus+the+week+cycle+is+by+itself+not+a+full +calendar+system&pg=SA8-PA5). Inﬁnity Educations. pp. 8–5.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

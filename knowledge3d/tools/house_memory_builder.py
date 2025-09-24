@@ -68,27 +68,17 @@ def _gather_records(root: Path, limit: Optional[int], embed_dim: int) -> List[Ho
         zone = str(data.get("zone_placement") or data.get("zone") or "unknown")
         created = str(data.get("created_at") or data.get("timestamp") or "")
 
-        text_parts: List[str] = [
-            label,
-            artifact_type,
-            zone,
-            created,
-        ]
+        key_candidate = (
+            data.get("prompt")
+            or data.get("summary")
+            or data.get("description")
+            or label
+        )
+        key_norm = str(key_candidate).strip().lower()
+        if not key_norm:
+            continue
 
-        # Include flattened content for additional signal.
-        content = data.get("content")
-        if isinstance(content, list):
-            text_parts.extend(str(item) for item in content)
-        elif isinstance(content, dict):
-            text_parts.extend(str(v) for v in content.values())
-        elif content:
-            text_parts.append(str(content))
-
-        extra_desc = data.get("description") or data.get("prompt") or data.get("summary")
-        if extra_desc:
-            text_parts.append(str(extra_desc))
-
-        embedding = _hash_embedding(text_parts, embed_dim)
+        embedding = _hash_embedding([key_norm], embed_dim)
 
         payload = {
             "path": str(path),

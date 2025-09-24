@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: Sobre núcleo afetivo positivo, vide Robert Emde, “The Pre-presentational Self and Its Affective Core”,  Psychoanalytic Study of the Child  38 (1983), pp.",
+  "created_at": "2025-09-24T15:18:25.973642Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: Sobre núcleo afetivo positivo, vide Robert Emde, “The Pre-presentational Self and Its Affective Core”,  Psychoanalytic Study of the Child  38 (1983), pp.",
+  "predicted": "Sobre núcleo afetivo positivo, vide Robert Emde, “The Pre-presentational Self and Its Affective Core”,  Psychoanalytic Study of the Child  38 (1983), pp.",
+  "true_answer": "Sobre núcleo afetivo positivo, vide Robert Emde, “The Pre-presentational Self and Its Affective Core”,  Psychoanalytic Study of the Child  38 (1983), pp.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

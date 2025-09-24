@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: I hope that, as you progress through each chap- ter, you learn more and more about the _____, constraints, and sub- tleties of each technique.",
+  "created_at": "2025-09-24T11:41:04.083558Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: I hope that, as you progress through each chap- ter, you learn more and more about the _____, constraints, and sub- tleties of each technique.",
+  "predicted": "affordances",
+  "true_answer": "affordances",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

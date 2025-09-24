@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.30) about time: Geocentric Coordinate Time and Barycentric Coordinate Time are scales deﬁned as coordinate times in the context of the g",
+  "created_at": "2025-09-24T15:08:25.699627Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.30) about time: Geocentric Coordinate Time and Barycentric Coordinate Time are scales deﬁned as coordinate times in the context of the g",
+  "predicted": "Geocentric Coordinate Time and Barycentric Coordinate Time are scales deﬁned as coordinate times in the context of the general theory of relativity, with TCG applying to Earth's center and TCB to the solar system's barycenter. Barycentric Dynamical Time is an older relativistic scale related to TCB that is still in use. Many ancient cultures, particularly in the East, had a cyclical view of time. In these traditions, time was oen seen as a recurring paern of ages or cycles, where events and phenomena repeated themselves in a predictable manner.",
+  "true_answer": "Geocentric Coordinate Time and Barycentric Coordinate Time are scales deﬁned as coordinate times in the context of the general theory of relativity, with TCG applying to Earth's center and TCB to the solar system's barycenter. Barycentric Dynamical Time is an older relativistic scale related to TCB that is still in use. Many ancient cultures, particularly in the East, had a cyclical view of time. In these traditions, time was oen seen as a recurring paern of ages or cycles, where events and phenomena repeated themselves in a predictable manner.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

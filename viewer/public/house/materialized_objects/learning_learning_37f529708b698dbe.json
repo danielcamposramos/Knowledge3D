@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 48.2) about mathematics: 29 . Explain why there is no set A which satisfies A | { 2 , | A |} . 30. Find all sets A , B , and C which satisfy the ",
+  "created_at": "2025-09-24T15:13:38.821707Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 48.2) about mathematics: 29 . Explain why there is no set A which satisfies A | { 2 , | A |} . 30. Find all sets A , B , and C which satisfy the ",
+  "predicted": "29 . Explain why there is no set A which satisfies A | { 2 , | A |} . 30. Find all sets A , B , and C which satisfy the following. A | { 1 , | B | , | C |} B | { 2 , | A | , | C |} C | { 1 , 2 , | A | , | B |} .",
+  "true_answer": "29 . Explain why there is no set A which satisfies A | { 2 , | A |} . 30. Find all sets A , B , and C which satisfy the following. A | { 1 , | B | , | C |} B | { 2 , | A | , | C |} C | { 1 , 2 , | A | , | B |} .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

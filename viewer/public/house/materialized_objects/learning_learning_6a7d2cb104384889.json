@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.81) about time: Travelling backwards or forwards in time has never been veriﬁed as a process, and doing so presents many theoretical pro",
+  "created_at": "2025-09-24T15:09:26.427611Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.81) about time: Travelling backwards or forwards in time has never been veriﬁed as a process, and doing so presents many theoretical pro",
+  "predicted": "Travelling backwards or forwards in time has never been veriﬁed as a process, and doing so presents many theoretical problems and contradictory logic which to date have not been overcome. Any technological device, whether ﬁctional or hypothetical, that is used to achieve time travel is known as a time machine. A central problem with time travel to the past is the violation of causality; should an eﬀect precede its cause, it would give rise to the possibility of a temporal paradox.",
+  "true_answer": "Travelling backwards or forwards in time has never been veriﬁed as a process, and doing so presents many theoretical problems and contradictory logic which to date have not been overcome. Any technological device, whether ﬁctional or hypothetical, that is used to achieve time travel is known as a time machine. A central problem with time travel to the past is the violation of causality; should an eﬀect precede its cause, it would give rise to the possibility of a temporal paradox.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

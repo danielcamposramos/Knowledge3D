@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.105) about time: Archived (https://web.archive.org/web/20110805 101704/http://www.yourdictionary.com/time) from the original on 5 August ",
+  "created_at": "2025-09-24T15:09:55.154324Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.105) about time: Archived (https://web.archive.org/web/20110805 101704/http://www.yourdictionary.com/time) from the original on 5 August ",
+  "predicted": "Archived (https://web.archive.org/web/20110805 101704/http://www.yourdictionary.com/time) from the original on 5 August 2011. Retrieved 9 April 2011. '1.indeﬁnite, unlimited duration in which things are considered as happening in the past, present, or future; every moment there has ever been or ever will be… a system of measuring duration 2.the period between two events or during which something exists, happens, or acts; measured or measurable interval' ▪ 'The American Heritage Stedman's Medical Dictionary' (http://dic tionary.reference.com/browse/time?r=66). 2002.",
+  "true_answer": "Archived (https://web.archive.org/web/20110805 101704/http://www.yourdictionary.com/time) from the original on 5 August 2011. Retrieved 9 April 2011. '1.indeﬁnite, unlimited duration in which things are considered as happening in the past, present, or future; every moment there has ever been or ever will be… a system of measuring duration 2.the period between two events or during which something exists, happens, or acts; measured or measurable interval' ▪ 'The American Heritage Stedman's Medical Dictionary' (http://dic tionary.reference.com/browse/time?r=66). 2002.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

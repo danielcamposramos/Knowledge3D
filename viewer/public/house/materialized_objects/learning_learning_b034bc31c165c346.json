@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 37.1) about mathematics: 0.3. Sets 27 We already have a lot of notation, and there is more yet. Below is a handy chart of symbols. Some of these ",
+  "created_at": "2025-09-24T15:12:53.903816Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 37.1) about mathematics: 0.3. Sets 27 We already have a lot of notation, and there is more yet. Below is a handy chart of symbols. Some of these ",
+  "predicted": "0.3. Sets 27 We already have a lot of notation, and there is more yet. Below is a handy chart of symbols. Some of these will be discussed in greater detail as we move forward. Special sets. ∅ The empty set is the set which contains no elements. U The universe set is the set of all elements. N The set of natural numbers. That is, N | { 0 , 1 , 2 , 3 ... } . Z The set of integers. That is, Z | { ..., − 2 , − 1 , 0 , 1 , 2 , 3 ,... } . Q The set of rational numbers. R The set of real numbers. P( A ) The power set of any set A is the set of all subsets of A . Set Theory Notation.",
+  "true_answer": "0.3. Sets 27 We already have a lot of notation, and there is more yet. Below is a handy chart of symbols. Some of these will be discussed in greater detail as we move forward. Special sets. ∅ The empty set is the set which contains no elements. U The universe set is the set of all elements. N The set of natural numbers. That is, N | { 0 , 1 , 2 , 3 ... } . Z The set of integers. That is, Z | { ..., − 2 , − 1 , 0 , 1 , 2 , 3 ,... } . Q The set of rational numbers. R The set of real numbers. P( A ) The power set of any set A is the set of all subsets of A . Set Theory Notation.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

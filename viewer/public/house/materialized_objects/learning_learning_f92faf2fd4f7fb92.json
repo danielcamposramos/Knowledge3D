@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? I’m also hoping that you’re ready to take your programming skill to the next level.",
+  "created_at": "2025-09-24T15:21:28.332632Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? I’m also hoping that you’re ready to take your programming skill to the next level.",
+  "predicted": "I’m also hoping that you’re ready to take your programming skill to the next level.",
+  "true_answer": "I’m also hoping that you’re ready to take your programming skill to the next level.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

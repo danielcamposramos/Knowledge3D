@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.38) about time: e term calendar applies not only to a given scheme of timekeeping but also to a speciﬁc record or device displaying suc",
+  "created_at": "2025-09-24T15:07:04.923288Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.38) about time: e term calendar applies not only to a given scheme of timekeeping but also to a speciﬁc record or device displaying suc",
+  "predicted": "e term calendar applies not only to a given scheme of timekeeping but also to a speciﬁc record or device displaying such a scheme, for example, an appointment book in the form of a pocket calendar (or personal organizer), desktop calendar, a wall calendar, etc. In a paper calendar, one or two sheets can show a single day, a week, a month, or a year. If a sheet is for a single day, it easily shows the date and the weekday. If a sheet is for multiple days it shows a conversion table to convert from weekday to date and back.",
+  "true_answer": "e term calendar applies not only to a given scheme of timekeeping but also to a speciﬁc record or device displaying such a scheme, for example, an appointment book in the form of a pocket calendar (or personal organizer), desktop calendar, a wall calendar, etc. In a paper calendar, one or two sheets can show a single day, a week, a month, or a year. If a sheet is for a single day, it easily shows the date and the weekday. If a sheet is for multiple days it shows a conversion table to convert from weekday to date and back.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

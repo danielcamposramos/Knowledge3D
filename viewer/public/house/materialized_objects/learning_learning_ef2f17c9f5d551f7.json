@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 23.3) about mathematics: We include the “necessary and sufficient” versions because those are common when discussing mathematics. In fact, let’",
+  "created_at": "2025-09-24T15:12:01.056024Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 23.3) about mathematics: We include the “necessary and sufficient” versions because those are common when discussing mathematics. In fact, let’",
+  "predicted": "We include the “neces- sary and sufficient” versions because those are common when discussing mathematics. In fact, let’s agree once and for all what they mean.",
+  "true_answer": "We include the “neces- sary and sufficient” versions because those are common when discussing mathematics. In fact, let’s agree once and for all what they mean.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.45) about time: Philosophers in the 17th and 18th century questioned if time was real and absolute, or if it was an intellectual concept",
+  "created_at": "2025-09-24T15:08:43.527898Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.45) about time: Philosophers in the 17th and 18th century questioned if time was real and absolute, or if it was an intellectual concept",
+  "predicted": "Philosophers in the 17th and 18th century questioned if time was real and absolute, or if it was an intellectual concept that humans use to understand and sequence events.[69] ese questions lead to realism vs anti-realism; the realists believed that time is a fundamental part of the universe, and be perceived by events happening in a sequence, in a dimension.[76] Isaac Newton said that we are merely occupying time, he also says that humans can only understand relative time.[76] Isaac Newton believed in absolute space and absolute time; Leibniz believed that time and space are relational.[77] e diﬀerences between Leibniz's and Newton's interpretations came to a head in the famous Leibniz–Clarke correspondence.",
+  "true_answer": "Philosophers in the 17th and 18th century questioned if time was real and absolute, or if it was an intellectual concept that humans use to understand and sequence events.[69] ese questions lead to realism vs anti-realism; the realists believed that time is a fundamental part of the universe, and be perceived by events happening in a sequence, in a dimension.[76] Isaac Newton said that we are merely occupying time, he also says that humans can only understand relative time.[76] Isaac Newton believed in absolute space and absolute time; Leibniz believed that time and space are relational.[77] e diﬀerences between Leibniz's and Newton's interpretations came to a head in the famous Leibniz–Clarke correspondence.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

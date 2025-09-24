@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 38.1) about mathematics: 28 0. Introduction and Preliminaries Investigate! ! Attempt the above activity before proceeding ! 1. Find the cardinali",
+  "created_at": "2025-09-24T15:12:57.567905Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 38.1) about mathematics: 28 0. Introduction and Preliminaries Investigate! ! Attempt the above activity before proceeding ! 1. Find the cardinali",
+  "predicted": "28 0. Introduction and Preliminaries Investigate! ! Attempt the above activity before proceeding ! 1. Find the cardinality of each set below. (a) A | { 3 , 4 ,..., 15 } . (b) B | { n ∈ N : 2 < n ≤ 200 } . (c) C | { n ≤ 100 : n ∈ N ∧ ∃ m ∈ N ( n | 2 m + 1 )} . 2. Find two sets A and B for which | A | | 5 , | B | | 6 , and | A ∪ B | | 9 . What is | A ∩ B | ? 3. Find sets A and B with | A | | | B | such that | A ∪ B | | 7 and | A ∩ B | | 3 . What is | A | ? 4. Let A | { 1 , 2 ,..., 10 } . Define B 2 | { B ⊆ A : | B | | 2 } . Find |B 2 | . 5.",
+  "true_answer": "28 0. Introduction and Preliminaries Investigate! ! Attempt the above activity before proceeding ! 1. Find the cardinality of each set below. (a) A | { 3 , 4 ,..., 15 } . (b) B | { n ∈ N : 2 < n ≤ 200 } . (c) C | { n ≤ 100 : n ∈ N ∧ ∃ m ∈ N ( n | 2 m + 1 )} . 2. Find two sets A and B for which | A | | 5 , | B | | 6 , and | A ∪ B | | 9 . What is | A ∩ B | ? 3. Find sets A and B with | A | | | B | such that | A ∪ B | | 7 and | A ∩ B | | 3 . What is | A | ? 4. Let A | { 1 , 2 ,..., 10 } . Define B 2 | { B ⊆ A : | B | | 2 } . Find |B 2 | . 5.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

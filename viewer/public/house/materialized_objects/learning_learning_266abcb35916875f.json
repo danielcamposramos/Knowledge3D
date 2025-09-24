@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.36) about time: Small traditional businesses in India start the ﬁscal year on Diwali festival and end the day before the next year's Diw",
+  "created_at": "2025-09-24T15:07:02.562005Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.36) about time: Small traditional businesses in India start the ﬁscal year on Diwali festival and end the day before the next year's Diw",
+  "predicted": "Small traditional businesses in India start the ﬁscal year on Diwali festival and end the day before the next year's Diwali festival. In accounting (and particularly accounting soware), a ﬁscal calendar (such as a 4/4/5 calendar) ﬁxes each month at a speciﬁc number of weeks to facilitate comparisons from month to month and year to year. January always has exactly 4 weeks (Sunday through Saturday), February has 4 weeks, March has 5 weeks, etc.",
+  "true_answer": "Small traditional businesses in India start the ﬁscal year on Diwali festival and end the day before the next year's Diwali festival. In accounting (and particularly accounting soware), a ﬁscal calendar (such as a 4/4/5 calendar) ﬁxes each month at a speciﬁc number of weeks to facilitate comparisons from month to month and year to year. January always has exactly 4 weeks (Sunday through Saturday), February has 4 weeks, March has 5 weeks, etc.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

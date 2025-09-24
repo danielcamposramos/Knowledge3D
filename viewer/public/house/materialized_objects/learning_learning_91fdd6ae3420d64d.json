@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: O Rabino Laurence Kushner foi entrevistado em Jonathan Cott,  On a Sea of Memory  (Nova York: Random House, 2005), p.",
+  "created_at": "2025-09-24T15:19:20.632643Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: O Rabino Laurence Kushner foi entrevistado em Jonathan Cott,  On a Sea of Memory  (Nova York: Random House, 2005), p.",
+  "predicted": "O Rabino Laurence Kushner foi entrevistado em Jonathan Cott,  On a Sea of Memory  (Nova York: Random House, 2005), p.",
+  "true_answer": "O Rabino Laurence Kushner foi entrevistado em Jonathan Cott,  On a Sea of Memory  (Nova York: Random House, 2005), p.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

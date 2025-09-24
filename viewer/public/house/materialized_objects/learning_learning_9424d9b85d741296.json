@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 4.4) about mathematics: These new editions will incorporate additions and corrections suggested by instructors and students who use the text the",
+  "created_at": "2025-09-24T15:10:45.507838Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 4.4) about mathematics: These new editions will incorporate additions and corrections suggested by instructors and students who use the text the",
+  "predicted": "These new editions will incorporate additions and corrections suggested by instructors and students who use the text the previous semesters. Thus I encourage you to send along any suggestions and comments as you have them. Oscar Levin, Ph.D. University of Northern Colorado, 2019",
+  "true_answer": "These new editions will incorporate additions and corrections suggested by instructors and students who use the text the previous semesters. Thus I encourage you to send along any suggestions and comments as you have them. Oscar Levin, Ph.D. University of Northern Colorado, 2019",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

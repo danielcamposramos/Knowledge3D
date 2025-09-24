@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 49.1) about mathematics: 0.4. Functions 39 0.4 Functions A function is a rule that assigns each input exactly one output. We call the output the ",
+  "created_at": "2025-09-24T15:13:39.993392Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 49.1) about mathematics: 0.4. Functions 39 0.4 Functions A function is a rule that assigns each input exactly one output. We call the output the ",
+  "predicted": "0.4. Functions 39 0.4 Functions A function is a rule that assigns each input exactly one output. We call the output the image of the input. The set of all inputs for a function is called the domain . The set of all allowable outputs is called the codomain . We would write f : X → Y to describe a function with name f , domain X and codomain Y . This does not tell us which function f is though. To define the function, we must describe the rule. This is often done by giving a formula to compute the output for any input (although this is certainly not the only way to describe the rule).",
+  "true_answer": "0.4. Functions 39 0.4 Functions A function is a rule that assigns each input exactly one output. We call the output the image of the input. The set of all inputs for a function is called the domain . The set of all allowable outputs is called the codomain . We would write f : X → Y to describe a function with name f , domain X and codomain Y . This does not tell us which function f is though. To define the function, we must describe the rule. This is often done by giving a formula to compute the output for any input (although this is certainly not the only way to describe the rule).",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.28) about time: Coordinated Universal Time (UTC) is an atomic time scale designed to approximate Universal Time. UTC diﬀers from TAI by ",
+  "created_at": "2025-09-24T15:08:23.307830Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.28) about time: Coordinated Universal Time (UTC) is an atomic time scale designed to approximate Universal Time. UTC diﬀers from TAI by ",
+  "predicted": "Coordinated Universal Time (UTC) is an atomic time scale designed to approximate Universal Time. UTC diﬀers from TAI by an integral number of seconds. UTC is kept within 0.9 second of UT1 by the introduction of one-second steps to UTC, the leap second. e Global Positioning System broadcasts a very precise time signal based on UTC time. Units Time standards e surface of the Earth is split into a number of time zones. Standard time or civil time in a time zone deviates a ﬁxed, round amount, usually a whole number of hours, from some form of Universal Time, usually UTC.",
+  "true_answer": "Coordinated Universal Time (UTC) is an atomic time scale designed to approximate Universal Time. UTC diﬀers from TAI by an integral number of seconds. UTC is kept within 0.9 second of UT1 by the introduction of one-second steps to UTC, the leap second. e Global Positioning System broadcasts a very precise time signal based on UTC time. Units Time standards e surface of the Earth is split into a number of time zones. Standard time or civil time in a time zone deviates a ﬁxed, round amount, usually a whole number of hours, from some form of Universal Time, usually UTC.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? If you’d like more practice with dynamic programming, though, here’s a perfect opportunity for you to convert this memoized solution into a dynamicprogramming solution!",
+  "created_at": "2025-09-24T15:22:22.206407Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? If you’d like more practice with dynamic programming, though, here’s a perfect opportunity for you to convert this memoized solution into a dynamicprogramming solution!",
+  "predicted": "If you’d like more practice with dynamic programming, though, here’s a per- fect opportunity for you to convert this memoized solution into a dynamic- programming solution!",
+  "true_answer": "If you’d like more practice with dynamic programming, though, here’s a per- fect opportunity for you to convert this memoized solution into a dynamic- programming solution!",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

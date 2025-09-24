@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 74.1) about mathematics: 64 1. Counting Principle of Inclusion/Exclusion Investigate! ! Attempt the above activity before proceeding ! A recent b",
+  "created_at": "2025-09-24T15:15:31.600216Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 74.1) about mathematics: 64 1. Counting Principle of Inclusion/Exclusion Investigate! ! Attempt the above activity before proceeding ! A recent b",
+  "predicted": "64 1. Counting Principle of Inclusion/Exclusion Investigate! ! Attempt the above activity before proceeding ! A recent buzz marketing campaign for Village Inn surveyed pa- trons on their pie preferences. People were asked whether they enjoyed (A) Apple, (B) Blueberry or (C) Cherry pie (respondents answered yes or no to each type of pie, and could say yes to more than one type). The following table shows the results of the survey. Pies enjoyed: A B C AB AC BC ABC Number of people: 20 13 26 9 15 7 5 How many of those asked enjoy at least one of the kinds of pie?",
+  "true_answer": "64 1. Counting Principle of Inclusion/Exclusion Investigate! ! Attempt the above activity before proceeding ! A recent buzz marketing campaign for Village Inn surveyed pa- trons on their pie preferences. People were asked whether they enjoyed (A) Apple, (B) Blueberry or (C) Cherry pie (respondents answered yes or no to each type of pie, and could say yes to more than one type). The following table shows the results of the survey. Pies enjoyed: A B C AB AC BC ABC Number of people: 20 13 26 9 15 7 5 How many of those asked enjoy at least one of the kinds of pie?",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

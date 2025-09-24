@@ -61,15 +61,16 @@ def _build_entries(source_path: Path, topic: str, max_len: int) -> List[Dict[str
     fragments = list(_iter_text_fragments(data))
     entries: List[Dict[str, str]] = []
     base_name = source_path.stem.replace("_", " ")
-    for idx, fragment in enumerate(fragments):
-        for chunk in _chunk_text(fragment, max_len=max_len):
+    for frag_idx, fragment in enumerate(fragments):
+        for chunk_idx, chunk in enumerate(_chunk_text(fragment, max_len=max_len)):
+            preview = re.sub(r"\s+", " ", chunk)[:120]
             question = (
-                f"Summarize the excerpt from '{base_name}' about {topic}."
+                f"Summarize the excerpt from '{base_name}' (chunk {frag_idx + 1}.{chunk_idx + 1}) "
+                f"about {topic}: {preview}"
             )
-            answer = chunk
             entries.append({
                 "question": question,
-                "answer": answer,
+                "answer": chunk,
                 "source_file": source_path.name,
             })
     return entries

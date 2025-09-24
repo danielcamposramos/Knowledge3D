@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? Then we solve the subproblem on n – 1 courses in which the student earned exactly t – m marks.",
+  "created_at": "2025-09-24T15:22:37.059390Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? Then we solve the subproblem on n – 1 courses in which the student earned exactly t – m marks.",
+  "predicted": "Then we solve the subproblem on n – 1 courses in which the student earned exactly t – m marks.",
+  "true_answer": "Then we solve the subproblem on n – 1 courses in which the student earned exactly t – m marks.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

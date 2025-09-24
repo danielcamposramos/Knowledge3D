@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.23) about time: Atomic clocks use the frequency of electronic transitions in certain atoms to measure the second. One of the atoms used ",
+  "created_at": "2025-09-24T15:08:17.353534Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.23) about time: Atomic clocks use the frequency of electronic transitions in certain atoms to measure the second. One of the atoms used ",
+  "predicted": "Atomic clocks use the frequency of electronic transitions in certain atoms to measure the second. One of the atoms used is caesium; most modern atomic clocks probe caesium with microwaves to determine the frequency of these electron vibrations.[44] Since 1967, the International System of Measurements bases its unit of time, the second, on the properties of caesium atoms. SI deﬁnes the second as 9,192,631,770 cycles of the radiation that corresponds to the transition between two electron spin energy levels of the ground state of the 133Cs atom.",
+  "true_answer": "Atomic clocks use the frequency of electronic transitions in certain atoms to measure the second. One of the atoms used is caesium; most modern atomic clocks probe caesium with microwaves to determine the frequency of these electron vibrations.[44] Since 1967, the International System of Measurements bases its unit of time, the second, on the properties of caesium atoms. SI deﬁnes the second as 9,192,631,770 cycles of the radiation that corresponds to the transition between two electron spin energy levels of the ground state of the 133Cs atom.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

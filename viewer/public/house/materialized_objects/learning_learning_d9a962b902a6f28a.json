@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 58.1) about mathematics: 48 0. Introduction and Preliminaries or might not have repeats. The bijective functions are those that do not have repea",
+  "created_at": "2025-09-24T15:14:18.748157Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 58.1) about mathematics: 48 0. Introduction and Preliminaries or might not have repeats. The bijective functions are those that do not have repea",
+  "predicted": "48 0. Introduction and Preliminaries or might not have repeats. The bijective functions are those that do not have repeats and do not miss elements. Image and Inverse Image When discussing functions, we have notation for talking about an element of the domain (say x ) and its corresponding element in the codomain (we write f ( x ) , which is the image of x ). Sometimes we will want to talk about all the elements that are images of some subset of the domain.",
+  "true_answer": "48 0. Introduction and Preliminaries or might not have repeats. The bijective functions are those that do not have repeats and do not miss elements. Image and Inverse Image When discussing functions, we have notation for talking about an element of the domain (say x ) and its corresponding element in the codomain (we write f ( x ) , which is the image of x ). Sometimes we will want to talk about all the elements that are images of some subset of the domain.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

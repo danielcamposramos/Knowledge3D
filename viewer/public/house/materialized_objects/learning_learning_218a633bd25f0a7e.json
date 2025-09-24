@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 40.3) about mathematics: There are sets with infinite cardinality, such as N , the set of rational numbers (written Q ), the set of even natural ",
+  "created_at": "2025-09-24T15:13:08.470089Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 40.3) about mathematics: There are sets with infinite cardinality, such as N , the set of rational numbers (written Q ), the set of even natural ",
+  "predicted": "There are sets with infinite cardinality, such as N , the set of rational numbers (written Q ), the set of even natural numbers, and the set of real numbers ( R ). It is possible to distinguish between different infinite cardinalities, but that is beyond the scope of this text. For us, a set will either be infinite, or finite; if it is finite, the we can determine its cardinality by counting elements. Example 0.3.5 1. Find the cardinality of A | { 23 , 24 ,..., 37 , 38 } . 2. Find the cardinality of B | { 1 , { 2 , 3 , 4 } , ∅} . 3. If C | { 1 , 2 , 3 } , what is the cardinality of P( C ) ?",
+  "true_answer": "There are sets with infinite cardinality, such as N , the set of rational numbers (written Q ), the set of even natural numbers, and the set of real numbers ( R ). It is possible to distinguish between different infinite cardinalities, but that is beyond the scope of this text. For us, a set will either be infinite, or finite; if it is finite, the we can determine its cardinality by counting elements. Example 0.3.5 1. Find the cardinality of A | { 23 , 24 ,..., 37 , 38 } . 2. Find the cardinality of B | { 1 , { 2 , 3 , 4 } , ∅} . 3. If C | { 1 , 2 , 3 } , what is the cardinality of P( C ) ?",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

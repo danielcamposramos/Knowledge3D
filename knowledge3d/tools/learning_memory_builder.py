@@ -49,7 +49,7 @@ def _hash_embedding(text_parts: Iterable[str], dim: int = 512) -> np.ndarray:
     return np.asarray(values[:dim], dtype=np.float32)
 
 
-def _load_records(paths: Sequence[Path], limit: Optional[int]) -> List[LearningRecord]:
+def _load_records(paths: Sequence[Path], limit: Optional[int], embedding_dim: int) -> List[LearningRecord]:
     records: List[LearningRecord] = []
     count = 0
     for path in paths:
@@ -69,8 +69,10 @@ def _load_records(paths: Sequence[Path], limit: Optional[int]) -> List[LearningR
                 predicted = str(data.get("predicted", ""))
                 quick = json.dumps(data.get("quick_feedback", {}), ensure_ascii=False)
                 deep = json.dumps(data.get("deep_feedback", {}), ensure_ascii=False)
-                text_parts = [prompt, true_answer, predicted, quick, deep]
-                embedding = _hash_embedding(text_parts)
+                prompt_key = prompt.strip().lower()
+                if not prompt_key:
+                    continue
+                embedding = _hash_embedding([prompt_key], dim=embedding_dim)
                 record_id = str(data.get("id") or f"learning_{hashlib.sha256(prompt.encode('utf-8')).hexdigest()[:16]}")
                 label = prompt[:80] or record_id
                 payload = {
@@ -199,7 +201,7 @@ def build_learning_memory(args: argparse.Namespace) -> None:
         if not path.exists():
             raise FileNotFoundError(f"Input JSONL not found: {path}")
 
-    records = _load_records(input_paths, args.limit)
+    records = _load_records(input_paths, args.limit, args.embedding_dim)
     if not records:
         raise ValueError("No learning records parsed from inputs")
 
@@ -222,6 +224,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--manifest", help="Optional manifest JSON path")
     parser.add_argument("--limit", type=int, default=None, help="Optional record limit")
     parser.add_argument("--label", default="Learning Memory Galaxy", help="Label stored in GLB extras")
+    parser.add_argument("--embedding-dim", type=int, default=512, help="Embedding dimension")
     return parser.parse_args()
 
 

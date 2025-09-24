@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 81.1) about mathematics: 1.2. Binomial Coefficients 71 For each of the 5 elements, we have 2 choices. Therefore the number of subsets is simply 2",
+  "created_at": "2025-09-24T15:16:03.069960Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 81.1) about mathematics: 1.2. Binomial Coefficients 71 For each of the 5 elements, we have 2 choices. Therefore the number of subsets is simply 2",
+  "predicted": "1.2. Binomial Coefficients 71 For each of the 5 elements, we have 2 choices. Therefore the number of subsets is simply 2 · 2 · 2 · 2 · 2 | 2 5 (by the multiplicative principle). Of those 32 subsets, how many have 3 elements? This is not obvious. Note that we cannot just use the multiplicative principle. Maybe we want to say we have 2 choices (yes/no) for the first element, 2 choices for the second, 2 choices for the third, and then only 1 choice for the other two. But what if we said “no” to one of the first three elements? Then we would have two choices for the 4th element. What a mess!",
+  "true_answer": "1.2. Binomial Coefficients 71 For each of the 5 elements, we have 2 choices. Therefore the number of subsets is simply 2 · 2 · 2 · 2 · 2 | 2 5 (by the multiplicative principle). Of those 32 subsets, how many have 3 elements? This is not obvious. Note that we cannot just use the multiplicative principle. Maybe we want to say we have 2 choices (yes/no) for the first element, 2 choices for the second, 2 choices for the third, and then only 1 choice for the other two. But what if we said “no” to one of the first three elements? Then we would have two choices for the 4th element. What a mess!",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

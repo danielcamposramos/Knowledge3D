@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.33) about time: e Baháʼí Calendar, also known as the Badi Calendar was ﬁrst established by the Bab in the Kitab-i-Asma. e Baháʼí Calen",
+  "created_at": "2025-09-24T15:06:59.066990Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.33) about time: e Baháʼí Calendar, also known as the Badi Calendar was ﬁrst established by the Bab in the Kitab-i-Asma. e Baháʼí Calen",
+  "predicted": "e Baháʼí Calendar, also known as the Badi Calendar was ﬁrst established by the Bab in the Kitab-i-Asma. e Baháʼí Calendar is also purely a solar calendar and comprises 19 months each having nineteen days. Religious National A Hindu almanac (pancanga) for the year 1871/2 from Rajasthan (Library of Congress, Asian Division) e Chinese, Hebrew, Hindu, and Julian calendars are widely used for religious and social purposes. e Iranian (Persian) calendar is used in Iran and some parts of Afghanistan.",
+  "true_answer": "e Baháʼí Calendar, also known as the Badi Calendar was ﬁrst established by the Bab in the Kitab-i-Asma. e Baháʼí Calendar is also purely a solar calendar and comprises 19 months each having nineteen days. Religious National A Hindu almanac (pancanga) for the year 1871/2 from Rajasthan (Library of Congress, Asian Division) e Chinese, Hebrew, Hindu, and Julian calendars are widely used for religious and social purposes. e Iranian (Persian) calendar is used in Iran and some parts of Afghanistan.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

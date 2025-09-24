@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'fable' (es).",
+  "created_at": "2025-09-24T10:27:48.991868Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'fable' (es).",
+  "predicted": "inflection of fablar:",
+  "true_answer": "inflection of fablar:",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

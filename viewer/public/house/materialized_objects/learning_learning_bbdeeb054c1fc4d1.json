@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: _____ is used to deter- mine the Croatian IOI team.",
+  "created_at": "2025-09-24T11:41:06.937633Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: _____ is used to deter- mine the Croatian IOI team.",
+  "predicted": "Performance",
+  "true_answer": "Performance",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

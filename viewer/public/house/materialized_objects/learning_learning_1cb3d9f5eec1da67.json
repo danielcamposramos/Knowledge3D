@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 60.1) about mathematics: 50 0. Introduction and Preliminaries Function Definitions. Here is a summary of all the main concepts and definitions we",
+  "created_at": "2025-09-24T15:14:28.424492Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 60.1) about mathematics: 50 0. Introduction and Preliminaries Function Definitions. Here is a summary of all the main concepts and definitions we",
+  "predicted": "50 0. Introduction and Preliminaries Function Definitions. Here is a summary of all the main concepts and definitions we use when working with functions. • A function is a rule that assigns each element of a set, called the domain , to exactly one element of a second set, called the codomain . • Notation: f : X → Y is our way of saying that the function is called f , the domain is the set X , and the codomain is the set Y .",
+  "true_answer": "50 0. Introduction and Preliminaries Function Definitions. Here is a summary of all the main concepts and definitions we use when working with functions. • A function is a rule that assigns each element of a set, called the domain , to exactly one element of a second set, called the codomain . • Notation: f : X → Y is our way of saying that the function is called f , the domain is the set X , and the codomain is the set Y .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

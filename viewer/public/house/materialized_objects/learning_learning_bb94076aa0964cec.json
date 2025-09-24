@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? Consulte Zak Stambor, “Can Teaching Troubled Teens Social Problem-solving Keep Them Out of Trouble?”  Monitor on Psychology  (dezembro de 2005), pp.",
+  "created_at": "2025-09-24T09:29:44.175427Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? Consulte Zak Stambor, “Can Teaching Troubled Teens Social Problem-solving Keep Them Out of Trouble?”  Monitor on Psychology  (dezembro de 2005), pp.",
+  "predicted": "Consulte Zak Stambor, “Can Teaching Troubled Teens Social Problem-solving Keep Them Out of Trouble?”  Monitor on Psychology  (dezembro de 2005), pp.",
+  "true_answer": "Consulte Zak Stambor, “Can Teaching Troubled Teens Social Problem-solving Keep Them Out of Trouble?”  Monitor on Psychology  (dezembro de 2005), pp.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

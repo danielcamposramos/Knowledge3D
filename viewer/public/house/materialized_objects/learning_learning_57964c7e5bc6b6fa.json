@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 76.4) about mathematics: With two sets, we needed to know the",
+  "created_at": "2025-09-24T15:15:44.963639Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 76.4) about mathematics: With two sets, we needed to know the",
+  "predicted": "With two sets, we needed to know the",
+  "true_answer": "With two sets, we needed to know the",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

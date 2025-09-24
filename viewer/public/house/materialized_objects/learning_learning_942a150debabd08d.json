@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: Self-esteem Matters”,  Journal of Personality and Social Psychology  87, n.",
+  "created_at": "2025-09-24T09:13:35.669973Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: Self-esteem Matters”,  Journal of Personality and Social Psychology  87, n.",
+  "predicted": "Self-esteem Matters”,  Journal of Personality and Social Psychology  87, n.",
+  "true_answer": "Self-esteem Matters”,  Journal of Personality and Social Psychology  87, n.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

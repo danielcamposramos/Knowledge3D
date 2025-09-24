@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.59) about time: Unlike space, where an object can travel in the opposite directions (and in 3 dimensions), time appears to have only one",
+  "created_at": "2025-09-24T15:09:00.156502Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.59) about time: Unlike space, where an object can travel in the opposite directions (and in 3 dimensions), time appears to have only one",
+  "predicted": "Unlike space, where an object can travel in the opposite directions (and in 3 dimensions), time appears to have only one dimension and only one direction—the past lies behind, ﬁxed and immutable, while the future lies ahead and is not necessarily ﬁxed. Yet most laws of physics allow any process to proceed both forward and in reverse. ere are only a few physical phenomena that violate the reversibility of time. is time directionality is known as the arrow of time. Acknowledged examples of the arrow of time are:[91][92][93] 1.",
+  "true_answer": "Unlike space, where an object can travel in the opposite directions (and in 3 dimensions), time appears to have only one dimension and only one direction—the past lies behind, ﬁxed and immutable, while the future lies ahead and is not necessarily ﬁxed. Yet most laws of physics allow any process to proceed both forward and in reverse. ere are only a few physical phenomena that violate the reversibility of time. is time directionality is known as the arrow of time. Acknowledged examples of the arrow of time are:[91][92][93] 1.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

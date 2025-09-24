@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: 39 A _____ Different Solution 45 Walking the Minimum Number of Streets  .",
+  "created_at": "2025-09-24T15:03:02.572923Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: 39 A _____ Different Solution 45 Walking the Minimum Number of Streets  .",
+  "predicted": "Completely",
+  "true_answer": "Completely",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

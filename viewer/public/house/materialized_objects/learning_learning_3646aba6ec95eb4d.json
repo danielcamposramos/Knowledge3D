@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: void solve(int lines[], int n, int m) { int i, shortest; for (i = 0; i < m; i++) { shortest = shortest_line_index(lines, n); printf('%d', lines[shortest]);  ∂ lines[shortest]++; } }  Listing 3: Solving the problem  For each _____ of the outer for loop, we call our helper function to grab the index of the shortest line.",
+  "created_at": "2025-09-24T05:10:00.490227Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: void solve(int lines[], int n, int m) { int i, shortest; for (i = 0; i < m; i++) { shortest = shortest_line_index(lines, n); printf('%d', lines[shortest]);  ∂ lines[shortest]++; } }  Listing 3: Solving the problem  For each _____ of the outer for loop, we call our helper function to grab the index of the shortest line.",
+  "predicted": "iteration",
+  "true_answer": "iteration",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

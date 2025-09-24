@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'abate' (es).",
+  "created_at": "2025-09-24T16:35:06.557722Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'abate' (es).",
+  "predicted": "inflection of abatir:",
+  "true_answer": "inflection of abatir:",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

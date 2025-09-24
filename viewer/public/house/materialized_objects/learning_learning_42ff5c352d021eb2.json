@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 38.4) about mathematics: Both symbols are read “is a subset of.” The difference is that sometimes we want to say that A is either equal to or is ",
+  "created_at": "2025-09-24T15:13:01.240357Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 38.4) about mathematics: Both symbols are read “is a subset of.” The difference is that sometimes we want to say that A is either equal to or is ",
+  "predicted": "Both symbols are read “is a subset of.” The difference is that sometimes we want to say that A is either equal to or is a subset of B , in which case we use ⊆ . This is analogous to the difference between < and ≤ .",
+  "true_answer": "Both symbols are read “is a subset of.” The difference is that sometimes we want to say that A is either equal to or is a subset of B , in which case we use ⊆ . This is analogous to the difference between < and ≤ .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

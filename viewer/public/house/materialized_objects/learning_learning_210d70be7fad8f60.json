@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 77.1) about mathematics: 1.1. Additive and Multiplicative Principles 67 cardinalities of A , B , and A ∩ B in order to find the cardinality of A ",
+  "created_at": "2025-09-24T15:15:46.139602Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 77.1) about mathematics: 1.1. Additive and Multiplicative Principles 67 cardinalities of A , B , and A ∩ B in order to find the cardinality of A ",
+  "predicted": "1.1. Additive and Multiplicative Principles 67 cardinalities of A , B , and A ∩ B in order to find the cardinality of A ∪ B . With three sets we need more information. There are more ways the sets can combine. Not surprisingly then, the formula for cardinality of the union of three non-disjoint sets is more complicated: Cardinality of a union (3 sets). For any finite sets A , B , and C , | A ∪ B ∪ C | | | A | + | B | + | C |−| A ∩ B |−| A ∩ C |−| B ∩ C | + | A ∩ B ∩ C | . To determine how many elements are in at least one of A , B , or C we add up all the elements in each of those sets.",
+  "true_answer": "1.1. Additive and Multiplicative Principles 67 cardinalities of A , B , and A ∩ B in order to find the cardinality of A ∪ B . With three sets we need more information. There are more ways the sets can combine. Not surprisingly then, the formula for cardinality of the union of three non-disjoint sets is more complicated: Cardinality of a union (3 sets). For any finite sets A , B , and C , | A ∪ B ∪ C | | | A | + | B | + | C |−| A ∩ B |−| A ∩ C |−| B ∩ C | + | A ∩ B ∩ C | . To determine how many elements are in at least one of A , B , or C we add up all the elements in each of those sets.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

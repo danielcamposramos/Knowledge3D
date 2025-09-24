@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.6) about time: Physicists developed the concept of the spacetime continuum, where events are assigned four coordinates: three for space",
+  "created_at": "2025-09-24T15:07:57.045637Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.6) about time: Physicists developed the concept of the spacetime continuum, where events are assigned four coordinates: three for space",
+  "predicted": "Physicists developed the concept of the spacetime continuum, where events are assigned four coordinates: three for space and one for time. Events like particle collisions, supernovas, or rocket launches have coordinates that may vary for diﬀerent observers, making concepts like 'now' and 'here' relative. In general relativity, these coordinates do not directly correspond to the causal structure of events.",
+  "true_answer": "Physicists developed the concept of the spacetime continuum, where events are assigned four coordinates: three for space and one for time. Events like particle collisions, supernovas, or rocket launches have coordinates that may vary for diﬀerent observers, making concepts like 'now' and 'here' relative. In general relativity, these coordinates do not directly correspond to the causal structure of events.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

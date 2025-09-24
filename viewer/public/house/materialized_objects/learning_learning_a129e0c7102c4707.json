@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'moldura' (pt).",
+  "created_at": "2025-09-24T16:11:26.560258Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'moldura' (pt).",
+  "predicted": "a framework in which a picture is mounted",
+  "true_answer": "a framework in which a picture is mounted",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

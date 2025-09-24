@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: It’s not completely selfcontained—but all we’ll need is one helper function, get_number , that I’ll describe shortly.",
+  "created_at": "2025-09-24T15:17:22.850195Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: It’s not completely selfcontained—but all we’ll need is one helper function, get_number , that I’ll describe shortly.",
+  "predicted": "It’s not completely self- contained—but all we’ll need is one helper function, get_number , that I’ll de- scribe shortly.",
+  "true_answer": "It’s not completely self- contained—but all we’ll need is one helper function, get_number , that I’ll de- scribe shortly.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

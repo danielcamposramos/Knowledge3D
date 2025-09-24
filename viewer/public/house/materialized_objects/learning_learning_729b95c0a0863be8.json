@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.15) about time: However, they did not include the extra bit of time in each year, and this caused their calendar to slowly become inaccu",
+  "created_at": "2025-09-24T15:06:38.057939Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.15) about time: However, they did not include the extra bit of time in each year, and this caused their calendar to slowly become inaccu",
+  "predicted": "However, they did not include the extra bit of time in each year, and this caused their calendar to slowly become inaccurate.[31] Solar Sun and Moon, Schedel's Nuremberg Chronicle, 1493 Not all calendars use the solar year as a unit. A lunar calendar is one in which days are numbered within each lunar phase cycle. Because the length of the lunar month is not an even fraction of the length of the tropical year, a purely lunar calendar quickly dris against the seasons, which do not vary much near the equator. It does, however, stay constant with respect to other phenomena, notably tides.",
+  "true_answer": "However, they did not include the extra bit of time in each year, and this caused their calendar to slowly become inaccurate.[31] Solar Sun and Moon, Schedel's Nuremberg Chronicle, 1493 Not all calendars use the solar year as a unit. A lunar calendar is one in which days are numbered within each lunar phase cycle. Because the length of the lunar month is not an even fraction of the length of the tropical year, a purely lunar calendar quickly dris against the seasons, which do not vary much near the equator. It does, however, stay constant with respect to other phenomena, notably tides.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

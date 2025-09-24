@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.89) about time: Judgments of time can be altered by temporal illusions (like the kappa eﬀect),[110] age,[111] psychoactive drugs, and hy",
+  "created_at": "2025-09-24T15:09:36.167521Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.89) about time: Judgments of time can be altered by temporal illusions (like the kappa eﬀect),[110] age,[111] psychoactive drugs, and hy",
+  "predicted": "Judgments of time can be altered by temporal illusions (like the kappa eﬀect),[110] age,[111] psychoactive drugs, and hypnosis.[112] e sense of time is impaired in some people with neurological diseases such as Parkinson's disease and aention deﬁcit disorder. Psychoactive drugs can impair the judgment of time.",
+  "true_answer": "Judgments of time can be altered by temporal illusions (like the kappa eﬀect),[110] age,[111] psychoactive drugs, and hypnosis.[112] e sense of time is impaired in some people with neurological diseases such as Parkinson's disease and aention deﬁcit disorder. Psychoactive drugs can impair the judgment of time.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

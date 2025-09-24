@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 46.3) about mathematics: Draw a Venn diagram to represent each of the following: (a) A ∪ B (b) ( A ∪ B ) (c) A ∩( B ∪ C ) (d) ( A ∩ B )∪ C (e) A ",
+  "created_at": "2025-09-24T15:13:32.804388Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 46.3) about mathematics: Draw a Venn diagram to represent each of the following: (a) A ∪ B (b) ( A ∪ B ) (c) A ∩( B ∪ C ) (d) ( A ∩ B )∪ C (e) A ",
+  "predicted": "Draw a Venn diagram to represent each of the following: (a) A ∪ B (b) ( A ∪ B ) (c) A ∩( B ∪ C ) (d) ( A ∩ B )∪ C (e) A ∩ B ∩ C (f) ( A ∪ B )\\ C 16. Describe a set in terms of A and B (using set notation) which has the following Venn diagram: A B",
+  "true_answer": "Draw a Venn diagram to represent each of the following: (a) A ∪ B (b) ( A ∪ B ) (c) A ∩( B ∪ C ) (d) ( A ∩ B )∪ C (e) A ∩ B ∩ C (f) ( A ∪ B )\\ C 16. Describe a set in terms of A and B (using set notation) which has the following Venn diagram: A B",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

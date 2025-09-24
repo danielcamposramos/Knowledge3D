@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.56) about time: Encyclopædia Britannica. 1991. p. 941. ISBN 978-0-85229-529-8. 29. Lawson, Russell M. (23 September 2021). Science in th",
+  "created_at": "2025-09-24T15:07:26.107067Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.56) about time: Encyclopædia Britannica. 1991. p. 941. ISBN 978-0-85229-529-8. 29. Lawson, Russell M. (23 September 2021). Science in th",
+  "predicted": "Encyclopædia Britannica. 1991. p. 941. ISBN 978-0-85229-529-8. 29. Lawson, Russell M. (23 September 2021). Science in the Ancient World: From Antiquity through the Middle Ages (https://books.google.com/bo oks?id=kwTHEAAAQBAJ&dq=The+Egyptians+appear+to+have+been +the+ﬁrst+to+develop+a+solar+calendar,&pg=PT179). Bloomsbury Publishing USA. ISBN 979-8-216-14241-6. 30. Muntz, Charles (2 January 2017). Diodorus Siculus and the World of the Late Roman Republic (https://books.google.com/books?id=VGHODQA AQBAJ&dq=The+Egyptians+appear+to+have+been+the+ﬁrst+to+dev elop+a+solar+calendar,&pg=PT16).",
+  "true_answer": "Encyclopædia Britannica. 1991. p. 941. ISBN 978-0-85229-529-8. 29. Lawson, Russell M. (23 September 2021). Science in the Ancient World: From Antiquity through the Middle Ages (https://books.google.com/bo oks?id=kwTHEAAAQBAJ&dq=The+Egyptians+appear+to+have+been +the+ﬁrst+to+develop+a+solar+calendar,&pg=PT179). Bloomsbury Publishing USA. ISBN 979-8-216-14241-6. 30. Muntz, Charles (2 January 2017). Diodorus Siculus and the World of the Late Roman Republic (https://books.google.com/books?id=VGHODQA AQBAJ&dq=The+Egyptians+appear+to+have+been+the+ﬁrst+to+dev elop+a+solar+calendar,&pg=PT16).",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

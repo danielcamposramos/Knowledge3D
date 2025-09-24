@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: You strategize at a higher level of _____—serve and volley, chip and charge, hug the baseline.",
+  "created_at": "2025-09-24T15:03:31.061513Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: You strategize at a higher level of _____—serve and volley, chip and charge, hug the baseline.",
+  "predicted": "abstraction",
+  "true_answer": "abstraction",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

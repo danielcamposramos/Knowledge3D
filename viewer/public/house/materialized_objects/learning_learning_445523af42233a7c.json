@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 15.3) about mathematics: The two shorter statements are connected by an “and.” We will consider 5 connectives: “and” (Sam is a man and Chris is a",
+  "created_at": "2025-09-24T15:11:22.609171Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 15.3) about mathematics: The two shorter statements are connected by an “and.” We will consider 5 connectives: “and” (Sam is a man and Chris is a",
+  "predicted": "The two shorter statements are connected by an “and.” We will consider 5 connectives: “and” (Sam is a man and Chris is a woman), “or” (Sam is a man or Chris is a woman), “if. , then. ” (if Sam is a man, then Chris is a woman), “if and only if” (Sam is a man if and only if Chris is a woman), and “not” (Sam is not a man). The first four are called binary connectives (because they connect two statements) while “not” is an example of a unary connective (since it applies to a single statement). These molecular statements are of course still statements, so they must be either true or false.",
+  "true_answer": "The two shorter statements are connected by an “and.” We will consider 5 connectives: “and” (Sam is a man and Chris is a woman), “or” (Sam is a man or Chris is a woman), “if. , then. ” (if Sam is a man, then Chris is a woman), “if and only if” (Sam is a man if and only if Chris is a woman), and “not” (Sam is not a man). The first four are called binary connectives (because they connect two statements) while “not” is an example of a unary connective (since it applies to a single statement). These molecular statements are of course still statements, so they must be either true or false.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

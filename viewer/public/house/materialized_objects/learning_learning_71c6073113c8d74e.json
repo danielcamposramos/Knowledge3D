@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.107) about time: Archived from the original (http://www.collin slanguage.com/results.aspx?context=3&reversed=False&action= deﬁne&homonym=",
+  "created_at": "2025-09-24T15:09:57.566031Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.107) about time: Archived from the original (http://www.collin slanguage.com/results.aspx?context=3&reversed=False&action= deﬁne&homonym=",
+  "predicted": "Archived from the original (http://www.collin slanguage.com/results.aspx?context=3&reversed=False&action= deﬁne&homonym=-1&text=time) on 2 October 2011. Retrieved 18 December 2011. '1. The continuous passage of existence in which events pass from a state of potentiality in the future, through the present, to a state of ﬁnality in the past. 2. physics a quantity measuring duration, usually with reference to a periodic process such as the rotation of the earth or the frequency of electromagnetic radiation emitted from certain atoms.",
+  "true_answer": "Archived from the original (http://www.collin slanguage.com/results.aspx?context=3&reversed=False&action= deﬁne&homonym=-1&text=time) on 2 October 2011. Retrieved 18 December 2011. '1. The continuous passage of existence in which events pass from a state of potentiality in the future, through the present, to a state of ﬁnality in the past. 2. physics a quantity measuring duration, usually with reference to a periodic process such as the rotation of the earth or the frequency of electromagnetic radiation emitted from certain atoms.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

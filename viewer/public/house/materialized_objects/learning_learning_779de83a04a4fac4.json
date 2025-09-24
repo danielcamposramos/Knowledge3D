@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.69) about time: In either case, however, causality remains unchanged: the past is the set of events that can send light signals to an en",
+  "created_at": "2025-09-24T15:09:12.066684Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.69) about time: In either case, however, causality remains unchanged: the past is the set of events that can send light signals to an en",
+  "predicted": "In either case, however, causality remains unchanged: the past is the set of events that can send light signals to an entity and the future is the set of events to which an entity can send light signals.[97][98] Einstein showed in his thought experiments that people travelling at diﬀerent speeds, while agreeing on cause and eﬀect, measure diﬀerent time separations between events, and can even observe diﬀerent chronological orderings between non-causally related events.",
+  "true_answer": "In either case, however, causality remains unchanged: the past is the set of events that can send light signals to an entity and the future is the set of events to which an entity can send light signals.[97][98] Einstein showed in his thought experiments that people travelling at diﬀerent speeds, while agreeing on cause and eﬀect, measure diﬀerent time separations between events, and can even observe diﬀerent chronological orderings between non-causally related events.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 26.3) about mathematics: Notice how the negation and original statement compare. This is typical. Quantifiers and Negation. ¬ ∀ xP ( x ) is equiv",
+  "created_at": "2025-09-24T15:12:11.873603Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 26.3) about mathematics: Notice how the negation and original statement compare. This is typical. Quantifiers and Negation. ¬ ∀ xP ( x ) is equiv",
+  "predicted": "Notice how the negation and original statement compare. This is typical. Quantifiers and Negation. ¬ ∀ xP ( x ) is equivalent to ∃ x ¬ P ( x ) . ¬ ∃ xP ( x ) is equivalent to ∀ x ¬ P ( x ) . Essentially, we can pass the negation symbol over a quantifier, but that causes the quantifier to switch type. This should not be surprising: if not everything has a property, then something doesn’t have that property. And if there is not something with a property, then everything doesn’t have that property. Implicit Quantifiers. It is always a good idea to be precise in mathematics.",
+  "true_answer": "Notice how the negation and original statement compare. This is typical. Quantifiers and Negation. ¬ ∀ xP ( x ) is equivalent to ∃ x ¬ P ( x ) . ¬ ∃ xP ( x ) is equivalent to ∀ x ¬ P ( x ) . Essentially, we can pass the negation symbol over a quantifier, but that causes the quantifier to switch type. This should not be surprising: if not everything has a property, then something doesn’t have that property. And if there is not something with a property, then everything doesn’t have that property. Implicit Quantifiers. It is always a good idea to be precise in mathematics.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

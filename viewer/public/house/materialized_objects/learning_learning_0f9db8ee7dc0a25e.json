@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: Trying to make 4 billion snow- flake _____ in two seconds is not doable.",
+  "created_at": "2025-09-24T05:10:47.324232Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: Trying to make 4 billion snow- flake _____ in two seconds is not doable.",
+  "predicted": "comparisons",
+  "true_answer": "comparisons",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

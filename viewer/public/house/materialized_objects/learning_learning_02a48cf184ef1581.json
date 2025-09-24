@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: However, if we begin at the 1 in the second _____ and move left in- stead of right, then we do get exactly 1, 2, 3, 4, 5, 6 !",
+  "created_at": "2025-09-24T05:10:16.253593Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: However, if we begin at the 1 in the second _____ and move left in- stead of right, then we do get exactly 1, 2, 3, 4, 5, 6 !",
+  "predicted": "snowflake",
+  "true_answer": "snowflake",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

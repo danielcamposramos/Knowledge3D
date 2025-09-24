@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.93) about time: is spatial representation of time is oen represented in the mind as a mental timeline (MTL).[123] ese origins are sha",
+  "created_at": "2025-09-24T15:09:40.912656Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.93) about time: is spatial representation of time is oen represented in the mind as a mental timeline (MTL).[123] ese origins are sha",
+  "predicted": "is spatial representation of time is oen represented in the mind as a mental timeline (MTL).[123] ese origins are shaped by many environmental factors.[122] Literacy appears to play a large role in the diﬀerent types of MTLs, as reading/writing direction provides an everyday temporal orientation that diﬀers from culture to culture.[123] In Western cultures, the MTL may unfold rightward (with the past on the le and the future on the right) since people mostly read and write from le to right.[123] Western calendars also continue this trend by placing the past on the le with the future progressing toward the right.",
+  "true_answer": "is spatial representation of time is oen represented in the mind as a mental timeline (MTL).[123] ese origins are shaped by many environmental factors.[122] Literacy appears to play a large role in the diﬀerent types of MTLs, as reading/writing direction provides an everyday temporal orientation that diﬀers from culture to culture.[123] In Western cultures, the MTL may unfold rightward (with the past on the le and the future on the right) since people mostly read and write from le to right.[123] Western calendars also continue this trend by placing the past on the le with the future progressing toward the right.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

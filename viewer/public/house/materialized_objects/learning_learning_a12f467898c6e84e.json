@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.60) about time: Radiative arrow of time, manifested in waves (e.g., light and sound) travelling only expanding (rather than focusing) in",
+  "created_at": "2025-09-24T15:09:01.424603Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.60) about time: Radiative arrow of time, manifested in waves (e.g., light and sound) travelling only expanding (rather than focusing) in",
+  "predicted": "Radiative arrow of time, manifested in waves (e.g., light and sound) travelling only expanding (rather than focusing) in time (see light cone); 2. Entropic arrow of time: according to the second law of thermodynamics an isolated system evolves toward a larger disorder rather than orders spontaneously; 3. Quantum arrow time, which is related to irreversibility of measurement in quantum mechanics according to the Copenhagen interpretation of quantum mechanics; 4. Weak arrow of time: preference for a certain time direction of weak force in particle physics (see violation of CP symmetry); 5.",
+  "true_answer": "Radiative arrow of time, manifested in waves (e.g., light and sound) travelling only expanding (rather than focusing) in time (see light cone); 2. Entropic arrow of time: according to the second law of thermodynamics an isolated system evolves toward a larger disorder rather than orders spontaneously; 3. Quantum arrow time, which is related to irreversibility of measurement in quantum mechanics according to the Copenhagen interpretation of quantum mechanics; 4. Weak arrow of time: preference for a certain time direction of weak force in particle physics (see violation of CP symmetry); 5.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 18.2) about mathematics: The tricky case is this: what if Bob did not get a 90 on the final? Maybe he passes the class, maybe he doesn’t. Did I l",
+  "created_at": "2025-09-24T15:11:35.837558Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 18.2) about mathematics: The tricky case is this: what if Bob did not get a 90 on the final? Maybe he passes the class, maybe he doesn’t. Did I l",
+  "predicted": "The tricky case is this: what if Bob did not get a 90 on the final? Maybe he passes the class, maybe he doesn’t. Did I lie in either case? I think not. In these last two cases, P was false, and the statement P → Q was true. In the first case, Q was true, and so was P → Q . So P → Q is true when either P is false or Q is true. Just to be clear, although we sometimes read P → Q as “ P implies Q ”, we are not insisting that there is some causal relationship between the statements P and Q .",
+  "true_answer": "The tricky case is this: what if Bob did not get a 90 on the final? Maybe he passes the class, maybe he doesn’t. Did I lie in either case? I think not. In these last two cases, P was false, and the statement P → Q was true. In the first case, Q was true, and so was P → Q . So P → Q is true when either P is false or Q is true. Just to be clear, although we sometimes read P → Q as “ P implies Q ”, we are not insisting that there is some causal relationship between the statements P and Q .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.46) about time: 'Introduction to Calendars' (https://aa.usno.navy.mil/faq/calendars). aa.usno.navy.mil. Retrieved 12 March 2024. 6. 'His",
+  "created_at": "2025-09-24T15:07:14.332237Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.46) about time: 'Introduction to Calendars' (https://aa.usno.navy.mil/faq/calendars). aa.usno.navy.mil. Retrieved 12 March 2024. 6. 'His",
+  "predicted": "'Introduction to Calendars' (https://aa.usno.navy.mil/faq/calendars). aa.usno.navy.mil. Retrieved 12 March 2024. 6. 'History – Ancient Egyptian Calendar' (https://mabscross.co.uk/wp-c ontent/uploads/2020/06/3.-History-Calendar.pdf) (PDF). Retrieved 12 March 2024. 7. Ma'Atnefert, Mwt Seshatms Nkatraet (2011). You are Harmony ... Take Time to Harmonize ... Calendars and Time Connecting (https://books.go ogle.com/books?id=C7KnAgAAQBAJ&dq=The+term+calendar+is+tak en+from+kalendae,&pg=PA9). Lulu.com. p. 9. ISBN 978-1-257-10758-2. 8. Lewis, James R. (1 March 2003).",
+  "true_answer": "'Introduction to Calendars' (https://aa.usno.navy.mil/faq/calendars). aa.usno.navy.mil. Retrieved 12 March 2024. 6. 'History – Ancient Egyptian Calendar' (https://mabscross.co.uk/wp-c ontent/uploads/2020/06/3.-History-Calendar.pdf) (PDF). Retrieved 12 March 2024. 7. Ma'Atnefert, Mwt Seshatms Nkatraet (2011). You are Harmony ... Take Time to Harmonize ... Calendars and Time Connecting (https://books.go ogle.com/books?id=C7KnAgAAQBAJ&dq=The+term+calendar+is+tak en+from+kalendae,&pg=PA9). Lulu.com. p. 9. ISBN 978-1-257-10758-2. 8. Lewis, James R. (1 March 2003).",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

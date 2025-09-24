@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 33.2) about mathematics: (e) Assuming that the original statement is true, what can you say about the relationship between the set P of prime num",
+  "created_at": "2025-09-24T15:12:39.464807Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 33.2) about mathematics: (e) Assuming that the original statement is true, what can you say about the relationship between the set P of prime num",
+  "predicted": "(e) Assuming that the original statement is true, what can you say about the relationship between the set P of prime numbers and the set S of solitary numbers. Explain.",
+  "true_answer": "(e) Assuming that the original statement is true, what can you say about the relationship between the set P of prime numbers and the set S of solitary numbers. Explain.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

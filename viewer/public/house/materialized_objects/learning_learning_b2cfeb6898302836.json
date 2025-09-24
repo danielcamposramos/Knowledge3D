@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 78.2) about mathematics: (a) How many 2-digit hexadecimals are there in which the first digit is E or F? Explain your answer in terms of the addi",
+  "created_at": "2025-09-24T08:51:32.954451Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": -1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 78.2) about mathematics: (a) How many 2-digit hexadecimals are there in which the first digit is E or F? Explain your answer in terms of the addi",
+  "predicted": "entropy_ray",
+  "true_answer": "(a) How many 2-digit hexadecimals are there in which the first digit is E or F? Explain your answer in terms of the additive principle (using either events or sets). (b) Explain why your answer to the previous part is correct in terms of the multiplicative principle (using either events or sets). Why do both the additive and multiplicative principles give you the same answer? (c) How many 3-digit hexadecimals start with a letter (A-F) and end with a numeral (0-9)? Explain. (d) How many 3-digit hexadecimals start with a letter (A-F) or end with a numeral (0-9) (or both)? Explain. 5 .",
+  "quick_feedback": {
+    "score": -1.0,
+    "explanation": "Ollama model 'exaone-deep:latest' timed out after 300s; warm the model manually or increase initial timeout."
+  },
+  "deep_feedback": {
+    "score": -1.0,
+    "explanation": "Ollama model 'exaone-deep:latest' timed out after 300s; warm the model manually or increase initial timeout."
+  }
+}

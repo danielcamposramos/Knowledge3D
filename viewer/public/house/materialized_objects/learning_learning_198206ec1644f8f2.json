@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'KGB' (es).",
+  "created_at": "2025-09-24T17:43:35.175254Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'KGB' (es).",
+  "predicted": "KGB (soviet KGB)",
+  "true_answer": "KGB (soviet KGB)",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

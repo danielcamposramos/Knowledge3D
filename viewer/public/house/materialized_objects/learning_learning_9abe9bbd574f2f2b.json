@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'abdomen' (es).",
+  "created_at": "2025-09-24T16:35:12.930842Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'abdomen' (es).",
+  "predicted": "abdomen",
+  "true_answer": "abdomen",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

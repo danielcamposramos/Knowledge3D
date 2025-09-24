@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'formalismo' (pt).",
+  "created_at": "2025-09-24T10:11:07.473736Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'formalismo' (pt).",
+  "predicted": "the doctrine that formal structure rather than content is what should be represented",
+  "true_answer": "the doctrine that formal structure rather than content is what should be represented",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

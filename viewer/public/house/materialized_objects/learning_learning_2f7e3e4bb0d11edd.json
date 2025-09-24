@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: 5 _____ PATHS IN WEIGHTED GRAPHS 165  Problem 1: Mice Maze .",
+  "created_at": "2025-09-24T15:03:10.516033Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: 5 _____ PATHS IN WEIGHTED GRAPHS 165  Problem 1: Mice Maze .",
+  "predicted": "SHORTEST",
+  "true_answer": "SHORTEST",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

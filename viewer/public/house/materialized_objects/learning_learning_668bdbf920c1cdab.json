@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'Espécie-tipo' (pt).",
+  "created_at": "2025-09-24T10:09:12.698232Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'Espécie-tipo' (pt).",
+  "predicted": "(biology) the species that best exemplifies the essential characteristics of the genus to which it belongs",
+  "true_answer": "(biology) the species that best exemplifies the essential characteristics of the genus to which it belongs",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 83.4) about mathematics: Thus counting the number of 3-element subsets of A is the same as counting the number 5-bit strings of weight 3. Lattice",
+  "created_at": "2025-09-24T15:16:17.527844Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 83.4) about mathematics: Thus counting the number of 3-element subsets of A is the same as counting the number 5-bit strings of weight 3. Lattice",
+  "predicted": "Thus counting the number of 3-element subsets of A is the same as counting the number 5-bit strings of weight 3. Lattice Paths The integer lattice is the set of all points in the Cartesian plane for which both the x and y coordinates are integers. If you like to draw graphs on graph paper, the lattice is the set of all the intersections of the grid lines. A lattice path is one of the shortest possible paths connecting two points on the lattice, moving only horizontally and vertically.",
+  "true_answer": "Thus counting the number of 3-element subsets of A is the same as counting the number 5-bit strings of weight 3. Lattice Paths The integer lattice is the set of all points in the Cartesian plane for which both the x and y coordinates are integers. If you like to draw graphs on graph paper, the lattice is the set of all the intersections of the grid lines. A lattice path is one of the shortest possible paths connecting two points on the lattice, moving only horizontally and vertically.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

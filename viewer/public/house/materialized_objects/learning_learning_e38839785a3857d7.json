@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.46) about time: Relative time is a measurement of objects in motion.[76] e anti-realists believed that time is merely a convenient inte",
+  "created_at": "2025-09-24T15:08:44.671657Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.46) about time: Relative time is a measurement of objects in motion.[76] e anti-realists believed that time is merely a convenient inte",
+  "predicted": "Relative time is a measurement of objects in motion.[76] e anti-realists believed that time is merely a convenient intellectual concept for humans to understand events.[76] is means that time was useless unless there were objects that it could interact with, this was called relational time.[76] René Descartes, John Locke, and David Hume said that one's mind needs to acknowledge time, in order to understand what time is.[71] Immanuel Kant believed that we can not know what something is unless we experience it ﬁrst hand.[78] Immanuel Kant, in the Critique of Pure Reason, described time as an a priori intuition that allows us (together with the other a priori intuition, space) to comprehend sense experience.[79] With Kant, neither space nor time are conceived as substances, but rather both are elements of a systematic mental framework that necessarily structures the experiences of any rational agent, or observing subject.",
+  "true_answer": "Relative time is a measurement of objects in motion.[76] e anti-realists believed that time is merely a convenient intellectual concept for humans to understand events.[76] is means that time was useless unless there were objects that it could interact with, this was called relational time.[76] René Descartes, John Locke, and David Hume said that one's mind needs to acknowledge time, in order to understand what time is.[71] Immanuel Kant believed that we can not know what something is unless we experience it ﬁrst hand.[78] Immanuel Kant, in the Critique of Pure Reason, described time as an a priori intuition that allows us (together with the other a priori intuition, space) to comprehend sense experience.[79] With Kant, neither space nor time are conceived as substances, but rather both are elements of a systematic mental framework that necessarily structures the experiences of any rational agent, or observing subject.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

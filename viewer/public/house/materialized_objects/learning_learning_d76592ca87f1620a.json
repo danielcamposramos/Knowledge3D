@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 18.3) about mathematics: In particular, if you claim that P → Q is false , you are not saying that P does not imply Q , but rather that P is true",
+  "created_at": "2025-09-24T15:11:36.985313Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 18.3) about mathematics: In particular, if you claim that P → Q is false , you are not saying that P does not imply Q , but rather that P is true",
+  "predicted": "In particular, if you claim that P → Q is false , you are not saying that P does not imply Q , but rather that P is true and Q is false. Example 0.2.3 Decide which of the following statements are true and which are false. Briefly explain. 1. If 1 | 1 , then most horses have 4 legs. 2. If 0 | 1 , then 1 | 1 . 3. If 8 is a prime number, then the 7624th digit of π is an 8. 4. If the 7624th digit of π is an 8, then 2 + 2 | 4 . Solution . All four of the statements are true. Remember, the only way for an implication to be false is for the if part to be true and the then part to be false. 1.",
+  "true_answer": "In particular, if you claim that P → Q is false , you are not saying that P does not imply Q , but rather that P is true and Q is false. Example 0.2.3 Decide which of the following statements are true and which are false. Briefly explain. 1. If 1 | 1 , then most horses have 4 legs. 2. If 0 | 1 , then 1 | 1 . 3. If 8 is a prime number, then the 7624th digit of π is an 8. 4. If the 7624th digit of π is an 8, then 2 + 2 | 4 . Solution . All four of the statements are true. Remember, the only way for an implication to be false is for the if part to be true and the then part to be false. 1.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

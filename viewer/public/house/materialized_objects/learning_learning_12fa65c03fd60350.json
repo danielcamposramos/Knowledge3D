@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 67.3) about mathematics: (c) How many ways can you select two cards so that the first one is red and the second one is a face card? 57",
+  "created_at": "2025-09-24T15:15:00.075180Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 67.3) about mathematics: (c) How many ways can you select two cards so that the first one is red and the second one is a face card? 57",
+  "predicted": "(c) How many ways can you select two cards so that the first one is red and the second one is a face card? 57",
+  "true_answer": "(c) How many ways can you select two cards so that the first one is red and the second one is a face card? 57",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

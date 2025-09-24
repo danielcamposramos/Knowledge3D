@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? Recursion: A Little Practice  Before proceeding with solving the Halloween Haul problem, let’s practice with recursion by writing two more functions in the spirit of tree_candy .",
+  "created_at": "2025-09-24T15:22:07.474104Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? Recursion: A Little Practice  Before proceeding with solving the Halloween Haul problem, let’s practice with recursion by writing two more functions in the spirit of tree_candy .",
+  "predicted": "Recursion: A Little Practice  Before proceeding with solving the Halloween Haul problem, let’s practice with recursion by writing two more functions in the spirit of tree_candy .",
+  "true_answer": "Recursion: A Little Practice  Before proceeding with solving the Halloween Haul problem, let’s practice with recursion by writing two more functions in the spirit of tree_candy .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

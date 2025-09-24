@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.124) about time: First, there is no absolute location in either space or time; location is always the situation of an object or event rel",
+  "created_at": "2025-09-24T15:10:17.869158Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.124) about time: First, there is no absolute location in either space or time; location is always the situation of an object or event rel",
+  "predicted": "First, there is no absolute location in either space or time; location is always the situation of an object or event relative to other objects and events. Second, space and time are not in themselves real (that is, not substances). Space and time are, rather, ideal. Space and time are just metaphysically illegitimate ways of perceiving certain virtual relations between substances. They are phenomena or, strictly speaking, illusions (although they are illusions that are well-founded upon the internal properties of substances)....",
+  "true_answer": "First, there is no absolute location in either space or time; location is always the situation of an object or event relative to other objects and events. Second, space and time are not in themselves real (that is, not substances). Space and time are, rather, ideal. Space and time are just metaphysically illegitimate ways of perceiving certain virtual relations between substances. They are phenomena or, strictly speaking, illusions (although they are illusions that are well-founded upon the internal properties of substances)....",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

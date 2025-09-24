@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '11 November' (en).",
+  "created_at": "2025-09-24T09:54:42.169937Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '11 November' (en).",
+  "predicted": "the feast of Saint Martin; a quarter day in Scotland",
+  "true_answer": "the feast of Saint Martin; a quarter day in Scotland",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

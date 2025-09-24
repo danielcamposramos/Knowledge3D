@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'G弦裤' (zh).",
+  "created_at": "2025-09-24T17:45:30.985829Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'G弦裤' (zh).",
+  "predicted": "G-string",
+  "true_answer": "G-string",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

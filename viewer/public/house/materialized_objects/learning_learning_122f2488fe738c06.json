@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.117) about time: 'Newton did for time what the Greek geometers did for space, idealized it into an exactly measurable dimension.' About T",
+  "created_at": "2025-09-24T15:10:09.547514Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.117) about time: 'Newton did for time what the Greek geometers did for space, idealized it into an exactly measurable dimension.' About T",
+  "predicted": "'Newton did for time what the Greek geometers did for space, idealized it into an exactly measurable dimension.' About Time: Einstein's Unﬁnished Revolution, Paul Davies, p. 31, Simon & Schuster, 1996, ISBN 978-0-684-81822-1 9. Rendall, Alan D. (2008). Partial Diﬀerential Equations in General Relativity (https://books.google.com/books?id=CPkaAQAAIAAJ) (illustrated ed.). Oxford University Press. p. 9. ISBN 978-0-19-921540-9. 10. Carroll, Sean M. (2009). 'From Eternity to Here: The Quest for the Ultimate Theory of Time'. Physics Today. 63 (4). Dutton: 54–55.",
+  "true_answer": "'Newton did for time what the Greek geometers did for space, idealized it into an exactly measurable dimension.' About Time: Einstein's Unﬁnished Revolution, Paul Davies, p. 31, Simon & Schuster, 1996, ISBN 978-0-684-81822-1 9. Rendall, Alan D. (2008). Partial Diﬀerential Equations in General Relativity (https://books.google.com/books?id=CPkaAQAAIAAJ) (illustrated ed.). Oxford University Press. p. 9. ISBN 978-0-19-921540-9. 10. Carroll, Sean M. (2009). 'From Eternity to Here: The Quest for the Ultimate Theory of Time'. Physics Today. 63 (4). Dutton: 54–55.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

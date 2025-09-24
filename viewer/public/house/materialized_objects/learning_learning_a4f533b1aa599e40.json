@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 55.1) about mathematics: 0.4. Functions 45 2. We are told that on day 0 you can do 7 push-ups, so f ( 0 ) | 7 . The number of push-ups you can do",
+  "created_at": "2025-09-24T15:14:07.869858Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 55.1) about mathematics: 0.4. Functions 45 2. We are told that on day 0 you can do 7 push-ups, so f ( 0 ) | 7 . The number of push-ups you can do",
+  "predicted": "0.4. Functions 45 2. We are told that on day 0 you can do 7 push-ups, so f ( 0 ) | 7 . The number of push-ups you can do on day n + 1 is 2 more than the number you can do on day n , which is given by f ( n ) . Thus f ( 0 ) | 7; f ( n + 1 ) | f ( n ) + 2 . 3. Here f ( 0 ) | 1 . To get the recurrence relation, think about how you can get f ( n + 1 ) | ( n + 1 ) ! from f ( n ) | n ! . If you write out both of these as products, you see that ( n + 1 ) ! is just like n ! except you have one more term in the product, an extra n + 1 . So we have, f ( 0 ) | 1; f ( n + 1 ) | ( n + 1 )· f ( n ) .",
+  "true_answer": "0.4. Functions 45 2. We are told that on day 0 you can do 7 push-ups, so f ( 0 ) | 7 . The number of push-ups you can do on day n + 1 is 2 more than the number you can do on day n , which is given by f ( n ) . Thus f ( 0 ) | 7; f ( n + 1 ) | f ( n ) + 2 . 3. Here f ( 0 ) | 1 . To get the recurrence relation, think about how you can get f ( n + 1 ) | ( n + 1 ) ! from f ( n ) | n ! . If you write out both of these as products, you see that ( n + 1 ) ! is just like n ! except you have one more term in the product, an extra n + 1 . So we have, f ( 0 ) | 1; f ( n + 1 ) | ( n + 1 )· f ( n ) .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

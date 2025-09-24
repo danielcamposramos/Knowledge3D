@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.76) about time: e horizontal direction indicates distance (only one spatial dimension is taken into account), and the thick dashed curv",
+  "created_at": "2025-09-24T15:09:20.393457Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.76) about time: e horizontal direction indicates distance (only one spatial dimension is taken into account), and the thick dashed curv",
+  "predicted": "e horizontal direction indicates distance (only one spatial dimension is taken into account), and the thick dashed curve is the spacetime trajectory ('world line') of the observer. e small dots indicate speciﬁc (past and future) events in spacetime. e slope of the world line (deviation from being vertical) gives the relative velocity to the observer. In the Newtonian description these changes are such that time is absolute:[102] the movements of the observer do not inﬂuence whether an event occurs in the 'now' (i.e., whether an event passes the horizontal line through the observer).",
+  "true_answer": "e horizontal direction indicates distance (only one spatial dimension is taken into account), and the thick dashed curve is the spacetime trajectory ('world line') of the observer. e small dots indicate speciﬁc (past and future) events in spacetime. e slope of the world line (deviation from being vertical) gives the relative velocity to the observer. In the Newtonian description these changes are such that time is absolute:[102] the movements of the observer do not inﬂuence whether an event occurs in the 'now' (i.e., whether an event passes the horizontal line through the observer).",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

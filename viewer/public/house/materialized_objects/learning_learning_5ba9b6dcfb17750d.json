@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: Indeed, in the first _____ of the chapter, we use it for that very purpose.",
+  "created_at": "2025-09-24T11:41:03.358826Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: Indeed, in the first _____ of the chapter, we use it for that very purpose.",
+  "predicted": "problem",
+  "true_answer": "problem",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

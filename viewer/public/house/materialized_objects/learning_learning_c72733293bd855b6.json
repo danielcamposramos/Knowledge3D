@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.33) about time: ough some Christian theologians (such as Augustine of Hippo and Aquinas[53]) believe that God is outside of time, seein",
+  "created_at": "2025-09-24T15:08:29.225312Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.33) about time: ough some Christian theologians (such as Augustine of Hippo and Aquinas[53]) believe that God is outside of time, seein",
+  "predicted": "ough some Christian theologians (such as Augustine of Hippo and Aquinas[53]) believe that God is outside of time, seeing all events simultaneously, that time did not exist before God, and that God created time.",
+  "true_answer": "ough some Christian theologians (such as Augustine of Hippo and Aquinas[53]) believe that God is outside of time, seeing all events simultaneously, that time did not exist before God, and that God created time.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

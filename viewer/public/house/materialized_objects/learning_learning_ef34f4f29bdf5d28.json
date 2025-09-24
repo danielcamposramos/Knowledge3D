@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 65.3) about mathematics: (a) If f and g are both injective, must g ◦ f be injective? Explain. (b) If f and g are both surjective, must g ◦ f be s",
+  "created_at": "2025-09-24T15:14:50.313666Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 65.3) about mathematics: (a) If f and g are both injective, must g ◦ f be injective? Explain. (b) If f and g are both surjective, must g ◦ f be s",
+  "predicted": "(a) If f and g are both injective, must g ◦ f be injective? Explain. (b) If f and g are both surjective, must g ◦ f be surjective? Explain. (c) Suppose g ◦ f is injective. What, if anything, can you say about f and g ? Explain. (d) Suppose g ◦ f is surjective. What, if anything, can you say about f and g ? Explain. 21 . Considerthefunction f : Z → Z givenby f ( n ) | { n + 1 if n is even n − 3 if n is odd . (a) Is f injective? Prove your answer. (b) Is f surjective? Prove your answer. 22 . At the end of the semester a teacher assigns letter grades to each of her students. Is this a function?",
+  "true_answer": "(a) If f and g are both injective, must g ◦ f be injective? Explain. (b) If f and g are both surjective, must g ◦ f be surjective? Explain. (c) Suppose g ◦ f is injective. What, if anything, can you say about f and g ? Explain. (d) Suppose g ◦ f is surjective. What, if anything, can you say about f and g ? Explain. 21 . Considerthefunction f : Z → Z givenby f ( n ) | { n + 1 if n is even n − 3 if n is odd . (a) Is f injective? Prove your answer. (b) Is f surjective? Prove your answer. 22 . At the end of the semester a teacher assigns letter grades to each of her students. Is this a function?",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

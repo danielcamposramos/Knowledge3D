@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.20) about time: An astronomical calendar is based on ongoing observation; examples are the religious Islamic calendar and the old religi",
+  "created_at": "2025-09-24T15:06:43.908146Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.20) about time: An astronomical calendar is based on ongoing observation; examples are the religious Islamic calendar and the old religi",
+  "predicted": "An astronomical calendar is based on ongoing observation; examples are the religious Islamic calendar and the old religious Jewish calendar in the time of the Second Lunar Lunisolar Subdivisions Other types Arithmetical and astronomical Catalan early 20th century perpetual calendar Calendar of the Qahal, 5591 (1831) Temple. Such a calendar is also referred to as an observation-based calendar. e advantage of such a calendar is that it is perfectly and perpetually accurate. e disadvantage is that working out when a particular date would occur is diﬃcult.",
+  "true_answer": "An astronomical calendar is based on ongoing observation; examples are the religious Islamic calendar and the old religious Jewish calendar in the time of the Second Lunar Lunisolar Subdivisions Other types Arithmetical and astronomical Catalan early 20th century perpetual calendar Calendar of the Qahal, 5591 (1831) Temple. Such a calendar is also referred to as an observation-based calendar. e advantage of such a calendar is that it is perfectly and perpetually accurate. e disadvantage is that working out when a particular date would occur is diﬃcult.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

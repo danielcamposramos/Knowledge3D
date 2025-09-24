@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.55) about time: Unreality Physical deﬁnition Until Einstein's reinterpretation of the physical concepts associated with time and space i",
+  "created_at": "2025-09-24T15:08:55.436382Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.55) about time: Unreality Physical deﬁnition Until Einstein's reinterpretation of the physical concepts associated with time and space i",
+  "predicted": "Unreality Physical deﬁnition Until Einstein's reinterpretation of the physical concepts associated with time and space in 1907, time was considered to be the same everywhere in the universe, with all observers measuring the same time interval for any event.[89] Non-relativistic classical mechanics is based on this Newtonian idea of time. Einstein, in his special theory of relativity,[90] postulated the constancy and ﬁniteness of the speed of light for all observers.",
+  "true_answer": "Unreality Physical deﬁnition Until Einstein's reinterpretation of the physical concepts associated with time and space in 1907, time was considered to be the same everywhere in the universe, with all observers measuring the same time interval for any event.[89] Non-relativistic classical mechanics is based on this Newtonian idea of time. Einstein, in his special theory of relativity,[90] postulated the constancy and ﬁniteness of the speed of light for all observers.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

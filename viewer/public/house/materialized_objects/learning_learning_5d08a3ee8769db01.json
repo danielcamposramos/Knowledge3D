@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 3.1) about mathematics: Preface This text aims to give an introduction to select topics in discrete mathematics at a level appropriate for fir",
+  "created_at": "2025-09-24T15:10:35.886502Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 3.1) about mathematics: Preface This text aims to give an introduction to select topics in discrete mathematics at a level appropriate for fir",
+  "predicted": "Preface This text aims to give an introduction to select topics in discrete mathe- matics at a level appropriate for first or second year undergraduate math majors, especially those who intend to teach middle and high school math- ematics. The book began as a set of notes for the Discrete Mathematics course at the University of Northern Colorado. This course serves both as a survey of the topics in discrete math and as the “bridge” course for math majors, as UNC does not offer a separate “introduction to proofs” course.",
+  "true_answer": "Preface This text aims to give an introduction to select topics in discrete mathe- matics at a level appropriate for first or second year undergraduate math majors, especially those who intend to teach middle and high school math- ematics. The book began as a set of notes for the Discrete Mathematics course at the University of Northern Colorado. This course serves both as a survey of the topics in discrete math and as the “bridge” course for math majors, as UNC does not offer a separate “introduction to proofs” course.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

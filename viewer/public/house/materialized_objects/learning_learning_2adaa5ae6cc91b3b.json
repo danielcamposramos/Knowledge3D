@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 70.3) about mathematics: The answer is 6, and we needed to know something about cards to answer that question. Another caution: how many ways can",
+  "created_at": "2025-09-24T15:15:13.439840Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 70.3) about mathematics: The answer is 6, and we needed to know something about cards to answer that question. Another caution: how many ways can",
+  "predicted": "The answer is 6, and we needed to know something about cards to answer that question. Another caution: how many ways can you select two cards, so that the first one is a red card and the second one is a face card? This looks more like the multiplicative principle (you are counting two separate events) but the answer is not 26 · 12 here either. The problem is that while there are 26 ways for the first card to be selected, it is not the case that for each of those there are 12 ways to select the second card.",
+  "true_answer": "The answer is 6, and we needed to know something about cards to answer that question. Another caution: how many ways can you select two cards, so that the first one is a red card and the second one is a face card? This looks more like the multiplicative principle (you are counting two separate events) but the answer is not 26 · 12 here either. The problem is that while there are 26 ways for the first card to be selected, it is not the case that for each of those there are 12 ways to select the second card.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: We allocate memory, read the parent’s name, and read the parent’s number of children.",
+  "created_at": "2025-09-24T09:06:25.036066Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: We allocate memory, read the parent’s name, and read the parent’s number of children.",
+  "predicted": "We allocate memory, read the parent’s name, and read the parent’s number of children.",
+  "true_answer": "We allocate memory, read the parent’s name, and read the parent’s number of children.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

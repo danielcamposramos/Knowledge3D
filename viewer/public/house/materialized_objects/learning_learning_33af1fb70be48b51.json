@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.23) about time: Some countries use an additional calendar not listed here that determine holidays and other traditions, for example the ",
+  "created_at": "2025-09-24T15:06:47.381034Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.23) about time: Some countries use an additional calendar not listed here that determine holidays and other traditions, for example the ",
+  "predicted": "Some countries use an additional calendar not listed here that determine holidays and other traditions, for example the Chinese or Islamic calendars. e primary practical use of a calendar is to identify days: to be informed about or to agree on a future event and to record an event that has happened. Days may be signiﬁcant for agricultural, civil, religious, or social reasons.",
+  "true_answer": "Some countries use an additional calendar not listed here that determine holidays and other traditions, for example the Chinese or Islamic calendars. e primary practical use of a calendar is to identify days: to be informed about or to agree on a future event and to record an event that has happened. Days may be signiﬁcant for agricultural, civil, religious, or social reasons.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

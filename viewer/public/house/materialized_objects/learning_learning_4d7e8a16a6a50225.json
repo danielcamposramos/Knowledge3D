@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 83.5) about mathematics: For example, here are three possible lattice paths from the point ( 0 , 0 ) to ( 3 , 2 ) : (0,0) (3,2) (0,0) (3,2) (0,",
+  "created_at": "2025-09-24T15:16:18.777972Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 83.5) about mathematics: For example, here are three possible lattice paths from the point ( 0 , 0 ) to ( 3 , 2 ) : (0,0) (3,2) (0,0) (3,2) (0,",
+  "predicted": "For exam- ple, here are three possible lattice paths from the point ( 0 , 0 ) to ( 3 , 2 ) : (0,0) (3,2) (0,0) (3,2) (0,0) (3,2) Notice to ensure the path is the shortest possible, each move must be either to the right or up. Additionally, in this case, note that no matter",
+  "true_answer": "For exam- ple, here are three possible lattice paths from the point ( 0 , 0 ) to ( 3 , 2 ) : (0,0) (3,2) (0,0) (3,2) (0,0) (3,2) Notice to ensure the path is the shortest possible, each move must be either to the right or up. Additionally, in this case, note that no matter",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

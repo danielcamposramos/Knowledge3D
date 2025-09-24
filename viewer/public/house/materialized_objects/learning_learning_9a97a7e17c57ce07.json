@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? Brief, “Motivational Agendas in the Workplace”, Research in  Organizational Behaviour  18 (1996), pp.",
+  "created_at": "2025-09-24T15:24:47.202942Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? Brief, “Motivational Agendas in the Workplace”, Research in  Organizational Behaviour  18 (1996), pp.",
+  "predicted": "Brief, “Motivational Agendas in the Workplace”, Research in  Organizational Behaviour  18 (1996), pp.",
+  "true_answer": "Brief, “Motivational Agendas in the Workplace”, Research in  Organizational Behaviour  18 (1996), pp.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

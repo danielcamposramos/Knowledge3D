@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Provide the IPA pronunciation for '2019冠状病毒病' (zh).",
+  "created_at": "2025-09-24T11:30:47.480124Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Provide the IPA pronunciation for '2019冠状病毒病' (zh).",
+  "predicted": "er4 ling2 yi1 jiu3 guan1 zhuang4 bing4 du2 bing4",
+  "true_answer": "er4 ling2 yi1 jiu3 guan1 zhuang4 bing4 du2 bing4",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

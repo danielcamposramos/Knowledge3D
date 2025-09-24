@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Apply scientific reasoning to: (We could also use B , four , nine , and fifteen to access parts of the tree, because building a tree piecewise leaves a residue of node variables in our wake, but later we’ll build a function for converting a string to a tree that will furnish us with only the tree’s root, so let’s not cheat by using those variables here.) Here’s a quick exercise: what does this print?",
+  "created_at": "2025-09-24T15:26:08.549729Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Apply scientific reasoning to: (We could also use B , four , nine , and fifteen to access parts of the tree, because building a tree piecewise leaves a residue of node variables in our wake, but later we’ll build a function for converting a string to a tree that will furnish us with only the tree’s root, so let’s not cheat by using those variables here.) Here’s a quick exercise: what does this print?",
+  "predicted": "(We could also use B , four , nine , and fifteen to access parts of the tree, because building a tree piecewise leaves a residue of node variables in our wake, but later we’ll build a function for converting a string to a tree that will furnish us with only the tree’s root, so let’s not cheat by using those variables here.) Here’s a quick exercise: what does this print?",
+  "true_answer": "(We could also use B , four , nine , and fifteen to access parts of the tree, because building a tree piecewise leaves a residue of node variables in our wake, but later we’ll build a function for converting a string to a tree that will furnish us with only the tree’s root, so let’s not cheat by using those variables here.) Here’s a quick exercise: what does this print?",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

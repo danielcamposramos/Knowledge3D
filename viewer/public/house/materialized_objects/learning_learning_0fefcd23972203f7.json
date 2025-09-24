@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'irlandês' (pt).",
+  "created_at": "2025-09-24T10:08:49.972077Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'irlandês' (pt).",
+  "predicted": "a native or inhabitant of Ireland",
+  "true_answer": "a native or inhabitant of Ireland",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

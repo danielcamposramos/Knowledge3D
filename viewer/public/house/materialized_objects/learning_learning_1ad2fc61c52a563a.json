@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'processo de decisão' (pt).",
+  "created_at": "2025-09-24T16:16:21.737871Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'processo de decisão' (pt).",
+  "predicted": "the cognitive process of reaching a decision; \"a good executive must be good at decision making\"",
+  "true_answer": "the cognitive process of reaching a decision; \"a good executive must be good at decision making\"",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

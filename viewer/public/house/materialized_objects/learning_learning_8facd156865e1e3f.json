@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'focinho' (pt).",
+  "created_at": "2025-09-24T16:13:29.901814Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'focinho' (pt).",
+  "predicted": "the human nose (especially when it is large)",
+  "true_answer": "the human nose (especially when it is large)",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

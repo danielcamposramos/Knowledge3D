@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 53.2) about mathematics: In fact, for every natural number n , there is a function that agrees with the table above, but for which f ( 6 ) | n . ",
+  "created_at": "2025-09-24T15:13:59.286866Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 53.2) about mathematics: In fact, for every natural number n , there is a function that agrees with the table above, but for which f ( 6 ) | n . ",
+  "predicted": "In fact, for every natural number n , there is a function that agrees with the table above, but for which f ( 6 ) | n . Okay, suppose I really did mean for f ( 6 ) | 36 , and in fact, for the rule that you think is governing the function to actually be the rule. Then I should say what that rule is. f ( n ) | n 2 . Now there is no confusion possible. Giving an explicit formula that calculates the image of any element in the domain is a great way to describe a function. We will say that these explicit rules are closed formulas for the function.",
+  "true_answer": "In fact, for every natural number n , there is a function that agrees with the table above, but for which f ( 6 ) | n . Okay, suppose I really did mean for f ( 6 ) | 36 , and in fact, for the rule that you think is governing the function to actually be the rule. Then I should say what that rule is. f ( n ) | n 2 . Now there is no confusion possible. Giving an explicit formula that calculates the image of any element in the domain is a great way to describe a function. We will say that these explicit rules are closed formulas for the function.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

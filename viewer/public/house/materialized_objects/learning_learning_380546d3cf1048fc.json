@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? Daniel Zingaro is an assistant teaching professor of computer science and award-winning teacher at the University of Toronto.",
+  "created_at": "2025-09-24T15:21:14.969808Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? Daniel Zingaro is an assistant teaching professor of computer science and award-winning teacher at the University of Toronto.",
+  "predicted": "Daniel Zingaro is an assistant teaching professor of computer science and award-winning teacher at the University of Toronto.",
+  "true_answer": "Daniel Zingaro is an assistant teaching professor of computer science and award-winning teacher at the University of Toronto.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

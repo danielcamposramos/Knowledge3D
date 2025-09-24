@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'baixo-relevo' (pt).",
+  "created_at": "2025-09-24T10:12:25.542414Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'baixo-relevo' (pt).",
+  "predicted": "a sculptural relief in which forms extend only slightly from the background; no figures are undercut",
+  "true_answer": "a sculptural relief in which forms extend only slightly from the background; no figures are undercut",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

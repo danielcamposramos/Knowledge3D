@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 5.2) about mathematics: By priming yourself to the types of issues involved in the material you are about to read, you will better understand wh",
+  "created_at": "2025-09-24T15:10:47.950588Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 5.2) about mathematics: By priming yourself to the types of issues involved in the material you are about to read, you will better understand wh",
+  "predicted": "By priming yourself to the types of issues involved in the material you are about to read, you will better understand what is to come. There are no solutions provided for these problems, but don’t worry if you can’t solve them or are not confident in your answers. My hope is that you will take this frustration with you while you read the proceeding section. By the time you are done with the section, things should be much clearer. Examples. I have tried to include the “correct” number of examples. For those exam- ples which include problems , full solutions are included.",
+  "true_answer": "By priming yourself to the types of issues involved in the material you are about to read, you will better understand what is to come. There are no solutions provided for these problems, but don’t worry if you can’t solve them or are not confident in your answers. My hope is that you will take this frustration with you while you read the proceeding section. By the time you are done with the section, things should be much clearer. Examples. I have tried to include the “correct” number of examples. For those exam- ples which include problems , full solutions are included.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

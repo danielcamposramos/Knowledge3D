@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: If you google it, you’ll see that Dijkstra’s _____ is used to find shortest paths.",
+  "created_at": "2025-09-24T15:04:12.160251Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: If you google it, you’ll see that Dijkstra’s _____ is used to find shortest paths.",
+  "predicted": "algorithm",
+  "true_answer": "algorithm",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'bovídeos' (pt).",
+  "created_at": "2025-09-24T16:11:45.802923Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'bovídeos' (pt).",
+  "predicted": "hollow-horned ruminants",
+  "true_answer": "hollow-horned ruminants",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

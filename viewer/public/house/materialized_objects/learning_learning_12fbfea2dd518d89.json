@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.92) about time: Sevento ten-year-olds can use clocks and calendars.[120] Socioemotional selectivity theory proposed that when people p",
+  "created_at": "2025-09-24T15:09:39.768199Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.92) about time: Sevento ten-year-olds can use clocks and calendars.[120] Socioemotional selectivity theory proposed that when people p",
+  "predicted": "Seven- to ten-year-olds can use clocks and calendars.[120] Socioemotional selectivity theory proposed that when people perceive their time as open-ended and nebulous, they focus more on future-oriented goals.[121] Although time is regarded as an abstract concept, there is increasing evidence that time is conceptualized in the mind in terms of space.[122] at is, instead of thinking about time in a general, abstract way, humans think about time in a spatial way and mentally organize it as such. Using space to think about time allows humans to mentally organize temporal events in a speciﬁc way.",
+  "true_answer": "Seven- to ten-year-olds can use clocks and calendars.[120] Socioemotional selectivity theory proposed that when people perceive their time as open-ended and nebulous, they focus more on future-oriented goals.[121] Although time is regarded as an abstract concept, there is increasing evidence that time is conceptualized in the mind in terms of space.[122] at is, instead of thinking about time in a general, abstract way, humans think about time in a spatial way and mentally organize it as such. Using space to think about time allows humans to mentally organize temporal events in a speciﬁc way.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 29.4) about mathematics: (c) For a graph to be viscous, it is necessary that it satisfies condition (V). (d) For a graph to be viscous, it is suf",
+  "created_at": "2025-09-24T15:12:26.288463Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 29.4) about mathematics: (c) For a graph to be viscous, it is necessary that it satisfies condition (V). (d) For a graph to be viscous, it is suf",
+  "predicted": "(c) For a graph to be viscous, it is necessary that it satisfies condition (V). (d) For a graph to be viscous, it is sufficient for it to satisfy condition (V).",
+  "true_answer": "(c) For a graph to be viscous, it is necessary that it satisfies condition (V). (d) For a graph to be viscous, it is sufficient for it to satisfy condition (V).",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

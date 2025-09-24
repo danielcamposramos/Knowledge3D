@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: No matter the sum of a _____, if we take it mod 100,000, we’ll get a valid index in our array.",
+  "created_at": "2025-09-24T11:41:38.634205Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: No matter the sum of a _____, if we take it mod 100,000, we’ll get a valid index in our array.",
+  "predicted": "snowflake",
+  "true_answer": "snowflake",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 49.3) about mathematics: The set of natural numbers that are outputs is called the range of the function (in this case, the range is { 3 , 4 , 7 ",
+  "created_at": "2025-09-24T15:13:42.397749Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 49.3) about mathematics: The set of natural numbers that are outputs is called the range of the function (in this case, the range is { 3 , 4 , 7 ",
+  "predicted": "The set of natural numbers that are outputs is called the range of the function (in this case, the range is { 3 , 4 , 7 , 12 , 19 , 28 ,... } , all the natural numbers that are 3 more than a perfect square). The key thing that makes a rule a function is that there is exactly one output for each input. That is, it is important that the rule be a good rule. What output do we assign to the input 7? There can only be one answer for any particular function. Example 0.4.1 The following are all examples of functions: 1. f : Z → Z defined by f ( n ) | 3 n .",
+  "true_answer": "The set of natural numbers that are outputs is called the range of the function (in this case, the range is { 3 , 4 , 7 , 12 , 19 , 28 ,... } , all the natural numbers that are 3 more than a perfect square). The key thing that makes a rule a function is that there is exactly one output for each input. That is, it is important that the rule be a good rule. What output do we assign to the input 7? There can only be one answer for any particular function. Example 0.4.1 The following are all examples of functions: 1. f : Z → Z defined by f ( n ) | 3 n .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

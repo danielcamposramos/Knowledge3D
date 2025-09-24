@@ -1,25 +1,25 @@
 {
   "label": "House Memory",
-  "count": 9163,
+  "count": 14847,
   "embedding_dim": 512,
   "bounding_box": {
     "min": [
-      -2.7045774459838867,
-      -2.4911863803863525,
-      -2.416801929473877
+      -12.90577220916748,
+      -2.276230812072754,
+      -2.667220115661621
     ],
     "max": [
-      2.4965147972106934,
-      2.8530361652374268,
-      2.3325653076171875
+      2.617337703704834,
+      12.835113525390625,
+      12.10504150390625
     ]
   },
   "artifact_counts": {
     "chat_history_book": 55,
     "diary_entry": 55,
     "generated_3d_shape": 98,
-    "learning_insight": 8930,
+    "learning_insight": 14612,
     "artifact": 1,
-    "reflection_diary": 24
+    "reflection_diary": 26
   }
 }

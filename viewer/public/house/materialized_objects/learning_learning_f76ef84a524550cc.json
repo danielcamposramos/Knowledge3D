@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 9.1) about mathematics: Contents xiii Proof by Cases 221 Exercises . 223 3.3 Chapter Summary 227 Chapter Review . 228 4 Graph Theory 231 4.1 Def",
+  "created_at": "2025-09-24T15:10:59.889341Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 9.1) about mathematics: Contents xiii Proof by Cases 221 Exercises . 223 3.3 Chapter Summary 227 Chapter Review . 228 4 Graph Theory 231 4.1 Def",
+  "predicted": "Contents xiii Proof by Cases 221 Exercises . 223 3.3 Chapter Summary 227 Chapter Review . 228 4 Graph Theory 231 4.1 Definitions 233 Exercises . 243 4.2 Trees . 247 Properties of Trees . 248 Rooted Trees . 251 Spanning Trees . 253 Exercises . 255 4.3 Planar Graphs 258 Non-planar Graphs . 260 Polyhedra 262 Exercises . 265 4.4 Coloring . 267 Coloring in General . 269 Coloring Edges . 272 Exercises . 274 4.5 Euler Paths and Circuits 277 Hamilton Paths . 279 Exercises . 280 4.6 Matching in Bipartite Graphs . 283 Exercises . 286 4.7 Chapter Summary 289 Chapter Review .",
+  "true_answer": "Contents xiii Proof by Cases 221 Exercises . 223 3.3 Chapter Summary 227 Chapter Review . 228 4 Graph Theory 231 4.1 Definitions 233 Exercises . 243 4.2 Trees . 247 Properties of Trees . 248 Rooted Trees . 251 Spanning Trees . 253 Exercises . 255 4.3 Planar Graphs 258 Non-planar Graphs . 260 Polyhedra 262 Exercises . 265 4.4 Coloring . 267 Coloring in General . 269 Coloring Edges . 272 Exercises . 274 4.5 Euler Paths and Circuits 277 Hamilton Paths . 279 Exercises . 280 4.6 Matching in Bipartite Graphs . 283 Exercises . 286 4.7 Chapter Summary 289 Chapter Review .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

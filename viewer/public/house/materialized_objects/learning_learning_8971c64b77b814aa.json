@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 25.1) about mathematics: 0.2. Mathematical Statements 15 Predicates and Quantifiers Investigate! ! Attempt the above activity before proceeding !",
+  "created_at": "2025-09-24T15:12:05.893110Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 25.1) about mathematics: 0.2. Mathematical Statements 15 Predicates and Quantifiers Investigate! ! Attempt the above activity before proceeding !",
+  "predicted": "0.2. Mathematical Statements 15 Predicates and Quantifiers Investigate! ! Attempt the above activity before proceeding ! Consider the statements below. Decide whether any are equiva- lent to each other, or whether any imply any others. 1. You can fool some people all of the time. 2. You can fool everyone some of the time. 3. You can always fool some people. 4. Sometimes you can fool everyone. It would be nice to use variables in our mathematical sentences. For example, suppose we wanted to claim that if n is prime, then n + 7 is not prime. This looks like an implication.",
+  "true_answer": "0.2. Mathematical Statements 15 Predicates and Quantifiers Investigate! ! Attempt the above activity before proceeding ! Consider the statements below. Decide whether any are equiva- lent to each other, or whether any imply any others. 1. You can fool some people all of the time. 2. You can fool everyone some of the time. 3. You can always fool some people. 4. Sometimes you can fool everyone. It would be nice to use variables in our mathematical sentences. For example, suppose we wanted to claim that if n is prime, then n + 7 is not prime. This looks like an implication.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

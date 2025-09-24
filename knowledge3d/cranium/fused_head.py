@@ -77,16 +77,15 @@ class AdaptedFusedHead:
             return PTX_OPS.format_numeric(numeric)
 
         house_answer = self._attempt_house_memory_lookup(query, fused_embedding)
-        if house_answer is not None:
-            return house_answer
+        learning_answer = self._attempt_learning_memory_lookup(query, fused_embedding)
+
+        blended_answer = self._combine_memory_answers(query, house_answer, learning_answer)
+        if blended_answer is not None:
+            return blended_answer
 
         language_answer = self._attempt_language_lookup(query)
         if language_answer is not None:
             return language_answer
-
-        learning_answer = self._attempt_learning_memory_lookup(query, fused_embedding)
-        if learning_answer is not None:
-            return learning_answer
 
         x = torch.tensor(fused_embedding, dtype=torch.float32, device=self.device)
         if x.dim() == 1:
@@ -160,6 +159,50 @@ class AdaptedFusedHead:
                     return float(eval(expr, {"__builtins__": {}}, {}))  # noqa: S307
                 except Exception:
                     return None
+        return None
+
+    def _normalize_text(self, text: str) -> str:
+        return re.sub(r"\s+", " ", text or "").strip().lower()
+
+    def _combine_memory_answers(
+        self,
+        query: str,
+        house_answer: Optional[str],
+        learning_answer: Optional[str],
+    ) -> Optional[str]:
+        query_norm = self._normalize_text(query)
+
+        def _usable(answer: Optional[str]) -> Optional[str]:
+            if not answer:
+                return None
+            cleaned = answer.strip()
+            normalized = self._normalize_text(cleaned)
+            if not normalized:
+                return None
+            if query_norm and normalized == query_norm:
+                return None
+            return cleaned
+
+        learning_clean = _usable(learning_answer)
+        house_clean = _usable(house_answer)
+
+        if learning_clean and house_clean:
+            if self._normalize_text(learning_clean) == self._normalize_text(house_clean):
+                return learning_clean
+            return f"{learning_clean}\n\nHouse memory adds: {house_clean}"
+        if learning_clean:
+            return learning_clean
+        if house_clean:
+            return house_clean
+
+        if learning_answer:
+            fallback_learning = learning_answer.strip()
+            return fallback_learning or None
+        if house_answer:
+            fallback_house = house_answer.strip()
+            if self._normalize_text(fallback_house) == query_norm:
+                return None
+            return fallback_house or None
         return None
 
     # ------------------------------------------------------------------
@@ -367,20 +410,10 @@ class AdaptedFusedHead:
     def _house_query_vector(
         self, query: str, fused_embedding: List[float], dim: int
     ) -> np.ndarray:
-        hashed = self._hash_embedding(f"house:{query.lower()}", dim)
-        fused = np.asarray(fused_embedding, dtype=np.float32) if fused_embedding else np.asarray([], dtype=np.float32)
-        if fused.size:
-            if fused.size < dim:
-                fused = np.pad(fused, (0, dim - fused.size))
-            elif fused.size > dim:
-                fused = fused[:dim]
-            combined = 0.7 * hashed + 0.3 * fused
-        else:
-            combined = hashed
-        norm = np.linalg.norm(combined)
-        if norm > 0:
-            combined = combined / norm
-        return combined.astype(np.float32)
+        prompt_key = (query or "").strip().lower()
+        if not prompt_key:
+            return np.zeros(dim, dtype=np.float32)
+        return self._hash_embedding(prompt_key, dim)
 
     def _attempt_house_memory_lookup(self, query: str, fused_embedding: List[float]) -> Optional[str]:
         entry = self._house_memory_entry
@@ -530,20 +563,10 @@ class AdaptedFusedHead:
     def _learning_query_vector(
         self, query: str, fused_embedding: List[float], dim: int
     ) -> np.ndarray:
-        hashed = self._hash_embedding(f"learning:{query.lower()}", dim)
-        fused = np.asarray(fused_embedding, dtype=np.float32) if fused_embedding else np.asarray([], dtype=np.float32)
-        if fused.size:
-            if fused.size < dim:
-                fused = np.pad(fused, (0, dim - fused.size))
-            elif fused.size > dim:
-                fused = fused[:dim]
-            combined = 0.6 * hashed + 0.4 * fused
-        else:
-            combined = hashed
-        norm = np.linalg.norm(combined)
-        if norm > 0:
-            combined = combined / norm
-        return combined.astype(np.float32)
+        prompt_key = (query or "").strip().lower()
+        if not prompt_key:
+            return np.zeros(dim, dtype=np.float32)
+        return self._hash_embedding(prompt_key, dim)
 
     def append_learning_memory(
         self,

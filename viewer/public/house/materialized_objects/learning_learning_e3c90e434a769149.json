@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.21) about time: Great advances in accurate time-keeping were made by Galileo Galilei and especially Christiaan Huygens with the inventio",
+  "created_at": "2025-09-24T15:08:14.838721Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.21) about time: Great advances in accurate time-keeping were made by Galileo Galilei and especially Christiaan Huygens with the inventio",
+  "predicted": "Great advances in accurate time-keeping were made by Galileo Galilei and especially Christiaan Huygens with the invention of pendulum-driven clocks along with the invention of the minute hand by Jost Burgi.[40] ere is also a clock that was designed to keep time for 10,000 years called the Clock of the Long Now. Alarm clock devices were later mechanized. Levi Hutchins's alarm clock has been credited as the ﬁrst American alarm clock, though it can only ring at 4 a.m.",
+  "true_answer": "Great advances in accurate time-keeping were made by Galileo Galilei and especially Christiaan Huygens with the invention of pendulum-driven clocks along with the invention of the minute hand by Jost Burgi.[40] ere is also a clock that was designed to keep time for 10,000 years called the Clock of the Long Now. Alarm clock devices were later mechanized. Levi Hutchins's alarm clock has been credited as the ﬁrst American alarm clock, though it can only ring at 4 a.m.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'celebrar' (pt).",
+  "created_at": "2025-09-24T16:13:35.075565Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'celebrar' (pt).",
+  "predicted": "assign great social importance to; \"The film director was celebrated all over Hollywood\"; \"The tenor was lionized in Vienna\"",
+  "true_answer": "assign great social importance to; \"The film director was celebrated all over Hollywood\"; \"The tenor was lionized in Vienna\"",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

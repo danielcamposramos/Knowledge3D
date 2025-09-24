@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: He has been in the program _____ of ACM SIGCSE, ACM ITiCSE, and WCCCE.",
+  "created_at": "2025-09-24T05:08:39.821605Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: He has been in the program _____ of ACM SIGCSE, ACM ITiCSE, and WCCCE.",
+  "predicted": "committees",
+  "true_answer": "committees",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

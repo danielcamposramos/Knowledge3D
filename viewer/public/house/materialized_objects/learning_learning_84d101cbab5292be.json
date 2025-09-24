@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: xxi Include Files xxii Freeing Memory  .",
+  "created_at": "2025-09-24T15:16:21.213665Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: xxi Include Files xxii Freeing Memory  .",
+  "predicted": "xxi Include Files xxii Freeing Memory  .",
+  "true_answer": "xxi Include Files xxii Freeing Memory  .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

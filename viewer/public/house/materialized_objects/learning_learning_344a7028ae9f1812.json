@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Reflect on this idea: BFS is fast, memory efficient, and clean to implement.",
+  "created_at": "2025-09-24T15:17:26.494935Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Reflect on this idea: BFS is fast, memory efficient, and clean to implement.",
+  "predicted": "BFS is fast, memory efficient, and clean to implement.",
+  "true_answer": "BFS is fast, memory efficient, and clean to implement.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

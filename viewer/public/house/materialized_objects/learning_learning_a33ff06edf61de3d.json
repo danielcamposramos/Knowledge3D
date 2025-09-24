@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '11区' (zh).",
+  "created_at": "2025-09-24T17:43:44.844743Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '11区' (zh).",
+  "predicted": "(ACG) Japan (from the anime \"Code Geass\", in which Japan was renamed Area 11)",
+  "true_answer": "(ACG) Japan (from the anime \"Code Geass\", in which Japan was renamed Area 11)",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

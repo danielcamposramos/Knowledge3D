@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '.38-calibre' (en).",
+  "created_at": "2025-09-24T09:40:37.528088Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '.38-calibre' (en).",
+  "predicted": "of or relating to the bore of a gun (or its ammunition) that measures thirty-eight hundredths of an inch in diameter",
+  "true_answer": "of or relating to the bore of a gun (or its ammunition) that measures thirty-eight hundredths of an inch in diameter",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

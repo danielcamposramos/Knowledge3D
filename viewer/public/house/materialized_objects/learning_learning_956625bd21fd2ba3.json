@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "How would you teach this concept? A empatia cria um loop de feedback à medida que trabalhamos em direção a um “ajuste” de nossa percepção com a realidade do outro.",
+  "created_at": "2025-09-24T15:23:29.978188Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "How would you teach this concept? A empatia cria um loop de feedback à medida que trabalhamos em direção a um “ajuste” de nossa percepção com a realidade do outro.",
+  "predicted": "A empatia cria um loop de feedback à medida que trabalhamos em direção a um “ajuste” de nossa percepção com a realidade do outro.",
+  "true_answer": "A empatia cria um loop de feedback à medida que trabalhamos em direção a um “ajuste” de nossa percepção com a realidade do outro.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

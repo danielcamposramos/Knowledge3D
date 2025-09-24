@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define 'Parcimônia' (pt).",
+  "created_at": "2025-09-24T10:10:08.962981Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define 'Parcimônia' (pt).",
+  "predicted": "extreme stinginess",
+  "true_answer": "extreme stinginess",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 52.2) about mathematics: 1 d 2 a 3 c 4 b f : X → Y 1 d 2 a 3 4 b c g : X → Y 1 2 a 3 d 4 b c h : X → Y Solution . f is a function. So is g . Ther",
+  "created_at": "2025-09-24T15:13:55.630878Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 52.2) about mathematics: 1 d 2 a 3 c 4 b f : X → Y 1 d 2 a 3 4 b c g : X → Y 1 2 a 3 d 4 b c h : X → Y Solution . f is a function. So is g . Ther",
+  "predicted": "1 d 2 a 3 c 4 b f : X → Y 1 d 2 a 3 4 b c g : X → Y 1 2 a 3 d 4 b c h : X → Y Solution . f is a function. So is g . There is no problem with an element of the codomain not being the image of any input, and there is no problem with a from the codomain being the image of both 2 and 3 from the domain. We could use our two-line notation to write these as f | ( 1 2 3 4 d a c b ) g | ( 1 2 3 4 d a a b ) . However, h is NOT a function. In fact, it fails for two reasons. First, the element 1 from the domain has not been mapped to any el- ement from the codomain.",
+  "true_answer": "1 d 2 a 3 c 4 b f : X → Y 1 d 2 a 3 4 b c g : X → Y 1 2 a 3 d 4 b c h : X → Y Solution . f is a function. So is g . There is no problem with an element of the codomain not being the image of any input, and there is no problem with a from the codomain being the image of both 2 and 3 from the domain. We could use our two-line notation to write these as f | ( 1 2 3 4 d a c b ) g | ( 1 2 3 4 d a a b ) . However, h is NOT a function. In fact, it fails for two reasons. First, the element 1 from the domain has not been mapped to any el- ement from the codomain.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

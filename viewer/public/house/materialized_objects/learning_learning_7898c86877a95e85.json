@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.18) about time: It was used in the computus, the process of calculating the date of Easter. e most precise timekeeping device of the an",
+  "created_at": "2025-09-24T15:08:11.242530Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.18) about time: It was used in the computus, the process of calculating the date of Easter. e most precise timekeeping device of the an",
+  "predicted": "It was used in the computus, the process of calculating the date of Easter. e most precise timekeeping device of the ancient world was the water clock, or clepsydra, one of which was found in the tomb of Egyptian pharaoh Amenhotep I. ey could be used to measure the hours even at night but required manual upkeep to replenish the ﬂow of water. e ancient Greeks and the people from Chaldea (southeastern Mesopotamia) regularly maintained timekeeping records as an essential part of their astronomical observations.",
+  "true_answer": "It was used in the computus, the process of calculating the date of Easter. e most precise timekeeping device of the ancient world was the water clock, or clepsydra, one of which was found in the tomb of Egyptian pharaoh Amenhotep I. ey could be used to measure the hours even at night but required manual upkeep to replenish the ﬂow of water. e ancient Greeks and the people from Chaldea (southeastern Mesopotamia) regularly maintained timekeeping records as an essential part of their astronomical observations.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

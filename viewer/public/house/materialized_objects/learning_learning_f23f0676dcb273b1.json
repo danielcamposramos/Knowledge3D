@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 7.1) about time: Photograph or illustration in the Calendar section (page 4). Likely a historic or modern example of a calendar.",
+  "created_at": "2025-09-24T15:07:42.710392Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 7.1) about time: Photograph or illustration in the Calendar section (page 4). Likely a historic or modern example of a calendar.",
+  "predicted": "Photograph or illustration in the Calendar section (page 4). Likely a historic or modern example of a calendar.",
+  "true_answer": "Photograph or illustration in the Calendar section (page 4). Likely a historic or modern example of a calendar.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.8) about time: In quantum mechanics, time is treated as a Deﬁnition The ﬂow of sand in an hourglass can be used to measure the passage ",
+  "created_at": "2025-09-24T15:07:59.407828Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.8) about time: In quantum mechanics, time is treated as a Deﬁnition The ﬂow of sand in an hourglass can be used to measure the passage ",
+  "predicted": "In quantum mechanics, time is treated as a Deﬁnition The ﬂow of sand in an hourglass can be used to measure the passage of one hour of time. It also concretely represents the present as being between the past and the future. universal and absolute parameter, diﬀering from general relativity's notion of independent clocks. e problem of time consists of reconciling these two theories.[20] As of 2025, there is no generally accepted theory of quantum general relativity.[21] Methods of temporal measurement, or chronometry, generally take two forms.",
+  "true_answer": "In quantum mechanics, time is treated as a Deﬁnition The ﬂow of sand in an hourglass can be used to measure the passage of one hour of time. It also concretely represents the present as being between the past and the future. universal and absolute parameter, diﬀering from general relativity's notion of independent clocks. e problem of time consists of reconciling these two theories.[20] As of 2025, there is no generally accepted theory of quantum general relativity.[21] Methods of temporal measurement, or chronometry, generally take two forms.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

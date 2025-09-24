@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.12) about time: is Julian calendar was faulty in that its intercalation still allowed the astronomical solstices and equinoxes to advan",
+  "created_at": "2025-09-24T15:08:04.045674Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.12) about time: is Julian calendar was faulty in that its intercalation still allowed the astronomical solstices and equinoxes to advan",
+  "predicted": "is Julian calendar was faulty in that its intercalation still allowed the astronomical solstices and equinoxes to advance against it by about 11 minutes per year. Pope Gregory XIII introduced a correction in 1582; the Gregorian calendar was only slowly adopted by diﬀerent nations over a period of centuries, but it is now by far the most commonly used calendar around the world. During the French Revolution, a new clock and calendar were invented as part of the dechristianization of France and to create a more rational system in order to replace the Gregorian calendar.",
+  "true_answer": "is Julian calendar was faulty in that its intercalation still allowed the astronomical solstices and equinoxes to advance against it by about 11 minutes per year. Pope Gregory XIII introduced a correction in 1582; the Gregorian calendar was only slowly adopted by diﬀerent nations over a period of centuries, but it is now by far the most commonly used calendar around the world. During the French Revolution, a new clock and calendar were invented as part of the dechristianization of France and to create a more rational system in order to replace the Gregorian calendar.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

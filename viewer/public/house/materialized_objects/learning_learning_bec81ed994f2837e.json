@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: _____  I’m assuming that you’ve learned to use a programming language such as C, C++, Java, or Python  .",
+  "created_at": "2025-09-24T05:09:22.422599Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: _____  I’m assuming that you’ve learned to use a programming language such as C, C++, Java, or Python  .",
+  "predicted": "INTRODUCTION",
+  "true_answer": "INTRODUCTION",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 78.1) about mathematics: 68 1. Counting 3 . Your Blu-ray collection consists of 9 comedies and 7 horror movies. Give an example of a question for",
+  "created_at": "2025-09-24T15:15:51.000840Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 78.1) about mathematics: 68 1. Counting 3 . Your Blu-ray collection consists of 9 comedies and 7 horror movies. Give an example of a question for",
+  "predicted": "68 1. Counting 3 . Your Blu-ray collection consists of 9 comedies and 7 horror movies. Give an example of a question for which the answer is: (a) 16. (b) 63. 4. We usually write numbers in decimal form (or base 10), meaning numbers are composed using 10 different “digits” { 0 , 1 ,..., 9 } . Some- times though it is useful to write numbers hexadecimal or base 16. Now there are 16 distinct digits that can be used to form numbers: { 0 , 1 ,..., 9 , A , B , C , D , E , F } . So for example, a 3 digit hexadecimal number might be 2B8.",
+  "true_answer": "68 1. Counting 3 . Your Blu-ray collection consists of 9 comedies and 7 horror movies. Give an example of a question for which the answer is: (a) 16. (b) 63. 4. We usually write numbers in decimal form (or base 10), meaning numbers are composed using 10 different “digits” { 0 , 1 ,..., 9 } . Some- times though it is useful to write numbers hexadecimal or base 16. Now there are 16 distinct digits that can be used to form numbers: { 0 , 1 ,..., 9 , A , B , C , D , E , F } . So for example, a 3 digit hexadecimal number might be 2B8.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

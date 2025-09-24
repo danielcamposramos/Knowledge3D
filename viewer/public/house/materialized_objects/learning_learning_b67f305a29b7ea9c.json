@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'dmoi3-tablet' (chunk 54.4) about mathematics: The full recursive definition contains both of these, and would be written, f ( 0 ) | 3; f ( n + 1 ) | 2 f ( n ) .",
+  "created_at": "2025-09-24T15:14:06.587452Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'dmoi3-tablet' (chunk 54.4) about mathematics: The full recursive definition contains both of these, and would be written, f ( 0 ) | 3; f ( n + 1 ) | 2 f ( n ) .",
+  "predicted": "The full recursive definition contains both of these, and would be written, f ( 0 ) | 3; f ( n + 1 ) | 2 f ( n ) .",
+  "true_answer": "The full recursive definition contains both of these, and would be written, f ( 0 ) | 3; f ( n + 1 ) | 2 f ( n ) .",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

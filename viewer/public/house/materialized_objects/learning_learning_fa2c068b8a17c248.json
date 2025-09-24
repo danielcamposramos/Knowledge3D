@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.12) about time: Very commonly a calendar includes more than one type of cycle or has both cyclic and non-cyclic elements. Most calendars",
+  "created_at": "2025-09-24T15:06:34.579121Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 1.12) about time: Very commonly a calendar includes more than one type of cycle or has both cyclic and non-cyclic elements. Most calendars",
+  "predicted": "Very commonly a calendar includes more than one type of cycle or has both cyclic and non-cyclic elements. Most calendars incorporate more complex cycles. For example, the vast majority of them track years, months, weeks and days. e seven-day week is practically universal, though its use varies.",
+  "true_answer": "Very commonly a calendar includes more than one type of cycle or has both cyclic and non-cyclic elements. Most calendars incorporate more complex cycles. For example, the vast majority of them track years, months, weeks and days. e seven-day week is practically universal, though its use varies.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

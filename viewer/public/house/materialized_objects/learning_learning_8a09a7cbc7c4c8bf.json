@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Fill in the missing concept: Croatian Open _____ in Informatics (COCI): this online com- petition is offered many times per year.",
+  "created_at": "2025-09-24T11:41:06.588752Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Fill in the missing concept: Croatian Open _____ in Informatics (COCI): this online com- petition is offered many times per year.",
+  "predicted": "Competition",
+  "true_answer": "Competition",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

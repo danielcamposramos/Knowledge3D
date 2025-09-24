@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.43) about time: Aristotle, in Book IV of his Physica deﬁned time as 'number of movement in respect of the before and aer'.[74] In Book ",
+  "created_at": "2025-09-24T15:08:41.139093Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Summarize the excerpt from 'EchoSystems Chrono Compendium v1.0' (chunk 14.43) about time: Aristotle, in Book IV of his Physica deﬁned time as 'number of movement in respect of the before and aer'.[74] In Book ",
+  "predicted": "Aristotle, in Book IV of his Physica deﬁned time as 'number of movement in respect of the before and aer'.[74] In Book 11 of his Confessions, St. Augustine of Hippo ruminates on the nature of time, asking, 'What then is time? If no one asks me, I know: if I wish to explain it to one that asketh, I know not.' He begins to deﬁne time by what it is not rather than what it is,[75] an approach similar to that taken in other negative deﬁnitions.",
+  "true_answer": "Aristotle, in Book IV of his Physica deﬁned time as 'number of movement in respect of the before and aer'.[74] In Book 11 of his Confessions, St. Augustine of Hippo ruminates on the nature of time, asking, 'What then is time? If no one asks me, I know: if I wish to explain it to one that asketh, I know not.' He begins to deﬁne time by what it is not rather than what it is,[75] an approach similar to that taken in other negative deﬁnitions.",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}

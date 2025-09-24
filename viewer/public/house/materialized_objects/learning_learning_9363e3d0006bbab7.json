@@ -1,0 +1,18 @@
+{
+  "type": "learning_insight",
+  "title": "Define '140' (en).",
+  "created_at": "2025-09-24T16:02:46.830747Z",
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "score": 1.0,
+  "prompt": "Define '140' (en).",
+  "predicted": "being ten more than one hundred thirty",
+  "true_answer": "being ten more than one hundred thirty",
+  "quick_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  },
+  "deep_feedback": {
+    "score": 1.0,
+    "explanation": "Auto-validated exact match with expected answer."
+  }
+}
