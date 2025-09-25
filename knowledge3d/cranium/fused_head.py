@@ -15,6 +15,9 @@ import torch.nn as nn
 from pygltflib import GLTF2  # type: ignore
 
 from knowledge3d.cranium.ptx.ptx_ops import PTX_OPS
+from knowledge3d.skills.audio import embed_audio
+from knowledge3d.skills.video import embed_video
+from knowledge3d.skills.vision import embed_image
 
 
 class AdaptedFusedHead:
@@ -59,11 +62,22 @@ class AdaptedFusedHead:
         self._last_learning_payload: Optional[Dict[str, object]] = None
         self._corpus_maps: Dict[str, Dict[str, object]] = {}
         self._load_corpus_maps()
+        self._material_manifest_path = Path("viewer/public/house/materialized_objects/manifest.json")
+        self._material_manifest: Dict[str, List[Dict[str, object]]] = self._load_material_manifest()
+        self._material_manifest_mtime: Optional[float] = self._material_manifest_path.stat().st_mtime if self._material_manifest_path.exists() else None
+        self._media_keywords = {
+            "image": ["image", "photo", "picture", "illustration", "icon"],
+            "audio": ["audio", "sound", "song", "listen", "voice"],
+            "video": ["video", "clip", "movie", "footage", "recording"],
+        }
+        self._media_cache: Dict[str, List[Dict[str, object]]] = {"image": [], "audio": [], "video": []}
+        self._refresh_media_cache()
 
     # ------------------------------------------------------------------
     def predict(self, query: str, fused_embedding: List[float]) -> str:
         self._last_house_payload = None
         self._last_learning_payload = None
+        ql = (query or "").lower()
         rpn_expr = self._extract_rpn_expression(query)
         if rpn_expr:
             try:
@@ -75,9 +89,17 @@ class AdaptedFusedHead:
         shape_prompt = self._extract_shape_prompt(query)
         if shape_prompt:
             try:
-                return self._post_process_answer(query, PTX_OPS.generate_shape(shape_prompt))
+                generation = self._generate_shape_artifact(shape_prompt, fused_embedding)
+                if generation:
+                    response, payload = generation
+                    return self._post_process_answer(query, response, payload)
             except Exception:
                 pass
+
+        media_result = self._attempt_media_lookup(query, ql)
+        if media_result is not None:
+            media_answer, media_payload = media_result
+            return self._post_process_answer(query, media_answer, media_payload)
 
         numeric = self._simple_numeric_solver(query)
         if numeric is not None:
@@ -119,7 +141,6 @@ class AdaptedFusedHead:
         logits = self.predict_head(h)
         idx = int(torch.argmax(logits, dim=1).item())
 
-        ql = (query or "").lower()
         all_outputs = self._shapes + self._kernels + self._rays
         pred = all_outputs[idx % len(all_outputs)]
 
@@ -330,6 +351,190 @@ class AdaptedFusedHead:
         for path in corpus_files:
             if path.exists():
                 self._ingest_corpus_file(path)
+
+    def _load_material_manifest(self) -> Dict[str, List[Dict[str, object]]]:
+        default: Dict[str, List[Dict[str, object]]] = {"shapes": [], "rays": []}
+        if not self._material_manifest_path.exists():
+            return default
+        try:
+            data = json.loads(self._material_manifest_path.read_text(encoding="utf-8"))
+            shapes = data.get("shapes") if isinstance(data, dict) else []
+            rays = data.get("rays") if isinstance(data, dict) else []
+            return {
+                "shapes": shapes if isinstance(shapes, list) else [],
+                "rays": rays if isinstance(rays, list) else [],
+            }
+        except Exception:
+            return default
+
+    def _refresh_material_manifest(self) -> None:
+        if not self._material_manifest_path.exists():
+            self._material_manifest = {"shapes": [], "rays": []}
+            self._material_manifest_mtime = None
+            return
+        mtime = self._material_manifest_path.stat().st_mtime
+        if self._material_manifest_mtime is not None and mtime <= self._material_manifest_mtime:
+            return
+        self._material_manifest = self._load_material_manifest()
+        self._material_manifest_mtime = mtime
+
+    def _refresh_media_cache(self) -> None:
+        self._refresh_material_manifest()
+        for key in self._media_cache:
+            self._media_cache[key] = []
+
+        def register(candidate: Optional[Dict[str, object]]) -> None:
+            if not candidate:
+                return
+            modality = candidate.get("modality")
+            if modality not in self._media_cache:
+                return
+            self._media_cache[modality].append(candidate)  # type: ignore[arg-type]
+
+        # Manifest entries can include rendered images or references to assets
+        for entry in self._material_manifest.get("shapes", []):
+            if not isinstance(entry, dict):
+                continue
+            register(
+                {
+                    "modality": "image",
+                    "path": entry.get("preview", entry.get("path")),
+                    "summary": entry.get("name"),
+                    "payload": entry,
+                }
+            )
+
+        for dataset in (self._load_house_metadata(), self._load_learning_metadata()):
+            for meta in dataset:
+                candidate = self._extract_media_candidate(meta)
+                register(candidate)
+
+    def _extract_media_candidate(self, meta: Dict[str, object]) -> Optional[Dict[str, object]]:
+        if not isinstance(meta, dict):
+            return None
+        payload = meta.get("payload") if "payload" in meta else meta
+        if not isinstance(payload, dict):
+            return None
+        modality = (payload.get("media_type") or payload.get("type") or payload.get("modality") or "").lower()
+        if modality not in self._media_cache:
+            # Some payloads store per-modality fields
+            if "image" in payload:
+                modality = "image"
+            elif "audio" in payload:
+                modality = "audio"
+            elif "video" in payload:
+                modality = "video"
+            else:
+                return None
+        summary = payload.get("summary") or payload.get("title") or meta.get("name")
+        candidates = [
+            payload.get("path"),
+            payload.get(modality),
+            payload.get("url"),
+            payload.get("asset"),
+        ]
+        asset_path = None
+        for c in candidates:
+            if isinstance(c, str) and c.strip():
+                asset_path = c.strip()
+                break
+        if not asset_path:
+            return None
+        return {
+            "modality": modality,
+            "path": asset_path,
+            "summary": summary,
+            "payload": payload,
+        }
+
+    def _detect_modality(self, query_lower: str) -> Optional[str]:
+        for modality, keywords in self._media_keywords.items():
+            if any(kw in query_lower for kw in keywords):
+                return modality
+        return None
+
+    def _collect_media_candidates(self, modality: str) -> List[Dict[str, object]]:
+        self._refresh_media_cache()
+        return list(self._media_cache.get(modality, []))
+
+    def _attempt_media_lookup(
+        self, query: str, query_lower: str
+    ) -> Optional[Tuple[str, Dict[str, object]]]:
+        modality = self._detect_modality(query_lower)
+        if modality is None:
+            return None
+        candidates = self._collect_media_candidates(modality)
+        if not candidates:
+            return None
+        best_answer: Optional[Dict[str, object]] = None
+        best_score = -1.0
+        for entry in candidates:
+            summary = entry.get("summary") or ""
+            payload = entry.get("payload", {})
+            # Combine textual similarity with optional tag score
+            try:
+                payload_text = json.dumps(payload, ensure_ascii=False, default=str)
+            except Exception:
+                payload_text = str(payload)
+            text_to_match = " ".join([str(summary), payload_text])
+            matcher = SequenceMatcher(None, query_lower, text_to_match.lower())
+            score = matcher.quick_ratio()
+            if score < 0.6:
+                score = matcher.ratio()
+            if score > best_score:
+                best_score = score
+                best_answer = entry
+        if best_answer is None:
+            return None
+
+        asset_path_str = str(best_answer.get("path", ""))
+        resolved_path = self._resolve_public_path(asset_path_str)
+        embedding: Optional[List[float]] = None
+        if resolved_path and resolved_path.exists():
+            try:
+                if modality == "image":
+                    embedding = embed_image(resolved_path.as_posix())
+                elif modality == "audio":
+                    embedding = embed_audio(resolved_path.as_posix())
+                elif modality == "video":
+                    embedding = embed_video(resolved_path.as_posix())
+            except Exception:
+                embedding = None
+
+        payload = dict(best_answer)
+        if embedding is not None:
+            payload["embedding"] = embedding
+        if resolved_path:
+            payload["resolved_path"] = resolved_path.as_posix()
+        summary = payload.get("summary") or payload.get("resolved_path") or asset_path_str
+
+        self.append_learning_memory(
+            prompt=f"MEDIA LOOKUP :: {modality} :: {query}",
+            true_answer=str(summary),
+            predicted=str(summary),
+            score=max(0.4, min(1.0, best_score)),
+            tags=["media", modality],
+            metadata=payload,
+        )
+        return str(summary), payload
+
+    def _resolve_public_path(self, relative: str) -> Optional[Path]:
+        if not relative:
+            return None
+        p = Path(relative)
+        if p.is_absolute():
+            return p
+        base = Path("viewer/public")
+        relative_str = relative[1:] if relative.startswith("/") else relative
+        candidate = base / relative_str
+        if candidate.exists():
+            return candidate
+        # Some payloads store bare filenames; search within known media dirs
+        for folder in [base / "images", base / "audio", base / "video", base / "house", base]:
+            alt = folder / relative_str
+            if alt.exists():
+                return alt
+        return candidate
 
     def _ingest_corpus_file(self, path: Path) -> None:
         try:
@@ -635,6 +840,9 @@ class AdaptedFusedHead:
     def _house_query_vector(
         self, query: str, fused_embedding: List[float], dim: int
     ) -> np.ndarray:
+        projected = self._embedding_from_fused(fused_embedding, dim)
+        if projected is not None:
+            return projected
         prompt_key = (query or "").strip().lower()
         if not prompt_key:
             return np.zeros(dim, dtype=np.float32)
@@ -794,10 +1002,67 @@ class AdaptedFusedHead:
     def _learning_query_vector(
         self, query: str, fused_embedding: List[float], dim: int
     ) -> np.ndarray:
+        projected = self._embedding_from_fused(fused_embedding, dim)
+        if projected is not None:
+            return projected
         prompt_key = (query or "").strip().lower()
         if not prompt_key:
             return np.zeros(dim, dtype=np.float32)
         return self._hash_embedding(prompt_key, dim)
+
+    def _embedding_from_fused(
+        self, fused_embedding: List[float], dim: int
+    ) -> Optional[np.ndarray]:
+        if not fused_embedding:
+            return None
+        try:
+            vec = np.asarray(fused_embedding, dtype=np.float32).reshape(-1)
+        except Exception:
+            return None
+        if vec.size == 0:
+            return None
+        if vec.size < dim:
+            vec = np.pad(vec, (0, dim - vec.size))
+        elif vec.size > dim:
+            vec = vec[:dim]
+        norm = float(np.linalg.norm(vec))
+        if norm < 1e-6:
+            return None
+        return (vec / norm).astype(np.float32)
+
+    def _generate_shape_artifact(
+        self, prompt: str, fused_embedding: List[float]
+    ) -> Optional[Tuple[str, Dict[str, Any]]]:
+        path = PTX_OPS.generate_shape(prompt)
+        metadata = PTX_OPS.last_generated_shape() or {}
+        extras = metadata.get("extras", {}) or {}
+        manifest_entry = metadata.get("manifest_entry") or {}
+        artifact_path = metadata.get("path", path)
+        payload = {
+            "artifact_path": artifact_path,
+            "manifest": manifest_entry,
+            "extras": extras,
+        }
+        tags = ["generated_shape", "tablet"]
+        self.append_learning_memory(
+            prompt=f"GENERATED SHAPE :: {prompt}",
+            true_answer=str(artifact_path),
+            predicted=str(artifact_path),
+            score=1.0,
+            tags=tags,
+            metadata={
+                "artifact_path": artifact_path,
+                "extras": extras,
+                "manifest_entry": manifest_entry,
+            },
+        )
+        self.reload_house_memory()
+        self._refresh_media_cache()
+        response = manifest_entry.get("path") or str(artifact_path)
+        if extras.get("name"):
+            payload["summary"] = extras["name"]
+            response = extras["name"]
+        return response, payload
 
     def append_learning_memory(
         self,

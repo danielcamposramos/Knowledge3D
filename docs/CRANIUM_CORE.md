@@ -27,7 +27,14 @@ Core Head
 - Heads:
   - Text head (answers)
   - Navigation head (predict next node(s), citations) — REQUIRED
-  - TTS head (waveform from latent acoustic tokens) — FIRST‑CLASS
+  - TTS head (waveform from latent acoustic tokens) — FIRST-CLASS
+
+### Latest Implementation Notes (2025-09-25)
+
+- NVRTC/PTX path now guards kernel launches with synchronization and shared context locks so geometry generation faults surface immediately instead of crashing the driver.
+- The fused head consumes fused embeddings directly for House and Learning lookups, materializes new shapes into the House manifest, and records every generation through the tablet/learning memory contract.
+- Media retrieval spans all modalities: image/audio/video assets are indexed from House metadata and materialized inventories, embedded (OpenCLIP/torchaudio/image histograms) on demand, and logged back into learning memory for later sessions.
+- A lightweight video embedding pipeline samples frames and either runs OpenCLIP or falls back to colour histograms, keeping cross-modal retrieval self-contained.
 
 Memory Adapter (GPU)
 - Retrieval/top‑K over 256‑D memory. v1 uses RAPIDS cuML; v2 adds a custom CUDA/Triton/PTX kernel for batched dot/L2 + top‑K.
@@ -58,4 +65,3 @@ Acceptance Criteria
 - All heads and stems are loaded and run inside the Cranium; no subprocesses or network calls.
 - Retrieval is GPU‑native and in‑process.
 - The model learns to navigate and answer grounded in the Galaxy; TTS produces playable audio inside the game.
-

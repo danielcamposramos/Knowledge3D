@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Optional
@@ -14,6 +15,7 @@ class TextTo3DGenerator:
     def __init__(self, material_dir: str = "viewer/public/house/materialized_objects"):
         self.material_dir = Path(material_dir)
         self.material_dir.mkdir(parents=True, exist_ok=True)
+        self._last_generation: Optional[Dict[str, Any]] = None
         try:
             from .nvrtc_ptx_loader import NVRTCPTXLoader  # type: ignore
             self._ptx = NVRTCPTXLoader()
@@ -66,6 +68,7 @@ class TextTo3DGenerator:
             "face_count": int(len(faces)),
             "zone_placement": "Zone 5 (Knowledge Garden)",
             "ptx_kernel_used": f"generate_{shape}_kernel",
+            "source_prompt": text,
         }
         self._write_glb(out, vertices, faces, extras)
         print(f"🌀 Generated {shape} for text: '{text}' → {out}")
@@ -76,7 +79,17 @@ class TextTo3DGenerator:
             print(f"✨ Generated rays for shape → {rays_path}")
         except Exception as e:
             print(f"⚠️  Ray generation failed: {e}")
+        manifest_entry = self._update_manifest(out, extras)
+        self._last_generation = {
+            "path": str(out),
+            "extras": extras,
+            "manifest_entry": manifest_entry,
+        }
         return str(out)
+
+    @property
+    def last_generation(self) -> Optional[Dict[str, Any]]:
+        return self._last_generation
 
     def _write_glb(self, glb_path: Path, vertices: np.ndarray, faces: np.ndarray, k3d_extras: Dict[str, Any]) -> None:
         """Write GLB with a single mesh and k3d extras on the node."""
@@ -153,6 +166,47 @@ class TextTo3DGenerator:
         idx = int(abs(s)) % 5
         shapes = ["tetrahedron", "cube", "octahedron", "icosahedron", "dodecahedron"]
         return shapes[idx]
+
+    def _update_manifest(self, glb_path: Path, extras: Dict[str, Any]) -> Dict[str, Any]:
+        repo_root = Path(__file__).resolve().parents[2]
+        manifest_path = repo_root / "viewer" / "public" / "house" / "materialized_objects" / "manifest.json"
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        manifest: Dict[str, Any] = {"shapes": [], "rays": []}
+        if manifest_path.exists():
+            try:
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            except Exception:
+                manifest = {"shapes": [], "rays": []}
+        shapes_list: List[Dict[str, Any]] = list(manifest.get("shapes", []))
+        try:
+            relative = glb_path.relative_to(repo_root / "viewer" / "public")
+            rel_path = "/" + str(relative).replace(os.sep, "/")
+        except ValueError:
+            rel_path = glb_path.as_posix()
+        entry = {
+            "path": rel_path,
+            "honesty_score": extras.get("honesty_score"),
+            "name": extras.get("name"),
+            "shape_type": extras.get("shape_type"),
+            "created_at": extras.get("created_at"),
+            "prompt": extras.get("source_prompt", extras.get("name")),
+        }
+        # Update existing entry for same path or append new
+        updated = False
+        for idx, existing in enumerate(shapes_list):
+            if existing.get("path") == entry["path"]:
+                shapes_list[idx] = entry
+                updated = True
+                break
+        if not updated:
+            shapes_list.append(entry)
+        manifest["shapes"] = shapes_list
+        manifest.setdefault("rays", manifest.get("rays", []))
+        try:
+            manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+        except Exception as exc:
+            print(f"⚠️  Failed to update manifest: {exc}")
+        return entry
 
     def _generate_shape_geometry(self, shape: str, emb: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         scale = 1.0 + float(np.linalg.norm(emb[:3]))

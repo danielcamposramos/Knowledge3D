@@ -10,11 +10,13 @@ from __future__ import annotations
 import io
 import hashlib
 import json
+import locale
 import math
 import os
 import re
 import shutil
 import sys
+import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
@@ -80,6 +82,17 @@ class _TeeStream(io.TextIOBase):
 class AlgorithmicThinkingTrainer:
     """RPN + honesty drills for Algorithmic Thinking stars."""
 
+    @staticmethod
+    def _get_env_int(name: str, default: int, minimum: int = 1) -> int:
+        raw = os.environ.get(name)
+        if raw is None:
+            return default
+        try:
+            value = int(raw)
+        except (TypeError, ValueError):
+            return default
+        return max(minimum, value)
+
     def __init__(self) -> None:
         self.galaxy_working_dir = Path("viewer/public/galaxy/working")
         self.galaxy_working_dir.mkdir(parents=True, exist_ok=True)
@@ -112,6 +125,9 @@ class AlgorithmicThinkingTrainer:
             for prompt, meta in self._mastered_prompts.items()
             if meta.get("retired") or int(meta.get("count", 0)) >= self.mastery_threshold
         }
+        self.max_aime_prompts: int = self._get_env_int("K3D_AIME_MAX_ITEMS", 90)
+        self.max_aime_per_star: int = self._get_env_int("K3D_AIME_PER_STAR", 5)
+        self._aime_cache_path: Path = self.galaxy_working_dir / "aime_2024_problems.parquet"
         
     @property
     def trainer(self) -> "MeaningClusterTrainer":
@@ -183,7 +199,7 @@ class AlgorithmicThinkingTrainer:
             self._refresh_language_galaxies()
             self._warm_language_galaxies()
 
-            self._prepare_aime_prompts(max_items=30)
+            self._prepare_aime_prompts(max_items=self.max_aime_prompts)
 
             # Warm the fused head (CPU) before spinning up Ollama teachers.
             try:
@@ -425,7 +441,9 @@ class AlgorithmicThinkingTrainer:
                 }
             )
         if self._aime_queue:
-            queries.append(self._aime_queue.pop(0))
+            take = min(len(self._aime_queue), self.max_aime_per_star)
+            for _ in range(take):
+                queries.append(self._aime_queue.pop(0))
         filtered = [q for q in queries if self._should_use_prompt(q.get("query", ""))]
         return filtered
 
@@ -988,33 +1006,171 @@ class AlgorithmicThinkingTrainer:
     def _prepare_aime_prompts(self, max_items: int = 30) -> None:
         if self._aime_queue:
             return
+        prompts: List[Dict[str, Any]] = []
+        seen_ids: set[str] = set()
+
+        def _ensure_utf8_locale() -> None:
+            desired_locale = "C.UTF-8"
+            for key, default in (
+                ("PYTHONIOENCODING", "utf-8"),
+                ("PYTHONUTF8", "1"),
+            ):
+                os.environ.setdefault(key, default)
+            for key in ("LC_ALL", "LANG", "LC_CTYPE"):
+                current = os.environ.get(key, "")
+                if not current or current.lower() in {"c", "posix"}:
+                    os.environ[key] = desired_locale
+            try:
+                locale.setlocale(locale.LC_ALL, os.environ.get("LC_ALL", desired_locale))
+            except locale.Error:
+                try:
+                    locale.setlocale(locale.LC_ALL, "en_US.UTF-8")
+                    os.environ["LC_ALL"] = "en_US.UTF-8"
+                except locale.Error:
+                    pass
+
+        _ensure_utf8_locale()
+
+        cache_target = getattr(self, "_aime_cache_path", self.galaxy_working_dir / "aime_2024_problems.parquet")
+        cache_target.parent.mkdir(parents=True, exist_ok=True)
+
+        def _persist_parquet_cache() -> Optional[Path]:
+            try:
+                from huggingface_hub import hf_hub_download  # type: ignore
+
+                parquet_path = Path(
+                    hf_hub_download(
+                        repo_id="Maxwell-Jia/AIME_2024",
+                        filename="aime_2024_problems.parquet",
+                        repo_type="dataset",
+                    )
+                )
+                try:
+                    if parquet_path.resolve() != cache_target.resolve():
+                        shutil.copyfile(parquet_path, cache_target)
+                except Exception as copy_exc:
+                    print(f"⚠️  Unable to persist AIME parquet cache: {copy_exc}")
+                return parquet_path
+            except Exception as exc:
+                print(f"⚠️  Unable to download AIME parquet cache: {exc}")
+                return None
+
+        def _coerce(value: Any) -> str:
+            if value is None:
+                return ""
+            if hasattr(value, "as_py"):
+                try:
+                    value = value.as_py()
+                except Exception:
+                    value = str(value)
+            if isinstance(value, bytes):
+                text: Optional[str] = None
+                for codec in ("utf-8", "latin-1"):
+                    try:
+                        text = value.decode(codec)
+                        break
+                    except UnicodeDecodeError:
+                        continue
+                if text is None:
+                    text = value.decode("utf-8", errors="replace")
+            else:
+                text = str(value)
+
+            normalized = unicodedata.normalize("NFC", text)
+            normalized = normalized.replace("﻿", "").replace(" ", " ")
+            normalized = re.sub(r"\s+", " ", normalized)
+            return normalized.strip()
+
         try:
             from datasets import load_dataset  # type: ignore
 
-            ds = load_dataset("Maxwell-Jia/AIME_2024", split="train")
-            prompts: List[Dict[str, Any]] = []
-            for row in ds:
+            ds = load_dataset(
+                "Maxwell-Jia/AIME_2024",
+                split="train",
+                download_mode="reuse_cache_if_exists",
+            )
+            _persist_parquet_cache()
+            iterator: Iterable[Any]
+            if hasattr(ds, "__iter__") and not hasattr(ds, "__getitem__"):
+                iterator = ds
+            else:
+                iterator = iter(ds)
+
+            for row in iterator:
                 if len(prompts) >= max_items:
                     break
-                question = str(row.get("Problem") or "").strip()
-                answer = row.get("Answer")
-                problem_id = row.get("ID") or "AIME"
-                if not question or answer is None:
+                container = dict(row)
+                question = _coerce(container.get("Problem"))
+                answer_str = _coerce(container.get("Answer"))
+                problem_id = _coerce(container.get("ID")) or "AIME"
+                if not question or not answer_str:
                     continue
+                key = f"{problem_id}:{question}"
+                if key in seen_ids:
+                    continue
+                seen_ids.add(key)
                 prompts.append(
                     {
                         "query": f"AIME problem {problem_id}: {question}",
-                        "true_answer": str(answer),
-                        "explanation": f"Official AIME answer: {answer}.",
-                        "keywords": ["AIME", str(problem_id)],
+                        "true_answer": answer_str,
+                        "explanation": f"Official AIME answer: {answer_str}.",
+                        "keywords": ["AIME", problem_id],
                     }
                 )
-            if not prompts:
-                print("⚠️  No AIME prompts loaded — dataset empty or unavailable.")
-            self._aime_queue = prompts
-        except Exception as exc:
-            print(f"⚠️  Failed to prepare AIME prompts: {exc}")
-            self._aime_queue = []
+        except Exception as primary_exc:
+            print(f"⚠️  Primary AIME dataset load failed: {primary_exc}")
+            try:
+                parquet_path = _persist_parquet_cache()
+                if parquet_path is None:
+                    raise RuntimeError("AIME parquet cache unavailable")
+
+                records: List[Dict[str, Any]] = []
+                load_error: Optional[Exception] = None
+                try:
+                    import pandas as pd  # type: ignore
+
+                    df = pd.read_parquet(parquet_path)
+                    records = df.to_dict(orient="records")
+                except Exception as pandas_exc:  # pragma: no cover - optional dependency
+                    load_error = pandas_exc
+                    try:
+                        import pyarrow.parquet as pq  # type: ignore
+
+                        table = pq.read_table(parquet_path)
+                        records = table.to_pylist()
+                        load_error = None
+                    except Exception as arrow_exc:  # pragma: no cover - optional dependency
+                        load_error = arrow_exc
+
+                if load_error is not None:
+                    raise load_error
+
+                for row in records:
+                    if len(prompts) >= max_items:
+                        break
+                    question = _coerce(row.get("Problem"))
+                    answer_str = _coerce(row.get("Answer"))
+                    problem_id = _coerce(row.get("ID")) or "AIME"
+                    if not question or not answer_str:
+                        continue
+                    key = f"{problem_id}:{question}"
+                    if key in seen_ids:
+                        continue
+                    seen_ids.add(key)
+                    prompts.append(
+                        {
+                            "query": f"AIME problem {problem_id}: {question}",
+                            "true_answer": answer_str,
+                            "explanation": f"Official AIME answer: {answer_str}.",
+                            "keywords": ["AIME", problem_id],
+                        }
+                    )
+            except Exception as fallback_exc:
+                print(f"⚠️  Fallback AIME parquet load failed: {fallback_exc}")
+
+        if not prompts:
+            print("⚠️  No AIME prompts loaded — dataset empty or unavailable.")
+        self._aime_queue = prompts
 
     def _open_training_log(self, log_path: Path) -> io.TextIOBase:
         log_path.parent.mkdir(parents=True, exist_ok=True)
