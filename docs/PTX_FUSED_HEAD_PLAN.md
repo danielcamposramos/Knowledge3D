@@ -20,10 +20,10 @@ This log captures the outstanding work required to make the fused head read and 
 - [ ] B4. Update training loop to log PTX text ops and use them in RLWHF scoring.
 
 ## Milestone C — Audio/Image/Video Pipelines
-- [ ] C1. Prototype PTX audio kernels (e.g., STFT, filtering) and expose via `PTXAudioOps`.
-- [ ] C2. Prototype PTX image kernels (texture load/edit) and expose via `PTXImageOps`.
-- [ ] C3. Prototype PTX video frame kernels (basic temporal ops) and expose via `PTXVideoOps`.
-- [ ] C4. Add fused head routing for audio/image/video queries.
+- [x] C1. Prototype PTX audio kernels (e.g., STFT, filtering) and expose via `PTXAudioOps`.
+- [x] C2. Prototype PTX image kernels (texture load/edit) and expose via `PTXImageOps`.
+- [x] C3. Prototype PTX video frame kernels (basic temporal ops) and expose via `PTXVideoOps`.
+- [x] C4. Add fused head routing for audio/image/video queries.
 
 ## Milestone D — persistence & tooling
 - [ ] D1. Build GPU-aware serializer to commit Galaxy deltas produced by PTX ops.
@@ -46,6 +46,7 @@ This log captures the outstanding work required to make the fused head read and 
 | 2025-09-21 | A8 | Done | House asset rebuilt as binary GLB; codebase now references `memory_house.glb` exclusively. |
 | 2025-09-21 | A9 | In Progress | Plan drafted: log teacher tags into JSONL, convert to GLB, load during fused head init. |
 | 2025-09-22 | A9 | Done | Learning memory logging, GLB builder, fused head routing, trainer + sleep refresh hooks, and reload helper wired. |
+| 2025-09-25 | C1-C4 | Done | PTX modality kernels (text/audio/image/video) compiled via NVRTC, exposed through `PTX_OPS`, and fused head now prefers them for multimodal retrieval with RPN-backed confidence gates. |
 
 ### GPU Galaxy Buffer Layout (A1 draft)
 

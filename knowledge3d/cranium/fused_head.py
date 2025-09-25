@@ -62,6 +62,7 @@ class AdaptedFusedHead:
         self._learning_metadata_cache: Optional[List[Dict[str, object]]] = None
         self._last_house_payload: Optional[Dict[str, object]] = None
         self._last_learning_payload: Optional[Dict[str, object]] = None
+        self._default_payload: Optional[Dict[str, object]] = None
         self._corpus_maps: Dict[str, Dict[str, object]] = {}
         self._load_corpus_maps()
         self._material_manifest_path = Path("viewer/public/house/materialized_objects/manifest.json")
@@ -79,6 +80,22 @@ class AdaptedFusedHead:
     def predict(self, query: str, fused_embedding: List[float]) -> str:
         self._last_house_payload = None
         self._last_learning_payload = None
+        self._default_payload = None
+
+        text_confidence: Optional[float] = None
+        if query:
+            try:
+                text_modality = PTX_OPS.text_modality(query)
+            except Exception:
+                text_modality = None
+            else:
+                self._default_payload = {
+                    "ptx_text_features": text_modality["features"],
+                    "ptx_text_metrics": text_modality["metrics"],
+                    "ptx_text_confidence": text_modality["confidence"],
+                }
+                text_confidence = float(text_modality["confidence"])
+
         ql = (query or "").lower()
         rpn_expr = self._extract_rpn_expression(query)
         if rpn_expr:
@@ -140,6 +157,8 @@ class AdaptedFusedHead:
 
         h = self.projection(x)
         honesty = torch.sigmoid(self.honesty_gate(h)).item()
+        if text_confidence is not None:
+            honesty = max(0.0, min(1.0, 0.5 * honesty + 0.5 * text_confidence))
         logits = self.predict_head(h)
         idx = int(torch.argmax(logits, dim=1).item())
 
@@ -254,7 +273,12 @@ class AdaptedFusedHead:
     ) -> str:
         if not answer:
             return ""
-        effective_payload = payload or self._last_learning_payload or self._last_house_payload
+        effective_payload = (
+            payload
+            or self._last_learning_payload
+            or self._last_house_payload
+            or self._default_payload
+        )
         enhanced = self._maybe_enhance_summary(query, answer, effective_payload)
         return enhanced or answer
 
@@ -492,29 +516,67 @@ class AdaptedFusedHead:
         asset_path_str = str(best_answer.get("path", ""))
         resolved_path = self._resolve_public_path(asset_path_str)
         embedding: Optional[List[float]] = None
+        modality_confidence: Optional[float] = None
+        modality_metrics: Optional[Dict[str, float]] = None
         if resolved_path and resolved_path.exists():
+            modality_info: Optional[Dict[str, object]] = None
             try:
                 if modality == "image":
-                    embedding = embed_image(resolved_path.as_posix())
+                    modality_info = PTX_OPS.image_modality(resolved_path.as_posix())
                 elif modality == "audio":
-                    embedding = embed_audio(resolved_path.as_posix())
+                    modality_info = PTX_OPS.audio_modality(resolved_path.as_posix())
                 elif modality == "video":
-                    embedding = embed_video(resolved_path.as_posix())
+                    modality_info = PTX_OPS.video_modality(resolved_path.as_posix())
             except Exception:
-                embedding = None
+                modality_info = None
+
+            if modality_info is not None:
+                features = modality_info.get("features")
+                if isinstance(features, list):
+                    embedding = [float(x) for x in features]
+                confidence_val = modality_info.get("confidence")
+                if confidence_val is not None:
+                    try:
+                        modality_confidence = float(confidence_val)
+                    except (TypeError, ValueError):
+                        modality_confidence = None
+                metrics_val = modality_info.get("metrics")
+                if isinstance(metrics_val, dict):
+                    modality_metrics = {k: float(v) for k, v in metrics_val.items()}
+
+            if embedding is None:
+                try:
+                    if modality == "image":
+                        embedding = embed_image(resolved_path.as_posix())
+                    elif modality == "audio":
+                        embedding = embed_audio(resolved_path.as_posix())
+                    elif modality == "video":
+                        embedding = embed_video(resolved_path.as_posix())
+                except Exception:
+                    embedding = None
 
         payload = dict(best_answer)
         if embedding is not None:
             payload["embedding"] = embedding
+            payload["ptx_features"] = embedding
+        if modality_metrics is not None:
+            payload["ptx_metrics"] = modality_metrics
+        if modality_confidence is not None:
+            payload["ptx_confidence"] = modality_confidence
         if resolved_path:
             payload["resolved_path"] = resolved_path.as_posix()
         summary = payload.get("summary") or payload.get("resolved_path") or asset_path_str
+
+        final_score = best_score
+        if modality_confidence is not None:
+            final_score = (final_score + modality_confidence) * 0.5
+        final_score = max(0.4, min(1.0, final_score))
 
         self.append_learning_memory(
             prompt=f"MEDIA LOOKUP :: {modality} :: {query}",
             true_answer=str(summary),
             predicted=str(summary),
-            score=max(0.4, min(1.0, best_score)),
+            score=final_score,
             tags=["media", modality],
             metadata=payload,
         )

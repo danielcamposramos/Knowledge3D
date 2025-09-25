@@ -10,3 +10,4 @@ from .galaxy_buffer import (  # noqa: F401
     save_meshes_to_glb,
 )
 import knowledge3d.cranium.ptx.geometry_ops as PTXGeometryOps  # noqa: F401
+from .modality_ops import PTXModalityOps  # noqa: F401
