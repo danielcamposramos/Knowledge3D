@@ -231,6 +231,18 @@ def write_outputs(chunks: Iterable[WikiChunk], output_dir: Path, language: str) 
                     "url": chunk.url,
                     "license": LICENSE,
                 },
+                "prompt": question,
+                "true_answer": chunk.text,
+                "predicted": chunk.text,
+                "score": 1.0,
+                "quick_feedback": {
+                    "score": 1.0,
+                    "explanation": f"Wikipedia excerpt ({chunk.title}).",
+                },
+                "deep_feedback": {
+                    "score": 1.0,
+                    "explanation": f"Auto-ingested Wikipedia chunk ({chunk.title}).",
+                },
             }
             corpus_file.write(json.dumps(payload, ensure_ascii=False) + "\n")
 

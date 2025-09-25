@@ -187,7 +187,7 @@ class AlgorithmicThinkingTrainer:
 
             # Warm the fused head (CPU) before spinning up Ollama teachers.
             try:
-                print("♨️  Warming up K3D fused head (CPU)...")
+                print("♨️  Warming up K3D fused head (GPU)...")
                 _ = self.trainer.generate_text_embedding("algorithmic soul warmup")
             except Exception as exc:
                 print(f"⚠️  K3D fused head warmup failed: {exc}")
