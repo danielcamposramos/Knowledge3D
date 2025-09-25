@@ -28,3 +28,7 @@ logs/phase10.3_*.err
 viewer/public/house/materialized_objects/
 viewer/public/house/*.glb
 viewer/public/house/*.json
+# Working corpora and generated training artifacts
+viewer/public/galaxy/working/*.jsonl
+viewer/public/galaxy/working/*.json
+viewer/public/galaxy/working/*.parquet

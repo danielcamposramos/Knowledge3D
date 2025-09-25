@@ -1,14 +1,23 @@
 from __future__ import annotations
 
 import math
+import logging
+import os
+import threading
 from pathlib import Path
 from typing import Optional
 
 import numpy as np  # type: ignore
 
 
+logger = logging.getLogger(__name__)
+
+
 class NVRTCPTXLoader:
     """Load a PTX kernel (or fall back to inline CUDA) for GPU vertex generation."""
+
+    _kernel_lock = threading.RLock()
+    _max_vertices = int(os.getenv("K3D_PTX_MAX_VERTICES", "4096"))
 
     def __init__(
         self,
@@ -24,6 +33,7 @@ class NVRTCPTXLoader:
         self._cuda = cuda
         self._nvrtc = nvrtc
         self._ctx: Optional[int] = None
+        self._device: Optional[int] = None
         self._module: Optional[int] = None
         self._kernel: Optional[int] = None
         self._ptx_path = Path(ptx_path)
@@ -46,6 +56,7 @@ class NVRTCPTXLoader:
         if err != cuda.CUresult.CUDA_SUCCESS:
             raise RuntimeError(f"cuCtxCreate failed: {err}")
         self._ctx = ctx
+        self._device = dev
 
         module = None
         if self._ptx_path.exists():
@@ -119,6 +130,14 @@ class NVRTCPTXLoader:
             raise RuntimeError(f"cuModuleLoadData failed: {err}")
         return module
 
+    def _error_string(self, err_code: int) -> str:
+        if self._cuda is None:
+            return str(err_code)
+        err, msg = self._cuda.cuGetErrorString(err_code)
+        if err == self._cuda.CUresult.CUDA_SUCCESS and msg:
+            return msg.decode("utf-8", errors="replace")
+        return f"CUDA_ERROR_{err_code}"
+
     def generate_vertices(self, embedding: np.ndarray, vertex_count: int, shape_type_idx: int) -> np.ndarray:
         if self._kernel is None:
             raise RuntimeError("PTX kernel not initialised")
@@ -128,55 +147,78 @@ class NVRTCPTXLoader:
         if emb.ndim != 1:
             emb = emb.reshape(-1)
 
+        requested_vertices = int(vertex_count)
+        max_vertices = max(4, NVRTCPTXLoader._max_vertices)
+        if requested_vertices > max_vertices:
+            logger.warning(
+                "PTX vertex request capped",
+                extra={"requested": requested_vertices, "capped_to": max_vertices},
+            )
+            vertex_count = max_vertices
+        else:
+            vertex_count = requested_vertices
+
         vertices_sz = int(vertex_count) * 3 * 4
-        err, d_emb = cuda.cuMemAlloc(emb.nbytes)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuMemAlloc emb failed: {err}")
-        err, d_out = cuda.cuMemAlloc(vertices_sz)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            cuda.cuMemFree(d_emb)
-            raise RuntimeError(f"cuMemAlloc out failed: {err}")
 
-        try:
-            err, = cuda.cuMemcpyHtoD(d_emb, emb.ctypes.data, emb.nbytes)
+        with NVRTCPTXLoader._kernel_lock:
+            err, = cuda.cuCtxSetCurrent(self._ctx)
             if err != cuda.CUresult.CUDA_SUCCESS:
-                raise RuntimeError(f"cuMemcpyHtoD failed: {err}")
+                raise RuntimeError(f"cuCtxSetCurrent failed: {self._error_string(err)}")
 
-            import ctypes as _ct
-
-            emb_arg = _ct.c_void_p(int(d_emb))
-            out_arg = _ct.c_void_p(int(d_out))
-            count_arg = _ct.c_uint(int(vertex_count))
-            shape_arg = _ct.c_uint(int(shape_type_idx))
-
-            param_array = (_ct.c_void_p * 4)(
-                _ct.cast(_ct.pointer(emb_arg), _ct.c_void_p),
-                _ct.cast(_ct.pointer(out_arg), _ct.c_void_p),
-                _ct.cast(_ct.pointer(count_arg), _ct.c_void_p),
-                _ct.cast(_ct.pointer(shape_arg), _ct.c_void_p),
-            )
-
-            threads = max(1, min(int(vertex_count), 256))
-            blocks = int(math.ceil(vertex_count / threads))
-
-            err, = cuda.cuLaunchKernel(
-                self._kernel,
-                blocks, 1, 1,
-                threads, 1, 1,
-                0, 0,
-                param_array, 0,
-            )
+            err, d_emb = cuda.cuMemAlloc(emb.nbytes)
             if err != cuda.CUresult.CUDA_SUCCESS:
-                raise RuntimeError(f"cuLaunchKernel failed: {err}")
-
-            out = np.zeros((int(vertex_count), 3), dtype=np.float32)
-            err, = cuda.cuMemcpyDtoH(out.ctypes.data, d_out, vertices_sz)
+                raise RuntimeError(f"cuMemAlloc emb failed: {self._error_string(err)}")
+            err, d_out = cuda.cuMemAlloc(vertices_sz)
             if err != cuda.CUresult.CUDA_SUCCESS:
-                raise RuntimeError(f"cuMemcpyDtoH failed: {err}")
-            return out
-        finally:
-            cuda.cuMemFree(d_emb)
-            cuda.cuMemFree(d_out)
+                cuda.cuMemFree(d_emb)
+                raise RuntimeError(f"cuMemAlloc out failed: {self._error_string(err)}")
+
+            try:
+                err, = cuda.cuMemcpyHtoD(d_emb, emb.ctypes.data, emb.nbytes)
+                if err != cuda.CUresult.CUDA_SUCCESS:
+                    raise RuntimeError(f"cuMemcpyHtoD failed: {self._error_string(err)}")
+
+                import ctypes as _ct
+
+                emb_arg = _ct.c_void_p(int(d_emb))
+                out_arg = _ct.c_void_p(int(d_out))
+                count_arg = _ct.c_uint(int(vertex_count))
+                shape_arg = _ct.c_uint(int(shape_type_idx))
+
+                param_array = (_ct.c_void_p * 4)(
+                    _ct.cast(_ct.pointer(emb_arg), _ct.c_void_p),
+                    _ct.cast(_ct.pointer(out_arg), _ct.c_void_p),
+                    _ct.cast(_ct.pointer(count_arg), _ct.c_void_p),
+                    _ct.cast(_ct.pointer(shape_arg), _ct.c_void_p),
+                )
+
+                threads = max(1, min(int(vertex_count), 256))
+                blocks = int(math.ceil(vertex_count / threads))
+
+                err, = cuda.cuLaunchKernel(
+                    self._kernel,
+                    blocks, 1, 1,
+                    threads, 1, 1,
+                    0, 0,
+                    param_array, 0,
+                )
+                if err != cuda.CUresult.CUDA_SUCCESS:
+                    raise RuntimeError(
+                        f"cuLaunchKernel failed: {self._error_string(err)} (blocks={blocks}, threads={threads}, vertices={vertex_count})"
+                    )
+
+                sync_err, = cuda.cuCtxSynchronize()
+                if sync_err != cuda.CUresult.CUDA_SUCCESS:
+                    raise RuntimeError(f"cuCtxSynchronize failed: {self._error_string(sync_err)}")
+
+                out = np.zeros((int(vertex_count), 3), dtype=np.float32)
+                err, = cuda.cuMemcpyDtoH(out.ctypes.data, d_out, vertices_sz)
+                if err != cuda.CUresult.CUDA_SUCCESS:
+                    raise RuntimeError(f"cuMemcpyDtoH failed: {self._error_string(err)}")
+                return out
+            finally:
+                cuda.cuMemFree(d_emb)
+                cuda.cuMemFree(d_out)
 
     def __del__(self) -> None:  # pragma: no cover
         try:

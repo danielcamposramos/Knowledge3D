@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import numpy as np  # type: ignore
 
@@ -34,6 +34,9 @@ class PTXOps:
         # The TextTo3DGenerator internally hashes the prompt to determine shape semantics.
         shape_path = self._shape_generator.generate_3d_from_text(prompt)
         return shape_path
+
+    def last_generated_shape(self) -> Optional[Dict[str, Any]]:
+        return getattr(self._shape_generator, "last_generation", None)
 
     # ------------------------------------------------------------------
     # Geometry session helpers -----------------------------------------
