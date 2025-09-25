@@ -57,6 +57,12 @@ class TextTo3DGenerator:
 
         gid = f"shape_{shape}_{int(datetime.now().timestamp())}"
         out = self.material_dir / f"{gid}.glb"
+        zone = "Zone 5 (Knowledge Garden)"
+        if shape == "book":
+            zone = "Zone 3 (Library)"
+        elif shape == "tree":
+            zone = "Zone 5 (Knowledge Garden)"
+
         extras: Dict[str, Any] = {
             "type": "generated_3d_shape",
             "name": f"{shape.capitalize()} from: '{text[:30]}...'",
@@ -66,7 +72,7 @@ class TextTo3DGenerator:
             "shape_type": shape,
             "vertex_count": int(len(vertices)),
             "face_count": int(len(faces)),
-            "zone_placement": "Zone 5 (Knowledge Garden)",
+            "zone_placement": zone,
             "ptx_kernel_used": f"generate_{shape}_kernel",
             "source_prompt": text,
         }
@@ -164,8 +170,19 @@ class TextTo3DGenerator:
     def _predict_shape_type(self, emb: np.ndarray) -> str:
         s = float(np.sum(emb * 1000.0))
         idx = int(abs(s)) % 5
+        lowered = (text or "").lower()
+        keyword_map = {
+            "book": ["book", "journal", "codex", "manuscript"],
+            "tree": ["tree", "oak", "garden", "sapling", "bonsai"],
+        }
+        for target, keys in keyword_map.items():
+            if any(k in lowered for k in keys):
+                return target
         shapes = ["tetrahedron", "cube", "octahedron", "icosahedron", "dodecahedron"]
-        return shapes[idx]
+        try:
+            return shapes[idx]
+        except IndexError:
+            return "icosahedron"
 
     def _update_manifest(self, glb_path: Path, extras: Dict[str, Any]) -> Dict[str, Any]:
         repo_root = Path(__file__).resolve().parents[2]
@@ -244,6 +261,75 @@ class TextTo3DGenerator:
                     [1, 6, 5],
                     [0, 3, 7],
                     [0, 7, 4],
+                ],
+                dtype=np.uint32,
+            )
+            return vertices, faces
+        if shape == "book":
+            # Simple book: thin rectangular prism with slightly beveled top
+            vertices = np.array(
+                [
+                    [-1.0, -0.1, -1.4],
+                    [1.0, -0.1, -1.4],
+                    [1.0, -0.1, 1.4],
+                    [-1.0, -0.1, 1.4],
+                    [-0.9, 0.2, -1.35],
+                    [0.9, 0.2, -1.35],
+                    [0.9, 0.2, 1.35],
+                    [-0.9, 0.2, 1.35],
+                ],
+                dtype=np.float32,
+            ) * (scale * 0.8)
+            faces = np.array(
+                [
+                    [0, 1, 2], [0, 2, 3],
+                    [4, 5, 6], [4, 6, 7],
+                    [0, 1, 5], [0, 5, 4],
+                    [2, 3, 7], [2, 7, 6],
+                    [1, 2, 6], [1, 6, 5],
+                    [0, 3, 7], [0, 7, 4],
+                ],
+                dtype=np.uint32,
+            )
+            return vertices, faces
+        if shape == "tree":
+            # Stylised tree: trunk (prism) + canopy (pyramid)
+            trunk_height = 1.2 * scale
+            canopy_height = 2.4 * scale
+            trunk = np.array(
+                [
+                    [-0.25, 0.0, -0.25],
+                    [0.25, 0.0, -0.25],
+                    [0.25, trunk_height, -0.25],
+                    [-0.25, trunk_height, -0.25],
+                    [-0.25, 0.0, 0.25],
+                    [0.25, 0.0, 0.25],
+                    [0.25, trunk_height, 0.25],
+                    [-0.25, trunk_height, 0.25],
+                ],
+                dtype=np.float32,
+            )
+            canopy = np.array(
+                [
+                    [-1.2 * scale, trunk_height, -1.2 * scale],
+                    [1.2 * scale, trunk_height, -1.2 * scale],
+                    [1.2 * scale, trunk_height, 1.2 * scale],
+                    [-1.2 * scale, trunk_height, 1.2 * scale],
+                    [0.0, canopy_height, 0.0],
+                ],
+                dtype=np.float32,
+            )
+            vertices = np.concatenate([trunk, canopy], axis=0)
+            faces = np.array(
+                [
+                    [0, 1, 2], [0, 2, 3],
+                    [4, 5, 6], [4, 6, 7],
+                    [0, 1, 5], [0, 5, 4],
+                    [2, 3, 7], [2, 7, 6],
+                    [1, 2, 6], [1, 6, 5],
+                    [0, 3, 7], [0, 7, 4],
+                    [8, 9, 12], [9, 10, 12], [10, 11, 12], [11, 8, 12],
+                    [8, 9, 10], [8, 10, 11],
                 ],
                 dtype=np.uint32,
             )

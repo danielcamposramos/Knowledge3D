@@ -1,45 +1,37 @@
-K3D — Next Session Bootstrap (9/9/9)
+K3D — Next Session Bootstrap (2025-09-25)
 
-Hi Codex, please pick up exactly here:
+Hi Codex, welcome back. Daniel (human, non-coder) needs an AI engineer to pick up seamlessly from the previous session.
 
-Context
-- Mode selector is trained and integrated (compose_auto). Model: ../Knowledge3D.local/models/mode_selector.pkl
-- Ranker retrained on unified v2. Model: ../Knowledge3D.local/models/answer_ranker.pkl
-- Unified datasets: v3 (9,220 rows) includes RL (honesty + algorithmic) and RLWHF grounded sets.
-- Small generative head retrained on v3. Model: ../Knowledge3D.local/models/rlwhf_policy
-- Spatial CoT plan is recorded at docs/reports/status/K3D_Spatial_CoT_Plan_2025-09-09.md
+What changed last run
+- Hardened NVRTC/PTX pipeline: `knowledge3d/cranium/phase10/nvrtc_ptx_loader.py` now caps vertices, locks the CUDA context, and syncs launches so kernel faults surface before they crash the runtime.
+- Text-to-3D generations now persist via the tablet contract: `knowledge3d/cranium/phase10/text_to_3d_generator.py` updates `viewer/public/house/materialized_objects/manifest.json` and exposes metadata through `PTX_OPS.last_generated_shape()`.
+- Fused head upgrades (`knowledge3d/cranium/fused_head.py`):
+  * Uses actual fused embeddings for House/Learning searches instead of hash-only fallbacks.
+  * Generates shapes on demand, logs them into learning memory, and refreshes manifest caches automatically.
+  * Adds true multimodal retrieval — image/audio/video assets are indexed, embedded (OpenCLIP/torchaudio/video stats), and returned with resolved tablet payloads.
+- New video embedding helper (`knowledge3d/skills/video.py`) so clips have deterministic descriptors.
+- Documentation update in `docs/CRANIUM_CORE.md` summarising the new guarantees.
 
-Immediate Tasks (in order)
-1) Spatial CoT — Phase 1
-   - Add ReasoningPath class (e.g., knowledge3d/skills/spatial_cot.py) and extend compose/compose_generate to emit spatial reasoning steps with operations (retrieve/compare/synthesize/verify), confidence, and citations.
-   - Add verification checkpoints per step using House snippets.
-   - Emit a minimal event stream for visualization (path of 3D waypoints) and a toggled overlay in the viewer.
+Environment expectations
+- Always operate inside the conda envs: `conda activate k3d-cranium` for PTX/generation work.
+- NVRTC fixes are in place, but confirm by running a sample generation with `CUDA_LAUNCH_BLOCKING=1` (see "Immediate Tasks").
 
-2) Scale Grounded Data (+5k)
-   - Build +2.5k Anthropic +2.5k OASST grounded sets:
-     scripts/k3d_env.sh run python -m knowledge3d.tools.ingest_rl_open --gltf viewer/public/galaxy.cross.glb --out docs/reports/training/rlwhf_dataset_open_2500_anthropic_2.jsonl --n 2500 --dataset anthropic --mode compose
-     scripts/k3d_env.sh run python -m knowledge3d.tools.ingest_rl_open --gltf viewer/public/galaxy.cross.glb --out docs/reports/training/rlwhf_dataset_open_2500_oasst_2.jsonl --n 2500 --dataset oasst --mode compose
-   - Merge to v4 and retrain ranker:
-     scripts/k3d_env.sh run python -m knowledge3d.tools.merge_jsonl --out docs/reports/training/rlwhf_dataset_unified_v4.jsonl --dedup query docs/reports/training/rlwhf_dataset_unified_v3.jsonl docs/reports/training/rlwhf_dataset_open_2500_*_2.jsonl
-     scripts/k3d_env.sh run python -m knowledge3d.models.answer_ranker --dataset docs/reports/training/rlwhf_dataset_unified_v4.jsonl --out ../Knowledge3D.local/models/answer_ranker.pkl
+Immediate Tasks (priority order)
+1. **Verify PTX stability**
+   - Run a representative text-to-3D prompt: `python -m knowledge3d.tools.phase10.demo_shape_generation "honest garden tree"` (create the helper if missing by wrapping `TextTo3DGenerator`).
+   - Use `CUDA_LAUNCH_BLOCKING=1` or `cuda-memcheck` to ensure no hidden launch errors. Capture any failures in `docs/reports/status/ptx_validation_log_2025-09-25.md`.
+2. **Exercise multimodal retrieval**
+   - From the fused head (or a small harness), issue lookups for image/audio/video assets and confirm embeddings + learning-memory entries are produced. Record sample outputs (include resolved tablet payloads).
+   - Ensure at least one test covers materialized shapes so the manifest refresh logic is validated.
+3. **3D generative coverage**
+   - Extend the generator to cover Knowledge Garden artifacts (books, trees) if prompts do not already produce them. Update `knowledge3d/cranium/ptx/text_to_3d_generator.py` or add specialised routines so the fused model can craft both geometric primitives and narrative objects.
+   - Verify outputs appear in the House manifest with correct zones (books → Zone 3, trees → Zone 5) and can be reloaded through the fused head.
+4. **Phase 25 follow-up**
+   - Once PTX + multimodal checks pass, restart `AlgorithmicThinkingTrainer().train_algorithmic_thinking()` and monitor for AIME prompts (now that the queue expands to 90 items, 5 per star). We still expect real answers, not "I am still learning" — log behaviour.
 
-3) Algorithmic Thinking RLWHF (with K3D hints)
-   - Generate and merge:
-     scripts/k3d_env.sh run python -m knowledge3d.tools.build_algorithmic_thinking --out docs/reports/training/rl_dataset_algo_rlwhf_2000.jsonl --n 2000 --mode rlwhf --gltf viewer/public/galaxy.cross.glb
-     scripts/k3d_env.sh run python -m knowledge3d.tools.merge_jsonl --out docs/reports/training/rlwhf_dataset_unified_v5.jsonl --dedup query docs/reports/training/rlwhf_dataset_unified_v4.jsonl docs/reports/training/rl_dataset_algo_rlwhf_2000.jsonl
-   - Retrain small head and evaluate:
-     scripts/k3d_env.sh run python -m knowledge3d.models.rlwhf_policy --dataset docs/reports/training/rlwhf_dataset_unified_v5.jsonl --out ../Knowledge3D.local/models/rlwhf_policy --model distilgpt2 --epochs 2 --batch 4 --max_len 384 --lr 5e-5
-     scripts/k3d_env.sh run python -m knowledge3d.tools.eval_rlwhf_policy --dataset docs/reports/training/rlwhf_dataset_unified_v5.jsonl --model ../Knowledge3D.local/models/rlwhf_policy --out docs/reports/status/rlwhf_policy_eval_v5.json --limit 100
+Reference docs
+- `docs/CRANIUM_CORE.md` (latest architecture updates).
+- `docs/HOUSE_GALAXY_TABLET.md` (tablet workflow — all knowledge mutations go through it).
+- `docs/reports/status/K3D_Spatial_CoT_Plan_2025-09-09.md` for longer-term roadmap items.
 
-4) Mode Selector — outcome labels
-   - Start logging for compose_auto decisions with downstream similarity reward; retrain mode selector on these labels.
-
-Notes
-- Keep K3D compose as primary; compose_generate is auxiliary.
-- All work remains internal (no external RAG). Grounding strictly via House.
-- If the viewer is needed, run: (cd viewer && npm run dev) and use live_server WS bridge if testing paths.
-
-Documents
-- Progress snapshot: docs/reports/status/progress_snapshot_2025-09-09.md
-- Spatial CoT plan: docs/reports/status/K3D_Spatial_CoT_Plan_2025-09-09.md
-- Grounded generative guide: docs/reports/status/grounded_generative_guide.md
+Remember Daniel relies entirely on us for coding actions — describe any manual steps plainly and continue to drive the terminal yourself.
