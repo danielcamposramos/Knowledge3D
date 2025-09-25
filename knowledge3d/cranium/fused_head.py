@@ -44,6 +44,8 @@ class AdaptedFusedHead:
             "dodecahedron",
             "hypersphere_projection",
             "fractal_tree",
+            "book",
+            "tree",
         ]
         self._kernels = [
             "map_ray_thickness_to_resolution_kernel",
