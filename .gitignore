@@ -24,3 +24,7 @@ viewer/public/models/*.pth
 viewer/public/models/tag_names*.json
 logs/phase10.3_*.log
 logs/phase10.3_*.err
+# House materialization outputs and generated blobs
+viewer/public/house/materialized_objects/
+viewer/public/house/*.glb
+viewer/public/house/*.json

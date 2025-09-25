@@ -12,6 +12,8 @@ Modality Buckets (starter picks)
 - Text
   - Wiki/Books excerpts or domain corpora (e.g., AI books). Ingest via simple line files → `k3dgen --text`.
   - HuggingFace corpora are also viable; keep curated CSV/JSONL lines to ≤1–5M for local runs.
+  - **Wikipedia (TransformerLab 10 GB subset)** — stage dumps under `../Knowledge3D.local/datasets/wikipedia/`, then run `conda run -n k3d-cranium PYTHONPATH=. python knowledge3d/tools/ingest_wikipedia.py --input <dump> --language <lang>` to emit `viewer/public/galaxy/working/wikipedia_corpus.jsonl` and manifest. Use full Wikimedia `pages-articles-multistream` shards for larger coverage.
+  - **Hugging Face cache harvest** — to convert locally downloaded datasets into Knowledge3D corpora, run `conda run -n k3d-cranium PYTHONPATH=. python knowledge3d/tools/ingest_hf_cache.py --max-per-split 200`. This emits `viewer/public/galaxy/working/hf_cache_corpus.jsonl` plus a manifest, and you can turn it into a GLB with `learning_memory_builder.py` (`--out viewer/public/galaxy/hf_cache_memory.glb`). See `docs/HF_CACHE_WORKFLOW.md` for details.
 - Image (captions)
   - COCO Captions (train2017) — supported by `knowledge3d/tools/ingest_coco.py`.
   - WIT sample TSV — supported by `knowledge3d/tools/ingest_wit.py`.
@@ -40,4 +42,3 @@ See Also
 - docs/DATASETS_50K.md — small bootstraps + runbook
 - docs/RUNBOOK_MULTIMODAL_50K.md — operator steps for COCO/Clotho/VATEX
 - docs/HUNYUANWORLD_INTEGRATION.md — external scene model study
-

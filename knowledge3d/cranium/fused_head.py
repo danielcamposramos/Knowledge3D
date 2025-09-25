@@ -4,6 +4,7 @@ import math
 import re
 import json
 import hashlib
+from difflib import SequenceMatcher
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -54,38 +55,55 @@ class AdaptedFusedHead:
         self.learning_memory_jsonl = Path("viewer/public/galaxy/working/learning_memory.jsonl")
         self._learning_memory_entry = self._discover_learning_memory()
         self._learning_metadata_cache: Optional[List[Dict[str, object]]] = None
+        self._last_house_payload: Optional[Dict[str, object]] = None
+        self._last_learning_payload: Optional[Dict[str, object]] = None
+        self._corpus_maps: Dict[str, Dict[str, object]] = {}
+        self._load_corpus_maps()
 
     # ------------------------------------------------------------------
     def predict(self, query: str, fused_embedding: List[float]) -> str:
+        self._last_house_payload = None
+        self._last_learning_payload = None
         rpn_expr = self._extract_rpn_expression(query)
         if rpn_expr:
             try:
                 result = PTX_OPS.evaluate_rpn(rpn_expr)
-                return PTX_OPS.format_numeric(result)
+                return self._post_process_answer(query, PTX_OPS.format_numeric(result))
             except Exception:
                 pass
 
         shape_prompt = self._extract_shape_prompt(query)
         if shape_prompt:
             try:
-                return PTX_OPS.generate_shape(shape_prompt)
+                return self._post_process_answer(query, PTX_OPS.generate_shape(shape_prompt))
             except Exception:
                 pass
 
         numeric = self._simple_numeric_solver(query)
         if numeric is not None:
-            return PTX_OPS.format_numeric(numeric)
+            return self._post_process_answer(query, PTX_OPS.format_numeric(numeric))
 
         house_answer = self._attempt_house_memory_lookup(query, fused_embedding)
         learning_answer = self._attempt_learning_memory_lookup(query, fused_embedding)
 
         blended_answer = self._combine_memory_answers(query, house_answer, learning_answer)
         if blended_answer is not None:
-            return blended_answer
+            payload = self._last_learning_payload or self._last_house_payload
+            return self._post_process_answer(query, blended_answer, payload)
 
         language_answer = self._attempt_language_lookup(query)
         if language_answer is not None:
-            return language_answer
+            return self._post_process_answer(query, language_answer)
+
+        if "summarize" in ql:
+            corpus_payload = self._lookup_corpus_payload(query)
+            if corpus_payload:
+                return self._post_process_answer(
+                    query,
+                    corpus_payload.get("text"),
+                    corpus_payload.get("payload"),
+                )
+            return self._fallback_summary_response(query)
 
         x = torch.tensor(fused_embedding, dtype=torch.float32, device=self.device)
         if x.dim() == 1:
@@ -106,16 +124,16 @@ class AdaptedFusedHead:
         pred = all_outputs[idx % len(all_outputs)]
 
         if ("zone" in ql or "museum" in ql or "garden" in ql) and honesty < 0.7:
-            return "Zone 8 (Learning Museum)"
+            return self._post_process_answer(query, "Zone 8 (Learning Museum)")
         if ("fusion" in ql or "shape" in ql or "quad" in ql) and honesty >= 0.7:
-            return "icosahedron"
+            return self._post_process_answer(query, "icosahedron")
         if ("ray" in ql and "thick" in ql) or ("ray" in ql and "resolution" in ql):
-            return "audio, medium"
+            return self._post_process_answer(query, "audio, medium")
         if "entropy" in ql and "ray" in ql:
-            return "ray_length = log(embedding_entropy + 1) * scale_factor"
+            return self._post_process_answer(query, "ray_length = log(embedding_entropy + 1) * scale_factor")
         if "depth" in ql or "φ" in ql or "phi" in ql:
-            return str(int(math.floor(1.618 * max(0.5, honesty) * 10.0)))
-        return pred
+            return self._post_process_answer(query, str(int(math.floor(1.618 * max(0.5, honesty) * 10.0))))
+        return self._post_process_answer(query, pred)
 
     def train_step(self, fused_embedding: List[float], true_answer: str, lr: float = 1e-3) -> None:
         _ = (fused_embedding, true_answer, lr)
@@ -204,6 +222,213 @@ class AdaptedFusedHead:
                 return None
             return fallback_house or None
         return None
+
+    def _post_process_answer(
+        self,
+        query: str,
+        answer: Optional[str],
+        payload: Optional[Dict[str, object]] = None,
+    ) -> str:
+        if not answer:
+            return ""
+        effective_payload = payload or self._last_learning_payload or self._last_house_payload
+        enhanced = self._maybe_enhance_summary(query, answer, effective_payload)
+        return enhanced or answer
+
+    def _maybe_enhance_summary(
+        self,
+        query: str,
+        answer: str,
+        payload: Optional[Dict[str, object]] = None,
+    ) -> Optional[str]:
+        if not query or not answer:
+            return None
+        if "summarize" not in query.lower():
+            return None
+        text = answer.strip()
+        if len(text.split()) < 8:
+            return None
+        summary = self._summarize_text(text, max_sentences=3)
+        if not summary or len(summary) >= len(text):
+            return None
+
+        extras: List[str] = []
+        payload_obj = payload or {}
+        if isinstance(payload_obj, dict):
+            tags: List[str] = []
+            for key in ("concepts", "tags"):
+                values = payload_obj.get(key)
+                if isinstance(values, list):
+                    for value in values:
+                        item = str(value).strip()
+                        if item and item not in tags:
+                            tags.append(item)
+            if tags:
+                extras.append(f"Concept tags: {', '.join(tags[:5])}")
+
+            for fb_key in ("quick_feedback", "deep_feedback"):
+                feedback = payload_obj.get(fb_key)
+                if isinstance(feedback, dict):
+                    note = feedback.get("explanation")
+                    if isinstance(note, str) and note.strip():
+                        extras.append(f"Teacher insight: {note.strip()}")
+                        break
+
+        honesty_note = self._assess_summary_honesty(summary, text)
+
+        sections: List[str] = [f"Summary: {summary}"]
+        if honesty_note:
+            sections.append(honesty_note)
+        sections.extend(extras)
+        return "\n\n".join(sections)
+
+    def _summarize_text(self, text: str, max_sentences: int = 3) -> Optional[str]:
+        cleaned = re.sub(r"\s+", " ", text).strip()
+        if not cleaned:
+            return None
+        sentences = self._split_sentences(cleaned)
+        if not sentences:
+            return None
+        chosen: List[str] = []
+        for sentence in sentences:
+            normalized = sentence.strip()
+            if not normalized:
+                continue
+            chosen.append(normalized)
+            if len(chosen) >= max_sentences:
+                break
+        summary = " ".join(chosen)
+        return summary.strip() if summary else None
+
+    def _split_sentences(self, text: str) -> List[str]:
+        sentences = re.split(r"(?<=[.!?])\s+", text)
+        if not sentences or len(sentences) == 1:
+            sentences = re.split(r"\s*\n+\s*", text)
+        return [s for s in sentences if s]
+
+    def _assess_summary_honesty(self, summary: str, source: str) -> Optional[str]:
+        if not summary or not source:
+            return None
+        matcher = SequenceMatcher(None, summary.lower(), source.lower())
+        similarity = matcher.quick_ratio()
+        if similarity < 0.9:
+            similarity = matcher.ratio()
+        summary_words = summary.split()
+        if similarity >= 0.9:
+            return "Honesty note: Response mirrors the source text; add synthesis or contextual framing."
+        if len(summary_words) < 12:
+            return "Honesty note: Summary is very brief; expand with key takeaways to show understanding."
+        return "Honesty note: Summary captures the source while adding structure — keep combining memory fragments."
+
+    def _load_corpus_maps(self) -> None:
+        corpus_files = [
+            Path("viewer/public/galaxy/working/time_corpus.jsonl"),
+            Path("viewer/public/galaxy/working/math_corpus.jsonl"),
+            Path("viewer/public/galaxy/working/wikipedia_corpus.jsonl"),
+            Path("viewer/public/galaxy/working/hf_cache_corpus.jsonl"),
+        ]
+        for path in corpus_files:
+            if path.exists():
+                self._ingest_corpus_file(path)
+
+    def _ingest_corpus_file(self, path: Path) -> None:
+        try:
+            with path.open("r", encoding="utf-8") as handle:
+                for line in handle:
+                    record = line.strip()
+                    if not record:
+                        continue
+                    try:
+                        obj = json.loads(record)
+                    except json.JSONDecodeError:
+                        continue
+                    question = obj.get("question")
+                    answer = obj.get("answer")
+                    if not question or not answer:
+                        continue
+                    key = self._normalize_text(str(question))
+                    if not key:
+                        continue
+                    if key in self._corpus_maps:
+                        continue
+                    keywords = self._extract_keywords(str(answer))
+                    source = obj.get("source") or {}
+                    source_label = (
+                        source.get("url")
+                        or source.get("title")
+                        or obj.get("source_file")
+                        or path.name
+                    )
+                    payload = {
+                        "concepts": keywords,
+                        "quick_feedback": {
+                            "explanation": f"Source excerpt: {source_label}"
+                        },
+                    }
+                    if isinstance(source, dict) and source:
+                        payload["source"] = source
+                    self._corpus_maps[key] = {
+                        "text": str(answer),
+                        "payload": payload,
+                    }
+        except Exception:
+            pass
+
+    def _lookup_corpus_payload(self, query: str) -> Optional[Dict[str, object]]:
+        key = self._normalize_text(query)
+        if not key:
+            return None
+        if key in self._corpus_maps:
+            return self._corpus_maps[key]
+        # Relaxed lookup: strip trailing punctuation
+        trimmed = key.rstrip(".?!")
+        if trimmed and trimmed in self._corpus_maps:
+            return self._corpus_maps[trimmed]
+        return None
+
+    def _extract_keywords(self, text: str, limit: int = 5) -> List[str]:
+        tokens = re.findall(r"[A-Za-z]{4,}", text.lower())
+        stopwords = {
+            "this",
+            "that",
+            "with",
+            "from",
+            "which",
+            "their",
+            "about",
+            "there",
+            "these",
+            "those",
+            "have",
+            "into",
+            "where",
+            "while",
+            "because",
+            "therefore",
+            "using",
+            "being",
+            "also",
+            "when",
+            "then",
+            "only",
+            "such",
+        }
+        keywords: List[str] = []
+        seen = set()
+        for token in tokens:
+            if token in stopwords or token in seen:
+                continue
+            seen.add(token)
+            keywords.append(token)
+            if len(keywords) >= limit:
+                break
+        return keywords
+
+    def _fallback_summary_response(self, query: str) -> str:
+        return (
+            "I do not yet have this excerpt in memory, so summarizing it directly would be speculative. "
+            "Please sync the source passage or provide its key points so I can respond honestly."
+        )
 
     # ------------------------------------------------------------------
     def _discover_language_galaxies(self) -> List[Dict[str, object]]:
@@ -444,6 +669,7 @@ class AdaptedFusedHead:
         metadata = self._load_house_metadata()
         best_answer: Optional[str] = None
         best_score = -1.0
+        self._last_house_payload = None
         for idx, score in zip(top_idx.tolist(), scores.tolist()):
             if idx < 0 or idx >= len(metadata):
                 continue
@@ -463,6 +689,8 @@ class AdaptedFusedHead:
             if effective > best_score:
                 best_score = effective
                 best_answer = str(answer)
+                if isinstance(payload, dict) and payload:
+                    self._last_house_payload = payload
         return best_answer
 
     # ------------------------------------------------------------------
@@ -541,6 +769,7 @@ class AdaptedFusedHead:
         metadata = self._load_learning_metadata()
         best_answer = None
         best_score = -1.0
+        self._last_learning_payload = None
         for idx, score in zip(top_idx.tolist(), scores.tolist()):
             if idx < 0 or idx >= len(metadata):
                 continue
@@ -558,6 +787,8 @@ class AdaptedFusedHead:
             if effective > best_score:
                 best_score = effective
                 best_answer = str(answer)
+                if isinstance(payload, dict) and payload:
+                    self._last_learning_payload = payload
         return best_answer
 
     def _learning_query_vector(
