@@ -35,6 +35,7 @@ extern "C" __device__ float expf(float);
 extern "C" __device__ float logf(float);
 extern "C" __device__ float log10f(float);
 extern "C" __device__ float powf(float, float);
+extern "C" __device__ float fabsf(float);
 
 extern "C" {
 
@@ -215,6 +216,32 @@ __global__ void modular_rpn_geometric_kernel(
                 push(inst, make_float4(tanhf(a.x), 0.f, 0.f, 0.f));
                 break;
             }
+            case 33: { // sigmoid
+                if (!pop(inst, a)) { inst.error = 1002; return; }
+                float val = 1.f / (1.f + expf(-a.x));
+                push(inst, make_float4(val, 0.f, 0.f, 0.f));
+                break;
+            }
+            case 34: { // abs
+                if (!pop(inst, a)) { inst.error = 1002; return; }
+                float4 out;
+                out.x = fabsf(a.x);
+                out.y = fabsf(a.y);
+                out.z = fabsf(a.z);
+                out.w = fabsf(a.w);
+                push(inst, out);
+                break;
+            }
+            case 35: { // relu
+                if (!pop(inst, a)) { inst.error = 1002; return; }
+                float4 out;
+                out.x = fmaxf(0.f, a.x);
+                out.y = fmaxf(0.f, a.y);
+                out.z = fmaxf(0.f, a.z);
+                out.w = fmaxf(0.f, a.w);
+                push(inst, out);
+                break;
+            }
             case 40: { // gt
                 if (!pop(inst, b) || !pop(inst, a)) { inst.error = 1002; return; }
                 float val = (a.x > b.x) ? 1.f : 0.f;
@@ -383,6 +410,9 @@ class ModularRPNEngine:
         "sinh": 30,
         "cosh": 31,
         "tanh": 32,
+        "sigmoid": 33,
+        "abs": 34,
+        "relu": 35,
         "gt": 40,
         "lt": 42,
         "eq": 44,

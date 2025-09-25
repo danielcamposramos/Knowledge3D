@@ -9,6 +9,7 @@ from knowledge3d.cranium.phase10.modular_rpn_engine import ModularRPNEngine
 from knowledge3d.cranium.phase10.text_to_3d_generator import TextTo3DGenerator
 from knowledge3d.cranium.ptx.galaxy_buffer import GalaxyGPUMemory
 from knowledge3d.cranium.ptx.geometry_ops import PTXGeometrySession
+from knowledge3d.cranium.ptx.modality_ops import PTXModalityOps
 
 
 class PTXOps:
@@ -18,16 +19,58 @@ class PTXOps:
         self._rpn_engine = ModularRPNEngine()
         self._shape_generator = TextTo3DGenerator()
         self._geometry_session = PTXGeometrySession()
+        self._modality_ops = PTXModalityOps()
 
     # ------------------------------------------------------------------
-    def evaluate_rpn(self, expression: str) -> float:
+    def evaluate_rpn(self, expression: str, variables: Optional[Dict[str, float]] = None) -> float:
         """Evaluate an RPN expression on the GPU and return the first scalar result."""
-        result = self._rpn_engine.evaluate(expression)
+        result = self._rpn_engine.evaluate(expression, variables=variables)
         if isinstance(result, np.ndarray):
             if result.size == 0:
                 raise RuntimeError("RPN engine returned empty result vector")
             return float(result.ravel()[0])
         return float(result)
+
+    # ------------------------------------------------------------------
+    _MODALITY_EXPRESSIONS: Dict[str, str] = {
+        "text": "length_norm 0.25 * mean_norm 0.25 * + std_norm 0.2 * + hist_entropy 0.15 * + vowel_ratio 0.15 * + sigmoid",
+        "audio": "abs_mean 0.2 * rms 0.3 * + energy 0.3 * + band_uniformity 0.2 * + sigmoid",
+        "image": "brightness_std 0.3 * saturation_std 0.3 * + colorfulness 0.2 * + dynamic_range 0.2 * + sigmoid",
+        "video": "motion_mean 0.3 * motion_std 0.2 * + brightness_std 0.2 * + saturation_std 0.1 * + hist_entropy 0.2 * + sigmoid",
+    }
+
+    def text_modality(self, text: str) -> Dict[str, Any]:
+        features, metrics = self._modality_ops.text_features(text)
+        return self._prepare_modality_response("text", features, metrics)
+
+    def audio_modality(self, path: str) -> Dict[str, Any]:
+        features, metrics = self._modality_ops.audio_features(path)
+        return self._prepare_modality_response("audio", features, metrics)
+
+    def image_modality(self, path: str) -> Dict[str, Any]:
+        features, metrics = self._modality_ops.image_features(path)
+        return self._prepare_modality_response("image", features, metrics)
+
+    def video_modality(self, path: str) -> Dict[str, Any]:
+        features, metrics = self._modality_ops.video_features(path)
+        return self._prepare_modality_response("video", features, metrics)
+
+    def _prepare_modality_response(
+        self,
+        modality: str,
+        features: np.ndarray,
+        metrics: Dict[str, float],
+    ) -> Dict[str, Any]:
+        expression = self._MODALITY_EXPRESSIONS.get(modality)
+        confidence = 0.5
+        if expression:
+            confidence = self.evaluate_rpn(expression, variables=metrics)
+            confidence = max(0.0, min(1.0, confidence))
+        return {
+            "features": [float(x) for x in features.reshape(-1)],
+            "metrics": {k: float(v) for k, v in metrics.items()},
+            "confidence": confidence,
+        }
 
     def generate_shape(self, prompt: str, vertex_count: int = 32, shape_hint: Optional[int] = None) -> str:
         """Generate a GLB path for a prompt-driven shape using the PTX geometry kernel."""
