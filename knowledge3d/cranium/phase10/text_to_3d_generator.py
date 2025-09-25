@@ -34,7 +34,7 @@ class TextTo3DGenerator:
         if honesty < float(honesty_threshold):
             raise ValueError(f"🚫 Text too dishonest (score: {honesty:.2f}) — cannot generate 3D.")
 
-        shape = self._predict_shape_type(emb)
+        shape = self._predict_shape_type(emb, text)
         # Attempt GPU vertex generation via PTX mock
         faces: np.ndarray
         vertices: np.ndarray
@@ -167,7 +167,7 @@ class TextTo3DGenerator:
         h = 0.5 + 0.5 * np.sin(float(np.mean(emb)))
         return float(np.clip(h, 0.0, 1.0))
 
-    def _predict_shape_type(self, emb: np.ndarray) -> str:
+    def _predict_shape_type(self, emb: np.ndarray, text: str = "") -> str:
         s = float(np.sum(emb * 1000.0))
         idx = int(abs(s)) % 5
         lowered = (text or "").lower()
