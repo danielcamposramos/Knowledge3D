@@ -57,10 +57,15 @@ class DreamEngine:
             return np.random.randn(16, 512).astype(np.float32)
 
     def _drift_honesty(self, cand: np.ndarray, origin: np.ndarray) -> float:
-        dist = float(np.linalg.norm(cand - origin))
-        base = max(0.0, 1.0 - 0.3 * dist)
-        noise = float(np.random.normal(0.0, 0.08))
-        return float(min(1.0, max(0.0, base + noise)))
+        diff = cand - origin
+        if diff.size == 0:
+            return 0.85
+        scaled_dist = float(np.linalg.norm(diff) / (np.sqrt(diff.size) + 1e-6))
+        base = float(np.exp(-0.5 * (scaled_dist / 1.5) ** 2))
+        noise = float(np.random.normal(0.0, 0.05))
+        honesty = base * 1.15 + 0.05 + noise
+        honesty = max(0.1, min(1.0, honesty))
+        return float(honesty)
 
     def generate_dream_embedding(self, base: np.ndarray, honesty_bias: float = 0.7) -> np.ndarray:
         if base.size == 0:
@@ -175,4 +180,3 @@ class DreamEngine:
             except Exception as e:
                 print(f"⚠️  Dream failed: {e}")
         return out
-

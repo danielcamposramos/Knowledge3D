@@ -79,4 +79,3 @@ class GalaxyStateSerializer:
         except Exception as e:
             print(f"⚠️  Failed to load Galaxy state: {e}")
             return None
-
