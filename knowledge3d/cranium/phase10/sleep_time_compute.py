@@ -111,6 +111,7 @@ class SleepTimeCompute:
 
     def load_galaxy(self) -> List[Dict[str, Any]]:
         """Load Galaxy GLB — extract stars, honesty scores, chat logs, reflections (best-effort)."""
+        self._ensure_galaxy_glb_materialised()
         model = _load_glb(str(self.galaxy_path))
         stars: List[Dict[str, Any]] = []
         for node in model.nodes:
@@ -131,6 +132,50 @@ class SleepTimeCompute:
                     'embedding': list(k3d.get('embedding', [])),
                 })
         return stars
+
+    def _ensure_galaxy_glb_materialised(self) -> None:
+        if self.galaxy_path.exists():
+            return
+        working_dir = Path('viewer/public/galaxy/working')
+        star_files = sorted(working_dir.glob('star_*.json'))
+        if not star_files:
+            raise FileNotFoundError(
+                f"Galaxy GLB missing ({self.galaxy_path}) and no star JSON files found in {working_dir}."
+            )
+        try:
+            from pygltflib import GLTF2, Asset, Scene, Node  # type: ignore
+        except Exception as exc:  # pragma: no cover
+            raise RuntimeError(f"Unable to build Galaxy GLB (pygltflib unavailable): {exc}")
+
+        nodes = []
+        for idx, star_path in enumerate(star_files):
+            try:
+                star = json.loads(star_path.read_text(encoding='utf-8'))
+            except Exception as exc:
+                print(f"⚠️  Skipping malformed star JSON {star_path}: {exc}")
+                continue
+            k3d_payload = dict(star)
+            k3d_payload.setdefault('type', 'star')
+            k3d_payload.setdefault('id', star_path.stem)
+            k3d_payload.setdefault('position', [0.0, 0.0, 0.0])
+            node = Node(
+                name=k3d_payload.get('id'),
+                extras={'k3d': k3d_payload},
+            )
+            nodes.append(node)
+
+        if not nodes:
+            raise RuntimeError("No valid star JSON files available to rebuild Galaxy GLB.")
+
+        gltf = GLTF2(
+            asset=Asset(generator="k3d-galaxy-json-builder"),
+            nodes=nodes,
+            scenes=[Scene(nodes=list(range(len(nodes))))],
+            scene=0,
+        )
+        self.galaxy_path.parent.mkdir(parents=True, exist_ok=True)
+        gltf.save(str(self.galaxy_path))
+        print(f"💠 Rebuilt Galaxy GLB from JSON stars → {self.galaxy_path}")
 
     def _write_json(self, path: Path, data: Dict[str, Any]) -> str:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -261,6 +306,7 @@ class SleepTimeCompute:
                         manifest=str(self.learning_memory_manifest),
                         limit=None,
                         label="Learning Memory Galaxy",
+                        embedding_dim=512,
                     )
                     build_learning_memory(args)
                     print("💾 Learning memory GLB rebuilt.")
@@ -390,6 +436,18 @@ class SleepTimeCompute:
         # Prepare Galaxy working dir for pre‑consolidation drafts
         working_dir = Path('viewer/public/galaxy/working')
         working_dir.mkdir(parents=True, exist_ok=True)
+        # Clear stale dream artifacts so they do not accumulate between cycles
+        for stale in list(working_dir.glob('dream_*.glb')):
+            try:
+                stale.unlink()
+            except Exception:
+                pass
+            rays = stale.with_name(f"rays_{stale.stem}.glb")
+            if rays.exists():
+                try:
+                    rays.unlink()
+                except Exception:
+                    pass
         generated_paths: list[str] = []
 
         # Phase 13: Autonomous synthesis + curriculum (drafts to Galaxy working dir)
@@ -511,6 +569,25 @@ class SleepTimeCompute:
                     print(f"📊 {Path(cyc['shape']).name}: {cyc['revisions']} revisions, final honesty {float(cyc['final_honesty']):.2f} → {cyc['status']}")
                 except Exception:
                     pass
+            # Remove working copies for consolidated or discarded shapes
+            for cyc in critique_cycles:
+                status = cyc.get('status')
+                shape_path = Path(cyc.get('shape')) if cyc.get('shape') else None
+                if shape_path is None:
+                    continue
+                should_remove = status in {'discarded', 'consolidated', 'consolidated_no_critique'}
+                if not should_remove:
+                    continue
+                try:
+                    shape_path.unlink(missing_ok=True)
+                except Exception:
+                    pass
+                rays = shape_path.with_name(f"rays_{shape_path.stem}.glb")
+                if rays.exists():
+                    try:
+                        rays.unlink()
+                    except Exception:
+                        pass
             # Phase 16: Reflect and (mock) train
             try:
                 from ..phase16.post_consolidation_reflector import PostConsolidationReflector  # type: ignore

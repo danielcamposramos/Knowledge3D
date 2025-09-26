@@ -51,6 +51,8 @@ LANGUAGE_GALAXY_DIR = Path("viewer/public/galaxy")
 
 _HYPHEN_RE = re.compile(r"(\w)-\s+(\w)")
 _SIGNIFICANT_EVENT_RE = re.compile(r"^what significant event happened in \d{1,3}\??$", re.IGNORECASE)
+_BOXED_ANSWER_RE = re.compile(r"\\boxed\{\s*([0-9]{1,3})\s*\}")
+_NUMERIC_TOKEN_RE = re.compile(r"\b\d{1,3}\b")
 
 
 class _TeeStream(io.TextIOBase):
@@ -107,6 +109,7 @@ class AlgorithmicThinkingTrainer:
         self._teaching_corpus: List[Dict[str, Any]] = []
         self._research_corpus: List[Dict[str, Any]] = []
         self._lexicon_corpus: List[Dict[str, Any]] = []
+        self._meta_math_corpus: List[Dict[str, Any]] = []
         self._aime_queue: List[Dict[str, Any]] = []
         self._language_galaxies: List[Dict[str, Any]] = []
         if RPNCalculator is None:
@@ -185,6 +188,8 @@ class AlgorithmicThinkingTrainer:
                 self._time_corpus = self._load_jsonl(Path("viewer/public/galaxy/working/time_corpus.jsonl"), 200)
             if not self._math_corpus:
                 self._math_corpus = self._load_jsonl(Path("viewer/public/galaxy/working/math_corpus.jsonl"), 300)
+            if not self._meta_math_corpus:
+                self._meta_math_corpus = self._load_meta_math_corpus(limit=self._get_env_int("K3D_META_MATH_LIMIT", 200))
             if not self._reflection_corpus:
                 self._reflection_corpus = self._load_jsonl(Path("viewer/public/galaxy/working/self_reflection_corpus.jsonl"), 200)
             if not self._context_corpus:
@@ -209,28 +214,55 @@ class AlgorithmicThinkingTrainer:
                 print(f"⚠️  K3D fused head warmup failed: {exc}")
 
             teacher = None
-            try:
-                from knowledge3d.cranium.phase10.teacher_evaluator import TeacherEvaluator  # type: ignore
+            disable_teacher = str(os.environ.get("K3D_DISABLE_TEACHER", "0")).lower() in {"1", "true", "yes"}
+            if disable_teacher:
+                print("ℹ️ TeacherEvaluator disabled via K3D_DISABLE_TEACHER.")
+            else:
+                try:
+                    from knowledge3d.cranium.phase10.teacher_evaluator import TeacherEvaluator  # type: ignore
 
-                teacher = TeacherEvaluator(
-                    ollama_url="http://192.168.0.4:11434",
-                    initial_timeout=420,
-                    timeout=300,
-                )
-                print("🧑‍🏫 Teacher ready: exaone-deep:latest")
-            except Exception as exc:
-                print(f"⚠️  TeacherEvaluator unavailable — falling back to house honesty evaluator: {exc}")
+                    teacher = TeacherEvaluator(
+                        ollama_url="http://192.168.0.4:11434",
+                        initial_timeout=420,
+                        timeout=300,
+                    )
+                    print("🧑‍🏫 Teacher ready: exaone-deep:latest")
+                except Exception as exc:
+                    print(f"⚠️  TeacherEvaluator unavailable — falling back to house honesty evaluator: {exc}")
+
+            def _env_limit(name: str) -> Optional[int]:
+                raw = os.environ.get(name)
+                if raw is None or str(raw).strip() == "":
+                    return None
+                try:
+                    value = int(str(raw).strip())
+                except (TypeError, ValueError):
+                    return None
+                return max(1, value)
+
+            star_limit = _env_limit("K3D_AT_MAX_STARS")
+            total_limit = _env_limit("K3D_AT_MAX_QUERIES")
 
             star_batches: List[Tuple[Dict[str, Any], List[Dict[str, Any]]]] = []
             total_queries = 0
-            for star in stars:
+            for index, star in enumerate(stars):
+                if star_limit is not None and index >= star_limit:
+                    break
                 queries = self.generate_rpn_queries(star)
                 if not queries:
                     star_name = star.get("name", star.get("id", "unknown"))
                     print(f"⚠️  No queries generated for star {star_name} — skipping.")
                     continue
+                if total_limit is not None:
+                    remaining = total_limit - total_queries
+                    if remaining <= 0:
+                        break
+                    if len(queries) > remaining:
+                        queries = queries[:remaining]
                 star_batches.append((star, queries))
                 total_queries += len(queries)
+                if total_limit is not None and total_queries >= total_limit:
+                    break
 
             if not star_batches:
                 print("⚠️  No training queries produced from algorithmic thinking stars.")
@@ -260,7 +292,9 @@ class AlgorithmicThinkingTrainer:
                     print(f"Q: {prompt}")
                     print(f"🧠 Student Answer: {predicted}")
 
-                    exact_match = predicted.strip().lower() == true_answer.strip().lower()
+                    true_canonical = self._normalize_numeric_answer(true_answer) or true_answer.strip()
+                    predicted_canonical = self._normalize_numeric_answer(predicted) or predicted.strip()
+                    exact_match = predicted_canonical.lower() == true_canonical.lower()
                     if exact_match:
                         score = 1.0
                         explanation_text = "Auto-validated exact match with expected answer."
@@ -427,6 +461,19 @@ class AlgorithmicThinkingTrainer:
                         "keywords": [tag],
                     }
                 )
+        for entry in self._meta_math_corpus:
+            question = entry.get("question", "")
+            answer = entry.get("answer", "")
+            if not question or not answer:
+                continue
+            queries.append(
+                {
+                    "query": question,
+                    "true_answer": answer,
+                    "explanation": entry.get("explanation", answer),
+                    "keywords": ["meta_math"],
+                }
+            )
         for entry in getattr(self, "_lexicon_corpus", []):
             question = entry.get("question", "")
             answer = entry.get("answer", "")
@@ -542,6 +589,7 @@ class AlgorithmicThinkingTrainer:
             manifest=str(Path("viewer/public/galaxy/learning_memory.json")),
             limit=None,
             label="Learning Memory Galaxy",
+            embedding_dim=512,
         )
         build_learning_memory(args)
         print("💾 Learning memory galaxy refreshed (trainer).")
@@ -933,6 +981,54 @@ class AlgorithmicThinkingTrainer:
                     break
         return entries
 
+    def _load_meta_math_corpus(self, limit: int) -> List[Dict[str, Any]]:
+        try:
+            from datasets import load_dataset  # type: ignore
+        except Exception as exc:
+            print(f"⚠️  datasets package unavailable for meta-math corpus: {exc}")
+            return []
+
+        desired_locale = "C.UTF-8"
+        os.environ.setdefault("PYTHONIOENCODING", "utf-8")
+        os.environ.setdefault("PYTHONUTF8", "1")
+        for var in ("LC_ALL", "LANG", "LC_CTYPE"):
+            current = os.environ.get(var, "")
+            if not current or current.lower() in {"c", "posix"}:
+                os.environ[var] = desired_locale
+        try:
+            locale.setlocale(locale.LC_ALL, os.environ.get("LC_ALL", desired_locale))
+        except locale.Error:
+            pass
+
+        sample: List[Dict[str, Any]] = []
+        try:
+            ds = load_dataset("meta-math/MetaMathQA", split="train", streaming=False)
+        except Exception as exc:
+            print(f"⚠️  Unable to load meta-math dataset: {exc}")
+            return []
+
+        for idx, row in enumerate(ds):
+            if idx >= limit:
+                break
+            prompt = str(row.get("problem") or row.get("question") or row.get("query") or "").strip()
+            raw_response = str(row.get("solution") or row.get("answer") or row.get("response") or "").strip()
+            answer = raw_response
+            if "The answer is:" in raw_response:
+                tail = raw_response.split("The answer is:")[-1].strip()
+                # Remove trailing punctuation or TeX box wrappers.
+                answer = tail.strip().strip(".")
+            if not prompt or not answer:
+                continue
+            sample.append(
+                {
+                    "question": f"META-MATH: {prompt}",
+                    "answer": answer,
+                    "explanation": row.get("rationale") or raw_response,
+                }
+            )
+        print(f"📘 Loaded {len(sample)} MetaMathQA prompts for reinforcement.")
+        return sample
+
     def _normalize_text(self, text: str) -> str:
         if not text:
             return text
@@ -1002,6 +1098,36 @@ class AlgorithmicThinkingTrainer:
         if prompt.strip() in self._retired_prompts:
             return False
         return True
+
+    def _normalize_numeric_answer(self, text: str | None) -> Optional[str]:
+        if not text:
+            return None
+        raw = str(text).strip()
+        if not raw:
+            return None
+        boxed = _BOXED_ANSWER_RE.findall(raw)
+        if boxed:
+            try:
+                value = int(boxed[-1])
+                return f"{value:03d}"
+            except ValueError:
+                pass
+        cleaned = raw.replace("$", " ").replace("−", "-")
+        tokens = _NUMERIC_TOKEN_RE.findall(cleaned)
+        for candidate in reversed(tokens):
+            try:
+                value = int(candidate)
+            except ValueError:
+                continue
+            if 0 <= value <= 999:
+                return f"{value:03d}"
+        return None
+
+    def _format_aime_answer(self, answer: str) -> str:
+        normalized = self._normalize_numeric_answer(answer)
+        if normalized is not None:
+            return normalized
+        return answer.strip()
 
     def _prepare_aime_prompts(self, max_items: int = 30) -> None:
         if self._aime_queue:
@@ -1109,11 +1235,12 @@ class AlgorithmicThinkingTrainer:
                 if key in seen_ids:
                     continue
                 seen_ids.add(key)
+                normalized_answer = self._format_aime_answer(answer_str)
                 prompts.append(
                     {
                         "query": f"AIME problem {problem_id}: {question}",
-                        "true_answer": answer_str,
-                        "explanation": f"Official AIME answer: {answer_str}.",
+                        "true_answer": normalized_answer,
+                        "explanation": f"Official AIME answer: {normalized_answer}.",
                         "keywords": ["AIME", problem_id],
                     }
                 )
@@ -1157,11 +1284,12 @@ class AlgorithmicThinkingTrainer:
                     if key in seen_ids:
                         continue
                     seen_ids.add(key)
+                    normalized_answer = self._format_aime_answer(answer_str)
                     prompts.append(
                         {
                             "query": f"AIME problem {problem_id}: {question}",
-                            "true_answer": answer_str,
-                            "explanation": f"Official AIME answer: {answer_str}.",
+                            "true_answer": normalized_answer,
+                            "explanation": f"Official AIME answer: {normalized_answer}.",
                             "keywords": ["AIME", problem_id],
                         }
                     )
