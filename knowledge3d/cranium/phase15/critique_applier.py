@@ -15,6 +15,7 @@ class CritiqueApplier:
         self.material_dir = Path(material_dir)
         self.galaxy_working_dir = Path(galaxy_working_dir)
         self.galaxy_working_dir.mkdir(parents=True, exist_ok=True)
+        self.target_honesty = 0.9
 
     def apply_shape_critique(self, glb_path: str, revision: int, delta: float = 0.15) -> str:
         p = Path(glb_path)
@@ -38,7 +39,9 @@ class CritiqueApplier:
                     try:
                         nh = float(h) + float(delta)
                     except Exception:
-                        nh = 0.5 + delta
+                        nh = 0.5 + float(delta)
+                    if self.target_honesty:
+                        nh = max(nh, float(self.target_honesty))
                     k3d['honesty_score'] = float(min(1.0, nh))
                     # restore back into node extras
                     n.extras = {'k3d': k3d}
@@ -59,4 +62,3 @@ class CritiqueApplier:
             gltf.save(str(out.with_suffix('.gltf')))
             out = out.with_suffix('.gltf')
         return str(out)
-
