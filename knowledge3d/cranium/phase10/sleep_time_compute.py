@@ -501,9 +501,11 @@ class SleepTimeCompute:
             critique_cycles: list[dict] = []
             for shape_path in list(generated_paths):
                 current_path = str(shape_path)
+                revision_history: list[str] = [current_path]
                 revision = 0
                 max_revisions = 3
                 honesty_score = 0.5
+                cycle_recorded = False
                 while revision < max_revisions:
                     # read honesty
                     h = 0.5
@@ -527,7 +529,8 @@ class SleepTimeCompute:
                     if honesty_score >= 0.85:
                         print(f"✅ Shape {Path(current_path).stem} passed honesty threshold ({honesty_score:.2f}) at revision {revision}")
                         final_shapes.append(current_path)
-                        critique_cycles.append({'shape': current_path, 'revisions': revision, 'final_honesty': honesty_score, 'status': 'consolidated'})
+                        critique_cycles.append({'shape': current_path, 'revisions': revision, 'final_honesty': honesty_score, 'status': 'consolidated', 'revision_history': list(revision_history)})
+                        cycle_recorded = True
                         break
                     # critique and apply
                     ce = HonestCritiqueEngine(str(self.material_dir), str(self.galaxy_path))
@@ -535,11 +538,25 @@ class SleepTimeCompute:
                     if not crits:
                         print(f"✅ No critiques for {Path(current_path).name} — accepting as-is.")
                         final_shapes.append(current_path)
-                        critique_cycles.append({'shape': current_path, 'revisions': revision, 'final_honesty': honesty_score, 'status': 'consolidated_no_critique'})
+                        critique_cycles.append({'shape': current_path, 'revisions': revision, 'final_honesty': honesty_score, 'status': 'consolidated_no_critique', 'revision_history': list(revision_history)})
+                        cycle_recorded = True
                         break
                     ap = CritiqueApplier(str(self.material_dir), str(working_dir))
                     try:
+                        previous_path = current_path
                         new_path = ap.apply_shape_critique(current_path, revision=revision+1, delta=0.15)
+                        revision_history.append(new_path)
+                        # Remove the previous revision to avoid stale working copies piling up.
+                        try:
+                            Path(previous_path).unlink(missing_ok=True)
+                        except Exception:
+                            pass
+                        rays_prev = Path(previous_path).with_name(f"rays_{Path(previous_path).stem}.glb")
+                        if rays_prev.exists():
+                            try:
+                                rays_prev.unlink()
+                            except Exception:
+                                pass
                         current_path = new_path
                         revision += 1
                         print(f"🔧 Revised {Path(current_path).stem}")
@@ -547,9 +564,12 @@ class SleepTimeCompute:
                         print(f"⚠️  Failed to revise {current_path}: {e}")
                         break
                 # handle fail/discard
-                if revision >= max_revisions and honesty_score < 0.85:
+                if not cycle_recorded and revision >= max_revisions and honesty_score < 0.85:
                     print(f"❌ Shape {Path(current_path).stem} failed to reach honesty threshold after {max_revisions} revisions — NOT consolidated.")
-                    critique_cycles.append({'shape': current_path, 'revisions': revision, 'final_honesty': honesty_score, 'status': 'discarded'})
+                    critique_cycles.append({'shape': current_path, 'revisions': revision, 'final_honesty': honesty_score, 'status': 'discarded', 'revision_history': list(revision_history)})
+                    cycle_recorded = True
+                if not cycle_recorded:
+                    critique_cycles.append({'shape': current_path, 'revisions': revision, 'final_honesty': honesty_score, 'status': 'aborted', 'revision_history': list(revision_history)})
 
             # Consolidate to House only final_shapes
             for f in final_shapes:
@@ -572,20 +592,30 @@ class SleepTimeCompute:
             # Remove working copies for consolidated or discarded shapes
             for cyc in critique_cycles:
                 status = cyc.get('status')
+                history = cyc.get('revision_history') or []
                 shape_path = Path(cyc.get('shape')) if cyc.get('shape') else None
-                if shape_path is None:
+                if shape_path is None and not history:
                     continue
-                should_remove = status in {'discarded', 'consolidated', 'consolidated_no_critique'}
+                should_remove = status in {'discarded', 'consolidated', 'consolidated_no_critique', 'aborted'}
                 if not should_remove:
                     continue
-                try:
-                    shape_path.unlink(missing_ok=True)
-                except Exception:
-                    pass
-                rays = shape_path.with_name(f"rays_{shape_path.stem}.glb")
-                if rays.exists():
+                paths_to_remove = {str(p) for p in history}
+                paths_to_remove.add(str(shape_path) if shape_path else "")
+                for p in filter(None, paths_to_remove):
                     try:
-                        rays.unlink()
+                        Path(p).unlink(missing_ok=True)
+                    except Exception:
+                        pass
+                    rays = Path(p).with_name(f"rays_{Path(p).stem}.glb")
+                    if rays.exists():
+                        try:
+                            rays.unlink()
+                        except Exception:
+                            pass
+                rays_final = shape_path.with_name(f"rays_{shape_path.stem}.glb") if shape_path else None
+                if rays_final and rays_final.exists():
+                    try:
+                        rays_final.unlink()
                     except Exception:
                         pass
             # Phase 16: Reflect and (mock) train
