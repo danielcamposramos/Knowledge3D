@@ -132,6 +132,19 @@ def _pre_normalize(expr: str) -> str:
     mode = (_os.environ.get("K3D_RPN_ROUND_MODE", "half_up").strip().lower())
     if mode in {"half_even", "bankers", "he"}:
         s = re.sub(r"\bround\s*\(", "round_he(", s)
+    # Textual patterns: sum/difference/product/quotient of A and B
+    # Make them non-greedy to the next ' and ' occurrence
+    s = re.sub(r"\bsum of\s+([^,;]+?)\s+and\s+([^,;]+)", r"(\1)+(\2)", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bdifference of\s+([^,;]+?)\s+and\s+([^,;]+)", r"(\1)-(\2)", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bproduct of\s+([^,;]+?)\s+and\s+([^,;]+)", r"(\1)*(\2)", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bquotient of\s+([^,;]+?)\s+and\s+([^,;]+)", r"(\1)/(\2)", s, flags=re.IGNORECASE)
+    # Word operators: plus/minus/times/divided by
+    s = re.sub(r"\bdivided by\b", "/", s, flags=re.IGNORECASE)
+    s = re.sub(r"\btimes\b", "*", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bplus\b", "+", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bminus\b", "-", s, flags=re.IGNORECASE)
+    # Remainder phrase → mod
+    s = re.sub(r"\bremainder of\s+([^,;]+?)\s+divided by\s+([^,;]+)", r"mod(\1,\2)", s, flags=re.IGNORECASE)
     return s
 
 

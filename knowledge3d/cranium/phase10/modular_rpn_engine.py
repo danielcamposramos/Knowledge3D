@@ -482,6 +482,8 @@ class ModularRPNEngine:
         self.max_instances = max_instances
         # Default to double precision; allow override via env
         self._use_double: bool = str(_os.environ.get("K3D_RPN_USE_DOUBLE", "1")).lower() not in {"0", "false", "no"}
+        # Optional exact combinatorics path (integer loops) to avoid gamma drift
+        self._exact_comb: bool = str(_os.environ.get("K3D_RPN_COMBINATORICS_EXACT", "1")).lower() not in {"0", "false", "no"}
         self._compile_kernel()
         self._allocate_state()
 
@@ -593,8 +595,42 @@ __global__ void modular_rpn_geometric_kernel(int instance_id, const unsigned sho
       case 63: if(!pop(s,a)){s.error=1002;return;} {scalar_t m=clamp_min(SQRT(a.x*a.x+a.y*a.y+a.z*a.z),(scalar_t)1e-12); push(s,VEC4(a.x/m,a.y/m,a.z/m,0.0));} break;
       case 64: if(!pop(s,b)||!pop(s,a)){s.error=1002;return;} { long long x=(long long) llround(a.x), y=(long long) llround(b.x); x=x<0?-x:x; y=y<0?-y:y; while(y!=0){ long long t=x%y; x=y; y=t;} push(s,VEC4((scalar_t)x,0.0,0.0,0.0)); } break;
       case 65: if(!pop(s,b)||!pop(s,a)){s.error=1002;return;} { long long x=(long long) llround(a.x), y=(long long) llround(b.x); long long ax=x<0?-x:x, ay=y<0?-y:y; long long u=ax,v=ay; while(v!=0){ long long t=u%v; u=v; v=t;} long long g=u; long long l=(ax==0||ay==0)?0:(ax/g)*ay; push(s,VEC4((scalar_t)l,0.0,0.0,0.0)); } break;
-      case 66: if(!pop(s,b)||!pop(s,a)){s.error=1002;return;} { scalar_t n=a.x, r=b.x; if(r<0.0||r>n){ push(s,VEC4(0.0,0.0,0.0,0.0)); break;} scalar_t val=EXP(LOG(tgamma(n+1.0))-LOG(tgamma(r+1.0))-LOG(tgamma(n-r+1.0))); push(s,VEC4(val,0.0,0.0,0.0)); } break;
-      case 67: if(!pop(s,b)||!pop(s,a)){s.error=1002;return;} { scalar_t n=a.x, r=b.x; if(r<0.0||r>n){ push(s,VEC4(0.0,0.0,0.0,0.0)); break;} scalar_t val=EXP(LOG(tgamma(n+1.0))-LOG(tgamma(n-r+1.0))); push(s,VEC4(val,0.0,0.0,0.0)); } break;
+      case 66: if(!pop(s,b)||!pop(s,a)){s.error=1002;return;} {
+        scalar_t n=a.x, r=b.x; if(r<0.0||r>n){ push(s,VEC4(0.0,0.0,0.0,0.0)); break;}
+#if USE_EXACT_COMB
+        long long nn=(long long) llround(n), rr=(long long) llround(r);
+        if (nn>=0 && rr>=0 && rr<=nn && nn<=200) {
+          if (rr > nn-rr) rr = nn-rr;
+          long double res=1.0L;
+          for (long long i=1;i<=rr;++i) {
+            res = (res * (nn-rr+i)) / i;
+          }
+          push(s, VEC4((scalar_t)res,0.0,0.0,0.0));
+        } else {
+          scalar_t val=EXP(LOG(tgamma(n+1.0))-LOG(tgamma(r+1.0))-LOG(tgamma(n-r+1.0)));
+          push(s,VEC4(val,0.0,0.0,0.0));
+        }
+#else
+        scalar_t val=EXP(LOG(tgamma(n+1.0))-LOG(tgamma(r+1.0))-LOG(tgamma(n-r+1.0)));
+        push(s,VEC4(val,0.0,0.0,0.0));
+#endif
+      } break;
+      case 67: if(!pop(s,b)||!pop(s,a)){s.error=1002;return;} {
+        scalar_t n=a.x, r=b.x; if(r<0.0||r>n){ push(s,VEC4(0.0,0.0,0.0,0.0)); break;}
+#if USE_EXACT_COMB
+        long long nn=(long long) llround(n), rr=(long long) llround(r);
+        if (nn>=0 && rr>=0 && rr<=nn && nn<=200) {
+          long double res=1.0L; for(long long k=0;k<rr;++k){ res *= (nn-k); }
+          push(s, VEC4((scalar_t)res,0.0,0.0,0.0));
+        } else {
+          scalar_t val=EXP(LOG(tgamma(n+1.0))-LOG(tgamma(n-r+1.0)));
+          push(s,VEC4(val,0.0,0.0,0.0));
+        }
+#else
+        scalar_t val=EXP(LOG(tgamma(n+1.0))-LOG(tgamma(n-r+1.0)));
+        push(s,VEC4(val,0.0,0.0,0.0));
+#endif
+      } break;
       case 70: { vec4_t axis,angle,v; if(!pop(s,axis)||!pop(s,angle)||!pop(s,v)){s.error=1002;return;} scalar_t ax=axis.x,ay=axis.y,az=axis.z; scalar_t norm=clamp_min(SQRT(ax*ax+ay*ay+az*az),(scalar_t)1e-12); ax/=norm; ay/=norm; az/=norm; scalar_t sn=SIN(angle.x), cs=COS(angle.x); scalar_t dot=ax*v.x+ay*v.y+az*v.z; vec4_t cr=VEC4(ay*v.z-az*v.y, az*v.x-ax*v.z, ax*v.y-ay*v.x,0.0); vec4_t out=VEC4(v.x*cs+cr.x*sn+ax*dot*(1.0-cs), v.y*cs+cr.y*sn+ay*dot*(1.0-cs), v.z*cs+cr.z*sn+az*dot*(1.0-cs),0.0); push(s,out);} break;
       case 71: if(!pop(s,a)){s.error=1002;return;} { scalar_t f=a.x; if(!pop(s,b)){s.error=1002;return;} push(s,VEC4(b.x*f,b.y*f,b.z*f,0.0)); } break;
       case 72: if(!pop(s,a)||!pop(s,b)){s.error=1002;return;} push(s,VEC4(b.x+a.x,b.y+a.y,b.z+a.z,0.0)); break;
@@ -618,6 +654,10 @@ __global__ void modular_rpn_geometric_kernel(int instance_id, const unsigned sho
             raise RuntimeError(f"nvrtcCreateProgram failed: {res}")
 
         opts = [b"--gpu-architecture=compute_70", b"--fmad=false", (b"-DUSE_DOUBLE=1" if self._use_double else b"-DUSE_DOUBLE=0")]
+        if self._exact_comb:
+            opts.append(b"-DUSE_EXACT_COMB=1")
+        else:
+            opts.append(b"-DUSE_EXACT_COMB=0")
         res, = nvrtc.nvrtcCompileProgram(prog, len(opts), opts)
         if res != 0:
             log_size_res, log_size = nvrtc.nvrtcGetProgramLogSize(prog)
