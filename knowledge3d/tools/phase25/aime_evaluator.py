@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from datasets import load_dataset  # type: ignore
+import pandas as _pd  # type: ignore
 
 from knowledge3d.tools.phase18.meaning_cluster_trainer import MeaningClusterTrainer  # type: ignore
 
@@ -63,13 +64,37 @@ def _extract_numeric_answer(text: str) -> Optional[int]:
     return None
 
 
+def _load_aime_records(limit: Optional[int] = None) -> List[dict]:
+    """Load AIME rows either via HF datasets or a local parquet cache.
+
+    Falls back to viewer/public/galaxy/working/aime_2024_problems.parquet to
+    avoid SciPy/Numpy import issues in some environments.
+    """
+    # Preferred: HuggingFace datasets
+    try:
+        ds = load_dataset(_DATASET_NAME)[_AIME_SPLIT]
+        n = len(ds) if limit is None else min(limit, len(ds))
+        return [ds[i] for i in range(n)]
+    except Exception:
+        pass
+    # Fallback: local parquet produced during training
+    cache_path = Path("viewer/public/galaxy/working/aime_2024_problems.parquet")
+    if not cache_path.exists():
+        raise RuntimeError(
+            "Unable to load AIME dataset (HF and local parquet both unavailable)."
+        )
+    df = _pd.read_parquet(cache_path)
+    if limit is not None:
+        df = df.head(int(limit))
+    return df.to_dict("records")
+
+
 def evaluate_aime(limit: Optional[int] = None) -> List[EvalRecord]:
-    dataset = load_dataset(_DATASET_NAME)[_AIME_SPLIT]
+    dataset = _load_aime_records(limit=limit)
     records: List[EvalRecord] = []
     trainer = MeaningClusterTrainer()
-    total = len(dataset) if limit is None else min(limit, len(dataset))
-    for idx in range(total):
-        row = dataset[idx]
+    total = len(dataset)
+    for idx, row in enumerate(dataset):
         problem_id = str(row.get("ID") or f"item_{idx}")
         question = str(row.get("Problem") or "")
         answer = int(row.get("Answer"))

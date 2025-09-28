@@ -18,6 +18,9 @@ from knowledge3d.cranium.ptx.ptx_ops import PTX_OPS
 from knowledge3d.skills.audio import embed_audio
 from knowledge3d.skills.video import embed_video
 from knowledge3d.skills.vision import embed_image
+from knowledge3d.skills.infix_to_rpn import infix_to_rpn, extract_math_expression, program_to_rpn
+from fractions import Fraction as _Fraction
+import os as _os
 
 
 class AdaptedFusedHead:
@@ -35,6 +38,18 @@ class AdaptedFusedHead:
         ).to(self.device)
         self.honesty_gate = nn.Linear(512, 1).to(self.device)
         self.predict_head = nn.Linear(512, 256).to(self.device)
+        # Math head: classify answers in the AIME range [0..999]
+        self.math_head = nn.Linear(512, 1000).to(self.device)
+        self._criterion = nn.CrossEntropyLoss().to(self.device)
+        self._opt = torch.optim.Adam(
+            [
+                {"params": self.projection.parameters(), "lr": 1e-4},
+                {"params": self.math_head.parameters(), "lr": 5e-4},
+            ]
+        )
+        self._math_ckpt_path = Path("viewer/public/house/house_math_head.pt")
+        self._load_math_head()
+        self._math_train_steps = 0
 
         self._shapes = [
             "tetrahedron",
@@ -105,6 +120,32 @@ class AdaptedFusedHead:
             except Exception:
                 pass
 
+        # Program → RPN path: handle simple assignments + expressions with registers
+        try:
+            prog_tokens = program_to_rpn(query or "")
+            if prog_tokens:
+                result = PTX_OPS.evaluate_rpn(" ".join(prog_tokens))
+                num = PTX_OPS.format_numeric(result)
+                return self._post_process_answer(
+                    query, f"\\boxed{{{self._format_rational(num)}}}\nTags: [logic, rpn, program]"
+                )
+        except Exception:
+            pass
+
+        # Infix → RPN path: parse math expressions in natural text and evaluate via PTX RPN
+        try:
+            expr = extract_math_expression(query or "")
+            if expr:
+                rpn_tokens = infix_to_rpn(expr)
+                if rpn_tokens:
+                    result = PTX_OPS.evaluate_rpn(" ".join(rpn_tokens))
+                    num = PTX_OPS.format_numeric(result)
+                    return self._post_process_answer(
+                        query, f"\\boxed{{{self._format_rational(num)}}}\nTags: [logic, rpn, infix]"
+                    )
+        except Exception:
+            pass
+
         shape_prompt = self._extract_shape_prompt(query)
         if shape_prompt:
             try:
@@ -119,6 +160,32 @@ class AdaptedFusedHead:
         if media_result is not None:
             media_answer, media_payload = media_result
             return self._post_process_answer(query, media_answer, media_payload)
+
+        # If the query looks like a math/AIME-style prompt, prefer the math head
+        import os as _os
+        if self._looks_like_math(query) and str(_os.environ.get("K3D_ENABLE_MATH_HEAD", "0")).lower() in {"1","true","yes"}:
+            answer = self._predict_math_numeric(fused_embedding)
+            if answer is not None:
+                return self._post_process_answer(
+                    query,
+                    f"\\boxed{{{int(answer):03d}}}\nTags: [logic, rpn]",
+                )
+
+    def _format_rational(self, num_str: str) -> str:
+        # Best-effort exact rational display without altering PTX compute
+        try:
+            if str(_os.environ.get("K3D_RATIONAL_OUTPUT", "1")).lower() in {"0","false","no"}:
+                return num_str
+            val = float(str(num_str).replace(" ", ""))
+            max_den = int(_os.environ.get("K3D_RATIONAL_MAX_DEN", "10000"))
+            frac = _Fraction(val).limit_denominator(max_den)
+            if abs(float(frac) - val) <= max(1e-12, abs(val)*1e-12):
+                if frac.denominator == 1:
+                    return str(frac.numerator)
+                return f"{frac.numerator}/{frac.denominator}"
+        except Exception:
+            pass
+        return num_str
 
         numeric = self._simple_numeric_solver(query)
         if numeric is not None:
@@ -178,8 +245,84 @@ class AdaptedFusedHead:
         return self._post_process_answer(query, pred)
 
     def train_step(self, fused_embedding: List[float], true_answer: str, lr: float = 1e-3) -> None:
-        _ = (fused_embedding, true_answer, lr)
+        # Train only when the target is a 0..999 integer
+        try:
+            y = int(str(true_answer).strip())
+        except Exception:
+            return
+        if y < 0 or y > 999:
+            return
+        x = torch.tensor(fused_embedding, dtype=torch.float32, device=self.device)
+        if x.dim() == 1:
+            x = x.unsqueeze(0)
+        if x.shape[1] < 2048:
+            pad = torch.zeros((x.shape[0], 2048 - x.shape[1]), device=self.device)
+            x = torch.cat([x, pad], dim=1)
+        elif x.shape[1] > 2048:
+            x = x[:, :2048]
+        self.projection.train()
+        self.math_head.train()
+        self._opt.zero_grad(set_to_none=True)
+        h = self.projection(x)
+        logits = self.math_head(h)
+        target = torch.tensor([y], dtype=torch.long, device=self.device)
+        loss = self._criterion(logits, target)
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(list(self.projection.parameters()) + list(self.math_head.parameters()), 1.0)
+        self._opt.step()
+        self._math_train_steps += 1
+        if self._math_train_steps % 100 == 0:
+            self._save_math_head()
         return
+
+    # ------------------------------------------------------------------
+    def _looks_like_math(self, query: str) -> bool:
+        q = (query or "").lower()
+        if "aime" in q or "find" in q or "compute" in q or "probability" in q:
+            return True
+        if re.search(r"\b\d+\b", q):
+            return True
+        return False
+
+    def _predict_math_numeric(self, fused_embedding: List[float]) -> Optional[int]:
+        x = torch.tensor(fused_embedding, dtype=torch.float32, device=self.device)
+        if x.dim() == 1:
+            x = x.unsqueeze(0)
+        if x.shape[1] < 2048:
+            pad = torch.zeros((x.shape[0], 2048 - x.shape[1]), device=self.device)
+            x = torch.cat([x, pad], dim=1)
+        elif x.shape[1] > 2048:
+            x = x[:, :2048]
+        self.projection.eval()
+        self.math_head.eval()
+        with torch.no_grad():
+            h = self.projection(x)
+            logits = self.math_head(h)
+            y = int(torch.argmax(logits, dim=1).item())
+            return max(0, min(999, y))
+
+    def _load_math_head(self) -> None:
+        try:
+            if self._math_ckpt_path.exists():
+                state = torch.load(str(self._math_ckpt_path), map_location=self.device)
+                proj = state.get("projection")
+                mh = state.get("math_head")
+                if isinstance(proj, dict):
+                    self.projection.load_state_dict(proj)
+                if isinstance(mh, dict):
+                    self.math_head.load_state_dict(mh)
+        except Exception:
+            pass
+
+    def _save_math_head(self) -> None:
+        try:
+            self._math_ckpt_path.parent.mkdir(parents=True, exist_ok=True)
+            torch.save({
+                "projection": self.projection.state_dict(),
+                "math_head": self.math_head.state_dict(),
+            }, str(self._math_ckpt_path))
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------
     def _extract_rpn_expression(self, query: str) -> Optional[str]:
