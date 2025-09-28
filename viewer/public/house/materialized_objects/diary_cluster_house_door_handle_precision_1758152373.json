@@ -19,5 +19,7 @@
     0.15294117647058825,
     0.11372549019607843
   ],
-  "zone_placement": "Zone 1 (Entrance)"
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "relocated_at": "2025-09-28T16:29:00.063601",
+  "previous_zone": "Zone 1 (Entrance)"
 }

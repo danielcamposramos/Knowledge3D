@@ -734,10 +734,70 @@
         "suggested_revision": "Try saying: angled_walnut_corbel"
       },
       "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-28T16:28:57.878367",
+      "query": "Describe the library bay window sill for someone ready to sit and read.",
+      "student_answer": "The bay window sill is a carved walnut bench with velvet cushions and inset bronze reading lights.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The bay window sill is a carved walnut bench with velvet cushions and inset bronze reading lights.",
+        "modality_hint": "Image shows carved walnut surfaces, velvet cushions, and bronze lights along the sill.",
+        "matched_keywords": [
+          "carved",
+          "walnut",
+          "velvet",
+          "cushions",
+          "bronze",
+          "lights"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The bay window sill is a carved walnut bench with velvet cushions and inset bronze reading lights."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-28T16:28:57.995671",
+      "query": "Which ambient sound drifts through the bay window?",
+      "student_answer": "garden_breeze_whisper",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "garden_breeze_whisper",
+        "modality_hint": "Audio mixes a garden breeze whisper with distant fountain trickles.",
+        "matched_keywords": [
+          "garden",
+          "breeze",
+          "whisper"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: garden_breeze_whisper"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-28T16:28:58.115464",
+      "query": "What structural bracket supports the bay window slope?",
+      "student_answer": "angled_walnut_corbel",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "angled_walnut_corbel",
+        "modality_hint": "Geometry reveals angled walnut corbels tucked beneath the sill.",
+        "matched_keywords": [
+          "angled",
+          "walnut",
+          "corbel"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: angled_walnut_corbel"
+      },
+      "score": 1.0
     }
   ],
   "zone_placement": "Zone 3 (Library)",
-  "last_updated": "2025-09-17T20:30:57.751941",
-  "message_count": 37,
+  "last_updated": "2025-09-28T16:28:58.115464",
+  "message_count": 40,
   "latest_score": 1.0
 }

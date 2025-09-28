@@ -19,5 +19,7 @@
     0.9725490196078431,
     0.403921568627451
   ],
-  "zone_placement": "Zone 5 (Knowledge Garden)"
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "relocated_at": "2025-09-28T16:28:48.479759",
+  "previous_zone": "Zone 5 (Knowledge Garden)"
 }

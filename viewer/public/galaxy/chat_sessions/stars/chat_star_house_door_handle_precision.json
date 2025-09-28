@@ -659,10 +659,69 @@
         "suggested_revision": "Try saying: precision_cam_lock"
       },
       "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-28T16:28:59.056044",
+      "query": "Describe the entrance door handle to someone reaching for it in the dark.",
+      "student_answer": "The entrance door handle is a sculpted brass lever with etched grip lines and a hidden biometric reader.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The entrance door handle is a sculpted brass lever with etched grip lines and a hidden biometric reader.",
+        "modality_hint": "Image highlights the sculpted brass lever, etched grip lines, and biometric reader glow.",
+        "matched_keywords": [
+          "sculpted",
+          "brass",
+          "lever",
+          "etched",
+          "biometric"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The entrance door handle is a sculpted brass lever with etched grip lines and a hidden biometric reader."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-28T16:28:59.171668",
+      "query": "Which sound plays when the handle recognizes an authorized grip?",
+      "student_answer": "brass_confirmation_tone",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "brass_confirmation_tone",
+        "modality_hint": "Audio provides a brass confirmation tone with a short harmonic flourish.",
+        "matched_keywords": [
+          "brass",
+          "confirmation",
+          "tone"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: brass_confirmation_tone"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-28T16:28:59.285727",
+      "query": "What internal mechanism locks the handle after the door closes?",
+      "student_answer": "precision_cam_lock",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "precision_cam_lock",
+        "modality_hint": "Geometry displays a precision cam lock assembly tucked inside the handle housing.",
+        "matched_keywords": [
+          "precision",
+          "cam",
+          "lock"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: precision_cam_lock"
+      },
+      "score": 1.0
     }
   ],
   "zone_placement": "Zone 1 (Entrance)",
-  "last_updated": "2025-09-17T20:39:33.156811",
-  "message_count": 33,
+  "last_updated": "2025-09-28T16:28:59.285727",
+  "message_count": 36,
   "latest_score": 1.0
 }

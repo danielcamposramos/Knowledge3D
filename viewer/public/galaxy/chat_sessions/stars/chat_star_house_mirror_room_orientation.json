@@ -2820,10 +2820,68 @@
         "suggested_revision": "Try saying: upright_yaw_alignment"
       },
       "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-28T16:28:39.537895",
+      "query": "Describe the Mirror Room wall mirror so an avatar can imagine it without seeing it.",
+      "student_answer": "The mirror is a tall vertical rectangle with a brushed metal frame and soft glow edges.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The mirror is a tall vertical rectangle with a brushed metal frame and soft glow edges.",
+        "modality_hint": "Image shows a glowing framed rectangle; 3D mesh keeps the frame slim; video shows light spill.",
+        "matched_keywords": [
+          "tall",
+          "rectangle",
+          "metal",
+          "frame",
+          "glow"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The mirror is a tall vertical rectangle with a brushed metal frame and soft glow edges."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-28T16:28:39.679845",
+      "query": "Which audio cue fits approaching the Mirror Room mirror?",
+      "student_answer": "chime_resonance",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "chime_resonance",
+        "modality_hint": "Audio log captures a gentle chime resonance as you step close.",
+        "matched_keywords": [
+          "chime",
+          "resonance"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: chime_resonance"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-28T16:28:39.811903",
+      "query": "Which alignment keeps the mirror's reflection steady when the avatar tilts their head?",
+      "student_answer": "upright_yaw_alignment",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "upright_yaw_alignment",
+        "modality_hint": "Remember the PTX kernel keeps the mirror upright by yaw-aligning the reflection.",
+        "matched_keywords": [
+          "upright",
+          "yaw",
+          "alignment"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: upright_yaw_alignment"
+      },
+      "score": 1.0
     }
   ],
   "zone_placement": "Zone 7 (Mirror Room)",
-  "last_updated": "2025-09-17T20:00:03.982446",
-  "message_count": 148,
+  "last_updated": "2025-09-28T16:28:39.811903",
+  "message_count": 151,
   "latest_score": 1.0
 }

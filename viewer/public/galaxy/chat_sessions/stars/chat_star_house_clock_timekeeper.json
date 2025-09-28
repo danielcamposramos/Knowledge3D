@@ -200,10 +200,68 @@
         "suggested_revision": "Try saying: counterweight_pendulum_bridge"
       },
       "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-28T16:28:51.485617",
+      "query": "Describe the foyer clock that greets visitors.",
+      "student_answer": "The foyer clock has a tall mahogany case with brass numerals and a pendulum suspended behind glass.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The foyer clock has a tall mahogany case with brass numerals and a pendulum suspended behind glass.",
+        "modality_hint": "Image highlights mahogany wood, brass numerals, and glass pendulum window.",
+        "matched_keywords": [
+          "mahogany",
+          "brass",
+          "pendulum",
+          "glass"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The foyer clock has a tall mahogany case with brass numerals and a pendulum suspended behind glass."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-28T16:28:51.601684",
+      "query": "Which sound marks each passing minute on the foyer clock?",
+      "student_answer": "gentle_pendulum_tick",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "gentle_pendulum_tick",
+        "modality_hint": "Audio is a gentle pendulum tick with a faint gear whisper.",
+        "matched_keywords": [
+          "gentle",
+          "pendulum",
+          "tick"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: gentle_pendulum_tick"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-28T16:28:51.723717",
+      "query": "What mechanical assembly keeps the clock balanced?",
+      "student_answer": "counterweight_pendulum_bridge",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "counterweight_pendulum_bridge",
+        "modality_hint": "Geometry reveals a counterweight pendulum bridge anchored inside the case.",
+        "matched_keywords": [
+          "counterweight",
+          "pendulum",
+          "bridge"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: counterweight_pendulum_bridge"
+      },
+      "score": 1.0
     }
   ],
   "zone_placement": "Zone 1 (Entrance)",
-  "last_updated": "2025-09-17T20:07:15.610358",
-  "message_count": 10,
+  "last_updated": "2025-09-28T16:28:51.723717",
+  "message_count": 13,
   "latest_score": 1.0
 }

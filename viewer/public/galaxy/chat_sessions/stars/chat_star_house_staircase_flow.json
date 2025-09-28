@@ -664,10 +664,70 @@
         "suggested_revision": "Try saying: helical_support_spine"
       },
       "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-28T16:28:55.369362",
+      "query": "Describe the spiral staircase that connects the observatory levels.",
+      "student_answer": "A bronze spiral staircase with glass treads wraps around a central light column leading to the observatory dome.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "A bronze spiral staircase with glass treads wraps around a central light column leading to the observatory dome.",
+        "modality_hint": "Image highlights bronze rails, translucent glass treads, and the central light column.",
+        "matched_keywords": [
+          "bronze",
+          "spiral",
+          "glass",
+          "light",
+          "dome"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: A bronze spiral staircase with glass treads wraps around a central light column leading to the observatory dome."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-28T16:28:55.497782",
+      "query": "Which ambient sound accompanies footsteps on the spiral staircase?",
+      "student_answer": "soft_glass_chime_steps",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "soft_glass_chime_steps",
+        "modality_hint": "Audio blends soft glass chimes with reflective dome echoes as you climb.",
+        "matched_keywords": [
+          "soft",
+          "glass",
+          "chime",
+          "steps"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: soft_glass_chime_steps"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-28T16:28:55.622944",
+      "query": "What structural support keeps the staircase anchored to the observatory wall?",
+      "student_answer": "helical_support_spine",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "helical_support_spine",
+        "modality_hint": "Geometry reveals a helical support spine bolted into the observatory masonry.",
+        "matched_keywords": [
+          "helical",
+          "support",
+          "spine"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: helical_support_spine"
+      },
+      "score": 1.0
     }
   ],
   "zone_placement": "Zone 2 (Observatory)",
-  "last_updated": "2025-09-17T20:17:38.632471",
-  "message_count": 33,
+  "last_updated": "2025-09-28T16:28:55.622944",
+  "message_count": 36,
   "latest_score": 1.0
 }

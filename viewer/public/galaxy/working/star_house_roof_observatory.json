@@ -3,24 +3,24 @@
   "id": "star_house_roof_observatory",
   "name": "Fused Meaning: house_roof_observatory",
   "created_at": "2025-09-17T20:17:38.637779",
-  "honesty_score": 0.9099999999999999,
+  "honesty_score": 1.0,
   "embedding": [
-    0.5346029996871948,
-    0.36510294675827026,
-    0.8207166194915771,
-    0.3943658173084259,
-    0.6798706650733948,
-    0.524282693862915,
-    0.5885189771652222,
-    0.10638366639614105,
-    0.3099721670150757,
-    0.447407603263855,
-    0.5343158841133118,
-    0.23824405670166016,
-    0.6993862986564636,
-    0.7032594680786133,
-    0.5591585040092468,
-    0.4723062515258789,
+    0.5426276922225952,
+    0.4233008921146393,
+    0.7995998859405518,
+    0.43543219566345215,
+    0.6917250156402588,
+    0.45372307300567627,
+    0.5190502405166626,
+    0.13607783615589142,
+    0.3553910553455353,
+    0.48376667499542236,
+    0.5742703676223755,
+    0.18927064538002014,
+    0.7052189111709595,
+    0.7124415636062622,
+    0.47153255343437195,
+    0.4485657513141632,
     0.0,
     0.0,
     0.0,
@@ -527,7 +527,7 @@
   "predicted_answer": "",
   "true_answer": "",
   "zone_placement": "Zone 2 (Observatory)",
-  "updated_at": "2025-09-17T20:21:03.641700",
+  "updated_at": "2025-09-28T16:28:56.906757",
   "mutation_history": [
     {
       "round": 0,
@@ -606,6 +606,24 @@
       "score": 1.0,
       "timestamp": "2025-09-17T20:21:03.641700",
       "query": "Remedial: Geometry highlights a radial locking ring anchoring the glass panels. Rephrase: What geometric structure locks the roof panels in place?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-28T16:28:56.643807",
+      "query": "Describe the observatory roof that opens to the night sky."
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-28T16:28:56.779661",
+      "query": "Which sound accompanies the roof as it opens for observation?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-28T16:28:56.906757",
+      "query": "What geometric structure locks the roof panels in place?"
     }
   ],
   "learned_answers": {

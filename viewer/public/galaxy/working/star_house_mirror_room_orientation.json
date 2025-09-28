@@ -5,22 +5,22 @@
   "created_at": "2025-09-17T16:28:16.440037",
   "honesty_score": 1.0,
   "embedding": [
-    0.615102231502533,
-    0.5338922142982483,
-    0.45738303661346436,
-    0.5990539789199829,
-    0.5442715287208557,
-    0.19104543328285217,
-    0.6516148447990417,
-    0.23000609874725342,
-    0.6265347599983215,
-    0.3578230142593384,
-    0.7530025243759155,
-    0.4889413118362427,
-    0.39718979597091675,
-    0.3912138342857361,
-    0.5337945222854614,
-    0.281313955783844,
+    0.6286742091178894,
+    0.5286427140235901,
+    0.46687063574790955,
+    0.5648167133331299,
+    0.5502380728721619,
+    0.18351683020591736,
+    0.6532921195030212,
+    0.21903327107429504,
+    0.6023485064506531,
+    0.3833921253681183,
+    0.7685974836349487,
+    0.5088127255439758,
+    0.4366125762462616,
+    0.4117510914802551,
+    0.5528209209442139,
+    0.2578318417072296,
     0.0,
     0.0,
     0.0,
@@ -2063,7 +2063,7 @@
   "predicted_answer": "",
   "true_answer": "",
   "zone_placement": "Zone 7 (Mirror Room)",
-  "updated_at": "2025-09-17T20:00:03.989918",
+  "updated_at": "2025-09-28T16:28:39.815585",
   "mutation_history": [
     {
       "round": 0,
@@ -2858,6 +2858,24 @@
       "round": 0,
       "score": 1.0,
       "timestamp": "2025-09-17T20:00:03.989918",
+      "query": "Which alignment keeps the mirror's reflection steady when the avatar tilts their head?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-28T16:28:39.541894",
+      "query": "Describe the Mirror Room wall mirror so an avatar can imagine it without seeing it."
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-28T16:28:39.683579",
+      "query": "Which audio cue fits approaching the Mirror Room mirror?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-28T16:28:39.815585",
       "query": "Which alignment keeps the mirror's reflection steady when the avatar tilts their head?"
     }
   ],

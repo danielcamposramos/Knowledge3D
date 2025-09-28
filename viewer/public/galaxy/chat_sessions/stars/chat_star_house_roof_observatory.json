@@ -263,10 +263,69 @@
         "suggested_revision": "Try saying: radial_locking_ring"
       },
       "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-28T16:28:56.642464",
+      "query": "Describe the observatory roof that opens to the night sky.",
+      "student_answer": "The observatory roof is a retractable copper lattice with radial glass panels revealing the star field.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The observatory roof is a retractable copper lattice with radial glass panels revealing the star field.",
+        "modality_hint": "Image shows copper lattice ribs and radial glass panels glowing with starlight.",
+        "matched_keywords": [
+          "retractable",
+          "copper",
+          "lattice",
+          "glass",
+          "radial"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The observatory roof is a retractable copper lattice with radial glass panels revealing the star field."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-28T16:28:56.778408",
+      "query": "Which sound accompanies the roof as it opens for observation?",
+      "student_answer": "mechanized_copper_slide",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "mechanized_copper_slide",
+        "modality_hint": "Audio features a mechanized copper slide with faint gear resonance.",
+        "matched_keywords": [
+          "mechanized",
+          "copper",
+          "slide"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: mechanized_copper_slide"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-28T16:28:56.905717",
+      "query": "What geometric structure locks the roof panels in place?",
+      "student_answer": "radial_locking_ring",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "radial_locking_ring",
+        "modality_hint": "Geometry highlights a radial locking ring anchoring the glass panels.",
+        "matched_keywords": [
+          "radial",
+          "locking",
+          "ring"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: radial_locking_ring"
+      },
+      "score": 1.0
     }
   ],
   "zone_placement": "Zone 2 (Observatory)",
-  "last_updated": "2025-09-17T20:21:03.641018",
-  "message_count": 13,
+  "last_updated": "2025-09-28T16:28:56.905717",
+  "message_count": 16,
   "latest_score": 1.0
 }

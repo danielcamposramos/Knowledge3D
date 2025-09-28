@@ -56,5 +56,7 @@
     0.35294117647058826,
     0.6470588235294118
   ],
-  "zone_placement": "Zone 3 (Library)"
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "relocated_at": "2025-09-28T16:28:58.936246",
+  "previous_zone": "Zone 3 (Library)"
 }

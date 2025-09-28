@@ -829,10 +829,69 @@
         "suggested_revision": "Try saying: frosted_prism_window"
       },
       "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-28T16:29:00.207053",
+      "query": "Describe the hallway light switch for someone feeling along the wall.",
+      "student_answer": "The hallway light switch is a matte ceramic plate with a brass rocker and a subtle haptic pulse when toggled.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The hallway light switch is a matte ceramic plate with a brass rocker and a subtle haptic pulse when toggled.",
+        "modality_hint": "Image focuses on the ceramic plate, brass rocker, and subtle indicator glow.",
+        "matched_keywords": [
+          "matte",
+          "ceramic",
+          "brass",
+          "rocker",
+          "haptic"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The hallway light switch is a matte ceramic plate with a brass rocker and a subtle haptic pulse when toggled."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-28T16:29:00.320417",
+      "query": "Which sound accompanies the switch when lights engage?",
+      "student_answer": "gentle_relay_click",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "gentle_relay_click",
+        "modality_hint": "Audio captures a gentle relay click followed by a faint hum.",
+        "matched_keywords": [
+          "gentle",
+          "relay",
+          "click"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: gentle_relay_click"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-28T16:29:00.434077",
+      "query": "What internal geometry diffuses the light switch indicator glow?",
+      "student_answer": "frosted_prism_window",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "frosted_prism_window",
+        "modality_hint": "Geometry reveals a frosted prism window embedded above the rocker.",
+        "matched_keywords": [
+          "frosted",
+          "prism",
+          "window"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: frosted_prism_window"
+      },
+      "score": 1.0
     }
   ],
   "zone_placement": "Zone 1 (Entrance)",
-  "last_updated": "2025-09-17T20:50:33.630871",
-  "message_count": 42,
+  "last_updated": "2025-09-28T16:29:00.434077",
+  "message_count": 45,
   "latest_score": 1.0
 }

@@ -5,22 +5,22 @@
   "created_at": "2025-09-17T20:30:57.756709",
   "honesty_score": 1.0,
   "embedding": [
-    0.2869406044483185,
-    0.9078946113586426,
-    0.5516936779022217,
-    0.42800432443618774,
-    0.4500742554664612,
-    0.3870398998260498,
-    0.6491557955741882,
-    0.20855629444122314,
-    0.9768985509872437,
-    0.7507924437522888,
-    0.3275444805622101,
-    0.6692545413970947,
-    0.15507926046848297,
-    0.5019617080688477,
-    0.362729549407959,
-    0.6718003153800964,
+    0.31437355279922485,
+    0.8315255045890808,
+    0.6407604217529297,
+    0.4908407926559448,
+    0.42259901762008667,
+    0.4229782223701477,
+    0.630366325378418,
+    0.19319364428520203,
+    0.8817821145057678,
+    0.6847100257873535,
+    0.3463830351829529,
+    0.5937308073043823,
+    0.24182748794555664,
+    0.48646700382232666,
+    0.29446327686309814,
+    0.5635451674461365,
     0.0,
     0.0,
     0.0,
@@ -527,7 +527,7 @@
   "predicted_answer": "",
   "true_answer": "",
   "zone_placement": "Zone 1 (Entrance)",
-  "updated_at": "2025-09-17T20:39:33.157875",
+  "updated_at": "2025-09-28T16:28:59.287033",
   "mutation_history": [
     {
       "round": 0,
@@ -726,6 +726,24 @@
       "score": 1.0,
       "timestamp": "2025-09-17T20:39:33.157875",
       "query": "Remedial: Geometry displays a precision cam lock assembly tucked inside the handle housing. Rephrase: Remedial: Geometry displays a precision cam lock assembly tucked inside the handle housing. Rephrase: Remedial: Geometry displays a precision cam lock assembly tucked inside the handle housing. Rephrase: What internal mechanism locks the handle after the door closes?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-28T16:28:59.057237",
+      "query": "Describe the entrance door handle to someone reaching for it in the dark."
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-28T16:28:59.172967",
+      "query": "Which sound plays when the handle recognizes an authorized grip?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-28T16:28:59.287033",
+      "query": "What internal mechanism locks the handle after the door closes?"
     }
   ],
   "learned_answers": {

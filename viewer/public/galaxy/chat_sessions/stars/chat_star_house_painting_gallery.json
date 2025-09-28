@@ -703,10 +703,68 @@
         "suggested_revision": "Try saying: magnetic_flush_mount"
       },
       "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-28T16:28:48.645103",
+      "query": "Describe the gallery painting hanging above the spiral stairs.",
+      "student_answer": "The gallery painting shows a cosmic garden with radiant blues, copper highlights, and sweeping brushstrokes.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The gallery painting shows a cosmic garden with radiant blues, copper highlights, and sweeping brushstrokes.",
+        "modality_hint": "Image focuses on radiant blues, copper highlights, and sweeping brushstrokes.",
+        "matched_keywords": [
+          "cosmic",
+          "garden",
+          "copper",
+          "brushstrokes"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The gallery painting shows a cosmic garden with radiant blues, copper highlights, and sweeping brushstrokes."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-28T16:28:48.804230",
+      "query": "Which ambient sound plays near the gallery painting?",
+      "student_answer": "soft_gallery_echo",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "soft_gallery_echo",
+        "modality_hint": "Audio captures a soft gallery echo with distant footsteps.",
+        "matched_keywords": [
+          "soft",
+          "gallery",
+          "echo"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: soft_gallery_echo"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-28T16:28:48.959759",
+      "query": "What mounting system keeps the painting flush to the wall?",
+      "student_answer": "magnetic_flush_mount",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "magnetic_flush_mount",
+        "modality_hint": "Geometry uses a magnetic flush mount hidden behind the canvas.",
+        "matched_keywords": [
+          "magnetic",
+          "flush",
+          "mount"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: magnetic_flush_mount"
+      },
+      "score": 1.0
     }
   ],
   "zone_placement": "Zone 6 (Gallery)",
-  "last_updated": "2025-09-17T20:05:39.913207",
-  "message_count": 36,
+  "last_updated": "2025-09-28T16:28:48.959759",
+  "message_count": 39,
   "latest_score": 1.0
 }

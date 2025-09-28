@@ -15,6 +15,8 @@
   ],
   "shape_type": "cube",
   "vertex_count": 100,
-  "zone_placement": "Zone 1 (Entrance)",
-  "ptx_kernel_used": "train_cluster_house_light_switch_control_kernel"
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "ptx_kernel_used": "train_cluster_house_light_switch_control_kernel",
+  "relocated_at": "2025-09-28T16:29:01.177405",
+  "previous_zone": "Zone 1 (Entrance)"
 }

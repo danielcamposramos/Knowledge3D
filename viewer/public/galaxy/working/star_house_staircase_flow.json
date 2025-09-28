@@ -5,22 +5,22 @@
   "created_at": "2025-09-17T20:08:52.578123",
   "honesty_score": 1.0,
   "embedding": [
-    0.4443035423755646,
-    0.5809249877929688,
-    0.5062585473060608,
-    0.1635110229253769,
-    0.4770202040672302,
-    0.5531567335128784,
-    0.6911184787750244,
-    0.8425509929656982,
-    0.3907183110713959,
-    0.8204654455184937,
-    0.40903154015541077,
-    0.21354034543037415,
-    0.5994994640350342,
-    0.5101015567779541,
-    0.34483349323272705,
-    0.3929978013038635,
+    0.49101966619491577,
+    0.5935749411582947,
+    0.48492902517318726,
+    0.19944898784160614,
+    0.5527708530426025,
+    0.5030151009559631,
+    0.7584536671638489,
+    0.8623714447021484,
+    0.44727522134780884,
+    0.7579020261764526,
+    0.383427232503891,
+    0.26479727029800415,
+    0.6768989562988281,
+    0.41052955389022827,
+    0.4326073229312897,
+    0.4027511477470398,
     0.0,
     0.0,
     0.0,
@@ -527,7 +527,7 @@
   "predicted_answer": "",
   "true_answer": "",
   "zone_placement": "Zone 2 (Observatory)",
-  "updated_at": "2025-09-17T20:17:38.633718",
+  "updated_at": "2025-09-28T16:28:55.624367",
   "mutation_history": [
     {
       "round": 0,
@@ -726,6 +726,24 @@
       "score": 1.0,
       "timestamp": "2025-09-17T20:17:38.633718",
       "query": "Remedial: Geometry reveals a helical support spine bolted into the observatory masonry. Rephrase: Remedial: Geometry reveals a helical support spine bolted into the observatory masonry. Rephrase: Remedial: Geometry reveals a helical support spine bolted into the observatory masonry. Rephrase: What structural support keeps the staircase anchored to the observatory wall?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-28T16:28:55.371516",
+      "query": "Describe the spiral staircase that connects the observatory levels."
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-28T16:28:55.499323",
+      "query": "Which ambient sound accompanies footsteps on the spiral staircase?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-28T16:28:55.624367",
+      "query": "What structural support keeps the staircase anchored to the observatory wall?"
     }
   ],
   "learned_answers": {
