@@ -435,6 +435,7 @@ class ModularRPNEngine:
         "floor": 36,
         "ceil": 37,
         "mod": 38,
+        "%": 38,
         "round": 39,
         "round_he": 41,
         "gt": 40,

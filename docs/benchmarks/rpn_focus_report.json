@@ -5,9 +5,9 @@
   "sections": [
     {
       "name": "expressions",
-      "total": 10,
-      "correct": 8,
-      "accuracy": 0.8,
+      "total": 13,
+      "correct": 10,
+      "accuracy": 0.7692307692307693,
       "details": [
         {
           "q": "Compute sqrt(9) + log2(8)",
@@ -77,6 +77,27 @@
           "expected": "6",
           "prediction": "6",
           "raw": "\\boxed{6}\nTags: [logic, rpn, program]",
+          "correct": true
+        },
+        {
+          "q": "Compute lg(1000) + ln(e)",
+          "expected": "4",
+          "prediction": "4",
+          "raw": "\\boxed{4}\nTags: [logic, rpn, program]",
+          "correct": true
+        },
+        {
+          "q": "Compute 7 % 4 + 10 % 3",
+          "expected": "4",
+          "prediction": "13",
+          "raw": "\\boxed{13}\nTags: [logic, rpn, program]",
+          "correct": false
+        },
+        {
+          "q": "Compute √(16) + √(9)",
+          "expected": "7",
+          "prediction": "7",
+          "raw": "\\boxed{7}\nTags: [logic, rpn, program]",
           "correct": true
         }
       ]
