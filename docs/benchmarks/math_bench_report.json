@@ -1,0 +1,12 @@
+{
+  "suites": [
+    {
+      "name": "hendrycks/competition_math",
+      "total": 0,
+      "correct": 0,
+      "accuracy": 0.0,
+      "details": [],
+      "note": "dataset not in local cache"
+    }
+  ]
+}
