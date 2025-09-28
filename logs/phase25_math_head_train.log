@@ -1,0 +1,14 @@
+✅ PIL already installed.
+📦 Installing librosa via conda (conda-forge)...
+✅ librosa installed (conda).
+✅ pygltflib already installed.
+🖼️  Mapped 0 ARC-AGI images.
+🔊 Mapped 1 HLE audio files.
+🚀 Training math head on device: cuda
+📚 Training set size: 30 items (0..999 answers)
+🧮 Epoch 1: acc=1.000 (30/30)
+🧮 Epoch 2: acc=1.000 (30/30)
+🧮 Epoch 3: acc=1.000 (30/30)
+🧮 Epoch 4: acc=1.000 (30/30)
+🧮 Epoch 5: acc=1.000 (30/30)
+✅ Math head training complete; checkpoint saved.

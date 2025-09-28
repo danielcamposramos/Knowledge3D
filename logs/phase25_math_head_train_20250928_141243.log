@@ -1,0 +1,51 @@
+/K3D/Knowledge3D/knowledge3d/cranium/fused_head.py:261: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  state = torch.load(str(self._math_ckpt_path), map_location=self.device)
+✅ PIL already installed.
+📦 Installing librosa via conda (conda-forge)...
+✅ librosa installed (conda).
+✅ pygltflib already installed.
+🖼️  Mapped 0 ARC-AGI images.
+🔊 Mapped 1 HLE audio files.
+🚀 Training math head on device: cuda
+📚 Training set size: 1998 items (0..999 answers)
+🧮 Epoch 1: acc=0.039 (78/1998)
+🧮 Epoch 2: acc=0.045 (90/1998)
+🧮 Epoch 3: acc=0.105 (209/1998)
+🧮 Epoch 4: acc=0.172 (344/1998)
+🧮 Epoch 5: acc=0.210 (419/1998)
+🧮 Epoch 6: acc=0.258 (516/1998)
+🧮 Epoch 7: acc=0.312 (623/1998)
+🧮 Epoch 8: acc=0.392 (783/1998)
+🧮 Epoch 9: acc=0.498 (996/1998)
+🧮 Epoch 10: acc=0.581 (1161/1998)
+🧮 Epoch 11: acc=0.651 (1300/1998)
+🧮 Epoch 12: acc=0.723 (1444/1998)
+🧮 Epoch 13: acc=0.774 (1546/1998)
+🧮 Epoch 14: acc=0.820 (1638/1998)
+🧮 Epoch 15: acc=0.841 (1681/1998)
+🧮 Epoch 16: acc=0.869 (1737/1998)
+🧮 Epoch 17: acc=0.889 (1776/1998)
+🧮 Epoch 18: acc=0.909 (1817/1998)
+🧮 Epoch 19: acc=0.926 (1850/1998)
+🧮 Epoch 20: acc=0.937 (1873/1998)
+🧮 Epoch 21: acc=0.947 (1893/1998)
+🧮 Epoch 22: acc=0.955 (1909/1998)
+🧮 Epoch 23: acc=0.962 (1922/1998)
+🧮 Epoch 24: acc=0.970 (1939/1998)
+🧮 Epoch 25: acc=0.971 (1940/1998)
+🧮 Epoch 26: acc=0.974 (1946/1998)
+🧮 Epoch 27: acc=0.980 (1959/1998)
+🧮 Epoch 28: acc=0.987 (1972/1998)
+🧮 Epoch 29: acc=0.989 (1976/1998)
+🧮 Epoch 30: acc=0.987 (1972/1998)
+🧮 Epoch 31: acc=0.991 (1980/1998)
+🧮 Epoch 32: acc=0.989 (1977/1998)
+🧮 Epoch 33: acc=0.992 (1982/1998)
+🧮 Epoch 34: acc=0.991 (1981/1998)
+🧮 Epoch 35: acc=0.994 (1987/1998)
+🧮 Epoch 36: acc=0.995 (1989/1998)
+🧮 Epoch 37: acc=0.991 (1981/1998)
+🧮 Epoch 38: acc=0.996 (1990/1998)
+🧮 Epoch 39: acc=0.995 (1988/1998)
+🧮 Epoch 40: acc=0.997 (1992/1998)
+✅ Math head training complete; checkpoint saved.

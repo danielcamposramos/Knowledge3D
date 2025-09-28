@@ -342,6 +342,13 @@ class AlgorithmicThinkingTrainer:
                         composite_explanation=composite_explanation,
                     )
 
+                    # Train the fused head's internal math head on numeric answers (0..999)
+                    try:
+                        if true_canonical.isdigit():
+                            self.trainer.fused_head.train_step(fused_embedding, true_canonical)
+                    except Exception:
+                        pass
+
                     self._queries_processed += 1
                     self._maybe_run_sleep_cycle()
 
