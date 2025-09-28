@@ -9,17 +9,17 @@
     0.4467901587486267,
     0.5079236626625061,
     0.1778135895729065,
-    0.4682961106300354,
-    0.45859068632125854,
+    0.4682961702346802,
+    0.45859071612358093,
     0.18943504989147186,
     0.248813658952713,
-    0.5284626483917236,
-    0.7230547666549683,
+    0.5284627079963684,
+    0.723054826259613,
     0.6939743757247925,
-    0.6932938694953918,
-    0.5219267010688782,
+    0.6932939291000366,
+    0.521926760673523,
     0.3841346502304077,
-    0.6872950792312622,
+    0.6872951984405518,
     0.3511325716972351,
     0.0,
     0.0,
@@ -527,7 +527,7 @@
   "predicted_answer": "",
   "true_answer": "",
   "zone_placement": "Zone 5 (Knowledge Garden)",
-  "updated_at": "2025-09-17T20:08:04.596282",
+  "updated_at": "2025-09-28T16:28:53.000567",
   "mutation_history": [
     {
       "round": 0,
@@ -797,6 +797,24 @@
       "round": 0,
       "score": 1.0,
       "timestamp": "2025-09-17T20:08:04.596282",
+      "query": "What geometric support keeps the planter elevated?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-28T16:28:52.754472",
+      "query": "Describe the living planter in the atrium for someone listening remotely."
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-28T16:28:52.880287",
+      "query": "Which ambient sound surrounds the atrium planter?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-28T16:28:53.000567",
       "query": "What geometric support keeps the planter elevated?"
     }
   ],

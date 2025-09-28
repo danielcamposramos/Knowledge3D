@@ -15,6 +15,8 @@
   ],
   "shape_type": "octahedron",
   "vertex_count": 100,
-  "zone_placement": "Zone 3 (Library)",
-  "ptx_kernel_used": "train_cluster_house_window_sill_insight_kernel"
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "ptx_kernel_used": "train_cluster_house_window_sill_insight_kernel",
+  "relocated_at": "2025-09-28T16:28:58.933713",
+  "previous_zone": "Zone 3 (Library)"
 }

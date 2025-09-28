@@ -5,21 +5,21 @@
   "created_at": "2025-09-17T20:39:33.162554",
   "honesty_score": 1.0,
   "embedding": [
-    0.6133940815925598,
-    0.5895065069198608,
-    0.523090660572052,
-    0.19464586675167084,
-    0.3056316077709198,
-    0.468188613653183,
-    0.3301458954811096,
-    0.7724592685699463,
-    0.35809817910194397,
-    0.6880471706390381,
-    0.8572474718093872,
-    0.6429222226142883,
-    0.45427513122558594,
-    0.7815737724304199,
-    0.3481242060661316,
+    0.6133942008018494,
+    0.5895066261291504,
+    0.5230907201766968,
+    0.19464588165283203,
+    0.3056316673755646,
+    0.46818870306015015,
+    0.330145925283432,
+    0.7724593877792358,
+    0.3580982983112335,
+    0.6880472898483276,
+    0.8572476506233215,
+    0.6429223418235779,
+    0.4542751908302307,
+    0.7815738916397095,
+    0.34812426567077637,
     0.12726296484470367,
     0.0,
     0.0,
@@ -527,7 +527,7 @@
   "predicted_answer": "",
   "true_answer": "",
   "zone_placement": "Zone 1 (Entrance)",
-  "updated_at": "2025-09-17T20:50:33.631678",
+  "updated_at": "2025-09-28T16:29:00.435333",
   "mutation_history": [
     {
       "round": 0,
@@ -780,6 +780,24 @@
       "score": 1.0,
       "timestamp": "2025-09-17T20:50:33.631678",
       "query": "Remedial: Geometry reveals a frosted prism window embedded above the rocker. Rephrase: Remedial: Geometry reveals a frosted prism window embedded above the rocker. Rephrase: Remedial: Geometry reveals a frosted prism window embedded above the rocker. Rephrase: What internal geometry diffuses the light switch indicator glow?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-28T16:29:00.208569",
+      "query": "Describe the hallway light switch for someone feeling along the wall."
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-28T16:29:00.321689",
+      "query": "Which sound accompanies the switch when lights engage?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-28T16:29:00.435333",
+      "query": "What internal geometry diffuses the light switch indicator glow?"
     }
   ],
   "learned_answers": {

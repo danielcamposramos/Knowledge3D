@@ -703,10 +703,68 @@
         "suggested_revision": "Try saying: frosted_cylinder_diffuser"
       },
       "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-28T16:28:47.341144",
+      "query": "Describe the bedside lamp that anchors the study nook.",
+      "student_answer": "The bedside lamp has a translucent linen shade over a brass stem with a soft amber glow.",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "The bedside lamp has a translucent linen shade over a brass stem with a soft amber glow.",
+        "modality_hint": "Image reveals the translucent linen shade and brass stem radiating amber light.",
+        "matched_keywords": [
+          "linen",
+          "brass",
+          "amber",
+          "glow"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: The bedside lamp has a translucent linen shade over a brass stem with a soft amber glow."
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-28T16:28:47.459159",
+      "query": "Which sound accompanies toggling the lamp?",
+      "student_answer": "brass_chain_click",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "brass_chain_click",
+        "modality_hint": "Audio highlights a delicate brass chain click and gentle hum.",
+        "matched_keywords": [
+          "brass",
+          "chain",
+          "click"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: brass_chain_click"
+      },
+      "score": 1.0
+    },
+    {
+      "timestamp": "2025-09-28T16:28:47.594673",
+      "query": "Which geometric core diffuses the lamp's light evenly?",
+      "student_answer": "frosted_cylinder_diffuser",
+      "teacher_feedback": {
+        "score": 1.0,
+        "explanation": "Perfect recall — you captured every required detail.",
+        "correct_answer": "frosted_cylinder_diffuser",
+        "modality_hint": "Geometry shows a frosted cylinder diffuser inside the shade.",
+        "matched_keywords": [
+          "frosted",
+          "cylinder",
+          "diffuser"
+        ],
+        "missing_keywords": [],
+        "suggested_revision": "Try saying: frosted_cylinder_diffuser"
+      },
+      "score": 1.0
     }
   ],
   "zone_placement": "Zone 5 (Knowledge Garden)",
-  "last_updated": "2025-09-17T20:04:51.400904",
-  "message_count": 36,
+  "last_updated": "2025-09-28T16:28:47.594673",
+  "message_count": 39,
   "latest_score": 1.0
 }

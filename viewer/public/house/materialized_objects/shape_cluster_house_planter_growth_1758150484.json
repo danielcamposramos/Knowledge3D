@@ -15,6 +15,8 @@
   ],
   "shape_type": "dodecahedron",
   "vertex_count": 100,
-  "zone_placement": "Zone 5 (Knowledge Garden)",
-  "ptx_kernel_used": "train_cluster_house_planter_growth_kernel"
+  "zone_placement": "Zone 8 (Learning Museum)",
+  "ptx_kernel_used": "train_cluster_house_planter_growth_kernel",
+  "relocated_at": "2025-09-28T16:28:53.894769",
+  "previous_zone": "Zone 5 (Knowledge Garden)"
 }

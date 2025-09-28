@@ -2063,7 +2063,7 @@
   "predicted_answer": "",
   "true_answer": "",
   "zone_placement": "Zone 4 (Workshop)",
-  "updated_at": "2025-09-17T20:00:53.003042",
+  "updated_at": "2025-09-28T16:28:41.032049",
   "mutation_history": [
     {
       "round": 0,
@@ -2834,6 +2834,24 @@
       "round": 0,
       "score": 1.0,
       "timestamp": "2025-09-17T20:00:53.003042",
+      "query": "Which ambient audio belongs to the table scene?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-28T16:28:40.760167",
+      "query": "Describe the wooden workshop table in the House workspace for someone relying on text and audio."
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-28T16:28:40.898486",
+      "query": "What colour palette should its image memory emphasise?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-28T16:28:41.032049",
       "query": "Which ambient audio belongs to the table scene?"
     }
   ],

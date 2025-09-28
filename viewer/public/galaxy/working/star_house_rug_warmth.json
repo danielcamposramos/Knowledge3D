@@ -5,17 +5,17 @@
   "created_at": "2025-09-17T19:15:20.237714",
   "honesty_score": 1.0,
   "embedding": [
-    0.3664965033531189,
-    0.6624585390090942,
+    0.3664965331554413,
+    0.662458598613739,
     0.5758975744247437,
-    0.4537200927734375,
-    0.7496641874313354,
+    0.4537201225757599,
+    0.7496642470359802,
     0.4021308422088623,
-    0.7538722157478333,
+    0.753872275352478,
     0.5469603538513184,
     0.23294834792613983,
     0.4308532476425171,
-    0.3436475396156311,
+    0.3436475992202759,
     0.5987465381622314,
     0.49488765001296997,
     0.5202793478965759,
@@ -527,7 +527,7 @@
   "predicted_answer": "",
   "true_answer": "",
   "zone_placement": "Zone 1 (Entrance)",
-  "updated_at": "2025-09-17T20:06:28.320123",
+  "updated_at": "2025-09-28T16:28:50.458314",
   "mutation_history": [
     {
       "round": 0,
@@ -797,6 +797,24 @@
       "round": 0,
       "score": 1.0,
       "timestamp": "2025-09-17T20:06:28.320123",
+      "query": "What geometric motif anchors the rug's pattern?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-28T16:28:50.172619",
+      "query": "Describe the hearth rug that welcomes visitors inside the House."
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-28T16:28:50.314823",
+      "query": "Which audio cue plays when someone steps onto the hearth rug?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-28T16:28:50.458314",
       "query": "What geometric motif anchors the rug's pattern?"
     }
   ],

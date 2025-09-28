@@ -5,22 +5,22 @@
   "created_at": "2025-09-17T20:21:03.652969",
   "honesty_score": 1.0,
   "embedding": [
-    0.6062872409820557,
-    0.5383062958717346,
-    0.07444500923156738,
-    0.6623817682266235,
-    0.8594803810119629,
-    0.7129608988761902,
-    0.6570447683334351,
-    0.6675821542739868,
-    0.5753471255302429,
-    0.4653284549713135,
-    0.7086043357849121,
-    0.5191769003868103,
-    0.5543060302734375,
-    0.6381586790084839,
-    0.5219574570655823,
-    0.6648691892623901,
+    0.5733094811439514,
+    0.5798743367195129,
+    0.1090405285358429,
+    0.642526388168335,
+    0.8594017028808594,
+    0.6329808831214905,
+    0.6018252372741699,
+    0.707745373249054,
+    0.6242852210998535,
+    0.5105018019676208,
+    0.6248866319656372,
+    0.5749012231826782,
+    0.50865638256073,
+    0.6003825664520264,
+    0.5673961043357849,
+    0.7029913663864136,
     0.0,
     0.0,
     0.0,
@@ -527,7 +527,7 @@
   "predicted_answer": "",
   "true_answer": "",
   "zone_placement": "Zone 3 (Library)",
-  "updated_at": "2025-09-17T20:30:57.752860",
+  "updated_at": "2025-09-28T16:28:58.116822",
   "mutation_history": [
     {
       "round": 0,
@@ -750,6 +750,24 @@
       "score": 1.0,
       "timestamp": "2025-09-17T20:30:57.752860",
       "query": "Remedial: Geometry reveals angled walnut corbels tucked beneath the sill. Rephrase: Remedial: Geometry reveals angled walnut corbels tucked beneath the sill. Rephrase: Remedial: Geometry reveals angled walnut corbels tucked beneath the sill. Rephrase: What structural bracket supports the bay window slope?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-28T16:28:57.880479",
+      "query": "Describe the library bay window sill for someone ready to sit and read."
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-28T16:28:57.997168",
+      "query": "Which ambient sound drifts through the bay window?"
+    },
+    {
+      "round": 0,
+      "score": 1.0,
+      "timestamp": "2025-09-28T16:28:58.116822",
+      "query": "What structural bracket supports the bay window slope?"
     }
   ],
   "learned_answers": {
