@@ -59,6 +59,7 @@ _OP_INFO: Dict[str, Tuple[int, str]] = {
     "-": (2, "L"),
     "*": (3, "L"),
     "/": (3, "L"),
+    "%": (3, "L"),
     "^": (4, "R"),
 }
 
@@ -95,6 +96,27 @@ def _pre_normalize(expr: str) -> str:
     s = re.sub(r"\\frac\{([^{}]+)\}\{([^{}]+)\}", _frac, s)
     # \binom{n}{k} -> nCr(n,k)
     s = re.sub(r"\\binom\{([^{}]+)\}\{([^{}]+)\}", r"nCr(\1,\2)", s)
+    # \lfloor x \rfloor and \lceil x \rceil
+    s = re.sub(r"\\lfloor\s*([^{}()]+)\s*\\rfloor", r"floor(\1)", s)
+    s = re.sub(r"\\lceil\s*([^{}()]+)\s*\\rceil", r"ceil(\1)", s)
+    # Unicode floor/ceil glyphs ⌊x⌋, ⌈x⌉
+    s = re.sub(r"⌊\s*([^⌋]+)\s*⌋", r"floor(\1)", s)
+    s = re.sub(r"⌈\s*([^⌉]+)\s*⌉", r"ceil(\1)", s)
+    # Absolute value bars |x| → abs(x) (iterative, non-nested best-effort)
+    prev = None
+    while prev != s:
+        prev = s
+        s = re.sub(r"\|([^|]+)\|", r"abs(\1)", s)
+    # Aliases: C(n,k)->nCr(n,k); P(n,k)->nPr(n,k)
+    s = re.sub(r"\bC\s*\(([^,]+),\s*([^\)]+)\)", r"nCr(\1,\2)", s)
+    s = re.sub(r"\bP\s*\(([^,]+),\s*([^\)]+)\)", r"nPr(\1,\2)", s)
+    # Aliases: choose/perm
+    s = re.sub(r"\bchoose\s*\(([^,]+),\s*([^\)]+)\)", r"nCr(\1,\2)", s)
+    s = re.sub(r"\bperm\s*\(([^,]+),\s*([^\)]+)\)", r"nPr(\1,\2)", s)
+    # lg(x) -> log10(x)
+    s = re.sub(r"\blg\s*\(", "log10(", s)
+    # Unicode sqrt: √(x) -> sqrt(x)
+    s = re.sub(r"√\s*\(", "sqrt(", s)
     # \lfloor x \rfloor and \lceil x \rceil
     s = re.sub(r"\\lfloor\s*([^{}()]+)\s*\\rfloor", r"floor(\1)", s)
     s = re.sub(r"\\lceil\s*([^{}()]+)\s*\\rceil", r"ceil(\1)", s)

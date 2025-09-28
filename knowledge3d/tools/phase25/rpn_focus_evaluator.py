@@ -19,6 +19,9 @@ CASES_EXPRESSIONS: List[Dict[str, str]] = [
     {"q": "Compute |−3| + |2-5|", "a": "6"},
     {"q": "Compute \\binom{10}{3} + C(5,2) + P(5,2)", "a": "150"},
     {"q": "Compute ⌊π⌋ + ⌈e⌉", "a": "6"},
+    {"q": "Compute lg(1000) + ln(e)", "a": "4"},
+    {"q": "Compute 7 % 4 + 10 % 3", "a": "4"},
+    {"q": "Compute √(16) + √(9)", "a": "7"},
 ]
 
 
