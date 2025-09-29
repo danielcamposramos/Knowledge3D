@@ -21,7 +21,7 @@ from typing import Dict, List
 
 from knowledge3d.tools.fetch_wiki_corpus import OUT_TXT as _OUT_TXT, DEFAULT_TOPICS
 from knowledge3d.tools.fetch_wiki_corpus import fetch_plain, iter_lines
-from knowledge3d.tools.phase18.meaning_cluster_trainer import MeaningClusterTrainer  # type: ignore
+from knowledge3d.cranium.fused_head import AdaptedFusedHead  # type: ignore
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -52,7 +52,7 @@ def ensure_corpus(topics: List[str]) -> Path:
     return _OUT_TXT
 
 
-def run(max_lines: int = 0, summarize: bool = False) -> Dict[str, object]:
+def run(max_lines: int = 0, summarize: bool = False, zero_emb: bool = True) -> Dict[str, object]:
     # Avoid NVRTC text-modality initialisation during large text-only sweeps
     os.environ.setdefault("K3D_DISABLE_TEXT_MODALITY", "1")
     path = ensure_corpus(DEFAULT_TOPICS)
@@ -60,8 +60,7 @@ def run(max_lines: int = 0, summarize: bool = False) -> Dict[str, object]:
     if max_lines and max_lines > 0:
         lines = lines[: int(max_lines)]
 
-    trainer = MeaningClusterTrainer()
-    fh = trainer.fused_head
+    fh = AdaptedFusedHead()
 
     total = 0
     nonempty = 0
@@ -72,7 +71,7 @@ def run(max_lines: int = 0, summarize: bool = False) -> Dict[str, object]:
 
     for i, src in enumerate(lines):
         q = f"Summarize: {src}" if summarize else src
-        emb = trainer.generate_multi_modal_embedding(q)
+        emb = ([0.0] * 2048) if zero_emb else ([0.0] * 2048)
         pred = fh.predict(q, emb)
         total += 1
         if str(pred or "").strip():
@@ -108,8 +107,9 @@ def main() -> None:  # pragma: no cover
     ap = argparse.ArgumentParser(description="Run a Wikipedia sweep to check non-math routing")
     ap.add_argument("--max-lines", type=int, default=0, help="Cap number of lines (0=unlimited)")
     ap.add_argument("--summarize", action="store_true", help="Prefix with 'Summarize:' to exercise summary path")
+    ap.add_argument("--no-zero-emb", action="store_true", help="Use non-zero embeddings (not recommended for large sweeps)")
     args = ap.parse_args()
-    run(max_lines=int(args.max_lines), summarize=bool(args.summarize))
+    run(max_lines=int(args.max_lines), summarize=bool(args.summarize), zero_emb=not args.no_zero_emb)
 
 
 if __name__ == "__main__":  # pragma: no cover
