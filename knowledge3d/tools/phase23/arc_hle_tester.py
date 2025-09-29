@@ -75,11 +75,12 @@ class ArchHleTester:
         correct = 0
         teacher_scores: List[float] = []
         for idx, item in enumerate(questions):
-            query = item.get('query', '')
-            answer = item.get('true_answer', '')
+            query = str(item.get('query', '') or '')
+            answer = str(item.get('true_answer', '') or '')
             embedding = self.trainer.generate_multi_modal_embedding(query)
-            prediction = self.trainer.predict_from_fused_embedding(query, embedding, cluster_name='arc_hle_test')
-            is_correct = prediction.strip().lower() == str(answer).strip().lower()
+            pred_raw = self.trainer.predict_from_fused_embedding(query, embedding, cluster_name='arc_hle_test')
+            prediction = str(pred_raw or '')
+            is_correct = bool(prediction) and bool(answer) and (prediction.strip().lower() == answer.strip().lower())
             if is_correct:
                 correct += 1
             tscore = self._teacher_score(prediction, str(answer)) if self.teacher else None
