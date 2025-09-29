@@ -5,6 +5,8 @@ import hashlib
 import math
 import threading
 from pathlib import Path
+import os
+import fcntl
 from typing import Dict, Tuple
 
 import numpy as np
@@ -65,48 +67,53 @@ class PTXModalityOps:
         err, = cuda.cuCtxSetCurrent(ctx)
         self._check(err, "cuCtxSetCurrent")
 
-        source_path = Path(__file__).with_name("modality_kernels.cu")
-        if not source_path.exists():
-            raise FileNotFoundError(f"Missing PTX modality kernel source: {source_path}")
-        source = source_path.read_text(encoding="utf-8")
+        # Inter-process lock to avoid NVRTC races across concurrent runs
+        lock_path = Path(os.getenv("K3D_NVRTC_LOCK", "/tmp/k3d_nvrtc_modality.lock"))
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(lock_path, "w") as lfh:
+            fcntl.flock(lfh.fileno(), fcntl.LOCK_EX)
+            source_path = Path(__file__).with_name("modality_kernels.cu")
+            if not source_path.exists():
+                raise FileNotFoundError(f"Missing PTX modality kernel source: {source_path}")
+            source = source_path.read_text(encoding="utf-8")
 
-        res, prog = nvrtc.nvrtcCreateProgram(source.encode("utf-8"), b"modality_kernels.cu", 0, [], [])
-        if res != nvrtc.nvrtcResult.NVRTC_SUCCESS:
-            raise RuntimeError(f"nvrtcCreateProgram failed: {res}")
+            res, prog = nvrtc.nvrtcCreateProgram(source.encode("utf-8"), b"modality_kernels.cu", 0, [], [])
+            if res != nvrtc.nvrtcResult.NVRTC_SUCCESS:
+                raise RuntimeError(f"nvrtcCreateProgram failed: {res}")
 
-        major_attr = cuda.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR
-        minor_attr = cuda.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR
-        err, major = cuda.cuDeviceGetAttribute(major_attr, dev)
-        self._check(err, "cuDeviceGetAttribute major")
-        err, minor = cuda.cuDeviceGetAttribute(minor_attr, dev)
-        self._check(err, "cuDeviceGetAttribute minor")
+            major_attr = cuda.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR
+            minor_attr = cuda.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR
+            err, major = cuda.cuDeviceGetAttribute(major_attr, dev)
+            self._check(err, "cuDeviceGetAttribute major")
+            err, minor = cuda.cuDeviceGetAttribute(minor_attr, dev)
+            self._check(err, "cuDeviceGetAttribute minor")
 
-        arch = f"--gpu-architecture=compute_{major}{minor}".encode("utf-8")
-        opts = [arch, b"--fmad=false"]
-        res, = nvrtc.nvrtcCompileProgram(prog, len(opts), opts)
-        if res != nvrtc.nvrtcResult.NVRTC_SUCCESS:
-            log_size_res, log_size = nvrtc.nvrtcGetProgramLogSize(prog)
-            log = ""
-            if log_size_res == nvrtc.nvrtcResult.NVRTC_SUCCESS and log_size > 1:
-                buffer = bytearray(log_size)
-                nvrtc.nvrtcGetProgramLog(prog, buffer)
-                log = buffer.decode("utf-8", errors="replace")
+            arch = f"--gpu-architecture=compute_{major}{minor}".encode("utf-8")
+            opts = [arch, b"--fmad=false"]
+            res, = nvrtc.nvrtcCompileProgram(prog, len(opts), opts)
+            if res != nvrtc.nvrtcResult.NVRTC_SUCCESS:
+                log_size_res, log_size = nvrtc.nvrtcGetProgramLogSize(prog)
+                log = ""
+                if log_size_res == nvrtc.nvrtcResult.NVRTC_SUCCESS and log_size > 1:
+                    buffer = bytearray(log_size)
+                    nvrtc.nvrtcGetProgramLog(prog, buffer)
+                    log = buffer.decode("utf-8", errors="replace")
+                nvrtc.nvrtcDestroyProgram(prog)
+                raise RuntimeError(f"nvrtcCompileProgram failed ({res}):\n{log}")
+
+            res, ptx_size = nvrtc.nvrtcGetPTXSize(prog)
+            if res != nvrtc.nvrtcResult.NVRTC_SUCCESS:
+                nvrtc.nvrtcDestroyProgram(prog)
+                raise RuntimeError(f"nvrtcGetPTXSize failed: {res}")
+
+            ptx = bytearray(ptx_size)
+            res, = nvrtc.nvrtcGetPTX(prog, ptx)
             nvrtc.nvrtcDestroyProgram(prog)
-            raise RuntimeError(f"nvrtcCompileProgram failed ({res}):\n{log}")
+            if res != nvrtc.nvrtcResult.NVRTC_SUCCESS:
+                raise RuntimeError(f"nvrtcGetPTX failed: {res}")
 
-        res, ptx_size = nvrtc.nvrtcGetPTXSize(prog)
-        if res != nvrtc.nvrtcResult.NVRTC_SUCCESS:
-            nvrtc.nvrtcDestroyProgram(prog)
-            raise RuntimeError(f"nvrtcGetPTXSize failed: {res}")
-
-        ptx = bytearray(ptx_size)
-        res, = nvrtc.nvrtcGetPTX(prog, ptx)
-        nvrtc.nvrtcDestroyProgram(prog)
-        if res != nvrtc.nvrtcResult.NVRTC_SUCCESS:
-            raise RuntimeError(f"nvrtcGetPTX failed: {res}")
-
-        err, module = cuda.cuModuleLoadData(bytes(ptx))
-        self._check(err, "cuModuleLoadData")
+            err, module = cuda.cuModuleLoadData(bytes(ptx))
+            self._check(err, "cuModuleLoadData")
         self._module = module
 
         err, func = cuda.cuModuleGetFunction(module, b"encode_text")

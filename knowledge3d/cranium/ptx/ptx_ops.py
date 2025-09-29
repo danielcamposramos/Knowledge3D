@@ -16,14 +16,17 @@ class PTXOps:
     """Utility wrapper exposing GPU PTX helpers to higher-level components."""
 
     def __init__(self) -> None:
-        self._rpn_engine = ModularRPNEngine()
-        self._shape_generator = TextTo3DGenerator()
-        self._geometry_session = PTXGeometrySession()
-        self._modality_ops = PTXModalityOps()
+        # Lazily initialise heavy GPU subsystems to avoid driver/NVRTC races
+        self._rpn_engine: Optional[ModularRPNEngine] = None  # type: ignore
+        self._shape_generator: Optional[TextTo3DGenerator] = None  # type: ignore
+        self._geometry_session: Optional[PTXGeometrySession] = None  # type: ignore
+        self._modality_ops: Optional[PTXModalityOps] = None  # type: ignore
 
     # ------------------------------------------------------------------
     def evaluate_rpn(self, expression: str, variables: Optional[Dict[str, float]] = None) -> float:
         """Evaluate an RPN expression on the GPU and return the first scalar result."""
+        if self._rpn_engine is None:
+            self._rpn_engine = ModularRPNEngine()
         result = self._rpn_engine.evaluate(expression, variables=variables)
         if isinstance(result, np.ndarray):
             if result.size == 0:
@@ -40,18 +43,26 @@ class PTXOps:
     }
 
     def text_modality(self, text: str) -> Dict[str, Any]:
+        if self._modality_ops is None:
+            self._modality_ops = PTXModalityOps()
         features, metrics = self._modality_ops.text_features(text)
         return self._prepare_modality_response("text", features, metrics)
 
     def audio_modality(self, path: str) -> Dict[str, Any]:
+        if self._modality_ops is None:
+            self._modality_ops = PTXModalityOps()
         features, metrics = self._modality_ops.audio_features(path)
         return self._prepare_modality_response("audio", features, metrics)
 
     def image_modality(self, path: str) -> Dict[str, Any]:
+        if self._modality_ops is None:
+            self._modality_ops = PTXModalityOps()
         features, metrics = self._modality_ops.image_features(path)
         return self._prepare_modality_response("image", features, metrics)
 
     def video_modality(self, path: str) -> Dict[str, Any]:
+        if self._modality_ops is None:
+            self._modality_ops = PTXModalityOps()
         features, metrics = self._modality_ops.video_features(path)
         return self._prepare_modality_response("video", features, metrics)
 
@@ -75,10 +86,14 @@ class PTXOps:
     def generate_shape(self, prompt: str, vertex_count: int = 32, shape_hint: Optional[int] = None) -> str:
         """Generate a GLB path for a prompt-driven shape using the PTX geometry kernel."""
         # The TextTo3DGenerator internally hashes the prompt to determine shape semantics.
+        if self._shape_generator is None:
+            self._shape_generator = TextTo3DGenerator()
         shape_path = self._shape_generator.generate_3d_from_text(prompt)
         return shape_path
 
     def last_generated_shape(self) -> Optional[Dict[str, Any]]:
+        if self._shape_generator is None:
+            return None
         return getattr(self._shape_generator, "last_generation", None)
 
     # ------------------------------------------------------------------
@@ -86,6 +101,8 @@ class PTXOps:
     def geometry_load_scene(self, glb_path: str, *, embedding_json: Optional[str] = None) -> None:
         """Load a GLB + optional embedding JSON into GPU memory."""
 
+        if self._geometry_session is None:
+            self._geometry_session = PTXGeometrySession()
         self._geometry_session.load_scene(glb_path, embedding_json=embedding_json)
 
     def geometry_apply_transform(
@@ -97,6 +114,8 @@ class PTXOps:
     ) -> None:
         """Apply a transform to a mesh primitive in the loaded scene."""
 
+        if self._geometry_session is None:
+            self._geometry_session = PTXGeometrySession()
         self._geometry_session.apply_transform(mesh_index, matrix, recalc_normals=recalc_normals)
 
     def geometry_apply_transform_for_mesh(
@@ -109,6 +128,8 @@ class PTXOps:
     ) -> None:
         """Apply a transform matrix to every primitive of a glTF mesh ID."""
 
+        if self._geometry_session is None:
+            self._geometry_session = PTXGeometrySession()
         self._geometry_session.apply_transform_for_mesh(
             mesh_id,
             matrix,
@@ -126,6 +147,8 @@ class PTXOps:
     ) -> None:
         """Apply a transform matrix to every primitive of a glTF mesh ID."""
 
+        if self._geometry_session is None:
+            self._geometry_session = PTXGeometrySession()
         self._geometry_session.apply_transform_for_mesh(
             mesh_id,
             matrix,
@@ -143,6 +166,8 @@ class PTXOps:
     ) -> None:
         """Translate a glTF mesh ID by the given XYZ vector."""
 
+        if self._geometry_session is None:
+            self._geometry_session = PTXGeometrySession()
         self._geometry_session.translate_mesh(
             mesh_id,
             translation,
@@ -160,6 +185,8 @@ class PTXOps:
     ) -> None:
         """Scale a glTF mesh ID by the given XYZ vector."""
 
+        if self._geometry_session is None:
+            self._geometry_session = PTXGeometrySession()
         self._geometry_session.scale_mesh(
             mesh_id,
             scale,
@@ -170,16 +197,22 @@ class PTXOps:
     def geometry_recalc_normals(self, mesh_index: int) -> None:
         """Recalculate normals on a mesh primitive in the loaded scene."""
 
+        if self._geometry_session is None:
+            self._geometry_session = PTXGeometrySession()
         self._geometry_session.recalc_normals(mesh_index)
 
     def geometry_blend_embedding(self, node_index: int, embedding: np.ndarray, alpha: float) -> None:
         """Blend an embedding into the loaded scene's embedding buffer."""
 
+        if self._geometry_session is None:
+            self._geometry_session = PTXGeometrySession()
         self._geometry_session.blend_embedding(node_index, embedding, alpha)
 
     def geometry_normalize_embedding(self, node_index: int) -> None:
         """Normalize an embedding vector in-place."""
 
+        if self._geometry_session is None:
+            self._geometry_session = PTXGeometrySession()
         self._geometry_session.normalize_embedding(node_index)
 
     def geometry_save(
@@ -190,12 +223,15 @@ class PTXOps:
     ) -> None:
         """Persist any dirty geometry/embedding buffers back to disk."""
 
+        if self._geometry_session is None:
+            self._geometry_session = PTXGeometrySession()
         self._geometry_session.save(target_glb=target_glb, target_embeddings=target_embeddings)
 
     def geometry_release(self) -> None:
         """Release GPU resources associated with the loaded scene."""
 
-        self._geometry_session.close()
+        if self._geometry_session is not None:
+            self._geometry_session.close()
 
     @property
     def geometry_memory(self) -> GalaxyGPUMemory:

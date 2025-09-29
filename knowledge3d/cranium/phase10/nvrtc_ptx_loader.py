@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import math
+import fcntl
+import os
 import logging
 import os
 import threading
@@ -71,7 +73,12 @@ class NVRTCPTXLoader:
                 module = None
 
         if module is None:
-            module = self._compile_inline_module(dev)
+            # Inter-process NVRTC compile lock to avoid driver races
+            lock_path = Path(os.getenv("K3D_NVRTC_LOCK", "/tmp/k3d_nvrtc_shape.lock"))
+            lock_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(lock_path, "w") as lfh:
+                fcntl.flock(lfh.fileno(), fcntl.LOCK_EX)
+                module = self._compile_inline_module(dev)
 
         self._module = module
         err, func = cuda.cuModuleGetFunction(module, b"generate_shape_kernel")
