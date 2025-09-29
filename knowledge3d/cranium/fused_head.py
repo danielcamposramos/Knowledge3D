@@ -193,10 +193,7 @@ class AdaptedFusedHead:
                     f"\\boxed{{{int(answer):03d}}}\nTags: [logic, rpn]",
                 )
 
-        # Simple numeric equality or evaluate-phrase parsing
-        numeric = self._simple_numeric_solver(query)
-        if numeric is not None:
-            return self._post_process_answer(query, PTX_OPS.format_numeric(numeric))
+        # Enforce PTX-first math only (no CPU numeric conveniences)
 
         # Memory-first lookup: House → Learning → Blend
         house_answer = self._attempt_house_memory_lookup(query, fused_embedding)
@@ -372,24 +369,7 @@ class AdaptedFusedHead:
             return query
         return None
 
-    def _simple_numeric_solver(self, query: str) -> Optional[float]:
-        if not query:
-            return None
-        match = re.search(r"=\s*([\d\.]+)$", query)
-        if match:
-            try:
-                return float(match.group(1))
-            except ValueError:
-                return None
-        expr_match = re.search(r"evaluate\s+([\d\s\+\-\*/\.\(\)]+)$", query.lower())
-        if expr_match:
-            expr = expr_match.group(1)
-            if re.fullmatch(r"[\d\s\+\-\*/\.\(\)]+", expr):
-                try:
-                    return float(eval(expr, {"__builtins__": {}}, {}))  # noqa: S307
-                except Exception:
-                    return None
-        return None
+    # CPU numeric convenience path removed by policy: PTX RPN or learned head only
 
     def _normalize_text(self, text: str) -> str:
         return re.sub(r"\s+", " ", text or "").strip().lower()
