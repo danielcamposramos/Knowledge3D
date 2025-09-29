@@ -26,6 +26,7 @@ from knowledge3d.skills.infix_to_rpn import (
 )
 from fractions import Fraction as _Fraction
 import os as _os
+import random as _random
 
 
 class AdaptedFusedHead:
@@ -95,6 +96,25 @@ class AdaptedFusedHead:
         }
         self._media_cache: Dict[str, List[Dict[str, object]]] = {"image": [], "audio": [], "video": []}
         self._refresh_media_cache()
+
+        # RPN Policy Head (in-core): tiny GRU that generates RPN tokens,
+        # executed via PTX for precise numeric evaluation.
+        self._rpn_vocab: List[str] = self._build_rpn_vocab()
+        self._rpn_token_to_idx: Dict[str, int] = {t: i for i, t in enumerate(self._rpn_vocab)}
+        self._rpn_idx_to_token: List[str] = self._rpn_vocab[:]
+        self._rpn_embed = nn.Embedding(len(self._rpn_vocab), 128).to(self.device)
+        self._rpn_gru = nn.GRU(128, 256, batch_first=True).to(self.device)
+        self._rpn_out = nn.Linear(256, len(self._rpn_vocab)).to(self.device)
+        self._rpn_ce = nn.CrossEntropyLoss(ignore_index=self._rpn_token_to_idx.get('<PAD>', 0)).to(self.device)
+        self._rpn_opt = torch.optim.Adam(
+            [
+                {"params": self._rpn_embed.parameters(), "lr": 1e-3},
+                {"params": self._rpn_gru.parameters(), "lr": 1e-3},
+                {"params": self._rpn_out.parameters(), "lr": 1e-3},
+            ]
+        )
+        self._rpn_ckpt_path = Path("viewer/public/house/house_rpn_policy.pt")
+        self._load_rpn_policy()
 
     # ------------------------------------------------------------------
     def predict(self, query: str, fused_embedding: List[float]) -> str:
@@ -174,6 +194,15 @@ class AdaptedFusedHead:
                     return self._post_process_answer(query, base)
         except Exception:
             pass
+
+        # RPN Policy Head (generative) — gated by env
+        if str(_os.environ.get("K3D_ENABLE_RPN_POLICY", "0")).lower() in {"1", "true", "yes"} and self._looks_like_math(query or ""):
+            try:
+                policy_answer = self._rpn_policy_generate(query, fused_embedding)
+                if policy_answer:
+                    return self._post_process_answer(query, policy_answer)
+            except Exception:
+                pass
 
         shape_prompt = self._extract_shape_prompt(query)
         if shape_prompt:
@@ -533,6 +562,122 @@ class AdaptedFusedHead:
         for path in corpus_files:
             if path.exists():
                 self._ingest_corpus_file(path)
+
+    # --------------------- RPN Policy Head helpers ---------------------
+    def _build_rpn_vocab(self) -> List[str]:
+        base_funcs = [
+            'sin','cos','tan','asin','acos','atan','sinh','cosh','tanh','exp','log','log10','sqrt','abs',
+            'floor','ceil','mod','round','round_he','gcd','lcm'
+        ]
+        ops = ['+','-','*','/','^','neg','fact']
+        consts = ['pi','π','tau','phi','φ','e']
+        numbers = [str(i) for i in range(-9,10)]
+        specials = ['<PAD>','<BOS>','<EOS>']
+        # RPN does not need parentheses; include registers and load/store for program flavor
+        regs = [str(i) for i in range(16)] + ['load','store']
+        vocab = specials + numbers + consts + ops + base_funcs + regs
+        # Deduplicate preserving order
+        seen = set()
+        out: List[str] = []
+        for t in vocab:
+            if t not in seen:
+                seen.add(t)
+                out.append(t)
+        return out
+
+    def _rpn_tokens_to_indices(self, tokens: List[str]) -> List[int]:
+        unk = self._rpn_token_to_idx.get('<PAD>', 0)
+        return [self._rpn_token_to_idx.get(t, unk) for t in tokens]
+
+    def _rpn_indices_to_tokens(self, idxs: List[int]) -> List[str]:
+        return [self._rpn_idx_to_token[i] for i in idxs]
+
+    def _save_rpn_policy(self) -> None:
+        try:
+            self._rpn_ckpt_path.parent.mkdir(parents=True, exist_ok=True)
+            torch.save({
+                'embed': self._rpn_embed.state_dict(),
+                'gru': self._rpn_gru.state_dict(),
+                'out': self._rpn_out.state_dict(),
+            }, str(self._rpn_ckpt_path))
+        except Exception:
+            pass
+
+    def _load_rpn_policy(self) -> None:
+        try:
+            if self._rpn_ckpt_path.exists():
+                state = torch.load(str(self._rpn_ckpt_path), map_location=self.device)
+                if 'embed' in state:
+                    self._rpn_embed.load_state_dict(state['embed'])
+                if 'gru' in state:
+                    self._rpn_gru.load_state_dict(state['gru'])
+                if 'out' in state:
+                    self._rpn_out.load_state_dict(state['out'])
+        except Exception:
+            pass
+
+    def rpn_policy_train_step(self, target_tokens: List[str]) -> float:
+        """Teacher-forced training step on a single token sequence."""
+        bos = self._rpn_token_to_idx['<BOS>']
+        eos = self._rpn_token_to_idx['<EOS>']
+        pad = self._rpn_token_to_idx['<PAD>']
+        # Trim/validate tokens to vocab
+        usable = [t for t in target_tokens if t in self._rpn_token_to_idx]
+        if not usable:
+            return 0.0
+        # Prepare input (BOS + tokens) and target (tokens + EOS)
+        x_idx = [bos] + [self._rpn_token_to_idx[t] for t in usable]
+        y_idx = [self._rpn_token_to_idx[t] for t in usable] + [eos]
+        x = torch.tensor(x_idx, dtype=torch.long, device=self.device).unsqueeze(0)
+        y = torch.tensor(y_idx, dtype=torch.long, device=self.device).unsqueeze(0)
+        # Forward
+        self._rpn_embed.train(); self._rpn_gru.train(); self._rpn_out.train()
+        h0 = torch.zeros(1, 1, 256, device=self.device)
+        emb = self._rpn_embed(x)
+        out, _ = self._rpn_gru(emb, h0)
+        logits = self._rpn_out(out)
+        loss = self._rpn_ce(logits.reshape(-1, logits.shape[-1]), y.reshape(-1))
+        self._rpn_opt.zero_grad(set_to_none=True)
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(list(self._rpn_embed.parameters()) + list(self._rpn_gru.parameters()) + list(self._rpn_out.parameters()), 1.0)
+        self._rpn_opt.step()
+        return float(loss.detach().item())
+
+    def _rpn_policy_generate(self, query: str, fused_embedding: List[float], max_steps: int = 32) -> Optional[str]:
+        """Greedy-generate an RPN token sequence, evaluate via PTX, and return a formatted answer string."""
+        bos = self._rpn_token_to_idx['<BOS>']
+        eos = self._rpn_token_to_idx['<EOS>']
+        self._rpn_embed.eval(); self._rpn_gru.eval(); self._rpn_out.eval()
+        with torch.no_grad():
+            x = torch.tensor([bos], dtype=torch.long, device=self.device).unsqueeze(0)
+            h = torch.zeros(1, 1, 256, device=self.device)
+            tokens: List[str] = []
+            for _ in range(int(max(8, max_steps))):
+                emb = self._rpn_embed(x[:, -1:])
+                out, h = self._rpn_gru(emb, h)
+                logits = self._rpn_out(out[:, -1])
+                idx = int(torch.argmax(logits, dim=-1).item())
+                if idx == eos:
+                    break
+                tok = self._rpn_idx_to_token[idx]
+                if tok == '<PAD>' or tok == '<BOS>':
+                    continue
+                tokens.append(tok)
+                # Limit tokens to avoid runaway
+                if len(tokens) >= max_steps:
+                    break
+                x = torch.cat([x, torch.tensor([[idx]], dtype=torch.long, device=self.device)], dim=1)
+        if not tokens:
+            return None
+        expr = " ".join(tokens)
+        try:
+            result = PTX_OPS.evaluate_rpn(expr)
+            out = f"\\boxed{{{PTX_OPS.format_numeric(result)}}}\nTags: [logic, rpn, policy]"
+            if str(_os.environ.get("K3D_RPN_TRACE", "0")).lower() in {"1","true","yes"}:
+                out += f"\nRPN: {expr}"
+            return out
+        except Exception:
+            return None
 
     def _load_material_manifest(self) -> Dict[str, List[Dict[str, object]]]:
         default: Dict[str, List[Dict[str, object]]] = {"shapes": [], "rays": []}
