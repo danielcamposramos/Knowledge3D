@@ -129,7 +129,11 @@ class AdaptedFusedHead:
                 pass
 
         # Program → RPN path: handle simple assignments + expressions with registers
+        arc_like = ("arc " in ql) or ("[[" in (query or "")) or ("\"input\":" in (query or ""))
+        allow_program = ("let " in ql) or bool(re.search(r"(^|[;\n])\s*[A-Za-z_πφΦ][A-Za-z0-9_πφΦ]*\s*=", query or ""))
         try:
+            if not (allow_program and not arc_like):
+                raise RuntimeError("skip program rpn for non-math/json prompts")
             if str(_os.environ.get("K3D_RPN_TRACE", "0")).lower() in {"1", "true", "yes"}:
                 prog_tokens, regmap = program_to_rpn_with_trace(query or "")
             else:
@@ -155,7 +159,10 @@ class AdaptedFusedHead:
 
         # Infix → RPN path: parse math expressions in natural text and evaluate via PTX RPN
         try:
+            arc_like = ("arc " in ql) or ("[[" in (query or "")) or ("\"input\":" in (query or ""))
             expr = extract_math_expression(query or "")
+            if arc_like:
+                raise RuntimeError("skip infix rpn for non-math/json prompts")
             if expr:
                 rpn_tokens = infix_to_rpn(expr)
                 if rpn_tokens:
