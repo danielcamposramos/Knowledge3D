@@ -184,7 +184,6 @@ class AdaptedFusedHead:
             return self._post_process_answer(query, media_answer, media_payload)
 
         # If the query looks like a math/AIME-style prompt, prefer the math head
-        import os as _os
         if self._looks_like_math(query) and str(_os.environ.get("K3D_ENABLE_MATH_HEAD", "0")).lower() in {"1","true","yes"}:
             answer = self._predict_math_numeric(fused_embedding)
             if answer is not None:
