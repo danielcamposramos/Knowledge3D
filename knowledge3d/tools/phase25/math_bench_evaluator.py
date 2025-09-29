@@ -67,11 +67,11 @@ def _normalize(ans: Optional[str]) -> Optional[str]:
 
 def evaluate_dataset(repo: str, split: str = "train", limit: int = 50) -> Dict[str, object]:
     if load_dataset is None or DownloadConfig is None:
-        return {"name": repo, "total": 0, "correct": 0, "accuracy": 0.0, "details": [], "note": "datasets unavailable"}
+        return {"name": repo, "split": split, "limit": 0, "total": 0, "correct": 0, "accuracy": 0.0, "details": [], "note": "datasets unavailable"}
     try:
         ds = load_dataset(repo, split=split, download_config=DownloadConfig(local_files_only=True))
     except Exception:
-        return {"name": repo, "total": 0, "correct": 0, "accuracy": 0.0, "details": [], "note": "dataset not in local cache"}
+        return {"name": repo, "split": split, "limit": 0, "total": 0, "correct": 0, "accuracy": 0.0, "details": [], "note": "dataset not in local cache"}
 
     os.environ.setdefault("K3D_ENABLE_MATH_HEAD", "0")
     os.environ.setdefault("K3D_RPN_ROUND_MODE", "half_even")
