@@ -1,7 +1,9 @@
 {
   "suites": [
     {
-      "name": "Maxwell-Jia/aime_2024",
+      "name": "hendrycks/competition_math",
+      "split": "train",
+      "limit": 0,
       "total": 0,
       "correct": 0,
       "accuracy": 0.0,
@@ -9,7 +11,17 @@
       "note": "dataset not in local cache"
     },
     {
-      "name": "meta-math/meta_math_qa",
+      "name": "meta-math/MetaMathQA",
+      "split": "train",
+      "limit": 50,
+      "correct": 0,
+      "accuracy": 0.0,
+      "details": []
+    },
+    {
+      "name": "openai/gsm8k",
+      "split": "train",
+      "limit": 0,
       "total": 0,
       "correct": 0,
       "accuracy": 0.0,

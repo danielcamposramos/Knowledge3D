@@ -634,7 +634,9 @@ class AdaptedFusedHead:
         self._rpn_embed.train(); self._rpn_gru.train(); self._rpn_out.train()
         h0 = torch.zeros(1, 1, 256, device=self.device)
         emb = self._rpn_embed(x)
-        out, _ = self._rpn_gru(emb, h0)
+        # Avoid rare cuDNN stream mismatch on some drivers by disabling cuDNN for this op
+        with torch.backends.cudnn.flags(enabled=False):
+            out, _ = self._rpn_gru(emb, h0)
         logits = self._rpn_out(out)
         loss = self._rpn_ce(logits.reshape(-1, logits.shape[-1]), y.reshape(-1))
         self._rpn_opt.zero_grad(set_to_none=True)
@@ -654,7 +656,8 @@ class AdaptedFusedHead:
             tokens: List[str] = []
             for _ in range(int(max(8, max_steps))):
                 emb = self._rpn_embed(x[:, -1:])
-                out, h = self._rpn_gru(emb, h)
+                with torch.backends.cudnn.flags(enabled=False):
+                    out, h = self._rpn_gru(emb, h)
                 logits = self._rpn_out(out[:, -1])
                 idx = int(torch.argmax(logits, dim=-1).item())
                 if idx == eos:
