@@ -73,6 +73,7 @@ class ArchHleTester:
         questions = self.load_arc_hle_questions()
         results: List[Dict[str, Any]] = []
         correct = 0
+        soft_correct = 0
         teacher_scores: List[float] = []
         for idx, item in enumerate(questions):
             query = str(item.get('query', '') or '')
@@ -81,6 +82,35 @@ class ArchHleTester:
             pred_raw = self.trainer.predict_from_fused_embedding(query, embedding, cluster_name='arc_hle_test')
             prediction = str(pred_raw or '')
             is_correct = bool(prediction) and bool(answer) and (prediction.strip().lower() == answer.strip().lower())
+            # Soft correctness: tolerant text compare or JSON structural compare for ARC
+            def _normalize(s: str) -> str:
+                import re as _re
+                return _re.sub(r"[^a-z0-9]+", " ", s.lower()).strip()
+            soft_ok = False
+            dataset = str(item.get('dataset') or '')
+            if dataset.startswith('arc'):
+                import json as _json
+                def _try_json(x: str):
+                    try:
+                        return _json.loads(x)
+                    except Exception:
+                        return None
+                pj = _try_json(prediction)
+                aj = _try_json(answer)
+                if pj is None:
+                    # try to extract bracketed JSON substring
+                    import re as _re
+                    m = _re.search(r"(\[[\s\S]*\]|\{[\s\S]*\})", prediction)
+                    if m:
+                        pj = _try_json(m.group(1))
+                if pj is not None and aj is not None:
+                    soft_ok = (pj == aj)
+                else:
+                    soft_ok = SequenceMatcher(None, _normalize(prediction), _normalize(answer)).ratio() >= 0.72
+            else:
+                soft_ok = SequenceMatcher(None, _normalize(prediction), _normalize(answer)).ratio() >= 0.72
+            if soft_ok:
+                soft_correct += 1
             if is_correct:
                 correct += 1
             tscore = self._teacher_score(prediction, str(answer)) if self.teacher else None
@@ -104,11 +134,14 @@ class ArchHleTester:
                     f"{status} Q{idx + 1}: {query}\n   Predicted: {prediction}\n   Expected:  {answer}\n   Teacher score: {tscore:+.2f}"
                 )
         accuracy = correct / max(1, len(questions))
+        soft_accuracy = soft_correct / max(1, len(questions))
         avg_teacher = (sum(teacher_scores) / len(teacher_scores)) if teacher_scores else None
         summary = {
             'total_questions': len(questions),
             'correct': correct,
             'accuracy': accuracy,
+            'soft_correct': soft_correct,
+            'soft_accuracy': soft_accuracy,
             'results': results,
             **({'avg_teacher_score': avg_teacher} if avg_teacher is not None else {}),
         }
