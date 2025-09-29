@@ -14,7 +14,7 @@ Returns a list of RPN tokens compatible with the ModularRPNEngine
 """
 
 import re
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 import os as _os
 
 
@@ -327,6 +327,59 @@ def program_to_rpn(text: str) -> List[str]:
     return out
 
 
+def program_to_rpn_with_trace(text: str) -> Tuple[List[str], Dict[str, int]]:
+    """Compile a simple math program and also return the register map.
+
+    Returns a tuple: (rpn_tokens, var_to_reg_map) where var_to_reg_map maps
+    variable names to assigned register indices (0..15).
+    """
+    if not text:
+        return [], {}
+    # Re-implement using the same logic as program_to_rpn, preserving order
+    stmts = [s.strip() for s in re.split(r"[;\n]+", text) if s.strip()]
+    if not stmts:
+        return [], {}
+    var_order: List[str] = []
+    var_to_reg: Dict[str, int] = {}
+
+    def _get_reg(name: str) -> int:
+        if name not in var_to_reg:
+            if len(var_order) >= 16:
+                raise ValueError("Exceeded max 16 registers in RPN program")
+            var_to_reg[name] = len(var_order)
+            var_order.append(name)
+        return var_to_reg[name]
+
+    def _replace_vars(tokens: List[str]) -> List[str]:
+        replaced: List[str] = []
+        for t in tokens:
+            if _is_identifier(t) and t not in _CONST and t not in _FUNCS and t not in _OP_INFO and t not in {"ln"}:
+                idx = _get_reg(t)
+                replaced.append(str(idx))
+                replaced.append("load")
+            else:
+                replaced.append(t)
+        return replaced
+
+    out: List[str] = []
+    for raw in stmts:
+        m = re.match(r"^(?:let\s+)?([A-Za-z_πφΦ][A-Za-z0-9_πφΦ]*)\s*=\s*(.+)$", raw)
+        if m:
+            name = m.group(1)
+            expr = m.group(2).strip()
+            toks = infix_to_rpn(expr)
+            toks = _replace_vars(toks)
+            idx = _get_reg(name)
+            out.extend(toks)
+            out.append(str(idx))
+            out.append("store")
+        else:
+            toks = infix_to_rpn(raw)
+            toks = _replace_vars(toks)
+            out.extend(toks)
+    return out, var_to_reg
+
+
 def extract_math_expression(text: str) -> Optional[str]:
     """Heuristically extract a math expression substring from free text.
 
@@ -369,4 +422,4 @@ def extract_math_expression(text: str) -> Optional[str]:
     return None
 
 
-__all__ = ["infix_to_rpn", "extract_math_expression", "program_to_rpn"]
+__all__ = ["infix_to_rpn", "extract_math_expression", "program_to_rpn", "program_to_rpn_with_trace"]

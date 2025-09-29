@@ -1,0 +1,212 @@
+{
+  "total": 6000,
+  "nonempty": 136,
+  "boxed_count": 0,
+  "rpn_tag_count": 0,
+  "honesty_note_count": 0,
+  "nonempty_rate": 0.02266666666666667,
+  "rpn_rate": 0.0,
+  "boxed_rate": 0.0,
+  "samples": [
+    {
+      "q": "Summarize: Human — Humans have large brains, enabling more advanced cognitive skills that facilitate successful adaptation to varied environments, development of sophisticated tools, and formation of complex social structures and civilizati",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — Human population growth, industrialization, land development, overconsumption and combustion of fossil fuels have led to environmental destruction and pollution that significantly contributes to the ongoing mass extinctio",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — Within the last century, humans have explored challenging environments such as Antarctica, the deep sea, and outer space, though human habitation in these environments is typically limited in duration and restricted to sc",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — Although the term \"humans\" technically equates with all members of the genus Homo, in common usage it generally refers to Homo sapiens, the only extant member.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — The native English term man can refer to the species generally (a synonym for humanity) as well as to human males.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — Following their split with chimpanzees and bonobos, the hominins diversified into many species and at least two distinct genera.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — H. erectus (the African variant is sometimes called H. ergaster) evolved 2 million years ago and was the first archaic human species to leave Africa and disperse across Eurasia.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — H. sapiens proceeded to colonize all the continents and larger islands, arriving in Eurasia 125,000 years ago, Australia around 65,000 years ago, the Americas around 15,000 years ago, and remote islands such as Hawaii, Ea",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — The most significant of these adaptations are hairlessness, obligate bipedalism, increased brain size and decreased sexual dimorphism (neoteny).",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — They eventually traded with each other and invented technology such as wheels, plows and sails.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — Between the 8th and 6th century BCE, Europe entered the classical antiquity age, a period when ancient Greece and ancient Rome flourished.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — In Africa, the Kingdom of Aksum overtook the declining Kingdom of Kush and facilitated trade between India and the Mediterranean.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — The Christian and Islamic worlds would eventually clash, with the Kingdom of England, the Kingdom of France and the Holy Roman Empire declaring a series of holy wars to regain control of the Holy Land from Muslims.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — Oceania would see the rise of the Tuʻi Tonga Empire which expanded across many islands in the South Pacific.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — Currently the species is present in all eight biogeographical realms, although their presence in the Antarctic realm is very limited to research stations and annually there is a population decline in the winter months of ",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — Humans established nation-states in the other seven realms, such as South Africa, India, Russia, Australia, Fiji, the United States, and Brazil (each located in a different biogeographical realm).",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — Human habitation within these hostile environments is restrictive and expensive, typically limited in duration, and restricted to scientific, military, or industrial expeditions.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — As a result, humans are a cosmopolitan species found in almost all regions of the world, including tropical rainforest, arid desert, extremely cold arctic regions, and heavily polluted cities; in comparison, most other sp",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — Estimates of the population at the time agriculture emerged in around 10,000 BC have ranged between 1 million and 15 million.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — Bubonic plagues, first recorded in the 6th century AD, reduced the population by 50%, with the Black Death killing 75–200 million people in Eurasia and North Africa alone.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — The combined biomass of the carbon of all the humans on Earth in 2018 was estimated at 60 million tons, about 10 times larger than that of all non-domesticated mammals.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — The most urbanized regions are Northern America (82%), Latin America (81%), Europe (74%) and Oceania (68%), with Africa and Asia having nearly 90% of the world's 3.4 billion rural population.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — While humans have a density of hair follicles comparable to other apes, it is predominantly vellus hair, most of which is so short and wispy as to be practically invisible.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — It is estimated that the worldwide average height for an adult human male is about 171 cm (5 ft 7 in), while the worldwide average height for adult human females is about 159 cm (5 ft 3 in).",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — Shrinkage of stature may begin in middle age in some individuals but tends to be typical in the extremely aged.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — Genes and environment influence human biological variation in visible characteristics, physiology, disease susceptibility and mental abilities.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — The forces of natural selection have continued to operate on human populations, with evidence that certain regions of the genome display directional selection in the past 15,000 years.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — In 2012 the International HapMap Project had compared the genomes of 1,184 individuals from 11 populations and identified 1.6 million single nucleotide polymorphisms.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — Embryonic development in the human covers the first eight weeks of development; at the beginning of the ninth week the embryo is termed a fetus.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — In developed countries, infants are typically 3–4 kg (7–9 lb) in weight and 47–53 cm (19–21 in) in height at birth.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — Helpless at birth, humans continue to grow for some years, typically reaching sexual maturity at 15 to 17 years of age.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — The life span of an individual depends on two major factors, genetics and lifestyle choices.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — This involved combining stationary food sources (such as fruits, grains, tubers, and mushrooms, insect larvae and aquatic mollusks) with wild game, which must be hunted and captured in order to be consumed.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — Survival without water is usually limited to three or four days, with a maximum of one week.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — However, global food distribution is not even, and obesity among some human populations has increased rapidly, leading to health complications and increased mortality in some developed and a few developing countries.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — There is evidence that populations have adapted genetically to various external factors.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — The genes that allow adult humans to digest lactose are present in high frequencies in populations that have long histories of cattle domestication and are more dependent on cow milk.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — Hair color depends on the amount of melanin, with concentrations fading with increased age, leading to grey or even white hair.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — After allowing for body weight and volume, the male voice is usually an octave deeper than the female voice.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — This has led humans to proclaim themselves to be more intelligent than any other known species.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — Even compared with other social animals, humans have an unusually high degree of flexibility in their facial expressions.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — The average sleep requirement is between seven and nine hours per day for an adult and nine to ten hours per day for a child; elderly people usually sleep for six to seven hours.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — The events in dreams are generally outside the control of the dreamer, with the exception of lucid dreaming, where the dreamer is self-aware.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — Opinions differ about what exactly needs to be studied and explained as consciousness.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — Historically it is associated with introspection, private thought, imagination and volition.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — This may focus on intellectual, cognitive, neural, social, or moral development.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — From a psychological perspective, Maslow's hierarchy of needs is a well-established theory that can be defined as the process of satisfying certain needs in ascending order of complexity.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — Because it is a broad term, which has varied with historical contexts over time, it lacks a precise definition.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — Sexuality also affects and is affected by cultural, political, legal, philosophical, moral, ethical, and religious aspects of life.",
+      "pred": "None"
+    },
+    {
+      "q": "Summarize: Human — Humans can fall anywhere along a continuous scale of sexual orientation, although most humans are heterosexual.",
+      "pred": "None"
+    }
+  ]
+}

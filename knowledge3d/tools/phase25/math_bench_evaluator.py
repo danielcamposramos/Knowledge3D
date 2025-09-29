@@ -4,7 +4,7 @@ import json
 import os
 import re
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Iterable
 
 try:
     from datasets import load_dataset, DownloadConfig  # type: ignore
@@ -124,15 +124,90 @@ def evaluate_dataset(repo: str, split: str = "train", limit: int = 50) -> Dict[s
         "details": details,
     }
 
+def _hf_cache_dirs() -> List[Path]:
+    roots: List[Path] = []
+    # Respect HF_HOME if set
+    env_home = os.environ.get("HF_HOME") or os.environ.get("HF_DATASETS_CACHE")
+    if env_home:
+        roots.append(Path(env_home))
+    # Default user cache
+    roots.append(Path.home() / ".cache" / "huggingface" / "datasets")
+    # Common alt cache on some systems
+    roots.append(Path("/home/daniel/.cache/huggingface/datasets"))
+    # Deduplicate preserving order
+    seen: set = set()
+    out: List[Path] = []
+    for r in roots:
+        if r.exists() and str(r) not in seen:
+            seen.add(str(r))
+            out.append(r)
+    return out
 
-def run() -> Dict[str, object]:
+
+def discover_local_hf_repos(keywords: Iterable[str] = ("math", "aime", "amc", "gsm8k", "metamath")) -> List[str]:
+    repos: List[str] = []
+    keys = tuple(str(k).lower() for k in (keywords or ()))
+    for root in _hf_cache_dirs():
+        try:
+            for entry in root.iterdir():
+                if not entry.is_dir():
+                    continue
+                name = entry.name
+                # Expect form like "owner___datasetname"
+                if "___" in name and any(k in name.lower() for k in keys):
+                    owner, ds = name.split("___", 1)
+                    if owner and ds:
+                        repos.append(f"{owner}/{ds}")
+        except Exception:
+            continue
+    # Deduplicate while preserving order
+    seen: set = set()
+    unique: List[str] = []
+    for r in repos:
+        if r not in seen:
+            seen.add(r)
+            unique.append(r)
+    return unique
+
+
+def run(repos: Optional[List[str]] = None, limit: int = 50) -> Dict[str, object]:
     suites: List[Dict[str, object]] = []
-    suites.append(evaluate_dataset("hendrycks/competition_math", split="train", limit=50))
+    if not repos:
+        repos = [
+            "hendrycks/competition_math",
+            "meta-math/MetaMathQA",
+            "openai/gsm8k",
+        ]
+    for repo in repos:
+        suites.append(evaluate_dataset(repo, split="train", limit=limit))
     return {"suites": suites}
 
 
 def main() -> None:  # pragma: no cover
-    report = run()
+    import argparse
+
+    ap = argparse.ArgumentParser(description="Evaluate math datasets from local HF cache")
+    ap.add_argument("--limit", type=int, default=50, help="Max items per dataset")
+    ap.add_argument("--auto", action="store_true", help="Discover local math-like repos from HF cache")
+    ap.add_argument("--list", action="store_true", help="List discovered repos and exit")
+    ap.add_argument("--repos", type=str, default="", help="Comma-separated list of repos to evaluate (owner/name)")
+    args = ap.parse_args()
+
+    repos: List[str] = []
+    if args.repos:
+        repos.extend([r.strip() for r in args.repos.split(",") if r.strip()])
+    if args.auto:
+        discovered = discover_local_hf_repos()
+        if args.list:
+            print("Discovered HF repos (local cache):")
+            for r in discovered:
+                print(" -", r)
+            return
+        repos.extend(discovered)
+    if not repos:
+        repos = None  # use defaults
+
+    report = run(repos=repos, limit=int(max(1, args.limit)))
     out = Path("docs/benchmarks/math_bench_report.json")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -143,4 +218,3 @@ def main() -> None:  # pragma: no cover
 
 if __name__ == "__main__":  # pragma: no cover
     main()
-

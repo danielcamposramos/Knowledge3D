@@ -18,7 +18,12 @@ from knowledge3d.cranium.ptx.ptx_ops import PTX_OPS
 from knowledge3d.skills.audio import embed_audio
 from knowledge3d.skills.video import embed_video
 from knowledge3d.skills.vision import embed_image
-from knowledge3d.skills.infix_to_rpn import infix_to_rpn, extract_math_expression, program_to_rpn
+from knowledge3d.skills.infix_to_rpn import (
+    infix_to_rpn,
+    extract_math_expression,
+    program_to_rpn,
+    program_to_rpn_with_trace,
+)
 from fractions import Fraction as _Fraction
 import os as _os
 
@@ -116,19 +121,35 @@ class AdaptedFusedHead:
         if rpn_expr:
             try:
                 result = PTX_OPS.evaluate_rpn(rpn_expr)
-                return self._post_process_answer(query, PTX_OPS.format_numeric(result))
+                out = f"\\boxed{{{PTX_OPS.format_numeric(result)}}}"
+                if str(_os.environ.get("K3D_RPN_TRACE", "0")).lower() in {"1", "true", "yes"}:
+                    out += f"\nTags: [logic, rpn, direct]\nRPN: {rpn_expr}"
+                return self._post_process_answer(query, out)
             except Exception:
                 pass
 
         # Program → RPN path: handle simple assignments + expressions with registers
         try:
-            prog_tokens = program_to_rpn(query or "")
+            if str(_os.environ.get("K3D_RPN_TRACE", "0")).lower() in {"1", "true", "yes"}:
+                prog_tokens, regmap = program_to_rpn_with_trace(query or "")
+            else:
+                prog_tokens = program_to_rpn(query or "")
+                regmap = None  # type: ignore
             if prog_tokens:
                 result = PTX_OPS.evaluate_rpn(" ".join(prog_tokens))
                 num = PTX_OPS.format_numeric(result)
-                return self._post_process_answer(
-                    query, f"\\boxed{{{self._format_rational(num)}}}\nTags: [logic, rpn, program]"
-                )
+                base = f"\\boxed{{{self._format_rational(num)}}}\nTags: [logic, rpn, program]"
+                if str(_os.environ.get("K3D_RPN_TRACE", "0")).lower() in {"1", "true", "yes"}:
+                    trace = " ".join(prog_tokens)
+                    regs = ""
+                    if isinstance(regmap, dict) and regmap:
+                        # sort by register index for readability
+                        items = sorted(regmap.items(), key=lambda kv: kv[1])
+                        regs = ", ".join(f"{name}->{idx}" for name, idx in items)
+                        base += f"\nRPN: {trace}\nRegisters: {regs}"
+                    else:
+                        base += f"\nRPN: {trace}"
+                return self._post_process_answer(query, base)
         except Exception:
             pass
 
@@ -140,9 +161,10 @@ class AdaptedFusedHead:
                 if rpn_tokens:
                     result = PTX_OPS.evaluate_rpn(" ".join(rpn_tokens))
                     num = PTX_OPS.format_numeric(result)
-                    return self._post_process_answer(
-                        query, f"\\boxed{{{self._format_rational(num)}}}\nTags: [logic, rpn, infix]"
-                    )
+                    base = f"\\boxed{{{self._format_rational(num)}}}\nTags: [logic, rpn, infix]"
+                    if str(_os.environ.get("K3D_RPN_TRACE", "0")).lower() in {"1", "true", "yes"}:
+                        base += f"\nRPN: {' '.join(rpn_tokens)}"
+                    return self._post_process_answer(query, base)
         except Exception:
             pass
 
