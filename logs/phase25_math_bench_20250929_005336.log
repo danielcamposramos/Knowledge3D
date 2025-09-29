@@ -1,0 +1,19 @@
+Using the latest cached version of the dataset since meta-math/meta_math_qa couldn't be found on the Hugging Face Hub
+Found the latest cached dataset configuration 'default' at /home/daniel/.cache/huggingface/datasets/meta-math___meta_math_qa/default/0.0.0/aa4f34d3d2d3231299b5b03d9b3e5a20da45aa18 (last modified on Thu Sep 25 00:06:51 2025).
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/K3D/Knowledge3D/knowledge3d/tools/phase25/math_bench_evaluator.py", line 220, in <module>
+    main()
+  File "/K3D/Knowledge3D/knowledge3d/tools/phase25/math_bench_evaluator.py", line 216, in main
+    print(f"  {suite['name']} ({suite.get('split','')}): {suite['correct']}/{suite['limit']} (acc={suite['accuracy']:.3f})")
+                                                                             ~~~~~^^^^^^^^^
+KeyError: 'limit'
+
+ERROR conda.cli.main_run:execute(127): `conda run env PYTHONPATH=. python -m knowledge3d.tools.phase25.math_bench_evaluator --auto --limit 50` failed. (See above for error)
+✅ PIL already installed.
+📦 Installing librosa via conda (conda-forge)...
+✅ librosa installed (conda).
+✅ pygltflib already installed.
+Math bench report → docs/benchmarks/math_bench_report.json
+
