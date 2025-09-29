@@ -193,26 +193,12 @@ class AdaptedFusedHead:
                     f"\\boxed{{{int(answer):03d}}}\nTags: [logic, rpn]",
                 )
 
-    def _format_rational(self, num_str: str) -> str:
-        # Best-effort exact rational display without altering PTX compute
-        try:
-            if str(_os.environ.get("K3D_RATIONAL_OUTPUT", "1")).lower() in {"0","false","no"}:
-                return num_str
-            val = float(str(num_str).replace(" ", ""))
-            max_den = int(_os.environ.get("K3D_RATIONAL_MAX_DEN", "10000"))
-            frac = _Fraction(val).limit_denominator(max_den)
-            if abs(float(frac) - val) <= max(1e-12, abs(val)*1e-12):
-                if frac.denominator == 1:
-                    return str(frac.numerator)
-                return f"{frac.numerator}/{frac.denominator}"
-        except Exception:
-            pass
-        return num_str
-
+        # Simple numeric equality or evaluate-phrase parsing
         numeric = self._simple_numeric_solver(query)
         if numeric is not None:
             return self._post_process_answer(query, PTX_OPS.format_numeric(numeric))
 
+        # Memory-first lookup: House → Learning → Blend
         house_answer = self._attempt_house_memory_lookup(query, fused_embedding)
         learning_answer = self._attempt_learning_memory_lookup(query, fused_embedding)
 
@@ -221,10 +207,12 @@ class AdaptedFusedHead:
             payload = self._last_learning_payload or self._last_house_payload
             return self._post_process_answer(query, blended_answer, payload)
 
+        # Language galaxies (definitions/synonyms/IPA), if available
         language_answer = self._attempt_language_lookup(query)
         if language_answer is not None:
             return self._post_process_answer(query, language_answer)
 
+        # Summary path (tablet/corpus or honest fallback)
         if "summarize" in ql:
             corpus_payload = self._lookup_corpus_payload(query)
             if corpus_payload:
@@ -235,6 +223,7 @@ class AdaptedFusedHead:
                 )
             return self._fallback_summary_response(query)
 
+        # Neural fallback: project + small head; map to known shape/kernel/ray tokens
         x = torch.tensor(fused_embedding, dtype=torch.float32, device=self.device)
         if x.dim() == 1:
             x = x.unsqueeze(0)
@@ -265,6 +254,22 @@ class AdaptedFusedHead:
         if "depth" in ql or "φ" in ql or "phi" in ql:
             return self._post_process_answer(query, str(int(math.floor(1.618 * max(0.5, honesty) * 10.0))))
         return self._post_process_answer(query, pred)
+
+    def _format_rational(self, num_str: str) -> str:
+        # Best-effort exact rational display without altering PTX compute
+        try:
+            if str(_os.environ.get("K3D_RATIONAL_OUTPUT", "1")).lower() in {"0","false","no"}:
+                return num_str
+            val = float(str(num_str).replace(" ", ""))
+            max_den = int(_os.environ.get("K3D_RATIONAL_MAX_DEN", "10000"))
+            frac = _Fraction(val).limit_denominator(max_den)
+            if abs(float(frac) - val) <= max(1e-12, abs(val)*1e-12):
+                if frac.denominator == 1:
+                    return str(frac.numerator)
+                return f"{frac.numerator}/{frac.denominator}"
+        except Exception:
+            pass
+        return num_str
 
     def train_step(self, fused_embedding: List[float], true_answer: str, lr: float = 1e-3) -> None:
         # Train only when the target is a 0..999 integer
@@ -859,6 +864,17 @@ class AdaptedFusedHead:
         return keywords
 
     def _fallback_summary_response(self, query: str) -> str:
+        # Try to extract inline text after a 'Summarize:' style prompt
+        try:
+            m = re.search(r"(?i)summarize[:\s]+(.+)$", (query or "").strip())
+            if m:
+                src = m.group(1).strip()
+                if src:
+                    s = self._summarize_text(src, max_sentences=3)
+                    if s:
+                        return f"Summary: {s}"
+        except Exception:
+            pass
         return (
             "I do not yet have this excerpt in memory, so summarizing it directly would be speculative. "
             "Please sync the source passage or provide its key points so I can respond honestly."

@@ -146,3 +146,10 @@ This file lists actionable tasks for AI agents working on the Knowledge3D reposi
 - Core head transition: The external LLM wrapper path is deprecated for core runs. Use the single in‑process Cranium Core head (docs/CRANIUM_CORE.md). TTS is first‑class. CPU fallbacks are invalid. See `docs/DEPRECATIONS.md`.
 - Balanced Expansion Policy: apply per‑modality and per‑topic balancing for new galaxies; degrade gracefully only when open‑source data is exhausted (see `docs/EXPANSION_POLICY.md`).
 - Local models playbook: roles/hosts and orchestration are documented in `docs/LOCAL_OLLAMA_MODELS.md`.
+
+### Recent Implementation Notes (2025‑09‑29)
+- Fused head RPN trace: optional explanation blocks (tokens + register map) are appended to math answers when `K3D_RPN_TRACE=1`.
+- ARC/HLE tester hardening: supports unlimited `--limit 0` and a lightweight `--teacher` feedback score without influencing answers; avoids crashes on empty predictions.
+- Math bench auto‑discovery: new flags in `phase25/math_bench_evaluator.py` — `--auto`, `--list`, `--repos` — to run multiple locally cached HF math suites.
+- Wikipedia sweep evaluator: `knowledge3d.tools.wiki_sweep_evaluator` checks non‑math routing and extractive summaries across a large AI topics corpus.
+- Fused‑head fallback fixed: memory/tablet lookup and neural fallback now always produce an answer (no `None`). Summarize‑inline fallback added for `Summarize: <text>` prompts.
