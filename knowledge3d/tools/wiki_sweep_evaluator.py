@@ -53,6 +53,8 @@ def ensure_corpus(topics: List[str]) -> Path:
 
 
 def run(max_lines: int = 0, summarize: bool = False) -> Dict[str, object]:
+    # Avoid NVRTC text-modality initialisation during large text-only sweeps
+    os.environ.setdefault("K3D_DISABLE_TEXT_MODALITY", "1")
     path = ensure_corpus(DEFAULT_TOPICS)
     lines = [ln.strip() for ln in path.read_text(encoding="utf-8").splitlines() if ln.strip()]
     if max_lines and max_lines > 0:
@@ -112,4 +114,3 @@ def main() -> None:  # pragma: no cover
 
 if __name__ == "__main__":  # pragma: no cover
     main()
-

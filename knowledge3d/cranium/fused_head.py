@@ -103,7 +103,7 @@ class AdaptedFusedHead:
         self._default_payload = None
 
         text_confidence: Optional[float] = None
-        if query:
+        if query and str(_os.environ.get("K3D_DISABLE_TEXT_MODALITY", "0")).lower() not in {"1","true","yes"}:
             try:
                 text_modality = PTX_OPS.text_modality(query)
             except Exception:
