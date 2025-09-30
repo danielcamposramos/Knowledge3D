@@ -67,6 +67,22 @@ def load_image_pairs(limit: Optional[int] = None) -> List[Tuple[str, Path]]:
     return out
 
 
+def _discover_media(roots: List[Path], exts: Tuple[str, ...], limit: int) -> List[Path]:
+    out: List[Path] = []
+    for root in roots:
+        if not root.exists():
+            continue
+        for p in root.rglob('*'):
+            try:
+                if p.is_file() and p.suffix.lower() in exts:
+                    out.append(p)
+                    if len(out) >= limit:
+                        return out
+            except Exception:
+                continue
+    return out
+
+
 def run(epochs: int, limit: int, lr: float) -> None:
     fh = AdaptedFusedHead()
     # Adjust LR for projection group
@@ -75,13 +91,22 @@ def run(epochs: int, limit: int, lr: float) -> None:
             g['lr'] = float(lr)
 
     pairs = load_image_pairs(limit)
-    if not pairs:
-        print("⚠️  No image pairs found in manifest; generate shapes first.")
-        return
     print(f"📦 Consistency image pairs: {len(pairs)}")
+
+    # Discover external audio/video assets
+    roots = [
+        Path('/home/daniel/K3D_llama_cpp/datasets'),
+        Path('/K3D/Knowledge3D.local/datasets'),
+    ]
+    audio_exts = ('.wav', '.mp3', '.flac', '.ogg', '.m4a')
+    video_exts = ('.mp4', '.mkv', '.webm', '.mov', '.avi')
+    audio_files = _discover_media(roots, audio_exts, max(1, limit))
+    video_files = _discover_media(roots, video_exts, max(1, limit))
+    print(f"🔊 Audio files: {len(audio_files)} | 🎥 Video files: {len(video_files)}")
 
     for ep in range(1, int(max(1, epochs)) + 1):
         losses: List[float] = []
+        # Image: manifest previews
         for prompt, path in pairs:
             # Target PTX image features (fallback: text modality features)
             target = None
@@ -124,6 +149,69 @@ def run(epochs: int, limit: int, lr: float) -> None:
             torch.nn.utils.clip_grad_norm_(list(fh.projection.parameters()), 1.0)
             fh._opt.step()
             losses.append(float(loss.detach().item()))
+        # Audio alignment
+        for af in audio_files:
+            try:
+                info = PTX_OPS.audio_modality(af.as_posix())
+                feats = info.get('features') if isinstance(info, dict) else None
+                if not isinstance(feats, list) or not feats:
+                    continue
+                target = _expand_to_dim(feats, 512)
+            except Exception:
+                continue
+            # Use filename as pseudo-prompt
+            prompt = af.stem
+            x_vec = fh._build_ptx_fused_embedding(prompt)
+            x = torch.tensor(x_vec, dtype=torch.float32, device=fh.device).unsqueeze(0)
+            if x.shape[1] < 2048:
+                x = torch.cat([x, torch.zeros((1, 2048 - x.shape[1]), device=fh.device)], dim=1)
+            elif x.shape[1] > 2048:
+                x = x[:, :2048]
+            fh.projection.train()
+            h = fh.projection(x)
+            t = torch.tensor(target, dtype=torch.float32, device=fh.device).unsqueeze(0)
+            h_n = torch.nn.functional.normalize(h, dim=-1)
+            t_n = torch.nn.functional.normalize(t, dim=-1)
+            loss = torch.mean((h_n - t_n) ** 2)
+            if not torch.isfinite(loss):
+                fh._opt.zero_grad(set_to_none=True); continue
+            fh._opt.zero_grad(set_to_none=True)
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(list(fh.projection.parameters()), 1.0)
+            fh._opt.step()
+            losses.append(float(loss.detach().item()))
+
+        # Video alignment
+        for vf in video_files:
+            try:
+                info = PTX_OPS.video_modality(vf.as_posix())
+                feats = info.get('features') if isinstance(info, dict) else None
+                if not isinstance(feats, list) or not feats:
+                    continue
+                target = _expand_to_dim(feats, 512)
+            except Exception:
+                continue
+            prompt = vf.stem
+            x_vec = fh._build_ptx_fused_embedding(prompt)
+            x = torch.tensor(x_vec, dtype=torch.float32, device=fh.device).unsqueeze(0)
+            if x.shape[1] < 2048:
+                x = torch.cat([x, torch.zeros((1, 2048 - x.shape[1]), device=fh.device)], dim=1)
+            elif x.shape[1] > 2048:
+                x = x[:, :2048]
+            fh.projection.train()
+            h = fh.projection(x)
+            t = torch.tensor(target, dtype=torch.float32, device=fh.device).unsqueeze(0)
+            h_n = torch.nn.functional.normalize(h, dim=-1)
+            t_n = torch.nn.functional.normalize(t, dim=-1)
+            loss = torch.mean((h_n - t_n) ** 2)
+            if not torch.isfinite(loss):
+                fh._opt.zero_grad(set_to_none=True); continue
+            fh._opt.zero_grad(set_to_none=True)
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(list(fh.projection.parameters()), 1.0)
+            fh._opt.step()
+            losses.append(float(loss.detach().item()))
+
         avg = sum(losses) / max(1, len(losses))
         print(f"🧭 Consistency Epoch {ep}: avg_loss={avg:.4f} ({len(losses)} samples)")
         fh._save_core_heads()
