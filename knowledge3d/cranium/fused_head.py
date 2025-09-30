@@ -15,6 +15,7 @@ import torch.nn as nn
 from pygltflib import GLTF2  # type: ignore
 
 from knowledge3d.cranium.ptx.ptx_ops import PTX_OPS
+from knowledge3d.cranium.glb_weights import load_appliance_weights_from_glb, apply_partial_state
 from knowledge3d.skills.audio import embed_audio
 from knowledge3d.skills.video import embed_video
 from knowledge3d.skills.vision import embed_image
@@ -42,6 +43,9 @@ class AdaptedFusedHead:
         if not torch.cuda.is_available():
             raise RuntimeError("AdaptedFusedHead requires CUDA GPU (no CPU fallback)")
         self.device = torch.device("cuda")
+        # Policy flags
+        self._ptx_strict = str(_os.environ.get("K3D_PTX_STRICT", "1")).lower() in {"1", "true", "yes"}
+        self._force_ptx_fuse = str(_os.environ.get("K3D_FORCE_PTX_FUSE", "0")).lower() in {"1", "true", "yes"}
         self.projection = nn.Sequential(
             nn.Linear(2048, 1024),
             nn.ReLU(),
@@ -120,13 +124,36 @@ class AdaptedFusedHead:
             ]
         )
         self._rpn_ckpt_path = Path("viewer/public/house/house_rpn_policy.pt")
+        # Prefer GLB weights when available
+        self._load_rpn_policy_from_glb()
         self._load_rpn_policy()
+
+        # ARC grid head (prototype): map 512-d fused embedding to a fixed 10x10 grid with 10 classes (0..9)
+        # Training script will refine this; gated in predict via K3D_ENABLE_ARC_GRID_HEAD
+        self._arc_hidden = nn.Sequential(
+            nn.Linear(512, 256), nn.ReLU(), nn.Linear(256, 256), nn.ReLU()
+        ).to(self.device)
+        self._arc_out = nn.Linear(256, 10 * 10 * 10).to(self.device)  # (H*W*C)
+        self._arc_ce = nn.CrossEntropyLoss().to(self.device)
+        self._arc_opt = torch.optim.Adam(
+            [
+                {"params": self._arc_hidden.parameters(), "lr": 1e-3},
+                {"params": self._arc_out.parameters(), "lr": 1e-3},
+            ]
+        )
+        self._arc_ckpt_path = Path("viewer/public/house/house_arc_grid_head.pt")
+        self._load_arc_head_from_glb()
+        self._load_arc_head()
 
     # ------------------------------------------------------------------
     def predict(self, query: str, fused_embedding: List[float]) -> str:
         self._last_house_payload = None
         self._last_learning_payload = None
         self._default_payload = None
+
+        # If no fused embedding provided (or forcing), build a PTX-only fused embedding from modalities
+        if (not fused_embedding) or self._force_ptx_fuse:
+            fused_embedding = self._build_ptx_fused_embedding(query)
 
         text_confidence: Optional[float] = None
         if query and str(_os.environ.get("K3D_DISABLE_TEXT_MODALITY", "0")).lower() not in {"1","true","yes"}:
@@ -210,15 +237,26 @@ class AdaptedFusedHead:
             except Exception:
                 pass
 
-        shape_prompt = self._extract_shape_prompt(query)
-        if shape_prompt:
+        # ARC grid head (2D output) — gated by env and ARC-like prompts
+        if arc_like and str(_os.environ.get("K3D_ENABLE_ARC_GRID_HEAD", "0")).lower() in {"1", "true", "yes"}:
             try:
-                generation = self._generate_shape_artifact(shape_prompt, fused_embedding)
-                if generation:
-                    response, payload = generation
-                    return self._post_process_answer(query, response, payload)
+                grid_json = self._predict_arc_grid(fused_embedding)
+                if grid_json:
+                    return self._post_process_answer(query, grid_json)
             except Exception:
                 pass
+
+        shape_prompt = self._extract_shape_prompt(query)
+        if shape_prompt:
+            # Allow disabling PTX shape generation in evaluation contexts to avoid NVRTC/driver instability
+            if str(_os.environ.get("K3D_DISABLE_SHAPE_GENERATION", "0")).lower() not in {"1", "true", "yes"}:
+                try:
+                    generation = self._generate_shape_artifact(shape_prompt, fused_embedding)
+                    if generation:
+                        response, payload = generation
+                        return self._post_process_answer(query, response, payload)
+                except Exception:
+                    pass
 
         media_result = self._attempt_media_lookup(query, ql)
         if media_result is not None:
@@ -470,6 +508,26 @@ class AdaptedFusedHead:
             or self._last_house_payload
             or self._default_payload
         )
+        # Optional energy grid emission for thinking traces (Tablet-first)
+        try:
+            env_flag = str(_os.environ.get("K3D_ENERGY_GRID", "0")).lower()
+            if env_flag in {"1", "true", "yes"}:
+                grid = self._make_energy_grid(effective_payload)
+                if grid is not None:
+                    from knowledge3d.tools.energy_grid_writer import write_energy_grid  # type: ignore
+                    ts = int(datetime.utcnow().timestamp())
+                    out_path = Path("viewer/public/house/materialized_objects") / f"energy_grid_{ts}.glb"
+                    write_energy_grid(out_path, grid)
+                    self.append_learning_memory(
+                        prompt=f"ENERGY GRID :: {query[:64]}",
+                        true_answer=str(out_path),
+                        predicted=str(out_path),
+                        score=1.0,
+                        tags=["energy_grid", "tablet"],
+                        metadata={"path": str(out_path)},
+                    )
+        except Exception:
+            pass
         enhanced = self._maybe_enhance_summary(query, answer, effective_payload)
         return enhanced or answer
 
@@ -610,15 +668,92 @@ class AdaptedFusedHead:
             pass
 
     def _load_rpn_policy(self) -> None:
+        # Allow forcing a clean init (ignore any existing checkpoint)
+        reset = str(_os.environ.get("K3D_RESET_RPN_POLICY", "0")).lower() in {"1", "true", "yes"}
+        if reset:
+            return
         try:
-            if self._rpn_ckpt_path.exists():
-                state = torch.load(str(self._rpn_ckpt_path), map_location=self.device)
-                if 'embed' in state:
-                    self._rpn_embed.load_state_dict(state['embed'])
-                if 'gru' in state:
-                    self._rpn_gru.load_state_dict(state['gru'])
-                if 'out' in state:
-                    self._rpn_out.load_state_dict(state['out'])
+            if not self._rpn_ckpt_path.exists():
+                return
+            state = torch.load(str(self._rpn_ckpt_path), map_location=self.device)
+
+            def _has_nan(sd: Dict[str, object]) -> bool:
+                for v in sd.values():
+                    if isinstance(v, torch.Tensor):
+                        if torch.isnan(v).any() or torch.isinf(v).any():
+                            return True
+                return False
+
+            # Validate and load components selectively; skip any corrupted parts
+            if isinstance(state, dict):
+                emb_sd = state.get('embed')
+                gru_sd = state.get('gru')
+                out_sd = state.get('out')
+                if isinstance(emb_sd, dict) and not _has_nan(emb_sd):
+                    self._rpn_embed.load_state_dict(emb_sd)
+                if isinstance(gru_sd, dict) and not _has_nan(gru_sd):
+                    self._rpn_gru.load_state_dict(gru_sd)
+                if isinstance(out_sd, dict) and not _has_nan(out_sd):
+                    self._rpn_out.load_state_dict(out_sd)
+        except Exception:
+            # On any load error, fall back to fresh init
+            pass
+
+    def _load_rpn_policy_from_glb(self) -> None:
+        try:
+            # Appliance schema stores module-param names like 'embed.weight'
+            wm = load_appliance_weights_from_glb("fused_rpn_policy", device=self.device)
+            if not wm:
+                return
+            # Split to submodules
+            emb_map = {k.split("embed.",1)[1]: v for k,v in wm.items() if k.startswith("embed.")}
+            gru_map = {k.split("gru.",1)[1]: v for k,v in wm.items() if k.startswith("gru.")}
+            out_map = {k.split("out.",1)[1]: v for k,v in wm.items() if k.startswith("out.")}
+            if emb_map:
+                apply_partial_state(self._rpn_embed, emb_map)
+            if gru_map:
+                apply_partial_state(self._rpn_gru, gru_map)
+            if out_map:
+                apply_partial_state(self._rpn_out, out_map)
+        except Exception:
+            pass
+
+    def _save_arc_head(self) -> None:
+        try:
+            self._arc_ckpt_path.parent.mkdir(parents=True, exist_ok=True)
+            torch.save({
+                'hidden': self._arc_hidden.state_dict(),
+                'out': self._arc_out.state_dict(),
+            }, str(self._arc_ckpt_path))
+        except Exception:
+            pass
+
+    def _load_arc_head(self) -> None:
+        try:
+            if not self._arc_ckpt_path.exists():
+                return
+            state = torch.load(str(self._arc_ckpt_path), map_location=self.device)
+            if isinstance(state, dict):
+                hid_sd = state.get('hidden')
+                out_sd = state.get('out')
+                if isinstance(hid_sd, dict):
+                    self._arc_hidden.load_state_dict(hid_sd)
+                if isinstance(out_sd, dict):
+                    self._arc_out.load_state_dict(out_sd)
+        except Exception:
+            pass
+
+    def _load_arc_head_from_glb(self) -> None:
+        try:
+            wm = load_appliance_weights_from_glb("fused_arc_grid", device=self.device)
+            if not wm:
+                return
+            hid_map = {k.split("hidden.",1)[1]: v for k,v in wm.items() if k.startswith("hidden.")}
+            out_map = {k.split("out.",1)[1]: v for k,v in wm.items() if k.startswith("out.")}
+            if hid_map:
+                apply_partial_state(self._arc_hidden, hid_map)
+            if out_map:
+                apply_partial_state(self._arc_out, out_map)
         except Exception:
             pass
 
@@ -645,11 +780,21 @@ class AdaptedFusedHead:
             out, _ = self._rpn_gru(emb, h0)
         logits = self._rpn_out(out)
         loss = self._rpn_ce(logits.reshape(-1, logits.shape[-1]), y.reshape(-1))
+        # Guard against unstable batches producing NaNs/Infs
+        if not torch.isfinite(loss):
+            self._rpn_opt.zero_grad(set_to_none=True)
+            return 0.0
         self._rpn_opt.zero_grad(set_to_none=True)
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(list(self._rpn_embed.parameters()) + list(self._rpn_gru.parameters()) + list(self._rpn_out.parameters()), 1.0)
+        torch.nn.utils.clip_grad_norm_(
+            list(self._rpn_embed.parameters()) + list(self._rpn_gru.parameters()) + list(self._rpn_out.parameters()),
+            1.0,
+        )
         self._rpn_opt.step()
-        return float(loss.detach().item())
+        val = float(loss.detach().item())
+        if not (val == val) or val == float("inf") or val == float("-inf"):
+            return 0.0
+        return val
 
     def _rpn_policy_generate(self, query: str, fused_embedding: List[float], max_steps: int = 32) -> Optional[str]:
         """Greedy-generate an RPN token sequence, evaluate via PTX, and return a formatted answer string."""
@@ -796,6 +941,9 @@ class AdaptedFusedHead:
     def _attempt_media_lookup(
         self, query: str, query_lower: str
     ) -> Optional[Tuple[str, Dict[str, object]]]:
+        # Allow disabling media lookup entirely (avoids PTX modality init during evals)
+        if str(_os.environ.get("K3D_DISABLE_MEDIA_LOOKUP", "0")).lower() in {"1", "true", "yes"}:
+            return None
         modality = self._detect_modality(query_lower)
         if modality is None:
             return None
@@ -854,7 +1002,8 @@ class AdaptedFusedHead:
                 if isinstance(metrics_val, dict):
                     modality_metrics = {k: float(v) for k, v in metrics_val.items()}
 
-            if embedding is None:
+            # Strict PTX mode: do not fall back to external/CPU embedding helpers
+            if (embedding is None) and (not self._ptx_strict):
                 try:
                     if modality == "image":
                         embedding = embed_image(resolved_path.as_posix())
@@ -1175,6 +1324,38 @@ class AdaptedFusedHead:
             seed = hashlib.sha256(seed).digest()
         return np.asarray(values[:dim], dtype=np.float32)
 
+    def _make_energy_grid(self, payload: Optional[Dict[str, object]]) -> Optional[np.ndarray]:
+        """Synthesize a small 3D energy grid from current features for logging/training.
+
+        - Uses any available feature vector in payload (PTX text features preferred)
+        - Shapes to (N,N,N) where N is 4..16 (env: K3D_ENERGY_GRID_SIZE)
+        - Normalizes to [0,1]
+        """
+        try:
+            size = int(_os.environ.get("K3D_ENERGY_GRID_SIZE", "8"))
+        except Exception:
+            size = 8
+        size = max(4, min(16, size))
+        vec: Optional[List[float]] = None
+        if isinstance(payload, dict):
+            for key in ("ptx_text_features", "ptx_features", "embedding"):
+                v = payload.get(key)
+                if isinstance(v, list) and v:
+                    vec = [float(x) for x in v]
+                    break
+        if vec is None:
+            return None
+        arr = np.asarray(vec, dtype=np.float32).reshape(-1)
+        if arr.size == 0:
+            return None
+        needed = size * size * size
+        reps = int(np.ceil(needed / float(arr.size)))
+        tiled = np.tile(arr, reps)[:needed]
+        grid = tiled.reshape(size, size, size)
+        mx = float(np.max(np.abs(grid))) or 1.0
+        grid = (grid / (mx + 1e-9) + 1.0) * 0.5
+        return grid.astype(np.float32)
+
     # ------------------------------------------------------------------
     # House memory integration
     # ------------------------------------------------------------------
@@ -1414,6 +1595,150 @@ class AdaptedFusedHead:
         if norm < 1e-6:
             return None
         return (vec / norm).astype(np.float32)
+
+    def _expand_to_dim(self, features: Optional[List[float]], dim: int) -> np.ndarray:
+        if not features:
+            return np.zeros(dim, dtype=np.float32)
+        arr = np.asarray([float(x) for x in features], dtype=np.float32).reshape(-1)
+        if arr.size == 0:
+            return np.zeros(dim, dtype=np.float32)
+        if arr.size == dim:
+            return arr
+        if arr.size > dim:
+            return arr[:dim]
+        reps = int(np.ceil(dim / float(arr.size)))
+        tiled = np.tile(arr, reps)[:dim]
+        return tiled.astype(np.float32)
+
+    def _best_media_ptx_features(self, modality: str, query_lower: str) -> Optional[List[float]]:
+        # Select best candidate by text similarity and return PTX features only
+        candidates = self._collect_media_candidates(modality)
+        if not candidates:
+            return None
+        best = None
+        best_score = -1.0
+        for entry in candidates:
+            summary = entry.get("summary") or ""
+            payload = entry.get("payload", {})
+            try:
+                payload_text = json.dumps(payload, ensure_ascii=False, default=str)
+            except Exception:
+                payload_text = str(payload)
+            matcher = SequenceMatcher(None, query_lower, (str(summary) + " " + payload_text).lower())
+            score = matcher.quick_ratio()
+            if score < 0.6:
+                score = matcher.ratio()
+            if score > best_score:
+                best_score = score
+                best = entry
+        if not best:
+            return None
+        asset_path_str = str(best.get("path", ""))
+        resolved = self._resolve_public_path(asset_path_str)
+        if not resolved or not resolved.exists():
+            return None
+        try:
+            if modality == "image":
+                info = PTX_OPS.image_modality(resolved.as_posix())
+            elif modality == "audio":
+                info = PTX_OPS.audio_modality(resolved.as_posix())
+            else:
+                info = PTX_OPS.video_modality(resolved.as_posix())
+            feats = info.get("features") if isinstance(info, dict) else None
+            if isinstance(feats, list):
+                return [float(x) for x in feats]
+        except Exception:
+            return None
+        return None
+
+    def _build_ptx_fused_embedding(self, query: str) -> List[float]:
+        ql = (query or "").lower()
+        text_feats: Optional[List[float]] = None
+        if query and str(_os.environ.get("K3D_DISABLE_TEXT_MODALITY", "0")).lower() not in {"1","true","yes"}:
+            try:
+                info = PTX_OPS.text_modality(query)
+                feats = info.get("features") if isinstance(info, dict) else None
+                if isinstance(feats, list):
+                    text_feats = [float(x) for x in feats]
+            except Exception:
+                text_feats = None
+        # Optional media PTX features (choose best candidate if query hints a modality)
+        img_feats = aud_feats = vid_feats = None
+        mod_hint = self._detect_modality(ql)
+        if mod_hint == "image":
+            img_feats = self._best_media_ptx_features("image", ql)
+        elif mod_hint == "audio":
+            aud_feats = self._best_media_ptx_features("audio", ql)
+        elif mod_hint == "video":
+            vid_feats = self._best_media_ptx_features("video", ql)
+        # Expand to configured block dims (defaults 512 each): [text | image | audio | video]
+        import os as __os
+        dims_env = (__os.getenv("K3D_FUSE_DIMS", "") or "").strip()
+        try:
+            parts = [int(x) for x in dims_env.replace(":", ",").split(",") if x.strip()]
+        except Exception:
+            parts = []
+        while len(parts) < 4:
+            parts.append(512)
+        tdim, idim, adim, vdim = [max(1, int(x)) for x in parts[:4]]
+        blocks = [
+            self._expand_to_dim(text_feats, tdim),
+            self._expand_to_dim(img_feats, idim),
+            self._expand_to_dim(aud_feats, adim),
+            self._expand_to_dim(vid_feats, vdim),
+        ]
+        fused = np.concatenate(blocks, axis=0).astype(np.float32)
+        return [float(x) for x in fused]
+
+    def _predict_arc_grid(self, fused_embedding: List[float]) -> Optional[str]:
+        """Predict a fixed 10x10 ARC-style grid with 10 classes (0..9).
+        Returns a JSON string with {"grid": [[...],[...],...]}.
+        """
+        vec = self._embedding_from_fused(fused_embedding, 512)
+        if vec is None:
+            vec = self._hash_embedding(("arc-grid"), 512)
+        t = torch.from_numpy(vec).to(self.device)
+        with torch.no_grad():
+            h = self._arc_hidden(t)
+            logits = self._arc_out(h)
+            logits = logits.view(10, 10, 10)  # H, W, C
+            pred = torch.argmax(logits, dim=-1).int().cpu().numpy()
+        grid = [[int(x) for x in row] for row in pred.tolist()]
+        return json.dumps({"grid": grid, "tags": ["arc", "grid"]})
+
+    def arc_grid_train_step(self, fused_embedding: List[float], target_grid: List[List[int]]) -> float:
+        """One training step for ARC grid head given a target 10x10 grid (values 0..9)."""
+        # Coerce/resize target to 10x10
+        try:
+            import numpy as _np
+            tg = _np.array(target_grid, dtype=_np.int64)
+            if tg.ndim != 2:
+                return 0.0
+            # Simple resize/pad/crop to 10x10
+            h, w = tg.shape
+            out = _np.zeros((10, 10), dtype=_np.int64)
+            hh = min(10, h); ww = min(10, w)
+            out[:hh, :ww] = tg[:hh, :ww]
+        except Exception:
+            return 0.0
+        vec = self._embedding_from_fused(fused_embedding, 512)
+        if vec is None:
+            vec = self._hash_embedding(("arc-train"), 512)
+        x = torch.from_numpy(vec).to(self.device)
+        y = torch.from_numpy(out).to(self.device)
+        self._arc_hidden.train(); self._arc_out.train()
+        h = self._arc_hidden(x)
+        logits = self._arc_out(h).view(10, 10, 10)
+        loss = self._arc_ce(logits.permute(2, 0, 1).unsqueeze(0), y.unsqueeze(0))  # CE over class dim
+        if not torch.isfinite(loss):
+            self._arc_opt.zero_grad(set_to_none=True)
+            return 0.0
+        self._arc_opt.zero_grad(set_to_none=True)
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(list(self._arc_hidden.parameters()) + list(self._arc_out.parameters()), 1.0)
+        self._arc_opt.step()
+        val = float(loss.detach().item())
+        return 0.0 if (not (val == val) or math.isinf(val)) else val
 
     def _generate_shape_artifact(
         self, prompt: str, fused_embedding: List[float]

@@ -1,0 +1,19 @@
+{
+  "root": "/home/daniel/.cache/huggingface/datasets",
+  "limit": 30,
+  "suites": [
+    {
+      "name": "openai/gsm8k",
+      "split": "train",
+      "limit": 0,
+      "total": 0,
+      "correct": 0,
+      "soft_correct": 0,
+      "nonempty": 0,
+      "accuracy": 0.0,
+      "soft_accuracy": 0.0,
+      "nonempty_rate": 0.0,
+      "note": "dataset not in local cache"
+    }
+  ]
+}
