@@ -11,6 +11,7 @@ Usage (GPU env):
 from __future__ import annotations
 
 import argparse
+import os
 import json
 import random
 from pathlib import Path
@@ -19,6 +20,8 @@ from typing import Iterable, List, Optional
 import torch
 
 from knowledge3d.cranium.fused_head import AdaptedFusedHead  # type: ignore
+from knowledge3d.tools.phase25 import math_bench_evaluator as mbe  # type: ignore
+from knowledge3d.tools import omni_bench_evaluator as obe  # type: ignore
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -117,10 +120,32 @@ def main() -> None:  # pragma: no cover
     ap.add_argument("--limit", type=int, default=2000, help="Max sequences to load")
     ap.add_argument("--lr", type=float, default=1e-3, help="Learning rate")
     ap.add_argument("--save-every", type=int, default=500, help="Checkpointing interval (steps)")
+    ap.add_argument("--eval-only", action="store_true", help="Skip training; run quick math + omni eval in-process")
     args = ap.parse_args()
-    run(epochs=args.epochs, limit=args.limit, lr=args.lr, save_every=args.save_every)
+    if args.eval_only:
+        # Minimal eval path to avoid heavy trainer init elsewhere
+        os.environ.setdefault("K3D_EVAL_MINIMAL", "1")
+        os.environ.setdefault("K3D_DISABLE_TEXT_MODALITY", "1")
+        os.environ.setdefault("K3D_ENABLE_RPN_POLICY", "1")
+        # Math quick
+        math_report = mbe.run(repos=[
+            "Maxwell-Jia/AIME_2024",
+            "meta-math/MetaMathQA",
+            "openai/gsm8k",
+        ], limit=min(50, int(args.limit)))
+        math_out = Path("docs/benchmarks/math_bench_report.json")
+        math_out.parent.mkdir(parents=True, exist_ok=True)
+        math_out.write_text(json.dumps(math_report, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"Math bench report → {math_out}")
+        # Omni quick
+        omni_report = obe.run(Path("/home/daniel/.cache/huggingface/datasets"), repos=None, split=None, limit=min(30, int(args.limit)))
+        omni_out = Path("docs/benchmarks/omni_bench_report.json")
+        omni_out.parent.mkdir(parents=True, exist_ok=True)
+        omni_out.write_text(json.dumps(omni_report, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"Omni bench report → {omni_out}")
+    else:
+        run(epochs=args.epochs, limit=args.limit, lr=args.lr, save_every=args.save_every)
 
 
 if __name__ == "__main__":  # pragma: no cover
     main()
-

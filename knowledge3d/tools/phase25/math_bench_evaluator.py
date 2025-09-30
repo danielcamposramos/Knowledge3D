@@ -13,6 +13,7 @@ except Exception:  # pragma: no cover
     DownloadConfig = None  # type: ignore
 
 from knowledge3d.tools.phase18.meaning_cluster_trainer import MeaningClusterTrainer  # type: ignore
+from knowledge3d.cranium.fused_head import AdaptedFusedHead  # type: ignore
 
 
 BOX_RE = re.compile(r"\\boxed\{\s*([^}]+?)\s*\}")
@@ -77,8 +78,13 @@ def evaluate_dataset(repo: str, split: str = "train", limit: int = 50) -> Dict[s
     os.environ.setdefault("K3D_RPN_ROUND_MODE", "half_even")
     os.environ.setdefault("K3D_RATIONAL_OUTPUT", "1")
 
-    trainer = MeaningClusterTrainer()
-    fh = trainer.fused_head
+    minimal = str(os.environ.get("K3D_EVAL_MINIMAL", "0")).lower() in {"1","true","yes"}
+    if minimal:
+        trainer = None
+        fh = AdaptedFusedHead()
+    else:
+        trainer = MeaningClusterTrainer()
+        fh = trainer.fused_head
 
     total = min(limit, len(ds))
     correct = 0
@@ -91,7 +97,8 @@ def evaluate_dataset(repo: str, split: str = "train", limit: int = 50) -> Dict[s
         expected = _normalize(_coerce_answer(sol) or _coerce_answer(str(row.get("answer") or "")))
         if not q:
             continue
-        pred_raw = fh.predict(q, trainer.generate_multi_modal_embedding(q))
+        emb = ([0.0] * 2048) if minimal else trainer.generate_multi_modal_embedding(q)  # type: ignore[union-attr]
+        pred_raw = fh.predict(q, emb)
         boxed = pred_raw.split("\\boxed{")[-1].split("}")[0].strip()
         predn = _normalize(boxed)
         ok = False

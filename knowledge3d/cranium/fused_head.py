@@ -33,6 +33,12 @@ class AdaptedFusedHead:
     """Fused head that routes queries through PTX-backed operators when possible."""
 
     def __init__(self) -> None:
+        # Stabilize on some drivers by disabling cuDNN globally (we rely on PTX kernels for math anyway)
+        try:
+            import torch.backends.cudnn as cudnn  # type: ignore
+            cudnn.enabled = False
+        except Exception:
+            pass
         if not torch.cuda.is_available():
             raise RuntimeError("AdaptedFusedHead requires CUDA GPU (no CPU fallback)")
         self.device = torch.device("cuda")

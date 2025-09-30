@@ -35,6 +35,7 @@ except Exception:  # pragma: no cover
     DownloadConfig = None  # type: ignore
 
 from knowledge3d.tools.phase18.meaning_cluster_trainer import MeaningClusterTrainer  # type: ignore
+from knowledge3d.cranium.fused_head import AdaptedFusedHead  # type: ignore
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -106,7 +107,7 @@ def _extract_query_and_expected(row: Dict[str, object]) -> Tuple[str, Optional[s
     return q, None
 
 
-def evaluate_repo(trainer: MeaningClusterTrainer, repo: str, split: Optional[str], limit: int) -> Dict[str, object]:
+def evaluate_repo(trainer: Optional[MeaningClusterTrainer], repo: str, split: Optional[str], limit: int) -> Dict[str, object]:
     if load_dataset is None or DownloadConfig is None:
         return {"name": repo, "split": split or "auto", "limit": 0, "total": 0, "correct": 0, "soft_correct": 0, "nonempty": 0, "accuracy": 0.0, "soft_accuracy": 0.0, "nonempty_rate": 0.0, "note": "datasets unavailable"}
     # Pick a split
@@ -123,7 +124,12 @@ def evaluate_repo(trainer: MeaningClusterTrainer, repo: str, split: Optional[str
     if ds is None:
         return {"name": repo, "split": split or "auto", "limit": 0, "total": 0, "correct": 0, "soft_correct": 0, "nonempty": 0, "accuracy": 0.0, "soft_accuracy": 0.0, "nonempty_rate": 0.0, "note": "dataset not in local cache"}
 
-    fh = trainer.fused_head
+    minimal = str(os.environ.get("K3D_EVAL_MINIMAL", "0")).lower() in {"1","true","yes"}
+    if minimal:
+        fh = AdaptedFusedHead()
+    else:
+        assert trainer is not None
+        fh = trainer.fused_head
     total = min(limit, len(ds))
     correct = 0
     soft_correct = 0
@@ -135,7 +141,7 @@ def evaluate_repo(trainer: MeaningClusterTrainer, repo: str, split: Optional[str
         q, expected = _extract_query_and_expected(row)
         if not q:
             continue
-        emb = trainer.generate_multi_modal_embedding(q)
+        emb = ([0.0] * 2048) if minimal else trainer.generate_multi_modal_embedding(q)  # type: ignore[union-attr]
         pred_raw = fh.predict(q, emb)
         pred = str(pred_raw or "").strip()
         nonempty += int(bool(pred))
@@ -168,7 +174,8 @@ def evaluate_repo(trainer: MeaningClusterTrainer, repo: str, split: Optional[str
 
 
 def run(root_cache: Path, repos: Optional[List[str]], split: Optional[str], limit: int) -> Dict[str, object]:
-    trainer = MeaningClusterTrainer()
+    minimal = str(os.environ.get("K3D_EVAL_MINIMAL", "0")).lower() in {"1","true","yes"}
+    trainer = None if minimal else MeaningClusterTrainer()
     targets = repos if repos else discover_local_repos(root_cache)
     suites: List[Dict[str, object]] = []
     for r in targets:
@@ -198,4 +205,3 @@ def main() -> None:  # pragma: no cover
 
 if __name__ == "__main__":
     main()
-
