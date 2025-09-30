@@ -948,7 +948,10 @@ class AdaptedFusedHead:
         return val
 
     def _rpn_policy_generate(self, query: str, fused_embedding: List[float], max_steps: int = 32) -> Optional[str]:
-        """Greedy-generate an RPN token sequence, evaluate via PTX, and return a formatted answer string."""
+        """Generate RPN with optional beam + PTX validation, then evaluate and format."""
+        if str(_os.environ.get("K3D_RPN_BEAM", "0")).lower() in {"1","true","yes"}:
+            return self._rpn_policy_generate_beam(query, fused_embedding, max_steps=max_steps)
+        # Greedy fallback
         bos = self._rpn_token_to_idx['<BOS>']
         eos = self._rpn_token_to_idx['<EOS>']
         self._rpn_embed.eval(); self._rpn_gru.eval(); self._rpn_out.eval()
@@ -956,6 +959,7 @@ class AdaptedFusedHead:
             x = torch.tensor([bos], dtype=torch.long, device=self.device).unsqueeze(0)
             h = torch.zeros(1, 1, 256, device=self.device)
             tokens: List[str] = []
+            depth = 0
             for _ in range(int(max(8, max_steps))):
                 emb = self._rpn_embed(x[:, -1:])
                 with torch.backends.cudnn.flags(enabled=False):
@@ -967,8 +971,13 @@ class AdaptedFusedHead:
                 tok = self._rpn_idx_to_token[idx]
                 if tok == '<PAD>' or tok == '<BOS>':
                     continue
+                eff = self._rpn_stack_effect(tok)
+                if eff is None:
+                    continue
+                depth += eff
+                if depth < 0:
+                    break
                 tokens.append(tok)
-                # Limit tokens to avoid runaway
                 if len(tokens) >= max_steps:
                     break
                 x = torch.cat([x, torch.tensor([[idx]], dtype=torch.long, device=self.device)], dim=1)
@@ -978,6 +987,97 @@ class AdaptedFusedHead:
         try:
             result = PTX_OPS.evaluate_rpn(expr)
             out = f"\\boxed{{{PTX_OPS.format_numeric(result)}}}\nTags: [logic, rpn, policy]"
+            if str(_os.environ.get("K3D_RPN_TRACE", "0")).lower() in {"1","true","yes"}:
+                out += f"\nRPN: {expr}"
+            return out
+        except Exception:
+            return None
+
+    def _rpn_stack_effect(self, token: str) -> Optional[int]:
+        # +1 for numbers/consts/regs; -1 for unary; -1 for binary (net change)
+        if token in self._rpn_token_to_idx and token not in {'<PAD>','<BOS>','<EOS>'}:
+            pass
+        # numeric or register
+        if token.isdigit() or (token.startswith('-') and token[1:].isdigit()):
+            return 1
+        if token in {'pi','π','tau','phi','φ','e'}:
+            return 1
+        if token in {'neg','sin','cos','tan','asin','acos','atan','sinh','cosh','tanh','exp','log','log10','sqrt','abs','floor','ceil','round','round_he','fact'}:
+            return 0  # pop1 push1 -> net 0
+        if token in {'+','-','*','/','^','mod','gcd','lcm'}:
+            return -1  # pop2 push1 -> net -1 (requires depth>=1 before apply)
+        # registers (0..15) or load/store are treated as no-ops here (program path handled elsewhere)
+        try:
+            ri = int(token)
+            if 0 <= ri <= 15:
+                return 1
+        except Exception:
+            pass
+        if token in {'load','store'}:
+            return 0
+        return None
+
+    def _rpn_policy_generate_beam(self, query: str, fused_embedding: List[float], max_steps: int = 32) -> Optional[str]:
+        width = int(_os.environ.get("K3D_RPN_BEAM_WIDTH", "5") or 5)
+        width = max(2, min(16, width))
+        bos = self._rpn_token_to_idx['<BOS>']
+        eos = self._rpn_token_to_idx['<EOS>']
+        self._rpn_embed.eval(); self._rpn_gru.eval(); self._rpn_out.eval()
+        Beam = Tuple[List[int], torch.Tensor, float, int]  # (idx_seq,h,score,depth)
+        with torch.no_grad():
+            init_x = torch.tensor([bos], dtype=torch.long, device=self.device).unsqueeze(0)
+            init_h = torch.zeros(1, 1, 256, device=self.device)
+            beams: List[Beam] = [([bos], init_h, 0.0, 0)]
+            completed: List[Tuple[List[int], float]] = []
+            for _ in range(int(max(8, max_steps))):
+                new_beams: List[Beam] = []
+                for seq, h, score, depth in beams:
+                    x = torch.tensor([seq[-1]], dtype=torch.long, device=self.device).unsqueeze(0)
+                    emb = self._rpn_embed(x)
+                    with torch.backends.cudnn.flags(enabled=False):
+                        out, h2 = self._rpn_gru(emb, h)
+                    logits = self._rpn_out(out[:, -1]).squeeze(0)
+                    probs = torch.nn.functional.log_softmax(logits, dim=-1)
+                    topk = torch.topk(probs, k=width)
+                    for logp, idx in zip(topk.values.tolist(), topk.indices.tolist()):
+                        if idx == eos:
+                            completed.append((seq[1:], score + float(logp)))
+                            continue
+                        tok = self._rpn_idx_to_token[int(idx)]
+                        if tok in {'<PAD>','<BOS>'}:
+                            continue
+                        eff = self._rpn_stack_effect(tok)
+                        if eff is None:
+                            continue
+                        new_depth = depth + eff
+                        if new_depth < 0:
+                            continue
+                        # Accumulate
+                        new_seq = seq + [int(idx)]
+                        new_beams.append((new_seq, h2.clone(), score + float(logp), new_depth))
+                if not new_beams:
+                    break
+                # prune
+                new_beams.sort(key=lambda b: b[2], reverse=True)
+                beams = new_beams[:width]
+                # stop if any completed sequences exist and are long enough
+                if any(len(s) >= 2 for s, _ in completed):
+                    break
+            # pick best candidate
+            cand_tokens: Optional[List[str]] = None
+            if completed:
+                completed.sort(key=lambda t: t[1], reverse=True)
+                best_seq, _ = completed[0]
+                cand_tokens = [self._rpn_idx_to_token[i] for i in best_seq]
+            elif beams:
+                best_seq = max(beams, key=lambda b: b[2])[0][1:]
+                cand_tokens = [self._rpn_idx_to_token[i] for i in best_seq]
+        if not cand_tokens:
+            return None
+        expr = " ".join(cand_tokens)
+        try:
+            result = PTX_OPS.evaluate_rpn(expr)
+            out = f"\\boxed{{{PTX_OPS.format_numeric(result)}}}\nTags: [logic, rpn, policy, beam]"
             if str(_os.environ.get("K3D_RPN_TRACE", "0")).lower() in {"1","true","yes"}:
                 out += f"\nRPN: {expr}"
             return out

@@ -92,7 +92,7 @@ def run(epochs: int, limit: int, lr: float) -> None:
                     target = _expand_to_dim(feats, 512)
             except Exception:
                 target = None
-            if target is None:
+            if target is None and str(os.environ.get('K3D_CONSISTENCY_FALLBACK_TEXT','0')).lower() in {'1','true','yes'}:
                 try:
                     tinfo = PTX_OPS.text_modality(prompt)
                     tfeats = tinfo.get("features") if isinstance(tinfo, dict) else None

@@ -11,6 +11,186 @@
       "honesty_score": 0.08631867380795372,
       "name": "Tetrahedron from: 'honest geometry is sacred...'",
       "shape_type": "tetrahedron"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0001.glb",
+      "name": "bathtub:bathtub_0001",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0010.glb",
+      "name": "bathtub:bathtub_0010",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0096.glb",
+      "name": "bathtub:bathtub_0096",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0034.glb",
+      "name": "bathtub:bathtub_0034",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0076.glb",
+      "name": "bathtub:bathtub_0076",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0089.glb",
+      "name": "bathtub:bathtub_0089",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0053.glb",
+      "name": "bathtub:bathtub_0053",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0098.glb",
+      "name": "bathtub:bathtub_0098",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0057.glb",
+      "name": "bathtub:bathtub_0057",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0085.glb",
+      "name": "bathtub:bathtub_0085",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0038.glb",
+      "name": "bathtub:bathtub_0038",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0071.glb",
+      "name": "bathtub:bathtub_0071",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0037.glb",
+      "name": "bathtub:bathtub_0037",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0062.glb",
+      "name": "bathtub:bathtub_0062",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0077.glb",
+      "name": "bathtub:bathtub_0077",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0031.glb",
+      "name": "bathtub:bathtub_0031",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0049.glb",
+      "name": "bathtub:bathtub_0049",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0092.glb",
+      "name": "bathtub:bathtub_0092",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0087.glb",
+      "name": "bathtub:bathtub_0087",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0006.glb",
+      "name": "bathtub:bathtub_0006",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0016.glb",
+      "name": "bathtub:bathtub_0016",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0065.glb",
+      "name": "bathtub:bathtub_0065",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0029.glb",
+      "name": "bathtub:bathtub_0029",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0013.glb",
+      "name": "bathtub:bathtub_0013",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0051.glb",
+      "name": "bathtub:bathtub_0051",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0063.glb",
+      "name": "bathtub:bathtub_0063",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0072.glb",
+      "name": "bathtub:bathtub_0072",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0007.glb",
+      "name": "bathtub:bathtub_0007",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0036.glb",
+      "name": "bathtub:bathtub_0036",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0081.glb",
+      "name": "bathtub:bathtub_0081",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
     }
   ],
   "rays": []
