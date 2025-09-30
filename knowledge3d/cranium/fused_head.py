@@ -64,6 +64,9 @@ class AdaptedFusedHead:
             ]
         )
         self._math_ckpt_path = Path("viewer/public/house/house_math_head.pt")
+        # Prefer core heads from GLB, then math/projection
+        self._load_core_heads_from_glb()
+        self._load_math_head_from_glb()
         self._load_math_head()
         self._math_train_steps = 0
 
@@ -404,6 +407,37 @@ class AdaptedFusedHead:
             y = int(torch.argmax(logits, dim=1).item())
             return max(0, min(999, y))
 
+    def qa_soft_train_step(self, question: str, expected_text: str, lr: float = 5e-4) -> float:
+        """Soft QA training: align projected features to a hashed target of expected text.
+
+        This trains the projection to move toward the expected target embedding; it leaves
+        math_head untouched for this loss. Returns the scalar loss.
+        """
+        if not question or not expected_text:
+            return 0.0
+        x_vec = self._build_ptx_fused_embedding(question)
+        x = torch.tensor(x_vec, dtype=torch.float32, device=self.device).unsqueeze(0)
+        if x.shape[1] < 2048:
+            x = torch.cat([x, torch.zeros((1, 2048 - x.shape[1]), device=self.device)], dim=1)
+        elif x.shape[1] > 2048:
+            x = x[:, :2048]
+        self.projection.train()
+        h = self.projection(x)
+        target_np = self._hash_embedding(expected_text, h.shape[-1])
+        target = torch.tensor(target_np, dtype=torch.float32, device=self.device).unsqueeze(0)
+        h_n = torch.nn.functional.normalize(h, dim=-1)
+        t_n = torch.nn.functional.normalize(target, dim=-1)
+        loss = torch.mean((h_n - t_n) ** 2)
+        if not torch.isfinite(loss):
+            self._opt.zero_grad(set_to_none=True)
+            return 0.0
+        # Update only parameters with grads (projection used)
+        self._opt.zero_grad(set_to_none=True)
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(list(self.projection.parameters()), 1.0)
+        self._opt.step()
+        return float(loss.detach().item())
+
     def _load_math_head(self) -> None:
         try:
             if self._math_ckpt_path.exists():
@@ -417,6 +451,20 @@ class AdaptedFusedHead:
         except Exception:
             pass
 
+    def _load_math_head_from_glb(self) -> None:
+        try:
+            wm = load_appliance_weights_from_glb("fused_math", device=self.device)
+            if not wm:
+                return
+            proj_map = {k.split("projection.",1)[1]: v for k,v in wm.items() if k.startswith("projection.")}
+            mh_map = {k.split("math_head.",1)[1]: v for k,v in wm.items() if k.startswith("math_head.")}
+            if proj_map:
+                apply_partial_state(self.projection, proj_map)
+            if mh_map:
+                apply_partial_state(self.math_head, mh_map)
+        except Exception:
+            pass
+
     def _save_math_head(self) -> None:
         try:
             self._math_ckpt_path.parent.mkdir(parents=True, exist_ok=True)
@@ -426,6 +474,38 @@ class AdaptedFusedHead:
             }, str(self._math_ckpt_path))
         except Exception:
             pass
+
+    def _load_core_heads_from_glb(self) -> None:
+        """Load projection, predict_head, honesty_gate from GLB if available."""
+        try:
+            wm = load_appliance_weights_from_glb("fused_core", device=self.device)
+            if not wm:
+                return
+            proj_map = {k.split("projection.",1)[1]: v for k,v in wm.items() if k.startswith("projection.")}
+            pred_map = {k.split("predict_head.",1)[1]: v for k,v in wm.items() if k.startswith("predict_head.")}
+            hon_map = {k.split("honesty_gate.",1)[1]: v for k,v in wm.items() if k.startswith("honesty_gate.")}
+            if proj_map:
+                apply_partial_state(self.projection, proj_map)
+            if pred_map:
+                apply_partial_state(self.predict_head, pred_map)
+            if hon_map:
+                apply_partial_state(self.honesty_gate, hon_map)
+        except Exception:
+            pass
+
+    def _save_core_heads(self) -> Path:
+        """Save projection, predict_head, honesty_gate to sidecar .pt for GLB packing."""
+        path = Path("viewer/public/house/house_core_heads.pt")
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            torch.save({
+                "projection": self.projection.state_dict(),
+                "predict_head": self.predict_head.state_dict(),
+                "honesty_gate": self.honesty_gate.state_dict(),
+            }, str(path))
+        except Exception:
+            pass
+        return path
 
     # ------------------------------------------------------------------
     def _extract_rpn_expression(self, query: str) -> Optional[str]:
@@ -1671,7 +1751,7 @@ class AdaptedFusedHead:
             aud_feats = self._best_media_ptx_features("audio", ql)
         elif mod_hint == "video":
             vid_feats = self._best_media_ptx_features("video", ql)
-        # Expand to configured block dims (defaults 512 each): [text | image | audio | video]
+        # Expand to configured block dims (defaults 128 each): [text | image | audio | video]
         import os as __os
         dims_env = (__os.getenv("K3D_FUSE_DIMS", "") or "").strip()
         try:
@@ -1679,7 +1759,7 @@ class AdaptedFusedHead:
         except Exception:
             parts = []
         while len(parts) < 4:
-            parts.append(512)
+            parts.append(128)
         tdim, idim, adim, vdim = [max(1, int(x)) for x in parts[:4]]
         blocks = [
             self._expand_to_dim(text_feats, tdim),
