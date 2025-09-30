@@ -87,6 +87,15 @@ class AdaptedFusedHead:
             "adjust_zone_position_kernel",
         ]
         self._rays = ["modality_ray", "entropy_ray", "honesty_ray"]
+        # Shape head (initialized after shapes list is known)
+        self.shape_head = nn.Linear(512, len(self._shapes)).to(self.device)
+        self._shape_ce = nn.CrossEntropyLoss().to(self.device)
+        self._shape_opt = torch.optim.Adam(
+            [
+                {"params": self.projection.parameters(), "lr": 5e-4},
+                {"params": self.shape_head.parameters(), "lr": 1e-3},
+            ]
+        )
         self._language_catalog = self._discover_language_galaxies()
         self._language_metadata_cache: Dict[Path, List[Dict[str, object]]] = {}
         self._house_memory_entry = self._discover_house_memory()
@@ -109,6 +118,10 @@ class AdaptedFusedHead:
         }
         self._media_cache: Dict[str, List[Dict[str, object]]] = {"image": [], "audio": [], "video": []}
         self._refresh_media_cache()
+        # Load shape head from GLB/sidecar if available
+        self._shape_ckpt_path = Path("viewer/public/house/house_shape_head.pt")
+        self._load_shape_head_from_glb()
+        self._load_shape_head()
 
         # RPN Policy Head (in-core): tiny GRU that generates RPN tokens,
         # executed via PTX for precise numeric evaluation.
@@ -438,6 +451,34 @@ class AdaptedFusedHead:
         self._opt.step()
         return float(loss.detach().item())
 
+    def shape_train_step(self, prompt: str, shape_label: int) -> float:
+        """Train shape head to classify shape type from a prompt via projection."""
+        try:
+            y = int(shape_label)
+        except Exception:
+            return 0.0
+        if y < 0 or y >= len(self._shapes):
+            return 0.0
+        x_vec = self._build_ptx_fused_embedding(prompt)
+        x = torch.tensor(x_vec, dtype=torch.float32, device=self.device).unsqueeze(0)
+        if x.shape[1] < 2048:
+            x = torch.cat([x, torch.zeros((1, 2048 - x.shape[1]), device=self.device)], dim=1)
+        elif x.shape[1] > 2048:
+            x = x[:, :2048]
+        self.projection.train(); self.shape_head.train()
+        h = self.projection(x)
+        logits = self.shape_head(h)
+        target = torch.tensor([y], dtype=torch.long, device=self.device)
+        loss = self._shape_ce(logits, target)
+        if not torch.isfinite(loss):
+            self._shape_opt.zero_grad(set_to_none=True)
+            return 0.0
+        self._shape_opt.zero_grad(set_to_none=True)
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(list(self.projection.parameters()) + list(self.shape_head.parameters()), 1.0)
+        self._shape_opt.step()
+        return float(loss.detach().item())
+
     def _load_math_head(self) -> None:
         try:
             if self._math_ckpt_path.exists():
@@ -475,6 +516,25 @@ class AdaptedFusedHead:
         except Exception:
             pass
 
+    def _load_shape_head(self) -> None:
+        try:
+            if self._shape_ckpt_path.exists():
+                state = torch.load(str(self._shape_ckpt_path), map_location=self.device)
+                shp = state.get("shape_head")
+                if isinstance(shp, dict):
+                    self.shape_head.load_state_dict(shp)
+        except Exception:
+            pass
+
+    def _save_shape_head(self) -> None:
+        try:
+            self._shape_ckpt_path.parent.mkdir(parents=True, exist_ok=True)
+            torch.save({
+                "shape_head": self.shape_head.state_dict(),
+            }, str(self._shape_ckpt_path))
+        except Exception:
+            pass
+
     def _load_core_heads_from_glb(self) -> None:
         """Load projection, predict_head, honesty_gate from GLB if available."""
         try:
@@ -490,6 +550,17 @@ class AdaptedFusedHead:
                 apply_partial_state(self.predict_head, pred_map)
             if hon_map:
                 apply_partial_state(self.honesty_gate, hon_map)
+        except Exception:
+            pass
+
+    def _load_shape_head_from_glb(self) -> None:
+        try:
+            wm = load_appliance_weights_from_glb("fused_shape", device=self.device)
+            if not wm:
+                return
+            shp_map = {k.split("shape_head.",1)[1]: v for k,v in wm.items() if k.startswith("shape_head.")}
+            if shp_map:
+                apply_partial_state(self.shape_head, shp_map)
         except Exception:
             pass
 
