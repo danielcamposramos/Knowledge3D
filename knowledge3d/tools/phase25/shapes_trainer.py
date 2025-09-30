@@ -170,6 +170,21 @@ def run(epochs: int, limit: int) -> None:
         avg = sum(losses) / max(1, len(losses))
         print(f"🧩 Shapes Consistency Epoch {ep}: avg_loss={avg:.4f} ({len(losses)} samples)")
         fh._save_core_heads()
+        # Progress log
+        try:
+            import json, time
+            out = ROOT / 'docs/benchmarks/progress_log.json'
+            out.parent.mkdir(parents=True, exist_ok=True)
+            log = []
+            if out.exists():
+                try:
+                    log = json.loads(out.read_text(encoding='utf-8'))
+                except Exception:
+                    log = []
+            log.append({'trainer':'shapes','epoch':ep,'avg_loss':float(avg),'ts':time.time()})
+            out.write_text(json.dumps(log, ensure_ascii=False, indent=2), encoding='utf-8')
+        except Exception:
+            pass
     # Pack into GLB as fused_shape
     ckpt = fh._save_core_heads()
     if HOUSE_GLB.exists() and ckpt.exists():

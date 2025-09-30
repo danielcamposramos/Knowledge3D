@@ -71,15 +71,11 @@ class AdaptedFusedHead:
         self._math_train_steps = 0
 
         self._shapes = [
-            "tetrahedron",
-            "cube",
-            "octahedron",
-            "icosahedron",
-            "dodecahedron",
-            "hypersphere_projection",
-            "fractal_tree",
-            "book",
-            "tree",
+            # Primitives / internal
+            "tetrahedron","cube","octahedron","icosahedron","dodecahedron",
+            "hypersphere_projection","fractal_tree","book","tree",
+            # External semantic classes (ModelNet10 & common)
+            "bathtub","bed","chair","desk","dresser","monitor","night_stand","sofa","table","toilet",
         ]
         self._kernels = [
             "map_ray_thickness_to_resolution_kernel",

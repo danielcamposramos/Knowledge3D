@@ -28,6 +28,7 @@ def main() -> None:  # pragma: no cover
     ap.add_argument("--keys", type=str, default="math,gsm8k,metamath,aime,amc,olympiad,algebra")
     ap.add_argument("--lr-math", type=float, default=5e-4)
     ap.add_argument("--lr-rpn", type=float, default=1e-3)
+    ap.add_argument("--eval-every", type=int, default=5)
     args = ap.parse_args()
 
     os.environ.setdefault("K3D_PTX_STRICT", "1")
@@ -51,7 +52,7 @@ def main() -> None:  # pragma: no cover
         pass
 
     keys: List[str] = [k.strip() for k in args.keys.split(",") if k.strip()]
-    fmt.run(keys, limit=int(args.limit), epochs=int(args.epochs), lr_math=float(args.lr_math), lr_rpn=float(args.lr_rpn))
+    fmt.run(keys, limit=int(args.limit), epochs=int(args.epochs), lr_math=float(args.lr_math), lr_rpn=float(args.lr_rpn), eval_every=int(args.eval_every))
     print("✅ long_run complete")
 
 

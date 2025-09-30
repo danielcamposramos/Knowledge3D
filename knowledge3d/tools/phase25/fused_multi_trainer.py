@@ -146,7 +146,24 @@ def _math_eval(tag: str = "pre") -> None:
         print(f"⚠️  math eval ({tag}) failed: {e}")
 
 
-def run(keys: List[str], limit: int, epochs: int, lr_math: float, lr_rpn: float) -> None:
+def _append_progress(record: dict) -> None:
+    from pathlib import Path
+    import json, time
+    out = ROOT / 'docs/benchmarks/progress_log.json'
+    out.parent.mkdir(parents=True, exist_ok=True)
+    log: List[dict] = []
+    if out.exists():
+        try:
+            log = json.loads(out.read_text(encoding='utf-8'))
+        except Exception:
+            log = []
+    record = dict(record)
+    record['ts'] = time.time()
+    log.append(record)
+    out.write_text(json.dumps(log, ensure_ascii=False, indent=2), encoding='utf-8')
+
+
+def run(keys: List[str], limit: int, epochs: int, lr_math: float, lr_rpn: float, eval_every: int = 5) -> None:
     os.environ.setdefault("K3D_PTX_STRICT", "1")
     os.environ.setdefault("K3D_FORCE_PTX_FUSE", "1")
 
@@ -207,6 +224,18 @@ def run(keys: List[str], limit: int, epochs: int, lr_math: float, lr_rpn: float)
             total_rpn += rpn_trained
             print(f"  {repo}: numeric={num_trained}, rpn={rpn_trained}")
         print(f"🧮 epoch totals: numeric={total_num}, rpn={total_rpn}")
+        _append_progress({
+            'trainer': 'multi', 'epoch': ep,
+            'numeric_trained': total_num, 'rpn_trained': total_rpn,
+        })
+        # Periodic RPN stack eval with beam
+        try:
+            if eval_every and (ep % int(max(1, eval_every)) == 0):
+                from knowledge3d.tools.phase25 import rpn_stack_eval as rse  # type: ignore
+                print("Running periodic RPN stack eval (beam)...")
+                rse.run(ROOT / 'viewer/public/galaxy/working/rpn_corpus.jsonl', limit=500, test_gen=False, beam=True)
+        except Exception as e:
+            print("⚠️  RPN stack periodic eval failed:", e)
 
     # Save and pack
     fh._save_math_head()
