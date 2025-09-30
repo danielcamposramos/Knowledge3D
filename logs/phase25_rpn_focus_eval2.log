@@ -1,9 +1,0 @@
-✅ PIL already installed.
-📦 Installing librosa via conda (conda-forge)...
-✅ librosa installed (conda).
-✅ pygltflib already installed.
-🖼️  Mapped 0 ARC-AGI images.
-🔊 Mapped 1 HLE audio files.
-RPN focus report → docs/benchmarks/rpn_focus_report.json
-  expressions: 7/10 (acc=0.700)
-  programs: 2/2 (acc=1.000)

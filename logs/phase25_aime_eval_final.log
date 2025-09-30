@@ -1,7 +1,0 @@
-✅ PIL already installed.
-✅ librosa already installed.
-✅ pygltflib already installed.
-🖼️  Mapped 0 ARC-AGI images.
-🔊 Mapped 1 HLE audio files.
-AIME evaluation complete: 27/30 correct (accuracy=0.900)
-→ Report written to docs/benchmarks/aime_2024_results.json

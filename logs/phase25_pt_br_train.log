@@ -1,19 +1,0 @@
-=== Phase25 AlgorithmicThinkingTrainer run @ 2025-09-28T17:00:29.918657Z ===
-🧠 Training Algorithmic Thinking — RPN, PTX, Honesty, RLWHF...
-✅ Conda env k3d-cranium detected.
-✅ PTX geometry head verified (tetrahedron probe).
-📘 Loaded 1 MetaMathQA prompts for reinforcement.
-🗺️  Language galaxies discovered: English Language Galaxy (212628 stars), Spanish Language Galaxy (50000 stars), Portuguese (BR) Language Galaxy (50000 stars), Portuguese (PT) Language Galaxy (50000 stars), Mandarin Language Galaxy (50000 stars)
-🌐 PTX-warmed language galaxy: English Language Galaxy
-🌐 PTX-warmed language galaxy: Spanish Language Galaxy
-🌐 PTX-warmed language galaxy: Portuguese (BR) Language Galaxy
-🌐 PTX-warmed language galaxy: Portuguese (PT) Language Galaxy
-🌐 PTX-warmed language galaxy: Mandarin Language Galaxy
-Generating train split:   0%|          | 0/30 [00:00<?, ? examples/s]Generating train split: 100%|██████████| 30/30 [00:00<00:00, 435.80 examples/s]
-♨️  Warming up K3D fused head (GPU)...
-🖼️  Mapped 0 ARC-AGI images.
-🔊 Mapped 1 HLE audio files.
-ℹ️ TeacherEvaluator disabled via K3D_DISABLE_TEACHER.
-🧮 Prepared 1 stars with 120 queries. Sleep targets: [40, 80, 120]
-
-📌 Star: algorithmic_thinking:Algorithmic.Thinking.2020.11 (120 queries)
