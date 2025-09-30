@@ -25,7 +25,14 @@ def main() -> None:  # pragma: no cover
     ap.add_argument("--epochs", type=int, default=50)
     ap.add_argument("--limit", type=int, default=300)
     ap.add_argument("--dims", type=str, default="64,64,64,64")
-    ap.add_argument("--keys", type=str, default="math,gsm8k,metamath,aime,amc,olympiad,algebra")
+    ap.add_argument(
+        "--keys",
+        type=str,
+        default=(
+            "math,gsm8k,metamath,aime,amc,olympiad,algebra,arc,openbook,geometry,number,theorem,"
+            "logic,iq,reasoning,science,physics,chemistry,biology,probability,combinatorics"
+        ),
+    )
     ap.add_argument("--lr-math", type=float, default=5e-4)
     ap.add_argument("--lr-rpn", type=float, default=1e-3)
     ap.add_argument("--eval-every", type=int, default=5)

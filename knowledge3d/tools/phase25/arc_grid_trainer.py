@@ -55,6 +55,20 @@ def _grid_to_fused_embedding(g: List[List[int]], dim: int = 2048) -> List[float]
     return [float(x) for x in vec]
 
 
+def _rot90(g: List[List[int]], k: int = 1) -> List[List[int]]:
+    import numpy as _np
+    arr = _np.array(g, dtype=_np.int64)
+    return _np.rot90(arr, k=k).tolist()
+
+
+def _flip(g: List[List[int]], axis: int = 1) -> List[List[int]]:
+    import numpy as _np
+    arr = _np.array(g, dtype=_np.int64)
+    if axis == 0:
+        return _np.flipud(arr).tolist()
+    return _np.fliplr(arr).tolist()
+
+
 def run(arc_root: Path, limit: int, epochs: int) -> None:
     fh = AdaptedFusedHead()
     pairs = list(_iter_arc_pairs(arc_root, limit))
@@ -62,6 +76,16 @@ def run(arc_root: Path, limit: int, epochs: int) -> None:
         print(f"⚠️  No ARC pairs found under {arc_root}")
         return
     print(f"📦 ARC train pairs: {len(pairs)}")
+    # Invariance augmentations (rotations + flips)
+    aug_pairs: List[Tuple[List[List[int]], List[List[int]]]] = []
+    for i, (inp, out) in enumerate(pairs):
+        aug_pairs.append((inp, out))
+        for k in (1, 2, 3):
+            aug_pairs.append((_rot90(inp, k), _rot90(out, k)))
+        aug_pairs.append((_flip(inp, 0), _flip(out, 0)))
+        aug_pairs.append((_flip(inp, 1), _flip(out, 1)))
+    pairs = aug_pairs
+    print(f"➕ Augmented ARC pairs: {len(pairs)}")
     for ep in range(1, int(max(1, epochs)) + 1):
         losses: List[float] = []
         for i, (inp, out) in enumerate(pairs, 1):
@@ -87,4 +111,3 @@ def main() -> None:  # pragma: no cover
 
 if __name__ == "__main__":  # pragma: no cover
     main()
-
