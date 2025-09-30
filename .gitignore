@@ -32,3 +32,7 @@ viewer/public/house/*.json
 viewer/public/galaxy/working/*.jsonl
 viewer/public/galaxy/working/*.json
 viewer/public/galaxy/working/*.parquet
+logs/
+viewer/public/houses/**/*.gltf
+viewer/public/houses/**/*.json
+viewer/public/houses/**/*.bak
