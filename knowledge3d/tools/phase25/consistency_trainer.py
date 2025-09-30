@@ -83,14 +83,24 @@ def run(epochs: int, limit: int, lr: float) -> None:
     for ep in range(1, int(max(1, epochs)) + 1):
         losses: List[float] = []
         for prompt, path in pairs:
-            # Target PTX image features
+            # Target PTX image features (fallback: text modality features)
+            target = None
             try:
                 info = PTX_OPS.image_modality(path.as_posix())
                 feats = info.get("features") if isinstance(info, dict) else None
-                if not isinstance(feats, list):
-                    continue
-                target = _expand_to_dim(feats, 512)
+                if isinstance(feats, list) and feats:
+                    target = _expand_to_dim(feats, 512)
             except Exception:
+                target = None
+            if target is None:
+                try:
+                    tinfo = PTX_OPS.text_modality(prompt)
+                    tfeats = tinfo.get("features") if isinstance(tinfo, dict) else None
+                    if isinstance(tfeats, list) and tfeats:
+                        target = _expand_to_dim(tfeats, 512)
+                except Exception:
+                    target = None
+            if target is None:
                 continue
             # Project fused embedding of the prompt
             x_vec = fh._build_ptx_fused_embedding(prompt)
@@ -140,4 +150,3 @@ def main() -> None:  # pragma: no cover
 
 if __name__ == "__main__":
     main()
-
