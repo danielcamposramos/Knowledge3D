@@ -41,12 +41,15 @@ HOUSE_GLB = ROOT / "viewer/public/houses/default/memory_house.glb"
 def _try_load(repo: str, split: str, limit: int):
     if load_dataset is None or DownloadConfig is None:
         return []
-    try:
-        ds = load_dataset(repo, split=split, download_config=DownloadConfig(local_files_only=True))
-    except Exception:
-        return []
-    n = min(limit, len(ds))
-    return [ds[i] for i in range(n)]
+    # First try local-only; if missing, allow network fetch
+    for local_only in (True, False):
+        try:
+            ds = load_dataset(repo, split=split, download_config=DownloadConfig(local_files_only=local_only))
+            n = min(limit, len(ds))
+            return [ds[i] for i in range(n)]
+        except Exception:
+            continue
+    return []
 
 
 def _rows_from_repo(repo: str, limit: int) -> List[Dict[str, object]]:
@@ -228,12 +231,28 @@ def run(keys: List[str], limit: int, epochs: int, lr_math: float, lr_rpn: float,
             'trainer': 'multi', 'epoch': ep,
             'numeric_trained': total_num, 'rpn_trained': total_rpn,
         })
-        # Periodic RPN stack eval with beam
+        # Periodic RPN stack eval with beam & math mini bench
         try:
             if eval_every and (ep % int(max(1, eval_every)) == 0):
                 from knowledge3d.tools.phase25 import rpn_stack_eval as rse  # type: ignore
                 print("Running periodic RPN stack eval (beam)...")
                 rse.run(ROOT / 'viewer/public/galaxy/working/rpn_corpus.jsonl', limit=500, test_gen=False, beam=True)
+                # Mini math bench
+                print("Running periodic math mini bench...")
+                mini = mbe.run(repos=[
+                    'Maxwell-Jia/AIME_2024',
+                    'meta-math/MetaMathQA',
+                    'openai/gsm8k',
+                ], limit=30)
+                mini_path = ROOT / f'docs/benchmarks/math_bench_epoch_{ep}.json'
+                mini_path.write_text(__import__('json').dumps(mini, ensure_ascii=False, indent=2), encoding='utf-8')
+                # Append mean accuracy to progress log
+                try:
+                    accs = [s.get('accuracy', 0.0) for s in mini.get('suites', [])]
+                    mean_acc = sum(accs)/max(1,len(accs))
+                    _append_progress({'trainer':'multi','epoch':ep,'math_mini_mean_acc':float(mean_acc)})
+                except Exception:
+                    pass
         except Exception as e:
             print("⚠️  RPN stack periodic eval failed:", e)
 
