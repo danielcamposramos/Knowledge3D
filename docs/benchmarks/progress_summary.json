@@ -1,0 +1,10 @@
+{
+  "latest": {
+    "consistency": {
+      "trainer": "consistency",
+      "epoch": 30,
+      "avg_loss": 0.0,
+      "ts": 1759274901.7207956
+    }
+  }
+}

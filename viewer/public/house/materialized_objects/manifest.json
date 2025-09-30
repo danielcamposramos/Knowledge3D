@@ -191,6 +191,1626 @@
       "name": "bathtub:bathtub_0081",
       "shape_type": "bathtub",
       "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0027.glb",
+      "name": "bathtub:bathtub_0027",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0105.glb",
+      "name": "bathtub:bathtub_0105",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0090.glb",
+      "name": "bathtub:bathtub_0090",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0023.glb",
+      "name": "bathtub:bathtub_0023",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0054.glb",
+      "name": "bathtub:bathtub_0054",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0058.glb",
+      "name": "bathtub:bathtub_0058",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0073.glb",
+      "name": "bathtub:bathtub_0073",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0030.glb",
+      "name": "bathtub:bathtub_0030",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0041.glb",
+      "name": "bathtub:bathtub_0041",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0093.glb",
+      "name": "bathtub:bathtub_0093",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0059.glb",
+      "name": "bathtub:bathtub_0059",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0052.glb",
+      "name": "bathtub:bathtub_0052",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0003.glb",
+      "name": "bathtub:bathtub_0003",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0056.glb",
+      "name": "bathtub:bathtub_0056",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0094.glb",
+      "name": "bathtub:bathtub_0094",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0102.glb",
+      "name": "bathtub:bathtub_0102",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0064.glb",
+      "name": "bathtub:bathtub_0064",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0069.glb",
+      "name": "bathtub:bathtub_0069",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0055.glb",
+      "name": "bathtub:bathtub_0055",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0046.glb",
+      "name": "bathtub:bathtub_0046",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0075.glb",
+      "name": "bathtub:bathtub_0075",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0060.glb",
+      "name": "bathtub:bathtub_0060",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0104.glb",
+      "name": "bathtub:bathtub_0104",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0086.glb",
+      "name": "bathtub:bathtub_0086",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0024.glb",
+      "name": "bathtub:bathtub_0024",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0012.glb",
+      "name": "bathtub:bathtub_0012",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0045.glb",
+      "name": "bathtub:bathtub_0045",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0061.glb",
+      "name": "bathtub:bathtub_0061",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0033.glb",
+      "name": "bathtub:bathtub_0033",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0020.glb",
+      "name": "bathtub:bathtub_0020",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0084.glb",
+      "name": "bathtub:bathtub_0084",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0014.glb",
+      "name": "bathtub:bathtub_0014",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0101.glb",
+      "name": "bathtub:bathtub_0101",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0048.glb",
+      "name": "bathtub:bathtub_0048",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0047.glb",
+      "name": "bathtub:bathtub_0047",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0035.glb",
+      "name": "bathtub:bathtub_0035",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0100.glb",
+      "name": "bathtub:bathtub_0100",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0015.glb",
+      "name": "bathtub:bathtub_0015",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0043.glb",
+      "name": "bathtub:bathtub_0043",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0022.glb",
+      "name": "bathtub:bathtub_0022",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0068.glb",
+      "name": "bathtub:bathtub_0068",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0005.glb",
+      "name": "bathtub:bathtub_0005",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0097.glb",
+      "name": "bathtub:bathtub_0097",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0002.glb",
+      "name": "bathtub:bathtub_0002",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0082.glb",
+      "name": "bathtub:bathtub_0082",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0088.glb",
+      "name": "bathtub:bathtub_0088",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0106.glb",
+      "name": "bathtub:bathtub_0106",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0032.glb",
+      "name": "bathtub:bathtub_0032",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0070.glb",
+      "name": "bathtub:bathtub_0070",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0091.glb",
+      "name": "bathtub:bathtub_0091",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0044.glb",
+      "name": "bathtub:bathtub_0044",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0019.glb",
+      "name": "bathtub:bathtub_0019",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0028.glb",
+      "name": "bathtub:bathtub_0028",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0074.glb",
+      "name": "bathtub:bathtub_0074",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0083.glb",
+      "name": "bathtub:bathtub_0083",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0103.glb",
+      "name": "bathtub:bathtub_0103",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0039.glb",
+      "name": "bathtub:bathtub_0039",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0095.glb",
+      "name": "bathtub:bathtub_0095",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0050.glb",
+      "name": "bathtub:bathtub_0050",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0080.glb",
+      "name": "bathtub:bathtub_0080",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0011.glb",
+      "name": "bathtub:bathtub_0011",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0017.glb",
+      "name": "bathtub:bathtub_0017",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0078.glb",
+      "name": "bathtub:bathtub_0078",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0067.glb",
+      "name": "bathtub:bathtub_0067",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0025.glb",
+      "name": "bathtub:bathtub_0025",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0009.glb",
+      "name": "bathtub:bathtub_0009",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0018.glb",
+      "name": "bathtub:bathtub_0018",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0042.glb",
+      "name": "bathtub:bathtub_0042",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0004.glb",
+      "name": "bathtub:bathtub_0004",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0066.glb",
+      "name": "bathtub:bathtub_0066",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0021.glb",
+      "name": "bathtub:bathtub_0021",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0026.glb",
+      "name": "bathtub:bathtub_0026",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0040.glb",
+      "name": "bathtub:bathtub_0040",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0099.glb",
+      "name": "bathtub:bathtub_0099",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0079.glb",
+      "name": "bathtub:bathtub_0079",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0008.glb",
+      "name": "bathtub:bathtub_0008",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0131.glb",
+      "name": "bathtub:bathtub_0131",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0116.glb",
+      "name": "bathtub:bathtub_0116",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0144.glb",
+      "name": "bathtub:bathtub_0144",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0149.glb",
+      "name": "bathtub:bathtub_0149",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0126.glb",
+      "name": "bathtub:bathtub_0126",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0110.glb",
+      "name": "bathtub:bathtub_0110",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0112.glb",
+      "name": "bathtub:bathtub_0112",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0155.glb",
+      "name": "bathtub:bathtub_0155",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0154.glb",
+      "name": "bathtub:bathtub_0154",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0146.glb",
+      "name": "bathtub:bathtub_0146",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0147.glb",
+      "name": "bathtub:bathtub_0147",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0135.glb",
+      "name": "bathtub:bathtub_0135",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0153.glb",
+      "name": "bathtub:bathtub_0153",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0123.glb",
+      "name": "bathtub:bathtub_0123",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0114.glb",
+      "name": "bathtub:bathtub_0114",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0121.glb",
+      "name": "bathtub:bathtub_0121",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0142.glb",
+      "name": "bathtub:bathtub_0142",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0152.glb",
+      "name": "bathtub:bathtub_0152",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0133.glb",
+      "name": "bathtub:bathtub_0133",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0137.glb",
+      "name": "bathtub:bathtub_0137",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0129.glb",
+      "name": "bathtub:bathtub_0129",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0128.glb",
+      "name": "bathtub:bathtub_0128",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0127.glb",
+      "name": "bathtub:bathtub_0127",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0124.glb",
+      "name": "bathtub:bathtub_0124",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0139.glb",
+      "name": "bathtub:bathtub_0139",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0138.glb",
+      "name": "bathtub:bathtub_0138",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0148.glb",
+      "name": "bathtub:bathtub_0148",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0151.glb",
+      "name": "bathtub:bathtub_0151",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0108.glb",
+      "name": "bathtub:bathtub_0108",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0140.glb",
+      "name": "bathtub:bathtub_0140",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0115.glb",
+      "name": "bathtub:bathtub_0115",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0107.glb",
+      "name": "bathtub:bathtub_0107",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0130.glb",
+      "name": "bathtub:bathtub_0130",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0113.glb",
+      "name": "bathtub:bathtub_0113",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0109.glb",
+      "name": "bathtub:bathtub_0109",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0132.glb",
+      "name": "bathtub:bathtub_0132",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0111.glb",
+      "name": "bathtub:bathtub_0111",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0117.glb",
+      "name": "bathtub:bathtub_0117",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0122.glb",
+      "name": "bathtub:bathtub_0122",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0134.glb",
+      "name": "bathtub:bathtub_0134",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0118.glb",
+      "name": "bathtub:bathtub_0118",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0125.glb",
+      "name": "bathtub:bathtub_0125",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0141.glb",
+      "name": "bathtub:bathtub_0141",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0145.glb",
+      "name": "bathtub:bathtub_0145",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0150.glb",
+      "name": "bathtub:bathtub_0150",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0120.glb",
+      "name": "bathtub:bathtub_0120",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0156.glb",
+      "name": "bathtub:bathtub_0156",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0136.glb",
+      "name": "bathtub:bathtub_0136",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0119.glb",
+      "name": "bathtub:bathtub_0119",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bathtub_bathtub_0143.glb",
+      "name": "bathtub:bathtub_0143",
+      "shape_type": "bathtub",
+      "prompt": "shape bathtub"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0306.glb",
+      "name": "bed:bed_0306",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0192.glb",
+      "name": "bed:bed_0192",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0047.glb",
+      "name": "bed:bed_0047",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0126.glb",
+      "name": "bed:bed_0126",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0485.glb",
+      "name": "bed:bed_0485",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0226.glb",
+      "name": "bed:bed_0226",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0417.glb",
+      "name": "bed:bed_0417",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0337.glb",
+      "name": "bed:bed_0337",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0184.glb",
+      "name": "bed:bed_0184",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0238.glb",
+      "name": "bed:bed_0238",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0300.glb",
+      "name": "bed:bed_0300",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0265.glb",
+      "name": "bed:bed_0265",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0468.glb",
+      "name": "bed:bed_0468",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0354.glb",
+      "name": "bed:bed_0354",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0200.glb",
+      "name": "bed:bed_0200",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0141.glb",
+      "name": "bed:bed_0141",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0261.glb",
+      "name": "bed:bed_0261",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0039.glb",
+      "name": "bed:bed_0039",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0283.glb",
+      "name": "bed:bed_0283",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0293.glb",
+      "name": "bed:bed_0293",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0498.glb",
+      "name": "bed:bed_0498",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0128.glb",
+      "name": "bed:bed_0128",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0263.glb",
+      "name": "bed:bed_0263",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0008.glb",
+      "name": "bed:bed_0008",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0432.glb",
+      "name": "bed:bed_0432",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0253.glb",
+      "name": "bed:bed_0253",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0359.glb",
+      "name": "bed:bed_0359",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0174.glb",
+      "name": "bed:bed_0174",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0369.glb",
+      "name": "bed:bed_0369",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0042.glb",
+      "name": "bed:bed_0042",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0157.glb",
+      "name": "bed:bed_0157",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0098.glb",
+      "name": "bed:bed_0098",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0215.glb",
+      "name": "bed:bed_0215",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0314.glb",
+      "name": "bed:bed_0314",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0073.glb",
+      "name": "bed:bed_0073",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0143.glb",
+      "name": "bed:bed_0143",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0090.glb",
+      "name": "bed:bed_0090",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0017.glb",
+      "name": "bed:bed_0017",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0412.glb",
+      "name": "bed:bed_0412",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0405.glb",
+      "name": "bed:bed_0405",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0294.glb",
+      "name": "bed:bed_0294",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0501.glb",
+      "name": "bed:bed_0501",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0474.glb",
+      "name": "bed:bed_0474",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0423.glb",
+      "name": "bed:bed_0423",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0009.glb",
+      "name": "bed:bed_0009",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0222.glb",
+      "name": "bed:bed_0222",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0072.glb",
+      "name": "bed:bed_0072",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0510.glb",
+      "name": "bed:bed_0510",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0372.glb",
+      "name": "bed:bed_0372",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0268.glb",
+      "name": "bed:bed_0268",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0281.glb",
+      "name": "bed:bed_0281",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0171.glb",
+      "name": "bed:bed_0171",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0024.glb",
+      "name": "bed:bed_0024",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0310.glb",
+      "name": "bed:bed_0310",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0115.glb",
+      "name": "bed:bed_0115",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0053.glb",
+      "name": "bed:bed_0053",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0511.glb",
+      "name": "bed:bed_0511",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0088.glb",
+      "name": "bed:bed_0088",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0196.glb",
+      "name": "bed:bed_0196",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0367.glb",
+      "name": "bed:bed_0367",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0307.glb",
+      "name": "bed:bed_0307",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0402.glb",
+      "name": "bed:bed_0402",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0070.glb",
+      "name": "bed:bed_0070",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0427.glb",
+      "name": "bed:bed_0427",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0321.glb",
+      "name": "bed:bed_0321",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0038.glb",
+      "name": "bed:bed_0038",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0020.glb",
+      "name": "bed:bed_0020",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0459.glb",
+      "name": "bed:bed_0459",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0380.glb",
+      "name": "bed:bed_0380",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0295.glb",
+      "name": "bed:bed_0295",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0303.glb",
+      "name": "bed:bed_0303",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0099.glb",
+      "name": "bed:bed_0099",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0262.glb",
+      "name": "bed:bed_0262",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0041.glb",
+      "name": "bed:bed_0041",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0102.glb",
+      "name": "bed:bed_0102",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0023.glb",
+      "name": "bed:bed_0023",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0386.glb",
+      "name": "bed:bed_0386",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0274.glb",
+      "name": "bed:bed_0274",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0074.glb",
+      "name": "bed:bed_0074",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0189.glb",
+      "name": "bed:bed_0189",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0059.glb",
+      "name": "bed:bed_0059",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0366.glb",
+      "name": "bed:bed_0366",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0201.glb",
+      "name": "bed:bed_0201",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0052.glb",
+      "name": "bed:bed_0052",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0406.glb",
+      "name": "bed:bed_0406",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0136.glb",
+      "name": "bed:bed_0136",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0107.glb",
+      "name": "bed:bed_0107",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0408.glb",
+      "name": "bed:bed_0408",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0026.glb",
+      "name": "bed:bed_0026",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0487.glb",
+      "name": "bed:bed_0487",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0191.glb",
+      "name": "bed:bed_0191",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0467.glb",
+      "name": "bed:bed_0467",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0118.glb",
+      "name": "bed:bed_0118",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0383.glb",
+      "name": "bed:bed_0383",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0097.glb",
+      "name": "bed:bed_0097",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0245.glb",
+      "name": "bed:bed_0245",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0470.glb",
+      "name": "bed:bed_0470",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0054.glb",
+      "name": "bed:bed_0054",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0418.glb",
+      "name": "bed:bed_0418",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0162.glb",
+      "name": "bed:bed_0162",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0145.glb",
+      "name": "bed:bed_0145",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0436.glb",
+      "name": "bed:bed_0436",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0298.glb",
+      "name": "bed:bed_0298",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0492.glb",
+      "name": "bed:bed_0492",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0446.glb",
+      "name": "bed:bed_0446",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0348.glb",
+      "name": "bed:bed_0348",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0146.glb",
+      "name": "bed:bed_0146",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0514.glb",
+      "name": "bed:bed_0514",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0273.glb",
+      "name": "bed:bed_0273",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0391.glb",
+      "name": "bed:bed_0391",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0395.glb",
+      "name": "bed:bed_0395",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0113.glb",
+      "name": "bed:bed_0113",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0067.glb",
+      "name": "bed:bed_0067",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0515.glb",
+      "name": "bed:bed_0515",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0025.glb",
+      "name": "bed:bed_0025",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0339.glb",
+      "name": "bed:bed_0339",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0104.glb",
+      "name": "bed:bed_0104",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0299.glb",
+      "name": "bed:bed_0299",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0081.glb",
+      "name": "bed:bed_0081",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0344.glb",
+      "name": "bed:bed_0344",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0385.glb",
+      "name": "bed:bed_0385",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0333.glb",
+      "name": "bed:bed_0333",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0221.glb",
+      "name": "bed:bed_0221",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0085.glb",
+      "name": "bed:bed_0085",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0455.glb",
+      "name": "bed:bed_0455",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0381.glb",
+      "name": "bed:bed_0381",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0335.glb",
+      "name": "bed:bed_0335",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0471.glb",
+      "name": "bed:bed_0471",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0062.glb",
+      "name": "bed:bed_0062",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0494.glb",
+      "name": "bed:bed_0494",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0374.glb",
+      "name": "bed:bed_0374",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0188.glb",
+      "name": "bed:bed_0188",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0209.glb",
+      "name": "bed:bed_0209",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0240.glb",
+      "name": "bed:bed_0240",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0159.glb",
+      "name": "bed:bed_0159",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0305.glb",
+      "name": "bed:bed_0305",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0204.glb",
+      "name": "bed:bed_0204",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0284.glb",
+      "name": "bed:bed_0284",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0296.glb",
+      "name": "bed:bed_0296",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0257.glb",
+      "name": "bed:bed_0257",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0465.glb",
+      "name": "bed:bed_0465",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0116.glb",
+      "name": "bed:bed_0116",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0246.glb",
+      "name": "bed:bed_0246",
+      "shape_type": "bed",
+      "prompt": "shape bed"
+    },
+    {
+      "path": "/house/materialized_objects/modelnet10_bed_bed_0276.glb",
+      "name": "bed:bed_0276",
+      "shape_type": "bed",
+      "prompt": "shape bed"
     }
   ],
   "rays": []
