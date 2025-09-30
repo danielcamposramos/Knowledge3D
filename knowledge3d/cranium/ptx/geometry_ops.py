@@ -22,6 +22,7 @@ _KERNEL_CACHE: Dict[str, int] = {}
 
 
 def _ensure_cuda_context() -> int:
+    # Prefer primary context to reduce driver teardown races across processes
     err, ctx = cuda.cuCtxGetCurrent()
     if err == cuda.CUresult.CUDA_SUCCESS and ctx:
         return ctx
@@ -31,10 +32,14 @@ def _ensure_cuda_context() -> int:
     err, dev = cuda.cuDeviceGet(0)
     if err != cuda.CUresult.CUDA_SUCCESS:
         raise RuntimeError(f"cuDeviceGet failed: {err}")
-    err, ctx = cuda.cuCtxCreate(0, dev)
+    # Retain primary context instead of creating/destroying contexts
+    err, pctx = cuda.cuDevicePrimaryCtxRetain(dev)
     if err != cuda.CUresult.CUDA_SUCCESS:
-        raise RuntimeError(f"cuCtxCreate failed: {err}")
-    return ctx
+        raise RuntimeError(f"cuDevicePrimaryCtxRetain failed: {err}")
+    err, = cuda.cuCtxSetCurrent(pctx)
+    if err != cuda.CUresult.CUDA_SUCCESS:
+        raise RuntimeError(f"cuCtxSetCurrent failed: {err}")
+    return pctx
 
 
 def _compile_kernel(source: str, name: str) -> int:

@@ -32,6 +32,9 @@ def main() -> None:  # pragma: no cover
 
     os.environ.setdefault("K3D_PTX_STRICT", "1")
     os.environ.setdefault("K3D_FORCE_PTX_FUSE", "1")
+    # Enable robust numeric decoding
+    os.environ.setdefault("K3D_RPN_BEAM", "1")
+    os.environ.setdefault("K3D_RPN_BEAM_WIDTH", "5")
     os.environ["K3D_FUSE_DIMS"] = args.dims
     # Optional: avoid modality/image/audio PTX during warmup
     os.environ.setdefault("K3D_DISABLE_MEDIA_LOOKUP", "1")
@@ -54,4 +57,3 @@ def main() -> None:  # pragma: no cover
 
 if __name__ == "__main__":
     main()
-
