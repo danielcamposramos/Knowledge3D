@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 
@@ -40,8 +41,8 @@ def _expand_to_dim(features: List[float], dim: int) -> np.ndarray:
     return np.tile(arr, reps)[:dim].astype(np.float32)
 
 
-def load_image_pairs(limit: Optional[int] = None) -> List[Tuple[str, Path]]:
-    out: List[Tuple[str, Path]] = []
+def load_image_pairs(limit: Optional[int] = None) -> List[Tuple[str, Path, Optional[str]]]:
+    out: List[Tuple[str, Path, Optional[str]]] = []
     if not MANIFEST.exists():
         return out
     try:
@@ -53,13 +54,15 @@ def load_image_pairs(limit: Optional[int] = None) -> List[Tuple[str, Path]]:
             if not isinstance(it, dict):
                 continue
             prompt = it.get("prompt") or it.get("name")
-            p = it.get("path")
+            # Accept either 'path' (shapes) or 'preview' (documents) as image source
+            p = it.get("path") or it.get("preview")
+            ocr_text = it.get("ocr_text") if isinstance(it.get("ocr_text"), str) else None
             if not (isinstance(prompt, str) and isinstance(p, str)):
                 continue
             rel = p[1:] if p.startswith("/") else p
             candidate = ROOT / "viewer/public" / rel
             if candidate.exists():
-                out.append((prompt.strip(), candidate))
+                out.append((prompt.strip(), candidate, ocr_text))
                 if limit and len(out) >= int(limit):
                     break
     except Exception:
@@ -107,7 +110,7 @@ def run(epochs: int, limit: int, lr: float) -> None:
     for ep in range(1, int(max(1, epochs)) + 1):
         losses: List[float] = []
         # Image: manifest previews
-        for prompt, path in pairs:
+        for prompt, path, ocr_text in pairs:
             # Target PTX image features (fallback: text modality features)
             target = None
             try:
@@ -117,9 +120,12 @@ def run(epochs: int, limit: int, lr: float) -> None:
                     target = _expand_to_dim(feats, 512)
             except Exception:
                 target = None
-            if target is None and str(os.environ.get('K3D_CONSISTENCY_FALLBACK_TEXT','0')).lower() in {'1','true','yes'}:
+            use_text_fb = str(os.environ.get('K3D_CONSISTENCY_FALLBACK_TEXT','0')).lower() in {'1','true','yes'}
+            # If image target missing or disabled, allow OCR/text features as target
+            if target is None and use_text_fb:
                 try:
-                    tinfo = PTX_OPS.text_modality(prompt)
+                    tinput = (ocr_text or prompt)
+                    tinfo = PTX_OPS.text_modality(tinput)
                     tfeats = tinfo.get("features") if isinstance(tinfo, dict) else None
                     if isinstance(tfeats, list) and tfeats:
                         target = _expand_to_dim(tfeats, 512)
@@ -127,8 +133,9 @@ def run(epochs: int, limit: int, lr: float) -> None:
                     target = None
             if target is None:
                 continue
-            # Project fused embedding of the prompt
-            x_vec = fh._build_ptx_fused_embedding(prompt)
+            # Project fused embedding of prompt or OCR text when text-fallback mode
+            embed_text = (ocr_text or prompt) if use_text_fb else prompt
+            x_vec = fh._build_ptx_fused_embedding(embed_text)
             x = torch.tensor(x_vec, dtype=torch.float32, device=fh.device).unsqueeze(0)
             if x.shape[1] < 2048:
                 x = torch.cat([x, torch.zeros((1, 2048 - x.shape[1]), device=fh.device)], dim=1)

@@ -8,6 +8,18 @@ A precise handoff with commands, paths, and checkpoints to continue training a s
 - Conda env: `k3d-cranium`
 
 ```
+
+- Recommended 50-epoch variant (aligns with expansion policy):
+
+```
+tmux new-session -d -s k3d_av_50 "bash -lc '\n  source /home/daniel/miniforge/bin/activate k3d-cranium; cd /K3D/Knowledge3D;\n  export PYTHONPATH=. K3D_PTX_STRICT=1 K3D_FORCE_PTX_FUSE=1;\n  python -m knowledge3d.tools.phase25.consistency_trainer --epochs 50 --limit 3000 --lr 1e-3'"
+```
+
+- Optional second pass (uses OCR text when present):
+
+```
+tmux new-session -d -s k3d_av_50_text "bash -lc '\n  source /home/daniel/miniforge/bin/activate k3d-cranium; cd /K3D/Knowledge3D;\n  export PYTHONPATH=. K3D_PTX_STRICT=1 K3D_FORCE_PTX_FUSE=1 K3D_CONSISTENCY_FALLBACK_TEXT=1;\n  python -m knowledge3d.tools.phase25.consistency_trainer --epochs 50 --limit 3000 --lr 1e-3'"
+```
 source /home/daniel/miniforge/bin/activate k3d-cranium
 cd /K3D/Knowledge3D
 export PYTHONPATH=.

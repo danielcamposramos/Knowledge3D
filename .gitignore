@@ -36,3 +36,16 @@ logs/
 viewer/public/houses/**/*.gltf
 viewer/public/houses/**/*.json
 viewer/public/houses/**/*.bak
+# Ignore large artifacts (>99MB)
+viewer/public/galaxy.cross.glb
+viewer/public/galaxy.glb
+viewer/public/galaxy.unified.glb
+viewer/dist/galaxy.glb
+viewer/dist/galaxy.cross.glb
+viewer/public/galaxy/**/*.glb
+viewer/public/galaxy/working/*.jsonl
+viewer/public/galaxy/hf_cache_memory.glb
+.venv*/
+.env*/
+# Ignore large CSV datasets
+data/ai_compendium_80k_vectors.csv

@@ -83,6 +83,38 @@ def _pdf_previews(pdf: Path, out_dir: Path, limit_pages: int = 6) -> List[Path]:
     return out
 
 
+def _pdf_text_snippet(pdf: Path, limit_pages: int = 6, max_chars: int = 4096) -> str:
+    try:
+        import fitz  # type: ignore
+    except Exception:
+        return ""
+    try:
+        doc = fitz.open(pdf.as_posix())
+    except Exception:
+        return ""
+    candidates = list(range(min(limit_pages, doc.page_count)))
+    tail = list(range(max(0, doc.page_count - limit_pages), doc.page_count))
+    pages = sorted(set(candidates + tail))
+    buf: List[str] = []
+    for i in pages:
+        try:
+            page = doc.load_page(i)
+            text = page.get_text("text") or ""
+            if _skip_page_text(text):
+                continue
+            t = text.strip()
+            if t:
+                buf.append(t)
+            if sum(len(x) for x in buf) >= max_chars:
+                break
+        except Exception:
+            continue
+    out = "\n\n".join(buf)
+    if len(out) > max_chars:
+        out = out[:max_chars]
+    return out
+
+
 def _update_manifest(entries: List[dict]) -> None:
     obj = {"shapes": [], "rays": []}
     if MANIFEST.exists():
@@ -93,9 +125,29 @@ def _update_manifest(entries: List[dict]) -> None:
     shapes = obj.get("shapes") if isinstance(obj, dict) else []
     if not isinstance(shapes, list):
         shapes = []
-    existing = {s.get("source_path") for s in shapes if isinstance(s, dict)}
+    # Index by source_path for updates
+    index = {}
+    for i, s in enumerate(shapes):
+        if isinstance(s, dict):
+            sp = s.get("source_path")
+            if isinstance(sp, str):
+                index[sp] = i
     for e in entries:
-        if e.get("source_path") not in existing:
+        sp = e.get("source_path")
+        if sp in index:
+            # Update preview/prompt if previously missing
+            try:
+                i = index[sp]
+                cur = shapes[i]
+                if isinstance(cur, dict):
+                    if not cur.get("preview") and e.get("preview"):
+                        cur["preview"] = e.get("preview")
+                    if not cur.get("prompt") and e.get("prompt"):
+                        cur["prompt"] = e.get("prompt")
+                    shapes[i] = cur
+            except Exception:
+                pass
+        else:
             shapes.append(e)
     obj["shapes"] = shapes
     MANIFEST.parent.mkdir(parents=True, exist_ok=True)
@@ -112,12 +164,14 @@ def run(roots: List[Path], max_depth: int, limit: int) -> None:
                 preview_rel = None
                 if previews:
                     preview_rel = "/" + str(previews[0].relative_to(PUBLIC)).replace(os.sep, "/")
+                ocr_text = _pdf_text_snippet(f)
                 entries.append({
                     "name": f.stem,
                     "prompt": f"doc {f.stem}",
                     "type": "external_document",
                     "source_path": f.as_posix(),
                     "preview": preview_rel,
+                    "ocr_text": ocr_text,
                 })
             else:  # JSON
                 entries.append({
@@ -147,4 +201,3 @@ def main() -> None:  # pragma: no cover
 
 if __name__ == "__main__":
     main()
-
