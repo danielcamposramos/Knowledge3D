@@ -109,6 +109,10 @@ def run(epochs: int, limit: int, lr: float) -> None:
 
     for ep in range(1, int(max(1, epochs)) + 1):
         losses: List[float] = []
+        samples_used = 0
+        skipped_no_target = 0
+        skipped_nonfinite = 0
+        first_loss: Optional[float] = None
         # Image: manifest previews
         for prompt, path, ocr_text in pairs:
             # Target PTX image features (fallback: text modality features)
@@ -145,17 +149,22 @@ def run(epochs: int, limit: int, lr: float) -> None:
             h = fh.projection(x)
             t = torch.tensor(target, dtype=torch.float32, device=fh.device).unsqueeze(0)
             # Normalize
-            h_n = torch.nn.functional.normalize(h, dim=-1)
-            t_n = torch.nn.functional.normalize(t, dim=-1)
+            h_n = torch.nn.functional.normalize(h, dim=-1, eps=1e-6)
+            t_n = torch.nn.functional.normalize(t, dim=-1, eps=1e-6)
             loss = torch.mean((h_n - t_n) ** 2)
             if not torch.isfinite(loss):
                 fh._opt.zero_grad(set_to_none=True)
+                skipped_nonfinite += 1
                 continue
             fh._opt.zero_grad(set_to_none=True)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(list(fh.projection.parameters()), 1.0)
             fh._opt.step()
-            losses.append(float(loss.detach().item()))
+            val = float(loss.detach().item())
+            if first_loss is None:
+                first_loss = val
+            losses.append(val)
+            samples_used += 1
         # Audio alignment
         for af in audio_files:
             try:
@@ -177,16 +186,20 @@ def run(epochs: int, limit: int, lr: float) -> None:
             fh.projection.train()
             h = fh.projection(x)
             t = torch.tensor(target, dtype=torch.float32, device=fh.device).unsqueeze(0)
-            h_n = torch.nn.functional.normalize(h, dim=-1)
-            t_n = torch.nn.functional.normalize(t, dim=-1)
+            h_n = torch.nn.functional.normalize(h, dim=-1, eps=1e-6)
+            t_n = torch.nn.functional.normalize(t, dim=-1, eps=1e-6)
             loss = torch.mean((h_n - t_n) ** 2)
             if not torch.isfinite(loss):
-                fh._opt.zero_grad(set_to_none=True); continue
+                fh._opt.zero_grad(set_to_none=True); skipped_nonfinite += 1; continue
             fh._opt.zero_grad(set_to_none=True)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(list(fh.projection.parameters()), 1.0)
             fh._opt.step()
-            losses.append(float(loss.detach().item()))
+            val = float(loss.detach().item())
+            if first_loss is None:
+                first_loss = val
+            losses.append(val)
+            samples_used += 1
 
         # Video alignment
         for vf in video_files:
@@ -208,19 +221,25 @@ def run(epochs: int, limit: int, lr: float) -> None:
             fh.projection.train()
             h = fh.projection(x)
             t = torch.tensor(target, dtype=torch.float32, device=fh.device).unsqueeze(0)
-            h_n = torch.nn.functional.normalize(h, dim=-1)
-            t_n = torch.nn.functional.normalize(t, dim=-1)
+            h_n = torch.nn.functional.normalize(h, dim=-1, eps=1e-6)
+            t_n = torch.nn.functional.normalize(t, dim=-1, eps=1e-6)
             loss = torch.mean((h_n - t_n) ** 2)
             if not torch.isfinite(loss):
-                fh._opt.zero_grad(set_to_none=True); continue
+                fh._opt.zero_grad(set_to_none=True); skipped_nonfinite += 1; continue
             fh._opt.zero_grad(set_to_none=True)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(list(fh.projection.parameters()), 1.0)
             fh._opt.step()
-            losses.append(float(loss.detach().item()))
+            val = float(loss.detach().item())
+            if first_loss is None:
+                first_loss = val
+            losses.append(val)
+            samples_used += 1
 
         avg = sum(losses) / max(1, len(losses))
-        print(f"🧭 Consistency Epoch {ep}: avg_loss={avg:.4f} ({len(losses)} samples)")
+        print(f"🧭 Consistency Epoch {ep}: avg_loss={avg:.4f} (samples_used={samples_used}, skipped_nonfinite={skipped_nonfinite}) first_loss={first_loss}")
+        if samples_used == 0:
+            print("⚠️  No finite samples used in consistency epoch — check PTX features and projection path.")
         fh._save_core_heads()
         # Progress log
         try:

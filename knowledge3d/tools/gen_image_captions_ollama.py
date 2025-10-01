@@ -65,6 +65,7 @@ def main() -> None:  # pragma: no cover
     ap.add_argument("--images-root", default="viewer/public/house/materialized_objects/docs")
     ap.add_argument("--limit", type=int, default=200)
     ap.add_argument("--out", required=True)
+    ap.add_argument("--cycle", type=int, default=20, help="Unload model every N images to clear context/memory")
     ap.add_argument("--timeout", type=int, default=600)
     args = ap.parse_args()
     url = str(args.ollama)
@@ -81,12 +82,20 @@ def main() -> None:  # pragma: no cover
         pass
 
     with out.open("w", encoding="utf-8") as f:
-        for p in iter_images(root, int(args.limit)):
+        for i, p in enumerate(iter_images(root, int(args.limit)), 1):
             b64 = encode_b64(p)
             resp = ollama_generate_vision(url, model, "Provide a short, factual caption.", b64, timeout=int(args.timeout))
             if not resp:
                 continue
             f.write(json.dumps({"image": str(p), "caption": resp}, ensure_ascii=False) + "\n")
+            # Periodically unload to respect context/memory limits
+            if args.cycle and i % int(args.cycle) == 0:
+                try:
+                    subprocess.run(["curl", "-s", f"{url.rstrip('/')}/api/generate", "-d", json.dumps({
+                        "model": model, "prompt": "unload", "stream": False, "keep_alive": "0s"
+                    })], timeout=30)
+                except Exception:
+                    pass
     print(str(out))
 
 

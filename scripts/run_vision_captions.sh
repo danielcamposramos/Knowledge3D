@@ -18,13 +18,13 @@ echo "[VISION] warm + small batch (limit=20) with qwen2.5vl and llama3.2-vision"
 python -m knowledge3d.tools.gen_image_captions_ollama \
   --ollama "$OLLAMA_URL" --model qwen2.5vl:latest \
   --images-root viewer/public/house/materialized_objects/docs --limit 20 \
-  --timeout 600 \
+  --timeout 600 --cycle 10 \
   --out ../Knowledge3D.local/datasets/image_captions_qwen25vl.jsonl | tee -a "$LOG"
 
 python -m knowledge3d.tools.gen_image_captions_ollama \
   --ollama "$OLLAMA_URL" --model llama3.2-vision:latest \
   --images-root viewer/public/house/materialized_objects/docs --limit 20 \
-  --timeout 600 \
+  --timeout 600 --cycle 10 \
   --out ../Knowledge3D.local/datasets/image_captions_llama32vision.jsonl | tee -a "$LOG"
 
 Q_SZ=$(stat -c%s "../Knowledge3D.local/datasets/image_captions_qwen25vl.jsonl" 2>/dev/null || echo 0)
@@ -37,7 +37,7 @@ if [ "${Q_SZ:-0}" -gt 0 ]; then
   python -m knowledge3d.tools.gen_image_captions_ollama \
     --ollama "$OLLAMA_URL" --model qwen2.5vl:latest \
     --images-root viewer/public/house/materialized_objects/docs --limit 200 \
-    --timeout 600 \
+    --timeout 600 --cycle 10 \
     --out ../Knowledge3D.local/datasets/image_captions_qwen25vl.jsonl | tee -a "$LOG"
 fi
 
@@ -46,7 +46,7 @@ if [ "${L_SZ:-0}" -gt 0 ]; then
   python -m knowledge3d.tools.gen_image_captions_ollama \
     --ollama "$OLLAMA_URL" --model llama3.2-vision:latest \
     --images-root viewer/public/house/materialized_objects/docs --limit 200 \
-    --timeout 600 \
+    --timeout 600 --cycle 10 \
     --out ../Knowledge3D.local/datasets/image_captions_llama32vision.jsonl | tee -a "$LOG"
 fi
 

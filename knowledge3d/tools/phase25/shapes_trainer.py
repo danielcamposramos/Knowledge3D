@@ -15,6 +15,8 @@ import argparse
 import json
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+import numpy as np
+import torch
 
 from knowledge3d.cranium.fused_head import AdaptedFusedHead  # type: ignore
 from knowledge3d.cranium.ptx.ptx_ops import PTX_OPS  # type: ignore
@@ -139,6 +141,9 @@ def run(epochs: int, limit: int) -> None:
     # Use normalized MSE loss similar to consistency trainer
     for ep in range(1, int(max(1, epochs)) + 1):
         losses: List[float] = []
+        samples_used = 0
+        skipped_nonfinite = 0
+        first_loss: Optional[float] = None
         for prompt, p in samples:
             try:
                 info = PTX_OPS.image_modality(p.as_posix())
@@ -157,18 +162,24 @@ def run(epochs: int, limit: int) -> None:
             fh.projection.train()
             h = fh.projection(x)
             t = torch.tensor(target[:512], dtype=torch.float32, device=fh.device).unsqueeze(0)
-            h_n = torch.nn.functional.normalize(h, dim=-1)
-            t_n = torch.nn.functional.normalize(t, dim=-1)
+            h_n = torch.nn.functional.normalize(h, dim=-1, eps=1e-6)
+            t_n = torch.nn.functional.normalize(t, dim=-1, eps=1e-6)
             loss = torch.mean((h_n - t_n) ** 2)
             if not torch.isfinite(loss):
-                fh._opt.zero_grad(set_to_none=True); continue
+                fh._opt.zero_grad(set_to_none=True); skipped_nonfinite += 1; continue
             fh._opt.zero_grad(set_to_none=True)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(list(fh.projection.parameters()), 1.0)
             fh._opt.step()
-            losses.append(float(loss.detach().item()))
+            val = float(loss.detach().item())
+            if first_loss is None:
+                first_loss = val
+            losses.append(val)
+            samples_used += 1
         avg = sum(losses) / max(1, len(losses))
-        print(f"🧩 Shapes Consistency Epoch {ep}: avg_loss={avg:.4f} ({len(losses)} samples)")
+        print(f"🧩 Shapes Consistency Epoch {ep}: avg_loss={avg:.4f} (samples_used={samples_used}, skipped_nonfinite={skipped_nonfinite}) first_loss={first_loss}")
+        if samples_used == 0:
+            print("⚠️  No finite samples used in shapes epoch — check PTX features and projection path.")
         fh._save_core_heads()
         # Progress log
         try:
