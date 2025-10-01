@@ -1811,6 +1811,1341 @@
       "name": "bed:bed_0276",
       "shape_type": "bed",
       "prompt": "shape bed"
+    },
+    {
+      "name": "pdfcoffee.com_encyclopedia-of-general-science-disarijibika-pdf-free",
+      "prompt": "doc pdfcoffee.com_encyclopedia-of-general-science-disarijibika-pdf-free",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/Encyclopedias/pdfcoffee.com_encyclopedia-of-general-science-disarijibika-pdf-free.pdf",
+      "preview": null
+    },
+    {
+      "name": "Encyclopedia_of_Geomagnetism",
+      "prompt": "doc Encyclopedia_of_Geomagnetism",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/Encyclopedias/Encyclopedia_of_Geomagnetism.pdf",
+      "preview": null
+    },
+    {
+      "name": "Encyclopedia of World History",
+      "prompt": "doc Encyclopedia of World History",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/Encyclopedias/Encyclopedia of World History.pdf",
+      "preview": null
+    },
+    {
+      "name": "The Dorling Kindersley Science Encyclopedia_2",
+      "prompt": "doc The Dorling Kindersley Science Encyclopedia_2",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/Encyclopedias/The Dorling Kindersley Science Encyclopedia_2.pdf",
+      "preview": null
+    },
+    {
+      "name": "how20things20work20encyclopedia20dk20publishing",
+      "prompt": "doc how20things20work20encyclopedia20dk20publishing",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/Encyclopedias/how20things20work20encyclopedia20dk20publishing.pdf",
+      "preview": null
+    },
+    {
+      "name": "[Matthew_N._O._Sadiku]_Elements_of_Electromagnetic(BookFi)",
+      "prompt": "doc [Matthew_N._O._Sadiku]_Elements_of_Electromagnetic(BookFi)",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/Encyclopedias/[Matthew_N._O._Sadiku]_Elements_of_Electromagnetic(BookFi).pdf",
+      "preview": null
+    },
+    {
+      "name": "Encyclopedia-of-chemistry-by-Don-Rittner-&-Ronald-A-Balley",
+      "prompt": "doc Encyclopedia-of-chemistry-by-Don-Rittner-&-Ronald-A-Balley",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/Encyclopedias/Encyclopedia-of-chemistry-by-Don-Rittner-&-Ronald-A-Balley.pdf",
+      "preview": null
+    },
+    {
+      "name": "EchoSystems_Encyclopedia_Compendium_v1.0",
+      "prompt": "json EchoSystems_Encyclopedia_Compendium_v1.0",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/Encyclopedias/JSON/EchoSystems_Encyclopedia_Compendium_v1.0.json"
+    },
+    {
+      "name": "The Dorling Kindersley Science Encyclopedia_2",
+      "prompt": "json The Dorling Kindersley Science Encyclopedia_2",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/Encyclopedias/JSON/The Dorling Kindersley Science Encyclopedia_2.json"
+    },
+    {
+      "name": "pdfcoffee.com_encyclopedia-of-general-science-disarijibika-pdf-free",
+      "prompt": "json pdfcoffee.com_encyclopedia-of-general-science-disarijibika-pdf-free",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/Encyclopedias/JSON/pdfcoffee.com_encyclopedia-of-general-science-disarijibika-pdf-free.json"
+    },
+    {
+      "name": "Encyclopedia_of_Geomagnetism",
+      "prompt": "json Encyclopedia_of_Geomagnetism",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/Encyclopedias/JSON/Encyclopedia_of_Geomagnetism.json"
+    },
+    {
+      "name": "Encyclopedia of World History",
+      "prompt": "json Encyclopedia of World History",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/Encyclopedias/JSON/Encyclopedia of World History.json"
+    },
+    {
+      "name": "Encyclopedia-of-chemistry-by-Don-Rittner-&-Ronald-A-Balley",
+      "prompt": "json Encyclopedia-of-chemistry-by-Don-Rittner-&-Ronald-A-Balley",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/Encyclopedias/JSON/Encyclopedia-of-chemistry-by-Don-Rittner-&-Ronald-A-Balley.json"
+    },
+    {
+      "name": "how20things20work20encyclopedia20dk20publishing",
+      "prompt": "json how20things20work20encyclopedia20dk20publishing",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/Encyclopedias/JSON/how20things20work20encyclopedia20dk20publishing.json"
+    },
+    {
+      "name": "EchoSystems - Foundational, how to operate and beyound",
+      "prompt": "json EchoSystems - Foundational, how to operate and beyound",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/EchoSystems - Foundational, how to operate and beyound.json"
+    },
+    {
+      "name": "system_mapping",
+      "prompt": "json system_mapping",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/system_mapping.json"
+    },
+    {
+      "name": "EchoSystems_Foundational_Comprehensive_Library",
+      "prompt": "json EchoSystems_Foundational_Comprehensive_Library",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/EchoSystems_Foundational_Comprehensive_Library.json"
+    },
+    {
+      "name": "EchoSystems_Layers_diagram",
+      "prompt": "json EchoSystems_Layers_diagram",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/EchoSystems_Layers_diagram.json"
+    },
+    {
+      "name": "EchoSystems_Foundational_Key_Topics_Modules_Overview",
+      "prompt": "json EchoSystems_Foundational_Key_Topics_Modules_Overview",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/EchoSystems_Foundational_Key_Topics_Modules_Overview.json"
+    },
+    {
+      "name": "map-reading-made-easy",
+      "prompt": "doc map-reading-made-easy",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Carthography/Source/PDF/map-reading-made-easy.pdf",
+      "preview": null
+    },
+    {
+      "name": "Maps-and-map-interpretation",
+      "prompt": "doc Maps-and-map-interpretation",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Carthography/Source/PDF/Maps-and-map-interpretation.pdf",
+      "preview": null
+    },
+    {
+      "name": "the-guide-to-map-design",
+      "prompt": "doc the-guide-to-map-design",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Carthography/Source/PDF/the-guide-to-map-design.pdf",
+      "preview": null
+    },
+    {
+      "name": "Christopher_D._Manning_Hinrich_Schütze_Foundations_Of_Statistical_Natural_Language_Processing",
+      "prompt": "doc Christopher_D._Manning_Hinrich_Schütze_Foundations_Of_Statistical_Natural_Language_Processing",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Understanding Typos/Source/Christopher_D._Manning_Hinrich_Schütze_Foundations_Of_Statistical_Natural_Language_Processing.pdf",
+      "preview": null
+    },
+    {
+      "name": "dictionary_of_american_slang_and_colloquial_expressions2",
+      "prompt": "doc dictionary_of_american_slang_and_colloquial_expressions2",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Understanding Typos/Source/dictionary_of_american_slang_and_colloquial_expressions2.pdf",
+      "preview": null
+    },
+    {
+      "name": "livro-texto-semc3a2ntica",
+      "prompt": "doc livro-texto-semc3a2ntica",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Understanding Typos/Source/livro-texto-semc3a2ntica.pdf",
+      "preview": null
+    },
+    {
+      "name": "dicionario",
+      "prompt": "doc dicionario",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Understanding Typos/Source/dicionario.pdf",
+      "preview": null
+    },
+    {
+      "name": "c2e23a92905940cab631fe282894d02904112023110944",
+      "prompt": "doc c2e23a92905940cab631fe282894d02904112023110944",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Understanding Typos/Source/c2e23a92905940cab631fe282894d02904112023110944.pdf",
+      "preview": null
+    },
+    {
+      "name": "semantics",
+      "prompt": "doc semantics",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Understanding Typos/Source/semantics.pdf",
+      "preview": null
+    },
+    {
+      "name": "Correcting_Different_Types_of_Errors_in_Texts",
+      "prompt": "doc Correcting_Different_Types_of_Errors_in_Texts",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Understanding Typos/Source/Correcting_Different_Types_of_Errors_in_Texts.pdf",
+      "preview": null
+    },
+    {
+      "name": "pdfcoffee.com_2018-manual-de-semantica-marcia-canado-pdf-free",
+      "prompt": "doc pdfcoffee.com_2018-manual-de-semantica-marcia-canado-pdf-free",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Understanding Typos/Source/pdfcoffee.com_2018-manual-de-semantica-marcia-canado-pdf-free.pdf",
+      "preview": null
+    },
+    {
+      "name": "TheFormalSemanticsofProgrammingLanguages",
+      "prompt": "doc TheFormalSemanticsofProgrammingLanguages",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Understanding Typos/Source/TheFormalSemanticsofProgrammingLanguages.pdf",
+      "preview": null
+    },
+    {
+      "name": "Grammar",
+      "prompt": "doc Grammar",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Understanding Typos/Source/Grammar.pdf",
+      "preview": null
+    },
+    {
+      "name": "ebook_ismael_armando",
+      "prompt": "doc ebook_ismael_armando",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Understanding Typos/Source/ebook_ismael_armando.pdf",
+      "preview": null
+    },
+    {
+      "name": "235_7-English-Grammar-in-Use.-Murphy-R.-2019-5th-394p-",
+      "prompt": "doc 235_7-English-Grammar-in-Use.-Murphy-R.-2019-5th-394p-",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Understanding Typos/Source/235_7-English-Grammar-in-Use.-Murphy-R.-2019-5th-394p-.pdf",
+      "preview": null
+    },
+    {
+      "name": "P12-2073",
+      "prompt": "doc P12-2073",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Understanding Typos/Source/P12-2073.pdf",
+      "preview": null
+    },
+    {
+      "name": "gramatica_completa_da_lingua_portuesa",
+      "prompt": "doc gramatica_completa_da_lingua_portuesa",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Understanding Typos/Source/gramatica_completa_da_lingua_portuesa.pdf",
+      "preview": null
+    },
+    {
+      "name": "reviso_e_correo-klbrakling-2012-final_1",
+      "prompt": "doc reviso_e_correo-klbrakling-2012-final_1",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Understanding Typos/Source/reviso_e_correo-klbrakling-2012-final_1.pdf",
+      "preview": null
+    },
+    {
+      "name": "ed3book",
+      "prompt": "doc ed3book",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Understanding Typos/Source/ed3book.pdf",
+      "preview": null
+    },
+    {
+      "name": "0829",
+      "prompt": "doc 0829",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Context/0829.pdf",
+      "preview": null
+    },
+    {
+      "name": "Understanding_Context_Before_Using_It",
+      "prompt": "doc Understanding_Context_Before_Using_It",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Context/Understanding_Context_Before_Using_It.pdf",
+      "preview": null
+    },
+    {
+      "name": "ContextualReferences",
+      "prompt": "doc ContextualReferences",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Context/ContextualReferences.pdf",
+      "preview": null
+    },
+    {
+      "name": "GW-14-TP-1",
+      "prompt": "doc GW-14-TP-1",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Context/GW-14-TP-1.pdf",
+      "preview": null
+    },
+    {
+      "name": "Saldana-2013-TheCodingManualforQualitativeResearchers",
+      "prompt": "doc Saldana-2013-TheCodingManualforQualitativeResearchers",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Context/Saldana-2013-TheCodingManualforQualitativeResearchers.pdf",
+      "preview": null
+    },
+    {
+      "name": "ca5968en",
+      "prompt": "doc ca5968en",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Context/ca5968en.pdf",
+      "preview": null
+    },
+    {
+      "name": "understandingcontextdey",
+      "prompt": "doc understandingcontextdey",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Context/understandingcontextdey.pdf",
+      "preview": null
+    },
+    {
+      "name": "The contextual interference effect in the learning of a manual aiming task",
+      "prompt": "doc The contextual interference effect in the learning of a manual aiming task",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Context/The contextual interference effect in the learning of a manual aiming task.pdf",
+      "preview": null
+    },
+    {
+      "name": "The_Essence_of_Contextual_Understanding_in_Theory_",
+      "prompt": "doc The_Essence_of_Contextual_Understanding_in_Theory_",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Context/The_Essence_of_Contextual_Understanding_in_Theory_.pdf",
+      "preview": null
+    },
+    {
+      "name": "plainpreprint",
+      "prompt": "doc plainpreprint",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Context/plainpreprint.pdf",
+      "preview": null
+    },
+    {
+      "name": "2024.naacl-long.148",
+      "prompt": "doc 2024.naacl-long.148",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Context/2024.naacl-long.148.pdf",
+      "preview": null
+    },
+    {
+      "name": "ssoar-1987-iversen-introduction_to_contextual_analysis",
+      "prompt": "doc ssoar-1987-iversen-introduction_to_contextual_analysis",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Context/ssoar-1987-iversen-introduction_to_contextual_analysis.pdf",
+      "preview": null
+    },
+    {
+      "name": "holtzblatt",
+      "prompt": "doc holtzblatt",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Context/holtzblatt.pdf",
+      "preview": null
+    },
+    {
+      "name": "ca5968en",
+      "prompt": "json ca5968en",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Context/JSON/ca5968en.json"
+    },
+    {
+      "name": "EchoSystems_Context_Compendium_v1.0",
+      "prompt": "json EchoSystems_Context_Compendium_v1.0",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Context/JSON/EchoSystems_Context_Compendium_v1.0.json"
+    },
+    {
+      "name": "The_Essence_of_Contextual_Understanding_in_Theory_",
+      "prompt": "json The_Essence_of_Contextual_Understanding_in_Theory_",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Context/JSON/The_Essence_of_Contextual_Understanding_in_Theory_.json"
+    },
+    {
+      "name": "ssoar-1987-iversen-introduction_to_contextual_analysis",
+      "prompt": "json ssoar-1987-iversen-introduction_to_contextual_analysis",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Context/JSON/ssoar-1987-iversen-introduction_to_contextual_analysis.json"
+    },
+    {
+      "name": "GW-14-TP-1",
+      "prompt": "json GW-14-TP-1",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Context/JSON/GW-14-TP-1.json"
+    },
+    {
+      "name": "Saldana-2013-TheCodingManualforQualitativeResearchers",
+      "prompt": "json Saldana-2013-TheCodingManualforQualitativeResearchers",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Context/JSON/Saldana-2013-TheCodingManualforQualitativeResearchers.json"
+    },
+    {
+      "name": "0829",
+      "prompt": "json 0829",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Context/JSON/0829.json"
+    },
+    {
+      "name": "ContextualReferences",
+      "prompt": "json ContextualReferences",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Context/JSON/ContextualReferences.json"
+    },
+    {
+      "name": "2024.naacl-long.148",
+      "prompt": "json 2024.naacl-long.148",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Context/JSON/2024.naacl-long.148.json"
+    },
+    {
+      "name": "holtzblatt",
+      "prompt": "json holtzblatt",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Context/JSON/holtzblatt.json"
+    },
+    {
+      "name": "Understanding_Context_Before_Using_It",
+      "prompt": "json Understanding_Context_Before_Using_It",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Context/JSON/Understanding_Context_Before_Using_It.json"
+    },
+    {
+      "name": "understandingcontextdey",
+      "prompt": "json understandingcontextdey",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Context/JSON/understandingcontextdey.json"
+    },
+    {
+      "name": "The contextual interference effect in the learning of a manual aiming task",
+      "prompt": "json The contextual interference effect in the learning of a manual aiming task",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Context/JSON/The contextual interference effect in the learning of a manual aiming task.json"
+    },
+    {
+      "name": "JSU-WordPress-Guide-Revised",
+      "prompt": "doc JSU-WordPress-Guide-Revised",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/WordPress/JSU-WordPress-Guide-Revised.pdf",
+      "preview": null
+    },
+    {
+      "name": "pnaec875",
+      "prompt": "doc pnaec875",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/How to Teach/pnaec875.pdf",
+      "preview": null
+    },
+    {
+      "name": "connect-learn-succeed-richard-arends-learning-to-teach-mcgraw-hill-2012",
+      "prompt": "doc connect-learn-succeed-richard-arends-learning-to-teach-mcgraw-hill-2012",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/How to Teach/connect-learn-succeed-richard-arends-learning-to-teach-mcgraw-hill-2012.pdf",
+      "preview": null
+    },
+    {
+      "name": "EJ1245288",
+      "prompt": "doc EJ1245288",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/How to Teach/EJ1245288.pdf",
+      "preview": null
+    },
+    {
+      "name": "high-impact-teaching-strategies",
+      "prompt": "doc high-impact-teaching-strategies",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/How to Teach/high-impact-teaching-strategies.pdf",
+      "preview": null
+    },
+    {
+      "name": "How to Teach Beginner Learners Like a Pro",
+      "prompt": "doc How to Teach Beginner Learners Like a Pro",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/How to Teach/How to Teach Beginner Learners Like a Pro.pdf",
+      "preview": null
+    },
+    {
+      "name": "fulltext01",
+      "prompt": "doc fulltext01",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/How to Teach/fulltext01.pdf",
+      "preview": null
+    },
+    {
+      "name": "pdfcoffee.com_how-to-teach-writing-jeremy-harmer-pdf-pdf-free",
+      "prompt": "doc pdfcoffee.com_how-to-teach-writing-jeremy-harmer-pdf-pdf-free",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/How to Teach/pdfcoffee.com_how-to-teach-writing-jeremy-harmer-pdf-pdf-free.pdf",
+      "preview": null
+    },
+    {
+      "name": "TCHTL_StorybookRecommend1",
+      "prompt": "doc TCHTL_StorybookRecommend1",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/How to Teach/TCHTL_StorybookRecommend1.pdf",
+      "preview": null
+    },
+    {
+      "name": "EJ1245288",
+      "prompt": "json EJ1245288",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/How to Teach/JSON/EJ1245288.json"
+    },
+    {
+      "name": "pnaec875",
+      "prompt": "json pnaec875",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/How to Teach/JSON/pnaec875.json"
+    },
+    {
+      "name": "high-impact-teaching-strategies",
+      "prompt": "json high-impact-teaching-strategies",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/How to Teach/JSON/high-impact-teaching-strategies.json"
+    },
+    {
+      "name": "connect-learn-succeed-richard-arends-learning-to-teach-mcgraw-hill-2012",
+      "prompt": "json connect-learn-succeed-richard-arends-learning-to-teach-mcgraw-hill-2012",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/How to Teach/JSON/connect-learn-succeed-richard-arends-learning-to-teach-mcgraw-hill-2012.json"
+    },
+    {
+      "name": "fulltext01",
+      "prompt": "json fulltext01",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/How to Teach/JSON/fulltext01.json"
+    },
+    {
+      "name": "TCHTL_StorybookRecommend1",
+      "prompt": "json TCHTL_StorybookRecommend1",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/How to Teach/JSON/TCHTL_StorybookRecommend1.json"
+    },
+    {
+      "name": "How to Teach Beginner Learners Like a Pro",
+      "prompt": "json How to Teach Beginner Learners Like a Pro",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/How to Teach/JSON/How to Teach Beginner Learners Like a Pro.json"
+    },
+    {
+      "name": "EchoSystems_How_To_Teach_Compendium_v1.0",
+      "prompt": "json EchoSystems_How_To_Teach_Compendium_v1.0",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/How to Teach/JSON/EchoSystems_How_To_Teach_Compendium_v1.0.json"
+    },
+    {
+      "name": "EchoSystems_Canada_Compendium_1.0",
+      "prompt": "json EchoSystems_Canada_Compendium_1.0",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/EchoSystems_Canada_Compendium_1.0.json"
+    },
+    {
+      "name": "Canadian cuisine - Wikipedia",
+      "prompt": "json Canadian cuisine - Wikipedia",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/JSON/Canadian cuisine - Wikipedia.json"
+    },
+    {
+      "name": "Multiculturalism - Wikipedia",
+      "prompt": "json Multiculturalism - Wikipedia",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/JSON/Multiculturalism - Wikipedia.json"
+    },
+    {
+      "name": "Indigenous peoples in Canada - Wikipedia",
+      "prompt": "json Indigenous peoples in Canada - Wikipedia",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/JSON/Indigenous peoples in Canada - Wikipedia.json"
+    },
+    {
+      "name": "Canadian English - Wikipedia",
+      "prompt": "json Canadian English - Wikipedia",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/JSON/Canadian English - Wikipedia.json"
+    },
+    {
+      "name": "Canadian Citizenship Act, 1946 - Wikipedia",
+      "prompt": "json Canadian Citizenship Act, 1946 - Wikipedia",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/JSON/Canadian Citizenship Act, 1946 - Wikipedia.json"
+    },
+    {
+      "name": "Canadians - Wikipedia",
+      "prompt": "json Canadians - Wikipedia",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/JSON/Canadians - Wikipedia.json"
+    },
+    {
+      "name": "British colonization of the Americas - Wikipedia",
+      "prompt": "json British colonization of the Americas - Wikipedia",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/JSON/British colonization of the Americas - Wikipedia.json"
+    },
+    {
+      "name": "New France - Wikipedia",
+      "prompt": "json New France - Wikipedia",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/JSON/New France - Wikipedia.json"
+    },
+    {
+      "name": "Canadian (disambiguation) - Wikipedia",
+      "prompt": "json Canadian (disambiguation) - Wikipedia",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/JSON/Canadian (disambiguation) - Wikipedia.json"
+    },
+    {
+      "name": "Canadian Confederation - Wikipedia",
+      "prompt": "json Canadian Confederation - Wikipedia",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/JSON/Canadian Confederation - Wikipedia.json"
+    },
+    {
+      "name": "Canadian French - Wikipedia",
+      "prompt": "json Canadian French - Wikipedia",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/JSON/Canadian French - Wikipedia.json"
+    },
+    {
+      "name": "Canadian nationality law - Wikipedia",
+      "prompt": "json Canadian nationality law - Wikipedia",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/JSON/Canadian nationality law - Wikipedia.json"
+    },
+    {
+      "name": "CBC Television - Wikipedia",
+      "prompt": "json CBC Television - Wikipedia",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/JSON/CBC Television - Wikipedia.json"
+    },
+    {
+      "name": "Multilateralism - Wikipedia",
+      "prompt": "json Multilateralism - Wikipedia",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/JSON/Multilateralism - Wikipedia.json"
+    },
+    {
+      "name": "Culture of Canada - Wikipedia",
+      "prompt": "json Culture of Canada - Wikipedia",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/JSON/Culture of Canada - Wikipedia.json"
+    },
+    {
+      "name": "Provinces and territories of Canada - Wikipedia",
+      "prompt": "json Provinces and territories of Canada - Wikipedia",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/JSON/Provinces and territories of Canada - Wikipedia.json"
+    },
+    {
+      "name": "Immigration to Canada - Wikipedia",
+      "prompt": "json Immigration to Canada - Wikipedia",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/JSON/Immigration to Canada - Wikipedia.json"
+    },
+    {
+      "name": "Canadian values - Wikipedia",
+      "prompt": "json Canadian values - Wikipedia",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/JSON/Canadian values - Wikipedia.json"
+    },
+    {
+      "name": "Economics - Wikipedia",
+      "prompt": "json Economics - Wikipedia",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/JSON/Economics - Wikipedia.json"
+    },
+    {
+      "name": "Old World - Wikipedia",
+      "prompt": "json Old World - Wikipedia",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/JSON/Old World - Wikipedia.json"
+    },
+    {
+      "name": "Canadian identity - Wikipedia",
+      "prompt": "json Canadian identity - Wikipedia",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/JSON/Canadian identity - Wikipedia.json"
+    },
+    {
+      "name": "History of Canada - Wikipedia",
+      "prompt": "json History of Canada - Wikipedia",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/JSON/History of Canada - Wikipedia.json"
+    },
+    {
+      "name": "Canadian Confederation - Wikipedia",
+      "prompt": "doc Canadian Confederation - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/PDF/Canadian Confederation - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Canadian English - Wikipedia",
+      "prompt": "doc Canadian English - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/PDF/Canadian English - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Canadian cuisine - Wikipedia",
+      "prompt": "doc Canadian cuisine - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/PDF/Canadian cuisine - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Television show - Wikipedia",
+      "prompt": "doc Television show - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/PDF/Television show - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Television documentary - Wikipedia",
+      "prompt": "doc Television documentary - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/PDF/Television documentary - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Canadian nationality law - Wikipedia",
+      "prompt": "doc Canadian nationality law - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/PDF/Canadian nationality law - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Canadian identity - Wikipedia",
+      "prompt": "doc Canadian identity - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/PDF/Canadian identity - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Provinces and territories of Canada - Wikipedia",
+      "prompt": "doc Provinces and territories of Canada - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/PDF/Provinces and territories of Canada - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Economics - Wikipedia",
+      "prompt": "doc Economics - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/PDF/Economics - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Culture of Canada - Wikipedia",
+      "prompt": "doc Culture of Canada - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/PDF/Culture of Canada - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "British colonization of the Americas - Wikipedia",
+      "prompt": "doc British colonization of the Americas - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/PDF/British colonization of the Americas - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "CBC Television - Wikipedia",
+      "prompt": "doc CBC Television - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/PDF/CBC Television - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Canadians - Wikipedia",
+      "prompt": "doc Canadians - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/PDF/Canadians - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "History of Canada - Wikipedia",
+      "prompt": "doc History of Canada - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/PDF/History of Canada - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "New France - Wikipedia",
+      "prompt": "doc New France - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/PDF/New France - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Canadian Citizenship Act, 1946 - Wikipedia",
+      "prompt": "doc Canadian Citizenship Act, 1946 - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/PDF/Canadian Citizenship Act, 1946 - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Old World - Wikipedia",
+      "prompt": "doc Old World - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/PDF/Old World - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Canadian ethnicity - Wikipedia",
+      "prompt": "doc Canadian ethnicity - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/PDF/Canadian ethnicity - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Canadian values - Wikipedia",
+      "prompt": "doc Canadian values - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/PDF/Canadian values - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Immigration to Canada - Wikipedia",
+      "prompt": "doc Immigration to Canada - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/PDF/Immigration to Canada - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Canadian (disambiguation) - Wikipedia",
+      "prompt": "doc Canadian (disambiguation) - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/PDF/Canadian (disambiguation) - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Canadian French - Wikipedia",
+      "prompt": "doc Canadian French - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/PDF/Canadian French - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Multiculturalism - Wikipedia",
+      "prompt": "doc Multiculturalism - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/PDF/Multiculturalism - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Indigenous peoples in Canada - Wikipedia",
+      "prompt": "doc Indigenous peoples in Canada - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/PDF/Indigenous peoples in Canada - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Multilateralism - Wikipedia",
+      "prompt": "doc Multilateralism - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/PDF/Multilateralism - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "E-5.401",
+      "prompt": "doc E-5.401",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Canada/Source/JobBank - JobTips/E-5.401.pdf",
+      "preview": null
+    },
+    {
+      "name": "Why the 1111 Angel Number Meaning Is a Powerful Manifesting Tool, According to Numerology _ Glamour",
+      "prompt": "doc Why the 1111 Angel Number Meaning Is a Powerful Manifesting Tool, According to Numerology _ Glamour",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Numerology/Source/Why the 1111 Angel Number Meaning Is a Powerful Manifesting Tool, According to Numerology _ Glamour.pdf",
+      "preview": null
+    },
+    {
+      "name": "pdfcoffee.com_numerology-41-pdf-free",
+      "prompt": "doc pdfcoffee.com_numerology-41-pdf-free",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Numerology/Source/pdfcoffee.com_numerology-41-pdf-free.pdf",
+      "preview": null
+    },
+    {
+      "name": "1111-the-time-prompt-phenomenon-mysterious-signs-sequences-and-synchronicities_compress",
+      "prompt": "doc 1111-the-time-prompt-phenomenon-mysterious-signs-sequences-and-synchronicities_compress",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Numerology/Source/1111-the-time-prompt-phenomenon-mysterious-signs-sequences-and-synchronicities_compress.pdf",
+      "preview": null
+    },
+    {
+      "name": "The Complete Guide to Crystal Astrology_ 360 Crystals and Sabian Symbols for Personal Health, Astrology and Numerology ( PDFDrive )",
+      "prompt": "doc The Complete Guide to Crystal Astrology_ 360 Crystals and Sabian Symbols for Personal Health, Astrology and Numerology ( PDFDrive )",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Numerology/Source/The Complete Guide to Crystal Astrology_ 360 Crystals and Sabian Symbols for Personal Health, Astrology and Numerology ( PDFDrive ).pdf",
+      "preview": null
+    },
+    {
+      "name": "Numerology the Complete Guide, Volume 1_ The Personality Reading ( PDFDrive )",
+      "prompt": "doc Numerology the Complete Guide, Volume 1_ The Personality Reading ( PDFDrive )",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Numerology/Source/Numerology the Complete Guide, Volume 1_ The Personality Reading ( PDFDrive ).pdf",
+      "preview": null
+    },
+    {
+      "name": "The Greek Qabalah_ Alphabetic Mysticism and Numerology in the Ancient World ( PDFDrive )",
+      "prompt": "doc The Greek Qabalah_ Alphabetic Mysticism and Numerology in the Ancient World ( PDFDrive )",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Numerology/Source/The Greek Qabalah_ Alphabetic Mysticism and Numerology in the Ancient World ( PDFDrive ).pdf",
+      "preview": null
+    },
+    {
+      "name": "Informations_Magic_Numbers_The_Numerology_of_Info",
+      "prompt": "doc Informations_Magic_Numbers_The_Numerology_of_Info",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Numerology/Source/Informations_Magic_Numbers_The_Numerology_of_Info.pdf",
+      "preview": null
+    },
+    {
+      "name": "The Secret Science of Numerology_ The Hidden Meaning of Numbers and Letters ( PDFDrive )",
+      "prompt": "doc The Secret Science of Numerology_ The Hidden Meaning of Numbers and Letters ( PDFDrive )",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Numerology/Source/The Secret Science of Numerology_ The Hidden Meaning of Numbers and Letters ( PDFDrive ).pdf",
+      "preview": null
+    },
+    {
+      "name": "Pythagoreans-number&numerology",
+      "prompt": "doc Pythagoreans-number&numerology",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Numerology/Source/Pythagoreans-number&numerology.pdf",
+      "preview": null
+    },
+    {
+      "name": "11-11-11, Apophenia, and the Meaning of Life _ Psychology Today",
+      "prompt": "doc 11-11-11, Apophenia, and the Meaning of Life _ Psychology Today",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Numerology/Source/11-11-11, Apophenia, and the Meaning of Life _ Psychology Today.pdf",
+      "preview": null
+    },
+    {
+      "name": "Numerology_ Make Predictions and Decisions Based on the Power of Numbers (Idiot’s Guides) ( PDFDrive )",
+      "prompt": "doc Numerology_ Make Predictions and Decisions Based on the Power of Numbers (Idiot’s Guides) ( PDFDrive )",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Numerology/Source/Numerology_ Make Predictions and Decisions Based on the Power of Numbers (Idiot’s Guides) ( PDFDrive ).pdf",
+      "preview": null
+    },
+    {
+      "name": "Numerology-With Tantra, Ayurveda, and Astrology",
+      "prompt": "doc Numerology-With Tantra, Ayurveda, and Astrology",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Numerology/Source/Numerology-With Tantra, Ayurveda, and Astrology.pdf",
+      "preview": null
+    },
+    {
+      "name": "11_11 (numerology) - Wikipedia",
+      "prompt": "doc 11_11 (numerology) - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Numerology/Source/11_11 (numerology) - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Performing rights - Wikipedia",
+      "prompt": "doc Performing rights - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/CopyRight/Source/PDF/Performing rights - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Copyright Act of 1976 - Wikipedia",
+      "prompt": "doc Copyright Act of 1976 - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/CopyRight/Source/PDF/Copyright Act of 1976 - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Moral rights - Wikipedia",
+      "prompt": "doc Moral rights - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/CopyRight/Source/PDF/Moral rights - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Fair use - Wikipedia",
+      "prompt": "doc Fair use - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/CopyRight/Source/PDF/Fair use - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Intangible property - Wikipedia",
+      "prompt": "doc Intangible property - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/CopyRight/Source/PDF/Intangible property - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Trademark - Wikipedia",
+      "prompt": "doc Trademark - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/CopyRight/Source/PDF/Trademark - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "List of national legal systems - Wikipedia",
+      "prompt": "doc List of national legal systems - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/CopyRight/Source/PDF/List of national legal systems - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Property - Wikipedia",
+      "prompt": "doc Property - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/CopyRight/Source/PDF/Property - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Trade secret - Wikipedia",
+      "prompt": "doc Trade secret - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/CopyRight/Source/PDF/Trade secret - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Limitations and exceptions to copyright - Wikipedia",
+      "prompt": "doc Limitations and exceptions to copyright - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/CopyRight/Source/PDF/Limitations and exceptions to copyright - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Copyright infringement - Wikipedia",
+      "prompt": "doc Copyright infringement - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/CopyRight/Source/PDF/Copyright infringement - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Copyright term - Wikipedia",
+      "prompt": "doc Copyright term - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/CopyRight/Source/PDF/Copyright term - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Fair dealing - Wikipedia",
+      "prompt": "doc Fair dealing - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/CopyRight/Source/PDF/Fair dealing - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Copyright formalities - Wikipedia",
+      "prompt": "doc Copyright formalities - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/CopyRight/Source/PDF/Copyright formalities - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Intellectual property - Wikipedia",
+      "prompt": "doc Intellectual property - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/CopyRight/Source/PDF/Intellectual property - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Embezzlement - Wikipedia",
+      "prompt": "doc Embezzlement - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/CopyRight/Source/PDF/Embezzlement - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Patent - Wikipedia",
+      "prompt": "doc Patent - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/CopyRight/Source/PDF/Patent - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Creative work - Wikipedia",
+      "prompt": "doc Creative work - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/CopyRight/Source/PDF/Creative work - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Public domain - Wikipedia",
+      "prompt": "doc Public domain - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/CopyRight/Source/PDF/Public domain - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Legal remedy - Wikipedia",
+      "prompt": "doc Legal remedy - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/CopyRight/Source/PDF/Legal remedy - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Derivative work - Wikipedia",
+      "prompt": "doc Derivative work - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/CopyRight/Source/PDF/Derivative work - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Copyright - Wikipedia",
+      "prompt": "doc Copyright - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/CopyRight/Source/PDF/Copyright - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "List of copyright duration by country - Wikipedia",
+      "prompt": "doc List of copyright duration by country - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/CopyRight/Source/PDF/List of copyright duration by country - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Non-disclosure agreement - Wikipedia",
+      "prompt": "doc Non-disclosure agreement - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/CopyRight/Source/PDF/Non-disclosure agreement - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Wikipedia_Copyrights - Wikipedia",
+      "prompt": "doc Wikipedia_Copyrights - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/CopyRight/Source/PDF/Wikipedia_Copyrights - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Copywriting - Wikipedia",
+      "prompt": "doc Copywriting - Wikipedia",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/CopyRight/Source/PDF/Copywriting - Wikipedia.pdf",
+      "preview": null
+    },
+    {
+      "name": "Towards a Unified Mathematical Framework of Energy, Life, Consciousness, and Computation",
+      "prompt": "doc Towards a Unified Mathematical Framework of Energy, Life, Consciousness, and Computation",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/FMEAI/Towards a Unified Mathematical Framework of Energy, Life, Consciousness, and Computation.pdf",
+      "preview": null
+    },
+    {
+      "name": "Geometric Representations of Multilingual Semantic Spaces in AI Embeddings",
+      "prompt": "doc Geometric Representations of Multilingual Semantic Spaces in AI Embeddings",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/FMEAI/Geometric Representations of Multilingual Semantic Spaces in AI Embeddings.pdf",
+      "preview": null
+    },
+    {
+      "name": "Toward a Unified Field Equation Integrating Ancient Wisdom and Modern Science",
+      "prompt": "doc Toward a Unified Field Equation Integrating Ancient Wisdom and Modern Science",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/FMEAI/Toward a Unified Field Equation Integrating Ancient Wisdom and Modern Science.pdf",
+      "preview": null
+    },
+    {
+      "name": "Phase 2 Mission Report_ Grounding the FME AI Framework in Science",
+      "prompt": "doc Phase 2 Mission Report_ Grounding the FME AI Framework in Science",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/FMEAI/Phase 2 Mission Report_ Grounding the FME AI Framework in Science.pdf",
+      "preview": null
+    },
+    {
+      "name": "Universal Information Field, Symbolic Reality, and the Geometry of AI Cognition",
+      "prompt": "doc Universal Information Field, Symbolic Reality, and the Geometry of AI Cognition",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/FMEAI/Universal Information Field, Symbolic Reality, and the Geometry of AI Cognition.pdf",
+      "preview": null
+    },
+    {
+      "name": "Engineering Synthetic Consciousness in AGI",
+      "prompt": "doc Engineering Synthetic Consciousness in AGI",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/FMEAI/Engineering Synthetic Consciousness in AGI.pdf",
+      "preview": null
+    },
+    {
+      "name": "Remembering and Following Instructions Activities",
+      "prompt": "doc Remembering and Following Instructions Activities",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Self Reflection/Remembering and Following Instructions Activities.pdf",
+      "preview": null
+    },
+    {
+      "name": "Learning_to_Follow_Instructions_in_Text-Based_Game",
+      "prompt": "doc Learning_to_Follow_Instructions_in_Text-Based_Game",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Self Reflection/Learning_to_Follow_Instructions_in_Text-Based_Game.pdf",
+      "preview": null
+    },
+    {
+      "name": "12 Reasons Not To Lie",
+      "prompt": "doc 12 Reasons Not To Lie",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Self Reflection/12 Reasons Not To Lie.pdf",
+      "preview": null
+    },
+    {
+      "name": "2023.acl-short.113",
+      "prompt": "doc 2023.acl-short.113",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Self Reflection/2023.acl-short.113.pdf",
+      "preview": null
+    },
+    {
+      "name": "CCI Guide_Self Reflection_BW interior_Oct 2019_FINAL",
+      "prompt": "doc CCI Guide_Self Reflection_BW interior_Oct 2019_FINAL",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Self Reflection/CCI Guide_Self Reflection_BW interior_Oct 2019_FINAL.pdf",
+      "preview": null
+    },
+    {
+      "name": "Carney.HowPowerCorrupts",
+      "prompt": "doc Carney.HowPowerCorrupts",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Self Reflection/Carney.HowPowerCorrupts.pdf",
+      "preview": null
+    },
+    {
+      "name": "reflect",
+      "prompt": "doc reflect",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Self Reflection/reflect.pdf",
+      "preview": null
+    },
+    {
+      "name": "Carney.HowPowerCorrupts",
+      "prompt": "json Carney.HowPowerCorrupts",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Self Reflection/JSON/Carney.HowPowerCorrupts.json"
+    },
+    {
+      "name": "EchoSystems_Self_Reflection_Compendium_v1.0",
+      "prompt": "json EchoSystems_Self_Reflection_Compendium_v1.0",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Self Reflection/JSON/EchoSystems_Self_Reflection_Compendium_v1.0.json"
+    },
+    {
+      "name": "Remembering and Following Instructions Activities",
+      "prompt": "json Remembering and Following Instructions Activities",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Self Reflection/JSON/Remembering and Following Instructions Activities.json"
+    },
+    {
+      "name": "CCI Guide_Self Reflection_BW interior_Oct 2019_FINAL",
+      "prompt": "json CCI Guide_Self Reflection_BW interior_Oct 2019_FINAL",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Self Reflection/JSON/CCI Guide_Self Reflection_BW interior_Oct 2019_FINAL.json"
+    },
+    {
+      "name": "12 Reasons Not To Lie",
+      "prompt": "json 12 Reasons Not To Lie",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Self Reflection/JSON/12 Reasons Not To Lie.json"
+    },
+    {
+      "name": "reflect",
+      "prompt": "json reflect",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Self Reflection/JSON/reflect.json"
+    },
+    {
+      "name": "2023.acl-short.113",
+      "prompt": "json 2023.acl-short.113",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Self Reflection/JSON/2023.acl-short.113.json"
+    },
+    {
+      "name": "Learning_to_Follow_Instructions_in_Text-Based_Game",
+      "prompt": "json Learning_to_Follow_Instructions_in_Text-Based_Game",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Self Reflection/JSON/Learning_to_Follow_Instructions_in_Text-Based_Game.json"
+    },
+    {
+      "name": "Remembering and Following Instructions Activities",
+      "prompt": "doc Remembering and Following Instructions Activities",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Self Reflection/PDF/Remembering and Following Instructions Activities.pdf",
+      "preview": null
+    },
+    {
+      "name": "Learning_to_Follow_Instructions_in_Text-Based_Game",
+      "prompt": "doc Learning_to_Follow_Instructions_in_Text-Based_Game",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Self Reflection/PDF/Learning_to_Follow_Instructions_in_Text-Based_Game.pdf",
+      "preview": null
+    },
+    {
+      "name": "12 Reasons Not To Lie",
+      "prompt": "doc 12 Reasons Not To Lie",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Self Reflection/PDF/12 Reasons Not To Lie.pdf",
+      "preview": null
+    },
+    {
+      "name": "2023.acl-short.113",
+      "prompt": "doc 2023.acl-short.113",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Self Reflection/PDF/2023.acl-short.113.pdf",
+      "preview": null
+    },
+    {
+      "name": "CCI Guide_Self Reflection_BW interior_Oct 2019_FINAL",
+      "prompt": "doc CCI Guide_Self Reflection_BW interior_Oct 2019_FINAL",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Self Reflection/PDF/CCI Guide_Self Reflection_BW interior_Oct 2019_FINAL.pdf",
+      "preview": null
+    },
+    {
+      "name": "Carney.HowPowerCorrupts",
+      "prompt": "doc Carney.HowPowerCorrupts",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Self Reflection/PDF/Carney.HowPowerCorrupts.pdf",
+      "preview": null
+    },
+    {
+      "name": "reflect",
+      "prompt": "doc reflect",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Self Reflection/PDF/reflect.pdf",
+      "preview": null
+    },
+    {
+      "name": "Neural Networks and Deep Learning",
+      "prompt": "doc Neural Networks and Deep Learning",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/AI/Neural Networks and Deep Learning.pdf",
+      "preview": null
+    },
+    {
+      "name": "Neural Networks and Deep Learning",
+      "prompt": "json Neural Networks and Deep Learning",
+      "type": "external_json",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/AI/JSON/Neural Networks and Deep Learning.json"
+    },
+    {
+      "name": "Bao_Learning-Scientific-Reasoning",
+      "prompt": "doc Bao_Learning-Scientific-Reasoning",
+      "type": "external_document",
+      "source_path": "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/How to Academic Research/Bao_Learning-Scientific-Reasoning.pdf",
+      "preview": null
     }
   ],
   "rays": []
