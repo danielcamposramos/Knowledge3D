@@ -2,9 +2,9 @@
   "latest": {
     "consistency": {
       "trainer": "consistency",
-      "epoch": 50,
+      "epoch": 2,
       "avg_loss": 0.0,
-      "ts": 1759337143.4314528
+      "ts": 1759368736.8386896
     },
     "shapes": {
       "trainer": "shapes",
@@ -14,10 +14,9 @@
     },
     "multi": {
       "trainer": "multi",
-      "epoch": 48,
-      "numeric_trained": 526,
-      "rpn_trained": 330,
-      "ts": 1759359198.7003126
+      "epoch": 50,
+      "math_mini_mean_acc": 0.0,
+      "ts": 1759359626.002001
     }
   }
 }

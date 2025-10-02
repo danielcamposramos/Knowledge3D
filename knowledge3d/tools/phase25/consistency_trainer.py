@@ -88,9 +88,12 @@ def _discover_media(roots: List[Path], exts: Tuple[str, ...], limit: int) -> Lis
 
 def run(epochs: int, limit: int, lr: float) -> None:
     fh = AdaptedFusedHead()
-    # Adjust LR for projection group
+    # Adjust LR for projection group (robustly match any projection parameter)
+    proj_params = list(fh.projection.parameters())
+    proj_ids = {id(p) for p in proj_params}
     for g in fh._opt.param_groups:
-        if any(p is next(fh.projection.parameters()) for p in g.get('params', [])):
+        params = g.get('params', [])
+        if any(id(p) in proj_ids for p in params):
             g['lr'] = float(lr)
 
     pairs = load_image_pairs(limit)

@@ -2984,5 +2984,30 @@
     "numeric_trained": 526,
     "rpn_trained": 330,
     "ts": 1759359395.5945342
+  },
+  {
+    "trainer": "multi",
+    "epoch": 50,
+    "numeric_trained": 526,
+    "rpn_trained": 330,
+    "ts": 1759359596.5736568
+  },
+  {
+    "trainer": "multi",
+    "epoch": 50,
+    "math_mini_mean_acc": 0.0,
+    "ts": 1759359626.002001
+  },
+  {
+    "trainer": "consistency",
+    "epoch": 1,
+    "avg_loss": 0.0,
+    "ts": 1759368426.1245036
+  },
+  {
+    "trainer": "consistency",
+    "epoch": 2,
+    "avg_loss": 0.0,
+    "ts": 1759368736.8386896
   }
 ]

@@ -1,5 +1,5 @@
 # Training Progress Summary
 
-- Consistency: epoch 50 — avg_loss=0.0
+- Consistency: epoch 2 — avg_loss=0.0
 - Shapes: epoch 100 — avg_loss=0.0
-- Multi-trainer: epoch 48 — numeric=526 rpn=330
+- Multi-trainer: epoch 50 — numeric=None rpn=None
