@@ -88,6 +88,18 @@ def _discover_media(roots: List[Path], exts: Tuple[str, ...], limit: int) -> Lis
 
 def run(epochs: int, limit: int, lr: float) -> None:
     fh = AdaptedFusedHead()
+    # Optional: reset projection weights if previous checkpoints contained NaNs
+    if str(os.environ.get('K3D_RESET_PROJECTION', '0')).lower() in {'1','true','yes'}:
+        try:
+            with torch.no_grad():
+                for name, p in fh.projection.named_parameters():
+                    if p.dim() >= 2:
+                        torch.nn.init.xavier_uniform_(p)
+                    else:
+                        p.zero_()
+            print("🔧 Reset projection weights (K3D_RESET_PROJECTION=1)")
+        except Exception as e:
+            print(f"⚠️  Failed to reset projection: {e}")
     # Adjust LR for projection group (robustly match any projection parameter)
     proj_params = list(fh.projection.parameters())
     proj_ids = {id(p) for p in proj_params}
