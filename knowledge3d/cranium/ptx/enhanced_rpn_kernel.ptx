@@ -1,0 +1,55 @@
+.version 7.5
+.target sm_70
+.address_size 64
+
+// Enhanced Modular RPN Geometric Kernel (WIP integration)
+// -----------------------------------------------------------------------------
+// This file captures the extended kernel proposed jointly with Claude/Qwen.
+// The implementation is retained here as a PTX source of record so the
+// Cranium Core compiler work can target it while the runtime loader is updated.
+//
+// NOTE: The current `ModularRPNEngine` still compiles the legacy inline CUDA
+// source. The migration plan is:
+//   1. finalise the DSL→opcode compiler in Cranium Core,
+//   2. teach `nvrtc_ptx_loader` to load this PTX blob directly,
+//   3. expand host-side buffers to provide matrix literals and sync flags.
+//
+// Until those steps land we keep a minimal stub entry to satisfy NVRTC when
+// unit tests enumerate kernels.
+// -----------------------------------------------------------------------------
+
+.visible .entry enhanced_rpn_geometric_kernel(
+    .param .u32 param_instance_id,
+    .param .u64 param_op_codes,
+    .param .u64 param_scalars,
+    .param .u64 param_vectors,
+    .param .u64 param_matrices,
+    .param .u64 param_state,
+    .param .u64 param_sync_flags,
+    .param .u32 param_token_count
+)
+{
+    // TODO: wire real kernel body once host runtime migrates. For now just
+    // store pristine state to avoid crashes if accidentally launched.
+    .reg .b32 %r<4>;
+    .reg .b64 %rd<6>;
+
+    ld.param.u64 %rd0, [param_state];
+    ld.param.u32 %r0, [param_instance_id];
+    mov.u32 %r1, 0;
+    st.global.u32 [%rd0], %r1;
+    ret;
+}
+
+/*
+----- BEGIN FULL KERNEL SPEC REFERENCE -----
+
+The following block preserves the full PTX body shared by Claude (edited for
+readability). It is commented out until the runtime is ready to assemble it.
+
+// Scale by 1/sqrt(d_k)
+    sqrt.rn.f32 %f410, %f400;
+... (content truncated for brevity; see docs/ptx/enhanced_rpn_kernel.md)
+
+----- END FULL KERNEL SPEC REFERENCE -----
+*/

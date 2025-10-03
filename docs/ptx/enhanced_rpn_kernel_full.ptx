@@ -1,0 +1,33 @@
+// Claude / Qwen-Max extended PTX kernel reference snapshot (2025-10-02)
+// -----------------------------------------------------------------------------
+// This file mirrors the raw snippet shared during the design review. It is
+// intentionally not assembled; the authoritative specification lives in
+// docs/ptx/enhanced_rpn_kernel.md and the implementation will migrate into
+// knowledge3d/cranium/ptx/enhanced_rpn_kernel.ptx once the runtime plumbing is
+// complete.
+
+// Scale by 1/sqrt(d_k)
+    sqrt.rn.f32 %f410, %f400;
+    div.full.f32 %f0, %f409, %f410;
+    mov.f32 %f1, 0f00000000;
+    mov.f32 %f2, 0f00000000;
+    mov.f32 %f3, 0f00000000;
+    bra push_value;
+
+op_qkv_split:
+    // Split embedding into Q, K, V (each 1/3 of input)
+    // For simplicity, assumes float4 input splits into scalar components
+    setp.eq.u32 %p_u67, %r11, 0;
+    @%p_u67 bra error_underflow;
+    sub.u32 %r659, %r11, 1;
+    add.u32 %r660, %r10, %r659;
+    and.b32 %r661, %r660, %r101;
+    mul.wide.u32 %rd626, %r661, %r102;
+    add.u64 %rd627, %rd12, %rd626;
+    ld.global.v4.f32 {%f411,%f412,%f413,%f414}, [%rd627];
+    mov.u32 %r11, %r659;
+    setp.eq.u32 %p_reset90, %r11, 0;
+    @%p_reset90 mov.u32 %r10, 0;
+    // Push Q (just x component for demo)
+    mov.f32 %f0, %f411;
+... (truncated)
