@@ -6678,6 +6678,66 @@
       "name": "text_granite3p3_8b_v1",
       "prompt": "text text_granite3p3_8b_v1",
       "type": "external_text"
+    },
+    {
+      "path": "/text/text_climate_v1.glb",
+      "name": "text_climate_v1",
+      "prompt": "text text_climate_v1",
+      "type": "external_text"
+    },
+    {
+      "path": "/text/text_finance_v1.glb",
+      "name": "text_finance_v1",
+      "prompt": "text text_finance_v1",
+      "type": "external_text"
+    },
+    {
+      "path": "/text/text_law_v1.glb",
+      "name": "text_law_v1",
+      "prompt": "text text_law_v1",
+      "type": "external_text"
+    },
+    {
+      "path": "/text/text_linguistics_v1.glb",
+      "name": "text_linguistics_v1",
+      "prompt": "text text_linguistics_v1",
+      "type": "external_text"
+    },
+    {
+      "path": "/text/text_medicine_v1.glb",
+      "name": "text_medicine_v1",
+      "prompt": "text text_medicine_v1",
+      "type": "external_text"
+    },
+    {
+      "path": "/text/text_networks_v1.glb",
+      "name": "text_networks_v1",
+      "prompt": "text text_networks_v1",
+      "type": "external_text"
+    },
+    {
+      "path": "/text/text_philosophy_v1.glb",
+      "name": "text_philosophy_v1",
+      "prompt": "text text_philosophy_v1",
+      "type": "external_text"
+    },
+    {
+      "path": "/text/text_psychology_v1.glb",
+      "name": "text_psychology_v1",
+      "prompt": "text text_psychology_v1",
+      "type": "external_text"
+    },
+    {
+      "path": "/text/text_robotics_v1.glb",
+      "name": "text_robotics_v1",
+      "prompt": "text text_robotics_v1",
+      "type": "external_text"
+    },
+    {
+      "path": "/text/text_statistics_v1.glb",
+      "name": "text_statistics_v1",
+      "prompt": "text text_statistics_v1",
+      "type": "external_text"
     }
   ],
   "rays": []

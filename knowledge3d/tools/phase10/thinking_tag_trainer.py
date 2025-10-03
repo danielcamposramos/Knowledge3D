@@ -219,8 +219,14 @@ def main():  # pragma: no cover
     ap.add_argument('--output_model', default=None)
     ap.add_argument('--output_tags', default=None)
     ap.add_argument('--mode', default='rlwhf', choices=['supervised', 'rlwhf'])
+    ap.add_argument('--extra-model', action='append', default=None, help='Additional Ollama models for thinking tags (default adds qwen3:8b)')
     args = ap.parse_args()
-    bp = BookProcessor(args.books, ollama_model=args.model)
+    models = [args.model]
+    extras = args.extra_model if args.extra_model else ['qwen3:8b']
+    for m in extras:
+        if m and m not in models:
+            models.append(m)
+    bp = BookProcessor(args.books, ollama_model=args.model, ollama_models=models)
     tr = ThinkingTagTrainer(bp)
     if args.mode == 'rlwhf':
         tr.train_with_teacher_feedback(

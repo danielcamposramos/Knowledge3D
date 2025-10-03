@@ -15,17 +15,14 @@ import base64
 import json
 from pathlib import Path
 from typing import Iterable, List
-import subprocess
+
+import requests  # type: ignore
 
 
-def iter_images(root: Path, limit: int) -> Iterable[Path]:
-    n = 0
-    for p in root.rglob("*.png"):
+def iter_images(root: Path) -> Iterable[Path]:
+    for p in sorted(root.rglob("*.png")):
         if p.is_file():
             yield p
-            n += 1
-            if limit and n >= limit:
-                return
 
 
 def encode_b64(path: Path) -> str:
@@ -42,18 +39,14 @@ def ollama_generate_vision(url: str, model: str, prompt: str, b64: str, timeout:
         "keep_alive": "10m",
     }
     try:
-        r = subprocess.run(
-            ["curl", "-s", f"{url.rstrip('/')}/api/generate", "-d", json.dumps(payload)],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
+        resp = requests.post(
+            f"{url.rstrip('/')}/api/generate",
+            json=payload,
             timeout=timeout,
         )
-        if r.returncode != 0:
-            return ""
-        obj = json.loads(r.stdout)
-        return (obj.get("response") or "").strip()
+        resp.raise_for_status()
+        obj = resp.json()
+        return str(obj.get("response", "")).strip()
     except Exception:
         return ""
 
@@ -72,30 +65,56 @@ def main() -> None:  # pragma: no cover
     model = str(args.model)
     root = Path(args.images_root)
     out = Path(args.out); out.parent.mkdir(parents=True, exist_ok=True)
+    seen: set[str] = set()
+    if out.exists():
+        try:
+            for line in out.read_text(encoding="utf-8").splitlines():
+                if not line.strip():
+                    continue
+                try:
+                    obj = json.loads(line)
+                except Exception:
+                    continue
+                img = obj.get("image")
+                if isinstance(img, str):
+                    seen.add(img)
+        except Exception:
+            pass
     # Warmup: ensure the model tag exists and keep it alive
     try:
-        subprocess.run(["curl", "-s", f"{url.rstrip('/')}/api/tags"], timeout=10)
-        subprocess.run(["curl", "-s", f"{url.rstrip('/')}/api/generate", "-d", json.dumps({
-            "model": model, "prompt": "warmup", "stream": False, "keep_alive": "30m"
-        })], timeout=min(max(int(args.timeout), 60), 600))
+        requests.get(f"{url.rstrip('/')}/api/tags", timeout=10)
+        requests.post(
+            f"{url.rstrip('/')}/api/generate",
+            json={"model": model, "prompt": "warmup", "stream": False, "keep_alive": "30m"},
+            timeout=min(max(int(args.timeout), 60), 600),
+        )
     except Exception:
         pass
 
-    with out.open("w", encoding="utf-8") as f:
-        for i, p in enumerate(iter_images(root, int(args.limit)), 1):
+    with out.open("a", encoding="utf-8") as f:
+        written = 0
+        for p in iter_images(root):
+            if str(p) in seen:
+                continue
             b64 = encode_b64(p)
             resp = ollama_generate_vision(url, model, "Provide a short, factual caption.", b64, timeout=int(args.timeout))
             if not resp:
                 continue
             f.write(json.dumps({"image": str(p), "caption": resp}, ensure_ascii=False) + "\n")
+            seen.add(str(p))
+            written += 1
             # Periodically unload to respect context/memory limits
-            if args.cycle and i % int(args.cycle) == 0:
+            if args.cycle and written % int(args.cycle) == 0:
                 try:
-                    subprocess.run(["curl", "-s", f"{url.rstrip('/')}/api/generate", "-d", json.dumps({
-                        "model": model, "prompt": "unload", "stream": False, "keep_alive": "0s"
-                    })], timeout=30)
+                    requests.post(
+                        f"{url.rstrip('/')}/api/generate",
+                        json={"model": model, "prompt": "unload", "stream": False, "keep_alive": "0s"},
+                        timeout=30,
+                    )
                 except Exception:
                     pass
+            if args.limit and written >= int(args.limit):
+                break
     print(str(out))
 
 

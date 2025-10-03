@@ -16,13 +16,18 @@ class BookProcessor:
         self,
         book_dir: str,
         ollama_model: str = "exaone3.5:latest",
+        *,
+        ollama_models: Optional[List[str]] = None,
         max_chars: int = 8000,
         per_book_timeout: int = 90,
         first_call_timeout: int = 180,
         system_prompt: Optional[str] = None,
     ):
         self.book_dir = Path(book_dir)
-        self.ollama_model = ollama_model
+        models = list(ollama_models) if ollama_models else [ollama_model]
+        self.ollama_models = [m for m in models if m]
+        if not self.ollama_models:
+            raise ValueError("At least one Ollama model must be provided")
         self.max_chars = int(max_chars)
         self.per_book_timeout = int(per_book_timeout)
         self.first_call_timeout = int(first_call_timeout)
@@ -101,8 +106,9 @@ class BookProcessor:
     def _ollama_generate(self, prompt: str, model: Optional[str] = None, timeout: Optional[int] = None) -> str:
         """Call Ollama HTTP API with keep_alive=0 to ensure unload after usage."""
         url = f"{OLLAMA_HOST}/api/generate"
+        chosen_model = str(model or self.ollama_models[0])
         payload = {
-            "model": str(model or self.ollama_model),
+            "model": chosen_model,
             "prompt": prompt,
             "stream": False,
             # Unload immediately to keep memory/context clean
@@ -132,13 +138,16 @@ class BookProcessor:
             f"Text:\n{content}\n\n"
             "Thinking Tags:"
         )
-        try:
-            out = self._ollama_generate(prompt)
-        except Exception as e:
-            print(f"❌ Ollama error: {e}")
+        tags: List[str] = []
+        for idx, model in enumerate(self.ollama_models):
+            try:
+                out = self._ollama_generate(prompt, model=model)
+            except Exception as e:
+                print(f"❌ Ollama error ({model}): {e}")
+                continue
+            tags.extend([t.strip() for t in out.split(',') if t.strip()])
+        if not tags:
             return []
-        # Parse tags
-        tags = [t.strip() for t in out.split(',') if t.strip()]
         # De-duplicate and normalize
         uniq: List[str] = []
         seen = set()
@@ -155,10 +164,16 @@ def main():  # pragma: no cover
     ap = argparse.ArgumentParser()
     ap.add_argument('--books', default='/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/How to think/JSON')
     ap.add_argument('--model', default='exaone3.5:latest')
+    ap.add_argument('--extra-model', action='append', default=None, help='Additional Ollama models to alternate for tag distillation')
     ap.add_argument('--limit', type=int, default=None)
     ap.add_argument('--output', default=None, help='Optional output JSON path (default viewer/public/books/thinking_tags.json)')
     args = ap.parse_args()
-    bp = BookProcessor(args.books, ollama_model=args.model)
+    models = [args.model]
+    extras = args.extra_model if args.extra_model else ['qwen3:8b']
+    for m in extras:
+        if m and m not in models:
+            models.append(m)
+    bp = BookProcessor(args.books, ollama_model=args.model, ollama_models=models)
     tags = bp.process_books(limit=args.limit)
     if args.output:
         out_path = Path(args.output)

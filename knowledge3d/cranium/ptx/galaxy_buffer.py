@@ -30,8 +30,11 @@ def _attribute_index(attributes: Union[Dict[str, int], object], key: str) -> Opt
 
 try:
     from cuda import cuda  # type: ignore
-except Exception as exc:  # pragma: no cover
-    raise RuntimeError("cuda-python bindings unavailable: install cuda-python in k3d-cranium env") from exc
+except Exception:
+    try:
+        from cuda.bindings import driver as cuda  # type: ignore
+    except Exception as exc:  # pragma: no cover
+        raise RuntimeError("cuda-python bindings unavailable: install cuda-python in k3d-cranium env") from exc
 
 
 @dataclass
@@ -55,6 +58,7 @@ class MeshRecord:
 @dataclass
 class GalaxyGPUMemory:
     ctx: int
+    device: int
     vertices: DeviceBuffer
     indices: DeviceBuffer
     embeddings: DeviceBuffer
@@ -93,22 +97,25 @@ class GalaxyGPUMemory:
             pass
         try:
             if self.ctx:
-                cuda.cuCtxDestroy(self.ctx)
+                cuda.cuDevicePrimaryCtxRelease(self.device)
         except Exception:
             pass
 
 
-def _ensure_context() -> int:
+def _ensure_context() -> Tuple[int, int]:
     err, = cuda.cuInit(0)
     if err != cuda.CUresult.CUDA_SUCCESS:
         raise RuntimeError(f"cuInit failed: {err}")
     err, dev = cuda.cuDeviceGet(0)
     if err != cuda.CUresult.CUDA_SUCCESS:
         raise RuntimeError(f"cuDeviceGet failed: {err}")
-    err, ctx = cuda.cuCtxCreate(0, dev)
+    err, ctx = cuda.cuDevicePrimaryCtxRetain(dev)
     if err != cuda.CUresult.CUDA_SUCCESS:
-        raise RuntimeError(f"cuCtxCreate failed: {err}")
-    return ctx
+        raise RuntimeError(f"cuDevicePrimaryCtxRetain failed: {err}")
+    err, = cuda.cuCtxSetCurrent(ctx)
+    if err != cuda.CUresult.CUDA_SUCCESS:
+        raise RuntimeError(f"cuCtxSetCurrent failed: {err}")
+    return ctx, dev
 
 
 def _alloc_and_upload(array: np.ndarray) -> DeviceBuffer:
@@ -259,7 +266,7 @@ def load_meshes_from_glb(
             if embeddings_array.size:
                 break
 
-    ctx = _ensure_context()
+    ctx, device = _ensure_context()
     vertices_dev = _alloc_and_upload(vertices_array)
     indices_dev = _alloc_and_upload(indices_array)
     embeddings_dev = _alloc_and_upload(embeddings_array)
@@ -267,6 +274,7 @@ def load_meshes_from_glb(
 
     return GalaxyGPUMemory(
         ctx=ctx,
+        device=device,
         vertices=vertices_dev,
         indices=indices_dev,
         embeddings=embeddings_dev,
@@ -421,6 +429,12 @@ def release_galaxy_memory(galaxy_memory: GalaxyGPUMemory) -> None:
     """Free GPU resources associated with a GalaxyGPUMemory instance."""
 
     try:
+        if galaxy_memory.ctx:
+            cuda.cuCtxSetCurrent(galaxy_memory.ctx)
+    except Exception:
+        pass
+
+    try:
         if galaxy_memory.vertices.ptr:
             cuda.cuMemFree(galaxy_memory.vertices.ptr)
     finally:
@@ -445,5 +459,7 @@ def release_galaxy_memory(galaxy_memory: GalaxyGPUMemory) -> None:
         galaxy_memory.normals = DeviceBuffer(ptr=0, size=0)
 
     if galaxy_memory.ctx:
-        cuda.cuCtxDestroy(galaxy_memory.ctx)
-        galaxy_memory.ctx = 0
+        try:
+            cuda.cuDevicePrimaryCtxRelease(galaxy_memory.device)
+        finally:
+            galaxy_memory.ctx = 0

@@ -29,8 +29,12 @@ class NVRTCPTXLoader:
     ) -> None:
         try:
             from cuda import cuda, nvrtc  # type: ignore
-        except Exception as exc:  # pragma: no cover
-            raise RuntimeError(f"cuda-python bindings unavailable: {exc}")
+        except Exception:
+            try:
+                from cuda.bindings import driver as cuda  # type: ignore
+                from cuda.bindings import nvrtc  # type: ignore
+            except Exception as exc:  # pragma: no cover
+                raise RuntimeError(f"cuda-python bindings unavailable: {exc}")
 
         self._cuda = cuda
         self._nvrtc = nvrtc
@@ -54,10 +58,13 @@ class NVRTCPTXLoader:
         if err != cuda.CUresult.CUDA_SUCCESS:
             raise RuntimeError(f"cuDeviceGet failed: {err}")
 
-        err, ctx = cuda.cuCtxCreate(0, dev)
+        err, ctx = cuda.cuDevicePrimaryCtxRetain(dev)
         if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuCtxCreate failed: {err}")
+            raise RuntimeError(f"cuDevicePrimaryCtxRetain failed: {err}")
         self._ctx = ctx
+        err, = cuda.cuCtxSetCurrent(ctx)
+        if err != cuda.CUresult.CUDA_SUCCESS:
+            raise RuntimeError(f"cuCtxSetCurrent failed: {err}")
         self._device = dev
 
         module = None

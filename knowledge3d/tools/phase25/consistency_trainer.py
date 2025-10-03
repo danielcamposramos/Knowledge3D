@@ -91,12 +91,7 @@ def run(epochs: int, limit: int, lr: float) -> None:
     # Optional: reset projection weights if previous checkpoints contained NaNs
     if str(os.environ.get('K3D_RESET_PROJECTION', '0')).lower() in {'1','true','yes'}:
         try:
-            with torch.no_grad():
-                for name, p in fh.projection.named_parameters():
-                    if p.dim() >= 2:
-                        torch.nn.init.xavier_uniform_(p)
-                    else:
-                        p.zero_()
+            fh.reset_projection()
             print("🔧 Reset projection weights (K3D_RESET_PROJECTION=1)")
         except Exception as e:
             print(f"⚠️  Failed to reset projection: {e}")

@@ -5,7 +5,11 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np  # type: ignore
-from cuda import cuda, nvrtc  # type: ignore
+try:
+    from cuda import cuda, nvrtc  # type: ignore
+except Exception:  # pragma: no cover
+    from cuda.bindings import driver as cuda  # type: ignore
+    from cuda.bindings import nvrtc  # type: ignore
 
 from knowledge3d.cranium.ptx.galaxy_buffer import (
     GalaxyGPUMemory,

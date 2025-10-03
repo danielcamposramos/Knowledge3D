@@ -17,13 +17,17 @@ class GalaxyMemoryUpdater:
         self._kernel = None
         self._module = None
         self._ctx = None
+        self._device: Optional[int] = None
         self._load_kernel()
 
     def _load_kernel(self) -> None:
         try:
             from cuda import cuda  # type: ignore
         except Exception:
-            return
+            try:
+                from cuda.bindings import driver as cuda  # type: ignore
+            except Exception:
+                return
         if not os.path.exists(self.ptx_path):
             return
         try:
@@ -36,18 +40,23 @@ class GalaxyMemoryUpdater:
         err, dev = cuda.cuDeviceGet(0)
         if err != cuda.CUresult.CUDA_SUCCESS:
             return
-        err, ctx = cuda.cuCtxCreate(0, dev)
+        err, ctx = cuda.cuDevicePrimaryCtxRetain(dev)
         if err != cuda.CUresult.CUDA_SUCCESS:
             return
+        err, = cuda.cuCtxSetCurrent(ctx)
+        if err != cuda.CUresult.CUDA_SUCCESS:
+            cuda.cuDevicePrimaryCtxRelease(dev)
+            return
         self._ctx = ctx
+        self._device = dev
         err, mod = cuda.cuModuleLoadData(ptx_code)
         if err != cuda.CUresult.CUDA_SUCCESS:
-            cuda.cuCtxDestroy(ctx)
+            cuda.cuDevicePrimaryCtxRelease(dev)
             return
         err, func = cuda.cuModuleGetFunction(mod, b"update_star_embedding_kernel")
         if err != cuda.CUresult.CUDA_SUCCESS:
             cuda.cuModuleUnload(mod)
-            cuda.cuCtxDestroy(ctx)
+            cuda.cuDevicePrimaryCtxRelease(dev)
             return
         self._cuda = cuda
         self._module = mod
@@ -72,6 +81,8 @@ class GalaxyMemoryUpdater:
         dim = old.size
         if dim == 0:
             return np.array([], dtype=np.float32)
+        if self._ctx is not None:
+            cuda.cuCtxSetCurrent(self._ctx)
         old_vec = np.ascontiguousarray(old.astype(np.float32))
         teacher_vec = np.ascontiguousarray(teacher.astype(np.float32))
         out_vec = np.zeros_like(old_vec)

@@ -100,6 +100,21 @@ def embed_texts(text_path: str, model_name: str = "sentence-transformers/all-Min
         raise ValueError(f"Failed to read text file '{text_path}': {exc}") from exc
     if not lines:
         raise ValueError("Text file is empty")
+    if str(model_name or "").lower() in {"fused-head", "ptx-fused", "k3d-fused"}:
+        try:
+            from knowledge3d.cranium.fused_head import AdaptedFusedHead  # type: ignore
+        except Exception as exc:  # pragma: no cover
+            raise ValueError("Failed to initialise fused head for embeddings") from exc
+        head = AdaptedFusedHead()
+        head.reset_projection()
+        ids = [f"text_{i:06d}" for i in range(len(lines))]
+        labels = [ln[:80] for ln in lines]
+        embeddings = []
+        for ln in lines:
+            vec = head._build_ptx_fused_embedding(ln)
+            embeddings.append(np.asarray(vec[:512], dtype=np.float32))
+        return ids, np.vstack(embeddings), labels
+
     try:
         from sentence_transformers import SentenceTransformer  # type: ignore
     except Exception as exc:  # pragma: no cover

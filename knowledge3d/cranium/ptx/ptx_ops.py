@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
+import logging
 
 import numpy as np  # type: ignore
 
@@ -75,8 +76,11 @@ class PTXOps:
         expression = self._MODALITY_EXPRESSIONS.get(modality)
         confidence = 0.5
         if expression:
-            confidence = self.evaluate_rpn(expression, variables=metrics)
-            confidence = max(0.0, min(1.0, confidence))
+            try:
+                confidence = self.evaluate_rpn(expression, variables=metrics)
+                confidence = max(0.0, min(1.0, confidence))
+            except Exception as exc:  # pragma: no cover
+                logging.getLogger(__name__).warning("RPN evaluation failed for %s: %s", modality, exc)
         return {
             "features": [float(x) for x in features.reshape(-1)],
             "metrics": {k: float(v) for k, v in metrics.items()},

@@ -8,6 +8,7 @@ from difflib import SequenceMatcher
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+import logging
 
 import numpy as np
 import torch
@@ -28,6 +29,8 @@ from knowledge3d.skills.infix_to_rpn import (
 from fractions import Fraction as _Fraction
 import os as _os
 import random as _random
+
+_logger = logging.getLogger(__name__)
 
 
 class AdaptedFusedHead:
@@ -68,6 +71,7 @@ class AdaptedFusedHead:
         self._load_core_heads_from_glb()
         self._load_math_head_from_glb()
         self._load_math_head()
+        self._sanitize_projection()
         self._math_train_steps = 0
 
         self._shapes = [
@@ -358,6 +362,37 @@ class AdaptedFusedHead:
         except Exception:
             pass
         return num_str
+
+    # ------------------------------------------------------------------
+    def _reset_projection_parameters(self) -> None:
+        with torch.no_grad():
+            for module in self.projection:
+                if isinstance(module, nn.Linear):
+                    nn.init.xavier_uniform_(module.weight)
+                    if module.bias is not None:
+                        module.bias.zero_()
+                elif isinstance(module, nn.LayerNorm):
+                    module.reset_parameters()
+        # Reset optimiser state to avoid carrying over NaNs from previous weights
+        if hasattr(self, "_opt"):
+            self._opt.state.clear()
+        if hasattr(self, "_shape_opt"):
+            self._shape_opt.state.clear()
+
+    def _sanitize_projection(self) -> None:
+        needs_reset = False
+        with torch.no_grad():
+            for param in self.projection.parameters():
+                if not torch.isfinite(param).all():
+                    needs_reset = True
+                    break
+        if needs_reset:
+            _logger.warning("Projection weights contained non-finite values; resetting parameters")
+            self._reset_projection_parameters()
+
+    def reset_projection(self) -> None:
+        """Public hook for trainers to force a projection reset."""
+        self._reset_projection_parameters()
 
     def train_step(self, fused_embedding: List[float], true_answer: str, lr: float = 1e-3) -> None:
         # Train only when the target is a 0..999 integer

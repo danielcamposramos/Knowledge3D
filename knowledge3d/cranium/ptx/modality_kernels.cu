@@ -1,3 +1,6 @@
+#include <cuda_runtime.h>
+#include <math_functions.h>
+
 #define MODALITY_MAX_THREADS 256
 
 extern "C" __device__ inline void atomicMinFloat(float* address, float value) {

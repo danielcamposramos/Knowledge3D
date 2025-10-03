@@ -7,9 +7,12 @@ exception is raised at construction time.
 from __future__ import annotations
 
 import ctypes
+import logging
 import math
+import os
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Optional, Sequence
+from pathlib import Path
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 import numpy as np  # type: ignore
 
@@ -20,6 +23,8 @@ except Exception as exc:  # pragma: no cover
     raise RuntimeError(
         "cuda-python bindings are required for ModularRPNEngine; install `cuda-python` and ensure a CUDA device is available"
     ) from exc
+
+logger = logging.getLogger(__name__)
 
 CUDA_SOURCE = r"""
 extern "C" __device__ float sinf(float);
@@ -484,6 +489,7 @@ class ModularRPNEngine:
         self._use_double: bool = str(_os.environ.get("K3D_RPN_USE_DOUBLE", "1")).lower() not in {"0", "false", "no"}
         # Optional exact combinatorics path (integer loops) to avoid gamma drift
         self._exact_comb: bool = str(_os.environ.get("K3D_RPN_COMBINATORICS_EXACT", "1")).lower() not in {"0", "false", "no"}
+        self._kernel_variant: str = "nvrtc"
         self._compile_kernel()
         self._allocate_state()
 
@@ -649,6 +655,66 @@ __global__ void modular_rpn_geometric_kernel(int instance_id, const unsigned sho
         return src.encode("utf-8")
 
     def _compile_kernel(self) -> None:
+        err, = cuda.cuInit(0)
+        if err != cuda.CUresult.CUDA_SUCCESS:
+            raise RuntimeError(f"cuInit failed: {err}")
+        err, dev = cuda.cuDeviceGet(0)
+        if err != cuda.CUresult.CUDA_SUCCESS:
+            raise RuntimeError(f"cuDeviceGet failed: {err}")
+        err, ctx = cuda.cuDevicePrimaryCtxRetain(dev)
+        if err != cuda.CUresult.CUDA_SUCCESS:
+            raise RuntimeError(f"cuDevicePrimaryCtxRetain failed: {err}")
+        self._ctx = ctx
+        err, = cuda.cuCtxSetCurrent(ctx)
+        if err != cuda.CUresult.CUDA_SUCCESS:
+            raise RuntimeError(f"cuCtxSetCurrent failed: {err}")
+        loaded = self._load_prebuilt_kernel()
+        if loaded is None:
+            module, func = self._compile_kernel_nvrtc()
+            self._kernel_variant = "nvrtc"
+        else:
+            module, func = loaded
+        self._module = module
+        self._kernel = func
+
+    def _load_prebuilt_kernel(self) -> Optional[Tuple[int, int]]:
+        kernel_mode = os.environ.get("K3D_RPN_KERNEL", "auto").strip().lower()
+        base_dir = Path(__file__).resolve().parents[1] / "ptx"
+        candidates: List[Tuple[Path, bytes, str]] = []
+        if kernel_mode in {"enhanced", "enhanced_ptx"}:
+            candidates.append((base_dir / "enhanced_rpn_kernel.ptx", b"enhanced_rpn_geometric_kernel", "enhanced"))
+        elif kernel_mode in {"legacy", "ptx"}:
+            candidates.append((base_dir / "modular_rpn_kernel.ptx", b"modular_rpn_geometric_kernel", "legacy"))
+        else:
+            candidates.append((base_dir / "modular_rpn_kernel.ptx", b"modular_rpn_geometric_kernel", "legacy"))
+
+        for path, entry, label in candidates:
+            if not path.exists():
+                continue
+            try:
+                ptx_bytes = path.read_bytes()
+            except Exception as exc:
+                logger.warning("Failed to read RPN PTX %s: %s", path, exc)
+                continue
+            err, module = cuda.cuModuleLoadData(ptx_bytes)
+            if err != cuda.CUresult.CUDA_SUCCESS:
+                logger.warning("cuModuleLoadData failed for %s (err=%s)", path, err)
+                continue
+            err, func = cuda.cuModuleGetFunction(module, entry)
+            if err != cuda.CUresult.CUDA_SUCCESS:
+                logger.warning("cuModuleGetFunction(%s) failed for %s (err=%s)", entry.decode(), path, err)
+                cuda.cuModuleUnload(module)
+                continue
+            self._kernel_variant = label
+            logger.info("Loaded RPN kernel variant %s from %s", label, path)
+            if label == "enhanced":
+                logger.warning("Enhanced RPN kernel is currently a stub; results will be zeroed until DSL integration lands")
+            return module, func
+        if kernel_mode in {"enhanced", "enhanced_ptx", "legacy", "ptx"}:
+            logger.warning("Requested RPN kernel '%s' unavailable; falling back to NVRTC compile", kernel_mode)
+        return None
+
+    def _compile_kernel_nvrtc(self) -> Tuple[int, int]:
         res, prog = nvrtc.nvrtcCreateProgram(self._cuda_source(), b"modular_rpn.cu", 0, [], [])
         if res != 0:
             raise RuntimeError(f"nvrtcCreateProgram failed: {res}")
@@ -682,24 +748,13 @@ __global__ void modular_rpn_geometric_kernel(int instance_id, const unsigned sho
         ptx = bytes(ptx_buffer)
         nvrtc.nvrtcDestroyProgram(prog)
 
-        err, = cuda.cuInit(0)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuInit failed: {err}")
-        err, dev = cuda.cuDeviceGet(0)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuDeviceGet failed: {err}")
-        err, ctx = cuda.cuCtxCreate(0, dev)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuCtxCreate failed: {err}")
-        self._ctx = ctx
         err, module = cuda.cuModuleLoadData(ptx)
         if err != cuda.CUresult.CUDA_SUCCESS:
             raise RuntimeError(f"cuModuleLoadData failed: {err}")
-        self._module = module
         err, func = cuda.cuModuleGetFunction(module, b"modular_rpn_geometric_kernel")
         if err != cuda.CUresult.CUDA_SUCCESS:
             raise RuntimeError(f"cuModuleGetFunction failed: {err}")
-        self._kernel = func
+        return module, func
 
     def _allocate_state(self) -> None:
         scalar_ctype = ctypes.c_double if self._use_double else ctypes.c_float
