@@ -10,8 +10,8 @@ License: Apache-2.0
 
 from __future__ import annotations
 
-import hashlib
 import logging
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -25,15 +25,17 @@ except ImportError:
 _logger = logging.getLogger(__name__)
 
 
-def load_cu_kernel(cu_path: str, cache_dir: Optional[Path] = None) -> cp.RawModule:
+def load_cu_kernel(
+    cu_path: str,
+    cache_dir: Optional[Path] = None,  # retained for API compatibility (unused)
+) -> cp.RawModule:
     """
     Load CUDA kernel from .cu source file with NVRTC compilation.
 
     Workflow:
-    1. Check for pre-compiled .ptx with same basename
-    2. If .ptx exists and is newer, load directly
-    3. Otherwise, compile .cu → .ptx via NVRTC
-    4. Cache compiled .ptx for future runs
+    1. Read the CUDA source from disk
+    2. Compile in-process via NVRTC (CuPy injects architecture flags automatically)
+    3. Return a CuPy RawModule (CuPy handles kernel caching internally)
 
     Args:
         cu_path: Path to .cu source file
@@ -53,46 +55,19 @@ def load_cu_kernel(cu_path: str, cache_dir: Optional[Path] = None) -> cp.RawModu
     if not cu_file.exists():
         raise FileNotFoundError(f"CUDA source not found: {cu_path}")
 
-    # Determine PTX cache path
-    if cache_dir is None:
-        cache_dir = cu_file.parent
-
-    ptx_file = cache_dir / cu_file.with_suffix('.ptx').name
-
-    # Check if cached PTX is up-to-date
-    if ptx_file.exists() and ptx_file.stat().st_mtime >= cu_file.stat().st_mtime:
-        _logger.info(f"Loading pre-compiled PTX: {ptx_file}")
-        with open(ptx_file, 'r') as f:
-            ptx_code = f.read()
-        return cp.RawModule(code=ptx_code, backend='nvrtc')
-
-    # Compile .cu → PTX
-    _logger.info(f"Compiling CUDA source: {cu_path}")
-
-    with open(cu_file, 'r') as f:
+    _logger.info(f"Compiling CUDA source with CuPy NVRTC: {cu_path}")
+    with open(cu_file, 'r', encoding='utf-8') as f:
         cu_source = f.read()
-
     try:
-        # Compile with NVRTC (CuPy handles NVRTC internally)
-        module = cp.RawModule(
+        options: list[str] = ["--std=c++14"]
+        arch = os.getenv("K3D_CUDA_ARCH")
+        if arch:
+            options.append(f"--gpu-architecture={arch}")
+        return cp.RawModule(
             code=cu_source,
             backend='nvrtc',
-            options=(
-                '--gpu-architecture=compute_80',  # Adjust for target GPU
-                '--use_fast_math',
-                '--extra-device-vectorization'
-            )
+            options=tuple(options),
         )
-
-        # Cache compiled PTX
-        ptx_code = module.code.decode('utf-8') if isinstance(module.code, bytes) else module.code
-        with open(ptx_file, 'w') as f:
-            f.write(ptx_code)
-
-        _logger.info(f"Cached compiled PTX: {ptx_file}")
-
-        return module
-
     except Exception as e:
         _logger.error(f"CUDA compilation failed for {cu_path}: {e}")
         raise RuntimeError(f"Kernel compilation error: {e}") from e
@@ -117,7 +92,4 @@ def load_ptx_kernel(ptx_path: str) -> cp.RawModule:
 
     _logger.info(f"Loading PTX: {ptx_path}")
 
-    with open(ptx_file, 'r') as f:
-        ptx_code = f.read()
-
-    return cp.RawModule(code=ptx_code, backend='nvrtc')
+    return cp.RawModule(path=str(ptx_file))

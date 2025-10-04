@@ -14,8 +14,18 @@
  * License: Apache-2.0
  */
 
-#include <cuda_runtime.h>
-#include <stdint.h>
+typedef unsigned int uint32_t;
+typedef unsigned long long uint64_t;
+
+__device__ inline float clamp_unit(float v) {
+    return v < 0.0f ? 0.0f : (v > 1.0f ? 1.0f : v);
+}
+
+__device__ inline uint32_t atomicAdd_u32(uint32_t* address, uint32_t val) {
+    uint32_t old;
+    asm volatile("atom.global.add.u32 %0, [%1], %2;" : "=r"(old) : "l"(address), "r"(val));
+    return old;
+}
 
 /**
  * Interleave bits of 3 integers to create a 30-bit Morton code.
@@ -90,9 +100,9 @@ extern "C" __global__ void compute_morton_codes(
     float nz = (z - bbox_min_z) / bbox_size;
 
     // Clamp to [0, 1] (handle floating point edge cases)
-    nx = fminf(fmaxf(nx, 0.0f), 1.0f);
-    ny = fminf(fmaxf(ny, 0.0f), 1.0f);
-    nz = fminf(fmaxf(nz, 0.0f), 1.0f);
+    nx = clamp_unit(nx);
+    ny = clamp_unit(ny);
+    nz = clamp_unit(nz);
 
     // Quantize to 10-bit integers (0-1023)
     uint32_t ix = static_cast<uint32_t>(nx * 1023.0f);
@@ -245,10 +255,11 @@ extern "C" __global__ void refine_query_euclidean(
     // Check if within radius
     if (dist_sq <= radius_sq) {
         // Atomic append to output
-        uint32_t pos = atomicAdd(refined_count, 1);
+        uint32_t pos = atomicAdd_u32(refined_count, 1);
 
         if (pos < max_results) {
             refined_buffer[pos] = node_id;
         }
     }
 }
+#include <math.h>

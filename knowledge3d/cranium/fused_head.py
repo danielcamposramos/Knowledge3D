@@ -32,6 +32,28 @@ import random as _random
 
 _logger = logging.getLogger(__name__)
 
+_SPATIAL_NEAR_PATTERN = re.compile(
+    r"\b(?:near|around|close to|perto de|cerca de|ao redor de|alrededor de)\s+(?P<label>[\w\-\s]+)",
+    re.IGNORECASE,
+)
+_SPATIAL_WITHIN_PATTERN = re.compile(
+    r"\b(?:within|radius(?:\sof)?|dentro de|raio de|radio de)\s+(?P<value>\d+(?:\.\d+)?)",
+    re.IGNORECASE,
+)
+_NAVIGATE_PATTERN = re.compile(
+    r"\b(?:navigate|path|route|rota|caminho)\s+(?:from\s+(?P<start>[\w\-\s]+?)\s+)?(?:to|para|até)\s+(?P<goal>[\w\-\s]+)",
+    re.IGNORECASE,
+)
+
+try:  # GPU spatial stack (optional but preferred)
+    import cupy as _cp  # type: ignore
+    from knowledge3d.spatial.semantic_navigator import SemanticNavigator
+    _HAS_SPATIAL_NAV = True
+except Exception:  # pragma: no cover - fallback when CUDA stack missing
+    _cp = None  # type: ignore
+    SemanticNavigator = None  # type: ignore
+    _HAS_SPATIAL_NAV = False
+
 
 class AdaptedFusedHead:
     """Fused head that routes queries through PTX-backed operators when possible."""
@@ -118,6 +140,8 @@ class AdaptedFusedHead:
         }
         self._media_cache: Dict[str, List[Dict[str, object]]] = {"image": [], "audio": [], "video": []}
         self._refresh_media_cache()
+        self._cupy_available = _HAS_SPATIAL_NAV
+        self._semantic_navigator: Optional[SemanticNavigator] = None
         # Load shape head from GLB/sidecar if available
         self._shape_ckpt_path = Path("viewer/public/house/house_shape_head.pt")
         self._load_shape_head_from_glb()
@@ -1707,6 +1731,19 @@ class AdaptedFusedHead:
         glb_path: Path = entry["glb"]
         embedding_dim = int(entry.get("embedding_dim", 512))
         query_vec = self._house_query_vector(query, fused_embedding, embedding_dim)
+        navigator: Optional[SemanticNavigator] = None
+        if self._cupy_available:
+            navigator = self._get_semantic_navigator(glb_path)
+            nav_request = self._parse_navigation_query(query)
+            if navigator is not None and nav_request is not None:
+                response = self._handle_navigation_query(nav_request, navigator)
+                if response:
+                    return response
+            spatial_request = self._parse_spatial_query(query)
+            if navigator is not None and spatial_request is not None:
+                response = self._handle_spatial_query(spatial_request, navigator)
+                if response:
+                    return response
         scene_loaded = False
         try:
             PTX_OPS.geometry_load_scene(glb_path.as_posix())
@@ -1933,6 +1970,126 @@ class AdaptedFusedHead:
             return None
         return None
 
+    # ------------------------------------------------------------------
+    # Spatial + semantic navigation helpers
+    # ------------------------------------------------------------------
+    def _get_semantic_navigator(self, glb_path: Path) -> Optional[SemanticNavigator]:
+        if not self._cupy_available or SemanticNavigator is None:
+            return None
+        try:
+            mtime = glb_path.stat().st_mtime
+        except OSError:
+            return None
+        rebuild = False
+        nav = self._semantic_navigator
+        if nav is None:
+            rebuild = True
+        else:
+            cached = getattr(nav, "_glb_path", None)
+            cached_mtime = getattr(nav, "_glb_mtime", None)
+            if str(cached) != str(glb_path) or abs(float(cached_mtime or 0.0) - float(mtime)) > 1e-6:
+                rebuild = True
+        if rebuild:
+            try:
+                navigator = SemanticNavigator(
+                    query_radius=float(_os.getenv("K3D_NAV_QUERY_RADIUS", "2.0")),
+                    k_neighbors=int(_os.getenv("K3D_NAV_K_NEIGHBORS", "8")),
+                    similarity_threshold=float(_os.getenv("K3D_NAV_SIM_THRESHOLD", "0.7")),
+                    enable_semantic_highways=True,
+                )
+                navigator.load_house(str(glb_path))
+                cache_dir = glb_path.parent
+                if not navigator.load_serialized(cache_dir):
+                    navigator.ensure_octree()
+                self._semantic_navigator = navigator
+                nav = navigator
+            except Exception as exc:
+                _logger.debug("Unable to initialise semantic navigator: %s", exc)
+                self._semantic_navigator = None
+                return None
+        return nav
+
+    def _parse_spatial_query(self, query: str) -> Optional[Tuple[str, Optional[float]]]:
+        if not query:
+            return None
+        match = _SPATIAL_NEAR_PATTERN.search(query)
+        if not match:
+            return None
+        label = match.group("label").strip()
+        if not label:
+            return None
+        radius_match = _SPATIAL_WITHIN_PATTERN.search(query)
+        radius = float(radius_match.group("value")) if radius_match else None
+        return label, radius
+
+    def _handle_spatial_query(
+        self,
+        request: Tuple[str, Optional[float]],
+        navigator: SemanticNavigator,
+    ) -> Optional[str]:
+        label, radius = request
+        try:
+            navigator.ensure_octree()
+            idx = navigator.resolve_label(label)
+            canonical = navigator.labels[idx] if idx is not None else label
+            neighbors = navigator.query_near(label, radius=radius, max_results=6)
+        except ValueError:
+            return None
+        except Exception as exc:
+            _logger.debug("Spatial lookup failed: %s", exc)
+            return None
+        if not neighbors:
+            window = float(radius) if radius is not None else navigator.query_radius
+            return f"No nearby results around {canonical.strip()} within {window:.1f} units."
+        pieces = []
+        for dest, dist, meta in neighbors[:5]:
+            desc = dest.strip()
+            if isinstance(meta, dict):
+                summary = meta.get("summary") or meta.get("title") or meta.get("name")
+                if isinstance(summary, str) and summary.strip():
+                    desc = f"{desc} – {summary.strip()}"
+            pieces.append(f"{desc} ({dist:.2f})")
+        window = float(radius) if radius is not None else navigator.query_radius
+        return f"Nearby around {canonical.strip()} (radius {window:.1f}): " + ", ".join(pieces)
+
+    def _parse_navigation_query(self, query: str) -> Optional[Tuple[Optional[str], str]]:
+        if not query:
+            return None
+        match = _NAVIGATE_PATTERN.search(query)
+        if not match:
+            return None
+        goal = match.group("goal")
+        if not goal:
+            return None
+        start = match.group("start")
+        return (start.strip() if start else None, goal.strip())
+
+    def _handle_navigation_query(
+        self,
+        request: Tuple[Optional[str], str],
+        navigator: SemanticNavigator,
+    ) -> Optional[str]:
+        start_label, goal_label = request
+        if not start_label:
+            return (
+                "Navigation needs a starting label — try 'navigate from <start> to <goal>'."
+            )
+        try:
+            navigator.ensure_kernel()
+            path_labels, cost = navigator.find_path(start_label, goal_label)
+        except ValueError as exc:
+            return str(exc)
+        except RuntimeError as exc:
+            _logger.debug("Navigation computation failed: %s", exc)
+            return None
+        if len(path_labels) < 2:
+            return None
+        hops = [f"{a.strip()} → {b.strip()}" for a, b in zip(path_labels[:-1], path_labels[1:])]
+        return (
+            f"Path {path_labels[0]} → {path_labels[-1]}: "
+            + "; ".join(hops)
+            + f" (cost={cost:.2f})."
+        )
     def _build_ptx_fused_embedding(self, query: str) -> List[float]:
         ql = (query or "").lower()
         text_feats: Optional[List[float]] = None

@@ -67,11 +67,11 @@ class DependencyKernel:
     side-channel attacks through bitmask probing.
     """
 
-    def __init__(self, num_vertices: int):
+    def __init__(self, num_vertices: int = 0):
         if not CUPY_AVAILABLE:
             raise RuntimeError("CuPy required. Install: pip install cupy-cuda12x")
 
-        self.num_vertices = num_vertices
+        self.num_vertices = int(num_vertices)
         self.num_edges = 0
 
         # GPU buffers (allocated on-demand)
@@ -82,6 +82,16 @@ class DependencyKernel:
 
         # Security: Per-query salt for bitmask masking
         self.query_salt_gpu: Optional[cp.ndarray] = None
+
+    @property
+    def node_count(self) -> int:
+        """Backwards-compatible alias for consumers expecting node_count."""
+        return int(self.num_vertices)
+
+    @property
+    def nnz(self) -> int:
+        """Number of stored edges (non-zero entries)."""
+        return int(self.num_edges)
 
     def build_from_edges(
         self,
@@ -117,14 +127,18 @@ class DependencyKernel:
         embeddings_gpu = cp.asarray(embeddings, dtype=cp.float32)
         positions_gpu = cp.asarray(positions, dtype=cp.float32)
 
+        self.num_vertices = int(embeddings_gpu.shape[0])
+
         # Compute similarities
-        src_emb = embeddings_gpu[edges[:, 0]]  # (E, 256)
-        dst_emb = embeddings_gpu[edges[:, 1]]  # (E, 256)
+        src_idx = edges_gpu[:, 0].astype(cp.int32)
+        dst_idx = edges_gpu[:, 1].astype(cp.int32)
+        src_emb = embeddings_gpu[src_idx]
+        dst_emb = embeddings_gpu[dst_idx]
         similarities = (src_emb * dst_emb).sum(axis=1)  # (E,)
 
         # Compute geometric distances
-        src_pos = positions_gpu[edges[:, 0]]  # (E, 3)
-        dst_pos = positions_gpu[edges[:, 1]]  # (E, 3)
+        src_pos = positions_gpu[src_idx]
+        dst_pos = positions_gpu[dst_idx]
         distances = cp.linalg.norm(src_pos - dst_pos, axis=1)  # (E,)
 
         # Phase 1: Find bridges (articulation edges)
@@ -151,7 +165,7 @@ class DependencyKernel:
             filtered_sim = bridge_sim
             filtered_dist = bridge_dist
 
-        self.num_edges = len(filtered_edges)
+        self.num_edges = int(filtered_edges.shape[0])
 
         # Phase 3: Validate 48KB hard limit (Kimi's critical constraint)
         kernel_size_bytes = self._estimate_kernel_size(self.num_vertices, self.num_edges)
@@ -198,46 +212,49 @@ class DependencyKernel:
                 packed_costs_bytes + lazy_bitmask_bytes + query_salt_bytes)
 
     def _build_csr(self, edges: cp.ndarray, packed_costs: cp.ndarray):
-        """Convert edge list to CSR format."""
-        # Count out-degree for each vertex
-        out_degree = cp.zeros(self.num_vertices, dtype=cp.uint32)
+        """Convert edge list to CSR format (CPU-side assembly)."""
+        edges_cpu = cp.asnumpy(edges).astype(np.uint32, copy=False)
+        packed_cpu = cp.asnumpy(packed_costs).astype(np.uint32, copy=False)
 
-        for src in edges[:, 0]:
-            out_degree[src] += 1
+        if edges_cpu.size == 0:
+            row_offsets = np.zeros(self.num_vertices + 1, dtype=np.uint32)
+            self.rowOffsets_gpu = cp.asarray(row_offsets, dtype=cp.uint32)
+            self.colIndices_gpu = cp.asarray([], dtype=cp.uint32)
+            self.packedCosts_gpu = cp.asarray([], dtype=cp.uint32)
+            return
 
-        # Compute row offsets (prefix sum)
-        self.rowOffsets_gpu = cp.cumsum(
-            cp.concatenate([cp.array([0], dtype=cp.uint32), out_degree]),
-            dtype=cp.uint32
-        )
+        counts = np.bincount(edges_cpu[:, 0], minlength=self.num_vertices).astype(np.uint32)
+        row_offsets = np.zeros(self.num_vertices + 1, dtype=np.uint32)
+        row_offsets[1:] = np.cumsum(counts, dtype=np.uint64).astype(np.uint32)
 
-        # Allocate column indices and costs
-        self.colIndices_gpu = cp.zeros(self.num_edges, dtype=cp.uint32)
-        self.packedCosts_gpu = cp.zeros(self.num_edges, dtype=cp.uint32)
+        col_indices = np.zeros(self.num_edges, dtype=np.uint32)
+        packed = np.zeros(self.num_edges, dtype=np.uint32)
 
-        # Fill CSR (serial for simplicity, TODO: parallelize)
-        current_pos = self.rowOffsets_gpu.copy()
+        cursor = row_offsets[:-1].copy()
+        for idx, (src, dst) in enumerate(edges_cpu):
+            pos = cursor[src]
+            col_indices[pos] = dst
+            packed[pos] = packed_cpu[idx]
+            cursor[src] += 1
 
-        for i in range(len(edges)):
-            src = int(edges[i, 0])
-            dst = int(edges[i, 1])
-            cost = int(packed_costs[i])
-
-            pos = int(current_pos[src])
-            self.colIndices_gpu[pos] = dst
-            self.packedCosts_gpu[pos] = cost
-            current_pos[src] += 1
+        self.rowOffsets_gpu = cp.asarray(row_offsets, dtype=cp.uint32)
+        self.colIndices_gpu = cp.asarray(col_indices, dtype=cp.uint32)
+        self.packedCosts_gpu = cp.asarray(packed, dtype=cp.uint32)
 
     def get_memory_usage_mb(self) -> float:
         """Return GPU memory usage in MB."""
         if self.rowOffsets_gpu is None:
             return 0.0
 
+        lazy_bytes = self.lazyBitmask_gpu.nbytes if self.lazyBitmask_gpu is not None else 0
+        salt_bytes = self.query_salt_gpu.nbytes if self.query_salt_gpu is not None else 0
+
         total_bytes = (
             self.rowOffsets_gpu.nbytes +
             self.colIndices_gpu.nbytes +
             self.packedCosts_gpu.nbytes +
-            self.lazyBitmask_gpu.nbytes
+            lazy_bytes +
+            salt_bytes
         )
 
         return total_bytes / (1024 * 1024)
@@ -273,6 +290,7 @@ class LEDPathfinder:
 
         # State
         self.dependency_kernel: Optional[DependencyKernel] = None
+        self._active_similarity_threshold: Optional[float] = None
 
         _logger.info(f"LEDPathfinder initialized with kernel: {kernel_path}")
 
@@ -281,7 +299,8 @@ class LEDPathfinder:
         edges: np.ndarray,
         embeddings: np.ndarray,
         positions: np.ndarray,
-        similarity_threshold: float = 0.7
+        similarity_threshold: float = 0.7,
+        **kwargs,
     ):
         """
         Build dependency kernel from octree edges (sleep-time operation).
@@ -292,16 +311,63 @@ class LEDPathfinder:
             positions: (N, 3) geometric positions
             similarity_threshold: Minimum similarity to include edge
         """
-        num_vertices = len(embeddings)
+        # Backwards-compatible alias (older callers used 'threshold=')
+        threshold_override = kwargs.pop("threshold", None)
+        if threshold_override is not None:
+            similarity_threshold = float(threshold_override)
 
-        self.dependency_kernel = DependencyKernel(num_vertices)
-        self.dependency_kernel.build_from_edges(
-            edges, embeddings, positions, similarity_threshold
-        )
+        enable_semantic_highways = kwargs.pop("enable_semantic_highways", True)
+        max_similarity_threshold = float(kwargs.pop("max_similarity_threshold", 0.95))
+        step = float(kwargs.pop("similarity_threshold_step", 0.05))
+        if kwargs:
+            unexpected = ", ".join(sorted(kwargs.keys()))
+            raise TypeError(f"Unsupported keyword(s) for build_kernel_from_octree: {unexpected}")
 
-        _logger.info(
-            f"Kernel built: {self.dependency_kernel.get_memory_usage_mb():.2f} MB"
-        )
+        current_threshold = float(similarity_threshold)
+        attempt = 0
+        last_error: Optional[Exception] = None
+
+        while True:
+            attempt += 1
+            kernel = DependencyKernel(len(embeddings))
+            try:
+                kernel.build_from_edges(
+                    edges,
+                    embeddings,
+                    positions,
+                    similarity_threshold=current_threshold,
+                    enable_semantic_highways=enable_semantic_highways,
+                )
+            except RuntimeError as exc:
+                last_error = exc
+                message = str(exc)
+                if "Kernel size" not in message:
+                    raise
+                if current_threshold >= max_similarity_threshold:
+                    raise
+                new_threshold = min(max_similarity_threshold, current_threshold + step)
+                if new_threshold <= current_threshold + 1e-6:
+                    raise
+                _logger.warning(
+                    "Kernel exceeded 48KB (%s). Retrying with similarity_threshold=%.2f",
+                    message,
+                    new_threshold,
+                )
+                current_threshold = new_threshold
+                continue
+
+            self.dependency_kernel = kernel
+            self._active_similarity_threshold = current_threshold
+            _logger.info(
+                "Kernel built in %d attempt(s); similarity_threshold=%.2f, size=%.2f MB",
+                attempt,
+                current_threshold,
+                self.dependency_kernel.get_memory_usage_mb(),
+            )
+            break
+
+        if last_error and self.dependency_kernel is None:
+            raise last_error
 
     def find_path(
         self,
@@ -411,6 +477,55 @@ class LEDPathfinder:
                 (self.dependency_kernel.num_vertices ** 2)
             )
         }
+
+    @property
+    def kernel(self) -> Optional[DependencyKernel]:
+        """Backwards-compatible accessor used by older demos/tests."""
+        return self.dependency_kernel
+
+    # ------------------------------------------------------------------
+    # Persistence helpers
+    # ------------------------------------------------------------------
+    def serialize_kernel(self, path: Path | str) -> None:
+        """Persist the current dependency kernel to a compressed NPZ file."""
+        if self.dependency_kernel is None:
+            raise RuntimeError("No dependency kernel to serialize")
+
+        data = {
+            "row_offsets": cp.asnumpy(self.dependency_kernel.rowOffsets_gpu),
+            "col_indices": cp.asnumpy(self.dependency_kernel.colIndices_gpu),
+            "packed_costs": cp.asnumpy(self.dependency_kernel.packedCosts_gpu),
+            "lazy_bitmask": cp.asnumpy(self.dependency_kernel.lazyBitmask_gpu),
+            "query_salt": cp.asnumpy(self.dependency_kernel.query_salt_gpu),
+            "num_vertices": np.array([self.dependency_kernel.num_vertices], dtype=np.uint32),
+            "num_edges": np.array([self.dependency_kernel.num_edges], dtype=np.uint32),
+        }
+
+        out_path = Path(path)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        np.savez_compressed(out_path, **data)
+        _logger.info("Serialized dependency kernel → %s", out_path)
+
+    def load_serialized_kernel(self, path: Path | str) -> None:
+        """Load dependency kernel previously stored via :meth:`serialize_kernel`."""
+        in_path = Path(path)
+        if not in_path.exists():
+            raise FileNotFoundError(f"Serialized kernel not found: {in_path}")
+
+        payload = np.load(in_path)
+        num_vertices = int(payload["num_vertices"][0])
+        kernel = DependencyKernel(num_vertices)
+
+        kernel.rowOffsets_gpu = cp.asarray(payload["row_offsets"], dtype=cp.uint32)
+        kernel.colIndices_gpu = cp.asarray(payload["col_indices"], dtype=cp.uint32)
+        kernel.packedCosts_gpu = cp.asarray(payload["packed_costs"], dtype=cp.uint32)
+        kernel.lazyBitmask_gpu = cp.asarray(payload["lazy_bitmask"], dtype=cp.uint64)
+        kernel.query_salt_gpu = cp.asarray(payload["query_salt"], dtype=cp.uint64)
+        kernel.num_edges = int(payload["num_edges"][0])
+
+        self.dependency_kernel = kernel
+        _logger.info("Restored dependency kernel (%d vertices, %d edges) from %s",
+                     kernel.num_vertices, kernel.num_edges, in_path)
 
 
 # Example usage

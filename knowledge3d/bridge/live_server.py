@@ -1,11 +1,22 @@
 import asyncio
 import json
+import logging
 import os
 import socket
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional, Set, List
+
+try:
+    from knowledge3d.spatial.semantic_navigator import SemanticNavigator
+    _LIVE_SPATIAL_NAV = True
+except Exception:  # pragma: no cover
+    SemanticNavigator = None  # type: ignore
+    _LIVE_SPATIAL_NAV = False
+
+
+logger = logging.getLogger(__name__)
 
 try:
     import websockets
@@ -109,6 +120,9 @@ class LiveServer:
         except Exception:  # pragma: no cover
             self._SpatialAddress = None
             self._Network3D = None
+        self._semantic_navigator: Optional[SemanticNavigator] = None
+        self._semantic_nav_lock = asyncio.Lock()
+        self._semantic_nav_mtime: Optional[float] = None
         # Optional TF-IDF embedding for open-vocab goto
         try:
             from sklearn.feature_extraction.text import TfidfVectorizer  # type: ignore
@@ -2501,35 +2515,52 @@ class LiveServer:
             pass
         # If we already hold a dataset graph, pre-compute and share a concise route trace
         try:
+            navigator = await self._ensure_semantic_navigator()
+            start_label = self._current_label.get(channel)
+            if navigator is not None and start_label:
+                try:
+                    navigator.ensure_kernel()
+                    path_labels, cost = navigator.find_path(start_label, target)
+                except Exception:
+                    path_labels = []
+                if path_labels:
+                    hops = [f"{a.strip()} → {b.strip()}" for a, b in zip(path_labels[:-1], path_labels[1:])]
+                    summary = f"Trace: {'; '.join(hops)} (cost={cost:.2f})"
+                    await self.send_chat(sender="agent", text=summary, channel=channel)
+                    await self.log({
+                        "type": "route_trace",
+                        "channel": channel,
+                        "labels": path_labels,
+                        "cost": cost,
+                        "source": "semantic_navigator",
+                    })
+                    return
+            # Fallback to legacy CPU routing if navigator unavailable
             g = self._graphs.get(channel) or {}
             ids = g.get("ids") or []
             labels = g.get("labels") or []
             neighbors = g.get("neighbors") or []
             positions = g.get("positions") if isinstance(g, dict) else None
             if ids and neighbors and labels:
-                # Derive start/target from current label + target
-                start_label = self._current_label.get(channel)
                 si = labels.index(start_label) if start_label in labels else None
                 ti = labels.index(target) if target in labels else None
                 if si is not None and ti is not None:
                     start_id = ids[si]; target_id = ids[ti]
-                    # Prefer A* when positions present
-                    if positions is not None:
+                    if positions is not None and self._Network3D is not None:
                         path = self._Network3D.route_astar_ex(ids, neighbors, positions, start_id, target_id)
-                    else:
+                    elif self._Network3D is not None:
                         path = self._Network3D.route(ids, neighbors, start_id, target_id)
+                    else:
+                        path = []
                     if path and len(path) > 1:
-                        # Build label path
                         id_to_idx = {ids[i]: i for i in range(len(ids))}
                         path_labels = [labels[id_to_idx[p]] if id_to_idx.get(p) is not None else p for p in path]
-                        # TF-IDF cosine over labels for per-hop sim
                         tfidf_sims = []
                         try:
                             idx = self._search_index.get(channel)
                             if idx:
                                 vec, X, labs = idx.get("vec"), idx.get("X"), idx.get("labels")
                                 import numpy as np  # type: ignore
-                                # map label -> row index
                                 lab_to_row = {labs[i]: i for i in range(len(labs))}
                                 row_norms = idx.get("row_norms")
                                 if row_norms is None:
@@ -2545,7 +2576,6 @@ class LiveServer:
                                         tfidf_sims.append(float(num / den))
                         except Exception:
                             tfidf_sims = []
-                        # Geometric distances
                         geo = []
                         if positions is not None:
                             def d3(i, j):
@@ -2558,10 +2588,9 @@ class LiveServer:
                                     geo.append(None)
                                 else:
                                     geo.append(d3(ia, ib))
-                        # Compose concise trace
                         hop_lines = []
                         for i in range(len(path_labels) - 1):
-                            la = path_labels[i]; lb = path_labels[i+1]
+                            la = path_labels[i]; lb = path_labels[i + 1]
                             s = tfidf_sims[i] if i < len(tfidf_sims) else None
                             gdist = geo[i] if i < len(geo) else None
                             parts = [f"{la} -> {lb}"]
@@ -2569,10 +2598,9 @@ class LiveServer:
                                 parts.append(f"sim={s:.2f}")
                             if gdist is not None:
                                 parts.append(f"dist={gdist:.2f}")
-                            hop_lines.append(" (" + ", ".join(parts[1:]) + ")" if len(parts)>1 else "")
+                            hop_lines.append(" (" + ", ".join(parts[1:]) + ")" if len(parts) > 1 else "")
                         summary = "Route: " + " -> ".join(path_labels)
                         if hop_lines:
-                            # Align minimal: keep compact inline annotations per hop
                             annotated = []
                             for i, seg in enumerate(zip(path_labels[:-1], path_labels[1:])):
                                 la, lb = seg
@@ -2590,6 +2618,59 @@ class LiveServer:
                         })
         except Exception:
             pass
+
+    def _resolve_house_glb(self) -> Path:
+        repo_root = Path(__file__).resolve().parents[2]
+        house_id = os.getenv("K3D_HOUSE_ID")
+        if house_id:
+            candidate = repo_root / "viewer" / "public" / "houses" / house_id / "memory_house.glb"
+            if candidate.exists():
+                return candidate
+        return repo_root / "viewer" / "public" / "memory_house.glb"
+
+    def _load_semantic_navigator_sync(self, glb_path: Path, mtime: float) -> Optional[SemanticNavigator]:
+        if SemanticNavigator is None:
+            return None
+        navigator = SemanticNavigator(
+            query_radius=float(os.getenv("K3D_NAV_QUERY_RADIUS", "2.0")),
+            k_neighbors=int(os.getenv("K3D_NAV_K_NEIGHBORS", "8")),
+            similarity_threshold=float(os.getenv("K3D_NAV_SIM_THRESHOLD", "0.7")),
+            enable_semantic_highways=True,
+        )
+        navigator.load_house(str(glb_path))
+        if not navigator.load_serialized(glb_path.parent):
+            try:
+                navigator.ensure_octree()
+            except Exception as exc:  # pragma: no cover - diagnostics only
+                logger.debug("Navigator octree build failed: %s", exc)
+        return navigator
+
+    async def _ensure_semantic_navigator(self) -> Optional[SemanticNavigator]:
+        if not _LIVE_SPATIAL_NAV or SemanticNavigator is None:
+            return None
+        async with self._semantic_nav_lock:
+            glb_path = self._resolve_house_glb()
+            try:
+                mtime = glb_path.stat().st_mtime
+            except OSError:
+                return None
+            needs_rebuild = (
+                self._semantic_navigator is None
+                or str(getattr(self._semantic_navigator, "_glb_path", "")) != str(glb_path)
+                or abs(float(self._semantic_nav_mtime or 0.0) - float(mtime)) > 1e-6
+            )
+            if needs_rebuild:
+                loop = asyncio.get_running_loop()
+                try:
+                    navigator = await loop.run_in_executor(
+                        None, self._load_semantic_navigator_sync, glb_path, mtime
+                    )
+                except Exception as exc:
+                    logger.debug("Semantic navigator rebuild failed: %s", exc)
+                    navigator = None
+                self._semantic_navigator = navigator
+                self._semantic_nav_mtime = mtime if navigator is not None else None
+            return self._semantic_navigator
 
     # --- Pause/Resume support ---
     def _is_paused(self, channel: str) -> bool:

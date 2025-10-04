@@ -3,12 +3,20 @@ from __future__ import annotations
 import json
 import time
 import hashlib
+import os as _os
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Set
 from datetime import datetime
 from types import SimpleNamespace
 
 from knowledge3d.cranium.ptx import PTX_OPS
+
+try:
+    from knowledge3d.spatial.semantic_navigator import SemanticNavigator
+    _HAS_SEMANTIC_NAV = True
+except Exception:
+    SemanticNavigator = None  # type: ignore
+    _HAS_SEMANTIC_NAV = False
 
 
 class _Model:
@@ -75,6 +83,8 @@ class SleepTimeCompute:
         self._learning_processed_path = self.material_dir / "learning_memory_processed.txt"
         self.house_memory_glb = Path("viewer/public/house/house_memory.glb")
         self.house_memory_manifest = Path("viewer/public/house/house_memory.json")
+        self.semantic_kernel_path = self.house_path.parent / "semantic_kernel.npz"
+        self.semantic_manifest_path = self.house_path.parent / "semantic_navigator.json"
 
     def load_house(self) -> Dict[str, Any]:
         """Load House GLB — extract zones, rays, embeddings (best-effort)."""
@@ -740,11 +750,40 @@ class SleepTimeCompute:
             json.dump(adjustments, f, ensure_ascii=False, indent=2)
         print(f"🌙 Sleep-Time Compute: Adjustments logged to {log_path}")
         print(f"📚 Materialized {len(adjustments['materialized_objects'])} permanent objects.")
+        if _HAS_SEMANTIC_NAV:
+            try:
+                self._rebuild_semantic_navigation_assets()
+            except Exception as exc:
+                print(f"⚠️ Semantic navigator rebuild failed: {exc}")
+        else:
+            print("⚠️ Semantic navigator skipped (CuPy unavailable)")
         if self.output_path.exists():
             print(f"🌙 Modified House GLB saved to {self.output_path}")
         else:
             print(f"🌙 PTX geometry save skipped; no GLB written (see warnings above)")
         return str(self.output_path)
+
+    def _rebuild_semantic_navigation_assets(self) -> None:
+        if not _HAS_SEMANTIC_NAV or SemanticNavigator is None:
+            return
+        glb_source = self.house_memory_glb if self.house_memory_glb.exists() else self.output_path
+        if not glb_source.exists():
+            return
+        navigator = SemanticNavigator(
+            query_radius=float(_os.getenv("K3D_NAV_QUERY_RADIUS", "2.0")),
+            k_neighbors=int(_os.getenv("K3D_NAV_K_NEIGHBORS", "8")),
+            similarity_threshold=float(_os.getenv("K3D_NAV_SIM_THRESHOLD", "0.7")),
+            enable_semantic_highways=True,
+        )
+        navigator.load_house(str(glb_source))
+        try:
+            navigator.ensure_kernel()
+        except RuntimeError as exc:
+            print(f"⚠️ Semantic kernel build skipped: {exc}")
+            return
+        navigator.serialize(glb_source.parent)
+        if self.semantic_kernel_path.exists():
+            print(f"🧭 Semantic kernel refreshed → {self.semantic_kernel_path}")
 
     def run(self) -> None:
         """Execute sleep-time compute pipeline."""
