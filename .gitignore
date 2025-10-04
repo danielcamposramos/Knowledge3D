@@ -49,3 +49,5 @@ viewer/public/galaxy/hf_cache_memory.glb
 .env*/
 # Ignore large CSV datasets
 data/ai_compendium_80k_vectors.csv
+# CuPy compiled kernel cache (architecture-specific, regenerate per-machine)
+.cupy_cache/
