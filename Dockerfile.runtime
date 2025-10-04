@@ -1,0 +1,49 @@
+FROM nvidia/cuda:12.4.0-devel-ubuntu22.04
+
+# Install Python 3.11 and system dependencies
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    python3.11 \
+    python3.11-dev \
+    python3-pip \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set Python 3.11 as default
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
+    python3 -m pip install --upgrade pip
+
+# Install K3D dependencies
+WORKDIR /workspace
+
+# Copy requirements
+COPY requirements.txt ./
+
+# Install Python packages (full K3D stack)
+RUN python3 -m pip install \
+    cupy-cuda12x \
+    numpy \
+    scikit-learn \
+    cuda-python \
+    pygltflib \
+    websockets \
+    && python3 -m pip install -r requirements.txt || true
+
+# Copy K3D source
+COPY . .
+
+# Install K3D in development mode
+RUN python3 -m pip install -e .
+
+# Expose live server port
+EXPOSE 8765
+
+# Set working directory
+WORKDIR /workspace
+
+# Environment variables for GPU-native operation
+ENV CUPY_CACHE_DIR=/workspace/.cupy_cache
+ENV CUPY_CACHE_SAVE_CUDA_SOURCE=1
+ENV PYTHONPATH=/workspace
+
+# Default command: run live server
+CMD ["python3", "-m", "knowledge3d.bridge.live_server"]
