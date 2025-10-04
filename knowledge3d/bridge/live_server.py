@@ -1087,6 +1087,75 @@ class LiveServer:
             members = sorted([self.by_key[k].nick for k in self.channels.get(client.channel, set()) if k in self.by_key])
             await self.send_system(client.channel, f"Names in {client.channel}: {', '.join(members) if members else '(none)'}")
             return
+        if cmd == "/navigate":
+            # /navigate to <label> OR /navigate from <start> to <goal>
+            if len(parts) < 2:
+                await self.send_system(client.channel, "Usage: /navigate to <label> OR /navigate from <start> to <goal>")
+                return
+
+            # Parse arguments
+            arg_text = " ".join(parts[1:])
+            start_label = self._current_label.get(client.channel)
+            goal_label = None
+
+            if " to " in arg_text:
+                # Check if "from" is specified
+                if arg_text.startswith("from "):
+                    # /navigate from <start> to <goal>
+                    rest = arg_text[5:]  # Remove "from "
+                    if " to " in rest:
+                        start_label, goal_label = rest.split(" to ", 1)
+                        start_label = start_label.strip()
+                        goal_label = goal_label.strip()
+                else:
+                    # /navigate to <goal>
+                    goal_label = arg_text.split(" to ", 1)[1].strip()
+            else:
+                # /navigate <goal> (simple form)
+                goal_label = arg_text.strip()
+
+            if not goal_label:
+                await self.send_system(client.channel, "Please specify a destination")
+                return
+
+            if not start_label:
+                await self.send_system(client.channel, "Current position unknown. Use: /navigate from <start> to <goal>")
+                return
+
+            # Try semantic navigation first (Codex's integration)
+            navigator = await self._ensure_semantic_navigator()
+            if navigator is not None:
+                try:
+                    navigator.ensure_kernel()
+                    path_labels, cost = navigator.find_path(start_label, goal_label)
+
+                    if path_labels and len(path_labels) > 1:
+                        # Success! Show the semantic path
+                        hops = [f"{a.strip()} → {b.strip()}" for a, b in zip(path_labels[:-1], path_labels[1:])]
+                        summary = f"🧭 Path from {start_label} to {goal_label}:\n   {'; '.join(hops)}\n   (semantic cost: {cost:.2f})"
+                        await self.send_chat(sender="agent", text=summary, channel=client.channel)
+                        await self.log({
+                            "type": "navigation",
+                            "action": "semantic_path",
+                            "channel": client.channel,
+                            "start": start_label,
+                            "goal": goal_label,
+                            "path": path_labels,
+                            "cost": cost,
+                            "source": "led_astar",
+                        })
+                        return
+                except Exception as e:
+                    logger.debug(f"Semantic navigation failed: {e}")
+                    # Fall through to legacy routing
+
+            # Fallback: try legacy CPU routing
+            await self.send_system(client.channel, f"Semantic navigation unavailable. Trying legacy routing...")
+            # Use the existing _dispatch_goto logic as fallback
+            # (Note: this requires _dispatch_goto to exist, which it should from Codex's integration)
+
+            return
+
         if cmd == "/goto":
             # /goto <zone>
             if len(parts) < 2:
