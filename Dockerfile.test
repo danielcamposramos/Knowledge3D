@@ -1,0 +1,33 @@
+# Dockerfile for running K3D tests with GCC-compatible environment
+# Solves Debian 13 GCC 15 + CUDA NVRTC incompatibility
+
+FROM nvidia/cuda:12.4.0-devel-ubuntu22.04
+
+# Install Python 3.11 and dependencies
+RUN apt-get update && apt-get install -y \
+    python3.11 \
+    python3.11-dev \
+    python3-pip \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python packages
+RUN pip3 install --no-cache-dir \
+    cupy-cuda12x \
+    numpy \
+    pytest \
+    pygltflib \
+    scikit-learn
+
+# Set working directory
+WORKDIR /workspace
+
+# Copy K3D source
+COPY . /workspace/
+
+# Set environment
+ENV PYTHONPATH=/workspace
+ENV CUDA_HOME=/usr/local/cuda
+
+# Default command: run tests
+CMD ["pytest", "tests/test_morton_octree.py", "tests/test_led_pathfinder.py", "-v"]

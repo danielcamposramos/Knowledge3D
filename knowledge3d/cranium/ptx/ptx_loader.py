@@ -33,9 +33,10 @@ def load_cu_kernel(
     Load CUDA kernel from .cu source file with NVRTC compilation.
 
     Workflow:
-    1. Read the CUDA source from disk
-    2. Compile in-process via NVRTC (CuPy injects architecture flags automatically)
-    3. Return a CuPy RawModule (CuPy handles kernel caching internally)
+    1. Check for pre-compiled .ptx file (same name, .ptx extension)
+    2. If .ptx exists, load it directly (bypasses GCC 15 incompatibility)
+    3. Otherwise, compile .cu via NVRTC
+    4. Return a CuPy RawModule
 
     Args:
         cu_path: Path to .cu source file
@@ -55,6 +56,13 @@ def load_cu_kernel(
     if not cu_file.exists():
         raise FileNotFoundError(f"CUDA source not found: {cu_path}")
 
+    # Check for pre-compiled PTX (Codex's fix for Debian 13 GCC 15 incompatibility)
+    ptx_file = cu_file.with_suffix('.ptx')
+    if ptx_file.exists():
+        _logger.info(f"Using pre-compiled PTX (bypasses NVRTC): {ptx_file}")
+        return load_ptx_kernel(str(ptx_file))
+
+    # Fallback to NVRTC compilation
     _logger.info(f"Compiling CUDA source with CuPy NVRTC: {cu_path}")
     with open(cu_file, 'r', encoding='utf-8') as f:
         cu_source = f.read()
