@@ -14,16 +14,60 @@ scoreboard:
 eval-logs:
 	$(PY) -m knowledge3d.models.eval_logs --logs ../Knowledge3D.local/logs
 
-.PHONY: compile-mr clean-mr
+.PHONY: compile-mr compile-mr-core compile-mr-trainers compile-mr-all clean-mr mr-report
 
-# Generate Machine-Runtime (MR) sources outside the repo using codeopt
-compile-mr:
-	@echo "Compiling HR -> MR into ../Knowledge3D.local/mr ..."
+# === Dual-Code (HR/MR) Targets ===
+# See docs/DUAL_CODE_STRATEGY.md for when/why to use each tier
+
+# Tier 1: Hot-path modules (fused head, PTX ops, skills)
+compile-mr-core:
+	@echo "Compiling Tier 1 (core hot-path) HR -> MR ..."
+	$(PY) -m codeopt \
+	  --in knowledge3d/cranium/fused_head.py \
+	       knowledge3d/cranium/ptx \
+	       knowledge3d/skills \
+	       knowledge3d/bridge/live_server.py \
+	  --out ../Knowledge3D.local/mr --lang py --stats
+	@echo "Done. Use PYTHONPATH=../Knowledge3D.local/mr:. to prefer MR modules."
+
+# Tier 2: Training scripts (for multi-instance parallel runs)
+compile-mr-trainers:
+	@echo "Compiling Tier 2 (trainers) HR -> MR ..."
+	$(PY) -m codeopt \
+	  --in knowledge3d/tools/phase18 \
+	       knowledge3d/tools/phase25 \
+	       knowledge3d/tools/*_evaluator.py \
+	       knowledge3d/tools/*_trainer.py \
+	  --out ../Knowledge3D.local/mr --lang py --stats
+	@echo "Done."
+
+# Tier 3: Full repository (legacy behavior; use for production edge deployment)
+compile-mr-all:
+	@echo "Compiling HR -> MR into ../Knowledge3D.local/mr (full repo) ..."
 	$(PY) -m codeopt --in k3dgen knowledge3d viewer --out ../Knowledge3D.local/mr --lang auto --stats
 	@echo "Done."
 
+# Alias for backward compatibility
+compile-mr: compile-mr-all
+
+# Clean all MR outputs
 clean-mr:
 	rm -rf ../Knowledge3D.local/mr
+
+# Report: show memory savings by tier
+mr-report:
+	@echo "=== MR Savings Report ==="
+	@if [ -d ../Knowledge3D.local/mr ]; then \
+		echo "Tier 1 (core):"; \
+		du -sh ../Knowledge3D.local/mr/knowledge3d/cranium/fused_head.py 2>/dev/null || echo "  Not compiled"; \
+		du -sh ../Knowledge3D.local/mr/knowledge3d/cranium/ptx 2>/dev/null || echo "  Not compiled"; \
+		echo "Tier 2 (trainers):"; \
+		du -sh ../Knowledge3D.local/mr/knowledge3d/tools/phase25 2>/dev/null || echo "  Not compiled"; \
+		echo "Total MR size:"; \
+		du -sh ../Knowledge3D.local/mr; \
+	else \
+		echo "MR directory not found. Run 'make compile-mr-core' first."; \
+	fi
 
 .PHONY: session-80k-long build-120k session-120k-medium
 

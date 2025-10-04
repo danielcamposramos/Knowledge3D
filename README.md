@@ -1,78 +1,193 @@
 # Knowledge3D: Spatial, Social, Sentient Knowledge
 
-> Making knowledge navigable energy in shared 3D spaces where humans and AIs coexist. MVP Achieved: Decentralized AGI Path Proven.
+> **Transforming abstract knowledge into navigable 3D space where humans and AI avatars coexist.**
+> Building the first working AGI substrate through embodied cognition and spatial memory.
 
-[![status](https://img.shields.io/badge/status-MVP-green) ![pre-alpha](https://img.shields.io/badge/version-0.1.0-blue) [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE)
+[![status](https://img.shields.io/badge/status-Phase_B_Active-green) ![version](https://img.shields.io/badge/version-0.3.0--alpha-blue) [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE) [![FMEAI](https://img.shields.io/badge/Philosophy-FMEAI-purple)](docs/PHILOSOPHY.md)
 
-> **New to K3D? Start here: [`The K3D Vision: A Unified Framework`](docs/VISION.md)**
->
-> This core document outlines the project's vision, architecture, roadmap, and contributor guidelines in one place.
->
-> For the unified multimodal core (Cranium), see `docs/CRANIUM.md`.
-> For the single unified head (all modalities inside Cranium), see `docs/CRANIUM_CORE.md`.
-> For the dual-space memory and tablet workflow, see `docs/HOUSE_GALAXY_TABLET.md`.
-> For OSI‑style doors and addressing, see `docs/DOORS_AND_NETWORK.md`.
-> For vector‑native diaries, see `docs/DIARY.md`.
-> For training directives (prompt hygiene, timestamps, embodiment), see `docs/TRAINING_DIRECTIVES.md`.
-> For local hygiene tasks, see `docs/MAINTENANCE.md`.
-> For environment rules on Debian, see `docs/ENV_POLICY.md`.
-> For the end‑to‑end ingest/build operator steps, see `docs/RUNBOOK_MULTIMODAL_50K.md`.
-> For curated public datasets, see `docs/DATASETS_CATALOG.md`.
-> For scene generation references (DreamFusion, HunyuanWorld), see `docs/SCENE_GEN_INSPIRATION.md`.
-> For client roles, see `docs/DUAL_CLIENTS.md` (no toggle; tailored experiences).
-> For nightly consolidation, see `docs/SLEEP_COMPUTE.md`.
+---
 
-## Vision
+## 🎯 The K3D Vision
 
-Current 2D interfaces trap knowledge on flat screens, separating human intuition from AI computation. K3D turns knowledge into spatial, social, and sentient experiences. Humans and AI avatars collaborate inside persistent 3D memory palaces, sharing identical essence across different substrates.
+**The Problem**: Contemporary AI suffers from "digital amnesia." Linear context windows create a "flat scroll" model where knowledge vanishes once it leaves the active window. This prevents robust, persistent understanding.
 
-Benefits include:
-- Shared understanding through dual representations of every object.
-- Natural collaboration via resonance between human and AI energy patterns.
-- Persistent houses and galaxy memories that evolve through interaction.
-- Embodied cognition: the AI avatar lives inside the House, perceiving rooms, artifacts, and doors the way a child learns its surroundings, while the Galaxy remains an introspective “brain view” the avatar opens only during focused reasoning.
+**The Solution**: K3D externalizes knowledge into a **persistent 3D spatial environment** where:
+- **Spatial proximity = Semantic relation** (nearby in space = related in meaning)
+- **Dual memory** (Galaxy RAM + House persistent storage) prevents catastrophic forgetting
+- **Embodied AI agents** navigate knowledge like humans navigate cities
+- **Dual clients** let humans see rich 3D visuals while AI accesses raw embeddings
 
-## Cognitive House Illustration
+> **"Minecraft for Cognition"** — where knowledge isn't stored, but *embodied* as explorable structures.
 
-The Cognitive House depicts the AI Avatar operating within a shared human–AI memory environment. This concept anchors K3D’s “House (memory) + Cranium (processing) + Logic Layer (models)” framework.
+---
+
+## 🏗️ Architecture at a Glance
 
 ![Cognitive House](docs/images/cognitive_house.png)
 
-Reference prompt: see `docs/images/cognitive_house_prompt.md`.
+**Figure**: The AI Avatar architecture. The **House** is persistent memory (long-term storage), the **Cranium** processes active thoughts (GPU-native), and the **Logic Layer** hosts swappable AI models.
 
-### Avatar Workshop Close-up
+### Core Components
 
-Close-up of the avatar in the workshop facing a labeled network door, revealing the inner galaxy during focused reasoning.
+| Component | Analogy | Purpose |
+|-----------|---------|---------|
+| **Galaxy** | Working RAM | High-dimensional embeddings for active reasoning; volatile, repopulated per session |
+| **House** | Persistent SSD | Consolidated knowledge as 3D objects (books, trees, artifacts); evolves through sleep cycles |
+| **Museum** | Cold Archive | Deprecated artifacts kept for audit trails and error analysis |
+| **Cranium Core** | GPU/CPU | Single unified multimodal head (text, image, audio, video, 3D) with PTX kernels |
+| **Memory Tablet** | API Bridge | Avatar's interface to search House, stream to Galaxy, access tools (browsers, VMs, MCP) |
 
-![Avatar Workshop Close-up](docs/images/avatar_workshop.png)
+### Dual-Client Paradigm
 
-Reference prompt: see `docs/images/avatar_workshop_prompt.md`.
+- **Human Client**: Game-like 3D viewer with textures, chat UI (mIRC-inspired), and interactive objects
+- **AI Client**: Perceives raw vector embeddings via `extras.k3d.embeddingsView` for GPU-native reasoning
 
-## Technical Overview
+**One reality, two perceptions** — humans see books with pages; AI sees embedding vectors.
 
-- **Three-tier Fog Computing**: Edge devices, regional fog nodes, and a cloud backbone coordinate processing to keep latency under 100ms.
-- **Dual-Client Rendering**: AI clients access full embeddings while human clients see rich 3D visuals. One unified Galaxy shows all knowledge as stars; consolidated knowledge materializes as 3D objects (books, trees, papers) inside the House asset.
-- **Spatial Databases**: Knowledge is stored in 3D coordinates with semantic metadata, enabling geometry and meaning to coexist.
-- **Training Through Observation**: Embodied models learn by watching behavior in shared environments, similar to human developmental learning.
-- **Knowledge Gardens**: An inner greenhouse where ontology trees (roots→branches→leaves) organize crystallized knowledge with explicit parent→child edges.
-- **Memory Tablet & Dual-Space Memory**: The avatar carries a persistent tablet that bridges Galaxy (active RAM) and House (persistent disk). The tablet can stream consolidated artifacts into the Galaxy on demand, reach deprecated items in the Learning Museum, and embed a lightweight browser for legacy web content. Sleep-time compute rebuilds both the house index and PTX learning memory so the fused head consults house knowledge before language galaxies. See `docs/HOUSE_GALAXY_TABLET.md`.
+---
 
-## Getting Started
+## 📚 Documentation Quick Links
+
+> **New to K3D?** Start with [`docs/VISION.md`](docs/VISION.md) for the unified framework overview.
+
+### Core Architecture
+- **[Cranium Core](docs/CRANIUM_CORE.md)**: Single unified multimodal head (all modalities GPU-native, no external LLM wrappers)
+- **[House/Galaxy/Tablet Memory](docs/HOUSE_GALAXY_TABLET.md)**: Dual-space memory architecture and tablet workflow
+- **[Roadmap](docs/ROADMAP.md)**: Phase A→D progression toward production AGI MVP
+
+### Data & Training
+- **[Training Directives](docs/TRAINING_DIRECTIVES.md)**: Prompt hygiene, timestamps, embodiment rules
+- **[Datasets Catalog](docs/DATASETS_CATALOG.md)**: Curated public datasets for multimodal training
+- **[Runbook: Multimodal 50K](docs/RUNBOOK_MULTIMODAL_50K.md)**: End-to-end ingest/build workflow
+
+### Advanced Features
+- **[Doors & Network](docs/DOORS_AND_NETWORK.md)**: OSI-style addressing (`k3d://rx,ry,rz:port@x,y,z?label=...`)
+- **[Diary System](docs/DIARY.md)**: AI-only vector-native reflection logs
+- **[Sleep Compute](docs/SLEEP_COMPUTE.md)**: Nightly consolidation (Galaxy → House)
+- **[Dual Code Strategy](docs/DUAL_CODE_STRATEGY.md)**: HR/MR optimization for multi-instance runs
+- **[Deprecations](docs/DEPRECATIONS.md)**: Legacy patterns (sidecar `.k3d`, external LLM wrappers, CPU fallbacks)
+
+### Development
+- **[Agent Guidelines](AGENTS.md)**: AI agent development protocol
+- **[Local Environment](docs/LOCAL_ENV.md)**: Hardware/GPU setup, Conda environments
+- **[Migration to v3](docs/MIGRATION_V3.md)**: Sidecar → embedded glTF conversion
+
+---
+
+## 🚀 Quick Start
 
 ### Prerequisites
-- Python 3.8+
-- Node.js 16+
+- **Python 3.8+** (Conda environment recommended; see `docs/ENV_POLICY.md`)
+- **Node.js 16+** (for 3D viewer)
+- **NVIDIA GPU with CUDA** (required for PTX kernels; no CPU fallback for core runs)
 
 ### Installation
+
 ```bash
+# Clone the repository
 git clone https://github.com/danielcamposramos/Knowledge3D.git
 cd Knowledge3D
+
+# Install Python package
 pip install -e .
-cd viewer
-npm install
+
+# Install viewer dependencies
+cd viewer && npm install
 ```
 
-### First Prototype (Unified Galaxy)
+### Build Your First Galaxy
+
+```bash
+# Generate a small balanced galaxy (text + 3D shapes)
+export BASE=../Knowledge3D.local/datasets
+
+# 1) Generate topic-coherent text via Ollama
+scripts/k3d_env.sh run python -m knowledge3d.tools.gen_text_ollama \
+  --ollama http://localhost:11434 --model exaone3.5:latest \
+  --topics "animals,sports,vehicles" --n 60 \
+  --out $BASE/sample_text.txt
+
+# 2) Convert text to glTF with embeddings
+scripts/k3d_env.sh run python -m k3dgen \
+  --text $BASE/sample_text.txt \
+  --gltf viewer/public/text_sample.glb \
+  --k 10 --reducer umap \
+  --model sentence-transformers/all-MiniLM-L6-v2
+
+# 3) Launch the viewer
+cd viewer && npm run dev
+# Open http://localhost:5173 and press Enter to chat
+```
+
+### Live Mode (AI Avatar + Chat)
+
+```bash
+# Start the WebSocket bridge (choose k3dml Conda environment)
+export K3D_CONDA_ENV=k3dml
+scripts/k3d_env.sh run python -m knowledge3d.bridge.live_server --port 8787
+
+# In viewer: navigate to http://localhost:5173/?ws=ws://localhost:8787
+# Press Enter, then type:
+#   goto animals        # Navigate to semantic cluster
+#   /brain reflect      # Summarize short-term memory
+#   /diary read         # Read AI's reflection diary
+```
+
+---
+
+## 🧠 Technical Deep Dive
+
+### GPU-Native PTX Architecture
+
+K3D is **GPU-only by design**. All reasoning happens through CUDA PTX kernels:
+
+- **RPN Calculator**: Reverse Polish Notation for deterministic math (no hallucination drift)
+- **Geometry Generator**: Prompt → 3D shape via semantic hashing + PTX kernel compilation
+- **Modality Extractors**: Text/image/audio/video features computed on-GPU, embedded into 256D unified space
+- **Cosine Search**: Top-K neighbor retrieval via custom CUDA kernels (no FAISS dependency)
+
+**Why PTX?** Sub-100ms end-to-end latency; eliminates CPU bottlenecks; enables auditable reasoning chains.
+
+### Embedded glTF Format
+
+All knowledge lives in **self-contained `.glb` files**:
+
+```json
+{
+  "meshes": [{
+    "primitives": [{
+      "extras": {
+        "k3d": {
+          "ids": ["node_1", "node_2", ...],
+          "vectorsView": 0,          // BufferView index for 3D coords
+          "embeddingsView": 1,       // BufferView index for embeddings
+          "embeddingDims": 256,      // Embedding dimensionality
+          "metadata": [...],         // Labels, timestamps, provenance
+          "neighbors": [[...], ...]  // Adjacency list (k-NN graph)
+        }
+      }
+    }]
+  }]
+}
+```
+
+**Benefits**: Geometry + semantics travel together; dual clients read from same buffers; no sidecar files.
+
+### Sleep-Time Consolidation
+
+Every training cycle, the **Sleep Compute** pipeline:
+1. Scans Galaxy (volatile RAM) for validated patterns
+2. Materializes stable knowledge into House objects (books, trees, learning insights)
+3. Relocates superseded artifacts to Museum (cold archive)
+4. Rebuilds PTX-ready indices so the fused head queries House **before** language models
+
+This prevents catastrophic forgetting and builds cumulative, structured intelligence.
+
+---
+
+## 🧪 Advanced Workflows
+
+### Balanced Galaxy (Multimodal)
 Build per‑modality GLBs and then a single Galaxy GLB; open the viewer and press Enter to chat.
 ```bash
 # Build the unified galaxy (skips missing datasets gracefully)
