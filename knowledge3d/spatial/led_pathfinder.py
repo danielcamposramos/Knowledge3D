@@ -48,6 +48,18 @@ from knowledge3d.cranium.ptx.ptx_loader import load_cu_kernel
 
 _logger = logging.getLogger(__name__)
 
+# Load L2 distance kernel (replaces cp.linalg.norm)
+_L2_DIST_KERNEL = None
+
+def _get_l2_dist_kernel():
+    """Lazy-load L2 distance kernel."""
+    global _L2_DIST_KERNEL
+    if _L2_DIST_KERNEL is None:
+        _L2_DIST_KERNEL = load_cu_kernel(
+            "knowledge3d/cranium/ptx/l2_dist_warp.cu"
+        ).get_function("warp_l2_dist")
+    return _L2_DIST_KERNEL
+
 
 # Kimi's hard limits (L2 cache optimization)
 KERNEL_SIZE_LIMIT_BYTES = 49152  # 48KB hard limit
@@ -136,10 +148,23 @@ class DependencyKernel:
         dst_emb = embeddings_gpu[dst_idx]
         similarities = (src_emb * dst_emb).sum(axis=1)  # (E,)
 
-        # Compute geometric distances
+        # Compute geometric distances using static PTX kernel (Phase 2.1)
         src_pos = positions_gpu[src_idx]
         dst_pos = positions_gpu[dst_idx]
-        distances = cp.linalg.norm(src_pos - dst_pos, axis=1)  # (E,)
+
+        # Replace cp.linalg.norm with L2 distance kernel (eliminates CuPy JIT)
+        edge_count = int(src_pos.shape[0])
+        distances = cp.zeros(edge_count, dtype=cp.float32)
+
+        l2_kernel = _get_l2_dist_kernel()
+        threads_per_block = 256
+        blocks = (edge_count + threads_per_block - 1) // threads_per_block
+
+        l2_kernel(
+            (blocks,), (threads_per_block,),
+            (src_pos.data.ptr, dst_pos.data.ptr,
+             cp.uint32(edge_count), distances.data.ptr)
+        )
 
         # Phase 1: Find bridges (articulation edges)
         bridge_mask = similarities > similarity_threshold
@@ -154,12 +179,26 @@ class DependencyKernel:
             highway_sim = similarities[highway_mask]
             highway_dist = distances[highway_mask]
 
-            # Combine bridges + highways
-            filtered_edges = cp.concatenate([bridge_edges, highway_edges])
-            filtered_sim = cp.concatenate([bridge_sim, highway_sim])
-            filtered_dist = cp.concatenate([bridge_dist, highway_dist])
+            # Combine bridges + highways using pre-allocation (Phase 2.2, eliminates cp.concatenate)
+            bridge_count = int(bridge_edges.shape[0])
+            highway_count = int(highway_edges.shape[0])
+            total_count = bridge_count + highway_count
 
-            _logger.info(f"Added {int(highway_mask.sum())} semantic highways (τ={SEMANTIC_HIGHWAY_THRESHOLD})")
+            filtered_edges = cp.zeros((total_count, 2), dtype=cp.uint32)
+            filtered_sim = cp.zeros(total_count, dtype=cp.float32)
+            filtered_dist = cp.zeros(total_count, dtype=cp.float32)
+
+            # Copy bridges first
+            filtered_edges[:bridge_count] = bridge_edges
+            filtered_sim[:bridge_count] = bridge_sim
+            filtered_dist[:bridge_count] = bridge_dist
+
+            # Copy highways second
+            filtered_edges[bridge_count:] = highway_edges
+            filtered_sim[bridge_count:] = highway_sim
+            filtered_dist[bridge_count:] = highway_dist
+
+            _logger.info(f"Added {highway_count} semantic highways (τ={SEMANTIC_HIGHWAY_THRESHOLD})")
         else:
             filtered_edges = bridge_edges
             filtered_sim = bridge_sim
