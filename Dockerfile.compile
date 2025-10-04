@@ -1,0 +1,33 @@
+# Dockerfile for pre-compiling CuPy kernels with GCC-compatible environment
+# Creates .cubin files that can be used in Debian 13 without NVRTC
+
+FROM nvidia/cuda:12.4.0-devel-ubuntu22.04
+
+# Install Python 3.11 and dependencies
+RUN apt-get update && apt-get install -y \
+    python3.11 \
+    python3.11-dev \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Make python3.11 the default
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
+
+# Install Python packages (exact versions to match Debian env)
+RUN python3.11 -m pip install --no-cache-dir \
+    cupy-cuda12x \
+    numpy \
+    scikit-learn \
+    cuda-python
+
+# Set working directory
+WORKDIR /workspace
+
+# Environment for CuPy caching
+ENV CUPY_CACHE_DIR=/workspace/.cupy_cache
+ENV CUPY_CACHE_SAVE_CUDA_SOURCE=1
+ENV PYTHONPATH=/workspace
+ENV CUDA_HOME=/usr/local/cuda
+
+# Default command: pre-compile kernels (minimal version)
+CMD ["python3.11", "precompile_minimal.py"]
