@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 import math
+import os
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -35,9 +36,13 @@ except Exception as exc:  # pragma: no cover
 if CUPY_AVAILABLE:
     from knowledge3d.spatial.morton_octree import MortonOctree
     from knowledge3d.spatial.led_pathfinder import LEDPathfinder
+    from knowledge3d.spatial.domain_splitter import SemanticDomainSplitter
+    from knowledge3d.spatial.multi_domain_navigator import MultiDomainNavigator
 else:  # pragma: no cover - fall back to placeholders so imports succeed
     MortonOctree = None  # type: ignore
     LEDPathfinder = None  # type: ignore
+    SemanticDomainSplitter = None  # type: ignore
+    MultiDomainNavigator = None  # type: ignore
 
 
 _logger = logging.getLogger(__name__)
@@ -53,6 +58,7 @@ class SemanticNavigator:
         k_neighbors: int = 8,
         similarity_threshold: float = 0.7,
         enable_semantic_highways: bool = True,
+        nav_mode: Optional[str] = None,
     ) -> None:
         if not CUPY_AVAILABLE:
             raise RuntimeError(
@@ -63,6 +69,9 @@ class SemanticNavigator:
         self.k_neighbors = int(max(1, k_neighbors))
         self.similarity_threshold = float(similarity_threshold)
         self.enable_semantic_highways = bool(enable_semantic_highways)
+
+        # Phase 3: Strategy pattern for multi-domain navigation
+        self.nav_mode = nav_mode or os.getenv("K3D_NAV_MODE", "auto")
 
         self._glb_path: Optional[Path] = None
         self._glb_mtime: Optional[float] = None
@@ -79,6 +88,10 @@ class SemanticNavigator:
         self.octree: Optional[MortonOctree] = None
         self.pathfinder: Optional[LEDPathfinder] = None
         self._kernel_built: bool = False
+
+        # Phase 3: Multi-domain navigator (strategy pattern)
+        self.multi_domain_navigator: Optional[MultiDomainNavigator] = None
+        self._use_multi_domain: bool = False
 
     # ------------------------------------------------------------------
     # Loading utilities
@@ -215,7 +228,7 @@ class SemanticNavigator:
         beta: float = 0.3,
         max_path_length: int = 512,
     ) -> Tuple[List[str], float]:
-        """Compute semantic path between two labels using LED-A*."""
+        """Compute semantic path between two labels using LED-A* (strategy pattern)."""
         start_idx = self._resolve_label(start_label)
         if start_idx is None:
             raise ValueError(f"Unknown start label: {start_label}")
@@ -224,17 +237,28 @@ class SemanticNavigator:
             raise ValueError(f"Unknown goal label: {goal_label}")
 
         self._ensure_kernel()
-        assert self.pathfinder is not None
 
-        path_indices, cost = self.pathfinder.find_path(
-            start_idx,
-            goal_idx,
-            alpha=alpha,
-            beta=beta,
-            max_path_length=max_path_length,
-        )
-        labels = [self.labels[i] for i in path_indices]
-        return labels, cost
+        # Phase 3: Delegate to appropriate backend
+        if self._use_multi_domain and self.multi_domain_navigator is not None:
+            # Multi-domain navigation (>1000 nodes)
+            return self.multi_domain_navigator.navigate(
+                start_label,
+                goal_label,
+                alpha=alpha,
+                beta=beta
+            )
+        else:
+            # Monolithic navigation (<1000 nodes)
+            assert self.pathfinder is not None
+            path_indices, cost = self.pathfinder.find_path(
+                start_idx,
+                goal_idx,
+                alpha=alpha,
+                beta=beta,
+                max_path_length=max_path_length,
+            )
+            labels = [self.labels[i] for i in path_indices]
+            return labels, cost
 
     def ensure_octree(self) -> None:
         """Public wrapper so callers can prime the octree without triggering kernel builds."""
@@ -320,6 +344,25 @@ class SemanticNavigator:
         if self.positions_gpu is None or self.embeddings_cpu is None:
             raise RuntimeError("Navigator missing positions/embeddings")
         self._ensure_octree()
+
+        # Phase 3: Determine navigation strategy
+        num_nodes = len(self.labels)
+        use_multi_domain = (
+            self.nav_mode == "multi" or
+            (self.nav_mode == "auto" and num_nodes > 1000)
+        )
+
+        if use_multi_domain:
+            _logger.info(f"Using multi-domain navigation for {num_nodes} nodes")
+            self._build_multi_domain_kernel()
+        else:
+            _logger.info(f"Using monolithic navigation for {num_nodes} nodes")
+            self._build_monolithic_kernel()
+
+        self._kernel_built = True
+
+    def _build_monolithic_kernel(self) -> None:
+        """Build single LED-A* kernel (for <1000 nodes)."""
         if self.pathfinder is None:
             self.pathfinder = LEDPathfinder()
 
@@ -331,7 +374,36 @@ class SemanticNavigator:
             similarity_threshold=self.similarity_threshold,
             enable_semantic_highways=self.enable_semantic_highways,
         )
-        self._kernel_built = True
+
+    def _build_multi_domain_kernel(self) -> None:
+        """Build multi-domain navigator with semantic clustering (Phase 3)."""
+        edges = self._build_edges_from_octree()
+        edges_gpu = cp.asarray(edges, dtype=cp.uint32)
+
+        # Run semantic domain splitter
+        splitter = SemanticDomainSplitter(
+            sim_threshold=self.similarity_threshold,
+            damping=0.9
+        )
+
+        domain_ids, bridges, domains = splitter.split_domains(
+            self.embeddings_gpu,
+            self.positions_gpu,
+            edges_gpu,
+            kb_limit=48
+        )
+
+        # Create multi-domain navigator
+        self.multi_domain_navigator = MultiDomainNavigator(
+            domains=domains,
+            bridges=bridges,
+            embeddings_gpu=self.embeddings_gpu,
+            labels=self.labels,
+            domain_ids=domain_ids
+        )
+
+        self._use_multi_domain = True
+        _logger.info(f"✓ Multi-domain kernel: {len(domains)} domains, {len(bridges)} bridges")
 
     def _build_edges_from_octree(self) -> np.ndarray:
         assert self.positions_gpu is not None and self.positions_cpu is not None
