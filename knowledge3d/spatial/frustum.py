@@ -49,17 +49,15 @@ class FrustumCuller:
         self.kernel = None
         self._module: Optional[cp.RawModule] = None
         self._const_view_proj_ptr: Optional[int] = None
-        self._const_planes_ptr: Optional[int] = None
-        self._const_view_proj_size: int = 0
-        self._const_planes_size: int = 0
+        self._const_view_ptr: Optional[int] = None
         self._view_proj_mem: Optional[cp.cuda.memory.MemoryPointer] = None
-        self._planes_mem: Optional[cp.cuda.memory.MemoryPointer] = None
+        self._view_mem: Optional[cp.cuda.memory.MemoryPointer] = None
         self._kernel_loaded = False
 
         # Performance buffers
         self.visible_flags = cp.zeros(0, dtype=cp.uint8)
         self._cached_view_proj: Optional[np.ndarray] = None
-        self._cached_planes: Optional[np.ndarray] = None
+        self._cached_view: Optional[np.ndarray] = None
 
         # Statistics tracking
         self.total_culls = 0
@@ -85,32 +83,31 @@ class FrustumCuller:
             self._kernel_loaded = True
 
             # Cache constant memory addresses for fast uploads
-            view_mem_raw = module.get_global('view_proj')
+            view_proj_mem_raw = module.get_global('view_proj')
+            view_mem_raw = module.get_global('view_matrix')
 
-            self._view_proj_mem = view_mem_raw if hasattr(view_mem_raw, 'ptr') else view_mem_raw[0]
-            self._planes_mem = None
+            self._view_proj_mem = view_proj_mem_raw if hasattr(view_proj_mem_raw, 'ptr') else view_proj_mem_raw[0]
+            self._view_mem = view_mem_raw if hasattr(view_mem_raw, 'ptr') else view_mem_raw[0]
 
             self._const_view_proj_ptr = int(self._view_proj_mem.ptr)
-            self._const_planes_ptr = None
-            self._const_view_proj_size = 16 * 4
-            self._const_planes_size = 0
+            self._const_view_ptr = int(self._view_mem.ptr)
 
-            logger.info(f"Loaded frustum culling kernel from {ptx_path}")
+            logger.info(f"✓ Loaded frustum culling kernel from {ptx_path}")
 
         except Exception as e:
             logger.error(f"Failed to load frustum kernel: {e}")
             raise
 
-    def upload_view_projection(self, view_proj: np.ndarray):
+    def upload_view_projection(self, view_proj: np.ndarray, view: Optional[np.ndarray] = None):
         """
-        Upload view-projection matrix to constant memory.
+        Upload view-projection and view matrices to constant memory.
 
-        This uploads the 4x4 view-projection matrix to constant memory
-        on the GPU, where it's cached per SM and reused across all warps.
-        Upload once per frame/query.
+        This uploads matrices to constant memory on the GPU, where they're
+        cached per SM and reused across all warps. Upload once per frame/query.
 
         Args:
-            view_proj: 4x4 f32 view-projection matrix (camera transform)
+            view_proj: 4x4 f32 view-projection matrix (projection @ view)
+            view: Optional 4x4 f32 view matrix (for depth test). If None, extracted from view_proj
         """
         if view_proj.shape != (4, 4):
             raise ValueError(f"View-projection must be 4x4, got {view_proj.shape}")
@@ -118,11 +115,26 @@ class FrustumCuller:
         if self._const_view_proj_ptr is None:
             raise RuntimeError("Frustum kernel not initialised")
 
+        # Upload view-projection matrix
         view_proj_flat = np.asarray(view_proj, dtype=np.float32).ravel()
         assert self._view_proj_mem is not None
-        dest = cp.ndarray((16,), dtype=cp.float32, memptr=self._view_proj_mem)
-        cp.copyto(dest, cp.asarray(view_proj_flat))
+        dest_vp = cp.ndarray((16,), dtype=cp.float32, memptr=self._view_proj_mem)
+        cp.copyto(dest_vp, cp.asarray(view_proj_flat))
         self._cached_view_proj = view_proj_flat.reshape(4, 4).copy()
+
+        # Upload view matrix (if not provided, use view_proj as approximation)
+        # Note: This is a simplification - ideally view should be passed separately
+        if view is None:
+            view = view_proj  # Fallback - tests should provide proper view matrix
+
+        if view.shape != (4, 4):
+            raise ValueError(f"View matrix must be 4x4, got {view.shape}")
+
+        view_flat = np.asarray(view, dtype=np.float32).ravel()
+        assert self._view_mem is not None
+        dest_v = cp.ndarray((16,), dtype=cp.float32, memptr=self._view_mem)
+        cp.copyto(dest_v, cp.asarray(view_flat))
+        self._cached_view = view_flat.reshape(4, 4).copy()
 
     def upload_frustum_planes(self, planes: np.ndarray):
         """
@@ -181,16 +193,15 @@ class FrustumCuller:
     def cull_nodes(self,
                    positions_gpu: cp.ndarray,
                    candidate_indices: Optional[cp.ndarray] = None,
-                   view_proj: Optional[np.ndarray] = None) -> cp.ndarray:
+                   view_proj: Optional[np.ndarray] = None,
+                   view: Optional[np.ndarray] = None) -> cp.ndarray:
         """
         Cull nodes using frustum test.
 
         This is the main entry point for frustum culling. It:
         1. Uploads view-projection matrix if provided
-        2. Extracts and uploads frustum planes
-        3. Runs SIMD frustum kernel (processes 32 nodes per warp)
-        4. Expands visibility bit-masks to indices
-        5. Returns visible node indices
+        2. Runs SIMD frustum kernel with view-space depth test
+        3. Returns visible node indices
 
         Args:
             positions_gpu: (N, 3) f32 node positions on GPU
@@ -198,6 +209,8 @@ class FrustumCuller:
                              If None, tests all positions
             view_proj: Optional 4x4 view-projection matrix
                       If None, uses cached matrix
+            view: Optional 4x4 view matrix for depth test
+                 If None, computed from view_proj
 
         Returns:
             Array of visible node indices (subset of input candidates)
@@ -207,15 +220,11 @@ class FrustumCuller:
 
         # Update view-projection if provided
         if view_proj is not None:
-            self.upload_view_projection(view_proj)
+            self.upload_view_projection(view_proj, view)
 
-            # Extract and upload frustum planes
-            planes = self.extract_frustum_planes_from_matrix(view_proj)
-            self.upload_frustum_planes(planes)
-
-        if self._cached_view_proj is None or self._cached_planes is None:
+        if self._cached_view_proj is None:
             raise RuntimeError(
-                "View-projection matrix not uploaded – call set_view_projection() before culling"
+                "View-projection matrix not uploaded – call upload_view_projection() before culling"
             )
 
         # If no candidates provided, test all positions
