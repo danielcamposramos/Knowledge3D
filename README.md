@@ -72,6 +72,12 @@
 - **[Local Environment](docs/LOCAL_ENV.md)**: Hardware/GPU setup, Conda environments
 - **[Migration to v3](docs/MIGRATION_V3.md)**: Sidecar → embedded glTF conversion
 
+### Collaboration Protocols
+- **[Multi-Vibe Coding Chain Case Studies](docs/reports/multi_vibe_chain/the_ghost_in_the_swarm_case_study.md)**: Emergent human–AI swarm coordination and kernel-splitting breakthroughs
+- **[Protocol Blueprint](docs/reports/multi_vibe_chain/the_multi_vibe_protocol_case_study.md)**: Ego-less orchestration method for chaining specialized AI contributors
+- **[Crew Report — 2025-10-04](docs/reports/multi_vibe_chain/multi_vibe_coding_in_chain_first_report_2025-10-04.md)**: First-hand account of the workflow in practice
+- **[Step 3 Chain Log](docs/reports/multi_vibe_chain/step3_multi_vibe_chain.txt)**: Raw handoff transcript that kicked off the current chain
+
 ---
 
 ## 🚀 Quick Start
