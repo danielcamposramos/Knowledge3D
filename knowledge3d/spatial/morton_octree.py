@@ -113,16 +113,22 @@ class MortonOctree:
         threads_per_block = 256
         blocks = (self.node_count + threads_per_block - 1) // threads_per_block
 
+        # Convert bbox values to scalars if they're CuPy arrays
+        bbox_min_0 = float(self.bbox_min[0].get()) if hasattr(self.bbox_min[0], 'get') else float(self.bbox_min[0])
+        bbox_min_1 = float(self.bbox_min[1].get()) if hasattr(self.bbox_min[1], 'get') else float(self.bbox_min[1])
+        bbox_min_2 = float(self.bbox_min[2].get()) if hasattr(self.bbox_min[2], 'get') else float(self.bbox_min[2])
+        bbox_size = float(self.bbox_size.get()) if hasattr(self.bbox_size, 'get') else float(self.bbox_size)
+
         self.compute_morton_kernel(
             (blocks,), (threads_per_block,),
             (
                 positions_gpu,
                 cp.uint32(self.node_count),
                 self.morton_codes,
-                cp.float32(self.bbox_min[0]),
-                cp.float32(self.bbox_min[1]),
-                cp.float32(self.bbox_min[2]),
-                cp.float32(self.bbox_size)
+                cp.float32(bbox_min_0),
+                cp.float32(bbox_min_1),
+                cp.float32(bbox_min_2),
+                cp.float32(bbox_size)
             )
         )
 
@@ -217,15 +223,20 @@ class MortonOctree:
             threads = 256
             blocks = (count + threads - 1) // threads
 
+            # Convert center values to scalars if they're CuPy arrays
+            center_0 = float(center[0].get()) if hasattr(center[0], 'get') else float(center[0])
+            center_1 = float(center[1].get()) if hasattr(center[1], 'get') else float(center[1])
+            center_2 = float(center[2].get()) if hasattr(center[2], 'get') else float(center[2])
+
             self.refine_kernel(
                 (blocks,), (threads,),
                 (
                     self.positions_gpu,
                     candidates,
                     cp.uint32(count),
-                    cp.float32(center[0]),
-                    cp.float32(center[1]),
-                    cp.float32(center[2]),
+                    cp.float32(center_0),
+                    cp.float32(center_1),
+                    cp.float32(center_2),
                     cp.float32(radius),
                     refined_buffer,
                     refined_count,

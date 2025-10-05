@@ -27,8 +27,12 @@ async def test_navigate():
         # Test /navigate command with the labels Codex used
         test_command = "/navigate from star_house_door_handle_precision_1758152373 to star_house_workshop_table_1758140410"
 
+        # Server expects JSON with type="chat" and text=command
+        message = json.dumps({"type": "chat", "text": test_command})
+
         print(f"\nSending command: {test_command}")
-        await websocket.send(test_command)
+        print(f"As JSON: {message}")
+        await websocket.send(message)
 
         # Wait for response (multiple messages might come)
         print("\nWaiting for response...")

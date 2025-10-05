@@ -480,11 +480,12 @@ class SemanticNavigator:
         return np.vstack(rows)
 
     def _derive_labels(self, raw_labels: List[str]) -> List[str]:
-        if raw_labels and len(raw_labels) == len(self.positions_cpu or []):
+        num_positions = len(self.positions_cpu) if self.positions_cpu is not None else 0
+        if raw_labels and len(raw_labels) == num_positions:
             labels = [str(lbl) for lbl in raw_labels]
         else:
             labels = []
-            for idx in range(len(self.positions_cpu or [])):
+            for idx in range(num_positions):
                 label = None
                 if idx < len(self.metadata):
                     meta = self.metadata[idx]
