@@ -47,11 +47,19 @@ class FrustumCuller:
         """
         self.enable_profiling = enable_profiling
         self.kernel = None
+        self._module: Optional[cp.RawModule] = None
+        self._const_view_proj_ptr: Optional[int] = None
+        self._const_planes_ptr: Optional[int] = None
+        self._const_view_proj_size: int = 0
+        self._const_planes_size: int = 0
+        self._view_proj_mem: Optional[cp.cuda.memory.MemoryPointer] = None
+        self._planes_mem: Optional[cp.cuda.memory.MemoryPointer] = None
         self._kernel_loaded = False
 
         # Performance buffers
-        self.visible_buffer = cp.zeros(32768, dtype=cp.uint32)  # Max candidates
-        self.mask_buffer = cp.zeros(1, dtype=cp.uint32)  # 32-bit visibility mask
+        self.visible_flags = cp.zeros(0, dtype=cp.uint8)
+        self._cached_view_proj: Optional[np.ndarray] = None
+        self._cached_planes: Optional[np.ndarray] = None
 
         # Statistics tracking
         self.total_culls = 0
@@ -70,16 +78,22 @@ class FrustumCuller:
             if not ptx_path.exists():
                 raise FileNotFoundError(f"PTX kernel not found: {ptx_path}")
 
-            # Read PTX source
-            with open(ptx_path, 'r') as f:
-                ptx_code = f.read()
-
-            # Load as CuPy RawModule
-            module = cp.RawModule(code=ptx_code, backend='nvrtc',
-                                 options=('--gpu-architecture=sm_80',))
+            module = cp.RawModule(path=str(ptx_path))
 
             self.kernel = module.get_function('warp_frustum_cull_simd')
+            self._module = module
             self._kernel_loaded = True
+
+            # Cache constant memory addresses for fast uploads
+            view_mem_raw = module.get_global('view_proj')
+
+            self._view_proj_mem = view_mem_raw if hasattr(view_mem_raw, 'ptr') else view_mem_raw[0]
+            self._planes_mem = None
+
+            self._const_view_proj_ptr = int(self._view_proj_mem.ptr)
+            self._const_planes_ptr = None
+            self._const_view_proj_size = 16 * 4
+            self._const_planes_size = 0
 
             logger.info(f"Loaded frustum culling kernel from {ptx_path}")
 
@@ -101,14 +115,14 @@ class FrustumCuller:
         if view_proj.shape != (4, 4):
             raise ValueError(f"View-projection must be 4x4, got {view_proj.shape}")
 
-        # Flatten to row-major f32 array (64 bytes)
-        view_proj_flat = view_proj.astype(np.float32).flatten()
+        if self._const_view_proj_ptr is None:
+            raise RuntimeError("Frustum kernel not initialised")
 
-        # Upload to constant memory symbol "view_proj"
-        # Note: CuPy doesn't have direct cudaMemcpyToSymbol binding,
-        # so we'll pass as kernel parameter for now
-        # TODO: Add proper constant memory upload via CUDA driver API
-        self._cached_view_proj = cp.asarray(view_proj_flat)
+        view_proj_flat = np.asarray(view_proj, dtype=np.float32).ravel()
+        assert self._view_proj_mem is not None
+        dest = cp.ndarray((16,), dtype=cp.float32, memptr=self._view_proj_mem)
+        cp.copyto(dest, cp.asarray(view_proj_flat))
+        self._cached_view_proj = view_proj_flat.reshape(4, 4).copy()
 
     def upload_frustum_planes(self, planes: np.ndarray):
         """
@@ -124,11 +138,8 @@ class FrustumCuller:
         if planes.shape != (6, 4):
             raise ValueError(f"Frustum planes must be (6, 4), got {planes.shape}")
 
-        # Flatten to f32 array (96 bytes)
-        planes_flat = planes.astype(np.float32).flatten()
-
-        # Upload to constant memory symbol "frustum_planes"
-        self._cached_planes = cp.asarray(planes_flat)
+        planes_flat = np.asarray(planes, dtype=np.float32).ravel()
+        self._cached_planes = planes_flat.reshape(6, 4).copy()
 
     def extract_frustum_planes_from_matrix(self, view_proj: np.ndarray) -> np.ndarray:
         """
@@ -202,6 +213,11 @@ class FrustumCuller:
             planes = self.extract_frustum_planes_from_matrix(view_proj)
             self.upload_frustum_planes(planes)
 
+        if self._cached_view_proj is None or self._cached_planes is None:
+            raise RuntimeError(
+                "View-projection matrix not uploaded – call set_view_projection() before culling"
+            )
+
         # If no candidates provided, test all positions
         if candidate_indices is None:
             candidate_indices = cp.arange(len(positions_gpu), dtype=cp.uint32)
@@ -216,66 +232,58 @@ class FrustumCuller:
             end_event = cp.cuda.Event()
             start_event.record()
 
-        # Process candidates in batches of 32 (warp size)
-        visible_indices = []
+        if candidate_indices.dtype != cp.uint32:
+            candidate_indices = candidate_indices.astype(cp.uint32, copy=False)
 
-        for batch_start in range(0, n_candidates, 32):
-            batch_end = min(batch_start + 32, n_candidates)
-            batch_size = batch_end - batch_start
-            batch_indices = candidate_indices[batch_start:batch_end]
+        if self.visible_flags.size < n_candidates:
+            self.visible_flags = cp.zeros(int(n_candidates * 1.1) + 32, dtype=cp.uint8)
+        else:
+            self.visible_flags[:n_candidates] = 0
 
-            # Gather positions for this batch (coalesced)
-            batch_positions = positions_gpu[batch_indices]
+        block_size = 128
+        grid_size = ((n_candidates + block_size - 1) // block_size,)
 
-            # Pad to 32 if needed (kernel expects full warp)
-            if batch_size < 32:
-                padding = cp.zeros((32 - batch_size, 3), dtype=cp.float32)
-                batch_positions = cp.vstack([batch_positions, padding])
+        if self.enable_profiling:
+            start_event = cp.cuda.Event()
+            end_event = cp.cuda.Event()
+            start_event.record()
 
-            # Reset mask buffer
-            self.mask_buffer[0] = 0
-
-            # Launch kernel (1 warp = 32 threads)
-            block_size = (32,)
-            grid_size = (1,)
-
-            # Note: Passing view_proj and planes as kernel params since
-            # CuPy doesn't expose cudaMemcpyToSymbol directly
-            # In production, would use CUDA driver API for constant memory
-            self.kernel(
-                grid_size,
-                block_size,
-                (
-                    batch_positions,      # node_positions
-                    cp.uint32(batch_size), # node_count
-                    self.mask_buffer      # visible_mask_out
-                )
+        self.kernel(
+            grid_size,
+            (block_size,),
+            (
+                positions_gpu,
+                candidate_indices,
+                np.uint32(n_candidates),
+                self.visible_flags
             )
+        )
 
-            # Read visibility mask (32 bits, 1 per lane)
-            mask = int(self.mask_buffer[0])
-
-            # Expand bit-mask to indices
-            for i in range(batch_size):
-                if mask & (1 << i):
-                    visible_indices.append(int(batch_indices[i]))
-
-        # End profiling
         if self.enable_profiling:
             end_event.record()
             end_event.synchronize()
             elapsed_ms = cp.cuda.get_elapsed_time(start_event, end_event)
-
             self.total_time_ms += elapsed_ms
-            self.total_culls += 1
-            self.total_input_nodes += n_candidates
-            self.total_output_nodes += len(visible_indices)
+        else:
+            elapsed_ms = 0.0
 
-            logger.debug(f"Frustum cull: {n_candidates} -> {len(visible_indices)} "
-                        f"({100.0 * len(visible_indices) / n_candidates:.1f}% visible) "
-                        f"in {elapsed_ms:.4f}ms")
+        flags = self.visible_flags[:n_candidates]
+        visible_idx = cp.where(flags != 0)[0]
+        visible_indices = candidate_indices[visible_idx]
 
-        return cp.array(visible_indices, dtype=cp.uint32)
+        self.total_culls += 1
+        self.total_input_nodes += int(n_candidates)
+        self.total_output_nodes += int(visible_indices.size)
+        if self.enable_profiling:
+            logger.debug(
+                "Frustum cull: %d -> %d (%.1f%% visible) in %.4fms",
+                n_candidates,
+                int(visible_indices.size),
+                100.0 * float(visible_indices.size) / float(n_candidates),
+                elapsed_ms,
+            )
+
+        return visible_indices
 
     def cull_from_octree(self,
                         candidates_gpu: cp.ndarray,

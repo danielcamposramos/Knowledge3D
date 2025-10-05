@@ -1,180 +1,124 @@
 // knowledge3d/cranium/ptx/frustum_cull_simd.ptx
-// Kimi's SIMD bit-mask frustum culling kernel
-// Performance: ~20 cycles per warp (vs 36 with ballot approach)
-// Zero ballots, zero bar.sync, single mask write
+// SIMD frustum culling kernel using clip-space bounds tests (one thread per candidate)
 
-.version 8.0
+.version 7.8
 .target sm_80
 .address_size 64
 
-// Constant memory: View-projection matrix (4x4 f32 = 64B) + frustum planes (6x4 f32 = 96B)
-.const .align 16 .b8 view_proj[64];      // 4x4 f32 view-projection matrix
-.const .align 16 .b8 frustum_planes[96]; // 6x4 f32 plane equations (nx, ny, nz, d)
+.const .align 16 .f32 view_proj[16];
 
-// SIMD frustum culling: Each lane tests one node against 6 planes
-// Output: 32-bit visibility mask (1 bit per lane)
 .entry warp_frustum_cull_simd(
-    .param .u64 node_positions,    // Input: 32x3 f32 positions (coalesced)
-    .param .u32 node_count,        // Number of nodes (<= 32 per warp)
-    .param .u64 visible_mask_out   // Output: 32-bit mask (1 = visible)
+    .param .u64 positions_ptr,
+    .param .u64 candidates_ptr,
+    .param .u32 node_count,
+    .param .u64 visible_flags_ptr
 )
 {
-    // Register declarations
-    .reg .u32 lane, idx, mask, plane, bit;
+    .reg .pred p_inactive, p_cull;
+    .reg .u32 lane, block, block_dim;
+    .reg .u32 global_idx, count, cand_idx;
+    .reg .u64 pos_base, pos_ptr;
+    .reg .u64 cand_base, cand_ptr;
+    .reg .u64 flags_base, flag_ptr;
+    .reg .u64 offset;
     .reg .f32 x, y, z, w;
     .reg .f32 px, py, pz, pw;
-    .reg .f32 nx, ny, nz, d, dot;
-    .reg .f32 m00, m01, m02, m03;
-    .reg .f32 m10, m11, m12, m13;
-    .reg .f32 m20, m21, m22, m23;
-    .reg .f32 m30, m31, m32, m33;
-    .reg .pred inside, p0, p1;
-    .reg .u32 partner, partner_mask;
+    .reg .f32 row0x, row0y, row0z, row0w;
+    .reg .f32 row1x, row1y, row1z, row1w;
+    .reg .f32 row2x, row2y, row2z, row2w;
+    .reg .f32 row3x, row3y, row3z, row3w;
+    .reg .f32 neg_pw;
 
-    // Get lane ID (0-31)
-    mov.u32 lane, %laneid;
-    mov.u32 idx, lane;
+    mov.u32 lane, %tid.x;
+    mov.u32 block, %ctaid.x;
+    mov.u32 block_dim, %ntid.x;
 
-    // Early exit for lanes beyond node count
-    ld.param.u32 %r1, [node_count];
-    setp.ge.u32 p0, idx, %r1;
-    @p0 mov.u32 mask, 0;           // Culled
-    @p0 bra reduce;
+    mul.lo.u32 global_idx, block, block_dim;
+    add.u32 global_idx, global_idx, lane;
 
-    // Load node position (coalesced global memory access)
-    ld.param.u64 %rd1, [node_positions];
-    mul.wide.u32 %rd2, idx, 12;    // 12 bytes per position (3 x f32)
-    add.u64 %rd2, %rd1, %rd2;
+    ld.param.u32 count, [node_count];
+    setp.ge.u32 p_inactive, global_idx, count;
+    @p_inactive bra EXIT;
 
-    ld.global.f32 x, [%rd2 + 0];
-    ld.global.f32 y, [%rd2 + 4];
-    ld.global.f32 z, [%rd2 + 8];
+    ld.param.u64 cand_base, [candidates_ptr];
+    mul.wide.u32 offset, global_idx, 4;
+    add.u64 cand_ptr, cand_base, offset;
+    ld.global.u32 cand_idx, [cand_ptr];
+
+    ld.param.u64 pos_base, [positions_ptr];
+    mul.wide.u32 pos_ptr, cand_idx, 12;
+    add.u64 pos_ptr, pos_base, pos_ptr;
+
+    ld.global.f32 x, [pos_ptr + 0];
+    ld.global.f32 y, [pos_ptr + 4];
+    ld.global.f32 z, [pos_ptr + 8];
     mov.f32 w, 1.0;
 
-    // Load view-projection matrix from constant memory (cached per SM)
-    ld.const.f32 m00, [view_proj + 0];
-    ld.const.f32 m01, [view_proj + 4];
-    ld.const.f32 m02, [view_proj + 8];
-    ld.const.f32 m03, [view_proj + 12];
+    ld.const.v4.f32 {row0x, row0y, row0z, row0w}, [view_proj + 0];
+    ld.const.v4.f32 {row1x, row1y, row1z, row1w}, [view_proj + 16];
+    ld.const.v4.f32 {row2x, row2y, row2z, row2w}, [view_proj + 32];
+    ld.const.v4.f32 {row3x, row3y, row3z, row3w}, [view_proj + 48];
 
-    ld.const.f32 m10, [view_proj + 16];
-    ld.const.f32 m11, [view_proj + 20];
-    ld.const.f32 m12, [view_proj + 24];
-    ld.const.f32 m13, [view_proj + 28];
+    mul.f32 px, row0x, x;
+    fma.rn.f32 px, row0y, y, px;
+    fma.rn.f32 px, row0z, z, px;
+    fma.rn.f32 px, row0w, w, px;
 
-    ld.const.f32 m20, [view_proj + 32];
-    ld.const.f32 m21, [view_proj + 36];
-    ld.const.f32 m22, [view_proj + 40];
-    ld.const.f32 m23, [view_proj + 44];
+    mul.f32 py, row1x, x;
+    fma.rn.f32 py, row1y, y, py;
+    fma.rn.f32 py, row1z, z, py;
+    fma.rn.f32 py, row1w, w, py;
 
-    ld.const.f32 m30, [view_proj + 48];
-    ld.const.f32 m31, [view_proj + 52];
-    ld.const.f32 m32, [view_proj + 56];
-    ld.const.f32 m33, [view_proj + 60];
+    mul.f32 pz, row2x, x;
+    fma.rn.f32 pz, row2y, y, pz;
+    fma.rn.f32 pz, row2z, z, pz;
+    fma.rn.f32 pz, row2w, w, pz;
 
-    // Transform position: v' = proj * [x, y, z, 1]
-    // Row 0: px = m00*x + m01*y + m02*z + m03*w
-    mul.f32 px, m00, x;
-    fma.rn.f32 px, m01, y, px;
-    fma.rn.f32 px, m02, z, px;
-    fma.rn.f32 px, m03, w, px;
+    mul.f32 pw, row3x, x;
+    fma.rn.f32 pw, row3y, y, pw;
+    fma.rn.f32 pw, row3z, z, pw;
+    fma.rn.f32 pw, row3w, w, pw;
 
-    // Row 1: py = m10*x + m11*y + m12*z + m13*w
-    mul.f32 py, m10, x;
-    fma.rn.f32 py, m11, y, py;
-    fma.rn.f32 py, m12, z, py;
-    fma.rn.f32 py, m13, w, py;
+    // Default visible
+    mov.pred p_cull, 0;
 
-    // Row 2: pz = m20*x + m21*y + m22*z + m23*w
-    mul.f32 pz, m20, x;
-    fma.rn.f32 pz, m21, y, pz;
-    fma.rn.f32 pz, m22, z, pz;
-    fma.rn.f32 pz, m23, w, pz;
+    // w must be positive
+    setp.le.f32 p_cull, pw, 0.0;
+    @p_cull bra STORE_CULLED;
 
-    // Row 3: pw = m30*x + m31*y + m32*z + m33*w
-    mul.f32 pw, m30, x;
-    fma.rn.f32 pw, m31, y, pw;
-    fma.rn.f32 pw, m32, z, pw;
-    fma.rn.f32 pw, m33, w, pw;
+    neg.f32 neg_pw, pw;
 
-    // Perspective divide to NDC (normalized device coordinates)
-    div.approx.f32 px, px, pw;
-    div.approx.f32 py, py, pw;
-    div.approx.f32 pz, pz, pw;
+    // Left/right bounds: -pw <= px <= pw
+    setp.lt.f32 p_cull, px, neg_pw;
+    @p_cull bra STORE_CULLED;
+    setp.gt.f32 p_cull, px, pw;
+    @p_cull bra STORE_CULLED;
 
-    // Build bit-mask for 6 frustum planes (SIMD approach - no ballots!)
-    mov.u32 mask, 0x3F;  // Start with all 6 planes passed (0b111111)
-    mov.u32 plane, 0;
+    // Bottom/top bounds
+    setp.lt.f32 p_cull, py, neg_pw;
+    @p_cull bra STORE_CULLED;
+    setp.gt.f32 p_cull, py, pw;
+    @p_cull bra STORE_CULLED;
 
-plane_loop:
-    setp.ge.u32 p1, plane, 6;
-    @p1 bra reduce;
+    // Near/far bounds (OpenGL-style: -pw <= pz <= pw)
+    setp.lt.f32 p_cull, pz, neg_pw;
+    @p_cull bra STORE_CULLED;
+    setp.gt.f32 p_cull, pz, pw;
+    @p_cull bra STORE_CULLED;
 
-    // Load plane equation from constant memory: nx*x + ny*y + nz*z + d > 0 (inside)
-    mul.wide.u32 %rd3, plane, 16;  // 16 bytes per plane (4 x f32)
+    // Visible
+    ld.param.u64 flags_base, [visible_flags_ptr];
+    mul.wide.u32 offset, global_idx, 1;
+    add.u64 flag_ptr, flags_base, offset;
+    st.global.u8 [flag_ptr], 1;
+    bra EXIT;
 
-    ld.const.f32 nx, [frustum_planes + %rd3 + 0];
-    ld.const.f32 ny, [frustum_planes + %rd3 + 4];
-    ld.const.f32 nz, [frustum_planes + %rd3 + 8];
-    ld.const.f32 d,  [frustum_planes + %rd3 + 12];
+STORE_CULLED:
+    ld.param.u64 flags_base, [visible_flags_ptr];
+    mul.wide.u32 offset, global_idx, 1;
+    add.u64 flag_ptr, flags_base, offset;
+    st.global.u8 [flag_ptr], 0;
 
-    // Plane test: dot(normal, position) + d
-    mul.f32 dot, nx, px;
-    fma.rn.f32 dot, ny, py, dot;
-    fma.rn.f32 dot, nz, pz, dot;
-    add.rn.f32 dot, dot, d;
-
-    // Check if inside plane (dot > 0)
-    setp.gt.f32 inside, dot, 0.0;
-
-    // Clear bit if outside this plane
-    mov.u32 bit, 1;
-    shl.b32 bit, bit, plane;
-    @!inside not.b32 bit, bit;
-    @!inside and.b32 mask, mask, bit;
-
-    add.u32 plane, plane, 1;
-    bra plane_loop;
-
-reduce:
-    // Check if all 6 planes passed (mask == 0x3F means visible)
-    setp.eq.u32 inside, mask, 0x3F;
-    @inside mov.u32 mask, 1;
-    @!inside mov.u32 mask, 0;
-
-    // Shift mask to lane position
-    shl.b32 mask, mask, lane;
-
-    // Warp-level OR-reduce (single operation, no ballots!)
-    // Tree reduction: 32 lanes -> 16 -> 8 -> 4 -> 2 -> 1
-    xor.b32 partner, lane, 16;
-    shfl.sync.idx.b32 partner_mask, mask, partner, 0x1f, 0xffffffff;
-    or.b32 mask, mask, partner_mask;
-
-    xor.b32 partner, lane, 8;
-    shfl.sync.idx.b32 partner_mask, mask, partner, 0x1f, 0xffffffff;
-    or.b32 mask, mask, partner_mask;
-
-    xor.b32 partner, lane, 4;
-    shfl.sync.idx.b32 partner_mask, mask, partner, 0x1f, 0xffffffff;
-    or.b32 mask, mask, partner_mask;
-
-    xor.b32 partner, lane, 2;
-    shfl.sync.idx.b32 partner_mask, mask, partner, 0x1f, 0xffffffff;
-    or.b32 mask, mask, partner_mask;
-
-    xor.b32 partner, lane, 1;
-    shfl.sync.idx.b32 partner_mask, mask, partner, 0x1f, 0xffffffff;
-    or.b32 mask, mask, partner_mask;
-
-done:
-    // Lane 0 writes the final 32-bit visibility mask
-    setp.eq.u32 p0, lane, 0;
-    @!p0 bra exit;
-
-    ld.param.u64 %rd4, [visible_mask_out];
-    st.global.u32 [%rd4], mask;
-
-exit:
+EXIT:
     ret;
 }
