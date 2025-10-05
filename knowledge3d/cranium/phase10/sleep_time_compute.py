@@ -764,16 +764,27 @@ class SleepTimeCompute:
         return str(self.output_path)
 
     def _rebuild_semantic_navigation_assets(self) -> None:
+        """
+        Rebuild semantic navigation assets during sleep-time.
+
+        Qwen's integration: This now supports Phase 3 multi-domain splitting
+        with automatic domain detection and bridge visualization export.
+        """
         if not _HAS_SEMANTIC_NAV or SemanticNavigator is None:
             return
         glb_source = self.house_memory_glb if self.house_memory_glb.exists() else self.output_path
         if not glb_source.exists():
             return
+
+        # Qwen's strategy pattern: auto-detect multi-domain mode based on graph size
+        nav_mode = _os.getenv("K3D_NAV_MODE", "auto")  # auto | multi | mono
+
         navigator = SemanticNavigator(
             query_radius=float(_os.getenv("K3D_NAV_QUERY_RADIUS", "2.0")),
             k_neighbors=int(_os.getenv("K3D_NAV_K_NEIGHBORS", "8")),
             similarity_threshold=float(_os.getenv("K3D_NAV_SIM_THRESHOLD", "0.7")),
             enable_semantic_highways=True,
+            nav_mode=nav_mode,  # Qwen's enhancement: strategy pattern
         )
         navigator.load_house(str(glb_source))
         try:
@@ -781,9 +792,65 @@ class SleepTimeCompute:
         except RuntimeError as exc:
             print(f"⚠️ Semantic kernel build skipped: {exc}")
             return
+
+        # Qwen's integration: Export domain metadata and bridge visuals
+        if navigator._use_multi_domain and navigator.multi_domain_navigator:
+            self._export_domain_metadata(navigator, glb_source.parent)
+
         navigator.serialize(glb_source.parent)
         if self.semantic_kernel_path.exists():
             print(f"🧭 Semantic kernel refreshed → {self.semantic_kernel_path}")
+
+    def _export_domain_metadata(self, navigator: Any, output_dir: Path) -> None:
+        """
+        Export Phase 3 domain metadata and bridge visuals (Qwen's integration).
+
+        Creates:
+        - domains_v3/ directory with per-domain metadata
+        - bridge_visuals.json with GLM's rendering data
+        - DOMAIN_CONSOLIDATION_COMPLETE event log
+        """
+        mdn = navigator.multi_domain_navigator
+        if not mdn:
+            return
+
+        print("📊 Phase 3: Exporting multi-domain navigation metadata...")
+
+        # Create domains_v3 directory
+        domains_dir = output_dir / "domains_v3"
+        domains_dir.mkdir(exist_ok=True)
+
+        # Export domain summary
+        domain_summary = {
+            "total_domains": len(mdn.domains),
+            "total_bridges": len(mdn.bridges),
+            "bridge_percentage": float(len(mdn.bridges)) / max(len(navigator.labels), 1) * 100,
+            "timestamp": datetime.now().isoformat(),
+            "mode": "multi_domain_v3"
+        }
+
+        summary_path = domains_dir / "domain_summary.json"
+        with open(summary_path, 'w') as f:
+            json.dump(domain_summary, f, indent=2)
+
+        print(f"  ✓ {len(mdn.domains)} semantic domains")
+        print(f"  ✓ {len(mdn.bridges)} cross-domain bridges ({domain_summary['bridge_percentage']:.1f}%)")
+
+        # Export bridge visuals (GLM's rendering system)
+        if hasattr(navigator, 'domain_splitter') and navigator.domain_splitter:
+            splitter = navigator.domain_splitter
+            if hasattr(splitter, 'export_bridge_visuals'):
+                bridge_visuals = splitter.export_bridge_visuals(navigator.positions_gpu)
+
+                bridge_visuals_path = domains_dir / "bridge_visuals.json"
+                with open(bridge_visuals_path, 'w') as f:
+                    json.dump(bridge_visuals, f, indent=2)
+
+                print(f"  ✓ Bridge visuals exported → {bridge_visuals_path}")
+
+        # Log consolidation complete event
+        print(f"🌌 DOMAIN_CONSOLIDATION_COMPLETE: Phase 3 multi-domain navigation active")
+        print(f"   Directory: {domains_dir}")
 
     def run(self) -> None:
         """Execute sleep-time compute pipeline."""

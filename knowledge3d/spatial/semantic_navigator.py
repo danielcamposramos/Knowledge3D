@@ -92,6 +92,7 @@ class SemanticNavigator:
         # Phase 3: Multi-domain navigator (strategy pattern)
         self.multi_domain_navigator: Optional[MultiDomainNavigator] = None
         self._use_multi_domain: bool = False
+        self.domain_splitter: Optional[Any] = None  # Qwen's integration: for export
 
     # ------------------------------------------------------------------
     # Loading utilities
@@ -380,13 +381,15 @@ class SemanticNavigator:
         edges = self._build_edges_from_octree()
         edges_gpu = cp.asarray(edges, dtype=cp.uint32)
 
-        # Run semantic domain splitter
-        splitter = SemanticDomainSplitter(
+        # Run semantic domain splitter (Qwen's integration: store for export)
+        self.domain_splitter = SemanticDomainSplitter(
             sim_threshold=self.similarity_threshold,
-            damping=0.9
+            damping=0.9,
+            adaptive_threshold=True,  # GLM's enhancement
+            render_bridges=True  # GLM's visualization
         )
 
-        domain_ids, bridges, domains = splitter.split_domains(
+        domain_ids, bridges, domains = self.domain_splitter.split_domains(
             self.embeddings_gpu,
             self.positions_gpu,
             edges_gpu,
