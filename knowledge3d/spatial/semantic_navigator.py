@@ -390,7 +390,7 @@ class SemanticNavigator:
             self.embeddings_gpu,
             self.positions_gpu,
             edges_gpu,
-            kb_limit=48
+            kb_limit=128  # Increased from 48KB to match LED pathfinder limit
         )
 
         # Create multi-domain navigator

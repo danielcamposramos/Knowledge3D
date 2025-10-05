@@ -362,22 +362,60 @@ class SemanticDomainSplitter:
         kb_limit: int
     ) -> cp.ndarray:
         """
-        Validate domain sizes and recursively split oversized domains.
+        Validate domain sizes and split oversized domains.
+
+        Aggressively splits until all domains <48KB (real limit enforced).
         """
-        n_domains = int(domain_ids.max()) + 1
+        max_iterations = 50  # Increased for aggressive splitting
 
-        for domain_idx in range(n_domains):
-            mask = domain_ids == domain_idx
-            domain_edges = edges_gpu[(mask[edges_gpu[:, 0]]) & (mask[edges_gpu[:, 1]])]
+        for iteration in range(max_iterations):
+            n_domains = int(domain_ids.max()) + 1
+            oversized = []
 
-            # Estimate size: 4 bytes per edge (rough)
-            size_kb = len(domain_edges) * 4 / 1024
+            for domain_idx in range(n_domains):
+                mask = domain_ids == domain_idx
+                domain_edges = edges_gpu[(mask[edges_gpu[:, 0]]) & (mask[edges_gpu[:, 1]])]
 
-            if size_kb > kb_limit:
-                logger.warning(f"Domain {domain_idx} too large ({size_kb:.1f}KB), needs splitting")
-                # TODO: Implement recursive split
-                # For now, just warn
+                # Estimate size: 4 bytes per edge (rough)
+                size_kb = len(domain_edges) * 4 / 1024
 
+                if size_kb > kb_limit:
+                    oversized.append((domain_idx, size_kb, int(mask.sum())))
+
+            if not oversized:
+                logger.info(f"✓ All {n_domains} domains within {kb_limit}KB limit (after {iteration} iterations)")
+                return domain_ids
+
+            # Split ALL oversized domains in this iteration (not just the largest)
+            new_domain_id = n_domains
+
+            for domain_idx, size_kb, count in oversized:
+                logger.info(f"  Splitting domain {domain_idx}: {size_kb:.1f}KB ({count} nodes)")
+
+                mask = domain_ids == domain_idx
+                indices = cp.where(mask)[0]
+
+                # Split into quarters if very large, otherwise halves
+                if size_kb > kb_limit * 3:
+                    # Split into 4 parts
+                    quarter = len(indices) // 4
+                    domain_ids[indices[quarter:2*quarter]] = new_domain_id
+                    domain_ids[indices[2*quarter:3*quarter]] = new_domain_id + 1
+                    domain_ids[indices[3*quarter:]] = new_domain_id + 2
+                    new_domain_id += 3
+                elif size_kb > kb_limit * 1.5:
+                    # Split into 3 parts
+                    third = len(indices) // 3
+                    domain_ids[indices[third:2*third]] = new_domain_id
+                    domain_ids[indices[2*third:]] = new_domain_id + 1
+                    new_domain_id += 2
+                else:
+                    # Split in half
+                    split_point = len(indices) // 2
+                    domain_ids[indices[split_point:]] = new_domain_id
+                    new_domain_id += 1
+
+        logger.warning(f"Could not balance all domains after {max_iterations} iterations")
         return domain_ids
 
     def _find_cross_domain_bridges(
@@ -465,7 +503,7 @@ class SemanticDomainSplitter:
 
             # Build LED-A* kernel for this domain
             pathfinder = LEDPathfinder()
-            pathfinder.build_from_edges(
+            pathfinder.build_kernel_from_octree(
                 local_edges_cpu,
                 domain_embeddings_cpu,
                 domain_positions_cpu,

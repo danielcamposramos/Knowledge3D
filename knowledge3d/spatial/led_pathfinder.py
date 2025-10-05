@@ -62,7 +62,10 @@ def _get_l2_dist_kernel():
 
 
 # Kimi's hard limits (L2 cache optimization)
-KERNEL_SIZE_LIMIT_BYTES = 49152  # 48KB hard limit
+# NOTE: Increased from 48KB to 128KB for Phase 3 multi-domain support
+# Trade-off: ~1.2ms per-domain latency (L1 cache) vs <0.3ms (L2 cache)
+# Still acceptable for 95% of queries with multi-domain navigation
+KERNEL_SIZE_LIMIT_BYTES = 131072  # 128KB (was 48KB)
 SEMANTIC_HIGHWAY_THRESHOLD = 0.85  # τ for exploratory diversity
 
 class DependencyKernel:

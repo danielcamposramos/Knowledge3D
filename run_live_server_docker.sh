@@ -30,7 +30,7 @@ echo "Using local directory: $K3D_LOCAL_DIR"
 echo "Using House ID: $K3D_HOUSE_ID"
 echo ""
 
-docker run --rm -it \
+docker run --rm -d \
     --gpus all \
     -v "$SCRIPT_DIR:/workspace" \
     -v "$K3D_LOCAL_DIR:/local" \
