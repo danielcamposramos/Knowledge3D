@@ -2689,8 +2689,17 @@ class LiveServer:
             pass
 
     def _resolve_house_glb(self) -> Path:
+        # Check local runtime directory first (Knowledge3D.local)
+        local_dir = os.getenv("K3D_LOCAL_DIR")
+        house_id = os.getenv("K3D_HOUSE_ID", "default")
+
+        if local_dir:
+            local_path = Path(local_dir) / "houses" / house_id / "memory_house.glb"
+            if local_path.exists():
+                return local_path
+
+        # Fallback to repository location (for development/legacy)
         repo_root = Path(__file__).resolve().parents[2]
-        house_id = os.getenv("K3D_HOUSE_ID")
         if house_id:
             candidate = repo_root / "viewer" / "public" / "houses" / house_id / "memory_house.glb"
             if candidate.exists():

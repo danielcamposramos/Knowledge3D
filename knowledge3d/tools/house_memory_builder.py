@@ -244,9 +244,23 @@ def build_house_memory(args: argparse.Namespace) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build house memory GLB from consolidated artifacts")
-    parser.add_argument("--root", default="viewer/public/house/materialized_objects", help="Directory with house artifacts (JSON)")
-    parser.add_argument("--out", default="viewer/public/house/house_memory.glb", help="Output GLB path")
-    parser.add_argument("--manifest", default="viewer/public/house/house_memory.json", help="Manifest JSON path")
+    # Default to Knowledge3D.local if K3D_LOCAL_DIR is set
+    import os
+    local_dir = os.getenv("K3D_LOCAL_DIR", "")
+    house_id = os.getenv("K3D_HOUSE_ID", "default")
+
+    if local_dir:
+        default_root = f"{local_dir}/houses/{house_id}/materialized_objects"
+        default_out = f"{local_dir}/houses/{house_id}/memory_house.glb"
+        default_manifest = f"{local_dir}/houses/{house_id}/memory_house.json"
+    else:
+        default_root = "viewer/public/house/materialized_objects"
+        default_out = "viewer/public/house/house_memory.glb"
+        default_manifest = "viewer/public/house/house_memory.json"
+
+    parser.add_argument("--root", default=default_root, help="Directory with house artifacts (JSON)")
+    parser.add_argument("--out", default=default_out, help="Output GLB path")
+    parser.add_argument("--manifest", default=default_manifest, help="Manifest JSON path")
     parser.add_argument("--limit", type=int, default=None, help="Optional limit on artifacts")
     parser.add_argument("--embedding-dim", type=int, default=DEFAULT_EMBED_DIM, help="Embedding dimension")
     parser.add_argument("--label", default="House Memory Index", help="Label stored in GLB extras")

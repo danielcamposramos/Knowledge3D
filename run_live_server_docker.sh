@@ -22,9 +22,21 @@ echo "Starting K3D live server in Docker..."
 echo "Server will be available at ws://127.0.0.1:8765"
 echo ""
 
+# Set local directory
+K3D_LOCAL_DIR="${K3D_LOCAL_DIR:-/K3D/Knowledge3D.local}"
+K3D_HOUSE_ID="${K3D_HOUSE_ID:-default}"
+
+echo "Using local directory: $K3D_LOCAL_DIR"
+echo "Using House ID: $K3D_HOUSE_ID"
+echo ""
+
 docker run --rm -it \
     --gpus all \
     -v "$SCRIPT_DIR:/workspace" \
+    -v "$K3D_LOCAL_DIR:/local" \
+    -e K3D_LOCAL_DIR=/local \
+    -e K3D_HOUSE_ID="$K3D_HOUSE_ID" \
+    -e CUPY_CACHE_DIR=/local/cache/.cupy_cache \
     -p 8765:8765 \
     --name k3d-live-server \
     k3d-runtime

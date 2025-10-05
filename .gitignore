@@ -49,5 +49,13 @@ viewer/public/galaxy/hf_cache_memory.glb
 .env*/
 # Ignore large CSV datasets
 data/ai_compendium_80k_vectors.csv
-# CuPy compiled kernel cache (architecture-specific, regenerate per-machine)
+
+# Large runtime files (live in Knowledge3D.local)
+viewer/public/house/materialized_objects/
+viewer/public/house/*.glb
+viewer/public/house/*.json
 .cupy_cache/
+
+# Runtime caches and temporary files
+*.pyc
+__pycache__/
