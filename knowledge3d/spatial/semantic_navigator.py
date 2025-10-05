@@ -38,11 +38,13 @@ if CUPY_AVAILABLE:
     from knowledge3d.spatial.led_pathfinder import LEDPathfinder
     from knowledge3d.spatial.domain_splitter import SemanticDomainSplitter
     from knowledge3d.spatial.multi_domain_navigator import MultiDomainNavigator
+    from knowledge3d.spatial.frustum import FrustumCuller
 else:  # pragma: no cover - fall back to placeholders so imports succeed
     MortonOctree = None  # type: ignore
     LEDPathfinder = None  # type: ignore
     SemanticDomainSplitter = None  # type: ignore
     MultiDomainNavigator = None  # type: ignore
+    FrustumCuller = None  # type: ignore
 
 
 _logger = logging.getLogger(__name__)
@@ -72,6 +74,11 @@ class SemanticNavigator:
 
         # Phase 3: Strategy pattern for multi-domain navigation
         self.nav_mode = nav_mode or os.getenv("K3D_NAV_MODE", "auto")
+
+        # Phase 4: Frustum culling (avatar's eyelid)
+        self.use_frustum = os.getenv("K3D_NAV_USE_FRUSTUM", "1") == "1"
+        self.frustum_culler: Optional[FrustumCuller] = None
+        self._view_proj_matrix: Optional[np.ndarray] = None
 
         self._glb_path: Optional[Path] = None
         self._glb_mtime: Optional[float] = None
@@ -273,6 +280,38 @@ class SemanticNavigator:
         """Expose label resolution for external callers."""
         return self._resolve_label(label)
 
+    def set_view_projection(self, view_proj: np.ndarray) -> None:
+        """
+        Set view-projection matrix for frustum culling.
+
+        This should be called by the fused head to provide the avatar's
+        current camera view. The frustum culler will use this to filter
+        nodes before pathfinding.
+
+        Args:
+            view_proj: 4x4 view-projection matrix (projection @ view)
+        """
+        if view_proj.shape != (4, 4):
+            raise ValueError(f"View-projection must be 4x4, got {view_proj.shape}")
+
+        self._view_proj_matrix = view_proj.astype(np.float32)
+
+        # Initialize frustum culler if needed
+        if self.use_frustum and self.frustum_culler is None:
+            self.frustum_culler = FrustumCuller(enable_profiling=True)
+            _logger.info("✓ Frustum culler initialized (Phase 4: avatar's eyelid)")
+
+    def get_frustum_statistics(self) -> Optional[dict]:
+        """
+        Get frustum culling performance statistics.
+
+        Returns:
+            Dictionary with culling stats, or None if frustum disabled
+        """
+        if self.frustum_culler is not None:
+            return self.frustum_culler.get_statistics()
+        return None
+
     def serialize(self, output_dir: str | Path) -> None:
         """Persist the current kernel to disk for reuse across sessions."""
         if not self._kernel_built or self.pathfinder is None:
@@ -423,6 +462,20 @@ class SemanticNavigator:
             )
             if candidates.size == 0:  # type: ignore[attr-defined]
                 continue
+
+            # Phase 4: Apply frustum culling if enabled and view-projection is set
+            if (self.use_frustum and
+                self.frustum_culler is not None and
+                self._view_proj_matrix is not None):
+                # Filter candidates through frustum (avatar's eyelid)
+                candidates = self.frustum_culler.cull_from_octree(
+                    candidates,
+                    self.positions_gpu,
+                    self._view_proj_matrix
+                )
+                if candidates.size == 0:  # type: ignore[attr-defined]
+                    continue
+
             cand_cpu = cp.asnumpy(candidates)
             if cand_cpu.size == 0:
                 continue
@@ -440,6 +493,17 @@ class SemanticNavigator:
             raise RuntimeError("No edges generated for dependency kernel; adjust radius or neighbors")
 
         edges = np.array(sorted(edges_set), dtype=np.uint32)
+
+        # Phase 4: Log frustum statistics if enabled
+        if self.use_frustum and self.frustum_culler is not None:
+            stats = self.frustum_culler.get_statistics()
+            if stats and stats['total_culls'] > 0:
+                _logger.info(
+                    "✓ Frustum culling: %.1f%% reduction, %.4fms avg (edges generation)",
+                    stats['avg_reduction'] * 100,
+                    stats['avg_time_ms']
+                )
+
         _logger.info("Generated %d edges for semantic kernel", len(edges))
         return edges
 
