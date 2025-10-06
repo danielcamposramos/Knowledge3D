@@ -55,6 +55,81 @@ except Exception:  # pragma: no cover - fallback when CUDA stack missing
     _HAS_SPATIAL_NAV = False
 
 
+class _PTXFusionContext:
+    """Load and execute PTX kernels that power fused-head modality fusion."""
+
+    def __init__(self) -> None:
+        if _cp is None:  # pragma: no cover - defensive
+            raise RuntimeError("CuPy is required for PTX fusion context")
+        self.cp = _cp
+        base = Path(__file__).resolve().parent / "ptx"
+
+        warp_path = base / "warp_modality_fuse.ptx"
+        fsm_path = base / "fused_head_fsm.ptx"
+
+        self._warp_module = self.cp.RawModule(path=str(warp_path))
+        self._warp_kernel = self._warp_module.get_function("warp_modality_fuse")
+
+        self._fsm_module = self.cp.RawModule(path=str(fsm_path))
+        self._fsm_kernel = self._fsm_module.get_function("fused_head_fsm")
+
+    # ------------------------------------------------------------------
+    def fuse_modalities(
+        self,
+        text: np.ndarray,
+        image: np.ndarray,
+        audio: np.ndarray,
+        video: np.ndarray,
+        morton: np.ndarray,
+    ) -> np.ndarray:
+        """Fuse modality feature blocks into a unified embedding via PTX."""
+
+        cp = self.cp
+        nodes, dim = text.shape
+
+        cp_out = cp.zeros((nodes, dim), dtype=cp.float32)
+        cp_text = cp.asarray(text, dtype=cp.float32)
+        cp_image = cp.asarray(image, dtype=cp.float32)
+        cp_audio = cp.asarray(audio, dtype=cp.float32)
+        cp_video = cp.asarray(video, dtype=cp.float32)
+        cp_morton = cp.asarray(morton, dtype=cp.uint32)
+
+        total = int(nodes * dim)
+        block = 128
+        grid = (max(1, (total + block - 1) // block),)
+
+        self._warp_kernel(
+            grid,
+            (block,),
+            (
+                cp_out,
+                cp_text,
+                cp_image,
+                cp_audio,
+                cp_video,
+                cp_morton,
+                np.int32(dim),
+                np.int32(nodes),
+            ),
+        )
+        cp.cuda.runtime.deviceSynchronize()
+        return cp_out.get()
+
+    # ------------------------------------------------------------------
+    def record_fsm_trace(self, states: List[int]) -> List[int]:
+        if not states:
+            return []
+        cp = self.cp
+        cp_cmd = cp.asarray(states, dtype=cp.uint32)
+        cp_log = cp.zeros_like(cp_cmd)
+        count = np.int32(len(states))
+        block = 32
+        grid = (max(1, (len(states) + block - 1) // block),)
+        self._fsm_kernel(grid, (block,), (cp_log, cp_cmd, count))
+        cp.cuda.runtime.deviceSynchronize()
+        return cp_log.get().tolist()
+
+
 class AdaptedFusedHead:
     """Fused head that routes queries through PTX-backed operators when possible."""
 
@@ -184,6 +259,15 @@ class AdaptedFusedHead:
         self._arc_ckpt_path = Path("viewer/public/house/house_arc_grid_head.pt")
         self._load_arc_head_from_glb()
         self._load_arc_head()
+
+        self._ptx_fusion_context: Optional[_PTXFusionContext] = None
+        self._last_fsm_trace: List[int] = []
+        if _cp is not None:
+            try:
+                self._ptx_fusion_context = _PTXFusionContext()
+            except Exception as exc:  # pragma: no cover - optional dependency
+                _logger.warning("PTX fusion context unavailable: %s", exc)
+                self._ptx_fusion_context = None
 
     # ------------------------------------------------------------------
     def predict(self, query: str, fused_embedding: List[float]) -> str:
@@ -2120,14 +2204,40 @@ class AdaptedFusedHead:
         while len(parts) < 4:
             parts.append(128)
         tdim, idim, adim, vdim = [max(1, int(x)) for x in parts[:4]]
-        blocks = [
-            self._expand_to_dim(text_feats, tdim),
-            self._expand_to_dim(img_feats, idim),
-            self._expand_to_dim(aud_feats, adim),
-            self._expand_to_dim(vid_feats, vdim),
-        ]
-        fused = np.concatenate(blocks, axis=0).astype(np.float32)
-        return [float(x) for x in fused]
+        base_dim = max(tdim, idim, adim, vdim)
+        text_arr = self._expand_to_dim(text_feats, base_dim).reshape(1, -1)
+        image_arr = self._expand_to_dim(img_feats, base_dim).reshape(1, -1)
+        audio_arr = self._expand_to_dim(aud_feats, base_dim).reshape(1, -1)
+        video_arr = self._expand_to_dim(vid_feats, base_dim).reshape(1, -1)
+
+        # Strict GPU-only: PTX fusion is mandatory (Kimi's zero-copy discipline)
+        if self._ptx_fusion_context is None:
+            raise RuntimeError(
+                "PTX fusion context unavailable. GPU-only policy requires CuPy and CUDA. "
+                "Install: pip install cupy-cuda11x (or cupy-cuda12x for CUDA 12+)"
+            )
+
+        morton = np.zeros((1,), dtype=np.uint32)
+        fused_gpu = self._ptx_fusion_context.fuse_modalities(
+            text_arr,
+            image_arr,
+            audio_arr,
+            video_arr,
+            morton,
+        )
+        fused_vector = fused_gpu.reshape(-1)
+        self._last_fsm_trace = self._ptx_fusion_context.record_fsm_trace([0, 1, 2, 3, 4])
+
+        fused_concat = np.concatenate(
+            [
+                fused_vector.reshape(-1),
+                text_arr.reshape(-1),
+                image_arr.reshape(-1),
+                audio_arr.reshape(-1),
+                video_arr.reshape(-1),
+            ]
+        )
+        return [float(x) for x in fused_concat.astype(np.float32)]
 
     def _predict_arc_grid(self, fused_embedding: List[float]) -> Optional[str]:
         """Predict a fixed 10x10 ARC-style grid with 10 classes (0..9).

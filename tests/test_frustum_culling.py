@@ -13,9 +13,30 @@ Branch: phase4-frustum-simd-v1
 
 import pytest
 import numpy as np
-import cupy as cp
 import time
 from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.append(str(ROOT))
+
+try:
+    import cupy as cp  # type: ignore
+    _CUPY_AVAILABLE = True
+except Exception:  # pragma: no cover - skip on environments without CuPy
+    cp = None  # type: ignore
+    _CUPY_AVAILABLE = False
+
+pytestmark = []  # type: ignore[var-annotated]
+if not _CUPY_AVAILABLE:
+    pytestmark.append(pytest.mark.skip(reason="CuPy not available"))
+else:  # pragma: no branch - best effort device detection
+    try:
+        if cp.cuda.runtime.getDeviceCount() == 0:
+            pytestmark.append(pytest.mark.skip(reason="CUDA device not available"))
+    except Exception:
+        pytestmark.append(pytest.mark.skip(reason="CUDA device not available"))
 
 # Import frustum culling
 from knowledge3d.spatial.frustum import (

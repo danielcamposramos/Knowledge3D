@@ -1,0 +1,32 @@
+.version 7.8
+.target sm_80
+.address_size 64
+
+.visible .entry fused_head_fsm(
+    .param .u64 state_log_ptr,
+    .param .u64 command_ptr,
+    .param .u32 state_count
+)
+{
+    .reg .pred p_exit;
+    .reg .u32 idx, count;
+    .reg .u64 log_base, cmd_base, byte_offset;
+    .reg .u32 state_value;
+
+    ld.param.u64 log_base, [state_log_ptr];
+    ld.param.u64 cmd_base, [command_ptr];
+    ld.param.u32 count,    [state_count];
+
+    mov.u32 idx, %tid.x;
+    mad.lo.u32 idx, %ctaid.x, %ntid.x, idx;
+
+    setp.ge.u32 p_exit, idx, count;
+    @p_exit bra FSM_DONE;
+
+    mul.wide.u32 byte_offset, idx, 4;
+    ld.global.u32 state_value, [cmd_base + byte_offset];
+    st.global.u32 [log_base + byte_offset], state_value;
+
+FSM_DONE:
+    ret;
+}

@@ -13,11 +13,17 @@ Author: The Swarm (Grok's interface + Kimi's SIMD kernel)
 Branch: phase4-frustum-simd-v1
 """
 
-import cupy as cp
 import numpy as np
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple
 import logging
+
+try:  # pragma: no cover - CuPy is optional in some environments
+    import cupy as cp  # type: ignore
+    _CUPY_IMPORT_ERROR: Optional[Exception] = None
+except Exception as exc:  # pragma: no cover
+    cp = None  # type: ignore
+    _CUPY_IMPORT_ERROR = exc
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +51,10 @@ class FrustumCuller:
         Args:
             enable_profiling: Enable CuPy events for latency measurement
         """
+        if cp is None:
+            raise RuntimeError(
+                "CuPy is required for FrustumCuller. Install a CUDA-enabled CuPy build to enable GPU frustum culling."
+            ) from _CUPY_IMPORT_ERROR
         self.enable_profiling = enable_profiling
         self.kernel = None
         self._module: Optional[cp.RawModule] = None
@@ -190,11 +200,13 @@ class FrustumCuller:
 
         return planes
 
-    def cull_nodes(self,
-                   positions_gpu: cp.ndarray,
-                   candidate_indices: Optional[cp.ndarray] = None,
-                   view_proj: Optional[np.ndarray] = None,
-                   view: Optional[np.ndarray] = None) -> cp.ndarray:
+    def cull_nodes(
+        self,
+        positions_gpu: Any,
+        candidate_indices: Optional[Any] = None,
+        view_proj: Optional[np.ndarray] = None,
+        view: Optional[np.ndarray] = None,
+    ) -> Any:
         """
         Cull nodes using frustum test.
 
@@ -294,10 +306,12 @@ class FrustumCuller:
 
         return visible_indices
 
-    def cull_from_octree(self,
-                        candidates_gpu: cp.ndarray,
-                        positions_gpu: cp.ndarray,
-                        view_proj: np.ndarray) -> cp.ndarray:
+    def cull_from_octree(
+        self,
+        candidates_gpu: Any,
+        positions_gpu: Any,
+        view_proj: np.ndarray,
+    ) -> Any:
         """
         Chain from Morton octree query to frustum culling.
 
