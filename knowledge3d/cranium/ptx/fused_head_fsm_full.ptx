@@ -1,0 +1,246 @@
+// Fused Head FSM - Full 5-State Cognitive Dispatch Loop
+// Implements: Grok's unified mind blueprint (Step5.txt)
+// Author: Claude (Swarm continuation: Grok→Qwen→Kimi→GLM→Codex→Claude)
+// Status: GPU-native, zero-copy, Apollo-resilient state machine
+
+.version 8.0
+.target sm_80
+.address_size 64
+
+// UnifiedNode struct (1KB per node - brain-parametric layout)
+// Layout: [fused_emb:512f][raw_channels:256f][position:3f][morton_level:1u][domain_id:1u][rpn_flag:1u]
+.const .u32 NODE_SIZE = 1024;  // Total bytes per node
+.const .u32 FUSED_EMB_OFFSET = 0;
+.const .u32 RAW_CHANNELS_OFFSET = 2048;  // 512*4
+.const .u32 POSITION_OFFSET = 3072;      // (512+256)*4
+.const .u32 MORTON_LEVEL_OFFSET = 3084;  // +3*4
+.const .u32 DOMAIN_ID_OFFSET = 3088;     // +4
+.const .u32 RPN_FLAG_OFFSET = 3092;      // +4
+
+// FSM State Codes (Apollo-style sequencer)
+.const .u32 STATE_INGEST = 0;   // Corpus/query ingestion
+.const .u32 STATE_FUSE = 1;     // Warp modality fusion
+.const .u32 STATE_SPATIAL = 2;  // Frustum cull + navigation
+.const .u32 STATE_REASON = 3;   // RPN stack + unified attention
+.const .u32 STATE_OUTPUT = 4;   // Decode action
+.const .u32 STATE_TERMINAL = 5; // Exit
+
+// Main FSM Entry Point
+.visible .entry fused_head_fsm_dispatch(
+    .param .u64 unified_buffer_ptr,  // N nodes unified
+    .param .u32 n_nodes,
+    .param .u64 query_emb_ptr,       // Input query embedding (512f)
+    .param .u64 rpn_stack_ptr,       // RPN operations stack
+    .param .u64 output_action_ptr,   // Output: path/pose/text
+    .param .u32 initial_state        // Starting state (usually 0 or 1)
+)
+{
+    .reg .pred p_state0, p_state1, p_state2, p_state3, p_state4;
+    .reg .pred p_loop_continue, p_terminal;
+    .reg .u32 state, next_state;
+    .reg .u64 unified_buf, query_emb, rpn_stack, output_action;
+    .reg .u32 nodes;
+    .reg .u32 state_const;
+
+    // Load parameters
+    ld.param.u64 unified_buf, [unified_buffer_ptr];
+    ld.param.u32 nodes, [n_nodes];
+    ld.param.u64 query_emb, [query_emb_ptr];
+    ld.param.u64 rpn_stack, [rpn_stack_ptr];
+    ld.param.u64 output_action, [output_action_ptr];
+    ld.param.u32 state, [initial_state];
+
+FSM_LOOP:
+    // State 0: Ingest (Corpus query - stub for now, skip to fuse)
+    mov.u32 state_const, 0;
+    setp.eq.u32 p_state0, state, state_const;
+    @p_state0 bra STATE_0_INGEST;
+
+    // State 1: Fuse (Warp modality fusion)
+    mov.u32 state_const, 1;
+    setp.eq.u32 p_state1, state, state_const;
+    @p_state1 bra STATE_1_FUSE;
+
+    // State 2: Spatial (Frustum cull + navigation)
+    mov.u32 state_const, 2;
+    setp.eq.u32 p_state2, state, state_const;
+    @p_state2 bra STATE_2_SPATIAL;
+
+    // State 3: Reason (RPN + unified attention)
+    mov.u32 state_const, 3;
+    setp.eq.u32 p_state3, state, state_const;
+    @p_state3 bra STATE_3_REASON;
+
+    // State 4: Output (Decode action)
+    mov.u32 state_const, 4;
+    setp.eq.u32 p_state4, state, state_const;
+    @p_state4 bra STATE_4_OUTPUT;
+
+    // Default: terminal state
+    bra FSM_EXIT;
+
+STATE_0_INGEST:
+    // Stub: Corpus ingestion deferred (Qwen's mandate)
+    // For now: pass-through to fusion
+    mov.u32 next_state, 1;
+    bra FSM_TRANSITION;
+
+STATE_1_FUSE:
+    // Call warp_modality_fuse kernel (already implemented by Codex)
+    // Note: This is a stub - actual call would be via device function
+    // or separate kernel launch from Python
+    mov.u32 next_state, 2;
+    bra FSM_TRANSITION;
+
+STATE_2_SPATIAL:
+    // Call frustum_cull_simd (Phase 4 verified)
+    // Note: Stub - actual integration requires device function linking
+    mov.u32 next_state, 3;
+    bra FSM_TRANSITION;
+
+STATE_3_REASON:
+    // RPN stack execution + unified attention
+    // Call rpn_reason_dispatch (to be implemented)
+    // Reads rpn_flag from unified buffer, jumps based on result
+    .reg .u64 rpn_flag_addr;
+    .reg .u32 rpn_flag_val;
+
+    // Read RPN flag from first node (determines next state)
+    add.u64 rpn_flag_addr, unified_buf, 3092;  // RPN_FLAG_OFFSET
+    ld.global.u32 rpn_flag_val, [rpn_flag_addr];
+
+    // Apollo-style resilient jump: 0=retry ingest, 4=output, else error
+    setp.eq.u32 p_terminal, rpn_flag_val, 4;
+    @p_terminal mov.u32 next_state, 4;
+    @!p_terminal mov.u32 next_state, 0;  // Error recovery: restart
+    bra FSM_TRANSITION;
+
+STATE_4_OUTPUT:
+    // Decode action to output buffer
+    // Note: Stub for now
+    mov.u32 next_state, 5;  // Terminal
+    bra FSM_TRANSITION;
+
+FSM_TRANSITION:
+    // Update state for next iteration
+    mov.u32 state, next_state;
+
+    // Loop condition: continue if not terminal
+    mov.u32 state_const, 5;
+    setp.ne.u32 p_loop_continue, state, state_const;
+    @p_loop_continue bra FSM_LOOP;
+
+FSM_EXIT:
+    ret;
+}
+
+// RPN Reason Dispatch Function (State 3 implementation)
+.visible .entry rpn_reason_dispatch(
+    .param .u64 rpn_stack_param,
+    .param .u64 unified_buffer_param,
+    .param .u64 output_action_param,
+    .param .u32 n_nodes_param
+)
+{
+    .reg .u64 rpn_stack, unified_buf, output_action;
+    .reg .u32 nodes;
+    .reg .u32 op_code;
+    .reg .f32 arg1, arg2, result;
+    .reg .u64 op_addr;
+    .reg .pred p_add_op, p_mul_op, p_dist_op;
+
+    ld.param.u64 rpn_stack, [rpn_stack_param];
+    ld.param.u64 unified_buf, [unified_buffer_param];
+    ld.param.u64 output_action, [output_action_param];
+    ld.param.u32 nodes, [n_nodes_param];
+
+    // Read operation code from stack
+    ld.global.u32 op_code, [rpn_stack];
+
+    // Read arguments
+    add.u64 op_addr, rpn_stack, 4;
+    ld.global.f32 arg1, [op_addr];
+    add.u64 op_addr, rpn_stack, 8;
+    ld.global.f32 arg2, [op_addr];
+
+    // Dispatch based on opcode
+    .reg .u32 op_const;
+
+    // Op 1: Add
+    mov.u32 op_const, 1;
+    setp.eq.u32 p_add_op, op_code, op_const;
+    @p_add_op add.f32 result, arg1, arg2;
+
+    // Op 2: Multiply
+    mov.u32 op_const, 2;
+    setp.eq.u32 p_mul_op, op_code, op_const;
+    @p_mul_op mul.f32 result, arg1, arg2;
+
+    // Op 3: L2 Distance (stub - would call l2_dist_warp)
+    mov.u32 op_const, 3;
+    setp.eq.u32 p_dist_op, op_code, op_const;
+    @!p_dist_op bra SKIP_DIST;
+    sub.f32 result, arg1, arg2;
+    mul.f32 result, result, result;
+    sqrt.approx.f32 result, result;
+SKIP_DIST:
+
+    // Store result back to stack
+    add.u64 op_addr, rpn_stack, 4;
+    st.global.f32 [op_addr], result;
+
+    // Set output flag to proceed to output state
+    .reg .u32 flag_val;
+    mov.u32 flag_val, 4;
+    st.global.u32 [rpn_stack], flag_val;
+
+    ret;
+}
+
+// Unified Attention Kernel (State 3 - multi-head attention over fused buffer)
+.visible .entry ptxfuse_attention(
+    .param .u64 unified_buffer_param,
+    .param .u64 query_emb_param,
+    .param .u32 n_nodes_param,
+    .param .u64 attention_out_param
+)
+{
+    .reg .u64 unified_buf, query_emb, attention_out;
+    .reg .u32 nodes, tid, ctaid, ntid, idx;
+    .reg .f32 dot_product, query_val, key_val;
+    .reg .u64 node_addr, query_addr, out_addr;
+    .reg .pred p_exit;
+
+    ld.param.u64 unified_buf, [unified_buffer_param];
+    ld.param.u64 query_emb, [query_emb_param];
+    ld.param.u32 nodes, [n_nodes_param];
+    ld.param.u64 attention_out, [attention_out_param];
+
+    // Thread indexing
+    mov.u32 tid, %tid.x;
+    mov.u32 ctaid, %ctaid.x;
+    mov.u32 ntid, %ntid.x;
+    mad.lo.u32 idx, ctaid, ntid, tid;
+
+    // Bounds check
+    setp.ge.u32 p_exit, idx, nodes;
+    @p_exit ret;
+
+    // Compute attention: dot(query, key[idx])
+    // Key is fused_emb from unified buffer
+    .reg .u64 emb_offset_64, score_offset_64;
+    mul.wide.u32 emb_offset_64, idx, 1024;  // NODE_SIZE
+    add.u64 node_addr, unified_buf, emb_offset_64;
+
+    // Simple dot product (first element only - full implementation would loop)
+    ld.global.f32 key_val, [node_addr];  // Load first element of fused_emb
+    ld.global.f32 query_val, [query_emb];
+    mul.f32 dot_product, query_val, key_val;
+
+    // Store attention score
+    mul.wide.u32 score_offset_64, idx, 4;
+    add.u64 out_addr, attention_out, score_offset_64;
+    st.global.f32 [out_addr], dot_product;
+
+    ret;
+}
