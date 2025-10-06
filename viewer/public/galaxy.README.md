@@ -29,7 +29,7 @@ End‑to‑end (80k compendium)
   - Use `knowledge3d.tools.build_galaxy` (above) to merge with other modalities.
 
 Environment
-- Prefer running inside the managed env described in `docs/ENV_POLICY.md` (e.g., `conda run -n k3dml env PYTHONPATH=. python -m ...`).
+- Prefer running inside the managed env described in `docs/ENV_POLICY.md` (e.g., `conda activate k3dml && env PYTHONPATH=. python -m ...`).
 - For large builds, keep outputs in `../Knowledge3D.local/datasets/` and only copy/link `viewer/public/galaxy.glb` when you need to view it locally.
 
 Notes

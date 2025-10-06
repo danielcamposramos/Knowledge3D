@@ -10,22 +10,23 @@ Approved environments
 Quick start (Conda)
 - Create env once:
   conda create -y -n k3dml python=3.10
-  conda run -n k3dml python -m pip install --upgrade pip
-  conda run -n k3dml python -m pip install \
-    torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-  conda run -n k3dml python -m pip install open_clip_torch pillow av soundfile \
-    laion_clap umap-learn scikit-learn numpy pandas pygltflib
+- Attach/refresh a tmux session (keeps kernels alive):
+  tmux new -As k3d
+- Activate the env inside tmux and seed packages:
+  conda activate k3dml
+  python -m pip install --upgrade pip
+  python -m pip install     torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+  python -m pip install open_clip_torch pillow av soundfile     laion_clap umap-learn scikit-learn numpy pandas pygltflib
 
-- Run any K3D command:
-  conda run -n k3dml env PYTHONPATH=. python -m knowledge3d.tools.ingest_coco --help
+- Run any K3D command (env stays active in tmux):
+  env PYTHONPATH=. python -m knowledge3d.tools.ingest_coco --help
 
 Fallback (venv)
 - python3 -m venv .venv_k3dml
 - . .venv_k3dml/bin/activate
 - python -m pip install --upgrade pip
 - python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-- python -m pip install open_clip_torch pillow av soundfile laion_clap \
-  umap-learn scikit-learn numpy pandas pygltflib
+- python -m pip install open_clip_torch pillow av soundfile laion_clap   umap-learn scikit-learn numpy pandas pygltflib
 
 Rationale
 - Debian’s system Python and packages can block ML wheels (e.g., PyTorch, open_clip, av, laion_clap) on newer versions. Using conda/venv ensures compatible wheels and repeatable runs.
@@ -35,21 +36,20 @@ Notes
 - For large downloads/ingests, prefer storing raw media under /home/daniel/K3D_llama_cpp/datasets and copying curated subsets into ../Knowledge3D.local/datasets for builds.
 
 GPU setup (NVIDIA)
-- Create GPU env (CUDA 12.1+):
+- Bootstrap CUDA-ready env once:
   scripts/k3d_env.sh bootstrap-gpu
-- Run commands inside the env:
-  scripts/k3d_env.sh run python -m knowledge3d.tools.ingest_video --help
-- Validate GPU availability:
+- Inside tmux after `conda activate k3dml`, run GPU tooling:
+  env PYTHONPATH=. python -m knowledge3d.tools.ingest_video --help
+- Validate GPU availability (env active):
   nvidia-smi
-  scripts/k3d_env.sh run python -c "import torch; print(torch.cuda.is_available())"
+  python -c "import torch; print(torch.cuda.is_available())"
 
 Environment selection and pitfalls
-- Select the conda env explicitly to avoid surprises from shell auto‑activation:
-  - `export K3D_CONDA_ENV=k3dml` (default GPU env)
-  - Optional RAPIDS: `export K3D_CONDA_ENV=k3d-rapids`
-- Always use the wrapper to run Python: `scripts/k3d_env.sh run python -m ...`
-  - Do not nest `bash -lc` inside `conda run` — it may drop to system Python 2.7 and cause syntax errors.
-  - The wrapper sets `PYTHONPATH=.` so local modules resolve from repo root.
+- Work inside tmux so the activated env persists across long GPU jobs.
+- Select the env explicitly after attaching: `conda activate k3dml`
+  - Optional RAPIDS env: `conda activate k3d-rapids`
+- If you need the helper script, `scripts/k3d_env.sh run ...` now shells into tmux and activates the env for you.
+- Avoid mixing system Python with the project; all tooling assumes the conda env is active.
 
 Live server ports and WebSockets
 - Port 8787 is commonly used by ComfyUI; the live benchmark script now avoids this port by default.

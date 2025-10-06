@@ -1,0 +1,126 @@
+
+// Warp Modality Fuse (SIMD flavor)
+// NOTE: Derived from warp_modality_fuse.ptx; currently mirrors scalar logic.
+// Provides separate entry point for SIMD experiments while maintaining correctness baseline.
+.version 7.8
+.target sm_80
+.address_size 64
+
+.visible .entry warp_modality_fuse_simd(
+    .param .u64 out_ptr,
+    .param .u64 text_ptr,
+    .param .u64 image_ptr,
+    .param .u64 audio_ptr,
+    .param .u64 video_ptr,
+    .param .u64 morton_ptr,
+    .param .u32 feature_dim,
+    .param .u32 node_count
+)
+{
+    .reg .pred p_exit, p_has_text, p_has_image, p_has_audio, p_has_video, p_has_morton;
+    .reg .u32 idx, total_elems, dim, nodes;
+    .reg .u32 node_id, feat_id, rem_val, morton_level;
+    .reg .u32 tid, ctaid, ntid;
+    .reg .u64 out_base, text_base, image_base, audio_base, video_base, morton_base;
+    .reg .u64 addr, byte_offset;
+    .reg .f32 text_val, image_val, audio_val, video_val, fused;
+    .reg .f32 lod_scale, denom, one_const, scale_const;
+
+    ld.param.u64 out_base,    [out_ptr];
+    ld.param.u64 text_base,   [text_ptr];
+    ld.param.u64 image_base,  [image_ptr];
+    ld.param.u64 audio_base,  [audio_ptr];
+    ld.param.u64 video_base,  [video_ptr];
+    ld.param.u64 morton_base, [morton_ptr];
+    ld.param.u32 dim,         [feature_dim];
+    ld.param.u32 nodes,       [node_count];
+
+    mov.u32 tid, %tid.x;
+    mov.u32 ctaid, %ctaid.x;
+    mov.u32 ntid, %ntid.x;
+    mad.lo.u32 idx, ctaid, ntid, tid;
+
+    mul.lo.u32 total_elems, dim, nodes;
+    setp.ge.u32 p_exit, idx, total_elems;
+    @p_exit bra SIMD_WARP_DONE;
+
+    div.u32 node_id, idx, dim;
+    rem.u32 feat_id, idx, dim;
+
+    // Morton level lookup (optional)
+    .reg .u64 morton_offset;
+    setp.ne.u64 p_has_morton, morton_base, 0;
+    @!p_has_morton bra SIMD_SKIP_MORTON;
+
+    mul.wide.u32 morton_offset, node_id, 4;
+    add.u64 addr, morton_base, morton_offset;
+    ld.global.u32 morton_level, [addr];
+    bra SIMD_MORTON_DONE;
+
+SIMD_SKIP_MORTON:
+    mov.u32 morton_level, 0;
+
+SIMD_MORTON_DONE:
+
+    // Compute byte offset for feature arrays
+    mad.lo.u32 rem_val, node_id, dim, feat_id;
+    mul.wide.u32 byte_offset, rem_val, 4;
+
+    // Load modality features (gracefully handle missing buffers)
+    .reg .u64 text_addr, image_addr, audio_addr, video_addr;
+
+    setp.ne.u64 p_has_text, text_base, 0;
+    add.u64 text_addr, text_base, byte_offset;
+    @p_has_text ld.global.f32 text_val, [text_addr];
+    @!p_has_text mov.f32 text_val, 0f00000000;
+
+    setp.ne.u64 p_has_image, image_base, 0;
+    add.u64 image_addr, image_base, byte_offset;
+    @p_has_image ld.global.f32 image_val, [image_addr];
+    @!p_has_image mov.f32 image_val, 0f00000000;
+
+    setp.ne.u64 p_has_audio, audio_base, 0;
+    add.u64 audio_addr, audio_base, byte_offset;
+    @p_has_audio ld.global.f32 audio_val, [audio_addr];
+    @!p_has_audio mov.f32 audio_val, 0f00000000;
+
+    setp.ne.u64 p_has_video, video_base, 0;
+    add.u64 video_addr, video_base, byte_offset;
+    @p_has_video ld.global.f32 video_val, [video_addr];
+    @!p_has_video mov.f32 video_val, 0f00000000;
+
+    // Compute LOD scale = 1 / (1 + level * 0.125)
+    cvt.rn.f32.u32 lod_scale, morton_level;
+    mov.f32 scale_const, 0f3E000000;  // 0.125
+    mul.f32 lod_scale, lod_scale, scale_const;
+    mov.f32 one_const, 0f3F800000;     // 1.0
+    add.f32 denom, lod_scale, one_const;
+    rcp.approx.f32 lod_scale, denom;
+
+    // Apply modality weights with LOD bias on spatial/text modalities
+    .reg .f32 text_weight, image_weight, audio_weight, video_weight;
+    mov.f32 text_weight, 0f3ECCCCCD;   // 0.4
+    mul.f32 text_val, text_val, text_weight;
+    mul.f32 text_val, text_val, lod_scale;
+
+    mov.f32 image_weight, 0f3E99999A;  // 0.3
+    mul.f32 image_val, image_val, image_weight;
+    mul.f32 image_val, image_val, lod_scale;
+
+    mov.f32 audio_weight, 0f3E4CCCCD;  // 0.2
+    mul.f32 audio_val, audio_val, audio_weight;
+
+    mov.f32 video_weight, 0f3DCCCCCD;  // 0.1
+    mul.f32 video_val, video_val, video_weight;
+
+    add.f32 fused, text_val, image_val;
+    add.f32 fused, fused, audio_val;
+    add.f32 fused, fused, video_val;
+
+    .reg .u64 out_addr;
+    add.u64 out_addr, out_base, byte_offset;
+    st.global.f32 [out_addr], fused;
+
+SIMD_WARP_DONE:
+    ret;
+}
