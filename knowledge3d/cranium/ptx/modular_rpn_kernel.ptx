@@ -1,5 +1,5 @@
-.version 7.5
-.target sm_70
+.version 8.0
+.target sm_86
 .address_size 64
 
 // Modular RPN Geometric Kernel
@@ -15,11 +15,11 @@
     .param .u32 param_token_count
 )
 {
-    .reg .pred %p<32>;
-    .reg .b16 %rh<2>;
-    .reg .b32 %r<160>;
-    .reg .b64 %rd<120>;
-    .reg .f32 %f<200>;
+    .reg .pred %p<2000>;
+    .reg .b16 %rh<8>;
+    .reg .b32 %r<600>;
+    .reg .b64 %rd<600>;
+    .reg .f32 %f<400>;
 
     // Load params
     ld.param.u32 %r0, [param_instance_id];
@@ -42,7 +42,8 @@
 
     mul.wide.u32 %rd10, %r0, %r103;
     add.u64 %rd11, %rd3, %rd10;      // instance base
-    add.u64 %rd12, %rd11, %r104;     // stack base
+    cvt.u64.u32 %rd13, %r104;
+    add.u64 %rd12, %rd11, %rd13;     // stack base
 
     ld.global.u32 %r10, [%rd11];     // head
     ld.global.u32 %r11, [%rd11+4];   // size
@@ -51,12 +52,12 @@
 
     mov.u32 %r130, 0;                // local error accumulator
 
-    setp.eq.u32 %p_done, %r1, 0;
-    @%p_done bra finish;
+    setp.eq.u32 %p16, %r1, 0;
+    @%p16 bra finish;
 
 main_loop:
-    setp.ge.u32 %p_exit, %r120, %r1;
-    @%p_exit bra loop_end;
+    setp.ge.u32 %p17, %r120, %r1;
+    @%p17 bra loop_end;
 
     // Load opcode
     mul.wide.u32 %rd20, %r120, 2;
@@ -73,96 +74,96 @@ main_loop:
     //------------------------------------------------------------------
     // Literal (scalar)
     //------------------------------------------------------------------
-    setp.eq.u32 %p_literal, %r20, 0;
-    @%p_literal bra op_literal_scalar;
-    setp.eq.u32 %p_literal_vec, %r20, 1;
-    @%p_literal_vec bra op_literal_vector;
+    setp.eq.u32 %p19, %r20, 0;
+    @%p19 bra op_literal_scalar;
+    setp.eq.u32 %p20, %r20, 1;
+    @%p20 bra op_literal_vector;
 
     //------------------------------------------------------------------
     // Arithmetic
     //------------------------------------------------------------------
-    setp.eq.u32 %p_arith, %r20, 10;
-    @%p_arith bra op_add;
-    setp.eq.u32 %p_arith2, %r20, 11;
-    @%p_arith2 bra op_sub;
-    setp.eq.u32 %p_arith3, %r20, 12;
-    @%p_arith3 bra op_mul;
-    setp.eq.u32 %p_arith4, %r20, 13;
-    @%p_arith4 bra op_div;
-    setp.eq.u32 %p_arith5, %r20, 14;
-    @%p_arith5 bra op_pow;
-    setp.eq.u32 %p_arith6, %r20, 15;
-    @%p_arith6 bra op_neg;
+    setp.eq.u32 %p1, %r20, 10;
+    @%p1 bra op_add;
+    setp.eq.u32 %p12, %r20, 11;
+    @%p12 bra op_sub;
+    setp.eq.u32 %p13, %r20, 12;
+    @%p13 bra op_mul;
+    setp.eq.u32 %p14, %r20, 13;
+    @%p14 bra op_div;
+    setp.eq.u32 %p15, %r20, 14;
+    @%p15 bra op_pow;
+    setp.eq.u32 %p16, %r20, 15;
+    @%p16 bra op_neg;
 
     //------------------------------------------------------------------
     // Advanced math
     //------------------------------------------------------------------
-    setp.eq.u32 %p_math_sqrt, %r20, 20;
-    @%p_math_sqrt bra op_sqrt;
-    setp.eq.u32 %p_math_exp, %r20, 21;
-    @%p_math_exp bra op_exp;
-    setp.eq.u32 %p_math_log, %r20, 22;
-    @%p_math_log bra op_log;
-    setp.eq.u32 %p_math_sin, %r20, 24;
-    @%p_math_sin bra op_sin;
-    setp.eq.u32 %p_math_cos, %r20, 25;
-    @%p_math_cos bra op_cos;
-    setp.eq.u32 %p_math_tan, %r20, 26;
-    @%p_math_tan bra op_tan;
+    setp.eq.u32 %p25, %r20, 20;
+    @%p25 bra op_sqrt;
+    setp.eq.u32 %p22, %r20, 21;
+    @%p22 bra op_exp;
+    setp.eq.u32 %p23, %r20, 22;
+    @%p23 bra op_log;
+    setp.eq.u32 %p24, %r20, 24;
+    @%p24 bra op_sin;
+    setp.eq.u32 %p21, %r20, 25;
+    @%p21 bra op_cos;
+    setp.eq.u32 %p26, %r20, 26;
+    @%p26 bra op_tan;
 
     //------------------------------------------------------------------
     // Comparisons / selection
     //------------------------------------------------------------------
-    setp.eq.u32 %p_cmp_gt, %r20, 40;
-    @%p_cmp_gt bra op_gt;
-    setp.eq.u32 %p_cmp_lt, %r20, 42;
-    @%p_cmp_lt bra op_lt;
-    setp.eq.u32 %p_cmp_eq, %r20, 44;
-    @%p_cmp_eq bra op_eq;
-    setp.eq.u32 %p_cmp_max, %r20, 46;
-    @%p_cmp_max bra op_max;
-    setp.eq.u32 %p_cmp_min, %r20, 47;
-    @%p_cmp_min bra op_min;
+    setp.eq.u32 %p11, %r20, 40;
+    @%p11 bra op_gt;
+    setp.eq.u32 %p12, %r20, 42;
+    @%p12 bra op_lt;
+    setp.eq.u32 %p10, %r20, 44;
+    @%p10 bra op_eq;
+    setp.eq.u32 %p13, %r20, 46;
+    @%p13 bra op_max;
+    setp.eq.u32 %p14, %r20, 47;
+    @%p14 bra op_min;
 
     //------------------------------------------------------------------
     // Stack manipulation
     //------------------------------------------------------------------
-    setp.eq.u32 %p_st_dup, %r20, 50;
-    @%p_st_dup bra op_dup;
-    setp.eq.u32 %p_st_swap, %r20, 51;
-    @%p_st_swap bra op_swap;
-    setp.eq.u32 %p_st_drop, %r20, 52;
-    @%p_st_drop bra op_drop;
-    setp.eq.u32 %p_st_over, %r20, 53;
-    @%p_st_over bra op_over;
-    setp.eq.u32 %p_st_rot, %r20, 54;
-    @%p_st_rot bra op_rot;
-    setp.eq.u32 %p_st_clear, %r20, 55;
-    @%p_st_clear bra op_clear;
+    setp.eq.u32 %p79, %r20, 50;
+    @%p79 bra op_dup;
+    setp.eq.u32 %p82, %r20, 51;
+    @%p82 bra op_swap;
+    setp.eq.u32 %p78, %r20, 52;
+    @%p78 bra op_drop;
+    setp.eq.u32 %p80, %r20, 53;
+    @%p80 bra op_over;
+    setp.eq.u32 %p81, %r20, 54;
+    @%p81 bra op_rot;
+    setp.eq.u32 %p77, %r20, 55;
+    @%p77 bra op_clear;
 
     //------------------------------------------------------------------
     // Vector operations
     //------------------------------------------------------------------
-    setp.eq.u32 %p_vec_dot, %r20, 60;
-    @%p_vec_dot bra op_dot;
-    setp.eq.u32 %p_vec_cross, %r20, 61;
-    @%p_vec_cross bra op_cross;
-    setp.eq.u32 %p_vec_mag, %r20, 62;
-    @%p_vec_mag bra op_mag;
-    setp.eq.u32 %p_vec_norm, %r20, 63;
-    @%p_vec_norm bra op_norm;
-    setp.eq.u32 %p_vec_rotate, %r20, 70;
-    @%p_vec_rotate bra op_rotate;
-    setp.eq.u32 %p_vec_scale, %r20, 71;
-    @%p_vec_scale bra op_scale;
-    setp.eq.u32 %p_vec_translate, %r20, 72;
-    @%p_vec_translate bra op_translate;
+    setp.eq.u32 %p132, %r20, 60;
+    @%p132 bra op_dot;
+    setp.eq.u32 %p131, %r20, 61;
+    @%p131 bra op_cross;
+    setp.eq.u32 %p133, %r20, 62;
+    @%p133 bra op_mag;
+    setp.eq.u32 %p134, %r20, 63;
+    @%p134 bra op_norm;
+    setp.eq.u32 %p135, %r20, 70;
+    @%p135 bra op_rotate;
+    setp.eq.u32 %p136, %r20, 71;
+    @%p136 bra op_scale;
+    setp.eq.u32 %p137, %r20, 72;
+    @%p137 bra op_translate;
 
     //------------------------------------------------------------------
     // Conditional
     //------------------------------------------------------------------
-    setp.eq.u32 %p_ifelse, %r20, 80;
-    @%p_ifelse bra op_ifelse;
+    setp.eq.u32 %p18, %r20, 80;
+    @%p18 bra op_ifelse;
 
     //------------------------------------------------------------------
     // Unknown opcode -> error
@@ -191,8 +192,8 @@ op_literal_vector:
 // -------------------------------------------------------------------
 op_add:
     // pop b
-    setp.eq.u32 %p_u0, %r11, 0;
-    @%p_u0 bra error_underflow;
+    setp.eq.u32 %p83, %r11, 0;
+    @%p83 bra error_underflow;
     sub.u32 %r200, %r11, 1;
     add.u32 %r201, %r10, %r200;
     and.b32 %r202, %r201, %r101;
@@ -203,11 +204,11 @@ op_add:
     ld.global.f32 %f12, [%rd201+8];
     ld.global.f32 %f13, [%rd201+12];
     mov.u32 %r11, %r200;
-    setp.eq.u32 %p_reset0, %r11, 0;
-    @%p_reset0 mov.u32 %r10, 0;
+    setp.eq.u32 %p27, %r11, 0;
+    @%p27 mov.u32 %r10, 0;
     // pop a
-    setp.eq.u32 %p_u1, %r11, 0;
-    @%p_u1 bra error_underflow;
+    setp.eq.u32 %p84, %r11, 0;
+    @%p84 bra error_underflow;
     sub.u32 %r203, %r11, 1;
     add.u32 %r204, %r10, %r203;
     and.b32 %r205, %r204, %r101;
@@ -218,8 +219,8 @@ op_add:
     ld.global.f32 %f16, [%rd203+8];
     ld.global.f32 %f17, [%rd203+12];
     mov.u32 %r11, %r203;
-    setp.eq.u32 %p_reset1, %r11, 0;
-    @%p_reset1 mov.u32 %r10, 0;
+    setp.eq.u32 %p28, %r11, 0;
+    @%p28 mov.u32 %r10, 0;
     add.f32 %f0, %f14, %f10;
     add.f32 %f1, %f15, %f11;
     add.f32 %f2, %f16, %f12;
@@ -228,8 +229,8 @@ op_add:
 
 op_sub:
     // pop b
-    setp.eq.u32 %p_u2, %r11, 0;
-    @%p_u2 bra error_underflow;
+    setp.eq.u32 %p95, %r11, 0;
+    @%p95 bra error_underflow;
     sub.u32 %r210, %r11, 1;
     add.u32 %r211, %r10, %r210;
     and.b32 %r212, %r211, %r101;
@@ -240,11 +241,11 @@ op_sub:
     ld.global.f32 %f22, [%rd211+8];
     ld.global.f32 %f23, [%rd211+12];
     mov.u32 %r11, %r210;
-    setp.eq.u32 %p_reset2, %r11, 0;
-    @%p_reset2 mov.u32 %r10, 0;
+    setp.eq.u32 %p39, %r11, 0;
+    @%p39 mov.u32 %r10, 0;
     // pop a
-    setp.eq.u32 %p_u3, %r11, 0;
-    @%p_u3 bra error_underflow;
+    setp.eq.u32 %p106, %r11, 0;
+    @%p106 bra error_underflow;
     sub.u32 %r213, %r11, 1;
     add.u32 %r214, %r10, %r213;
     and.b32 %r215, %r214, %r101;
@@ -255,8 +256,8 @@ op_sub:
     ld.global.f32 %f26, [%rd213+8];
     ld.global.f32 %f27, [%rd213+12];
     mov.u32 %r11, %r213;
-    setp.eq.u32 %p_reset3, %r11, 0;
-    @%p_reset3 mov.u32 %r10, 0;
+    setp.eq.u32 %p49, %r11, 0;
+    @%p49 mov.u32 %r10, 0;
     sub.f32 %f0, %f24, %f20;
     sub.f32 %f1, %f25, %f21;
     sub.f32 %f2, %f26, %f22;
@@ -265,8 +266,8 @@ op_sub:
 
 op_mul:
     // pop b
-    setp.eq.u32 %p_u4, %r11, 0;
-    @%p_u4 bra error_underflow;
+    setp.eq.u32 %p117, %r11, 0;
+    @%p117 bra error_underflow;
     sub.u32 %r220, %r11, 1;
     add.u32 %r221, %r10, %r220;
     and.b32 %r222, %r221, %r101;
@@ -277,11 +278,11 @@ op_mul:
     ld.global.f32 %f32, [%rd221+8];
     ld.global.f32 %f33, [%rd221+12];
     mov.u32 %r11, %r220;
-    setp.eq.u32 %p_reset4, %r11, 0;
-    @%p_reset4 mov.u32 %r10, 0;
+    setp.eq.u32 %p60, %r11, 0;
+    @%p60 mov.u32 %r10, 0;
     // pop a
-    setp.eq.u32 %p_u5, %r11, 0;
-    @%p_u5 bra error_underflow;
+    setp.eq.u32 %p126, %r11, 0;
+    @%p126 bra error_underflow;
     sub.u32 %r223, %r11, 1;
     add.u32 %r224, %r10, %r223;
     and.b32 %r225, %r224, %r101;
@@ -292,8 +293,8 @@ op_mul:
     ld.global.f32 %f36, [%rd223+8];
     ld.global.f32 %f37, [%rd223+12];
     mov.u32 %r11, %r223;
-    setp.eq.u32 %p_reset5, %r11, 0;
-    @%p_reset5 mov.u32 %r10, 0;
+    setp.eq.u32 %p71, %r11, 0;
+    @%p71 mov.u32 %r10, 0;
     mul.f32 %f0, %f34, %f30;
     mul.f32 %f1, %f35, %f31;
     mul.f32 %f2, %f36, %f32;
@@ -302,8 +303,8 @@ op_mul:
 
 op_div:
     // pop b
-    setp.eq.u32 %p_u6, %r11, 0;
-    @%p_u6 bra error_underflow;
+    setp.eq.u32 %p127, %r11, 0;
+    @%p127 bra error_underflow;
     sub.u32 %r230, %r11, 1;
     add.u32 %r231, %r10, %r230;
     and.b32 %r232, %r231, %r101;
@@ -314,11 +315,11 @@ op_div:
     ld.global.f32 %f42, [%rd231+8];
     ld.global.f32 %f43, [%rd231+12];
     mov.u32 %r11, %r230;
-    setp.eq.u32 %p_reset6, %r11, 0;
-    @%p_reset6 mov.u32 %r10, 0;
+    setp.eq.u32 %p72, %r11, 0;
+    @%p72 mov.u32 %r10, 0;
     // pop a
-    setp.eq.u32 %p_u7, %r11, 0;
-    @%p_u7 bra error_underflow;
+    setp.eq.u32 %p128, %r11, 0;
+    @%p128 bra error_underflow;
     sub.u32 %r233, %r11, 1;
     add.u32 %r234, %r10, %r233;
     and.b32 %r235, %r234, %r101;
@@ -329,8 +330,8 @@ op_div:
     ld.global.f32 %f46, [%rd233+8];
     ld.global.f32 %f47, [%rd233+12];
     mov.u32 %r11, %r233;
-    setp.eq.u32 %p_reset7, %r11, 0;
-    @%p_reset7 mov.u32 %r10, 0;
+    setp.eq.u32 %p73, %r11, 0;
+    @%p73 mov.u32 %r10, 0;
     div.full.f32 %f0, %f44, %f40;
     div.full.f32 %f1, %f45, %f41;
     div.full.f32 %f2, %f46, %f42;
@@ -339,8 +340,8 @@ op_div:
 
 op_pow:
     // pop exponent
-    setp.eq.u32 %p_u8, %r11, 0;
-    @%p_u8 bra error_underflow;
+    setp.eq.u32 %p129, %r11, 0;
+    @%p129 bra error_underflow;
     sub.u32 %r240, %r11, 1;
     add.u32 %r241, %r10, %r240;
     and.b32 %r242, %r241, %r101;
@@ -348,11 +349,11 @@ op_pow:
     add.u64 %rd241, %rd12, %rd240;
     ld.global.f32 %f50, [%rd241];
     mov.u32 %r11, %r240;
-    setp.eq.u32 %p_reset8, %r11, 0;
-    @%p_reset8 mov.u32 %r10, 0;
+    setp.eq.u32 %p74, %r11, 0;
+    @%p74 mov.u32 %r10, 0;
     // pop base
-    setp.eq.u32 %p_u9, %r11, 0;
-    @%p_u9 bra error_underflow;
+    setp.eq.u32 %p130, %r11, 0;
+    @%p130 bra error_underflow;
     sub.u32 %r243, %r11, 1;
     add.u32 %r244, %r10, %r243;
     and.b32 %r245, %r244, %r101;
@@ -360,8 +361,8 @@ op_pow:
     add.u64 %rd243, %rd12, %rd242;
     ld.global.f32 %f51, [%rd243];
     mov.u32 %r11, %r243;
-    setp.eq.u32 %p_reset9, %r11, 0;
-    @%p_reset9 mov.u32 %r10, 0;
+    setp.eq.u32 %p75, %r11, 0;
+    @%p75 mov.u32 %r10, 0;
     abs.f32 %f52, %f51;
     max.f32 %f52, %f52, 0f358637bd;
     lg2.approx.f32 %f53, %f52;
@@ -373,8 +374,8 @@ op_pow:
     bra push_value;
 
 op_neg:
-    setp.eq.u32 %p_u10, %r11, 0;
-    @%p_u10 bra error_underflow;
+    setp.eq.u32 %p840, %r11, 0;
+    @%p840 bra error_underflow;
     sub.u32 %r250, %r11, 1;
     add.u32 %r251, %r10, %r250;
     and.b32 %r252, %r251, %r101;
@@ -385,8 +386,8 @@ op_neg:
     ld.global.f32 %f62, [%rd251+8];
     ld.global.f32 %f63, [%rd251+12];
     mov.u32 %r11, %r250;
-    setp.eq.u32 %p_reset10, %r11, 0;
-    @%p_reset10 mov.u32 %r10, 0;
+    setp.eq.u32 %p280, %r11, 0;
+    @%p280 mov.u32 %r10, 0;
     neg.f32 %f0, %f60;
     neg.f32 %f1, %f61;
     neg.f32 %f2, %f62;
@@ -394,8 +395,8 @@ op_neg:
     bra push_value;
 
 op_sqrt:
-    setp.eq.u32 %p_u11, %r11, 0;
-    @%p_u11 bra error_underflow;
+    setp.eq.u32 %p841, %r11, 0;
+    @%p841 bra error_underflow;
     sub.u32 %r260, %r11, 1;
     add.u32 %r261, %r10, %r260;
     and.b32 %r262, %r261, %r101;
@@ -403,8 +404,8 @@ op_sqrt:
     add.u64 %rd261, %rd12, %rd260;
     ld.global.f32 %f70, [%rd261];
     mov.u32 %r11, %r260;
-    setp.eq.u32 %p_reset11, %r11, 0;
-    @%p_reset11 mov.u32 %r10, 0;
+    setp.eq.u32 %p281, %r11, 0;
+    @%p281 mov.u32 %r10, 0;
     max.f32 %f71, %f70, 0f00000000;
     sqrt.rn.f32 %f0, %f71;
     mov.f32 %f1, 0f00000000;
@@ -413,8 +414,8 @@ op_sqrt:
     bra push_value;
 
 op_exp:
-    setp.eq.u32 %p_u12, %r11, 0;
-    @%p_u12 bra error_underflow;
+    setp.eq.u32 %p842, %r11, 0;
+    @%p842 bra error_underflow;
     sub.u32 %r270, %r11, 1;
     add.u32 %r271, %r10, %r270;
     and.b32 %r272, %r271, %r101;
@@ -422,8 +423,8 @@ op_exp:
     add.u64 %rd271, %rd12, %rd270;
     ld.global.f32 %f80, [%rd271];
     mov.u32 %r11, %r270;
-    setp.eq.u32 %p_reset12, %r11, 0;
-    @%p_reset12 mov.u32 %r10, 0;
+    setp.eq.u32 %p282, %r11, 0;
+    @%p282 mov.u32 %r10, 0;
     mul.f32 %f81, %f80, 0f3fb8aa3b; // 1/log2(e)
     ex2.approx.f32 %f0, %f81;
     mov.f32 %f1, 0f00000000;
@@ -432,8 +433,8 @@ op_exp:
     bra push_value;
 
 op_log:
-    setp.eq.u32 %p_u13, %r11, 0;
-    @%p_u13 bra error_underflow;
+    setp.eq.u32 %p843, %r11, 0;
+    @%p843 bra error_underflow;
     sub.u32 %r280, %r11, 1;
     add.u32 %r281, %r10, %r280;
     and.b32 %r282, %r281, %r101;
@@ -441,8 +442,8 @@ op_log:
     add.u64 %rd281, %rd12, %rd280;
     ld.global.f32 %f90, [%rd281];
     mov.u32 %r11, %r280;
-    setp.eq.u32 %p_reset13, %r11, 0;
-    @%p_reset13 mov.u32 %r10, 0;
+    setp.eq.u32 %p283, %r11, 0;
+    @%p283 mov.u32 %r10, 0;
     max.f32 %f91, %f90, 0f358637bd;
     lg2.approx.f32 %f92, %f91;
     mul.f32 %f0, %f92, 0f3f317218; // * ln(2)
@@ -452,8 +453,8 @@ op_log:
     bra push_value;
 
 op_sin:
-    setp.eq.u32 %p_u14, %r11, 0;
-    @%p_u14 bra error_underflow;
+    setp.eq.u32 %p844, %r11, 0;
+    @%p844 bra error_underflow;
     sub.u32 %r290, %r11, 1;
     add.u32 %r291, %r10, %r290;
     and.b32 %r292, %r291, %r101;
@@ -461,8 +462,8 @@ op_sin:
     add.u64 %rd291, %rd12, %rd290;
     ld.global.f32 %f100, [%rd291];
     mov.u32 %r11, %r290;
-    setp.eq.u32 %p_reset14, %r11, 0;
-    @%p_reset14 mov.u32 %r10, 0;
+    setp.eq.u32 %p284, %r11, 0;
+    @%p284 mov.u32 %r10, 0;
     sin.approx.f32 %f0, %f100;
     mov.f32 %f1, 0f00000000;
     mov.f32 %f2, 0f00000000;
@@ -470,8 +471,8 @@ op_sin:
     bra push_value;
 
 op_cos:
-    setp.eq.u32 %p_u15, %r11, 0;
-    @%p_u15 bra error_underflow;
+    setp.eq.u32 %p845, %r11, 0;
+    @%p845 bra error_underflow;
     sub.u32 %r300, %r11, 1;
     add.u32 %r301, %r10, %r300;
     and.b32 %r302, %r301, %r101;
@@ -479,8 +480,8 @@ op_cos:
     add.u64 %rd301, %rd12, %rd300;
     ld.global.f32 %f110, [%rd301];
     mov.u32 %r11, %r300;
-    setp.eq.u32 %p_reset15, %r11, 0;
-    @%p_reset15 mov.u32 %r10, 0;
+    setp.eq.u32 %p285, %r11, 0;
+    @%p285 mov.u32 %r10, 0;
     cos.approx.f32 %f0, %f110;
     mov.f32 %f1, 0f00000000;
     mov.f32 %f2, 0f00000000;
@@ -488,8 +489,8 @@ op_cos:
     bra push_value;
 
 op_tan:
-    setp.eq.u32 %p_u16, %r11, 0;
-    @%p_u16 bra error_underflow;
+    setp.eq.u32 %p846, %r11, 0;
+    @%p846 bra error_underflow;
     sub.u32 %r310, %r11, 1;
     add.u32 %r311, %r10, %r310;
     and.b32 %r312, %r311, %r101;
@@ -497,8 +498,8 @@ op_tan:
     add.u64 %rd311, %rd12, %rd310;
     ld.global.f32 %f120, [%rd311];
     mov.u32 %r11, %r310;
-    setp.eq.u32 %p_reset16, %r11, 0;
-    @%p_reset16 mov.u32 %r10, 0;
+    setp.eq.u32 %p286, %r11, 0;
+    @%p286 mov.u32 %r10, 0;
     sin.approx.f32 %f121, %f120;
     cos.approx.f32 %f122, %f120;
     div.full.f32 %f0, %f121, %f122;
@@ -512,8 +513,8 @@ op_tan:
 // -------------------------------------------------------------------
 op_gt:
     // pop b
-    setp.eq.u32 %p_u17, %r11, 0;
-    @%p_u17 bra error_underflow;
+    setp.eq.u32 %p847, %r11, 0;
+    @%p847 bra error_underflow;
     sub.u32 %r320, %r11, 1;
     add.u32 %r321, %r10, %r320;
     and.b32 %r322, %r321, %r101;
@@ -521,11 +522,11 @@ op_gt:
     add.u64 %rd321, %rd12, %rd320;
     ld.global.f32 %f130, [%rd321];
     mov.u32 %r11, %r320;
-    setp.eq.u32 %p_reset17, %r11, 0;
-    @%p_reset17 mov.u32 %r10, 0;
+    setp.eq.u32 %p287, %r11, 0;
+    @%p287 mov.u32 %r10, 0;
     // pop a
-    setp.eq.u32 %p_u18, %r11, 0;
-    @%p_u18 bra error_underflow;
+    setp.eq.u32 %p848, %r11, 0;
+    @%p848 bra error_underflow;
     sub.u32 %r323, %r11, 1;
     add.u32 %r324, %r10, %r323;
     and.b32 %r325, %r324, %r101;
@@ -533,10 +534,10 @@ op_gt:
     add.u64 %rd323, %rd12, %rd322;
     ld.global.f32 %f131, [%rd323];
     mov.u32 %r11, %r323;
-    setp.eq.u32 %p_reset18, %r11, 0;
-    @%p_reset18 mov.u32 %r10, 0;
-    setp.gt.f32 %p_cmp0, %f131, %f130;
-    selp.f32 %f0, 0f3f800000, 0f00000000, %p_cmp0;
+    setp.eq.u32 %p288, %r11, 0;
+    @%p288 mov.u32 %r10, 0;
+    setp.gt.f32 %p7, %f131, %f130;
+    selp.f32 %f0, 0f3f800000, 0f00000000, %p7;
     mov.f32 %f1, 0f00000000;
     mov.f32 %f2, 0f00000000;
     mov.f32 %f3, 0f00000000;
@@ -544,40 +545,40 @@ op_gt:
 
 op_lt:
     // Similar to gt but lt
-    setp.eq.u32 %p_u19, %r11, 0;
-    @%p_u19 bra error_underflow;
-    sub.u32 %r330, %r11, 1; add.u32 %r331, %r10, %r330; and.b32 %r332, %r331, %r101; mul.wide.u32 %rd330, %r332, %r102; add.u64 %rd331, %rd12, %rd330; ld.global.f32 %f140, [%rd331]; mov.u32 %r11, %r330; setp.eq.u32 %p_reset19, %r11, 0; @%p_reset19 mov.u32 %r10, 0;
-    setp.eq.u32 %p_u20, %r11, 0; @%p_u20 bra error_underflow;
-    sub.u32 %r333, %r11, 1; add.u32 %r334, %r10, %r333; and.b32 %r335, %r334, %r101; mul.wide.u32 %rd332, %r335, %r102; add.u64 %rd333, %rd12, %rd332; ld.global.f32 %f141, [%rd333]; mov.u32 %r11, %r333; setp.eq.u32 %p_reset20, %r11, 0; @%p_reset20 mov.u32 %r10, 0;
-    setp.lt.f32 %p_cmp1, %f141, %f140;
-    selp.f32 %f0, 0f3f800000, 0f00000000, %p_cmp1;
+    setp.eq.u32 %p849, %r11, 0;
+    @%p849 bra error_underflow;
+    sub.u32 %r330, %r11, 1; add.u32 %r331, %r10, %r330; and.b32 %r332, %r331, %r101; mul.wide.u32 %rd330, %r332, %r102; add.u64 %rd331, %rd12, %rd330; ld.global.f32 %f140, [%rd331]; mov.u32 %r11, %r330; setp.eq.u32 %p289, %r11, 0; @%p289 mov.u32 %r10, 0;
+    setp.eq.u32 %p950, %r11, 0; @%p950 bra error_underflow;
+    sub.u32 %r333, %r11, 1; add.u32 %r334, %r10, %r333; and.b32 %r335, %r334, %r101; mul.wide.u32 %rd332, %r335, %r102; add.u64 %rd333, %rd12, %rd332; ld.global.f32 %f141, [%rd333]; mov.u32 %r11, %r333; setp.eq.u32 %p390, %r11, 0; @%p390 mov.u32 %r10, 0;
+    setp.lt.f32 %p8, %f141, %f140;
+    selp.f32 %f0, 0f3f800000, 0f00000000, %p8;
     mov.f32 %f1, 0f00000000; mov.f32 %f2, 0f00000000; mov.f32 %f3, 0f00000000;
     bra push_value;
 
 op_eq:
-    setp.eq.u32 %p_u21, %r11, 0; @%p_u21 bra error_underflow;
-    sub.u32 %r340, %r11, 1; add.u32 %r341, %r10, %r340; and.b32 %r342, %r341, %r101; mul.wide.u32 %rd340, %r342, %r102; add.u64 %rd341, %rd12, %rd340; ld.global.f32 %f150, [%rd341]; mov.u32 %r11, %r340; setp.eq.u32 %p_reset21, %r11, 0; @%p_reset21 mov.u32 %r10, 0;
-    setp.eq.u32 %p_u22, %r11, 0; @%p_u22 bra error_underflow;
-    sub.u32 %r343, %r11, 1; add.u32 %r344, %r10, %r343; and.b32 %r345, %r344, %r101; mul.wide.u32 %rd342, %r345, %r102; add.u64 %rd343, %rd12, %rd342; ld.global.f32 %f151, [%rd343]; mov.u32 %r11, %r343; setp.eq.u32 %p_reset22, %r11, 0; @%p_reset22 mov.u32 %r10, 0;
-    setp.eq.f32 %p_cmp2, %f151, %f150;
-    selp.f32 %f0, 0f3f800000, 0f00000000, %p_cmp2;
+    setp.eq.u32 %p951, %r11, 0; @%p951 bra error_underflow;
+    sub.u32 %r340, %r11, 1; add.u32 %r341, %r10, %r340; and.b32 %r342, %r341, %r101; mul.wide.u32 %rd340, %r342, %r102; add.u64 %rd341, %rd12, %rd340; ld.global.f32 %f150, [%rd341]; mov.u32 %r11, %r340; setp.eq.u32 %p391, %r11, 0; @%p391 mov.u32 %r10, 0;
+    setp.eq.u32 %p952, %r11, 0; @%p952 bra error_underflow;
+    sub.u32 %r343, %r11, 1; add.u32 %r344, %r10, %r343; and.b32 %r345, %r344, %r101; mul.wide.u32 %rd342, %r345, %r102; add.u64 %rd343, %rd12, %rd342; ld.global.f32 %f151, [%rd343]; mov.u32 %r11, %r343; setp.eq.u32 %p392, %r11, 0; @%p392 mov.u32 %r10, 0;
+    setp.eq.f32 %p9, %f151, %f150;
+    selp.f32 %f0, 0f3f800000, 0f00000000, %p9;
     mov.f32 %f1, 0f00000000; mov.f32 %f2, 0f00000000; mov.f32 %f3, 0f00000000;
     bra push_value;
 
 op_max:
-    setp.eq.u32 %p_u23, %r11, 0; @%p_u23 bra error_underflow;
-    sub.u32 %r350, %r11, 1; add.u32 %r351, %r10, %r350; and.b32 %r352, %r351, %r101; mul.wide.u32 %rd350, %r352, %r102; add.u64 %rd351, %rd12, %rd350; ld.global.f32 %f160, [%rd351]; mov.u32 %r11, %r350; setp.eq.u32 %p_reset23, %r11, 0; @%p_reset23 mov.u32 %r10, 0;
-    setp.eq.u32 %p_u24, %r11, 0; @%p_u24 bra error_underflow;
-    sub.u32 %r353, %r11, 1; add.u32 %r354, %r10, %r353; and.b32 %r355, %r354, %r101; mul.wide.u32 %rd352, %r355, %r102; add.u64 %rd353, %rd12, %rd352; ld.global.f32 %f161, [%rd353]; mov.u32 %r11, %r353; setp.eq.u32 %p_reset24, %r11, 0; @%p_reset24 mov.u32 %r10, 0;
+    setp.eq.u32 %p953, %r11, 0; @%p953 bra error_underflow;
+    sub.u32 %r350, %r11, 1; add.u32 %r351, %r10, %r350; and.b32 %r352, %r351, %r101; mul.wide.u32 %rd350, %r352, %r102; add.u64 %rd351, %rd12, %rd350; ld.global.f32 %f160, [%rd351]; mov.u32 %r11, %r350; setp.eq.u32 %p393, %r11, 0; @%p393 mov.u32 %r10, 0;
+    setp.eq.u32 %p954, %r11, 0; @%p954 bra error_underflow;
+    sub.u32 %r353, %r11, 1; add.u32 %r354, %r10, %r353; and.b32 %r355, %r354, %r101; mul.wide.u32 %rd352, %r355, %r102; add.u64 %rd353, %rd12, %rd352; ld.global.f32 %f161, [%rd353]; mov.u32 %r11, %r353; setp.eq.u32 %p394, %r11, 0; @%p394 mov.u32 %r10, 0;
     max.f32 %f0, %f160, %f161;
     mov.f32 %f1, 0f00000000; mov.f32 %f2, 0f00000000; mov.f32 %f3, 0f00000000;
     bra push_value;
 
 op_min:
-    setp.eq.u32 %p_u25, %r11, 0; @%p_u25 bra error_underflow;
-    sub.u32 %r360, %r11, 1; add.u32 %r361, %r10, %r360; and.b32 %r362, %r361, %r101; mul.wide.u32 %rd360, %r362, %r102; add.u64 %rd361, %rd12, %rd360; ld.global.f32 %f170, [%rd361]; mov.u32 %r11, %r360; setp.eq.u32 %p_reset25, %r11, 0; @%p_reset25 mov.u32 %r10, 0;
-    setp.eq.u32 %p_u26, %r11, 0; @%p_u26 bra error_underflow;
-    sub.u32 %r363, %r11, 1; add.u32 %r364, %r10, %r363; and.b32 %r365, %r364, %r101; mul.wide.u32 %rd362, %r365, %r102; add.u64 %rd363, %rd12, %rd362; ld.global.f32 %f171, [%rd363]; mov.u32 %r11, %r363; setp.eq.u32 %p_reset26, %r11, 0; @%p_reset26 mov.u32 %r10, 0;
+    setp.eq.u32 %p955, %r11, 0; @%p955 bra error_underflow;
+    sub.u32 %r360, %r11, 1; add.u32 %r361, %r10, %r360; and.b32 %r362, %r361, %r101; mul.wide.u32 %rd360, %r362, %r102; add.u64 %rd361, %rd12, %rd360; ld.global.f32 %f170, [%rd361]; mov.u32 %r11, %r360; setp.eq.u32 %p395, %r11, 0; @%p395 mov.u32 %r10, 0;
+    setp.eq.u32 %p956, %r11, 0; @%p956 bra error_underflow;
+    sub.u32 %r363, %r11, 1; add.u32 %r364, %r10, %r363; and.b32 %r365, %r364, %r101; mul.wide.u32 %rd362, %r365, %r102; add.u64 %rd363, %rd12, %rd362; ld.global.f32 %f171, [%rd363]; mov.u32 %r11, %r363; setp.eq.u32 %p396, %r11, 0; @%p396 mov.u32 %r10, 0;
     min.f32 %f0, %f170, %f171;
     mov.f32 %f1, 0f00000000; mov.f32 %f2, 0f00000000; mov.f32 %f3, 0f00000000;
     bra push_value;
@@ -586,8 +587,8 @@ op_min:
 // Stack operations
 // -------------------------------------------------------------------
 op_dup:
-    setp.eq.u32 %p_u27, %r11, 0;
-    @%p_u27 bra error_underflow;
+    setp.eq.u32 %p957, %r11, 0;
+    @%p957 bra error_underflow;
     sub.u32 %r370, %r11, 1;
     add.u32 %r371, %r10, %r370;
     and.b32 %r372, %r371, %r101;
@@ -600,39 +601,39 @@ op_dup:
     bra push_value;
 
 op_swap:
-    setp.lt.u32 %p_u28, %r11, 2;
-    @%p_u28 bra error_underflow;
+    setp.lt.u32 %p958, %r11, 2;
+    @%p958 bra error_underflow;
     // pop b
-    sub.u32 %r380, %r11, 1; add.u32 %r381, %r10, %r380; and.b32 %r382, %r381, %r101; mul.wide.u32 %rd380, %r382, %r102; add.u64 %rd381, %rd12, %rd380; ld.global.f32 %f180, [%rd381]; ld.global.f32 %f181, [%rd381+4]; ld.global.f32 %f182, [%rd381+8]; ld.global.f32 %f183, [%rd381+12]; mov.u32 %r11, %r380; setp.eq.u32 %p_reset28, %r11, 0; @%p_reset28 mov.u32 %r10, 0;
+    sub.u32 %r380, %r11, 1; add.u32 %r381, %r10, %r380; and.b32 %r382, %r381, %r101; mul.wide.u32 %rd380, %r382, %r102; add.u64 %rd381, %rd12, %rd380; ld.global.f32 %f180, [%rd381]; ld.global.f32 %f181, [%rd381+4]; ld.global.f32 %f182, [%rd381+8]; ld.global.f32 %f183, [%rd381+12]; mov.u32 %r11, %r380; setp.eq.u32 %p398, %r11, 0; @%p398 mov.u32 %r10, 0;
     // pop a
-    sub.u32 %r383, %r11, 1; add.u32 %r384, %r10, %r383; and.b32 %r385, %r384, %r101; mul.wide.u32 %rd382, %r385, %r102; add.u64 %rd383, %rd12, %rd382; ld.global.f32 %f184, [%rd383]; ld.global.f32 %f185, [%rd383+4]; ld.global.f32 %f186, [%rd383+8]; ld.global.f32 %f187, [%rd383+12]; mov.u32 %r11, %r383; setp.eq.u32 %p_reset29, %r11, 0; @%p_reset29 mov.u32 %r10, 0;
+    sub.u32 %r383, %r11, 1; add.u32 %r384, %r10, %r383; and.b32 %r385, %r384, %r101; mul.wide.u32 %rd382, %r385, %r102; add.u64 %rd383, %rd12, %rd382; ld.global.f32 %f184, [%rd383]; ld.global.f32 %f185, [%rd383+4]; ld.global.f32 %f186, [%rd383+8]; ld.global.f32 %f187, [%rd383+12]; mov.u32 %r11, %r383; setp.eq.u32 %p399, %r11, 0; @%p399 mov.u32 %r10, 0;
     // push b then a
     mov.f32 %f0, %f180; mov.f32 %f1, %f181; mov.f32 %f2, %f182; mov.f32 %f3, %f183; bra push_value;
 op_swap_second:
     mov.f32 %f0, %f184; mov.f32 %f1, %f185; mov.f32 %f2, %f186; mov.f32 %f3, %f187; bra push_value;
 
 op_drop:
-    setp.eq.u32 %p_u29, %r11, 0;
-    @%p_u29 bra error_underflow;
+    setp.eq.u32 %p959, %r11, 0;
+    @%p959 bra error_underflow;
     sub.u32 %r390, %r11, 1;
     mov.u32 %r11, %r390;
-    setp.eq.u32 %p_reset30, %r11, 0;
-    @%p_reset30 mov.u32 %r10, 0;
+    setp.eq.u32 %p490, %r11, 0;
+    @%p490 mov.u32 %r10, 0;
     add.u32 %r120, %r120, 1;
     bra main_loop;
 
 op_over:
-    setp.lt.u32 %p_u30, %r11, 2;
-    @%p_u30 bra error_underflow;
+    setp.lt.u32 %p1060, %r11, 2;
+    @%p1060 bra error_underflow;
     sub.u32 %r400, %r11, 2; add.u32 %r401, %r10, %r400; and.b32 %r402, %r401, %r101; mul.wide.u32 %rd400, %r402, %r102; add.u64 %rd401, %rd12, %rd400; ld.global.f32 %f190, [%rd401]; ld.global.f32 %f191, [%rd401+4]; ld.global.f32 %f192, [%rd401+8]; ld.global.f32 %f193, [%rd401+12]; mov.f32 %f0, %f190; mov.f32 %f1, %f191; mov.f32 %f2, %f192; mov.f32 %f3, %f193; bra push_value;
 
 op_rot:
-    setp.lt.u32 %p_u31, %r11, 3;
-    @%p_u31 bra error_underflow;
+    setp.lt.u32 %p1061, %r11, 3;
+    @%p1061 bra error_underflow;
     // Pop c, b, a
-    sub.u32 %r410, %r11, 1; add.u32 %r411, %r10, %r410; and.b32 %r412, %r411, %r101; mul.wide.u32 %rd410, %r412, %r102; add.u64 %rd411, %rd12, %rd410; ld.global.f32 %f200, [%rd411]; ld.global.f32 %f201, [%rd411+4]; ld.global.f32 %f202, [%rd411+8]; ld.global.f32 %f203, [%rd411+12]; mov.u32 %r11, %r410; setp.eq.u32 %p_reset31, %r11, 0; @%p_reset31 mov.u32 %r10, 0;
-    sub.u32 %r412b, %r11, 1; add.u32 %r413, %r10, %r412b; and.b32 %r414, %r413, %r101; mul.wide.u32 %rd412, %r414, %r102; add.u64 %rd413, %rd12, %rd412; ld.global.f32 %f204, [%rd413]; ld.global.f32 %f205, [%rd413+4]; ld.global.f32 %f206, [%rd413+8]; ld.global.f32 %f207, [%rd413+12]; mov.u32 %r11, %r412b; setp.eq.u32 %p_reset32, %r11, 0; @%p_reset32 mov.u32 %r10, 0;
-    sub.u32 %r415, %r11, 1; add.u32 %r416, %r10, %r415; and.b32 %r417, %r416, %r101; mul.wide.u32 %rd414, %r417, %r102; add.u64 %rd415, %rd12, %rd414; ld.global.f32 %f208, [%rd415]; ld.global.f32 %f209, [%rd415+4]; ld.global.f32 %f210, [%rd415+8]; ld.global.f32 %f211, [%rd415+12]; mov.u32 %r11, %r415; setp.eq.u32 %p_reset33, %r11, 0; @%p_reset33 mov.u32 %r10, 0;
+    sub.u32 %r410, %r11, 1; add.u32 %r411, %r10, %r410; and.b32 %r412, %r411, %r101; mul.wide.u32 %rd410, %r412, %r102; add.u64 %rd411, %rd12, %rd410; ld.global.f32 %f200, [%rd411]; ld.global.f32 %f201, [%rd411+4]; ld.global.f32 %f202, [%rd411+8]; ld.global.f32 %f203, [%rd411+12]; mov.u32 %r11, %r410; setp.eq.u32 %p491, %r11, 0; @%p491 mov.u32 %r10, 0;
+    sub.u32 %r418, %r11, 1; add.u32 %r413, %r10, %r418; and.b32 %r414, %r413, %r101; mul.wide.u32 %rd412, %r414, %r102; add.u64 %rd413, %rd12, %rd412; ld.global.f32 %f204, [%rd413]; ld.global.f32 %f205, [%rd413+4]; ld.global.f32 %f206, [%rd413+8]; ld.global.f32 %f207, [%rd413+12]; mov.u32 %r11, %r418; setp.eq.u32 %p492, %r11, 0; @%p492 mov.u32 %r10, 0;
+    sub.u32 %r415, %r11, 1; add.u32 %r416, %r10, %r415; and.b32 %r417, %r416, %r101; mul.wide.u32 %rd414, %r417, %r102; add.u64 %rd415, %rd12, %rd414; ld.global.f32 %f208, [%rd415]; ld.global.f32 %f209, [%rd415+4]; ld.global.f32 %f210, [%rd415+8]; ld.global.f32 %f211, [%rd415+12]; mov.u32 %r11, %r415; setp.eq.u32 %p493, %r11, 0; @%p493 mov.u32 %r10, 0;
     // Push b, c, a
     mov.f32 %f0, %f204; mov.f32 %f1, %f205; mov.f32 %f2, %f206; mov.f32 %f3, %f207; bra push_value;
 op_rot_second:
@@ -651,76 +652,76 @@ op_clear:
 // -------------------------------------------------------------------
 op_dot:
     // pop b
-    setp.eq.u32 %p_u32, %r11, 0; @%p_u32 bra error_underflow;
-    sub.u32 %r420, %r11, 1; add.u32 %r421, %r10, %r420; and.b32 %r422, %r421, %r101; mul.wide.u32 %rd420, %r422, %r102; add.u64 %rd421, %rd12, %rd420; ld.global.f32 %f220, [%rd421]; ld.global.f32 %f221, [%rd421+4]; ld.global.f32 %f222, [%rd421+8]; mov.u32 %r11, %r420; setp.eq.u32 %p_reset34, %r11, 0; @%p_reset34 mov.u32 %r10, 0;
+    setp.eq.u32 %p1062, %r11, 0; @%p1062 bra error_underflow;
+    sub.u32 %r420, %r11, 1; add.u32 %r421, %r10, %r420; and.b32 %r422, %r421, %r101; mul.wide.u32 %rd420, %r422, %r102; add.u64 %rd421, %rd12, %rd420; ld.global.f32 %f220, [%rd421]; ld.global.f32 %f221, [%rd421+4]; ld.global.f32 %f222, [%rd421+8]; mov.u32 %r11, %r420; setp.eq.u32 %p494, %r11, 0; @%p494 mov.u32 %r10, 0;
     // pop a
-    setp.eq.u32 %p_u33, %r11, 0; @%p_u33 bra error_underflow;
-    sub.u32 %r423, %r11, 1; add.u32 %r424, %r10, %r423; and.b32 %r425, %r424, %r101; mul.wide.u32 %rd422, %r425, %r102; add.u64 %rd423, %rd12, %rd422; ld.global.f32 %f223, [%rd423]; ld.global.f32 %f224, [%rd423+4]; ld.global.f32 %f225, [%rd423+8]; mov.u32 %r11, %r423; setp.eq.u32 %p_reset35, %r11, 0; @%p_reset35 mov.u32 %r10, 0;
-    mul.f32 %f0, %f223, %f220; mad.f32 %f0, %f224, %f221, %f0; mad.f32 %f0, %f225, %f222, %f0;
+    setp.eq.u32 %p1063, %r11, 0; @%p1063 bra error_underflow;
+    sub.u32 %r423, %r11, 1; add.u32 %r424, %r10, %r423; and.b32 %r425, %r424, %r101; mul.wide.u32 %rd422, %r425, %r102; add.u64 %rd423, %rd12, %rd422; ld.global.f32 %f223, [%rd423]; ld.global.f32 %f224, [%rd423+4]; ld.global.f32 %f225, [%rd423+8]; mov.u32 %r11, %r423; setp.eq.u32 %p495, %r11, 0; @%p495 mov.u32 %r10, 0;
+    mul.f32 %f0, %f223, %f220; mad.rn.f32 %f0, %f224, %f221, %f0; mad.rn.f32 %f0, %f225, %f222, %f0;
     mov.f32 %f1, 0f00000000; mov.f32 %f2, 0f00000000; mov.f32 %f3, 0f00000000;
     bra push_value;
 
 op_cross:
-    setp.eq.u32 %p_u34, %r11, 0; @%p_u34 bra error_underflow;
-    sub.u32 %r430, %r11, 1; add.u32 %r431, %r10, %r430; and.b32 %r432, %r431, %r101; mul.wide.u32 %rd430, %r432, %r102; add.u64 %rd431, %rd12, %rd430; ld.global.f32 %f230, [%rd431]; ld.global.f32 %f231, [%rd431+4]; ld.global.f32 %f232, [%rd431+8]; mov.u32 %r11, %r430; setp.eq.u32 %p_reset36, %r11, 0; @%p_reset36 mov.u32 %r10, 0;
-    setp.eq.u32 %p_u35, %r11, 0; @%p_u35 bra error_underflow;
-    sub.u32 %r433, %r11, 1; add.u32 %r434, %r10, %r433; and.b32 %r435, %r434, %r101; mul.wide.u32 %rd432, %r435, %r102; add.u64 %rd433, %rd12, %rd432; ld.global.f32 %f233, [%rd433]; ld.global.f32 %f234, [%rd433+4]; ld.global.f32 %f235, [%rd433+8]; mov.u32 %r11, %r433; setp.eq.u32 %p_reset37, %r11, 0; @%p_reset37 mov.u32 %r10, 0;
-    mul.f32 %f0, %f234, %f232; mad.f32 %f0, -%f235, %f231, %f0;
-    mul.f32 %f1, %f235, %f230; mad.f32 %f1, -%f233, %f232, %f1;
-    mul.f32 %f2, %f233, %f231; mad.f32 %f2, -%f234, %f230, %f2;
+    setp.eq.u32 %p1064, %r11, 0; @%p1064 bra error_underflow;
+    sub.u32 %r430, %r11, 1; add.u32 %r431, %r10, %r430; and.b32 %r432, %r431, %r101; mul.wide.u32 %rd430, %r432, %r102; add.u64 %rd431, %rd12, %rd430; ld.global.f32 %f230, [%rd431]; ld.global.f32 %f231, [%rd431+4]; ld.global.f32 %f232, [%rd431+8]; mov.u32 %r11, %r430; setp.eq.u32 %p496, %r11, 0; @%p496 mov.u32 %r10, 0;
+    setp.eq.u32 %p1065, %r11, 0; @%p1065 bra error_underflow;
+    sub.u32 %r433, %r11, 1; add.u32 %r434, %r10, %r433; and.b32 %r435, %r434, %r101; mul.wide.u32 %rd432, %r435, %r102; add.u64 %rd433, %rd12, %rd432; ld.global.f32 %f233, [%rd433]; ld.global.f32 %f234, [%rd433+4]; ld.global.f32 %f235, [%rd433+8]; mov.u32 %r11, %r433; setp.eq.u32 %p497, %r11, 0; @%p497 mov.u32 %r10, 0;
+    mul.f32 %f0, %f234, %f232; neg.f32 %f236, %f235; mad.rn.f32 %f0, %f236, %f231, %f0;
+    mul.f32 %f1, %f235, %f230; neg.f32 %f237, %f233; mad.rn.f32 %f1, %f237, %f232, %f1;
+    mul.f32 %f2, %f233, %f231; neg.f32 %f238, %f234; mad.rn.f32 %f2, %f238, %f230, %f2;
     mov.f32 %f3, 0f00000000;
     bra push_value;
 
 op_mag:
-    setp.eq.u32 %p_u36, %r11, 0; @%p_u36 bra error_underflow;
-    sub.u32 %r440, %r11, 1; add.u32 %r441, %r10, %r440; and.b32 %r442, %r441, %r101; mul.wide.u32 %rd440, %r442, %r102; add.u64 %rd441, %rd12, %rd440; ld.global.f32 %f240, [%rd441]; ld.global.f32 %f241, [%rd441+4]; ld.global.f32 %f242, [%rd441+8]; mov.u32 %r11, %r440; setp.eq.u32 %p_reset38, %r11, 0; @%p_reset38 mov.u32 %r10, 0;
-    mul.f32 %f243, %f240, %f240; mad.f32 %f243, %f241, %f241, %f243; mad.f32 %f243, %f242, %f242, %f243; sqrt.rn.f32 %f0, %f243;
+    setp.eq.u32 %p1066, %r11, 0; @%p1066 bra error_underflow;
+    sub.u32 %r440, %r11, 1; add.u32 %r441, %r10, %r440; and.b32 %r442, %r441, %r101; mul.wide.u32 %rd440, %r442, %r102; add.u64 %rd441, %rd12, %rd440; ld.global.f32 %f240, [%rd441]; ld.global.f32 %f241, [%rd441+4]; ld.global.f32 %f242, [%rd441+8]; mov.u32 %r11, %r440; setp.eq.u32 %p498, %r11, 0; @%p498 mov.u32 %r10, 0;
+    mul.f32 %f243, %f240, %f240; mad.rn.f32 %f243, %f241, %f241, %f243; mad.rn.f32 %f243, %f242, %f242, %f243; sqrt.rn.f32 %f0, %f243;
     mov.f32 %f1, 0f00000000; mov.f32 %f2, 0f00000000; mov.f32 %f3, 0f00000000;
     bra push_value;
 
 op_norm:
-    setp.eq.u32 %p_u37, %r11, 0; @%p_u37 bra error_underflow;
-    sub.u32 %r450, %r11, 1; add.u32 %r451, %r10, %r450; and.b32 %r452, %r451, %r101; mul.wide.u32 %rd450, %r452, %r102; add.u64 %rd451, %rd12, %rd450; ld.global.f32 %f250, [%rd451]; ld.global.f32 %f251, [%rd451+4]; ld.global.f32 %f252, [%rd451+8]; mov.u32 %r11, %r450; setp.eq.u32 %p_reset39, %r11, 0; @%p_reset39 mov.u32 %r10, 0;
-    mul.f32 %f253, %f250, %f250; mad.f32 %f253, %f251, %f251, %f253; mad.f32 %f253, %f252, %f252, %f253; sqrt.rn.f32 %f254, %f253; max.f32 %f254, %f254, 0f358637bd; div.full.f32 %f0, %f250, %f254; div.full.f32 %f1, %f251, %f254; div.full.f32 %f2, %f252, %f254; mov.f32 %f3, 0f00000000; bra push_value;
+    setp.eq.u32 %p1067, %r11, 0; @%p1067 bra error_underflow;
+    sub.u32 %r450, %r11, 1; add.u32 %r451, %r10, %r450; and.b32 %r452, %r451, %r101; mul.wide.u32 %rd450, %r452, %r102; add.u64 %rd451, %rd12, %rd450; ld.global.f32 %f250, [%rd451]; ld.global.f32 %f251, [%rd451+4]; ld.global.f32 %f252, [%rd451+8]; mov.u32 %r11, %r450; setp.eq.u32 %p499, %r11, 0; @%p499 mov.u32 %r10, 0;
+    mul.f32 %f253, %f250, %f250; mad.rn.f32 %f253, %f251, %f251, %f253; mad.rn.f32 %f253, %f252, %f252, %f253; sqrt.rn.f32 %f254, %f253; max.f32 %f254, %f254, 0f358637bd; div.full.f32 %f0, %f250, %f254; div.full.f32 %f1, %f251, %f254; div.full.f32 %f2, %f252, %f254; mov.f32 %f3, 0f00000000; bra push_value;
 
 op_scale:
     // pop factor
-    setp.eq.u32 %p_u38, %r11, 0; @%p_u38 bra error_underflow;
-    sub.u32 %r460, %r11, 1; add.u32 %r461, %r10, %r460; and.b32 %r462, %r461, %r101; mul.wide.u32 %rd460, %r462, %r102; add.u64 %rd461, %rd12, %rd460; ld.global.f32 %f260, [%rd461]; mov.u32 %r11, %r460; setp.eq.u32 %p_reset40, %r11, 0; @%p_reset40 mov.u32 %r10, 0;
+    setp.eq.u32 %p1068, %r11, 0; @%p1068 bra error_underflow;
+    sub.u32 %r460, %r11, 1; add.u32 %r461, %r10, %r460; and.b32 %r462, %r461, %r101; mul.wide.u32 %rd460, %r462, %r102; add.u64 %rd461, %rd12, %rd460; ld.global.f32 %f260, [%rd461]; mov.u32 %r11, %r460; setp.eq.u32 %p600, %r11, 0; @%p600 mov.u32 %r10, 0;
     // pop vector
-    setp.eq.u32 %p_u39, %r11, 0; @%p_u39 bra error_underflow;
-    sub.u32 %r463, %r11, 1; add.u32 %r464, %r10, %r463; and.b32 %r465, %r464, %r101; mul.wide.u32 %rd462, %r465, %r102; add.u64 %rd463, %rd12, %rd462; ld.global.f32 %f261, [%rd463]; ld.global.f32 %f262, [%rd463+4]; ld.global.f32 %f263, [%rd463+8]; mov.u32 %r11, %r463; setp.eq.u32 %p_reset41, %r11, 0; @%p_reset41 mov.u32 %r10, 0;
+    setp.eq.u32 %p1069, %r11, 0; @%p1069 bra error_underflow;
+    sub.u32 %r463, %r11, 1; add.u32 %r464, %r10, %r463; and.b32 %r465, %r464, %r101; mul.wide.u32 %rd462, %r465, %r102; add.u64 %rd463, %rd12, %rd462; ld.global.f32 %f261, [%rd463]; ld.global.f32 %f262, [%rd463+4]; ld.global.f32 %f263, [%rd463+8]; mov.u32 %r11, %r463; setp.eq.u32 %p601, %r11, 0; @%p601 mov.u32 %r10, 0;
     mul.f32 %f0, %f261, %f260; mul.f32 %f1, %f262, %f260; mul.f32 %f2, %f263, %f260; mov.f32 %f3, 0f00000000; bra push_value;
 
 op_translate:
-    setp.eq.u32 %p_u40, %r11, 0; @%p_u40 bra error_underflow;
-    sub.u32 %r470, %r11, 1; add.u32 %r471, %r10, %r470; and.b32 %r472, %r471, %r101; mul.wide.u32 %rd470, %r472, %r102; add.u64 %rd471, %rd12, %rd470; ld.global.f32 %f270, [%rd471]; ld.global.f32 %f271, [%rd471+4]; ld.global.f32 %f272, [%rd471+8]; mov.u32 %r11, %r470; setp.eq.u32 %p_reset42, %r11, 0; @%p_reset42 mov.u32 %r10, 0;
-    setp.eq.u32 %p_u41, %r11, 0; @%p_u41 bra error_underflow;
-    sub.u32 %r473, %r11, 1; add.u32 %r474, %r10, %r473; and.b32 %r475, %r474, %r101; mul.wide.u32 %rd472, %r475, %r102; add.u64 %rd473, %rd12, %rd472; ld.global.f32 %f273, [%rd473]; ld.global.f32 %f274, [%rd473+4]; ld.global.f32 %f275, [%rd473+8]; mov.u32 %r11, %r473; setp.eq.u32 %p_reset43, %r11, 0; @%p_reset43 mov.u32 %r10, 0;
+    setp.eq.u32 %p1170, %r11, 0; @%p1170 bra error_underflow;
+    sub.u32 %r470, %r11, 1; add.u32 %r471, %r10, %r470; and.b32 %r472, %r471, %r101; mul.wide.u32 %rd470, %r472, %r102; add.u64 %rd471, %rd12, %rd470; ld.global.f32 %f270, [%rd471]; ld.global.f32 %f271, [%rd471+4]; ld.global.f32 %f272, [%rd471+8]; mov.u32 %r11, %r470; setp.eq.u32 %p602, %r11, 0; @%p602 mov.u32 %r10, 0;
+    setp.eq.u32 %p1171, %r11, 0; @%p1171 bra error_underflow;
+    sub.u32 %r473, %r11, 1; add.u32 %r474, %r10, %r473; and.b32 %r475, %r474, %r101; mul.wide.u32 %rd472, %r475, %r102; add.u64 %rd473, %rd12, %rd472; ld.global.f32 %f273, [%rd473]; ld.global.f32 %f274, [%rd473+4]; ld.global.f32 %f275, [%rd473+8]; mov.u32 %r11, %r473; setp.eq.u32 %p603, %r11, 0; @%p603 mov.u32 %r10, 0;
     add.f32 %f0, %f273, %f270; add.f32 %f1, %f274, %f271; add.f32 %f2, %f275, %f272; mov.f32 %f3, 0f00000000; bra push_value;
 
 op_rotate:
     // expects axis vector, angle, vector (topmost is axis)
-    setp.eq.u32 %p_u42, %r11, 0; @%p_u42 bra error_underflow;
-    sub.u32 %r480, %r11, 1; add.u32 %r481, %r10, %r480; and.b32 %r482, %r481, %r101; mul.wide.u32 %rd480, %r482, %r102; add.u64 %rd481, %rd12, %rd480; ld.global.f32 %f280, [%rd481]; ld.global.f32 %f281, [%rd481+4]; ld.global.f32 %f282, [%rd481+8]; mov.u32 %r11, %r480; setp.eq.u32 %p_reset44, %r11, 0; @%p_reset44 mov.u32 %r10, 0;
-    setp.eq.u32 %p_u43, %r11, 0; @%p_u43 bra error_underflow;
-    sub.u32 %r483, %r11, 1; add.u32 %r484, %r10, %r483; and.b32 %r485, %r484, %r101; mul.wide.u32 %rd482, %r485, %r102; add.u64 %rd483, %rd12, %rd482; ld.global.f32 %f283, [%rd483]; mov.u32 %r11, %r483; setp.eq.u32 %p_reset45, %r11, 0; @%p_reset45 mov.u32 %r10, 0;
-    setp.eq.u32 %p_u44, %r11, 0; @%p_u44 bra error_underflow;
-    sub.u32 %r486, %r11, 1; add.u32 %r487, %r10, %r486; and.b32 %r488, %r487, %r101; mul.wide.u32 %rd484, %r488, %r102; add.u64 %rd485, %rd12, %rd484; ld.global.f32 %f284, [%rd485]; ld.global.f32 %f285, [%rd485+4]; ld.global.f32 %f286, [%rd485+8]; mov.u32 %r11, %r486; setp.eq.u32 %p_reset46, %r11, 0; @%p_reset46 mov.u32 %r10, 0;
+    setp.eq.u32 %p1172, %r11, 0; @%p1172 bra error_underflow;
+    sub.u32 %r480, %r11, 1; add.u32 %r481, %r10, %r480; and.b32 %r482, %r481, %r101; mul.wide.u32 %rd480, %r482, %r102; add.u64 %rd481, %rd12, %rd480; ld.global.f32 %f280, [%rd481]; ld.global.f32 %f281, [%rd481+4]; ld.global.f32 %f282, [%rd481+8]; mov.u32 %r11, %r480; setp.eq.u32 %p604, %r11, 0; @%p604 mov.u32 %r10, 0;
+    setp.eq.u32 %p1173, %r11, 0; @%p1173 bra error_underflow;
+    sub.u32 %r483, %r11, 1; add.u32 %r484, %r10, %r483; and.b32 %r485, %r484, %r101; mul.wide.u32 %rd482, %r485, %r102; add.u64 %rd483, %rd12, %rd482; ld.global.f32 %f283, [%rd483]; mov.u32 %r11, %r483; setp.eq.u32 %p605, %r11, 0; @%p605 mov.u32 %r10, 0;
+    setp.eq.u32 %p1174, %r11, 0; @%p1174 bra error_underflow;
+    sub.u32 %r486, %r11, 1; add.u32 %r487, %r10, %r486; and.b32 %r488, %r487, %r101; mul.wide.u32 %rd484, %r488, %r102; add.u64 %rd485, %rd12, %rd484; ld.global.f32 %f284, [%rd485]; ld.global.f32 %f285, [%rd485+4]; ld.global.f32 %f286, [%rd485+8]; mov.u32 %r11, %r486; setp.eq.u32 %p606, %r11, 0; @%p606 mov.u32 %r10, 0;
     // normalize axis
-    mul.f32 %f287, %f280, %f280; mad.f32 %f287, %f281, %f281, %f287; mad.f32 %f287, %f282, %f282, %f287; sqrt.rn.f32 %f288, %f287; max.f32 %f288, %f288, 0f358637bd; div.full.f32 %f289, %f280, %f288; div.full.f32 %f290, %f281, %f288; div.full.f32 %f291, %f282, %f288;
+    mul.f32 %f287, %f280, %f280; mad.rn.f32 %f287, %f281, %f281, %f287; mad.rn.f32 %f287, %f282, %f282, %f287; sqrt.rn.f32 %f288, %f287; max.f32 %f288, %f288, 0f358637bd; div.full.f32 %f289, %f280, %f288; div.full.f32 %f290, %f281, %f288; div.full.f32 %f291, %f282, %f288;
     sin.approx.f32 %f292, %f283; cos.approx.f32 %f293, %f283;
     // k x v
-    mul.f32 %f294, %f290, %f286; mad.f32 %f294, -%f291, %f285, %f294;
-    mul.f32 %f295, %f291, %f284; mad.f32 %f295, -%f289, %f286, %f295;
-    mul.f32 %f296, %f289, %f285; mad.f32 %f296, -%f290, %f284, %f296;
+    mul.f32 %f294, %f290, %f286; neg.f32 %f299, %f291; mad.rn.f32 %f294, %f299, %f285, %f294;
+    mul.f32 %f295, %f291, %f284; neg.f32 %f310, %f289; mad.rn.f32 %f295, %f310, %f286, %f295;
+    mul.f32 %f296, %f289, %f285; neg.f32 %f311, %f290; mad.rn.f32 %f296, %f311, %f284, %f296;
     // k dot v
-    mul.f32 %f297, %f289, %f284; mad.f32 %f297, %f290, %f285, %f297; mad.f32 %f297, %f291, %f286, %f297;
+    mul.f32 %f297, %f289, %f284; mad.rn.f32 %f297, %f290, %f285, %f297; mad.rn.f32 %f297, %f291, %f286, %f297;
     sub.f32 %f298, 0f3f800000, %f293;
     // result
-    mul.f32 %f0, %f284, %f293; mad.f32 %f0, %f294, %f292, %f0; mad.f32 %f0, %f289, %f297, %f0;
-    mul.f32 %f1, %f285, %f293; mad.f32 %f1, %f295, %f292, %f1; mad.f32 %f1, %f290, %f297, %f1;
-    mul.f32 %f2, %f286, %f293; mad.f32 %f2, %f296, %f292, %f2; mad.f32 %f2, %f291, %f297, %f2;
+    mul.f32 %f0, %f284, %f293; mad.rn.f32 %f0, %f294, %f292, %f0; mad.rn.f32 %f0, %f289, %f297, %f0;
+    mul.f32 %f1, %f285, %f293; mad.rn.f32 %f1, %f295, %f292, %f1; mad.rn.f32 %f1, %f290, %f297, %f1;
+    mul.f32 %f2, %f286, %f293; mad.rn.f32 %f2, %f296, %f292, %f2; mad.rn.f32 %f2, %f291, %f297, %f2;
     mov.f32 %f3, 0f00000000;
     bra push_value;
 
@@ -728,14 +729,14 @@ op_rotate:
 // Conditional if-else (cond, true, false) -> selects
 // -------------------------------------------------------------------
 op_ifelse:
-    setp.eq.u32 %p_u45, %r11, 0; @%p_u45 bra error_underflow;
-    sub.u32 %r490, %r11, 1; add.u32 %r491, %r10, %r490; and.b32 %r492, %r491, %r101; mul.wide.u32 %rd490, %r492, %r102; add.u64 %rd491, %rd12, %rd490; ld.global.f32 %f300, [%rd491]; ld.global.f32 %f301, [%rd491+4]; ld.global.f32 %f302, [%rd491+8]; mov.u32 %r11, %r490; setp.eq.u32 %p_reset47, %r11, 0; @%p_reset47 mov.u32 %r10, 0;
-    setp.eq.u32 %p_u46, %r11, 0; @%p_u46 bra error_underflow;
-    sub.u32 %r493, %r11, 1; add.u32 %r494, %r10, %r493; and.b32 %r495, %r494, %r101; mul.wide.u32 %rd492, %r495, %r102; add.u64 %rd493, %rd12, %rd492; ld.global.f32 %f303, [%rd493]; ld.global.f32 %f304, [%rd493+4]; ld.global.f32 %f305, [%rd493+8]; mov.u32 %r11, %r493; setp.eq.u32 %p_reset48, %r11, 0; @%p_reset48 mov.u32 %r10, 0;
-    setp.eq.u32 %p_u47, %r11, 0; @%p_u47 bra error_underflow;
-    sub.u32 %r496, %r11, 1; add.u32 %r497, %r10, %r496; and.b32 %r498, %r497, %r101; mul.wide.u32 %rd494, %r498, %r102; add.u64 %rd495, %rd12, %rd494; ld.global.f32 %f306, [%rd495]; mov.u32 %r11, %r496; setp.eq.u32 %p_reset49, %r11, 0; @%p_reset49 mov.u32 %r10, 0;
-    setp.ne.f32 %p_cond, %f306, 0f00000000;
-    selp.f32 %f0, %f303, %f300, %p_cond; selp.f32 %f1, %f304, %f301, %p_cond; selp.f32 %f2, %f305, %f302, %p_cond; mov.f32 %f3, 0f00000000;
+    setp.eq.u32 %p1175, %r11, 0; @%p1175 bra error_underflow;
+    sub.u32 %r490, %r11, 1; add.u32 %r491, %r10, %r490; and.b32 %r492, %r491, %r101; mul.wide.u32 %rd490, %r492, %r102; add.u64 %rd491, %rd12, %rd490; ld.global.f32 %f300, [%rd491]; ld.global.f32 %f301, [%rd491+4]; ld.global.f32 %f302, [%rd491+8]; mov.u32 %r11, %r490; setp.eq.u32 %p607, %r11, 0; @%p607 mov.u32 %r10, 0;
+    setp.eq.u32 %p1176, %r11, 0; @%p1176 bra error_underflow;
+    sub.u32 %r493, %r11, 1; add.u32 %r494, %r10, %r493; and.b32 %r495, %r494, %r101; mul.wide.u32 %rd492, %r495, %r102; add.u64 %rd493, %rd12, %rd492; ld.global.f32 %f303, [%rd493]; ld.global.f32 %f304, [%rd493+4]; ld.global.f32 %f305, [%rd493+8]; mov.u32 %r11, %r493; setp.eq.u32 %p608, %r11, 0; @%p608 mov.u32 %r10, 0;
+    setp.eq.u32 %p1177, %r11, 0; @%p1177 bra error_underflow;
+    sub.u32 %r496, %r11, 1; add.u32 %r497, %r10, %r496; and.b32 %r498, %r497, %r101; mul.wide.u32 %rd494, %r498, %r102; add.u64 %rd495, %rd12, %rd494; ld.global.f32 %f306, [%rd495]; mov.u32 %r11, %r496; setp.eq.u32 %p609, %r11, 0; @%p609 mov.u32 %r10, 0;
+    setp.ne.f32 %p15, %f306, 0f00000000;
+    selp.f32 %f0, %f303, %f300, %p15; selp.f32 %f1, %f304, %f301, %p15; selp.f32 %f2, %f305, %f302, %p15; mov.f32 %f3, 0f00000000;
     bra push_value;
 
 // -------------------------------------------------------------------
@@ -751,13 +752,16 @@ push_value:
     st.global.f32 [%rd501+4], %f1;
     st.global.f32 [%rd501+8], %f2;
     st.global.f32 [%rd501+12], %f3;
-    setp.lt.u32 %p_space, %r500, %r100;
-    @%p_space add.u32 %r11, %r500, 1;
-    @!%p_space {
-        add.u32 %r10, %r10, 1;
-        and.b32 %r10, %r10, %r101;
-        mov.u32 %r11, %r500;
-    }
+    setp.lt.u32 %p76, %r500, %r100;
+    @%p76 add.u32 %r11, %r500, 1;
+    @!%p76 bra overflow_handle;
+    add.u32 %r120, %r120, 1;
+    bra main_loop;
+
+overflow_handle:
+    add.u32 %r10, %r10, 1;
+    and.b32 %r10, %r10, %r101;
+    mov.u32 %r11, %r500;
     add.u32 %r120, %r120, 1;
     bra main_loop;
 
@@ -780,3 +784,4 @@ finish:
     st.global.u32 [%rd11+8], %r130;
     ret;
 }
+

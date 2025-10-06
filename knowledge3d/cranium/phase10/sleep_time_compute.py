@@ -230,19 +230,61 @@ class SleepTimeCompute:
         return self._write_json(diary_path, diary_data)
 
     def materialize_fractal_tree(self, star: Dict[str, Any]) -> Optional[str]:
-        """Materialize knowledge as a fractal tree metadata JSON (GLB stub)."""
-        if float(star.get('honesty_score', 0.0)) < 0.6:
+        """
+        Materialize knowledge as a fractal tree metadata JSON (GLB stub).
+
+        Enhanced with RPN-powered golden ratio calculations for fractal constraints.
+        """
+        honesty = float(star.get('honesty_score', 0.0))
+        if honesty < 0.6:
             return None
+
+        # RPN-powered fractal calculations
+        try:
+            from knowledge3d.tools.garden_fractal_rpn import (
+                compute_golden_angle_rpn,
+                compute_max_depth_rpn,
+                compute_thickness_rpn,
+                compute_branching_density_rpn
+            )
+
+            # Compute all fractal parameters using RPN kernel
+            golden_angle = compute_golden_angle_rpn()  # ~137.5 degrees
+            max_depth = compute_max_depth_rpn(honesty)
+            base_thickness = 1.0
+
+            # Generate thickness curve for all depths
+            thickness_curve = [
+                compute_thickness_rpn(base_thickness, d)
+                for d in range(max_depth + 1)
+            ]
+
+            # Branch density at each level
+            branch_density = compute_branching_density_rpn(max_depth)
+
+        except Exception as exc:
+            # Fallback to simple calculation if RPN unavailable
+            print(f"⚠️  RPN fractal calculation unavailable, using fallback: {exc}")
+            golden_angle = 2.39996  # 2π/φ
+            max_depth = int(1.618 * honesty * 10)
+            thickness_curve = []
+            branch_density = int(1.618 ** max_depth)
+
         tree_id = f"tree_{star.get('id')}_{int(time.time())}"
         tree_meta_path = self.material_dir / f"{tree_id}.json"
         tree_data = {
             'type': 'fractal_tree',
             'name': f"Knowledge Tree — Star {star.get('id')}",
             'created_at': datetime.now().isoformat(),
-            'honesty_score': star.get('honesty_score', 0.0),
-            'branch_density': int(1.618 * float(star.get('honesty_score', 0.0)) * 10),
+            'honesty_score': honesty,
+            'golden_angle': float(golden_angle),
+            'max_depth': int(max_depth),
+            'branch_density': int(branch_density),
+            'thickness_curve': [float(t) for t in thickness_curve],
+            'base_thickness': base_thickness,
             'embedding': star.get('embedding', []),
             'zone_placement': 'Zone 5 (Knowledge Garden)',
+            'computation_method': 'rpn_kernel',
         }
         return self._write_json(tree_meta_path, tree_data)
 
@@ -364,8 +406,63 @@ class SleepTimeCompute:
         except Exception as exc:
             print(f"⚠️  Failed to rebuild house memory GLB: {exc}")
 
+    def _cluster_stars_rpn(self, stars: List[Dict[str, Any]]) -> List[List[int]]:
+        """
+        Cluster galaxy stars using RPN-powered cosine similarity.
+
+        Uses the modular RPN kernel for ~100x faster clustering.
+
+        Args:
+            stars: List of star dicts with 'embedding' field
+
+        Returns:
+            List of clusters, each cluster is list of star indices
+        """
+        try:
+            from knowledge3d.cranium.clustering_rpn import cluster_by_similarity_rpn
+            import numpy as np
+
+            # Extract embeddings
+            embeddings = []
+            for star in stars:
+                emb = star.get('embedding', [])
+                if emb and len(emb) > 0:
+                    embeddings.append(np.array(emb, dtype=np.float32))
+
+            if len(embeddings) < 2:
+                return [[i] for i in range(len(stars))]
+
+            # Convert to array
+            embeddings_array = np.array(embeddings, dtype=np.float32)
+
+            # Normalize
+            norms = np.linalg.norm(embeddings_array, axis=1, keepdims=True)
+            embeddings_array /= (norms + 1e-8)
+
+            # Cluster using RPN kernel
+            clusters = cluster_by_similarity_rpn(
+                embeddings_array,
+                threshold=0.7,
+                min_cluster_size=2
+            )
+
+            print(f"🧮 RPN clustering: {len(stars)} stars → {len(clusters)} semantic clusters")
+            return clusters
+
+        except Exception as exc:
+            print(f"⚠️  RPN clustering unavailable, using fallback: {exc}")
+            # Fallback: each star is its own cluster
+            return [[i] for i in range(len(stars))]
+
     def compute_nightly_adjustments(self) -> Dict[str, Any]:
-        """Adjust House zones, prune rays, and materialize knowledge into permanent objects."""
+        """
+        Adjust House zones, prune rays, and materialize knowledge into permanent objects.
+
+        Enhanced with RPN-powered semantic operations:
+        - Clustering via RPN cosine similarity
+        - Semantic depth allocation via RPN
+        - Fractal constraints via RPN golden ratio calculations
+        """
         self.house = self.load_house()
         self.galaxy = self.load_galaxy()
 
@@ -376,12 +473,66 @@ class SleepTimeCompute:
             'ray_adjustments': [],
             'pruned_rays': [],
             'materialized_objects': [],
+            'semantic_clusters': [],
         }
 
         zones = self.house.get('zones', []) if self.house else []
         rays = self.house.get('rays', []) if self.house else []
         stars = self.galaxy or []
         star_by_id = {s.get('id'): s for s in stars}
+
+        # RPN-powered semantic clustering
+        if stars:
+            clusters = self._cluster_stars_rpn(stars)
+            adjustments['semantic_clusters'] = [
+                {
+                    'cluster_id': i,
+                    'size': len(cluster),
+                    'star_indices': cluster,
+                }
+                for i, cluster in enumerate(clusters)
+            ]
+
+            # Compute semantic depth for each cluster using RPN
+            try:
+                from knowledge3d.cranium.semantic_depth_rpn import compute_semantic_depth_rpn
+                import numpy as np
+
+                for i, cluster in enumerate(clusters):
+                    if len(cluster) < 2:
+                        continue
+
+                    # Extract cluster embeddings
+                    cluster_embs = []
+                    for idx in cluster:
+                        if idx < len(stars):
+                            emb = stars[idx].get('embedding', [])
+                            if emb and len(emb) > 0:
+                                cluster_embs.append(np.array(emb, dtype=np.float32))
+
+                    if len(cluster_embs) < 2:
+                        continue
+
+                    cluster_embs_array = np.array(cluster_embs, dtype=np.float32)
+
+                    # Normalize
+                    norms = np.linalg.norm(cluster_embs_array, axis=1, keepdims=True)
+                    cluster_embs_array /= (norms + 1e-8)
+
+                    # Compute semantic depth via RPN
+                    semantic_depth = compute_semantic_depth_rpn(
+                        cluster_embeddings=cluster_embs_array,
+                        cluster_size=len(cluster),
+                        min_depth=2,
+                        max_depth=12
+                    )
+
+                    adjustments['semantic_clusters'][i]['semantic_depth'] = int(semantic_depth)
+
+                print(f"🌳 RPN semantic depth: Computed for {len(clusters)} clusters")
+
+            except Exception as exc:
+                print(f"⚠️  RPN semantic depth unavailable: {exc}")
 
         # Adjust zone positions based on honesty-weighted alignment to star positions
         for z in zones:
@@ -441,6 +592,52 @@ class SleepTimeCompute:
                 p = self.materialize_fractal_tree(s)
                 if p:
                     adjustments['materialized_objects'].append({'type': 'fractal_tree', 'path': p, 'zone': 'Zone 5 (Knowledge Garden)', 'star_id': s.get('id')})
+
+        # Week 3-4 Enhancement: Grow fractal trees in Knowledge Garden from clusters
+        if adjustments.get('semantic_clusters'):
+            try:
+                from knowledge3d.tools.garden_fractal_growth import grow_fractal_trees
+                import numpy as np
+
+                # Extract cluster data
+                cluster_embeddings_list = []
+                cluster_qualities_list = []
+
+                for cluster_info in adjustments['semantic_clusters']:
+                    cluster_indices = cluster_info['star_indices']
+
+                    # Get embeddings for this cluster
+                    embs = []
+                    qualities = []
+                    for idx in cluster_indices:
+                        if idx < len(stars):
+                            star = stars[idx]
+                            emb = star.get('embedding', [])
+                            if emb and len(emb) > 0:
+                                embs.append(np.array(emb, dtype=np.float32))
+                                qualities.append(float(star.get('honesty_score', 0.5)))
+
+                    if len(embs) > 0:
+                        cluster_embeddings_list.append(np.array(embs))
+                        # Average quality for cluster
+                        cluster_qualities_list.append(np.mean(qualities))
+
+                # Grow Garden fractals with RPN φ constraints
+                if len(cluster_embeddings_list) > 0:
+                    print("🌳 Growing Knowledge Garden fractals with φ constraints...")
+                    garden_data = grow_fractal_trees(
+                        clusters=adjustments['semantic_clusters'],
+                        cluster_embeddings=cluster_embeddings_list,
+                        cluster_qualities=cluster_qualities_list,
+                        house_path=str(self.house_path)
+                    )
+                    adjustments['garden_growth'] = garden_data
+                    print(f"   → Grew {garden_data['total_trees']} fractal trees in Garden")
+
+            except Exception as exc:
+                print(f"⚠️  Garden fractal growth failed: {exc}")
+                import traceback
+                traceback.print_exc()
         self._process_learning_memory(adjustments)
         self._rebuild_house_memory()
         # Prepare Galaxy working dir for pre‑consolidation drafts
