@@ -1,0 +1,127 @@
+// Dynamic LOD tuner kernel (simplified)
+.version 7.8
+.target sm_80
+.address_size 64
+
+.visible .entry dynamic_lod_tune(
+    .param .u64 unified_buffer_ptr,
+    .param .u64 query_emb_ptr,
+    .param .u32 n_nodes,
+    .param .f32 saliency_thresh,
+    .param .u64 saliency_out_ptr
+)
+{
+    .reg .pred p_done, p_salient, p_tmp;
+    .reg .u32 tid, block_id, block_dim;
+    .reg .u32 idx, nodes;
+    .reg .u32 i;
+    .reg .u32 morton_level, new_morton;
+    .reg .f32 thresh;
+    .reg .f32 dot, norm_node, norm_query;
+    .reg .f32 node_val, query_val;
+    .reg .f32 denom, eps, cos_val, cos_min, cos_max;
+    .reg .f32 new_morton_f;
+    .reg .u64 unified_buf, query_emb, saliency_out;
+    .reg .u64 node_base, fused_ptr;
+    .reg .u64 offset;
+    .reg .u64 morton_addr;
+    .reg .u64 saliency_addr;
+    .reg .u32 stride_float, stride_node, stride_saliency;
+    .reg .u64 stride_float64, stride_saliency64;
+
+    ld.param.u64 unified_buf, [unified_buffer_ptr];
+    ld.param.u64 query_emb, [query_emb_ptr];
+    ld.param.u32 nodes, [n_nodes];
+    ld.param.f32 thresh, [saliency_thresh];
+    ld.param.u64 saliency_out, [saliency_out_ptr];
+
+    mov.u32 tid, %tid.x;
+    mov.u32 block_id, %ctaid.x;
+    mov.u32 block_dim, %ntid.x;
+
+    mul.lo.u32 idx, block_id, block_dim;
+    add.u32 idx, idx, tid;
+
+    setp.ge.u32 p_done, idx, nodes;
+    @p_done bra DYNAMIC_EXIT;
+
+    mov.u32 stride_float, 4;
+    mov.u32 stride_node, 4096;
+    mov.u32 stride_saliency, 8;
+
+    mul.wide.u32 node_base, idx, stride_node;
+    add.u64 node_base, unified_buf, node_base;
+
+    add.u64 fused_ptr, node_base, 0; // fused embeddings offset
+
+    mov.u32 i, 0;
+    mov.f32 dot, 0f00000000;
+    mov.f32 norm_node, 0f00000000;
+    mov.f32 norm_query, 0f00000000;
+
+LOOP_EMB:
+    setp.ge.u32 p_done, i, 512;
+    @p_done bra AFTER_EMB;
+
+    mul.wide.u32 offset, i, stride_float;
+    add.u64 offset, fused_ptr, offset;
+    ld.global.f32 node_val, [offset];
+
+    mul.wide.u32 offset, i, stride_float;
+    add.u64 offset, query_emb, offset;
+    ld.global.f32 query_val, [offset];
+
+    fma.rn.f32 dot, node_val, query_val, dot;
+    fma.rn.f32 norm_node, node_val, node_val, norm_node;
+    fma.rn.f32 norm_query, query_val, query_val, norm_query;
+
+    add.u32 i, i, 1;
+    bra LOOP_EMB;
+
+AFTER_EMB:
+    sqrt.rn.f32 norm_node, norm_node;
+    sqrt.rn.f32 norm_query, norm_query;
+
+    mov.f32 eps, 0f358637BD; // 1e-4
+    max.f32 norm_node, norm_node, eps;
+    max.f32 norm_query, norm_query, eps;
+    mul.f32 denom, norm_node, norm_query;
+    max.f32 denom, denom, eps;
+    div.approx.f32 cos_val, dot, denom;
+
+    mov.f32 cos_min, 0fBF800000; // -1.0f
+    mov.f32 cos_max, 0f3F800000; // 1.0f
+    max.f32 cos_val, cos_val, cos_min;
+    min.f32 cos_val, cos_val, cos_max;
+
+    add.u64 morton_addr, node_base, 3084;
+    ld.global.u32 morton_level, [morton_addr];
+
+    setp.ge.f32 p_salient, cos_val, thresh;
+    mov.u32 new_morton, morton_level;
+
+    @p_salient bra SALIENT_PATH;
+    add.u32 new_morton, morton_level, 1;
+    setp.gt.u32 p_tmp, new_morton, 12;
+    @p_tmp mov.u32 new_morton, 12;
+    bra LOD_DONE;
+
+SALIENT_PATH:
+    setp.eq.u32 p_tmp, morton_level, 0;
+    @p_tmp mov.u32 new_morton, 0;
+    @!p_tmp sub.u32 new_morton, morton_level, 1;
+
+LOD_DONE:
+    st.global.u32 [morton_addr], new_morton;
+
+    mul.wide.u32 saliency_addr, idx, stride_saliency;
+    add.u64 saliency_addr, saliency_out, saliency_addr;
+    st.global.f32 [saliency_addr], cos_val;
+    cvt.rn.f32.u32 new_morton_f, new_morton;
+    cvt.u64.u32 stride_float64, stride_float;
+    add.u64 saliency_addr, saliency_addr, stride_float64;
+    st.global.f32 [saliency_addr], new_morton_f;
+
+DYNAMIC_EXIT:
+    ret;
+}

@@ -36,6 +36,7 @@ Notes
 - For large downloads/ingests, prefer storing raw media under /home/daniel/K3D_llama_cpp/datasets and copying curated subsets into ../Knowledge3D.local/datasets for builds.
 
 GPU setup (NVIDIA)
+- **For PTX/FSM development**: See [DOCKER_ENV.md](DOCKER_ENV.md) for complete CUDA 12.4 + CuPy setup
 - Bootstrap CUDA-ready env once:
   scripts/k3d_env.sh bootstrap-gpu
 - Inside tmux after `conda activate k3dml`, run GPU tooling:
@@ -43,6 +44,10 @@ GPU setup (NVIDIA)
 - Validate GPU availability (env active):
   nvidia-smi
   python -c "import torch; print(torch.cuda.is_available())"
+- **PTX kernel development requires CuPy**:
+  pip install cupy-cuda12x  # For CUDA 12.x
+  # or
+  pip install cupy-cuda11x  # For CUDA 11.x
 
 Environment selection and pitfalls
 - Work inside tmux so the activated env persists across long GPU jobs.

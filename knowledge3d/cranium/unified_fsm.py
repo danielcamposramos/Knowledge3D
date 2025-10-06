@@ -7,7 +7,7 @@ Status: GPU-only, zero-copy, Apollo-resilient execution
 
 import logging
 from pathlib import Path
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Sequence, Union
 import numpy as np
 
 try:
@@ -40,6 +40,7 @@ class UnifiedFSMContext:
             )
 
         self.cp = cp
+        self._last_saliency_gpu: Optional[cp.ndarray] = None
         self._load_kernels()
 
     def _load_kernels(self):
@@ -74,6 +75,14 @@ class UnifiedFSMContext:
             logger.warning(f"Frustum cull kernel not found: {frustum_path}")
             self._frustum_kernel = None
 
+        lod_path = base_path / "dynamic_lod_tune.ptx"
+        if lod_path.exists():
+            self._lod_module = self.cp.RawModule(path=str(lod_path))
+            self._lod_kernel = self._lod_module.get_function("dynamic_lod_tune")
+        else:
+            logger.warning(f"Dynamic LOD kernel not found: {lod_path}")
+            self._lod_kernel = None
+
         logger.info("✓ Unified FSM kernels loaded successfully")
 
     def create_unified_buffer(
@@ -104,8 +113,14 @@ class UnifiedFSMContext:
         unified_buffer: cp.ndarray,
         query_embedding: np.ndarray,
         initial_state: int = 1,  # Start with fusion
-        rpn_stack_size: int = 256
-    ) -> Tuple[cp.ndarray, List[int]]:
+        rpn_stack_size: int = 256,
+        *,
+        enable_dynamic_lod: bool = True,
+        saliency_threshold: float = 0.7,
+        return_saliency: bool = False,
+        saliency_manifest_path: Optional[Path] = None,
+        saliency_node_ids: Optional[Sequence[Union[int, str]]] = None
+    ) -> Union[Tuple[np.ndarray, List[int]], Tuple[np.ndarray, List[int], np.ndarray]]:
         """
         Launch the unified FSM cognitive pipeline.
 
@@ -114,9 +129,14 @@ class UnifiedFSMContext:
             query_embedding: Query embedding vector (512 floats)
             initial_state: Starting FSM state (0=ingest, 1=fuse, ...)
             rpn_stack_size: RPN stack buffer size
+            enable_dynamic_lod: Whether to run the dynamic LOD tuner before dispatch
+            saliency_threshold: Cosine similarity threshold for saliency gating
+            return_saliency: If True, return the saliency map alongside FSM outputs
+            saliency_manifest_path: Optional path to dump viewer-friendly saliency metadata
+            saliency_node_ids: Optional explicit node ids for manifest emission (defaults to 0..N-1)
 
         Returns:
-            (output_action, state_trace): Output action and FSM state trace
+            (output_action, state_trace[, saliency_map])
         """
         n_nodes = unified_buffer.shape[0]
 
@@ -124,6 +144,17 @@ class UnifiedFSMContext:
         query_emb_gpu = self.cp.asarray(query_embedding, dtype=self.cp.float32)
         rpn_stack_gpu = self.cp.zeros(rpn_stack_size, dtype=self.cp.uint32)
         output_action_gpu = self.cp.zeros(512, dtype=self.cp.float32)
+
+        saliency_gpu: Optional[cp.ndarray] = None
+        if enable_dynamic_lod and self._lod_kernel is not None and n_nodes > 0:
+            saliency_gpu = self.apply_dynamic_lod(
+                unified_buffer,
+                query_emb_gpu,
+                saliency_threshold,
+            )
+            self._last_saliency_gpu = saliency_gpu
+        else:
+            self._last_saliency_gpu = None
 
         # Launch FSM dispatch kernel
         block = (32, 1, 1)
@@ -154,7 +185,68 @@ class UnifiedFSMContext:
 
         logger.info(f"✓ FSM execution complete: states {state_trace}")
 
+        saliency_numpy: Optional[np.ndarray] = None
+        if saliency_gpu is not None and (return_saliency or saliency_manifest_path is not None):
+            saliency_numpy = saliency_gpu.get()
+
+        if saliency_numpy is not None and saliency_manifest_path is not None:
+            from knowledge3d.viewer.semantic_viz import write_saliency_manifest
+
+            node_ids: Sequence[Union[int, str]]
+            if saliency_node_ids is not None:
+                node_ids = saliency_node_ids
+            else:
+                node_ids = list(range(n_nodes))
+
+            morton_idx = 512 + 256 + 3  # float slot containing morton level
+            morton_view = unified_buffer.view(self.cp.uint32).reshape(n_nodes, -1)
+            morton_levels = morton_view[:, morton_idx].get()
+            write_saliency_manifest(
+                saliency_manifest_path,
+                node_ids,
+                saliency_numpy,
+                morton_levels,
+            )
+
+        if return_saliency:
+            if saliency_numpy is None:
+                saliency_numpy = np.zeros((n_nodes, 2), dtype=np.float32)
+            return output_action, state_trace, saliency_numpy
+
         return output_action, state_trace
+
+    def apply_dynamic_lod(
+        self,
+        unified_buffer: cp.ndarray,
+        query_embedding_gpu: cp.ndarray,
+        saliency_threshold: float = 0.7,
+    ) -> cp.ndarray:
+        """Run the dynamic LOD tuner kernel and return the GPU saliency map."""
+
+        if self._lod_kernel is None:
+            raise RuntimeError("Dynamic LOD kernel not loaded; cannot tune saliency")
+
+        n_nodes = unified_buffer.shape[0]
+        if n_nodes == 0:
+            return self.cp.zeros((0, 2), dtype=self.cp.float32)
+
+        saliency_gpu = self.cp.zeros((n_nodes, 2), dtype=self.cp.float32)
+        threads = 128
+        blocks = max(1, (n_nodes + threads - 1) // threads)
+
+        self._lod_kernel(
+            (blocks,),
+            (threads,),
+            (
+                unified_buffer,
+                query_embedding_gpu,
+                np.uint32(n_nodes),
+                np.float32(saliency_threshold),
+                saliency_gpu,
+            ),
+        )
+        self.cp.cuda.runtime.deviceSynchronize()
+        return saliency_gpu
 
     def launch_warp_fusion(
         self,

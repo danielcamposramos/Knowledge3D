@@ -109,10 +109,10 @@ STATE_3_REASON:
     add.u64 rpn_flag_addr, unified_buf, 3092;  // RPN_FLAG_OFFSET
     ld.global.u32 rpn_flag_val, [rpn_flag_addr];
 
-    // Apollo-style resilient jump: 0=retry ingest, 4=output, else error
+    // Apollo-style resilient jump: 4=output, else terminal (prevent infinite loop)
     setp.eq.u32 p_terminal, rpn_flag_val, 4;
     @p_terminal mov.u32 next_state, 4;
-    @!p_terminal mov.u32 next_state, 0;  // Error recovery: restart
+    @!p_terminal mov.u32 next_state, 5;  // Force terminal on unexpected flag (FIX: was 0)
     bra FSM_TRANSITION;
 
 STATE_4_OUTPUT:
@@ -193,6 +193,9 @@ SKIP_DIST:
     .reg .u32 flag_val;
     mov.u32 flag_val, 4;
     st.global.u32 [rpn_stack], flag_val;
+
+    add.u64 op_addr, unified_buf, 3092;
+    st.global.u32 [op_addr], flag_val;
 
     ret;
 }
