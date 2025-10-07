@@ -1,0 +1,297 @@
+.version 8.0
+.target sm_80
+.address_size 64
+
+// ---------------------------------------------------------------------------
+// decode_actions_kernel
+//
+// Reads the fused-head payload (flattened float32 array) and emits a populated
+// ActionBuffer record.  The layout matches knowledge3d.cranium.actions.action_types
+// where every field is naturally aligned.  The kernel favours GPU execution by
+// performing all branching, normalisation and token sampling on device so the
+// Python bridge stays zero-copy.
+//
+// Payload convention (float indices):
+//  0..2   : navigation XYZ target
+//  3      : navigation confidence
+//  4      : navigation velocity
+//  5      : navigation room id (int cast)
+//  6      : navigation curiosity hint
+//  32..63 : dialogue logits (32-way)
+//  64     : dialogue explicit length (optional; <=0 means auto)
+//  65     : dialogue thinker score hint
+//  66     : dialogue temperature override
+//  96..99 : memory embedding (4 floats)
+//  100    : memory confidence
+//  101    : memory zone id (int cast)
+//  102    : memory hash seed (float)
+//  112    : tablet mutation type (int cast)
+//  113..118 : tablet payload slots (float interpreted as uint32)
+//
+// Parameters:
+//   payload_ptr            - pointer to float32 payload (length ≥ 128)
+//   action_buffer_ptr      - pointer to ActionBuffer struct (288 bytes)
+//   nav_threshold          - minimum navigation confidence
+//   mem_threshold          - minimum memory confidence
+//   dialogue_temperature   - default dialogue temperature
+// ---------------------------------------------------------------------------
+
+.visible .entry decode_actions_kernel(
+    .param .u64 param_payload_ptr,
+    .param .u64 param_action_buffer_ptr,
+    .param .f32 param_nav_threshold,
+    .param .f32 param_mem_threshold,
+    .param .f32 param_dialogue_temperature
+)
+{
+    .reg .pred  %p<20>;
+    .reg .b32   %r<35>;
+    .reg .b64   %rd<20>;
+    .reg .f32   %f<60>;
+
+    //----------------------------------------------------------------------
+    // Lane 0 performs the writes; other lanes exit immediately.
+    //----------------------------------------------------------------------
+    mov.u32 %r0, %tid.x;
+    setp.ne.u32 %p0, %r0, 0;
+    @%p0 ret;
+
+    //----------------------------------------------------------------------
+    // Load parameters.
+    //----------------------------------------------------------------------
+    ld.param.u64 %rd0, [param_payload_ptr];
+    ld.param.u64 %rd1, [param_action_buffer_ptr];
+    ld.param.f32 %f50, [param_nav_threshold];
+    ld.param.f32 %f51, [param_mem_threshold];
+    ld.param.f32 %f52, [param_dialogue_temperature];
+
+    //----------------------------------------------------------------------
+    // Zero the output buffer (288 bytes => 72 uint32 slots).
+    //----------------------------------------------------------------------
+    mov.u32 %r1, 0;          // loop index
+    mov.u32 %r2, 72;         // total uint32 slots
+ZERO_LOOP:
+    setp.ge.u32 %p1, %r1, %r2;
+    @%p1 bra ZERO_DONE;
+    mul.lo.u32 %r3, %r1, 4;
+    cvt.u64.u32 %rd10, %r3;
+    add.u64 %rd2, %rd1, %rd10;
+    st.global.u32 [%rd2], 0;
+    add.u32 %r1, %r1, 1;
+    bra ZERO_LOOP;
+ZERO_DONE:
+
+    //----------------------------------------------------------------------
+    // Navigation decode.
+    //----------------------------------------------------------------------
+    // nav position
+    ld.global.f32 %f0, [%rd0];          // x
+    ld.global.f32 %f1, [%rd0 + 4];      // y
+    ld.global.f32 %f2, [%rd0 + 8];      // z
+    ld.global.f32 %f3, [%rd0 + 12];     // confidence
+    ld.global.f32 %f4, [%rd0 + 16];     // velocity
+    ld.global.f32 %f5, [%rd0 + 20];     // room id (float)
+    ld.global.f32 %f6, [%rd0 + 24];     // curiosity hint
+
+    // magnitude for direction
+    mul.f32 %f7, %f0, %f0;
+    fma.rn.f32 %f7, %f1, %f1, %f7;
+    fma.rn.f32 %f7, %f2, %f2, %f7;
+    sqrt.rn.f32 %f8, %f7;
+
+    setp.gt.f32 %p2, %f8, 0f38D1B717;   // > 0.0001
+    @%p2 div.rn.f32 %f9, %f0, %f8;
+    @%p2 div.rn.f32 %f10, %f1, %f8;
+    @%p2 div.rn.f32 %f11, %f2, %f8;
+    @!%p2 mov.f32 %f9, 0f00000000;
+    @!%p2 mov.f32 %f10, 0f00000000;
+    @!%p2 mov.f32 %f11, 0f00000000;
+
+    // Cast room id
+    cvt.rni.u32.f32 %r4, %f5;
+
+    //----------------------------------------------------------------------
+    // Dialogue logits (32-way argmax).
+    //----------------------------------------------------------------------
+    mov.f32 %f20, 0fFF800000;  // -inf
+    mov.u32 %r10, 0;
+    mov.u32 %r11, 0;
+    mov.u32 %r12, 0;
+LOGIT_LOOP:
+    setp.ge.u32 %p3, %r10, 32;
+    @%p3 bra LOGIT_DONE;
+    mul.lo.u32 %r13, %r10, 4;
+    add.u32 %r13, %r13, 128;       // base offset: 32 * 4
+    cvt.u64.u32 %rd11, %r13;
+    add.u64 %rd3, %rd0, %rd11;
+    ld.global.f32 %f21, [%rd3];
+    setp.gt.f32 %p4, %f21, %f20;
+    @%p4 mov.f32 %f20, %f21;
+    @%p4 mov.u32 %r11, %r10;
+    add.u32 %r10, %r10, 1;
+    bra LOGIT_LOOP;
+LOGIT_DONE:
+
+    // Dialogue metadata overrides
+    ld.global.f32 %f22, [%rd0 + 256];    // explicit length hint
+    ld.global.f32 %f23, [%rd0 + 260];    // thinking score hint
+    ld.global.f32 %f24, [%rd0 + 264];    // temperature override
+
+    setp.gt.f32 %p5, %f24, 0f00000000;
+    @%p5 mov.f32 %f52, %f24;
+
+    //----------------------------------------------------------------------
+    // Memory write payload.
+    //----------------------------------------------------------------------
+    ld.global.f32 %f30, [%rd0 + 384];    // mem embedding x
+    ld.global.f32 %f31, [%rd0 + 388];
+    ld.global.f32 %f32, [%rd0 + 392];
+    ld.global.f32 %f33, [%rd0 + 396];
+    ld.global.f32 %f34, [%rd0 + 400];    // memory confidence
+    ld.global.f32 %f35, [%rd0 + 404];    // memory zone id
+    ld.global.f32 %f36, [%rd0 + 408];    // hash seed
+
+    cvt.rni.u32.f32 %r20, %f35;
+
+    //----------------------------------------------------------------------
+    // Tablet payload.
+    //----------------------------------------------------------------------
+    ld.global.f32 %f40, [%rd0 + 448];    // mutation type
+    cvt.rni.u32.f32 %r21, %f40;
+
+    //----------------------------------------------------------------------
+    // Action selection priority: navigation → memory → dialogue.
+    //----------------------------------------------------------------------
+    mov.u32 %r5, 0xFFFFFFFF;             // default ActionType.NO_ACTION
+    mov.f32 %f12, 0f00000000;            // output confidence
+    mov.f32 %f13, %f6;                   // curiosity (nav hint as default)
+
+    // Navigation candidate
+    setp.ge.f32 %p6, %f3, %f50;
+    @!%p6 bra CHECK_MEMORY;
+    mov.u32 %r5, 0;                 // NAV_MOVE
+    mov.f32 %f12, %f3;
+CHECK_MEMORY:
+
+    // Memory candidate if no nav
+    setp.lt.u32 %p7, %r5, 0xFFFFFFFF;
+    @%p7 bra SKIP_MEMORY;               // already have nav action
+    setp.ge.f32 %p8, %f34, %f51;
+    @!%p8 bra SKIP_MEMORY;
+    mov.u32 %r5, 3;                 // WRITE_MEM
+    mov.f32 %f12, %f34;
+    mov.f32 %f13, %f34;             // curiosity derived from confidence
+SKIP_MEMORY:
+
+    // Dialogue fallback
+    setp.lt.u32 %p9, %r5, 0xFFFFFFFF;
+    @%p9 bra ACTION_SELECTED;
+    setp.gt.f32 %p4, %f20, 0fFF800000;
+    @!%p4 bra ACTION_SELECTED;
+    mov.u32 %r5, 2;                 // DIALOGUE
+    mov.f32 %f12, %f20;
+    mov.f32 %f13, %f20;
+
+ACTION_SELECTED:
+
+    //----------------------------------------------------------------------
+    // Write header (action_type/confidence/curiosity/flags).
+    //----------------------------------------------------------------------
+    st.global.u32 [%rd1 + 0], %r5;
+    st.global.f32 [%rd1 + 4], %f12;
+    st.global.f32 [%rd1 + 8], %f13;
+    st.global.u32 [%rd1 + 12], 0;
+
+    //----------------------------------------------------------------------
+    // Emit navigation block when selected.
+    //----------------------------------------------------------------------
+    setp.eq.u32 %p12, %r5, 0;
+    @!%p12 bra SKIP_NAV_WRITE;
+    st.global.f32 [%rd1 + 16], %f0;
+    st.global.f32 [%rd1 + 20], %f1;
+    st.global.f32 [%rd1 + 24], %f2;
+    st.global.f32 [%rd1 + 28], %f9;
+    st.global.f32 [%rd1 + 32], %f10;
+    st.global.f32 [%rd1 + 36], %f11;
+    st.global.f32 [%rd1 + 40], %f4;
+    st.global.u32 [%rd1 + 44], %r4;
+    st.global.f32 [%rd1 + 48], %f3;
+SKIP_NAV_WRITE:
+
+    //----------------------------------------------------------------------
+    // Emit dialogue block (top-1 sampling).
+    //----------------------------------------------------------------------
+    setp.eq.u32 %p13, %r5, 2;
+    @!%p13 bra SKIP_DIALOGUE_WRITE;
+    // Token id as uint16
+    mul.lo.u32 %r14, %r11, 2;
+    cvt.u64.u32 %rd12, %r14;
+    add.u64 %rd4, %rd1, 76;
+    add.u64 %rd5, %rd4, %rd12;
+    cvt.u16.u32 %r15, %r11;
+    st.global.u16 [%rd5], %r15;
+
+    // dialogue_length (auto or hint)
+    setp.gt.f32 %p14, %f22, 0f00000000;
+    @%p14 cvt.rni.u32.f32 %r16, %f22;
+    @!%p14 mov.u32 %r16, 1;
+    st.global.u32 [%rd1 + 140], %r16;
+
+    // Temperature + thinking score
+    st.global.f32 [%rd1 + 144], %f52;
+    setp.gt.f32 %p15, %f23, 0f00000000;
+    @%p15 mov.f32 %f20, %f23;
+    st.global.f32 [%rd1 + 148], %f20;
+SKIP_DIALOGUE_WRITE:
+
+    //----------------------------------------------------------------------
+    // Emit memory block.
+    //----------------------------------------------------------------------
+    setp.eq.u32 %p16, %r5, 3;
+    @!%p16 bra SKIP_MEMORY_WRITE;
+    st.global.u64 [%rd1 + 176], 0;          // initialise hash
+    // Simple hash: xor reinterpreted ints of embedding
+    mov.b32 %r22, %f30;
+    mov.b32 %r23, %f31;
+    xor.b32 %r22, %r22, %r23;
+    mov.b32 %r24, %f32;
+    xor.b32 %r22, %r22, %r24;
+    mov.b32 %r25, %f33;
+    xor.b32 %r22, %r22, %r25;
+    mov.b32 %r26, %f36;
+    xor.b32 %r22, %r22, %r26;
+    st.global.u32 [%rd1 + 176], %r22;
+
+    st.global.u32 [%rd1 + 184], %r20;
+    st.global.f32 [%rd1 + 188], %f34;
+    st.global.f32 [%rd1 + 192], %f30;
+    st.global.f32 [%rd1 + 196], %f31;
+    st.global.f32 [%rd1 + 200], %f32;
+    st.global.f32 [%rd1 + 204], %f33;
+SKIP_MEMORY_WRITE:
+
+    //----------------------------------------------------------------------
+    // Emit tablet update metadata regardless of chosen action (optional).
+    //----------------------------------------------------------------------
+    st.global.u32 [%rd1 + 240], %r21;
+    // Copy first three payload entries into tablet_data (convert to uint32)
+    mov.u32 %r27, 0;
+TABLET_LOOP:
+    setp.ge.u32 %p17, %r27, 6;
+    @%p17 bra TABLET_DONE;
+    mul.lo.u32 %r28, %r27, 4;
+    add.u32 %r29, %r28, 452;             // payload index 113+
+    cvt.u64.u32 %rd13, %r29;
+    add.u64 %rd6, %rd0, %rd13;
+    ld.global.f32 %f41, [%rd6];
+    mov.b32 %r30, %f41;
+    cvt.u64.u32 %rd14, %r28;
+    add.u64 %rd7, %rd1, 244;
+    add.u64 %rd8, %rd7, %rd14;
+    st.global.u32 [%rd8], %r30;
+    add.u32 %r27, %r27, 1;
+    bra TABLET_LOOP;
+TABLET_DONE:
+
+    ret;
+}

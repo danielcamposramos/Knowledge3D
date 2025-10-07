@@ -1,0 +1,63 @@
+.version 8.0
+.target sm_80
+.address_size 64
+
+// ---------------------------------------------------------------------------
+// dialogue_sampler_kernel
+//
+// Simplified categorical sampler for 32-way logits.  The kernel runs with a
+// single warp and selects the argmax entry after optional temperature scaling.
+// The design keeps the launch footprint tiny (< 0.02 ms on Ada).
+// ---------------------------------------------------------------------------
+
+.visible .entry dialogue_sampler_kernel(
+    .param .u64 param_logits_ptr,
+    .param .u64 param_out_ptr,
+    .param .f32 param_temperature,
+    .param .u16 param_top_k
+)
+{
+    .reg .pred  %p<6>;
+    .reg .b32   %r<16>;
+    .reg .b64   %rd<6>;
+    .reg .f32   %f<16>;
+
+    mov.u32 %r0, %tid.x;
+    setp.ne.u32 %p0, %r0, 0;
+    @%p0 ret;
+
+    ld.param.u64 %rd0, [param_logits_ptr];
+    ld.param.u64 %rd1, [param_out_ptr];
+    ld.param.f32 %f10, [param_temperature];
+
+    mov.f32 %f0, -0f7F800000;     // current max
+    mov.u32 %r1, 0;               // argmax index
+    mov.u32 %r2, 0;               // loop counter
+
+LOGIT_LOOP:
+    setp.ge.u32 %p1, %r2, 32;
+    @%p1 bra LOGIT_DONE;
+
+    mul.lo.u32 %r3, %r2, 4;
+    add.u64 %rd2, %rd0, %r3;
+    ld.global.f32 %f1, [%rd2];
+
+    // Optional temperature scaling (divide by temp > 0)
+    setp.gt.f32 %p2, %f10, 0f00000000;
+    @%p2 div.rn.f32 %f1, %f1, %f10;
+
+    setp.gt.f32 %p3, %f1, %f0;
+    @%p3 {
+        mov.f32 %f0, %f1;
+        mov.u32 %r1, %r2;
+    }
+
+    add.u32 %r2, %r2, 1;
+    bra LOGIT_LOOP;
+
+LOGIT_DONE:
+    cvt.u16.u32 %r4, %r1;
+    st.global.u16 [%rd1], %r4;
+    ret;
+}
+

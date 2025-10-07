@@ -26,7 +26,11 @@ def test_unified_fsm_end_to_end_1k_nodes() -> None:
     end = cupy.cuda.Event()
 
     start.record()
-    output_action, state_trace = fsm.launch_fsm(unified_buffer, query_embedding, initial_state=3)
+    from knowledge3d.cranium.actions.action_types import ActionBuffer
+
+    output_action, state_trace, action_buffer = fsm.launch_fsm(
+        unified_buffer, query_embedding, initial_state=3
+    )
     end.record()
     end.synchronize()
 
@@ -39,3 +43,5 @@ def test_unified_fsm_end_to_end_1k_nodes() -> None:
     assert state_trace, "FSM should record at least one state"
 
     assert elapsed_ms < 500.0, f"FSM dispatch took too long: {elapsed_ms:.2f}ms"
+
+    assert isinstance(action_buffer, ActionBuffer)

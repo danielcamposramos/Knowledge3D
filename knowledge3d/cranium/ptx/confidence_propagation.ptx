@@ -1,0 +1,80 @@
+.version 8.0
+.target sm_80
+.address_size 64
+
+// ---------------------------------------------------------------------------
+// propagate_confidence_kernel
+//
+// Tiny helper used by the adaptive confidence propagator.  The kernel runs on a
+// single thread and therefore keeps control flow simple while still allowing
+// the hot path to remain GPU-bound.  Arrays are expected to be at most warp
+// sized (≤32 items).
+// ---------------------------------------------------------------------------
+
+.visible .entry propagate_confidence_kernel(
+    .param .u64 param_base_ptr,
+    .param .u64 param_cur_ptr,
+    .param .u64 param_out_ptr,
+    .param .u64 param_mask_ptr,
+    .param .f32 param_input_conf,
+    .param .f32 param_alpha,
+    .param .f32 param_margin,
+    .param .u32 param_count
+)
+{
+    .reg .pred %p0;
+    .reg .b32  %r<6>;
+    .reg .b64  %rd<10>;
+    .reg .f32  %f<10>;
+
+    mov.u32 %r0, %tid.x;
+    setp.ne.u32 %p0, %r0, 0;
+    @%p0 ret;
+
+    ld.param.u64 %rd0, [param_base_ptr];
+    ld.param.u64 %rd1, [param_cur_ptr];
+    ld.param.u64 %rd2, [param_out_ptr];
+    ld.param.u64 %rd3, [param_mask_ptr];
+    ld.param.f32 %f0, [param_input_conf];
+    ld.param.f32 %f1, [param_alpha];
+    ld.param.f32 %f2, [param_margin];
+    ld.param.u32 %r1, [param_count];
+
+    mov.u32 %r2, 0;
+LOOP_BEGIN:
+    setp.ge.u32 %p0, %r2, %r1;
+    @%p0 bra LOOP_END;
+
+    mul.lo.u32 %r3, %r2, 4;
+    add.u64 %rd4, %rd0, %r3;
+    add.u64 %rd5, %rd1, %r3;
+    add.u64 %rd6, %rd2, %r3;
+    add.u64 %rd7, %rd3, %r2;  // mask is uint8
+
+    ld.global.f32 %f3, [%rd4];
+    ld.global.f32 %f4, [%rd5];
+
+    // biased = base * (1 + alpha * curiosity)
+    mad.rn.f32 %f5, %f1, %f4, 1.0f;
+    mul.rn.f32 %f6, %f3, %f5;
+
+    // Clamp to input_conf * (1 - margin)
+    mov.f32 %f7, 1.0f;
+    add.f32 %f7, %f7, -%f2;
+    mul.rn.f32 %f7, %f7, %f0;
+    min.f32 %f6, %f6, %f7;
+    max.f32 %f6, %f6, 0f00000000;
+
+    st.global.f32 [%rd6], %f6;
+
+    setp.le.f32 %p0, %f6, %f0;
+    selp.u32 %r4, 1, 0, %p0;
+    st.global.u8 [%rd7], %r4;
+
+    add.u32 %r2, %r2, 1;
+    bra LOOP_BEGIN;
+
+LOOP_END:
+    ret;
+}
+

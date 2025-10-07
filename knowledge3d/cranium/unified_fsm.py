@@ -19,6 +19,11 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+try:  # Optional dependency; keeps CPU tooling running.
+    from knowledge3d.cranium.actions.action_types import ActionBuffer
+except Exception:  # pragma: no cover
+    ActionBuffer = None  # type: ignore
+
 
 class UnifiedFSMContext:
     """
@@ -41,6 +46,7 @@ class UnifiedFSMContext:
 
         self.cp = cp
         self._last_saliency_gpu: Optional[cp.ndarray] = None
+        self._last_action_buffer: Optional["ActionBuffer"] = None
         self._load_kernels()
 
     def _load_kernels(self):
@@ -82,6 +88,18 @@ class UnifiedFSMContext:
         else:
             logger.warning(f"Dynamic LOD kernel not found: {lod_path}")
             self._lod_kernel = None
+
+        decode_path = base_path / "decode_actions.ptx"
+        if decode_path.exists():
+            try:
+                self._action_module = self.cp.RawModule(path=str(decode_path))
+                self._decode_actions_kernel = self._action_module.get_function("decode_actions_kernel")
+            except Exception as exc:  # pragma: no cover
+                logger.warning("Failed to load decode_actions PTX: %s", exc)
+                self._decode_actions_kernel = None
+        else:
+            logger.warning(f"decode_actions kernel not found: {decode_path}")
+            self._decode_actions_kernel = None
 
         logger.info("✓ Unified FSM kernels loaded successfully")
 
@@ -136,7 +154,7 @@ class UnifiedFSMContext:
             saliency_node_ids: Optional explicit node ids for manifest emission (defaults to 0..N-1)
 
         Returns:
-            (output_action, state_trace[, saliency_map])
+            (output_action, state_trace[, saliency_map], action_buffer)
         """
         n_nodes = unified_buffer.shape[0]
 
@@ -144,6 +162,8 @@ class UnifiedFSMContext:
         query_emb_gpu = self.cp.asarray(query_embedding, dtype=self.cp.float32)
         rpn_stack_gpu = self.cp.zeros(rpn_stack_size, dtype=self.cp.uint32)
         output_action_gpu = self.cp.zeros(512, dtype=self.cp.float32)
+        action_buffer = ActionBuffer() if ActionBuffer is not None and _CUPY_AVAILABLE else None
+        self._last_action_buffer = action_buffer
 
         saliency_gpu: Optional[cp.ndarray] = None
         if enable_dynamic_lod and self._lod_kernel is not None and n_nodes > 0:
@@ -177,7 +197,25 @@ class UnifiedFSMContext:
 
         self.cp.cuda.runtime.deviceSynchronize()
 
-        # Read output action
+        if action_buffer is not None and self._decode_actions_kernel is not None:
+            try:
+                self._decode_actions_kernel(
+                    (1,),
+                    (32,),
+                    (
+                        output_action_gpu,
+                        np.uint64(action_buffer.device_ptr),
+                        np.float32(0.5),   # nav threshold
+                        np.float32(0.4),   # memory threshold
+                        np.float32(0.85),  # dialogue default temperature
+                    ),
+                )
+                self.cp.cuda.runtime.deviceSynchronize()
+            except Exception as exc:  # pragma: no cover
+                logger.warning("decode_actions kernel error: %s", exc)
+                action_buffer.reset()
+
+        # Read output action embedding
         output_action = output_action_gpu.get()
 
         # State trace (stub - would read from state log buffer)
@@ -211,9 +249,9 @@ class UnifiedFSMContext:
         if return_saliency:
             if saliency_numpy is None:
                 saliency_numpy = np.zeros((n_nodes, 2), dtype=np.float32)
-            return output_action, state_trace, saliency_numpy
+            return output_action, state_trace, saliency_numpy, action_buffer
 
-        return output_action, state_trace
+        return output_action, state_trace, action_buffer
 
     def apply_dynamic_lod(
         self,
@@ -346,6 +384,10 @@ class UnifiedFSMContext:
 
         return attention_out_gpu.get()
 
+    def last_action_buffer(self) -> Optional["ActionBuffer"]:
+        """Return the most recent ActionBuffer produced by launch_fsm."""
+        return self._last_action_buffer
+
 
 def test_unified_fsm():
     """Quick test of unified FSM execution."""
@@ -354,6 +396,7 @@ def test_unified_fsm():
         return
 
     fsm = UnifiedFSMContext()
+    cp = fsm.cp
 
     # Create test data
     n_nodes = 10
@@ -370,12 +413,14 @@ def test_unified_fsm():
     unified_buf = cp.asarray(unified_buf_cpu)
 
     # Launch FSM
-    output, trace = fsm.launch_fsm(unified_buf, query_emb, initial_state=3)  # Start at reasoning
+    output, trace, action_buffer = fsm.launch_fsm(unified_buf, query_emb, initial_state=3)  # Start at reasoning
 
-    print(f"✓ FSM Test Complete")
+    print("✓ FSM Test Complete")
     print(f"  State trace: {trace}")
     print(f"  Output action shape: {output.shape}")
     print(f"  Output sample: {output[:5]}")
+    if action_buffer is not None:
+        print(f"  Action type: {action_buffer.get_action_type().name}")
 
 
 if __name__ == "__main__":
