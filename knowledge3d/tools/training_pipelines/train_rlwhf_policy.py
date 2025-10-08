@@ -24,12 +24,12 @@ def ensure_dataset(repo_root: Path, dataset: Path) -> None:
     logs = repo_root.parent / f"{repo_root.name}.local" / "logs"
     bench = repo_root / "docs" / "reports" / "status" / "chat_benchmark_live.json"
     if logs.exists():
-        from knowledge3d.tools.build_rlwhf_dataset import main as build_main  # type: ignore
+        from knowledge3d.tools.training_pipelines.build_rlwhf_dataset import main as build_main  # type: ignore
         import sys
         sys.argv = ["build", "--logs", str(logs), "--out", str(dataset), "--summary", str(repo_root / "docs" / "reports" / "status" / "rlwhf_summary.json")]
         build_main()
     elif bench.exists():
-        from knowledge3d.tools.rlwhf_from_offline_benchmark import main as off_main  # type: ignore
+        from knowledge3d.tools.training_pipelines.rlwhf_from_offline_benchmark import main as off_main  # type: ignore
         import sys
         sys.argv = ["build_off", "--gltf", str(repo_root / "viewer" / "public" / "galaxy.cross.glb"), "--bench", str(bench), "--out", str(dataset)]
         off_main()

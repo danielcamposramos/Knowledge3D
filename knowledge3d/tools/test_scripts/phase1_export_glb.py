@@ -4,7 +4,7 @@ import json
 import numpy as np
 from pathlib import Path
 
-from knowledge3d.tools.phase1_export_library import build_library_glb
+from knowledge3d.tools.test_scripts.phase1_export_library import build_library_glb
 
 
 def main():

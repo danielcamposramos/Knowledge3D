@@ -19,8 +19,8 @@ import random
 from pathlib import Path
 from typing import Dict, List
 
-from knowledge3d.tools.fetch_wiki_corpus import OUT_TXT as _OUT_TXT, DEFAULT_TOPICS
-from knowledge3d.tools.fetch_wiki_corpus import fetch_plain, iter_lines
+from knowledge3d.tools.training_pipelines.fetch_wiki_corpus import OUT_TXT as _OUT_TXT, DEFAULT_TOPICS
+from knowledge3d.tools.training_pipelines.fetch_wiki_corpus import fetch_plain, iter_lines
 from knowledge3d.cranium.fused_head import AdaptedFusedHead  # type: ignore
 
 

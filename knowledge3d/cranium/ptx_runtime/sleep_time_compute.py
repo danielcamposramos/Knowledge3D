@@ -241,7 +241,7 @@ class SleepTimeCompute:
 
         # RPN-powered fractal calculations
         try:
-            from knowledge3d.tools.garden_fractal_rpn import (
+            from knowledge3d.tools.test_scripts.garden_fractal_rpn import (
                 compute_golden_angle_rpn,
                 compute_max_depth_rpn,
                 compute_thickness_rpn,
@@ -350,7 +350,7 @@ class SleepTimeCompute:
 
             if records:
                 try:
-                    from knowledge3d.tools.learning_memory_builder import build_learning_memory  # type: ignore
+                    from knowledge3d.tools.training_pipelines.learning_memory_builder import build_learning_memory  # type: ignore
 
                     args = SimpleNamespace(
                         input=[str(self.learning_memory_path)],
@@ -379,7 +379,7 @@ class SleepTimeCompute:
 
     def _rebuild_house_memory(self) -> None:
         try:
-            from knowledge3d.tools.house_memory_builder import build_house_memory  # type: ignore
+            from knowledge3d.tools.training_pipelines.house_memory_builder import build_house_memory  # type: ignore
 
             args = SimpleNamespace(
                 root=str(self.material_dir),
@@ -596,7 +596,7 @@ class SleepTimeCompute:
         # Week 3-4 Enhancement: Grow fractal trees in Knowledge Garden from clusters
         if adjustments.get('semantic_clusters'):
             try:
-                from knowledge3d.tools.garden_fractal_growth import grow_fractal_trees
+                from knowledge3d.tools.test_scripts.garden_fractal_growth import grow_fractal_trees
                 import numpy as np
 
                 # Extract cluster data

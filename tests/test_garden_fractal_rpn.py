@@ -25,7 +25,7 @@ def test_garden_fractal_module_loads():
     """Test that garden fractal module loads successfully."""
     _require_gpu()
 
-    from knowledge3d.tools.garden_fractal_rpn import compute_golden_angle_rpn
+    from knowledge3d.tools.test_scripts.garden_fractal_rpn import compute_golden_angle_rpn
 
     # Should not raise
     assert compute_golden_angle_rpn is not None
@@ -36,7 +36,7 @@ def test_golden_angle_calculation():
     """Test golden angle θ = 2π/φ calculation."""
     _require_gpu()
 
-    from knowledge3d.tools.garden_fractal_rpn import compute_golden_angle_rpn
+    from knowledge3d.tools.test_scripts.garden_fractal_rpn import compute_golden_angle_rpn
 
     angle = compute_golden_angle_rpn()
 
@@ -51,7 +51,7 @@ def test_max_depth_from_honesty():
     """Test max depth calculation from honesty score."""
     _require_gpu()
 
-    from knowledge3d.tools.garden_fractal_rpn import compute_max_depth_rpn
+    from knowledge3d.tools.test_scripts.garden_fractal_rpn import compute_max_depth_rpn
 
     # High honesty → deeper tree
     depth_high = compute_max_depth_rpn(honesty=1.0)
@@ -74,7 +74,7 @@ def test_thickness_tapering():
     """Test branch thickness tapering with depth."""
     _require_gpu()
 
-    from knowledge3d.tools.garden_fractal_rpn import compute_thickness_rpn
+    from knowledge3d.tools.test_scripts.garden_fractal_rpn import compute_thickness_rpn
 
     base = 1.0
 
@@ -102,7 +102,7 @@ def test_fractal_constraints_batch():
     """Test batch fractal constraint computation."""
     _require_gpu()
 
-    from knowledge3d.tools.garden_fractal_rpn import compute_fractal_constraints_batch_rpn
+    from knowledge3d.tools.test_scripts.garden_fractal_rpn import compute_fractal_constraints_batch_rpn
 
     # Batch of honesty scores
     honesty_scores = [0.3, 0.5, 0.7, 0.9, 1.0]
@@ -137,7 +137,7 @@ def test_thickness_curve_validation():
     """Test thickness curve follows φ taper."""
     _require_gpu()
 
-    from knowledge3d.tools.garden_fractal_rpn import compute_fractal_constraints_batch_rpn
+    from knowledge3d.tools.test_scripts.garden_fractal_rpn import compute_fractal_constraints_batch_rpn
 
     honesty_scores = [0.8]
     results = compute_fractal_constraints_batch_rpn(honesty_scores, base_thickness=1.0)
@@ -157,7 +157,7 @@ def test_branching_density():
     """Test branching density follows φ^depth."""
     _require_gpu()
 
-    from knowledge3d.tools.garden_fractal_rpn import compute_branching_density_rpn
+    from knowledge3d.tools.test_scripts.garden_fractal_rpn import compute_branching_density_rpn
 
     # Depth 0 → 1 branch (trunk)
     b0 = compute_branching_density_rpn(0)
@@ -181,7 +181,7 @@ def test_golden_spiral_position():
     """Test golden spiral position calculation."""
     _require_gpu()
 
-    from knowledge3d.tools.garden_fractal_rpn import compute_golden_spiral_position_rpn
+    from knowledge3d.tools.test_scripts.garden_fractal_rpn import compute_golden_spiral_position_rpn
 
     # At θ=0, should be at (radius_base, 0)
     x0, y0 = compute_golden_spiral_position_rpn(theta=0.0, radius_base=1.0)
@@ -201,7 +201,7 @@ def test_batch_performance():
     """Test batch fractal constraint performance."""
     _require_gpu()
 
-    from knowledge3d.tools.garden_fractal_rpn import compute_fractal_constraints_batch_rpn
+    from knowledge3d.tools.test_scripts.garden_fractal_rpn import compute_fractal_constraints_batch_rpn
     import time
 
     # Many honesty scores

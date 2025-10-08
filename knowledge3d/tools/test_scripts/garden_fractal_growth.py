@@ -73,7 +73,7 @@ class GardenFractalGrower:
 
         # RPN executor for φ calculations
         try:
-            from knowledge3d.tools.garden_fractal_rpn import (
+            from knowledge3d.tools.test_scripts.garden_fractal_rpn import (
                 compute_golden_angle_rpn,
                 compute_max_depth_rpn,
                 compute_thickness_rpn,
