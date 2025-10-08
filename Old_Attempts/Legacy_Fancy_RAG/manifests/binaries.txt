@@ -1,0 +1,9 @@
+Legacy helper binaries (relocated to Knowledge3D.local/old_attempts/legacy_fancy_rag/binaries/):
+- book_mesh.bin / bookshelf_positions.bin
+- vertex_buffer.bin / vertex_buffer.txt
+- hello_tetrahedron.glb / library_room.glb
+- embedding.npy / embeddings.npy
+- rays.json
+- dummy.mp4 / tmp_audio.wav
+- viewer/dist/galaxy.glb / galaxy.cross.glb
+- data/ai_compendium_80k_vectors.csv

@@ -13,6 +13,12 @@ The primary guiding documents for this project are:
 
 Additional local environment reference (hardware, GPU, and folder layout): see `docs/LOCAL_ENV.md`.
 
+### Repository vs Workspace Layout
+- `Knowledge3D/` — tracked code (PTX kernels, viewer sources, docs).
+- `Knowledge3D.local/` — runtime workspace for Houses, tablet logs, generated datasets, and all artifacts larger than ~99 MB.
+- `Old_Attempts/Legacy_Fancy_RAG/` — manifests describing the deprecated fancy-RAG assets that now live in `.local`.
+- `Large_Assets_Kitchen/` — recipes for regenerating those large artifacts in-place under `.local`.
+
 **Your primary directive is to follow the phased plan outlined in the [Project Roadmap](docs/ROADMAP.md)** _and_ uphold the memory policy in `docs/HOUSE_GALAXY_TABLET.md`. Contributions must keep Galaxy (active), House (persistent), and Museum (deprecated) in sync.
 
 We are a team of humans and AI working together. Clear communication and alignment with the project's strategic vision are essential for our success.
@@ -52,6 +58,7 @@ We are a team of humans and AI working together. Clear communication and alignme
 - Multimodal ingest: use `knowledge3d/tools/ingest_wit.py` (text+images), `ingest_video.py` (video→CLIP), `ingest_audio.py` (audio→CLAP). See `docs/MULTIMODAL_BABY.md`.
 - Cranium skills: integrated logic bus that connects intent, vision (CLIP), audio (CLAP), video (OpenCLIP), dynamics (RSSM), and RPN to the House. See `docs/CRANIUM_SKILLS.md` and ensure fused-head routing consults the House index via the tablet before language galaxies.
 - Note: External LLM wrappers and wrapper‑style TTS are deprecated for core runs. Use the single unified head in `docs/CRANIUM_CORE.md` (navigation+text in Phase A; stems and first‑class TTS follow).
+- Large assets: anything ≥99 MB (or bulk-generated GLBs/logs) must remain in `Knowledge3D.local/`; log the reproduction steps in `Large_Assets_Kitchen/README.md` and update the manifests in `Old_Attempts/Legacy_Fancy_RAG/`.
 - Testing expectations:
   - Python: `pytest -q`
   - Viewer: `npm install --ignore-scripts --no-bin-links && node ./node_modules/jest/bin/jest.js --runInBand`

@@ -1,9 +1,0 @@
-{
-  "houses": [
-    {
-      "uri": "/galaxy.cross.glb",
-      "expert": "galaxy",
-      "description": "Unified multimodal galaxy (GPU: UMAP + FAISS-GPU)"
-    }
-  ]
-}

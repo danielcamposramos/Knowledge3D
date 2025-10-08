@@ -1,0 +1,6 @@
+Archived docs reports (stored locally under Knowledge3D.local/old_attempts/legacy_fancy_rag/docs_reports/):
+- benchmarks/ (math bench epochs, progress logs, rpn focus reports, omni bench, etc.)
+- reports/status (live_server_ports.json, RLWHF evals, galaxy summaries, daily wraps)
+- reports/live (session logs + server transcripts)
+- reports/logs (session JSONL logs)
+- reports/training (session notes, dataset manifests)

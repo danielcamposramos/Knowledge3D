@@ -1,61 +1,33 @@
 __pycache__/
 *.pyc
-build/
+
+# Local build + logs (kept empty in Git)
+build/*
+!build/.gitkeep
+logs/*
+!logs/.gitkeep
+
+# Runtime workspace outputs
+viewer/public/*
+!viewer/public/.gitkeep
+viewer/dist/
+.cupy_cache/
+
+# Large datasets
 data/ai_compendium_80k_vectors.csv
+
+# Virtual environments / dotenvs
 .venv*/
-# Galaxy GLBs are large and generated locally
-viewer/public/galaxy*.glb
-viewer/public/galaxy/**/*.glb
-viewer/public/galaxy/**/*.json
-viewer/public/houses/**/*.glb
-viewer/public/ai_compendium.80k*.glb
-viewer/public/ai_compendium.40k*.glb
-viewer/public/ai_compendium.20k*.glb
-viewer/public/ai_compendium.15k*.glb
-viewer/public/ai_compendium.11k*.glb
-viewer/public/ai_compendium.9k*.glb
-viewer/public/knowledge_garden.wiki_large.glb
-viewer/public/knowledge_garden.library.glb
-viewer/public/knowledge_garden.gigabyte_compendium.glb
-# Large assets excluded from Git; recreate using docs/LARGE_ASSETS.md
-viewer/public/galaxy/working/lexicon*.jsonl
-viewer/public/books/thinking_tags*.json
-viewer/public/models/*.pth
-viewer/public/models/tag_names*.json
-logs/phase10.3_*.log
-logs/phase10.3_*.err
-# House materialization outputs and generated blobs
+.env*/
+
+# Legacy large assets (generated into Knowledge3D.local)
 viewer/public/house/materialized_objects/
 viewer/public/house/*.glb
 viewer/public/house/*.json
-# Working corpora and generated training artifacts
-viewer/public/galaxy/working/*.jsonl
-viewer/public/galaxy/working/*.json
-viewer/public/galaxy/working/*.parquet
-logs/
 viewer/public/houses/**/*.gltf
 viewer/public/houses/**/*.json
 viewer/public/houses/**/*.bak
-# Ignore large artifacts (>99MB)
-viewer/public/galaxy.cross.glb
-viewer/public/galaxy.glb
-viewer/public/galaxy.unified.glb
-viewer/dist/galaxy.glb
-viewer/dist/galaxy.cross.glb
-viewer/public/galaxy/**/*.glb
-viewer/public/galaxy/working/*.jsonl
-viewer/public/galaxy/hf_cache_memory.glb
-.venv*/
-.env*/
-# Ignore large CSV datasets
-data/ai_compendium_80k_vectors.csv
 
-# Large runtime files (live in Knowledge3D.local)
-viewer/public/house/materialized_objects/
-viewer/public/house/*.glb
-viewer/public/house/*.json
-.cupy_cache/
-
-# Runtime caches and temporary files
-*.pyc
-__pycache__/
+# Temporary artifacts
+*.log
+*.tmp

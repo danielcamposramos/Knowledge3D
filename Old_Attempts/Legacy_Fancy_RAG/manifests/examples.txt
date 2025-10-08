@@ -1,0 +1,16 @@
+Legacy examples (stored locally under Knowledge3D.local/old_attempts/legacy_fancy_rag/examples/):
+- LEGACY.md
+- ai_demo.glb
+- books.json
+- condo.json
+- demo.k3d
+- house_demo.py
+- literature_house.k3d
+- math_house.k3d
+- my_house.gltf / my_house.k3d / my_house_data.csv
+- my_house_generator.py
+- physics_house.k3d
+- sample_output*.gltf / *.k3d
+- sample_vectors.csv
+- semantic_navigator_demo.py
+- solar_system.csv / .gltf / .k3d

@@ -1,2 +1,0 @@
-712d3fde798b758029d01e1df6b13816e5a1112ff83d44aeb93464de900049b8  viewer/public/ai_compendium.80k.pca.glb
-73ce5886323c64d7652cdac56c074b265a64bf7ab95b66e5db925984bbbe122e  viewer/public/ai_compendium.80k.pca.doors.glb

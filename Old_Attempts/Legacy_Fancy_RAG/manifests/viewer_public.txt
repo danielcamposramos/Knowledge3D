@@ -1,0 +1,10 @@
+Legacy viewer exports (now in Knowledge3D.local/old_attempts/legacy_fancy_rag/viewer_public/):
+- galaxy*.glb (multiple variants: cross, unified, v7/v8, house, balanced)
+- house/ materialized_objects manifests
+- knowledge_garden/*.glb and tree subdirectories
+- models/validation_report.txt
+- samples/stage*/ GLBs (stage2, stage3, stage4)
+- text/*.glb (discipline-specific text galaxies)
+- workshop/, bathtub/, living_room/, shapes_* GLBs
+- voice/utter-*.wav, training/latest.json
+- memory_house.gltf, literature_house.k3d, etc.
