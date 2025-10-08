@@ -6,8 +6,7 @@ import logging
 
 import numpy as np  # type: ignore
 
-from knowledge3d.cranium.phase10.modular_rpn_engine import ModularRPNEngine
-from knowledge3d.cranium.phase10.text_to_3d_generator import TextTo3DGenerator
+from knowledge3d.cranium.ptx_runtime import ModularRPNEngine, TextTo3DGenerator
 from knowledge3d.cranium.ptx.galaxy_buffer import GalaxyGPUMemory
 from knowledge3d.cranium.ptx.geometry_ops import PTXGeometrySession
 from knowledge3d.cranium.ptx.modality_ops import PTXModalityOps

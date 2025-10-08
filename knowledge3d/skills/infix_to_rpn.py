@@ -10,7 +10,7 @@ Supports:
 - Special: log2(x) is lowered to ``x log 2 log /`` to use natural log
 
 Returns a list of RPN tokens compatible with the ModularRPNEngine
-(`knowledge3d.cranium.phase10.modular_rpn_engine`).
+(`knowledge3d.cranium.ptx_runtime.modular_rpn_engine`).
 """
 
 import re

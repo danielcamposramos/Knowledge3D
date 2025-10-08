@@ -39,7 +39,7 @@ except Exception:  # pragma: no cover
     _HAS_NAVIGATOR = False
 
 try:
-    from knowledge3d.cranium.phase10.sleep_time_compute import SleepTimeCompute
+    from knowledge3d.cranium.ptx_runtime import SleepTimeCompute
 
     _HAS_SLEEP_PIPELINE = True
 except Exception:  # pragma: no cover

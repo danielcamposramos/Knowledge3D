@@ -254,7 +254,7 @@ class LiveServer:
 
         # Load Galaxy state if present (continuity)
         try:
-            from ..cranium.phase17.galaxy_state_serializer import GalaxyStateSerializer  # type: ignore
+            from ..cranium.ptx_runtime import GalaxyStateSerializer  # type: ignore
             repo_root = Path(__file__).resolve().parents[2]
             gpath = repo_root / 'viewer' / 'public' / 'galaxy' / 'galaxy_memory.glb'
             self._galaxy_state = GalaxyStateSerializer(str(gpath)).deserialize_galaxy_state()
@@ -941,7 +941,7 @@ class LiveServer:
             try:
                 import os, json
                 from ..tools.phase10.book_processor import BookProcessor  # type: ignore
-                from ..cranium.phase10.thinking_tag_embedder import ThinkingTagEmbedder  # type: ignore
+                from ..cranium.ptx_runtime import ThinkingTagEmbedder  # type: ignore
                 import torch as _t  # type: ignore
                 if os.path.isfile(arg):
                     try:
@@ -994,7 +994,7 @@ class LiveServer:
                     return
                 # Reconstruct prompt from split parts (maxsplit=2 earlier)
                 prompt = parts[1] if len(parts) == 2 else (parts[1] + (" " + parts[2] if len(parts) >= 3 else ""))
-                from ..cranium.phase10.text_to_3d_generator import TextTo3DGenerator  # type: ignore
+                from ..cranium.ptx_runtime import TextTo3DGenerator  # type: ignore
                 repo_root = Path(__file__).resolve().parents[2]
                 mdir = repo_root / 'viewer' / 'public' / 'house' / 'materialized_objects'
                 gen = TextTo3DGenerator(material_dir=str(mdir))
@@ -1795,7 +1795,7 @@ class LiveServer:
                 galaxy = repo_root / 'viewer' / 'public' / 'galaxy' / 'galaxy_memory.glb'
                 output = repo_root / 'viewer' / 'public' / 'house' / 'house_post_sleep.glb'
                 mdir = repo_root / 'viewer' / 'public' / 'house' / 'materialized_objects'
-                from ..cranium.phase10.sleep_time_compute import SleepTimeCompute  # type: ignore
+                from ..cranium.ptx_runtime import SleepTimeCompute  # type: ignore
                 stc = SleepTimeCompute(str(house), str(galaxy), str(output), str(mdir))
                 stc.run()
                 # Reload materialized memory
