@@ -30,4 +30,8 @@ viewer/public/houses/**/*.bak
 
 # Temporary artifacts
 *.log
+*.pid
+live_server.*
+vite.log
 *.tmp
+.pytest_cache/
