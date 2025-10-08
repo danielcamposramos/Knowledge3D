@@ -21,6 +21,8 @@ All contributors must keep heavy outputs in `.local` and document how to rebuild
 
 ## 2. System Overview
 
+![Cognitive House](docs/images/cognitive_house.png)
+
 ### Dual Memory Spine
 - **Galaxy (RAM)** — high-dimensional embeddings for fast reasoning.
 - **House (Persistent)** — consolidated knowledge objects (books, gardens, workshops).
@@ -35,6 +37,8 @@ All contributors must keep heavy outputs in `.local` and document how to rebuild
 ### Dual-Client Reality
 - **Human viewer** (`viewer/`) renders the house/galaxy in Three.js.
 - **AI client** reads the same GLBs through `extras.k3d` buffer views for semantic access.
+
+![Avatar Workshop](docs/images/avatar_workshop.png)
 
 Read the full architectural brief in [`docs/Jules_K3D_Whitepaper.md`](docs/Jules_K3D_Whitepaper.md) and the active roadmap in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
