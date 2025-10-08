@@ -1,15 +1,24 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Iterable, Optional, Tuple
 import logging
 
 import numpy as np  # type: ignore
+
+try:  # pragma: no cover - optional CuPy dependency
+    import cupy as cp  # type: ignore
+
+    _HAS_CUPY = True
+except Exception:  # pragma: no cover
+    cp = None  # type: ignore
+    _HAS_CUPY = False
 
 from knowledge3d.cranium.ptx_runtime import ModularRPNEngine, TextTo3DGenerator
 from knowledge3d.cranium.ptx.galaxy_buffer import GalaxyGPUMemory
 from knowledge3d.cranium.ptx.geometry_ops import PTXGeometrySession
 from knowledge3d.cranium.ptx.modality_ops import PTXModalityOps
+from knowledge3d.gpu import global_rng_pool
 
 
 class PTXOps:
@@ -21,6 +30,9 @@ class PTXOps:
         self._shape_generator: Optional[TextTo3DGenerator] = None  # type: ignore
         self._geometry_session: Optional[PTXGeometrySession] = None  # type: ignore
         self._modality_ops: Optional[PTXModalityOps] = None  # type: ignore
+        self._dialogue_module = None
+        self._dialogue_kernel = None
+        self._rng_pool = global_rng_pool
 
     # ------------------------------------------------------------------
     def evaluate_rpn(self, expression: str, variables: Optional[Dict[str, float]] = None) -> float:
@@ -85,6 +97,72 @@ class PTXOps:
             "metrics": {k: float(v) for k, v in metrics.items()},
             "confidence": confidence,
         }
+
+    # ------------------------------------------------------------------
+    def sample_dialogue_token(
+        self,
+        logits: Iterable[float],
+        *,
+        temperature: float = 1.0,
+        top_k: int = 5,
+    ) -> int:
+        """
+        Run the dialogue sampler PTX kernel on the provided logits.
+
+        Falls back to a deterministic ``argmax`` on CPU when CUDA is not
+        available.  The PTX kernel expects 32-way logits; shorter inputs are
+        padded with ``-inf``.
+        """
+
+        logits_array = np.asarray(list(logits), dtype=np.float32)
+        temp = float(max(1e-6, temperature))
+        scaled_logits = logits_array.astype(np.float32, copy=True)
+        scaled_logits /= temp
+
+        top_k = max(1, min(int(top_k), max(1, scaled_logits.size)))
+
+        # Deterministic top-k sampling using RNG pool when requested.
+        if top_k > 1:
+            top_indices = np.argsort(scaled_logits)[-top_k:]
+            cpu_rand, gpu_rand = self._rng_pool.uniform((1,))
+            rand_val = cpu_rand[0]
+            slot = int(rand_val * top_k) % top_k
+            return int(top_indices[slot])
+
+        if scaled_logits.size < 32:
+            padded = np.full(32, -np.inf, dtype=np.float32)
+            padded[: scaled_logits.size] = scaled_logits
+            scaled_logits = padded
+        elif scaled_logits.size > 32:
+            scaled_logits = scaled_logits[:32]
+
+        if not _HAS_CUPY:
+            return int(np.argmax(scaled_logits))
+
+        assert cp is not None
+        if self._dialogue_kernel is None:
+            module_path = Path(__file__).resolve().parent / "dialogue_sampler.ptx"
+            if not module_path.exists():
+                raise FileNotFoundError(f"dialogue_sampler PTX not found: {module_path}")
+            self._dialogue_module = cp.RawModule(path=str(module_path))
+            self._dialogue_kernel = self._dialogue_module.get_function("dialogue_sampler_kernel")
+
+        logits_gpu = cp.asarray(scaled_logits, dtype=cp.float32)
+        out_gpu = cp.zeros(1, dtype=cp.uint16)
+
+        self._dialogue_kernel(
+            (1,),
+            (32,),
+            (
+                logits_gpu,
+                out_gpu,
+                np.float32(temp),
+                np.uint16(top_k),
+            ),
+        )
+        cp.cuda.runtime.deviceSynchronize()
+        sampled_token = int(out_gpu.get()[0])
+        return sampled_token
 
     def generate_shape(self, prompt: str, vertex_count: int = 32, shape_hint: Optional[int] = None) -> str:
         """Generate a GLB path for a prompt-driven shape using the PTX geometry kernel."""

@@ -1,0 +1,94 @@
+.version 8.0
+.target sm_80
+.address_size 64
+
+// ---------------------------------------------------------------------------
+// tablet_guard_kernel
+//
+// Simple contract validation for tablet mutations.  The kernel inspects the
+// action buffer and ensures the mutation type lies within an allowed range and
+// that the payload does not contain NaNs.  Results:
+//   1 → safe to dispatch
+//   0 → reject mutation
+//
+// Parameters
+// ---------
+// action_buffer_ptr : pointer to ActionBuffer struct (see action_types.py)
+// mutation_offset   : byte offset of tablet_mutation_type
+// payload_offset    : byte offset of tablet_data[0]
+// payload_count     : number of payload uint32 slots
+// min_type          : minimum allowed mutation type
+// max_type          : maximum allowed mutation type
+// result_ptr        : pointer to uint32 result (1 or 0)
+// ---------------------------------------------------------------------------
+
+.visible .entry tablet_guard_kernel(
+    .param .u64 param_action_ptr,
+    .param .u32 param_mutation_offset,
+    .param .u32 param_payload_offset,
+    .param .u32 param_payload_count,
+    .param .u32 param_min_type,
+    .param .u32 param_max_type,
+    .param .u64 param_result_ptr
+)
+{
+    .reg .pred %p<6>;
+    .reg .b32  %r<16>;
+    .reg .b64  %rd<8>;
+
+    mov.u32 %r0, %tid.x;
+    setp.ne.u32 %p0, %r0, 0;
+    @%p0 ret;
+
+    ld.param.u64 %rd0, [param_action_ptr];
+    ld.param.u32 %r1,  [param_mutation_offset];
+    ld.param.u32 %r2,  [param_payload_offset];
+    ld.param.u32 %r3,  [param_payload_count];
+    ld.param.u32 %r4,  [param_min_type];
+    ld.param.u32 %r5,  [param_max_type];
+    ld.param.u64 %rd1, [param_result_ptr];
+
+    add.u64 %rd2, %rd0, %r1;
+    ld.global.u32 %r6, [%rd2];        // mutation type
+
+    setp.lt.u32 %p1, %r6, %r4;
+    setp.gt.u32 %p2, %r6, %r5;
+    or.pred %p3, %p1, %p2;
+    @%p3 bra REJECT;
+
+    mov.pred %p4, 0;
+    mov.u32 %r7, 0;
+
+PAYLOAD_LOOP:
+    setp.ge.u32 %p5, %r7, %r3;
+    @%p5 bra PAYLOAD_DONE;
+
+    mul.lo.u32 %r8, %r7, 4;
+    add.u32 %r9, %r2, %r8;
+    add.u64 %rd3, %rd0, %r9;
+    ld.global.u32 %r10, [%rd3];
+
+    // Reject NaN payloads (interpreted as float32)
+    mov.b32 %r11, 0FF800000h;    // -inf
+    mov.b32 %r12, 0x7F800000;    // +inf
+
+    setp.gt.u32 %p1, %r10, %r12;
+    setp.lt.u32 %p2, %r10, %r11;
+    or.pred %p4, %p4, %p1;
+    or.pred %p4, %p4, %p2;
+
+    add.u32 %r7, %r7, 1;
+    bra PAYLOAD_LOOP;
+
+PAYLOAD_DONE:
+    @%p4 bra REJECT;
+
+    mov.u32 %r13, 1;
+    st.global.u32 [%rd1], %r13;
+    ret;
+
+REJECT:
+    mov.u32 %r14, 0;
+    st.global.u32 [%rd1], %r14;
+    ret;
+}

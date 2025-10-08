@@ -10,6 +10,7 @@ on GPU code, keeping it easy to exercise in CPU-only environments.
 """
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Dict, Iterable, List
 
 import numpy as np
@@ -21,6 +22,29 @@ try:  # Optional visualisation dependency
 except Exception:  # pragma: no cover - fallback when matplotlib unavailable
     plt = None  # type: ignore
     _HAS_MPL = False
+
+try:  # pragma: no cover - optional CuPy dependency
+    import cupy as cp  # type: ignore
+
+    _HAS_CUPY = True
+except Exception:  # pragma: no cover
+    cp = None  # type: ignore
+    _HAS_CUPY = False
+
+_ADAPTIVE_KERNEL = None
+
+
+def _load_kernel() -> None:
+    global _ADAPTIVE_KERNEL
+    if not _HAS_CUPY or _ADAPTIVE_KERNEL is not None:
+        return
+    kernel_path = (
+        Path(__file__).resolve().parent.parent / "ptx" / "adaptive_convergence.ptx"
+    )
+    if not kernel_path.exists():
+        return
+    module = cp.RawModule(path=str(kernel_path))
+    _ADAPTIVE_KERNEL = module.get_function("adaptive_convergence_kernel")
 
 
 @dataclass
@@ -44,6 +68,30 @@ class AdaptiveConvergenceAnalyzer:
         """Return variance / range metrics for the current window."""
         if not self.history:
             return {"variance": 0.0, "range": 0.0, "mean": 0.0}
+        if _HAS_CUPY:
+            _load_kernel()
+            if _ADAPTIVE_KERNEL is not None:
+                try:
+                    arr_gpu = cp.asarray(self.history, dtype=cp.float32)
+                    out_gpu = cp.zeros(3, dtype=cp.float32)
+                    _ADAPTIVE_KERNEL(
+                        (1,),
+                        (1,),
+                        (
+                            arr_gpu,
+                            np.uint32(arr_gpu.size),
+                            out_gpu,
+                        ),
+                    )
+                    cp.cuda.runtime.deviceSynchronize()
+                    mean_val, var_val, range_val = cp.asnumpy(out_gpu)
+                    return {
+                        "variance": float(var_val),
+                        "range": float(range_val),
+                        "mean": float(mean_val),
+                    }
+                except Exception:  # pragma: no cover
+                    pass
         arr = np.asarray(self.history, dtype=np.float32)
         return {
             "variance": float(arr.var()),

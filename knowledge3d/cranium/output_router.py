@@ -15,7 +15,17 @@ import json
 import mmap
 import time
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
+
+import numpy as np
+
+try:  # pragma: no cover - optional CuPy dependency
+    import cupy as cp  # type: ignore
+
+    _HAS_CUPY = True
+except Exception:  # pragma: no cover
+    cp = None  # type: ignore
+    _HAS_CUPY = False
 
 from knowledge3d.cranium.actions import ActionBuffer, ActionResult, ActionType
 from knowledge3d.cranium.actions.confidence_propagation import ConfidencePropagator
@@ -114,6 +124,24 @@ class ActionRouter:
             "no_actions": 0,
         }
 
+        self._tablet_guard_kernel = None
+        self._tablet_guard_config: Optional[Tuple[int, int, int]] = None
+        if _HAS_CUPY:
+            tablet_path = Path(__file__).resolve().parent / "ptx" / "tablet_guard.ptx"
+            if tablet_path.exists():
+                try:
+                    module = cp.RawModule(path=str(tablet_path))
+                    self._tablet_guard_kernel = module.get_function("tablet_guard_kernel")
+                    sample_buffer = ActionBuffer()
+                    mutation_offset = sample_buffer.buffer.dtype.fields["tablet_mutation_type"][1]
+                    payload_offset = sample_buffer.buffer.dtype.fields["tablet_data"][1]
+                    payload_count = int(sample_buffer.buffer.dtype["tablet_data"].shape[0])
+                    self._tablet_guard_config = (mutation_offset, payload_offset, payload_count)
+                except Exception:  # pragma: no cover
+                    self._tablet_guard_kernel = None
+                    self._tablet_guard_config = None
+
+
     # ------------------------------------------------------------------
     def _init_tablet_mmap(self) -> None:
         self._mmap_path.parent.mkdir(parents=True, exist_ok=True)
@@ -180,9 +208,10 @@ class ActionRouter:
 
         if action_type == ActionType.UPDATE_TABLET:
             metadata = self._dispatch_tablet_update(action_buffer, final_confidence, curiosity)
+            success = metadata.pop("success", True)
             metadata["alpha"] = alpha_used
             self.stats["tablet_updates"] += 1
-            return ActionResult(action_type, final_confidence, curiosity, True, metadata)
+            return ActionResult(action_type, final_confidence, curiosity, success, metadata)
 
         self.stats["no_actions"] += 1
         return ActionResult(ActionType.NO_ACTION, final_confidence, curiosity, False, {})
@@ -270,6 +299,16 @@ class ActionRouter:
         confidence: float,
         curiosity: float,
     ) -> Dict[str, object]:
+        guard_passed = self._tablet_guard_check(action_buffer)
+        if not guard_passed:
+            return {
+                "success": False,
+                "reason": "tablet_guard_reject",
+                "confidence": confidence,
+                "curiosity": curiosity,
+                "guard_passed": False,
+            }
+
         mutation_type, payload = action_buffer.extract_tablet_mutation()
         record = {
             "timestamp": _timestamp_us(),
@@ -278,8 +317,10 @@ class ActionRouter:
             "curiosity": curiosity,
             "mutation_type": mutation_type,
             "payload": payload.tolist(),
+            "guard_passed": guard_passed,
         }
         self._write_to_mmap(record)
+        record["success"] = True
         return record
 
     # ------------------------------------------------------------------
@@ -299,6 +340,38 @@ class ActionRouter:
             stc.save_house()
             return True
         except Exception:
+            return False
+
+    def _tablet_guard_check(self, action_buffer: ActionBuffer) -> bool:
+        mutation_type, payload = action_buffer.extract_tablet_mutation()
+        if not (0 <= mutation_type <= 16):
+            return False
+        if not np.all(np.isfinite(payload)):
+            return False
+
+        if self._tablet_guard_kernel is None or self._tablet_guard_config is None or not _HAS_CUPY:
+            return True
+
+        assert cp is not None
+        mutation_offset, payload_offset, payload_count = self._tablet_guard_config
+        result_gpu = cp.zeros(1, dtype=cp.uint32)
+        try:
+            self._tablet_guard_kernel(
+                (1,),
+                (1,),
+                (
+                    np.uint64(action_buffer.device_ptr),
+                    np.uint32(mutation_offset),
+                    np.uint32(payload_offset),
+                    np.uint32(payload_count),
+                    np.uint32(0),
+                    np.uint32(16),
+                    result_gpu,
+                ),
+            )
+            cp.cuda.runtime.deviceSynchronize()
+            return bool(int(result_gpu.get()[0]))
+        except Exception:  # pragma: no cover
             return False
 
     def _galaxy_handle(self) -> Optional[int]:
