@@ -1,3 +1,4 @@
+# DEPRECATED: evaluator retained for legacy runs; scheduled for swarm refactor.
 """Omni Bench Evaluator — scan local HF cache and evaluate fused head on many datasets.
 
 This evaluator discovers repos under a Hugging Face cache directory and, for each,

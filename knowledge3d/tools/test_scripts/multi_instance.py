@@ -1,3 +1,4 @@
+# DEPRECATED: legacy pre-PTX script; kept for reference. Outputs belong in Knowledge3D.local/old_attempts.
 """
 Spawn two concurrent chat agents (scout + gardener) to explore a house and
 generate training logs in the live server. This accelerates data collection by

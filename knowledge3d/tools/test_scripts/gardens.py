@@ -1,3 +1,4 @@
+# DEPRECATED: legacy pre-PTX script; kept for reference. Outputs belong in Knowledge3D.local/old_attempts.
 """
 Build a Knowledge Garden GLB: ontology as trees with edges and greenhouse layout.
 

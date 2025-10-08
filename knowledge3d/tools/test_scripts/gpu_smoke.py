@@ -1,3 +1,4 @@
+# DEPRECATED: legacy pre-PTX script; kept for reference. Outputs belong in Knowledge3D.local/old_attempts.
 """
 GPU smoke test: verifies PyTorch CUDA availability and runs a tiny HF forward/backward loop.
 

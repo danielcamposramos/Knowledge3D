@@ -1,3 +1,4 @@
+# DEPRECATED: legacy pre-PTX script; kept for reference. Outputs belong in Knowledge3D.local/old_attempts.
 """
 Mark a subset of nodes in a K3D GLB as doors and add a guidance mask.
 

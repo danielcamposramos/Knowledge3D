@@ -1,3 +1,4 @@
+# DEPRECATED: legacy pre-PTX script; kept for reference. Outputs belong in Knowledge3D.local/old_attempts.
 from __future__ import annotations
 
 """

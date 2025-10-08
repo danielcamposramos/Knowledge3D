@@ -1,3 +1,4 @@
+# DEPRECATED: evaluator retained for legacy runs; scheduled for swarm refactor.
 from __future__ import annotations
 
 import json
