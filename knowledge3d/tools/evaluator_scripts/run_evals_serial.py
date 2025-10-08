@@ -5,7 +5,7 @@ import json
 import os
 from pathlib import Path
 
-from knowledge3d.tools.phase25 import math_bench_evaluator as mbe  # type: ignore
+from knowledge3d.tools.evaluator_scripts import math_bench_evaluator as mbe  # type: ignore
 from knowledge3d.tools import omni_bench_evaluator as obe  # type: ignore
 
 
@@ -34,4 +34,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
