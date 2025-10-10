@@ -72,6 +72,11 @@ cd /K3D/Knowledge3D
 mkdir -p /K3D/Knowledge3D.local/houses/default
 mkdir -p /K3D/Knowledge3D.local/cache
 
+# Bootstrap GPU/PTX environment
+conda env create -f envs/k3d-cranium.yml
+conda activate k3d-cranium
+# (Envs are stored on the SSD at /K3D/Knowledge3D.local/envs)
+
 # Set environment
 export K3D_LOCAL_DIR=/K3D/Knowledge3D.local
 export K3D_HOUSE_ID=default

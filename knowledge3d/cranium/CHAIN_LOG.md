@@ -230,6 +230,12 @@ arXiv:2510.04871v1. Samsung SAIL Montréal.
 
 Key Result: **7M parameter TRM beats billion-parameter LLMs on ARC-AGI**
 
+### Infrastructure Update (2025-10-18, Codex)
+- Added `envs/k3d-cranium.yml` — canonical CUDA 12.4 + CuPy + cuda-python environment for PTX kernels.
+- Updated environment policy, TRM guide, and system docs to point at the new env and to `conda run -n k3d-cranium ...` commands.
+- Synced helper docs (`AGENTS.md`, `ENVIRONMENT.md`, `DOCKER_ENV.md`) so GPU workflows reference the new env and the refactored runtime paths (`Knowledge3D.local/` + `Old_Attempts/` archives).
+- Purged legacy conda envs (`k3d-cranium`, `k3d-rapids`, `k3d-ptx`, `k3dfaiss`, `k3dml`, `k3d-modal`) from HDD-based installs, recreated `k3d-cranium` on the SSD (`/K3D/Knowledge3D.local/envs`), and updated `~/.condarc` so `conda activate k3d-cranium` resolves to the new location.
+
 ---
 
 ## Previous Steps (Summary)

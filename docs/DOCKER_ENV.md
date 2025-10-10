@@ -40,7 +40,7 @@ Python 3.12.11 | packaged by conda-forge
 
 # Activate (inside tmux)
 tmux new -As k3d
-conda activate k3dml  # Or base for GPU work
+conda activate k3d-cranium  # Primary GPU/PTX env
 ```
 
 ### GPU-Critical Packages

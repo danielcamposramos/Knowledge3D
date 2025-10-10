@@ -1,0 +1,36 @@
+name: k3d-cranium
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - numpy<2
+  - cuda-nvcc=12.4
+  - cuda-nvrtc=12.4
+  - cuda-toolkit=12.4
+  - cmake
+  - git
+  - pkg-config
+  - libffi
+  - zlib
+  - openssl
+  - python-rapidjson
+  - scikit-learn
+  - pandas
+  - pygltflib
+  - umap-learn
+  - pip:
+      - cupy-cuda12x==13.6.0
+      - cuda-python>=12.4,<12.5
+      - pytest
+      - sentence-transformers
+      - open_clip_torch
+      - websockets==10.4
+      - pyyaml
+      - soundfile
+      - av
+      - pillow
+      - laion-clap
+      - timm

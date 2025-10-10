@@ -8,15 +8,20 @@ Approved environments
 - Docker (optional): for fully pinned images
 
 Quick start (Conda)
-- Create env once:
-  conda create -y -n k3dml python=3.10
+- **GPU / PTX work:** `conda env create -f envs/k3d-cranium.yml`
+- **CPU-light workflows:** `conda env create -f envs/k3d-cpu.yml`
+- **RAPIDS pipeline:** `conda env create -f envs/k3d-rapids.yml`
 - Attach/refresh a tmux session (keeps kernels alive):
   tmux new -As k3d
-- Activate the env inside tmux and seed packages:
+- Activate the env inside tmux:
+  conda activate k3d-cranium   # or k3d-cpu / k3d-rapids as needed
+- All K3D conda envs now live on the SSD (`/K3D/Knowledge3D.local/envs`) for faster startup. `conda activate k3d-cranium` resolves there via `~/.condarc`.
+- For legacy manual bootstraps (rare):
+  conda create -y -n k3dml python=3.10
   conda activate k3dml
   python -m pip install --upgrade pip
-  python -m pip install     torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-  python -m pip install open_clip_torch pillow av soundfile     laion_clap umap-learn scikit-learn numpy pandas pygltflib
+  python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+  python -m pip install open_clip_torch pillow av soundfile laion_clap umap-learn scikit-learn numpy pandas pygltflib
 
 - Run any K3D command (env stays active in tmux):
   env PYTHONPATH=. python -m knowledge3d.tools.ingest_coco --help
@@ -39,20 +44,21 @@ GPU setup (NVIDIA)
 - **For PTX/FSM development**: See [DOCKER_ENV.md](DOCKER_ENV.md) for complete CUDA 12.4 + CuPy setup
 - Bootstrap CUDA-ready env once:
   scripts/k3d_env.sh bootstrap-gpu
-- Inside tmux after `conda activate k3dml`, run GPU tooling:
+- Inside tmux after `conda activate k3d-cranium`, run GPU tooling:
   env PYTHONPATH=. python -m knowledge3d.tools.ingest_video --help
 - Validate GPU availability (env active):
   nvidia-smi
   python -c "import torch; print(torch.cuda.is_available())"
-- **PTX kernel development requires CuPy**:
+- **PTX kernel development requires CuPy** (already bundled in `k3d-cranium`; run manually only if rebuilding):
   pip install cupy-cuda12x  # For CUDA 12.x
   # or
   pip install cupy-cuda11x  # For CUDA 11.x
 
 Environment selection and pitfalls
 - Work inside tmux so the activated env persists across long GPU jobs.
-- Select the env explicitly after attaching: `conda activate k3dml`
-  - Optional RAPIDS env: `conda activate k3d-rapids`
+- Select the env explicitly after attaching: `conda activate k3d-cranium`
+  - CPU only: `conda activate k3d-cpu`
+  - RAPIDS pipeline: `conda activate k3d-rapids`
 - If you need the helper script, `scripts/k3d_env.sh run ...` now shells into tmux and activates the env for you.
 - Avoid mixing system Python with the project; all tooling assumes the conda env is active.
 

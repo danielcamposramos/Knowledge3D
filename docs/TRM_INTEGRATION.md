@@ -8,6 +8,25 @@ This document explains the integration, architecture, and usage of TRM within K3
 
 ---
 
+## Prerequisites
+
+1. Create and activate the GPU tooling environment:
+   ```bash
+   conda env create -f envs/k3d-cranium.yml
+   conda activate k3d-cranium
+   ```
+2. Configure local runtime paths before running kernels:
+   ```bash
+   export K3D_LOCAL_DIR=/K3D/Knowledge3D.local
+   export CUPY_CACHE_DIR=$K3D_LOCAL_DIR/cache/.cupy_cache
+   ```
+3. Execute commands from the repository root with `PYTHONPATH=.` to ensure local modules resolve.
+
+The `k3d-cranium` environment ships with `cupy-cuda12x`, `cuda-python`, PyTorch 2.3, FAISS GPU, pinned `websockets==10.4`, and the tooling required for PTX compilation. Additional manual installs are only needed for experimental add-ons.
+The env itself resides on the SSD under `/K3D/Knowledge3D.local/envs/k3d-cranium` (configured through `~/.condarc`).
+
+---
+
 ## What is TRM?
 
 **Paper**: "Less is More: Recursive Reasoning with Tiny Networks" (Jolicoeur-Martineau, 2025)
@@ -324,13 +343,13 @@ ARC-AGI-2      | 7%      | 8%        | 5%    | 4.9%
 
 ```bash
 # All tests
-pytest knowledge3d/cranium/tests/test_trm_core.py -v
+conda run -n k3d-cranium env PYTHONPATH=. pytest knowledge3d/cranium/tests/test_trm_core.py -v
 
 # Specific test class
-pytest knowledge3d/cranium/tests/test_trm_core.py::TestTRMCore -v
+conda run -n k3d-cranium env PYTHONPATH=. pytest knowledge3d/cranium/tests/test_trm_core.py::TestTRMCore -v
 
 # Performance benchmarks
-pytest knowledge3d/cranium/tests/test_trm_core.py::TestTRMPerformance -v -s
+conda run -n k3d-cranium env PYTHONPATH=. pytest knowledge3d/cranium/tests/test_trm_core.py::TestTRMPerformance -v -s
 ```
 
 ### Expected Output
