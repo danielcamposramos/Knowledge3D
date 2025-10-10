@@ -1,3 +1,16 @@
+"""
+LEGACY Python RPN Calculator
+
+This is a pure-Python RPN implementation kept for:
+1. Reference/educational purposes
+2. FaithEngine (philosophical consistency)
+3. Benchmarking against PTX implementation
+
+PRODUCTION CODE SHOULD USE: knowledge3d.cranium.ptx_runtime.ModularRPNEngine
+
+This module is EXPLICITLY named legacy_rpn_python.py to avoid confusion
+with the GPU-accelerated PTX RPN engine.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -8,7 +21,7 @@ Token = Union[float, int, str]
 
 
 @dataclass
-class RPN:
+class LegacyPythonRPN:
     max_depth: int = 64
     keep_top: int = 5
 
@@ -91,4 +104,8 @@ class RPN:
         if na == 0 or nb == 0:
             return 0.0
         return self.eval([d, na, '/', nb, '/'])
+
+
+# Backward compatibility alias (deprecated - use LegacyPythonRPN explicitly)
+RPN = LegacyPythonRPN
 

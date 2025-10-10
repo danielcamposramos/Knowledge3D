@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
-from knowledge3d.core.rpn import RPN
+from knowledge3d.core.legacy_rpn_python import LegacyPythonRPN
 
 
 def synthesize_pairs(n: int, d: int, seed: int = 0) -> Tuple[np.ndarray, np.ndarray]:
@@ -31,7 +31,7 @@ def cosine_direct(a: np.ndarray, b: np.ndarray) -> np.ndarray:
 
 
 def cosine_rpn(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-    r = RPN()
+    r = LegacyPythonRPN()
     out = np.zeros(a.shape[0], dtype=np.float64)
     for i in range(a.shape[0]):
         out[i] = r.cosine(a[i].tolist(), b[i].tolist())

@@ -39,12 +39,42 @@ As part of this transition, the following modules, patterns, and examples are **
 - **Replacement**: First-class TTS head in Phase D (waveform generation from latent acoustic tokens)
 - **Current status**: Planned (see `docs/CRANIUM_CORE.md`)
 
+### Legacy Python RPN Calculator
+- **Module**: `knowledge3d/core/legacy_rpn_python.py` (pure Python RPN implementation)
+- **Class**: `LegacyPythonRPN` (explicitly named to avoid confusion with PTX version)
+- **Reason**: Superseded by GPU-native PTX RPN engine with CUDA acceleration
+- **Replacement**: Use `knowledge3d.cranium.ptx_runtime.ModularRPNEngine` or `RPNCalculator` wrapper
+- **Current status**: Kept as reference implementation; only used in:
+  - `knowledge3d.core.faith_engine` (simple threshold comparisons for philosophical consistency)
+  - `tests/test_rpn.py` (unit tests for legacy implementation)
+  - `benchmarks/rpn_bench.py` (performance comparisons vs NumPy and PTX)
+- **Migration**: All production code uses PTX RPN via `rpn_executor`, `clustering_rpn`, `semantic_depth_rpn`, etc.
+- **Important**: File renamed from `rpn.py` to `legacy_rpn_python.py` and class renamed from `RPN` to `LegacyPythonRPN` to make it explicit this is NOT the production PTX version
+
+### Phase-Based Training Modules (Phase 18, Phase 25)
+- **Deprecated modules**: ALL `phase18` and `phase25` module folders **REMOVED**
+  - `knowledge3d.tools.phase18.*` - removed entirely
+  - `knowledge3d.tools.phase25.*` - removed entirely
+- **Reason**: Consolidated into unified PTX fused head training pipeline; phase folders clogged the repo and made code tracing difficult
+- **Replacement**: Use `knowledge3d.tools.training_pipelines.train_rlwhf_policy` for training
+- **Script cleanup**: The following scripts were **DELETED**:
+  - `scripts/run_phase21.sh` - removed
+  - `scripts/run_phase22.sh` - removed
+  - `scripts/run_av_consistency.sh` - removed
+  - `scripts/run_long_run_chain.sh` - removed
+- **Updated scripts** (now use unified trainers):
+  - `scripts/run_gpu_train_only.sh` - uses `train_rlwhf_policy`
+  - `scripts/run_gpu_pipeline.sh` - uses `train_rlwhf_policy` and `inject_pdf_to_galaxy`
+- **Migration**: No stub modules - phase folders completely removed. Original code archived in `Old_Attempts/` if needed.
+- **Current status**: Removed (2025-10-10) during PTX-focused cleanup
+
 ## Migration Timeline
 
 - **Phase A (Complete)**: Embedded glTF format stabilized; PTX kernels operational
-- **Phase B (Active)**: Tablet UX consumes embedded format; legacy examples remain functional with warnings
-- **Phase C (Q1 2026)**: Remove sidecar `.k3d` support from loaders; migration tools provided
-- **Phase D (Q2 2026)**: External LLM wrappers removed from core paths; Ollama teacher integration remains
+- **Phase B (Complete)**: PTX-focused refactoring; phase-based trainers consolidated into unified pipeline
+- **Phase C (Active)**: Tablet UX consumes embedded format; legacy examples remain functional with warnings
+- **Phase D (Q1 2026)**: Remove sidecar `.k3d` support from loaders; migration tools provided
+- **Phase E (Q2 2026)**: External LLM wrappers removed from core paths; Ollama teacher integration remains
 
 ## Notes
 

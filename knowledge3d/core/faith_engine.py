@@ -1,4 +1,4 @@
-from .rpn import RPN
+from .legacy_rpn_python import LegacyPythonRPN
 
 
 class FaithEngine:
@@ -43,7 +43,7 @@ class FaithEngine:
                     threshold = 0.61803398875
             except Exception:
                 threshold = 0.61803398875
-        rpn = RPN()
+        rpn = LegacyPythonRPN()
         for action, score in options.items():
             # Evaluate comparison using RPN for consistency
             ge = rpn.eval([score, threshold, '-']) >= 0

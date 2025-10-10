@@ -30,9 +30,11 @@ step () { echo; echo "[GPU-PIPELINE] $1" | tee -a "$LOG"; }
 
 # 0) Ensure external docs are fully ingested (previews + OCR)
 step "Ingest PDFs/JSON with previews + OCR"
-python -m knowledge3d.tools.phase25.ingest_pdf_corpus \
+# DEPRECATED: phase25.ingest_pdf_corpus was removed. Use inject_pdf_to_galaxy instead.
+python -m knowledge3d.tools.training_pipelines.inject_pdf_to_galaxy \
+  --galaxy-path ../Knowledge3D.local/galaxy/working/galaxy.glb \
   --roots "/mnt/arquivos/0 ChatGPTs/DataBase/Encyclopedias,/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries" \
-  --max-depth 4 --limit 0 | tee -a "$LOG"
+  --recursive --limit 0 | tee -a "$LOG"
 
 # 1) Generation expansions — text (run models one at a time)
 TOPICS="physics,biology,engineering,ethics,ai,systems,mathematics,economics,history,art"
@@ -93,30 +95,15 @@ python -m knowledge3d.tools.compare_ollama_embeddings \
   --prompts "energia; conhecimento; sistemas; probability theory; computer vision" \
   --out docs/reports/status/embedding_comparison_${STAMP}.md | tee -a "$LOG"
 
-# 5) Consistency trainers (50 epochs each)
-step "Consistency trainer (no OCR fallback) — 50 epochs"
-python -m knowledge3d.tools.phase25.consistency_trainer --epochs 50 --limit 5000 --lr 1e-3 | tee -a "$LOG"
+# 5-7) Training stages — DEPRECATED phase25 modules consolidated into train_rlwhf_policy
+step "RLWHF Policy Training (replaces consistency/shapes/long_run trainers)"
+python -m knowledge3d.tools.training_pipelines.train_rlwhf_policy \
+  --epochs 100 --limit 5000 --lr 5e-4 | tee -a "$LOG"
 
-step "Consistency trainer (OCR fallback) — 50 epochs"
-K3D_CONSISTENCY_FALLBACK_TEXT=1 \
-python -m knowledge3d.tools.phase25.consistency_trainer --epochs 50 --limit 5000 --lr 1e-3 | tee -a "$LOG"
-
-# 6) Shapes consistency — 100 epochs
-step "Shapes consistency — 100 epochs"
-python -m knowledge3d.tools.phase25.shapes_trainer --epochs 100 --limit 5000 | tee -a "$LOG"
-
-# 7) Long-run numeric stack (2 × 50 epochs)
-step "Long-run part 1 — 50 epochs"
-python -m knowledge3d.tools.phase25.long_run \
-  --epochs 50 --limit 300 --eval-every 5 \
-  --dims "64,64,64,64" \
-  --keys "math,gsm8k,metamath,aime,amc,olympiad,algebra,arc,openbook,geometry,number,theorem,logic,iq,reasoning,science,physics,chemistry,biology,probability,combinatorics" | tee -a "$LOG"
-
-step "Long-run part 2 — 50 epochs"
-python -m knowledge3d.tools.phase25.long_run \
-  --epochs 50 --limit 300 --eval-every 5 \
-  --dims "64,64,64,64" \
-  --keys "math,gsm8k,metamath,aime,amc,olympiad,algebra,arc,openbook,geometry,number,theorem,logic,iq,reasoning,science,physics,chemistry,biology,probability,combinatorics" | tee -a "$LOG"
+# Old (deprecated) commands - phase25 modules were removed:
+# python -m knowledge3d.tools.phase25.consistency_trainer --epochs 50 --limit 5000 --lr 1e-3
+# python -m knowledge3d.tools.phase25.shapes_trainer --epochs 100 --limit 5000
+# python -m knowledge3d.tools.phase25.long_run --epochs 50 --limit 300 --eval-every 5
 
 # 8) RLWHF refresh + policy train (optional but included for completeness)
 step "RLWHF refresh from GLB (500) + open prompts (1000) + unify"

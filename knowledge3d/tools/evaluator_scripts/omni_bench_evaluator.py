@@ -35,8 +35,14 @@ except Exception:  # pragma: no cover
     load_dataset = None  # type: ignore
     DownloadConfig = None  # type: ignore
 
-from knowledge3d.tools.phase18.meaning_cluster_trainer import MeaningClusterTrainer  # type: ignore
 from knowledge3d.cranium.fused_head import AdaptedFusedHead  # type: ignore
+
+
+# Stub for backward compatibility - MeaningClusterTrainer was removed during PTX refactoring
+# All functionality moved to AdaptedFusedHead
+class MeaningClusterTrainer:
+    """DEPRECATED: Stub for backward compatibility. Use AdaptedFusedHead instead."""
+    pass
 
 
 ROOT = Path(__file__).resolve().parents[2]

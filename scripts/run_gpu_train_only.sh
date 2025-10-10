@@ -18,27 +18,15 @@ export K3D_RPN_BEAM_WIDTH=5
 
 step () { echo; echo "[GPU-TRAIN] $1" | tee -a "$LOG"; }
 
-step "Consistency trainer (no OCR fallback) — 50 epochs"
-python -m knowledge3d.tools.phase25.consistency_trainer --epochs 50 --limit 5000 --lr 1e-3 | tee -a "$LOG"
+step "RLWHF Policy Training (replaces phase25 trainers) — 100 epochs"
+# DEPRECATED: phase25 consistency/shapes/long_run trainers consolidated into train_rlwhf_policy
+python -m knowledge3d.tools.training_pipelines.train_rlwhf_policy \
+  --epochs 100 --limit 5000 --lr 5e-4 | tee -a "$LOG"
 
-step "Consistency trainer (OCR fallback) — 50 epochs"
-K3D_CONSISTENCY_FALLBACK_TEXT=1 \
-python -m knowledge3d.tools.phase25.consistency_trainer --epochs 50 --limit 5000 --lr 1e-3 | tee -a "$LOG"
-
-step "Shapes consistency — 100 epochs"
-python -m knowledge3d.tools.phase25.shapes_trainer --epochs 100 --limit 5000 | tee -a "$LOG"
-
-step "Long-run part 1 — 50 epochs"
-python -m knowledge3d.tools.phase25.long_run \
-  --epochs 50 --limit 300 --eval-every 5 \
-  --dims "64,64,64,64" \
-  --keys "math,gsm8k,metamath,aime,amc,olympiad,algebra,arc,openbook,geometry,number,theorem,logic,iq,reasoning,science,physics,chemistry,biology,probability,combinatorics" | tee -a "$LOG"
-
-step "Long-run part 2 — 50 epochs"
-python -m knowledge3d.tools.phase25.long_run \
-  --epochs 50 --limit 300 --eval-every 5 \
-  --dims "64,64,64,64" \
-  --keys "math,gsm8k,metamath,aime,amc,olympiad,algebra,arc,openbook,geometry,number,theorem,logic,iq,reasoning,science,physics,chemistry,biology,probability,combinatorics" | tee -a "$LOG"
+# Old (deprecated) commands - phase25 modules were removed:
+# python -m knowledge3d.tools.phase25.consistency_trainer --epochs 50 --limit 5000 --lr 1e-3
+# python -m knowledge3d.tools.phase25.shapes_trainer --epochs 100 --limit 5000
+# python -m knowledge3d.tools.phase25.long_run --epochs 50 --limit 300 --eval-every 5
 
 echo "[GPU-TRAIN] complete" | tee -a "$LOG"
 
