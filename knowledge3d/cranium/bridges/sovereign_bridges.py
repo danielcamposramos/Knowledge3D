@@ -744,6 +744,314 @@ class MultimodalHaltingGate:
             gpu_free(d_output)
 
 
+class ModularRPNEngine:
+    """Sovereign Modular RPN Engine - GPU-native RPN execution
+
+    Uses modular_rpn_kernel.ptx for geometric and semantic computations.
+    Supports 15 parallel instances with 64-deep stacks (float4 elements).
+
+    Operations:
+        - Literals: scalar (op 0), vector (op 1)
+        - Arithmetic: add(10), sub(11), mul(12), div(13), pow(14), neg(15)
+        - Advanced: sqrt(20), exp(21), log(22), sin(24), cos(25), tan(26)
+        - Comparison: gt(40), lt(42), eq(44), max(46), min(47)
+        - Stack: dup(50), swap(51), drop(52), over(53), rot(54), clear(55)
+        - Vector: dot(60), cross(61), mag(62), norm(63), rotate(70), scale(71), translate(72)
+        - Conditional: ifelse(80)
+
+    Example:
+        engine = ModularRPNEngine()
+        result = engine.execute_single(
+            instance_id=0,
+            op_codes=np.array([0, 0, 10], dtype=np.uint16),  # push 2.0, push 3.0, add
+            scalars=np.array([2.0, 3.0, 0.0], dtype=np.float32),
+            vectors=np.zeros((3, 3), dtype=np.float32)
+        )
+        # result = 5.0
+    """
+
+    MAX_INSTANCES = 15
+    STACK_DEPTH = 64
+    INSTANCE_STRIDE = 1040  # bytes per instance state
+
+    def __init__(self):
+        ptx_path = Path(__file__).parent.parent / "ptx" / "modular_rpn_kernel.ptx"
+        if not ptx_path.exists():
+            raise FileNotFoundError(f"RPN PTX kernel not found: {ptx_path}")
+
+        self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
+
+        # Allocate persistent state buffer (15 instances × 1040 bytes)
+        self.d_state = gpu_malloc(self.MAX_INSTANCES * self.INSTANCE_STRIDE)
+
+        # Zero-initialize state buffer
+        state_zeros = np.zeros(self.MAX_INSTANCES * self.INSTANCE_STRIDE, dtype=np.uint8)
+        memcpy_htod(self.d_state, state_zeros.ctypes.data_as(ctypes.c_void_p), state_zeros.nbytes)
+
+    def execute_single(
+        self,
+        instance_id: int,
+        op_codes: np.ndarray,
+        scalars: np.ndarray,
+        vectors: np.ndarray
+    ) -> float:
+        """Execute single RPN program on specified instance
+
+        Args:
+            instance_id: Instance slot (0-14)
+            op_codes: RPN operation codes (uint16 array)
+            scalars: Scalar literal pool (float32 array)
+            vectors: Vector literal pool (float32 array, shape N×3)
+
+        Returns:
+            Result from top of stack (float32 scalar)
+        """
+        if not (0 <= instance_id < self.MAX_INSTANCES):
+            raise ValueError(f"Invalid instance_id: {instance_id} (must be 0-14)")
+
+        # Prepare inputs
+        op_codes = np.ascontiguousarray(op_codes, dtype=np.uint16)
+        scalars = np.ascontiguousarray(scalars, dtype=np.float32)
+        vectors = np.ascontiguousarray(vectors.flatten(), dtype=np.float32)
+
+        # Allocate GPU memory
+        d_op_codes = gpu_malloc(op_codes.nbytes)
+        d_scalars = gpu_malloc(scalars.nbytes)
+        d_vectors = gpu_malloc(vectors.nbytes)
+
+        try:
+            # Copy inputs to GPU
+            memcpy_htod(d_op_codes, op_codes.ctypes.data_as(ctypes.c_void_p), op_codes.nbytes)
+            memcpy_htod(d_scalars, scalars.ctypes.data_as(ctypes.c_void_p), scalars.nbytes)
+            memcpy_htod(d_vectors, vectors.ctypes.data_as(ctypes.c_void_p), vectors.nbytes)
+
+            # Launch kernel
+            launch(
+                self.kernel,
+                grid=(1, 1, 1),
+                block=(1, 1, 1),
+                params=[
+                    ctypes.c_uint32(instance_id),
+                    ctypes.c_uint64(d_op_codes.value),
+                    ctypes.c_uint64(d_scalars.value),
+                    ctypes.c_uint64(d_vectors.value),
+                    ctypes.c_uint64(self.d_state.value),
+                    ctypes.c_uint32(len(op_codes)),
+                ],
+            )
+            synchronize()
+
+            # Read result from instance stack (top element)
+            # Stack layout: header (16 bytes: head, size, error, reserved) + stack[64] (64 × 16 bytes of float4)
+            instance_offset = instance_id * self.INSTANCE_STRIDE
+
+            # First, read head and size to find stack top
+            header_bytes = np.zeros(4, dtype=np.uint32)
+            memcpy_dtoh(
+                header_bytes.ctypes.data_as(ctypes.c_void_p),
+                ctypes.c_void_p(self.d_state.value + instance_offset),
+                16
+            )
+
+            head = int(header_bytes[0])
+            size = int(header_bytes[1])
+            error_code = int(header_bytes[2])
+
+            if error_code != 0:
+                raise RuntimeError(f"RPN execution error: code {error_code}")
+
+            if size == 0:
+                raise RuntimeError("RPN stack underflow - no result available")
+
+            # Calculate position of top element
+            # Stack top is at (head + size - 1) & 63
+            stack_top_index = (head + size - 1) & 63
+
+            # Read float4 from stack[stack_top_index]
+            stack_base_offset = instance_offset + 16
+            element_offset = stack_base_offset + (stack_top_index * 16)  # 16 bytes per float4
+
+            result_bytes = np.zeros(4, dtype=np.float32)
+            memcpy_dtoh(
+                result_bytes.ctypes.data_as(ctypes.c_void_p),
+                ctypes.c_void_p(self.d_state.value + element_offset),
+                16
+            )
+
+            return float(result_bytes[0])
+
+        finally:
+            gpu_free(d_op_codes)
+            gpu_free(d_scalars)
+            gpu_free(d_vectors)
+
+    def execute_batch(
+        self,
+        programs: list,
+        max_instances: int = 15
+    ) -> np.ndarray:
+        """Execute batch of RPN programs in parallel across instances
+
+        Args:
+            programs: List of dicts with keys 'op_codes', 'scalars', 'vectors'
+            max_instances: Max parallel instances (default 15)
+
+        Returns:
+            NumPy array of results (length = len(programs))
+        """
+        results = []
+
+        # Process in batches of max_instances
+        for batch_start in range(0, len(programs), max_instances):
+            batch = programs[batch_start:batch_start + max_instances]
+
+            # Execute programs sequentially (kernel is single-threaded per instance)
+            for i, program in enumerate(batch):
+                result = self.execute_single(
+                    instance_id=i,
+                    op_codes=program['op_codes'],
+                    scalars=program['scalars'],
+                    vectors=program['vectors']
+                )
+                results.append(result)
+
+        return np.array(results, dtype=np.float32)
+
+    def reset_instance(self, instance_id: int):
+        """Reset instance state (clear stack, reset head/size)"""
+        if not (0 <= instance_id < self.MAX_INSTANCES):
+            raise ValueError(f"Invalid instance_id: {instance_id}")
+
+        # Zero out instance state
+        instance_offset = instance_id * self.INSTANCE_STRIDE
+        zeros = np.zeros(self.INSTANCE_STRIDE, dtype=np.uint8)
+        memcpy_htod(
+            ctypes.c_void_p(self.d_state.value + instance_offset),
+            zeros.ctypes.data_as(ctypes.c_void_p),
+            self.INSTANCE_STRIDE
+        )
+
+    def cleanup(self):
+        """Free GPU memory"""
+        gpu_free(self.d_state)
+
+    def __del__(self):
+        try:
+            self.cleanup()
+        except:
+            pass
+
+
+class GalaxyMemoryUpdater:
+    """Sovereign Galaxy Memory Updater - Blend embeddings on GPU
+
+    Uses galaxy_memory_updater.ptx to blend old and teacher embeddings
+    with exponential moving average (EMA) on GPU.
+
+    Formula: new = old * (1 - blend_factor) + teacher * blend_factor
+
+    Example:
+        updater = GalaxyMemoryUpdater()
+        old_emb = np.array([1.0, 2.0, 3.0], dtype=np.float32)
+        teacher_emb = np.array([4.0, 5.0, 6.0], dtype=np.float32)
+        new_emb = updater.blend(old_emb, teacher_emb, blend_factor=0.3)
+        # new_emb ≈ [1.9, 2.9, 3.9]
+    """
+
+    def __init__(self):
+        ptx_path = Path(__file__).parent.parent / "ptx" / "galaxy_memory_updater.ptx"
+        if not ptx_path.exists():
+            raise FileNotFoundError(f"Galaxy memory PTX kernel not found: {ptx_path}")
+
+        self.kernel = load_ptx_file(str(ptx_path), "update_star_embedding_kernel")
+
+    def blend(self, old: np.ndarray, teacher: np.ndarray, blend_factor: float) -> np.ndarray:
+        """Blend old and teacher embeddings with GPU acceleration.
+
+        Args:
+            old: Old embedding (float32 array)
+            teacher: Teacher embedding (float32 array, same shape as old)
+            blend_factor: Blend factor (0.0 = keep old, 1.0 = use teacher)
+
+        Returns:
+            Blended embedding (float32 array, same shape as inputs)
+        """
+        # Prepare inputs
+        old = np.ascontiguousarray(old.flatten(), dtype=np.float32)
+        teacher = np.ascontiguousarray(teacher.flatten(), dtype=np.float32)
+
+        if old.shape != teacher.shape:
+            raise ValueError(f"Shape mismatch: old {old.shape} vs teacher {teacher.shape}")
+
+        dim = len(old)
+        if dim == 0:
+            return np.array([], dtype=np.float32)
+
+        # Allocate GPU memory
+        d_old = gpu_malloc(old.nbytes)
+        d_teacher = gpu_malloc(teacher.nbytes)
+        d_out = gpu_malloc(old.nbytes)
+
+        try:
+            # Copy inputs to GPU
+            memcpy_htod(d_old, old.ctypes.data_as(ctypes.c_void_p), old.nbytes)
+            memcpy_htod(d_teacher, teacher.ctypes.data_as(ctypes.c_void_p), teacher.nbytes)
+
+            # Launch kernel
+            threads = 256
+            blocks = (dim + threads - 1) // threads
+
+            launch(
+                self.kernel,
+                grid=(blocks, 1, 1),
+                block=(threads, 1, 1),
+                params=[
+                    ctypes.c_uint64(d_old.value),
+                    ctypes.c_uint64(d_teacher.value),
+                    ctypes.c_uint64(d_out.value),
+                    ctypes.c_float(blend_factor),
+                    ctypes.c_uint32(dim),
+                ],
+            )
+            synchronize()
+
+            # Copy result back
+            output = np.zeros_like(old)
+            memcpy_dtoh(output.ctypes.data_as(ctypes.c_void_p), d_out, output.nbytes)
+
+            return output
+
+        finally:
+            gpu_free(d_old)
+            gpu_free(d_teacher)
+            gpu_free(d_out)
+
+    def blend_sequence(
+        self,
+        base: np.ndarray,
+        teachers: list,
+        blend_factor: float = 0.3
+    ) -> np.ndarray:
+        """Blend base embedding with sequence of teacher embeddings.
+
+        Args:
+            base: Base embedding (float32 array)
+            teachers: List of teacher embeddings
+            blend_factor: Blend factor for each step
+
+        Returns:
+            Final blended embedding
+        """
+        out = np.array(base, dtype=np.float32)
+        if not teachers:
+            return out
+
+        for teacher in teachers:
+            out = self.blend(out, np.array(teacher, dtype=np.float32), blend_factor)
+
+        return out
+
+
 # Update __all__
 __all__ = [
     # Kimi's
@@ -763,4 +1071,7 @@ __all__ = [
     "VectorResonator",
     "GraphCrystallizer",
     "MultimodalHaltingGate",
+    # Runtime Engines
+    "ModularRPNEngine",
+    "GalaxyMemoryUpdater",
 ]
