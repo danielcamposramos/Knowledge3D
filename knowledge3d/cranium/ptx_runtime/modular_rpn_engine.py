@@ -469,6 +469,7 @@ class ModularRPNEngine:
         "nPr": 67,
         "store": 90,
         "load": 91,
+        "swiglu": 100,  # TRM activation: x * sigmoid(gate)
     }
 
     CONSTANTS: Dict[str, float] = {
@@ -645,6 +646,13 @@ __global__ void modular_rpn_geometric_kernel(int instance_id, const unsigned sho
       case 80: { vec4_t f,tv,cv; if(!pop(s,f)||!pop(s,tv)||!pop(s,cv)){s.error=1002;return;} push(s, cv.x!=0.0?tv:f);} break;
       case 90: if(!pop(s,b)||!pop(s,a)){s.error=1002;return;} { int idx=((int) llround(b.x)) & 15; s.regs[idx]=a.x; push(s,VEC4(a.x,0.0,0.0,0.0)); } break;
       case 91: if(!pop(s,a)){s.error=1002;return;} { int idx=((int) llround(a.x)) & 15; push(s,VEC4(s.regs[idx],0.0,0.0,0.0)); } break;
+      case 100: { // swiglu: x * sigmoid(gate) - TRM activation function
+        vec4_t gate_v, x_v;
+        if(!pop(s,gate_v)||!pop(s,x_v)){s.error=1002;return;}
+        scalar_t sig = (scalar_t)1.0 / ((scalar_t)1.0 + EXP(-gate_v.x));
+        scalar_t result = x_v.x * sig;
+        push(s,VEC4(result,0.0,0.0,0.0));
+      } break;
       default: s.error=9001; return;
     }
   }
