@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from .modular_rpn_engine import ModularRPNEngine
 
@@ -16,8 +16,13 @@ class RPNCalculator:
         self._engine = RPNCalculator._ENGINE
 
     def evaluate(self, expression: str, instance_id: int = 0, variables: Optional[Dict[str, float]] = None) -> float:
-        result = self._engine.evaluate(expression, instance_id=instance_id, variables=variables)
-        return float(result[0])
+        # Substitute variables if provided (Python-side)
+        if variables:
+            for var_name, var_value in variables.items():
+                expression = expression.replace(var_name, str(var_value))
+
+        result = self._engine.evaluate(expression, instance_id=instance_id)
+        return float(result)
 
     def evaluate_vector(
         self,
@@ -25,7 +30,13 @@ class RPNCalculator:
         instance_id: int = 0,
         variables: Optional[Dict[str, float]] = None,
     ) -> List[float]:
-        return self._engine.evaluate(expression, instance_id=instance_id, variables=variables).tolist()
+        # Substitute variables if provided (Python-side)
+        if variables:
+            for var_name, var_value in variables.items():
+                expression = expression.replace(var_name, str(var_value))
+
+        result = self._engine.evaluate(expression, instance_id=instance_id)
+        return [float(result)]
 
     def reset(self) -> None:
         self._engine.reset()

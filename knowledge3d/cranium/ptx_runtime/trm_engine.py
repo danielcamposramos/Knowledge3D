@@ -1,4 +1,14 @@
-"""Tiny Recursive Model (TRM) GPU engine using CuPy + NVRTC.
+"""⚠️  DEPRECATED - MOVED TO Old_Attempts/ ⚠️
+
+This file uses CuPy + NVRTC which are deprecated in the sovereign architecture.
+
+MIGRATION PATH:
+- Use knowledge3d.cranium.sovereign.trm_launcher (pure ctypes + libcuda.so)
+- Use knowledge3d.cranium.bridges.sovereign_bridges.TRMLauncher
+- Pattern: Sovereign TRM with recursive refinement, <95µs latency
+
+ORIGINAL DESCRIPTION:
+Tiny Recursive Model (TRM) GPU engine using CuPy + NVRTC.
 
 Based on "Less is More: Recursive Reasoning with Tiny Networks" (2025)
 - 7M parameter 2-layer MLP
@@ -8,6 +18,8 @@ Based on "Less is More: Recursive Reasoning with Tiny Networks" (2025)
 
 This uses CuPy (like guard.py) instead of cuda-python bindings for compatibility
 with the k3d-cranium environment. Follows Codex's proven pattern.
+
+⚠️  DO NOT USE - Use sovereign architecture instead!
 """
 from __future__ import annotations
 

@@ -1,4 +1,20 @@
-"""Utilities for configuring CuPy runtime options."""
+"""⚠️  DEPRECATED - MOVED TO Old_Attempts/utils/ ⚠️
+
+This file configures CuPy which is deprecated in the sovereign architecture.
+
+MIGRATION PATH:
+- Sovereign architecture uses NO CuPy
+- All GPU operations via pure ctypes + libcuda.so
+- See knowledge3d.cranium.sovereign.loader for memory management
+- See knowledge3d.cranium.bridges.sovereign_bridges for all GPU operations
+
+REASON FOR DEPRECATION:
+- CuPy adds 500MB+ dependency
+- Sovereign architecture: zero external GPU dependencies
+- All PTX kernels precompiled, no NVRTC needed
+
+⚠️  DO NOT USE - Use sovereign architecture instead!
+"""
 
 from __future__ import annotations
 

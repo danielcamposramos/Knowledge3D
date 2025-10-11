@@ -39,7 +39,13 @@ class PTXOps:
         """Evaluate an RPN expression on the GPU and return the first scalar result."""
         if self._rpn_engine is None:
             self._rpn_engine = ModularRPNEngine()
-        result = self._rpn_engine.evaluate(expression, variables=variables)
+
+        # Substitute variables if provided (Python-side, before GPU execution)
+        if variables:
+            for var_name, var_value in variables.items():
+                expression = expression.replace(var_name, str(var_value))
+
+        result = self._rpn_engine.evaluate(expression)
         if isinstance(result, np.ndarray):
             if result.size == 0:
                 raise RuntimeError("RPN engine returned empty result vector")

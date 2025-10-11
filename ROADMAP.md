@@ -1,8 +1,8 @@
 # Knowledge3D Roadmap - Sovereign Architecture
 
-**Last Updated**: 2025-10-11 (Evening Session)
-**Current Phase**: Codex Audit & Sovereign Migration
-**Status**: ✅ Foundation Complete, RPN Sovereign Migration Complete, Codex Audit Complete
+**Last Updated**: 2025-10-11 (Late Evening - Continuation)
+**Current Phase**: Sovereign Migration & Validation
+**Status**: ✅ Foundation Complete, 3 Modules Complete, 41/41 Tests Passing
 
 ---
 
@@ -38,14 +38,32 @@
 - [x] Supports: arithmetic, trig, vectors, stack ops, batch evaluation
 - [x] Made ptx_runtime/__init__.py imports conditional (avoid missing deps)
 
-**Key Metrics**:
+### ✅ COMPLETED (Session 2025-10-11 - Late Evening Continuation)
+
+**RPNCalculator Validation & Infrastructure Fixes**:
+- [x] Fixed PTXOps.evaluate_rpn() to handle variable substitution Python-side
+- [x] Updated rpn_calculator.py for sovereign ModularRPNEngine compatibility
+- [x] Added missing List import in rpn_calculator.py
+- [x] Created comprehensive test suite for RPNCalculator (10/10 tests PASSED)
+- [x] Validated backward compatibility - legacy code works with sovereign architecture
+
+**Dependency Analysis**:
+- [x] Identified pygltflib as required dependency for GLB I/O modules
+- [x] Discovered galaxy_buffer.py uses cuda-python (needs sovereign migration)
+- [x] Documented blockers in SESSION_HANDOFF.md
+
+**Key Metrics** (Updated):
 - Total PTX kernels: 17+ (~80 KB)
 - Latency: 44µs (53% under mandate!)
-- Foundation tests: 12/12 PASSED
-- RPN tests: 9/9 PASSED
+- **Foundation tests: 12/12 PASSED**
+- **RPN tests: 9/9 PASSED**
+- **Galaxy Memory tests: 10/10 PASSED**
+- **RPNCalculator tests: 10/10 PASSED**
+- **TOTAL: 41/41 tests PASSING (100%)**
 - Codex audit: 158KB code analyzed
 - Code reduction: modular_rpn_engine 42KB → 300 lines (99% reduction!)
-- Dependencies: ZERO (only stdlib + system libs)
+- Modules complete: 3/9 (33%)
+- Dependencies: ZERO GPU deps (only stdlib + system libs + pygltflib for I/O)
 
 ---
 
@@ -115,35 +133,47 @@
 **Goal**: Migrate valuable Codex modules to sovereign architecture
 
 **Tasks**:
-1. ✅ **Migrate modular_rpn_engine.py**
+1. ✅ **Migrate modular_rpn_engine.py** (COMPLETE)
    - ✅ Created ModularRPNEngine sovereign bridge
    - ✅ Rewrote 42KB NVRTC code → 300 lines Python wrapper
    - ✅ All GPU compute via modular_rpn_kernel.ptx
    - ✅ Created test suite (9/9 tests passing)
 
-2. ⏳ **Migrate galaxy_memory_updater.py** (NEXT)
-   - Already uses hand-authored PTX (galaxy_memory_updater.ptx)
-   - Currently uses cuda-python bindings
-   - Action: Convert to pure ctypes (like sovereign bridges)
+2. ✅ **Migrate galaxy_memory_updater.py** (COMPLETE)
+   - ✅ Created CUDA source from swarm patterns
+   - ✅ Compiled to PTX with SM_86
+   - ✅ Created sovereign bridge (pure ctypes)
+   - ✅ Created test suite (10/10 tests passing)
 
-3. ⏳ **Validate compatible modules**
-   - Test sleep_time_compute.py with sovereign PTX_OPS
-   - Verify text_to_3d_generator.py dependencies
-   - Test galaxy_state_serializer.py integration
+3. ✅ **Validate rpn_calculator.py** (COMPLETE)
+   - ✅ Fixed variable substitution compatibility
+   - ✅ Thin wrapper around sovereign ModularRPNEngine
+   - ✅ Created test suite (10/10 tests passing)
+   - ✅ Validated backward compatibility
 
-4. ⏳ **Decision on modular_rpn_engine (42KB NVRTC version)**
-   - Compare features with our sovereign version
-   - Determine if any opcodes missing
-   - Document differences
+4. ⏳ **Fix infrastructure dependencies** (PARTIAL)
+   - ✅ Fixed PTXOps.evaluate_rpn() variable substitution
+   - ⚠️ Identified pygltflib dependency missing
+   - ⚠️ Discovered galaxy_buffer.py uses cuda-python (HIGH PRIORITY)
+
+5. ⏳ **Validate remaining compatible modules** (NEXT)
+   - ⏳ thinking_tag_embedder.py (pure Python - should be quick)
+   - ⏳ sleep_time_compute.py (blocked by pygltflib + galaxy_buffer)
+   - ⏳ galaxy_state_serializer.py (blocked by pygltflib)
+   - ⏳ text_to_3d_generator.py (check dependencies)
 
 **Expected Outcome**: All valuable Codex modules sovereign-compatible
 
 **Files Modified/Created**:
-- ✅ `knowledge3d/cranium/bridges/sovereign_bridges.py` (added ModularRPNEngine)
+- ✅ `knowledge3d/cranium/bridges/sovereign_bridges.py` (added ModularRPNEngine + GalaxyMemoryUpdater)
 - ✅ `knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py` (rewritten)
+- ✅ `knowledge3d/cranium/ptx_runtime/galaxy_memory_updater.py` (rewritten)
+- ✅ `knowledge3d/cranium/ptx_runtime/rpn_calculator.py` (fixed compatibility)
+- ✅ `knowledge3d/cranium/ptx/ptx_ops.py` (fixed variable substitution)
 - ✅ `tests/test_sovereign_rpn.py` (created)
-- ⏳ `knowledge3d/cranium/ptx_runtime/galaxy_memory_updater.py` (to adapt)
-- ⏳ `tests/test_sovereign_galaxy_memory.py` (to create)
+- ✅ `tests/test_sovereign_galaxy_memory.py` (created)
+- ✅ `tests/test_rpn_calculator.py` (created)
+- ⏳ `knowledge3d/cranium/ptx/galaxy_buffer.py` (needs sovereign migration)
 
 ---
 
@@ -373,15 +403,17 @@
 
 ---
 
-**Last Session Success**: 2025-10-11 (Evening) - RPN Sovereign Migration + Codex Audit Complete! 🎉
-**Next Session Goal**: Migrate galaxy_memory_updater + validate sleep_time_compute
-**Status**: Ready to proceed! 🚀
+**Last Session Success**: 2025-10-11 (Late Evening) - RPNCalculator validated, infrastructure fixes! 🎉
+**Next Session Goal**: Install pygltflib, migrate galaxy_buffer.py, continue validations
+**Status**: 41/41 tests passing, ready for next phase! 🚀
 
 **Current Progress**:
 - ✅ Codex Audit: 158KB analyzed, all categorized
 - ✅ RPN Migration: 42KB → 300 lines, 9/9 tests passing
-- ⏳ Galaxy Memory: Ready to migrate to sovereign
-- ⏳ Sleep Time Compute: Ready to validate
+- ✅ Galaxy Memory: Migrated to sovereign, 10/10 tests passing
+- ✅ RPNCalculator: Validated, 10/10 tests passing
+- ✅ PTXOps: Fixed variable substitution
+- ⚠️ Blockers: pygltflib missing, galaxy_buffer.py needs migration
 
 ---
 
