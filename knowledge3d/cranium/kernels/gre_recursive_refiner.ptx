@@ -1,0 +1,92 @@
+.version 8.0
+.target sm_80
+.address_size 64
+
+// Recursive Refiner Kernel
+// Performs a single refinement step over answer/latent tensors.
+// Parameters:
+//   question_ptr    : float32 array
+//   answer_ptr      : float32 array
+//   latent_ptr      : float32 array
+//   hidden_dim      : uint32
+//   epsilon         : float32 (stored for reference)
+//   answer_out_ptr  : float32 array
+//   latent_out_ptr  : float32 array
+//   drift_out_ptr   : float32 array (length >= 1, stores max drift)
+
+.visible .entry gre_recursive_refiner(
+    .param .u64 question_ptr,
+    .param .u64 answer_ptr,
+    .param .u64 latent_ptr,
+    .param .u32 hidden_dim,
+    .param .f32 epsilon,
+    .param .u64 answer_out_ptr,
+    .param .u64 latent_out_ptr,
+    .param .u64 drift_out_ptr
+)
+{
+    .reg .pred p_is_thread0, p_loop_end;
+    .reg .u32 r_tid, r_idx, r_hidden;
+    .reg .u64 r_q_ptr, r_a_ptr, r_z_ptr, r_a_out_ptr, r_z_out_ptr, r_drift_ptr;
+    .reg .u64 r_offset, r_tmp;
+    .reg .f32 f_q, f_a, f_z, f_new_y, f_new_z, f_drift, f_max_drift;
+
+    mov.u32 r_tid, %tid.x;
+    setp.eq.u32 p_is_thread0, r_tid, 0;
+    @!p_is_thread0 bra EXIT;
+
+    ld.param.u64 r_q_ptr, [question_ptr];
+    ld.param.u64 r_a_ptr, [answer_ptr];
+    ld.param.u64 r_z_ptr, [latent_ptr];
+    ld.param.u32 r_hidden, [hidden_dim];
+    ld.param.u64 r_a_out_ptr, [answer_out_ptr];
+    ld.param.u64 r_z_out_ptr, [latent_out_ptr];
+    ld.param.u64 r_drift_ptr, [drift_out_ptr];
+
+    mov.f32 f_max_drift, 0.0;
+    mov.u32 r_idx, 0;
+
+LOOP:
+    setp.ge.u32 p_loop_end, r_idx, r_hidden;
+    @p_loop_end bra LOOP_DONE;
+
+    mul.wide.u32 r_offset, r_idx, 4;
+
+    add.u64 r_tmp, r_q_ptr, r_offset;
+    ld.global.f32 f_q, [r_tmp];
+
+    add.u64 r_tmp, r_a_ptr, r_offset;
+    ld.global.f32 f_a, [r_tmp];
+
+    add.u64 r_tmp, r_z_ptr, r_offset;
+    ld.global.f32 f_z, [r_tmp];
+
+    // Simple refinement equations.
+    // new_z = 0.6 * z + 0.2 * q + 0.2 * a
+    mul.f32 f_new_z, f_z, 0.6;
+    fma.rn.f32 f_new_z, f_q, 0.2, f_new_z;
+    fma.rn.f32 f_new_z, f_a, 0.2, f_new_z;
+
+    // new_y = 0.5 * a + 0.5 * new_z
+    mul.f32 f_new_y, f_a, 0.5;
+    fma.rn.f32 f_new_y, f_new_z, 0.5, f_new_y;
+
+    sub.f32 f_drift, f_new_z, f_z;
+    abs.f32 f_drift, f_drift;
+    max.f32 f_max_drift, f_max_drift, f_drift;
+
+    add.u64 r_tmp, r_a_out_ptr, r_offset;
+    st.global.f32 [r_tmp], f_new_y;
+
+    add.u64 r_tmp, r_z_out_ptr, r_offset;
+    st.global.f32 [r_tmp], f_new_z;
+
+    add.u32 r_idx, r_idx, 1;
+    bra LOOP;
+
+LOOP_DONE:
+    st.global.f32 [r_drift_ptr], f_max_drift;
+
+EXIT:
+    ret;
+}

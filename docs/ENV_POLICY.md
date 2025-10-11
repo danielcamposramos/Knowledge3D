@@ -9,12 +9,17 @@ Approved environments
 
 Quick start (Conda)
 - **GPU / PTX work:** `conda env create -f envs/k3d-cranium.yml`
+- **GPU PTX test rig:** `conda env create -f envs/k3d-trm.yml`
+- **GPU PTX/Testing:** `conda env create -f envs/k3d-trm.yml`
 - **CPU-light workflows:** `conda env create -f envs/k3d-cpu.yml`
 - **RAPIDS pipeline:** `conda env create -f envs/k3d-rapids.yml`
 - Attach/refresh a tmux session (keeps kernels alive):
   tmux new -As k3d
 - Activate the env inside tmux:
-  conda activate k3d-cranium   # or k3d-cpu / k3d-rapids as needed
+  conda activate k3d-cranium   # or k3d-trm / k3d-cpu / k3d-rapids as needed
+- Run PTX/CuPy tests via the SSD env:
+  source /home/daniel/miniforge/etc/profile.d/conda.sh
+  conda run -p /K3D/Knowledge3D.local/envs/k3d-trm env PYTHONPATH=$(pwd) pytest …
 - All K3D conda envs now live on the SSD (`/K3D/Knowledge3D.local/envs`) for faster startup. `conda activate k3d-cranium` resolves there via `~/.condarc`.
 - For legacy manual bootstraps (rare):
   conda create -y -n k3dml python=3.10

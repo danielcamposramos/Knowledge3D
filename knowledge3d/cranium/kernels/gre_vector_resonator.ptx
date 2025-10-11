@@ -1,0 +1,58 @@
+.version 8.0
+.target sm_80
+.address_size 64
+
+// Vector Resonator Kernel
+// Blends two vectors using a configurable alpha.
+// Parameters:
+//   vector_a_ptr : float32 array
+//   vector_b_ptr : float32 array
+//   output_ptr   : float32 array
+//   length       : uint32
+//   alpha        : float32
+
+.visible .entry gre_vector_resonator(
+    .param .u64 vector_a_ptr,
+    .param .u64 vector_b_ptr,
+    .param .u64 output_ptr,
+    .param .u32 length,
+    .param .f32 alpha
+)
+{
+    .reg .pred p_loop_end;
+    .reg .u32 r_idx, r_length;
+    .reg .u64 r_a_ptr, r_b_ptr, r_out_ptr, r_offset, r_elem_ptr;
+    .reg .f32 f_alpha, f_inv_alpha, f_a, f_b, f_out;
+
+    mov.u32 r_idx, %tid.x;
+    ld.param.u64 r_a_ptr, [vector_a_ptr];
+    ld.param.u64 r_b_ptr, [vector_b_ptr];
+    ld.param.u64 r_out_ptr, [output_ptr];
+    ld.param.u32 r_length, [length];
+    ld.param.f32 f_alpha, [alpha];
+
+    mov.f32 f_inv_alpha, 1.0;
+    sub.f32 f_inv_alpha, f_inv_alpha, f_alpha;
+
+LOOP:
+    setp.ge.u32 p_loop_end, r_idx, r_length;
+    @p_loop_end bra DONE;
+
+    mul.wide.u32 r_offset, r_idx, 4;
+    add.u64 r_elem_ptr, r_a_ptr, r_offset;
+    ld.global.f32 f_a, [r_elem_ptr];
+    add.u64 r_elem_ptr, r_b_ptr, r_offset;
+    ld.global.f32 f_b, [r_elem_ptr];
+
+    mul.f32 f_out, f_a, f_alpha;
+    fma.rn.f32 f_out, f_b, f_inv_alpha, f_out;
+
+    add.u64 r_elem_ptr, r_out_ptr, r_offset;
+    st.global.f32 [r_elem_ptr], f_out;
+
+    add.u32 r_idx, r_idx, %ntid.x;
+    bra LOOP;
+
+DONE:
+    ret;
+}

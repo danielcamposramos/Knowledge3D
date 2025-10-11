@@ -1,0 +1,79 @@
+.version 8.0
+.target sm_80
+.address_size 64
+
+// Latency Guard Kernel
+// Records %globaltimer on entry and exit. If elapsed time exceeds
+// the provided threshold (nanoseconds), writes 0xDEADBEEF to flag.
+// mode = 0 → record start timestamp, clear flag
+// mode = 1 → record stop timestamp, compare against threshold
+
+.visible .entry gre_sub100micro_gate(
+    .param .u64 timestamps_ptr,   // device array [2] uint64 (start, stop)
+    .param .u64 flag_ptr,         // device uint32 flag
+    .param .u64 threshold_ns,     // uint64 threshold in nanoseconds
+    .param .u32 mode              // 0=start, 1=stop
+)
+{
+    .reg .pred p_continue, p_store_stop, p_is_stop, p_is_thread0;
+    .reg .u32 tid, mode_reg;
+    .reg .u64 ts_ptr, flag_addr, timer, start_time, stop_time, delta, threshold;
+
+    // Only thread 0 performs the work.
+    mov.u32 tid, %tid.x;
+    setp.eq.u32 p_is_thread0, tid, 0;
+    @!p_is_thread0 bra EXIT;
+
+    // Load pointers and parameters.
+    ld.param.u64 ts_ptr, [timestamps_ptr];
+    ld.param.u64 flag_addr, [flag_ptr];
+    ld.param.u64 threshold, [threshold_ns];
+    ld.param.u32 mode_reg, [mode];
+
+    // Read global timer.
+    mov.u64 timer, %globaltimer;
+
+    // If mode == 0 (start)
+    setp.eq.u32 p_continue, mode_reg, 0;
+    @p_continue bra MODE_START;
+
+    // Else mode == 1 (stop / compare)
+    setp.eq.u32 p_is_stop, mode_reg, 1;
+    @p_is_stop bra MODE_STOP;
+
+    // Any other mode is ignored.
+    bra EXIT;
+
+MODE_START:
+    // Write start timestamp and clear flag.
+    st.global.u64 [ts_ptr], timer;
+    st.global.u32 [flag_addr], 0;
+    bra EXIT;
+
+MODE_STOP:
+    // Load start timestamp.
+    ld.global.u64 start_time, [ts_ptr];
+    mov.u64 stop_time, timer;
+    // Store stop timestamp.
+    st.global.u64 [ts_ptr + 8], stop_time;
+
+    // Compute delta = stop - start (assume stop >= start).
+    sub.u64 delta, stop_time, start_time;
+
+    // Compare against threshold.
+    setp.gt.u64 p_store_stop, delta, threshold;
+    @p_store_stop bra FLAG_BREACH;
+
+    // Within threshold → leave flag as zero.
+    st.global.u32 [flag_addr], 0;
+    bra EXIT;
+
+FLAG_BREACH:
+    // Exceeded threshold: write sentinel.
+    mov.u32 mode_reg, 0xDEADBEEF;
+    st.global.u32 [flag_addr], mode_reg;
+    bra EXIT;
+
+EXIT:
+    ret;
+}

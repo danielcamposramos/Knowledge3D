@@ -1,0 +1,52 @@
+.version 8.0
+.target sm_80
+.address_size 64
+
+// Cognitive Executive Kernel
+// Aggregates component scores with weights and bias.
+// Parameters:
+//   inputs_ptr  : float32 array
+//   weights_ptr : float32 array
+//   output_ptr  : float32 array
+//   component_count : uint32
+//   bias        : float32
+
+.visible .entry gre_cognitive_executive(
+    .param .u64 inputs_ptr,
+    .param .u64 weights_ptr,
+    .param .u64 output_ptr,
+    .param .u32 component_count,
+    .param .f32 bias
+)
+{
+    .reg .pred p_loop_end;
+    .reg .u32 r_idx, r_components;
+    .reg .u64 r_inputs_ptr, r_weights_ptr, r_output_ptr, r_offset, r_elem_ptr;
+    .reg .f32 f_bias, f_input, f_weight, f_accum;
+
+    mov.u32 r_idx, %tid.x;
+    ld.param.u64 r_inputs_ptr, [inputs_ptr];
+    ld.param.u64 r_weights_ptr, [weights_ptr];
+    ld.param.u64 r_output_ptr, [output_ptr];
+    ld.param.u32 r_components, [component_count];
+    ld.param.f32 f_bias, [bias];
+
+    setp.ge.u32 p_loop_end, r_idx, r_components;
+    @p_loop_end bra EXIT;
+
+    // Each thread computes one weighted score.
+    mul.wide.u32 r_offset, r_idx, 4;
+    add.u64 r_elem_ptr, r_inputs_ptr, r_offset;
+    ld.global.f32 f_input, [r_elem_ptr];
+    add.u64 r_elem_ptr, r_weights_ptr, r_offset;
+    ld.global.f32 f_weight, [r_elem_ptr];
+
+    mul.f32 f_accum, f_input, f_weight;
+    add.f32 f_accum, f_accum, f_bias;
+
+    add.u64 r_elem_ptr, r_output_ptr, r_offset;
+    st.global.f32 [r_elem_ptr], f_accum;
+
+EXIT:
+    ret;
+}

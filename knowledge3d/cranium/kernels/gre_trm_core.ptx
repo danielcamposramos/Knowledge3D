@@ -2,188 +2,169 @@
 .target sm_80
 .address_size 64
 
-// Tiny Recursive Model (TRM) - Core Implementation
-// Based on: "Less is More: Recursive Reasoning with Tiny Networks" (2025)
-// Chain Contributors: Kimi (core), Claude (optimizations), Grok (halting)
-//
-// Architecture: 2-layer MLP, ~7M params, const weights in shared memory
-// Recursion: z ← net(x,y,z) ; y ← net(y,z) ; halt on ||Δz||₂ < ε
-// Performance: <95µs per batch, warp-cooperative, zero CPU fallback
+// Tiny Recursive Model (TRM) core kernel
+// Performs n_recursions refinement steps on (y, z) given question embeddings.
 
 .visible .entry gre_trm_core(
-    .param .u64 x_ptr,              // Input question embedding (batch, 512) fp32
-    .param .u64 y_ptr,              // Current answer embedding (batch, 512) fp32
-    .param .u64 z_ptr,              // Latent reasoning state (batch, 512) fp32
-    .param .u64 weights_ptr,        // Const weights for 2-layer MLP
+    .param .u64 question_ptr,
+    .param .u64 answer_ptr,
+    .param .u64 latent_ptr,
+    .param .u64 weights_ptr,       // reserved
     .param .u32 batch_size,
-    .param .u32 n_recursions,       // n=6 optimal per TRM paper
-    .param .u32 with_gradients,     // 0=detach, 1=track for backprop
-    .param .f32 epsilon,            // Halting threshold (default 1e-4)
-    .param .u64 y_out_ptr,          // Output refined answer
-    .param .u64 z_out_ptr,          // Output refined latent
-    .param .u64 halt_flags_ptr      // Output halting flags per sample
+    .param .u32 hidden_dim,
+    .param .u32 n_recursions,
+    .param .u32 with_gradients,    // reserved
+    .param .f32 epsilon,
+    .param .u64 answer_out_ptr,
+    .param .u64 latent_out_ptr,
+    .param .u64 halt_flags_ptr
 )
 {
-    // Register allocation
-    .reg .u32 tid, warp_id, lane_id, batch_idx, rec_iter;
-    .reg .u32 dim_idx, elem_offset;
-    .reg .f32 x_val, y_val, z_val, z_old, z_new;
-    .reg .f32 w1_val, w2_val, h_val, gate_val, out_val;
-    .reg .f32 drift, abs_drift;
-    .reg .pred p_exit, p_loop_exit, p_halt, p_detach;
+    .reg .pred p_is_thread0, p_batch_exit, p_rec_exit, p_elem_exit, p_halt;
+    .reg .u32 tid, block_idx, batch, dim, rec_count, rec_limit;
+    .reg .u32 elem_idx;
+    .reg .u64 q_base, curr_y_base, curr_z_base, next_y_base, next_z_base;
+    .reg .u64 answer_out_base, latent_out_base, flag_ptr;
+    .reg .u64 offset, ptr_q, ptr_y, ptr_z, ptr_out;
+    .reg .f32 f_q, f_y, f_z, f_new_y, f_new_z, f_drift, f_max_drift, f_eps;
 
-    // Shared memory for warp-cooperative loading
-    .shared .align 16 .f32 shared_x[512];
-    .shared .align 16 .f32 shared_y[512];
-    .shared .align 16 .f32 shared_z[512];
-    .shared .align 16 .f32 shared_z_old[512];
-
-    // Thread mapping: 1 warp per sample, 32 threads process 512/32=16 elements each
     mov.u32 tid, %tid.x;
-    and.b32 lane_id, tid, 31;
-    shr.u32 warp_id, tid, 5;
-    mov.u32 batch_idx, warp_id;
+    setp.eq.u32 p_is_thread0, tid, 0;
+    @!p_is_thread0 bra EXIT;
 
-    // Bounds check
-    ld.param.u32 %r0, [batch_size];
-    setp.ge.u32 p_exit, batch_idx, %r0;
-    @p_exit bra exit_kernel;
+    mov.u32 block_idx, %ctaid.x;
+    ld.param.u32 batch, [batch_size];
+    setp.ge.u32 p_batch_exit, block_idx, batch;
+    @p_batch_exit bra EXIT;
 
-    // Calculate dimension index for this thread (each handles 16 elements)
-    mul.lo.u32 dim_idx, lane_id, 16;
+    ld.param.u64 q_base, [question_ptr];
+    ld.param.u64 curr_y_base, [answer_ptr];
+    ld.param.u64 curr_z_base, [latent_ptr];
+    ld.param.u64 answer_out_base, [answer_out_ptr];
+    ld.param.u64 latent_out_base, [latent_out_ptr];
+    ld.param.u64 flag_ptr, [halt_flags_ptr];
+    ld.param.u32 dim, [hidden_dim];
+    ld.param.u32 rec_limit, [n_recursions];
+    ld.param.f32 f_eps, [epsilon];
 
-    // Load input x, y, z into shared memory (warp-collaborative)
-    ld.param.u64 %r1, [x_ptr];
-    mul.wide.u32 %r2, batch_idx, 2048;  // 512 floats * 4 bytes
-    add.u64 %r1, %r1, %r2;
-    mul.lo.u32 elem_offset, dim_idx, 4;
-    add.u64 %r1, %r1, elem_offset;
-    ld.global.f32 x_val, [%r1];
-    st.shared.f32 [shared_x + elem_offset], x_val;
+    // Advance pointers to this batch element.
+    mul.wide.u32 offset, block_idx, dim;
+    mul.lo.u64 offset, offset, 4;
+    add.u64 q_base, q_base, offset;
+    add.u64 curr_y_base, curr_y_base, offset;
+    add.u64 curr_z_base, curr_z_base, offset;
+    add.u64 answer_out_base, answer_out_base, offset;
+    add.u64 latent_out_base, latent_out_base, offset;
 
-    ld.param.u64 %r3, [y_ptr];
-    add.u64 %r3, %r3, %r2;
-    add.u64 %r3, %r3, elem_offset;
-    ld.global.f32 y_val, [%r3];
-    st.shared.f32 [shared_y + elem_offset], y_val;
+    mov.u64 next_y_base, answer_out_base;
+    mov.u64 next_z_base, latent_out_base;
 
-    ld.param.u64 %r4, [z_ptr];
-    add.u64 %r4, %r4, %r2;
-    add.u64 %r4, %r4, elem_offset;
-    ld.global.f32 z_val, [%r4];
-    st.shared.f32 [shared_z + elem_offset], z_val;
-    st.shared.f32 [shared_z_old + elem_offset], z_val;
+    mov.u32 rec_count, 0;
+    mov.f32 f_max_drift, 0.0;
+    mov.u32 elem_idx, 0;
 
-    bar.sync 0;
+REC_LOOP:
+    setp.ge.u32 p_rec_exit, rec_count, rec_limit;
+    @p_rec_exit bra REC_FINISH;
 
-    // Recursion loop: n iterations
-    mov.u32 rec_iter, 0;
+    mov.f32 f_max_drift, 0.0;
+    mov.u32 elem_idx, 0;
 
-recursion_loop:
-    ld.param.u32 %r5, [n_recursions];
-    setp.ge.u32 p_loop_exit, rec_iter, %r5;
-    @p_loop_exit bra recursion_done;
+ELEM_LOOP:
+    setp.ge.u32 p_elem_exit, elem_idx, dim;
+    @p_elem_exit bra AFTER_ELEM;
 
-    // Store old z for drift calculation
-    ld.shared.f32 z_old, [shared_z + elem_offset];
-    st.shared.f32 [shared_z_old + elem_offset], z_old;
+    mul.wide.u32 offset, elem_idx, 4;
 
-    // Latent update: z ← net(x + y + z)
-    // Layer 1: h = SwiGLU((x+y+z) @ W1)
-    ld.shared.f32 x_val, [shared_x + elem_offset];
-    ld.shared.f32 y_val, [shared_y + elem_offset];
-    ld.shared.f32 z_val, [shared_z + elem_offset];
+    add.u64 ptr_q, q_base, offset;
+    ld.global.f32 f_q, [ptr_q];
 
-    add.f32 h_val, x_val, y_val;
-    add.f32 h_val, h_val, z_val;
+    add.u64 ptr_y, curr_y_base, offset;
+    ld.global.f32 f_y, [ptr_y];
 
-    // Simplified MLP (production uses tensor cores)
-    // h = h * W1 (placeholder - full impl uses wmma instructions)
-    mul.f32 h_val, h_val, 0.1;  // Placeholder weight
+    add.u64 ptr_z, curr_z_base, offset;
+    ld.global.f32 f_z, [ptr_z];
 
-    // SwiGLU activation: h = h ⊙ sigmoid(h)
-    // sigmoid approximation: 1/(1 + exp(-x)) ≈ 0.5 + 0.25*tanh(x/2)
-    div.approx.f32 gate_val, h_val, 2.0;
-    tanh.approx.f32 gate_val, gate_val;
-    mul.f32 gate_val, gate_val, 0.25;
-    add.f32 gate_val, gate_val, 0.5;
-    mul.f32 h_val, h_val, gate_val;
+    // new_z = 0.6*z + 0.2*q + 0.2*y
+    mul.f32 f_new_z, f_z, 0.6;
+    fma.rn.f32 f_new_z, f_q, 0.2, f_new_z;
+    fma.rn.f32 f_new_z, f_y, 0.2, f_new_z;
 
-    // Layer 2: z_new = h @ W2
-    mul.f32 z_new, h_val, 0.1;  // Placeholder weight
+    // new_y = 0.5*y + 0.5*new_z
+    mul.f32 f_new_y, f_y, 0.5;
+    fma.rn.f32 f_new_y, f_new_z, 0.5, f_new_y;
 
-    st.shared.f32 [shared_z + elem_offset], z_new;
-    bar.sync 0;
+    sub.f32 f_drift, f_new_z, f_z;
+    abs.f32 f_drift, f_drift;
+    max.f32 f_max_drift, f_max_drift, f_drift;
 
-    // Answer update: y ← net(y, z) (NO x input!)
-    ld.shared.f32 y_val, [shared_y + elem_offset];
-    ld.shared.f32 z_val, [shared_z + elem_offset];
+    add.u64 ptr_out, next_y_base, offset;
+    st.global.f32 [ptr_out], f_new_y;
 
-    add.f32 h_val, y_val, z_val;
-    mul.f32 h_val, h_val, 0.1;  // Layer 1
+    add.u64 ptr_out, next_z_base, offset;
+    st.global.f32 [ptr_out], f_new_z;
 
-    // SwiGLU
-    div.approx.f32 gate_val, h_val, 2.0;
-    tanh.approx.f32 gate_val, gate_val;
-    mul.f32 gate_val, gate_val, 0.25;
-    add.f32 gate_val, gate_val, 0.5;
-    mul.f32 h_val, h_val, gate_val;
+    add.u32 elem_idx, elem_idx, 1;
+    bra ELEM_LOOP;
 
-    mul.f32 out_val, h_val, 0.1;  // Layer 2
-    st.shared.f32 [shared_y + elem_offset], out_val;
-    bar.sync 0;
+AFTER_ELEM:
+    setp.lt.f32 p_halt, f_max_drift, f_eps;
+    @p_halt bra HALTED;
 
-    // Halting check: ||Δz||₂ < ε (lane 0 only)
-    setp.eq.u32 %p0, lane_id, 0;
-    @!%p0 bra skip_halt_check;
+    // Prepare next iteration: swap current and next buffers.
+    mov.u64 ptr_y, curr_y_base;
+    mov.u64 curr_y_base, next_y_base;
+    mov.u64 next_y_base, ptr_y;
 
-    ld.shared.f32 z_old, [shared_z_old];
-    ld.shared.f32 z_new, [shared_z];
-    sub.f32 drift, z_new, z_old;
-    abs.f32 abs_drift, drift;
+    mov.u64 ptr_z, curr_z_base;
+    mov.u64 curr_z_base, next_z_base;
+    mov.u64 next_z_base, ptr_z;
 
-    ld.param.f32 %f0, [epsilon];
-    setp.lt.f32 p_halt, abs_drift, %f0;
+    add.u32 rec_count, rec_count, 1;
+    bra REC_LOOP;
 
-    @p_halt bra halt_converged;
+HALTED:
+    // Copy latest results to output buffers (they are already in next_*).
+    mov.u64 curr_y_base, next_y_base;
+    mov.u64 curr_z_base, next_z_base;
+    mov.u32 rec_count, rec_limit; // force exit
+    bra REC_FINISH;
 
-skip_halt_check:
-    add.u32 rec_iter, rec_iter, 1;
-    bra recursion_loop;
+REC_FINISH:
+    // Ensure outputs contain latest state.
+    mov.u32 elem_idx, 0;
+COPY_Y:
+    setp.ge.u32 p_elem_exit, elem_idx, dim;
+    @p_elem_exit bra COPY_Z;
+    mul.wide.u32 offset, elem_idx, 4;
+    add.u64 ptr_y, curr_y_base, offset;
+    ld.global.f32 f_y, [ptr_y];
+    add.u64 ptr_out, answer_out_base, offset;
+    st.global.f32 [ptr_out], f_y;
+    add.u32 elem_idx, elem_idx, 1;
+    bra COPY_Y;
 
-halt_converged:
-    // Set halt flag for this sample
-    ld.param.u64 %r6, [halt_flags_ptr];
-    mul.wide.u32 %r7, batch_idx, 4;
-    add.u64 %r6, %r6, %r7;
-    mov.u32 %r8, 1;
-    st.global.u32 [%r6], %r8;
-    bra recursion_done;
+COPY_Z:
+    mov.u32 elem_idx, 0;
+COPY_Z_LOOP:
+    setp.ge.u32 p_elem_exit, elem_idx, dim;
+    @p_elem_exit bra WRITE_FLAG;
+    mul.wide.u32 offset, elem_idx, 4;
+    add.u64 ptr_z, curr_z_base, offset;
+    ld.global.f32 f_z, [ptr_z];
+    add.u64 ptr_out, latent_out_base, offset;
+    st.global.f32 [ptr_out], f_z;
+    add.u32 elem_idx, elem_idx, 1;
+    bra COPY_Z_LOOP;
 
-recursion_done:
-    bar.sync 0;
+WRITE_FLAG:
+    mul.wide.u32 offset, block_idx, 4;
+    add.u64 flag_ptr, flag_ptr, offset;
+    // Halt flag set to 1 if max drift < epsilon, else 0.
+    setp.lt.f32 p_halt, f_max_drift, f_eps;
+    selp.u32 tid, 1, 0, p_halt;
+    st.global.u32 [flag_ptr], tid;
 
-    // Write back refined y and z
-    ld.shared.f32 y_val, [shared_y + elem_offset];
-    ld.param.u64 %r9, [y_out_ptr];
-    mul.wide.u32 %r10, batch_idx, 2048;
-    add.u64 %r9, %r9, %r10;
-    mul.lo.u32 %r11, dim_idx, 4;
-    add.u64 %r9, %r9, %r11;
-
-    ld.param.u32 %r12, [with_gradients];
-    setp.eq.u32 p_detach, %r12, 0;
-    @p_detach st.global.f32 [%r9], y_val;
-    @!p_detach st.global.volatile.f32 [%r9], y_val;
-
-    ld.shared.f32 z_val, [shared_z + elem_offset];
-    ld.param.u64 %r13, [z_out_ptr];
-    add.u64 %r13, %r13, %r10;
-    add.u64 %r13, %r13, %r11;
-
-    @p_detach st.global.f32 [%r13], z_val;
-    @!p_detach st.global.volatile.f32 [%r13], z_val;
-
-exit_kernel:
+EXIT:
     ret;
 }

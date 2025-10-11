@@ -1,0 +1,58 @@
+.version 8.0
+.target sm_80
+.address_size 64
+
+// Graph Crystallizer Kernel
+// Aggregates neighbor contributions with exponential moving average.
+// Parameters:
+//   node_ptr       : float32 array of node values
+//   neighbor_ptr   : float32 array of neighbor sums
+//   output_ptr     : float32 array
+//   node_count     : uint32
+//   ema_rate       : float32
+
+.visible .entry gre_graph_crystallizer(
+    .param .u64 node_ptr,
+    .param .u64 neighbor_ptr,
+    .param .u64 output_ptr,
+    .param .u32 node_count,
+    .param .f32 ema_rate
+)
+{
+    .reg .pred p_loop_end;
+    .reg .u32 r_idx, r_count;
+    .reg .u64 r_node_ptr, r_neighbor_ptr, r_out_ptr, r_offset, r_elem_ptr;
+    .reg .f32 f_rate, f_inv_rate, f_node, f_neighbor, f_out;
+
+    mov.u32 r_idx, %tid.x;
+    ld.param.u64 r_node_ptr, [node_ptr];
+    ld.param.u64 r_neighbor_ptr, [neighbor_ptr];
+    ld.param.u64 r_out_ptr, [output_ptr];
+    ld.param.u32 r_count, [node_count];
+    ld.param.f32 f_rate, [ema_rate];
+
+    mov.f32 f_inv_rate, 1.0;
+    sub.f32 f_inv_rate, f_inv_rate, f_rate;
+
+LOOP:
+    setp.ge.u32 p_loop_end, r_idx, r_count;
+    @p_loop_end bra DONE;
+
+    mul.wide.u32 r_offset, r_idx, 4;
+    add.u64 r_elem_ptr, r_node_ptr, r_offset;
+    ld.global.f32 f_node, [r_elem_ptr];
+    add.u64 r_elem_ptr, r_neighbor_ptr, r_offset;
+    ld.global.f32 f_neighbor, [r_elem_ptr];
+
+    mul.f32 f_out, f_node, f_inv_rate;
+    fma.rn.f32 f_out, f_neighbor, f_rate, f_out;
+
+    add.u64 r_elem_ptr, r_out_ptr, r_offset;
+    st.global.f32 [r_elem_ptr], f_out;
+
+    add.u32 r_idx, r_idx, %ntid.x;
+    bra LOOP;
+
+DONE:
+    ret;
+}

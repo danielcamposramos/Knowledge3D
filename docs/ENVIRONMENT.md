@@ -72,8 +72,9 @@ cd /K3D/Knowledge3D
 mkdir -p /K3D/Knowledge3D.local/houses/default
 mkdir -p /K3D/Knowledge3D.local/cache
 
-# Bootstrap GPU/PTX environment
+# Bootstrap GPU/PTX environments
 conda env create -f envs/k3d-cranium.yml
+conda env create -f envs/k3d-trm.yml   # PTX/CuPy test rig
 conda activate k3d-cranium
 # (Envs are stored on the SSD at /K3D/Knowledge3D.local/envs)
 

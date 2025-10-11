@@ -1,0 +1,61 @@
+.version 8.0
+.target sm_80
+.address_size 64
+
+// Fractal Emitter Kernel
+// Generates simple positional offsets for Knowledge Garden nodes.
+// Parameters:
+//   input_ptr    : float32 values representing consolidated atoms
+//   coords_ptr   : float32[3*count] output coordinates (x,y,z)
+//   count        : uint32 number of atoms
+//   base_scale   : float32 scaling factor
+
+.visible .entry gre_fractal_emitter(
+    .param .u64 input_ptr,
+    .param .u64 coords_ptr,
+    .param .u32 count,
+    .param .f32 base_scale
+)
+{
+    .reg .pred p_loop_end;
+    .reg .u32 r_idx, r_count, r_stride;
+    .reg .u64 r_input_ptr, r_coords_ptr, r_offset, r_out_elem;
+    .reg .f32 f_scale, f_value, f_x, f_y, f_z;
+
+    mov.u32 r_idx, %tid.x;
+    ld.param.u64 r_input_ptr, [input_ptr];
+    ld.param.u64 r_coords_ptr, [coords_ptr];
+    ld.param.u32 r_count, [count];
+    ld.param.f32 f_scale, [base_scale];
+
+LOOP:
+    setp.ge.u32 p_loop_end, r_idx, r_count;
+    @p_loop_end bra DONE;
+
+    mul.wide.u32 r_offset, r_idx, 4;
+    add.u64 r_out_elem, r_input_ptr, r_offset;
+    ld.global.f32 f_value, [r_out_elem];
+
+    // Simple pseudo-fractal coordinates derived from input value.
+    mul.f32 f_x, f_value, f_scale;
+    cvt.rn.f32.u32 f_y, r_idx;
+    mul.f32 f_y, f_y, 0.5;
+    fma.rn.f32 f_y, f_y, f_scale, f_value;
+    add.f32 f_z, f_x, f_y;
+
+    // Write coordinates (x, y, z).
+    mul.lo.u32 r_stride, r_idx, 12; // 3 floats
+    mul.wide.u32 r_offset, r_stride, 1;
+    add.u64 r_out_elem, r_coords_ptr, r_offset;
+    st.global.f32 [r_out_elem], f_x;
+    add.u64 r_out_elem, r_out_elem, 4;
+    st.global.f32 [r_out_elem], f_y;
+    add.u64 r_out_elem, r_out_elem, 4;
+    st.global.f32 [r_out_elem], f_z;
+
+    add.u32 r_idx, r_idx, %ntid.x;
+    bra LOOP;
+
+DONE:
+    ret;
+}

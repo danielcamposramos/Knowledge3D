@@ -1,0 +1,82 @@
+.version 8.0
+.target sm_80
+.address_size 64
+
+// Galaxy Resonance Engine
+// Computes a simple weighted blend between two embedding buffers.
+// Parameters:
+//   embeddings_ptr : float32 [batch_size * vector_dim]
+//   latent_ptr     : float32 [batch_size * vector_dim]
+//   output_ptr     : float32 [batch_size * vector_dim]
+//   vector_dim     : uint32
+//   batch_size     : uint32
+//   alpha          : float32 blend factor
+
+.visible .entry galaxy_resonance_engine(
+    .param .u64 embeddings_ptr,
+    .param .u64 latent_ptr,
+    .param .u64 output_ptr,
+    .param .u32 vector_dim,
+    .param .u32 batch_size,
+    .param .f32 alpha_param
+)
+{
+    .reg .pred p_is_thread0, p_loop_end;
+    .reg .u32 r_tid, r_block, r_vec_dim, r_batch, r_index, r_total, r_stride;
+    .reg .u64 r_emb_ptr, r_latent_ptr, r_out_ptr, r_offset, r_elem_ptr;
+    .reg .f32 f_alpha, f_one_minus_alpha, f_emb, f_latent, f_out;
+
+    // Only thread 0 in each block performs the work for its sample.
+    mov.u32 r_tid, %tid.x;
+    setp.eq.u32 p_is_thread0, r_tid, 0;
+    @!p_is_thread0 bra EXIT;
+
+    // Load parameters.
+    ld.param.u64 r_emb_ptr, [embeddings_ptr];
+    ld.param.u64 r_latent_ptr, [latent_ptr];
+    ld.param.u64 r_out_ptr, [output_ptr];
+    ld.param.u32 r_vec_dim, [vector_dim];
+    ld.param.u32 r_batch, [batch_size];
+    ld.param.f32 f_alpha, [alpha_param];
+
+    // Compute index for this batch element.
+    mov.u32 r_block, %ctaid.x;
+    setp.ge.u32 p_loop_end, r_block, r_batch;
+    @p_loop_end bra EXIT;
+
+    // Pre-compute strides.
+    mov.f32 f_one_minus_alpha, 1.0;
+    sub.f32 f_one_minus_alpha, f_one_minus_alpha, f_alpha;
+    mul.lo.u32 r_total, r_vec_dim, r_block;
+    mul.wide.u32 r_offset, r_total, 4;
+    add.u64 r_emb_ptr, r_emb_ptr, r_offset;
+    add.u64 r_latent_ptr, r_latent_ptr, r_offset;
+    add.u64 r_out_ptr, r_out_ptr, r_offset;
+
+    mov.u32 r_index, 0;
+
+LOOP:
+    setp.ge.u32 p_loop_end, r_index, r_vec_dim;
+    @p_loop_end bra LOOP_DONE;
+
+    mul.wide.u32 r_stride, r_index, 4;
+
+    add.u64 r_elem_ptr, r_emb_ptr, r_stride;
+    ld.global.f32 f_emb, [r_elem_ptr];
+
+    add.u64 r_elem_ptr, r_latent_ptr, r_stride;
+    ld.global.f32 f_latent, [r_elem_ptr];
+
+    mul.f32 f_out, f_emb, f_alpha;
+    fma.rn.f32 f_out, f_latent, f_one_minus_alpha, f_out;
+
+    add.u64 r_elem_ptr, r_out_ptr, r_stride;
+    st.global.f32 [r_elem_ptr], f_out;
+
+    add.u32 r_index, r_index, 1;
+    bra LOOP;
+
+LOOP_DONE:
+EXIT:
+    ret;
+}

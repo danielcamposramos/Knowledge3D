@@ -1,0 +1,66 @@
+.version 8.0
+.target sm_80
+.address_size 64
+
+// Resonance Field Kernel
+// Computes per-node resonance strengths from density and positional magnitudes.
+// Parameters:
+//   positions_ptr : float32[3 * count]
+//   density_ptr   : float32[count]
+//   output_ptr    : float32[count]
+//   count         : uint32
+
+.visible .entry gre_resonance_field(
+    .param .u64 positions_ptr,
+    .param .u64 density_ptr,
+    .param .u64 output_ptr,
+    .param .u32 count
+)
+{
+    .reg .pred p_loop_end;
+    .reg .u32 r_idx, r_count;
+    .reg .u64 r_pos_ptr, r_den_ptr, r_out_ptr, r_offset, r_tmp;
+    .reg .f32 f_x, f_y, f_z, f_density, f_strength;
+
+    mov.u32 r_idx, %tid.x;
+    ld.param.u64 r_pos_ptr, [positions_ptr];
+    ld.param.u64 r_den_ptr, [density_ptr];
+    ld.param.u64 r_out_ptr, [output_ptr];
+    ld.param.u32 r_count, [count];
+
+LOOP:
+    setp.ge.u32 p_loop_end, r_idx, r_count;
+    @p_loop_end bra DONE;
+
+    // Load position components
+    mul.lo.u32 r_offset, r_idx, 12;
+    mul.wide.u32 r_tmp, r_offset, 1;
+    add.u64 r_tmp, r_pos_ptr, r_tmp;
+    ld.global.f32 f_x, [r_tmp];
+    add.u64 r_tmp, r_tmp, 4;
+    ld.global.f32 f_y, [r_tmp];
+    add.u64 r_tmp, r_tmp, 4;
+    ld.global.f32 f_z, [r_tmp];
+
+    // Load density
+    mul.wide.u32 r_tmp, r_idx, 4;
+    add.u64 r_tmp, r_den_ptr, r_tmp;
+    ld.global.f32 f_density, [r_tmp];
+
+    // Simple resonance strength = density * (|x| + |y| + |z|)
+    abs.f32 f_x, f_x;
+    abs.f32 f_y, f_y;
+    abs.f32 f_z, f_z;
+    add.f32 f_strength, f_x, f_y;
+    add.f32 f_strength, f_strength, f_z;
+    mul.f32 f_strength, f_strength, f_density;
+
+    add.u64 r_tmp, r_out_ptr, r_tmp;
+    st.global.f32 [r_tmp], f_strength;
+
+    add.u32 r_idx, r_idx, %ntid.x;
+    bra LOOP;
+
+DONE:
+    ret;
+}

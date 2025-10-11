@@ -1,0 +1,16 @@
+name: k3d-trm
+channels:
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - numpy=1.24
+  - cuda-toolkit=12.6
+  - cuda-nvcc=12.6
+  - cuda-nvrtc=12.6
+  - cupy=13.6.0
+  - pytest
+  - pip:
+      - pytest

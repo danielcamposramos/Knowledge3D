@@ -1,0 +1,68 @@
+.version 8.0
+.target sm_80
+.address_size 64
+
+// Temporal Reasoning Kernel
+// Computes frame-to-frame deltas for sequences.
+// Parameters:
+//   sequence_ptr : float32 array (sequence_length * feature_dim)
+//   output_ptr   : float32 array (sequence_length * feature_dim)
+//   sequence_length : uint32
+//   feature_dim     : uint32
+
+.visible .entry gre_temporal_reasoning(
+    .param .u64 sequence_ptr,
+    .param .u64 output_ptr,
+    .param .u32 sequence_length,
+    .param .u32 feature_dim
+)
+{
+    .reg .pred p_loop_end;
+    .reg .u32 r_seq_idx, r_feat_idx, r_length, r_dim, r_stride, r_next_stride;
+    .reg .u64 r_seq_ptr, r_out_ptr, r_offset, r_elem_ptr, r_next_ptr;
+    .reg .f32 f_curr, f_next, f_delta;
+
+    mov.u32 r_feat_idx, %tid.x;
+    ld.param.u64 r_seq_ptr, [sequence_ptr];
+    ld.param.u64 r_out_ptr, [output_ptr];
+    ld.param.u32 r_length, [sequence_length];
+    ld.param.u32 r_dim, [feature_dim];
+
+    setp.ge.u32 p_loop_end, r_feat_idx, r_dim;
+    @p_loop_end bra EXIT;
+
+    mov.u32 r_seq_idx, 0;
+
+SEQ_LOOP:
+    setp.ge.u32 p_loop_end, r_seq_idx, r_length;
+    @p_loop_end bra EXIT;
+
+    mul.lo.u32 r_stride, r_seq_idx, r_dim;
+    add.u32 r_stride, r_stride, r_feat_idx;
+    mul.wide.u32 r_offset, r_stride, 4;
+    add.u64 r_elem_ptr, r_seq_ptr, r_offset;
+    ld.global.f32 f_curr, [r_elem_ptr];
+
+    add.u32 r_next_stride, r_seq_idx, 1;
+    setp.ge.u32 p_loop_end, r_next_stride, r_length;
+    @p_loop_end mov.f32 f_next, f_curr;
+    @!p_loop_end {
+        mul.lo.u32 r_next_stride, r_next_stride, r_dim;
+        add.u32 r_next_stride, r_next_stride, r_feat_idx;
+        mul.wide.u32 r_offset, r_next_stride, 4;
+        add.u64 r_next_ptr, r_seq_ptr, r_offset;
+        ld.global.f32 f_next, [r_next_ptr];
+    }
+
+    sub.f32 f_delta, f_next, f_curr;
+
+    mul.wide.u32 r_offset, r_stride, 4;
+    add.u64 r_elem_ptr, r_out_ptr, r_offset;
+    st.global.f32 [r_elem_ptr], f_delta;
+
+    add.u32 r_seq_idx, r_seq_idx, 1;
+    bra SEQ_LOOP;
+
+EXIT:
+    ret;
+}

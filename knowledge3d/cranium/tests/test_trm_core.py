@@ -5,6 +5,10 @@ Chain Contributors: All partners
 Validation: Latency <95µs, convergence ≤16 steps, ARC-AGI accuracy ≥40%
 """
 
+from knowledge3d.cranium.utils.cupy_env import ensure_nvrtc_include_path
+
+ensure_nvrtc_include_path()
+
 import cupy as cp
 import pytest
 import time

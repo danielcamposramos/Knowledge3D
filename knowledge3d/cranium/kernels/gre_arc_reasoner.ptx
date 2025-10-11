@@ -1,0 +1,72 @@
+.version 8.0
+.target sm_80
+.address_size 64
+
+// ARC Reasoner Kernel
+// Consumes a 30x30 (or generic) integer grid and produces a compact rule vector.
+// Parameters:
+//   grid_ptr    : int32 grid elements (grid_size elements)
+//   grid_size   : uint32 number of elements
+//   output_ptr  : int32[3] {rule_id, rotation_count, color_map_checksum}
+
+.visible .entry gre_arc_reasoner(
+    .param .u64 grid_ptr,
+    .param .u32 grid_size,
+    .param .u64 output_ptr
+)
+{
+    .reg .pred p_is_thread0, p_loop_end;
+    .reg .u32 r_tid, r_index, r_size;
+    .reg .u32 r_sum, r_nonzero;
+    .reg .s32 r_val;
+    .reg .u64 r_grid_ptr, r_elem_ptr, r_out_ptr, r_offset;
+
+    mov.u32 r_tid, %tid.x;
+    setp.eq.u32 p_is_thread0, r_tid, 0;
+    @!p_is_thread0 bra EXIT;
+
+    ld.param.u64 r_grid_ptr, [grid_ptr];
+    ld.param.u32 r_size, [grid_size];
+    ld.param.u64 r_out_ptr, [output_ptr];
+
+    mov.u32 r_sum, 0;
+    mov.u32 r_nonzero, 0;
+    mov.u32 r_index, 0;
+
+LOOP:
+    setp.ge.u32 p_loop_end, r_index, r_size;
+    @p_loop_end bra LOOP_DONE;
+
+    mul.wide.u32 r_offset, r_index, 4;
+    add.u64 r_elem_ptr, r_grid_ptr, r_offset;
+    ld.global.s32 r_val, [r_elem_ptr];
+
+    add.u32 r_sum, r_sum, r_val;
+    setp.ne.s32 p_loop_end, r_val, 0;
+    @p_loop_end add.u32 r_nonzero, r_nonzero, 1;
+
+    add.u32 r_index, r_index, 1;
+    bra LOOP;
+
+LOOP_DONE:
+    // Derive simple rule IDs from aggregates.
+    // rule_id: sum mod 8
+    .reg .u32 r_rule, r_rot, r_color;
+    mov.u32 r_rule, 8;
+    rem.u32 r_rule, r_sum, r_rule;
+
+    mov.u32 r_rot, 4;
+    rem.u32 r_rot, r_nonzero, r_rot;
+
+    // Simple checksum using sum + nonzero count
+    add.u32 r_color, r_sum, r_nonzero;
+
+    st.global.u32 [r_out_ptr], r_rule;
+    add.u64 r_elem_ptr, r_out_ptr, 4;
+    st.global.u32 [r_elem_ptr], r_rot;
+    add.u64 r_elem_ptr, r_out_ptr, 8;
+    st.global.u32 [r_elem_ptr], r_color;
+
+EXIT:
+    ret;
+}

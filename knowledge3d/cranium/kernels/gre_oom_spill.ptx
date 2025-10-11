@@ -1,0 +1,52 @@
+.version 8.0
+.target sm_80
+.address_size 64
+
+// OOM Spill Kernel
+// Computes a spill plan based on available bytes and per-atom size.
+// Parameters:
+//   stats_ptr        : uint64[2]  (input: oldest_index, atom_size_bytes)
+//   available_bytes  : uint64
+//   request_count    : uint32     number of atoms requested for spill
+//   out_ptr          : uint64[2]  (output: atoms_to_spill, bytes_required)
+
+.visible .entry gre_oom_spill(
+    .param .u64 stats_ptr,
+    .param .u64 available_bytes,
+    .param .u32 request_count,
+    .param .u64 out_ptr
+)
+{
+    .reg .pred p_is_thread0;
+    .reg .u32 r_tid, r_req;
+    .reg .u64 r_stats_ptr, r_available, r_out_ptr;
+    .reg .u64 r_oldest, r_atom_size, r_max_atoms, r_atoms_to_spill, r_bytes;
+
+    mov.u32 r_tid, %tid.x;
+    setp.eq.u32 p_is_thread0, r_tid, 0;
+    @!p_is_thread0 bra EXIT;
+
+    ld.param.u64 r_stats_ptr, [stats_ptr];
+    ld.param.u64 r_available, [available_bytes];
+    ld.param.u32 r_req, [request_count];
+    ld.param.u64 r_out_ptr, [out_ptr];
+
+    ld.global.u64 r_oldest, [r_stats_ptr];
+    add.u64 r_stats_ptr, r_stats_ptr, 8;
+    ld.global.u64 r_atom_size, [r_stats_ptr];
+
+    // Determine maximum atoms that fit into available bytes.
+    setp.eq.u64 p_is_thread0, r_atom_size, 0;
+    @p_is_thread0 mov.u64 r_max_atoms, 0;
+    @!p_is_thread0 div.u64 r_max_atoms, r_available, r_atom_size;
+
+    min.u64 r_atoms_to_spill, r_max_atoms, r_req;
+    mul.lo.u64 r_bytes, r_atoms_to_spill, r_atom_size;
+
+    st.global.u64 [r_out_ptr], r_atoms_to_spill;
+    add.u64 r_out_ptr, r_out_ptr, 8;
+    st.global.u64 [r_out_ptr], r_bytes;
+
+EXIT:
+    ret;
+}
