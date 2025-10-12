@@ -525,12 +525,65 @@ class AtomicFissionFusion:
                 ],
             )
             synchronize()
-            
+
             memcpy_dtoh(output.ctypes.data_as(ctypes.c_void_p), d_output, output.nbytes)
             return output
         finally:
             gpu_free(d_input)
             gpu_free(d_output)
+
+    def create_sparse(self, weights, sparsity_level: float, preserve_important: bool = True) -> dict:
+        """Create sparse weight representation for efficient GPU computation.
+
+        This method converts dense weights into sparse format, keeping only the most
+        important values based on magnitude. Used for adaptive sparsity in thinking tags.
+
+        Args:
+            weights: Weight arrays (can be dict or ndarray)
+            sparsity_level: Target sparsity (0.0 = dense, 1.0 = maximally sparse)
+            preserve_important: If True, keep high-magnitude values
+
+        Returns:
+            Sparse weight dictionary with same keys as input
+        """
+        if isinstance(weights, dict):
+            # Process each weight matrix
+            sparse_dict = {}
+            for key, W in weights.items():
+                if not isinstance(W, np.ndarray):
+                    sparse_dict[key] = W
+                    continue
+
+                W = W.astype(np.float32) if W.dtype != np.float32 else W
+
+                if preserve_important:
+                    # Keep top-k values by magnitude
+                    threshold_percentile = sparsity_level * 100.0
+                    threshold = np.percentile(np.abs(W), threshold_percentile)
+                    sparse_W = np.where(np.abs(W) >= threshold, W, 0.0)
+                else:
+                    # Random sparsification
+                    mask = np.random.rand(*W.shape) > sparsity_level
+                    sparse_W = W * mask
+
+                sparse_dict[key] = sparse_W.astype(np.float32)
+            return sparse_dict
+
+        elif isinstance(weights, np.ndarray):
+            # Process single array
+            W = weights.astype(np.float32) if weights.dtype != np.float32 else weights
+
+            if preserve_important:
+                threshold_percentile = sparsity_level * 100.0
+                threshold = np.percentile(np.abs(W), threshold_percentile)
+                return np.where(np.abs(W) >= threshold, W, 0.0).astype(np.float32)
+            else:
+                mask = np.random.rand(*W.shape) > sparsity_level
+                return (W * mask).astype(np.float32)
+
+        else:
+            # Unknown type, return as-is
+            return weights
 
 
 class TemporalReasoning:
@@ -579,6 +632,70 @@ class TemporalReasoning:
         finally:
             gpu_free(d_sequence)
             gpu_free(d_output)
+
+    def compute_coherence(self, crystallized: np.ndarray, temporal_context: np.ndarray) -> np.ndarray:
+        """Compute temporal coherence scores.
+
+        Measures how well the crystallized output aligns with temporal context.
+        Used in thinking tag inference for coherence scoring.
+
+        Args:
+            crystallized: Crystallized output vector
+            temporal_context: Temporal context vector
+
+        Returns:
+            Coherence scores (per dimension)
+        """
+        if not isinstance(crystallized, np.ndarray):
+            crystallized = np.array(crystallized, dtype=np.float32)
+        if not isinstance(temporal_context, np.ndarray):
+            temporal_context = np.array(temporal_context, dtype=np.float32)
+
+        # Ensure same shape for comparison
+        if crystallized.shape != temporal_context.shape:
+            # Broadcast or truncate to match
+            min_len = min(len(crystallized.flatten()), len(temporal_context.flatten()))
+            crystallized_flat = crystallized.flatten()[:min_len]
+            context_flat = temporal_context.flatten()[:min_len]
+        else:
+            crystallized_flat = crystallized.flatten()
+            context_flat = temporal_context.flatten()
+
+        # Compute element-wise coherence (similarity measure)
+        # High coherence when values are similar
+        diff = np.abs(crystallized_flat - context_flat)
+        max_diff = np.max(diff) if np.max(diff) > 0 else 1.0
+        coherence = 1.0 - (diff / max_diff)
+
+        return coherence.astype(np.float32)
+
+    def estimate_coherence(self, context: np.ndarray) -> np.ndarray:
+        """Estimate coherence from temporal context alone.
+
+        Simplified version that estimates coherence without comparing to output.
+        Useful for fallback paths.
+
+        Args:
+            context: Temporal context vector
+
+        Returns:
+            Estimated coherence scores
+        """
+        if not isinstance(context, np.ndarray):
+            context = np.array(context, dtype=np.float32)
+
+        # Use temporal stability (low variance = high coherence)
+        context_flat = context.flatten()
+        if len(context_flat) > 1:
+            variance = np.var(context_flat)
+            # Normalize variance to 0-1 range (assuming typical variance < 1.0)
+            normalized_var = min(variance, 1.0)
+            coherence_score = 1.0 - normalized_var
+        else:
+            coherence_score = 1.0
+
+        # Return uniform coherence scores
+        return np.full_like(context_flat, coherence_score, dtype=np.float32)
 
 
 # ============================================================================
@@ -636,6 +753,69 @@ class VectorResonator:
             gpu_free(d_b)
             gpu_free(d_out)
 
+    def calculate_complexity(self, input_embedding: np.ndarray, modal_signature: list) -> float:
+        """Calculate input complexity for adaptive sparsity decisions.
+
+        Uses vector magnitude and modal diversity as complexity indicators.
+        This is a heuristic for determining whether to use sparse or dense operations.
+
+        Args:
+            input_embedding: Input vector (float32)
+            modal_signature: List of modality names (e.g., ['text', 'image'])
+
+        Returns:
+            Complexity score between 0.0 and 1.0
+        """
+        # Normalize input embedding if needed
+        if input_embedding.dtype != np.float32:
+            input_embedding = input_embedding.astype(np.float32)
+
+        # Calculate vector magnitude (normalized)
+        magnitude = np.linalg.norm(input_embedding)
+        max_magnitude = np.sqrt(len(input_embedding))  # Maximum possible for unit components
+        normalized_magnitude = min(magnitude / max_magnitude, 1.0)
+
+        # Calculate modal diversity score (more modalities = more complex)
+        modal_diversity = len(set(modal_signature)) / 3.0  # Normalize by max 3 modalities
+        modal_diversity = min(modal_diversity, 1.0)
+
+        # Combine factors (weighted average)
+        complexity = 0.7 * normalized_magnitude + 0.3 * modal_diversity
+
+        return float(complexity)
+
+    def cosine_similarity(self, vec_a: np.ndarray, vec_b: np.ndarray) -> float:
+        """Compute cosine similarity between two vectors.
+
+        Args:
+            vec_a, vec_b: Input vectors
+
+        Returns:
+            Cosine similarity (-1.0 to 1.0)
+        """
+        dot_product = np.dot(vec_a.flatten(), vec_b.flatten())
+        norm_a = np.linalg.norm(vec_a)
+        norm_b = np.linalg.norm(vec_b)
+
+        if norm_a == 0.0 or norm_b == 0.0:
+            return 0.0
+
+        return float(dot_product / (norm_a * norm_b))
+
+    def compute(self, confidence_vector: np.ndarray) -> np.ndarray:
+        """Compute confidence rays from crystallized output.
+
+        This is used in thinking tag inference to generate per-tag confidence scores.
+
+        Args:
+            confidence_vector: Crystallized output vector
+
+        Returns:
+            Confidence scores (one per dimension)
+        """
+        # Sigmoid activation for confidence scores
+        return 1.0 / (1.0 + np.exp(-confidence_vector.astype(np.float32)))
+
 
 class GraphCrystallizer:
     """Sovereign Graph Crystallizer - Recursive GNN with EMA"""
@@ -688,6 +868,65 @@ class GraphCrystallizer:
             gpu_free(d_nodes)
             gpu_free(d_neighbors)
             gpu_free(d_output)
+
+    def smooth_intermediate(self, output: np.ndarray, ema_buffer, warp_level: bool = True) -> np.ndarray:
+        """Smooth intermediate outputs using EMA buffer.
+
+        This is used in thinking tag inference for dynamic crystallization.
+        Applies EMA-based smoothing to reduce high-frequency noise.
+
+        Args:
+            output: Intermediate output vector
+            ema_buffer: GPU buffer containing EMA state
+            warp_level: If True, use warp-level synchronization
+
+        Returns:
+            Smoothed output vector
+        """
+        if not isinstance(output, np.ndarray):
+            output = np.array(output, dtype=np.float32)
+        elif output.dtype != np.float32:
+            output = output.astype(np.float32)
+
+        # For now, use simple EMA on CPU (can be optimized with GPU kernel later)
+        # This maintains the interface while providing functional smoothing
+        alpha = 0.999 if warp_level else 0.99
+
+        # Read current EMA state from GPU buffer
+        ema_state = np.zeros_like(output)
+        if ema_buffer is not None and hasattr(ema_buffer, 'value'):
+            try:
+                from knowledge3d.cranium.sovereign.loader import memcpy_dtoh
+                import ctypes
+                memcpy_dtoh(ema_state.ctypes.data_as(ctypes.c_void_p), ema_buffer, output.nbytes)
+            except:
+                pass  # First call, EMA state is zeros
+
+        # Apply EMA: new_state = alpha * old_state + (1 - alpha) * new_value
+        smoothed = alpha * ema_state + (1.0 - alpha) * output
+
+        # Write updated EMA state back to GPU buffer
+        if ema_buffer is not None and hasattr(ema_buffer, 'value'):
+            try:
+                from knowledge3d.cranium.sovereign.loader import memcpy_htod
+                import ctypes
+                memcpy_htod(ema_buffer, smoothed.ctypes.data_as(ctypes.c_void_p), smoothed.nbytes)
+            except:
+                pass
+
+        return smoothed
+
+    def apply(self, output: np.ndarray, ema_buffer) -> np.ndarray:
+        """Alias for smooth_intermediate() with default parameters.
+
+        Args:
+            output: Intermediate output vector
+            ema_buffer: GPU buffer containing EMA state
+
+        Returns:
+            Smoothed output vector
+        """
+        return self.smooth_intermediate(output, ema_buffer, warp_level=True)
 
 
 class MultimodalHaltingGate:

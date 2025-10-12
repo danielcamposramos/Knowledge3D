@@ -2,6 +2,8 @@ import ctypes
 import numpy as np
 import logging
 import os
+
+# Kimi's zero-copy strategy: local imports maintain GPU pointers without host-device copies
 from .sovereign.loader import gpu_malloc, memcpy_htod, memcpy_dtoh, launch_kernel
 from .modular_rpn_engine import ModularRPNEngine, RPNProgram
 from .galaxy_resonance_engine import ResonanceField

@@ -301,4 +301,64 @@ def rpn_eval(expression: str) -> float:
     return result
 
 
-__all__ = ["ModularRPNEngine", "rpn_eval"]
+# Opcode constants for thinking tag system (GLM's extended opcodes)
+# These match the CUDA kernel definitions in modular_rpn_kernel.cu
+OP_SPARSE_LOAD = 0x40
+OP_SMAV = 0x41
+OP_ENTROPY_SUM = 0x42
+OP_SIGMOID_APPROX = 0x43
+
+
+class RPNProgram:
+    """Low-level RPN bytecode builder for thinking tag inference.
+
+    This class provides a builder pattern for constructing RPN programs
+    with precise control over opcodes, particularly for sparse operations
+    and temporal reasoning. Used by ThinkingTagBridge.
+
+    Example:
+        p = RPNProgram()
+        p.u32(OP_SPARSE_LOAD)
+        p.ptr(weight_buffer)
+        p.u32(OP_SMAV)
+        p.u8(0x0A)  # MAX opcode
+    """
+
+    def __init__(self):
+        self.bytecode = bytearray()
+        self._ptrs = []  # Track pointer positions for relocation
+
+    def u8(self, val: int):
+        """Append uint8 opcode"""
+        self.bytecode.append(val & 0xFF)
+
+    def u32(self, val: int):
+        """Append uint32 value (little-endian)"""
+        self.bytecode.extend(val.to_bytes(4, byteorder='little'))
+
+    def f32(self, val: float):
+        """Append float32 value"""
+        import struct
+        self.bytecode.extend(struct.pack('f', val))
+
+    def ptr(self, device_ptr):
+        """Append device pointer (uint64)"""
+        # Store pointer position for later resolution
+        pos = len(self.bytecode)
+        self._ptrs.append((pos, device_ptr))
+        # Write placeholder
+        self.bytecode.extend(b'\x00' * 8)
+
+    def to_bytes(self) -> bytes:
+        """Convert to final bytecode"""
+        return bytes(self.bytecode)
+
+    def to_uint32_array(self) -> np.ndarray:
+        """Convert to uint32 array for GPU execution"""
+        # Pad to uint32 boundary
+        while len(self.bytecode) % 4 != 0:
+            self.bytecode.append(0)
+        return np.frombuffer(self.bytecode, dtype=np.uint32)
+
+
+__all__ = ["ModularRPNEngine", "rpn_eval", "RPNProgram", "OP_SPARSE_LOAD", "OP_SMAV", "OP_ENTROPY_SUM", "OP_SIGMOID_APPROX"]

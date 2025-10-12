@@ -1,9 +1,46 @@
 // Extended Modular RPN Kernel with sparse operations
 #include <cstdint>
 
-#define OP_SPARSE_LOAD 0x28
-#define OP_SMAV 0x29
-#define OP_ENTROPY_SUM 0x2A
+// Sparse matrix limits
+#define SPARSE_MAX_NNZ 1024  // Maximum non-zero elements per sparse matrix
+#define MAX_SPARSE_MATRICES 8
+
+// Existing opcodes (from original kernel)
+#define OP_LITERAL 0x00
+#define OP_LITERAL_VEC 0x01
+#define OP_ADD 0x0A
+#define OP_SUB 0x0B
+#define OP_MUL 0x0C
+#define OP_DIV 0x0D
+#define OP_POW 0x0E
+#define OP_NEG 0x0F
+#define OP_SQRT 0x14
+#define OP_EXP 0x15
+#define OP_LOG 0x16
+#define OP_SIN 0x18
+#define OP_COS 0x19
+#define OP_TAN 0x1A
+#define OP_GT 0x28
+#define OP_LT 0x2A
+#define OP_EQ 0x2C
+#define OP_MAX 0x2E
+#define OP_MIN 0x2F
+#define OP_DUP 0x32
+#define OP_SWAP 0x33
+#define OP_DROP 0x34
+#define OP_OVER 0x35
+#define OP_ROT 0x36
+#define OP_CLEAR 0x37
+
+// New opcodes for sparse operations (using unused opcode space)
+#define OP_SPARSE_LOAD 0x40
+#define OP_SMAV 0x41
+#define OP_ENTROPY_SUM 0x42
+#define OP_SIGMOID_APPROX 0x43
+
+// Stack and memory limits
+#define STACK_SIZE 64
+#define SHARED_MEM_SIZE (SPARSE_MAX_NNZ * 2) // indices + values
 
 extern "C" __global__ void modular_rpn_kernel(
     float* stack, 
@@ -77,34 +114,92 @@ extern "C" __global__ void modular_rpn_kernel(
                 break;
             }
             
-            // Existing opcodes remain unchanged
-            case 0x0A: { // MAX
+            // Existing opcodes
+            case OP_ADD: { // 0x0A
                 float b = stack[--sp];
                 float a = stack[--sp];
-                stack[sp++] = fmaxf(a, b);
+                stack[sp++] = a + b;
                 break;
             }
-            
-            case 0x0B: { // SIGMOID_APPROX (tanh-based)
-                float x = stack[--sp];
-                stack[sp++] = 0.5f * (1.0f + tanhf(0.5f * x));
+
+            case OP_SUB: { // 0x0B
+                float b = stack[--sp];
+                float a = stack[--sp];
+                stack[sp++] = a - b;
                 break;
             }
-            
-            case 0x12: { // MUL
+
+            case OP_MUL: { // 0x0C
                 float b = stack[--sp];
                 float a = stack[--sp];
                 stack[sp++] = a * b;
                 break;
             }
-            
-            case 0x06: { // DUP
-                float a = stack[sp - 1];
-                stack[sp++] = a;
+
+            case OP_DIV: { // 0x0D
+                float b = stack[--sp];
+                float a = stack[--sp];
+                stack[sp++] = a / b;
                 break;
             }
-            
-            // ... other existing opcodes
+
+            case OP_MAX: { // 0x2E
+                float b = stack[--sp];
+                float a = stack[--sp];
+                stack[sp++] = fmaxf(a, b);
+                break;
+            }
+
+            case OP_MIN: { // 0x2F
+                float b = stack[--sp];
+                float a = stack[--sp];
+                stack[sp++] = fminf(a, b);
+                break;
+            }
+
+            case OP_SIGMOID_APPROX: { // 0x43 (tanh-based)
+                float x = stack[--sp];
+                stack[sp++] = 0.5f * (1.0f + tanhf(0.5f * x));
+                break;
+            }
+
+            case OP_DUP: { // 0x32
+                if (sp > 0) {
+                    float a = stack[sp - 1];
+                    stack[sp++] = a;
+                }
+                break;
+            }
+
+            case OP_SQRT: { // 0x14
+                float a = stack[--sp];
+                stack[sp++] = sqrtf(a);
+                break;
+            }
+
+            case OP_EXP: { // 0x15
+                float a = stack[--sp];
+                stack[sp++] = expf(a);
+                break;
+            }
+
+            case OP_LOG: { // 0x16
+                float a = stack[--sp];
+                stack[sp++] = logf(a);
+                break;
+            }
+
+            case OP_SIN: { // 0x18
+                float a = stack[--sp];
+                stack[sp++] = sinf(a);
+                break;
+            }
+
+            case OP_COS: { // 0x19
+                float a = stack[--sp];
+                stack[sp++] = cosf(a);
+                break;
+            }
         }
     }
     
