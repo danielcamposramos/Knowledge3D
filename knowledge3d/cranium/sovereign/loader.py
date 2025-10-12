@@ -66,6 +66,7 @@ def _ensure_init():
         _device = device
 
         # Create context
+        # Note: cuCtxCreate automatically makes the context current for the calling thread
         ctx = CUcontext()
         ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
         _context = ctx
