@@ -2,9 +2,11 @@ import ctypes
 import numpy as np
 import logging
 import os
+import time
+from typing import Dict, Any, List
 
 # Kimi's zero-copy strategy: local imports maintain GPU pointers without host-device copies
-from .sovereign.loader import gpu_malloc, memcpy_htod, memcpy_dtoh, launch_kernel
+from .sovereign.loader import gpu_malloc, memcpy_htod, memcpy_dtoh, launch_kernel, load_ptx_file
 from .modular_rpn_engine import ModularRPNEngine, RPNProgram
 from .galaxy_resonance_engine import ResonanceField
 from .temporal_reasoning import TemporalReasoning
@@ -25,8 +27,51 @@ from .modal_affinity_matrix import ModalAffinityMatrix
 from .telemetry_visualizer import TelemetryVisualizer
 from .enhanced_fallback import EnhancedFallback, FallbackLevel
 
+# Step 12: ActionBuffer integration (FSM harvest)
+try:
+    from knowledge3d.cranium.actions.action_types import ActionBuffer
+    _ACTION_BUFFER_AVAILABLE = True
+except ImportError:
+    ActionBuffer = None
+    _ACTION_BUFFER_AVAILABLE = False
+    logger.warning("ActionBuffer not available - Step 12 FSM integration limited")
+
 logger = logging.getLogger(__name__)
 tag_names = [f"tag_{i}" for i in range(100)]
+
+
+# ============================================================================
+# STEP 12: FSM CONSOLIDATION - Harvested Patterns
+# ============================================================================
+
+class CognitiveStage:
+    """
+    FSM-inspired cognitive stage enumeration for observability.
+    Harvested from fused_head_fsm_full.ptx (Step 6 FSM) during Step 12 consolidation.
+
+    Provides clear stage separation matching FSM's 5-state dispatch:
+    INGEST → FUSE → SPATIAL → REASON → OUTPUT
+    """
+    INGEST = 0      # Modal input + embedding
+    FUSE = 1        # Cross-modal fusion
+    SPATIAL = 2     # Galaxy navigation + frustum + dynamic LOD
+    REASON = 3      # RPN + attention + TRM reasoning
+    OUTPUT = 4      # Tag probabilities + action buffer
+
+    @staticmethod
+    def name(stage: int) -> str:
+        """Get human-readable stage name."""
+        names = {
+            0: "INGEST",
+            1: "FUSE",
+            2: "SPATIAL",
+            3: "REASON",
+            4: "OUTPUT"
+        }
+        return names.get(stage, "UNKNOWN")
+
+
+# ============================================================================
 
 class ThinkingTagOutput:
     def __init__(self, probs, confidence_rays, uncertainty, coherence_scores):
@@ -90,7 +135,31 @@ class ThinkingTagBridge:
         # Cache for fallback
         self._cached_spatial_prog = None
 
-        logger.info("ThinkingTagBridge initialized with Claude's 6 enhancements")
+        # ====================================================================
+        # STEP 12: FSM-harvested state tracking and dynamic LOD
+        # ====================================================================
+
+        # 5-state observability (FSM harvest)
+        self.cognitive_state = CognitiveStage.INGEST
+        self.state_trace = []  # List of state transitions
+        self.state_timings = {stage: [] for stage in range(5)}  # Per-stage timing
+
+        # Dynamic LOD kernel (FSM harvest)
+        try:
+            self.dynamic_lod_kernel = load_ptx_file(
+                "knowledge3d/cranium/ptx/dynamic_lod_tune.ptx",
+                "dynamic_lod_tune"
+            )
+            self.lod_buffer = gpu_malloc(1024)  # LOD adjustment buffer
+            self.lod_enabled = True
+            self.last_lod_adjustments = None
+            logger.info("✓ Step 12: Dynamic LOD kernel harvested from FSM")
+        except Exception as e:
+            logger.warning(f"Dynamic LOD not available: {e}")
+            self.lod_enabled = False
+            self.dynamic_lod_kernel = None
+
+        logger.info("ThinkingTagBridge initialized with Claude's 6 enhancements + Step 12 FSM patterns")
 
     def _reset_ema_buffer_gpu(self):
         """Sovereign GPU-side memset for EMA buffer"""
@@ -196,10 +265,21 @@ class ThinkingTagBridge:
         #4: Enhanced error recovery
         #5: Modal affinity intelligence
         #6: Telemetry visualization
+
+        Step 12 FSM Integration:
+        - 5-state observability (INGEST → FUSE → SPATIAL → REASON → OUTPUT)
+        - ActionBuffer population for ActionRouter integration
+        - Dynamic LOD tuning during SPATIAL stage
         """
         mode = self._get_mode()
         self.latency_guard.start()
-        inference_start = None
+        inference_start = time.perf_counter()
+
+        # ====================================================================
+        # STEP 12: STATE 0 → INGEST (Modal input + embedding)
+        # ====================================================================
+        ingest_start = time.perf_counter()
+        self.cognitive_state = CognitiveStage.INGEST
 
         try:
             # Check sparse weight cache first (Enhancement #3)
@@ -211,6 +291,16 @@ class ThinkingTagBridge:
                 input_embedding, modal_signature
             )
             self.latency_profiler.end_stage("sparsity_calc")
+
+            # Record INGEST → FUSE transition
+            ingest_elapsed = (time.perf_counter() - ingest_start) * 1e6
+            self._record_state_transition(CognitiveStage.INGEST, CognitiveStage.FUSE, ingest_elapsed)
+
+            # ====================================================================
+            # STEP 12: STATE 1 → FUSE (Cross-modal fusion)
+            # ====================================================================
+            fuse_start = time.perf_counter()
+            self.cognitive_state = CognitiveStage.FUSE
 
             # 2. Fetch weight trajectories
             self.latency_profiler.start_stage("query")
@@ -244,6 +334,33 @@ class ThinkingTagBridge:
             # 5. Temporal coherence
             context = self.temporal_reasoning.compute_deltas(enriched_embeddings)
 
+            # Record FUSE → SPATIAL transition
+            fuse_elapsed = (time.perf_counter() - fuse_start) * 1e6
+            self._record_state_transition(CognitiveStage.FUSE, CognitiveStage.SPATIAL, fuse_elapsed)
+
+            # ====================================================================
+            # STEP 12: STATE 2 → SPATIAL (Galaxy navigation + dynamic LOD)
+            # ====================================================================
+            spatial_start = time.perf_counter()
+            self.cognitive_state = CognitiveStage.SPATIAL
+
+            # Apply dynamic LOD tuning (FSM harvest)
+            if self.lod_enabled:
+                try:
+                    self._apply_dynamic_lod(enriched_embeddings, saliency_threshold=0.7)
+                except Exception as lod_error:
+                    logger.warning(f"Dynamic LOD failed: {lod_error}")
+
+            # Record SPATIAL → REASON transition
+            spatial_elapsed = (time.perf_counter() - spatial_start) * 1e6
+            self._record_state_transition(CognitiveStage.SPATIAL, CognitiveStage.REASON, spatial_elapsed)
+
+            # ====================================================================
+            # STEP 12: STATE 3 → REASON (RPN + attention + TRM reasoning)
+            # ====================================================================
+            reason_start = time.perf_counter()
+            self.cognitive_state = CognitiveStage.REASON
+
             # 6. RPN program execution
             self.latency_profiler.start_stage("rpn_exec")
             if mode == self.MODE_FULL_TEMPORAL:
@@ -264,6 +381,16 @@ class ThinkingTagBridge:
             self.latency_profiler.start_stage("crystallize")
             crystallized = self.graph_crystallizer.apply(output, self.ema_buffer)
             self.latency_profiler.end_stage("crystallize")
+
+            # Record REASON → OUTPUT transition
+            reason_elapsed = (time.perf_counter() - reason_start) * 1e6
+            self._record_state_transition(CognitiveStage.REASON, CognitiveStage.OUTPUT, reason_elapsed)
+
+            # ====================================================================
+            # STEP 12: STATE 4 → OUTPUT (Tag probabilities + action buffer)
+            # ====================================================================
+            output_start = time.perf_counter()
+            self.cognitive_state = CognitiveStage.OUTPUT
 
             # 8. Vector resonance for confidence & tag emission
             self.latency_profiler.start_stage("confidence")
@@ -289,13 +416,32 @@ class ThinkingTagBridge:
             output_obj = ThinkingTagOutput(crystallized, confidence_rays, uncertainty, coherence_scores)
             output_obj.tags = tags
 
+            # STEP 12: Populate ActionBuffer for ActionRouter integration
+            if _ACTION_BUFFER_AVAILABLE:
+                try:
+                    action_buffer = self._populate_action_buffer(
+                        crystallized, confidence_rays, modal_signature
+                    )
+                    output_obj.action_buffer = action_buffer
+                except Exception as buffer_error:
+                    logger.warning(f"ActionBuffer population failed: {buffer_error}")
+                    output_obj.action_buffer = None
+            else:
+                output_obj.action_buffer = None
+
             # Enhancement #2: Record latency and adapt budgets
             elapsed_us = (self.latency_guard.stop()[0] if hasattr(self.latency_guard, 'stop') else 0.0) * 1e6
             self.latency_profiler.record_inference_complete(elapsed_us)
 
-            # Enhancement #6: Record telemetry
+            # Record final OUTPUT stage timing
+            output_elapsed = (time.perf_counter() - output_start) * 1e6
+            self.state_timings[CognitiveStage.OUTPUT].append(output_elapsed)
+
+            # Enhancement #6: Record telemetry with FSM state trace
             if self.telemetry:
                 latency_breakdown = self.latency_profiler.get_latency_breakdown()
+                # Augment telemetry with FSM state trace
+                latency_breakdown['fsm_state_trace'] = self.get_state_trace_report()
                 self.telemetry.record_inference(input_embedding, tags, latency_breakdown, mode, None)
 
             return output_obj
@@ -309,9 +455,19 @@ class ThinkingTagBridge:
                     fallback_level, self, input_embedding, modal_signature, e
                 )
                 if success:
-                    # Record telemetry for fallback
+                    # STEP 12: Add ActionBuffer to fallback result
+                    if _ACTION_BUFFER_AVAILABLE and not hasattr(result, 'action_buffer'):
+                        try:
+                            result.action_buffer = self._populate_action_buffer(
+                                result.probs, result.confidence_rays, modal_signature
+                            )
+                        except Exception:
+                            result.action_buffer = None
+
+                    # Record telemetry for fallback with FSM state trace
                     if self.telemetry:
                         latency_breakdown = self.latency_profiler.get_latency_breakdown()
+                        latency_breakdown['fsm_state_trace'] = self.get_state_trace_report()
                         self.telemetry.record_inference(input_embedding, result.tags, latency_breakdown, mode, e)
                     return result
 
@@ -387,27 +543,41 @@ class ThinkingTagBridge:
         return self.rpn_engine.eval(self._cached_spatial_prog, [x])
 
     def _recover_fallback(self, input_emb, modal_sig, error=None):
-        """Sovereign fallback without recursion (Kimi's fix)"""
+        """Sovereign fallback without recursion (Kimi's fix) + Step 12 ActionBuffer"""
         if error:
             logger.warning(f"Fallback after {type(error).__name__}")
-        
+
         # Direct spatial path execution
         trajectories = self.resonance_field.query(
             input_emb, sparsity=0.1, region="thinking_weights"
         )
         sparse_weights = self._assemble_sparse_weights(trajectories)
-        
+
         output = self._execute_spatial_mlp(input_emb, sparse_weights)
         probs = self._sigmoid_approx(output)
-        
+
         # Simple fallback output
         tags = [("uncertainty", 0.99)]  # Signal fallback occurred
-        return ThinkingTagOutput(
-            probs, 
-            np.ones_like(probs), 
-            0.99, 
+        fallback_output = ThinkingTagOutput(
+            probs,
+            np.ones_like(probs),
+            0.99,
             np.zeros_like(probs)
         )
+        fallback_output.tags = tags
+
+        # STEP 12: Populate ActionBuffer even in fallback path
+        if _ACTION_BUFFER_AVAILABLE:
+            try:
+                fallback_output.action_buffer = self._populate_action_buffer(
+                    probs, np.ones_like(probs), modal_sig
+                )
+            except Exception:
+                fallback_output.action_buffer = None
+        else:
+            fallback_output.action_buffer = None
+
+        return fallback_output
 
     def _compute_entropy(self, probs):
         clipped = np.clip(probs, 1e-6, 1.0)
@@ -515,3 +685,238 @@ class ThinkingTagBridge:
         print("\n" + "="*80)
         print("All enhancements operational and maintaining <35µs latency target!")
         print("="*80 + "\n")
+
+    # ========================================================================
+    # STEP 12: FSM-HARVESTED METHODS
+    # ========================================================================
+
+    def _record_state_transition(self, from_state: int, to_state: int,
+                                elapsed_us: float):
+        """
+        Record FSM-style state transition for observability.
+        Harvested from Step 6 FSM consolidation (Step 12).
+        """
+        self.state_trace.append({
+            'from': from_state,
+            'from_name': CognitiveStage.name(from_state),
+            'to': to_state,
+            'to_name': CognitiveStage.name(to_state),
+            'elapsed_us': elapsed_us,
+            'timestamp': time.perf_counter()
+        })
+
+        # Track timing per stage
+        self.state_timings[to_state].append(elapsed_us)
+
+        # Memory management: keep only last 100 transitions
+        if len(self.state_trace) > 100:
+            self.state_trace = self.state_trace[-100:]
+
+        # Memory management: keep only last 100 timings per stage
+        for stage in self.state_timings:
+            if len(self.state_timings[stage]) > 100:
+                self.state_timings[stage] = self.state_timings[stage][-100:]
+
+    def get_state_trace_report(self) -> Dict[str, Any]:
+        """
+        Get FSM-style state trace report with statistics.
+        Provides Step 6 FSM-level observability.
+        """
+        if not self.state_trace:
+            return {
+                'total_transitions': 0,
+                'stages_active': 0,
+                'total_time_us': 0.0
+            }
+
+        # Calculate per-stage statistics
+        stage_stats = {}
+        for stage, times in self.state_timings.items():
+            if times:
+                stage_stats[CognitiveStage.name(stage)] = {
+                    'count': len(times),
+                    'mean_us': float(np.mean(times)),
+                    'p50_us': float(np.percentile(times, 50)),
+                    'p95_us': float(np.percentile(times, 95)),
+                    'p99_us': float(np.percentile(times, 99)),
+                    'total_us': float(np.sum(times))
+                }
+
+        # Calculate transition patterns
+        transition_pairs = {}
+        for i in range(len(self.state_trace) - 1):
+            pair = (self.state_trace[i]['to_name'],
+                    self.state_trace[i+1]['to_name'])
+            pair_key = f"{pair[0]}→{pair[1]}"
+            transition_pairs[pair_key] = transition_pairs.get(pair_key, 0) + 1
+
+        return {
+            'total_transitions': len(self.state_trace),
+            'stages_active': len([s for s in self.state_timings.values() if s]),
+            'stage_statistics': stage_stats,
+            'transition_patterns': transition_pairs,
+            'total_time_us': sum(t['elapsed_us'] for t in self.state_trace)
+        }
+
+    def export_state_trace(self, output_path: str):
+        """
+        Export FSM-style state trace to JSON for analysis.
+        Enables Step 6 FSM-level debugging and visualization.
+        """
+        import json
+        from pathlib import Path
+
+        trace_data = {
+            'metadata': {
+                'source': 'ThinkingTagBridge with Step 12 FSM consolidation',
+                'cognitive_stages': {
+                    stage: CognitiveStage.name(stage)
+                    for stage in range(5)
+                },
+                'total_inferences': len(self.state_trace)
+            },
+            'state_trace': self.state_trace,
+            'statistics': self.get_state_trace_report()
+        }
+
+        output_file = Path(output_path)
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(output_file, 'w') as f:
+            json.dump(trace_data, f, indent=2)
+
+        logger.info(f"✓ State trace exported to {output_path}")
+
+    def _populate_action_buffer(self, tag_probs: np.ndarray,
+                               confidence_rays: np.ndarray,
+                               modal_signature: List[str]) -> 'ActionBuffer':
+        """
+        Populate FSM-style unified ActionBuffer from thinking tag output.
+        Enables integration with decode_actions.ptx and ActionRouter.
+
+        Harvested from Step 6 FSM (Step 12 consolidation).
+        """
+        if not _ACTION_BUFFER_AVAILABLE or ActionBuffer is None:
+            return None
+
+        buffer = ActionBuffer()
+
+        # Map top tag to action type
+        top_tag_idx = int(np.argmax(tag_probs))
+        buffer.action_type = self._map_tag_to_action_type(top_tag_idx)
+        buffer.confidence = float(np.max(tag_probs))
+
+        # Populate pose from confidence rays (if available)
+        if confidence_rays is not None and len(confidence_rays) >= 6:
+            buffer.pose[:3] = confidence_rays[:3].astype(np.float32)  # Translation
+            buffer.pose[3:6] = confidence_rays[3:6].astype(np.float32)  # Rotation
+
+        # Encode modal signature
+        buffer.modalities = self._encode_modal_signature(modal_signature)
+
+        # Metadata
+        buffer.timestamp = int(time.time() * 1000)  # milliseconds
+        buffer.flags = 0  # Can be extended for special states
+
+        return buffer
+
+    def _map_tag_to_action_type(self, tag_idx: int) -> int:
+        """
+        Map thinking tag index to ActionBuffer action type.
+        Semantic mapping based on tag taxonomy.
+
+        Action types (from action_types.py):
+        0 = IDLE
+        1 = NAVIGATE
+        2 = TABLET_UPDATE
+        3 = QUERY_GALAXY
+        4 = SLEEP_CONSOLIDATE
+        5 = EMIT_3D_OBJECT
+        """
+        # Heuristic mapping (can be refined with tag semantics)
+        if tag_idx < 20:
+            return 1  # NAVIGATE - spatial/movement tags
+        elif tag_idx < 40:
+            return 2  # TABLET_UPDATE - communication tags
+        elif tag_idx < 60:
+            return 3  # QUERY_GALAXY - reasoning tags
+        elif tag_idx < 80:
+            return 5  # EMIT_3D_OBJECT - creation tags
+        else:
+            return 0  # IDLE - default
+
+    def _encode_modal_signature(self, modal_signature: List[str]) -> int:
+        """
+        Encode modal signature into ActionBuffer modalities bitfield.
+
+        Bits:
+        0x01 = TEXT
+        0x02 = IMAGE
+        0x04 = AUDIO
+        0x08 = VIDEO
+        0x10 = 3D_MESH
+        """
+        modality_map = {
+            'text': 0x01,
+            'image': 0x02,
+            'audio': 0x04,
+            'video': 0x08,
+            '3d': 0x10
+        }
+
+        encoded = 0
+        for modal in modal_signature:
+            encoded |= modality_map.get(modal.lower(), 0)
+
+        return encoded
+
+    def _apply_dynamic_lod(self, spatial_features: np.ndarray,
+                          saliency_threshold: float = 0.7) -> np.ndarray:
+        """
+        Apply FSM-style dynamic LOD tuning based on spatial saliency.
+        Uses Morton-based saliency from Step 6 FSM.
+
+        Harvested from unified_fsm.py (Step 12 consolidation).
+
+        Args:
+            spatial_features: Spatial confidence rays (position/rotation)
+            saliency_threshold: Threshold for LOD adjustment
+
+        Returns:
+            LOD adjustments (per-object LOD levels)
+        """
+        if not self.lod_enabled or spatial_features is None:
+            return np.zeros(1, dtype=np.float32)
+
+        if len(spatial_features) < 3:
+            return np.zeros(1, dtype=np.float32)
+
+        # Prepare GPU buffers
+        n_features = len(spatial_features)
+        spatial_gpu = gpu_malloc(n_features * 4)
+
+        try:
+            # Copy to device
+            spatial_data = spatial_features.astype(np.float32)
+            memcpy_htod(spatial_gpu, spatial_data)
+
+            # Launch kernel
+            grid = (1, 1, 1)
+            block = (min(256, n_features), 1, 1)
+
+            launch_kernel(
+                self.dynamic_lod_kernel,
+                grid, block,
+                [spatial_gpu, self.lod_buffer,
+                 np.uint32(n_features), np.float32(saliency_threshold)]
+            )
+
+            # Read back LOD adjustments
+            lod_result = np.zeros(256, dtype=np.float32)
+            memcpy_dtoh(lod_result, self.lod_buffer)
+
+            return lod_result[:min(64, n_features // 3)]  # Return per-object LOD
+
+        except Exception as e:
+            logger.warning(f"Dynamic LOD application failed: {e}")
+            return np.zeros(1, dtype=np.float32)
