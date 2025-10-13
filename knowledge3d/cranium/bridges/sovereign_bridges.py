@@ -1313,4 +1313,286 @@ __all__ = [
     # Runtime Engines
     "ModularRPNEngine",
     "GalaxyMemoryUpdater",
+    # GLM's World Model
+    "WorldModelBridge",
 ]
+
+
+class WorldModelBridge:
+    """
+    Sovereign bridge for world model operations.
+    Enables temporal coherence, multi-modal fusion, and dynamic mesh generation.
+    
+    GLM's World Model Integration - Multi-modal temporal generation.
+    """
+    def __init__(self):
+        from pathlib import Path
+        ptx_dir = Path(__file__).parent.parent / "ptx"
+        
+        # Load world model kernels
+        self.temporal_kernel = load_ptx_file(
+            str(ptx_dir / "gre_world_model.ptx"),
+            "compute_temporal_coherence"
+        )
+        self.fusion_kernel = load_ptx_file(
+            str(ptx_dir / "gre_world_model.ptx"),
+            "fuse_multimodal_features"
+        )
+        self.prediction_kernel = load_ptx_file(
+            str(ptx_dir / "gre_world_model.ptx"),
+            "predict_world_state"
+        )
+        self.dynamic_mesh_kernel = load_ptx_file(
+            str(ptx_dir / "gre_world_model.ptx"),
+            "generate_dynamic_mesh"
+        )
+        self.resonance_kernel = load_ptx_file(
+            str(ptx_dir / "gre_world_model.ptx"),
+            "enhance_galaxy_resonance"
+        )
+    
+    def compute_temporal_coherence(
+        self,
+        frame_features: np.ndarray,  # (N_frames * feature_dim,) flattened
+        n_frames: int,
+        feature_dim: int
+    ) -> np.ndarray:
+        """Compute temporal coherence scores across video frames."""
+        # Allocate GPU memory
+        d_features = gpu_malloc(frame_features.nbytes)
+        d_coherence = gpu_malloc(feature_dim * 4)  # float32
+        
+        try:
+            # Copy to GPU
+            memcpy_htod(d_features, frame_features.ctypes.data_as(ctypes.c_void_p), frame_features.nbytes)
+            
+            # Launch kernel
+            threads = 256
+            blocks = (feature_dim + threads - 1) // threads
+            
+            launch(
+                self.temporal_kernel,
+                grid=(blocks, 1, 1),
+                block=(threads, 1, 1),
+                params=[
+                    ctypes.c_uint64(d_features.value),
+                    ctypes.c_uint64(d_coherence.value),
+                    ctypes.c_int32(n_frames),
+                    ctypes.c_int32(feature_dim),
+                ],
+            )
+            synchronize()
+            
+            # Copy result back
+            coherence = np.zeros(feature_dim, dtype=np.float32)
+            memcpy_dtoh(coherence.ctypes.data_as(ctypes.c_void_p), d_coherence, coherence.nbytes)
+            
+            return coherence
+        
+        finally:
+            gpu_free(d_features)
+            gpu_free(d_coherence)
+    
+    def fuse_multimodal_features(
+        self,
+        text_features: np.ndarray,
+        visual_features: np.ndarray,
+        text_weight: float = 0.5
+    ) -> np.ndarray:
+        """Fuse text and visual features with attention weighting."""
+        feature_dim = len(text_features)
+        visual_weight = 1.0 - text_weight
+        
+        # Allocate GPU memory
+        d_text = gpu_malloc(text_features.nbytes)
+        d_visual = gpu_malloc(visual_features.nbytes)
+        d_weights = gpu_malloc(8)  # 2 floats
+        d_fused = gpu_malloc(text_features.nbytes)
+        
+        try:
+            # Copy to GPU
+            memcpy_htod(d_text, text_features.ctypes.data_as(ctypes.c_void_p), text_features.nbytes)
+            memcpy_htod(d_visual, visual_features.ctypes.data_as(ctypes.c_void_p), visual_features.nbytes)
+            
+            weights = np.array([text_weight, visual_weight], dtype=np.float32)
+            memcpy_htod(d_weights, weights.ctypes.data_as(ctypes.c_void_p), weights.nbytes)
+            
+            # Launch kernel
+            threads = 256
+            blocks = (feature_dim + threads - 1) // threads
+            
+            launch(
+                self.fusion_kernel,
+                grid=(blocks, 1, 1),
+                block=(threads, 1, 1),
+                params=[
+                    ctypes.c_uint64(d_text.value),
+                    ctypes.c_uint64(d_visual.value),
+                    ctypes.c_uint64(d_weights.value),
+                    ctypes.c_uint64(d_fused.value),
+                    ctypes.c_int32(feature_dim),
+                ],
+            )
+            synchronize()
+            
+            # Copy result back
+            fused = np.zeros_like(text_features)
+            memcpy_dtoh(fused.ctypes.data_as(ctypes.c_void_p), d_fused, fused.nbytes)
+            
+            return fused
+        
+        finally:
+            gpu_free(d_text)
+            gpu_free(d_visual)
+            gpu_free(d_weights)
+            gpu_free(d_fused)
+    
+    def predict_world_state(
+        self,
+        current_state: np.ndarray,
+        action_vector: np.ndarray
+    ) -> np.ndarray:
+        """Predict next world state given current state and action."""
+        state_dim = len(current_state)
+        action_dim = len(action_vector)
+        
+        # Allocate GPU memory
+        d_current = gpu_malloc(current_state.nbytes)
+        d_action = gpu_malloc(action_vector.nbytes)
+        d_predicted = gpu_malloc(current_state.nbytes)
+        
+        try:
+            # Copy to GPU
+            memcpy_htod(d_current, current_state.ctypes.data_as(ctypes.c_void_p), current_state.nbytes)
+            memcpy_htod(d_action, action_vector.ctypes.data_as(ctypes.c_void_p), action_vector.nbytes)
+            
+            # Launch kernel
+            threads = 256
+            blocks = (state_dim + threads - 1) // threads
+            
+            launch(
+                self.prediction_kernel,
+                grid=(blocks, 1, 1),
+                block=(threads, 1, 1),
+                params=[
+                    ctypes.c_uint64(d_current.value),
+                    ctypes.c_uint64(d_action.value),
+                    ctypes.c_uint64(d_predicted.value),
+                    ctypes.c_int32(state_dim),
+                    ctypes.c_int32(action_dim),
+                ],
+            )
+            synchronize()
+            
+            # Copy result back
+            predicted = np.zeros_like(current_state)
+            memcpy_dtoh(predicted.ctypes.data_as(ctypes.c_void_p), d_predicted, predicted.nbytes)
+            
+            return predicted
+        
+        finally:
+            gpu_free(d_current)
+            gpu_free(d_action)
+            gpu_free(d_predicted)
+    
+    def generate_dynamic_mesh(
+        self,
+        world_state: np.ndarray,
+        base_vertices: np.ndarray  # (N, 3)
+    ) -> np.ndarray:
+        """Generate dynamic mesh based on world state."""
+        vertex_count = len(base_vertices)
+        state_dim = len(world_state)
+        
+        # Flatten vertices
+        vertices_flat = base_vertices.flatten().astype(np.float32)
+        
+        # Allocate GPU memory
+        d_state = gpu_malloc(world_state.nbytes)
+        d_base = gpu_malloc(vertices_flat.nbytes)
+        d_dynamic = gpu_malloc(vertices_flat.nbytes)
+        
+        try:
+            # Copy to GPU
+            memcpy_htod(d_state, world_state.ctypes.data_as(ctypes.c_void_p), world_state.nbytes)
+            memcpy_htod(d_base, vertices_flat.ctypes.data_as(ctypes.c_void_p), vertices_flat.nbytes)
+            
+            # Launch kernel
+            threads = 256
+            blocks = (vertex_count + threads - 1) // threads
+            
+            launch(
+                self.dynamic_mesh_kernel,
+                grid=(blocks, 1, 1),
+                block=(threads, 1, 1),
+                params=[
+                    ctypes.c_uint64(d_state.value),
+                    ctypes.c_uint64(d_base.value),
+                    ctypes.c_uint64(d_dynamic.value),
+                    ctypes.c_int32(vertex_count),
+                    ctypes.c_int32(state_dim),
+                ],
+            )
+            synchronize()
+            
+            # Copy result back
+            dynamic_flat = np.zeros_like(vertices_flat)
+            memcpy_dtoh(dynamic_flat.ctypes.data_as(ctypes.c_void_p), d_dynamic, dynamic_flat.nbytes)
+            
+            return dynamic_flat.reshape(base_vertices.shape)
+        
+        finally:
+            gpu_free(d_state)
+            gpu_free(d_base)
+            gpu_free(d_dynamic)
+    
+    def enhance_galaxy_resonance(
+        self,
+        query_embedding: np.ndarray,
+        galaxy_embeddings: np.ndarray  # (N, embedding_dim)
+    ) -> np.ndarray:
+        """Enhance galaxy query with temperature-scaled similarity."""
+        n_embeddings = galaxy_embeddings.shape[0]
+        embedding_dim = galaxy_embeddings.shape[1]
+        
+        # Flatten galaxy embeddings
+        galaxy_flat = galaxy_embeddings.flatten().astype(np.float32)
+        
+        # Allocate GPU memory
+        d_query = gpu_malloc(query_embedding.nbytes)
+        d_galaxy = gpu_malloc(galaxy_flat.nbytes)
+        d_resonance = gpu_malloc(n_embeddings * 4)  # float32
+        
+        try:
+            # Copy to GPU
+            memcpy_htod(d_query, query_embedding.ctypes.data_as(ctypes.c_void_p), query_embedding.nbytes)
+            memcpy_htod(d_galaxy, galaxy_flat.ctypes.data_as(ctypes.c_void_p), galaxy_flat.nbytes)
+            
+            # Launch kernel
+            threads = 256
+            blocks = (n_embeddings + threads - 1) // threads
+            
+            launch(
+                self.resonance_kernel,
+                grid=(blocks, 1, 1),
+                block=(threads, 1, 1),
+                params=[
+                    ctypes.c_uint64(d_query.value),
+                    ctypes.c_uint64(d_galaxy.value),
+                    ctypes.c_uint64(d_resonance.value),
+                    ctypes.c_int32(n_embeddings),
+                    ctypes.c_int32(embedding_dim),
+                ],
+            )
+            synchronize()
+            
+            # Copy result back
+            resonance = np.zeros(n_embeddings, dtype=np.float32)
+            memcpy_dtoh(resonance.ctypes.data_as(ctypes.c_void_p), d_resonance, resonance.nbytes)
+            
+            return resonance
+        
+        finally:
+            gpu_free(d_query)
+            gpu_free(d_galaxy)
+            gpu_free(d_resonance)
