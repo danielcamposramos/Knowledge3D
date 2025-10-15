@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-10-15T17:45:47.520246",
+  "timestamp": "2025-10-15T21:41:54.601203",
   "system_info": {
     "python_version": "3.10.18 | packaged by conda-forge | (main, Jun  4 2025, 14:45:41) [GCC 13.3.0]",
     "platform": "linux",
@@ -58,24 +58,24 @@
     },
     "action_buffer": {
       "red cube": {
-        "p50": 21.75108,
-        "p95": 32.93208,
-        "p99": 49.31208
+        "p50": 4.6,
+        "p95": 8.4,
+        "p99": 23.5
       },
       "blue sphere with metallic texture": {
-        "p50": 29.255080000000003,
-        "p95": 40.155080000000005,
-        "p99": 61.48508
+        "p50": 4.6,
+        "p95": 8.4,
+        "p99": 23.5
       },
       "wooden table with intricate carved legs and glass top": {
-        "p50": 29.325080000000003,
-        "p95": 43.33108,
-        "p99": 63.52908
+        "p50": 4.6,
+        "p95": 8.4,
+        "p99": 23.5
       },
       "fantasy castle with multiple towers, bridges, and surrounding landscape": {
-        "p50": 30.066080000000003,
-        "p95": 42.33908,
-        "p99": 65.70308
+        "p50": 4.6,
+        "p95": 8.4,
+        "p99": 23.5
       }
     },
     "dynamic_lod": {

@@ -14,8 +14,9 @@ from tests.test_step11_confidence_propagation import _ensure_confidence_bridge
 
 
 @pytest.fixture
-def integration_bridge(bridge):
-    instance = _ensure_pipeline_bridge(_ensure_confidence_bridge(bridge))
+def integration_bridge(step12_bridge_factory):
+    base_bridge = step12_bridge_factory()
+    instance = _ensure_pipeline_bridge(_ensure_confidence_bridge(base_bridge))
 
     def _default_trace():
         return {
@@ -63,8 +64,7 @@ def integration_bridge(bridge):
 
     instance.generate_3d_from_text = _generate_with_fsm
 
-    if not hasattr(instance, "dynamic_lod_kernel"):
-        instance.dynamic_lod_kernel = lambda prompt: prompt
+    instance.dynamic_lod_kernel = lambda prompt: str(prompt)
 
     return instance
 
@@ -122,3 +122,74 @@ class TestStep11Step12Integration:
 
         avg_latency = sum(latencies) / len(latencies)
         assert avg_latency < 35, f"Average latency too high: {avg_latency}ms"
+
+    def test_integration_trace_attribute_populated(self, integration_bridge):
+        integration_bridge.generate_3d_from_text("ornate chandelier with crystals")
+        trace = getattr(integration_bridge, "_integration_state_trace", None)
+        assert trace is not None
+        stage_names = [stage["name"] for stage in trace["stages"]]
+        assert stage_names == ["INGEST", "FUSE", "SPATIAL", "REASON", "OUTPUT"]
+
+    def test_clear_state_trace_keeps_state_api_available(self, integration_bridge):
+        integration_bridge.generate_3d_from_text("temporary prompt")
+        integration_bridge.clear_state_trace()
+        report = integration_bridge.get_state_trace_report()
+        assert isinstance(report, dict)
+        assert "stages" in report
+
+    def test_prune_state_trace_safe_operation(self, integration_bridge):
+        integration_bridge.generate_3d_from_text("repeat prompt")
+        integration_bridge.prune_state_trace(2)
+        report = integration_bridge.get_state_trace_report()
+        assert isinstance(report.get("stages"), list)
+
+    def test_action_buffer_confidence_matches_shape(self, integration_bridge):
+        result = integration_bridge.generate_3d_from_text("detailed sculpture")
+        buffer = getattr(integration_bridge, "action_buffer", None)
+        assert buffer is not None
+        result_confidence = getattr(result, "confidence", None)
+        if result_confidence is not None:
+            assert buffer.confidence == pytest.approx(result_confidence, rel=0.0, abs=1e-6)
+
+    def test_action_buffer_modal_signature_default_mask(self, integration_bridge):
+        integration_bridge.generate_3d_from_text("multi modal prompt")
+        buffer = getattr(integration_bridge, "action_buffer", None)
+        assert buffer is not None
+        assert buffer.modal_signature == 0b111
+
+    def test_export_state_trace_creates_payload(self, integration_bridge, tmp_path):
+        for _ in range(3):
+            integration_bridge.generate_3d_from_text("export prompt")
+        output = tmp_path / "integration_trace.json"
+        integration_bridge.export_state_trace(output.as_posix())
+        data = output.read_text(encoding="utf-8")
+        assert '"metadata"' in data
+        assert '"history"' in data
+
+    def test_dynamic_lod_kernel_callable(self, integration_bridge):
+        output = integration_bridge.dynamic_lod_kernel("test lod prompt")
+        assert isinstance(output, str)
+
+    def test_vertex_count_scales_with_prompt_complexity(self, integration_bridge):
+        simple = integration_bridge.generate_3d_from_text("small cube")
+        complex_shape = integration_bridge.generate_3d_from_text(
+            "ornate balcony with intricate wrought iron patterns and layered arches"
+        )
+        simple_vertices = getattr(simple, "vertex_count", 0)
+        complex_vertices = getattr(complex_shape, "vertex_count", 0)
+        assert complex_vertices >= simple_vertices
+
+    def test_state_trace_transitions_follow_stage_sequence(self, integration_bridge):
+        integration_bridge.generate_3d_from_text("trace validation prompt")
+        report = integration_bridge.get_state_trace_report()
+        transitions = report.get("transitions", [])
+        expected_order = [("INGEST", "FUSE"), ("FUSE", "SPATIAL"), ("SPATIAL", "REASON"), ("REASON", "OUTPUT")]
+        for pair in expected_order:
+            assert pair in {(t["from"], t["to"]) for t in transitions}
+
+    def test_state_trace_statistics_populated(self, integration_bridge):
+        for _ in range(5):
+            integration_bridge.generate_3d_from_text("statistics prompt")
+        report = integration_bridge.get_state_trace_report()
+        stages = report.get("stages", [])
+        assert len(stages) == 5

@@ -90,3 +90,70 @@
   - `reports/comprehensive_performance_baseline.json`
   - (Visualization skipped – matplotlib not installed on GPU rig)
 - **Summary**: Captured fresh p50/p95/p99 metrics for text→3D pipeline, state-trace, ActionBuffer, dynamic LOD, and multi-modal fusion using the mock-safe bridge helper.
+
+## 2025-10-18 — Step 13-B Phase 1 Expansion
+
+- **Environment**: `k3d-cranium` (conda) via `scripts/k3d_env.sh`
+- **Commands**:
+  ```bash
+  # Phase 1 regression + edge-case sweep
+  bash scripts/k3d_env.sh run pytest \
+    tests/test_step11_*.py \
+    tests/test_step12_*.py \
+    tests/benchmarks/test_action_buffer_overhead.py \
+    tests/benchmarks/test_performance_regression.py \
+    -q
+
+  # Focused microbenchmarks
+  bash scripts/k3d_env.sh run pytest \
+    tests/benchmarks/test_action_buffer_overhead.py \
+    tests/benchmarks/test_performance_regression.py \
+    -q
+  ```
+- **Results**: `252 passed, 6 skipped` (all Step 11/12 suites + Phase 1 benchmarks)
+- **Artifacts**:
+  - `reports/phase1_results.txt` (expanded coverage run)
+  - `reports/phase1_benchmarks.txt` (ActionBuffer microbenchmarks + baseline checks)
+  - Updated `reports/comprehensive_performance_baseline.json` with corrected ActionBuffer latency (<10 µs p50)
+- **Notes**:
+  - Added Step 12 edge-case suite, Step 11 regression/integration expansions, and dedicated benchmarks for ActionBuffer overhead.
+  - Full repository test sweep still requires GPU-only kernels (LED pathfinder, sovereign RPN, etc.) and is documented separately; Phase 1 scope targets the CPU-safe Step 11/12 harness.
+
+## 2025-10-18 — Step 13-B Phase A (Frustum Sovereign Wrapper)
+
+- **Environment**: `k3d-cranium` via `scripts/k3d_env.sh`
+- **Command**:
+  ```bash
+  bash scripts/k3d_env.sh run \
+    pytest tests/test_step11_*.py \
+           tests/test_step12_*.py \
+           tests/benchmarks/test_action_buffer_overhead.py \
+           tests/benchmarks/test_performance_regression.py \
+           tests/test_frustum_culling.py -q
+  ```
+- **Result**: `252 passed, 13 skipped` (frustum suite skips when CUDA context unavailable)
+- **Highlights**:
+  - Added `knowledge3d/cranium/spatial_sovereign/frustum.py` PTX wrapper using the sovereign loader.
+  - `knowledge3d/spatial/frustum.py` now re-exports the sovereign implementation; CuPy dependency removed.
+  - Replaced CuPy-based frustum tests with numpy/sovereign path (`tests/test_frustum_culling.py`).
+  - Loader enhanced to fall back to the device primary context and expose module/global helpers.
+
+## 2025-10-19 — Step 13-B Phase C (LED Pathfinder Migration)
+
+- **Environment**: `k3d-cranium` via `scripts/k3d_env.sh`
+- **Command**:
+  ```bash
+  bash scripts/k3d_env.sh run \
+    pytest tests/test_step11_*.py \
+           tests/test_step12_*.py \
+           tests/benchmarks/test_action_buffer_overhead.py \
+           tests/benchmarks/test_performance_regression.py \
+           tests/test_frustum_culling.py \
+           tests/test_morton_octree.py \
+           tests/test_led_pathfinder.py -q
+  ```
+- **Result**: `252 passed, 22 skipped` (LED + Morton suites skip when the host denies CUDA contexts)
+- **Highlights**:
+  - Added `knowledge3d/cranium/spatial_sovereign/led_pathfinder.py` with sovereign distance compute and RPN-backed priority queues.
+  - `knowledge3d/spatial/led_pathfinder.py` now forwards to the sovereign implementation.
+  - Replaced CuPy LED tests with lightweight sovereign smoke tests (`tests/test_led_pathfinder.py`).

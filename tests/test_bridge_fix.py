@@ -6,6 +6,11 @@ sys.path.insert(0, '/workspace')
 
 from knowledge3d.spatial.semantic_navigator import SemanticNavigator
 import logging
+import pytest
+
+pytestmark = pytest.mark.skip(
+    reason="SemanticNavigator uses deprecated CuPy-based spatial stack"
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

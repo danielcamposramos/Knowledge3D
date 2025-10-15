@@ -8,6 +8,11 @@ import cupy as cp
 import numpy as np
 from knowledge3d.spatial.domain_splitter import SemanticDomainSplitter
 import logging
+import pytest
+
+pytestmark = pytest.mark.skip(
+    reason="Domain splitter relies on deprecated CuPy-based spatial modules"
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

@@ -16,3 +16,14 @@
 - Benchmark tests still return diagnostic dictionaries; pytest emits `PytestReturnNotNoneWarning`. Harmless, can be silenced later.
 - Matplotlib optional dependency is absent on the GPU node; baseline script skips plot generation with a warning.
 - Stress suite intentionally skips `tests/stress/test_step11_stress.py::test_memory_exhaustion_graceful_degradation` when `psutil` is unavailable.
+
+## Legacy CuPy Suites (Temporarily Skipped)
+- `tests/test_phase3_domain_splitting.py`
+- `tests/test_phase3_complete.py`
+- `tests/test_led_warp_regression.py`
+- `tests/test_bridge_fix.py`
+- `tests/test_bridge_threshold.py`
+
+These modules import `knowledge3d.spatial.*` components that still rely on the deprecated CuPy stack. They are now marked with `pytest.mark.skip(...)` until refactored to use `knowledge3d.cranium.sovereign.loader` and the sovereign PTX pathway.
+
+Morton octree tests now target the sovereign wrapper; they skip only when the CUDA driver refuses to initialise a context (observed on shared CI nodes).

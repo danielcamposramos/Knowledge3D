@@ -15,6 +15,11 @@ sys.path.insert(0, '/workspace')
 import cupy as cp
 import numpy as np
 import logging
+import pytest
+
+pytestmark = pytest.mark.skip(
+    reason="Phase 3 integration depends on deprecated CuPy-based spatial modules"
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

@@ -9,6 +9,9 @@ import ctypes
 import os
 from typing import List, Tuple, Optional
 
+
+GPU_MEMORY_TARGET_GB = 3.5  # Updated target for sovereign GPU allocations
+
 # Load CUDA Driver API library
 # This is stable across CUDA versions and always present on systems with NVIDIA drivers
 try:
@@ -65,13 +68,25 @@ def _ensure_init():
         ck(nvcuda.cuDeviceGet(ctypes.byref(device), 0))
         _device = device
 
-        # Create context
-        # Note: cuCtxCreate automatically makes the context current for the calling thread
         ctx = CUcontext()
-        ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
+        res = nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device)
+        if res != 0:
+            if res == 2:  # CUDA_ERROR_OUT_OF_MEMORY
+                ctx = CUcontext()
+                ck(nvcuda.cuDevicePrimaryCtxRetain(ctypes.byref(ctx), device))
+                ck(nvcuda.cuCtxSetCurrent(ctx))
+            else:
+                ck(res)
+        else:
+            ck(nvcuda.cuCtxSetCurrent(ctx))
         _context = ctx
-
         _initialized = True
+
+def _ensure_current_context():
+    if not _initialized or _context is None:
+        _ensure_init()
+    else:
+        ck(nvcuda.cuCtxSetCurrent(_context))
 
 # ==========================================
 # PTX Module Loading
@@ -90,7 +105,7 @@ def load_ptx(ptx_source: bytes, entry_name: bytes) -> CUfunction:
         >>> ptx = open("kernel.ptx", "rb").read()
         >>> kernel = load_ptx(ptx, b"my_kernel")
     """
-    _ensure_init()
+    _ensure_current_context()
 
     module = CUmodule()
     ck(nvcuda.cuModuleLoadData(ctypes.byref(module), ptx_source))
@@ -99,6 +114,45 @@ def load_ptx(ptx_source: bytes, entry_name: bytes) -> CUfunction:
     ck(nvcuda.cuModuleGetFunction(ctypes.byref(func), module, entry_name))
 
     return func
+
+
+def load_module(ptx_source: bytes) -> CUmodule:
+    """Load PTX as a CUDA module and return the module handle."""
+    _ensure_current_context()
+    module = CUmodule()
+    ck(nvcuda.cuModuleLoadData(ctypes.byref(module), ptx_source))
+    return module
+
+
+def load_module_from_file(ptx_path: str) -> CUmodule:
+    """Load PTX module from file path."""
+    with open(ptx_path, "rb") as f:
+        data = f.read()
+    return load_module(data)
+
+
+def get_function(module: CUmodule, entry_name: str) -> CUfunction:
+    """Obtain a kernel function handle from an existing module."""
+    _ensure_current_context()
+    func = CUfunction()
+    ck(nvcuda.cuModuleGetFunction(ctypes.byref(func), module, entry_name.encode()))
+    return func
+
+
+def get_global(module: CUmodule, symbol_name: str) -> Tuple[CUdeviceptr, int]:
+    """Fetch a global/constant memory pointer from a module."""
+    _ensure_current_context()
+    device_ptr = CUdeviceptr()
+    size = ctypes.c_size_t()
+    ck(
+        nvcuda.cuModuleGetGlobal(
+            ctypes.byref(device_ptr),
+            ctypes.byref(size),
+            module,
+            symbol_name.encode(),
+        )
+    )
+    return device_ptr, size.value
 
 def load_ptx_file(ptx_path: str, entry_name: str) -> CUfunction:
     """Load PTX kernel from file path.
@@ -232,6 +286,10 @@ atexit.register(cleanup)
 __all__ = [
     "load_ptx",
     "load_ptx_file",
+    "load_module",
+    "load_module_from_file",
+    "get_function",
+    "get_global",
     "gpu_malloc",
     "gpu_free",
     "memcpy_htod",

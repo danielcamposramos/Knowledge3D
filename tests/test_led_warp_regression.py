@@ -18,6 +18,11 @@ import numpy as np
 import cupy as cp
 from typing import Tuple, List
 import heapq
+import pytest
+
+pytestmark = pytest.mark.skip(
+    reason="Legacy CuPy-based LED pathfinder regression uses deprecated spatial stack"
+)
 
 from knowledge3d.spatial.led_pathfinder import LEDPathfinder
 

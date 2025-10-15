@@ -14,6 +14,10 @@ Key test areas:
 import pytest
 import numpy as np
 
+pytestmark = pytest.mark.skip(
+    reason="Uses deprecated CuPy-based spatial navigator/domain splitter"
+)
+
 try:
     import cupy as cp
     CUPY_AVAILABLE = True
@@ -24,7 +28,6 @@ from knowledge3d.spatial.domain_splitter import SemanticDomainSplitter
 from knowledge3d.spatial.semantic_navigator import SemanticNavigator
 
 
-@pytest.mark.skipif(not CUPY_AVAILABLE, reason="Requires CuPy/GPU")
 class TestPhase3DomainSplitting:
     """Test suite for Phase 3 multi-domain navigation."""
 
