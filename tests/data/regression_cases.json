@@ -1,0 +1,20 @@
+[
+  {
+    "id": "issue_001",
+    "description": "Zero dimension handling",
+    "prompt": "cube with zero height",
+    "expected": "should not crash"
+  },
+  {
+    "id": "issue_002",
+    "description": "Unicode handling",
+    "prompt": "椅子 with 中文 characters",
+    "expected": "should handle unicode correctly"
+  },
+  {
+    "id": "issue_003",
+    "description": "Empty prompt",
+    "prompt": "",
+    "expected": "should return default primitive"
+  }
+]
