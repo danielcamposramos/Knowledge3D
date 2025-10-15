@@ -30,8 +30,7 @@ def murdoch64_hash(data: bytes) -> int:
     Fast, non-cryptographic hash with good distribution properties.
     Used for shape description caching and deduplication.
     """
-    # Simple implementation - in reality would match actual implementation
-    return int(hashlib.sha256(data).hexdigest()[:16], 16) % (2**64)
+    return int.from_bytes(hashlib.blake2b(data, digest_size=8).digest(), byteorder="little")
 
 
 def generate_shape_descriptions(count: int) -> list:

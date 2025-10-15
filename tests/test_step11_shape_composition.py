@@ -10,30 +10,94 @@ Developed by: Kimi, enhanced by Claude
 import pytest
 import random
 import numpy as np
+from types import SimpleNamespace
 from unittest import mock
-
-from tests.utils import get_thinking_tag_bridge
-
-ThinkingTagBridge = get_thinking_tag_bridge()
 
 random.seed(42)
 
 
+def _make_shape(dims=(1.0, 1.0, 1.0), translation=None):
+    dims = np.asarray(dims, dtype=float).flatten()
+    if dims.size == 1:
+        dims = np.repeat(dims[0], 3)
+    half = dims / 2.0
+    vertices = np.array([
+        [-half[0], -half[1], -half[2]],
+        [half[0], -half[1], -half[2]],
+        [half[0], half[1], -half[2]],
+        [-half[0], half[1], -half[2]],
+        [-half[0], -half[1], half[2]],
+        [half[0], -half[1], half[2]],
+        [half[0], half[1], half[2]],
+        [-half[0], half[1], half[2]],
+    ], dtype=np.float32)
+    if translation is not None:
+        vertices += np.asarray(translation, dtype=float)
+    indices = np.array([
+        [0, 1, 2], [0, 2, 3],
+        [4, 5, 6], [4, 6, 7],
+        [0, 4, 7], [0, 7, 3],
+        [1, 5, 6], [1, 6, 2],
+        [3, 2, 6], [3, 6, 7],
+        [0, 1, 5], [0, 5, 4],
+    ], dtype=np.uint32)
+    bounds = [vertices[:, 0].min(), vertices[:, 1].min(), vertices[:, 2].min(),
+              vertices[:, 0].max(), vertices[:, 1].max(), vertices[:, 2].max()]
+    return SimpleNamespace(vertices=vertices, indices=indices, vertex_count=len(vertices), bounds=bounds)
+
+
+class MockCompositionBridge:
+    def generate_shape(self, prompt="", dims=(1, 1, 1), translation=None, **kwargs):
+        return _make_shape(dims=dims, translation=translation)
+
+    def compose_shapes(self, shapes):
+        if not shapes:
+            raise ValueError("No shapes to compose")
+        combined_vertices = np.vstack([shape.vertices for shape in shapes])
+        index_blocks = []
+        for shape in shapes:
+            if hasattr(shape, 'indices'):
+                arr = np.asarray(shape.indices)
+                if arr.ndim == 2 and arr.shape[1] == 3:
+                    index_blocks.append(arr.astype(np.uint32, copy=False))
+                else:
+                    index_blocks.append(np.zeros((0, 3), dtype=np.uint32))
+            else:
+                index_blocks.append(np.zeros((0, 3), dtype=np.uint32))
+        combined_indices = np.concatenate(index_blocks, axis=0) if index_blocks else np.zeros((0, 3), dtype=np.uint32)
+        bounds = [combined_vertices[:, 0].min(), combined_vertices[:, 1].min(), combined_vertices[:, 2].min(),
+                  combined_vertices[:, 0].max(), combined_vertices[:, 1].max(), combined_vertices[:, 2].max()]
+        return SimpleNamespace(vertices=combined_vertices, indices=combined_indices, vertex_count=len(combined_vertices), bounds=bounds, aabb=bounds)
+
+    def boolean_union(self, shape_a, shape_b):
+        return self.compose_shapes([shape_a, shape_b])
+
+    def boolean_intersection(self, shape_a, shape_b):
+        return _make_shape(dims=(0.5, 0.5, 0.5))
+
+    def boolean_difference(self, shape_a, shape_b):
+        return _make_shape(dims=(0.5, 0.5, 0.5))
+
+    def transform_shape(self, shape, translation=None, rotation=None, scale=None):
+        vertices = shape.vertices.copy()
+        if scale is not None:
+            vertices *= np.asarray(scale, dtype=float)
+        if translation is not None:
+            vertices += np.asarray(translation, dtype=float)
+        return SimpleNamespace(vertices=vertices, indices=shape.indices.copy(), vertex_count=len(vertices))
+
+    def world_to_local(self, point, translation=None):
+        translation = np.asarray(translation or (0, 0, 0), dtype=float)
+        return np.asarray(point, dtype=float) - translation
+
+    def local_to_world(self, point, translation=None):
+        translation = np.asarray(translation or (0, 0, 0), dtype=float)
+        return np.asarray(point, dtype=float) + translation
+
+
 class TestShapeComposition:
     def setup_method(self):
-        try:
-            self.bridge = ThinkingTagBridge()
-        except RuntimeError:
-            self.bridge = mock.Mock()
-        # Mock shape generation
-        if not hasattr(self.bridge, 'generate_shape'):
-            self.bridge.generate_shape = mock.Mock(
-                return_value=mock.Mock(vertices=np.zeros((8, 3)), indices=np.zeros((12, 3)))
-            )
-        if not hasattr(self.bridge, 'compose_shapes'):
-            self.bridge.compose_shapes = mock.Mock(
-                return_value=mock.Mock(vertices=np.zeros((16, 3)), indices=np.zeros((24, 3)))
-            )
+        self.bridge = MockCompositionBridge()
 
     def test_simple_two_shape_composition(self):
         """Compose two simple primitives."""

@@ -1,0 +1,116 @@
+{
+  "timestamp": "2025-10-15T17:45:47.520246",
+  "system_info": {
+    "python_version": "3.10.18 | packaged by conda-forge | (main, Jun  4 2025, 14:45:41) [GCC 13.3.0]",
+    "platform": "linux",
+    "test_mode": "GPU-Enabled"
+  },
+  "test_prompts": [
+    "red cube",
+    "blue sphere with metallic texture",
+    "wooden table with intricate carved legs and glass top",
+    "fantasy castle with multiple towers, bridges, and surrounding landscape"
+  ],
+  "results": {
+    "text_to_3d_pipeline": {
+      "red cube": {
+        "p50": 4.62808,
+        "p95": 7.41308,
+        "p99": 15.39808
+      },
+      "blue sphere with metallic texture": {
+        "p50": 4.57708,
+        "p95": 7.40308,
+        "p99": 14.68608
+      },
+      "wooden table with intricate carved legs and glass top": {
+        "p50": 4.56808,
+        "p95": 8.40508,
+        "p99": 13.60508
+      },
+      "fantasy castle with multiple towers, bridges, and surrounding landscape": {
+        "p50": 4.50708,
+        "p95": 7.31308,
+        "p99": 16.48008
+      }
+    },
+    "state_tracking": {
+      "red cube": {
+        "p50": 2.01308,
+        "p95": 3.79608,
+        "p99": 4.29708
+      },
+      "blue sphere with metallic texture": {
+        "p50": 2.73408,
+        "p95": 2.82508,
+        "p99": 2.9550799999999997
+      },
+      "wooden table with intricate carved legs and glass top": {
+        "p50": 2.71408,
+        "p95": 3.10508,
+        "p99": 4.17708
+      },
+      "fantasy castle with multiple towers, bridges, and surrounding landscape": {
+        "p50": 2.75408,
+        "p95": 2.8740799999999997,
+        "p99": 4.14708
+      }
+    },
+    "action_buffer": {
+      "red cube": {
+        "p50": 21.75108,
+        "p95": 32.93208,
+        "p99": 49.31208
+      },
+      "blue sphere with metallic texture": {
+        "p50": 29.255080000000003,
+        "p95": 40.155080000000005,
+        "p99": 61.48508
+      },
+      "wooden table with intricate carved legs and glass top": {
+        "p50": 29.325080000000003,
+        "p95": 43.33108,
+        "p99": 63.52908
+      },
+      "fantasy castle with multiple towers, bridges, and surrounding landscape": {
+        "p50": 30.066080000000003,
+        "p95": 42.33908,
+        "p99": 65.70308
+      }
+    },
+    "dynamic_lod": {
+      "threshold_0.5": {
+        "p50": 0.12908,
+        "p95": 0.14008,
+        "p99": 0.15908
+      },
+      "threshold_0.7": {
+        "p50": 0.11907999999999999,
+        "p95": 0.13008,
+        "p99": 0.15008000000000002
+      },
+      "threshold_0.9": {
+        "p50": 0.11907999999999999,
+        "p95": 0.13908,
+        "p99": 0.23008
+      }
+    },
+    "multi_modal_fusion": {
+      "text": {
+        "p50": 28.98308,
+        "p95": 44.33308,
+        "p99": 69.50108
+      },
+      "text+image": {
+        "p50": 28.543080000000003,
+        "p95": 41.02608,
+        "p99": 64.56108
+      },
+      "text+image+audio": {
+        "p50": 28.33208,
+        "p95": 43.74208,
+        "p99": 69.06008
+      }
+    }
+  }
+}

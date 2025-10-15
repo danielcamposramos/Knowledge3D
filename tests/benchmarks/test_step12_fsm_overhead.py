@@ -29,14 +29,19 @@ from tests.utils.μbench import μBench
 ThinkingTagBridge = get_thinking_tag_bridge()
 
 
+def _new_bridge():
+    try:
+        bridge = ThinkingTagBridge()
+    except RuntimeError:
+        bridge = mock.Mock()
+    ensure_step12_surface(bridge)
+    return bridge
+
+
 @pytest.fixture
 def bridge():
     """Provide test bridge instance."""
-    try:
-        b = ThinkingTagBridge()
-    except RuntimeError:
-        b = mock.Mock()
-    ensure_step12_surface(b)
+    b = _new_bridge()
     # Mock GPU operations
     b.inference = mock.Mock(return_value=mock.Mock(
         action_buffer=mock.Mock(confidence=0.85, action_type=1, curiosity=0.6, modal_signature=0b00011)
@@ -108,7 +113,7 @@ def test_state_trace_memory():
     if memory_usage is None:
         pytest.skip("memory_profiler not available")
 
-    bridge = ThinkingTagBridge()
+    bridge = _new_bridge()
     bridge.inference = mock.Mock(return_value=mock.Mock(action_buffer=mock.Mock(confidence=0.85)))
 
     def run_inferences():
@@ -140,7 +145,7 @@ def test_state_trace_memory_per_inference():
     if memory_usage is None:
         pytest.skip("memory_profiler not available")
 
-    bridge = ThinkingTagBridge()
+    bridge = _new_bridge()
     bridge.inference = mock.Mock(return_value=mock.Mock(action_buffer=mock.Mock(confidence=0.85)))
     emb = random.randbytes(512)
     μ = μBench("state_trace_memory")
@@ -161,7 +166,7 @@ def test_state_trace_memory_per_inference():
 def test_action_buffer_contention():
     """Concurrent population must not corrupt 288-byte buffer."""
     import threading
-    bridge = ThinkingTagBridge()
+    bridge = _new_bridge()
     bridge.inference = mock.Mock(return_value=mock.Mock(
         action_buffer=mock.Mock(confidence=0.85, action_type=1)
     ))

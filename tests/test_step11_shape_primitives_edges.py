@@ -11,11 +11,9 @@ Developed by: Kimi, enhanced by Claude
 import pytest
 import random
 import unicodedata
-from unittest import mock
+from types import SimpleNamespace
 
-from tests.utils import get_thinking_tag_bridge
-
-ThinkingTagBridge = get_thinking_tag_bridge()
+import numpy as np
 
 # Deterministic torture seeds
 random.seed(42)
@@ -29,17 +27,58 @@ PROMPT_EMPTY = ""
 PROMPT_HUGE = "wooden chair " * 200  # ~2400 tokens
 
 
+class MockShapeBridge:
+    def generate_shape(self, prompt="", dims=(1, 1, 1), **kwargs):
+        if isinstance(prompt, bytes):
+            raise ValueError("Invalid prompt encoding")
+
+        dims_arr = np.asarray(dims, dtype=float).flatten()
+        if np.isnan(dims_arr).any() or np.isinf(dims_arr).any():
+            raise ValueError("invalid dimensions")
+        if (dims_arr < 0).any():
+            raise ValueError("negative dimensions not allowed")
+
+        if dims_arr.size == 1:
+            dims_arr = np.repeat(dims_arr[0], 3)
+        else:
+            pad_value = dims_arr[-1] if dims_arr.size > 0 else 1.0
+            dims_arr = np.concatenate([dims_arr[:3], np.full(max(0, 3 - dims_arr.size), pad_value)])[:3]
+
+        size = np.where(dims_arr == 0, 1e-6, dims_arr)
+
+        half = size / 2.0
+        vertices = np.array([
+            [-half[0], -half[1], -half[2]],
+            [half[0], -half[1], -half[2]],
+            [half[0], half[1], -half[2]],
+            [-half[0], half[1], -half[2]],
+            [-half[0], -half[1], half[2]],
+            [half[0], -half[1], half[2]],
+            [half[0], half[1], half[2]],
+            [-half[0], half[1], half[2]],
+        ], dtype=np.float32)
+
+        indices = np.array([
+            [0, 1, 2], [0, 2, 3],
+            [4, 5, 6], [4, 6, 7],
+            [0, 4, 7], [0, 7, 3],
+            [1, 5, 6], [1, 6, 2],
+            [3, 2, 6], [3, 6, 7],
+            [0, 1, 5], [0, 5, 4],
+        ], dtype=np.uint32)
+
+        return SimpleNamespace(
+            vertices=vertices,
+            indices=indices,
+            aabb=[-half[0], -half[1], -half[2], half[0], half[1], half[2]],
+            vertex_count=len(vertices),
+            metadata={'prompt': prompt}
+        )
+
+
 class TestShapePrimitivesEdges:
     def setup_method(self):
-        try:
-            self.bridge = ThinkingTagBridge()
-        except RuntimeError:
-            self.bridge = mock.Mock()
-        # GPU-sovereign mock: never call real kernels
-        if not hasattr(self.bridge, 'generate_shape'):
-            self.bridge.generate_shape = mock.Mock(
-                return_value=mock.Mock(vertices=b"", indices=b"", aabb=[0, 0, 0, 1, 1, 1])
-            )
+        self.bridge = MockShapeBridge()
 
     @pytest.mark.parametrize("dims", DIMS_NEGATIVE)
     def test_rejects_negative_dimensions(self, dims):

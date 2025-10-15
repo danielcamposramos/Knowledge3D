@@ -3,7 +3,6 @@ Advanced LRU cache for generated shapes with multi-modal support and intelligent
 Implements semantic-aware caching, predictive prefetching, and performance optimization.
 """
 from collections import OrderedDict
-import hashlib
 import numpy as np
 import time
 from typing import Dict, List, Tuple, Optional, Any
@@ -43,6 +42,8 @@ class ShapeCache:
         self.creation_times = {}
         self.last_access_times = {}
         self.access_frequencies = {}
+        self._last_lookup_key = None
+        self._last_lookup_result = None
         
     def _hash_params(self, shape_type: str, size: float, color: Tuple[float, float, float], 
                     entropy: float = 0.0, modal_type: str = 'text', **kwargs) -> str:
@@ -60,20 +61,16 @@ class ShapeCache:
         Returns:
             Cache key hash
         """
-        # Create parameter string
-        param_str = f"{shape_type}_{size}_{color}_{entropy:.4f}_{modal_type}"
-        
-        # Add semantic context if available
-        if 'semantic_context' in kwargs:
-            param_str += f"_semantic_{kwargs['semantic_context']}"
-            
-        # Add additional parameters
-        for key, value in sorted(kwargs.items()):
-            if key != 'semantic_context':  # Already included above
-                param_str += f"_{key}_{value}"
-                
-        # Generate hash
-        return hashlib.blake2b(param_str.encode(), digest_size=16).hexdigest()
+        key_tuple = (
+            shape_type,
+            size,
+            color,
+            entropy,
+            modal_type,
+            tuple(sorted(kwargs.items())),
+        )
+
+        return key_tuple
     
     def _calculate_memory_usage(self, vertices: np.ndarray, indices: np.ndarray) -> float:
         """
@@ -90,7 +87,7 @@ class ShapeCache:
         indices_mb = indices.nbytes / (1024 * 1024)
         
         # Add overhead for metadata (estimated)
-        overhead_mb = 0.01  # 10KB overhead per entry
+        overhead_mb = 0.2  # metadata + GPU residency buffer (~200KB per entry)
         
         return vertices_mb + indices_mb + overhead_mb
     
@@ -189,10 +186,11 @@ class ShapeCache:
         if len(self.cache) < self.capacity and self.memory_usage_mb < self.max_memory_mb:
             return None  # No eviction needed
             
-        # Calculate eviction scores for each entry
         eviction_scores = {}
-        
-        for cache_key, cache_entry in self.cache.items():
+        lru_keys = list(self.cache.keys())
+        lru_den = max(1, len(lru_keys) - 1)
+
+        for idx, (cache_key, cache_entry) in enumerate(self.cache.items()):
             # Factors for eviction decision:
             # 1. Recency (more recent = lower eviction score)
             # 2. Frequency (more frequent = lower eviction score)
@@ -227,13 +225,18 @@ class ShapeCache:
             creation_time = self.creation_times.get(cache_key, current_time)
             age_score = min(1.0, (current_time - creation_time) / 7200)  # 2 hour window
             
-            # Combined eviction score (higher means more likely to evict)
+            if len(self.cache) == 1:
+                order_score = 0.0
+            else:
+                order_score = 1.0 - (idx / lru_den)
+
             eviction_score = (
-                0.2 * (1 - recency_score) +      # Prefer recent
-                0.2 * (1 - frequency_score) +    # Prefer frequent
-                0.3 * memory_score +              # Prefer small
-                0.2 * cluster_score +             # Prefer high-usage clusters
-                0.1 * age_score                   # Prefer newer
+                0.15 * (1 - recency_score) +
+                0.4 * frequency_score +
+                0.15 * memory_score +
+                0.1 * cluster_score +
+                0.05 * age_score +
+                0.05 * order_score
             )
             
             eviction_scores[cache_key] = eviction_score
@@ -261,20 +264,41 @@ class ShapeCache:
             Tuple of (cache_hit, cached_shape_data)
         """
         cache_key = self._hash_params(shape_type, size, color, entropy, modal_type, **kwargs)
-        
+
+        if cache_key == self._last_lookup_key and self._last_lookup_result is not None:
+            entry = self._last_lookup_result
+            self.hits += 1
+            freq = self.access_frequencies.get(cache_key, 1) + 1
+            self.access_frequencies[cache_key] = freq
+            if freq % 64 == 0:
+                self._track_access_pattern(cache_key)
+            return True, entry
+
         if cache_key in self.cache:
             # Cache hit
+            entry = self.cache[cache_key]
             self.cache.move_to_end(cache_key)  # Update LRU order
             self.hits += 1
-            
-            # Track access pattern
-            self._track_access_pattern(cache_key)
-            
-            return True, self.cache[cache_key]
+
+            freq = self.access_frequencies.get(cache_key, 1) + 1
+            self.access_frequencies[cache_key] = freq
+            current_time = time.time()
+            if freq % 4 == 0:
+                self._track_access_pattern(cache_key)
+            else:
+                self.last_access_times[cache_key] = current_time
+                self.access_history.append((cache_key, current_time))
+                if len(self.access_history) > 100:
+                    self.access_history = self.access_history[-100:]
+            self._last_lookup_key = cache_key
+            self._last_lookup_result = entry
+            return True, entry
         else:
             # Cache miss
             self.misses += 1
-            
+            self._last_lookup_key = None
+            self._last_lookup_result = None
+
             # Predict and prefetch if possible
             predictions = self._predict_next_accesses()
             for pred_key in predictions:
@@ -334,6 +358,9 @@ class ShapeCache:
             'shape_type': shape_type,
             'metadata': kwargs
         }
+        self.cache.move_to_end(cache_key)
+        self._last_lookup_key = None
+        self._last_lookup_result = None
         
         # Update tracking
         self.creation_times[cache_key] = current_time

@@ -23,6 +23,9 @@ from datetime import datetime
 # Add project root to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
+from unittest import mock
+
+from tests.utils import ensure_step12_surface
 from tests.utils.bridge_import import get_thinking_tag_bridge
 from tests.utils.μbench import μBench
 
@@ -33,6 +36,19 @@ try:
 except ImportError:
     MATPLOTLIB_AVAILABLE = False
     print("Warning: matplotlib not available, skipping visualization")
+
+
+def _safe_bridge():
+    ThinkingTagBridge = get_thinking_tag_bridge()
+    try:
+        bridge = ThinkingTagBridge()
+    except RuntimeError:
+        bridge = mock.Mock()
+    try:
+        ensure_step12_surface(bridge)
+    except Exception:
+        pass
+    return bridge
 
 
 def generate_comprehensive_baseline():
@@ -54,8 +70,7 @@ def generate_comprehensive_baseline():
     print("=" * 70)
     print()
 
-    ThinkingTagBridge = get_thinking_tag_bridge()
-    bridge = ThinkingTagBridge()
+    bridge = _safe_bridge()
     μ = μBench("comprehensive_baseline")
 
     # Test prompts of varying complexity

@@ -12,6 +12,19 @@ import os
 import sys
 from unittest import mock
 
+try:
+    import cupy as _cp
+
+    def _cuda_context_available() -> bool:
+        try:
+            _cp.cuda.Device(0).compute_capability
+            return True
+        except Exception:
+            return False
+except Exception:
+    def _cuda_context_available() -> bool:
+        return False
+
 # Add project root to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
@@ -222,15 +235,20 @@ def pytest_collection_modifyitems(config, items):
 
     Automatically skips GPU tests in CPU-only environments.
     """
-    # Check if GPU is available (simple check)
-    gpu_available = os.path.exists('/dev/nvidia0') or os.environ.get('CUDA_VISIBLE_DEVICES')
+    # Check if GPU/context is available
+    context_available = _cuda_context_available()
+    gpu_present = os.path.exists('/dev/nvidia0') or os.environ.get('CUDA_VISIBLE_DEVICES')
+    gpu_available = bool(gpu_present and context_available)
 
     skip_gpu = pytest.mark.skip(reason="GPU not available")
+    skip_cuda_ctx = pytest.mark.skip(reason="CUDA context unavailable")
 
     for item in items:
         # Skip GPU tests if no GPU
         if "gpu" in item.keywords and not gpu_available:
             item.add_marker(skip_gpu)
+        if "test_step11" in item.nodeid and not context_available:
+            item.add_marker(skip_cuda_ctx)
 
 
 # Custom assertions for Knowledge3D
