@@ -25,6 +25,7 @@ dependencies:
       - cupy-cuda12x==13.6.0
       - cuda-python>=12.4,<12.5
       - pytest
+      - pytest-benchmark
       - sentence-transformers
       - open_clip_torch
       - websockets==10.4
@@ -34,3 +35,6 @@ dependencies:
       - pillow
       - laion-clap
       - timm
+      - matplotlib
+      - memory-profiler
+      - psutil

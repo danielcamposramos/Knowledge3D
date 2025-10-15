@@ -1,0 +1,24 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.8, pytest-8.4.2, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+hypothesis profile 'default'
+Knowledge3D Test Suite
+GPU-Sovereign Multi-Modal AI Testing Framework
+Test Mode: GPU-Enabled
+rootdir: /mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D
+configfile: pytest.ini
+plugins: typeguard-4.4.4, mock-3.15.0, hypothesis-6.140.2, anyio-4.11.0
+collecting ... collected 2 items
+
+tests/benchmarks/test_advanced_text_to_3d_profiler.py::TestAdvancedTextTo3DProfiler::test_detailed_pipeline_breakdown PASSED [ 50%]
+tests/benchmarks/test_advanced_text_to_3d_profiler.py::TestAdvancedTextTo3DProfiler::test_memory_usage_profiling SKIPPED [100%]
+
+=============================== warnings summary ===============================
+tests/benchmarks/test_advanced_text_to_3d_profiler.py::TestAdvancedTextTo3DProfiler::test_detailed_pipeline_breakdown
+  /usr/lib/python3/dist-packages/_pytest/python.py:161: PytestReturnNotNoneWarning: Test functions should return None, but tests/benchmarks/test_advanced_text_to_3d_profiler.py::TestAdvancedTextTo3DProfiler::test_detailed_pipeline_breakdown returned <class 'dict'>.
+  Did you mean to use `assert` instead of `return`?
+  See https://docs.pytest.org/en/stable/how-to/assert.html#return-not-none for more information.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=================== 1 passed, 1 skipped, 1 warning in 3.78s ====================

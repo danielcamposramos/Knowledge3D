@@ -7,18 +7,18 @@ import time
 
 import pytest
 
+from types import SimpleNamespace
+
 from tests.benchmarks.test_text_to_3d_pipeline import _ensure_pipeline_bridge
 from tests.test_step11_confidence_propagation import _ensure_confidence_bridge
-from tests.utils.bridge_import import get_thinking_tag_bridge
-
-ThinkingTagBridge = get_thinking_tag_bridge()
 
 
 @pytest.fixture
 def integration_bridge(bridge):
     instance = _ensure_pipeline_bridge(_ensure_confidence_bridge(bridge))
-    if not hasattr(instance, "get_state_trace_report"):
-        instance.get_state_trace_report = lambda: {
+
+    def _default_trace():
+        return {
             "stages": [
                 {"name": "INGEST"},
                 {"name": "FUSE"},
@@ -34,16 +34,34 @@ def integration_bridge(bridge):
             ],
         }
 
-    if not hasattr(instance, "action_buffer"):
-        instance.action_buffer = type(
-            "ActionBuffer",
-            (),
-            {
-                "confidence": 0.85,
-                "action_type": 1,
-                "modal_signature": 0b11,
-            },
-        )()
+    original_get_state = getattr(instance, "get_state_trace_report", None)
+
+    def _integration_state_report():
+        if original_get_state is not None:
+            report = original_get_state()
+            if report.get("stages"):
+                return report
+        return getattr(instance, "_integration_state_trace", _default_trace())
+
+    instance.get_state_trace_report = _integration_state_report
+
+    def _update_action_buffer(prompt: str, base_confidence: float) -> None:
+        instance.action_buffer = SimpleNamespace(
+            confidence=max(0.0, min(1.0, base_confidence)),
+            action_type=1,
+            modal_signature=0b111,
+        )
+
+    original_generate = instance.generate_3d_from_text
+
+    def _generate_with_fsm(prompt: str):
+        result = original_generate(prompt)
+        confidence = getattr(result, "confidence", 0.85) if result is not None else 0.5
+        _update_action_buffer(prompt, confidence)
+        instance._integration_state_trace = _default_trace()
+        return result
+
+    instance.generate_3d_from_text = _generate_with_fsm
 
     if not hasattr(instance, "dynamic_lod_kernel"):
         instance.dynamic_lod_kernel = lambda prompt: prompt

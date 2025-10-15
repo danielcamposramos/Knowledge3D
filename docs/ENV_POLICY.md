@@ -10,13 +10,13 @@ Approved environments
 Quick start (Conda)
 - **GPU / PTX work:** `conda env create -f envs/k3d-cranium.yml`
 - **GPU PTX test rig:** `conda env create -f envs/k3d-trm.yml`
-- **GPU PTX/Testing:** `conda env create -f envs/k3d-trm.yml`
-- **CPU-light workflows:** `conda env create -f envs/k3d-cpu.yml`
+- **CPU-only mock testing:** `conda env create -f envs/k3d-testing.yml`
 - **RAPIDS pipeline:** `conda env create -f envs/k3d-rapids.yml`
+- `k3d-testing` ships the CPU-only dependencies needed by the Step 13‑B harness (`pytest-benchmark`, `memory_profiler`, `matplotlib`, `psutil`). Use it to materialise reports without touching GPU-only stacks.
 - Attach/refresh a tmux session (keeps kernels alive):
   tmux new -As k3d
 - Activate the env inside tmux:
-  conda activate k3d-cranium   # or k3d-trm / k3d-cpu / k3d-rapids as needed
+  conda activate k3d-cranium   # or k3d-trm / k3d-testing / k3d-rapids as needed
 - Run PTX/CuPy tests via the SSD env:
   source /home/daniel/miniforge/etc/profile.d/conda.sh
   conda run -p /K3D/Knowledge3D.local/envs/k3d-trm env PYTHONPATH=$(pwd) pytest …
@@ -62,10 +62,10 @@ GPU setup (NVIDIA)
 Environment selection and pitfalls
 - Work inside tmux so the activated env persists across long GPU jobs.
 - Select the env explicitly after attaching: `conda activate k3d-cranium`
-  - CPU only: `conda activate k3d-cpu`
+  - CPU mock/testing harness: `conda activate k3d-testing`
   - RAPIDS pipeline: `conda activate k3d-rapids`
-- If you need the helper script, `scripts/k3d_env.sh run ...` now shells into tmux and activates the env for you.
-- Avoid mixing system Python with the project; all tooling assumes the conda env is active.
+- If you need the helper script, `scripts/k3d_env.sh run ...` now shells into tmux and activates the env for you (e.g., `scripts/k3d_env.sh run -e k3d-testing pytest tests/...`).
+- Avoid mixing system Python with the project; all tooling assumes the conda env is active. Keep hot paths on `k3d-cranium`; reserve `k3d-testing` for CPU-bound pytest and benchmarking.
 
 Live server ports and WebSockets
 - Port 8787 is commonly used by ComfyUI; the live benchmark script now avoids this port by default.

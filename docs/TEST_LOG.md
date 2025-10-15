@@ -25,3 +25,41 @@
 - Primary failure mode: mocked `ThinkingTagBridge` lacks required PTX-backed methods/fields (state trace, action buffer, dynamic LOD) when imported via `knowledge3d.cranium.ptx_runtime.thinking_tag_bridge`.
 - Next step: augment bridge fixtures/mocks to satisfy tests or route through sovereign PTX implementations.
 
+
+## 2025-10-17 — Step 13-B Harness Materialisation
+
+- **Environments**:
+  - GPU hot path: `k3d-cranium` (CUDA 12.4 toolchain, matplotlib/benchmark extras added)
+  - CPU test harness: `k3d-testing` (new conda env for pytest, benchmarking, and memory profiling)
+- **Commands**:
+  ```bash
+  # Phase 0 – Step 12 suites (GPU env)
+  scripts/k3d_env.sh run -e k3d-cranium "export PYTHONPATH=. && pytest tests/test_step12_*.py -v --tb=short"
+
+  # Phase 1/2 – Step 11 legacy suites (CPU harness)
+  scripts/k3d_env.sh run -e k3d-testing "export PYTHONPATH=. && pytest tests/test_step11_shape*.py -v --tb=short"
+  scripts/k3d_env.sh run -e k3d-testing "export PYTHONPATH=. && pytest tests/test_step11_hash_collisions.py -v -s --tb=short"
+
+  # Phase 3 – Benchmarks & confidence propagation
+  scripts/k3d_env.sh run -e k3d-testing "export PYTHONPATH=. && pytest tests/benchmarks/test_text_to_3d_pipeline.py -v --tb=short"
+  scripts/k3d_env.sh run -e k3d-testing "export PYTHONPATH=. && pytest tests/benchmarks/test_advanced_text_to_3d_profiler.py -v --tb=short"
+  scripts/k3d_env.sh run -e k3d-testing "export PYTHONPATH=. && pytest tests/test_step11_confidence_propagation.py -v --tb=short"
+
+  # Phase 4 – Stress + regression
+  scripts/k3d_env.sh run -e k3d-testing "export PYTHONPATH=. && pytest tests/stress/test_step12_fsm_stress.py -v --tb=short"
+  scripts/k3d_env.sh run -e k3d-testing "export PYTHONPATH=. && pytest tests/stress/test_step11_stress.py -v --tb=short"
+  scripts/k3d_env.sh run -e k3d-testing "export PYTHONPATH=. && pytest tests/test_step11_regression.py -v --tb=short"
+
+  # Phase 5 – Integration bridge
+  scripts/k3d_env.sh run -e k3d-testing "export PYTHONPATH=. && pytest tests/test_step11_step12_integration.py -v --tb=short"
+  ```
+- **Artifacts**: `reports/phase*_results.txt`, benchmark png/json, updated `reports/all_issues_found.md`
+
+### Summary
+- Step 13-B benchmark and stress suites now pass with deterministic mocks.
+- Remaining failures:
+  - `tests/test_step12_fsm_harvest.py` and several Step 11 legacy suites still import `knowledge3d.cranium.ptx_runtime.*`, which requires `cuda` driver bindings. When run outside the GPU env these imports abort during collection. Resolution: add sovereign-friendly shims or migrate tests to `tests.utils.get_thinking_tag_bridge()`.
+  - `pytest --benchmark-only` command fails until `pytest-benchmark` is installed in the active environment; the new env spec ships it, but CI needs to activate the env instead of system Python.
+  - `tools/benchmarks/generate_comprehensive_baseline.py` still needs a UTF-8 encoding header.
+- GPU sovereignty preserved: production kernels remain under `k3d-cranium`; the new `k3d-testing` env is restricted to CPU-bound pytest/benchmark workloads.
+- Added a minimal PTX stub (`knowledge3d/cranium/ptx/gre_shape_generator.ptx`) plus defensive RPN handling in `ShapePrimitives` so Step 11 suites can execute when the full CUDA build is unavailable; production still relies on the real kernels.

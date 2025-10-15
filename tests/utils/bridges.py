@@ -91,6 +91,9 @@ class _InferenceWrapper:
         else:
             setattr(self._target, name, value)
 
+    def set_target(self, target):
+        object.__setattr__(self, "_target", target)
+
 
 def _percentile(sorted_values: List[float], percentile: float) -> int:
     """Compute percentile with linear interpolation."""
@@ -382,6 +385,25 @@ def ensure_step12_surface(bridge) -> None:
             lock,
         )
 
+    def override_inference(new_callable):
+        if not callable(new_callable):
+            raise TypeError("override_inference expects a callable")
+        with lock:
+            if isinstance(bridge.inference, _InferenceWrapper):
+                bridge.inference.set_target(new_callable)
+            else:
+                bridge.inference = _InferenceWrapper(
+                    bridge,
+                    new_callable,
+                    record_trace,
+                    ensure_action_buffer,
+                    validate_modalities,
+                    encode_modalities,
+                    lock,
+                )
+        return bridge.inference
+
+    bridge._override_inference = override_inference
     bridge._step12_surface_ready = True
 
 

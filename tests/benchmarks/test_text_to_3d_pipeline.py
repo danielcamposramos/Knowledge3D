@@ -15,9 +15,7 @@ from unittest import mock
 import pytest
 
 from tests.utils.μbench import μBench
-from tests.utils.bridge_import import get_thinking_tag_bridge
-
-ThinkingTagBridge = get_thinking_tag_bridge()
+from tests.utils import ensure_step12_surface
 
 
 def _ensure_pipeline_bridge(instance) -> object:
@@ -114,9 +112,10 @@ def test_prompts(sample_prompts) -> List[str]:
 
 
 @pytest.fixture
-def pipeline_bridge() -> object:
+def pipeline_bridge(step12_bridge_factory) -> object:
     """Provide a bridge instance with all required helpers available."""
-    instance = ThinkingTagBridge()
+    instance = step12_bridge_factory()
+    ensure_step12_surface(instance)
     return _ensure_pipeline_bridge(instance)
 
 
@@ -202,4 +201,3 @@ class TestTextTo3DPipeline:
         assert throughput > 10, f"Throughput too low: {throughput} shapes/sec"
         success_count = len([result for result in results if result is not None])
         assert success_count > 45, f"Too many failed generations: {success_count}/50"
-

@@ -84,7 +84,7 @@
 
 **Priority 0: Environment Cleanup (IMMEDIATE)**
 
-1. ⏳ **DELETE envs/k3d-cpu.yml**
+1. ⏳ **DELETE envs/k3d-cpu.yml** *(historical – superseded by `envs/k3d-testing.yml` for CPU-only test harnesses added Oct 2025)*
    - Status: Deprecated CPU fallback environment
    - Rationale: Sovereign architecture is GPU-first, no CPU fallbacks
    - Action: Remove file, update documentation
@@ -555,6 +555,7 @@ TEMP/                           ← Swarm development chains
 **Action**: Remove CPU fallback environment
 - ❌ **DELETE** `envs/k3d-cpu.yml` - No CPU fallbacks in sovereign architecture!
 - **Rationale**: We run GPU-first with no fallbacks. The k3d-cpu env is deprecated.
+- _2025-10 Note_: A dedicated `envs/k3d-testing.yml` now covers CPU-only pytest/benchmark harnesses without touching production GPU paths.
 - **Verification**: Check `knowledge3d/accel.py` confirms STRICT GPU POLICY (line 58-91)
 - **Current envs**:
   - ✅ `k3d-cranium.yml` - Main sovereign development (has pygltflib!)

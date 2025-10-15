@@ -7,7 +7,12 @@ import numpy as np
 from pathlib import Path
 import time
 
-from knowledge3d.cranium.ptx_runtime.multi_modal_world_generator import MultiModalWorldGenerator
+mm_module = pytest.importorskip(
+    "knowledge3d.cranium.ptx_runtime.multi_modal_world_generator",
+    reason="MultiModalWorldGenerator not available in current build",
+)
+
+MultiModalWorldGenerator = mm_module.MultiModalWorldGenerator
 
 
 class TestEndToEndGeneration:

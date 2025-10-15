@@ -19,7 +19,7 @@ WORKDIR /workspace
 
 # Copy env files for reproducible installs (optional)
 COPY envs/k3d-rapids.yml /tmp/k3d-rapids.yml
-COPY envs/k3d-cpu.yml /tmp/k3d-cpu.yml
+COPY envs/k3d-testing.yml /tmp/k3d-testing.yml
 
 # Create a base env with GPU FAISS and common deps. cuML is optional and can be added later.
 RUN micromamba install -y -c conda-forge -c pytorch -c nvidia \

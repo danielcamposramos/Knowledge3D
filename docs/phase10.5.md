@@ -11,12 +11,12 @@ Train the AI to master multiple learning paradigms — RLWHF, Q&A, standard RL, 
 
 ## REPRODUCTION
 
-Use your Conda env (e.g., `k3d-cpu`) and set `PYTHONPATH=.`.
+Use your Conda env (e.g., `k3d-testing`) and set `PYTHONPATH=.`.
 
 1) RLWHF (honesty scoring, explanation required):
 
 ```bash
-PYTHONPATH=. conda run -n k3d-cpu python -m knowledge3d.tools.phase10.paradigm_switcher \
+PYTHONPATH=. conda run -n k3d-testing python -m knowledge3d.tools.phase10.paradigm_switcher \
   --mode rlwhf --data '{"query": "Is the sky green?"}' \
   2>&1 | tee logs/phase10.5_rlwhf.log
 ```
@@ -24,7 +24,7 @@ PYTHONPATH=. conda run -n k3d-cpu python -m knowledge3d.tools.phase10.paradigm_s
 2) Q&A (no feedback, pure correctness):
 
 ```bash
-PYTHONPATH=. conda run -n k3d-cpu python -m knowledge3d.tools.phase10.paradigm_switcher \
+PYTHONPATH=. conda run -n k3d-testing python -m knowledge3d.tools.phase10.paradigm_switcher \
   --mode qna --data '{"input": [0.1,0.9,0.2,0.8], "label": 1}' \
   2>&1 | tee logs/phase10.5_qna.log
 ```
@@ -32,13 +32,13 @@ PYTHONPATH=. conda run -n k3d-cpu python -m knowledge3d.tools.phase10.paradigm_s
 3) Baby curriculum (progressive modalities):
 
 ```bash
-PYTHONPATH=. conda run -n k3d-cpu python -m knowledge3d.tools.phase10.baby_curriculum --stage 1 --modality text \
+PYTHONPATH=. conda run -n k3d-testing python -m knowledge3d.tools.phase10.baby_curriculum --stage 1 --modality text \
   2>&1 | tee -a logs/phase10.5_baby.log
-PYTHONPATH=. conda run -n k3d-cpu python -m knowledge3d.tools.phase10.baby_curriculum --stage 2 --modality text_image \
+PYTHONPATH=. conda run -n k3d-testing python -m knowledge3d.tools.phase10.baby_curriculum --stage 2 --modality text_image \
   2>&1 | tee -a logs/phase10.5_baby.log
-PYTHONPATH=. conda run -n k3d-cpu python -m knowledge3d.tools.phase10.baby_curriculum --stage 3 --modality text_image_audio \
+PYTHONPATH=. conda run -n k3d-testing python -m knowledge3d.tools.phase10.baby_curriculum --stage 3 --modality text_image_audio \
   2>&1 | tee -a logs/phase10.5_baby.log
-PYTHONPATH=. conda run -n k3d-cpu python -m knowledge3d.tools.phase10.baby_curriculum --stage 4 --modality all_modalities \
+PYTHONPATH=. conda run -n k3d-testing python -m knowledge3d.tools.phase10.baby_curriculum --stage 4 --modality all_modalities \
   2>&1 | tee -a logs/phase10.5_baby.log
 ```
 
@@ -52,4 +52,3 @@ PYTHONPATH=. conda run -n k3d-cpu python -m knowledge3d.tools.phase10.baby_curri
 - The student head includes a scalar `honesty_bias` influenced by RLWHF rewards for a simple end‑to‑end loop.
 - Multi‑modality fusion projects each modality to a common dimension and applies a lightweight attention over modality tokens.
 - Torch is optional; when unavailable, stubs run without gradient steps.
-

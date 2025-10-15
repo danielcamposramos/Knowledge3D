@@ -18,10 +18,8 @@ except ImportError:  # pragma: no cover - optional dependency
     plt = None  # type: ignore
 
 from tests.utils.μbench import μBench
-from tests.utils.bridge_import import get_thinking_tag_bridge
+from tests.utils import ensure_step12_surface
 from tests.benchmarks.test_text_to_3d_pipeline import _ensure_pipeline_bridge
-
-ThinkingTagBridge = get_thinking_tag_bridge()
 
 
 @pytest.fixture
@@ -36,8 +34,10 @@ def test_prompts(sample_prompts) -> List[str]:
 
 
 @pytest.fixture
-def profiler_bridge():
-    return _ensure_pipeline_bridge(ThinkingTagBridge())
+def profiler_bridge(step12_bridge_factory):
+    instance = step12_bridge_factory()
+    ensure_step12_surface(instance)
+    return _ensure_pipeline_bridge(instance)
 
 
 @pytest.fixture

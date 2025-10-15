@@ -13,12 +13,21 @@ class ShapePrimitives:
     """
     
     def __init__(self):
-        # Load shape generation kernel
-        self.shape_kernel = load_ptx_file(
-            "knowledge3d/cranium/ptx/gre_shape_generator.ptx",
-            "generate_adaptive_primitive"
-        )
-        self.rpn = ModularRPNEngine()
+        # Load shape generation kernel; tests may run without compiled PTX.
+        try:
+            self.shape_kernel = load_ptx_file(
+                "knowledge3d/cranium/ptx/gre_shape_generator.ptx",
+                "generate_adaptive_primitive"
+            )
+        except (FileNotFoundError, RuntimeError):
+            self.shape_kernel = None
+
+        try:
+            self.rpn = ModularRPNEngine()
+            self._rpn_available = True
+        except RuntimeError:
+            self.rpn = None
+            self._rpn_available = False
         self.templates = self._init_enhanced_templates()
         
         # Semantic-to-geometry mapping
@@ -241,10 +250,12 @@ class ShapePrimitives:
         template = self.templates["cube"]
         lod_variant = template["lod_variants"][lod_level]
         
-        # Scale using RPN
-        opcodes = np.array([0x03], dtype=np.uint16)  # MUL
-        scalars = np.array([size / 2.0], dtype=np.float32)
-        scaled_vertices = self.rpn.execute_batch(opcodes, scalars, lod_variant["vertices"])
+        if self._rpn_available:
+            opcodes = np.array([0x03], dtype=np.uint16)  # MUL
+            scalars = np.array([size / 2.0], dtype=np.float32)
+            scaled_vertices = self.rpn.execute_batch(opcodes, scalars, lod_variant["vertices"])
+        else:
+            scaled_vertices = lod_variant["vertices"].copy() * (size / 2.0)
         
         return scaled_vertices, lod_variant["indices"]
     
@@ -334,9 +345,17 @@ class ShapePrimitives:
     def _normalize_to_sphere(self, vertices, radius):
         """Normalize vertices to sphere surface using RPN."""
         mags = np.linalg.norm(vertices, axis=1, keepdims=True)
-        opcodes = np.array([0x04, 0x03], dtype=np.uint16)  # DIV, MUL
-        scalars = np.concatenate([mags.flatten(), np.full(len(vertices), radius)])
-        return self.rpn.execute_batch(opcodes, scalars, vertices)
+        if self._rpn_available:
+            opcodes = np.array([0x04, 0x03], dtype=np.uint16)  # DIV, MUL
+            scalars = np.concatenate([mags.flatten(), np.full(len(vertices), radius, dtype=np.float32)])
+            return self.rpn.execute_batch(opcodes, scalars, vertices)
+        mags[mags == 0] = 1.0
+        normalized = vertices / mags
+        normalized *= radius
+        zero_mask = np.linalg.norm(normalized, axis=1) == 0
+        if np.any(zero_mask):
+            normalized[zero_mask] = np.array([radius, 0.0, 0.0], dtype=np.float32)
+        return normalized
     
     def adapt_primitive_from_modal(self, base_verts, modal_features, semantic_context=None):
         """
@@ -376,9 +395,12 @@ class ShapePrimitives:
         else:
             # Generic adaptation
             scales = modal_features[:3] if len(modal_features) >= 3 else np.ones(3)
-            opcodes = np.array([0x03, 0x03, 0x03], dtype=np.uint16)  # MUL x3
             scalars = scales.astype(np.float32) * adaptation_strength + (1 - adaptation_strength)
-            adapted_verts = self.rpn.execute_batch(opcodes, scalars, adapted_verts)
+            if self._rpn_available:
+                opcodes = np.array([0x03, 0x03, 0x03], dtype=np.uint16)  # MUL x3
+                adapted_verts = self.rpn.execute_batch(opcodes, scalars, adapted_verts)
+            else:
+                adapted_verts = adapted_verts * scalars
             
         return adapted_verts
     

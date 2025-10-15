@@ -1,0 +1,765 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.18, pytest-8.4.2, pluggy-1.6.0 -- /K3D/Knowledge3D.local/envs/k3d-cranium/bin/python
+cachedir: .pytest_cache
+Knowledge3D Test Suite
+GPU-Sovereign Multi-Modal AI Testing Framework
+Test Mode: GPU-Enabled
+rootdir: /mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D
+configfile: pytest.ini
+collecting ... collected 140 items / 2 skipped
+
+tests/test_step11_confidence_propagation.py::TestConfidencePropagation::test_text_confidence_to_shape_selection ERROR [  0%]
+tests/test_step11_confidence_propagation.py::TestConfidencePropagation::test_multi_modal_fusion_confidence ERROR [  1%]
+tests/test_step11_confidence_propagation.py::TestConfidencePropagation::test_uncertainty_quantification ERROR [  2%]
+tests/test_step11_confidence_propagation.py::TestConfidencePropagation::test_confidence_threshold_behavior ERROR [  2%]
+tests/test_step11_confidence_propagation.py::TestConfidencePropagation::test_confidence_correlation_with_human_judgment ERROR [  3%]
+tests/test_step11_hash_collisions.py::TestHashCollisions::test_100k_shape_descriptions_collision_rate PASSED [  4%]
+tests/test_step11_hash_collisions.py::TestHashCollisions::test_uniform_distribution_chi_squared FAILED [  5%]
+tests/test_step11_hash_collisions.py::TestHashCollisions::test_similar_strings_produce_different_hashes PASSED [  5%]
+tests/test_step11_hash_collisions.py::TestHashCollisions::test_empty_string_hash PASSED [  6%]
+tests/test_step11_hash_collisions.py::TestHashCollisions::test_single_character_hashes PASSED [  7%]
+tests/test_step11_hash_collisions.py::TestHashCollisions::test_unicode_handling PASSED [  7%]
+tests/test_step11_hash_collisions.py::TestHashCollisions::test_very_long_strings PASSED [  8%]
+tests/test_step11_hash_collisions.py::TestHashCollisions::test_binary_data_hashing PASSED [  9%]
+tests/test_step11_hash_collisions.py::TestHashCollisions::test_hash_determinism PASSED [ 10%]
+tests/test_step11_hash_collisions.py::TestHashCollisions::test_hash_distribution_across_full_range PASSED [ 10%]
+tests/test_step11_hash_collisions.py::TestHashCollisions::test_collision_resistance_with_sequential_inputs PASSED [ 11%]
+tests/test_step11_hash_collisions.py::TestHashCollisions::test_hash_performance_benchmark PASSED [ 12%]
+tests/test_step11_regression.py::test_regression_cases ERROR             [ 12%]
+tests/test_step11_regression.py::test_performance_regression ERROR       [ 13%]
+tests/test_step11_regression.py::test_api_contract_stability ERROR       [ 14%]
+tests/test_step11_shape_cache.py::TestShapeCacheBasic::test_initialization PASSED [ 15%]
+tests/test_step11_shape_cache.py::TestShapeCacheBasic::test_cache_empty_lookup_misses PASSED [ 15%]
+tests/test_step11_shape_cache.py::TestCacheHitMiss::test_cache_miss_then_hit PASSED [ 16%]
+tests/test_step11_shape_cache.py::TestCacheHitMiss::test_cache_different_params_miss PASSED [ 17%]
+tests/test_step11_shape_cache.py::TestCacheHitMiss::test_cache_hit_rate_calculation PASSED [ 17%]
+tests/test_step11_shape_cache.py::TestIntelligentEviction::test_eviction_on_capacity_exceeded PASSED [ 18%]
+tests/test_step11_shape_cache.py::TestIntelligentEviction::test_lru_eviction_order FAILED [ 19%]
+tests/test_step11_shape_cache.py::TestIntelligentEviction::test_eviction_score_factors FAILED [ 20%]
+tests/test_step11_shape_cache.py::TestSemanticClustering::test_semantic_cluster_creation PASSED [ 20%]
+tests/test_step11_shape_cache.py::TestSemanticClustering::test_semantic_cluster_usage_tracking PASSED [ 21%]
+tests/test_step11_shape_cache.py::TestSemanticClustering::test_different_modal_types_different_clusters PASSED [ 22%]
+tests/test_step11_shape_cache.py::TestPredictivePrefetching::test_access_pattern_tracking PASSED [ 22%]
+tests/test_step11_shape_cache.py::TestPredictivePrefetching::test_access_history_limited_size PASSED [ 23%]
+tests/test_step11_shape_cache.py::TestMemoryManagement::test_memory_usage_calculation PASSED [ 24%]
+tests/test_step11_shape_cache.py::TestMemoryManagement::test_eviction_on_memory_limit FAILED [ 25%]
+tests/test_step11_shape_cache.py::TestCacheOptimization::test_optimize_cache PASSED [ 25%]
+tests/test_step11_shape_cache.py::TestCacheOptimization::test_cache_report PASSED [ 26%]
+tests/test_step11_shape_cache.py::TestCacheClear::test_clear_resets_all_state PASSED [ 27%]
+tests/test_step11_shape_cache.py::TestPerformance::test_lookup_performance FAILED [ 27%]
+tests/test_step11_shape_cache.py::TestPerformance::test_insert_performance PASSED [ 28%]
+tests/test_step11_shape_composition.py::TestShapeComposition::test_simple_two_shape_composition PASSED [ 29%]
+tests/test_step11_shape_composition.py::TestShapeComposition::test_nested_hierarchy_three_levels PASSED [ 30%]
+tests/test_step11_shape_composition.py::TestShapeComposition::test_boolean_union_operation PASSED [ 30%]
+tests/test_step11_shape_composition.py::TestShapeComposition::test_boolean_intersection_operation PASSED [ 31%]
+tests/test_step11_shape_composition.py::TestShapeComposition::test_boolean_difference_operation PASSED [ 32%]
+tests/test_step11_shape_composition.py::TestShapeComposition::test_transform_chain_translate_rotate_scale PASSED [ 32%]
+tests/test_step11_shape_composition.py::TestShapeComposition::test_material_inheritance_in_hierarchy PASSED [ 33%]
+tests/test_step11_shape_composition.py::TestShapeComposition::test_coordinate_system_conversion_world_to_local FAILED [ 34%]
+tests/test_step11_shape_composition.py::TestShapeComposition::test_coordinate_system_conversion_local_to_world FAILED [ 35%]
+tests/test_step11_shape_composition.py::TestShapeComposition::test_array_composition_10_objects PASSED [ 35%]
+tests/test_step11_shape_composition.py::TestShapeComposition::test_deeply_nested_hierarchy_5_levels PASSED [ 36%]
+tests/test_step11_shape_composition.py::TestShapeComposition::test_circular_reference_detection PASSED [ 37%]
+tests/test_step11_shape_composition.py::TestShapeComposition::test_empty_composition FAILED [ 37%]
+tests/test_step11_shape_composition.py::TestShapeComposition::test_single_shape_composition PASSED [ 38%]
+tests/test_step11_shape_composition.py::TestShapeComposition::test_transform_with_zero_scale PASSED [ 39%]
+tests/test_step11_shape_composition.py::TestShapeComposition::test_transform_with_negative_scale PASSED [ 40%]
+tests/test_step11_shape_composition.py::TestShapeComposition::test_rotation_360_degrees PASSED [ 40%]
+tests/test_step11_shape_composition.py::TestShapeComposition::test_multiple_material_override PASSED [ 41%]
+tests/test_step11_shape_composition.py::TestShapeComposition::test_bounding_box_after_composition FAILED [ 42%]
+tests/test_step11_shape_composition.py::TestShapeComposition::test_preserve_vertex_count FAILED [ 42%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_rejects_negative_dimensions[dims0] FAILED [ 43%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_rejects_negative_dimensions[dims1] FAILED [ 44%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_rejects_negative_dimensions[dims2] FAILED [ 45%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_accepts_zero_volume[dims0] PASSED [ 45%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_accepts_zero_volume[dims1] PASSED [ 46%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_extreme_aspect_ratios[dims0] FAILED [ 47%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_extreme_aspect_ratios[dims1] FAILED [ 47%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_invalid_utf8_description FAILED [ 48%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_empty_prompt_string PASSED [ 49%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_maximum_complexity_prompt FAILED [ 50%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_sphere_zero_radius PASSED [ 50%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_cylinder_negative_height FAILED [ 51%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_nan_in_dimensions FAILED [ 52%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_inf_in_dimensions FAILED [ 52%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_unicode_emoji_in_prompt PASSED [ 53%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_chinese_characters_in_prompt PASSED [ 54%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_rtl_text_in_prompt PASSED [ 55%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_control_characters_in_prompt PASSED [ 55%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_dimension_tuple_vs_list PASSED [ 56%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_single_dimension_value PASSED [ 57%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_four_dimensional_input PASSED [ 57%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_very_small_dimensions PASSED [ 58%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_very_large_dimensions PASSED [ 59%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_mixed_dimension_types PASSED [ 60%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_prompt_with_special_characters PASSED [ 60%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_prompt_with_numbers_only PASSED [ 61%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_prompt_with_url PASSED [ 62%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_prompt_with_sql_injection_attempt PASSED [ 62%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_prompt_with_html_tags PASSED [ 63%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_whitespace_only_prompt PASSED [ 64%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_newline_in_prompt PASSED [ 65%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_tabs_in_prompt PASSED [ 65%]
+tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_repeated_words PASSED [ 66%]
+tests/test_step11_shape_primitives.py::TestShapePrimitivesBasic::test_initialization PASSED [ 67%]
+tests/test_step11_shape_primitives.py::TestShapePrimitivesBasic::test_semantic_geometry_map PASSED [ 67%]
+tests/test_step11_shape_primitives.py::TestLODGeneration::test_cube_lod_levels PASSED [ 68%]
+tests/test_step11_shape_primitives.py::TestLODGeneration::test_lod_vertex_count_decreases PASSED [ 69%]
+tests/test_step11_shape_primitives.py::TestLODGeneration::test_sphere_lod_levels PASSED [ 70%]
+tests/test_step11_shape_primitives.py::TestLODGeneration::test_cylinder_lod_levels PASSED [ 70%]
+tests/test_step11_shape_primitives.py::TestLODGeneration::test_cone_lod_levels PASSED [ 71%]
+tests/test_step11_shape_primitives.py::TestLODGeneration::test_torus_lod_levels PASSED [ 72%]
+tests/test_step11_shape_primitives.py::TestRPNAcceleration::test_rpn_scaling PASSED [ 72%]
+tests/test_step11_shape_primitives.py::TestRPNAcceleration::test_rpn_transform_batch PASSED [ 73%]
+tests/test_step11_shape_primitives.py::TestSemanticAdaptation::test_organic_deformation PASSED [ 74%]
+tests/test_step11_shape_primitives.py::TestSemanticAdaptation::test_mechanical_precision PASSED [ 75%]
+tests/test_step11_shape_primitives.py::TestSemanticAdaptation::test_architectural_constraints PASSED [ 75%]
+tests/test_step11_shape_primitives.py::TestSemanticAdaptation::test_no_features_returns_unchanged PASSED [ 76%]
+tests/test_step11_shape_primitives.py::TestSemanticSuggestions::test_semantic_suggestions_format PASSED [ 77%]
+tests/test_step11_shape_primitives.py::TestSemanticSuggestions::test_geometric_pattern_detection PASSED [ 77%]
+tests/test_step11_shape_primitives.py::TestPrimitiveQuality::test_cube_has_correct_topology PASSED [ 78%]
+tests/test_step11_shape_primitives.py::TestPrimitiveQuality::test_sphere_subdivision_increases_vertices PASSED [ 79%]
+tests/test_step11_shape_primitives.py::TestPrimitiveQuality::test_cylinder_has_caps PASSED [ 80%]
+tests/test_step11_shape_primitives.py::TestPrimitiveQuality::test_torus_has_donut_shape PASSED [ 80%]
+tests/test_step11_shape_primitives.py::TestEdgeCases::test_zero_size_cube PASSED [ 81%]
+tests/test_step11_shape_primitives.py::TestEdgeCases::test_negative_size_cube PASSED [ 82%]
+tests/test_step11_shape_primitives.py::TestEdgeCases::test_very_large_size PASSED [ 82%]
+tests/test_step11_shape_primitives.py::TestEdgeCases::test_invalid_lod_level PASSED [ 83%]
+tests/test_step11_shape_primitives.py::TestPerformance::test_generation_speed_lod_0 PASSED [ 84%]
+tests/test_step11_shape_primitives.py::TestPerformance::test_generation_speed_lod_2 PASSED [ 85%]
+tests/test_step11_step12_integration.py::TestStep11Step12Integration::test_shape_generation_with_fsm_tracking ERROR [ 85%]
+tests/test_step11_step12_integration.py::TestStep11Step12Integration::test_action_buffer_population_during_shape_generation ERROR [ 86%]
+tests/test_step11_step12_integration.py::TestStep11Step12Integration::test_dynamic_lod_during_complex_shape_generation ERROR [ 87%]
+tests/test_step11_step12_integration.py::TestStep11Step12Integration::test_performance_with_full_fsm_pipeline ERROR [ 87%]
+tests/benchmarks/test_advanced_text_to_3d_profiler.py::TestAdvancedTextTo3DProfiler::test_detailed_pipeline_breakdown ERROR [ 88%]
+tests/benchmarks/test_advanced_text_to_3d_profiler.py::TestAdvancedTextTo3DProfiler::test_memory_usage_profiling ERROR [ 89%]
+tests/benchmarks/test_step12_fsm_overhead.py::test_state_tracking_overhead ERROR [ 90%]
+tests/benchmarks/test_step12_fsm_overhead.py::test_action_buffer_overhead ERROR [ 90%]
+tests/benchmarks/test_step12_fsm_overhead.py::test_dynamic_lod_overhead ERROR [ 91%]
+tests/benchmarks/test_step12_fsm_overhead.py::test_total_fsm_overhead PASSED [ 92%]
+tests/benchmarks/test_step12_fsm_overhead.py::test_state_trace_memory SKIPPED [ 92%]
+tests/benchmarks/test_step12_fsm_overhead.py::test_json_export_latency ERROR [ 93%]
+tests/benchmarks/test_step12_fsm_overhead.py::test_state_trace_memory_per_inference SKIPPED [ 94%]
+tests/benchmarks/test_step12_fsm_overhead.py::test_action_buffer_contention FAILED [ 95%]
+tests/benchmarks/test_text_to_3d_pipeline.py::TestTextTo3DPipeline::test_prompt_parsing_latency ERROR [ 95%]
+tests/benchmarks/test_text_to_3d_pipeline.py::TestTextTo3DPipeline::test_shape_synthesis_latency ERROR [ 96%]
+tests/benchmarks/test_text_to_3d_pipeline.py::TestTextTo3DPipeline::test_end_to_end_generation ERROR [ 97%]
+tests/benchmarks/test_text_to_3d_pipeline.py::TestTextTo3DPipeline::test_concurrent_generation_throughput ERROR [ 97%]
+tests/stress/test_step11_stress.py::test_rapid_generation_1000_shapes ERROR [ 98%]
+tests/stress/test_step11_stress.py::test_memory_exhaustion_graceful_degradation ERROR [ 99%]
+tests/stress/test_step12_fsm_stress.py::test_high_frequency_inference_storm ERROR [100%]
+
+==================================== ERRORS ====================================
+_ ERROR at setup of TestConfidencePropagation.test_text_confidence_to_shape_selection _
+tests/conftest.py:80: in bridge
+    bridge_instance = step12_bridge_factory()
+tests/conftest.py:55: in _factory
+    instance = ThinkingTagBridge()
+knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
+    self.rpn_engine = ModularRPNEngine()
+knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
+    self._sovereign_engine = SovereignRPNEngine()
+knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
+    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
+knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
+    return load_ptx(ptx_data, entry_name.encode())
+knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
+    _ensure_init()
+knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
+    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
+knowledge3d/cranium/sovereign/loader.py:47: in ck
+    raise RuntimeError(f"Sovereign loader error: {msg}")
+E   RuntimeError: Sovereign loader error: out of memory
+_ ERROR at setup of TestConfidencePropagation.test_multi_modal_fusion_confidence _
+tests/conftest.py:80: in bridge
+    bridge_instance = step12_bridge_factory()
+tests/conftest.py:55: in _factory
+    instance = ThinkingTagBridge()
+knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
+    self.rpn_engine = ModularRPNEngine()
+knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
+    self._sovereign_engine = SovereignRPNEngine()
+knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
+    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
+knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
+    return load_ptx(ptx_data, entry_name.encode())
+knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
+    _ensure_init()
+knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
+    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
+knowledge3d/cranium/sovereign/loader.py:47: in ck
+    raise RuntimeError(f"Sovereign loader error: {msg}")
+E   RuntimeError: Sovereign loader error: out of memory
+_ ERROR at setup of TestConfidencePropagation.test_uncertainty_quantification __
+tests/conftest.py:80: in bridge
+    bridge_instance = step12_bridge_factory()
+tests/conftest.py:55: in _factory
+    instance = ThinkingTagBridge()
+knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
+    self.rpn_engine = ModularRPNEngine()
+knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
+    self._sovereign_engine = SovereignRPNEngine()
+knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
+    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
+knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
+    return load_ptx(ptx_data, entry_name.encode())
+knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
+    _ensure_init()
+knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
+    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
+knowledge3d/cranium/sovereign/loader.py:47: in ck
+    raise RuntimeError(f"Sovereign loader error: {msg}")
+E   RuntimeError: Sovereign loader error: out of memory
+_ ERROR at setup of TestConfidencePropagation.test_confidence_threshold_behavior _
+tests/conftest.py:80: in bridge
+    bridge_instance = step12_bridge_factory()
+tests/conftest.py:55: in _factory
+    instance = ThinkingTagBridge()
+knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
+    self.rpn_engine = ModularRPNEngine()
+knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
+    self._sovereign_engine = SovereignRPNEngine()
+knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
+    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
+knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
+    return load_ptx(ptx_data, entry_name.encode())
+knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
+    _ensure_init()
+knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
+    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
+knowledge3d/cranium/sovereign/loader.py:47: in ck
+    raise RuntimeError(f"Sovereign loader error: {msg}")
+E   RuntimeError: Sovereign loader error: out of memory
+_ ERROR at setup of TestConfidencePropagation.test_confidence_correlation_with_human_judgment _
+tests/conftest.py:80: in bridge
+    bridge_instance = step12_bridge_factory()
+tests/conftest.py:55: in _factory
+    instance = ThinkingTagBridge()
+knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
+    self.rpn_engine = ModularRPNEngine()
+knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
+    self._sovereign_engine = SovereignRPNEngine()
+knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
+    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
+knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
+    return load_ptx(ptx_data, entry_name.encode())
+knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
+    _ensure_init()
+knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
+    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
+knowledge3d/cranium/sovereign/loader.py:47: in ck
+    raise RuntimeError(f"Sovereign loader error: {msg}")
+E   RuntimeError: Sovereign loader error: out of memory
+___________________ ERROR at setup of test_regression_cases ____________________
+tests/conftest.py:80: in bridge
+    bridge_instance = step12_bridge_factory()
+tests/conftest.py:55: in _factory
+    instance = ThinkingTagBridge()
+knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
+    self.rpn_engine = ModularRPNEngine()
+knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
+    self._sovereign_engine = SovereignRPNEngine()
+knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
+    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
+knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
+    return load_ptx(ptx_data, entry_name.encode())
+knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
+    _ensure_init()
+knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
+    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
+knowledge3d/cranium/sovereign/loader.py:47: in ck
+    raise RuntimeError(f"Sovereign loader error: {msg}")
+E   RuntimeError: Sovereign loader error: out of memory
+________________ ERROR at setup of test_performance_regression _________________
+tests/conftest.py:80: in bridge
+    bridge_instance = step12_bridge_factory()
+tests/conftest.py:55: in _factory
+    instance = ThinkingTagBridge()
+knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
+    self.rpn_engine = ModularRPNEngine()
+knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
+    self._sovereign_engine = SovereignRPNEngine()
+knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
+    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
+knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
+    return load_ptx(ptx_data, entry_name.encode())
+knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
+    _ensure_init()
+knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
+    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
+knowledge3d/cranium/sovereign/loader.py:47: in ck
+    raise RuntimeError(f"Sovereign loader error: {msg}")
+E   RuntimeError: Sovereign loader error: out of memory
+________________ ERROR at setup of test_api_contract_stability _________________
+tests/conftest.py:80: in bridge
+    bridge_instance = step12_bridge_factory()
+tests/conftest.py:55: in _factory
+    instance = ThinkingTagBridge()
+knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
+    self.rpn_engine = ModularRPNEngine()
+knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
+    self._sovereign_engine = SovereignRPNEngine()
+knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
+    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
+knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
+    return load_ptx(ptx_data, entry_name.encode())
+knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
+    _ensure_init()
+knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
+    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
+knowledge3d/cranium/sovereign/loader.py:47: in ck
+    raise RuntimeError(f"Sovereign loader error: {msg}")
+E   RuntimeError: Sovereign loader error: out of memory
+_ ERROR at setup of TestStep11Step12Integration.test_shape_generation_with_fsm_tracking _
+tests/conftest.py:80: in bridge
+    bridge_instance = step12_bridge_factory()
+tests/conftest.py:55: in _factory
+    instance = ThinkingTagBridge()
+knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
+    self.rpn_engine = ModularRPNEngine()
+knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
+    self._sovereign_engine = SovereignRPNEngine()
+knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
+    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
+knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
+    return load_ptx(ptx_data, entry_name.encode())
+knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
+    _ensure_init()
+knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
+    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
+knowledge3d/cranium/sovereign/loader.py:47: in ck
+    raise RuntimeError(f"Sovereign loader error: {msg}")
+E   RuntimeError: Sovereign loader error: out of memory
+_ ERROR at setup of TestStep11Step12Integration.test_action_buffer_population_during_shape_generation _
+tests/conftest.py:80: in bridge
+    bridge_instance = step12_bridge_factory()
+tests/conftest.py:55: in _factory
+    instance = ThinkingTagBridge()
+knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
+    self.rpn_engine = ModularRPNEngine()
+knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
+    self._sovereign_engine = SovereignRPNEngine()
+knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
+    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
+knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
+    return load_ptx(ptx_data, entry_name.encode())
+knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
+    _ensure_init()
+knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
+    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
+knowledge3d/cranium/sovereign/loader.py:47: in ck
+    raise RuntimeError(f"Sovereign loader error: {msg}")
+E   RuntimeError: Sovereign loader error: out of memory
+_ ERROR at setup of TestStep11Step12Integration.test_dynamic_lod_during_complex_shape_generation _
+tests/conftest.py:80: in bridge
+    bridge_instance = step12_bridge_factory()
+tests/conftest.py:55: in _factory
+    instance = ThinkingTagBridge()
+knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
+    self.rpn_engine = ModularRPNEngine()
+knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
+    self._sovereign_engine = SovereignRPNEngine()
+knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
+    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
+knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
+    return load_ptx(ptx_data, entry_name.encode())
+knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
+    _ensure_init()
+knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
+    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
+knowledge3d/cranium/sovereign/loader.py:47: in ck
+    raise RuntimeError(f"Sovereign loader error: {msg}")
+E   RuntimeError: Sovereign loader error: out of memory
+_ ERROR at setup of TestStep11Step12Integration.test_performance_with_full_fsm_pipeline _
+tests/conftest.py:80: in bridge
+    bridge_instance = step12_bridge_factory()
+tests/conftest.py:55: in _factory
+    instance = ThinkingTagBridge()
+knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
+    self.rpn_engine = ModularRPNEngine()
+knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
+    self._sovereign_engine = SovereignRPNEngine()
+knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
+    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
+knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
+    return load_ptx(ptx_data, entry_name.encode())
+knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
+    _ensure_init()
+knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
+    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
+knowledge3d/cranium/sovereign/loader.py:47: in ck
+    raise RuntimeError(f"Sovereign loader error: {msg}")
+E   RuntimeError: Sovereign loader error: out of memory
+_ ERROR at setup of TestAdvancedTextTo3DProfiler.test_detailed_pipeline_breakdown _
+tests/benchmarks/test_advanced_text_to_3d_profiler.py:38: in profiler_bridge
+    instance = step12_bridge_factory()
+tests/conftest.py:55: in _factory
+    instance = ThinkingTagBridge()
+knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
+    self.rpn_engine = ModularRPNEngine()
+knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
+    self._sovereign_engine = SovereignRPNEngine()
+knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
+    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
+knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
+    return load_ptx(ptx_data, entry_name.encode())
+knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
+    _ensure_init()
+knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
+    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
+knowledge3d/cranium/sovereign/loader.py:47: in ck
+    raise RuntimeError(f"Sovereign loader error: {msg}")
+E   RuntimeError: Sovereign loader error: out of memory
+__ ERROR at setup of TestAdvancedTextTo3DProfiler.test_memory_usage_profiling __
+tests/benchmarks/test_advanced_text_to_3d_profiler.py:38: in profiler_bridge
+    instance = step12_bridge_factory()
+tests/conftest.py:55: in _factory
+    instance = ThinkingTagBridge()
+knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
+    self.rpn_engine = ModularRPNEngine()
+knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
+    self._sovereign_engine = SovereignRPNEngine()
+knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
+    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
+knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
+    return load_ptx(ptx_data, entry_name.encode())
+knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
+    _ensure_init()
+knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
+    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
+knowledge3d/cranium/sovereign/loader.py:47: in ck
+    raise RuntimeError(f"Sovereign loader error: {msg}")
+E   RuntimeError: Sovereign loader error: out of memory
+________________ ERROR at setup of test_state_tracking_overhead ________________
+file /mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/tests/benchmarks/test_step12_fsm_overhead.py, line 48
+  def test_state_tracking_overhead(benchmark, bridge):
+E       fixture 'benchmark' not found
+>       available fixtures: _inject_step12_factory, bridge, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, doctest_namespace, k3d_assert, mock_embedding, mock_shape, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, sample_modalities, sample_prompts, set_test_environment, step12_bridge_factory, temp_test_dir, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/tests/benchmarks/test_step12_fsm_overhead.py:48
+________________ ERROR at setup of test_action_buffer_overhead _________________
+file /mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/tests/benchmarks/test_step12_fsm_overhead.py, line 59
+  def test_action_buffer_overhead(benchmark, bridge):
+E       fixture 'benchmark' not found
+>       available fixtures: _inject_step12_factory, bridge, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, doctest_namespace, k3d_assert, mock_embedding, mock_shape, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, sample_modalities, sample_prompts, set_test_environment, step12_bridge_factory, temp_test_dir, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/tests/benchmarks/test_step12_fsm_overhead.py:59
+_________________ ERROR at setup of test_dynamic_lod_overhead __________________
+file /mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/tests/benchmarks/test_step12_fsm_overhead.py, line 73
+  def test_dynamic_lod_overhead(benchmark, bridge):
+E       fixture 'benchmark' not found
+>       available fixtures: _inject_step12_factory, bridge, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, doctest_namespace, k3d_assert, mock_embedding, mock_shape, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, sample_modalities, sample_prompts, set_test_environment, step12_bridge_factory, temp_test_dir, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/tests/benchmarks/test_step12_fsm_overhead.py:73
+__________________ ERROR at setup of test_json_export_latency __________________
+file /mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/tests/benchmarks/test_step12_fsm_overhead.py, line 124
+  def test_json_export_latency(benchmark, bridge):
+E       fixture 'benchmark' not found
+>       available fixtures: _inject_step12_factory, bridge, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, doctest_namespace, k3d_assert, mock_embedding, mock_shape, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, sample_modalities, sample_prompts, set_test_environment, step12_bridge_factory, temp_test_dir, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/tests/benchmarks/test_step12_fsm_overhead.py:124
+______ ERROR at setup of TestTextTo3DPipeline.test_prompt_parsing_latency ______
+tests/benchmarks/test_text_to_3d_pipeline.py:117: in pipeline_bridge
+    instance = step12_bridge_factory()
+tests/conftest.py:55: in _factory
+    instance = ThinkingTagBridge()
+knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
+    self.rpn_engine = ModularRPNEngine()
+knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
+    self._sovereign_engine = SovereignRPNEngine()
+knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
+    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
+knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
+    return load_ptx(ptx_data, entry_name.encode())
+knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
+    _ensure_init()
+knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
+    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
+knowledge3d/cranium/sovereign/loader.py:47: in ck
+    raise RuntimeError(f"Sovereign loader error: {msg}")
+E   RuntimeError: Sovereign loader error: out of memory
+_____ ERROR at setup of TestTextTo3DPipeline.test_shape_synthesis_latency ______
+tests/benchmarks/test_text_to_3d_pipeline.py:117: in pipeline_bridge
+    instance = step12_bridge_factory()
+tests/conftest.py:55: in _factory
+    instance = ThinkingTagBridge()
+knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
+    self.rpn_engine = ModularRPNEngine()
+knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
+    self._sovereign_engine = SovereignRPNEngine()
+knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
+    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
+knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
+    return load_ptx(ptx_data, entry_name.encode())
+knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
+    _ensure_init()
+knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
+    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
+knowledge3d/cranium/sovereign/loader.py:47: in ck
+    raise RuntimeError(f"Sovereign loader error: {msg}")
+E   RuntimeError: Sovereign loader error: out of memory
+______ ERROR at setup of TestTextTo3DPipeline.test_end_to_end_generation _______
+tests/benchmarks/test_text_to_3d_pipeline.py:117: in pipeline_bridge
+    instance = step12_bridge_factory()
+tests/conftest.py:55: in _factory
+    instance = ThinkingTagBridge()
+knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
+    self.rpn_engine = ModularRPNEngine()
+knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
+    self._sovereign_engine = SovereignRPNEngine()
+knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
+    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
+knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
+    return load_ptx(ptx_data, entry_name.encode())
+knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
+    _ensure_init()
+knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
+    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
+knowledge3d/cranium/sovereign/loader.py:47: in ck
+    raise RuntimeError(f"Sovereign loader error: {msg}")
+E   RuntimeError: Sovereign loader error: out of memory
+_ ERROR at setup of TestTextTo3DPipeline.test_concurrent_generation_throughput _
+tests/benchmarks/test_text_to_3d_pipeline.py:117: in pipeline_bridge
+    instance = step12_bridge_factory()
+tests/conftest.py:55: in _factory
+    instance = ThinkingTagBridge()
+knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
+    self.rpn_engine = ModularRPNEngine()
+knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
+    self._sovereign_engine = SovereignRPNEngine()
+knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
+    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
+knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
+    return load_ptx(ptx_data, entry_name.encode())
+knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
+    _ensure_init()
+knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
+    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
+knowledge3d/cranium/sovereign/loader.py:47: in ck
+    raise RuntimeError(f"Sovereign loader error: {msg}")
+E   RuntimeError: Sovereign loader error: out of memory
+_____________ ERROR at setup of test_rapid_generation_1000_shapes ______________
+tests/conftest.py:80: in bridge
+    bridge_instance = step12_bridge_factory()
+tests/conftest.py:55: in _factory
+    instance = ThinkingTagBridge()
+knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
+    self.rpn_engine = ModularRPNEngine()
+knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
+    self._sovereign_engine = SovereignRPNEngine()
+knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
+    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
+knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
+    return load_ptx(ptx_data, entry_name.encode())
+knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
+    _ensure_init()
+knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
+    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
+knowledge3d/cranium/sovereign/loader.py:47: in ck
+    raise RuntimeError(f"Sovereign loader error: {msg}")
+E   RuntimeError: Sovereign loader error: out of memory
+________ ERROR at setup of test_memory_exhaustion_graceful_degradation _________
+tests/conftest.py:80: in bridge
+    bridge_instance = step12_bridge_factory()
+tests/conftest.py:55: in _factory
+    instance = ThinkingTagBridge()
+knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
+    self.rpn_engine = ModularRPNEngine()
+knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
+    self._sovereign_engine = SovereignRPNEngine()
+knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
+    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
+knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
+    return load_ptx(ptx_data, entry_name.encode())
+knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
+    _ensure_init()
+knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
+    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
+knowledge3d/cranium/sovereign/loader.py:47: in ck
+    raise RuntimeError(f"Sovereign loader error: {msg}")
+E   RuntimeError: Sovereign loader error: out of memory
+____________ ERROR at setup of test_high_frequency_inference_storm _____________
+tests/conftest.py:80: in bridge
+    bridge_instance = step12_bridge_factory()
+tests/conftest.py:55: in _factory
+    instance = ThinkingTagBridge()
+knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
+    self.rpn_engine = ModularRPNEngine()
+knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
+    self._sovereign_engine = SovereignRPNEngine()
+knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
+    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
+knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
+    return load_ptx(ptx_data, entry_name.encode())
+knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
+    _ensure_init()
+knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
+    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
+knowledge3d/cranium/sovereign/loader.py:47: in ck
+    raise RuntimeError(f"Sovereign loader error: {msg}")
+E   RuntimeError: Sovereign loader error: out of memory
+=================================== FAILURES ===================================
+___________ TestHashCollisions.test_uniform_distribution_chi_squared ___________
+tests/test_step11_hash_collisions.py:149: in test_uniform_distribution_chi_squared
+    assert 0.8 < chi_sq_stat < 1.2, f"Chi-squared {chi_sq_stat} indicates non-uniform distribution"
+E   AssertionError: Chi-squared 1.22020202020202 indicates non-uniform distribution
+E   assert 1.22020202020202 < 1.2
+----------------------------- Captured stdout call -----------------------------
+Chi-squared / df: 1.2202
+_______________ TestIntelligentEviction.test_lru_eviction_order ________________
+tests/test_step11_shape_cache.py:124: in test_lru_eviction_order
+    assert hit
+E   assert False
+_____________ TestIntelligentEviction.test_eviction_score_factors ______________
+tests/test_step11_shape_cache.py:141: in test_eviction_score_factors
+    assert hit
+E   assert False
+______________ TestMemoryManagement.test_eviction_on_memory_limit ______________
+tests/test_step11_shape_cache.py:245: in test_eviction_on_memory_limit
+    assert self.cache.evictions > 0
+E   assert 0 > 0
+E    +  where 0 = <knowledge3d.cranium.ptx_runtime.shape_cache.ShapeCache object at 0x7f12375ccac0>.evictions
+E    +    where <knowledge3d.cranium.ptx_runtime.shape_cache.ShapeCache object at 0x7f12375ccac0> = <tests.test_step11_shape_cache.TestMemoryManagement object at 0x7f1077d2c580>.cache
+___________________ TestPerformance.test_lookup_performance ____________________
+tests/test_step11_shape_cache.py:339: in test_lookup_performance
+    assert avg_us < 1.0, f"Lookup took {avg_us:.2f}µs, expected <1.0µs"
+E   AssertionError: Lookup took 2.99µs, expected <1.0µs
+E   assert 2.990674999637122 < 1.0
+____ TestShapeComposition.test_coordinate_system_conversion_world_to_local _____
+tests/test_step11_shape_composition.py:112: in test_coordinate_system_conversion_world_to_local
+    assert np.allclose(local_point, expected, atol=0.01)
+/K3D/Knowledge3D.local/envs/k3d-cranium/lib/python3.10/site-packages/numpy/core/numeric.py:2241: in allclose
+    res = all(isclose(a, b, rtol=rtol, atol=atol, equal_nan=equal_nan))
+/K3D/Knowledge3D.local/envs/k3d-cranium/lib/python3.10/site-packages/numpy/core/numeric.py:2348: in isclose
+    xfin = isfinite(x)
+E   TypeError: ufunc 'isfinite' not supported for the input types, and the inputs could not be safely coerced to any supported types according to the casting rule ''safe''
+____ TestShapeComposition.test_coordinate_system_conversion_local_to_world _____
+tests/test_step11_shape_composition.py:122: in test_coordinate_system_conversion_local_to_world
+    assert np.allclose(world_point, expected, atol=0.01)
+/K3D/Knowledge3D.local/envs/k3d-cranium/lib/python3.10/site-packages/numpy/core/numeric.py:2241: in allclose
+    res = all(isclose(a, b, rtol=rtol, atol=atol, equal_nan=equal_nan))
+/K3D/Knowledge3D.local/envs/k3d-cranium/lib/python3.10/site-packages/numpy/core/numeric.py:2348: in isclose
+    xfin = isfinite(x)
+E   TypeError: ufunc 'isfinite' not supported for the input types, and the inputs could not be safely coerced to any supported types according to the casting rule ''safe''
+_________________ TestShapeComposition.test_empty_composition __________________
+tests/test_step11_shape_composition.py:155: in test_empty_composition
+    with pytest.raises((ValueError, AssertionError)):
+E   Failed: DID NOT RAISE any of (<class 'ValueError'>, <class 'AssertionError'>)
+___________ TestShapeComposition.test_bounding_box_after_composition ___________
+tests/test_step11_shape_composition.py:206: in test_bounding_box_after_composition
+    assert len(composed.aabb) == 6  # [min_x, min_y, min_z, max_x, max_y, max_z]
+E   TypeError: object of type 'Mock' has no len()
+_______________ TestShapeComposition.test_preserve_vertex_count ________________
+tests/test_step11_shape_composition.py:216: in test_preserve_vertex_count
+    assert len(composed.vertices) >= 8
+E   TypeError: object of type 'Mock' has no len()
+_______ TestShapePrimitivesEdges.test_rejects_negative_dimensions[dims0] _______
+tests/test_step11_shape_primitives_edges.py:47: in test_rejects_negative_dimensions
+    with pytest.raises((ValueError, AssertionError)):
+E   Failed: DID NOT RAISE any of (<class 'ValueError'>, <class 'AssertionError'>)
+_______ TestShapePrimitivesEdges.test_rejects_negative_dimensions[dims1] _______
+tests/test_step11_shape_primitives_edges.py:47: in test_rejects_negative_dimensions
+    with pytest.raises((ValueError, AssertionError)):
+E   Failed: DID NOT RAISE any of (<class 'ValueError'>, <class 'AssertionError'>)
+_______ TestShapePrimitivesEdges.test_rejects_negative_dimensions[dims2] _______
+tests/test_step11_shape_primitives_edges.py:47: in test_rejects_negative_dimensions
+    with pytest.raises((ValueError, AssertionError)):
+E   Failed: DID NOT RAISE any of (<class 'ValueError'>, <class 'AssertionError'>)
+__________ TestShapePrimitivesEdges.test_extreme_aspect_ratios[dims0] __________
+tests/test_step11_shape_primitives_edges.py:65: in test_extreme_aspect_ratios
+    assert all(isinstance(x, (int, float)) and not (x != x) for x in mesh.aabb)
+E   TypeError: 'Mock' object is not iterable
+__________ TestShapePrimitivesEdges.test_extreme_aspect_ratios[dims1] __________
+tests/test_step11_shape_primitives_edges.py:65: in test_extreme_aspect_ratios
+    assert all(isinstance(x, (int, float)) and not (x != x) for x in mesh.aabb)
+E   TypeError: 'Mock' object is not iterable
+____________ TestShapePrimitivesEdges.test_invalid_utf8_description ____________
+tests/test_step11_shape_primitives_edges.py:70: in test_invalid_utf8_description
+    with pytest.raises((UnicodeDecodeError, ValueError, TypeError)):
+E   Failed: DID NOT RAISE any of (<class 'UnicodeDecodeError'>, <class 'ValueError'>, <class 'TypeError'>)
+___________ TestShapePrimitivesEdges.test_maximum_complexity_prompt ____________
+tests/test_step11_shape_primitives_edges.py:86: in test_maximum_complexity_prompt
+    assert mesh.vertex_count < 1e6  # Sanity ceiling
+E   TypeError: '<' not supported between instances of 'Mock' and 'float'
+____________ TestShapePrimitivesEdges.test_cylinder_negative_height ____________
+tests/test_step11_shape_primitives_edges.py:97: in test_cylinder_negative_height
+    with pytest.raises((ValueError, AssertionError)):
+E   Failed: DID NOT RAISE any of (<class 'ValueError'>, <class 'AssertionError'>)
+_______________ TestShapePrimitivesEdges.test_nan_in_dimensions ________________
+tests/test_step11_shape_primitives_edges.py:103: in test_nan_in_dimensions
+    with pytest.raises((ValueError, AssertionError)):
+E   Failed: DID NOT RAISE any of (<class 'ValueError'>, <class 'AssertionError'>)
+_______________ TestShapePrimitivesEdges.test_inf_in_dimensions ________________
+tests/test_step11_shape_primitives_edges.py:109: in test_inf_in_dimensions
+    with pytest.raises((ValueError, AssertionError)):
+E   Failed: DID NOT RAISE any of (<class 'ValueError'>, <class 'AssertionError'>)
+________________________ test_action_buffer_contention _________________________
+tests/benchmarks/test_step12_fsm_overhead.py:164: in test_action_buffer_contention
+    bridge = ThinkingTagBridge()
+knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
+    self.rpn_engine = ModularRPNEngine()
+knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
+    self._sovereign_engine = SovereignRPNEngine()
+knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
+    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
+knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
+    return load_ptx(ptx_data, entry_name.encode())
+knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
+    _ensure_init()
+knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
+    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
+knowledge3d/cranium/sovereign/loader.py:47: in ck
+    raise RuntimeError(f"Sovereign loader error: {msg}")
+E   RuntimeError: Sovereign loader error: out of memory
+=========================== short test summary info ============================
+FAILED tests/test_step11_hash_collisions.py::TestHashCollisions::test_uniform_distribution_chi_squared
+FAILED tests/test_step11_shape_cache.py::TestIntelligentEviction::test_lru_eviction_order
+FAILED tests/test_step11_shape_cache.py::TestIntelligentEviction::test_eviction_score_factors
+FAILED tests/test_step11_shape_cache.py::TestMemoryManagement::test_eviction_on_memory_limit
+FAILED tests/test_step11_shape_cache.py::TestPerformance::test_lookup_performance
+FAILED tests/test_step11_shape_composition.py::TestShapeComposition::test_coordinate_system_conversion_world_to_local
+FAILED tests/test_step11_shape_composition.py::TestShapeComposition::test_coordinate_system_conversion_local_to_world
+FAILED tests/test_step11_shape_composition.py::TestShapeComposition::test_empty_composition
+FAILED tests/test_step11_shape_composition.py::TestShapeComposition::test_bounding_box_after_composition
+FAILED tests/test_step11_shape_composition.py::TestShapeComposition::test_preserve_vertex_count
+FAILED tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_rejects_negative_dimensions[dims0]
+FAILED tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_rejects_negative_dimensions[dims1]
+FAILED tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_rejects_negative_dimensions[dims2]
+FAILED tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_extreme_aspect_ratios[dims0]
+FAILED tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_extreme_aspect_ratios[dims1]
+FAILED tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_invalid_utf8_description
+FAILED tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_maximum_complexity_prompt
+FAILED tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_cylinder_negative_height
+FAILED tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_nan_in_dimensions
+FAILED tests/test_step11_shape_primitives_edges.py::TestShapePrimitivesEdges::test_inf_in_dimensions
+FAILED tests/benchmarks/test_step12_fsm_overhead.py::test_action_buffer_contention
+ERROR tests/test_step11_confidence_propagation.py::TestConfidencePropagation::test_text_confidence_to_shape_selection
+ERROR tests/test_step11_confidence_propagation.py::TestConfidencePropagation::test_multi_modal_fusion_confidence
+ERROR tests/test_step11_confidence_propagation.py::TestConfidencePropagation::test_uncertainty_quantification
+ERROR tests/test_step11_confidence_propagation.py::TestConfidencePropagation::test_confidence_threshold_behavior
+ERROR tests/test_step11_confidence_propagation.py::TestConfidencePropagation::test_confidence_correlation_with_human_judgment
+ERROR tests/test_step11_regression.py::test_regression_cases - RuntimeError: ...
+ERROR tests/test_step11_regression.py::test_performance_regression - RuntimeE...
+ERROR tests/test_step11_regression.py::test_api_contract_stability - RuntimeE...
+ERROR tests/test_step11_step12_integration.py::TestStep11Step12Integration::test_shape_generation_with_fsm_tracking
+ERROR tests/test_step11_step12_integration.py::TestStep11Step12Integration::test_action_buffer_population_during_shape_generation
+ERROR tests/test_step11_step12_integration.py::TestStep11Step12Integration::test_dynamic_lod_during_complex_shape_generation
+ERROR tests/test_step11_step12_integration.py::TestStep11Step12Integration::test_performance_with_full_fsm_pipeline
+ERROR tests/benchmarks/test_advanced_text_to_3d_profiler.py::TestAdvancedTextTo3DProfiler::test_detailed_pipeline_breakdown
+ERROR tests/benchmarks/test_advanced_text_to_3d_profiler.py::TestAdvancedTextTo3DProfiler::test_memory_usage_profiling
+ERROR tests/benchmarks/test_step12_fsm_overhead.py::test_state_tracking_overhead
+ERROR tests/benchmarks/test_step12_fsm_overhead.py::test_action_buffer_overhead
+ERROR tests/benchmarks/test_step12_fsm_overhead.py::test_dynamic_lod_overhead
+ERROR tests/benchmarks/test_step12_fsm_overhead.py::test_json_export_latency
+ERROR tests/benchmarks/test_text_to_3d_pipeline.py::TestTextTo3DPipeline::test_prompt_parsing_latency
+ERROR tests/benchmarks/test_text_to_3d_pipeline.py::TestTextTo3DPipeline::test_shape_synthesis_latency
+ERROR tests/benchmarks/test_text_to_3d_pipeline.py::TestTextTo3DPipeline::test_end_to_end_generation
+ERROR tests/benchmarks/test_text_to_3d_pipeline.py::TestTextTo3DPipeline::test_concurrent_generation_throughput
+ERROR tests/stress/test_step11_stress.py::test_rapid_generation_1000_shapes
+ERROR tests/stress/test_step11_stress.py::test_memory_exhaustion_graceful_degradation
+ERROR tests/stress/test_step12_fsm_stress.py::test_high_frequency_inference_storm
+============= 21 failed, 92 passed, 4 skipped, 25 errors in 16.88s =============

@@ -1,0 +1,94 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.8, pytest-8.4.2, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+hypothesis profile 'default'
+Knowledge3D Test Suite
+GPU-Sovereign Multi-Modal AI Testing Framework
+Test Mode: GPU-Enabled
+rootdir: /mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D
+configfile: pytest.ini
+plugins: typeguard-4.4.4, mock-3.15.0, hypothesis-6.140.2, anyio-4.11.0
+collecting ... collected 0 items / 4 errors
+
+==================================== ERRORS ====================================
+______________ ERROR collecting tests/test_step11_shape_cache.py _______________
+knowledge3d/cranium/ptx/galaxy_buffer.py:32: in <module>
+    from cuda import cuda  # type: ignore
+    ^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'cuda'
+
+During handling of the above exception, another exception occurred:
+knowledge3d/cranium/ptx/galaxy_buffer.py:35: in <module>
+    from cuda.bindings import driver as cuda  # type: ignore
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'cuda'
+
+The above exception was the direct cause of the following exception:
+tests/test_step11_shape_cache.py:9: in <module>
+    from knowledge3d.cranium.ptx_runtime.shape_cache import ShapeCache
+knowledge3d/cranium/ptx_runtime/__init__.py:32: in <module>
+    from .sleep_time_compute import SleepTimeCompute
+knowledge3d/cranium/ptx_runtime/sleep_time_compute.py:12: in <module>
+    from knowledge3d.cranium.ptx import PTX_OPS
+knowledge3d/cranium/ptx/__init__.py:3: in <module>
+    from .ptx_ops import PTX_OPS, PTXOps  # noqa: F401
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+knowledge3d/cranium/ptx/ptx_ops.py:18: in <module>
+    from knowledge3d.cranium.ptx.galaxy_buffer import GalaxyGPUMemory
+knowledge3d/cranium/ptx/galaxy_buffer.py:37: in <module>
+    raise RuntimeError("cuda-python bindings unavailable: install cuda-python in k3d-cranium env") from exc
+E   RuntimeError: cuda-python bindings unavailable: install cuda-python in k3d-cranium env
+___________ ERROR collecting tests/test_step11_shape_composition.py ____________
+ImportError while importing test module '/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/tests/test_step11_shape_composition.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_step11_shape_composition.py:16: in <module>
+    from knowledge3d.cranium.bridges.sovereign_bridges import ThinkingTagBridge
+E   ImportError: cannot import name 'ThinkingTagBridge' from 'knowledge3d.cranium.bridges.sovereign_bridges' (/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/knowledge3d/cranium/bridges/sovereign_bridges.py)
+_________ ERROR collecting tests/test_step11_shape_primitives_edges.py _________
+ImportError while importing test module '/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/tests/test_step11_shape_primitives_edges.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_step11_shape_primitives_edges.py:17: in <module>
+    from knowledge3d.cranium.bridges.sovereign_bridges import ThinkingTagBridge
+E   ImportError: cannot import name 'ThinkingTagBridge' from 'knowledge3d.cranium.bridges.sovereign_bridges' (/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/knowledge3d/cranium/bridges/sovereign_bridges.py)
+____________ ERROR collecting tests/test_step11_shape_primitives.py ____________
+knowledge3d/cranium/ptx/galaxy_buffer.py:32: in <module>
+    from cuda import cuda  # type: ignore
+    ^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'cuda'
+
+During handling of the above exception, another exception occurred:
+knowledge3d/cranium/ptx/galaxy_buffer.py:35: in <module>
+    from cuda.bindings import driver as cuda  # type: ignore
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'cuda'
+
+The above exception was the direct cause of the following exception:
+tests/test_step11_shape_primitives.py:9: in <module>
+    from knowledge3d.cranium.ptx_runtime.shape_primitives import ShapePrimitives
+knowledge3d/cranium/ptx_runtime/__init__.py:32: in <module>
+    from .sleep_time_compute import SleepTimeCompute
+knowledge3d/cranium/ptx_runtime/sleep_time_compute.py:12: in <module>
+    from knowledge3d.cranium.ptx import PTX_OPS
+knowledge3d/cranium/ptx/__init__.py:3: in <module>
+    from .ptx_ops import PTX_OPS, PTXOps  # noqa: F401
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+knowledge3d/cranium/ptx/ptx_ops.py:18: in <module>
+    from knowledge3d.cranium.ptx.galaxy_buffer import GalaxyGPUMemory
+knowledge3d/cranium/ptx/galaxy_buffer.py:37: in <module>
+    raise RuntimeError("cuda-python bindings unavailable: install cuda-python in k3d-cranium env") from exc
+E   RuntimeError: cuda-python bindings unavailable: install cuda-python in k3d-cranium env
+=========================== short test summary info ============================
+ERROR tests/test_step11_shape_cache.py - RuntimeError: cuda-python bindings u...
+ERROR tests/test_step11_shape_composition.py
+ERROR tests/test_step11_shape_primitives_edges.py
+ERROR tests/test_step11_shape_primitives.py - RuntimeError: cuda-python bindi...
+!!!!!!!!!!!!!!!!!!! Interrupted: 4 errors during collection !!!!!!!!!!!!!!!!!!!!
+============================== 4 errors in 1.96s ===============================

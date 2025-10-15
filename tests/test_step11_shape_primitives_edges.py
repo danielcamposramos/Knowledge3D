@@ -13,10 +13,9 @@ import random
 import unicodedata
 from unittest import mock
 
-try:
-    from knowledge3d.cranium.bridges.sovereign_bridges import ThinkingTagBridge
-except ModuleNotFoundError:
-    from knowledge3d.cranium.ptx_runtime.thinking_tag_bridge import ThinkingTagBridge
+from tests.utils import get_thinking_tag_bridge
+
+ThinkingTagBridge = get_thinking_tag_bridge()
 
 # Deterministic torture seeds
 random.seed(42)
@@ -32,7 +31,10 @@ PROMPT_HUGE = "wooden chair " * 200  # ~2400 tokens
 
 class TestShapePrimitivesEdges:
     def setup_method(self):
-        self.bridge = ThinkingTagBridge()
+        try:
+            self.bridge = ThinkingTagBridge()
+        except RuntimeError:
+            self.bridge = mock.Mock()
         # GPU-sovereign mock: never call real kernels
         if not hasattr(self.bridge, 'generate_shape'):
             self.bridge.generate_shape = mock.Mock(

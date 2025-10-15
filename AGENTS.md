@@ -151,7 +151,7 @@ Figure: The avatar reasoning at a network door in the Workshop. The translucent 
 ## Environment Policy (Debian)
 
 - Always run Python/ML tasks inside a managed env (Conda preferred, venv fallback). Do not invoke system Python directly.
-- Follow `docs/ENV_POLICY.md` to create the canonical environments (GPU: `k3d-cranium`, CPU: `k3d-cpu`) and run commands inside them (e.g., `conda activate k3d-cranium`, then `env PYTHONPATH=. python -m ...`).
+- Follow `docs/ENV_POLICY.md` to create the canonical environments (GPU: `k3d-cranium`, CPU test harness: `k3d-testing`) and run commands inside them (e.g., `conda activate k3d-cranium`, then `env PYTHONPATH=. python -m ...`).
 - For heavy ingestion/builds, prefer storing raw media under `/home/daniel/K3D_llama_cpp/datasets` and curated subsets under `../Knowledge3D.local/datasets`.
 - Phase 25 sleep consolidation depends on the CUDA-enabled `k3d-cranium` env (with `cuda-python`); keep that env active so `SleepTimeCompute` can continue materialising reflection diaries in the House.
 - After long RLWHF batches, refresh Phase 10 "thinking tags" (see `knowledge3d/tools/phase10/thinking_tag_trainer.py`) so the UI exposes the model’s active reasoning labels.

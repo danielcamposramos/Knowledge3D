@@ -1,0 +1,25 @@
+name: k3d-testing
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - numpy
+  - scipy
+  - pandas
+  - pytest
+  - pytest-cov
+  - matplotlib
+  - psutil
+  - pillow
+  - pygltflib
+  - umap-learn
+  - scikit-learn
+  - pip:
+      - pytest-benchmark
+      - memory-profiler
+      - websockets==10.4
+      - soundfile
+      - av
+      - sentence-transformers

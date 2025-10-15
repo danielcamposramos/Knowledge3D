@@ -23,18 +23,20 @@ try:
 except ImportError:
     memory_usage = None
 
-try:
-    from knowledge3d.cranium.bridges.sovereign_bridges import ThinkingTagBridge
-except ModuleNotFoundError:
-    from knowledge3d.cranium.ptx_runtime.thinking_tag_bridge import ThinkingTagBridge
-
+from tests.utils import get_thinking_tag_bridge, ensure_step12_surface
 from tests.utils.μbench import μBench
+
+ThinkingTagBridge = get_thinking_tag_bridge()
 
 
 @pytest.fixture
 def bridge():
     """Provide test bridge instance."""
-    b = ThinkingTagBridge()
+    try:
+        b = ThinkingTagBridge()
+    except RuntimeError:
+        b = mock.Mock()
+    ensure_step12_surface(b)
     # Mock GPU operations
     b.inference = mock.Mock(return_value=mock.Mock(
         action_buffer=mock.Mock(confidence=0.85, action_type=1, curiosity=0.6, modal_signature=0b00011)

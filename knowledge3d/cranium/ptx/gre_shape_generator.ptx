@@ -1,0 +1,17 @@
+.version 7.0
+.target sm_70
+.address_size 64
+
+// Minimal stub kernel for Step 11 shape primitives.
+// The current Python implementation performs CPU-side generation; this PTX
+// exists to satisfy sovereign loader expectations until the full CUDA kernel
+// is rebuilt.
+.visible .entry generate_adaptive_primitive(
+    .param .u64 embeddings_ptr,
+    .param .u64 vertices_ptr,
+    .param .u32 vertex_count,
+    .param .u32 primitive_type
+)
+{
+    ret;
+}

@@ -1,0 +1,27 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.8, pytest-8.4.2, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+hypothesis profile 'default'
+Knowledge3D Test Suite
+GPU-Sovereign Multi-Modal AI Testing Framework
+Test Mode: GPU-Enabled
+rootdir: /mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D
+configfile: pytest.ini
+plugins: typeguard-4.4.4, mock-3.15.0, hypothesis-6.140.2, anyio-4.11.0
+collecting ... collected 0 items / 1 error
+
+==================================== ERRORS ====================================
+____________ ERROR collecting tests/test_step11_hash_collisions.py _____________
+ImportError while importing test module '/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/tests/test_step11_hash_collisions.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_step11_hash_collisions.py:20: in <module>
+    from knowledge3d.cranium.bridges.sovereign_bridges import ThinkingTagBridge
+E   ImportError: cannot import name 'ThinkingTagBridge' from 'knowledge3d.cranium.bridges.sovereign_bridges' (/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/knowledge3d/cranium/bridges/sovereign_bridges.py)
+=========================== short test summary info ============================
+ERROR tests/test_step11_hash_collisions.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+=============================== 1 error in 0.44s ===============================

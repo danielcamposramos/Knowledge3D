@@ -1,1162 +1,267 @@
 ============================= test session starts ==============================
-platform linux -- Python 3.10.18, pytest-8.4.2, pluggy-1.6.0 -- /K3D/Knowledge3D.local/envs/k3d-cranium/bin/python
+platform linux -- Python 3.13.8, pytest-8.4.2, pluggy-1.6.0 -- /usr/bin/python3
 cachedir: .pytest_cache
+hypothesis profile 'default'
 Knowledge3D Test Suite
 GPU-Sovereign Multi-Modal AI Testing Framework
 Test Mode: GPU-Enabled
 rootdir: /mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D
 configfile: pytest.ini
+plugins: typeguard-4.4.4, mock-3.15.0, hypothesis-6.140.2, anyio-4.11.0
 collecting ... collected 65 items
 
-tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_action_buffer_288_bytes FAILED [  1%]
-tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_action_buffer_always_populated FAILED [  3%]
-tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_action_buffer_in_fallback FAILED [  4%]
-tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_action_type_mapping FAILED [  6%]
-tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_bitfield_overflow_prevention FAILED [  7%]
-tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_buffer_serialization FAILED [  9%]
-tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_buffer_structure_validation FAILED [ 10%]
-tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_concurrent_population_thread_safety FAILED [ 12%]
-tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_confidence_bounds FAILED [ 13%]
-tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_confidence_propagation FAILED [ 15%]
-tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_curiosity_correlation_with_novelty FAILED [ 16%]
-tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_curiosity_scoring FAILED [ 18%]
-tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_deserialization_roundtrip FAILED [ 20%]
-tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_fallback_on_invalid_type FAILED [ 21%]
-tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_graceful_degradation FAILED [ 23%]
-tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_max_curiosity FAILED [ 24%]
-tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_modal_signature_bitfield FAILED [ 26%]
-tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_modal_signature_no_modalities FAILED [ 27%]
-tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_multi_inference_population FAILED [ 29%]
-tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_multi_modal_all_five FAILED [ 30%]
-tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_single_modal_text_only FAILED [ 32%]
-tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_zero_confidence_edge_case FAILED [ 33%]
-tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_concurrent_inferences FAILED [ 35%]
-tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_empty_input_embedding FAILED [ 36%]
-tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_error_handling_during_fallback FAILED [ 38%]
-tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_invalid_modalities FAILED [ 40%]
-tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_json_escape_unsafe_prompt FAILED [ 41%]
-tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_memory_cleanup FAILED [ 43%]
-tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_million_transition_prune FAILED [ 44%]
-tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_percentile_statistics FAILED [ 46%]
-tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_state_sequence_validation FAILED [ 47%]
-tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_state_timing_microseconds FAILED [ 49%]
-tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_state_trace_export FAILED [ 50%]
-tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_state_trace_export_to_file FAILED [ 52%]
-tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_state_transitions_recorded FAILED [ 53%]
-tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_statistics_with_single_inference FAILED [ 55%]
-tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_timing_precision FAILED [ 56%]
-tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_trace_pruning FAILED [ 58%]
-tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_trace_with_zero_duration_bug FAILED [ 60%]
-tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_validator_percentiles FAILED [ 61%]
-tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_validator_timings FAILED [ 63%]
-tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_buffer_cleanup FAILED [ 64%]
-tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_concurrent_lod_tuning FAILED [ 66%]
-tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_fallback_on_buffer_oom FAILED [ 67%]
-tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_integration_with_state_trace FAILED [ 69%]
-tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_lod_buffer_allocation FAILED [ 70%]
-tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_lod_disabled FAILED [ 72%]
-tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_lod_graceful_degradation FAILED [ 73%]
-tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_lod_in_multi_modal FAILED [ 75%]
-tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_lod_kernel_loads FAILED [ 76%]
-tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_lod_tuning_during_spatial FAILED [ 78%]
-tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_morton_saliency_calculation FAILED [ 80%]
-tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_performance_impact FAILED [ 81%]
-tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_saliency_edge_one FAILED [ 83%]
-tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_saliency_edge_zero FAILED [ 84%]
-tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_saliency_threshold_tuning FAILED [ 86%]
-tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_threshold_validation FAILED [ 87%]
-tests/test_step12_fsm_harvest.py::test_cognitive_stage_class_exists PASSED [ 89%]
-tests/test_step12_fsm_harvest.py::test_fsm_harvested_methods_exist PASSED [ 90%]
-tests/test_step12_fsm_harvest.py::test_state_transition_recording_logic PASSED [ 92%]
+tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_action_buffer_288_bytes PASSED [  1%]
+tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_action_buffer_always_populated PASSED [  3%]
+tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_action_buffer_in_fallback PASSED [  4%]
+tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_action_type_mapping PASSED [  6%]
+tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_bitfield_overflow_prevention PASSED [  7%]
+tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_buffer_serialization PASSED [  9%]
+tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_buffer_structure_validation PASSED [ 10%]
+tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_concurrent_population_thread_safety PASSED [ 12%]
+tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_confidence_bounds PASSED [ 13%]
+tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_confidence_propagation PASSED [ 15%]
+tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_curiosity_correlation_with_novelty PASSED [ 16%]
+tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_curiosity_scoring PASSED [ 18%]
+tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_deserialization_roundtrip PASSED [ 20%]
+tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_fallback_on_invalid_type PASSED [ 21%]
+tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_graceful_degradation PASSED [ 23%]
+tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_max_curiosity PASSED [ 24%]
+tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_modal_signature_bitfield PASSED [ 26%]
+tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_modal_signature_no_modalities PASSED [ 27%]
+tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_multi_inference_population PASSED [ 29%]
+tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_multi_modal_all_five PASSED [ 30%]
+tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_single_modal_text_only PASSED [ 32%]
+tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_zero_confidence_edge_case PASSED [ 33%]
+tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_concurrent_inferences PASSED [ 35%]
+tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_empty_input_embedding PASSED [ 36%]
+tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_error_handling_during_fallback PASSED [ 38%]
+tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_invalid_modalities PASSED [ 40%]
+tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_json_escape_unsafe_prompt PASSED [ 41%]
+tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_memory_cleanup PASSED [ 43%]
+tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_million_transition_prune PASSED [ 44%]
+tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_percentile_statistics PASSED [ 46%]
+tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_state_sequence_validation PASSED [ 47%]
+tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_state_timing_microseconds PASSED [ 49%]
+tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_state_trace_export PASSED [ 50%]
+tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_state_trace_export_to_file PASSED [ 52%]
+tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_state_transitions_recorded PASSED [ 53%]
+tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_statistics_with_single_inference PASSED [ 55%]
+tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_timing_precision PASSED [ 56%]
+tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_trace_pruning PASSED [ 58%]
+tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_trace_with_zero_duration_bug PASSED [ 60%]
+tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_validator_percentiles PASSED [ 61%]
+tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_validator_timings PASSED [ 63%]
+tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_buffer_cleanup PASSED [ 64%]
+tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_concurrent_lod_tuning PASSED [ 66%]
+tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_fallback_on_buffer_oom PASSED [ 67%]
+tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_integration_with_state_trace PASSED [ 69%]
+tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_lod_buffer_allocation PASSED [ 70%]
+tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_lod_disabled PASSED [ 72%]
+tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_lod_graceful_degradation PASSED [ 73%]
+tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_lod_in_multi_modal PASSED [ 75%]
+tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_lod_kernel_loads PASSED [ 76%]
+tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_lod_tuning_during_spatial PASSED [ 78%]
+tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_morton_saliency_calculation PASSED [ 80%]
+tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_performance_impact PASSED [ 81%]
+tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_saliency_edge_one PASSED [ 83%]
+tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_saliency_edge_zero PASSED [ 84%]
+tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_saliency_threshold_tuning PASSED [ 86%]
+tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_threshold_validation PASSED [ 87%]
+tests/test_step12_fsm_harvest.py::test_cognitive_stage_class_exists FAILED [ 89%]
+tests/test_step12_fsm_harvest.py::test_fsm_harvested_methods_exist FAILED [ 90%]
+tests/test_step12_fsm_harvest.py::test_state_transition_recording_logic FAILED [ 92%]
 tests/test_step12_fsm_harvest.py::test_modal_signature_encoding_logic PASSED [ 93%]
-tests/test_step12_fsm_harvest.py::test_tag_to_action_mapping_logic PASSED [ 95%]
-tests/test_step12_fsm_harvest.py::test_inference_docstring_updated PASSED [ 96%]
-tests/test_step12_fsm_harvest.py::test_action_buffer_availability_flag PASSED [ 98%]
-tests/test_step12_fsm_harvest.py::test_state_timings_structure PASSED    [100%]
+tests/test_step12_fsm_harvest.py::test_tag_to_action_mapping_logic FAILED [ 95%]
+tests/test_step12_fsm_harvest.py::test_inference_docstring_updated FAILED [ 96%]
+tests/test_step12_fsm_harvest.py::test_action_buffer_availability_flag FAILED [ 98%]
+tests/test_step12_fsm_harvest.py::test_state_timings_structure FAILED    [100%]
 
 =================================== FAILURES ===================================
-___________ TestActionBufferIntegration.test_action_buffer_288_bytes ___________
-tests/test_step12_action_buffer_integration.py:30: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-_______ TestActionBufferIntegration.test_action_buffer_always_populated ________
-tests/test_step12_action_buffer_integration.py:30: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-__________ TestActionBufferIntegration.test_action_buffer_in_fallback __________
-tests/test_step12_action_buffer_integration.py:30: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-_____________ TestActionBufferIntegration.test_action_type_mapping _____________
-tests/test_step12_action_buffer_integration.py:30: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-________ TestActionBufferIntegration.test_bitfield_overflow_prevention _________
-tests/test_step12_action_buffer_integration.py:30: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-____________ TestActionBufferIntegration.test_buffer_serialization _____________
-tests/test_step12_action_buffer_integration.py:30: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-_________ TestActionBufferIntegration.test_buffer_structure_validation _________
-tests/test_step12_action_buffer_integration.py:30: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-_____ TestActionBufferIntegration.test_concurrent_population_thread_safety _____
-tests/test_step12_action_buffer_integration.py:30: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-______________ TestActionBufferIntegration.test_confidence_bounds ______________
-tests/test_step12_action_buffer_integration.py:30: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-___________ TestActionBufferIntegration.test_confidence_propagation ____________
-tests/test_step12_action_buffer_integration.py:30: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-_____ TestActionBufferIntegration.test_curiosity_correlation_with_novelty ______
-tests/test_step12_action_buffer_integration.py:30: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-______________ TestActionBufferIntegration.test_curiosity_scoring ______________
-tests/test_step12_action_buffer_integration.py:30: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-__________ TestActionBufferIntegration.test_deserialization_roundtrip __________
-tests/test_step12_action_buffer_integration.py:30: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-__________ TestActionBufferIntegration.test_fallback_on_invalid_type ___________
-tests/test_step12_action_buffer_integration.py:30: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-____________ TestActionBufferIntegration.test_graceful_degradation _____________
-tests/test_step12_action_buffer_integration.py:30: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-________________ TestActionBufferIntegration.test_max_curiosity ________________
-tests/test_step12_action_buffer_integration.py:30: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-__________ TestActionBufferIntegration.test_modal_signature_bitfield ___________
-tests/test_step12_action_buffer_integration.py:30: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-________ TestActionBufferIntegration.test_modal_signature_no_modalities ________
-tests/test_step12_action_buffer_integration.py:30: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-_________ TestActionBufferIntegration.test_multi_inference_population __________
-tests/test_step12_action_buffer_integration.py:30: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-____________ TestActionBufferIntegration.test_multi_modal_all_five _____________
-tests/test_step12_action_buffer_integration.py:30: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-___________ TestActionBufferIntegration.test_single_modal_text_only ____________
-tests/test_step12_action_buffer_integration.py:30: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-__________ TestActionBufferIntegration.test_zero_confidence_edge_case __________
-tests/test_step12_action_buffer_integration.py:30: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-_______________ TestCognitivePipeline.test_concurrent_inferences _______________
-tests/test_step12_cognitive_pipeline.py:45: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-_______________ TestCognitivePipeline.test_empty_input_embedding _______________
-tests/test_step12_cognitive_pipeline.py:45: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-__________ TestCognitivePipeline.test_error_handling_during_fallback ___________
-tests/test_step12_cognitive_pipeline.py:45: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-________________ TestCognitivePipeline.test_invalid_modalities _________________
-tests/test_step12_cognitive_pipeline.py:45: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-_____________ TestCognitivePipeline.test_json_escape_unsafe_prompt _____________
-tests/test_step12_cognitive_pipeline.py:45: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-__________________ TestCognitivePipeline.test_memory_cleanup ___________________
-tests/test_step12_cognitive_pipeline.py:45: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-_____________ TestCognitivePipeline.test_million_transition_prune ______________
-tests/test_step12_cognitive_pipeline.py:45: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-_______________ TestCognitivePipeline.test_percentile_statistics _______________
-tests/test_step12_cognitive_pipeline.py:45: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-_____________ TestCognitivePipeline.test_state_sequence_validation _____________
-tests/test_step12_cognitive_pipeline.py:45: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-_____________ TestCognitivePipeline.test_state_timing_microseconds _____________
-tests/test_step12_cognitive_pipeline.py:45: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-________________ TestCognitivePipeline.test_state_trace_export _________________
-tests/test_step12_cognitive_pipeline.py:45: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-____________ TestCognitivePipeline.test_state_trace_export_to_file _____________
-tests/test_step12_cognitive_pipeline.py:45: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-____________ TestCognitivePipeline.test_state_transitions_recorded _____________
-tests/test_step12_cognitive_pipeline.py:45: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-_________ TestCognitivePipeline.test_statistics_with_single_inference __________
-tests/test_step12_cognitive_pipeline.py:45: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-_________________ TestCognitivePipeline.test_timing_precision __________________
-tests/test_step12_cognitive_pipeline.py:45: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-___________________ TestCognitivePipeline.test_trace_pruning ___________________
-tests/test_step12_cognitive_pipeline.py:45: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-___________ TestCognitivePipeline.test_trace_with_zero_duration_bug ____________
-tests/test_step12_cognitive_pipeline.py:45: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-_______________ TestCognitivePipeline.test_validator_percentiles _______________
-tests/test_step12_cognitive_pipeline.py:45: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-_________________ TestCognitivePipeline.test_validator_timings _________________
-tests/test_step12_cognitive_pipeline.py:45: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-______________________ TestDynamicLOD.test_buffer_cleanup ______________________
-tests/test_step12_dynamic_lod.py:21: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-__________________ TestDynamicLOD.test_concurrent_lod_tuning ___________________
-tests/test_step12_dynamic_lod.py:21: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-__________________ TestDynamicLOD.test_fallback_on_buffer_oom __________________
-tests/test_step12_dynamic_lod.py:21: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-_______________ TestDynamicLOD.test_integration_with_state_trace _______________
-tests/test_step12_dynamic_lod.py:21: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-__________________ TestDynamicLOD.test_lod_buffer_allocation ___________________
-tests/test_step12_dynamic_lod.py:21: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-_______________________ TestDynamicLOD.test_lod_disabled _______________________
-tests/test_step12_dynamic_lod.py:21: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-_________________ TestDynamicLOD.test_lod_graceful_degradation _________________
-tests/test_step12_dynamic_lod.py:21: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-____________________ TestDynamicLOD.test_lod_in_multi_modal ____________________
-tests/test_step12_dynamic_lod.py:21: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-_____________________ TestDynamicLOD.test_lod_kernel_loads _____________________
-tests/test_step12_dynamic_lod.py:21: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-________________ TestDynamicLOD.test_lod_tuning_during_spatial _________________
-tests/test_step12_dynamic_lod.py:21: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-_______________ TestDynamicLOD.test_morton_saliency_calculation ________________
-tests/test_step12_dynamic_lod.py:21: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-____________________ TestDynamicLOD.test_performance_impact ____________________
-tests/test_step12_dynamic_lod.py:21: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-____________________ TestDynamicLOD.test_saliency_edge_one _____________________
-tests/test_step12_dynamic_lod.py:21: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-____________________ TestDynamicLOD.test_saliency_edge_zero ____________________
-tests/test_step12_dynamic_lod.py:21: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-________________ TestDynamicLOD.test_saliency_threshold_tuning _________________
-tests/test_step12_dynamic_lod.py:21: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
-___________________ TestDynamicLOD.test_threshold_validation ___________________
-tests/test_step12_dynamic_lod.py:21: in setUp
-    self.bridge = ThinkingTagBridge()
-knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py:90: in __init__
-    self.rpn_engine = ModularRPNEngine()
-knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py:98: in __init__
-    self._sovereign_engine = SovereignRPNEngine()
-knowledge3d/cranium/bridges/sovereign_bridges.py:1021: in __init__
-    self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-knowledge3d/cranium/sovereign/loader.py:115: in load_ptx_file
-    return load_ptx(ptx_data, entry_name.encode())
-knowledge3d/cranium/sovereign/loader.py:93: in load_ptx
-    _ensure_init()
-knowledge3d/cranium/sovereign/loader.py:71: in _ensure_init
-    ck(nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device))
-knowledge3d/cranium/sovereign/loader.py:47: in ck
-    raise RuntimeError(f"Sovereign loader error: {msg}")
-E   RuntimeError: Sovereign loader error: out of memory
+______________________ test_cognitive_stage_class_exists _______________________
+knowledge3d/cranium/ptx/galaxy_buffer.py:32: in <module>
+    from cuda import cuda  # type: ignore
+    ^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'cuda'
+
+During handling of the above exception, another exception occurred:
+knowledge3d/cranium/ptx/galaxy_buffer.py:35: in <module>
+    from cuda.bindings import driver as cuda  # type: ignore
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'cuda'
+
+The above exception was the direct cause of the following exception:
+tests/test_step12_fsm_harvest.py:16: in test_cognitive_stage_class_exists
+    from knowledge3d.cranium.ptx_runtime.thinking_tag_bridge import CognitiveStage
+knowledge3d/cranium/ptx_runtime/__init__.py:32: in <module>
+    from .sleep_time_compute import SleepTimeCompute
+knowledge3d/cranium/ptx_runtime/sleep_time_compute.py:12: in <module>
+    from knowledge3d.cranium.ptx import PTX_OPS
+knowledge3d/cranium/ptx/__init__.py:3: in <module>
+    from .ptx_ops import PTX_OPS, PTXOps  # noqa: F401
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+knowledge3d/cranium/ptx/ptx_ops.py:18: in <module>
+    from knowledge3d.cranium.ptx.galaxy_buffer import GalaxyGPUMemory
+knowledge3d/cranium/ptx/galaxy_buffer.py:37: in <module>
+    raise RuntimeError("cuda-python bindings unavailable: install cuda-python in k3d-cranium env") from exc
+E   RuntimeError: cuda-python bindings unavailable: install cuda-python in k3d-cranium env
+_______________________ test_fsm_harvested_methods_exist _______________________
+knowledge3d/cranium/ptx/galaxy_buffer.py:32: in <module>
+    from cuda import cuda  # type: ignore
+    ^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'cuda'
+
+During handling of the above exception, another exception occurred:
+knowledge3d/cranium/ptx/galaxy_buffer.py:35: in <module>
+    from cuda.bindings import driver as cuda  # type: ignore
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'cuda'
+
+The above exception was the direct cause of the following exception:
+tests/test_step12_fsm_harvest.py:38: in test_fsm_harvested_methods_exist
+    from knowledge3d.cranium.ptx_runtime.thinking_tag_bridge import ThinkingTagBridge
+knowledge3d/cranium/ptx_runtime/__init__.py:32: in <module>
+    from .sleep_time_compute import SleepTimeCompute
+knowledge3d/cranium/ptx_runtime/sleep_time_compute.py:12: in <module>
+    from knowledge3d.cranium.ptx import PTX_OPS
+knowledge3d/cranium/ptx/__init__.py:3: in <module>
+    from .ptx_ops import PTX_OPS, PTXOps  # noqa: F401
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+knowledge3d/cranium/ptx/ptx_ops.py:18: in <module>
+    from knowledge3d.cranium.ptx.galaxy_buffer import GalaxyGPUMemory
+knowledge3d/cranium/ptx/galaxy_buffer.py:37: in <module>
+    raise RuntimeError("cuda-python bindings unavailable: install cuda-python in k3d-cranium env") from exc
+E   RuntimeError: cuda-python bindings unavailable: install cuda-python in k3d-cranium env
+____________________ test_state_transition_recording_logic _____________________
+knowledge3d/cranium/ptx/galaxy_buffer.py:32: in <module>
+    from cuda import cuda  # type: ignore
+    ^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'cuda'
+
+During handling of the above exception, another exception occurred:
+knowledge3d/cranium/ptx/galaxy_buffer.py:35: in <module>
+    from cuda.bindings import driver as cuda  # type: ignore
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'cuda'
+
+The above exception was the direct cause of the following exception:
+tests/test_step12_fsm_harvest.py:54: in test_state_transition_recording_logic
+    from knowledge3d.cranium.ptx_runtime.thinking_tag_bridge import CognitiveStage
+knowledge3d/cranium/ptx_runtime/__init__.py:32: in <module>
+    from .sleep_time_compute import SleepTimeCompute
+knowledge3d/cranium/ptx_runtime/sleep_time_compute.py:12: in <module>
+    from knowledge3d.cranium.ptx import PTX_OPS
+knowledge3d/cranium/ptx/__init__.py:3: in <module>
+    from .ptx_ops import PTX_OPS, PTXOps  # noqa: F401
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+knowledge3d/cranium/ptx/ptx_ops.py:18: in <module>
+    from knowledge3d.cranium.ptx.galaxy_buffer import GalaxyGPUMemory
+knowledge3d/cranium/ptx/galaxy_buffer.py:37: in <module>
+    raise RuntimeError("cuda-python bindings unavailable: install cuda-python in k3d-cranium env") from exc
+E   RuntimeError: cuda-python bindings unavailable: install cuda-python in k3d-cranium env
+_______________________ test_tag_to_action_mapping_logic _______________________
+knowledge3d/gpu/ptx_utils.py:17: in <module>
+    import cupy as cp  # type: ignore
+    ^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'cupy'
+
+The above exception was the direct cause of the following exception:
+tests/test_step12_fsm_harvest.py:111: in test_tag_to_action_mapping_logic
+    from knowledge3d.cranium.actions.action_types import ActionType
+knowledge3d/cranium/actions/__init__.py:4: in <module>
+    from .confidence_propagation import ConfidencePropagator  # noqa: F401
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+knowledge3d/cranium/actions/confidence_propagation.py:25: in <module>
+    from knowledge3d.gpu.ptx_utils import launch_ptx_kernel
+knowledge3d/gpu/ptx_utils.py:19: in <module>
+    raise RuntimeError(
+E   RuntimeError: CuPy is required for GPU PTX helpers. Install cupy-cudaXX inside the k3d GPU environment.
+_______________________ test_inference_docstring_updated _______________________
+knowledge3d/cranium/ptx/galaxy_buffer.py:32: in <module>
+    from cuda import cuda  # type: ignore
+    ^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'cuda'
+
+During handling of the above exception, another exception occurred:
+knowledge3d/cranium/ptx/galaxy_buffer.py:35: in <module>
+    from cuda.bindings import driver as cuda  # type: ignore
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'cuda'
+
+The above exception was the direct cause of the following exception:
+tests/test_step12_fsm_harvest.py:144: in test_inference_docstring_updated
+    from knowledge3d.cranium.ptx_runtime.thinking_tag_bridge import ThinkingTagBridge
+knowledge3d/cranium/ptx_runtime/__init__.py:32: in <module>
+    from .sleep_time_compute import SleepTimeCompute
+knowledge3d/cranium/ptx_runtime/sleep_time_compute.py:12: in <module>
+    from knowledge3d.cranium.ptx import PTX_OPS
+knowledge3d/cranium/ptx/__init__.py:3: in <module>
+    from .ptx_ops import PTX_OPS, PTXOps  # noqa: F401
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+knowledge3d/cranium/ptx/ptx_ops.py:18: in <module>
+    from knowledge3d.cranium.ptx.galaxy_buffer import GalaxyGPUMemory
+knowledge3d/cranium/ptx/galaxy_buffer.py:37: in <module>
+    raise RuntimeError("cuda-python bindings unavailable: install cuda-python in k3d-cranium env") from exc
+E   RuntimeError: cuda-python bindings unavailable: install cuda-python in k3d-cranium env
+_____________________ test_action_buffer_availability_flag _____________________
+knowledge3d/cranium/ptx/galaxy_buffer.py:32: in <module>
+    from cuda import cuda  # type: ignore
+    ^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'cuda'
+
+During handling of the above exception, another exception occurred:
+knowledge3d/cranium/ptx/galaxy_buffer.py:35: in <module>
+    from cuda.bindings import driver as cuda  # type: ignore
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'cuda'
+
+The above exception was the direct cause of the following exception:
+tests/test_step12_fsm_harvest.py:159: in test_action_buffer_availability_flag
+    from knowledge3d.cranium.ptx_runtime import thinking_tag_bridge
+knowledge3d/cranium/ptx_runtime/__init__.py:32: in <module>
+    from .sleep_time_compute import SleepTimeCompute
+knowledge3d/cranium/ptx_runtime/sleep_time_compute.py:12: in <module>
+    from knowledge3d.cranium.ptx import PTX_OPS
+knowledge3d/cranium/ptx/__init__.py:3: in <module>
+    from .ptx_ops import PTX_OPS, PTXOps  # noqa: F401
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+knowledge3d/cranium/ptx/ptx_ops.py:18: in <module>
+    from knowledge3d.cranium.ptx.galaxy_buffer import GalaxyGPUMemory
+knowledge3d/cranium/ptx/galaxy_buffer.py:37: in <module>
+    raise RuntimeError("cuda-python bindings unavailable: install cuda-python in k3d-cranium env") from exc
+E   RuntimeError: cuda-python bindings unavailable: install cuda-python in k3d-cranium env
+_________________________ test_state_timings_structure _________________________
+knowledge3d/cranium/ptx/galaxy_buffer.py:32: in <module>
+    from cuda import cuda  # type: ignore
+    ^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'cuda'
+
+During handling of the above exception, another exception occurred:
+knowledge3d/cranium/ptx/galaxy_buffer.py:35: in <module>
+    from cuda.bindings import driver as cuda  # type: ignore
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'cuda'
+
+The above exception was the direct cause of the following exception:
+tests/test_step12_fsm_harvest.py:172: in test_state_timings_structure
+    from knowledge3d.cranium.ptx_runtime.thinking_tag_bridge import CognitiveStage
+knowledge3d/cranium/ptx_runtime/__init__.py:32: in <module>
+    from .sleep_time_compute import SleepTimeCompute
+knowledge3d/cranium/ptx_runtime/sleep_time_compute.py:12: in <module>
+    from knowledge3d.cranium.ptx import PTX_OPS
+knowledge3d/cranium/ptx/__init__.py:3: in <module>
+    from .ptx_ops import PTX_OPS, PTXOps  # noqa: F401
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+knowledge3d/cranium/ptx/ptx_ops.py:18: in <module>
+    from knowledge3d.cranium.ptx.galaxy_buffer import GalaxyGPUMemory
+knowledge3d/cranium/ptx/galaxy_buffer.py:37: in <module>
+    raise RuntimeError("cuda-python bindings unavailable: install cuda-python in k3d-cranium env") from exc
+E   RuntimeError: cuda-python bindings unavailable: install cuda-python in k3d-cranium env
 =========================== short test summary info ============================
-FAILED tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_action_buffer_288_bytes
-FAILED tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_action_buffer_always_populated
-FAILED tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_action_buffer_in_fallback
-FAILED tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_action_type_mapping
-FAILED tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_bitfield_overflow_prevention
-FAILED tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_buffer_serialization
-FAILED tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_buffer_structure_validation
-FAILED tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_concurrent_population_thread_safety
-FAILED tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_confidence_bounds
-FAILED tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_confidence_propagation
-FAILED tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_curiosity_correlation_with_novelty
-FAILED tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_curiosity_scoring
-FAILED tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_deserialization_roundtrip
-FAILED tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_fallback_on_invalid_type
-FAILED tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_graceful_degradation
-FAILED tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_max_curiosity
-FAILED tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_modal_signature_bitfield
-FAILED tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_modal_signature_no_modalities
-FAILED tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_multi_inference_population
-FAILED tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_multi_modal_all_five
-FAILED tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_single_modal_text_only
-FAILED tests/test_step12_action_buffer_integration.py::TestActionBufferIntegration::test_zero_confidence_edge_case
-FAILED tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_concurrent_inferences
-FAILED tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_empty_input_embedding
-FAILED tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_error_handling_during_fallback
-FAILED tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_invalid_modalities
-FAILED tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_json_escape_unsafe_prompt
-FAILED tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_memory_cleanup
-FAILED tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_million_transition_prune
-FAILED tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_percentile_statistics
-FAILED tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_state_sequence_validation
-FAILED tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_state_timing_microseconds
-FAILED tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_state_trace_export
-FAILED tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_state_trace_export_to_file
-FAILED tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_state_transitions_recorded
-FAILED tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_statistics_with_single_inference
-FAILED tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_timing_precision
-FAILED tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_trace_pruning
-FAILED tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_trace_with_zero_duration_bug
-FAILED tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_validator_percentiles
-FAILED tests/test_step12_cognitive_pipeline.py::TestCognitivePipeline::test_validator_timings
-FAILED tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_buffer_cleanup
-FAILED tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_concurrent_lod_tuning
-FAILED tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_fallback_on_buffer_oom
-FAILED tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_integration_with_state_trace
-FAILED tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_lod_buffer_allocation
-FAILED tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_lod_disabled - ...
-FAILED tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_lod_graceful_degradation
-FAILED tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_lod_in_multi_modal
-FAILED tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_lod_kernel_loads
-FAILED tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_lod_tuning_during_spatial
-FAILED tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_morton_saliency_calculation
-FAILED tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_performance_impact
-FAILED tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_saliency_edge_one
-FAILED tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_saliency_edge_zero
-FAILED tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_saliency_threshold_tuning
-FAILED tests/test_step12_dynamic_lod.py::TestDynamicLOD::test_threshold_validation
-========================= 57 failed, 8 passed in 9.01s =========================
+FAILED tests/test_step12_fsm_harvest.py::test_cognitive_stage_class_exists - ...
+FAILED tests/test_step12_fsm_harvest.py::test_fsm_harvested_methods_exist - R...
+FAILED tests/test_step12_fsm_harvest.py::test_state_transition_recording_logic
+FAILED tests/test_step12_fsm_harvest.py::test_tag_to_action_mapping_logic - R...
+FAILED tests/test_step12_fsm_harvest.py::test_inference_docstring_updated - R...
+FAILED tests/test_step12_fsm_harvest.py::test_action_buffer_availability_flag
+FAILED tests/test_step12_fsm_harvest.py::test_state_timings_structure - Runti...
+========================= 7 failed, 58 passed in 2.53s =========================

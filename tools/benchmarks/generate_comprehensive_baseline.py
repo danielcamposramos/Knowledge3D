@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Comprehensive Performance Baseline Generator for Knowledge3D
 

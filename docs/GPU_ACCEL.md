@@ -26,7 +26,7 @@ Option B — Conda (recommended on bare metal)
    - `conda env create -f envs/k3d-rapids.yml && conda activate k3d-rapids`
    - `export K3D_ACCEL=gpu K3D_FAISS_DEVICE=gpu`
 2) CPU-only setup:
-   - `conda env create -f envs/k3d-cpu.yml && conda activate k3d-cpu`
+   - `conda env create -f envs/k3d-testing.yml && conda activate k3d-testing`
    - `export K3D_ACCEL=cpu`
 
 Notes

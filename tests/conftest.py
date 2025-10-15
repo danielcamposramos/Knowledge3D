@@ -45,14 +45,42 @@ def set_test_environment():
 
 
 @pytest.fixture
-def bridge():
+def step12_bridge_factory():
+    """
+    Factory that creates a ThinkingTagBridge instance with the Step 12 test surface applied.
+    """
+    ThinkingTagBridge = get_thinking_tag_bridge()
+
+    def _factory():
+        try:
+            instance = ThinkingTagBridge()
+        except RuntimeError:
+            instance = mock.Mock()
+        ensure_step12_surface(instance)
+        return instance
+
+    return _factory
+
+
+@pytest.fixture(autouse=True)
+def _inject_step12_factory(request, step12_bridge_factory):
+    """
+    Automatically expose `make_step12_bridge` on test classes so unittest-style
+    suites can request Step 12 ready bridges without duplicating boilerplate.
+    """
+    cls = getattr(request, "cls", None)
+    if cls is not None and not hasattr(cls, "make_step12_bridge"):
+        cls.make_step12_bridge = staticmethod(step12_bridge_factory)
+
+
+@pytest.fixture
+def bridge(step12_bridge_factory):
     """
     Provide a test-ready ThinkingTagBridge instance.
 
     Returns mocked bridge with GPU operations stubbed for CPU-only testing.
     """
-    ThinkingTagBridge = get_thinking_tag_bridge()
-    bridge_instance = ThinkingTagBridge()
+    bridge_instance = step12_bridge_factory()
 
     # Mock GPU operations for CPU-only testing
     if not hasattr(bridge_instance, 'inference') or callable(bridge_instance.inference):
@@ -101,7 +129,6 @@ def bridge():
     if not hasattr(bridge_instance, 'dynamic_lod_kernel'):
         bridge_instance.dynamic_lod_kernel = mock.Mock()
 
-    ensure_step12_surface(bridge_instance)
     return bridge_instance
 
 

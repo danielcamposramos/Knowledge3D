@@ -11,12 +11,12 @@ Transform `exaone3.5:latest` and `exaone-deep:latest` into in‑loco professors 
 
 ## REPRODUCTION
 
-Adjust the Conda environment name to your setup (e.g., `k3d-cpu`, `k3d-rapids`, or `k3dml`). Ensure `PYTHONPATH=.` when invoking modules.
+Adjust the Conda environment name to your setup (e.g., `k3d-testing`, `k3d-rapids`, or `k3dml`). Ensure `PYTHONPATH=.` when invoking modules.
 
 1) Distill thinking tags with exaone‑deep (Ollama):
 
 ```bash
-PYTHONPATH=. conda run -n k3d-cpu python -m knowledge3d.tools.phase10.book_processor \
+PYTHONPATH=. conda run -n k3d-testing python -m knowledge3d.tools.phase10.book_processor \
   --books "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/How to think/JSON" \
   --model exaone-deep:latest \
   --limit 20 \
@@ -27,7 +27,7 @@ PYTHONPATH=. conda run -n k3d-cpu python -m knowledge3d.tools.phase10.book_proce
 2) Train with RLWHF teacher feedback (50 epochs):
 
 ```bash
-PYTHONPATH=. conda run -n k3d-cpu python -m knowledge3d.tools.phase10.thinking_tag_trainer \
+PYTHONPATH=. conda run -n k3d-testing python -m knowledge3d.tools.phase10.thinking_tag_trainer \
   --books "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/How to think/JSON" \
   --model exaone-deep:latest \
   --epochs 50 \
@@ -72,4 +72,3 @@ knowledge3d/
 └── docs/
     └── phase10.3.md (this file)
 ```
-

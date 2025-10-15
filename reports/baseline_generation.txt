@@ -1,0 +1,2 @@
+  File "tools/benchmarks/generate_comprehensive_baseline.py", line 26
+SyntaxError: Non-ASCII character '\xce' in file tools/benchmarks/generate_comprehensive_baseline.py on line 26, but no encoding declared; see http://python.org/dev/peps/pep-0263/ for details

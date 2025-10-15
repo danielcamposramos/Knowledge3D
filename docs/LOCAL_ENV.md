@@ -28,9 +28,9 @@ Conda environments
 - GPU (RAPIDS + FAISS GPU):
   - `conda env create -f envs/k3d-rapids.yml && conda activate k3d-rapids`
   - `export K3D_ACCEL=gpu K3D_FAISS_DEVICE=gpu`
-- CPU (lightweight dev/testing):
-  - `conda env create -f envs/k3d-cpu.yml && conda activate k3d-cpu`
-  - `export K3D_ACCEL=cpu`
+- CPU (Step test harness / reports):
+  - `conda env create -f envs/k3d-testing.yml && conda activate k3d-testing`
+  - `export K3D_ACCEL=cpu` (only for synthetic test runs; production kernels stay on GPU)
 
 Notes
 - RAPIDS requires a matching CUDA runtime; see `docs/GPU_ACCEL.md` for alternatives using Docker containers.

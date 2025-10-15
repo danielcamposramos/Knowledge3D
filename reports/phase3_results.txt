@@ -1,0 +1,38 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.8, pytest-8.4.2, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+hypothesis profile 'default'
+Knowledge3D Test Suite
+GPU-Sovereign Multi-Modal AI Testing Framework
+Test Mode: GPU-Enabled
+rootdir: /mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D
+configfile: pytest.ini
+plugins: typeguard-4.4.4, mock-3.15.0, hypothesis-6.140.2, anyio-4.11.0
+collecting ... collected 4 items
+
+tests/benchmarks/test_text_to_3d_pipeline.py::TestTextTo3DPipeline::test_prompt_parsing_latency PASSED [ 25%]
+tests/benchmarks/test_text_to_3d_pipeline.py::TestTextTo3DPipeline::test_shape_synthesis_latency PASSED [ 50%]
+tests/benchmarks/test_text_to_3d_pipeline.py::TestTextTo3DPipeline::test_end_to_end_generation PASSED [ 75%]
+tests/benchmarks/test_text_to_3d_pipeline.py::TestTextTo3DPipeline::test_concurrent_generation_throughput PASSED [100%]
+
+=============================== warnings summary ===============================
+tests/benchmarks/test_text_to_3d_pipeline.py::TestTextTo3DPipeline::test_prompt_parsing_latency
+  /usr/lib/python3/dist-packages/_pytest/python.py:161: PytestReturnNotNoneWarning: Test functions should return None, but tests/benchmarks/test_text_to_3d_pipeline.py::TestTextTo3DPipeline::test_prompt_parsing_latency returned <class 'dict'>.
+  Did you mean to use `assert` instead of `return`?
+  See https://docs.pytest.org/en/stable/how-to/assert.html#return-not-none for more information.
+    warnings.warn(
+
+tests/benchmarks/test_text_to_3d_pipeline.py::TestTextTo3DPipeline::test_shape_synthesis_latency
+  /usr/lib/python3/dist-packages/_pytest/python.py:161: PytestReturnNotNoneWarning: Test functions should return None, but tests/benchmarks/test_text_to_3d_pipeline.py::TestTextTo3DPipeline::test_shape_synthesis_latency returned <class 'dict'>.
+  Did you mean to use `assert` instead of `return`?
+  See https://docs.pytest.org/en/stable/how-to/assert.html#return-not-none for more information.
+    warnings.warn(
+
+tests/benchmarks/test_text_to_3d_pipeline.py::TestTextTo3DPipeline::test_end_to_end_generation
+  /usr/lib/python3/dist-packages/_pytest/python.py:161: PytestReturnNotNoneWarning: Test functions should return None, but tests/benchmarks/test_text_to_3d_pipeline.py::TestTextTo3DPipeline::test_end_to_end_generation returned <class 'dict'>.
+  Did you mean to use `assert` instead of `return`?
+  See https://docs.pytest.org/en/stable/how-to/assert.html#return-not-none for more information.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 4 passed, 3 warnings in 1.55s =========================

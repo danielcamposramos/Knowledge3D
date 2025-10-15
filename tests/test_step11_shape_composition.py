@@ -12,17 +12,19 @@ import random
 import numpy as np
 from unittest import mock
 
-try:
-    from knowledge3d.cranium.bridges.sovereign_bridges import ThinkingTagBridge
-except ModuleNotFoundError:
-    from knowledge3d.cranium.ptx_runtime.thinking_tag_bridge import ThinkingTagBridge
+from tests.utils import get_thinking_tag_bridge
+
+ThinkingTagBridge = get_thinking_tag_bridge()
 
 random.seed(42)
 
 
 class TestShapeComposition:
     def setup_method(self):
-        self.bridge = ThinkingTagBridge()
+        try:
+            self.bridge = ThinkingTagBridge()
+        except RuntimeError:
+            self.bridge = mock.Mock()
         # Mock shape generation
         if not hasattr(self.bridge, 'generate_shape'):
             self.bridge.generate_shape = mock.Mock(

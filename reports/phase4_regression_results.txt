@@ -1,0 +1,17 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.8, pytest-8.4.2, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+hypothesis profile 'default'
+Knowledge3D Test Suite
+GPU-Sovereign Multi-Modal AI Testing Framework
+Test Mode: GPU-Enabled
+rootdir: /mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D
+configfile: pytest.ini
+plugins: typeguard-4.4.4, mock-3.15.0, hypothesis-6.140.2, anyio-4.11.0
+collecting ... collected 3 items
+
+tests/test_step11_regression.py::test_regression_cases PASSED            [ 33%]
+tests/test_step11_regression.py::test_performance_regression SKIPPED     [ 66%]
+tests/test_step11_regression.py::test_api_contract_stability PASSED      [100%]
+
+========================= 2 passed, 1 skipped in 1.48s =========================

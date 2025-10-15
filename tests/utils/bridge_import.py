@@ -36,4 +36,22 @@ def get_thinking_tag_bridge():
             return Mock
 
 
-__all__ = ['get_thinking_tag_bridge']
+def get_thinking_tag_module():
+    """
+    Import the module that defines ThinkingTagBridge and CognitiveStage.
+
+    Mirrors the priority order of get_thinking_tag_bridge().
+    """
+    module_names = [
+        "knowledge3d.cranium.bridges.sovereign_bridges",
+        "knowledge3d.cranium.ptx_runtime.thinking_tag_bridge",
+    ]
+    for name in module_names:
+        try:
+            return importlib.import_module(name)
+        except ImportError:
+            continue
+    return Mock()
+
+
+__all__ = ['get_thinking_tag_bridge', 'get_thinking_tag_module']
