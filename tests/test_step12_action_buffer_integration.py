@@ -11,10 +11,9 @@ import random
 import json
 from unittest import TestCase, mock
 
-try:
-    from knowledge3d.cranium.bridges.sovereign_bridges import ThinkingTagBridge
-except ModuleNotFoundError:
-    from knowledge3d.cranium.ptx_runtime.thinking_tag_bridge import ThinkingTagBridge
+from tests.utils import get_thinking_tag_bridge, ensure_step12_surface
+
+ThinkingTagBridge = get_thinking_tag_bridge()
 
 # Mock action types enum
 class ActionType:
@@ -37,6 +36,7 @@ class TestActionBufferIntegration(TestCase):
                 modal_signature=0b00011  # Text+image
             )
         ))
+        ensure_step12_surface(self.bridge)
         self.input_embedding = random.randbytes(512)
         random.seed(42)
 

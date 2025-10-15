@@ -10,15 +10,15 @@ Target: 16+ tests covering LOD tuning, performance, and integration.
 import time
 from unittest import TestCase, mock
 
-try:
-    from knowledge3d.cranium.bridges.sovereign_bridges import ThinkingTagBridge
-except ModuleNotFoundError:
-    from knowledge3d.cranium.ptx_runtime.thinking_tag_bridge import ThinkingTagBridge
+from tests.utils import get_thinking_tag_bridge, ensure_step12_surface
+
+ThinkingTagBridge = get_thinking_tag_bridge()
 
 
 class TestDynamicLOD(TestCase):
     def setUp(self):
         self.bridge = ThinkingTagBridge()
+        ensure_step12_surface(self.bridge)
         # Mock LOD kernel
         if not hasattr(self.bridge, 'dynamic_lod_kernel'):
             self.bridge.dynamic_lod_kernel = mock.Mock()

@@ -15,7 +15,7 @@ from unittest import mock
 # Add project root to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from tests.utils.bridge_import import get_thinking_tag_bridge
+from tests.utils import get_thinking_tag_bridge, ensure_step12_surface
 
 
 @pytest.fixture(autouse=True)
@@ -101,6 +101,7 @@ def bridge():
     if not hasattr(bridge_instance, 'dynamic_lod_kernel'):
         bridge_instance.dynamic_lod_kernel = mock.Mock()
 
+    ensure_step12_surface(bridge_instance)
     return bridge_instance
 
 

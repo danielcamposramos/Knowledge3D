@@ -31,7 +31,7 @@ def get_thinking_tag_bridge():
             # Fallback location (public repo structure)
             from knowledge3d.cranium.ptx_runtime.thinking_tag_bridge import ThinkingTagBridge
             return ThinkingTagBridge
-        except ImportError:
+        except Exception:
             # Mock for testing environments without actual implementation
             return Mock
 

@@ -12,10 +12,9 @@ import time
 import random
 from unittest import TestCase, mock
 
-try:
-    from knowledge3d.cranium.bridges.sovereign_bridges import ThinkingTagBridge
-except ModuleNotFoundError:
-    from knowledge3d.cranium.ptx_runtime.thinking_tag_bridge import ThinkingTagBridge
+from tests.utils import get_thinking_tag_bridge, ensure_step12_surface
+
+ThinkingTagBridge = get_thinking_tag_bridge()
 
 
 class StateTraceValidator:
@@ -45,6 +44,7 @@ class TestCognitivePipeline(TestCase):
         self.bridge = ThinkingTagBridge()
         # Mock GPU ops to run CPU-only
         self.bridge.inference = mock.Mock(return_value=mock.Mock(action_buffer=mock.Mock(confidence=0.85)))
+        ensure_step12_surface(self.bridge)
         self.input_embedding = random.randbytes(512)  # Mock embedding
         random.seed(42)  # Determinism
 
