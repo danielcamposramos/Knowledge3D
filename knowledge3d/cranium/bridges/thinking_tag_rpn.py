@@ -42,6 +42,8 @@ class ThinkingTagRPNBridge:
 
         # Vector workspaces keyed by length
         self._vector_buffers: Dict[int, loader.CUdeviceptr] = {}
+        # Matrix workspaces keyed by (rows, cols)
+        self._matrix_buffers: Dict[Tuple[int, int], loader.CUdeviceptr] = {}
 
         # Host buffers reused for readback
         self._host_buffer: Dict[int, np.ndarray] = {}
@@ -153,8 +155,132 @@ class ThinkingTagRPNBridge:
         weights: Dict[str, np.ndarray],
     ) -> np.ndarray:
         """Spatial-only execution (no temporal mask)."""
-        fused, _ = self.execute_temporal(input_vec, weights, mask=np.ones(weights['W2'].shape[0], dtype=np.float32))
-        return fused
+        if input_vec.ndim != 1:
+            raise ValueError("input_vec must be a flat vector")
+
+        d_input = self._upload_vector(input_vec)
+        d_w1 = self._upload_matrix(weights['W1'])
+        d_w2 = self._upload_matrix(weights['W2'])
+        d_w3 = self._upload_matrix(weights['W3'])
+
+        hidden1, input_dim = d_w1.rows, d_w1.cols
+        hidden2, _ = d_w2.rows, d_w2.cols
+        output_dim, _ = d_w3.rows, d_w3.cols
+
+        d_hidden1 = self._get_vector_buffer(hidden1)
+        d_hidden2 = self._get_vector_buffer(hidden2)
+        d_output = self._get_vector_buffer(output_dim)
+
+        op_codes: list[int] = []
+        scalars: list[float] = []
+
+        def append_pointer(ptr: loader.CUdeviceptr, rows: int, cols: int = 1) -> None:
+            op_codes.append(ropc.OP_POINTER_LITERAL)
+            scalars.extend(_encode_pointer_literal(int(ptr.value), rows, cols))
+
+        # Layer 1
+        append_pointer(d_hidden1, hidden1, 1)
+        append_pointer(d_w1.ptr, hidden1, input_dim)
+        append_pointer(d_input, input_dim, 1)
+        op_codes.append(ropc.OP_MATVEC_F32)
+
+        append_pointer(d_hidden1, hidden1, 1)
+        op_codes.append(ropc.OP_VECTOR_RELU)
+
+        # Layer 2
+        append_pointer(d_hidden2, hidden2, 1)
+        append_pointer(d_w2.ptr, hidden2, hidden1)
+        append_pointer(d_hidden1, hidden1, 1)
+        op_codes.append(ropc.OP_MATVEC_F32)
+
+        append_pointer(d_hidden2, hidden2, 1)
+        op_codes.append(ropc.OP_VECTOR_RELU)
+
+        # Layer 3
+        append_pointer(d_output, output_dim, 1)
+        append_pointer(d_w3.ptr, output_dim, hidden2)
+        append_pointer(d_hidden2, hidden2, 1)
+        op_codes.append(ropc.OP_MATVEC_F32)
+
+        append_pointer(d_output, output_dim, 1)
+        op_codes.append(ropc.OP_VECTOR_SIGMOID)
+
+        op_np = np.asarray(op_codes, dtype=np.uint16)
+        scalars_np = np.asarray(scalars, dtype=np.float32)
+
+        self.engine.reset_instance(0)
+        self.engine.execute_program(0, op_np, scalars_np)
+        return self._fetch_vector(d_output, output_dim)
+
+    def compute_temporal_mask(
+        self,
+        context: np.ndarray,
+        threshold: Optional[float] = None,
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Compute temporal mask, coherence, and activity signals on the GPU.
+
+        Args:
+            context: Temporal context matrix shaped (T, D).
+            threshold: Optional coherence threshold. When None, derived from context magnitude.
+
+        Returns:
+            Tuple of (mask, coherence, activity), each length-D float32 arrays.
+        """
+        ctx = np.asarray(context, dtype=np.float32)
+        if ctx.ndim == 1:
+            ctx = ctx[np.newaxis, :]
+        if ctx.ndim != 2:
+            raise ValueError("context must be 1D or 2D")
+
+        time_steps, feature_dim = ctx.shape
+        ctx_ptr = self._upload_temp_matrix(ctx)
+
+        coherence_ptr = self._get_vector_buffer(feature_dim)
+        mask_ptr = self._get_vector_buffer(feature_dim)
+        activity_ptr = self._get_vector_buffer(feature_dim)
+
+        if threshold is None:
+            threshold = float(np.mean(np.abs(ctx)))
+
+        op_codes: list[int] = []
+        scalars: list[float] = []
+
+        def append_pointer(ptr: loader.CUdeviceptr, rows: int, cols: int = 1) -> None:
+            op_codes.append(ropc.OP_POINTER_LITERAL)
+            scalars.extend(_encode_pointer_literal(int(ptr.value), rows, cols))
+
+        # Coherence scores
+        append_pointer(coherence_ptr, feature_dim, 1)
+        append_pointer(ctx_ptr, time_steps, feature_dim)
+        op_codes.append(ropc.OP_TEMPORAL_COHERENCE)
+
+        # Activity proxy (mean abs context)
+        append_pointer(activity_ptr, feature_dim, 1)
+        append_pointer(ctx_ptr, time_steps, feature_dim)
+        op_codes.append(ropc.OP_TEMPORAL_AGGREGATE)
+
+        # Mask derivation from coherence
+        append_pointer(mask_ptr, feature_dim, 1)
+        append_pointer(coherence_ptr, feature_dim, 1)
+        op_codes.append(0x00)  # literal scalar
+        scalars.append(float(threshold))
+        op_codes.append(ropc.OP_TEMPORAL_MASK)
+
+        op_np = np.asarray(op_codes, dtype=np.uint16)
+        scalars_np = np.asarray(scalars, dtype=np.float32)
+
+        self.engine.reset_instance(0)
+        self.engine.execute_program(
+            0,
+            op_np,
+            scalars_np,
+        )
+
+        mask_host = self._fetch_vector(mask_ptr, feature_dim)
+        coherence_host = self._fetch_vector(coherence_ptr, feature_dim)
+        activity_host = self._fetch_vector(activity_ptr, feature_dim)
+        return mask_host, coherence_host, activity_host
 
     def cleanup(self) -> None:
         """Release GPU resources."""
@@ -165,6 +291,10 @@ class ThinkingTagRPNBridge:
         for ptr in self._vector_buffers.values():
             loader.gpu_free(ptr)
         self._vector_buffers.clear()
+
+        for ptr in self._matrix_buffers.values():
+            loader.gpu_free(ptr)
+        self._matrix_buffers.clear()
 
         self.engine.cleanup()
 
@@ -200,6 +330,24 @@ class ThinkingTagRPNBridge:
         if ptr is None:
             ptr = loader.gpu_malloc(length * 4)
             self._vector_buffers[length] = ptr
+        return ptr
+
+    def _get_matrix_buffer(self, rows: int, cols: int) -> loader.CUdeviceptr:
+        key = (rows, cols)
+        ptr = self._matrix_buffers.get(key)
+        required = rows * cols * 4
+        if ptr is None:
+            ptr = loader.gpu_malloc(required)
+            self._matrix_buffers[key] = ptr
+        return ptr
+
+    def _upload_temp_matrix(self, matrix: np.ndarray) -> loader.CUdeviceptr:
+        mat = np.ascontiguousarray(matrix, dtype=np.float32)
+        if mat.ndim != 2:
+            raise ValueError("Temporary matrix upload expects 2D array")
+        rows, cols = mat.shape
+        ptr = self._get_matrix_buffer(rows, cols)
+        loader.memcpy_htod(ptr, mat.ctypes.data_as(ctypes.c_void_p), rows * cols * 4)
         return ptr
 
     def _upload_vector(self, vector: np.ndarray, length_override: Optional[int] = None) -> loader.CUdeviceptr:

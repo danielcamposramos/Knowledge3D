@@ -3,7 +3,7 @@ import numpy as np
 import logging
 import os
 import time
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 # Kimi's zero-copy strategy: local imports maintain GPU pointers without host-device copies
 from .sovereign.loader import gpu_malloc, memcpy_htod, memcpy_dtoh, launch_kernel, load_ptx_file
@@ -126,6 +126,7 @@ class ThinkingTagBridge:
         self.mode_buffer = gpu_malloc(4)
         self.temp_buffers = gpu_malloc(2048)
         self.cache_buffer = gpu_malloc(1024 * 1024)  # 1MB cache
+        self._last_temporal_metrics: Optional[Dict[str, np.ndarray]] = None
 
         # Initialize
         self._reset_ema_buffer_gpu()
@@ -394,7 +395,10 @@ class ThinkingTagBridge:
             self.latency_profiler.start_stage("confidence")
             confidence_rays = self.vector_resonator.compute(confidence_vector=crystallized)
             uncertainty = self._compute_entropy(crystallized)
-            coherence_scores = self.temporal_reasoning.estimate_coherence(context)
+            if self._last_temporal_metrics and "coherence" in self._last_temporal_metrics:
+                coherence_scores = self._last_temporal_metrics["coherence"]
+            else:
+                coherence_scores = self.temporal_reasoning.estimate_coherence(context)
 
             # Enhancement #1: Confidence-weighted tag emission
             tags = self._emit_confidence_weighted_tags(
@@ -480,17 +484,26 @@ class ThinkingTagBridge:
         mask = None
         if context is not None:
             ctx = np.asarray(context, dtype=np.float32)
-            if ctx.ndim > 1:
-                mask_vec = np.mean(np.abs(ctx), axis=0)
-            else:
-                mask_vec = np.abs(ctx)
+            mask_vec, coherence_vec, activity_vec = self.rpn_bridge.compute_temporal_mask(ctx)
+            mask_vec = np.asarray(mask_vec, dtype=np.float32).ravel()
+            coherence_vec = np.asarray(coherence_vec, dtype=np.float32).ravel()
+            activity_vec = np.asarray(activity_vec, dtype=np.float32).ravel()
             hidden2 = weights['W2'].shape[0]
+            broadcast_mask = mask_vec
             if mask_vec.size < hidden2:
                 repeats = int(np.ceil(hidden2 / mask_vec.size))
-                mask = np.tile(mask_vec, repeats)[:hidden2]
-            else:
-                mask = mask_vec[:hidden2]
-            mask = np.clip(mask, 0.0, 1.0)
+                broadcast_mask = np.tile(mask_vec, repeats)[:hidden2]
+            elif mask_vec.size > hidden2:
+                broadcast_mask = mask_vec[:hidden2]
+            mask = np.clip(broadcast_mask, 0.0, 1.0)
+            self._last_temporal_metrics = {
+                "mask": mask_vec,
+                "coherence": coherence_vec,
+                "activity": activity_vec,
+            }
+        else:
+            self._last_temporal_metrics = None
+
         fused, _ = self.rpn_bridge.execute_temporal(x_vec, weights, mask=mask)
         return fused
 
