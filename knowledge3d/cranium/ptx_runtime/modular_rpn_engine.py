@@ -15,12 +15,24 @@ from __future__ import annotations
 import math
 import re
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
 
 import numpy as np
 
-# Import sovereign bridge (now tiered orchestrator)
-from knowledge3d.cranium.bridges.tiered_rpn import TieredRPNEngine as SovereignRPNEngine
+from .rpn_opcodes import (
+    OP_ENTROPY_SUM,
+    OP_SIGMOID_APPROX,
+    OP_SMAV,
+    OP_SPARSE_LOAD,
+    OP_TRM_MATVEC_1024x512,
+    OP_TRM_MATVEC_512x1024,
+    OP_TRM_SWIGLU_1024,
+    OP_TRM_SWIGLU_512,
+    OP_TRM_VEC_ADD3_512,
+)
+
+if TYPE_CHECKING:  # pragma: no cover - only for type hints
+    from knowledge3d.cranium.bridges.tiered_rpn import TieredRPNEngine as SovereignRPNEngine
 
 
 class ModularRPNEngine:
@@ -95,6 +107,11 @@ class ModularRPNEngine:
             raise ValueError(f"Maximum supported instances is {self._INSTANCE_COUNT}")
 
         self.max_instances = max_instances
+        # Lazy import keeps module importable in environments without CUDA bindings
+        from knowledge3d.cranium.bridges.tiered_rpn import (
+            TieredRPNEngine as SovereignRPNEngine,
+        )
+
         self._sovereign_engine = SovereignRPNEngine()
 
     def tokenize_rpn(self, expression: str) -> List[str]:
@@ -303,11 +320,6 @@ def rpn_eval(expression: str) -> float:
 
 # Opcode constants for thinking tag system (GLM's extended opcodes)
 # These match the CUDA kernel definitions in modular_rpn_kernel.cu
-OP_SPARSE_LOAD = 0x40
-OP_SMAV = 0x41
-OP_ENTROPY_SUM = 0x42
-OP_SIGMOID_APPROX = 0x43
-
 
 class RPNProgram:
     """Low-level RPN bytecode builder for thinking tag inference.
@@ -351,14 +363,47 @@ class RPNProgram:
 
     def to_bytes(self) -> bytes:
         """Convert to final bytecode"""
+        self._resolve_ptrs()
         return bytes(self.bytecode)
 
     def to_uint32_array(self) -> np.ndarray:
         """Convert to uint32 array for GPU execution"""
+        self._resolve_ptrs()
         # Pad to uint32 boundary
         while len(self.bytecode) % 4 != 0:
             self.bytecode.append(0)
         return np.frombuffer(self.bytecode, dtype=np.uint32)
 
+    # ------------------------------------------------------------------ #
+    # Internal helpers
+    # ------------------------------------------------------------------ #
+    def _resolve_ptrs(self) -> None:
+        """Write recorded device pointers into the bytecode buffer."""
+        if not self._ptrs:
+            return
+        for offset, ptr in self._ptrs:
+            # Accept objects providing .value (ctypes-style) or plain ints
+            if hasattr(ptr, "value"):
+                ptr_value = int(ptr.value)  # type: ignore[attr-defined]
+            else:
+                ptr_value = int(ptr)
+            ptr_bytes = ptr_value.to_bytes(8, byteorder="little", signed=False)
+            self.bytecode[offset:offset + 8] = ptr_bytes
+        # Prevent duplicate writes on subsequent conversions
+        self._ptrs.clear()
 
-__all__ = ["ModularRPNEngine", "rpn_eval", "RPNProgram", "OP_SPARSE_LOAD", "OP_SMAV", "OP_ENTROPY_SUM", "OP_SIGMOID_APPROX"]
+
+__all__ = [
+    "ModularRPNEngine",
+    "rpn_eval",
+    "RPNProgram",
+    "OP_SPARSE_LOAD",
+    "OP_SMAV",
+    "OP_ENTROPY_SUM",
+    "OP_SIGMOID_APPROX",
+    "OP_TRM_MATVEC_512x1024",
+    "OP_TRM_MATVEC_1024x512",
+    "OP_TRM_VEC_ADD3_512",
+    "OP_TRM_SWIGLU_512",
+    "OP_TRM_SWIGLU_1024",
+]

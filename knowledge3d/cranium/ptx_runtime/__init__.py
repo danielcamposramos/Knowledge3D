@@ -17,42 +17,42 @@ from .rpn_calculator import RPNCalculator
 try:
     from .thinking_tag_embedder import ThinkingTagEmbedder
     _HAS_THINKING_EMBEDDER = True
-except (ImportError, AttributeError):
+except (ImportError, AttributeError, RuntimeError):
     ThinkingTagEmbedder = None  # type: ignore
     _HAS_THINKING_EMBEDDER = False
 
 try:
     from .text_to_3d_generator import TextTo3DGenerator
     _HAS_TEXT_TO_3D = True
-except ImportError:
+except (ImportError, RuntimeError):
     TextTo3DGenerator = None  # type: ignore
     _HAS_TEXT_TO_3D = False
 
 try:
     from .sleep_time_compute import SleepTimeCompute
     _HAS_SLEEP_TIME = True
-except ImportError:
+except (ImportError, RuntimeError):
     SleepTimeCompute = None  # type: ignore
     _HAS_SLEEP_TIME = False
 
 try:
     from .galaxy_state_serializer import GalaxyStateSerializer
     _HAS_GALAXY_SERIALIZER = True
-except ImportError:
+except (ImportError, RuntimeError):
     GalaxyStateSerializer = None  # type: ignore
     _HAS_GALAXY_SERIALIZER = False
 
 try:
     from .galaxy_memory_updater import GalaxyMemoryUpdater
     _HAS_GALAXY_MEMORY = True
-except ImportError:
+except (ImportError, RuntimeError):
     GalaxyMemoryUpdater = None  # type: ignore
     _HAS_GALAXY_MEMORY = False
 
 try:
     from .nvrtc_ptx_loader import NVRTCPTXLoader
     _HAS_NVRTC_LOADER = True
-except ImportError:
+except (ImportError, RuntimeError):
     NVRTCPTXLoader = None  # type: ignore
     _HAS_NVRTC_LOADER = False
 
@@ -60,10 +60,12 @@ except ImportError:
 try:
     from .trm_engine import TRMEngine, TRMConfig
     _HAS_TRM_ENGINE = True
-except ImportError:
+except (ImportError, RuntimeError):
     TRMEngine = None  # type: ignore
     TRMConfig = None  # type: ignore
     _HAS_TRM_ENGINE = False
+
+from .trm_rpn_program import build_trm_refine_program, expected_trm_opcode_sequence
 
 __all__ = [
     "ModularRPNEngine",
@@ -76,4 +78,6 @@ __all__ = [
     "NVRTCPTXLoader",
     "TRMEngine",
     "TRMConfig",
+    "build_trm_refine_program",
+    "expected_trm_opcode_sequence",
 ]

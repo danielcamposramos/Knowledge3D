@@ -1,0 +1,25 @@
+"""Shared opcode constants for the modular RPN executors."""
+
+OP_SPARSE_LOAD = 0x40
+OP_SMAV = 0x41
+OP_ENTROPY_SUM = 0x42
+OP_SIGMOID_APPROX = 0x43
+
+# Phase 1A – TRM integration opcodes (Tier-3 execution surface)
+OP_TRM_MATVEC_512x1024 = 0x60
+OP_TRM_MATVEC_1024x512 = 0x61
+OP_TRM_VEC_ADD3_512 = 0x62
+OP_TRM_SWIGLU_512 = 0x63
+OP_TRM_SWIGLU_1024 = 0x64
+
+__all__ = [
+    "OP_SPARSE_LOAD",
+    "OP_SMAV",
+    "OP_ENTROPY_SUM",
+    "OP_SIGMOID_APPROX",
+    "OP_TRM_MATVEC_512x1024",
+    "OP_TRM_MATVEC_1024x512",
+    "OP_TRM_VEC_ADD3_512",
+    "OP_TRM_SWIGLU_512",
+    "OP_TRM_SWIGLU_1024",
+]
