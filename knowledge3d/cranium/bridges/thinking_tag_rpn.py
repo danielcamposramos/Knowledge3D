@@ -4,13 +4,19 @@ from __future__ import annotations
 
 import ctypes
 from dataclasses import dataclass
-from typing import Dict, Iterable, Optional, Tuple
+from typing import Dict, Iterable, Optional, Tuple, Union
 
 import numpy as np
 
 from knowledge3d.cranium.bridges.advanced_rpn import AdvancedRPNEngine
 from knowledge3d.cranium.sovereign import loader
 from knowledge3d.cranium.ptx_runtime import rpn_opcodes as ropc
+
+_KNOWN_RPN_OPCODES = {
+    int(value)
+    for value in vars(ropc).values()
+    if isinstance(value, int) and 0 <= value <= 0xFFFF
+}
 
 
 def _encode_pointer_literal(ptr_value: int, rows: int, cols: int = 1) -> Tuple[float, float, float, float]:
@@ -285,6 +291,43 @@ class ThinkingTagRPNBridge:
         activity_host = self._fetch_vector(activity_ptr, feature_dim)
         return mask_host, coherence_host, activity_host
 
+    def _execute_rpn_program(
+        self,
+        program: Iterable[Union[int, float]],
+    ) -> np.ndarray:
+        """
+        Execute an ad-hoc Tier-2 RPN program for testing.
+
+        Scalars push via OP_LITERAL (0x00); recognised opcode integers are emitted
+        directly, while any other integer token is treated as a scalar literal.
+        Returns the scalar lane (X component) of the resulting stack.
+        """
+        op_codes: list[int] = []
+        scalars: list[float] = []
+
+        for token in program:
+            if isinstance(token, (float, np.floating)):
+                op_codes.append(0x00)
+                scalars.append(float(token))
+            elif isinstance(token, (int, np.integer)):
+                opcode = int(token)
+                if opcode in _KNOWN_RPN_OPCODES:
+                    op_codes.append(opcode)
+                else:
+                    op_codes.append(0x00)
+                    scalars.append(float(opcode))
+            else:
+                raise TypeError("program tokens must be ints or floats")
+
+        op_np = np.asarray(op_codes, dtype=np.uint16)
+        scalars_np = np.asarray(scalars, dtype=np.float32)
+
+        self.engine.reset_instance(0)
+        stack = self.engine.execute_program(0, op_np, scalars_np)
+        if stack.size == 0:
+            return np.zeros(0, dtype=np.float32)
+        return stack[:, 0].copy()
+
     def cleanup(self) -> None:
         """Release GPU resources."""
         for tensor in self._weight_cache.values():
@@ -387,6 +430,106 @@ class ThinkingTagRPNBridge:
             self._host_buffer[length] = host
         loader.memcpy_dtoh(host.ctypes.data_as(ctypes.c_void_p), ptr, length * 4)
         return host.copy()
+
+    def _fetch_matrix(self, ptr: loader.CUdeviceptr, rows: int, cols: int) -> np.ndarray:
+        host = np.zeros((rows, cols), dtype=np.float32)
+        loader.memcpy_dtoh(host.ctypes.data_as(ctypes.c_void_p), ptr, rows * cols * 4)
+        return host
+
+    def _test_matvec(self, matrix: np.ndarray, vector: np.ndarray) -> np.ndarray:
+        mat = np.ascontiguousarray(matrix, dtype=np.float32)
+        vec = np.ascontiguousarray(vector, dtype=np.float32).reshape(-1)
+        if mat.ndim != 2 or vec.ndim != 1:
+            raise ValueError("matvec test expects 2D matrix and 1D vector")
+        rows, cols = mat.shape
+        if vec.size != cols:
+            raise ValueError(f"Vector length {vec.size} != matrix cols {cols}")
+
+        d_matrix = self._upload_temp_matrix(mat)
+        d_vector = self._upload_constant_vector(vec, length=vec.size)
+        d_output = self._get_vector_buffer(rows)
+
+        op_codes: list[int] = []
+        scalars: list[float] = []
+
+        def append_pointer(ptr: loader.CUdeviceptr, rows_val: int, cols_val: int = 1) -> None:
+            op_codes.append(ropc.OP_POINTER_LITERAL)
+            scalars.extend(_encode_pointer_literal(int(ptr.value), rows_val, cols_val))
+
+        append_pointer(d_output, rows, 1)
+        append_pointer(d_matrix, rows, cols)
+        append_pointer(d_vector, vec.size, 1)
+        op_codes.append(ropc.OP_MATVEC_F32)
+
+        op_np = np.asarray(op_codes, dtype=np.uint16)
+        scalars_np = np.asarray(scalars, dtype=np.float32)
+
+        self.engine.reset_instance(0)
+        self.engine.execute_program(0, op_np, scalars_np)
+        return self._fetch_vector(d_output, rows)
+
+    def _test_matmul_small(self, a: np.ndarray, b: np.ndarray) -> np.ndarray:
+        mat_a = np.ascontiguousarray(a, dtype=np.float32)
+        mat_b = np.ascontiguousarray(b, dtype=np.float32)
+        if mat_a.ndim != 2 or mat_b.ndim != 2:
+            raise ValueError("matmul test expects two 2D matrices")
+        if mat_a.shape[1] != mat_b.shape[0]:
+            raise ValueError("Incompatible shapes for matmul test")
+
+        tensor_a = self._upload_matrix(mat_a)
+        tensor_b = self._upload_matrix(mat_b)
+        rows, cols = mat_a.shape[0], mat_b.shape[1]
+        dest_ptr = self._get_matrix_buffer(rows, cols)
+
+        op_codes: list[int] = []
+        scalars: list[float] = []
+
+        def append_pointer(ptr: loader.CUdeviceptr, rows_val: int, cols_val: int) -> None:
+            op_codes.append(ropc.OP_POINTER_LITERAL)
+            scalars.extend(_encode_pointer_literal(int(ptr.value), rows_val, cols_val))
+
+        append_pointer(dest_ptr, rows, cols)
+        append_pointer(tensor_b.ptr, mat_b.shape[0], mat_b.shape[1])
+        append_pointer(tensor_a.ptr, mat_a.shape[0], mat_a.shape[1])
+        op_codes.append(ropc.OP_MATMUL_SMALL)
+
+        op_np = np.asarray(op_codes, dtype=np.uint16)
+        scalars_np = np.asarray(scalars, dtype=np.float32)
+
+        self.engine.reset_instance(0)
+        self.engine.execute_program(0, op_np, scalars_np)
+        return self._fetch_matrix(dest_ptr, rows, cols)
+
+    def _test_dot_batch(self, query: np.ndarray, vectors: np.ndarray) -> np.ndarray:
+        vec_query = np.ascontiguousarray(query, dtype=np.float32).reshape(-1)
+        mat_vectors = np.ascontiguousarray(vectors, dtype=np.float32)
+        if mat_vectors.ndim != 2:
+            raise ValueError("vectors must be 2D matrix")
+        if vec_query.size != mat_vectors.shape[1]:
+            raise ValueError("Query dimension mismatch in dot batch test")
+
+        tensor_vectors = self._upload_matrix(mat_vectors)
+        query_ptr = self._upload_constant_vector(vec_query, length=vec_query.size)
+        result_ptr = self._get_vector_buffer(mat_vectors.shape[0])
+
+        op_codes: list[int] = []
+        scalars: list[float] = []
+
+        def append_pointer(ptr: loader.CUdeviceptr, rows_val: int, cols_val: int = 1) -> None:
+            op_codes.append(ropc.OP_POINTER_LITERAL)
+            scalars.extend(_encode_pointer_literal(int(ptr.value), rows_val, cols_val))
+
+        append_pointer(result_ptr, mat_vectors.shape[0], 1)
+        append_pointer(tensor_vectors.ptr, mat_vectors.shape[0], mat_vectors.shape[1])
+        append_pointer(query_ptr, vec_query.size, 1)
+        op_codes.append(ropc.OP_DOT_BATCH)
+
+        op_np = np.asarray(op_codes, dtype=np.uint16)
+        scalars_np = np.asarray(scalars, dtype=np.float32)
+
+        self.engine.reset_instance(0)
+        self.engine.execute_program(0, op_np, scalars_np)
+        return self._fetch_vector(result_ptr, mat_vectors.shape[0])
 
     @staticmethod
     def _compute_entropy_cpu(probs: Iterable[float]) -> float:

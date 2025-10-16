@@ -33,6 +33,14 @@ constexpr uint16_t kOpEntropySum = 0x42;
 constexpr uint16_t kOpTemporalCoherence = 0xF0;
 constexpr uint16_t kOpTemporalMask = 0xF1;
 constexpr uint16_t kOpTemporalAggregate = 0xF2;
+constexpr uint16_t kOpMatmulSmall = 0xA4;
+constexpr uint16_t kOpDotBatch = 0xA5;
+constexpr uint16_t kOpTraceTensor = 0xA6;
+constexpr uint16_t kOpBranch = 0xB0;
+constexpr uint16_t kOpLoop = 0xB1;
+constexpr uint16_t kOpNext = 0xB2;
+constexpr uint16_t kOpStore = 0xB3;
+constexpr uint16_t kOpRecall = 0xB4;
 
 struct StackItem {
     float value[4];
@@ -383,11 +391,15 @@ extern "C" __global__ void modular_rpn_kernel_extended(
     __shared__ TensorRef tensor_c;
     __shared__ TensorRef tensor_d;
     __shared__ int shared_rows;
-    __shared__ int shared_length;
-    __shared__ int shared_inner;
-    __shared__ float shared_scalar;
-    __shared__ float reduction_buffer[256];
-    __shared__ float shared_vector_cache[1024];
+   __shared__ int shared_length;
+   __shared__ int shared_inner;
+   __shared__ float shared_scalar;
+   __shared__ float reduction_buffer[256];
+   __shared__ float shared_vector_cache[1024];
+    __shared__ float programmable_storage[8];
+    __shared__ int programmable_loop_counter;
+    __shared__ int programmable_loop_start;
+    __shared__ int programmable_branch_taken;
 
     if (tid == 0) {
         stack_size = 0;
@@ -395,6 +407,12 @@ extern "C" __global__ void modular_rpn_kernel_extended(
         scalar_index = 0;
         vector_index = 0;
         matrix_index = 0;
+        for (int i = 0; i < 8; ++i) {
+            programmable_storage[i] = 0.0f;
+        }
+        programmable_loop_counter = 0;
+        programmable_loop_start = 0;
+        programmable_branch_taken = 0;
     }
     __syncthreads();
 
@@ -547,8 +565,8 @@ extern "C" __global__ void modular_rpn_kernel_extended(
                 if (ok) {
                     shared_rows = tensor_b.rows;
                     shared_inner = tensor_b.cols;
-                    if (tensor_c.rows != shared_inner || tensor_a.rows != shared_rows ||
-                        tensor_a.cols != 1 || tensor_c.cols != 1) {
+                    if (tensor_c.rows != shared_inner || tensor_c.cols != 1 ||
+                        tensor_a.rows != shared_rows || tensor_a.cols != 1) {
                         error_code = kErrorInvalidMatrixDims;
                     }
                 }
@@ -557,42 +575,47 @@ extern "C" __global__ void modular_rpn_kernel_extended(
             if (error_code != kErrorNone) {
                 continue;
             }
+
             float* dst_ptr = tensor_a.ptr;
             const float* matrix_ptr = tensor_b.ptr;
             const float* vec_ptr = tensor_c.ptr;
+            const int rows = shared_rows;
             const int cols = shared_inner;
 
-            if (cols <= 1024) {
+            const bool use_shared = cols <= 1024;
+            if (use_shared) {
                 for (int col = tid; col < cols; col += stride) {
                     shared_vector_cache[col] = vec_ptr[col];
                 }
-                __syncthreads();
             }
+            __syncthreads();
 
-            const int warp_size = 32;
-            const int lane = tid & (warp_size - 1);
-            const int warp_id = tid / warp_size;
-            const int warp_count = blockDim.x / warp_size;
-
-            for (int row = warp_id; row < shared_rows; row += warp_count) {
+            for (int row = tid; row < rows; row += stride) {
                 const float* row_ptr = matrix_ptr + row * cols;
-                float partial = 0.0f;
-                if (cols <= 1024) {
-                    for (int k = lane; k < cols; k += warp_size) {
-                        partial += row_ptr[k] * shared_vector_cache[k];
+                float sum = 0.0f;
+                int k = 0;
+                if (use_shared) {
+                    for (; k + 4 <= cols; k += 4) {
+                        sum += row_ptr[k] * shared_vector_cache[k];
+                        sum += row_ptr[k + 1] * shared_vector_cache[k + 1];
+                        sum += row_ptr[k + 2] * shared_vector_cache[k + 2];
+                        sum += row_ptr[k + 3] * shared_vector_cache[k + 3];
+                    }
+                    for (; k < cols; ++k) {
+                        sum += row_ptr[k] * shared_vector_cache[k];
                     }
                 } else {
-                    for (int k = lane; k < cols; k += warp_size) {
-                        partial += row_ptr[k] * vec_ptr[k];
+                    for (; k + 4 <= cols; k += 4) {
+                        sum += row_ptr[k] * vec_ptr[k];
+                        sum += row_ptr[k + 1] * vec_ptr[k + 1];
+                        sum += row_ptr[k + 2] * vec_ptr[k + 2];
+                        sum += row_ptr[k + 3] * vec_ptr[k + 3];
+                    }
+                    for (; k < cols; ++k) {
+                        sum += row_ptr[k] * vec_ptr[k];
                     }
                 }
-                #pragma unroll
-                for (int offset = 16; offset > 0; offset >>= 1) {
-                    partial += __shfl_down_sync(0xffffffff, partial, offset);
-                }
-                if (lane == 0) {
-                    dst_ptr[row] = partial;
-                }
+                dst_ptr[row] = sum;
             }
             __syncthreads();
             if (tid == 0) {
@@ -744,22 +767,21 @@ extern "C" __global__ void modular_rpn_kernel_extended(
             float* coherence_ptr = tensor_a.ptr;
             const int time_steps = shared_rows;
             const int feature_dim = shared_length;
-            const float inv_time = time_steps > 0 ? 1.0f / static_cast<float>(time_steps) : 0.0f;
+            const float inv_time = 1.0f / static_cast<float>(time_steps);
             for (int feature = tid; feature < feature_dim; feature += stride) {
-                float sum = 0.0f;
-                float sq_sum = 0.0f;
+                float mean = 0.0f;
+                for (int t = 0; t < time_steps; ++t) {
+                    mean += context_ptr[t * feature_dim + feature];
+                }
+                mean *= inv_time;
+
+                float variance = 0.0f;
                 for (int t = 0; t < time_steps; ++t) {
                     const float value = context_ptr[t * feature_dim + feature];
-                    sum += value;
-                    sq_sum += value * value;
+                    const float diff = value - mean;
+                    variance += diff * diff;
                 }
-                const float mean = sum * inv_time;
-                float variance = sq_sum * inv_time - mean * mean;
-                if (variance < 0.0f) {
-                    variance = 0.0f;
-                }
-                const float coherence = 1.0f / (1.0f + sqrtf(variance + 1e-8f));
-                coherence_ptr[feature] = coherence;
+                coherence_ptr[feature] = sqrtf(fmaxf(variance * inv_time, 0.0f));
             }
             __syncthreads();
             if (tid == 0) {
@@ -789,10 +811,8 @@ extern "C" __global__ void modular_rpn_kernel_extended(
             float* mask_ptr = tensor_a.ptr;
             const float threshold = shared_scalar;
             for (int idx = tid; idx < shared_length; idx += stride) {
-                const float score = coherence_ptr[idx];
-                const float shifted = (score - threshold) * 4.0f;  // temperature scaling
-                const float mask = 1.0f / (1.0f + expf(-shifted));
-                mask_ptr[idx] = fminf(fmaxf(mask, 0.0f), 1.0f);
+                const float score = coherence_ptr[idx] - threshold;
+                mask_ptr[idx] = 1.0f / (1.0f + expf(-score));
             }
             __syncthreads();
             if (tid == 0) {
@@ -836,6 +856,190 @@ extern "C" __global__ void modular_rpn_kernel_extended(
             if (tid == 0) {
                 push_tensor(stack, stack_size, dest_ptr, tensor_a.rows, tensor_a.cols, error_code);
             }
+            continue;
+        }
+
+        if (opcode == kOpMatmulSmall) {
+            bool ok = true;
+            if (tid == 0) {
+                ok = pop_tensor(stack, stack_size, tensor_c, error_code);  // matrix B (K, N)
+                if (ok) ok = pop_tensor(stack, stack_size, tensor_b, error_code);  // matrix A (M, K)
+                if (ok) ok = pop_tensor(stack, stack_size, tensor_a, error_code);  // dest (M, N)
+                if (ok) {
+                    shared_rows = tensor_b.rows;
+                    shared_inner = tensor_b.cols;
+                    shared_length = tensor_c.cols;
+                    if (tensor_c.rows != shared_inner ||
+                        tensor_a.rows != shared_rows || tensor_a.cols != tensor_c.cols ||
+                        tensor_a.cols <= 0) {
+                        error_code = kErrorInvalidMatrixDims;
+                    }
+                }
+            }
+            __syncthreads();
+            if (error_code != kErrorNone) {
+                continue;
+            }
+            float* out_ptr = tensor_a.ptr;
+            const float* a_ptr = tensor_b.ptr;
+            const float* b_ptr = tensor_c.ptr;
+            const int M = tensor_b.rows;
+            const int K = tensor_b.cols;
+            const int N = tensor_c.cols;
+
+            for (int idx = tid; idx < M * N; idx += stride) {
+                const int row = idx / N;
+                const int col = idx % N;
+                const float* row_ptr = a_ptr + row * K;
+                float acc = 0.0f;
+                for (int k = 0; k < K; ++k) {
+                    acc += row_ptr[k] * b_ptr[k * N + col];
+                }
+                out_ptr[idx] = acc;
+            }
+            __syncthreads();
+            if (tid == 0) {
+                push_tensor(stack, stack_size, out_ptr, tensor_a.rows, tensor_a.cols, error_code);
+            }
+            continue;
+        }
+
+        if (opcode == kOpDotBatch) {
+            bool ok = true;
+            if (tid == 0) {
+                ok = pop_tensor(stack, stack_size, tensor_c, error_code);  // query (D, 1)
+                if (ok) ok = pop_tensor(stack, stack_size, tensor_b, error_code);  // vectors (N, D)
+                if (ok) ok = pop_tensor(stack, stack_size, tensor_a, error_code);  // dest (N, 1)
+                if (ok) {
+                    shared_rows = tensor_b.rows;
+                    shared_length = tensor_b.cols;
+                    if (tensor_c.rows != shared_length || tensor_c.cols != 1 ||
+                        tensor_a.rows != shared_rows || tensor_a.cols != 1) {
+                        error_code = kErrorInvalidMatrixDims;
+                    }
+                }
+            }
+            __syncthreads();
+            if (error_code != kErrorNone) {
+                continue;
+            }
+            float* out_ptr = tensor_a.ptr;
+            const float* vectors_ptr = tensor_b.ptr;
+            const float* query_ptr = tensor_c.ptr;
+            const int batch = tensor_b.rows;
+            const int dim = tensor_b.cols;
+
+            for (int row = tid; row < batch; row += stride) {
+                const float* vec = vectors_ptr + row * dim;
+                float accum = 0.0f;
+                for (int d = 0; d < dim; ++d) {
+                    accum += vec[d] * query_ptr[d];
+                }
+                out_ptr[row] = accum;
+            }
+            __syncthreads();
+            if (tid == 0) {
+                push_tensor(stack, stack_size, out_ptr, tensor_a.rows, tensor_a.cols, error_code);
+            }
+            continue;
+        }
+
+        if (opcode == kOpTraceTensor) {
+            bool ok = true;
+            if (tid == 0) {
+                ok = pop_tensor(stack, stack_size, tensor_a, error_code);
+                if (ok) {
+                    if (tensor_a.rows != tensor_a.cols || tensor_a.rows <= 0) {
+                        error_code = kErrorInvalidMatrixDims;
+                    } else {
+                        shared_rows = tensor_a.rows;
+                    }
+                }
+            }
+            __syncthreads();
+            if (error_code != kErrorNone) {
+                continue;
+            }
+            if (tid == 0) {
+                const float* mat_ptr = tensor_a.ptr;
+                float trace = 0.0f;
+                for (int diag = 0; diag < shared_rows; ++diag) {
+                    trace += mat_ptr[diag * tensor_a.cols + diag];
+                }
+                push_scalar(stack, stack_size, trace, error_code);
+            }
+            __syncthreads();
+            continue;
+        }
+
+        if (opcode == kOpStore) {
+            if (tid == 0) {
+                float value = 0.0f;
+                float slot_f = 0.0f;
+                if (!pop_scalar(stack, stack_size, slot_f, error_code)) {
+                    // error_code already set
+                } else if (!pop_scalar(stack, stack_size, value, error_code)) {
+                    // error_code already set
+                } else {
+                    const int slot = static_cast<int>(roundf(slot_f));
+                    if (slot >= 0 && slot < 8) {
+                        programmable_storage[slot] = value;
+                    }
+                }
+            }
+            __syncthreads();
+            continue;
+        }
+
+        if (opcode == kOpRecall) {
+            if (tid == 0) {
+                float slot_f = 0.0f;
+                if (pop_scalar(stack, stack_size, slot_f, error_code)) {
+                    int slot = static_cast<int>(roundf(slot_f));
+                    float value = 0.0f;
+                    if (slot >= 0 && slot < 8) {
+                        value = programmable_storage[slot];
+                    }
+                    push_scalar(stack, stack_size, value, error_code);
+                }
+            }
+            __syncthreads();
+            continue;
+        }
+
+        if (opcode == kOpLoop) {
+            if (tid == 0) {
+                float count_f = 0.0f;
+                if (pop_scalar(stack, stack_size, count_f, error_code)) {
+                    const int count = static_cast<int>(roundf(fmaxf(count_f, 0.0f)));
+                    programmable_loop_counter = count;
+                    programmable_loop_start = static_cast<int>(i);
+                }
+            }
+            __syncthreads();
+            continue;
+        }
+
+        if (opcode == kOpNext) {
+            if (tid == 0) {
+                if (programmable_loop_counter > 0) {
+                    programmable_loop_counter -= 1;
+                }
+            }
+            __syncthreads();
+            continue;
+        }
+
+        if (opcode == kOpBranch) {
+            if (tid == 0) {
+                float offset_f = 0.0f;
+                float condition = 0.0f;
+                if (pop_scalar(stack, stack_size, offset_f, error_code) &&
+                    pop_scalar(stack, stack_size, condition, error_code)) {
+                    programmable_branch_taken = (condition != 0.0f) ? static_cast<int>(roundf(offset_f)) : 0;
+                }
+            }
+            __syncthreads();
             continue;
         }
 

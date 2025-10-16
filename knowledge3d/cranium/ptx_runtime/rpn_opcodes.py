@@ -30,6 +30,18 @@ OP_TEMPORAL_COHERENCE = 0xF0
 OP_TEMPORAL_MASK = 0xF1
 OP_TEMPORAL_AGGREGATE = 0xF2
 
+# Matrix ops for swarm coordination
+OP_MATMUL_SMALL = 0xA4
+OP_DOT_BATCH = 0xA5
+OP_TRACE_TENSOR = 0xA6
+
+# Programmability opcodes (Step 13-E foundations)
+OP_BRANCH = 0xB0
+OP_LOOP = 0xB1
+OP_NEXT = 0xB2
+OP_STORE = 0xB3
+OP_RECALL = 0xB4
+
 __all__ = [
     "OP_SPARSE_LOAD",
     "OP_SMAV",
@@ -53,4 +65,12 @@ __all__ = [
     "OP_TEMPORAL_COHERENCE",
     "OP_TEMPORAL_MASK",
     "OP_TEMPORAL_AGGREGATE",
+    "OP_MATMUL_SMALL",
+    "OP_DOT_BATCH",
+    "OP_TRACE_TENSOR",
+    "OP_BRANCH",
+    "OP_LOOP",
+    "OP_NEXT",
+    "OP_STORE",
+    "OP_RECALL",
 ]

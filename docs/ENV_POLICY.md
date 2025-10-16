@@ -51,6 +51,8 @@ GPU setup (NVIDIA)
   scripts/k3d_env.sh bootstrap-gpu
 - Inside tmux after `conda activate k3d-cranium`, run GPU tooling:
   env PYTHONPATH=. python -m knowledge3d.tools.ingest_video --help
+- On the Debian 14 workstation the KDE session runs on the iGPU; export `CUDA_VISIBLE_DEVICES=0`
+  before launching tmux so the RTX 3070 is exposed inside the conda shell.
 - Validate GPU availability (env active):
   nvidia-smi
   python -c "import torch; print(torch.cuda.is_available())"
