@@ -45,6 +45,9 @@ class ThinkingTagRPNBridge:
         # Matrix workspaces keyed by (rows, cols)
         self._matrix_buffers: Dict[Tuple[int, int], loader.CUdeviceptr] = {}
 
+        # Constant vector cache (by object id)
+        self._constant_vectors: Dict[int, loader.CUdeviceptr] = {}
+
         # Host buffers reused for readback
         self._host_buffer: Dict[int, np.ndarray] = {}
 
@@ -72,7 +75,7 @@ class ThinkingTagRPNBridge:
             raise ValueError("input_vec must be a flat vector")
 
         # Prepare device tensors
-        d_input = self._upload_vector(input_vec)
+        d_input = self._upload_constant_vector(input_vec)
         d_w1 = self._upload_matrix(weights['W1'])
         d_w2 = self._upload_matrix(weights['W2'])
         d_w3 = self._upload_matrix(weights['W3'])
@@ -92,7 +95,7 @@ class ThinkingTagRPNBridge:
             mask_arr = np.asarray(mask, dtype=np.float32)
             if mask_arr.size != hidden2:
                 raise ValueError(f"mask length {mask_arr.size} != hidden2 {hidden2}")
-        d_mask = self._upload_vector(mask_arr, length_override=hidden2)
+        d_mask = self._upload_constant_vector(mask_arr, length=hidden2)
 
         op_codes: list[int] = []
         scalars: list[float] = []
@@ -296,6 +299,10 @@ class ThinkingTagRPNBridge:
             loader.gpu_free(ptr)
         self._matrix_buffers.clear()
 
+        for ptr in self._constant_vectors.values():
+            loader.gpu_free(ptr)
+        self._constant_vectors.clear()
+
         self.engine.cleanup()
 
     # ------------------------------------------------------------------ #
@@ -357,6 +364,20 @@ class ThinkingTagRPNBridge:
             vec = np.resize(vec, length)
         ptr = self._get_vector_buffer(length)
         loader.memcpy_htod(ptr, vec.ctypes.data_as(ctypes.c_void_p), length * 4)
+        return ptr
+
+    def _upload_constant_vector(self, vector: np.ndarray, length: Optional[int] = None) -> loader.CUdeviceptr:
+        arr = np.asarray(vector, dtype=np.float32).flatten()
+        length = length or arr.size
+        if arr.size != length:
+            arr = np.resize(arr, length)
+
+        key = id(vector)
+        ptr = self._constant_vectors.get(key)
+        if ptr is None:
+            ptr = loader.gpu_malloc(length * 4)
+            self._constant_vectors[key] = ptr
+        loader.memcpy_htod(ptr, arr.ctypes.data_as(ctypes.c_void_p), length * 4)
         return ptr
 
     def _fetch_vector(self, ptr: loader.CUdeviceptr, length: int) -> np.ndarray:
