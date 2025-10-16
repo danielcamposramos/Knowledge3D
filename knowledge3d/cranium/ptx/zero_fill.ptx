@@ -1,0 +1,21 @@
+
+        .version 7.8
+        .target sm_86
+        .address_size 64
+        .visible .entry zero_fill(.param .u64 buf, .param .u32 bytes) {
+            .reg .u64 %ptr, %end;
+            .reg .u32 %cnt;
+            ld.param.u64 %ptr, [buf];
+            ld.param.u32 %cnt, [bytes];
+            shl.b32 %cnt, %cnt, 2;
+            add.u64 %end, %ptr, %cnt;
+        $L_loop:
+            setp.ge.u64 %p1, %ptr, %end;
+            @%p1 bra $L_done;
+            st.global.u32 [%ptr], 0;
+            add.u64 %ptr, %ptr, 4;
+            bra $L_loop;
+        $L_done:
+            ret;
+        }
+        

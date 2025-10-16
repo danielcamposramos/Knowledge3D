@@ -12,7 +12,7 @@ from typing import Optional, Tuple
 import numpy as np
 
 from knowledge3d.cranium.sovereign import loader
-from knowledge3d.cranium.bridges.sovereign_bridges import ModularRPNEngine
+from knowledge3d.cranium.bridges.tiered_rpn import TieredRPNEngine as ModularRPNEngine
 
 
 class MortonOctreeSovereign:

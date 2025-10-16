@@ -24,6 +24,7 @@ fi
 export PYTHONPATH="$ROOT_DIR:${PYTHONPATH:-}"
 export K3D_PTX_STRICT=${K3D_PTX_STRICT:-1}
 export K3D_FORCE_PTX_FUSE=${K3D_FORCE_PTX_FUSE:-1}
+export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0}
 
 if [[ $# -gt 0 && "$1" == "run" ]]; then
   shift 1

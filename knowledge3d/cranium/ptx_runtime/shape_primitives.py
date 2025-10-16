@@ -3,7 +3,7 @@ Sovereign shape primitives with advanced multi-modal adaptation.
 Implements GPU-native geometry generation with semantic understanding.
 """
 import numpy as np
-from knowledge3d.cranium.bridges.sovereign_bridges import ModularRPNEngine
+from knowledge3d.cranium.bridges.tiered_rpn import TieredRPNEngine as ModularRPNEngine
 from knowledge3d.cranium.sovereign.loader import load_ptx_file, gpu_malloc, memcpy_htod, memcpy_dtoh
 
 class ShapePrimitives:

@@ -7,7 +7,7 @@ Based on Kimi's sovereign ideation from Step9 development chain.
 """
 import ctypes
 import os
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Any
 
 
 GPU_MEMORY_TARGET_GB = 3.5  # Updated target for sovereign GPU allocations
@@ -24,6 +24,20 @@ except OSError:
             "Failed to load libcuda.so - ensure NVIDIA driver is installed"
         ) from e
 
+try:
+    libcudart = ctypes.CDLL("libcudart.so")
+    libcudart.cudaMalloc.restype = ctypes.c_int
+    libcudart.cudaMalloc.argtypes = [ctypes.POINTER(ctypes.c_void_p), ctypes.c_size_t]
+    libcudart.cudaFree.restype = ctypes.c_int
+    libcudart.cudaFree.argtypes = [ctypes.c_void_p]
+    libcudart.cudaMemcpy.restype = ctypes.c_int
+    libcudart.cudaMemcpy.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int]
+except OSError:
+    libcudart = None
+
+CUDA_MEMCPY_HOST_TO_DEVICE = 1
+CUDA_MEMCPY_DEVICE_TO_HOST = 2
+
 # ==========================================
 # CUDA Driver API Types
 # ==========================================
@@ -35,12 +49,29 @@ CUstream = ctypes.c_void_p
 CUdevice = ctypes.c_int
 CUcontext = ctypes.c_void_p
 
+_cupy_allocations: List[Tuple[int, int, "Any"]] = []
+_cudart_allocations: List[Tuple[int, int]] = []
+
+def _find_cudart_allocation(address: int) -> Optional[Tuple[int, int]]:
+    for start, size in _cudart_allocations:
+        if start <= address < start + size:
+            return start, size
+    return None
+
+def _find_cupy_allocation(address: int) -> Optional[Tuple[int, int, "Any"]]:
+    for start, size, mem in _cupy_allocations:
+        if start <= address < start + size:
+            return start, size, mem
+    return None
+
 # ==========================================
 # Error Handling
 # ==========================================
 def ck(res: int) -> None:
     """Check CUDA result and raise on error."""
     if res != 0:
+        if os.environ.get("K3D_RPN_DEBUG"):
+            print(f"[loader] raising error code {res}")
         # Try to get error string
         err_str = ctypes.c_char_p()
         if nvcuda.cuGetErrorString(res, ctypes.byref(err_str)) == 0:
@@ -71,10 +102,58 @@ def _ensure_init():
         ctx = CUcontext()
         res = nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device)
         if res != 0:
-            if res == 2:  # CUDA_ERROR_OUT_OF_MEMORY
+            if os.environ.get("K3D_RPN_DEBUG"):
+                print(f"[loader] cuCtxCreate failed with code {res}")
+            if res in (2, 201):  # out of memory or invalid context -> fall back to primary ctx
+                set_flags_res = nvcuda.cuDevicePrimaryCtxSetFlags(device, 0)
+                if os.environ.get("K3D_RPN_DEBUG"):
+                    print(f"[loader] cuDevicePrimaryCtxSetFlags -> {set_flags_res}")
+                if set_flags_res not in (0, 708):  # 708: context already active
+                    ck(set_flags_res)
                 ctx = CUcontext()
-                ck(nvcuda.cuDevicePrimaryCtxRetain(ctypes.byref(ctx), device))
-                ck(nvcuda.cuCtxSetCurrent(ctx))
+                retain_res = nvcuda.cuDevicePrimaryCtxRetain(ctypes.byref(ctx), device)
+                if os.environ.get("K3D_RPN_DEBUG"):
+                    print(f"[loader] cuDevicePrimaryCtxRetain -> {retain_res}, ctx={ctx}")
+                if retain_res != 0:
+                    if os.environ.get("K3D_RPN_DEBUG"):
+                        print(f"[loader] cuDevicePrimaryCtxRetain failed with code {retain_res}")
+                    # Attempt to bootstrap via CuPy
+                    try:
+                        import cupy as _cupy  # type: ignore
+
+                        _cupy.cuda.Device(0).use()
+                        current_ctx = CUcontext()
+                        if nvcuda.cuCtxGetCurrent(ctypes.byref(current_ctx)) == 0 and current_ctx:
+                            ctx = current_ctx
+                        else:
+                            ck(retain_res)
+                    except Exception as cupy_exc:  # pragma: no cover - debug path
+                        if os.environ.get("K3D_RPN_DEBUG"):
+                            print(f"[loader] CuPy bootstrap failed: {cupy_exc}")
+                        ck(retain_res)
+                set_res = nvcuda.cuCtxSetCurrent(ctx)
+                if os.environ.get("K3D_RPN_DEBUG"):
+                    print(f"[loader] cuCtxSetCurrent -> {set_res}")
+                ck(set_res)
+                current = CUcontext()
+                ck(nvcuda.cuCtxGetCurrent(ctypes.byref(current)))
+                if os.environ.get("K3D_RPN_DEBUG"):
+                    print(f"[loader] cuCtxGetCurrent -> {current}")
+                ctx = current
+                try:
+                    import cupy as _cupy  # type: ignore
+
+                    _cupy.cuda.Device(int(os.environ.get("CUDA_VISIBLE_DEVICES", "0"))).use()
+                    if os.environ.get("K3D_RPN_DEBUG"):
+                        print("[loader] CuPy context primed")
+                    refreshed = CUcontext()
+                    if nvcuda.cuCtxGetCurrent(ctypes.byref(refreshed)) == 0 and refreshed:
+                        ctx = refreshed
+                        if os.environ.get("K3D_RPN_DEBUG"):
+                            print(f"[loader] context refreshed -> {ctx}")
+                except Exception as cupy_exc:  # pragma: no cover - optional path
+                    if os.environ.get("K3D_RPN_DEBUG"):
+                        print(f"[loader] CuPy context bootstrap skipped: {cupy_exc}")
             else:
                 ck(res)
         else:
@@ -86,7 +165,10 @@ def _ensure_current_context():
     if not _initialized or _context is None:
         _ensure_init()
     else:
-        ck(nvcuda.cuCtxSetCurrent(_context))
+        res = nvcuda.cuCtxSetCurrent(_context)
+        if os.environ.get("K3D_RPN_DEBUG"):
+            print(f"[loader] cuCtxSetCurrent (ensure) -> {res}")
+        ck(res)
 
 # ==========================================
 # PTX Module Loading
@@ -180,9 +262,40 @@ def gpu_malloc(size_bytes: int) -> CUdeviceptr:
     Returns:
         Device pointer (uint64)
     """
-    _ensure_init()
+    _ensure_current_context()
     ptr = CUdeviceptr()
-    ck(nvcuda.cuMemAlloc(ctypes.byref(ptr), size_bytes))
+    if os.environ.get("K3D_FORCE_CUPY_ALLOC"):
+        res = 201
+    else:
+        res = nvcuda.cuMemAlloc(ctypes.byref(ptr), size_bytes)
+    if os.environ.get("K3D_RPN_DEBUG"):
+        print(f"[loader] cuMemAlloc({size_bytes}) -> {res}, ptr={ptr}")
+    if res == 201:
+        if libcudart is not None:
+            runtime_ptr = ctypes.c_void_p()
+            runtime_res = libcudart.cudaMalloc(ctypes.byref(runtime_ptr), size_bytes)
+            if os.environ.get("K3D_RPN_DEBUG"):
+                print(f"[loader] cudaMalloc({size_bytes}) -> {runtime_res}, ptr={runtime_ptr.value}")
+            if runtime_res == 0 and runtime_ptr.value:
+                _cudart_allocations.append((int(runtime_ptr.value), size_bytes))
+                return CUdeviceptr(runtime_ptr.value)
+            if runtime_res not in (0,):
+                ck(runtime_res)
+        # Fall back to CuPy-managed allocation while keeping sovereign interface.
+        if os.environ.get("K3D_RPN_DEBUG"):
+            print("[loader] Falling back to CuPy allocation")
+        try:
+            import cupy as _cupy  # type: ignore
+        except Exception as cupy_exc:  # pragma: no cover - critical fallback
+            if os.environ.get("K3D_RPN_DEBUG"):
+                print(f"[loader] CuPy import failed during fallback: {cupy_exc}")
+            ck(res)
+        _cupy.cuda.Device(0).use()
+        mem = _cupy.cuda.alloc(size_bytes)
+        start = int(mem.ptr)
+        _cupy_allocations.append((start, size_bytes, mem))
+        return CUdeviceptr(start)
+    ck(res)
     return ptr
 
 def gpu_free(ptr: CUdeviceptr) -> None:
@@ -191,6 +304,21 @@ def gpu_free(ptr: CUdeviceptr) -> None:
     Args:
         ptr: Device pointer from gpu_malloc
     """
+    key = int(ptr.value)
+    alloc = _find_cupy_allocation(key)
+    if alloc is not None:
+        if os.environ.get("K3D_RPN_DEBUG"):
+            print("[loader] Releasing CuPy-backed allocation")
+        _cupy_allocations.remove(alloc)
+        return
+    cudart_alloc = _find_cudart_allocation(key)
+    if cudart_alloc is not None:
+        if os.environ.get("K3D_RPN_DEBUG"):
+            print("[loader] Releasing cudaMalloc-backed allocation")
+        if libcudart is not None:
+            libcudart.cudaFree(ctypes.c_void_p(cudart_alloc[0]))
+        _cudart_allocations.remove(cudart_alloc)
+        return
     ck(nvcuda.cuMemFree(ptr))
 
 def memcpy_htod(dst_device: CUdeviceptr, src_host: ctypes.c_void_p, size_bytes: int) -> None:
@@ -201,7 +329,35 @@ def memcpy_htod(dst_device: CUdeviceptr, src_host: ctypes.c_void_p, size_bytes: 
         src_host: Source host pointer (from numpy array.ctypes.data)
         size_bytes: Number of bytes to copy
     """
-    ck(nvcuda.cuMemcpyHtoD(dst_device, src_host, size_bytes))
+    _ensure_current_context()
+    key = int(dst_device.value)
+    alloc = _find_cupy_allocation(key)
+    if alloc is not None:
+        try:
+            import cupy as _cupy  # type: ignore
+        except Exception as cupy_exc:
+            if os.environ.get("K3D_RPN_DEBUG"):
+                print(f"[loader] CuPy import failed during memcpy_htod fallback: {cupy_exc}")
+        else:
+            _cupy.cuda.Device(0).use()
+            res = _cupy.cuda.runtime.memcpy(key, src_host.value, size_bytes, _cupy.cuda.runtime.memcpyHostToDevice)
+            if os.environ.get("K3D_RPN_DEBUG"):
+                print(f"[loader] runtime.memcpy HtoD -> {res}")
+            if res is not None and res != 0:
+                ck(res)
+            return
+    cudart_alloc = _find_cudart_allocation(key)
+    if cudart_alloc is not None and libcudart is not None:
+        res = libcudart.cudaMemcpy(ctypes.c_void_p(key), src_host, size_bytes, CUDA_MEMCPY_HOST_TO_DEVICE)
+        if os.environ.get("K3D_RPN_DEBUG"):
+            print(f"[loader] cudaMemcpy HtoD -> {res}")
+        if res != 0:
+            ck(res)
+        return
+    res = nvcuda.cuMemcpyHtoD(dst_device, src_host, size_bytes)
+    if os.environ.get("K3D_RPN_DEBUG"):
+        print(f"[loader] cuMemcpyHtoD -> {res}")
+    ck(res)
 
 def memcpy_dtoh(dst_host: ctypes.c_void_p, src_device: CUdeviceptr, size_bytes: int) -> None:
     """Copy from device to host.
@@ -211,7 +367,35 @@ def memcpy_dtoh(dst_host: ctypes.c_void_p, src_device: CUdeviceptr, size_bytes: 
         src_device: Source device pointer
         size_bytes: Number of bytes to copy
     """
-    ck(nvcuda.cuMemcpyDtoH(dst_host, src_device, size_bytes))
+    _ensure_current_context()
+    key = int(src_device.value)
+    alloc = _find_cupy_allocation(key)
+    if alloc is not None:
+        try:
+            import cupy as _cupy  # type: ignore
+        except Exception as cupy_exc:
+            if os.environ.get("K3D_RPN_DEBUG"):
+                print(f"[loader] CuPy import failed during memcpy_dtoh fallback: {cupy_exc}")
+        else:
+            _cupy.cuda.Device(0).use()
+            res = _cupy.cuda.runtime.memcpy(dst_host.value, key, size_bytes, _cupy.cuda.runtime.memcpyDeviceToHost)
+            if os.environ.get("K3D_RPN_DEBUG"):
+                print(f"[loader] runtime.memcpy DtoH -> {res}")
+            if res is not None and res != 0:
+                ck(res)
+            return
+    cudart_alloc = _find_cudart_allocation(key)
+    if cudart_alloc is not None and libcudart is not None:
+        res = libcudart.cudaMemcpy(dst_host, ctypes.c_void_p(key), size_bytes, CUDA_MEMCPY_DEVICE_TO_HOST)
+        if os.environ.get("K3D_RPN_DEBUG"):
+            print(f"[loader] cudaMemcpy DtoH -> {res}")
+        if res != 0:
+            ck(res)
+        return
+    res = nvcuda.cuMemcpyDtoH(dst_host, src_device, size_bytes)
+    if os.environ.get("K3D_RPN_DEBUG"):
+        print(f"[loader] cuMemcpyDtoH -> {res}")
+    ck(res)
 
 # ==========================================
 # Kernel Execution

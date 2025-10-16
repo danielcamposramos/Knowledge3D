@@ -19,8 +19,8 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
-# Import sovereign bridge
-from knowledge3d.cranium.bridges.sovereign_bridges import ModularRPNEngine as SovereignRPNEngine
+# Import sovereign bridge (now tiered orchestrator)
+from knowledge3d.cranium.bridges.tiered_rpn import TieredRPNEngine as SovereignRPNEngine
 
 
 class ModularRPNEngine:
