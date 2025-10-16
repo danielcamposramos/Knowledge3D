@@ -47,7 +47,7 @@ class ThinkingTagRPNBridge:
         self._weight_cache: Dict[int, _DeviceTensor] = {}
 
         # Vector workspaces keyed by length
-        self._vector_buffers: Dict[int, loader.CUdeviceptr] = {}
+        self._vector_buffers: Dict[int, Dict[int, loader.CUdeviceptr]] = {}
         # Matrix workspaces keyed by (rows, cols)
         self._matrix_buffers: Dict[Tuple[int, int], loader.CUdeviceptr] = {}
 
@@ -90,9 +90,9 @@ class ThinkingTagRPNBridge:
         hidden2, _ = d_w2.rows, d_w2.cols
         output_dim, _ = d_w3.rows, d_w3.cols
 
-        d_hidden1 = self._get_vector_buffer(hidden1)
-        d_hidden2 = self._get_vector_buffer(hidden2)
-        d_output = self._get_vector_buffer(output_dim)
+        d_hidden1 = self._get_vector_buffer(hidden1, slot=0)
+        d_hidden2 = self._get_vector_buffer(hidden2, slot=1)
+        d_output = self._get_vector_buffer(output_dim, slot=2)
 
         # Optional mask (defaults to ones)
         if mask is None:
@@ -176,9 +176,9 @@ class ThinkingTagRPNBridge:
         hidden2, _ = d_w2.rows, d_w2.cols
         output_dim, _ = d_w3.rows, d_w3.cols
 
-        d_hidden1 = self._get_vector_buffer(hidden1)
-        d_hidden2 = self._get_vector_buffer(hidden2)
-        d_output = self._get_vector_buffer(output_dim)
+        d_hidden1 = self._get_vector_buffer(hidden1, slot=0)
+        d_hidden2 = self._get_vector_buffer(hidden2, slot=1)
+        d_output = self._get_vector_buffer(output_dim, slot=2)
 
         op_codes: list[int] = []
         scalars: list[float] = []
@@ -245,9 +245,9 @@ class ThinkingTagRPNBridge:
         time_steps, feature_dim = ctx.shape
         ctx_ptr = self._upload_temp_matrix(ctx)
 
-        coherence_ptr = self._get_vector_buffer(feature_dim)
-        mask_ptr = self._get_vector_buffer(feature_dim)
-        activity_ptr = self._get_vector_buffer(feature_dim)
+        coherence_ptr = self._get_vector_buffer(feature_dim, slot=0)
+        mask_ptr = self._get_vector_buffer(feature_dim, slot=1)
+        activity_ptr = self._get_vector_buffer(feature_dim, slot=2)
 
         if threshold is None:
             threshold = float(np.mean(np.abs(ctx)))
@@ -334,8 +334,9 @@ class ThinkingTagRPNBridge:
             loader.gpu_free(tensor.ptr)
         self._weight_cache.clear()
 
-        for ptr in self._vector_buffers.values():
-            loader.gpu_free(ptr)
+        for slot_map in self._vector_buffers.values():
+            for ptr in slot_map.values():
+                loader.gpu_free(ptr)
         self._vector_buffers.clear()
 
         for ptr in self._matrix_buffers.values():
@@ -375,11 +376,12 @@ class ThinkingTagRPNBridge:
         self._weight_cache[key] = tensor
         return tensor
 
-    def _get_vector_buffer(self, length: int) -> loader.CUdeviceptr:
-        ptr = self._vector_buffers.get(length)
+    def _get_vector_buffer(self, length: int, slot: int = 0) -> loader.CUdeviceptr:
+        slots = self._vector_buffers.setdefault(length, {})
+        ptr = slots.get(slot)
         if ptr is None:
             ptr = loader.gpu_malloc(length * 4)
-            self._vector_buffers[length] = ptr
+            slots[slot] = ptr
         return ptr
 
     def _get_matrix_buffer(self, rows: int, cols: int) -> loader.CUdeviceptr:
@@ -489,8 +491,8 @@ class ThinkingTagRPNBridge:
             scalars.extend(_encode_pointer_literal(int(ptr.value), rows_val, cols_val))
 
         append_pointer(dest_ptr, rows, cols)
-        append_pointer(tensor_b.ptr, mat_b.shape[0], mat_b.shape[1])
         append_pointer(tensor_a.ptr, mat_a.shape[0], mat_a.shape[1])
+        append_pointer(tensor_b.ptr, mat_b.shape[0], mat_b.shape[1])
         op_codes.append(ropc.OP_MATMUL_SMALL)
 
         op_np = np.asarray(op_codes, dtype=np.uint16)
