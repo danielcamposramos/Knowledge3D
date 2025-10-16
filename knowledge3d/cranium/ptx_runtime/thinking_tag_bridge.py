@@ -7,7 +7,6 @@ from typing import Dict, Any, List
 
 # Kimi's zero-copy strategy: local imports maintain GPU pointers without host-device copies
 from .sovereign.loader import gpu_malloc, memcpy_htod, memcpy_dtoh, launch_kernel, load_ptx_file
-from .modular_rpn_engine import ModularRPNEngine, RPNProgram
 from .galaxy_resonance_engine import ResonanceField
 from .temporal_reasoning import TemporalReasoning
 from .graph_crystallizer import GraphCrystallizer
@@ -26,6 +25,7 @@ from .sparse_weight_cache import SparseWeightCache
 from .modal_affinity_matrix import ModalAffinityMatrix
 from .telemetry_visualizer import TelemetryVisualizer
 from .enhanced_fallback import EnhancedFallback, FallbackLevel
+from knowledge3d.cranium.bridges.thinking_tag_rpn import ThinkingTagRPNBridge
 
 # Step 12: ActionBuffer integration (FSM harvest)
 try:
@@ -87,7 +87,7 @@ class ThinkingTagBridge:
     MODE_DEBUG_VALIDATION = 2
 
     def __init__(self):
-        self.rpn_engine = ModularRPNEngine()
+        self.rpn_bridge = ThinkingTagRPNBridge()
         self.resonance_field = ResonanceField()
         self.temporal_reasoning = TemporalReasoning()
         self.graph_crystallizer = GraphCrystallizer()
@@ -132,8 +132,6 @@ class ThinkingTagBridge:
         self.set_mode(0)
         self._warm_resonance_cache()
 
-        # Cache for fallback
-        self._cached_spatial_prog = None
 
         # ====================================================================
         # STEP 12: FSM-harvested state tracking and dynamic LOD
@@ -477,70 +475,28 @@ class ThinkingTagBridge:
         finally:
             self.latency_guard.stop()
 
-    def _build_temporal_rpn_program(self, weights, context):
-        """Exact RPN bytecode builder (Kimi's fix)"""
-        from .modular_rpn_engine import RPNProgram, OP_SPARSE_LOAD, OP_SMAV, OP_ENTROPY_SUM
-        
-        p = RPNProgram()
-        # Layer 1
-        p.u32(OP_SPARSE_LOAD)
-        p.ptr(weights['W1'])
-        p.u32(OP_SMAV)
-        p.f32(0.0)
-        p.u8(0x0A)  # MAX
-        
-        # Temporal gate
-        p.u8(0xF0)  # CALL temporal_coherence
-        p.ptr(context)
-        p.u8(0x12)  # MUL
-        
-        # Layer 2
-        p.u32(OP_SPARSE_LOAD)
-        p.ptr(weights['W2'])
-        p.u32(OP_SMAV)
-        p.u8(0xF1)  # CALL temporal_mask
-        p.u8(0x12)  # MUL
-        p.f32(0.0)
-        p.u8(0x0A)  # MAX
-        
-        # Dynamic crystallize
-        p.u8(0xF2)  # CALL crystallize_intermediate
-        p.ptr(self.ema_buffer)
-        
-        # Layer 3
-        p.u32(OP_SPARSE_LOAD)
-        p.ptr(weights['W3'])
-        p.u32(OP_SMAV)
-        p.u8(0x0B)  # SIGMOID_APPROX
-        
-        # Entropy
-        p.u8(0x06)  # DUP
-        p.u32(OP_ENTROPY_SUM)
-        
-        return p
-
     def _execute_temporal_mlp(self, x, weights, context):
-        program = self._build_temporal_rpn_program(weights, context)
-        return self.rpn_engine.eval(program, [x])
-
-    def _build_spatial_rpn_program(self, weights):
-        from .modular_rpn_engine import RPNProgram, OP_SPARSE_LOAD, OP_SMAV
-        
-        p = RPNProgram()
-        for layer_key in ['W1', 'W2', 'W3']:
-            w = weights[layer_key]
-            p.u32(OP_SPARSE_LOAD)
-            p.ptr(w)
-            p.u32(OP_SMAV)
-            if layer_key != 'W3':
-                p.f32(0.0)
-                p.u8(0x0A)  # MAX
-        return p
+        x_vec = np.asarray(x, dtype=np.float32)
+        mask = None
+        if context is not None:
+            ctx = np.asarray(context, dtype=np.float32)
+            if ctx.ndim > 1:
+                mask_vec = np.mean(np.abs(ctx), axis=0)
+            else:
+                mask_vec = np.abs(ctx)
+            hidden2 = weights['W2'].shape[0]
+            if mask_vec.size < hidden2:
+                repeats = int(np.ceil(hidden2 / mask_vec.size))
+                mask = np.tile(mask_vec, repeats)[:hidden2]
+            else:
+                mask = mask_vec[:hidden2]
+            mask = np.clip(mask, 0.0, 1.0)
+        fused, _ = self.rpn_bridge.execute_temporal(x_vec, weights, mask=mask)
+        return fused
 
     def _execute_spatial_mlp(self, x, weights):
-        if self._cached_spatial_prog is None:
-            self._cached_spatial_prog = self._build_spatial_rpn_program(weights)
-        return self.rpn_engine.eval(self._cached_spatial_prog, [x])
+        x_vec = np.asarray(x, dtype=np.float32)
+        return self.rpn_bridge.execute_spatial(x_vec, weights)
 
     def _recover_fallback(self, input_emb, modal_sig, error=None):
         """Sovereign fallback without recursion (Kimi's fix) + Step 12 ActionBuffer"""
@@ -685,6 +641,13 @@ class ThinkingTagBridge:
         print("\n" + "="*80)
         print("All enhancements operational and maintaining <35µs latency target!")
         print("="*80 + "\n")
+
+    def cleanup(self) -> None:
+        """Release GPU resources held by auxiliary bridges."""
+        try:
+            self.rpn_bridge.cleanup()
+        except Exception:
+            pass
 
     # ========================================================================
     # STEP 12: FSM-HARVESTED METHODS

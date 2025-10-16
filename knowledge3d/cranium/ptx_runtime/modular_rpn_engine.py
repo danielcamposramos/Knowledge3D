@@ -154,9 +154,9 @@ class ModularRPNEngine:
         Returns:
             (op_codes, scalars, vectors) ready for GPU
         """
-        op_codes = []
-        scalars = []
-        vectors = []
+        op_codes: list[int] = []
+        scalar_literals: list[float] = []
+        vector_literals: list[tuple[float, float, float]] = []
 
         for token in tokens:
             # Check if it's a vector literal [x,y,z]
@@ -169,29 +169,28 @@ class ModularRPNEngine:
                     raise ValueError(f"Vector must have exactly 3 components, got {len(components)}")
 
                 op_codes.append(self.OP_LITERAL_VEC)
-                scalars.append(0.0)  # Unused for vector op
-                vectors.append(components)
+                vector_literals.append((components[0], components[1], components[2]))
 
             # Check if it's an operator
             elif token in self.OPCODES:
                 op_codes.append(self.OPCODES[token])
-                scalars.append(0.0)  # Unused for operators
-                vectors.append([0.0, 0.0, 0.0])
 
             # Otherwise, treat as scalar literal
             else:
                 try:
                     value = float(token)
                     op_codes.append(self.OP_LITERAL)
-                    scalars.append(value)
-                    vectors.append([0.0, 0.0, 0.0])
+                    scalar_literals.append(value)
                 except ValueError:
                     raise ValueError(f"Unknown token: {token}")
 
         # Convert to NumPy arrays
         op_codes_np = np.array(op_codes, dtype=np.uint16)
-        scalars_np = np.array(scalars, dtype=np.float32)
-        vectors_np = np.array(vectors, dtype=np.float32)  # Shape: (N, 3)
+        scalars_np = np.array(scalar_literals, dtype=np.float32)
+        if vector_literals:
+            vectors_np = np.array(vector_literals, dtype=np.float32)
+        else:
+            vectors_np = np.zeros((0, 3), dtype=np.float32)
 
         return op_codes_np, scalars_np, vectors_np
 

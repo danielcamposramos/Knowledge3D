@@ -33,6 +33,7 @@ from knowledge3d.cranium.sovereign.loader import (
     launch,
     synchronize,
 )
+from knowledge3d.cranium.bridges.rpn_config import RPN_GRID_DIM, TIER2_BLOCK_DIM
 
 # Base paths
 KERNELS_DIR = Path(__file__).parent.parent / "kernels"
@@ -1055,25 +1056,27 @@ class ModularRPNEngine:
 
         # Allocate GPU memory
         d_op_codes = gpu_malloc(op_codes.nbytes)
-        d_scalars = gpu_malloc(scalars.nbytes)
-        d_vectors = gpu_malloc(vectors.nbytes)
+        d_scalars = gpu_malloc(scalars.nbytes) if scalars.nbytes else None
+        d_vectors = gpu_malloc(vectors.nbytes) if vectors.nbytes else None
 
         try:
             # Copy inputs to GPU
             memcpy_htod(d_op_codes, op_codes.ctypes.data_as(ctypes.c_void_p), op_codes.nbytes)
-            memcpy_htod(d_scalars, scalars.ctypes.data_as(ctypes.c_void_p), scalars.nbytes)
-            memcpy_htod(d_vectors, vectors.ctypes.data_as(ctypes.c_void_p), vectors.nbytes)
+            if d_scalars is not None:
+                memcpy_htod(d_scalars, scalars.ctypes.data_as(ctypes.c_void_p), scalars.nbytes)
+            if d_vectors is not None and vectors.nbytes:
+                memcpy_htod(d_vectors, vectors.ctypes.data_as(ctypes.c_void_p), vectors.nbytes)
 
             # Launch kernel
             launch(
                 self.kernel,
-                grid=(1, 1, 1),
-                block=(1, 1, 1),
+                grid=(RPN_GRID_DIM, 1, 1),
+                block=(TIER2_BLOCK_DIM, 1, 1),
                 params=[
                     ctypes.c_uint32(instance_id),
                     ctypes.c_uint64(d_op_codes.value),
-                    ctypes.c_uint64(d_scalars.value),
-                    ctypes.c_uint64(d_vectors.value),
+                    ctypes.c_uint64(d_scalars.value if d_scalars is not None else 0),
+                    ctypes.c_uint64(d_vectors.value if d_vectors is not None else 0),
                     ctypes.c_uint64(self.d_state.value),
                     ctypes.c_uint32(len(op_codes)),
                 ],
@@ -1121,8 +1124,10 @@ class ModularRPNEngine:
 
         finally:
             gpu_free(d_op_codes)
-            gpu_free(d_scalars)
-            gpu_free(d_vectors)
+            if d_scalars is not None:
+                gpu_free(d_scalars)
+            if d_vectors is not None:
+                gpu_free(d_vectors)
 
     def execute_batch(
         self,

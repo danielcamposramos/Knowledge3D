@@ -16,6 +16,7 @@ from typing import Optional, Sequence
 import numpy as np
 
 from knowledge3d.cranium.sovereign import loader
+from .rpn_config import RPN_GRID_DIM, TIER3_BLOCK_DIM
 
 
 @dataclass(frozen=True)
@@ -43,7 +44,7 @@ class AdvancedRPNEngine:
 
     MAX_INSTANCES = 15
     STACK_DEPTH = 64
-    BLOCK_DIM = 256
+    BLOCK_DIM = TIER3_BLOCK_DIM
     INSTANCE_STRIDE = 1040  # bytes per instance (header + 64*float4)
 
     TYPE_SCALAR = 0
@@ -92,7 +93,7 @@ class AdvancedRPNEngine:
         try:
             loader.launch(
                 self._kernel,
-                grid=(1, 1, 1),
+                grid=(RPN_GRID_DIM, 1, 1),
                 block=(self.BLOCK_DIM, 1, 1),
                 params=[
                     ctypes.c_uint32(instance_id),
@@ -149,7 +150,7 @@ class AdvancedRPNEngine:
 
         loader.launch(
             self._kernel,
-            grid=(1, 1, 1),
+            grid=(RPN_GRID_DIM, 1, 1),
             block=(self.BLOCK_DIM, 1, 1),
             params=[
                 ctypes.c_uint32(instance_id),
@@ -198,6 +199,18 @@ class AdvancedRPNEngine:
             header_zero.ctypes.data_as(ctypes.c_void_p),
             header_zero.nbytes,
         )
+
+    def cleanup(self) -> None:
+        """Release device allocations associated with the Tier-3 engine."""
+        if self._state is not None:
+            loader.gpu_free(self._state)
+            self._state = None
+
+    def __del__(self) -> None:
+        try:
+            self.cleanup()
+        except Exception:
+            pass
 
     def execute_scalar(
         self,

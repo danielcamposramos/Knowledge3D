@@ -198,6 +198,19 @@ class TieredRPNEngine:
                 results.append(result)
         return np.asarray(results, dtype=np.float32)
 
+    def cleanup(self) -> None:
+        """Release resources associated with all tiers."""
+        for engine in (self._tier1, self._tier2, self._tier3):
+            cleanup = getattr(engine, "cleanup", None)
+            if callable(cleanup):
+                cleanup()
+
+    def __del__(self) -> None:
+        try:
+            self.cleanup()
+        except Exception:
+            pass
+
     def reset_instance(self, instance_id: int) -> None:
         """Reset the instance on the tier used during the last execution."""
         if not (0 <= instance_id < self.MAX_INSTANCES):

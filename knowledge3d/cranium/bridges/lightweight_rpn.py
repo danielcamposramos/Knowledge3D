@@ -18,6 +18,7 @@ from typing import Iterable
 import numpy as np
 
 from knowledge3d.cranium.sovereign import loader
+from .rpn_config import RPN_GRID_DIM, TIER1_BLOCK_DIM
 
 
 class LightweightRPNEngine:
@@ -77,12 +78,10 @@ class LightweightRPNEngine:
                     print(f"[LightweightRPN] GPU path disabled (RuntimeError): {exc}")
 
     def __del__(self) -> None:
-        for ptr in (self._scratch_codes, self._scratch_scalars, self._scratch_vectors):
-            if ptr is not None:
-                try:
-                    loader.gpu_free(ptr)
-                except Exception:
-                    pass
+        try:
+            self.cleanup()
+        except Exception:
+            pass
 
     def _ensure_scratch_buffer(self, kind: str, required_bytes: int) -> loader.CUdeviceptr:
         if required_bytes <= 0:
@@ -99,6 +98,25 @@ class LightweightRPNEngine:
             setattr(self, ptr_attr, ptr)
             setattr(self, cap_attr, new_capacity)
         return ptr
+
+    def cleanup(self) -> None:
+        """Release GPU resources associated with the Tier-1 engine."""
+        if self._scratch_codes is not None:
+            loader.gpu_free(self._scratch_codes)
+            self._scratch_codes = None
+            self._scratch_codes_capacity = 0
+        if self._scratch_scalars is not None:
+            loader.gpu_free(self._scratch_scalars)
+            self._scratch_scalars = None
+            self._scratch_scalars_capacity = 0
+        if self._scratch_vectors is not None:
+            loader.gpu_free(self._scratch_vectors)
+            self._scratch_vectors = None
+            self._scratch_vectors_capacity = 0
+        if self._device_state is not None:
+            loader.gpu_free(self._device_state)
+            self._device_state = None
+        self._gpu_enabled = False
 
     # --------------------------------------------------------------------- #
     # Public API
@@ -176,8 +194,8 @@ class LightweightRPNEngine:
 
         loader.launch(
             self._kernel,
-            grid=(1, 1, 1),
-            block=(1, 1, 1),
+            grid=(RPN_GRID_DIM, 1, 1),
+            block=(TIER1_BLOCK_DIM, 1, 1),
             params=[
                 ctypes.c_uint32(instance_id),
                 ctypes.c_uint64(d_codes.value),
