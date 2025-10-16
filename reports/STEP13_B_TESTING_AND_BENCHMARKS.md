@@ -146,6 +146,6 @@ $ python -m pytest tests/benchmarks/test_rpn_tier_performance.py -xvs
 - **Runtime guardrails**: `RPNProgram` now resolves device pointers exactly once, avoiding stale placeholders when bytecode is re-used for multiple launches.
 - **Unit coverage**: `tests/test_trm_rpn_program.py` validates opcode ordering, rejects invalid loop counts, and exercises pointer relocation logic.
 - **GPU parity**: `modular_rpn_kernel_extended.cu` now handles tensor pointers (`0x03`) plus TRM opcodes `0x60–0x64`; `AdvancedRPNEngine` dispatches them, `tests/test_trm_rpn_gpu.py` validates primitive operations, and `tests/test_trm_launcher_rpn.py` confirms the RPN-backed launcher matches the PTX baseline (`K3D_USE_RPN_TRM=1`).
-- **Benchmark snapshot**: `tests/benchmarks/test_trm_launcher_performance.py` shows PTX refinement averaging ~10.1 ms while the current RPN path averages ~503.8 ms (≈50× slower); optimisation work is required before RPN can become the default execution mode.
+- **Benchmark snapshot**: `tests/benchmarks/test_trm_launcher_performance.py` now reports **PTX: 10.39 ms**, **RPN (current): 504.19 ms**, and **Fused kernel: 9.29 ms** per refinement. The fused path already beats the baseline, while the Tier‑3 interpreter still needs a ~50× speedup before it can be promoted.
 
 Latest contributor: Codex (Phase 1A kickoff documentation and scaffolding).

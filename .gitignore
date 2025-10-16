@@ -35,3 +35,10 @@ live_server.*
 vite.log
 *.tmp
 .pytest_cache/
+
+# Profiling data (large files)
+*.qdstrm
+*.qdrep
+*.nsys-rep
+*.ncu-rep
+rpn_kernel_profile.*

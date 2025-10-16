@@ -43,6 +43,7 @@ class AdvancedRPNEngine:
 
     MAX_INSTANCES = 15
     STACK_DEPTH = 64
+    BLOCK_DIM = 256
     INSTANCE_STRIDE = 1040  # bytes per instance (header + 64*float4)
 
     TYPE_SCALAR = 0
@@ -92,7 +93,7 @@ class AdvancedRPNEngine:
             loader.launch(
                 self._kernel,
                 grid=(1, 1, 1),
-                block=(1, 1, 1),
+                block=(self.BLOCK_DIM, 1, 1),
                 params=[
                     ctypes.c_uint32(instance_id),
                     ctypes.c_uint64(self._device_ptr(d_op_codes)),
@@ -109,6 +110,58 @@ class AdvancedRPNEngine:
             self._maybe_free(d_scalars)
             self._maybe_free(d_vectors)
             self._maybe_free(d_matrices)
+
+        header = np.zeros(4, dtype=np.uint32)
+        loader.memcpy_dtoh(
+            header.ctypes.data_as(ctypes.c_void_p),
+            ctypes.c_void_p(self._state.value + instance_offset),
+            header.nbytes,
+        )
+
+        error_code = int(header[2])
+        if error_code != 0:
+            raise RuntimeError(f"Advanced RPN execution error: code {error_code}")
+
+        stack_size = int(header[1])
+        if stack_size == 0:
+            return np.zeros((0, 4), dtype=np.float32)
+
+        stack_buffer = np.zeros((stack_size, 4), dtype=np.float32)
+        loader.memcpy_dtoh(
+            stack_buffer.ctypes.data_as(ctypes.c_void_p),
+            ctypes.c_void_p(self._state.value + instance_offset + 16),
+            stack_size * 16,
+        )
+        return stack_buffer
+
+    def execute_prebuilt(
+        self,
+        instance_id: int,
+        d_op_codes,
+        d_scalars,
+        n_opcodes: int,
+    ) -> np.ndarray:
+        """Execute using pre-uploaded opcode/scalar buffers."""
+        if not (0 <= instance_id < self.MAX_INSTANCES):
+            raise ValueError(f"Invalid instance_id {instance_id} (expected 0-{self.MAX_INSTANCES - 1})")
+
+        instance_offset = instance_id * self.INSTANCE_STRIDE
+
+        loader.launch(
+            self._kernel,
+            grid=(1, 1, 1),
+            block=(self.BLOCK_DIM, 1, 1),
+            params=[
+                ctypes.c_uint32(instance_id),
+                ctypes.c_uint64(self._device_ptr(d_op_codes)),
+                ctypes.c_uint64(self._device_ptr(d_scalars)),
+                ctypes.c_uint64(0),
+                ctypes.c_uint64(0),
+                ctypes.c_uint64(self._state.value),
+                ctypes.c_uint32(n_opcodes),
+            ],
+        )
+        loader.synchronize()
 
         header = np.zeros(4, dtype=np.uint32)
         loader.memcpy_dtoh(

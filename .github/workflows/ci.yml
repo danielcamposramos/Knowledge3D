@@ -24,4 +24,4 @@ jobs:
           flake8
           black --check .
       - name: Test
-        run: pytest
+        run: pytest -m "not gpu"  # Skip GPU tests (no CUDA on GitHub Actions)

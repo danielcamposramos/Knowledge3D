@@ -28,8 +28,8 @@ def _build_inputs(rng: np.random.Generator):
     return q, y, z, W1, W2, W3, W4
 
 
-def _time_launcher(use_rpn: bool, iterations: int) -> float:
-    launcher = TRMLauncher(use_rpn=use_rpn)
+def _time_launcher(use_rpn: bool, use_fused: bool, iterations: int) -> float:
+    launcher = TRMLauncher(use_rpn=use_rpn, use_fused=use_fused)
     rng = np.random.default_rng(123)
     inputs = _build_inputs(rng)
 
@@ -53,13 +53,17 @@ def test_trm_launcher_rpn_vs_ptx_benchmark():
     _ensure_cuda()
 
     iterations = 10
-    avg_ptx = _time_launcher(use_rpn=False, iterations=iterations)
-    avg_rpn = _time_launcher(use_rpn=True, iterations=iterations)
+    avg_ptx = _time_launcher(use_rpn=False, use_fused=False, iterations=iterations)
+    avg_rpn = _time_launcher(use_rpn=True, use_fused=False, iterations=iterations)
+    avg_fused = _time_launcher(use_rpn=False, use_fused=True, iterations=iterations)
 
     print(f"\nTRM PTX average latency: {avg_ptx * 1e3:.3f} ms")
     print(f"TRM RPN average latency: {avg_rpn * 1e3:.3f} ms")
+    print(f"TRM fused average latency: {avg_fused * 1e3:.3f} ms")
     if avg_ptx > 0:
         print(f"Relative speedup (PTX/RPN): {avg_ptx / avg_rpn:.3f}×")
+        print(f"Relative speedup (PTX/FUSED): {avg_ptx / avg_fused:.3f}×")
 
     assert avg_rpn > 0.0
     assert avg_ptx > 0.0
+    assert avg_fused > 0.0

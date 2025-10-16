@@ -30,11 +30,12 @@ jobs:
 
       - name: Run unit tests
         run: |
-          pytest tests/ -v --tb=short
+          pytest tests/ -v --tb=short -m "not gpu"  # Skip GPU tests (no CUDA on GitHub Actions)
 
       - name: Run benchmarks
         run: |
-          pytest tests/benchmarks/ --benchmark-json=benchmark.json
+          echo "Skipping GPU benchmarks (no CUDA on GitHub Actions)"
+          # pytest tests/benchmarks/ --benchmark-json=benchmark.json
 
       - name: Generate performance baseline
         run: |

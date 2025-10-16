@@ -350,21 +350,183 @@ extern "C" __global__ void modular_rpn_kernel_extended(
     const float* __restrict__ matrices,
     InstanceState* __restrict__ states,
     uint32_t token_count) {
+    const int tid = threadIdx.x;
+    const int stride = blockDim.x;
+
     InstanceState* state = reinterpret_cast<InstanceState*>(
         reinterpret_cast<uint8_t*>(states) + instance_id * sizeof(InstanceState));
 
-    StackItem stack[kStackCapacity];
-    uint32_t stack_size = 0;
-    uint32_t error_code = kErrorNone;
+    __shared__ StackItem stack[kStackCapacity];
+    __shared__ uint32_t stack_size;
+    __shared__ uint32_t error_code;
 
-    uint32_t scalar_index = 0;
-    uint32_t vector_index = 0;
-    uint32_t matrix_index = 0;
+    __shared__ uint32_t scalar_index;
+    __shared__ uint32_t vector_index;
+    __shared__ uint32_t matrix_index;
 
-    for (uint32_t i = 0; i < token_count && error_code == kErrorNone; ++i) {
+    __shared__ TensorRef tensor_a;
+    __shared__ TensorRef tensor_b;
+    __shared__ TensorRef tensor_c;
+    __shared__ TensorRef tensor_d;
+
+    if (tid == 0) {
+        stack_size = 0;
+        error_code = kErrorNone;
+        scalar_index = 0;
+        vector_index = 0;
+        matrix_index = 0;
+    }
+    __syncthreads();
+
+    for (uint32_t i = 0; i < token_count; ++i) {
+        __syncthreads();
+        if (error_code != kErrorNone) {
+            break;
+        }
+
         const uint16_t opcode = op_codes[i];
 
-        switch (opcode) {
+        if (opcode == 0x60) {  // MATVEC_512x1024
+            bool ok = true;
+            if (tid == 0) {
+                ok = pop_tensor(stack, stack_size, tensor_a, error_code);
+                if (ok) ok = pop_tensor(stack, stack_size, tensor_b, error_code);
+                if (ok) ok = pop_tensor(stack, stack_size, tensor_c, error_code);
+                if (ok) {
+                    if (tensor_b.rows != 1024 || tensor_b.cols != 512 ||
+                        tensor_c.rows != 512 || tensor_c.cols != 1 ||
+                        tensor_a.rows != 1024 || tensor_a.cols != 1) {
+                        error_code = kErrorInvalidMatrixDims;
+                    }
+                }
+            }
+            __syncthreads();
+            if (error_code != kErrorNone) {
+                continue;
+            }
+            float* out = tensor_a.ptr;
+            const float* weights = tensor_b.ptr;
+            const float* input_vec = tensor_c.ptr;
+            for (int r = tid; r < 1024; r += stride) {
+                const float* row_ptr = weights + r * 512;
+                float sum = 0.0f;
+                #pragma unroll 8
+                for (int c = 0; c < 512; ++c) {
+                    sum += row_ptr[c] * input_vec[c];
+                }
+                out[r] = sum;
+            }
+            __syncthreads();
+            if (tid == 0) {
+                push_tensor(stack, stack_size, out, 1024, 1, error_code);
+            }
+            continue;
+        }
+
+        if (opcode == 0x61) {  // MATVEC_1024x512
+            bool ok = true;
+            if (tid == 0) {
+                ok = pop_tensor(stack, stack_size, tensor_a, error_code);
+                if (ok) ok = pop_tensor(stack, stack_size, tensor_b, error_code);
+                if (ok) ok = pop_tensor(stack, stack_size, tensor_c, error_code);
+                if (ok) {
+                    if (tensor_b.rows != 512 || tensor_b.cols != 1024 ||
+                        tensor_c.rows != 1024 || tensor_c.cols != 1 ||
+                        tensor_a.rows != 512 || tensor_a.cols != 1) {
+                        error_code = kErrorInvalidMatrixDims;
+                    }
+                }
+            }
+            __syncthreads();
+            if (error_code != kErrorNone) {
+                continue;
+            }
+            float* out = tensor_a.ptr;
+            const float* weights = tensor_b.ptr;
+            const float* input_vec = tensor_c.ptr;
+            for (int r = tid; r < 512; r += stride) {
+                const float* row_ptr = weights + r * 1024;
+                float sum = 0.0f;
+                #pragma unroll 8
+                for (int c = 0; c < 1024; ++c) {
+                    sum += row_ptr[c] * input_vec[c];
+                }
+                out[r] = sum;
+            }
+            __syncthreads();
+            if (tid == 0) {
+                push_tensor(stack, stack_size, out, 512, 1, error_code);
+            }
+            continue;
+        }
+
+        if (opcode == 0x62) {  // VEC_ADD3 (dest, a, b, c)
+            bool ok = true;
+            if (tid == 0) {
+                ok = pop_tensor(stack, stack_size, tensor_a, error_code);  // dest
+                if (ok) ok = pop_tensor(stack, stack_size, tensor_b, error_code);  // c
+                if (ok) ok = pop_tensor(stack, stack_size, tensor_c, error_code);  // b
+                if (ok) ok = pop_tensor(stack, stack_size, tensor_d, error_code);  // a
+                if (ok) {
+                    if (tensor_d.rows != tensor_c.rows || tensor_d.rows != tensor_b.rows ||
+                        tensor_d.cols != 1 || tensor_c.cols != 1 || tensor_b.cols != 1 ||
+                        tensor_a.rows != tensor_d.rows || tensor_a.cols != 1) {
+                        error_code = kErrorInvalidMatrixDims;
+                    }
+                }
+            }
+            __syncthreads();
+            if (error_code != kErrorNone) {
+                continue;
+            }
+            float* out = tensor_a.ptr;
+            const float* a_ptr = tensor_d.ptr;
+            const float* b_ptr = tensor_c.ptr;
+            const float* c_ptr = tensor_b.ptr;
+            for (int i = tid; i < tensor_a.rows; i += stride) {
+                out[i] = a_ptr[i] + b_ptr[i] + c_ptr[i];
+            }
+            __syncthreads();
+            if (tid == 0) {
+                push_tensor(stack, stack_size, out, tensor_a.rows, 1, error_code);
+            }
+            continue;
+        }
+
+        if (opcode == 0x63 || opcode == 0x64) {  // SWIGLU_512 / SWIGLU_1024
+            bool ok = true;
+            if (tid == 0) {
+                ok = pop_tensor(stack, stack_size, tensor_a, error_code);  // dest
+                if (ok) ok = pop_tensor(stack, stack_size, tensor_b, error_code);  // input
+                if (ok) {
+                    int expected = (opcode == 0x63) ? 512 : 1024;
+                    if (tensor_b.rows != expected || tensor_b.cols != 1 ||
+                        tensor_a.rows != expected || tensor_a.cols != 1) {
+                        error_code = kErrorInvalidMatrixDims;
+                    }
+                }
+            }
+            __syncthreads();
+            if (error_code != kErrorNone) {
+                continue;
+            }
+            float* out = tensor_a.ptr;
+            const float* in = tensor_b.ptr;
+            int limit = tensor_a.rows;
+            for (int idx = tid; idx < limit; idx += stride) {
+                float x = in[idx];
+                float sig = 1.0f / (1.0f + expf(-x));
+                out[idx] = x * sig;
+            }
+            __syncthreads();
+            if (tid == 0) {
+                push_tensor(stack, stack_size, out, tensor_a.rows, 1, error_code);
+            }
+            continue;
+        }
+
+        if (tid == 0) {
+            switch (opcode) {
             case 0x00: {  // literal scalar
                 float value = scalars ? scalars[scalar_index] : 0.0f;
                 scalar_index += 1;
@@ -703,19 +865,27 @@ extern "C" __global__ void modular_rpn_kernel_extended(
                 error_code = kErrorUnknownOpcode;
                 break;
         }
+        }
+
+        __syncthreads();
+        if (error_code != kErrorNone) {
+            break;
+        }
     }
 
-    state->head = 0;
-    state->size = stack_size;
-    state->error = error_code;
-    state->reserved = 0;
+    if (tid == 0) {
+        state->head = 0;
+        state->size = stack_size;
+        state->error = error_code;
+        state->reserved = 0;
 
-    const uint32_t count = (stack_size < kStackCapacity) ? stack_size : kStackCapacity;
-    for (uint32_t idx = 0; idx < count; ++idx) {
-        const StackItem& item = stack[idx];
-        state->stack[idx][0] = item.value[0];
-        state->stack[idx][1] = item.value[1];
-        state->stack[idx][2] = item.value[2];
-        state->stack[idx][3] = pack_meta(item.type, item.rows, item.cols, item.row_index);
+        const uint32_t count = (stack_size < kStackCapacity) ? stack_size : kStackCapacity;
+        for (uint32_t idx = 0; idx < count; ++idx) {
+            const StackItem& item = stack[idx];
+            state->stack[idx][0] = item.value[0];
+            state->stack[idx][1] = item.value[1];
+            state->stack[idx][2] = item.value[2];
+            state->stack[idx][3] = pack_meta(item.type, item.rows, item.cols, item.row_index);
+        }
     }
 }

@@ -19,11 +19,12 @@ Lay the groundwork for executing the TRM refinement loop through Tier‑3 RPN op
 - ✅ TRM launcher now exposes an RPN execution path via `K3D_USE_RPN_TRM` (or the `use_rpn` flag) with GPU parity tests confirming equivalence to the PTX path.
 - ✅ GPU regression: `tests/test_trm_rpn_gpu.py` covers `VEC_ADD3`, `MATVEC_512x1024`, `MATVEC_1024x512`, and `SWIGLU_1024` against NumPy references.
 - ✅ End-to-end parity: `tests/test_trm_launcher_rpn.py` compares RPN vs PTX refinement outputs for multiple recursion depths.
-- ❗ **Benchmark result (2025-10-15):** `tests/benchmarks/test_trm_launcher_performance.py` reports ~10.1 ms per refinement for the PTX backend versus ~503.8 ms for the RPN path (∼50× slower). The discrepancy likely stems from per-step PTX launches being far cheaper than the current Tier‑3 orchestration; optimisation is required before promoting RPN to default.
+- ✅ **Fused kernel success (2025-10-15):** `trm_step_fused.ptx` drives the full TRM step in a single launch; `tests/test_trm_fused_parity.py` matches the PTX baseline and the benchmark reports **9.29 ms** per refinement (vs. 10.39 ms PTX).
+- ❗ **RPN still slow:** `tests/benchmarks/test_trm_launcher_performance.py` shows the current Tier‑3 interpreter at **≈504 ms** per refinement (~50× slower). Timing breakdown after pre-built programs: build/update ≈0.6 ms (0.1%), memcpy ≈0.15 ms, **execution ≈500 ms (99.8%)**. The bottleneck is squarely in the Tier‑3 interpreter loop.
 
 ## Next Steps
-1. Benchmark the RPN backend versus PTX kernels to quantify latency improvements and tune tolerances.
-2. Profile and optimise the RPN execution path (kernel fusion, reduced pointer literal overhead) until latency is competitive with the PTX baseline.
-3. Decide when to make the RPN path the default once performance targets are validated.
+1. Implement the pre-built RPN program path (no per-step list building) and re-benchmark.
+2. Profile the Tier‑3 interpreter to identify remaining hotspots (pointer literal packing, switch dispatch) and optimise until RPN < 50 ms.
+3. Decide when to make the RPN or fused path the default once targets are met.
 
 Document owner: Codex (2025-10-15).
