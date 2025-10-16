@@ -48,6 +48,7 @@ class AdvancedRPNEngine:
     TYPE_SCALAR = 0
     TYPE_VECTOR = 1
     TYPE_MATRIX_ROW = 2
+    TYPE_TENSOR = 3
 
     def __init__(self) -> None:
         ptx_path = Path(__file__).parent.parent / "ptx" / "modular_rpn_kernel_extended.ptx"

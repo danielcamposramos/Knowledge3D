@@ -24,6 +24,7 @@ from .rpn_opcodes import (
     OP_SIGMOID_APPROX,
     OP_SMAV,
     OP_SPARSE_LOAD,
+    OP_POINTER_LITERAL,
     OP_TRM_MATVEC_1024x512,
     OP_TRM_MATVEC_512x1024,
     OP_TRM_SWIGLU_1024,
@@ -353,13 +354,28 @@ class RPNProgram:
         import struct
         self.bytecode.extend(struct.pack('f', val))
 
-    def ptr(self, device_ptr):
-        """Append device pointer (uint64)"""
-        # Store pointer position for later resolution
-        pos = len(self.bytecode)
-        self._ptrs.append((pos, device_ptr))
-        # Write placeholder
-        self.bytecode.extend(b'\x00' * 8)
+    def ptr(self, device_ptr, *, rows: Optional[int] = None, cols: Optional[int] = None):
+        """Append device pointer literal.
+
+        When ``rows`` and ``cols`` are provided the opcode stream emits the
+        tensor-aware literal (0x03, rows, cols, ptr_lo, ptr_hi) used by the
+        Tier‑3 TRM kernels.  Otherwise it falls back to the legacy behaviour of
+        writing an opaque pointer placeholder that is resolved during
+        ``to_bytes``.
+        """
+        if rows is not None or cols is not None:
+            if rows is None or cols is None:
+                raise ValueError("rows and cols must be provided together")
+            self.u8(OP_POINTER_LITERAL)
+            self.f32(float(rows))
+            self.f32(float(cols))
+            pos = len(self.bytecode)
+            self.bytecode.extend(b'\x00' * 8)
+            self._ptrs.append((pos, device_ptr, "tensor"))
+        else:
+            pos = len(self.bytecode)
+            self._ptrs.append((pos, device_ptr, "raw"))
+            self.bytecode.extend(b'\x00' * 8)
 
     def to_bytes(self) -> bytes:
         """Convert to final bytecode"""
@@ -381,7 +397,11 @@ class RPNProgram:
         """Write recorded device pointers into the bytecode buffer."""
         if not self._ptrs:
             return
-        for offset, ptr in self._ptrs:
+        for entry in self._ptrs:
+            if len(entry) == 3:
+                offset, ptr, _mode = entry
+            else:
+                offset, ptr = entry  # Backward compatibility
             # Accept objects providing .value (ctypes-style) or plain ints
             if hasattr(ptr, "value"):
                 ptr_value = int(ptr.value)  # type: ignore[attr-defined]
@@ -401,6 +421,7 @@ __all__ = [
     "OP_SMAV",
     "OP_ENTROPY_SUM",
     "OP_SIGMOID_APPROX",
+    "OP_POINTER_LITERAL",
     "OP_TRM_MATVEC_512x1024",
     "OP_TRM_MATVEC_1024x512",
     "OP_TRM_VEC_ADD3_512",

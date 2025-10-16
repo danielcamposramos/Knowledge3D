@@ -10,6 +10,7 @@ enum class ItemType : uint8_t {
     kScalar = 0,
     kVector = 1,
     kMatrixRow = 2,
+    kTensor = 3,
 };
 
 constexpr uint32_t kErrorNone = 0;
@@ -22,9 +23,9 @@ constexpr uint32_t kErrorSingularMatrix = 9014;
 struct StackItem {
     float value[4];
     ItemType type;
-    uint8_t rows;
-    uint8_t cols;
-    uint8_t row_index;
+    int rows;
+    int cols;
+    int row_index;
 };
 
 struct alignas(16) InstanceState {
@@ -37,11 +38,21 @@ struct alignas(16) InstanceState {
 
 static_assert(sizeof(InstanceState) == 1040, "InstanceState layout mismatch");
 
-__device__ inline float pack_meta(ItemType type, uint8_t rows, uint8_t cols, uint8_t row_index) {
+__device__ inline uint8_t clamp_meta_dim(int value) {
+    if (value < 0) {
+        return 0;
+    }
+    if (value > 255) {
+        return 255;
+    }
+    return static_cast<uint8_t>(value);
+}
+
+__device__ inline float pack_meta(ItemType type, int rows, int cols, int row_index) {
     uint32_t bits = static_cast<uint32_t>(type) |
-                    (static_cast<uint32_t>(rows) << 8) |
-                    (static_cast<uint32_t>(cols) << 16) |
-                    (static_cast<uint32_t>(row_index) << 24);
+                    (static_cast<uint32_t>(clamp_meta_dim(rows)) << 8) |
+                    (static_cast<uint32_t>(clamp_meta_dim(cols)) << 16) |
+                    (static_cast<uint32_t>(clamp_meta_dim(row_index)) << 24);
     return __uint_as_float(bits);
 }
 
@@ -75,6 +86,58 @@ __device__ inline bool pop_scalar(StackItem* stack, uint32_t& size, float& value
         return false;
     }
     value = item.value[0];
+    return true;
+}
+
+__device__ inline void encode_pointer(StackItem& item, float* ptr) {
+    uint64_t raw = reinterpret_cast<uint64_t>(ptr);
+    uint32_t lo = static_cast<uint32_t>(raw & 0xFFFFFFFFull);
+    uint32_t hi = static_cast<uint32_t>(raw >> 32);
+    item.value[0] = __uint_as_float(lo);
+    item.value[1] = __uint_as_float(hi);
+}
+
+__device__ inline float* decode_pointer(const StackItem& item) {
+    uint32_t lo = __float_as_uint(item.value[0]);
+    uint32_t hi = __float_as_uint(item.value[1]);
+    uint64_t raw = (static_cast<uint64_t>(hi) << 32) | lo;
+    return reinterpret_cast<float*>(raw);
+}
+
+struct TensorRef {
+    float* ptr;
+    int rows;
+    int cols;
+};
+
+__device__ inline bool push_tensor(StackItem* stack, uint32_t& size, float* ptr, int rows, int cols, uint32_t& error) {
+    if (ptr == nullptr) {
+        error = kErrorUnknownOpcode;
+        return false;
+    }
+    StackItem item{};
+    encode_pointer(item, ptr);
+    item.value[2] = 0.0f;
+    item.value[3] = 0.0f;
+    item.type = ItemType::kTensor;
+    item.rows = rows;
+    item.cols = cols;
+    item.row_index = 0;
+    return push_item(stack, size, item, error);
+}
+
+__device__ inline bool pop_tensor(StackItem* stack, uint32_t& size, TensorRef& tensor, uint32_t& error) {
+    StackItem item{};
+    if (!pop_item(stack, size, item, error)) {
+        return false;
+    }
+    if (item.type != ItemType::kTensor) {
+        error = kErrorUnknownOpcode;
+        return false;
+    }
+    tensor.ptr = decode_pointer(item);
+    tensor.rows = item.rows;
+    tensor.cols = item.cols;
     return true;
 }
 
@@ -313,6 +376,24 @@ extern "C" __global__ void modular_rpn_kernel_extended(
                 vector_index += 1;
                 break;
             }
+            case 0x03: {  // pointer literal (rows, cols, ptr_lo, ptr_hi)
+                if (!scalars) {
+                    error_code = kErrorUnknownOpcode;
+                    break;
+                }
+                float rows_f = scalars[scalar_index++];
+                float cols_f = scalars[scalar_index++];
+                float lo_f = scalars[scalar_index++];
+                float hi_f = scalars[scalar_index++];
+                int rows = static_cast<int>(roundf(rows_f));
+                int cols = static_cast<int>(roundf(cols_f));
+                uint32_t lo_bits = __float_as_uint(lo_f);
+                uint32_t hi_bits = __float_as_uint(hi_f);
+                uint64_t raw_ptr = (static_cast<uint64_t>(hi_bits) << 32) | lo_bits;
+                float* ptr = reinterpret_cast<float*>(raw_ptr);
+                push_tensor(stack, stack_size, ptr, rows, cols, error_code);
+                break;
+            }
             case 0x02: {  // literal matrix
                 float rows_f = scalars ? scalars[scalar_index] : 0.0f;
                 float cols_f = scalars ? scalars[scalar_index + 1] : 0.0f;
@@ -512,6 +593,110 @@ extern "C" __global__ void modular_rpn_kernel_extended(
                     break;
                 }
                 push_matrix(stack, stack_size, result, error_code);
+                break;
+            }
+            case 0x60: {  // MATVEC_512x1024 (dest, matrix, vector)
+                TensorRef dest{}, matrix{}, vec{};
+                if (!pop_tensor(stack, stack_size, dest, error_code)) break;
+                if (!pop_tensor(stack, stack_size, matrix, error_code)) break;
+                if (!pop_tensor(stack, stack_size, vec, error_code)) break;
+                if (matrix.rows != 1024 || matrix.cols != 512 || vec.rows != 512 || vec.cols != 1 || dest.rows != 1024 || dest.cols != 1) {
+                    error_code = kErrorInvalidMatrixDims;
+                    break;
+                }
+                float* out = dest.ptr;
+                const float* weights = matrix.ptr;
+                const float* input_vec = vec.ptr;
+                for (int r = 0; r < 1024; ++r) {
+                    const float* row_ptr = weights + r * 512;
+                    float sum = 0.0f;
+                    #pragma unroll 8
+                    for (int c = 0; c < 512; ++c) {
+                        sum += row_ptr[c] * input_vec[c];
+                    }
+                    out[r] = sum;
+                }
+                push_tensor(stack, stack_size, out, 1024, 1, error_code);
+                break;
+            }
+            case 0x61: {  // MATVEC_1024x512 (dest, matrix, vector)
+                TensorRef dest{}, matrix{}, vec{};
+                if (!pop_tensor(stack, stack_size, dest, error_code)) break;
+                if (!pop_tensor(stack, stack_size, matrix, error_code)) break;
+                if (!pop_tensor(stack, stack_size, vec, error_code)) break;
+                if (matrix.rows != 512 || matrix.cols != 1024 || vec.rows != 1024 || vec.cols != 1 || dest.rows != 512 || dest.cols != 1) {
+                    error_code = kErrorInvalidMatrixDims;
+                    break;
+                }
+                float* out = dest.ptr;
+                const float* weights = matrix.ptr;
+                const float* input_vec = vec.ptr;
+                for (int r = 0; r < 512; ++r) {
+                    const float* row_ptr = weights + r * 1024;
+                    float sum = 0.0f;
+                    #pragma unroll 8
+                    for (int c = 0; c < 1024; ++c) {
+                        sum += row_ptr[c] * input_vec[c];
+                    }
+                    out[r] = sum;
+                }
+                push_tensor(stack, stack_size, out, 512, 1, error_code);
+                break;
+            }
+            case 0x62: {  // VEC_ADD3 (dest, a, b, c)
+                TensorRef dest{}, c{}, b{}, a{};
+                if (!pop_tensor(stack, stack_size, dest, error_code)) break;
+                if (!pop_tensor(stack, stack_size, c, error_code)) break;
+                if (!pop_tensor(stack, stack_size, b, error_code)) break;
+                if (!pop_tensor(stack, stack_size, a, error_code)) break;
+                if (a.rows != b.rows || a.rows != c.rows || a.cols != 1 || b.cols != 1 || c.cols != 1 || dest.rows != a.rows || dest.cols != 1) {
+                    error_code = kErrorInvalidMatrixDims;
+                    break;
+                }
+                float* out = dest.ptr;
+                const float* a_ptr = a.ptr;
+                const float* b_ptr = b.ptr;
+                const float* c_ptr = c.ptr;
+                for (int i = 0; i < a.rows; ++i) {
+                    out[i] = a_ptr[i] + b_ptr[i] + c_ptr[i];
+                }
+                push_tensor(stack, stack_size, out, a.rows, 1, error_code);
+                break;
+            }
+            case 0x63: {  // SWIGLU_512 (dest, input)
+                TensorRef dest{}, input{};
+                if (!pop_tensor(stack, stack_size, dest, error_code)) break;
+                if (!pop_tensor(stack, stack_size, input, error_code)) break;
+                if (input.rows != 512 || dest.rows != 512 || input.cols != 1 || dest.cols != 1) {
+                    error_code = kErrorInvalidMatrixDims;
+                    break;
+                }
+                float* out = dest.ptr;
+                const float* in = input.ptr;
+                for (int i = 0; i < 512; ++i) {
+                    float x = in[i];
+                    float sig = 1.0f / (1.0f + expf(-x));
+                    out[i] = x * sig;
+                }
+                push_tensor(stack, stack_size, out, 512, 1, error_code);
+                break;
+            }
+            case 0x64: {  // SWIGLU_1024 (dest, input)
+                TensorRef dest{}, input{};
+                if (!pop_tensor(stack, stack_size, dest, error_code)) break;
+                if (!pop_tensor(stack, stack_size, input, error_code)) break;
+                if (input.rows != 1024 || dest.rows != 1024 || input.cols != 1 || dest.cols != 1) {
+                    error_code = kErrorInvalidMatrixDims;
+                    break;
+                }
+                float* out = dest.ptr;
+                const float* in = input.ptr;
+                for (int i = 0; i < 1024; ++i) {
+                    float x = in[i];
+                    float sig = 1.0f / (1.0f + expf(-x));
+                    out[i] = x * sig;
+                }
+                push_tensor(stack, stack_size, out, 1024, 1, error_code);
                 break;
             }
             default:

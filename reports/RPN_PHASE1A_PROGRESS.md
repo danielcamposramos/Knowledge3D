@@ -14,14 +14,16 @@ Lay the groundwork for executing the TRM refinement loop through Tier‑3 RPN op
 - ✅ Opcode constants mirrored in Python runtime (PTX additions pending).
 - ✅ Deterministic TRM bytecode generator in place; per-step pattern covered by tests.
 - ✅ Pointer relocation tested, matching future GPU expectations.
-- ⏳ Modular PTX kernel (`modular_rpn_kernel_extended.ptx`) still needs handlers for opcodes `0x60`–`0x64`.
-- ⏳ Tier‑3 bridge (`AdvancedRPNEngine`) will require bindings for the new literals once PTX support lands.
-- ⏳ TRM launcher to be extended with an RPN execution path after kernel support arrives.
+- ✅ Modular PTX kernel (`modular_rpn_kernel_extended.ptx`) now implements the new opcodes plus a generic pointer literal (`0x03`) so TRM tensors can stay resident in GPU memory.
+- ✅ Tier‑3 bridge (`AdvancedRPNEngine`) decodes tensor pointers and can execute the Phase 1A ops directly.
+- ✅ TRM launcher now exposes an RPN execution path via `K3D_USE_RPN_TRM` (or the `use_rpn` flag) with GPU parity tests confirming equivalence to the PTX path.
+- ✅ GPU regression: `tests/test_trm_rpn_gpu.py` covers `VEC_ADD3`, `MATVEC_512x1024`, `MATVEC_1024x512`, and `SWIGLU_1024` against NumPy references.
+- ✅ End-to-end parity: `tests/test_trm_launcher_rpn.py` compares RPN vs PTX refinement outputs for multiple recursion depths.
+- ❗ **Benchmark result (2025-10-15):** `tests/benchmarks/test_trm_launcher_performance.py` reports ~10.1 ms per refinement for the PTX backend versus ~503.8 ms for the RPN path (∼50× slower). The discrepancy likely stems from per-step PTX launches being far cheaper than the current Tier‑3 orchestration; optimisation is required before promoting RPN to default.
 
 ## Next Steps
-1. Implement Phase 1A opcodes inside `modular_rpn_kernel_extended.cu` and regenerate PTX.
-2. Extend `AdvancedRPNEngine` to decode the new vector/matrix literals and route the TRM matvec ops.
-3. Add GPU-backed tests that execute the generated TRM bytecode against small dummy weights, comparing against the existing PTX TRM launcher.
-4. Wire the new RPN program into `TRMLauncher` behind a feature flag (`K3D_USE_RPN_TRM`).
+1. Benchmark the RPN backend versus PTX kernels to quantify latency improvements and tune tolerances.
+2. Profile and optimise the RPN execution path (kernel fusion, reduced pointer literal overhead) until latency is competitive with the PTX baseline.
+3. Decide when to make the RPN path the default once performance targets are validated.
 
 Document owner: Codex (2025-10-15).

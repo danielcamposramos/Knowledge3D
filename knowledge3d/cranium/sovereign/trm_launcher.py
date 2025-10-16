@@ -1,24 +1,17 @@
 """TRM (Tiny Recursive Model) Launcher - Sovereign GPU Execution
 
-Implements the TRM recursive refinement architecture from:
-"Less is More: Recursive Reasoning with Tiny Networks"
-
-Architecture:
-- 2-layer MLP with SwiGLU activation (512 → 1024 → 512)
-- Recursive refinement: z ← f(x + y + z), y ← f(y + z)
-- n=6 recursive steps with drift halting (eps=1e-4)
-
-Usage:
-    from knowledge3d.cranium.sovereign.trm_launcher import TRMLauncher
-
-    trm = TRMLauncher()
-    y, z = trm.refine(q=question, y=answer, z=latent, n_steps=6)
+Supports both the original PTX micro-kernels and the new Tier‑3 RPN backend
+activated via `K3D_USE_RPN_TRM=1` (or the `use_rpn` constructor flag).
 """
 
-import numpy as np
+from __future__ import annotations
+
+import os
 import ctypes
 from pathlib import Path
-from typing import Tuple, Optional
+from typing import Optional, Tuple, List
+
+import numpy as np
 
 from .loader import (
     load_ptx_file,
@@ -31,63 +24,87 @@ from .loader import (
 )
 
 
+def _ptr_value(ptr) -> int:
+    return int(ptr.value) if hasattr(ptr, "value") else int(ptr)
+
+
+def _encode_pointer_literal(
+    ptr,
+    rows: int,
+    cols: int,
+) -> List[float]:
+    raw = _ptr_value(ptr)
+    lo = raw & 0xFFFFFFFF
+    hi = (raw >> 32) & 0xFFFFFFFF
+    lo_f = np.array([lo], dtype=np.uint32).view(np.float32)[0]
+    hi_f = np.array([hi], dtype=np.uint32).view(np.float32)[0]
+    return [float(rows), float(cols), float(lo_f), float(hi_f)]
+
+
 class TRMLauncher:
-    """Sovereign TRM launcher using pure PTX kernels.
+    """Sovereign TRM launcher with optional Tier‑3 RPN backend."""
 
-    This launcher manages TRM recursive refinement with zero-copy GPU execution.
-    All mathematical operations run in PTX kernels loaded via sovereign loader.
+    def __init__(self, ptx_path: Optional[str] = None, use_rpn: Optional[bool] = None):
+        if use_rpn is None:
+            self.use_rpn = os.getenv("K3D_USE_RPN_TRM", "0").lower() in {"1", "true", "yes"}
+        else:
+            self.use_rpn = bool(use_rpn)
 
-    Architecture:
-        - Input: q (question, 512-dim), y (answer, 512-dim), z (latent, 512-dim)
-        - Recursion: For n steps (default 6):
-            1. temp = q + y + z
-            2. hidden = W1 @ temp  (512 → 1024)
-            3. hidden = swiglu(hidden)
-            4. z_new = W2 @ hidden  (1024 → 512)
-            5. temp2 = y + z_new
-            6. hidden2 = W3 @ temp2  (512 → 1024)
-            7. hidden2 = swiglu(hidden2)
-            8. y_new = W4 @ hidden2  (1024 → 512)
-            9. If ||z_new - z|| < eps: halt
-            10. z ← z_new, y ← y_new
-        - Output: refined (y, z)
+        self.ptx_path: Optional[str] = None
+        self.kernels: dict[str, ctypes.c_void_p] = {}
 
-    Attributes:
-        ptx_path: Path to trm_extensions.ptx
-        kernels: Dict of loaded kernel functions
-        workspace: GPU memory for intermediate results
-    """
+        if not self.use_rpn:
+            if ptx_path is None:
+                ptx_path = str(Path(__file__).parent.parent / "ptx" / "trm_extensions.ptx")
+            self.ptx_path = ptx_path
+            print(f"🔥 TRM Launcher: Loading sovereign PTX kernels from {ptx_path}")
+            self._load_kernels()
 
-    def __init__(self, ptx_path: Optional[str] = None):
-        """Initialize TRM launcher and load PTX kernels.
-
-        Args:
-            ptx_path: Path to trm_extensions.ptx (default: auto-detect)
-        """
-        if ptx_path is None:
-            # Auto-detect PTX path
-            ptx_path = str(Path(__file__).parent.parent / "ptx" / "trm_extensions.ptx")
-
-        self.ptx_path = ptx_path
-        self.kernels = {}
-
-        # Load all required kernels
-        print(f"🔥 TRM Launcher: Loading sovereign PTX kernels from {ptx_path}")
-        self._load_kernels()
-
-        # Allocate persistent GPU workspace for intermediate results
-        # We need: temp (512), hidden (1024), temp2 (512), hidden2 (1024)
-        # Total: 3072 floats = 12,288 bytes
+        # Shared workspace buffers
         self.d_temp = gpu_malloc(512 * 4)
         self.d_hidden = gpu_malloc(1024 * 4)
         self.d_temp2 = gpu_malloc(512 * 4)
         self.d_hidden2 = gpu_malloc(1024 * 4)
 
-        print("✅ TRM Launcher initialized!")
-        print(f"   GPU workspace allocated: {(512 + 1024 + 512 + 1024) * 4} bytes")
+        # RPN backend wiring
+        self._advanced_rpn = None
+        self.d_zero_512 = None
+        if self.use_rpn:
+            from knowledge3d.cranium.bridges.advanced_rpn import AdvancedRPNEngine
+            from knowledge3d.cranium.ptx_runtime.rpn_opcodes import (
+                OP_POINTER_LITERAL,
+                OP_TRM_MATVEC_1024x512,
+                OP_TRM_MATVEC_512x1024,
+                OP_TRM_SWIGLU_1024,
+                OP_TRM_VEC_ADD3_512,
+            )
 
-    def _load_kernels(self):
-        """Load all TRM PTX kernels."""
+            self._advanced_rpn = AdvancedRPNEngine()
+            self._op_pointer_literal = OP_POINTER_LITERAL
+            self._op_matvec_512x1024 = OP_TRM_MATVEC_512x1024
+            self._op_matvec_1024x512 = OP_TRM_MATVEC_1024x512
+            self._op_vec_add3_512 = OP_TRM_VEC_ADD3_512
+            self._op_swiglu_1024 = OP_TRM_SWIGLU_1024
+
+            zero_host = np.zeros(512, dtype=np.float32)
+            self.d_zero_512 = gpu_malloc(zero_host.nbytes)
+            memcpy_htod(self.d_zero_512, zero_host.ctypes.data_as(ctypes.c_void_p), zero_host.nbytes)
+        else:
+            self._advanced_rpn = None
+            self._op_pointer_literal = None
+            self._op_matvec_512x1024 = None
+            self._op_matvec_1024x512 = None
+            self._op_vec_add3_512 = None
+            self._op_swiglu_1024 = None
+
+        print("✅ TRM Launcher initialized (backend: {})".format("RPN" if self.use_rpn else "PTX"))
+
+    # ------------------------------------------------------------------ #
+    # PTX helpers
+    # ------------------------------------------------------------------ #
+
+    def _load_kernels(self) -> None:
+        assert self.ptx_path is not None
         kernel_names = [
             "swiglu_vec_512",
             "swiglu_vec_1024",
@@ -96,40 +113,22 @@ class TRMLauncher:
             "matvec_512x1024",
             "matvec_1024x512",
         ]
-
         for name in kernel_names:
-            try:
-                self.kernels[name] = load_ptx_file(self.ptx_path, name)
-                print(f"   ✓ Loaded {name}")
-            except Exception as e:
-                raise RuntimeError(f"Failed to load kernel {name}: {e}")
+            self.kernels[name] = load_ptx_file(self.ptx_path, name)
+            print(f"   ✓ Loaded {name}")
 
     def refine_step(
         self,
-        d_q: int,  # Device pointer to question (512)
-        d_y: int,  # Device pointer to answer (512)
-        d_z: int,  # Device pointer to latent (512)
-        d_W1: int,  # Device pointer to W1 (1024 x 512)
-        d_W2: int,  # Device pointer to W2 (512 x 1024)
-        d_W3: int,  # Device pointer to W3 (1024 x 512)
-        d_W4: int,  # Device pointer to W4 (512 x 1024)
-        d_z_new: int,  # Device pointer to z_new output (512)
-        d_y_new: int,  # Device pointer to y_new output (512)
+        d_q: int,
+        d_y: int,
+        d_z: int,
+        d_W1: int,
+        d_W2: int,
+        d_W3: int,
+        d_W4: int,
+        d_z_new: int,
+        d_y_new: int,
     ) -> None:
-        """Execute one TRM refinement step.
-
-        This performs the complete forward pass:
-            z_new = W2 @ swiglu(W1 @ (q + y + z))
-            y_new = W4 @ swiglu(W3 @ (y + z_new))
-
-        All operations run on GPU with zero CPU involvement.
-
-        Args:
-            d_q, d_y, d_z: Input device pointers (512-dim)
-            d_W1, d_W2, d_W3, d_W4: Weight device pointers
-            d_z_new, d_y_new: Output device pointers (512-dim)
-        """
-        # Step 1: temp = q + y + z
         launch(
             self.kernels["vec_add3_512"],
             grid=(1, 1, 1),
@@ -142,7 +141,6 @@ class TRMLauncher:
             ],
         )
 
-        # Step 2: hidden = W1 @ temp  (512 → 1024)
         launch(
             self.kernels["matvec_512x1024"],
             grid=(1, 1, 1),
@@ -154,18 +152,16 @@ class TRMLauncher:
             ],
         )
 
-        # Step 3: hidden = swiglu(hidden)  (element-wise)
         launch(
             self.kernels["swiglu_vec_1024"],
-            grid=(4, 1, 1),  # 4 blocks × 256 threads = 1024
+            grid=(4, 1, 1),
             block=(256, 1, 1),
             params=[
                 ctypes.c_uint64(self.d_hidden.value),
-                ctypes.c_uint64(self.d_hidden.value),  # in-place
+                ctypes.c_uint64(self.d_hidden.value),
             ],
         )
 
-        # Step 4: z_new = W2 @ hidden  (1024 → 512)
         launch(
             self.kernels["matvec_1024x512"],
             grid=(1, 1, 1),
@@ -177,7 +173,6 @@ class TRMLauncher:
             ],
         )
 
-        # Step 5: temp2 = y + z_new
         launch(
             self.kernels["vec_add_512"],
             grid=(1, 1, 1),
@@ -189,7 +184,6 @@ class TRMLauncher:
             ],
         )
 
-        # Step 6: hidden2 = W3 @ temp2  (512 → 1024)
         launch(
             self.kernels["matvec_512x1024"],
             grid=(1, 1, 1),
@@ -201,18 +195,16 @@ class TRMLauncher:
             ],
         )
 
-        # Step 7: hidden2 = swiglu(hidden2)  (element-wise)
         launch(
             self.kernels["swiglu_vec_1024"],
             grid=(4, 1, 1),
             block=(256, 1, 1),
             params=[
                 ctypes.c_uint64(self.d_hidden2.value),
-                ctypes.c_uint64(self.d_hidden2.value),  # in-place
+                ctypes.c_uint64(self.d_hidden2.value),
             ],
         )
 
-        # Step 8: y_new = W4 @ hidden2  (1024 → 512)
         launch(
             self.kernels["matvec_1024x512"],
             grid=(1, 1, 1),
@@ -226,6 +218,10 @@ class TRMLauncher:
 
         synchronize()
 
+    # ------------------------------------------------------------------ #
+    # Public API
+    # ------------------------------------------------------------------ #
+
     def refine(
         self,
         q: np.ndarray,
@@ -238,28 +234,6 @@ class TRMLauncher:
         n_steps: int = 6,
         eps: float = 1e-4,
     ) -> Tuple[np.ndarray, np.ndarray]:
-        """Run TRM recursive refinement for n steps.
-
-        Args:
-            q: Question embedding (512,)
-            y: Initial answer embedding (512,)
-            z: Initial latent embedding (512,)
-            W1, W2, W3, W4: Weight matrices
-            n_steps: Number of recursive steps (default: 6)
-            eps: Drift threshold for early stopping (default: 1e-4)
-
-        Returns:
-            (y_refined, z_refined): Tuple of refined embeddings
-
-        Example:
-            >>> trm = TRMLauncher()
-            >>> q = np.random.randn(512).astype(np.float32)
-            >>> y = np.random.randn(512).astype(np.float32)
-            >>> z = np.random.randn(512).astype(np.float32)
-            >>> # ... initialize weights ...
-            >>> y_refined, z_refined = trm.refine(q, y, z, W1, W2, W3, W4)
-        """
-        # Validate inputs
         assert q.dtype == y.dtype == z.dtype == np.float32
         assert q.shape == y.shape == z.shape == (512,)
         assert W1.shape == (1024, 512) and W1.dtype == np.float32
@@ -267,7 +241,6 @@ class TRMLauncher:
         assert W3.shape == (1024, 512) and W3.dtype == np.float32
         assert W4.shape == (512, 1024) and W4.dtype == np.float32
 
-        # Allocate GPU memory for inputs/outputs
         d_q = gpu_malloc(q.nbytes)
         d_y = gpu_malloc(y.nbytes)
         d_z = gpu_malloc(z.nbytes)
@@ -279,7 +252,6 @@ class TRMLauncher:
         d_y_new = gpu_malloc(512 * 4)
 
         try:
-            # Copy inputs to GPU
             memcpy_htod(d_q, q.ctypes.data_as(ctypes.c_void_p), q.nbytes)
             memcpy_htod(d_y, y.ctypes.data_as(ctypes.c_void_p), y.nbytes)
             memcpy_htod(d_z, z.ctypes.data_as(ctypes.c_void_p), z.nbytes)
@@ -288,48 +260,38 @@ class TRMLauncher:
             memcpy_htod(d_W3, W3.ctypes.data_as(ctypes.c_void_p), W3.nbytes)
             memcpy_htod(d_W4, W4.ctypes.data_as(ctypes.c_void_p), W4.nbytes)
 
-            # Recursive refinement loop
-            z_old = np.zeros(512, dtype=np.float32)
-            for step in range(n_steps):
-                # Copy current z to z_old for drift check
-                memcpy_dtoh(z_old.ctypes.data_as(ctypes.c_void_p), d_z, z.nbytes)
-
-                # Execute one refinement step
-                self.refine_step(
-                    d_q.value, d_y.value, d_z.value,
-                    d_W1.value, d_W2.value, d_W3.value, d_W4.value,
-                    d_z_new.value, d_y_new.value
+            if self.use_rpn:
+                result = self._refine_rpn(
+                    d_q,
+                    d_y,
+                    d_z,
+                    d_W1,
+                    d_W2,
+                    d_W3,
+                    d_W4,
+                    d_z_new,
+                    d_y_new,
+                    n_steps,
+                    eps,
+                )
+            else:
+                result = self._refine_ptx(
+                    d_q,
+                    d_y,
+                    d_z,
+                    d_W1,
+                    d_W2,
+                    d_W3,
+                    d_W4,
+                    d_z_new,
+                    d_y_new,
+                    n_steps,
+                    eps,
                 )
 
-                # Copy results back for drift check
-                z_new = np.zeros(512, dtype=np.float32)
-                memcpy_dtoh(z_new.ctypes.data_as(ctypes.c_void_p), d_z_new, z.nbytes)
-
-                # Check drift (early stopping)
-                drift = np.max(np.abs(z_new - z_old))
-                if drift < eps:
-                    print(f"   🛑 TRM halted at step {step + 1}/{n_steps} (drift={drift:.6f} < {eps})")
-                    # Copy final y
-                    y_final = np.zeros(512, dtype=np.float32)
-                    memcpy_dtoh(y_final.ctypes.data_as(ctypes.c_void_p), d_y_new, y.nbytes)
-                    return y_final, z_new
-
-                # Update z and y for next iteration (copy z_new → z, y_new → y)
-                memcpy_htod(d_z, z_new.ctypes.data_as(ctypes.c_void_p), z.nbytes)
-                y_tmp = np.zeros(512, dtype=np.float32)
-                memcpy_dtoh(y_tmp.ctypes.data_as(ctypes.c_void_p), d_y_new, y.nbytes)
-                memcpy_htod(d_y, y_tmp.ctypes.data_as(ctypes.c_void_p), y.nbytes)
-
-            # All steps completed, return final results
-            y_final = np.zeros(512, dtype=np.float32)
-            z_final = np.zeros(512, dtype=np.float32)
-            memcpy_dtoh(y_final.ctypes.data_as(ctypes.c_void_p), d_y_new, y.nbytes)
-            memcpy_dtoh(z_final.ctypes.data_as(ctypes.c_void_p), d_z_new, z.nbytes)
-
-            return y_final, z_final
+            return result
 
         finally:
-            # Cleanup
             gpu_free(d_q)
             gpu_free(d_y)
             gpu_free(d_z)
@@ -340,18 +302,194 @@ class TRMLauncher:
             gpu_free(d_z_new)
             gpu_free(d_y_new)
 
-    def cleanup(self):
-        """Free persistent GPU workspace."""
+    # ------------------------------------------------------------------ #
+    # Internal refinement paths
+    # ------------------------------------------------------------------ #
+
+    def _refine_ptx(
+        self,
+        d_q,
+        d_y,
+        d_z,
+        d_W1,
+        d_W2,
+        d_W3,
+        d_W4,
+        d_z_new,
+        d_y_new,
+        n_steps: int,
+        eps: float,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        z_old = np.zeros(512, dtype=np.float32)
+
+        for step in range(n_steps):
+            memcpy_dtoh(z_old.ctypes.data_as(ctypes.c_void_p), d_z, z_old.nbytes)
+
+            self.refine_step(
+                d_q.value,
+                d_y.value,
+                d_z.value,
+                d_W1.value,
+                d_W2.value,
+                d_W3.value,
+                d_W4.value,
+                d_z_new.value,
+                d_y_new.value,
+            )
+
+            z_new = np.zeros(512, dtype=np.float32)
+            memcpy_dtoh(z_new.ctypes.data_as(ctypes.c_void_p), d_z_new, z_new.nbytes)
+
+            drift = np.max(np.abs(z_new - z_old))
+            if drift < eps:
+                print(f"   🛑 TRM halted at step {step + 1}/{n_steps} (drift={drift:.6f} < {eps})")
+                y_final = np.zeros(512, dtype=np.float32)
+                memcpy_dtoh(y_final.ctypes.data_as(ctypes.c_void_p), d_y_new, y_final.nbytes)
+                return y_final, z_new
+
+            memcpy_htod(d_z, z_new.ctypes.data_as(ctypes.c_void_p), z_new.nbytes)
+            y_tmp = np.zeros(512, dtype=np.float32)
+            memcpy_dtoh(y_tmp.ctypes.data_as(ctypes.c_void_p), d_y_new, y_tmp.nbytes)
+            memcpy_htod(d_y, y_tmp.ctypes.data_as(ctypes.c_void_p), y_tmp.nbytes)
+
+        y_final = np.zeros(512, dtype=np.float32)
+        z_final = np.zeros(512, dtype=np.float32)
+        memcpy_dtoh(y_final.ctypes.data_as(ctypes.c_void_p), d_y_new, y_final.nbytes)
+        memcpy_dtoh(z_final.ctypes.data_as(ctypes.c_void_p), d_z_new, z_final.nbytes)
+        return y_final, z_final
+
+    def _refine_rpn(
+        self,
+        d_q,
+        d_y,
+        d_z,
+        d_W1,
+        d_W2,
+        d_W3,
+        d_W4,
+        d_z_new,
+        d_y_new,
+        n_steps: int,
+        eps: float,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        if self._advanced_rpn is None:
+            raise RuntimeError("RPN backend not initialised")
+
+        self._advanced_rpn.reset_instance(0)
+        z_old = np.zeros(512, dtype=np.float32)
+
+        for step in range(n_steps):
+            memcpy_dtoh(z_old.ctypes.data_as(ctypes.c_void_p), d_z, z_old.nbytes)
+
+            op_codes: List[int] = []
+            scalars: List[float] = []
+
+            scalars.extend(_encode_pointer_literal(d_q, 512, 1))
+            op_codes.append(self._op_pointer_literal)
+            scalars.extend(_encode_pointer_literal(d_y, 512, 1))
+            op_codes.append(self._op_pointer_literal)
+            scalars.extend(_encode_pointer_literal(d_z, 512, 1))
+            op_codes.append(self._op_pointer_literal)
+            scalars.extend(_encode_pointer_literal(self.d_temp, 512, 1))
+            op_codes.append(self._op_pointer_literal)
+            op_codes.append(self._op_vec_add3_512)
+
+            scalars.extend(_encode_pointer_literal(self.d_temp, 512, 1))
+            op_codes.append(self._op_pointer_literal)
+            scalars.extend(_encode_pointer_literal(d_W1, 1024, 512))
+            op_codes.append(self._op_pointer_literal)
+            scalars.extend(_encode_pointer_literal(self.d_hidden, 1024, 1))
+            op_codes.append(self._op_pointer_literal)
+            op_codes.append(self._op_matvec_512x1024)
+
+            scalars.extend(_encode_pointer_literal(self.d_hidden, 1024, 1))
+            op_codes.append(self._op_pointer_literal)
+            scalars.extend(_encode_pointer_literal(self.d_hidden, 1024, 1))
+            op_codes.append(self._op_pointer_literal)
+            op_codes.append(self._op_swiglu_1024)
+
+            scalars.extend(_encode_pointer_literal(self.d_hidden, 1024, 1))
+            op_codes.append(self._op_pointer_literal)
+            scalars.extend(_encode_pointer_literal(d_W2, 512, 1024))
+            op_codes.append(self._op_pointer_literal)
+            scalars.extend(_encode_pointer_literal(d_z_new, 512, 1))
+            op_codes.append(self._op_pointer_literal)
+            op_codes.append(self._op_matvec_1024x512)
+
+            scalars.extend(_encode_pointer_literal(d_y, 512, 1))
+            op_codes.append(self._op_pointer_literal)
+            scalars.extend(_encode_pointer_literal(d_z_new, 512, 1))
+            op_codes.append(self._op_pointer_literal)
+            scalars.extend(_encode_pointer_literal(self.d_zero_512, 512, 1))
+            op_codes.append(self._op_pointer_literal)
+            scalars.extend(_encode_pointer_literal(self.d_temp2, 512, 1))
+            op_codes.append(self._op_pointer_literal)
+            op_codes.append(self._op_vec_add3_512)
+
+            scalars.extend(_encode_pointer_literal(self.d_temp2, 512, 1))
+            op_codes.append(self._op_pointer_literal)
+            scalars.extend(_encode_pointer_literal(d_W3, 1024, 512))
+            op_codes.append(self._op_pointer_literal)
+            scalars.extend(_encode_pointer_literal(self.d_hidden2, 1024, 1))
+            op_codes.append(self._op_pointer_literal)
+            op_codes.append(self._op_matvec_512x1024)
+
+            scalars.extend(_encode_pointer_literal(self.d_hidden2, 1024, 1))
+            op_codes.append(self._op_pointer_literal)
+            scalars.extend(_encode_pointer_literal(self.d_hidden2, 1024, 1))
+            op_codes.append(self._op_pointer_literal)
+            op_codes.append(self._op_swiglu_1024)
+
+            scalars.extend(_encode_pointer_literal(self.d_hidden2, 1024, 1))
+            op_codes.append(self._op_pointer_literal)
+            scalars.extend(_encode_pointer_literal(d_W4, 512, 1024))
+            op_codes.append(self._op_pointer_literal)
+            scalars.extend(_encode_pointer_literal(d_y_new, 512, 1))
+            op_codes.append(self._op_pointer_literal)
+            op_codes.append(self._op_matvec_1024x512)
+
+            op_codes_np = np.asarray(op_codes, dtype=np.uint16)
+            scalars_np = np.asarray(scalars, dtype=np.float32)
+            self._advanced_rpn.execute_program(0, op_codes_np, scalars=scalars_np)
+
+            z_new = np.zeros(512, dtype=np.float32)
+            memcpy_dtoh(z_new.ctypes.data_as(ctypes.c_void_p), d_z_new, z_new.nbytes)
+
+            drift = np.max(np.abs(z_new - z_old))
+            if drift < eps:
+                print(f"   🛑 TRM (RPN) halted at step {step + 1}/{n_steps} (drift={drift:.6f} < {eps})")
+                y_final = np.zeros(512, dtype=np.float32)
+                memcpy_dtoh(y_final.ctypes.data_as(ctypes.c_void_p), d_y_new, y_final.nbytes)
+                return y_final, z_new
+
+            memcpy_htod(d_z, z_new.ctypes.data_as(ctypes.c_void_p), z_new.nbytes)
+            y_tmp = np.zeros(512, dtype=np.float32)
+            memcpy_dtoh(y_tmp.ctypes.data_as(ctypes.c_void_p), d_y_new, y_tmp.nbytes)
+            memcpy_htod(d_y, y_tmp.ctypes.data_as(ctypes.c_void_p), y_tmp.nbytes)
+
+        y_final = np.zeros(512, dtype=np.float32)
+        z_final = np.zeros(512, dtype=np.float32)
+        memcpy_dtoh(y_final.ctypes.data_as(ctypes.c_void_p), d_y_new, y_final.nbytes)
+        memcpy_dtoh(z_final.ctypes.data_as(ctypes.c_void_p), d_z_new, z_final.nbytes)
+        return y_final, z_final
+
+    # ------------------------------------------------------------------ #
+    # Resource management
+    # ------------------------------------------------------------------ #
+
+    def cleanup(self) -> None:
         gpu_free(self.d_temp)
         gpu_free(self.d_hidden)
         gpu_free(self.d_temp2)
         gpu_free(self.d_hidden2)
+        if self.d_zero_512 is not None:
+            gpu_free(self.d_zero_512)
+            self.d_zero_512 = None
 
     def __del__(self):
-        """Cleanup on destruction."""
         try:
             self.cleanup()
-        except:
+        except Exception:
             pass
 
 

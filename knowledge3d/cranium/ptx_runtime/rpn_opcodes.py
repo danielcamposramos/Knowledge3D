@@ -1,5 +1,7 @@
 """Shared opcode constants for the modular RPN executors."""
 
+OP_POINTER_LITERAL = 0x03
+
 OP_SPARSE_LOAD = 0x40
 OP_SMAV = 0x41
 OP_ENTROPY_SUM = 0x42
@@ -17,6 +19,7 @@ __all__ = [
     "OP_SMAV",
     "OP_ENTROPY_SUM",
     "OP_SIGMOID_APPROX",
+    "OP_POINTER_LITERAL",
     "OP_TRM_MATVEC_512x1024",
     "OP_TRM_MATVEC_1024x512",
     "OP_TRM_VEC_ADD3_512",
