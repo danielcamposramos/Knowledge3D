@@ -9,6 +9,10 @@ from typing import Dict, Iterable, Optional, Tuple, Union
 import numpy as np
 
 from knowledge3d.cranium.bridges.advanced_rpn import AdvancedRPNEngine
+from knowledge3d.cranium.bridges.nine_chain_specialized_bridge import (
+    NineChainSpecializedBridge,
+    SwarmDiagnostics,
+)
 from knowledge3d.cranium.sovereign import loader
 from knowledge3d.cranium.ptx_runtime import rpn_opcodes as ropc
 
@@ -37,11 +41,21 @@ class _DeviceTensor:
 class ThinkingTagRPNBridge:
     """High-performance RPN bridge specialised for ThinkingTag inference."""
 
-    def __init__(self, tier: int = 2):
+    def __init__(
+        self,
+        tier: int = 2,
+        use_specialized_swarm: bool = False,
+        swarm_iterations: int = 1,
+        swarm_resonance_strategy: str = "mean",
+    ):
         if tier != 2:
             raise ValueError("ThinkingTagRPNBridge currently supports Tier-2 execution only")
 
         self.engine = AdvancedRPNEngine()
+        self._swarm_bridge: Optional[NineChainSpecializedBridge] = None
+        self._swarm_iterations = max(1, int(swarm_iterations))
+        self._swarm_resonance_strategy = swarm_resonance_strategy
+        self._swarm_last_diag: Optional[SwarmDiagnostics] = None
 
         # Weight cache: key -> _DeviceTensor
         self._weight_cache: Dict[int, _DeviceTensor] = {}
@@ -56,6 +70,12 @@ class ThinkingTagRPNBridge:
 
         # Host buffers reused for readback
         self._host_buffer: Dict[int, np.ndarray] = {}
+
+        if use_specialized_swarm:
+            self.enable_specialized_swarm(
+                iterations=self._swarm_iterations,
+                resonance_strategy=swarm_resonance_strategy,
+            )
 
     # ------------------------------------------------------------------ #
     # Public API
@@ -156,6 +176,8 @@ class ThinkingTagRPNBridge:
         # Entropy is top of stack (scalar)
         entropy = float(stack[-1, 0]) if stack.size else float(self._compute_entropy_cpu(host_output))
 
+        host_output = self._refine_with_swarm(host_output)
+
         return host_output, entropy
 
     def execute_spatial(
@@ -219,7 +241,8 @@ class ThinkingTagRPNBridge:
 
         self.engine.reset_instance(0)
         self.engine.execute_program(0, op_np, scalars_np)
-        return self._fetch_vector(d_output, output_dim)
+        output_vec = self._fetch_vector(d_output, output_dim)
+        return self._refine_with_swarm(output_vec)
 
     def compute_temporal_mask(
         self,
@@ -291,6 +314,49 @@ class ThinkingTagRPNBridge:
         activity_host = self._fetch_vector(activity_ptr, feature_dim)
         return mask_host, coherence_host, activity_host
 
+    def enable_specialized_swarm(
+        self,
+        *,
+        iterations: int = 1,
+        resonance_strategy: Optional[str] = None,
+        normalize_weights: bool = True,
+        reset_state: bool = False,
+    ) -> None:
+        """Attach the specialised swarm bridge to post-process fused vectors."""
+        strategy = resonance_strategy or self._swarm_resonance_strategy
+        self._swarm_resonance_strategy = strategy
+        self._swarm_iterations = max(1, int(iterations))
+
+        if self._swarm_bridge is None:
+            self._swarm_bridge = NineChainSpecializedBridge(
+                resonance_strategy=strategy,
+                normalize_weights=normalize_weights,
+                persistent_state=True,
+            )
+        else:
+            self._swarm_bridge.resonance_strategy = strategy
+            self._swarm_bridge.normalize_weights = normalize_weights
+
+        if reset_state and self._swarm_bridge is not None:
+            self._swarm_bridge.reset_states()
+
+        self._swarm_last_diag = None
+
+    def disable_specialized_swarm(self) -> None:
+        """Detach the specialised swarm bridge and release resources."""
+        if self._swarm_bridge is not None:
+            self._swarm_bridge.cleanup()
+            self._swarm_bridge = None
+        self._swarm_last_diag = None
+
+    def get_swarm_diagnostics(self) -> Optional[SwarmDiagnostics]:
+        """Return the latest swarm diagnostics, if the specialised swarm is active."""
+        if self._swarm_bridge is None:
+            return None
+        if self._swarm_last_diag is None:
+            self._swarm_last_diag = self._swarm_bridge.get_chain_diagnostics()
+        return self._swarm_last_diag
+
     def _execute_rpn_program(
         self,
         program: Iterable[Union[int, float]],
@@ -330,6 +396,11 @@ class ThinkingTagRPNBridge:
 
     def cleanup(self) -> None:
         """Release GPU resources."""
+        if self._swarm_bridge is not None:
+            self._swarm_bridge.cleanup()
+            self._swarm_bridge = None
+        self._swarm_last_diag = None
+
         for tensor in self._weight_cache.values():
             loader.gpu_free(tensor.ptr)
         self._weight_cache.clear()
@@ -537,3 +608,22 @@ class ThinkingTagRPNBridge:
     def _compute_entropy_cpu(probs: Iterable[float]) -> float:
         p = np.clip(np.asarray(list(probs), dtype=np.float32), 1e-6, 1.0)
         return float(-np.sum(p * np.log(p)))
+
+    def _refine_with_swarm(self, vector: np.ndarray) -> np.ndarray:
+        """Optionally route a fused embedding through the specialised swarm."""
+        if self._swarm_bridge is None:
+            self._swarm_last_diag = None
+            return vector
+
+        vec = np.asarray(vector, dtype=np.float32).reshape(-1)
+        if vec.size != self._swarm_bridge.dim:
+            self._swarm_last_diag = None
+            return vector
+
+        output, _, _ = self._swarm_bridge.execute_swarm(
+            vec,
+            num_iterations=self._swarm_iterations,
+            readback_mode="output",
+        )
+        self._swarm_last_diag = None
+        return output
