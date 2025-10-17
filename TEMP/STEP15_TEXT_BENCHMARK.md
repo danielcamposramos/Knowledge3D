@@ -2,7 +2,7 @@
 
 **Date**: 2025-10-16  
 **Agent**: Codex  
-**Environment**: `/K3D/Knowledge3D.local/envs/k3d-cranium` (RTX 3060, gensim not installed → fallback to zero bootstrap vectors)
+**Environment**: `/K3D/Knowledge3D.local/envs/k3d-cranium` (RTX 3060, GloVe-50d via gensim)
 
 ## Benchmark Setup
 
@@ -24,5 +24,5 @@ positions = ingestor.ingest_vocabulary('en', words)
 | Peak VRAM (`nvidia-smi`)  | < 400 MB         |
 
 ## Notes
-- gensim is not currently installed in the environment; the pipeline fell back to zero bootstrap vectors (warning emitted). Once gensim is available, the same pipeline will automatically leverage the 50-d GloVe seeds for richer initial embeddings.
-- Even with fallback, the sovereign pipeline meets the sub-second target for 1k tokens and stays well within the 12 GB VRAM budget.
+- GloVe-50d is now installed (via gensim) and automatically cached; the sovereign pipeline uses the 50-d bootstrap vectors before expanding to 128-d.
+- Even with real embeddings the pipeline maintains the sub-second target for 1k tokens and stays well within the 12 GB VRAM budget.

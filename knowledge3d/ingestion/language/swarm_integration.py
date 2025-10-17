@@ -122,6 +122,58 @@ class LanguageSwarmProcessor:
     # ------------------------------------------------------------------ #
     # Helpers
     # ------------------------------------------------------------------ #
+    def fuse_multimodal_embedding(
+        self,
+        *,
+        text_emb: Optional[np.ndarray] = None,
+        audio_emb: Optional[np.ndarray] = None,
+        visual_emb: Optional[np.ndarray] = None,
+        language: str = "en",
+        iterations: int | None = None,
+        include_diagnostics: bool = True,
+    ) -> Dict[str, object]:
+        """
+        Fuse available modality embeddings and route through the specialised swarm.
+        """
+        sources = []
+        labels = []
+
+        for emb, name in (
+            (text_emb, "text"),
+            (audio_emb, "audio"),
+            (visual_emb, "visual"),
+        ):
+            if emb is not None:
+                emb = np.asarray(emb, dtype=np.float32).reshape(-1)
+                if emb.shape[0] != 128:
+                    raise ValueError(f"{name} embedding must have shape (128,), got {emb.shape}")
+                sources.append(emb)
+                labels.append(name)
+
+        if not sources:
+            raise ValueError("At least one modality embedding must be provided")
+
+        if len(sources) == 1:
+            fused = sources[0]
+        else:
+            fused = np.mean(np.vstack(sources), axis=0).astype(np.float32)
+
+        swarm_result = self.process_language_embedding(
+            fused,
+            modality="multi",
+            language=language,
+            iterations=iterations,
+            include_diagnostics=include_diagnostics,
+        )
+
+        return {
+            "refined_embedding": swarm_result.refined_embedding,
+            "position_3d": swarm_result.position_3d,
+            "diagnostics": swarm_result.diagnostics,
+            "modalities_used": labels,
+            "language": language,
+        }
+
     @staticmethod
     def _embedding_to_position(embedding: np.ndarray) -> np.ndarray:
         """
@@ -139,4 +191,7 @@ class LanguageSwarmProcessor:
         return coords / denom
 
 
-__all__ = ["LanguageSwarmProcessor", "SwarmResult"]
+SovereignLanguageSwarmProcessor = LanguageSwarmProcessor
+
+
+__all__ = ["LanguageSwarmProcessor", "SovereignLanguageSwarmProcessor", "SwarmResult"]

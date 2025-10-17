@@ -93,6 +93,8 @@ class SovereignTextIngestor:
         self._graph_builder = GraphCrystallizer()
         self._vector_resonator = VectorResonator()
         self._oom_guard = OOMSpillManager()
+        for lang in self.bootstrap_langs:
+            self._ensure_bootstrap(lang)
 
     # ------------------------------------------------------------------
     # Bootstrap handling
