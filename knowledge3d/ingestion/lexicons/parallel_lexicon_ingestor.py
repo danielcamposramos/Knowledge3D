@@ -25,19 +25,21 @@ ResultRecord = Dict[str, object]
 # --------------------------------------------------------------------------- #
 # Multiprocessing helpers                                                     #
 # --------------------------------------------------------------------------- #
-def _preprocess_synset_task(synset) -> PreprocessedSynset:
+def _preprocess_synset_task(synset_name: str) -> PreprocessedSynset:
     """
     Worker-friendly function that extracts the information we need from a WordNet
     synset. It is intentionally top-level so that it can be pickled by
     `multiprocessing.Pool`.
     """
-    name = synset.name()
+    from nltk.corpus import wordnet as wn  # local import for worker rehydration
+
+    synset = wn.synset(synset_name)
     definition = synset.definition() or ""
     examples = synset.examples() or []
-    lemma = name.split(".")[0]
+    lemma = synset_name.split(".")[0]
 
     return {
-        "synset_name": name,
+        "synset_name": synset_name,
         "lemma": lemma,
         "definition": definition,
         "examples": examples,
@@ -104,16 +106,16 @@ class ParallelLexiconIngestor:
         if wn is None:
             from nltk.corpus import wordnet as wn  # type: ignore
 
-        synsets = list(wn.all_synsets())
+        synset_names = [s.name() for s in wn.all_synsets()]
         if limit is not None:
-            synsets = synsets[:limit]
+            synset_names = synset_names[:limit]
 
-        total_synsets = len(synsets)
+        total_synsets = len(synset_names)
         if total_synsets == 0:
             raise ValueError("No synsets to ingest.")
 
         start_time = time.perf_counter()
-        preprocessed = self._run_cpu_preprocessing(synsets)
+        preprocessed = self._run_cpu_preprocessing(synset_names)
         preprocess_time = time.perf_counter() - start_time
 
         results = self._run_gpu_batches(
@@ -146,14 +148,14 @@ class ParallelLexiconIngestor:
     # ------------------------------------------------------------------ #
     # Internal helpers
     # ------------------------------------------------------------------ #
-    def _run_cpu_preprocessing(self, synsets: Sequence[object]) -> List[PreprocessedSynset]:
+    def _run_cpu_preprocessing(self, synset_names: Sequence[str]) -> List[PreprocessedSynset]:
         """Distribute definition extraction across CPU workers."""
         if self.num_workers <= 1:
-            return [_preprocess_synset_task(s) for s in synsets]
+            return [_preprocess_synset_task(name) for name in synset_names]
 
         processed: List[PreprocessedSynset] = []
         with Pool(processes=self.num_workers) as pool:
-            for payload in pool.imap(_preprocess_synset_task, synsets, chunksize=self.chunksize):
+            for payload in pool.imap(_preprocess_synset_task, synset_names, chunksize=self.chunksize):
                 processed.append(payload)
         return processed
 

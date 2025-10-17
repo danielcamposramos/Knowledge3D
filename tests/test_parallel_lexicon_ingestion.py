@@ -64,6 +64,19 @@ def test_parallel_lexicon_ingestor_with_stub(tmp_path):
         gpu_batch_processor=fake_gpu_batch,
     )
 
+    def fake_preprocess(names):
+        return [
+            {
+                "synset_name": name,
+                "lemma": name.split(".")[0],
+                "definition": f"{name} definition",
+                "examples": [],
+            }
+            for name in names
+        ]
+
+    ingestor._run_cpu_preprocessing = fake_preprocess  # type: ignore[assignment]
+
     metrics = ingestor.ingest_wordnet_parallel(
         output_file,
         wordnet_module=fake_wordnet,

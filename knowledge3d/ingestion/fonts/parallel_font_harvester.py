@@ -115,7 +115,7 @@ class ParallelFontHarvester:
         """
         Harvest glyph embeddings for ``font_dir`` using the parallel pipeline.
         """
-        font_paths = sorted(Path(font_dir).glob("*.ttf"))
+        font_paths = sorted(Path(font_dir).rglob("*.ttf"))
         if max_fonts is not None:
             font_paths = font_paths[:max_fonts]
         font_count = len(font_paths)
