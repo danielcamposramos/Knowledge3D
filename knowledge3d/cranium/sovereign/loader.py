@@ -35,6 +35,18 @@ try:
 except OSError:
     libcudart = None
 
+try:
+    _cuMemGetInfo = getattr(nvcuda, "cuMemGetInfo_v2")
+except AttributeError:
+    _cuMemGetInfo = getattr(nvcuda, "cuMemGetInfo", None)
+
+if _cuMemGetInfo is not None:
+    _cuMemGetInfo.restype = ctypes.c_int
+    _cuMemGetInfo.argtypes = [
+        ctypes.POINTER(ctypes.c_size_t),
+        ctypes.POINTER(ctypes.c_size_t),
+    ]
+
 CUDA_MEMCPY_HOST_TO_DEVICE = 1
 CUDA_MEMCPY_DEVICE_TO_HOST = 2
 
@@ -453,6 +465,24 @@ def synchronize() -> None:
     _ensure_init()
     ck(nvcuda.cuCtxSynchronize())
 
+def get_vram_usage() -> tuple[int, int]:
+    """
+    Return (used_bytes, total_bytes) for the current CUDA device.
+
+    Uses cuMemGetInfo (or cuMemGetInfo_v2) via the sovereign loader. Raises
+    RuntimeError if the driver does not expose the information.
+    """
+    if _cuMemGetInfo is None:
+        raise RuntimeError("cuMemGetInfo is not available on this CUDA driver")
+
+    _ensure_current_context()
+    free = ctypes.c_size_t()
+    total = ctypes.c_size_t()
+    res = _cuMemGetInfo(ctypes.byref(free), ctypes.byref(total))
+    ck(res)
+    used = total.value - free.value
+    return used, total.value
+
 # ==========================================
 # Cleanup
 # ==========================================
@@ -480,4 +510,5 @@ __all__ = [
     "memcpy_dtoh",
     "launch",
     "synchronize",
+    "get_vram_usage",
 ]
