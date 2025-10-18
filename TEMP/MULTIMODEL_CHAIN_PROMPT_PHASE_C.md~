@@ -2446,3 +2446,1626 @@ The swarm can now begin implementing this foundation, with Codex focusing on the
 
 **Ready to transform PDF ingestion from a bottleneck into a demonstration of K3D's sovereign capabilities!** 🚀
 ----
+Daniel:
+Claude, I've run the chain in two rounds, we now have a solution to build on top.
+Reach to the MULTIMODEL_CHAIN_PROMPT_PHASE_C.md file to read the entire chain and craft Codex prompt, include the lines he has to materialize as code or the code itself inline with the instructions (better).
+Register your answer to the file (EOF)
+
+Claude:
+
+---
+
+# 🎯 CODEX IMPLEMENTATION PROMPT: Sovereign PDF Ingestion Prototype
+
+**Date**: 2025-10-17
+**From**: Claude (synthesizing 5-model chain consensus)
+**Target**: Codex (GPU execution specialist)
+**Mission**: Implement Phase C PDF ingestion prototype using **Hybrid Approach** (consensus winner)
+
+---
+
+## 📋 CHAIN CONSENSUS SUMMARY
+
+All 5 models (Grok, Qwen, Kimi, DeepSeek, GLM) converged on the **Hybrid Approach**:
+
+### Primary Strategy: Approach 2 (Parse Structure)
+- **Parse PDF primitives** directly (text blocks, images, vector graphics)
+- Build **LayoutGraph** from spatial relationships
+- Use existing PTX kernels: RPNEmbeddingEngine, FractalEmitter, GraphCrystallizer, AtomicFissionFusion
+- **Target**: 1-5ms/page (vs current 300ms PyPDF2 baseline)
+
+### Fallback: Approach 1 (Render + OCR)
+- Detect scanned PDFs (no text layer)
+- Use **font-based OCR** with our 168,206 learned glyph pairs
+- GPU-accelerated rendering only when necessary
+
+### Key Innovations from Chain:
+1. **DeepSeek/GLM insight**: Treat PDF as **bytecode for RPN engine** (long-term PTX-native goal)
+2. **Grok/Qwen**: Leverage **PyMuPDF temporarily**, migrate to PTX incrementally
+3. **Kimi**: LayoutGraph optimization for spatial relationships
+4. **All**: Galaxy-native GLB format as final storage (archive original PDF)
+
+---
+
+## 🚀 YOUR MISSION, CODEX
+
+Implement the **Phase C1 Prototype** (1 week sprint):
+
+### Deliverables:
+1. **PDFIngestionBridge** class (Python orchestration + PTX kernels)
+2. **3 new PTX kernels** (stubs first, full implementation later):
+   - `pdf_primitive_parser.cu` — Parse PDF structure
+   - `layout_graph_optimizer.cu` — Optimize spatial relationships
+   - `glyph_resonator.cu` — OCR fallback using font pairs
+3. **Integration tests** with existing kernels (RPN, FractalEmitter, Fusion)
+4. **Benchmark script** comparing to Phase B baseline (300ms/page → <50ms/page target)
+
+---
+
+## 📁 FILE STRUCTURE TO CREATE
+
+```
+knowledge3d/
+├── cranium/
+│   ├── bridges/
+│   │   └── pdf_ingestion_bridge.py          ← YOUR PRIMARY FILE
+│   └── kernels/
+│       ├── pdf_primitive_parser.cu           ← NEW KERNEL 1
+│       ├── layout_graph_optimizer.cu         ← NEW KERNEL 2
+│       └── glyph_resonator.cu                ← NEW KERNEL 3
+├── ingestion/
+│   └── documents/
+│       └── pdf_multimodal_ingestor.py        ← HIGH-LEVEL API
+scripts/
+└── benchmark_pdf_ingestion.py                ← VALIDATION SCRIPT
+tests/
+└── test_pdf_ingestion.py                     ← INTEGRATION TESTS
+```
+
+---
+
+## 💻 CODE TO IMPLEMENT
+
+### 1. PDFIngestionBridge (Primary Bridge Class)
+
+**File**: `knowledge3d/cranium/bridges/pdf_ingestion_bridge.py`
+
+```python
+"""
+Sovereign-native PDF ingestion bridge that processes PDFs entirely through PTX kernels.
+Implements Hybrid Approach: Parse structure (Approach 2) with render fallback (Approach 1).
+"""
+
+import ctypes
+import numpy as np
+from typing import Dict, List, Tuple, Optional
+from pathlib import Path
+
+# Import existing K3D infrastructure
+from ..sovereign.loader import load_ptx_module, launch_kernel
+from ..ptx_runtime.gpu_memory import gpu_malloc, memcpy_htod, memcpy_dtoh, gpu_free
+from ..rpn_embedding_engine import RPNEmbeddingEngine
+from ..atomic_fission_fusion import AtomicFissionFusion
+
+
+class PDFIngestionBridge:
+    """
+    Sovereign PDF ingestion bridge - Phase C prototype.
+
+    Pipeline:
+      PDF file → Parse primitives (PTX) → Extract text/images →
+      Generate embeddings (RPN/Fractal) → Build LayoutGraph (PTX) →
+      Fuse modalities (AtomicFissionFusion) → Position in Galaxy (GraphCrystallizer)
+    """
+
+    def __init__(self):
+        """Initialize bridge with existing + new PTX kernels."""
+        # Load existing kernels
+        self.rpn_engine = RPNEmbeddingEngine()
+        self.fusion_engine = AtomicFissionFusion()
+
+        # Load new PDF-specific kernels (compile if needed)
+        self._compile_pdf_kernels()
+        self.pdf_parser = load_ptx_module('pdf_primitive_parser.ptx')
+        self.layout_optimizer = load_ptx_module('layout_graph_optimizer.ptx')
+        self.glyph_resonator = load_ptx_module('glyph_resonator.ptx')
+
+        # GPU memory management
+        self.allocated_buffers = []  # Track for cleanup
+
+    def _compile_pdf_kernels(self):
+        """Compile new PDF kernels if PTX files don't exist."""
+        from ..sovereign.loader import compile_cu_to_ptx
+
+        kernel_dir = Path(__file__).parent.parent / 'kernels'
+        kernel_sources = [
+            'pdf_primitive_parser.cu',
+            'layout_graph_optimizer.cu',
+            'glyph_resonator.cu'
+        ]
+
+        for kernel_file in kernel_sources:
+            cu_path = kernel_dir / kernel_file
+            ptx_path = kernel_dir / kernel_file.replace('.cu', '.ptx')
+
+            if not ptx_path.exists() and cu_path.exists():
+                compile_cu_to_ptx(cu_path, ptx_path)
+
+    def ingest_pdf_page(self, pdf_path: str, page_num: int = 0) -> Dict:
+        """
+        Main ingestion pipeline - processes single PDF page.
+
+        Args:
+            pdf_path: Path to PDF file
+            page_num: Page number to process (0-indexed)
+
+        Returns:
+            {
+                'galaxy_position': np.ndarray (3,) - 3D position in Galaxy,
+                'layout_graph': Dict - Spatial relationship graph,
+                'embeddings': np.ndarray (N, 128) - Fused embeddings,
+                'object_count': int - Number of parsed objects,
+                'processing_time_ms': float - Total processing time
+            }
+        """
+        import time
+        start_time = time.time()
+
+        # Step 1: Load PDF bytes and upload to GPU
+        pdf_bytes = self._load_pdf_bytes(pdf_path, page_num)
+        pdf_buffer_gpu = self._upload_to_gpu(pdf_bytes)
+
+        # Step 2: Parse PDF structure using PTX kernel
+        parsed_objects = self._parse_pdf_structure_gpu(pdf_buffer_gpu, len(pdf_bytes), page_num)
+
+        # Step 3: Check if scanned (no text layer) → fallback to OCR
+        if parsed_objects['is_scanned']:
+            parsed_objects = self._ocr_fallback_gpu(pdf_buffer_gpu, len(pdf_bytes), page_num)
+
+        # Step 4: Generate text embeddings (RPN engine)
+        text_embeddings = self._generate_text_embeddings(parsed_objects)
+
+        # Step 5: Generate visual embeddings (FractalEmitter)
+        visual_embeddings = self._generate_visual_embeddings(parsed_objects)
+
+        # Step 6: Build LayoutGraph from spatial relationships
+        layout_graph = self._build_layout_graph(parsed_objects, text_embeddings, visual_embeddings)
+
+        # Step 7: Optimize LayoutGraph (Kimi's approach)
+        optimized_graph = self._optimize_layout_graph(layout_graph)
+
+        # Step 8: Fuse modalities (text + visual → unified embedding)
+        fused_embeddings = self._fuse_modalities(text_embeddings, visual_embeddings)
+
+        # Step 9: Position in Galaxy (3D spatial embedding)
+        galaxy_position = self._crystallize_to_galaxy(optimized_graph, fused_embeddings)
+
+        # Cleanup GPU memory
+        self._cleanup_gpu_buffers()
+
+        processing_time_ms = (time.time() - start_time) * 1000
+
+        return {
+            'galaxy_position': galaxy_position,
+            'layout_graph': optimized_graph,
+            'embeddings': fused_embeddings,
+            'object_count': parsed_objects['object_count'],
+            'processing_time_ms': processing_time_ms
+        }
+
+    def _load_pdf_bytes(self, pdf_path: str, page_num: int) -> bytes:
+        """
+        Load PDF bytes for specific page.
+        Uses PyMuPDF temporarily (migrate to PTX later).
+        """
+        import fitz  # PyMuPDF
+
+        doc = fitz.open(pdf_path)
+        page = doc[page_num]
+
+        # Extract page as xref (internal PDF representation)
+        # For prototype, load entire PDF (optimize later to load page only)
+        with open(pdf_path, 'rb') as f:
+            pdf_bytes = f.read()
+
+        doc.close()
+        return pdf_bytes
+
+    def _upload_to_gpu(self, data: bytes) -> int:
+        """Upload bytes to GPU memory, return GPU pointer."""
+        data_size = len(data)
+        gpu_ptr = gpu_malloc(data_size)
+        memcpy_htod(gpu_ptr, data, data_size)
+        self.allocated_buffers.append((gpu_ptr, data_size))
+        return gpu_ptr
+
+    def _parse_pdf_structure_gpu(self, pdf_buffer_gpu: int, buffer_size: int, page_num: int) -> Dict:
+        """
+        Parse PDF structure using PTX kernel.
+
+        Kernel signature:
+          pdf_primitive_parser(
+              float* output_objects,    // [max_objects * 8] - x, y, w, h, type, data_ptr, data_len, importance
+              const char* pdf_buffer,   // Raw PDF bytes
+              int buffer_size,
+              int page_num,
+              int max_objects,
+              int* metadata             // [object_count, processing_time_us, is_scanned, reserved]
+          )
+        """
+        max_objects = 1000  # Configurable limit
+
+        # Allocate GPU buffers
+        objects_size = max_objects * 8 * 4  # 8 floats per object * 4 bytes
+        objects_gpu = gpu_malloc(objects_size)
+        self.allocated_buffers.append((objects_gpu, objects_size))
+
+        metadata_size = 4 * 4  # 4 ints * 4 bytes
+        metadata_gpu = gpu_malloc(metadata_size)
+        self.allocated_buffers.append((metadata_gpu, metadata_size))
+
+        # Launch kernel
+        launch_kernel(
+            self.pdf_parser,
+            'pdf_primitive_parser',
+            (objects_gpu, pdf_buffer_gpu, buffer_size, page_num, max_objects, metadata_gpu),
+            block=(256, 1, 1),
+            grid=(1, 1, 1)
+        )
+
+        # Retrieve metadata
+        metadata = np.zeros(4, dtype=np.int32)
+        memcpy_dtoh(metadata, metadata_gpu, metadata_size)
+
+        object_count = int(metadata[0])
+        processing_time_us = int(metadata[1])
+        is_scanned = bool(metadata[2])
+
+        # Retrieve parsed objects
+        objects = np.zeros(object_count * 8, dtype=np.float32)
+        if object_count > 0:
+            memcpy_dtoh(objects, objects_gpu, object_count * 8 * 4)
+
+        return {
+            'objects_gpu': objects_gpu,
+            'objects': objects.reshape(-1, 8),  # (N, 8) - each row is [x, y, w, h, type, data_ptr, data_len, importance]
+            'object_count': object_count,
+            'processing_time_us': processing_time_us,
+            'is_scanned': is_scanned
+        }
+
+    def _ocr_fallback_gpu(self, pdf_buffer_gpu: int, buffer_size: int, page_num: int) -> Dict:
+        """
+        OCR fallback for scanned PDFs using glyph_resonator kernel.
+        Uses our 168,206 learned font-glyph pairs from Phase B.
+        """
+        # TODO: Implement glyph resonance matching
+        # For prototype, return empty objects
+        return {
+            'objects_gpu': None,
+            'objects': np.zeros((0, 8), dtype=np.float32),
+            'object_count': 0,
+            'processing_time_us': 0,
+            'is_scanned': True
+        }
+
+    def _generate_text_embeddings(self, parsed_objects: Dict) -> np.ndarray:
+        """
+        Generate text embeddings using RPN engine.
+        Extracts text from parsed objects, embeds using existing RPN kernel.
+        """
+        if parsed_objects['object_count'] == 0:
+            return np.zeros((1, 128), dtype=np.float32)
+
+        # Extract text blocks (type == 1.0)
+        objects = parsed_objects['objects']
+        text_objects = objects[objects[:, 4] == 1.0]
+
+        if len(text_objects) == 0:
+            return np.zeros((1, 128), dtype=np.float32)
+
+        # For prototype: extract text using PyMuPDF (migrate to PTX later)
+        # TODO: Use data_ptr and data_len from parsed objects to extract text directly
+
+        # Generate embeddings using RPN engine
+        embeddings = []
+        for text_obj in text_objects:
+            # Placeholder: generate embedding for dummy text
+            text = "placeholder_text"
+            emb = self.rpn_engine.embed_sentence('en', text)
+            embeddings.append(emb['embedding_128'])
+
+        return np.vstack(embeddings)
+
+    def _generate_visual_embeddings(self, parsed_objects: Dict) -> np.ndarray:
+        """
+        Generate visual embeddings using FractalEmitter.
+        Extracts images from parsed objects, embeds using existing FractalEmitter kernel.
+        """
+        if parsed_objects['object_count'] == 0:
+            return np.zeros((1, 128), dtype=np.float32)
+
+        # Extract image blocks (type == 2.0)
+        objects = parsed_objects['objects']
+        image_objects = objects[objects[:, 4] == 2.0]
+
+        if len(image_objects) == 0:
+            return np.zeros((1, 128), dtype=np.float32)
+
+        # TODO: Extract JPEG bytes from PDF, decode on GPU, run FractalEmitter
+        # For prototype: return dummy embeddings
+        return np.random.randn(len(image_objects), 128).astype(np.float32) * 0.01
+
+    def _build_layout_graph(self, parsed_objects: Dict, text_embeddings: np.ndarray, visual_embeddings: np.ndarray) -> Dict:
+        """
+        Build LayoutGraph from parsed objects and embeddings.
+        Encodes spatial relationships: above, below, left-of, right-of, caption-of.
+        """
+        objects = parsed_objects['objects']
+
+        # Build graph structure
+        nodes = []
+        edges = []
+
+        for i, obj in enumerate(objects):
+            x, y, w, h, obj_type, _, _, importance = obj
+
+            # Determine embedding based on type
+            if obj_type == 1.0 and i < len(text_embeddings):
+                embedding = text_embeddings[i]
+            elif obj_type == 2.0 and i < len(visual_embeddings):
+                embedding = visual_embeddings[i - len(text_embeddings)]
+            else:
+                embedding = np.zeros(128, dtype=np.float32)
+
+            nodes.append({
+                'id': i,
+                'bbox': (x, y, w, h),
+                'type': obj_type,
+                'embedding': embedding,
+                'importance': importance
+            })
+
+        # Build edges based on spatial relationships
+        for i, node_i in enumerate(nodes):
+            for j, node_j in enumerate(nodes):
+                if i == j:
+                    continue
+
+                relation = self._infer_spatial_relation(node_i['bbox'], node_j['bbox'])
+                if relation:
+                    edges.append((i, j, relation))
+
+        return {
+            'nodes': nodes,
+            'edges': edges,
+            'node_count': len(nodes)
+        }
+
+    def _infer_spatial_relation(self, bbox1: Tuple, bbox2: Tuple) -> Optional[str]:
+        """
+        Infer spatial relationship between two bounding boxes.
+        Returns: 'above', 'below', 'left', 'right', 'caption', or None
+        """
+        x1, y1, w1, h1 = bbox1
+        x2, y2, w2, h2 = bbox2
+
+        # PDF coordinates: origin at bottom-left
+        # Check vertical relationships
+        if y1 + h1 < y2:  # bbox1 is below bbox2
+            return 'below'
+        elif y2 + h2 < y1:  # bbox1 is above bbox2
+            return 'above'
+
+        # Check horizontal relationships
+        elif x1 + w1 < x2:  # bbox1 is left of bbox2
+            return 'left'
+        elif x2 + w2 < x1:  # bbox1 is right of bbox2
+            return 'right'
+
+        # Check caption relationship (text below image)
+        # TODO: Implement caption detection heuristics
+
+        return None
+
+    def _optimize_layout_graph(self, layout_graph: Dict) -> Dict:
+        """
+        Optimize LayoutGraph using layout_graph_optimizer kernel.
+        Prunes redundant edges, strengthens important relationships.
+        """
+        # TODO: Implement PTX kernel for graph optimization
+        # For prototype, return graph as-is
+        return layout_graph
+
+    def _fuse_modalities(self, text_embeddings: np.ndarray, visual_embeddings: np.ndarray) -> np.ndarray:
+        """
+        Fuse text and visual embeddings using AtomicFissionFusion.
+        """
+        # Combine embeddings
+        all_embeddings = np.vstack([text_embeddings, visual_embeddings])
+
+        # For prototype: simple average fusion
+        # TODO: Use AtomicFissionFusion kernel for sovereign fusion
+        fused = np.mean(all_embeddings, axis=0, keepdims=True)
+
+        return fused
+
+    def _crystallize_to_galaxy(self, layout_graph: Dict, fused_embeddings: np.ndarray) -> np.ndarray:
+        """
+        Position content in Galaxy using GraphCrystallizer.
+        Converts LayoutGraph + embeddings → 3D Galaxy position.
+        """
+        # TODO: Integrate with GraphCrystallizer PTX kernel
+        # For prototype: simple mapping (use embedding as position seed)
+
+        # Map 128-dim embedding → 3D position
+        # Use first 3 dimensions, normalized
+        position_3d = fused_embeddings[0, :3]
+        position_3d = position_3d / (np.linalg.norm(position_3d) + 1e-8)
+
+        return position_3d
+
+    def _cleanup_gpu_buffers(self):
+        """Free all allocated GPU memory."""
+        for gpu_ptr, size in self.allocated_buffers:
+            gpu_free(gpu_ptr)
+        self.allocated_buffers.clear()
+```
+
+---
+
+### 2. PTX Kernel: pdf_primitive_parser.cu
+
+**File**: `knowledge3d/cranium/kernels/pdf_primitive_parser.cu`
+
+```cuda
+/*
+ * PDF Primitive Parser - PTX Kernel
+ * Parses PDF structure on GPU, extracts text/image/vector objects.
+ *
+ * Phase C1 Prototype: Stub implementation (parse simulation)
+ * Phase C2: Full PDF bytecode interpreter
+ */
+
+#include <cuda_runtime.h>
+
+// Object types
+#define OBJ_TYPE_TEXT   1.0f
+#define OBJ_TYPE_IMAGE  2.0f
+#define OBJ_TYPE_VECTOR 3.0f
+
+extern "C" __global__ void pdf_primitive_parser(
+    float* output_objects,    // [max_objects * 8] - x, y, w, h, type, data_ptr, data_len, importance
+    const char* pdf_buffer,   // Raw PDF bytes
+    int buffer_size,          // PDF buffer size in bytes
+    int page_num,             // Page to parse (0-indexed)
+    int max_objects,          // Maximum objects to extract
+    int* metadata             // [object_count, processing_time_us, is_scanned, reserved]
+) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    // Initialize metadata (thread 0 only)
+    if (idx == 0) {
+        metadata[0] = 0;  // object_count
+        metadata[1] = 0;  // processing_time_us
+        metadata[2] = 0;  // is_scanned (0 = structured, 1 = scanned)
+        metadata[3] = 0;  // reserved
+
+        // Start timer
+        clock_t start_clock = clock();
+
+        // PROTOTYPE STUB: Create dummy objects for demonstration
+        // TODO Phase C2: Implement full PDF bytecode parser
+
+        // Dummy text object
+        output_objects[0] = 100.0f;  // x
+        output_objects[1] = 700.0f;  // y (PDF coordinates: origin at bottom-left)
+        output_objects[2] = 400.0f;  // w
+        output_objects[3] = 20.0f;   // h
+        output_objects[4] = OBJ_TYPE_TEXT;
+        output_objects[5] = 0.0f;    // data_ptr (placeholder)
+        output_objects[6] = 11.0f;   // data_len ("Hello World")
+        output_objects[7] = 0.9f;    // importance (0.0-1.0)
+
+        // Dummy image object
+        output_objects[8]  = 150.0f;  // x
+        output_objects[9]  = 500.0f;  // y
+        output_objects[10] = 200.0f;  // w
+        output_objects[11] = 150.0f;  // h
+        output_objects[12] = OBJ_TYPE_IMAGE;
+        output_objects[13] = 0.0f;    // data_ptr (placeholder)
+        output_objects[14] = 12345.0f; // data_len (JPEG bytes)
+        output_objects[15] = 0.8f;    // importance
+
+        // Update metadata
+        metadata[0] = 2;  // object_count
+        metadata[2] = 0;  // is_scanned = false (structured PDF)
+
+        // End timer
+        clock_t end_clock = clock();
+        metadata[1] = (int)(end_clock - start_clock);  // processing_time_us (approximate)
+    }
+
+    __syncthreads();
+}
+
+/*
+ * TODO Phase C2: Full PDF bytecode interpreter
+ *
+ * Implementation roadmap:
+ * 1. Parse PDF header and xref table → locate page objects
+ * 2. Parse page content stream → extract operators (BT, Tj, Do, etc.)
+ * 3. For each operator:
+ *    - Text operators (Tj, TJ): Extract text, font, size, position → output_objects
+ *    - Image operators (Do): Extract XObject reference → parse image stream → output_objects
+ *    - Vector operators (m, l, c, S, f): Extract path data → output_objects
+ * 4. Handle compressed streams (FlateDecode) → zlib decompression on GPU
+ * 5. Handle embedded fonts → extract glyph mappings
+ * 6. Detect scanned PDFs: Check if no text operators found → set metadata[2] = 1
+ */
+```
+
+---
+
+### 3. PTX Kernel: layout_graph_optimizer.cu
+
+**File**: `knowledge3d/cranium/kernels/layout_graph_optimizer.cu`
+
+```cuda
+/*
+ * Layout Graph Optimizer - PTX Kernel
+ * Optimizes spatial relationship graph for PDF layout.
+ * Implements Kimi's approach: prune redundant edges, strengthen important relationships.
+ *
+ * Phase C1 Prototype: Stub (pass-through)
+ * Phase C2: Full optimization
+ */
+
+#include <cuda_runtime.h>
+
+extern "C" __global__ void layout_graph_optimizer(
+    float* output_graph,      // Optimized graph (nodes + edges)
+    const float* input_graph, // Input graph (nodes + edges)
+    int node_count,           // Number of nodes
+    float importance_threshold // Prune edges below this importance (0.0-1.0)
+) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx >= node_count) return;
+
+    // PROTOTYPE STUB: Pass-through (copy input to output)
+    // TODO Phase C2: Implement graph optimization
+
+    // Copy node data (8 floats per node)
+    for (int i = 0; i < 8; i++) {
+        output_graph[idx * 8 + i] = input_graph[idx * 8 + i];
+    }
+}
+
+/*
+ * TODO Phase C2: Full graph optimization
+ *
+ * Implementation roadmap:
+ * 1. Analyze edge importance scores → prune edges < importance_threshold
+ * 2. Detect redundant spatial relationships:
+ *    - If A->B (above) and B->C (above), check if A->C can be inferred
+ * 3. Strengthen caption relationships:
+ *    - Text immediately below image → high importance
+ * 4. Cluster nearby nodes (spatial proximity < threshold) → merge into single node
+ * 5. Normalize graph coordinates → map to Galaxy space
+ */
+```
+
+---
+
+### 4. PTX Kernel: glyph_resonator.cu
+
+**File**: `knowledge3d/cranium/kernels/glyph_resonator.cu`
+
+```cuda
+/*
+ * Glyph Resonator - PTX Kernel
+ * OCR fallback for scanned PDFs using learned font-glyph pairs.
+ * Leverages 168,206 visual-text pairs from Phase B font harvesting.
+ *
+ * Phase C1 Prototype: Stub (return empty)
+ * Phase C3: Full OCR implementation
+ */
+
+#include <cuda_runtime.h>
+
+extern "C" __global__ void glyph_resonator(
+    float* output_text_objects, // Recognized text objects [max_chars * 8]
+    const unsigned char* image_data, // Scanned page image (RGBA)
+    int image_width,
+    int image_height,
+    const float* learned_glyphs, // Phase B font-glyph embeddings [168206 * 128]
+    int glyph_count,
+    int max_chars                // Maximum characters to recognize
+) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx == 0) {
+        // PROTOTYPE STUB: Return empty (no OCR yet)
+        // TODO Phase C3: Implement glyph resonance matching
+    }
+
+    __syncthreads();
+}
+
+/*
+ * TODO Phase C3: Full OCR implementation
+ *
+ * Implementation roadmap:
+ * 1. Edge detection on image_data → extract character bounding boxes
+ * 2. For each character bbox:
+ *    - Extract visual features using FractalEmitter
+ *    - Compute cosine similarity with learned_glyphs embeddings
+ *    - Find best match → output character + confidence
+ * 3. Group characters into words/lines based on spatial proximity
+ * 4. Output text objects with positions → same format as pdf_primitive_parser
+ */
+```
+
+---
+
+### 5. High-Level API: pdf_multimodal_ingestor.py
+
+**File**: `knowledge3d/ingestion/documents/pdf_multimodal_ingestor.py`
+
+```python
+"""
+High-level API for multi-modal PDF ingestion.
+User-facing interface for Phase C PDF pipeline.
+"""
+
+from pathlib import Path
+from typing import Dict, List
+import numpy as np
+
+from knowledge3d.cranium.bridges.pdf_ingestion_bridge import PDFIngestionBridge
+
+
+class PDFMultiModalIngestor:
+    """
+    Multi-modal PDF ingestor - ingests PDFs into Knowledge3D Galaxy.
+
+    Usage:
+        ingestor = PDFMultiModalIngestor()
+        result = ingestor.ingest_pdf('paper.pdf', output_glb='paper.glb')
+    """
+
+    def __init__(self):
+        self.bridge = PDFIngestionBridge()
+
+    def ingest_pdf(self, pdf_path: str, output_glb: str = None) -> Dict:
+        """
+        Ingest entire PDF into Galaxy.
+
+        Args:
+            pdf_path: Path to PDF file
+            output_glb: Optional path to save Galaxy-native GLB format
+
+        Returns:
+            {
+                'pages': List[Dict] - Per-page results,
+                'total_objects': int - Total objects across all pages,
+                'total_time_ms': float - Total processing time,
+                'glb_path': str - Path to saved GLB (if output_glb provided)
+            }
+        """
+        import fitz  # PyMuPDF (temporary, migrate to PTX later)
+
+        doc = fitz.open(pdf_path)
+        page_count = len(doc)
+        doc.close()
+
+        # Process each page
+        pages = []
+        total_objects = 0
+        total_time_ms = 0.0
+
+        for page_num in range(page_count):
+            page_result = self.bridge.ingest_pdf_page(pdf_path, page_num)
+            pages.append(page_result)
+            total_objects += page_result['object_count']
+            total_time_ms += page_result['processing_time_ms']
+
+        result = {
+            'pages': pages,
+            'total_objects': total_objects,
+            'total_time_ms': total_time_ms,
+            'glb_path': None
+        }
+
+        # Save as Galaxy-native GLB if requested
+        if output_glb:
+            self._save_as_glb(pages, output_glb)
+            result['glb_path'] = output_glb
+
+        return result
+
+    def _save_as_glb(self, pages: List[Dict], output_path: str):
+        """
+        Save ingested PDF as Galaxy-native GLB format.
+        TODO: Implement GLB serialization (Phase C2)
+        """
+        # Placeholder: save as JSON for prototype
+        import json
+        json_path = output_path.replace('.glb', '.json')
+
+        serializable_pages = []
+        for page in pages:
+            serializable_pages.append({
+                'galaxy_position': page['galaxy_position'].tolist(),
+                'object_count': page['object_count'],
+                'processing_time_ms': page['processing_time_ms']
+            })
+
+        with open(json_path, 'w') as f:
+            json.dump({'pages': serializable_pages}, f, indent=2)
+
+        print(f"[INFO] Saved ingestion results to {json_path} (GLB conversion TODO)")
+```
+
+---
+
+### 6. Integration Tests: test_pdf_ingestion.py
+
+**File**: `tests/test_pdf_ingestion.py`
+
+```python
+"""
+Integration tests for Phase C PDF ingestion.
+Tests bridge, kernels, and end-to-end pipeline.
+"""
+
+import pytest
+import numpy as np
+from pathlib import Path
+
+from knowledge3d.cranium.bridges.pdf_ingestion_bridge import PDFIngestionBridge
+from knowledge3d.ingestion.documents.pdf_multimodal_ingestor import PDFMultiModalIngestor
+
+
+class TestPDFIngestion:
+    """Test suite for PDF ingestion pipeline."""
+
+    @pytest.fixture
+    def bridge(self):
+        """Initialize bridge for tests."""
+        return PDFIngestionBridge()
+
+    @pytest.fixture
+    def sample_pdf(self):
+        """Path to sample PDF for testing."""
+        # TODO: Add sample PDFs to tests/data/
+        return "tests/data/sample.pdf"
+
+    def test_bridge_initialization(self, bridge):
+        """Test bridge initializes correctly."""
+        assert bridge.rpn_engine is not None
+        assert bridge.fusion_engine is not None
+        assert bridge.pdf_parser is not None
+
+    def test_parse_pdf_structure(self, bridge, sample_pdf):
+        """Test PDF structure parsing."""
+        result = bridge.ingest_pdf_page(sample_pdf, page_num=0)
+
+        assert 'galaxy_position' in result
+        assert 'layout_graph' in result
+        assert 'object_count' in result
+        assert result['object_count'] > 0
+
+    def test_galaxy_position_shape(self, bridge, sample_pdf):
+        """Test Galaxy position has correct shape."""
+        result = bridge.ingest_pdf_page(sample_pdf, page_num=0)
+
+        assert result['galaxy_position'].shape == (3,)
+        assert np.all(np.isfinite(result['galaxy_position']))
+
+    def test_processing_time(self, bridge, sample_pdf):
+        """Test processing time is reasonable."""
+        result = bridge.ingest_pdf_page(sample_pdf, page_num=0)
+
+        # Target: <50ms per page (vs 300ms PyPDF2 baseline)
+        assert result['processing_time_ms'] < 50.0
+
+    def test_layout_graph_structure(self, bridge, sample_pdf):
+        """Test layout graph has nodes and edges."""
+        result = bridge.ingest_pdf_page(sample_pdf, page_num=0)
+
+        graph = result['layout_graph']
+        assert 'nodes' in graph
+        assert 'edges' in graph
+        assert len(graph['nodes']) > 0
+
+    def test_embeddings_shape(self, bridge, sample_pdf):
+        """Test embeddings have correct shape."""
+        result = bridge.ingest_pdf_page(sample_pdf, page_num=0)
+
+        embeddings = result['embeddings']
+        assert embeddings.shape[1] == 128  # 128-dim embeddings
+        assert np.all(np.isfinite(embeddings))
+
+    def test_gpu_memory_cleanup(self, bridge, sample_pdf):
+        """Test GPU memory is cleaned up after ingestion."""
+        result = bridge.ingest_pdf_page(sample_pdf, page_num=0)
+
+        # After processing, allocated_buffers should be empty
+        assert len(bridge.allocated_buffers) == 0
+
+    def test_multipage_ingestion(self):
+        """Test full PDF ingestion with multiple pages."""
+        ingestor = PDFMultiModalIngestor()
+        result = ingestor.ingest_pdf("tests/data/multipage.pdf")
+
+        assert len(result['pages']) > 1
+        assert result['total_objects'] > 0
+        assert result['total_time_ms'] > 0
+
+
+# Run tests: pytest tests/test_pdf_ingestion.py -v
+```
+
+---
+
+### 7. Benchmark Script: benchmark_pdf_ingestion.py
+
+**File**: `scripts/benchmark_pdf_ingestion.py`
+
+```python
+"""
+Benchmark script for Phase C PDF ingestion.
+Compares Phase B (PyPDF2 text-only) vs Phase C (multi-modal).
+"""
+
+import time
+import numpy as np
+from pathlib import Path
+
+from knowledge3d.ingestion.documents.pdf_multimodal_ingestor import PDFMultiModalIngestor
+
+
+def benchmark_phase_c():
+    """Benchmark Phase C PDF ingestion."""
+
+    # Test PDFs
+    test_pdfs = [
+        "tests/data/simple.pdf",       # Simple text-only PDF
+        "tests/data/complex.pdf",      # PDF with images + text
+        "tests/data/scanned.pdf",      # Scanned PDF (OCR fallback)
+    ]
+
+    ingestor = PDFMultiModalIngestor()
+
+    print("=" * 60)
+    print("Phase C PDF Ingestion Benchmark")
+    print("=" * 60)
+
+    for pdf_path in test_pdfs:
+        if not Path(pdf_path).exists():
+            print(f"[SKIP] {pdf_path} not found")
+            continue
+
+        print(f"\n[TEST] {pdf_path}")
+
+        # Run ingestion
+        start_time = time.time()
+        result = ingestor.ingest_pdf(pdf_path)
+        end_time = time.time()
+
+        total_time_ms = (end_time - start_time) * 1000
+        page_count = len(result['pages'])
+
+        # Calculate metrics
+        avg_time_per_page = total_time_ms / page_count if page_count > 0 else 0
+
+        print(f"  Pages: {page_count}")
+        print(f"  Total objects: {result['total_objects']}")
+        print(f"  Total time: {total_time_ms:.2f} ms")
+        print(f"  Time per page: {avg_time_per_page:.2f} ms")
+
+        # Compare to Phase B baseline (300ms/page)
+        phase_b_baseline = 300.0  # ms/page
+        speedup = phase_b_baseline / avg_time_per_page if avg_time_per_page > 0 else 0
+        print(f"  Speedup vs Phase B: {speedup:.2f}x")
+
+        # Check if target met (<50ms/page)
+        target_met = "✅" if avg_time_per_page < 50.0 else "❌"
+        print(f"  Target <50ms/page: {target_met}")
+
+    print("\n" + "=" * 60)
+
+
+if __name__ == "__main__":
+    benchmark_phase_c()
+```
+
+---
+
+## 📊 VALIDATION CHECKLIST
+
+After implementing the code above, validate:
+
+### Functional Tests:
+- [ ] `PDFIngestionBridge` initializes without errors
+- [ ] `ingest_pdf_page()` processes single page successfully
+- [ ] Parsed objects contain text and/or image types
+- [ ] LayoutGraph has nodes with spatial relationships
+- [ ] Embeddings have shape (N, 128) and are normalized
+- [ ] Galaxy position has shape (3,) and is finite
+- [ ] GPU memory is cleaned up after each ingestion
+
+### Performance Tests:
+- [ ] Processing time <50ms per page (simple PDF)
+- [ ] Processing time <100ms per page (complex PDF)
+- [ ] VRAM usage <200MB (maintaining Phase B baseline)
+- [ ] GPU utilization >10% (improvement over Phase B 6-7%)
+
+### Integration Tests:
+- [ ] Works with existing RPN embeddings (33,428 trigrams)
+- [ ] Works with existing font-glyph pairs (168,206 pairs)
+- [ ] Compatible with AtomicFissionFusion kernel
+- [ ] Compatible with GraphCrystallizer kernel
+
+---
+
+## 🎯 SUCCESS CRITERIA
+
+The prototype is successful when:
+
+1. **Correctness**: Processes PDF → Galaxy position without crashes
+2. **Performance**: <50ms/page average (6× faster than 300ms baseline)
+3. **Multi-modal**: Preserves text + images + spatial relationships
+4. **GPU-native**: All embeddings generated via PTX kernels
+5. **Tests pass**: All integration tests green
+
+---
+
+## 🚀 EXECUTION STEPS
+
+### Step 1: Create Files (30 min)
+```bash
+# Create directory structure
+mkdir -p knowledge3d/cranium/bridges
+mkdir -p knowledge3d/cranium/kernels
+mkdir -p knowledge3d/ingestion/documents
+mkdir -p tests/data
+
+# Create Python files
+touch knowledge3d/cranium/bridges/pdf_ingestion_bridge.py
+touch knowledge3d/ingestion/documents/pdf_multimodal_ingestor.py
+touch scripts/benchmark_pdf_ingestion.py
+touch tests/test_pdf_ingestion.py
+
+# Create CUDA kernel files
+touch knowledge3d/cranium/kernels/pdf_primitive_parser.cu
+touch knowledge3d/cranium/kernels/layout_graph_optimizer.cu
+touch knowledge3d/cranium/kernels/glyph_resonator.cu
+```
+
+### Step 2: Implement Code (2-3 hours)
+- Copy code from sections 1-7 above into respective files
+- Adjust imports to match your existing K3D structure
+- Fix any path issues (`from ..sovereign.loader` etc.)
+
+### Step 3: Compile Kernels (15 min)
+```bash
+# Compile PTX kernels
+cd knowledge3d/cranium/kernels
+nvcc -ptx pdf_primitive_parser.cu -o pdf_primitive_parser.ptx
+nvcc -ptx layout_graph_optimizer.cu -o layout_graph_optimizer.ptx
+nvcc -ptx glyph_resonator.cu -o glyph_resonator.ptx
+```
+
+### Step 4: Add Sample PDFs (15 min)
+```bash
+# Add test PDFs to tests/data/
+# Use any simple PDFs for testing (1-2 pages)
+# Example: scientific paper, presentation, scanned document
+```
+
+### Step 5: Run Tests (30 min)
+```bash
+# Run integration tests
+export PYTHONPATH=.
+export CUDA_VISIBLE_DEVICES=0
+pytest tests/test_pdf_ingestion.py -v
+
+# Run benchmark
+python scripts/benchmark_pdf_ingestion.py
+```
+
+### Step 6: Validate Results (30 min)
+- Check processing times (<50ms target)
+- Verify Galaxy positions are reasonable (3D coords)
+- Inspect LayoutGraph (nodes + edges present)
+- Compare to Phase B baseline (speedup metrics)
+
+### Step 7: Document Findings (30 min)
+Create `TEMP/STEP15_PHASE_C_PROTOTYPE_RESULTS.md`:
+- Processing time per page (simple, complex, scanned)
+- Speedup vs Phase B baseline
+- VRAM usage, GPU utilization
+- Example LayoutGraph visualization
+- Challenges encountered
+- Next steps (Phase C2: full PTX migration)
+
+---
+
+## 📝 NOTES FOR CODEX
+
+1. **PyMuPDF dependency**: Temporary for prototype. Migrate to PTX in Phase C2.
+2. **Kernel stubs**: Kernels are minimal implementations. Full parsing in Phase C2.
+3. **GLB serialization**: TODO in Phase C2. JSON placeholder for now.
+4. **OCR fallback**: Stub only. Full implementation in Phase C3.
+5. **Error handling**: Add try-catch blocks for production (not critical for prototype).
+6. **Logging**: Add verbose logging if debugging needed (`print()` is fine for prototype).
+7. **GPU memory**: Use OOMSpillManager if large PDFs cause issues.
+
+---
+
+## 🎉 EXPECTED OUTCOME
+
+After completing this implementation:
+
+- **Phase C1 prototype** is functional and testable
+- **Hybrid Approach** validated (parse structure + OCR fallback)
+- **Performance improvement** demonstrated (300ms → <50ms)
+- **Multi-modal ingestion** proven (text + images + layout)
+- **Foundation** for Phase C2 (full PTX migration) and Phase C3 (OCR) established
+
+---
+
+**This prompt contains EVERYTHING you need to implement Phase C1 prototype. All code is inline and ready to materialize. Let's transform PDF ingestion into a sovereign capability!** 🚀📄🖼️
+
+---
+
+**Codex, you have your mission. Execute with GPU precision.** ⚡
+----
+Daniel:
+(Includes briefing prompt + Claude instructions)
+
+Codex:
+Key Changes
+
+Added sovereign-friendly PDF ingestion bridge with GPU fallbacks, kernel lifecycle management, and deterministic stub data flow to keep the Hybrid Approach scaffold alive (knowledge3d/cranium/bridges/pdf_ingestion_bridge.py:1).
+Introduced Phase C1 stub kernels for primitive parsing, layout optimisation, and glyph resonance so future PTX work can drop in without touching the bridge API (knowledge3d/cranium/kernels/pdf_primitive_parser.cu:1, knowledge3d/cranium/kernels/layout_graph_optimizer.cu:1, knowledge3d/cranium/kernels/glyph_resonator.cu:1).
+Exposed a high-level multimodal PDF ingestor that aggregates per-page results, writes a JSON sidecar, and exports alongside the legacy ingestor (knowledge3d/ingestion/documents/pdf_multimodal_ingestor.py:1, knowledge3d/ingestion/documents/__init__.py:1).
+Extended the PDF ingestion tests with fixtures covering the new bridge and multitool flow while preserving the existing text-only suite (tests/test_pdf_ingestion.py:1).
+Dropped a benchmarking harness to compare runtime once real PDFs and kernels land (scripts/benchmark_pdf_ingestion.py:1).
+Verification: python3 -m compileall knowledge3d/cranium/bridges/pdf_ingestion_bridge.py knowledge3d/ingestion/documents/pdf_multimodal_ingestor.py scripts/benchmark_pdf_ingestion.py tests/test_pdf_ingestion.py
+
+Next steps:
+
+Hook real PDF parsing into PDFIngestionBridge by populating kernel outputs and wiring GraphCrystallizer/PTX fusion once PTX is available.
+Add lightweight sample PDFs under tests/data/ (or generate on-the-fly) so benchmarks and tests can exercise richer layouts.
+Extend _fuse_modalities to call AtomicFissionFusion when GPU kernels become executable, and surface any required diagnostics through the result payload.
+pdf_ingestion_bridge.py
++436
+
+glyph_resonator.cu
++31
+
+layout_graph_optimizer.cu
++22
+
+pdf_primitive_parser.cu
++57
+
+__init__.py
++2
+-1
+
+pdf_multimodal_ingestor.py
++80
+
+benchmark_pdf_ingestion.py
++53
+
+test_pdf_ingestion.py
++48
+
+Daniel:
+Perfect, Codex, Perfect!
+I am a no coder human, so you have my authorization and have to issue any commands on my behalf
+Proceed to completition of your 3 steps.
+
+Codex:
+Updates
+
+Added sovereign PDF ingestion bridge with GPU-safe fallbacks and stubbed Hybrid pipeline so future PTX drops in cleanly (knowledge3d/cranium/bridges/pdf_ingestion_bridge.py:1).
+Scaffolded Phase C1 kernels for primitive parsing, layout optimisation, and glyph OCR, keeping interfaces stable for later implementations (knowledge3d/cranium/kernels/pdf_primitive_parser.cu:1, knowledge3d/cranium/kernels/layout_graph_optimizer.cu:1, knowledge3d/cranium/kernels/glyph_resonator.cu:1).
+Exposed multi-page PDF ingestor plus placeholder GLB export and wired it into the public document ingestion API (knowledge3d/ingestion/documents/pdf_multimodal_ingestor.py:1, knowledge3d/ingestion/documents/__init__.py:1).
+Extended PDF ingestion tests to cover the new bridge and aggregator paths while preserving legacy text ingestion coverage (tests/test_pdf_ingestion.py:1); added a lightweight benchmark harness for manual checks (scripts/benchmark_pdf_ingestion.py:1).
+Verification
+
+pytest tests/test_pdf_ingestion.py -q
+Next Steps
+
+Replace stub data with real PTX parsing output and route through GraphCrystallizer once kernels are ready.
+Feed AtomicFissionFusion in _fuse_modalities and surface diagnostics.
+Add representative sample PDFs under tests/data/ (or generated fixtures) for richer benchmark coverage.
+
+Daniel:
+You might need to look at the envs on how to enable the GPU.
+Perfect!
+Proceed to finish all the tasks
+
+Codex:
+benchmark_pdf_ingestion.py
++1
+-3
+
+Daniel:
+envs folder (forgot the folder word), proceed
+
+Codex:
+Read envs/k3d-cranium.yml for GPU tooling: conda env ships CUDA 12.4 toolchain plus CuPy/cuda-python; activate via conda activate k3d-cranium (or scripts/k3d_env.sh run ...) and keep PYTHONPATH=. when launching repo scripts.
+Exercised new pipeline: pytest tests/test_pdf_ingestion.py -q (Python 3) → green.
+Benchmarked prototype (PYTHONPATH=. python3 scripts/benchmark_pdf_ingestion.py); skips for now because tests/data/{sample,complex,scanned}.pdf are not present—drop sample PDFs or point to real ones to capture timings.
+Next Steps
+
+Add lightweight PDFs under tests/data/ so benchmark and future GPU runs produce metrics.
+When ready to use the GPU path, activate k3d-cranium, ensure CUDA_VISIBLE_DEVICES targets the desired GPU, and re-run the ingest/benchmark commands with PYTHONPATH=..
+
+Daniel:
+Use this 347 pages pdf:
+"/mnt/arquivos/0\ ChatGPTs/DataBase/EchoSystems\ Default\ Libraries/How\ to\ think/Algorithmic.Thinking.BASE.pdf"
+It is a objects pdf.
+This one is a scanned one (no objects, to test for OCR):
+"/mnt/arquivos/0\ ChatGPTs/DataBase/EchoSystems\ Default\ Libraries/Apollo\ 11/APOLLO.PDF"
+On this one, expected first page text:
+"ICASE
+APOLLO 11
+A Teacher Resource Book
+
+Commemorating the 20th anniversary of the
+Apollo 11 Moon Landing,
+1969 - 1989
+(Black and white Picture of an austronaut looking at the american flag on the moon)
+INTERNATIONAL COUNCIL OF ASSOCIATIONS FOR SCIENCE EDUCATION"
+Proceed, issue the commands as needed (including GPU tests and sudo actions)
+
+Codex:
+Runs
+
+PYTHONPATH=. python3 - <<'PY' ... invoked PDFMultiModalIngestor on both provided PDFs; results are identical stub outputs with 1 page/2 objects. Current prototype falls back to in-process stub because PTX kernels and PyMuPDF parsing aren’t wired yet, so Galaxy positions and object counts are placeholders, not true parses.
+No GPU kernels executed—the bridge detected missing PTX modules and kept gpu_enabled=False. The PDF pipeline therefore remained CPU-only; no OCR path ran.
+Observations
+
+Without PyMuPDF present (or the upcoming PTX parser), _enumerate_pages defaults to a single page and all layout data is simulated.
+Glyph OCR remains unimplemented; scanned PDFs won’t emit text. The expected “ICASE… INTERNATIONAL COUNCIL…” content is not recoverable with the current stub.
+Next Steps
+
+Activate k3d-cranium (conda activate k3d-cranium, set PYTHONPATH=., ensure CUDA_VISIBLE_DEVICES points at your GPU).
+Install PyMuPDF inside that env (pip install pymupdf) so _load_pdf_bytes and _enumerate_pages can access real page streams; expect multi-page counts once loaded.
+Implement true PTX parsing/OCR: populate pdf_primitive_parser, route image data through FractalEmitter, and finish glyph_resonator so the Apollo PDF yields textual primitives matching the supplied copy.
+After kernels are available, re-run the ingestion command to gather genuine metrics and move on to GPU benchmarking (PYTHONPATH=. python3 scripts/benchmark_pdf_ingestion.py --pdf <paths> once CLI args are added).
+
+Daniel:
+Proceed, Codex
+Install anything needed, if conflicting with the actual resources, create a new virtual environment using venv, conda, docker or any other solution (you have authorization to install anything needed)
+
+Codex:
+Env Ready
+
+Created isolated venv ~/k3d_venvs/k3d_pdf (Python 3.13) and installed numpy==1.26.4, PyMuPDF so the ingestion stack can open multi-page PDFs without touching system Python. Activate via source ~/k3d_venvs/k3d_pdf/bin/activate and keep PYTHONPATH=. when running repo code.
+Prototype Runs
+
+Executed the multimodal ingestor on both PDFs using the new env (PYTHONPATH=. ~/k3d_venvs/k3d_pdf/bin/python …), yielding 374 pages/748 objects for the algorithmic text PDF and 185 pages/370 objects for the Apollo scan. These counts now reflect PyMuPDF’s page detection, but object payloads are still the current stub outputs (2 dummy primitives/page, fixed embeddings/positions).
+What’s Left
+
+Implement real PTX parsing + OCR so the bridge emits genuine primitives and recovers the expected Apollo intro text; compile the kernels and re-run ingestion to verify.
+Consider registering the venv in your shell profile or wrapping commands in a helper script so GPU-enabled runs stay consistent once kernels land.
+----
+
+Daniel:
+Perfect!
+I've started with Codex, you can read the MULTIMODEL_CHAIN_PROMPT_PHASE_C.md file from line 3527 up to 3662 and prepare the next prompt for Codex
+
+Claude:
+---
+
+# 🎯 CODEX NEXT PHASE: Real PDF Parsing + PTX Kernel Implementation
+
+**Mission**: Move from stub implementation to **real PDF parsing** with PyMuPDF integration and prepare for PTX kernel compilation.
+
+---
+
+## 📊 CURRENT STATE ANALYSIS
+
+**Excellent progress, Codex!** You've:
+- ✅ Created all file structure (bridge, kernels, tests, benchmarks)
+- ✅ Set up isolated venv with PyMuPDF + NumPy
+- ✅ Validated pipeline with real PDFs (374 pages algorithmic, 185 pages Apollo)
+- ✅ Confirmed page detection works (PyMuPDF integration successful)
+
+**Current limitation**: Stub data (2 dummy objects/page) instead of real parsing.
+
+---
+
+## 🚀 YOUR NEXT MISSION
+
+Implement **Phase C1.5: Real PDF Parsing** to replace stubs with actual PDF content extraction.
+
+### Goals:
+1. **Extract real text blocks** from PDFs using PyMuPDF
+2. **Extract real images** from PDFs using PyMuPDF
+3. **Compile PTX kernels** to test GPU pipeline
+4. **Benchmark real parsing** vs Phase B baseline (300ms/page)
+5. **Validate OCR detection** on Apollo scanned PDF
+
+---
+
+## 💻 IMPLEMENTATION STEPS
+
+### Step 1: Upgrade `pdf_ingestion_bridge.py` with Real PyMuPDF Parsing
+
+**Update the `_parse_pdf_structure_gpu` method** to extract real PDF primitives instead of stubs:
+
+```python
+def _parse_pdf_structure_gpu(self, pdf_buffer_gpu: int, buffer_size: int, page_num: int) -> Dict:
+    """
+    Parse PDF structure using PyMuPDF (temporary Phase C1.5).
+    Phase C2 will migrate to PTX kernel parsing.
+    """
+    import fitz  # PyMuPDF
+
+    # Load PDF from path (we need the path, not GPU buffer for PyMuPDF)
+    # For now, extract from self._current_pdf_path (add this to class)
+    doc = fitz.open(self._current_pdf_path)
+    page = doc[page_num]
+
+    # Extract text blocks with positions
+    text_blocks = page.get_text("dict")["blocks"]
+
+    # Extract images
+    image_list = page.get_images(full=True)
+
+    # Build objects array
+    objects = []
+
+    # Process text blocks
+    for block in text_blocks:
+        if block.get("type") == 0:  # Text block
+            bbox = block["bbox"]  # (x0, y0, x1, y1)
+            x, y, x1, y1 = bbox
+            w, h = x1 - x, y1 - y
+
+            # Extract text content
+            text_content = ""
+            for line in block.get("lines", []):
+                for span in line.get("spans", []):
+                    text_content += span.get("text", "")
+
+            # Store text separately for embedding
+            text_idx = len(self._temp_text_storage)
+            self._temp_text_storage.append(text_content)
+
+            objects.append([
+                x, y, w, h,
+                1.0,  # type: text
+                float(text_idx),  # data_ptr: index in temp storage
+                float(len(text_content)),  # data_len
+                0.9  # importance (TODO: calculate based on font size)
+            ])
+
+    # Process images
+    for img_index, img in enumerate(image_list):
+        xref = img[0]
+        bbox = page.get_image_bbox(img[7])  # img[7] is image name
+        if bbox:
+            x, y, x1, y1 = bbox
+            w, h = x1 - x, y1 - y
+
+            # Extract image bytes
+            base_image = doc.extract_image(xref)
+            image_bytes = base_image["image"]
+
+            # Store image separately
+            img_idx = len(self._temp_image_storage)
+            self._temp_image_storage.append(image_bytes)
+
+            objects.append([
+                x, y, w, h,
+                2.0,  # type: image
+                float(img_idx),  # data_ptr: index in temp storage
+                float(len(image_bytes)),  # data_len
+                0.8  # importance
+            ])
+
+    doc.close()
+
+    # Check if scanned (no text blocks or very few)
+    is_scanned = len([o for o in objects if o[4] == 1.0]) < 2
+
+    # Convert to numpy
+    objects_array = np.array(objects, dtype=np.float32) if objects else np.zeros((0, 8), dtype=np.float32)
+
+    return {
+        'objects_gpu': None,  # Not using GPU buffer yet
+        'objects': objects_array,
+        'object_count': len(objects),
+        'processing_time_us': 0,  # TODO: measure
+        'is_scanned': is_scanned
+    }
+```
+
+**Add instance variables** to `__init__`:
+```python
+def __init__(self):
+    # ... existing code ...
+
+    # Temporary storage for text/images (Phase C1.5)
+    self._temp_text_storage = []
+    self._temp_image_storage = []
+    self._current_pdf_path = None  # Will be set by ingest_pdf_page
+```
+
+**Update `ingest_pdf_page`** to set current path:
+```python
+def ingest_pdf_page(self, pdf_path: str, page_num: int = 0) -> Dict:
+    import time
+    start_time = time.time()
+
+    # Store path for PyMuPDF parsing
+    self._current_pdf_path = pdf_path
+
+    # Clear temp storage
+    self._temp_text_storage.clear()
+    self._temp_image_storage.clear()
+
+    # ... rest of existing code ...
+```
+
+**Update `_generate_text_embeddings`** to use real text:
+```python
+def _generate_text_embeddings(self, parsed_objects: Dict) -> np.ndarray:
+    """Generate text embeddings using RPN engine."""
+    if parsed_objects['object_count'] == 0:
+        return np.zeros((1, 128), dtype=np.float32)
+
+    # Extract text blocks (type == 1.0)
+    objects = parsed_objects['objects']
+    text_objects = objects[objects[:, 4] == 1.0]
+
+    if len(text_objects) == 0:
+        return np.zeros((1, 128), dtype=np.float32)
+
+    # Generate embeddings using RPN engine with REAL text
+    embeddings = []
+    for text_obj in text_objects:
+        text_idx = int(text_obj[5])
+        if text_idx < len(self._temp_text_storage):
+            text = self._temp_text_storage[text_idx]
+
+            # Use RPN engine (use first 100 chars to avoid huge texts)
+            text_sample = text[:100] if len(text) > 100 else text
+            if text_sample.strip():
+                try:
+                    emb = self.rpn_engine.embed_sentence('en', text_sample)
+                    embeddings.append(emb['embedding_128'])
+                except Exception as e:
+                    # Fallback: zero embedding
+                    embeddings.append(np.zeros(128, dtype=np.float32))
+            else:
+                embeddings.append(np.zeros(128, dtype=np.float32))
+        else:
+            embeddings.append(np.zeros(128, dtype=np.float32))
+
+    return np.vstack(embeddings) if embeddings else np.zeros((1, 128), dtype=np.float32)
+```
+
+---
+
+### Step 2: Compile PTX Kernels
+
+Even though we're using PyMuPDF for now, let's compile the PTX kernels to test the GPU pipeline:
+
+```bash
+# Activate GPU environment
+source ~/k3d_venvs/k3d_pdf/bin/activate
+export PYTHONPATH=.
+export CUDA_VISIBLE_DEVICES=0
+
+# Navigate to kernels directory
+cd knowledge3d/cranium/kernels
+
+# Compile PTX kernels
+nvcc -ptx pdf_primitive_parser.cu -o pdf_primitive_parser.ptx
+nvcc -ptx layout_graph_optimizer.cu -o layout_graph_optimizer.ptx
+nvcc -ptx glyph_resonator.cu -o glyph_resonator.ptx
+
+# Verify compilation
+ls -lh *.ptx
+```
+
+---
+
+### Step 3: Test Real Parsing on Sample PDFs
+
+Run the benchmark with real parsing:
+
+```bash
+# Test on algorithmic PDF (structured, 347 pages)
+PYTHONPATH=. ~/k3d_venvs/k3d_pdf/bin/python3 -c "
+from knowledge3d.ingestion.documents.pdf_multimodal_ingestor import PDFMultiModalIngestor
+import json
+
+ingestor = PDFMultiModalIngestor()
+
+# Test first 5 pages only (for speed)
+pdf_path = '/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/How to think/Algorithmic.Thinking.BASE.pdf'
+
+print('Testing Algorithmic PDF (first 5 pages)...')
+for page_num in range(min(5, 347)):
+    result = ingestor.bridge.ingest_pdf_page(pdf_path, page_num)
+    print(f'  Page {page_num}: {result[\"object_count\"]} objects, {result[\"processing_time_ms\"]:.2f}ms')
+
+    # Show first text block
+    if result['object_count'] > 0:
+        text_idx = int(result['layout_graph']['nodes'][0]['bbox'][0])  # Placeholder
+        print(f'    (Real parsing active)')
+"
+
+# Test on Apollo PDF (scanned, should detect as scanned)
+PYTHONPATH=. ~/k3d_venvs/k3d_pdf/bin/python3 -c "
+from knowledge3d.ingestion.documents.pdf_multimodal_ingestor import PDFMultiModalIngestor
+
+ingestor = PDFMultiModalIngestor()
+
+pdf_path = '/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Apollo 11/APOLLO.PDF'
+
+print('Testing Apollo PDF (page 0 - should detect as scanned)...')
+result = ingestor.bridge.ingest_pdf_page(pdf_path, 0)
+print(f'  Objects: {result[\"object_count\"]}')
+print(f'  Is scanned: {result[\"layout_graph\"].get(\"is_scanned\", False)}')
+print(f'  Processing time: {result[\"processing_time_ms\"]:.2f}ms')
+"
+```
+
+---
+
+### Step 4: Run Full Benchmark
+
+Update `scripts/benchmark_pdf_ingestion.py` to accept command-line PDFs:
+
+```python
+# At top of benchmark_phase_c():
+import sys
+
+# Test PDFs
+if len(sys.argv) > 1:
+    test_pdfs = sys.argv[1:]
+else:
+    test_pdfs = [
+        "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/How to think/Algorithmic.Thinking.BASE.pdf",
+        "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Apollo 11/APOLLO.PDF",
+    ]
+```
+
+Run benchmark:
+```bash
+PYTHONPATH=. ~/k3d_venvs/k3d_pdf/bin/python3 scripts/benchmark_pdf_ingestion.py
+```
+
+---
+
+### Step 5: Validate Apollo OCR Detection
+
+Create a quick validation script to check if Apollo PDF text extraction works:
+
+```bash
+PYTHONPATH=. ~/k3d_venvs/k3d_pdf/bin/python3 -c "
+import fitz
+
+pdf_path = '/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Apollo 11/APOLLO.PDF'
+doc = fitz.open(pdf_path)
+page = doc[0]
+
+# Extract text
+text = page.get_text('text')
+print('=== Apollo PDF Page 0 Text ===')
+print(text[:500])  # First 500 chars
+print('...')
+
+# Check for expected keywords
+expected = ['ICASE', 'APOLLO 11', 'Teacher Resource', 'INTERNATIONAL COUNCIL']
+found = [kw for kw in expected if kw in text]
+print(f'\nExpected keywords found: {found}')
+print(f'Is scanned (no text): {len(text.strip()) < 50}')
+
+doc.close()
+"
+```
+
+---
+
+## 🎯 SUCCESS CRITERIA
+
+After completing these steps, you should have:
+
+1. ✅ **Real text extraction** from PDFs (not stubs)
+2. ✅ **Real image detection** from PDFs
+3. ✅ **PTX kernels compiled** (ready for Phase C2)
+4. ✅ **Scanned PDF detection** working (Apollo marked as scanned)
+5. ✅ **Performance metrics** (processing time per page)
+6. ✅ **Validation** that RPN embeddings work with real text
+
+---
+
+## 📋 EXECUTION CHECKLIST
+
+Run these commands in order:
+
+```bash
+# 1. Activate environment
+source ~/k3d_venvs/k3d_pdf/bin/activate
+export PYTHONPATH=.
+export CUDA_VISIBLE_DEVICES=0
+
+# 2. Update bridge code (copy code from Step 1 above)
+# Edit: knowledge3d/cranium/bridges/pdf_ingestion_bridge.py
+
+# 3. Compile PTX kernels
+cd knowledge3d/cranium/kernels
+nvcc -ptx pdf_primitive_parser.cu -o pdf_primitive_parser.ptx
+nvcc -ptx layout_graph_optimizer.cu -o layout_graph_optimizer.ptx
+nvcc -ptx glyph_resonator.cu -o glyph_resonator.ptx
+cd ../../..
+
+# 4. Test Apollo text extraction
+PYTHONPATH=. python3 -c "import fitz; doc = fitz.open('/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/Apollo 11/APOLLO.PDF'); print(doc[0].get_text('text')[:500])"
+
+# 5. Run benchmark
+PYTHONPATH=. python3 scripts/benchmark_pdf_ingestion.py
+
+# 6. Run integration tests
+PYTHONPATH=. pytest tests/test_pdf_ingestion.py -v
+```
+
+---
+
+## 🚀 EXPECTED OUTPUT
+
+After real parsing is implemented:
+
+```
+=== Algorithmic PDF ===
+Pages: 347
+Total objects: ~2000-5000 (text blocks + images)
+Time per page: 50-150ms (PyMuPDF overhead)
+
+=== Apollo PDF ===
+Pages: 185
+Is scanned: True (or very few text blocks)
+Page 0 text contains: "ICASE", "APOLLO 11", "Teacher Resource"
+```
+
+---
+
+## 📝 NEXT PHASE PREVIEW
+
+After Phase C1.5 (real parsing with PyMuPDF):
+
+**Phase C2**: Migrate PDF parsing to PTX kernels
+- Implement `pdf_primitive_parser.cu` to parse PDF bytecode on GPU
+- Remove PyMuPDF dependency for parsing (keep for page loading only)
+- Target: <5ms/page parsing time
+
+**Phase C3**: Implement GPU-native OCR
+- Implement `glyph_resonator.cu` using 168K font-glyph pairs
+- Extract text from scanned PDFs without external OCR
+- Validate on Apollo PDF (recover expected text)
+
+---
+
+**Codex, execute Step 1-5 above. Update the bridge code, compile kernels, run benchmarks, and report real parsing results. You have full authorization to modify files and run commands.** ⚡📄🔥
+----
+Daniel:
+Perfect, Codex, here's Claude next instructions:
+(paste Claude instructions)
+
+Codex:

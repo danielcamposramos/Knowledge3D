@@ -2,8 +2,11 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
+import pytest
 
+from knowledge3d.cranium.bridges.pdf_ingestion_bridge import PDFIngestionBridge
 from knowledge3d.ingestion.documents.pdf_ingestor import PDFIngestor
+from knowledge3d.ingestion.documents.pdf_multimodal_ingestor import PDFMultiModalIngestor
 
 
 class StubTextIngestor:
@@ -88,3 +91,60 @@ def test_ingest_pdf_directory(tmp_path):
     # Ensure per-document artefacts are written
     outputs = sorted((tmp_path / "out").glob("*.json"))
     assert len(outputs) == 2
+
+
+# --------------------------------------------------------------------------- #
+# Phase C1 prototype tests
+# --------------------------------------------------------------------------- #
+@pytest.fixture
+def dummy_pdf(tmp_path: Path) -> Path:
+    fitz = pytest.importorskip("fitz")
+    pdf_path = tmp_path / "sample.pdf"
+    doc = fitz.open()
+    page = doc.new_page()
+    page.insert_text((72, 720), "Sovereign PDF bridge test page.")
+    page.insert_text((72, 680), "Second line anchors layout graph.")
+    doc.save(pdf_path)
+    doc.close()
+    return pdf_path
+
+
+def test_bridge_ingest_page(dummy_pdf: Path):
+    bridge = PDFIngestionBridge()
+    result = bridge.ingest_pdf_page(dummy_pdf)
+
+    assert "galaxy_position" in result
+    assert result["galaxy_position"].shape == (3,)
+    assert np.all(np.isfinite(result["galaxy_position"]))
+
+    assert "layout_graph" in result
+    layout = result["layout_graph"]
+    assert isinstance(layout.get("nodes"), list)
+    assert layout["node_count"] == len(layout["nodes"])
+    assert any(node["type"] == 1.0 for node in layout["nodes"])
+    text_nodes = [node for node in layout["nodes"] if node["type"] == 1.0]
+    assert text_nodes and "Sovereign" in text_nodes[0]["text_sample"]
+
+    assert "embeddings" in result
+    embeddings = result["embeddings"]
+    assert embeddings.ndim == 2
+    assert embeddings.shape[1] == 128
+    assert layout["is_scanned"] is False
+    assert result["object_count"] == layout["node_count"]
+
+    # GPU buffers should be released after ingestion
+    assert bridge.allocated_buffers == []
+
+
+def test_multimodal_ingestor_single_page(dummy_pdf: Path, tmp_path: Path):
+    ingestor = PDFMultiModalIngestor()
+    result = ingestor.ingest_pdf(dummy_pdf, output_glb=str(tmp_path / "out.glb"))
+
+    assert len(result["pages"]) == 1
+    assert result["total_objects"] >= 0
+    assert result["total_time_ms"] >= 0.0
+    assert result["pages"][0]["layout_graph"]["is_scanned"] is False
+
+    # JSON sidecar placeholder should be created
+    json_sidecar = tmp_path / "out.json"
+    assert json_sidecar.exists()
