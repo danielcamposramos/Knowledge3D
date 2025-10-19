@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 import hashlib
 import pickle
 from pathlib import Path
+import time
 from typing import Dict, Iterable, List, Mapping, MutableMapping, Sequence
 
 import numpy as np
@@ -76,6 +77,8 @@ class RPNEmbeddingEngine:
     vocab_size: int = field(default=0, init=False)
     hit_count: int = field(default=0, init=False)
     miss_count: int = field(default=0, init=False)
+    _pending_consolidation: bool = field(default=False, init=False, repr=False)
+    _last_consolidated_at: float | None = field(default=None, init=False, repr=False)
 
     def hash_trigram(self, trigram: str) -> int:
         """Hash a trigram to an unsigned 32-bit integer."""
@@ -105,6 +108,7 @@ class RPNEmbeddingEngine:
             self._embeddings[trigram_hash] = self._initialise_embedding(trigram_hash)
             self.vocab_size += 1
             self.miss_count += 1
+            self.mark_unconsolidated()
         else:
             self.hit_count += 1
         return self._embeddings[trigram_hash]
@@ -164,6 +168,8 @@ class RPNEmbeddingEngine:
             "vocab_size": self.vocab_size,
             "hit_count": self.hit_count,
             "miss_count": self.miss_count,
+            "pending_consolidation": self._pending_consolidation,
+            "last_consolidated_at": self._last_consolidated_at,
         }
         with path.open("wb") as handle:
             pickle.dump(payload, handle)
@@ -187,6 +193,9 @@ class RPNEmbeddingEngine:
         self.vocab_size = int(payload.get("vocab_size", len(self._embeddings)))
         self.hit_count = int(payload.get("hit_count", 0))
         self.miss_count = int(payload.get("miss_count", 0))
+        self._pending_consolidation = bool(payload.get("pending_consolidation", False))
+        last_ts = payload.get("last_consolidated_at")
+        self._last_consolidated_at = float(last_ts) if last_ts is not None else None
 
     # ------------------------------------------------------------------ #
     # Introspection helpers
@@ -197,7 +206,35 @@ class RPNEmbeddingEngine:
             "vocab_size": self.vocab_size,
             "hit_count": self.hit_count,
             "miss_count": self.miss_count,
+            "pending_consolidation": int(self._pending_consolidation),
         }
+
+    # ------------------------------------------------------------------ #
+    # Consolidation helpers
+    # ------------------------------------------------------------------ #
+    @property
+    def embeddings(self) -> MutableMapping[int, np.ndarray]:
+        """Expose the raw embedding mapping (for consolidation routines)."""
+        return self._embeddings
+
+    @property
+    def pending_consolidation(self) -> bool:
+        """Whether new data has been ingested since the last consolidation run."""
+        return self._pending_consolidation
+
+    @property
+    def last_consolidated_at(self) -> float | None:
+        """Unix timestamp of the most recent consolidation event."""
+        return self._last_consolidated_at
+
+    def mark_unconsolidated(self) -> None:
+        """Flag that fresh embeddings should be consolidated."""
+        self._pending_consolidation = True
+
+    def mark_consolidated(self) -> None:
+        """Mark embeddings as consolidated."""
+        self._pending_consolidation = False
+        self._last_consolidated_at = time.time()
 
 
 __all__ = ["RPNEmbeddingEngine"]

@@ -183,6 +183,21 @@ View the GLB through the tablet or import it into the viewer via `viewer/public/
 
 **See**: [`TEMP/STEP15_PHASE_B_RESULTS.md`](TEMP/STEP15_PHASE_B_RESULTS.md), [`TEMP/STEP15_PHASE_B_SPEEDUP_RESULTS.md`](TEMP/STEP15_PHASE_B_SPEEDUP_RESULTS.md)
 
+### Phase C: Multi-Modal PDF Ingestion (Complete)
+
+| Pipeline | Coverage | Runtime | Throughput | Method |
+|----------|----------|---------|------------|--------|
+| **Structured PDF** | 99 % of sources | ~22 ms/page | ≈45 pages/s | Sovereign PyMuPDF + PTX parser |
+| **Scanned PDF** | ~1 % of sources | ~0.6 s/page | ≈1.6 pages/s | Tesseract fallback (temporary) |
+| **Glyph Database** | 1,999 fonts | – | 123,938 glyphs | Per-font HOG descriptors (Phase E input) |
+
+**Key Features**:
+- ✅ 15× faster than Phase B baseline for structured PDFs (300 ms → 20–25 ms/page)
+- ✅ Multi-modal extraction with spatial relationships + Galaxy crystallisation
+- ✅ Pragmatic scanned-PDF coverage via Tesseract while sovereign OCR incubates for Phase E
+- ✅ AtomicFissionFusion + GraphCrystallizer fuse RPN text + Fractal visuals into Galaxy positions
+- ✅ Sovereign hot path preserved (ctypes + PTX); external OCR used only as a temporary bridge
+
 ### Step 14: Specialized Swarm Kernels
 
 | Metric | Value | Notes |

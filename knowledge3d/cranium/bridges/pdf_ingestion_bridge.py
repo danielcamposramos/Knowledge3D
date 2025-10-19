@@ -60,8 +60,37 @@ class PDFIngestionBridge:
         self.glyph_resonator_kernel = None
         self.gpu_enabled = False
 
+        self.glyph_embeddings_gpu = None
+        self.glyph_metadata: Optional[List[Dict[str, object]]] = None
+        self.glyph_count: int = 0
+        self._ocr_warned_missing_glyph = False
+        self._ocr_warned_missing_cv = False
+
+        self._coarse_chars: List[str] = []
+        self._coarse_embeddings: Optional[np.ndarray] = None
+        self._prototypes_by_char: Dict[str, np.ndarray] = {}
+        self._prototype_meta_by_char: Dict[str, List[Dict[str, object]]] = {}
+        self._coarse_topk: int = 12
+        self._min_proto_confidence: float = 0.6
+
         self._compile_pdf_kernels()
         self._load_kernels()
+        self._load_glyph_embeddings()
+
+        # Initialize sleep scheduler (last step)
+        try:
+            from knowledge3d.cranium.sleep.scheduler import SleepScheduler
+
+            self.sleep_scheduler = SleepScheduler(
+                rpn_engine=self.rpn_engine,
+                idle_threshold=300.0,
+                log_path="/K3D/Knowledge3D.local/logs/sleep_scheduler.jsonl",
+            )
+            self.sleep_scheduler.start()
+            print("[SLEEP] Sleep scheduler initialized and started")
+        except Exception as exc:
+            print(f"[SLEEP] WARNING: Could not start sleep scheduler - {exc}")
+            self.sleep_scheduler = None
 
     # ------------------------------------------------------------------ #
     # Kernel management
@@ -133,6 +162,98 @@ class PDFIngestionBridge:
         except Exception:
             return None
 
+    def _load_glyph_embeddings(self) -> None:
+        """
+        Load Phase B glyph embeddings into GPU memory for OCR fallback.
+        """
+        try:
+            import pickle
+        except ImportError:  # pragma: no cover - should never happen
+            return
+
+        font_db_path = Path("/K3D/Knowledge3D.local/font_db.pkl")
+        if not font_db_path.exists():
+            print(f"[WARN] Glyph font database not found at {font_db_path}. OCR disabled.")
+            return
+
+        try:
+            with font_db_path.open("rb") as handle:
+                font_db = pickle.load(handle)
+        except Exception as exc:
+            print(f"[WARN] Failed loading glyph database ({exc}). OCR disabled.")
+            return
+
+        char_vectors: Dict[str, List[np.ndarray]] = {}
+        char_meta: Dict[str, List[Dict[str, object]]] = {}
+
+        for font_name, font_payload in font_db.items():
+            glyphs = font_payload.get("glyphs", {}) if isinstance(font_payload, dict) else {}
+            for char, glyph_data in glyphs.items():
+                features = glyph_data.get("visual_features")
+                if features is None:
+                    features = glyph_data.get("embedding")
+                if features is None:
+                    continue
+                arr = np.asarray(features, dtype=np.float32)
+                if arr.shape != (128,):
+                    continue
+                norm = np.linalg.norm(arr)
+                if norm > 1e-8:
+                    arr = arr / norm
+                char_vectors.setdefault(char, []).append(arr)
+                char_meta.setdefault(char, []).append(
+                    {
+                        "char": char,
+                        "font": font_name,
+                        "confidence": float(glyph_data.get("confidence", 1.0)),
+                        "is_symbol": bool(glyph_data.get("is_symbol", False)),
+                        "is_symbol_font": bool(font_payload.get("is_symbol_font", False)),
+                        "font_path": font_payload.get("font_path"),
+                    }
+                )
+
+        if not char_vectors:
+            print("[WARN] No glyph embeddings found in database. OCR disabled.")
+            return
+
+        coarse_chars = sorted(char_vectors.keys())
+        coarse_embeddings: List[np.ndarray] = []
+        prototypes_by_char: Dict[str, np.ndarray] = {}
+        prototype_meta_by_char: Dict[str, List[Dict[str, object]]] = {}
+
+        for char in coarse_chars:
+            vectors = np.stack(char_vectors[char], axis=0).astype(np.float32, copy=False)
+            mean_vec = vectors.mean(axis=0)
+            norm = np.linalg.norm(mean_vec)
+            if norm > 1e-8:
+                mean_vec = mean_vec / norm
+            coarse_embeddings.append(mean_vec.astype(np.float32, copy=False))
+            prototypes_by_char[char] = np.ascontiguousarray(vectors, dtype=np.float32)
+            prototype_meta_by_char[char] = char_meta[char]
+
+        self._coarse_chars = coarse_chars
+        self._coarse_embeddings = np.ascontiguousarray(np.vstack(coarse_embeddings), dtype=np.float32)
+        self._prototypes_by_char = prototypes_by_char
+        self._prototype_meta_by_char = prototype_meta_by_char
+
+        self.glyph_metadata = [
+            {
+                "char": char,
+                "font": "mean",
+                "confidence": 1.0,
+                "is_symbol": any(meta.get("is_symbol", False) for meta in char_meta[char]),
+            }
+            for char in coarse_chars
+        ]
+        self.glyph_count = len(coarse_chars)
+        self.glyph_embeddings_gpu = None
+
+        total_variants = sum(vecs.shape[0] for vecs in prototypes_by_char.values())
+        print(
+            f"[INFO] Loaded {self.glyph_count} coarse glyph means with "
+            f"{total_variants} per-font variants for OCR fallback."
+        )
+
     # ------------------------------------------------------------------ #
     # Public API
     # ------------------------------------------------------------------ #
@@ -140,6 +261,9 @@ class PDFIngestionBridge:
         """
         Execute the ingestion pipeline for a single PDF page.
         """
+        if hasattr(self, "sleep_scheduler") and self.sleep_scheduler:
+            self.sleep_scheduler.mark_activity()
+
         start_time = time.perf_counter()
         pdf_path = Path(pdf_path)
         self._current_pdf_path = str(pdf_path)
@@ -150,9 +274,10 @@ class PDFIngestionBridge:
         use_gpu_parser = self._enable_gpu_parser and self.gpu_enabled
         pdf_buffer_gpu = self._upload_to_gpu(pdf_bytes) if use_gpu_parser else None
 
-        parsed_objects = self._parse_pdf_structure(pdf_buffer_gpu, len(pdf_bytes), page_num)
-        if parsed_objects.get("is_scanned"):
-            parsed_objects = self._ocr_fallback(pdf_buffer_gpu, len(pdf_bytes), page_num)
+        parsed_objects = self._parse_pdf_structure(pdf_bytes, pdf_buffer_gpu, len(pdf_bytes), page_num)
+        parsed_objects.setdefault("method", "structured")
+        if parsed_objects.get("is_scanned") or int(parsed_objects.get("object_count", 0)) == 0:
+            parsed_objects = self._ocr_fallback(str(pdf_path), page_num)
 
         text_embeddings = self._generate_text_embeddings(parsed_objects)
         visual_embeddings = self._generate_visual_embeddings(parsed_objects)
@@ -170,6 +295,8 @@ class PDFIngestionBridge:
             "embeddings": fused_embeddings,
             "object_count": int(parsed_objects.get("object_count", 0)),
             "processing_time_ms": float(processing_time_ms),
+            "method": parsed_objects.get("method", "structured"),
+            "text": parsed_objects.get("text", ""),
         }
 
     # ------------------------------------------------------------------ #
@@ -214,6 +341,7 @@ class PDFIngestionBridge:
 
     def _parse_pdf_structure(
         self,
+        pdf_bytes: bytes,
         pdf_buffer_gpu,
         buffer_size: int,
         page_num: int,
@@ -225,14 +353,15 @@ class PDFIngestionBridge:
             and pdf_buffer_gpu is not None
         ):
             try:
-                return self._parse_pdf_structure_gpu(pdf_buffer_gpu, buffer_size, page_num)
+                return self._parse_pdf_with_ptx_kernel(pdf_bytes, pdf_buffer_gpu, buffer_size, page_num)
             except RuntimeError:
                 self._enable_gpu_parser = False
 
         return self._parse_pdf_structure_pymupdf(page_num)
 
-    def _parse_pdf_structure_gpu(
+    def _parse_pdf_with_ptx_kernel(
         self,
+        pdf_bytes: bytes,
         pdf_buffer_gpu,
         buffer_size: int,
         page_num: int,
@@ -287,6 +416,28 @@ class PDFIngestionBridge:
                 host_objects.nbytes,
             )
             objects = host_objects.reshape(-1, 8)
+
+        for idx, obj in enumerate(objects):
+            if obj[4] == 1.0:
+                text_ptr = int(obj[5])
+                text_len = int(obj[6])
+                if 0 <= text_ptr < len(pdf_bytes) and text_len > 0:
+                    end = min(len(pdf_bytes), text_ptr + text_len)
+                    raw = pdf_bytes[text_ptr:end]
+                    decoded = self._decode_pdf_string(raw)
+                else:
+                    decoded = ""
+
+                text_index = len(self._temp_text_storage)
+                self._temp_text_storage.append(decoded)
+                obj[5] = float(text_index)
+                obj[6] = float(len(decoded))
+
+                if decoded:
+                    obj[0] = 72.0
+                    obj[1] = max(0.0, 720.0 - 18.0 * idx)
+                    obj[2] = max(60.0, float(len(decoded) * 5.0))
+                    obj[3] = 14.0
 
         return {
             "objects_gpu": objects_gpu,
@@ -506,18 +657,690 @@ class PDFIngestionBridge:
             "is_scanned": False,
         }
 
-    def _ocr_fallback(self, pdf_buffer_gpu, buffer_size: int, page_num: int) -> Dict[str, object]:
+    def _ocr_fallback(self, pdf_path: str, page_num: int) -> Dict[str, object]:
+        return self._ocr_fallback_tesseract(pdf_path, page_num)
+
+    def _ocr_fallback_tesseract(self, pdf_path: str, page_num: int) -> Dict[str, object]:
+        """
+        Pragmatic OCR fallback using Tesseract. This replaces the GPU-native OCR
+        path temporarily until Phase E revisits glyph recognition with learned priors.
+        """
+        import io
+        import time as _time
+        from collections import defaultdict
+
+        ocr_start = _time.perf_counter()
+
+        try:
+            import fitz  # type: ignore
+        except ImportError:
+            print("[WARN] PyMuPDF not available; OCR fallback skipped.")
+            return {
+                "objects_gpu": None,
+                "objects": np.zeros((0, 8), dtype=np.float32),
+                "object_count": 0,
+                "processing_time_us": 0,
+                "is_scanned": True,
+                "method": "tesseract-missing",
+                "text": "",
+            }
+
+        try:
+            import pytesseract
+            from pytesseract import Output as TessOutput
+        except ImportError:
+            print("[WARN] pytesseract not available; OCR fallback skipped.")
+            return {
+                "objects_gpu": None,
+                "objects": np.zeros((0, 8), dtype=np.float32),
+                "object_count": 0,
+                "processing_time_us": 0,
+                "is_scanned": True,
+                "method": "tesseract-missing",
+                "text": "",
+            }
+
+        try:
+            from PIL import Image
+        except ImportError:
+            print("[WARN] Pillow not available; OCR fallback skipped.")
+            return {
+                "objects_gpu": None,
+                "objects": np.zeros((0, 8), dtype=np.float32),
+                "object_count": 0,
+                "processing_time_us": 0,
+                "is_scanned": True,
+                "method": "tesseract-missing",
+                "text": "",
+            }
+
+        try:
+            doc = fitz.open(pdf_path)
+            page = doc[page_num]
+            matrix = fitz.Matrix(2.0, 2.0)
+            pix = page.get_pixmap(matrix=matrix, alpha=False)
+            img = Image.open(io.BytesIO(pix.tobytes("png")))
+        except Exception as exc:
+            print(f"[WARN] Tesseract fallback failed to render page: {exc}")
+            if "doc" in locals():
+                doc.close()
+            return {
+                "objects_gpu": None,
+                "objects": np.zeros((0, 8), dtype=np.float32),
+                "object_count": 0,
+                "processing_time_us": int((_time.perf_counter() - ocr_start) * 1_000_000),
+                "is_scanned": True,
+                "method": "tesseract-failed",
+                "text": "",
+            }
+
+        page_rect = page.rect
+        width_px, height_px = pix.width, pix.height
+        scale_x = page_rect.width / float(width_px) if width_px > 0 else 1.0
+        scale_y = page_rect.height / float(height_px) if height_px > 0 else 1.0
+
+        try:
+            data = pytesseract.image_to_data(img, lang="eng", output_type=TessOutput.DICT)
+        except Exception as exc:
+            print(f"[WARN] Tesseract OCR failed: {exc}")
+            data = None
+
+        lines: Dict[Tuple[int, int, int], Dict[str, object]] = {}
+
+        if data and "text" in data:
+            for idx, raw_text in enumerate(data["text"]):
+                text = raw_text.strip()
+                if not text:
+                    continue
+                try:
+                    conf_val = float(data["conf"][idx])
+                except (KeyError, ValueError, TypeError):
+                    conf_val = 0.0
+                if conf_val < 0:
+                    continue
+                x = int(data.get("left", [0])[idx])
+                y = int(data.get("top", [0])[idx])
+                w = int(data.get("width", [0])[idx])
+                h = int(data.get("height", [0])[idx])
+                key = (
+                    int(data.get("block_num", [0])[idx]),
+                    int(data.get("par_num", [0])[idx]),
+                    int(data.get("line_num", [0])[idx]),
+                )
+                entry = lines.setdefault(
+                    key,
+                    {
+                        "words": [],
+                        "conf": [],
+                        "x1": float("inf"),
+                        "y1": float("inf"),
+                        "x2": float("-inf"),
+                        "y2": float("-inf"),
+                    },
+                )
+                entry["words"].append(text)
+                entry["conf"].append(conf_val)
+                entry["x1"] = min(entry["x1"], float(x))
+                entry["y1"] = min(entry["y1"], float(y))
+                entry["x2"] = max(entry["x2"], float(x + w))
+                entry["y2"] = max(entry["y2"], float(y + h))
+
+        doc.close()
+
+        line_entries = list(lines.values())
+        if not line_entries:
+            try:
+                simple_text = pytesseract.image_to_string(img, lang="eng")
+            except Exception:
+                simple_text = ""
+            simple_text = simple_text.strip()
+            if simple_text:
+                line_entries = [
+                    {
+                        "words": [simple_text],
+                        "conf": [70.0],
+                        "x1": 0.0,
+                        "y1": 0.0,
+                        "x2": float(width_px),
+                        "y2": float(height_px),
+                    }
+                ]
+
+        objects: List[List[float]] = []
+        collected_lines: List[str] = []
+
+        for entry in line_entries:
+            if not entry["words"]:
+                continue
+
+            x1 = max(0.0, entry["x1"])
+            y1 = max(0.0, entry["y1"])
+            x2 = min(float(width_px), entry["x2"])
+            y2 = min(float(height_px), entry["y2"])
+
+            width_pdf = max(1e-3, (x2 - x1) * scale_x)
+            height_pdf = max(1e-3, (y2 - y1) * scale_y)
+            x_pdf = page_rect.x0 + x1 * scale_x
+            top_pdf = page_rect.y1 - y1 * scale_y
+            y_pdf = top_pdf - height_pdf
+
+            text_content = " ".join(entry["words"]).strip()
+            if not text_content:
+                continue
+
+            avg_conf = sum(entry["conf"]) / float(len(entry["conf"])) if entry["conf"] else 0.0
+            confidence = max(0.0, min(1.0, avg_conf / 100.0))
+
+            text_index = len(self._temp_text_storage)
+            self._temp_text_storage.append(text_content)
+            collected_lines.append(text_content)
+
+            objects.append(
+                [
+                    float(x_pdf),
+                    float(y_pdf),
+                    float(width_pdf),
+                    float(height_pdf),
+                    1.0,
+                    float(text_index),
+                    float(len(text_content)),
+                    confidence,
+                ]
+            )
+
+        objects_array = (
+            np.array(objects, dtype=np.float32)
+            if objects
+            else np.zeros((0, 8), dtype=np.float32)
+        )
+
         return {
             "objects_gpu": None,
-            "objects": np.zeros((0, 8), dtype=np.float32),
-            "object_count": 0,
-            "processing_time_us": 0,
+            "objects": objects_array,
+            "object_count": int(objects_array.shape[0]),
+            "processing_time_us": int((_time.perf_counter() - ocr_start) * 1_000_000),
             "is_scanned": True,
+            "method": "tesseract",
+            "text": "\n".join(collected_lines),
         }
 
     # ------------------------------------------------------------------ #
     # Embedding + graph helpers
     # ------------------------------------------------------------------ #
+    def _extract_character_bboxes(self, gray_img: np.ndarray) -> List[Tuple[int, int, int, int]]:
+        try:
+            import cv2  # type: ignore
+        except ImportError:  # pragma: no cover - guarded earlier
+            return []
+
+        blurred = cv2.GaussianBlur(gray_img, (5, 5), 0)
+        binary = cv2.adaptiveThreshold(
+            blurred,
+            255,
+            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+            cv2.THRESH_BINARY_INV,
+            23,
+            6,
+        )
+
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+        binary = cv2.erode(binary, kernel, iterations=1)
+        binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel, iterations=1)
+
+        num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(binary, connectivity=8)
+        char_bboxes: List[Tuple[int, int, int, int]] = []
+
+        for idx in range(1, num_labels):
+            x, y, w, h, area = stats[idx]
+            if area < 25 or w < 6 or h < 6:
+                continue
+            if w > 260 or h > 260:
+                continue
+            aspect = w / h if h > 0 else 0.0
+            if aspect < 0.08 or aspect > 8.0:
+                continue
+
+            splits = self._split_wide_bbox(binary, x, y, w, h)
+            char_bboxes.extend(splits)
+
+        char_bboxes.sort(key=lambda bbox: (bbox[1] // 20, bbox[0]))
+        return char_bboxes
+
+    @staticmethod
+    def _split_wide_bbox(binary_img: np.ndarray, x: int, y: int, w: int, h: int) -> List[Tuple[int, int, int, int]]:
+        """
+        Split overly wide bounding boxes into individual character boxes using column projections.
+        """
+        if w <= int(h * 1.3):
+            return [(int(x), int(y), int(w), int(h))]
+
+        region = binary_img[y : y + h, x : x + w]
+        col_sum = (region > 0).sum(axis=0)
+
+        threshold = max(1, int(h * 0.25))
+        segments: List[Tuple[int, int, int, int]] = []
+        start = None
+
+        for idx, val in enumerate(col_sum):
+            if val > threshold:
+                if start is None:
+                    start = idx
+            else:
+                if start is not None and idx - start >= 3:
+                    segments.append((start, idx))
+                start = None
+        if start is not None and w - start >= 3:
+            segments.append((start, w))
+
+        if not segments:
+            return [(int(x), int(y), int(w), int(h))]
+
+        boxes: List[Tuple[int, int, int, int]] = []
+        for seg_start, seg_end in segments:
+            seg_w = seg_end - seg_start
+            if seg_w < 3:
+                continue
+            boxes.append((int(x + seg_start), int(y), int(seg_w), int(h)))
+
+        return boxes or [(int(x), int(y), int(w), int(h))]
+
+    def _extract_character_features(
+        self,
+        gray_img: np.ndarray,
+        char_bboxes: List[Tuple[int, int, int, int]],
+    ) -> np.ndarray:
+        if not char_bboxes:
+            return np.zeros((0, 128), dtype=np.float32)
+
+        try:
+            import cv2  # type: ignore
+        except ImportError:  # pragma: no cover
+            return np.zeros((0, 128), dtype=np.float32)
+
+        win_size = (16, 16)
+        block_size = (8, 8)
+        block_stride = (8, 8)
+        cell_size = (4, 4)
+        nbins = 9
+
+        hog = cv2.HOGDescriptor(
+            _winSize=win_size,
+            _blockSize=block_size,
+            _blockStride=block_stride,
+            _cellSize=cell_size,
+            _nbins=nbins,
+        )
+
+        features: List[np.ndarray] = []
+        for x, y, w, h in char_bboxes:
+            char_crop = gray_img[y : y + h, x : x + w]
+            if char_crop.size == 0:
+                continue
+            resized = cv2.resize(char_crop, (16, 16), interpolation=cv2.INTER_AREA).astype(np.float32)
+            if float(resized.max() - resized.min()) > 1e-6:
+                normalized = cv2.normalize(resized, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            else:
+                normalized = np.zeros_like(resized)
+            resized_uint8 = normalized.astype(np.uint8)
+
+            _, img_bin = cv2.threshold(resized_uint8, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            hog_input = cv2.bitwise_not(img_bin)
+
+            hog_features = hog.compute(hog_input).flatten()
+
+            feature_128 = np.zeros(128, dtype=np.float32)
+
+            hog_len = hog_features.size
+            if hog_len > 0:
+                if hog_len >= 126:
+                    feature_128[:126] = hog_features[:126]
+                else:
+                    repeats = 126 // hog_len
+                    remainder = 126 % hog_len
+                    offset = 0
+
+                    for _ in range(repeats):
+                        end = offset + hog_len
+                        feature_128[offset:end] = hog_features
+                        offset = end
+
+                    if remainder:
+                        feature_128[offset:offset + remainder] = hog_features[:remainder]
+
+            moments = cv2.moments(hog_input)
+            if moments["m00"] != 0.0:
+                cx = moments["m10"] / moments["m00"]
+                cy = moments["m01"] / moments["m00"]
+                feature_128[126] = float(cx / 16.0)
+                feature_128[127] = float(cy / 16.0)
+
+            norm = np.linalg.norm(feature_128)
+            if norm > 1e-8:
+                feature_128 = feature_128 / norm
+
+            features.append(feature_128)
+
+        if not features:
+            return np.zeros((0, 128), dtype=np.float32)
+
+        return np.ascontiguousarray(np.vstack(features), dtype=np.float32)
+
+    _SLENDER_CHARS = {"1", "I", "i", "l", "t", "f", "j", "J", "7"}
+    _DIGIT_TO_LETTER_MAP = {
+        "0": [("O", 0.05), ("Q", 0.05)],
+        "1": [("I", 0.05), ("L", 0.06)],
+        "2": [("Z", 0.06)],
+        "3": [("E", 0.05)],
+        "4": [("A", 0.05)],
+        "5": [("S", 0.05)],
+        "6": [("G", 0.05)],
+        "7": [("T", 0.05)],
+        "8": [("B", 0.05)],
+        "9": [("G", 0.05), ("Q", 0.07)],
+    }
+    _NON_LATIN_TOKENS = (
+        "arabic",
+        "khmer",
+        "devanagari",
+        "bengali",
+        "malayalam",
+        "tamil",
+        "telugu",
+        "sinhala",
+        "thai",
+        "lao",
+        "myanmar",
+        "georgian",
+        "ethiopic",
+        "armenian",
+        "cyrillic",
+        "cherokee",
+        "syriac",
+        "naskh",
+        "hebrew",
+        "gurmukhi",
+        "oriya",
+        "kannada",
+        "tifinagh",
+        "vai",
+        "mongolian",
+        "khudawadi",
+        "buhid",
+        "tibetan",
+        "balinese",
+    )
+
+    # PHASE_E_TODO: The methods below support the shelved GPU-native OCR flow.
+    # They remain in-place so Phase E can iterate on sovereign glyph matching
+    # without reintroducing the full feature extractor from scratch.
+    def _match_glyphs_gpu(
+        self,
+        char_features: np.ndarray,
+        char_bboxes: List[Tuple[int, int, int, int]],
+    ) -> List[Dict[str, object]]:
+        if char_features.size == 0:
+            return []
+
+        if (
+            not self._coarse_chars
+            or self._coarse_embeddings is None
+            or not self._prototypes_by_char
+        ):
+            return []
+
+        features = np.ascontiguousarray(char_features.astype(np.float32, copy=False))
+        coarse_matrix = self._coarse_embeddings
+        coarse_scores = features @ coarse_matrix.T
+
+        topk = min(self._coarse_topk, coarse_matrix.shape[0])
+        top_indices = np.argpartition(coarse_scores, -topk, axis=1)[:, -topk:]
+
+        recognized: List[Dict[str, object]] = []
+
+        for idx, feature in enumerate(features):
+            bbox = char_bboxes[idx]
+            width = max(1, int(bbox[2]))
+            height = max(1, int(bbox[3]))
+            aspect = float(width) / float(height)
+
+            candidate_indices = top_indices[idx]
+            candidate_indices = candidate_indices[
+                np.argsort(coarse_scores[idx, candidate_indices])[::-1]
+            ]
+
+            candidates: List[Dict[str, object]] = []
+            for char_idx in candidate_indices:
+                char_symbol = self._coarse_chars[char_idx]
+                prototypes = self._prototypes_by_char.get(char_symbol)
+                if prototypes is None or prototypes.size == 0:
+                    continue
+
+                proto_scores = prototypes @ feature
+                best_proto_idx = int(np.argmax(proto_scores))
+                best_proto_score = float(proto_scores[best_proto_idx])
+                if best_proto_score < self._min_proto_confidence:
+                    continue
+
+                meta = self._prototype_meta_by_char[char_symbol][best_proto_idx]
+                coarse_score = float(coarse_scores[idx, char_idx])
+                combined = (0.65 * best_proto_score) + (0.35 * coarse_score)
+
+                descriptor = f"{meta.get('font', '')}".lower()
+                font_path = meta.get("font_path")
+                if font_path:
+                    descriptor += f" {font_path}".lower()
+
+                penalty = 0.0
+                if meta.get("is_symbol") or meta.get("is_symbol_font"):
+                    penalty += 0.08
+                if any(token in descriptor for token in self._NON_LATIN_TOKENS):
+                    penalty += 0.08
+
+                adjusted = combined - penalty
+                if adjusted < 0.45:
+                    continue
+
+                candidates.append(
+                    {
+                        "char": char_symbol,
+                        "combined": adjusted,
+                        "proto_score": best_proto_score,
+                        "coarse_score": coarse_score,
+                        "meta": meta,
+                    }
+                )
+
+            if not candidates:
+                continue
+
+            candidates.sort(key=lambda item: item["combined"], reverse=True)
+            chosen = self._select_candidate_by_geometry(candidates, aspect)
+            if chosen is None:
+                continue
+
+            final_char = chosen["char"]
+            final_conf = max(0.0, min(1.0, chosen["proto_score"]))
+            if final_conf < self._min_proto_confidence:
+                continue
+
+            recognized.append(
+                {
+                    "char": final_char,
+                    "bbox": bbox,
+                    "confidence": final_conf,
+                    "font": chosen["meta"].get("font"),
+                }
+            )
+
+        return recognized
+
+    def _select_candidate_by_geometry(
+        self,
+        candidates: List[Dict[str, object]],
+        aspect_ratio: float,
+    ) -> Optional[Dict[str, object]]:
+        """
+        Apply simple geometric heuristics to disambiguate slim vs wide glyphs.
+        """
+        if not candidates:
+            return None
+
+        best = candidates[0]
+
+        if aspect_ratio < 0.45:
+            for item in candidates:
+                if item["char"] in self._SLENDER_CHARS and item["combined"] >= best["combined"] - 0.08:
+                    best = item
+                    break
+        elif aspect_ratio > 0.78:
+            for item in candidates:
+                if item["char"] not in self._SLENDER_CHARS and item["combined"] >= best["combined"] - 0.10:
+                    best = item
+                    break
+
+        digit_map = self._DIGIT_TO_LETTER_MAP.get(best["char"])
+        if digit_map:
+            for letter, margin in digit_map:
+                for item in candidates:
+                    if item["char"] == letter and item["combined"] >= best["combined"] - margin:
+                        best = item
+                        break
+                else:
+                    continue
+                break
+
+        if best["combined"] < 0.50:
+            return None
+
+        return best
+
+    def _group_characters_to_blocks(
+        self,
+        recognized_chars: List[Dict[str, object]],
+        *,
+        scale_x: float,
+        scale_y: float,
+        page_rect,
+    ) -> List[Dict[str, object]]:
+        if not recognized_chars:
+            return []
+
+        char_entries: List[Dict[str, object]] = []
+        for item in recognized_chars:
+            bbox_px = item.get("bbox")
+            char_symbol = str(item.get("char", ""))
+            if not bbox_px or not char_symbol.strip():
+                continue
+            bbox_pdf = self._convert_bbox_px_to_pdf(bbox_px, scale_x, scale_y, page_rect)
+            char_entries.append(
+                {
+                    "char": char_symbol,
+                    "bbox_px": bbox_px,
+                    "bbox_pdf": bbox_pdf,
+                    "confidence": float(item.get("confidence", 0.0)),
+                }
+            )
+
+        if not char_entries:
+            return []
+
+        char_entries.sort(key=lambda entry: (-entry["bbox_pdf"][1], entry["bbox_pdf"][0]))
+
+        blocks: List[Dict[str, object]] = []
+        current_line: List[Dict[str, object]] = [char_entries[0]]
+        baseline = char_entries[0]["bbox_pdf"][1]
+        line_threshold = max(char_entries[0]["bbox_pdf"][3] * 0.8, 4.0)
+
+        for entry in char_entries[1:]:
+            if abs(entry["bbox_pdf"][1] - baseline) <= line_threshold:
+                current_line.append(entry)
+            else:
+                blocks.extend(self._assemble_line_block(current_line))
+                current_line = [entry]
+                baseline = entry["bbox_pdf"][1]
+                line_threshold = max(entry["bbox_pdf"][3] * 0.8, 4.0)
+
+        if current_line:
+            blocks.extend(self._assemble_line_block(current_line))
+
+        return blocks
+
+    def _assemble_line_block(self, line_chars: List[Dict[str, object]]) -> List[Dict[str, object]]:
+        if not line_chars:
+            return []
+
+        line_chars.sort(key=lambda entry: entry["bbox_pdf"][0])
+
+        text_parts: List[str] = []
+        confidences: List[float] = []
+        prev_char = None
+
+        for entry in line_chars:
+            char_symbol = entry["char"]
+            bbox = entry["bbox_pdf"]
+            if prev_char is not None:
+                prev_bbox = prev_char["bbox_pdf"]
+                gap = bbox[0] - (prev_bbox[0] + prev_bbox[2])
+                avg_width = (bbox[2] + prev_bbox[2]) / 2.0
+                if gap > max(avg_width * 0.25, 0.8):
+                    text_parts.append(" ")
+            text_parts.append(char_symbol)
+            confidences.append(float(entry["confidence"]))
+            prev_char = entry
+
+        text_str = "".join(text_parts).strip()
+        if not text_str:
+            return []
+
+        x0 = min(entry["bbox_pdf"][0] for entry in line_chars)
+        y0 = min(entry["bbox_pdf"][1] for entry in line_chars)
+        x1 = max(entry["bbox_pdf"][0] + entry["bbox_pdf"][2] for entry in line_chars)
+        y1 = max(entry["bbox_pdf"][1] + entry["bbox_pdf"][3] for entry in line_chars)
+
+        confidence = float(np.mean(confidences) if confidences else 0.0)
+        confidence = max(0.0, min(1.0, confidence))
+
+        return [
+            {
+                "text": text_str,
+                "bbox": (x0, y0, x1 - x0, y1 - y0),
+                "confidence": confidence,
+            }
+        ]
+
+    @staticmethod
+    def _convert_bbox_px_to_pdf(
+        bbox_px: Tuple[int, int, int, int],
+        scale_x: float,
+        scale_y: float,
+        page_rect,
+    ) -> Tuple[float, float, float, float]:
+        x_px, y_px, w_px, h_px = bbox_px
+        x_pdf = float(page_rect.x0) + (float(x_px) / float(scale_x))
+        width_pdf = float(w_px) / float(scale_x)
+        top_pdf = float(page_rect.y1) - (float(y_px) / float(scale_y))
+        height_pdf = float(h_px) / float(scale_y)
+        y_pdf = top_pdf - height_pdf
+        return (x_pdf, y_pdf, width_pdf, height_pdf)
+
+    @staticmethod
+    def _decode_pdf_string(raw: bytes) -> str:
+        if not raw:
+            return ""
+
+        text = raw.decode("latin-1", errors="ignore")
+        text = text.replace("\\n", " ")
+        text = text.replace("\\r", " ")
+        text = text.replace("\\t", " ")
+        text = text.replace("\r", " ")
+        text = text.replace("\n", " ")
+        text = text.replace("\\(", "(")
+        text = text.replace("\\)", ")")
+        text = "".join(ch if 32 <= ord(ch) <= 126 else " " for ch in text)
+        while "  " in text:
+            text = text.replace("  ", " ")
+        return text.strip()
+
     def _generate_text_embeddings(self, parsed_objects: Dict[str, object]) -> np.ndarray:
         objects = parsed_objects.get("objects")
         if objects is None or len(objects) == 0:
@@ -682,32 +1505,64 @@ class PDFIngestionBridge:
     ) -> np.ndarray:
         if text_embeddings.size == 0 and visual_embeddings.size == 0:
             return np.zeros((1, 128), dtype=np.float32)
-        if visual_embeddings.size == 0:
-            return text_embeddings.mean(axis=0, keepdims=True)
-        if text_embeddings.size == 0:
-            return visual_embeddings.mean(axis=0, keepdims=True)
 
-        stacked = np.vstack([text_embeddings, visual_embeddings]).astype(np.float32)
-        return stacked.mean(axis=0, keepdims=True)
+        reservoirs: List[np.ndarray] = []
+        if text_embeddings.size > 0:
+            reservoirs.append(text_embeddings.astype(np.float32, copy=False))
+        if visual_embeddings.size > 0:
+            reservoirs.append(visual_embeddings.astype(np.float32, copy=False))
+
+        combined = np.vstack(reservoirs)
+
+        fused_flat = self.fusion_engine.transform(
+            combined.flatten().astype(np.float32, copy=False), mode=0, ratio=0.5
+        )
+        fused_matrix = fused_flat.reshape(combined.shape)
+        return fused_matrix.mean(axis=0, keepdims=True)
 
     def _crystallize_to_galaxy(
         self, layout_graph: Dict[str, object], fused_embeddings: np.ndarray
     ) -> np.ndarray:
-        if fused_embeddings.size == 0:
-            return np.zeros(3, dtype=np.float32)
+        from knowledge3d.cranium.ptx_runtime.graph_crystallizer import GraphCrystallizer
 
-        vec = fused_embeddings[0]
-        if np.allclose(vec, 0.0):
-            return np.zeros(3, dtype=np.float32)
+        if not layout_graph.get("nodes"):
+            vec = fused_embeddings[0] if fused_embeddings.size else np.zeros(128, dtype=np.float32)
+            head = vec[:3]
+            norm = np.linalg.norm(head) or 1.0
+            return (head / norm).astype(np.float32)
 
-        norm = np.linalg.norm(vec[:3]) or 1.0
-        return (vec[:3] / norm).astype(np.float32)
+        node_embeddings = np.stack(
+            [np.asarray(node.get("embedding", np.zeros(128)), dtype=np.float32) for node in layout_graph["nodes"]],
+            axis=0,
+        )
+
+        neighbor_accum = np.zeros_like(node_embeddings)
+        counts = np.zeros(node_embeddings.shape[0], dtype=np.int32)
+        for src, dst, _ in layout_graph.get("edges", []):
+            if 0 <= src < node_embeddings.shape[0] and 0 <= dst < node_embeddings.shape[0]:
+                neighbor_accum[src] += node_embeddings[dst]
+                counts[src] += 1
+
+        counts = np.maximum(counts, 1)[:, None].astype(np.float32)
+        neighbor_embeddings = np.divide(neighbor_accum, counts, where=counts > 0)
+
+        crystallizer = GraphCrystallizer()
+        crystallized = crystallizer.crystallize(
+            node_embeddings.astype(np.float32, copy=False),
+            neighbor_embeddings.astype(np.float32, copy=False),
+        )
+
+        fused_vector = fused_embeddings[0] if fused_embeddings.size else np.zeros(128, dtype=np.float32)
+        avg_vector = 0.5 * crystallized.mean(axis=0) + 0.5 * fused_vector
+        head = avg_vector[:3]
+        norm = np.linalg.norm(head) or 1.0
+        return (head / norm).astype(np.float32)
 
     # ------------------------------------------------------------------ #
     # Cleanup
     # ------------------------------------------------------------------ #
     def _cleanup_gpu_buffers(self) -> None:
-        if not (self._enable_gpu_parser and self.gpu_enabled):
+        if not self.gpu_enabled:
             self.allocated_buffers.clear()
             return
 
