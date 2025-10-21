@@ -44,10 +44,13 @@ class PDFIngestionBridge:
     """
 
     _MAX_OBJECTS = 1024
+    _EMBEDDINGS_PATH = Path("/K3D/Knowledge3D.local/house_zone7/embeddings/rpn_embeddings.pkl")
 
     def __init__(self) -> None:
         self.kernel_dir = Path(__file__).parent.parent / "kernels"
         self.rpn_engine = RPNEmbeddingEngine()
+        self.embeddings_path = self._EMBEDDINGS_PATH
+        self._load_rpn_embeddings()
         self.fusion_engine = AtomicFissionFusion()
         self.allocated_buffers: List[Tuple[object, int]] = []
         self._temp_text_storage: List[str] = []
@@ -254,6 +257,30 @@ class PDFIngestionBridge:
             f"{total_variants} per-font variants for OCR fallback."
         )
 
+    def _load_rpn_embeddings(self) -> None:
+        """Load persisted RPN embeddings when available."""
+        path = self.embeddings_path
+        try:
+            if path.exists():
+                self.rpn_engine.load_embeddings(path)
+                print(
+                    f"[LOAD] RPN embeddings loaded: {len(self.rpn_engine.embeddings)} trigrams"
+                )
+        except Exception as exc:
+            print(f"[LOAD] WARNING: Failed to load RPN embeddings ({exc})")
+
+    def save_rpn_embeddings(self) -> None:
+        """Persist RPN embeddings to disk."""
+        path = self.embeddings_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            self.rpn_engine.save_embeddings(path)
+            print(
+                f"[SAVE] RPN embeddings saved: {len(self.rpn_engine.embeddings)} trigrams"
+            )
+        except Exception as exc:
+            print(f"[SAVE] WARNING: Failed to save RPN embeddings ({exc})")
+
     # ------------------------------------------------------------------ #
     # Public API
     # ------------------------------------------------------------------ #
@@ -289,7 +316,7 @@ class PDFIngestionBridge:
         self._cleanup_gpu_buffers()
 
         processing_time_ms = (time.perf_counter() - start_time) * 1_000.0
-        return {
+        result = {
             "galaxy_position": galaxy_position,
             "layout_graph": optimized_graph,
             "embeddings": fused_embeddings,
@@ -298,6 +325,9 @@ class PDFIngestionBridge:
             "method": parsed_objects.get("method", "structured"),
             "text": parsed_objects.get("text", ""),
         }
+        if page_num > 0 and page_num % 100 == 0:
+            self.save_rpn_embeddings()
+        return result
 
     # ------------------------------------------------------------------ #
     # Low-level helpers

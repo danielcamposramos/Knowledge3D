@@ -151,6 +151,7 @@ class KnowledgeIngestor:
             finally:
                 if doc is not None:
                     doc.close()
+                self.bridge.save_rpn_embeddings()
 
         elapsed = time.time() - start_time
         ms_per_page = (elapsed * 1000) / total_pages if total_pages else 0.0
@@ -170,6 +171,8 @@ class KnowledgeIngestor:
             f"\n✅ Local PDFs complete: {total_pages} pages in {elapsed:.1f}s "
             f"({ms_per_page:.1f} ms/page)"
         )
+        print("\n[SAVE] Persisting final RPN embeddings...")
+        self.bridge.save_rpn_embeddings()
         if failed_pages:
             print(
                 f"⚠️  Logged {len(failed_pages)} problematic pages to {self.failed_log_path}"

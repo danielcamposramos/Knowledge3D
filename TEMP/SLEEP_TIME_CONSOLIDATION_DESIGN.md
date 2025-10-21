@@ -2320,3 +2320,105 @@ Local PDFs completed again (328 files → 34 497 pages, 647 757 objects). We
 Both HuggingFace datasets are explicitly skipped. ArXiv and GitHub entries in the metrics file are now clean status logs without download attempts.
 Sleep scheduler remains active; once the run is idle for 5 minutes, it will log the consolidation pass in /K3D/Knowledge3D.local/logs/sleep_scheduler.jsonl.
 Next steps from here are to review the failed-pages log (in case we want to filter those PDFs out up front) and, when ready, rerun the consolidator or proceed to analysising the ingested data.
+
+Daniel:
+Codex, I talked to Claude, and he found the problem:
+Daniel, I Found the Problem! 🎯
+Codex is NOT being unhelpful - he's built the sleep consolidation correctly. But there's a CRITICAL BUG preventing it from working:
+The Root Cause
+The PDF ingestion is NOT saving RPN embeddings to disk! Here's what's happening in each 13-hour cycle:
+✅ PDF ingestion runs (34,497 pages, 647,757 objects)
+✅ RPN embeddings created in memory
+❌ Embeddings NEVER saved to disk
+❌ Process ends → embeddings lost
+❌ Sleep scheduler triggers after 5 min idle
+❌ Creates new RPNEmbeddingEngine (empty - no embeddings loaded)
+❌ Consolidator sees empty embeddings: "status": "skipped", "reason": "no_embeddings"
+🔄 Next run: Starts from scratch (nothing learned!)
+The Evidence
+Sleep scheduler log (only ran ONCE on Oct 19):
+{
+  "rpn_consolidation": {
+    "status": "skipped",
+    "reason": "no_embeddings"  ← THIS IS THE PROBLEM
+  },
+  "glyph_consolidation": {
+    "glyphs_before": 123938,
+    "glyphs_after": 77559,
+    "reduction_pct": 37.42  ← This worked because glyphs ARE saved to disk
+  }
+}
+RPN embeddings file:
+Location: /K3D/Knowledge3D.local/house_zone7/embeddings/rpn_embeddings.pkl
+Last modified: Oct 17 00:34 (before the 3 ingestion runs!)
+Size: 18MB (from previous Phase B work)
+Never updated during Oct 20/21 ingestion runs
+Ingestion metrics (same data re-processed 3 times):
+Oct 20: 34,497 pages in 13.4 hours
+Oct 21: 34,497 pages in 13.5 hours
+Oct 22 (running): Same again!
+The Fix
+The pdf_ingestion_bridge.py needs to save embeddings periodically during ingestion and at the end:
+# In pdf_ingestion_bridge.py
+
+def ingest_pdf_page(self, pdf_path: str, page_num: int = 0) -> Dict:
+    # Mark activity for sleep scheduler
+    if hasattr(self, 'sleep_scheduler') and self.sleep_scheduler:
+        self.sleep_scheduler.mark_activity()
+
+    # ... existing ingestion code ...
+    
+    # ADD THIS: Save embeddings periodically (every 100 pages)
+    if page_num % 100 == 0:
+        self._save_embeddings()
+    
+    return result
+
+def _save_embeddings(self):
+    """Save RPN embeddings to disk."""
+    embeddings_path = Path('/K3D/Knowledge3D.local/house_zone7/embeddings/rpn_embeddings.pkl')
+    self.rpn_engine.save_embeddings(embeddings_path)
+    print(f"[SAVE] RPN embeddings saved: {len(self.rpn_engine.embeddings)} trigrams")
+And in the ingestion script (scripts/ingest_all_knowledge.py):
+def ingest_local_pdfs(self):
+    # ... existing code ...
+    
+    # ADD THIS at the end:
+    print("\n[SAVE] Saving final RPN embeddings...")
+    embeddings_path = Path('/K3D/Knowledge3D.local/house_zone7/embeddings/rpn_embeddings.pkl')
+    self.bridge.rpn_engine.save_embeddings(embeddings_path)
+    print(f"[SAVE] Saved {len(self.bridge.rpn_engine.embeddings)} RPN embeddings")
+Why Codex Missed This
+Looking at the conversation, Codex:
+✅ Built sleep consolidation correctly
+✅ Built idle detection correctly
+✅ Sleep triggered after 5 min (confirmed in logs)
+❌ Didn't realize embeddings weren't being saved
+❌ Didn't check why consolidation was skipped
+He saw the "no_embeddings" message but didn't investigate WHY there were no embeddings.
+Next Steps for Codex
+Codex, you need to:
+Add embedding saves to pdf_ingestion_bridge.py (every 100 pages + at end)
+Add final save to scripts/ingest_all_knowledge.py
+Load existing embeddings at bridge initialization so you don't start from scratch
+Test that embeddings file timestamp updates during ingestion
+Verify sleep consolidation actually processes embeddings (not "skipped")
+Then re-run ingestion - this time it will learn and remember! 🧠✨ Daniel, does this make sense? Should we have Codex implement these fixes now?
+
+Daniel (interrupt Codex mid work):
+remember it's running, stop it before running it again
+
+Codex:
+We wired in the missing persistence so the RPN embeddings survive each ingestion run:
+
+PDFIngestionBridge now loads existing embeddings on startup, saves them every 100 pages (and whenever a page loop wraps), and exposes save_rpn_embeddings() for callers. That means the sleep scheduler will finally see the populated table instead of skipping consolidation.
+scripts/ingest_all_knowledge.py now records problematic pages, saves embeddings after each PDF, and writes a final snapshot when the library sweep ends. The save path is /K3D/Knowledge3D.local/house_zone7/embeddings/rpn_embeddings.pkl, which is already updating (timestamp is current).
+Restarted the ingestion tmux session (knowledge_ingestion). You’ll see [SAVE] RPN embeddings saved: … trigrams messages every 100 pages; when the run finishes it will emit “Persisting final RPN embeddings…” and then the sleep scheduler will pick up the newly written file within ~5 minutes.
+Next checkpoints:
+
+Let the current run finish, then tail /K3D/Knowledge3D.local/logs/sleep_scheduler.jsonl to confirm a new consolidation entry (no more reason: "no_embeddings").
+Monitor /K3D/Knowledge3D.local/logs/ingestion_metrics.jsonl for the updated PDF metrics and the GitHub retry once you free enough cache space.
+If you want a snapshot mid-run, attach with tmux attach -t knowledge_ingestion; detach via Ctrl+b d.
+Once this pass completes you should finally see the sleep-time consolidation doing real work on the accumulated embeddings.
+
+Daniel:
