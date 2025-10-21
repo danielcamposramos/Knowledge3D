@@ -29,7 +29,11 @@ class KnowledgeIngestor:
         self.metrics_path = Path(
             "/K3D/Knowledge3D.local/logs/ingestion_metrics.jsonl"
         )
+        self.failed_log_path = Path(
+            "/K3D/Knowledge3D.local/logs/ingestion_failed_pdfs.jsonl"
+        )
         self.metrics_path.parent.mkdir(parents=True, exist_ok=True)
+        self.failed_log_path.parent.mkdir(parents=True, exist_ok=True)
 
     # ------------------------------------------------------------------ #
     # Utilities
@@ -43,6 +47,14 @@ class KnowledgeIngestor:
         }
         with self.metrics_path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(entry) + "\n")
+
+    def log_failed_pages(self, failures: list[dict]) -> None:
+        """Record problematic PDF pages for future skips."""
+        if not failures:
+            return
+        with self.failed_log_path.open("a", encoding="utf-8") as handle:
+            for item in failures:
+                handle.write(json.dumps(item) + "\n")
 
     def _print_banner(self, title: str) -> None:
         print("\n" + "=" * 60)
@@ -65,6 +77,7 @@ class KnowledgeIngestor:
 
         try:
             import fitz  # type: ignore
+            fitz.TOOLS.mupdf_display_errors(False)
         except ImportError:
             raise RuntimeError(
                 "PyMuPDF (fitz) is required for PDF ingestion. Install via `pip install pymupdf`."
@@ -72,31 +85,72 @@ class KnowledgeIngestor:
 
         total_pages = 0
         total_objects = 0
+        failed_pages: list[dict] = []
         start_time = time.time()
 
         for idx, pdf_path in enumerate(pdf_files, 1):
+            doc = None
             try:
                 doc = fitz.open(str(pdf_path))
                 num_pages = len(doc)
                 print(f"\n[{idx}/{len(pdf_files)}] {pdf_path.name} ({num_pages} pages)")
 
+                page_errors = 0
                 for page_num in range(num_pages):
-                    result = self.bridge.ingest_pdf_page(str(pdf_path), page_num)
-                    total_objects += len(result["objects"])
+                    try:
+                        result = self.bridge.ingest_pdf_page(str(pdf_path), page_num)
+                    except Exception as page_exc:
+                        page_errors += 1
+                        failure = {
+                            "timestamp": datetime.now().isoformat(),
+                            "pdf": str(pdf_path),
+                            "page": page_num,
+                            "error": str(page_exc),
+                        }
+                        failed_pages.append(failure)
+                        print(
+                            f"    ERROR page {page_num + 1}/{num_pages}: {page_exc}"
+                        )
+                        if page_errors >= 5:
+                            print(
+                                "    Too many page errors in this document; skipping remaining pages."
+                            )
+                            failed_pages.append(
+                                {
+                                    "timestamp": datetime.now().isoformat(),
+                                    "pdf": str(pdf_path),
+                                    "page": page_num,
+                                    "error": "page_error_threshold_exceeded",
+                                }
+                            )
+                            break
+                        continue
+
+                    object_count = int(result.get("object_count", 0))
+                    total_objects += object_count
                     total_pages += 1
 
                     if (page_num + 1) % 10 == 0 or (page_num + 1) == num_pages:
                         method = result.get("method", "structured")
                         print(
                             f"  Page {page_num + 1:>4}/{num_pages:<4} "
-                            f"→ {len(result['objects']):3d} objects ({method})"
+                            f"→ {object_count:3d} objects ({method})"
                         )
-
-                doc.close()
 
             except Exception as exc:  # pragma: no cover - ingestion resiliency
                 print(f"  ERROR ingesting {pdf_path.name}: {exc}")
+                failed_pages.append(
+                    {
+                        "timestamp": datetime.now().isoformat(),
+                        "pdf": str(pdf_path),
+                        "page": None,
+                        "error": str(exc),
+                    }
+                )
                 continue
+            finally:
+                if doc is not None:
+                    doc.close()
 
         elapsed = time.time() - start_time
         ms_per_page = (elapsed * 1000) / total_pages if total_pages else 0.0
@@ -107,85 +161,47 @@ class KnowledgeIngestor:
             "objects": total_objects,
             "elapsed_seconds": elapsed,
             "ms_per_page": ms_per_page,
+            "failed_pages": len(failed_pages),
         }
         self.log_metrics("local_pdfs", metrics)
+        self.log_failed_pages(failed_pages)
 
         print(
             f"\n✅ Local PDFs complete: {total_pages} pages in {elapsed:.1f}s "
             f"({ms_per_page:.1f} ms/page)"
         )
+        if failed_pages:
+            print(
+                f"⚠️  Logged {len(failed_pages)} problematic pages to {self.failed_log_path}"
+            )
 
     # ------------------------------------------------------------------ #
-    # ArXiv dataset
+    # ArXiv dataset (skipped)
     # ------------------------------------------------------------------ #
     def ingest_arxiv_papers(self) -> None:
-        """Ingest ArXiv papers dataset from HuggingFace."""
-        self._print_banner("STEP 2: Ingesting ArXiv Papers Dataset")
-
-        try:
-            from datasets import load_dataset  # type: ignore
-        except ImportError:
-            raise RuntimeError(
-                "huggingface-datasets is required. Install via `pip install datasets`."
-            )
-
-        try:
-            print("Downloading dataset preview (first 10 entries)...")
-            dataset = load_dataset("nick007x/arxiv-papers", split="train[:10]")
-            print(f"Loaded {len(dataset)} sample papers")
-            print("\nDataset features:", dataset.features)
-            print("\nSample entry:")
-            print(dataset[0])
-
-            metrics = {
-                "papers_sampled": len(dataset),
-                "status": "analysis_complete",
-            }
-            self.log_metrics("arxiv_papers", metrics)
-            print(
-                "⚠️  Full ingestion strategy requires tailoring to dataset structure."
-            )
-
-        except Exception as exc:
-            print(f"ERROR accessing ArXiv dataset: {exc}")
-            metrics = {"error": str(exc)}
-            self.log_metrics("arxiv_papers", metrics)
+        """Placeholder for ArXiv ingestion (skipped)."""
+        self._print_banner("STEP 2: ArXiv Papers Dataset (Skipped)")
+        note = (
+            "Dataset nick007x/arxiv-papers deferred for future ingestion planning. "
+            "Skipping for current run."
+        )
+        print(f"⚠️  {note}")
+        metrics = {"status": "skipped", "dataset": "nick007x/arxiv-papers"}
+        self.log_metrics("arxiv_papers", metrics)
 
     # ------------------------------------------------------------------ #
     # GitHub dataset
     # ------------------------------------------------------------------ #
     def ingest_github_code(self) -> None:
         """Ingest GitHub code dataset from HuggingFace."""
-        self._print_banner("STEP 3: Ingesting GitHub Code Dataset")
-
-        try:
-            from datasets import load_dataset  # type: ignore
-        except ImportError:
-            raise RuntimeError(
-                "huggingface-datasets is required. Install via `pip install datasets`."
-            )
-
-        try:
-            print("Downloading dataset preview (first 10 entries)...")
-            dataset = load_dataset("nick007x/github-code-2025", split="train[:10]")
-            print(f"Loaded {len(dataset)} sample files")
-            print("\nDataset features:", dataset.features)
-            print("\nSample entry:")
-            print(dataset[0])
-
-            metrics = {
-                "code_sampled": len(dataset),
-                "status": "analysis_complete",
-            }
-            self.log_metrics("github_code", metrics)
-            print(
-                "⚠️  Full ingestion strategy requires tailoring to dataset structure."
-            )
-
-        except Exception as exc:
-            print(f"ERROR accessing GitHub dataset: {exc}")
-            metrics = {"error": str(exc)}
-            self.log_metrics("github_code", metrics)
+        self._print_banner("STEP 3: GitHub Code Dataset (Skipped)")
+        note = (
+            "Dataset nick007x/github-code-2025 exceeds local storage budget (~4 TB). "
+            "Skipping ingestion to preserve disk space."
+        )
+        print(f"⚠️  {note}")
+        metrics = {"status": "skipped_due_to_size", "dataset": "nick007x/github-code-2025"}
+        self.log_metrics("github_code", metrics)
 
     # ------------------------------------------------------------------ #
     # Orchestration
