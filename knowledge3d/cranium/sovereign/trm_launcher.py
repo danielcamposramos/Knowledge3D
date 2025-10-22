@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 import ctypes
+import warnings
 from pathlib import Path
 from typing import List, Optional, Tuple
 
@@ -144,6 +145,11 @@ class TRMLauncher:
         n_steps: int = 6,
         eps: float = 1e-4,
     ) -> Tuple[np.ndarray, np.ndarray]:
+        if n_steps != 6:
+            warnings.warn(
+                f"⚠️  Using n_steps={n_steps} breaks Tesla 3/6/9 resonance. Recommended: n_steps=6",
+                RuntimeWarning,
+            )
         assert q.dtype == y.dtype == z.dtype == np.float32
         assert q.shape == y.shape == z.shape == (512,)
         assert W1.shape == (1024, 512) and W1.dtype == np.float32

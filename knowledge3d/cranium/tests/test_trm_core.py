@@ -66,7 +66,7 @@ class TestTRMCore:
         # Run training iteration
         trm_model.recursive_refine(
             question=question,
-            max_supervision_steps=5,
+            max_supervision_steps=6,
             training=True
         )
 

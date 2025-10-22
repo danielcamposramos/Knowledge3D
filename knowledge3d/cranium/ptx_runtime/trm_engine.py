@@ -185,11 +185,20 @@ __global__ void trm_answer_refine(
 
 @dataclass
 class TRMConfig:
-    """TRM hyperparameters from paper."""
+    """TRM hyperparameters aligned with Tesla 3/6/9 resonance.
+
+    Architecture:
+        3 input modes (q, y, z) → 6 recursions → 9 output harmonics
+
+    Parameters:
+        n_recursions: int = 6
+            Tesla-aligned recursion count. DO NOT CHANGE without
+            understanding harmonic implications.
+    """
     input_dim: int = 512
     hidden_dim: int = 1024
     output_dim: int = 512
-    n_recursions: int = 6      # Paper optimal
+    n_recursions: int = 6      # TESLA 3/6/9 - DO NOT MODIFY
     T_iterations: int = 3       # Paper optimal
     epsilon: float = 1e-4       # Halting threshold
     ema_rate: float = 0.999     # Weight stability
