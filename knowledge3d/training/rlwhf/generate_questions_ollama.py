@@ -77,14 +77,14 @@ class ContextChunk:
 # Ollama helpers
 # --------------------------------------------------------------------------- #
 
-def ollama_generate(url: str, model: str, system: str, prompt: str, timeout: int = 120) -> str:
+def ollama_generate(url: str, model: str, system: str, prompt: str, timeout: int = 600) -> str:
     """Invoke the Ollama HTTP API using curl for portability."""
     payload = {
         "model": model,
         "prompt": prompt,
         "system": system,
         "stream": False,
-        "keep_alive": "10m",
+        "keep_alive": "0s",
         "options": {
             "temperature": 0.8,
             "top_p": 0.9,
@@ -208,6 +208,31 @@ def extract_pdf_contexts(pdf_dir: Path, max_pdfs: Optional[int] = None) -> List[
     """
     contexts: List[ContextChunk] = []
     ingestion_sources = _read_ingestion_sources(Path("/K3D/Knowledge3D.local/logs/ingestion_metrics.jsonl"))
+    failed_pdf_path = Path("/K3D/Knowledge3D.local/logs/ingestion_failed_pdfs.jsonl")
+
+    def _load_failed_pdfs(path: Path) -> set[Path]:
+        failed: set[Path] = set()
+        if not path.exists():
+            return failed
+        with path.open("r", encoding="utf-8") as handle:
+            for line in handle:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    entry = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                pdf_str = entry.get("pdf")
+                if not pdf_str:
+                    continue
+                failed.add(Path(pdf_str).resolve())
+        return failed
+
+    failed_pdfs = _load_failed_pdfs(failed_pdf_path)
+    if failed_pdfs:
+        print(f"   Skipping {len(failed_pdfs)} PDFs flagged as problematic in previous ingestion.")
+
     pdf_paths: List[Path] = []
 
     if ingestion_sources:
@@ -225,11 +250,18 @@ def extract_pdf_contexts(pdf_dir: Path, max_pdfs: Optional[int] = None) -> List[
 
     try:
         import fitz  # PyMuPDF
+        try:
+            fitz.TOOLS.mupdf_display_errors(False)
+        except Exception:
+            pass
     except ImportError:  # pragma: no cover - optional dependency guard
         print("❌ PyMuPDF (fitz) missing. Install it inside k3d-cranium env.")
         return contexts
 
     for pdf_path in pdf_paths:
+        resolved = pdf_path.resolve()
+        if resolved in failed_pdfs:
+            continue
         try:
             document = fitz.open(str(pdf_path))
         except Exception as exc:  # pragma: no cover - I/O guard
@@ -323,6 +355,8 @@ def generate_questions(
     model: str,
     target_count: int,
     output_path: Path,
+    *,
+    resume: bool = False,
 ) -> None:
     """
     Generate questions iterating over the provided contexts until the target
@@ -331,7 +365,17 @@ def generate_questions(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     random.shuffle(contexts)
 
-    generated = 0
+    existing = 0
+    if resume and output_path.exists():
+        with output_path.open("r", encoding="utf-8") as existing_file:
+            for _ in existing_file:
+                existing += 1
+        print(f"   Resuming: found {existing} existing questions (target={target_count}).")
+        if existing >= target_count:
+            print("✅ Desired target already reached; nothing to do.")
+            return
+
+    generated = existing
     failed = 0
 
     print(f"🎯 Target questions: {target_count}")
@@ -339,7 +383,9 @@ def generate_questions(
     print(f"   Model: {model}")
     print(f"   Ollama URL: {ollama_url}\n")
 
-    with output_path.open("w", encoding="utf-8") as handle:
+    mode = "a" if resume and output_path.exists() else "w"
+
+    with output_path.open(mode, encoding="utf-8") as handle:
         for ctx in contexts:
             if generated >= target_count:
                 break
@@ -378,12 +424,15 @@ def generate_questions(
 
             generated += 1
 
-            if generated % 50 == 0:
+            if generated % 50 == 0 and generated != existing:
                 print(f"   Generated {generated}/{target_count} questions (failures={failed})")
 
+    new_items = generated - existing
+
     print("\n✅ Question generation finished")
-    print(f"   Success: {generated}")
-    print(f"   Failed: {failed}")
+    print(f"   Success (total): {generated}")
+    print(f"   Newly added: {new_items}")
+    print(f"   Failed this run: {failed}")
     print(f"   Output: {output_path}")
 
 
@@ -403,6 +452,7 @@ def main() -> None:
     parser.add_argument("--output", type=Path, default=Path("/K3D/Knowledge3D.local/datasets/rlwhf/questions_generated.jsonl"))
     parser.add_argument("--seed", type=int, default=0, help="Random seed for reproducibility")
     parser.add_argument("--wordnet-sample", type=int, default=5_000, help="Number of WordNet synsets to sample")
+    parser.add_argument("--resume", action="store_true", help="Resume generation, appending to existing output")
     args = parser.parse_args()
 
     if args.seed:
@@ -436,6 +486,7 @@ def main() -> None:
         model=args.model,
         target_count=args.target,
         output_path=args.output,
+        resume=args.resume,
     )
 
 

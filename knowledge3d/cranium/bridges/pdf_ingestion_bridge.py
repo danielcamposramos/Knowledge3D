@@ -30,6 +30,13 @@ from knowledge3d.cranium.sovereign.loader import (
     synchronize,
 )
 
+# Phase E: DeepSeek-OCR integration (optional)
+try:
+    from knowledge3d.cranium.ocr.deepseek_bridge import DeepSeekOCRBridge
+    DEEPSEEK_OCR_AVAILABLE = True
+except ImportError:
+    DEEPSEEK_OCR_AVAILABLE = False
+
 
 class PDFIngestionBridge:
     """
@@ -57,6 +64,7 @@ class PDFIngestionBridge:
         self._temp_image_storage: List[bytes] = []
         self._current_pdf_path: Optional[str] = None
         self._enable_gpu_parser: bool = False
+        self._enable_deepseek_ocr: bool = False  # Phase E: DeepSeek-OCR toggle
 
         self.pdf_parser_kernel = None
         self.layout_optimizer_kernel = None
@@ -79,6 +87,15 @@ class PDFIngestionBridge:
         self._compile_pdf_kernels()
         self._load_kernels()
         self._load_glyph_embeddings()
+
+        # Phase E: Initialize DeepSeek OCR bridge (optional)
+        self.deepseek_bridge = None
+        if DEEPSEEK_OCR_AVAILABLE:
+            try:
+                self.deepseek_bridge = DeepSeekOCRBridge(mode='small')
+                print("[PHASE_E] DeepSeek OCR bridge initialized (mode: small)")
+            except Exception as exc:
+                print(f"[PHASE_E] WARNING: Could not initialize DeepSeek OCR - {exc}")
 
         # Initialize sleep scheduler (last step)
         try:
@@ -154,6 +171,22 @@ class PDFIngestionBridge:
         if enabled and self.pdf_parser_kernel is None:
             raise RuntimeError("PDF parser kernel not available to enable GPU parsing.")
         self._enable_gpu_parser = bool(enabled) and self.gpu_enabled
+
+    def enable_deepseek_ocr(self, enabled: bool = True) -> None:
+        """
+        Toggle DeepSeek-OCR for Phase E enhanced text extraction.
+
+        Phase E: Uses DeepSeek pipeline (SAM-base + 16× Conv + CLIP-large)
+        for improved OCR accuracy and dual-texture generation.
+
+        Args:
+            enabled: True to enable DeepSeek OCR, False to use Tesseract fallback
+        """
+        if enabled and self.deepseek_bridge is None:
+            raise RuntimeError("DeepSeek OCR bridge not available. Install Phase E components.")
+        self._enable_deepseek_ocr = bool(enabled) and self.deepseek_bridge is not None
+        if self._enable_deepseek_ocr:
+            print("[PHASE_E] DeepSeek OCR enabled")
 
     def _load_kernel(self, filename: str, func_name: str):
         ptx_path = self.kernel_dir / filename
@@ -688,7 +721,127 @@ class PDFIngestionBridge:
         }
 
     def _ocr_fallback(self, pdf_path: str, page_num: int) -> Dict[str, object]:
+        # Phase E: Try DeepSeek OCR first if enabled
+        if self._enable_deepseek_ocr and self.deepseek_bridge is not None:
+            return self._ocr_fallback_deepseek(pdf_path, page_num)
+
+        # Fallback to Tesseract
         return self._ocr_fallback_tesseract(pdf_path, page_num)
+
+    def _ocr_fallback_deepseek(self, pdf_path: str, page_num: int) -> Dict[str, object]:
+        """
+        Phase E: Enhanced OCR using DeepSeek pipeline.
+
+        Uses DeepSeek architecture:
+        - Stage 1: SAM-base (local perception with window attention)
+        - Stage 2: 16× Convolutional compressor
+        - Stage 3: Text extraction (PyMuPDF + Tesseract fallback)
+        - Stage 4: CLIP-large (global context encoding)
+
+        Returns structured objects compatible with existing pipeline.
+        """
+        import time as _time
+
+        ocr_start = _time.perf_counter()
+
+        try:
+            import fitz  # type: ignore
+            from PIL import Image  # type: ignore
+        except ImportError:
+            print("[WARN] PyMuPDF/Pillow not available; falling back to Tesseract")
+            return self._ocr_fallback_tesseract(pdf_path, page_num)
+
+        try:
+            # Render PDF page to image
+            with fitz.open(pdf_path) as doc:
+                if page_num < 0 or page_num >= len(doc):
+                    raise ValueError(f"Page {page_num} out of range")
+
+                page = doc[page_num]
+                matrix = fitz.Matrix(2.0, 2.0)  # 2× resolution
+                pix = page.get_pixmap(matrix=matrix, alpha=False)
+
+                # Convert to PIL then numpy
+                import io
+                img = Image.open(io.BytesIO(pix.tobytes("png")))
+                page_image = np.array(img, dtype=np.uint8)
+
+                # Ensure RGB
+                if page_image.ndim == 2:
+                    page_image = np.stack([page_image, page_image, page_image], axis=-1)
+                elif page_image.shape[2] == 4:
+                    page_image = page_image[:, :, :3]
+
+            # Run DeepSeek pipeline
+            extraction = self.deepseek_bridge.extract(
+                page_image,
+                Path(pdf_path),
+                page_num
+            )
+
+            # Convert extracted text to structured objects (compatible with existing pipeline)
+            page_rect = page.rect
+            width_px, height_px = page_image.shape[1], page_image.shape[0]
+            scale_x = 2.0  # We rendered at 2× resolution
+            scale_y = 2.0
+
+            # Split text into lines for object creation
+            lines = extraction['full_text'].split('\n')
+            objects: List[List[float]] = []
+            y_offset = 50.0
+
+            for line_text in lines:
+                if not line_text.strip():
+                    continue
+
+                # Estimate bounding box (Phase E: simple layout)
+                # Phase F: Use actual layout detection
+                text_width = len(line_text) * 6.0  # ~6 pts per char
+                text_height = 12.0
+
+                x_pdf = 72.0
+                y_pdf = y_offset
+                width_pdf = min(text_width, page_rect.width - 144.0)
+                height_pdf = text_height
+
+                text_index = len(self._temp_text_storage)
+                self._temp_text_storage.append(line_text)
+
+                objects.append([
+                    float(x_pdf),
+                    float(y_pdf),
+                    float(width_pdf),
+                    float(height_pdf),
+                    1.0,  # Text type
+                    float(text_index),
+                    float(len(line_text)),
+                    0.9,  # High confidence (DeepSeek has 97% accuracy)
+                ])
+
+                y_offset += text_height + 4.0
+
+            objects_array = (
+                np.array(objects, dtype=np.float32)
+                if objects
+                else np.zeros((0, 8), dtype=np.float32)
+            )
+
+            return {
+                "objects_gpu": None,
+                "objects": objects_array,
+                "object_count": int(objects_array.shape[0]),
+                "processing_time_us": int((_time.perf_counter() - ocr_start) * 1_000_000),
+                "is_scanned": True,
+                "method": "deepseek",
+                "text": extraction['full_text'],
+                "compression_ratio": extraction['compression_ratio'],
+                "fidelity": extraction['fidelity'],
+            }
+
+        except Exception as exc:
+            print(f"[WARN] DeepSeek OCR failed: {exc}")
+            # Fallback to Tesseract
+            return self._ocr_fallback_tesseract(pdf_path, page_num)
 
     def _ocr_fallback_tesseract(self, pdf_path: str, page_num: int) -> Dict[str, object]:
         """
