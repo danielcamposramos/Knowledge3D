@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import os
 import numpy as np
 from knowledge3d.cranium.rpn_embedding_engine import RPNEmbeddingEngine
 from knowledge3d.cranium.sovereign.trm_launcher import TRMLauncher
@@ -34,9 +35,16 @@ def test_k3d_reasoning():
     print("\n🧠 Loading TRM reasoning engine...")
     trm = TRMLauncher(use_fused=True)
 
-    # Load initialized weights
+    # Load initialized weights (override via K3D_TRM_WEIGHTS_PATH if provided)
     print("📥 Loading TRM weights...")
-    weights_path = Path('/K3D/Knowledge3D.local/models/trm_weights_rpn_init.npz')
+    weights_override = Path(os.getenv("K3D_TRM_WEIGHTS_PATH", "")).expanduser()
+    if weights_override and weights_override.exists():
+        weights_path = weights_override
+        print(f"   Using override from K3D_TRM_WEIGHTS_PATH: {weights_path}")
+    else:
+        weights_path = Path('/K3D/Knowledge3D.local/models/trm_weights_rpn_init.npz')
+        if weights_override and not weights_override.exists():
+            print(f"   ⚠️ Override path not found, falling back to default: {weights_path}")
     weights = np.load(weights_path)
     W1, W2, W3, W4 = weights['W1'], weights['W2'], weights['W3'], weights['W4']
     print(f"✅ TRM ready: {(W1.size + W2.size + W3.size + W4.size) / 1e6:.2f}M params")

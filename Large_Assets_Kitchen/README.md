@@ -19,6 +19,15 @@ Large (>99 MB) or bulk-generated artifacts live outside the repo under `../Kno
 - Target: `Knowledge3D.local/datasets/ai_compendium_80k_vectors.csv`
 - Recipe: `python -m knowledge3d.tools.build_ai_compendium --vectors-out Knowledge3D.local/datasets/ai_compendium_80k_vectors.csv --limit 80000`
 
+## ARC-AGI Reasoning Cache
+- Target: `Knowledge3D.local/datasets/arc_agi/arc_reasoning_pairs.npz`
+- Recipe:
+  1. `python scripts/train_trm_on_arc_reasoning.py --epochs 0 --rebuild-cache` (build cache only)
+     - Optional: add `--limit-pairs <int>` for quick smoke tests.
+  2. The script downloads the ARC-AGI dataset under `Knowledge3D.local/datasets/arc_agi/ARC-AGI-master/`
+     and stores metadata next to the cache (`arc_reasoning_pairs.json`).
+- Notes: Keep the cache in sync with the latest RPN embeddings; rebuild after significant sleep-time consolidation so reasoning aligns with House/Galaxy updates.
+
 ## Galaxy GLBs (viewer/dist)
 - Target: `Knowledge3D.local/old_attempts/legacy_fancy_rag/viewer_dist/`
 - Recipe: `npm run build` inside `viewer/`, then copy the resulting GLBs to `.local`.
