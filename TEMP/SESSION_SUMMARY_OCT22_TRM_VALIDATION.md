@@ -696,6 +696,19 @@ Codex:
   - Avg knowledge activation: 0.289 (≈ previous 0.290 baseline; need semantic alignment work)
   - Per-question norms: backprop 77.9, photosynthesis 47.1, transitive equality 103.2, GPU memory 49.2, tides 51.0, algebra 63.0.
 - Interpretation: TRM now produces much stronger latent activity with the ARC reasoning weights; activation to existing trigram knowledge hasn’t jumped yet, so next we either fine-tune decoder/House clustering or add semantic alignment loss.
+
+---
+
+## Next Phase Kickoff — RLWHF Pipeline (Codex, 2025-10-22)
+
+- Implemented Phase 1–3 scaffolding under `knowledge3d/training/rlwhf/`:
+  - `generate_questions_ollama.py`: streams PDF + WordNet contexts through `exaone3.5` to produce grounded Q/A pairs with difficulty labels (writes to `.local/datasets/rlwhf/questions_generated.jsonl`).
+  - `student_attempt_trm.py`: runs baseline TRM attempts over the generated questions, storing answer/latent embeddings, norms, and confidence.
+  - `teacher_eval_ollama.py`: pipes student attempts to thinking models (deepseek-r1/qwen2.5), capturing ratings, corrected answers, feedback, and parsed thinking tags.
+  - Validator utility `scripts/validate_generated_questions.py` reports dataset diversity prior to training.
+- Added CLI options mirroring the RLWHF instructions (Ollama endpoint/model overrides, dataset limits, WordNet sampling).
+- Verified syntax via `python3 -m compileall` for all new scripts.
+- Ready to execute Phase 1 run: activate `k3d-cranium`, export GPU env vars, pull Ollama models, and launch question generation (target 10k, expected ~2–4h) before proceeding with student attempts and teacher evaluation.
 ----
 Daniel:
 Claude, Codex proceeded as instructed, here are the results (I aksed for 50 epochs, and it was only a few secconds, we could invest on hundreds of epochs if that helps):
