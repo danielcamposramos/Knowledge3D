@@ -117,17 +117,36 @@ def parse_question_response(response: str) -> Optional[Dict[str, str]]:
         Answer: ...
         Difficulty: easy|medium|hard
     """
-    question_match = re.search(r"Question:\s*(.+?)(?=\nAnswer:)", response, re.IGNORECASE | re.DOTALL)
-    answer_match = re.search(r"Answer:\s*(.+?)(?=\nDifficulty:|$)", response, re.IGNORECASE | re.DOTALL)
-    diff_match = re.search(r"Difficulty:\s*(easy|medium|hard)", response, re.IGNORECASE)
+    lines = [line.strip() for line in response.splitlines() if line.strip()]
 
-    if not (question_match and answer_match):
+    def _extract(prefix: str) -> Optional[str]:
+        for line in lines:
+            low = line.lower()
+            if low.startswith(prefix):
+                value = line.split(":", 1)[-1]
+                return value.strip()
+            if low.startswith(prefix.replace(":", "")):
+                value = line.split(" ", 1)[-1]
+                return value.strip(": ").strip()
         return None
 
+    question = _extract("question:")
+    answer = _extract("answer:")
+    difficulty = _extract("difficulty:") or random.choice(["easy", "medium", "hard"])
+
+    if not question or not answer:
+        # Fall back to regex parsing for non-standard layouts
+        question_match = re.search(r"Question[:\-]\s*(.+?)(?=\n[a-zA-Z ]+:|$)", response, re.IGNORECASE | re.DOTALL)
+        answer_match = re.search(r"Answer[:\-]\s*(.+?)(?=\n[a-zA-Z ]+:|$)", response, re.IGNORECASE | re.DOTALL)
+        if not (question_match and answer_match):
+            return None
+        question = question_match.group(1).strip()
+        answer = answer_match.group(1).strip()
+
     return {
-        "question": question_match.group(1).strip(),
-        "answer": answer_match.group(1).strip(),
-        "difficulty": diff_match.group(1).lower() if diff_match else "medium",
+        "question": question,
+        "answer": answer,
+        "difficulty": difficulty.lower(),
     }
 
 
@@ -172,15 +191,36 @@ def _read_ingestion_sources(log_path: Path) -> List[Dict[str, Any]]:
     return record.get("pdf_sources", [])
 
 
+def _scan_pdf_directory(pdf_root: Path, max_pdfs: Optional[int]) -> List[Path]:
+    """Collect PDF files from the provided directory tree."""
+    if not pdf_root.exists():
+        return []
+
+    pdf_paths = sorted(pdf_root.rglob("*.pdf"))
+    if max_pdfs is not None:
+        pdf_paths = pdf_paths[:max_pdfs]
+    return pdf_paths
+
+
 def extract_pdf_contexts(pdf_dir: Path, max_pdfs: Optional[int] = None) -> List[ContextChunk]:
     """
     Extract context windows from the ingested PDFs referenced in the ingestion log.
     """
     contexts: List[ContextChunk] = []
-    pdf_sources = _read_ingestion_sources(Path("/K3D/Knowledge3D.local/logs/ingestion_metrics.jsonl"))
+    ingestion_sources = _read_ingestion_sources(Path("/K3D/Knowledge3D.local/logs/ingestion_metrics.jsonl"))
+    pdf_paths: List[Path] = []
 
-    if not pdf_sources:
-        print("⚠️  No PDF sources found in ingestion log.")
+    if ingestion_sources:
+        for src in ingestion_sources[:max_pdfs] if max_pdfs else ingestion_sources:
+            pdf_path = Path(src.get("path", ""))
+            if pdf_path.exists():
+                pdf_paths.append(pdf_path)
+    else:
+        print("⚠️  No PDF sources found in ingestion log. Falling back to directory scan.")
+        pdf_paths = _scan_pdf_directory(pdf_dir, max_pdfs)
+
+    if not pdf_paths:
+        print(f"⚠️  No PDFs found under {pdf_dir}")
         return contexts
 
     try:
@@ -189,13 +229,7 @@ def extract_pdf_contexts(pdf_dir: Path, max_pdfs: Optional[int] = None) -> List[
         print("❌ PyMuPDF (fitz) missing. Install it inside k3d-cranium env.")
         return contexts
 
-    selected_sources = pdf_sources[:max_pdfs] if max_pdfs else pdf_sources
-
-    for pdf_info in selected_sources:
-        pdf_path = Path(pdf_info.get("path", ""))
-        if not pdf_path.exists():
-            continue
-
+    for pdf_path in pdf_paths:
         try:
             document = fitz.open(str(pdf_path))
         except Exception as exc:  # pragma: no cover - I/O guard
@@ -250,8 +284,13 @@ def extract_wordnet_contexts(sample_size: int = 5000) -> List[ContextChunk]:
     sample = random.sample(synsets, min(sample_size, len(synsets)))
 
     for entry in sample:
-        name = entry.get("name", "").strip()
-        definition = entry.get("definition", "").strip()
+        name = (
+            entry.get("lemma")
+            or entry.get("name")
+            or entry.get("synset")
+            or ""
+        ).strip()
+        definition = str(entry.get("definition", "")).strip()
         examples = entry.get("examples", [])
 
         if not (name and definition):
