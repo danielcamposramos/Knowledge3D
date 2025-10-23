@@ -6,6 +6,14 @@ Consumes the student attempt dataset and asks a thinking-enabled
 teacher model (e.g., deepseek-r1, qwen2.5) to provide ratings,
 thinking tags, corrected answers, and feedback. Outputs a JSONL file
 with aggregated information for downstream RLWHF phases.
+
+IMPORTANT: Thinking models (deepseek-r1) require:
+- Sequential processing (one question at a time)
+- Context cleaning between questions (model unload/reload)
+- Minimum 600s timeout per evaluation (loaded from disk)
+
+This is by design! Student can batch (tiny, GPU-native), but teacher
+must be sequential (large, disk-loaded, thinking-enabled).
 """
 
 from __future__ import annotations
@@ -48,17 +56,29 @@ Feedback: [specific improvements the student should make]
 """
 
 
-def ollama_generate(url: str, model: str, system: str, prompt: str, timeout: int = 240) -> str:
-    """Call Ollama via curl to obtain a deterministic JSON-compatible response."""
+def ollama_generate(url: str, model: str, system: str, prompt: str, timeout: int = 600) -> str:
+    """
+    Call Ollama via curl to obtain a deterministic JSON-compatible response.
+
+    Args:
+        url: Ollama API endpoint
+        model: Model name (e.g., "deepseek-r1:latest")
+        system: System prompt
+        prompt: User prompt
+        timeout: Timeout in seconds (default: 600s for thinking models)
+
+    Note: Thinking models (deepseek-r1) are loaded from disk and need time
+    to generate detailed reasoning. 600s timeout is minimum recommended.
+    """
     payload = {
         "model": model,
         "prompt": prompt,
         "system": system,
         "stream": False,
-        "keep_alive": "15m",
+        "keep_alive": "0s",  # Unload after response for context cleaning
         "options": {
             "temperature": 0.3,
-            "num_predict": 1024,
+            "num_predict": 2048,  # Thinking models need more tokens
         },
     }
     try:
@@ -126,9 +146,25 @@ def evaluate_single(
     ollama_url: str,
     model: str,
     parser: ThinkingTagsParser,
+    timeout: int = 600,
 ) -> Dict[str, Any]:
+    """
+    Evaluate a single student attempt with teacher model.
+
+    Args:
+        entry: Student attempt record
+        ollama_url: Ollama API endpoint
+        model: Teacher model name
+        parser: Thinking tags parser
+        timeout: Timeout in seconds (600s minimum for thinking models)
+
+    Note: This is intentionally NOT batched! Thinking models need:
+    - Clean context (model unload after each evaluation)
+    - Time to generate detailed reasoning (600s+ per question)
+    - Sequential processing to avoid context contamination
+    """
     prompt = build_teacher_prompt(entry)
-    response = ollama_generate(ollama_url, model, TEACHER_EVALUATION_SYSTEM_PROMPT, prompt)
+    response = ollama_generate(ollama_url, model, TEACHER_EVALUATION_SYSTEM_PROMPT, prompt, timeout=timeout)
 
     if not response:
         return {
@@ -165,13 +201,26 @@ def main() -> None:
         default=Path("/K3D/Knowledge3D.local/datasets/rlwhf/teacher_evaluations.jsonl"),
     )
     parser.add_argument("--max-samples", type=int, default=None, help="Optional limit for testing")
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=600,
+        help="Timeout per evaluation in seconds (default: 600s for thinking models)"
+    )
     args = parser.parse_args()
 
     print("=" * 70)
-    print("K3D RLWHF Phase 3 — Teacher Evaluation")
+    print("K3D RLWHF Phase 3 — Teacher Evaluation (Sequential)")
     print("=" * 70)
-    print(f"Model: {args.model}")
-    print(f"Ollama: {args.ollama}\n")
+    print(f"Model:   {args.model}")
+    print(f"Ollama:  {args.ollama}")
+    print(f"Timeout: {args.timeout}s per evaluation")
+    print()
+    print("⚠️  Note: Sequential processing is REQUIRED for thinking models!")
+    print("    - Context cleaning between questions (model unload/reload)")
+    print("    - Time for detailed reasoning generation (~600s per question)")
+    print("    - Prevents context contamination across evaluations")
+    print()
 
     thinking_parser = ThinkingTagsParser()
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -185,16 +234,21 @@ def main() -> None:
                 break
 
             entry = json.loads(line)
-            evaluation = evaluate_single(entry, args.ollama, args.model, thinking_parser)
+
+            # Evaluate single question (with context cleaning via keep_alive=0s)
+            print(f"[{total+1}] Evaluating question (timeout={args.timeout}s)...")
+            evaluation = evaluate_single(entry, args.ollama, args.model, thinking_parser, timeout=args.timeout)
             counts[evaluation["rating"]] = counts.get(evaluation["rating"], 0) + 1
 
             output_record = {**entry, "teacher_evaluation": evaluation}
             fout.write(json.dumps(output_record, ensure_ascii=False) + "\n")
-            fout.flush()
+            fout.flush()  # Save after each evaluation (in case of timeout/crash)
 
             total += 1
-            if total % 10 == 0:
-                print(f"   Evaluated {total} samples — ratings: {counts}")
+            print(f"    ✓ Rating: {evaluation['rating']} | Total: {total} | Dist: {counts}")
+
+            # Note: Model is unloaded automatically (keep_alive=0s)
+            # Next evaluation will reload with clean context
 
     print("\n✅ Teacher evaluation complete")
     print(f"   Total samples: {total}")
