@@ -147,6 +147,7 @@ def evaluate_single(
     model: str,
     parser: ThinkingTagsParser,
     timeout: int = 600,
+    fallback_model: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Evaluate a single student attempt with teacher model.
@@ -165,6 +166,9 @@ def evaluate_single(
     """
     prompt = build_teacher_prompt(entry)
     response = ollama_generate(ollama_url, model, TEACHER_EVALUATION_SYSTEM_PROMPT, prompt, timeout=timeout)
+    if not response and fallback_model:
+        print(f"    ⚠️ Primary model '{model}' returned no response, falling back to '{fallback_model}'")
+        response = ollama_generate(ollama_url, fallback_model, TEACHER_EVALUATION_SYSTEM_PROMPT, prompt, timeout=timeout)
 
     if not response:
         return {
@@ -207,6 +211,13 @@ def main() -> None:
         default=600,
         help="Timeout per evaluation in seconds (default: 600s for thinking models)"
     )
+    parser.add_argument("--resume", action="store_true", help="Resume from existing evaluations")
+    parser.add_argument(
+        "--fallback-model",
+        type=str,
+        default="deepseek-r1:latest",
+        help="Fallback Ollama model to use when primary fails (default: deepseek-r1:latest)",
+    )
     args = parser.parse_args()
 
     print("=" * 70)
@@ -225,34 +236,61 @@ def main() -> None:
     thinking_parser = ThinkingTagsParser()
     args.output.parent.mkdir(parents=True, exist_ok=True)
 
-    counts = {"good": 0, "partial": 0, "bad": 0, "dishonest": 0}
-    total = 0
+    processed_existing = 0
+    if args.resume and args.output.exists():
+        with args.output.open("r", encoding="utf-8") as existing_file:
+            for _ in existing_file:
+                processed_existing += 1
+        print(f"   Resuming from {processed_existing} existing evaluations.")
+        if args.max_samples is not None and processed_existing >= args.max_samples:
+            print("✅ Requested max-samples already satisfied; exiting.")
+            return
 
-    with args.input.open("r", encoding="utf-8") as fin, args.output.open("w", encoding="utf-8") as fout:
+    run_counts = {"good": 0, "partial": 0, "bad": 0, "dishonest": 0}
+    total = processed_existing
+    limit = args.max_samples
+
+    mode = "a" if args.resume and args.output.exists() else "w"
+
+    with args.input.open("r", encoding="utf-8") as fin, args.output.open(mode, encoding="utf-8") as fout:
+        # Skip previously processed entries when resuming
+        for _ in range(processed_existing):
+            try:
+                next(fin)
+            except StopIteration:
+                break
+
         for line in fin:
-            if args.max_samples is not None and total >= args.max_samples:
+            if limit is not None and total >= limit:
                 break
 
             entry = json.loads(line)
 
             # Evaluate single question (with context cleaning via keep_alive=0s)
             print(f"[{total+1}] Evaluating question (timeout={args.timeout}s)...")
-            evaluation = evaluate_single(entry, args.ollama, args.model, thinking_parser, timeout=args.timeout)
-            counts[evaluation["rating"]] = counts.get(evaluation["rating"], 0) + 1
+            evaluation = evaluate_single(
+                entry,
+                args.ollama,
+                args.model,
+                thinking_parser,
+                timeout=args.timeout,
+                fallback_model=args.fallback_model,
+            )
+            run_counts[evaluation["rating"]] = run_counts.get(evaluation["rating"], 0) + 1
 
             output_record = {**entry, "teacher_evaluation": evaluation}
             fout.write(json.dumps(output_record, ensure_ascii=False) + "\n")
             fout.flush()  # Save after each evaluation (in case of timeout/crash)
 
             total += 1
-            print(f"    ✓ Rating: {evaluation['rating']} | Total: {total} | Dist: {counts}")
+            print(f"    ✓ Rating: {evaluation['rating']} | Total processed: {total} | Run dist: {run_counts}")
 
             # Note: Model is unloaded automatically (keep_alive=0s)
             # Next evaluation will reload with clean context
 
     print("\n✅ Teacher evaluation complete")
-    print(f"   Total samples: {total}")
-    print(f"   Ratings distribution: {counts}")
+    print(f"   Total samples processed: {total}")
+    print(f"   Run ratings distribution: {run_counts}")
     print(f"   Output: {args.output}")
 
 
