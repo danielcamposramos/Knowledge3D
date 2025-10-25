@@ -99,9 +99,55 @@ def ollama_generate(url: str, model: str, system: str, prompt: str, timeout: int
         return ""
 
 
-def extract_rating(response: str) -> str:
-    match = re.search(r"Rating:\s*(good|partial|bad|dishonest)", response, re.IGNORECASE)
-    return match.group(1).lower() if match else "partial"
+RATING_MAP = {
+    "terrible": -2,
+    "awful": -2,
+    "very bad": -2,
+    "bad": -2,
+    "poor": -1,
+    "partial": -1,
+    "incomplete": -1,
+    "neutral": 0,
+    "okay": 0,
+    "passable": 0,
+    "good": 1,
+    "great": 1,
+    "correct": 1,
+    "excellent": 2,
+    "perfect": 2,
+}
+
+
+def extract_rating(response: str) -> tuple[str, int]:
+    """
+    Extract rating label and numeric score from teacher response.
+
+    Returns:
+        (label, score) where score ∈ {-2, -1, 0, +1, +2}
+    """
+    match = re.search(r"\*\*?\s*Rating\s*:\s*\*\*?\s*([A-Za-z ]+)", response, re.IGNORECASE)
+    if not match:
+        match = re.search(r"Rating:\s*([A-Za-z ]+)", response, re.IGNORECASE)
+
+    if match:
+        raw_label = match.group(1).strip().lower()
+        cleaned = raw_label.strip().strip("[]()")
+
+        if cleaned in RATING_MAP:
+            return cleaned, RATING_MAP[cleaned]
+
+        for key in RATING_MAP:
+            if key in cleaned:
+                return key, RATING_MAP[key]
+
+        # Some models echo placeholders like "[good|partial|bad|dishonest]"
+        if "|" in cleaned:
+            for option in cleaned.split("|"):
+                option = option.strip()
+                if option in RATING_MAP:
+                    return option, RATING_MAP[option]
+
+    return "partial", RATING_MAP["partial"]
 
 
 def extract_corrected_answer(response: str) -> Optional[str]:
@@ -171,8 +217,10 @@ def evaluate_single(
         response = ollama_generate(ollama_url, fallback_model, TEACHER_EVALUATION_SYSTEM_PROMPT, prompt, timeout=timeout)
 
     if not response:
+        label, score = extract_rating("")  # returns default ("partial", -1)
         return {
-            "rating": "partial",
+            "rating": label,
+            "rating_score": score,
             "corrected_answer": None,
             "feedback": "Teacher evaluation failed",
             "thinking_segments": [],
@@ -182,9 +230,11 @@ def evaluate_single(
         }
 
     analysis = parser.parse_and_analyze(response)
+    rating_label, rating_score = extract_rating(response)
 
     return {
-        "rating": extract_rating(response),
+        "rating": rating_label,
+        "rating_score": rating_score,
         "corrected_answer": extract_corrected_answer(response),
         "feedback": extract_feedback(response),
         "thinking_segments": [segment.content for segment in analysis.segments],
