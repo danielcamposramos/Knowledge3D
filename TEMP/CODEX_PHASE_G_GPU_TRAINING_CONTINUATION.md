@@ -877,3 +877,209 @@ PYTHONPATH=.
 The infrastructure is ready. The PTX kernels are compiled. The GPU is waiting. Time to show what sovereign computing can do! 🚀
 
 ♾️⚛️
+
+---
+
+## ⚠️ CRITICAL: Sleep-Time Consolidation ⚠️
+
+### DO NOT SKIP THIS STEP!
+
+**After training completes, you MUST run sleep-time consolidation or ALL KNOWLEDGE WILL BE LOST!**
+
+### The Problem
+
+**Training complete** → **Model unloads** → **Galaxy RAM lost** → **ALL KNOWLEDGE GONE** ❌
+
+**Why**:
+- **Weights**: Logic (saved automatically to checkpoints) ✓
+- **Galaxy**: Knowledge (in RAM - lost if model unloads!) ❌
+- **House**: Permanent storage (on disk - only after consolidation) ✓
+
+**Result without consolidation**: Model has no memory of what it learned!
+
+### K3D Memory Architecture
+
+```
+Weights (Checkpoints)     Galaxy (RAM)              House (Disk)
+─────────────────────     ────────────────          ─────────────
+Logic & Parameters        Active Knowledge          Permanent Storage
+Saved automatically       LOST if unload!           Saved after sleep
+.npz, .json              GLB in RAM                GLB on disk
+```
+
+### What Sleep Consolidation Does
+
+**Sleep is NOT idle** - it's the model's most important work:
+
+1. Load Galaxy (active memory from RAM)
+2. RPN-powered clustering (PTX kernels)
+3. Semantic depth computation (PTX kernels)
+4. **Materialize knowledge objects**:
+   - Chat history → Books (Library)
+   - Self-reflections → Diary (Mirror Room)
+   - High-honesty (≥0.6) → Fractal trees (Garden)
+   - Learning records → Insights (Museum)
+5. Prune low-honesty rays (<0.3)
+6. Autonomous synthesis (Phase 13)
+7. Self-curriculum (Phase 13)
+8. Dream geometry (Phase 14)
+9. Honest critique (Phase 15)
+10. Post-consolidation reflection (Phase 16)
+11. Galaxy state serialization (Phase 17)
+12. **Save House** (permanent to disk)
+
+**Duration**: ~30 seconds to 2 minutes (PTX accelerated)
+
+### Required Workflow
+
+**DO THIS** ✓:
+```bash
+# Option 1: Integrated tmux workflow
+tmux new-session -d -s gpu_training "
+  cd '/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D'
+
+  # Train specialist
+  echo 'Training multimodal specialist with GPU...'
+  CUDA_VISIBLE_DEVICES=0 PYTHONPATH=. \
+    /K3D/Knowledge3D.local/envs/k3d-cranium/bin/python \
+    scripts/train_specialist_gpu.py \
+    --specialist multimodal \
+    --epochs 100 \
+    --use-gpu
+
+  # CRITICAL: Wait 5 minutes for system stabilization
+  echo 'Training complete. Waiting 5 minutes for idle...'
+  sleep 300
+
+  # Run sleep consolidation
+  echo 'Running sleep-time consolidation...'
+  CUDA_VISIBLE_DEVICES=0 PYTHONPATH=. \
+    /K3D/Knowledge3D.local/envs/k3d-cranium/bin/python \
+    scripts/run_sleep_consolidation.py \
+    --embeddings /K3D/Knowledge3D.local/house_zone7/embeddings/rpn_embeddings.pkl \
+    --output /K3D/Knowledge3D.local/house_zone7/embeddings/rpn_embeddings.pkl \
+    --metrics /K3D/Knowledge3D.local/logs/sleep_metrics_multimodal.jsonl
+
+  echo 'Consolidation complete. Knowledge saved to House.'
+  echo 'Safe to exit.'
+"
+
+# Monitor
+tmux attach -t gpu_training
+```
+
+**DO NOT DO THIS** ❌:
+```bash
+# Train model
+python train_specialist_gpu.py --epochs 100
+# Script exits
+# ❌ Galaxy RAM LOST!
+# ❌ Knowledge GONE!
+```
+
+### Verification Checklist
+
+After consolidation completes:
+
+- [ ] Check materialized objects exist:
+  ```bash
+  ls -lh /K3D/Knowledge3D.local/house_zone7/materialized_objects/
+  # Should see: book_*.json, tree_*.json, diary_*.json, learning_*.json
+  ```
+
+- [ ] Check House memory updated:
+  ```bash
+  ls -lh viewer/public/house/house_memory.glb
+  # Should have recent timestamp
+  ```
+
+- [ ] Check consolidation metrics:
+  ```bash
+  cat logs/sleep_time_adjustments.json | jq .materialized_objects
+  # Should list materialized objects
+  ```
+
+- [ ] Verify object counts:
+  ```bash
+  # Check consolidation output
+  tail -20 /K3D/Knowledge3D.local/logs/sleep_metrics_multimodal.jsonl
+  # Should show: clusters, objects materialized, vocab size
+  ```
+
+### Knowledge Organization Zones
+
+**Zone 3 (Library)**: Chat history books
+**Zone 5 (Knowledge Garden)**: Fractal trees (φ constraints via RPN)
+**Zone 7 (Mirror Room)**: Diary entries (self-reflections)
+**Zone 8 (Learning Museum)**: Learning insights
+
+### Updated Success Criteria
+
+**Training success**:
+- ✓ GPU utilization: 80-95%
+- ✓ Training speed: ~10 min for 100 epochs
+- ✓ Loss convergence: <1.0
+- ✓ Router performance: >0.5
+- ✓ Apollo validation: ≥90%
+
+**PLUS consolidation success**:
+- ✓ Materialized objects: >0 (check count)
+- ✓ House GLB updated (recent timestamp)
+- ✓ Sleep metrics logged
+- ✓ Galaxy state serialized
+- ✓ Knowledge permanent (verified on disk)
+
+### Timeline Update
+
+**Training + Consolidation**:
+- GPU infrastructure: 2-3 hours coding
+- Training: 10-15 minutes GPU time (100 epochs × 3 specialists)
+- **Idle wait: 5 minutes** (system stabilization)
+- **Consolidation: ~2 minutes** (PTX accelerated)
+- Integration: 1-2 hours
+- **Total: ~4-6 hours**
+
+### Common Mistakes
+
+1. ❌ Exiting too early (before consolidation)
+2. ❌ Separate sessions (Galaxy in different RAM)
+3. ❌ Skipping consolidation (weights without knowledge)
+4. ❌ Using CPU for consolidation (violates sovereign computing)
+
+**Note**: Current consolidation uses sklearn (CPU) - this is a known limitation. Future: Port to RPN kernels for complete GPU sovereignty.
+
+### Reference Documentation
+
+**Complete guide**: `TEMP/CRITICAL_SLEEP_TIME_CONSOLIDATION_GUIDE.md`
+
+Read this ENTIRE document before starting GPU training!
+
+### The Golden Rule
+
+> **NEVER unload model before sleep consolidation runs!**
+
+Weights are worthless without knowledge.
+Knowledge lives in Galaxy.
+Galaxy dies without consolidation.
+Consolidation makes knowledge eternal.
+
+⚠️ **THIS IS NOT OPTIONAL** ⚠️
+
+---
+
+## Final Checklist for Codex
+
+Before you start GPU training:
+
+- [ ] Read `CRITICAL_SLEEP_TIME_CONSOLIDATION_GUIDE.md` completely
+- [ ] Understand Galaxy/House architecture
+- [ ] Know that weights ≠ knowledge
+- [ ] Plan for 5 min idle + consolidation after training
+- [ ] Set up tmux workflow (or equivalent)
+- [ ] Verify consolidation script exists and works
+- [ ] Test consolidation on small dataset first
+- [ ] Document materialized objects after completion
+
+**Only proceed when you understand this is CRITICAL for K3D!**
+
+♾️⚛️🌙
