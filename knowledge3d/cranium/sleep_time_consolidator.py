@@ -1,23 +1,26 @@
 """
-GPU-native Sleep-Time Consolidator
+Sovereign Sleep-Time Consolidator
 ---------------------------------
 
-Refines the RPN embedding table using sovereign PTX primitives only.
-The consolidator relies on:
-  * Modular RPN executor for cosine similarity (no sklearn/CuPy).
-  * VectorResonator PTX kernel for gradual vector blending.
+Refines the RPN embedding table using sovereign PTX primitives ONLY.
+Zero CuPy, minimal NumPy (orchestration only).
 
+The consolidator relies on:
+  * Extended RPN kernel (Tier 1-2) for clustering operations
+  * VectorResonator PTX kernel for gradual vector blending
+  * Modular RPN executor for cosine similarity
+
+All heavy math runs on GPU via sovereign PTX kernels.
 CPU is used purely for orchestration and lightweight array bookkeeping.
 """
 
 from __future__ import annotations
 
 import json
-import os
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Iterable, List, MutableMapping, Sequence, Tuple
+from typing import Dict, List, MutableMapping, Sequence, Tuple
 
 import numpy as np
 
@@ -27,8 +30,7 @@ from knowledge3d.cranium.clustering_rpn import (
     compute_similarity_matrix_rpn,
 )
 from knowledge3d.cranium.rpn_embedding_engine import RPNEmbeddingEngine
-from knowledge3d.cranium.rpn_executor import get_rpn_executor
-from knowledge3d.cranium.sovereign import loader as sovereign_loader
+from knowledge3d.cranium.sovereign_rpn_executor import get_sovereign_rpn_executor
 
 
 def _normalize(vec: np.ndarray) -> np.ndarray:
@@ -63,18 +65,9 @@ class SleepTimeConsolidator:
     _rpn_executor: object | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
-        sovereign_loader._ensure_current_context()
-        try:
-            import os
-            import cupy as _cupy  # type: ignore
-
-            device_id = int(os.environ.get("CUDA_VISIBLE_DEVICES", "0").split(",")[0])
-            _cupy.cuda.Device(device_id).use()
-        except Exception:
-            pass
-
+        """Initialize sovereign GPU components (zero CuPy)."""
         self._vector_resonator = VectorResonator()
-        self._rpn_executor = get_rpn_executor()
+        self._rpn_executor = get_sovereign_rpn_executor()
 
     # ------------------------------------------------------------------ #
     # Public API

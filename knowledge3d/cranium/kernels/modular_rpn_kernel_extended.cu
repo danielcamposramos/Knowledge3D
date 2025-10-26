@@ -41,6 +41,12 @@ constexpr uint16_t kOpLoop = 0xB1;
 constexpr uint16_t kOpNext = 0xB2;
 constexpr uint16_t kOpStore = 0xB3;
 constexpr uint16_t kOpRecall = 0xB4;
+constexpr uint16_t kOpVecL2Norm = 0xC0;
+constexpr uint16_t kOpVecNormalize = 0xC1;
+constexpr uint16_t kOpVecArgmax = 0xC2;
+constexpr uint16_t kOpVecBlend = 0xC3;
+constexpr uint16_t kOpCosineSimilarityBatch = 0xC4;
+constexpr uint16_t kOpClusterAssign = 0xC5;
 
 struct StackItem {
     float value[4];
@@ -1516,6 +1522,165 @@ extern "C" __global__ void modular_rpn_kernel_extended(
                     out[i] = x * sig;
                 }
                 push_tensor(stack, stack_size, out, 1024, 1, error_code);
+                break;
+            }
+            // ========== TIER 1: Clustering Vector Ops ==========
+            case 0xC0: {  // VEC_L2_NORM (dest_scalar, vector)
+                TensorRef vec{};
+                if (!pop_tensor(stack, stack_size, vec, error_code)) break;
+                if (vec.cols != 1) {
+                    error_code = kErrorInvalidMatrixDims;
+                    break;
+                }
+                const float* v = vec.ptr;
+                float sum_sq = 0.0f;
+                for (int i = 0; i < vec.rows; ++i) {
+                    float val = v[i];
+                    sum_sq += val * val;
+                }
+                push_scalar(stack, stack_size, sqrtf(sum_sq), error_code);
+                break;
+            }
+            case 0xC1: {  // VEC_NORMALIZE (dest, vector, epsilon)
+                TensorRef dest{}, vec{};
+                float epsilon;
+                if (!pop_tensor(stack, stack_size, dest, error_code)) break;
+                if (!pop_tensor(stack, stack_size, vec, error_code)) break;
+                if (!pop_scalar(stack, stack_size, epsilon, error_code)) break;
+                if (vec.rows != dest.rows || vec.cols != 1 || dest.cols != 1) {
+                    error_code = kErrorInvalidMatrixDims;
+                    break;
+                }
+                const float* v = vec.ptr;
+                float* out = dest.ptr;
+                float sum_sq = 0.0f;
+                for (int i = 0; i < vec.rows; ++i) {
+                    float val = v[i];
+                    sum_sq += val * val;
+                }
+                float norm = sqrtf(sum_sq);
+                if (norm < epsilon) {
+                    // Zero vector - leave as is
+                    for (int i = 0; i < vec.rows; ++i) {
+                        out[i] = v[i];
+                    }
+                } else {
+                    float inv_norm = 1.0f / norm;
+                    for (int i = 0; i < vec.rows; ++i) {
+                        out[i] = v[i] * inv_norm;
+                    }
+                }
+                push_tensor(stack, stack_size, out, vec.rows, 1, error_code);
+                break;
+            }
+            case 0xC2: {  // VEC_ARGMAX (dest_scalar, vector)
+                TensorRef vec{};
+                if (!pop_tensor(stack, stack_size, vec, error_code)) break;
+                if (vec.cols != 1) {
+                    error_code = kErrorInvalidMatrixDims;
+                    break;
+                }
+                const float* v = vec.ptr;
+                int max_idx = 0;
+                float max_val = v[0];
+                for (int i = 1; i < vec.rows; ++i) {
+                    if (v[i] > max_val) {
+                        max_val = v[i];
+                        max_idx = i;
+                    }
+                }
+                push_scalar(stack, stack_size, static_cast<float>(max_idx), error_code);
+                break;
+            }
+            case 0xC3: {  // VEC_BLEND (dest, a, b, alpha)
+                TensorRef dest{}, a{}, b{};
+                float alpha;
+                if (!pop_tensor(stack, stack_size, dest, error_code)) break;
+                if (!pop_tensor(stack, stack_size, a, error_code)) break;
+                if (!pop_tensor(stack, stack_size, b, error_code)) break;
+                if (!pop_scalar(stack, stack_size, alpha, error_code)) break;
+                if (a.rows != b.rows || a.rows != dest.rows || a.cols != 1 || b.cols != 1 || dest.cols != 1) {
+                    error_code = kErrorInvalidMatrixDims;
+                    break;
+                }
+                const float* a_ptr = a.ptr;
+                const float* b_ptr = b.ptr;
+                float* out = dest.ptr;
+                for (int i = 0; i < a.rows; ++i) {
+                    out[i] = a_ptr[i] + alpha * (b_ptr[i] - a_ptr[i]);
+                }
+                push_tensor(stack, stack_size, out, a.rows, 1, error_code);
+                break;
+            }
+            // ========== TIER 2: Clustering Batch Ops ==========
+            case 0xC4: {  // COSINE_SIM_BATCH (dest_matrix, vectors, centroids, n_vectors, n_centroids, dim)
+                TensorRef dest{}, vectors{}, centroids{};
+                float n_vectors_f, n_centroids_f, dim_f;
+                if (!pop_tensor(stack, stack_size, dest, error_code)) break;
+                if (!pop_tensor(stack, stack_size, vectors, error_code)) break;
+                if (!pop_tensor(stack, stack_size, centroids, error_code)) break;
+                if (!pop_scalar(stack, stack_size, n_vectors_f, error_code)) break;
+                if (!pop_scalar(stack, stack_size, n_centroids_f, error_code)) break;
+                if (!pop_scalar(stack, stack_size, dim_f, error_code)) break;
+
+                int n_vectors_i = static_cast<int>(n_vectors_f);
+                int n_centroids_i = static_cast<int>(n_centroids_f);
+                int dim_i = static_cast<int>(dim_f);
+
+                if (dest.rows != n_vectors_i || dest.cols != n_centroids_i) {
+                    error_code = kErrorInvalidMatrixDims;
+                    break;
+                }
+
+                const float* v_ptr = vectors.ptr;
+                const float* c_ptr = centroids.ptr;
+                float* sims = dest.ptr;
+
+                for (int i = 0; i < n_vectors_i; ++i) {
+                    for (int j = 0; j < n_centroids_i; ++j) {
+                        float dot = 0.0f;
+                        #pragma unroll 8
+                        for (int d = 0; d < dim_i; ++d) {
+                            dot += v_ptr[i * dim_i + d] * c_ptr[j * dim_i + d];
+                        }
+                        sims[i * n_centroids_i + j] = dot;
+                    }
+                }
+                push_tensor(stack, stack_size, sims, n_vectors_i, n_centroids_i, error_code);
+                break;
+            }
+            case 0xC5: {  // CLUSTER_ASSIGN (dest_assignments, similarities, n_vectors, n_centroids)
+                TensorRef dest{}, sims{};
+                float n_vectors_f, n_centroids_f;
+                if (!pop_tensor(stack, stack_size, dest, error_code)) break;
+                if (!pop_tensor(stack, stack_size, sims, error_code)) break;
+                if (!pop_scalar(stack, stack_size, n_vectors_f, error_code)) break;
+                if (!pop_scalar(stack, stack_size, n_centroids_f, error_code)) break;
+
+                int n_vectors_i = static_cast<int>(n_vectors_f);
+                int n_centroids_i = static_cast<int>(n_centroids_f);
+
+                if (sims.rows != n_vectors_i || sims.cols != n_centroids_i || dest.rows != n_vectors_i) {
+                    error_code = kErrorInvalidMatrixDims;
+                    break;
+                }
+
+                const float* sim_ptr = sims.ptr;
+                float* assignments = dest.ptr;
+
+                for (int i = 0; i < n_vectors_i; ++i) {
+                    int best_cluster = 0;
+                    float max_sim = sim_ptr[i * n_centroids_i];
+                    for (int j = 1; j < n_centroids_i; ++j) {
+                        float sim = sim_ptr[i * n_centroids_i + j];
+                        if (sim > max_sim) {
+                            max_sim = sim;
+                            best_cluster = j;
+                        }
+                    }
+                    assignments[i] = static_cast<float>(best_cluster);
+                }
+                push_tensor(stack, stack_size, assignments, n_vectors_i, 1, error_code);
                 break;
             }
             default:
