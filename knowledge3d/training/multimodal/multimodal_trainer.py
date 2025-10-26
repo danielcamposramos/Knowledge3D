@@ -28,6 +28,23 @@ import json
 import time
 from dataclasses import dataclass
 
+from knowledge3d.cranium.rpn_embedding_engine import RPNEmbeddingEngine
+from knowledge3d.training.multimodal.trimodal_dataset import (
+    TrimodalRecord,
+    load_trimodal_dataset as load_trimodal_jsonl,
+    embed_image,
+    embed_audio,
+)
+
+
+def cosine_distance(vec_a: np.ndarray, vec_b: np.ndarray) -> float:
+    """Compute cosine distance between two vectors."""
+    denom = float(np.linalg.norm(vec_a) * np.linalg.norm(vec_b))
+    if denom <= 1e-8:
+        return 1.0
+    cosine_sim = float(np.dot(vec_a, vec_b) / denom)
+    return 1.0 - np.clip(cosine_sim, -1.0, 1.0)
+
 
 @dataclass
 class TrainingConfig:
@@ -35,6 +52,7 @@ class TrainingConfig:
     ocr_weight: float = 1.0           # Weight for OCR loss
     text_weight: float = 1.0          # Weight for RLWHF text loss
     alignment_weight: float = 0.1     # Weight for cross-modal alignment
+    audio_weight: float = 1.0         # Weight for audio alignment
     learning_rate: float = 0.001      # Base learning rate
     validation_split: float = 0.1     # 10% holdout for validation
     batch_size: int = 1               # Process one sample at a time (streaming)
@@ -260,12 +278,15 @@ class MultiModalTRMTrainer:
         self.ocr_stream = OCRTrainingStream()
         self.text_stream = TextTrainingStream()
         self.aligner = CrossModalAligner()
+        self.embedding_dim = 128
+        self.rpn_embedder = RPNEmbeddingEngine(embedding_dim=self.embedding_dim)
 
         # Metrics tracking
         self.step = 0
         self.total_loss_history = []
         self.ocr_loss_history = []
         self.text_loss_history = []
+        self.audio_loss_history = []
         self.alignment_loss_history = []
 
         # Validation set
@@ -290,6 +311,16 @@ class MultiModalTRMTrainer:
 
         return samples
 
+    def load_trimodal_dataset(self, jsonl_path: Path,
+                              limit: Optional[int] = None) -> List[TrimodalRecord]:
+        """Load tri-modal dataset prepared in Phase G.0."""
+        records: List[TrimodalRecord] = []
+        for idx, record in enumerate(load_trimodal_jsonl(jsonl_path), start=1):
+            records.append(record)
+            if limit and idx >= limit:
+                break
+        return records
+
     def split_train_validation(self, samples: List[Dict[str, Any]]) -> Tuple[List, List]:
         """Split into training and validation sets."""
         n_total = len(samples)
@@ -307,23 +338,35 @@ class MultiModalTRMTrainer:
 
         return train_samples, val_samples
 
-    def training_step(self, sample: Dict[str, Any]) -> Dict[str, float]:
-        """
-        Single training step on one sample.
+    def training_step(self, sample: Any) -> Dict[str, float]:
+        """Single training step on one sample."""
+        if isinstance(sample, TrimodalRecord):
+            losses = self._training_step_trimodal(sample)
+        else:
+            losses = self._training_step_rlwhf(sample)
 
-        Returns: Dictionary of losses
-        """
+        # Track metrics
+        self.total_loss_history.append(losses.get('total_loss', 0.0))
+        self.ocr_loss_history.append(losses.get('ocr_loss', 0.0))
+        self.text_loss_history.append(losses.get('text_loss', 0.0))
+        self.audio_loss_history.append(losses.get('audio_loss', 0.0))
+        self.alignment_loss_history.append(losses.get('alignment_loss', 0.0))
+
+        self.step += 1
+        return losses
+
+    def _training_step_rlwhf(self, sample: Dict[str, Any]) -> Dict[str, float]:
+        """Handle RLWHF-centric training sample."""
         losses = {
             'ocr_loss': 0.0,
             'text_loss': 0.0,
+            'audio_loss': 0.0,
             'alignment_loss': 0.0,
-            'total_loss': 0.0
+            'total_loss': 0.0,
         }
 
-        # Reset aligner for this sample
         self.aligner.reset_batch()
 
-        # Stream 1: Text reasoning (always available)
         teacher_eval = sample.get('teacher_evaluation', {})
         text_loss = self.text_stream.compute_text_loss(
             question=sample.get('question', ''),
@@ -333,55 +376,100 @@ class MultiModalTRMTrainer:
         )
         losses['text_loss'] = text_loss
 
-        # Register semantic embeddings from student attempt
         student_attempt = sample.get('student_attempt', {})
         if 'latent_embedding' in student_attempt:
             latent_emb = np.array(student_attempt['latent_embedding'])
-
-            # Extract characters from answer
             answer = sample.get('answer', '')
-            for char in answer[:10]:  # First 10 chars
+            for char in answer[:10]:
                 if char in self.aligner.vocab:
                     self.aligner.register_semantic_embedding(char, latent_emb)
 
-        # Stream 2: OCR (only if PDF source available)
         source = sample.get('source', '')
         if 'pdf' in source.lower():
-            # Extract PDF info
             pdf_name = sample.get('pdf_name', '')
             page_num = sample.get('page_num', 0)
-
-            # Extract visual features (placeholder for now)
             visual_features = self.ocr_stream.extract_visual_features(pdf_name, page_num)
 
             if visual_features is not None:
-                # Compute OCR loss
                 ground_truth_chars = list(sample.get('answer', ''))
                 ocr_loss = self.ocr_stream.compute_ocr_loss(visual_features, ground_truth_chars)
                 losses['ocr_loss'] = ocr_loss
 
-                # Register visual embeddings (placeholder)
-                # TODO: Extract character-level visual embeddings
-
-        # Stream 3: Cross-modal alignment
         alignment_loss = self.aligner.compute_alignment_loss()
         losses['alignment_loss'] = alignment_loss
 
-        # Total loss (weighted combination)
         losses['total_loss'] = (
             self.config.ocr_weight * losses['ocr_loss'] +
             self.config.text_weight * losses['text_loss'] +
+            self.config.audio_weight * losses['audio_loss'] +
             self.config.alignment_weight * losses['alignment_loss']
         )
+        return losses
 
-        # Track metrics
-        self.total_loss_history.append(losses['total_loss'])
-        self.ocr_loss_history.append(losses['ocr_loss'])
-        self.text_loss_history.append(losses['text_loss'])
-        self.alignment_loss_history.append(losses['alignment_loss'])
+    def _training_step_trimodal(self, record: TrimodalRecord) -> Dict[str, float]:
+        """Handle tri-modal training sample."""
+        losses = {
+            'ocr_loss': 0.0,
+            'text_loss': 0.0,
+            'audio_loss': 0.0,
+            'alignment_loss': 0.0,
+            'total_loss': 0.0,
+        }
 
-        self.step += 1
+        self.aligner.reset_batch()
+        embeddings: Dict[str, np.ndarray] = {}
 
+        if record.has_text():
+            text_embedding = self.rpn_embedder.embed_sentence(record.text.content)
+            embeddings['text'] = text_embedding
+            for char in record.text.content[:10]:
+                if char in self.aligner.vocab:
+                    self.aligner.register_semantic_embedding(char, text_embedding)
+
+            if record.extra and isinstance(record.extra, dict):
+                teacher_eval = record.extra.get('teacher_evaluation', {})
+                question = record.text.metadata.get('question') if record.text and record.text.metadata else ''
+                context = record.text.metadata.get('context') if record.text and record.text.metadata else ''
+                answer = record.text.metadata.get('answer') if record.text and record.text.metadata else ''
+                if isinstance(teacher_eval, dict) and answer:
+                    losses['text_loss'] = self.text_stream.compute_text_loss(
+                        question=question or '',
+                        context=context or '',
+                        ground_truth=answer or '',
+                        teacher_eval=teacher_eval
+                    )
+
+        if record.has_image():
+            image_path = Path(record.image.path)
+            image_embedding = embed_image(image_path, record.image.caption, dim=self.embedding_dim)
+            embeddings['image'] = image_embedding
+
+        if record.has_audio():
+            audio_path = Path(record.audio.path)
+            audio_embedding = embed_audio(audio_path, record.audio.transcript, dim=self.embedding_dim)
+            embeddings['audio'] = audio_embedding
+
+        # Pairwise losses
+        if 'text' in embeddings and 'image' in embeddings:
+            losses['ocr_loss'] = cosine_distance(embeddings['text'], embeddings['image'])
+        if 'text' in embeddings and 'audio' in embeddings:
+            losses['audio_loss'] = cosine_distance(embeddings['text'], embeddings['audio'])
+
+        if len(embeddings) > 1:
+            pairs = []
+            items = list(embeddings.items())
+            for i in range(len(items)):
+                for j in range(i + 1, len(items)):
+                    pairs.append(cosine_distance(items[i][1], items[j][1]))
+            if pairs:
+                losses['alignment_loss'] = float(np.mean(pairs))
+
+        losses['total_loss'] = (
+            self.config.ocr_weight * losses['ocr_loss'] +
+            self.config.text_weight * losses['text_loss'] +
+            self.config.audio_weight * losses['audio_loss'] +
+            self.config.alignment_weight * losses['alignment_loss']
+        )
         return losses
 
     def train_epoch(self, train_samples: List[Dict[str, Any]]):
@@ -389,19 +477,32 @@ class MultiModalTRMTrainer:
         print(f"\n[Training] Starting epoch over {len(train_samples)} samples")
 
         epoch_losses = []
+        ocr_losses = []
+        text_losses = []
+        audio_losses = []
+        align_losses = []
 
         for i, sample in enumerate(train_samples):
             losses = self.training_step(sample)
             epoch_losses.append(losses['total_loss'])
+            ocr_losses.append(losses.get('ocr_loss', 0.0))
+            text_losses.append(losses.get('text_loss', 0.0))
+            audio_losses.append(losses.get('audio_loss', 0.0))
+            align_losses.append(losses.get('alignment_loss', 0.0))
 
             # Log progress every 100 steps
             if (i + 1) % 100 == 0:
                 avg_loss = np.mean(epoch_losses[-100:])
+                avg_ocr = np.mean(ocr_losses[-100:])
+                avg_text = np.mean(text_losses[-100:])
+                avg_audio = np.mean(audio_losses[-100:])
+                avg_align = np.mean(align_losses[-100:])
                 print(f"  Step {self.step} ({i+1}/{len(train_samples)}): "
                       f"Loss {avg_loss:.4f} "
-                      f"(OCR: {losses['ocr_loss']:.4f}, "
-                      f"Text: {losses['text_loss']:.4f}, "
-                      f"Align: {losses['alignment_loss']:.4f})")
+                      f"(OCR: {avg_ocr:.4f}, "
+                      f"Text: {avg_text:.4f}, "
+                      f"Audio: {avg_audio:.4f}, "
+                      f"Align: {avg_align:.4f})")
 
         avg_epoch_loss = np.mean(epoch_losses)
         print(f"[Training] Epoch complete. Average loss: {avg_epoch_loss:.4f}")
@@ -413,14 +514,28 @@ class MultiModalTRMTrainer:
         print(f"\n[Validation] Evaluating {len(val_samples)} samples")
 
         val_losses = []
+        ocr_losses = []
+        text_losses = []
+        audio_losses = []
+        align_losses = []
 
         for sample in val_samples:
-            # Compute losses without updating weights
-            losses = self.training_step(sample)
+            if isinstance(sample, TrimodalRecord):
+                losses = self._training_step_trimodal(sample)
+            else:
+                losses = self._training_step_rlwhf(sample)
             val_losses.append(losses['total_loss'])
+            ocr_losses.append(losses.get('ocr_loss', 0.0))
+            text_losses.append(losses.get('text_loss', 0.0))
+            audio_losses.append(losses.get('audio_loss', 0.0))
+            align_losses.append(losses.get('alignment_loss', 0.0))
 
         avg_val_loss = np.mean(val_losses)
-        print(f"[Validation] Average loss: {avg_val_loss:.4f}")
+        print(f"[Validation] Average loss: {avg_val_loss:.4f} "
+              f"(OCR: {np.mean(ocr_losses):.4f}, "
+              f"Text: {np.mean(text_losses):.4f}, "
+              f"Audio: {np.mean(audio_losses):.4f}, "
+              f"Align: {np.mean(align_losses):.4f})")
 
         return avg_val_loss
 
@@ -431,6 +546,7 @@ class MultiModalTRMTrainer:
             'config': {
                 'ocr_weight': self.config.ocr_weight,
                 'text_weight': self.config.text_weight,
+                'audio_weight': self.config.audio_weight,
                 'alignment_weight': self.config.alignment_weight,
                 'learning_rate': self.config.learning_rate
             },
@@ -439,6 +555,7 @@ class MultiModalTRMTrainer:
                 'total': self.total_loss_history[-1000:],  # Last 1000 steps
                 'ocr': self.ocr_loss_history[-1000:],
                 'text': self.text_loss_history[-1000:],
+                 'audio': self.audio_loss_history[-1000:],
                 'alignment': self.alignment_loss_history[-1000:]
             }
         }

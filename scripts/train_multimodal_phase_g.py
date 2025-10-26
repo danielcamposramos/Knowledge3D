@@ -42,12 +42,19 @@ from knowledge3d.training.multimodal.self_updating_trm import (
 def main():
     parser = argparse.ArgumentParser(description='Phase G.1: Multi-Modal Training')
     parser.add_argument('--start', type=int, default=8042,
-                       help='Start sample index')
+                       help='Start sample index (RLWHF mode only)')
     parser.add_argument('--end', type=int, default=10000,
-                       help='End sample index')
+                       help='End sample index (RLWHF mode only)')
     parser.add_argument('--dataset', type=str,
                        default='/K3D/Knowledge3D.local/datasets/rlwhf/teacher_evaluations.jsonl',
                        help='RLWHF dataset path')
+    parser.add_argument('--trimodal-dataset', type=str,
+                       default='/K3D/Knowledge3D.local/datasets/trimodal_phase_g.jsonl',
+                       help='Combined tri-modal dataset path (Phase G.0 output)')
+    parser.add_argument('--dataset-mode', type=str, choices=['auto', 'rlwhf', 'trimodal'],
+                       default='auto', help='Which dataset loader to use')
+    parser.add_argument('--trimodal-limit', type=int, default=None,
+                       help='Optional limit when loading trimodal dataset (debug)')
     parser.add_argument('--self-update', action='store_true',
                        help='Enable self-updating mode (after 10K)')
     parser.add_argument('--validation-split', type=float, default=0.1,
@@ -59,6 +66,8 @@ def main():
                        help='OCR loss weight')
     parser.add_argument('--text-weight', type=float, default=1.0,
                        help='Text loss weight')
+    parser.add_argument('--audio-weight', type=float, default=1.0,
+                       help='Audio alignment loss weight')
     parser.add_argument('--alignment-weight', type=float, default=0.1,
                        help='Cross-modal alignment weight')
 
@@ -68,24 +77,39 @@ def main():
     print("Phase G.1: Multi-Modal TRM Training")
     print("=" * 80)
     print()
-    print(f"Dataset: {args.dataset}")
-    print(f"Samples: {args.start} → {args.end}")
+    rlwhf_path = Path(args.dataset)
+    trimodal_path = Path(args.trimodal_dataset)
+
+    dataset_mode = args.dataset_mode
+    if dataset_mode == 'auto':
+        dataset_mode = 'trimodal' if trimodal_path.exists() else 'rlwhf'
+
+    if dataset_mode == 'trimodal' and not trimodal_path.exists():
+        print(f"⚠ Trimodal dataset not found at {trimodal_path}; falling back to RLWHF")
+        dataset_mode = 'rlwhf'
+
+    dataset_path = trimodal_path if dataset_mode == 'trimodal' else rlwhf_path
+
+    print(f"Dataset mode: {dataset_mode.upper()}")
+    print(f"Dataset path: {dataset_path}")
+    if dataset_mode == 'trimodal':
+        limit_str = args.trimodal_limit if args.trimodal_limit else 'all'
+        print(f"Trimodal limit: {limit_str}")
+    else:
+        print(f"Samples: {args.start} → {args.end}")
     print(f"Self-updating: {'Enabled' if args.self_update else 'Disabled'}")
     print()
 
-    # Check dataset exists
-    dataset_path = Path(args.dataset)
     if not dataset_path.exists():
         print(f"❌ Dataset not found: {dataset_path}")
         return False
 
-    # Count available samples
-    with open(dataset_path, 'r') as f:
-        total_samples = sum(1 for _ in f)
+    with open(dataset_path, 'r', encoding='utf-8') as handle:
+        total_samples = sum(1 for _ in handle)
 
     print(f"✓ Dataset loaded: {total_samples} total samples")
 
-    if args.end > total_samples:
+    if dataset_mode == 'rlwhf' and args.end > total_samples:
         print(f"⚠ Requested end ({args.end}) > available ({total_samples}), "
               f"adjusting to {total_samples}")
         args.end = total_samples
@@ -94,6 +118,7 @@ def main():
     config = TrainingConfig(
         ocr_weight=args.ocr_weight,
         text_weight=args.text_weight,
+        audio_weight=args.audio_weight,
         alignment_weight=args.alignment_weight,
         validation_split=args.validation_split
     )
@@ -101,14 +126,22 @@ def main():
     # Initialize trainer
     trainer = MultiModalTRMTrainer(config=config)
 
-    # Load dataset range
-    print(f"\nLoading samples {args.start}-{args.end}...")
-    samples = trainer.load_rlwhf_dataset(
-        dataset_path,
-        start_idx=args.start,
-        end_idx=args.end
-    )
-    print(f"✓ Loaded {len(samples)} samples")
+    if dataset_mode == 'trimodal':
+        print("\nLoading tri-modal dataset...")
+        samples = trainer.load_trimodal_dataset(dataset_path, limit=args.trimodal_limit)
+        print(f"✓ Loaded {len(samples)} tri-modal samples")
+    else:
+        print(f"\nLoading RLWHF samples {args.start}-{args.end}...")
+        samples = trainer.load_rlwhf_dataset(
+            dataset_path,
+            start_idx=args.start,
+            end_idx=args.end
+        )
+        print(f"✓ Loaded {len(samples)} RLWHF samples")
+
+    if dataset_mode == 'trimodal' and args.self_update:
+        print("❌ Self-updating mode currently supports RLWHF dataset only.")
+        return False
 
     # Split train/validation
     train_samples, val_samples = trainer.split_train_validation(samples)
@@ -211,16 +244,21 @@ def main():
     print("Next Steps:")
     print("=" * 80)
 
-    if not args.self_update and args.end >= 10000:
-        print("  ✓ Reached 10K milestone!")
-        print("  → Train GalacticTemplateBank Layer 3 with learned embeddings")
-        print("  → Validate on Apollo ground truth (target: 90%+ detection)")
-        print("  → Enable self-updating mode for continual learning")
+    if dataset_mode == 'trimodal':
+        print("  ✓ Tri-modal foundation established")
+        print("  → Run Phase G.2 embedding extraction")
+        print("  → Train OCR/Speech/Multimodal specialists on extracted datasets")
+        print("  → Bootstrap router with modality observations")
     elif args.self_update:
         print("  ✓ Self-updating active - model will continue improving")
         print("  → Monitor acceptance rate (target: >20%)")
         print("  → Check validation performance trend")
         print("  → Deploy to Phase F.2 character detection")
+    elif args.end >= 10000:
+        print("  ✓ Reached 10K milestone!")
+        print("  → Train GalacticTemplateBank Layer 3 with learned embeddings")
+        print("  → Validate on Apollo ground truth (target: 90%+ detection)")
+        print("  → Enable self-updating mode for continual learning")
     else:
         print(f"  → Continue training to 10K ({10000 - args.end} samples remaining)")
         print(f"  → Run: python scripts/train_multimodal_phase_g.py --start {args.end} --end 10000")
