@@ -45,7 +45,11 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from knowledge3d.cranium.matryoshka_trm import MatryoshkaTRM, DimensionSelector
-from knowledge3d.cranium.trm_adapters import SelfUpdatingAdapter, AdapterConfig
+from knowledge3d.cranium.trm_adapters import (
+    SelfUpdatingAdapter,
+    AdapterConfig,
+    _to_serializable,
+)
 
 
 @dataclass
@@ -409,8 +413,10 @@ class AdaptiveSwarmTRM:
             'timestamp': datetime.now().isoformat()
         }
 
+        serializable_state = _to_serializable(swarm_state)
+
         with open(checkpoint_dir / 'swarm_state.json', 'w') as f:
-            json.dump(swarm_state, f, indent=2)
+            json.dump(serializable_state, f, indent=2)
 
         print(f"[AdaptiveSwarmTRM] Checkpoint saved to {checkpoint_dir}")
 

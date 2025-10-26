@@ -43,7 +43,7 @@ import argparse
 import numpy as np
 import json
 from datetime import datetime
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 
 from knowledge3d.cranium.adaptive_swarm import (
     AdaptiveSwarmTRM,

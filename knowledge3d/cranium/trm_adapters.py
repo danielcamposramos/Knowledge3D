@@ -40,6 +40,21 @@ import json
 from dataclasses import dataclass
 
 
+def _to_serializable(obj: Any) -> Any:
+    """Recursively convert numpy types to plain Python for JSON serialization."""
+    if isinstance(obj, dict):
+        return {k: _to_serializable(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_to_serializable(v) for v in obj]
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    if isinstance(obj, (np.integer,)):
+        return int(obj)
+    if isinstance(obj, (np.floating,)):
+        return float(obj)
+    return obj
+
+
 @dataclass
 class AdapterConfig:
     """Adapter configuration."""
@@ -368,8 +383,10 @@ class SelfUpdatingAdapter(AdapterWeights):
             'performance_history': self.performance_history
         }
 
+        serializable_metadata = _to_serializable(metadata)
+
         with open(checkpoint_dir / f'{self.specialist_name}_metadata.json', 'w') as f:
-            json.dump(metadata, f, indent=2)
+            json.dump(serializable_metadata, f, indent=2)
 
         print(f"[{self.specialist_name}] Checkpoint saved to {checkpoint_dir}")
 

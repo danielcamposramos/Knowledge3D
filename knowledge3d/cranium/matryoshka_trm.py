@@ -41,7 +41,11 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Optional, Any
 import json
 
-from knowledge3d.cranium.trm_adapters import SelfUpdatingAdapter, AdapterConfig
+from knowledge3d.cranium.trm_adapters import (
+    SelfUpdatingAdapter,
+    AdapterConfig,
+    _to_serializable,
+)
 
 
 class MatryoshkaTRM:
@@ -394,8 +398,10 @@ class MatryoshkaTRM:
             'stats': self.get_system_stats()
         }
 
+        serializable_metadata = _to_serializable(metadata)
+
         with open(checkpoint_dir / 'system_metadata.json', 'w') as f:
-            json.dump(metadata, f, indent=2)
+            json.dump(serializable_metadata, f, indent=2)
 
         print(f"[MatryoshkaTRM] Complete system saved to {checkpoint_dir}")
 
