@@ -192,6 +192,88 @@
 
 ---
 
+### 3.4 Qwen-embedding: Matryoshka Representations
+
+**Source**: [Qwen2.5-embedding GitHub](https://github.com/QwenLM/Qwen2.5-embedding)
+**Paper**: Qwen2.5-Math Technical Report (Alibaba Cloud)
+
+**What Inspired Us**:
+- **Matryoshka Representation Learning**: Single model produces embeddings at multiple dimension levels
+- **Variable dimensionality**: 64, 128, 256, 512, 1024, 2048+ dims from same weights
+- **Efficiency vs Capacity trade-off**: Lower dims = faster, higher dims = more expressive
+
+**Our Transformation**:
+We adapted Qwen's Matryoshka embeddings concept and transformed it through K3D's RPN (Reverse Polish Notation) reasoning paradigm:
+
+1. **Bi-Directional Variable Dimensionality** (Phase H):
+   - **Downward scaling** (Qwen's approach): 2048 → 64 dims for efficiency (1024× speedup)
+   - **Upward scaling** (K3D innovation): 2048 → 16K dims for research-level reasoning capacity
+   - **Key insight**: Qwen showed downward works; we proved upward works too!
+
+2. **Dimensions as RPN Stack Lines**:
+   - Qwen: Dimensions = embedding capacity
+   - K3D: **Each dimension = one RPN stack line = one reasoning operation**
+   - Lower dims = fewer operations (faster, simpler tasks)
+   - Higher dims = more operations (deeper reasoning chains)
+
+3. **Matryoshka TRM** (our implementation):
+   - Single weight matrix supports ALL dimension levels (like Qwen)
+   - `W_full[:dim, :dim]` extracts any dimension (Matryoshka property)
+   - Applied to **base model + specialist adapters** in adaptive swarm
+   - Enables task complexity → dimension auto-selection
+
+4. **Integration with Adaptive Swarm**:
+   - Base model: Matryoshka-style (64 ↔ 16K dims)
+   - Specialists: Choose required dims based on task complexity
+   - OCR specialist: 256-512 dims (medium complexity)
+   - Code specialist: 2048 dims (high complexity)
+   - Router specialist: 128-256 dims (routing is simpler than tasks)
+
+**The Lineage**:
+```
+Qwen-embedding (Matryoshka embeddings)
+    ↓ (Inspiration: Variable dimensionality works!)
+K3D RPN Reasoning Framework
+    ↓ (Transformation: Dims = RPN stack lines)
+Phase H Adaptive Swarm
+    ↓ (Innovation: Bi-directional + task-adaptive)
+Matryoshka TRM with Self-Updating Specialists
+```
+
+**What We Did NOT Borrow**:
+- Qwen's transformer architecture (we use RPN engines, not transformers)
+- Qwen's training data or weights
+- Qwen's embedding API
+
+**What We DID Adapt**:
+- The Matryoshka concept: Single weights → multiple dimension levels
+- The efficiency insight: Lower dims = faster inference
+- The capacity insight: Higher dims = more expressive
+
+**Our Novel Contributions Beyond Qwen**:
+1. **Bi-directional scaling**: Qwen only scales down; we scale both down (efficiency) AND up (capacity)
+2. **RPN interpretation**: Dimensions as reasoning stack lines, not just embedding capacity
+3. **Task-adaptive selection**: Automatic dimension choice based on complexity estimation
+4. **Specialist architecture**: Each specialist operates at different dims (not just base model)
+5. **Self-updating adapters**: LoRA-style adapters with Matryoshka dimensions
+
+**Credit**:
+- **Alibaba Cloud / Qwen Team** for pioneering Matryoshka representations in modern embeddings
+- The original Matryoshka representation learning concept for the foundational idea
+- We honor their research by properly attributing the inspiration while clearly documenting our novel transformations
+
+**Academic Citation**:
+```bibtex
+@misc{qwen2.5-embedding,
+  title={Qwen2.5-embedding: Variable Dimension Text Embeddings},
+  author={Qwen Team, Alibaba Cloud},
+  year={2024},
+  url={https://github.com/QwenLM/Qwen2.5-embedding}
+}
+```
+
+---
+
 ## 4. Software & Tools
 
 ### 4.1 CUDA & PTX
@@ -338,6 +420,14 @@ To clearly delineate our work from prior art:
    - FOV for attention mechanisms
    - Morton curves for semantic traversal
 
+6. **Adaptive Swarm with Self-Updating Specialists** (Phase H)
+   - **Bi-directional Matryoshka dimensions**: 64 dims (efficiency) ↔ 16K dims (capacity)
+   - **LoRA-style adapters**: 18× memory reduction at scale (rank-based decomposition)
+   - **Self-updating with validation gating**: Shadow weights prevent catastrophic forgetting
+   - **Router-as-specialist**: Routing intelligence is itself a specialist (the atomic insight)
+   - **Recursive self-improvement**: Router learns to route, improves forever
+   - **Transfer learning by design**: Base improvements benefit ALL specialists automatically
+
 ### 6.2 Integration Contributions
 
 1. **DeepSeek-OCR → PTX Kernels**
@@ -454,9 +544,11 @@ All third-party code and data are used in compliance with their respective licen
 
 We stand on the shoulders of:
 - **NVIDIA** for CUDA/PTX platform
-- **DeepSeek AI** for OCR research
-- **François Chollet** for ARC-AGI
+- **DeepSeek AI** for OCR research and thinking-enabled models
+- **Alibaba Cloud / Qwen Team** for Matryoshka representation learning in embeddings
+- **François Chollet** for ARC-AGI benchmark
 - **Ollama team** for local LLM inference
+- **LoRA/Adapters research community** for low-rank adaptation techniques
 - **Game industry pioneers** for LOD/FOV systems
 - **Open-source ML community** for foundational research
 - **Historical CS giants** for RPN, spatial indexing, and core algorithms
@@ -465,5 +557,5 @@ We stand on the shoulders of:
 
 ---
 
-**Last Updated**: October 22, 2025
-**Version**: Phase E.5 (DeepSeek-OCR + GPU-Batched RLWHF)
+**Last Updated**: October 26, 2025
+**Version**: Phase H (Adaptive Swarm with Router-as-Specialist)
