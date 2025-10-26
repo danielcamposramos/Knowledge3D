@@ -35,6 +35,7 @@ from scripts.train_specialist_gpu import run_training
 
 from knowledge3d.cranium.adaptive_swarm import AdaptiveSwarmTRM
 from knowledge3d.cranium.rpn_embedding_engine import RPNEmbeddingEngine
+from knowledge3d.cranium.rpn_executor import get_rpn_executor
 from knowledge3d.cranium.sleep_time_consolidator import SleepTimeConsolidator
 
 
@@ -213,6 +214,7 @@ def main() -> None:
 
     log("=== Phase G Sovereign Session starting ===")
     log(f"Specialists queued: {', '.join(job.name for job in plan)}")
+    get_rpn_executor()  # Prime RPN PTX context
 
     swarm = AdaptiveSwarmTRM()
     current_checkpoint = args.checkpoint_dir / "current"

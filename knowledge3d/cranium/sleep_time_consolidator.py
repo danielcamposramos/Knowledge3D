@@ -1,66 +1,53 @@
 """
-Phase D Sleep-Time Consolidation utilities.
+GPU-native Sleep-Time Consolidator
+---------------------------------
 
-The consolidator tightens the RPN embedding space after ingestion so that new
-knowledge is integrated once during an idle window instead of being reinforced
-by repeated re-ingestion. The initial implementation focuses on:
+Refines the RPN embedding table using sovereign PTX primitives only.
+The consolidator relies on:
+  * Modular RPN executor for cosine similarity (no sklearn/CuPy).
+  * VectorResonator PTX kernel for gradual vector blending.
 
-* Cluster refinement via k-means centroids
-* Redundancy pruning within clusters (high cosine similarity merges)
-
-Outlier removal and swarm-feedback refinement are stubbed with informative
-messages so the Phase D roadmap can extend them without touching the public API.
+CPU is used purely for orchestration and lightweight array bookkeeping.
 """
 
 from __future__ import annotations
 
 import json
+import os
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, Iterable, List, MutableMapping, Sequence, Tuple
 
-import cupy as cp
 import numpy as np
 
+from knowledge3d.cranium.bridges.sovereign_bridges import VectorResonator
+from knowledge3d.cranium.clustering_rpn import (
+    compile_cosine_similarity_rpn,
+    compute_similarity_matrix_rpn,
+)
 from knowledge3d.cranium.rpn_embedding_engine import RPNEmbeddingEngine
 from knowledge3d.cranium.rpn_executor import get_rpn_executor
-from knowledge3d.cranium.clustering_rpn import compile_cosine_similarity_rpn
+from knowledge3d.cranium.sovereign import loader as sovereign_loader
 
 
-def _normalize_rows_gpu(matrix: cp.ndarray) -> cp.ndarray:
-    """L2-normalise each row in a GPU matrix."""
-    norms = cp.linalg.norm(matrix, axis=1, keepdims=True)
-    norms = cp.where(norms < 1e-8, 1.0, norms)
-    return matrix / norms
+def _normalize(vec: np.ndarray) -> np.ndarray:
+    """Return L2-normalised copy."""
+    vec = np.asarray(vec, dtype=np.float32)
+    norm = float(np.linalg.norm(vec))
+    if norm <= 1e-8:
+        return np.zeros_like(vec, dtype=np.float32)
+    return (vec / norm).astype(np.float32)
 
 
-def _to_numpy(array: cp.ndarray) -> np.ndarray:
-    """Convert a CuPy array to a contiguous NumPy float32 array."""
-    return cp.asnumpy(array).astype(np.float32, copy=False)
+def _average_vectors(vectors: Sequence[np.ndarray]) -> np.ndarray:
+    """Average list of vectors (assumes consistent dimensionality)."""
+    stacked = np.stack(vectors, axis=0).astype(np.float32)
+    return stacked.mean(axis=0, dtype=np.float32)
 
 
 @dataclass
 class SleepTimeConsolidator:
-    """
-    Consolidate RPN embeddings during idle windows.
-
-    Parameters
-    ----------
-    rpn_engine:
-        The embedding engine whose vectors will be refined.
-    cluster_count:
-        Number of clusters for k-means refinement.
-    learning_rate:
-        How far to move embeddings toward cluster centroids (0-1).
-    redundancy_threshold:
-        Cosine similarity threshold for merging redundant trigrams.
-    max_cluster_size_for_pruning:
-        Safety cap to avoid quadratic explosion in giant clusters.
-    metrics_path:
-        Optional JSONL file for logging consolidation metrics.
-    """
-
     rpn_engine: RPNEmbeddingEngine
     cluster_count: int = 256
     learning_rate: float = 0.2
@@ -68,22 +55,31 @@ class SleepTimeConsolidator:
     max_cluster_size_for_pruning: int = 1024
     metrics_path: Path | None = None
 
-    # internal state cached per run
     _last_assignments: np.ndarray | None = field(default=None, init=False, repr=False)
     _last_keys: List[int] | None = field(default=None, init=False, repr=False)
-    _gpu_embeddings: cp.ndarray | None = field(default=None, init=False, repr=False)
-    _gpu_assignments: cp.ndarray | None = field(default=None, init=False, repr=False)
     _cohesion_before: float = field(default=0.0, init=False, repr=False)
     _cohesion_after: float = field(default=0.0, init=False, repr=False)
+    _vector_resonator: VectorResonator | None = field(default=None, init=False, repr=False)
+    _rpn_executor: object | None = field(default=None, init=False, repr=False)
 
+    def __post_init__(self) -> None:
+        sovereign_loader._ensure_current_context()
+        try:
+            import os
+            import cupy as _cupy  # type: ignore
+
+            device_id = int(os.environ.get("CUDA_VISIBLE_DEVICES", "0").split(",")[0])
+            _cupy.cuda.Device(device_id).use()
+        except Exception:
+            pass
+
+        self._vector_resonator = VectorResonator()
+        self._rpn_executor = get_rpn_executor()
+
+    # ------------------------------------------------------------------ #
+    # Public API
+    # ------------------------------------------------------------------ #
     def consolidate(self) -> Dict[str, object]:
-        """
-        Run the full consolidation pipeline.
-
-        Returns
-        -------
-        Dict with per-stage metrics and summary totals.
-        """
         if not self.rpn_engine.embeddings:
             return {
                 "status": "skipped",
@@ -115,17 +111,17 @@ class SleepTimeConsolidator:
         return metrics
 
     # ------------------------------------------------------------------ #
-    # Stage 1: Cluster refinement
+    # Stage 1: Cluster refinement (RPN similarities + PTX blending)
     # ------------------------------------------------------------------ #
     def _refine_clusters(self) -> Dict[str, float]:
         keys, matrix = self._embedding_items()
         num_embeddings = matrix.shape[0]
 
         if num_embeddings < 2:
-            self._gpu_embeddings = None
-            self._gpu_assignments = None
             self._last_assignments = None
             self._last_keys = keys
+            self._cohesion_before = 0.0
+            self._cohesion_after = 0.0
             return {
                 "clusters": int(max(1, num_embeddings)),
                 "cohesion_before": 0.0,
@@ -133,94 +129,56 @@ class SleepTimeConsolidator:
                 "improvement": 0.0,
             }
 
+        embeddings = matrix.astype(np.float32, copy=True)
         cluster_target = max(2, min(self.cluster_count, num_embeddings))
 
-        data_gpu = cp.asarray(matrix, dtype=cp.float32)
-        data_gpu = _normalize_rows_gpu(data_gpu)
-        original_gpu = data_gpu.copy()
+        rng = np.random.default_rng(0)
+        seeds = rng.choice(num_embeddings, size=cluster_target, replace=False)
+        centroids = embeddings[seeds].copy()
+        centroids = np.stack([_normalize(vec) for vec in centroids], axis=0)
 
-        rng = cp.random.default_rng(seed=0)
-        choices = rng.choice(num_embeddings, size=cluster_target, replace=False)
-        centroids = data_gpu[choices].copy()
+        assignments = np.zeros(num_embeddings, dtype=np.int32)
+        prev = None
 
-        assignments = None
         for _ in range(25):
-            similarity = data_gpu @ centroids.T
-            new_assignments = cp.argmax(similarity, axis=1)
-            if assignments is not None and cp.all(new_assignments == assignments):
-                assignments = new_assignments
+            similarity = compute_similarity_matrix_rpn(embeddings, centroids)
+            assignments = np.argmax(similarity, axis=1).astype(np.int32)
+            if prev is not None and np.array_equal(assignments, prev):
                 break
+            prev = assignments.copy()
 
-            assignments = new_assignments
-            for idx in range(cluster_target):
-                member_mask = assignments == idx
-                member_count = int(member_mask.sum().get())
-                if member_count == 0:
+            for cluster_idx in range(cluster_target):
+                member_idx = np.where(assignments == cluster_idx)[0]
+                if member_idx.size == 0:
                     random_idx = int(rng.integers(0, num_embeddings))
-                    centroids[idx] = data_gpu[random_idx]
+                    centroids[cluster_idx] = embeddings[random_idx]
                     continue
-                cluster_vectors = data_gpu[member_mask]
-                centroid = cluster_vectors.mean(axis=0)
-                norm = cp.linalg.norm(centroid)
-                if float(norm) > 1e-6:
-                    centroids[idx] = centroid / norm
-                else:
-                    centroids[idx] = cluster_vectors[0]
 
-        if assignments is None:
-            similarity = data_gpu @ centroids.T
-            assignments = cp.argmax(similarity, axis=1)
+                averaged = _average_vectors([embeddings[i] for i in member_idx])
+                centroids[cluster_idx] = _normalize(averaged)
 
-        centroid_assign = centroids[assignments]
-        rpn_executor = get_rpn_executor()
-        sample_count = min(15, num_embeddings)
-        sample_scores_before: List[float] = []
-        for sample_idx in range(sample_count):
-            cluster_idx = int(assignments[sample_idx].item())
-            program = compile_cosine_similarity_rpn(
-                _to_numpy(original_gpu[sample_idx]),
-                _to_numpy(centroids[cluster_idx]),
+        similarity = compute_similarity_matrix_rpn(embeddings, centroids)
+        self._cohesion_before = float(np.mean(similarity[np.arange(num_embeddings), assignments]))
+
+        updated_vectors: List[np.ndarray] = []
+        for idx, vec in enumerate(embeddings):
+            centroid = centroids[assignments[idx]]
+            blended = self._vector_resonator.resonate(
+                vec.astype(np.float32),
+                centroid.astype(np.float32),
+                float(self.learning_rate),
             )
-            score = rpn_executor.execute_single(
-                instance_id=sample_idx % rpn_executor.MAX_INSTANCES,
-                op_codes=program["op_codes"],
-                scalars=program["scalars"],
-                vectors=program["vectors"],
-            )
-            sample_scores_before.append(score)
-        self._cohesion_before = float(np.mean(sample_scores_before)) if sample_scores_before else 0.0
+            updated_vectors.append(_normalize(blended))
+        updated = np.stack(updated_vectors, axis=0)
 
-        updated_gpu = _normalize_rows_gpu(
-            original_gpu + self.learning_rate * (centroid_assign - original_gpu)
-        )
+        updated_similarity = compute_similarity_matrix_rpn(updated, centroids)
+        self._cohesion_after = float(np.mean(updated_similarity[np.arange(num_embeddings), assignments]))
 
-        updated_similarity = updated_gpu @ centroids.T
-        updated_assignments = cp.argmax(updated_similarity, axis=1)
-        updated_centroids = centroids[updated_assignments]
-        sample_scores_after: List[float] = []
-        for sample_idx in range(sample_count):
-            cluster_idx = int(updated_assignments[sample_idx].item())
-            program = compile_cosine_similarity_rpn(
-                _to_numpy(updated_gpu[sample_idx]),
-                _to_numpy(updated_centroids[sample_idx]),
-            )
-            score = rpn_executor.execute_single(
-                instance_id=sample_idx % rpn_executor.MAX_INSTANCES,
-                op_codes=program["op_codes"],
-                scalars=program["scalars"],
-                vectors=program["vectors"],
-            )
-            sample_scores_after.append(score)
-        self._cohesion_after = float(np.mean(sample_scores_after)) if sample_scores_after else 0.0
-
-        self._gpu_embeddings = updated_gpu
-        self._gpu_assignments = updated_assignments
-        self._last_assignments = cp.asnumpy(updated_assignments)
-        self._last_keys = keys
-
-        updated_matrix = _to_numpy(updated_gpu)
         for idx, trigram_hash in enumerate(keys):
-            self.rpn_engine.embeddings[trigram_hash] = updated_matrix[idx]
+            self.rpn_engine.embeddings[trigram_hash] = updated[idx]
+
+        self._last_assignments = assignments
+        self._last_keys = keys
 
         improvement = self._cohesion_after - self._cohesion_before
         return {
@@ -231,91 +189,84 @@ class SleepTimeConsolidator:
         }
 
     # ------------------------------------------------------------------ #
-    # Stage 2: Redundancy pruning
+    # Stage 2: Redundancy pruning (RPN similarity with centroid)
     # ------------------------------------------------------------------ #
     def _prune_redundancies(self) -> Dict[str, int | float]:
-        if (
-            self._gpu_embeddings is None
-            or self._gpu_assignments is None
-            or self._last_keys is None
-        ):
+        if self._last_assignments is None or self._last_keys is None:
             return {"merged_pairs": 0, "reduction": 0.0}
 
-        data_gpu = self._gpu_embeddings
-        assignments_gpu = self._gpu_assignments
-        keys = self._last_keys
-
-        keep_mask = cp.ones(data_gpu.shape[0], dtype=cp.bool_)
+        assignments = self._last_assignments
+        keys = list(self._last_keys)
+        embedding_map = self.rpn_engine.embeddings
         merged_pairs = 0
 
-        unique_clusters = cp.unique(assignments_gpu)
-        for cluster_id in cp.asnumpy(unique_clusters):
-            cluster_indices = cp.where(assignments_gpu == cluster_id)[0]
-            cluster_size = int(cluster_indices.size)
-            if cluster_size <= 1:
+        executor = self._rpn_executor
+        removed: List[int] = []
+
+        for cluster_id in np.unique(assignments):
+            member_idx = np.where(assignments == cluster_id)[0]
+            if member_idx.size <= 1:
                 continue
-            if cluster_size > self.max_cluster_size_for_pruning:
-                continue
-
-            cluster_vectors = data_gpu[cluster_indices]
-            centroid = cluster_vectors.mean(axis=0)
-            norm = cp.linalg.norm(centroid)
-            if float(norm) > 1e-6:
-                centroid = centroid / norm
-
-            sims = cluster_vectors @ centroid
-            high_mask = sims >= self.redundancy_threshold
-            high_indices = cluster_indices[cp.where(high_mask)[0]]
-
-            if high_indices.size <= 1:
+            if member_idx.size > self.max_cluster_size_for_pruning:
                 continue
 
-            best_idx = int(high_indices[cp.argmax(sims[cp.where(high_mask)[0]])].item())
-            merged_vec = cluster_vectors[cp.where(high_mask)[0]].mean(axis=0)
-            merged_norm = cp.linalg.norm(merged_vec)
-            if float(merged_norm) > 1e-6:
-                merged_vec = merged_vec / merged_norm
+            member_vectors = [embedding_map[keys[i]] for i in member_idx]
+            centroid = _normalize(_average_vectors(member_vectors))
 
-            data_gpu[best_idx] = merged_vec
+            programs = []
+            for vec in member_vectors:
+                programs.append(compile_cosine_similarity_rpn(vec, centroid))
+            sims = executor.execute_batch(programs, max_instances=len(programs))
 
-            for idx in cp.asnumpy(high_indices):
-                if idx != best_idx:
-                    keep_mask[idx] = False
-                    merged_pairs += 1
+            high_members = [
+                (idx, member_vectors[i])
+                for idx, i in zip(member_idx, range(member_idx.size))
+                if sims[i] >= self.redundancy_threshold
+            ]
 
-        keep_mask_cpu = cp.asnumpy(keep_mask)
-        updated_embeddings = _to_numpy(data_gpu)
+            if len(high_members) <= 1:
+                continue
 
-        for idx, trigram_hash in enumerate(list(keys)):
-            if keep_mask_cpu[idx]:
-                self.rpn_engine.embeddings[trigram_hash] = updated_embeddings[idx]
-            elif trigram_hash in self.rpn_engine.embeddings:
-                del self.rpn_engine.embeddings[trigram_hash]
+            high_members.sort(key=lambda item: float(sims[member_idx.tolist().index(item[0])]), reverse=True)
+            keeper_idx, keeper_vec = high_members[0]
+            keeper_key = keys[keeper_idx]
+            aggregate = keeper_vec.astype(np.float32)
+            blend_count = 1
 
-        self._last_keys = [keys[i] for i, keep in enumerate(keep_mask_cpu) if keep]
-        if self._last_keys:
-            self._last_assignments = assignments_gpu[keep_mask].get().astype(np.int32)
-        else:
-            self._last_assignments = None
+            for idx, vec in high_members[1:]:
+                blend_count += 1
+                alpha = 1.0 / blend_count
+                aggregate = self._vector_resonator.resonate(
+                    aggregate.astype(np.float32),
+                    vec.astype(np.float32),
+                    float(alpha),
+                )
+                removed.append(keys[idx])
+                merged_pairs += 1
 
-        self._gpu_embeddings = data_gpu[keep_mask]
-        self._gpu_assignments = assignments_gpu[keep_mask]
+            embedding_map[keeper_key] = _normalize(aggregate)
+
+        for trigram_hash in removed:
+            if trigram_hash in embedding_map:
+                del embedding_map[trigram_hash]
+
+        self._last_keys = [k for k in keys if k not in removed]
+        self._last_assignments = None
 
         reduction = (merged_pairs / max(1, len(keys))) * 100.0
         return {"merged_pairs": merged_pairs, "reduction": reduction}
 
     # ------------------------------------------------------------------ #
-    # Stage 3 / 4 placeholders
+    # Remaining stages (placeholders)
     # ------------------------------------------------------------------ #
     def _remove_outliers(self) -> Dict[str, object]:
-        # Usage tracking is not yet instrumented in the ingestion loop.
         return {"status": "skipped", "reason": "hit_count_not_tracked"}
 
     def _integrate_swarm_feedback(self) -> Dict[str, object]:
         return {"status": "skipped", "reason": "phase_d3_pending"}
 
     # ------------------------------------------------------------------ #
-    # Helper routines
+    # Helpers
     # ------------------------------------------------------------------ #
     def _embedding_items(self) -> Tuple[List[int], np.ndarray]:
         embeddings: MutableMapping[int, np.ndarray] = self.rpn_engine.embeddings
@@ -324,10 +275,9 @@ class SleepTimeConsolidator:
         return keys, matrix
 
     def _record_metrics(self, metrics: Dict[str, object]) -> None:
-        target = self.metrics_path
-        if target is None:
+        if self.metrics_path is None:
             return
-        target.parent.mkdir(parents=True, exist_ok=True)
+        self.metrics_path.parent.mkdir(parents=True, exist_ok=True)
         payload = json.dumps(metrics, default=float)
-        with target.open("a", encoding="utf-8") as handle:
+        with self.metrics_path.open("a", encoding="utf-8") as handle:
             handle.write(payload + "\n")

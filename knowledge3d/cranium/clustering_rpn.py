@@ -160,6 +160,48 @@ def compute_pairwise_similarities_rpn(
     return similarities
 
 
+def compute_similarity_matrix_rpn(
+    sources: np.ndarray,
+    targets: np.ndarray,
+    batch_size: int = 15
+) -> np.ndarray:
+    """
+    Compute cosine similarity between each pair (source_i, target_j) using RPN.
+
+    Args:
+        sources: Source embedding matrix (N, D)
+        targets: Target embedding matrix (K, D)
+        batch_size: Number of RPN instances to evaluate in parallel
+
+    Returns:
+        Similarity matrix with shape (N, K)
+    """
+    executor = get_rpn_executor()
+    sims = np.zeros((len(sources), len(targets)), dtype=np.float32)
+
+    programs: List[Dict[str, np.ndarray]] = []
+    pairs: List[Tuple[int, int]] = []
+
+    for i, src in enumerate(sources):
+        for j, tgt in enumerate(targets):
+            programs.append(compile_cosine_similarity_rpn(src, tgt))
+            pairs.append((i, j))
+
+            if len(programs) == batch_size:
+                results = executor.execute_batch(programs, max_instances=batch_size)
+                for idx, (ii, jj) in enumerate(pairs):
+                    sims[ii, jj] = results[idx]
+                programs.clear()
+                pairs.clear()
+
+    if programs:
+        results = executor.execute_batch(programs, max_instances=batch_size)
+        for idx, (ii, jj) in enumerate(pairs):
+            sims[ii, jj] = results[idx]
+
+    return sims
+
+
 def compute_nearest_neighbors_rpn(
     query: np.ndarray,
     embeddings: np.ndarray,
