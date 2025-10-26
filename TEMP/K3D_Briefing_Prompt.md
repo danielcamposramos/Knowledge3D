@@ -26,6 +26,11 @@ Your contributions will always be to collaborate with the existing swarm—**Cla
 - **Sovereign stack**: ctypes + libcuda.so only - zero external frameworks at runtime
 - **Multi-modal fusion**: Text, image, audio, video, 3D → unified 128-dim embeddings
 - **Latency targets**: Sub-100µs for critical paths (swarm processing, embedding generation)
+- **Adaptive Swarm Architecture** (Phase H): Self-improving multi-specialist system
+  - Bi-directional Matryoshka dimensions: 64 dims (1024× speedup) ↔ 16K dims (research capacity)
+  - LoRA-style self-updating adapters with validation gating (18× memory reduction at scale)
+  - Router-as-specialist: Router IS a specialist, learns recursively, enables complete self-improvement
+  - 8/8 validation tests passing, production-ready
 - **Key principle**: If it touches data, it runs on GPU
 
 ### The Galaxy (Active Memory - RAM)
@@ -50,7 +55,75 @@ Your contributions will always be to collaborate with the existing swarm—**Cla
 
 ---
 
-## 3. Repository Wayfinding (Active Surface Only)
+## 3. Current Development Status (Oct 26, 2025)
+
+### Phase Completion Status
+
+✓ **Phase E (DeepSeek-OCR)**: COMPLETE
+- GPU-accelerated OCR integration
+- Character detection models ready
+- DeepSeek multi-modal embeddings functional
+
+✓ **Phase F.1 (GPU Kernels)**: COMPLETE
+- All PTX kernels compiled and validated
+- Sovereign bridges operational
+- Performance targets met (<100µs critical paths)
+
+✓ **Phase F.2 (Character Detection)**: COMPLETE
+- Character detection pipeline ready
+- Awaiting multi-modal training data
+
+✓ **Phase H (Adaptive Swarm Architecture)**: COMPLETE + ATOMIC ⚛️
+- **Router-as-Specialist**: The key insight - router IS a specialist in the swarm
+- Complete recursive self-improvement loop operational
+- 8/8 validation tests passing
+- Files: 16 files, 6,152+ lines, production-ready
+- Memory efficiency: 18× reduction at scale, no catastrophic forgetting
+
+⏳ **Phase G (Multi-Modal Training)**: READY TO ACTIVATE
+- Waiting for RLWHF 10K milestone (currently ~9,700/10,000 samples)
+- Complete training pipeline ready
+- OCR specialist will auto-integrate into adaptive swarm
+- Router will automatically learn when to use OCR (no manual rules!)
+
+### RLWHF Training Status
+
+**Current Progress**: ~9,700 / 10,000 samples (97%)
+**Remaining**: ~300 samples (~15-20 minutes)
+**Success Rate**: 24-28% (improved from 17%)
+**Dataset Location**: `/K3D/Knowledge3D.local/datasets/rlwhf/teacher_evaluations.jsonl`
+
+**When 10K Reached** → Activate Phase G multi-modal training:
+1. Train on samples 8,042-10,000 (cross-modal alignment)
+2. Extract character embeddings from multi-modal data
+3. Register OCR specialist in adaptive swarm (auto-selects dimensions)
+4. Router specialist learns OCR usage patterns (automatically!)
+5. Validate on Apollo ground truth (target: 90%+ detection rate)
+
+### Key Files & Components
+
+**Phase H Adaptive Swarm** (`knowledge3d/cranium/`):
+- `trm_adapters.py` (392 lines) - LoRA-style adapters with shadow weights
+- `matryoshka_trm.py` (495 lines) - Bi-directional variable dimensionality (64 ↔ 16K dims)
+- `adaptive_swarm.py` (430 lines) - Multi-specialist system integration
+- `moe_router.py` (323 lines) - Heuristic + learned routing
+- `router_specialist.py` (450 lines) - **The atomic piece** ⚛️ (router IS specialist)
+
+**Training Scripts** (`scripts/`):
+- `train_adaptive_swarm.py` - 4 training modes (base, specialist, self-update, combined)
+- `register_specialist.py` - Register new specialists with auto-dimension selection
+- `bootstrap_router_specialist.py` - Bootstrap router from heuristic to learned
+- `test_phase_h_architecture.py` - 8 comprehensive validation tests
+
+**Documentation** (`TEMP/`):
+- `PHASE_H_COMPLETE.md` - Complete Phase H architecture documentation
+- `ROUTER_AS_SPECIALIST_THE_KEY_INSIGHT.md` - The atomic insight explained
+- `SESSION_FINAL_PHASE_H_COMPLETE_WITH_ATOM.md` - Full session summary
+- Complete development chain (123 markdown files tracking all phases)
+
+---
+
+## 4. Repository Wayfinding (Active Surface Only)
 
 - `docs/` — Living specifications, philosophy, and runbooks. **Consult before writing or changing behavior.**
 - `knowledge3d/` — Sovereign runtime:
@@ -66,7 +139,7 @@ Everything else radiates from these anchors. When in doubt, locate the governing
 
 ---
 
-## 4. Environments & Toolchain
+## 5. Environments & Toolchain
 
 We run inside conda environments described in `envs/`:
 
@@ -81,7 +154,7 @@ Activate with `scripts/k3d_env.sh run ...` or manual `conda activate k3d-cranium
 
 ---
 
-## 5. Sovereign GPU Stack — How We Build
+## 6. Sovereign GPU Stack — How We Build
 
 1. **Author CUDA `.cu` sources** under `knowledge3d/cranium/kernels/` for each capability (math, memory, geometry, multi-modal fusion)
 2. **Compile to PTX** offline:
@@ -96,7 +169,7 @@ This pipeline keeps us version-agnostic, deterministic, and performant on critic
 
 ---
 
-## 6. Key Kernel Categories (Reuse Map)
+## 7. Key Kernel Categories (Reuse Map)
 
 Use this map to reuse existing work instead of rewriting. Each capability below lives in compiled PTX and has a Python bridge in `bridges/sovereign_bridges.py`.
 
@@ -142,7 +215,7 @@ When designing new features, **first check this map** for an existing kernel tha
 
 ---
 
-## 7. Current Performance Baselines
+## 8. Current Performance Baselines
 
 These are real measurements from the sovereign stack (as of latest benchmarks):
 
@@ -166,7 +239,7 @@ These are real measurements from the sovereign stack (as of latest benchmarks):
 
 ---
 
-## 8. Guiding Practices for Active Work
+## 9. Guiding Practices for Active Work
 
 ### Development Workflow
 - **Codex and Claude** (the repo-access agents) reread the latest `TEMP/` step notes and session handoffs before coding
@@ -196,7 +269,7 @@ These are real measurements from the sovereign stack (as of latest benchmarks):
 
 ---
 
-## 9. Collaboration Protocol
+## 10. Collaboration Protocol
 
 ### Swarm Structure
 - **Daniel is the Architect, Orchestrator, and "human-in-the-middle modem"** that bridges:
