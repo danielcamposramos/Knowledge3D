@@ -53,7 +53,11 @@ class SovereignRPNExecutor:
 
         # Zero-initialize state buffer
         zeros = np.zeros(state_size, dtype=np.uint8)
-        loader.memcpy_htod(self.state_buffer, zeros.ctypes.data, state_size)
+        loader.memcpy_htod(
+            self.state_buffer,
+            ctypes.c_void_p(zeros.ctypes.data),
+            state_size,
+        )
 
         # Performance tracking
         self.total_executions = 0
@@ -61,16 +65,16 @@ class SovereignRPNExecutor:
     def execute_single(
         self,
         instance_id: int,
-        op_codes: np.ndarray,
-        scalars: np.ndarray,
-        vectors: np.ndarray,
+        op_codes,
+        scalars: Optional[np.ndarray] = None,
+        vectors: Optional[np.ndarray] = None,
     ) -> float:
         """
         Execute single RPN program on specified instance.
 
         Args:
             instance_id: Instance slot (0-14)
-            op_codes: RPN operation codes (uint16 array)
+            op_codes: RPN operation codes (uint16 array) or program dict
             scalars: Scalar literal pool (float32 array)
             vectors: Vector literal pool (float32 array, flat)
 
@@ -80,20 +84,45 @@ class SovereignRPNExecutor:
         if not (0 <= instance_id < self.MAX_INSTANCES):
             raise ValueError(f"Invalid instance_id: {instance_id} (must be 0-14)")
 
+        if isinstance(op_codes, dict):
+            program = op_codes
+            op_codes = program.get("op_codes")
+            scalars = program.get("scalars")
+            vectors = program.get("vectors")
+
+        if op_codes is None or scalars is None or vectors is None:
+            raise ValueError("RPN program must provide op_codes, scalars, and vectors")
+
         # Ensure contiguous arrays
         op_codes = np.ascontiguousarray(op_codes, dtype=np.uint16)
         scalars = np.ascontiguousarray(scalars, dtype=np.float32)
         vectors = np.ascontiguousarray(vectors, dtype=np.float32)
 
+        # Ensure matrices buffer
         # Allocate GPU memory for inputs
-        op_codes_gpu = loader.gpu_malloc(op_codes.nbytes)
-        scalars_gpu = loader.gpu_malloc(scalars.nbytes)
-        vectors_gpu = loader.gpu_malloc(vectors.nbytes)
+        op_codes_gpu = (
+            loader.gpu_malloc(op_codes.nbytes) if op_codes.nbytes else loader.CUdeviceptr(0)
+        )
+        scalars_gpu = (
+            loader.gpu_malloc(scalars.nbytes) if scalars.nbytes else loader.CUdeviceptr(0)
+        )
+        vectors_gpu = (
+            loader.gpu_malloc(vectors.nbytes) if vectors.nbytes else loader.CUdeviceptr(0)
+        )
 
         # Copy to GPU
-        loader.memcpy_htod(op_codes_gpu, op_codes.ctypes.data, op_codes.nbytes)
-        loader.memcpy_htod(scalars_gpu, scalars.ctypes.data, scalars.nbytes)
-        loader.memcpy_htod(vectors_gpu, vectors.ctypes.data, vectors.nbytes)
+        if op_codes.nbytes:
+            loader.memcpy_htod(
+                op_codes_gpu, ctypes.c_void_p(op_codes.ctypes.data), op_codes.nbytes
+            )
+        if scalars.nbytes:
+            loader.memcpy_htod(
+                scalars_gpu, ctypes.c_void_p(scalars.ctypes.data), scalars.nbytes
+            )
+        if vectors.nbytes:
+            loader.memcpy_htod(
+                vectors_gpu, ctypes.c_void_p(vectors.ctypes.data), vectors.nbytes
+            )
 
         # Launch kernel
         loader.launch(
@@ -115,16 +144,19 @@ class SovereignRPNExecutor:
         # Read result from state buffer
         # State layout: head(4) + size(4) + error(4) + reserved(4) + stack[64][4]
         result_offset = instance_id * self.INSTANCE_STRIDE + 16  # Skip header
-        result_bytes = np.empty(4, dtype=np.uint8)
         result_ptr = loader.CUdeviceptr(self.state_buffer.value + result_offset)
-        loader.memcpy_dtoh(result_bytes.ctypes.data, result_ptr, 4)
+        result_host = ctypes.c_float()
+        loader.memcpy_dtoh(ctypes.byref(result_host), result_ptr, ctypes.sizeof(result_host))
 
-        result = np.frombuffer(result_bytes, dtype=np.float32)[0]
+        result = result_host.value
 
         # Cleanup
-        loader.gpu_free(op_codes_gpu)
-        loader.gpu_free(scalars_gpu)
-        loader.gpu_free(vectors_gpu)
+        if op_codes.nbytes:
+            loader.gpu_free(op_codes_gpu)
+        if scalars.nbytes:
+            loader.gpu_free(scalars_gpu)
+        if vectors.nbytes:
+            loader.gpu_free(vectors_gpu)
 
         self.total_executions += 1
         return float(result)
@@ -158,8 +190,8 @@ class SovereignRPNExecutor:
             # Execute batch programs
             for i in range(batch_size):
                 program_idx = batch_start + i
-                op_codes, scalars, vectors = programs[program_idx]
-                results[program_idx] = self.execute_single(i, op_codes, scalars, vectors)
+                program = programs[program_idx]
+                results[program_idx] = self.execute_single(i, program)
 
         return results
 
