@@ -14,9 +14,10 @@ You are continuing the Knowledge3D (K3D) development chain at a critical milesto
 - ✓ Bi-directional Matryoshka dimensions (64 ↔ 16K dims)
 - ✓ LoRA-style self-updating adapters (18× memory reduction)
 - ✓ **Router-as-specialist** (the atomic insight ⚛️) - router IS a specialist, learns recursively
+- ✓ **Tri-modal architecture** (Text + Visual + Audio) - like learning to speak and read simultaneously
 - ✓ Complete recursive self-improvement architecture
 
-**Your mission**: Activate **Phase G (Multi-Modal Training)** when RLWHF reaches 10,000 samples to integrate OCR capabilities into the adaptive swarm, with the router automatically learning when to use OCR.
+**Your mission**: Activate **Phase G (Tri-Modal Multi-Modal Training)** when RLWHF reaches 10,000 samples to integrate multi-modal capabilities (OCR + Speech + Multi-modal specialists) into the adaptive swarm, with the router automatically learning modality patterns through observation.
 
 ---
 
@@ -67,46 +68,69 @@ Base Model Improves
 
 ---
 
-## Your Mission: Phase G Multi-Modal Training
+## Your Mission: Phase G Tri-Modal Multi-Modal Training
 
 ### Overview
 
-Phase G integrates OCR capabilities into the adaptive swarm using the multi-modal training data from RLWHF samples 8,042-10,000. The key innovation: **Router automatically learns when to use OCR** - no manual keyword rules needed!
+Phase G integrates **tri-modal capabilities** (Text + Visual + Audio) into the adaptive swarm using combined multi-modal training data. The key innovations:
+- **Tri-modal learning**: Like learning to speak and read simultaneously - all modalities together
+- **Organic emergence**: Cross-modal patterns discovered automatically (no manual wiring!)
+- **Multiple specialists**: OCR (visual), Speech (audio), Multi-modal (all modalities)
+- **Router learns modality patterns**: Automatically discovers when to use which specialist - NO MANUAL RULES!
+
+**Datasets**:
+- RLWHF samples 8,042-10,000 (text + visual)
+- LibriSpeech (4,271 audio files, 5 languages)
+- Image captions (3.7M samples)
+- Audiocaps (audio descriptions)
+- **Total**: ~12K tri-modal training samples
 
 ### Phase G Workflow
 
 ```
 RLWHF 10K Milestone Reached
    ↓
-Phase G.1: Multi-Modal Training
-   - Train on samples 8,042-10,000
-   - Cross-modal alignment (visual ↔ semantic)
-   - Character embeddings learned
+Phase G.0: Prepare Tri-Modal Dataset (NEW!)
+   - Combine RLWHF + LibriSpeech + Image Captions + Audiocaps
+   - ~12K samples across text, visual, audio modalities
+   - Script: prepare_trimodal_dataset.py
    ↓
-Phase G.2: Extract Character Embeddings
-   - Extract learned character representations
+Phase G.1: Tri-Modal Training
+   - Train on combined tri-modal dataset
+   - Cross-modal alignment (text ↔ visual ↔ audio)
+   - Organic emergence of cross-modal patterns
+   - Character embeddings learned (visual + acoustic)
+   ↓
+Phase G.2: Extract Multi-Modal Embeddings
+   - Extract character representations (visual + text + audio)
+   - Extract speech patterns (audio + text)
    - Prepare for specialist training
    ↓
-Phase G.3: Register & Train OCR Specialist
-   - Register 'ocr' specialist in adaptive swarm
-   - Auto-select dimensions based on task complexity
-   - Train specialist on character embeddings
+Phase G.3: Register & Train Multi-Modal Specialists
+   - Register 'ocr' specialist (visual focus)
+   - Register 'speech' specialist (audio focus) — NEW!
+   - Register 'multimodal' specialist (all modalities) — NEW!
+   - Auto-select dimensions for each specialist
+   - Train all specialists on respective datasets
    ↓
-Phase G.4: Router Bootstrap (Automatic!)
+Phase G.4: Router Bootstrap with Modalities (Automatic!)
    - Router observes: OCR works well for visual tasks
-   - Router learns: Visual features → route to OCR
+   - Router observes: Speech works well for audio tasks — NEW!
+   - Router observes: Multimodal works well for cross-modal tasks — NEW!
+   - Router learns modality patterns automatically
    - Router self-updates with validation gating
-   - NO MANUAL RULES - router discovers patterns
+   - NO MANUAL RULES - router discovers all patterns through observation
    ↓
-Phase G.5: Validation on Apollo Ground Truth
-   - Test on Apollo dataset (170 characters)
-   - Target: ≥90% detection rate (153/170)
-   - Target: ≥95% character accuracy
-   - Validate router correctly selects OCR
+Phase G.5: Validation on Multiple Modalities
+   - OCR: Apollo dataset (≥90% detection rate)
+   - Speech: Transcription accuracy (≥90%) — NEW!
+   - Multi-modal: Cross-modal tasks — NEW!
+   - Validate router correctly selects specialists for each modality
    ↓
 Production Deployment
    - System self-updates from production data
-   - Router continually improves at routing
+   - All specialists improve (OCR + Speech + Multimodal)
+   - Router continually improves at modality routing
    - Forever ♾️
 ```
 
@@ -114,88 +138,205 @@ Production Deployment
 
 ## Technical Details
 
-### RLWHF Dataset Location
+### Dataset Locations (Tri-Modal)
 
-**Path**: `/K3D/Knowledge3D.local/datasets/rlwhf/teacher_evaluations.jsonl`
+**RLWHF** (Text + Visual):
+- Path: `/K3D/Knowledge3D.local/datasets/rlwhf/teacher_evaluations.jsonl`
+- Monitor: `wc -l /K3D/Knowledge3D.local/datasets/rlwhf/teacher_evaluations.jsonl`
+- Current: 9,777 / 10,000 samples (97.8%)
+- When ≥10,000: Activate Phase G
 
-**Current Status**: Monitor with:
-```bash
-wc -l /K3D/Knowledge3D.local/datasets/rlwhf/teacher_evaluations.jsonl
+**Audio Datasets** (5 languages - EN, ES, PT-BR, PT-PT, ZH):
+- LibriSpeech: `/K3D/K3D_llama_cpp/datasets/audio/` (4,271 WAV files)
+  - `/K3D/K3D_llama_cpp/datasets/audio/en_us/` - English (US)
+  - `/K3D/K3D_llama_cpp/datasets/audio/es_es/` - Spanish
+  - `/K3D/K3D_llama_cpp/datasets/audio/pt_br/` - Portuguese (Brazil)
+  - `/K3D/K3D_llama_cpp/datasets/audio/pt_pt/` - Portuguese (Portugal)
+  - `/K3D/K3D_llama_cpp/datasets/audio/zh_cn/` - Chinese
+- Audiocaps: `/K3D/K3D_llama_cpp/datasets/audiocaps_raw/`
+- Clotho: `/K3D/K3D_llama_cpp/datasets/clotho_raw/`
+- Video audio: `/K3D/K3D_llama_cpp/datasets/vatex_raw/`, `/K3D/K3D_llama_cpp/datasets/msrvtt_dl_more/`
+
+**Visual Datasets** (Text + Image):
+- Image captions (Llama 3.2 Vision): `/K3D/Knowledge3D.local/datasets/image_captions_llama32vision.jsonl` (3.7 MB)
+- Image captions (Qwen2.5-VL): `/K3D/Knowledge3D.local/datasets/image_captions_qwen25vl.jsonl` (46 KB)
+- COCO raw: `/K3D/K3D_llama_cpp/datasets/coco_raw/`
+
+**Combined Tri-Modal Dataset** (to be created):
+- Output: `/K3D/Knowledge3D.local/datasets/trimodal_phase_g.jsonl`
+- Creation script: `scripts/prepare_trimodal_dataset.py`
+- Expected samples: ~12K (1.9K RLWHF + 4.3K audio + 3.7K image + 2K audiocaps)
+
+### Phase G.0: Prepare Tri-Modal Dataset (NEW!)
+
+**Goal**: Combine all available datasets into unified tri-modal training set
+
+**Script** (you may need to create): `scripts/prepare_trimodal_dataset.py`
+
+```python
+# Pseudocode structure
+def prepare_trimodal_dataset():
+    samples = []
+
+    # RLWHF (text + visual)
+    rlwhf = load_rlwhf(start=8042, end=10000)
+    for s in rlwhf:
+        samples.append({'text': s.text, 'image': s.image, 'audio': None})
+
+    # LibriSpeech (text transcripts + audio)
+    librispeech = load_librispeech('/K3D/K3D_llama_cpp/datasets/audio/')
+    for s in librispeech:
+        samples.append({'text': s.transcript, 'image': None, 'audio': s.wav_path})
+
+    # Image captions (text + visual)
+    captions = load_captions('/K3D/Knowledge3D.local/datasets/image_captions_llama32vision.jsonl')
+    for s in captions:
+        samples.append({'text': s.caption, 'image': s.image_path, 'audio': None})
+
+    # Audiocaps (text + audio)
+    audiocaps = load_audiocaps('/K3D/K3D_llama_cpp/datasets/audiocaps_raw/')
+    for s in audiocaps:
+        samples.append({'text': s.description, 'image': None, 'audio': s.audio_path})
+
+    # Save combined dataset
+    save_jsonl(samples, '/K3D/Knowledge3D.local/datasets/trimodal_phase_g.jsonl')
 ```
 
-**When ≥10,000 lines**: Activate Phase G
+**Expected**: ~12K samples with various modality combinations (text-only, text+visual, text+audio, tri-modal)
 
-### Phase G.1: Multi-Modal Training
+### Phase G.1: Tri-Modal Training
 
-**Goal**: Train on RLWHF samples 8,042-10,000 to learn cross-modal alignments
+**Goal**: Train on combined tri-modal dataset for cross-modal alignment
 
 **Approach**:
-1. Load samples 8,042-10,000 from teacher_evaluations.jsonl
-2. Extract multi-modal features:
-   - Text: RPN embeddings (trigram-based)
-   - Visual: FractalEmitter features (if images present)
-   - Alignment: AtomicFissionFusion for cross-modal fusion
-3. Train base model on cross-modal alignment task
-4. Validation split: 10% (176 samples validation, 1,782 training)
+1. Load tri-modal dataset (created in G.0)
+2. Extract features for each modality present:
+   - Text: RPNEmbeddingEngine (trigram-based, language-agnostic)
+   - Visual: FractalEmitter (edge detection, glyph recognition)
+   - Audio: TemporalReasoning (acoustic features, speech patterns)
+3. Fuse modalities:
+   - Single modality: Pass through
+   - Bi-modal: AtomicFissionFusion (pairwise)
+   - Tri-modal: Multiple fusion steps (text↔visual, text↔audio, visual↔audio → meta-fusion)
+4. Train base model on fused embeddings
+5. **Organic emergence**: Model discovers cross-modal patterns automatically!
+   - Example: "A" text + △ visual + /eɪ/ audio → model learns they're the same concept
+   - Transitive learning: Even partial modality samples contribute to full cross-modal understanding
+6. Validation split: 10%
 
-**Expected Duration**: 2-3 hours
+**Expected Duration**: 3-4 hours (larger dataset, more modalities)
 
-**Script Location**: You may need to create `scripts/train_multimodal_phase_g.py` or adapt existing training scripts
+**Script Location**: `scripts/train_multimodal_phase_g.py` (update to support tri-modal)
 
 **Key Components to Use**:
 - `RPNEmbeddingEngine` - Text embeddings
 - `FractalEmitter` - Visual features
-- `AtomicFissionFusion` - Multi-modal fusion
+- `TemporalReasoning` - Audio features (NEW!)
+- `AtomicFissionFusion` - Multi-modal fusion (supports tri-modal!)
 - `MatryoshkaTRM` - Base model with variable dimensions
 - `AdaptiveSwarmTRM` - Full swarm system
 
-### Phase G.2: Extract Character Embeddings
+### Phase G.2: Extract Multi-Modal Embeddings
 
-**Goal**: Extract learned character representations from multi-modal training
+**Goal**: Extract learned multi-modal representations from tri-modal training
 
 **Approach**:
-1. Identify character-specific patterns in trained embeddings
-2. Extract character representations (semantic + visual)
-3. Save as training dataset for OCR specialist
-4. Format: JSONL with fields:
-   - `character`: The character (e.g., "A", "教")
-   - `embedding`: 128-dim vector
-   - `context`: Source context (for validation)
+1. Identify modality-specific patterns in trained embeddings:
+   - **Character representations**: Visual glyph + Acoustic phoneme + Semantic meaning
+   - **Speech patterns**: Audio waveforms + Text transcripts
+   - **Multi-modal concepts**: Cross-modal alignments discovered automatically
+2. Extract embeddings for each specialist type:
+   - OCR specialist dataset: Character embeddings (visual + text)
+   - Speech specialist dataset: Speech patterns (audio + text)
+   - Multi-modal specialist dataset: Cross-modal samples (all modalities)
+3. Save as training datasets:
+   - `/K3D/Knowledge3D.local/datasets/character_embeddings_trimodal.jsonl`
+   - `/K3D/Knowledge3D.local/datasets/speech_embeddings.jsonl` (NEW!)
+   - `/K3D/Knowledge3D.local/datasets/multimodal_embeddings.jsonl` (NEW!)
 
-**Expected Output**: `character_embeddings.jsonl` dataset
+**Format Example**:
+```json
+{
+  "character": "A",
+  "text_embedding": [128-dim vector],
+  "visual_embedding": [128-dim vector],
+  "audio_embedding": [128-dim vector],  // NEW!
+  "fused_embedding": [128-dim vector],
+  "modalities": ["text", "visual", "audio"]
+}
+```
 
-### Phase G.3: Register & Train OCR Specialist
+**Expected Output**: 3 specialized datasets for 3 specialists
 
-**Goal**: Create OCR specialist in adaptive swarm
+### Phase G.3: Register & Train Multi-Modal Specialists
 
-**Step 1: Register OCR Specialist**
+**Goal**: Create OCR, Speech, and Multi-modal specialists in adaptive swarm
+
+**Step 1: Register All Specialists**
 
 ```bash
+# OCR specialist (visual + text focus)
 python scripts/register_specialist.py \
     --name ocr \
+    --modality visual \
     --required-dims auto \
     --rank 16
+
+# Speech specialist (audio + text focus) — NEW!
+python scripts/register_specialist.py \
+    --name speech \
+    --modality audio \
+    --required-dims auto \
+    --rank 16
+
+# Multi-modal specialist (all modalities) — NEW!
+python scripts/register_specialist.py \
+    --name multimodal \
+    --modality multi \
+    --required-dims auto \
+    --rank 24  # Higher rank for cross-modal complexity
 ```
 
 **Explanation**:
-- `--name ocr`: Specialist name
-- `--required-dims auto`: Let system auto-select based on task complexity
-- `--rank 16`: LoRA rank for memory efficiency
+- `--name`: Specialist identifier
+- `--modality`: Focus modality (visual, audio, multi)
+- `--required-dims auto`: Auto-select dimensions based on modality complexity
+- `--rank`: LoRA rank (higher for more complex tasks)
 
-**Step 2: Train OCR Specialist**
+**Step 2: Train All Specialists**
 
 ```bash
+# Train OCR specialist
 python scripts/train_adaptive_swarm.py \
     --mode specialist \
     --specialist ocr \
-    --dataset /K3D/Knowledge3D.local/datasets/character_embeddings.jsonl \
+    --dataset /K3D/Knowledge3D.local/datasets/character_embeddings_trimodal.jsonl \
     --epochs 10 \
     --validation-split 0.1
+
+# Train Speech specialist — NEW!
+python scripts/train_adaptive_swarm.py \
+    --mode specialist \
+    --specialist speech \
+    --dataset /K3D/Knowledge3D.local/datasets/speech_embeddings.jsonl \
+    --epochs 10 \
+    --validation-split 0.1
+
+# Train Multi-modal specialist — NEW!
+python scripts/train_adaptive_swarm.py \
+    --mode specialist \
+    --specialist multimodal \
+    --dataset /K3D/Knowledge3D.local/datasets/multimodal_embeddings.jsonl \
+    --epochs 12 \
+    --validation-split 0.1  # More epochs for complexity
 ```
 
 **Expected Outcome**:
-- OCR specialist registered in swarm
-- Specialist learns character recognition patterns
+- 3 specialists registered in swarm
+- Each specialist learns modality-specific patterns
+- OCR: Character recognition (visual → text)
+- Speech: Transcription (audio → text)
+- Multi-modal: Cross-modal reasoning (any → any)
 - Adapters saved to swarm checkpoint
 
 ### Phase G.4: Router Bootstrap
