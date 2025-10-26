@@ -25,6 +25,13 @@ from knowledge3d.cranium.ocr.conv_compressor import ConvolutionalCompressor
 from knowledge3d.cranium.ocr.global_context import GlobalContextEncoder
 from knowledge3d.cranium.ocr.resolution_controller import MultiResolutionController
 
+# Phase F.1: GPU-accelerated OCR model
+try:
+    from knowledge3d.cranium.ocr.deepseek_ocr_model import DeepSeekOCRModel
+    GPU_OCR_AVAILABLE = True
+except ImportError:
+    GPU_OCR_AVAILABLE = False
+
 
 class DeepSeekOCRBridge:
     """
@@ -43,13 +50,14 @@ class DeepSeekOCRBridge:
     Target: 7-20× compression, 97% fidelity at <10× compression
     """
 
-    def __init__(self, mode: str = 'small'):
+    def __init__(self, mode: str = 'small', use_gpu_ocr: bool = True):
         """
         Initialize DeepSeek OCR bridge.
 
         Args:
             mode: Resolution mode (tiny, small, base, large, gundam)
                   Default: 'small' optimized for House storage
+            use_gpu_ocr: Use GPU-accelerated OCR model (Phase F.1) if available
         """
         # DeepSeek components
         self.local_encoder = LocalPerceptionEncoder(window_size=16)
@@ -63,6 +71,23 @@ class DeepSeekOCRBridge:
         # Mode configuration
         self.mode = mode
         self.texture_size = self.resolution_ctrl.get_texture_size()
+
+        # Phase F.1: Initialize GPU OCR model if available and requested
+        self.gpu_ocr_model = None
+        self.use_gpu_ocr = use_gpu_ocr and GPU_OCR_AVAILABLE
+
+        if self.use_gpu_ocr:
+            try:
+                print("[PHASE_F.1] Initializing GPU-accelerated OCR model...")
+                self.gpu_ocr_model = DeepSeekOCRModel(
+                    num_glyphs=256,
+                    input_channels=3,
+                    use_micro_trm=False  # Disable for stability
+                )
+                print(f"[PHASE_F.1] ✓ GPU OCR model ready (mode={mode})")
+            except Exception as exc:
+                print(f"[PHASE_F.1] WARNING: Could not initialize GPU OCR model - {exc}")
+                self.use_gpu_ocr = False
 
     def extract(self, image: np.ndarray, pdf_path: Optional[Path] = None, page_num: int = 0) -> Dict[str, Any]:
         """
@@ -103,8 +128,22 @@ class DeepSeekOCRBridge:
         # Stage 2: Convolutional compression (16× reduction)
         compressed = self.compressor.compress(local_features)
 
-        # Stage 3: Extract text (Phase E: Simple OCR)
-        if pdf_path and pdf_path.exists():
+        # Stage 3: Extract text
+        # Phase F.1: Try GPU OCR model first, fallback to traditional OCR
+        if self.use_gpu_ocr and self.gpu_ocr_model is not None:
+            # Convert to float32 [0, 1] range for GPU model
+            resized_float = resized.astype(np.float32) / 255.0
+            gpu_results = self.gpu_ocr_model.forward(resized_float)
+
+            # TODO: Implement character detection from feature map
+            # For now, fallback to PDF text extraction if available
+            if pdf_path and pdf_path.exists():
+                text = self._extract_text_from_pdf(pdf_path, page_num)
+            else:
+                text = self._extract_text_simple(resized)
+
+            print(f"[PHASE_F.1] GPU OCR feature extraction: {gpu_results['output_shape']}")
+        elif pdf_path and pdf_path.exists():
             text = self._extract_text_from_pdf(pdf_path, page_num)
         else:
             text = self._extract_text_simple(resized)

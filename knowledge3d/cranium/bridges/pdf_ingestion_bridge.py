@@ -761,6 +761,9 @@ class PDFIngestionBridge:
                 matrix = fitz.Matrix(2.0, 2.0)  # 2× resolution
                 pix = page.get_pixmap(matrix=matrix, alpha=False)
 
+                # Capture page rect before doc closes
+                page_rect = page.rect
+
                 # Convert to PIL then numpy
                 import io
                 img = Image.open(io.BytesIO(pix.tobytes("png")))
@@ -780,7 +783,6 @@ class PDFIngestionBridge:
             )
 
             # Convert extracted text to structured objects (compatible with existing pipeline)
-            page_rect = page.rect
             width_px, height_px = page_image.shape[1], page_image.shape[0]
             scale_x = 2.0  # We rendered at 2× resolution
             scale_y = 2.0
