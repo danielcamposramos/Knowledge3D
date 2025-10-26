@@ -20,18 +20,24 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, Iterable, List, MutableMapping, Sequence, Tuple
 
+import cupy as cp
 import numpy as np
-from sklearn.cluster import MiniBatchKMeans
-from sklearn.metrics import silhouette_score
 
 from knowledge3d.cranium.rpn_embedding_engine import RPNEmbeddingEngine
+from knowledge3d.cranium.rpn_executor import get_rpn_executor
+from knowledge3d.cranium.clustering_rpn import compile_cosine_similarity_rpn
 
-def _normalize(vec: np.ndarray) -> np.ndarray:
-    vec = np.asarray(vec, dtype=np.float32)
-    norm = float(np.linalg.norm(vec))
-    if norm <= 1e-8:
-        return np.zeros_like(vec, dtype=np.float32)
-    return (vec / norm).astype(np.float32)
+
+def _normalize_rows_gpu(matrix: cp.ndarray) -> cp.ndarray:
+    """L2-normalise each row in a GPU matrix."""
+    norms = cp.linalg.norm(matrix, axis=1, keepdims=True)
+    norms = cp.where(norms < 1e-8, 1.0, norms)
+    return matrix / norms
+
+
+def _to_numpy(array: cp.ndarray) -> np.ndarray:
+    """Convert a CuPy array to a contiguous NumPy float32 array."""
+    return cp.asnumpy(array).astype(np.float32, copy=False)
 
 
 @dataclass
@@ -65,6 +71,10 @@ class SleepTimeConsolidator:
     # internal state cached per run
     _last_assignments: np.ndarray | None = field(default=None, init=False, repr=False)
     _last_keys: List[int] | None = field(default=None, init=False, repr=False)
+    _gpu_embeddings: cp.ndarray | None = field(default=None, init=False, repr=False)
+    _gpu_assignments: cp.ndarray | None = field(default=None, init=False, repr=False)
+    _cohesion_before: float = field(default=0.0, init=False, repr=False)
+    _cohesion_after: float = field(default=0.0, init=False, repr=False)
 
     def consolidate(self) -> Dict[str, object]:
         """
@@ -110,86 +120,186 @@ class SleepTimeConsolidator:
     def _refine_clusters(self) -> Dict[str, float]:
         keys, matrix = self._embedding_items()
         num_embeddings = matrix.shape[0]
-        k = min(self.cluster_count, max(2, num_embeddings // 4))
 
-        # MiniBatchKMeans is memory-friendly for 30k+ embeddings.
-        kmeans = MiniBatchKMeans(
-            n_clusters=k,
-            batch_size=4096,
-            random_state=0,
-            n_init="auto",
-        )
-        assignments = kmeans.fit_predict(matrix)
+        if num_embeddings < 2:
+            self._gpu_embeddings = None
+            self._gpu_assignments = None
+            self._last_assignments = None
+            self._last_keys = keys
+            return {
+                "clusters": int(max(1, num_embeddings)),
+                "cohesion_before": 0.0,
+                "cohesion_after": 0.0,
+                "improvement": 0.0,
+            }
 
-        silhouette_before = self._safe_silhouette(matrix, assignments)
+        cluster_target = max(2, min(self.cluster_count, num_embeddings))
 
-        centroids = kmeans.cluster_centers_.astype(np.float32)
-        updated_matrix = matrix.copy()
-        for idx, cluster_id in enumerate(assignments):
-            centroid = centroids[cluster_id]
-            updated_matrix[idx] = _normalize(
-                updated_matrix[idx] + self.learning_rate * (centroid - updated_matrix[idx])
+        data_gpu = cp.asarray(matrix, dtype=cp.float32)
+        data_gpu = _normalize_rows_gpu(data_gpu)
+        original_gpu = data_gpu.copy()
+
+        rng = cp.random.default_rng(seed=0)
+        choices = rng.choice(num_embeddings, size=cluster_target, replace=False)
+        centroids = data_gpu[choices].copy()
+
+        assignments = None
+        for _ in range(25):
+            similarity = data_gpu @ centroids.T
+            new_assignments = cp.argmax(similarity, axis=1)
+            if assignments is not None and cp.all(new_assignments == assignments):
+                assignments = new_assignments
+                break
+
+            assignments = new_assignments
+            for idx in range(cluster_target):
+                member_mask = assignments == idx
+                member_count = int(member_mask.sum().get())
+                if member_count == 0:
+                    random_idx = int(rng.integers(0, num_embeddings))
+                    centroids[idx] = data_gpu[random_idx]
+                    continue
+                cluster_vectors = data_gpu[member_mask]
+                centroid = cluster_vectors.mean(axis=0)
+                norm = cp.linalg.norm(centroid)
+                if float(norm) > 1e-6:
+                    centroids[idx] = centroid / norm
+                else:
+                    centroids[idx] = cluster_vectors[0]
+
+        if assignments is None:
+            similarity = data_gpu @ centroids.T
+            assignments = cp.argmax(similarity, axis=1)
+
+        centroid_assign = centroids[assignments]
+        rpn_executor = get_rpn_executor()
+        sample_count = min(15, num_embeddings)
+        sample_scores_before: List[float] = []
+        for sample_idx in range(sample_count):
+            cluster_idx = int(assignments[sample_idx].item())
+            program = compile_cosine_similarity_rpn(
+                _to_numpy(original_gpu[sample_idx]),
+                _to_numpy(centroids[cluster_idx]),
             )
+            score = rpn_executor.execute_single(
+                instance_id=sample_idx % rpn_executor.MAX_INSTANCES,
+                op_codes=program["op_codes"],
+                scalars=program["scalars"],
+                vectors=program["vectors"],
+            )
+            sample_scores_before.append(score)
+        self._cohesion_before = float(np.mean(sample_scores_before)) if sample_scores_before else 0.0
 
-        silhouette_after = self._safe_silhouette(updated_matrix, assignments)
+        updated_gpu = _normalize_rows_gpu(
+            original_gpu + self.learning_rate * (centroid_assign - original_gpu)
+        )
 
-        # write back
+        updated_similarity = updated_gpu @ centroids.T
+        updated_assignments = cp.argmax(updated_similarity, axis=1)
+        updated_centroids = centroids[updated_assignments]
+        sample_scores_after: List[float] = []
+        for sample_idx in range(sample_count):
+            cluster_idx = int(updated_assignments[sample_idx].item())
+            program = compile_cosine_similarity_rpn(
+                _to_numpy(updated_gpu[sample_idx]),
+                _to_numpy(updated_centroids[sample_idx]),
+            )
+            score = rpn_executor.execute_single(
+                instance_id=sample_idx % rpn_executor.MAX_INSTANCES,
+                op_codes=program["op_codes"],
+                scalars=program["scalars"],
+                vectors=program["vectors"],
+            )
+            sample_scores_after.append(score)
+        self._cohesion_after = float(np.mean(sample_scores_after)) if sample_scores_after else 0.0
+
+        self._gpu_embeddings = updated_gpu
+        self._gpu_assignments = updated_assignments
+        self._last_assignments = cp.asnumpy(updated_assignments)
+        self._last_keys = keys
+
+        updated_matrix = _to_numpy(updated_gpu)
         for idx, trigram_hash in enumerate(keys):
             self.rpn_engine.embeddings[trigram_hash] = updated_matrix[idx]
 
-        self._last_assignments = assignments
-        self._last_keys = keys
-
+        improvement = self._cohesion_after - self._cohesion_before
         return {
-            "clusters": int(k),
-            "silhouette_before": float(silhouette_before),
-            "silhouette_after": float(silhouette_after),
-            "improvement": float(silhouette_after - silhouette_before),
+            "clusters": int(cluster_target),
+            "cohesion_before": float(self._cohesion_before),
+            "cohesion_after": float(self._cohesion_after),
+            "improvement": float(improvement),
         }
 
     # ------------------------------------------------------------------ #
     # Stage 2: Redundancy pruning
     # ------------------------------------------------------------------ #
     def _prune_redundancies(self) -> Dict[str, int | float]:
-        if self._last_assignments is None or self._last_keys is None:
+        if (
+            self._gpu_embeddings is None
+            or self._gpu_assignments is None
+            or self._last_keys is None
+        ):
             return {"merged_pairs": 0, "reduction": 0.0}
 
-        assignments = self._last_assignments
+        data_gpu = self._gpu_embeddings
+        assignments_gpu = self._gpu_assignments
         keys = self._last_keys
 
-        embedding_map = self.rpn_engine.embeddings
+        keep_mask = cp.ones(data_gpu.shape[0], dtype=cp.bool_)
         merged_pairs = 0
-        removed_indices: set[int] = set()
 
-        for cluster_id in np.unique(assignments):
-            member_idx = np.where(assignments == cluster_id)[0]
-            if len(member_idx) <= 1:
+        unique_clusters = cp.unique(assignments_gpu)
+        for cluster_id in cp.asnumpy(unique_clusters):
+            cluster_indices = cp.where(assignments_gpu == cluster_id)[0]
+            cluster_size = int(cluster_indices.size)
+            if cluster_size <= 1:
                 continue
-            if len(member_idx) > self.max_cluster_size_for_pruning:
-                # Oversized clusters are pruned using centroid similarity only.
+            if cluster_size > self.max_cluster_size_for_pruning:
                 continue
 
-            vectors = np.stack(
-                [embedding_map[keys[i]] for i in member_idx],
-                axis=0,
-            )
-            sims = vectors @ vectors.T
-            for local_i, global_i in enumerate(member_idx):
-                if global_i in removed_indices:
-                    continue
-                for local_j, global_j in enumerate(member_idx):
-                    if global_j <= global_i or global_j in removed_indices:
-                        continue
-                    if sims[local_i, local_j] >= self.redundancy_threshold:
-                        keep_hash = keys[global_i]
-                        drop_hash = keys[global_j]
-                        merged_vec = _normalize(
-                            embedding_map[keep_hash] + embedding_map[drop_hash]
-                        )
-                        embedding_map[keep_hash] = merged_vec
-                        del embedding_map[drop_hash]
-                        removed_indices.add(global_j)
-                        merged_pairs += 1
+            cluster_vectors = data_gpu[cluster_indices]
+            centroid = cluster_vectors.mean(axis=0)
+            norm = cp.linalg.norm(centroid)
+            if float(norm) > 1e-6:
+                centroid = centroid / norm
+
+            sims = cluster_vectors @ centroid
+            high_mask = sims >= self.redundancy_threshold
+            high_indices = cluster_indices[cp.where(high_mask)[0]]
+
+            if high_indices.size <= 1:
+                continue
+
+            best_idx = int(high_indices[cp.argmax(sims[cp.where(high_mask)[0]])].item())
+            merged_vec = cluster_vectors[cp.where(high_mask)[0]].mean(axis=0)
+            merged_norm = cp.linalg.norm(merged_vec)
+            if float(merged_norm) > 1e-6:
+                merged_vec = merged_vec / merged_norm
+
+            data_gpu[best_idx] = merged_vec
+
+            for idx in cp.asnumpy(high_indices):
+                if idx != best_idx:
+                    keep_mask[idx] = False
+                    merged_pairs += 1
+
+        keep_mask_cpu = cp.asnumpy(keep_mask)
+        updated_embeddings = _to_numpy(data_gpu)
+
+        for idx, trigram_hash in enumerate(list(keys)):
+            if keep_mask_cpu[idx]:
+                self.rpn_engine.embeddings[trigram_hash] = updated_embeddings[idx]
+            elif trigram_hash in self.rpn_engine.embeddings:
+                del self.rpn_engine.embeddings[trigram_hash]
+
+        self._last_keys = [keys[i] for i, keep in enumerate(keep_mask_cpu) if keep]
+        if self._last_keys:
+            self._last_assignments = assignments_gpu[keep_mask].get().astype(np.int32)
+        else:
+            self._last_assignments = None
+
+        self._gpu_embeddings = data_gpu[keep_mask]
+        self._gpu_assignments = assignments_gpu[keep_mask]
 
         reduction = (merged_pairs / max(1, len(keys))) * 100.0
         return {"merged_pairs": merged_pairs, "reduction": reduction}
@@ -212,17 +322,6 @@ class SleepTimeConsolidator:
         keys = list(embeddings.keys())
         matrix = np.vstack([embeddings[k] for k in keys]).astype(np.float32)
         return keys, matrix
-
-    @staticmethod
-    def _safe_silhouette(matrix: np.ndarray, labels: np.ndarray) -> float:
-        # Silhouette score requires >1 cluster and at least 2 members per cluster
-        unique, counts = np.unique(labels, return_counts=True)
-        if len(unique) < 2 or np.any(counts < 2):
-            return 0.0
-        try:
-            return float(silhouette_score(matrix, labels, metric="cosine"))
-        except Exception:
-            return 0.0
 
     def _record_metrics(self, metrics: Dict[str, object]) -> None:
         target = self.metrics_path

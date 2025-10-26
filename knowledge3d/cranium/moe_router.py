@@ -88,6 +88,8 @@ class MoERouter:
         # Task type keywords (for heuristic routing)
         self.task_keywords = {
             'ocr': ['character', 'text', 'recognize', 'read', 'ocr', 'glyph', 'font'],
+            'speech': ['audio', 'speech', 'transcribe', 'voice', 'utterance', 'phoneme'],
+            'multimodal': ['multimodal', 'cross-modal', 'fusion', 'trimodal', 'alignment', 'modal'],
             'math': ['equation', 'calculate', 'solve', 'math', 'arithmetic', 'algebra'],
             'code': ['function', 'code', 'program', 'compile', 'debug', 'syntax'],
             'reasoning': ['logic', 'deduce', 'infer', 'reason', 'conclude'],

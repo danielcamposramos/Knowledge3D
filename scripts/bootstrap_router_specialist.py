@@ -34,7 +34,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import argparse
 import numpy as np
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 from knowledge3d.cranium import (
     AdaptiveSwarmTRM,
@@ -50,7 +50,9 @@ from knowledge3d.cranium.router_specialist import (
 )
 
 
-def create_synthetic_tasks(num_tasks: int = 1000) -> list:
+def create_synthetic_tasks(specialists: List[str],
+                           num_tasks: int = 1000,
+                           dims: int = 256) -> list:
     """
     Create synthetic tasks for router training.
 
@@ -64,23 +66,29 @@ def create_synthetic_tasks(num_tasks: int = 1000) -> list:
     """
     tasks = []
 
-    task_types = [
-        ('ocr', ['character', 'recognize', 'read', 'text']),
-        ('math', ['equation', 'solve', 'calculate', 'math']),
-        ('code', ['function', 'program', 'debug', 'code']),
-    ]
+    keyword_map = {
+        'ocr': ['character', 'glyph', 'text', 'document', 'ocr'],
+        'speech': ['audio', 'speech', 'transcribe', 'voice', 'utterance'],
+        'multimodal': ['cross-modal', 'fusion', 'trimodal', 'align', 'context'],
+    }
+
+    if not specialists:
+        return tasks
 
     for i in range(num_tasks):
-        # Random task type
-        task_type, keywords = task_types[i % len(task_types)]
+        task_type = specialists[i % len(specialists)]
+        keywords = keyword_map.get(task_type, [task_type])
+        keyword = keywords[i % len(keywords)]
 
-        # Random keyword
-        keyword = keywords[np.random.randint(0, len(keywords))]
+        vec = np.random.normal(loc=0.0, scale=0.1, size=dims).astype(np.float32)
+        specialist_index = specialists.index(task_type)
+        vec[specialist_index] += 4.0  # High-energy signal for correct specialist
+        vec += np.random.normal(scale=0.01, size=dims).astype(np.float32)
 
         # Create task
         task = {
             'id': f'task_{i}',
-            'input': np.random.randn(256).astype(np.float32),
+            'input': vec,
             'description': f'{keyword} task {i}',
             'ground_truth_specialist': task_type  # For evaluation
         }
@@ -110,6 +118,14 @@ def outcome_function(task: Dict[str, Any], specialist_weights: Dict[str, float])
         return 0.5  # Unknown
 
     # Score based on how much weight went to correct specialist
+    if specialist_weights:
+        predicted = max(specialist_weights.items(), key=lambda kv: kv[1])[0]
+    else:
+        predicted = None
+
+    if predicted == ground_truth:
+        return 1.0
+
     correct_weight = specialist_weights.get(ground_truth, 0.0)
 
     # Perfect routing = 1.0, uniform routing = ~0.33, wrong routing = 0.0
@@ -186,7 +202,8 @@ def main():
         print("="*80)
 
         # Create test tasks
-        test_tasks = create_synthetic_tasks(num_tasks=100)
+        router_dims = swarm.base.specialists['router']['dims'] if 'router' in swarm.base.specialists else 256
+        test_tasks = create_synthetic_tasks(non_router_specialists, num_tasks=200, dims=router_dims)
 
         # Compare heuristic vs learned
         transition = RouterTransition(swarm)
@@ -211,8 +228,9 @@ def main():
     print("="*80)
 
     # Create bootstrap tasks
+    router_dims = swarm.base.specialists.get('router', {}).get('dims', args.router_dims)
     print(f"\nGenerating {args.num_bootstrap} synthetic tasks...")
-    tasks = create_synthetic_tasks(num_tasks=args.num_bootstrap)
+    tasks = create_synthetic_tasks(non_router_specialists, num_tasks=args.num_bootstrap, dims=router_dims)
 
     # Bootstrap: Collect routing decisions
     bootstrap = RouterBootstrap(swarm)
@@ -274,7 +292,7 @@ def main():
     print("="*80)
 
     # Create test set (different from training)
-    test_tasks = create_synthetic_tasks(num_tasks=200)
+    test_tasks = create_synthetic_tasks(non_router_specialists, num_tasks=200, dims=router_dims)
 
     # Compare heuristic vs learned
     transition = RouterTransition(swarm)

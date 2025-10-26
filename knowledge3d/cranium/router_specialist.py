@@ -54,6 +54,8 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 
+from knowledge3d.cranium.sovereign.lora_gpu_trainer import LoRAGPUEngine
+
 
 @dataclass
 class RoutingDecision:
@@ -217,9 +219,220 @@ class RouterSpecialistTrainer:
 
         print(f"[RouterSpecialist] ✓ Router registered as specialist in swarm")
 
+    # ------------------------------------------------------------------
+    # GPU-backed training helpers
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _tile_to_dim(vector: np.ndarray, dim: int) -> np.ndarray:
+        """Tile or truncate vector to match router dimension."""
+        vec = np.asarray(vector, dtype=np.float32)
+        if vec.size == dim:
+            return vec.astype(np.float32, copy=False)
+        repeats = dim // vec.size
+        remainder = dim % vec.size
+        tiled = np.tile(vec, repeats) if repeats > 0 else np.empty(0, dtype=np.float32)
+        if remainder:
+            tiled = np.concatenate([tiled, vec[:remainder]])
+        if tiled.size > dim:
+            tiled = tiled[:dim]
+        return tiled.astype(np.float32, copy=False)
+
+    @staticmethod
+    def _set_adapter_weights(adapter, A_new: np.ndarray, B_new: np.ndarray) -> None:
+        """Copy trained weights into adapter (primary + shadow)."""
+        np.copyto(adapter.A, A_new)
+        np.copyto(adapter.B, B_new)
+        np.copyto(adapter.A_shadow, A_new)
+        np.copyto(adapter.B_shadow, B_new)
+
+    def _specialist_names(self) -> List[str]:
+        """Deterministic ordering of non-router specialists."""
+        return [name for name in self.swarm.base.specialists.keys() if name != 'router']
+
+    def _prepare_router_arrays(
+        self,
+        decisions: List[RoutingDecision],
+        dims: int,
+        specialist_names: List[str],
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Convert routing decisions into GPU-friendly arrays."""
+        inputs: List[np.ndarray] = []
+        targets: List[np.ndarray] = []
+
+        for decision in decisions:
+            if decision.input_data is None:
+                continue
+
+            inp = self._tile_to_dim(decision.input_data, dims)
+
+            target = np.zeros(dims, dtype=np.float32)
+            if decision.specialist_weights:
+                best_name = max(decision.specialist_weights.items(), key=lambda kv: kv[1])[0]
+            else:
+                best_name = specialist_names[0]
+            performance = float(decision.outcome_performance)
+            for idx, name in enumerate(specialist_names):
+                target[idx] = performance if name == best_name else 0.0
+
+            inputs.append(inp)
+            targets.append(target)
+
+        if not inputs:
+            raise RuntimeError("No valid routing decisions with input data")
+
+        inputs_np = np.stack(inputs).astype(np.float32)
+        targets_np = np.stack(targets).astype(np.float32)
+        return inputs_np, targets_np
+
+    def _evaluate_router(
+        self,
+        adapter,
+        A_weights: np.ndarray,
+        B_weights: np.ndarray,
+        decisions: List[RoutingDecision],
+        specialist_names: List[str],
+    ) -> Dict[str, float]:
+        """Evaluate router accuracy and confidence for given weights."""
+        if len(decisions) == 0:
+            return {'accuracy': 0.0, 'avg_correct_weight': 0.0}
+
+        dims = adapter.A.shape[0]
+        A_backup = adapter.A.copy()
+        B_backup = adapter.B.copy()
+
+        try:
+            self._set_adapter_weights(adapter, A_weights, B_weights)
+
+            correct = 0
+            total = 0
+            weight_sum = 0.0
+            for decision in decisions:
+                if decision.input_data is None:
+                    continue
+
+                input_vec = self._tile_to_dim(decision.input_data, dims)
+                output = self.swarm.compute_with_specialist(input_vec, 'router')
+
+                logits = output[:len(specialist_names)]
+                logits = logits - np.max(logits)
+                weights = np.exp(logits)
+                weights /= np.sum(weights)
+
+                target_name = max(decision.specialist_weights.items(), key=lambda kv: kv[1])[0]
+                try:
+                    target_idx = specialist_names.index(target_name)
+                except ValueError:
+                    continue
+
+                predicted_idx = int(np.argmax(weights))
+                if predicted_idx == target_idx:
+                    correct += 1
+                weight_sum += float(weights[target_idx])
+                total += 1
+
+            if total == 0:
+                return {'accuracy': 0.0, 'avg_correct_weight': 0.0}
+
+            return {
+                'accuracy': correct / float(total),
+                'avg_correct_weight': weight_sum / float(total),
+            }
+        finally:
+            self._set_adapter_weights(adapter, A_backup, B_backup)
+
+    def _train_router_gpu(
+        self,
+        train_decisions: List[RoutingDecision],
+        val_decisions: List[RoutingDecision],
+        epochs: int,
+        learning_rate: float,
+        log_prefix: str = "[RouterSpecialist]",
+    ) -> Dict[str, Any]:
+        """Train router adapter using sovereign GPU LoRA engine."""
+        specialist_names = self._specialist_names()
+        if len(specialist_names) == 0:
+            raise RuntimeError("No specialists registered for router to learn")
+
+        adapter = self.swarm.base.specialists['router']['adapter']
+        dims = self.swarm.base.specialists['router']['dims']
+        rank = adapter.rank
+        alpha = adapter.alpha
+
+        if len(train_decisions) == 0:
+            raise RuntimeError("No training samples for router specialist")
+
+        inputs_np, targets_np = self._prepare_router_arrays(train_decisions, dims, specialist_names)
+        base_matrix = self.swarm.base.get_base_at_dim(dims).astype(np.float32, copy=True)
+
+        engine = LoRAGPUEngine()
+        buffers = engine.allocate_buffers(base_matrix, adapter.A, adapter.B, inputs_np, targets_np)
+
+        rng = np.random.default_rng(42)
+        indices = np.arange(inputs_np.shape[0])
+
+        try:
+            for epoch in range(1, epochs + 1):
+                rng.shuffle(indices)
+                epoch_loss = 0.0
+                for idx in indices:
+                    loss = engine.train_sample(
+                        buffers=buffers,
+                        sample_index=int(idx),
+                        dims=dims,
+                        rank=rank,
+                        alpha=alpha,
+                        learning_rate=learning_rate,
+                    )
+                    epoch_loss += loss
+
+                avg_loss = epoch_loss / float(indices.size)
+                print(f"{log_prefix} Epoch {epoch:03d}/{epochs} - loss={avg_loss:.6f}")
+
+            A_trained, B_trained = engine.fetch_weights(buffers, dims, rank)
+        finally:
+            engine.free_buffers(buffers)
+
+        if val_decisions:
+            baseline_metrics = self._evaluate_router(adapter, adapter.A.copy(), adapter.B.copy(), val_decisions, specialist_names)
+            candidate_metrics = self._evaluate_router(adapter, A_trained.copy(), B_trained.copy(), val_decisions, specialist_names)
+        else:
+            baseline_metrics = {'accuracy': 0.0, 'avg_correct_weight': 0.0}
+            candidate_metrics = {'accuracy': 0.0, 'avg_correct_weight': 0.0}
+
+        improvement = candidate_metrics['avg_correct_weight'] - baseline_metrics['avg_correct_weight']
+        success = improvement >= 1e-4
+
+        adapter.update_count += 1
+        if success:
+            self._set_adapter_weights(adapter, A_trained, B_trained)
+            adapter.accepted_count += 1
+            adapter.baseline_performance = candidate_metrics['avg_correct_weight']
+            outcome = "accepted"
+        else:
+            adapter.rejected_count += 1
+            outcome = "rejected"
+
+        print(f"{log_prefix} Validation (baseline → candidate): "
+              f"{baseline_metrics['avg_correct_weight']:.4f} → {candidate_metrics['avg_correct_weight']:.4f} "
+              f"({outcome})")
+
+        return {
+            'success': success,
+            'baseline_metrics': baseline_metrics,
+            'candidate_metrics': candidate_metrics,
+            'improvement': improvement,
+            'epochs': epochs,
+            'train_samples': len(train_decisions),
+            'val_samples': len(val_decisions),
+        }
+
+    # ------------------------------------------------------------------
+    # Public training APIs
+    # ------------------------------------------------------------------
     def train_from_history(self, routing_history: List[RoutingDecision],
-                          epochs: int = 5,
-                          filter_threshold: float = 0.5) -> Dict[str, Any]:
+                           epochs: int = 5,
+                           filter_threshold: float = 0.5,
+                           learning_rate: Optional[float] = None) -> Dict[str, Any]:
         """
         Train router specialist from routing history.
 
@@ -227,6 +440,7 @@ class RouterSpecialistTrainer:
             routing_history: List of routing decisions
             epochs: Number of training epochs
             filter_threshold: Minimum performance to include
+            learning_rate: Override specialist learning rate
 
         Returns:
             Training statistics
@@ -245,85 +459,44 @@ class RouterSpecialistTrainer:
             print("  ✗ No successful decisions to train from")
             return {'error': 'No successful decisions'}
 
-        # Convert to training samples
-        # Input: Task features
-        # Target: Specialist weights (successful decisions)
-        train_samples = []
+        if len(successful) < 2:
+            print("  ✗ Need at least 2 successful decisions for train/validation split")
+            return {'error': 'Insufficient successful decisions'}
 
-        specialist_names = [s for s in self.swarm.base.specialists.keys() if s != 'router']
+        specialist_names = self._specialist_names()
+        val_count = max(1, int(len(successful) * 0.1)) if len(successful) > 10 else max(1, len(successful) // 2)
+        if val_count >= len(successful):
+            val_count = len(successful) - 1
 
-        for decision in successful:
-            if decision.input_data is None:
-                continue
+        val_decisions = successful[-val_count:]
+        train_decisions = successful[:-val_count]
 
-            # Target weights (one-hot or distribution)
-            target_weights = np.zeros(len(specialist_names))
-            for i, name in enumerate(specialist_names):
-                target_weights[i] = decision.specialist_weights.get(name, 0.0)
-
-            train_samples.append({
-                'input': decision.input_data,
-                'target_weights': target_weights,
-                'performance': decision.outcome_performance
-            })
-
-        print(f"  Training samples: {len(train_samples)}")
-
-        # Evaluation function: How close are predicted weights to target?
-        def eval_fn(weights: np.ndarray, samples: List[Dict]) -> float:
-            """Evaluate router by weight prediction accuracy."""
-            total_loss = 0.0
-
-            for sample in samples:
-                # Forward pass (simplified - real would use actual forward)
-                # For validation, we just check weight shapes
-                pass
-
-            # Placeholder: Return random score
-            return 0.5 + np.random.rand() * 0.1
-
-        # Set validation samples
-        val_split = int(len(train_samples) * 0.1)
-        val_samples = train_samples[-val_split:] if val_split > 0 else []
-        train_samples = train_samples[:-val_split] if val_split > 0 else train_samples
-
-        self.swarm.set_specialist_validation_samples('router', val_samples)
-
-        # Train router specialist
-        stats_all = []
-
-        for epoch in range(epochs):
-            print(f"\n[Epoch {epoch+1}/{epochs}]")
-
-            stats = self.swarm.train_specialist_epoch(
-                'router',
-                train_samples,
-                eval_fn,
-                use_self_update=True
-            )
-
-            stats_all.append(stats)
-
-        # Summary
-        print("\n[RouterSpecialist] Training complete")
-        print(f"  Epochs: {epochs}")
-        print(f"  Final loss: {stats_all[-1]['avg_loss']:.4f}")
+        lr = learning_rate or self.swarm.config.specialist_learning_rate
+        stats = self._train_router_gpu(
+            train_decisions=train_decisions,
+            val_decisions=val_decisions,
+            epochs=epochs,
+            learning_rate=lr,
+            log_prefix="[Router]",
+        )
 
         return {
-            'epochs': epochs,
-            'train_samples': len(train_samples),
-            'val_samples': len(val_samples),
-            'stats': stats_all
+            **stats,
+            'specialists': specialist_names,
         }
 
     def update_from_new_decisions(self, new_decisions: List[RoutingDecision],
-                                  min_performance: float = 0.5) -> bool:
+                                  min_performance: float = 0.5,
+                                  epochs: int = 1,
+                                  learning_rate: Optional[float] = None) -> bool:
         """
         Update router specialist from new routing decisions (continual learning).
 
         Args:
             new_decisions: New routing decisions
             min_performance: Minimum performance to include
+            epochs: Training epochs
+            learning_rate: Optional override for learning rate
 
         Returns:
             True if update accepted, False if rejected
@@ -338,46 +511,33 @@ class RouterSpecialistTrainer:
             print("[RouterSpecialist] No successful decisions to update from")
             return False
 
-        print(f"\n[RouterSpecialist] Updating from {len(successful)} new decisions...")
+        if len(successful) < 2:
+            print("[RouterSpecialist] Not enough successful decisions for update")
+            return False
 
-        # Convert to training samples
-        specialist_names = [s for s in self.swarm.base.specialists.keys() if s != 'router']
-        train_samples = []
+        # Small validation split for continual learning
+        val_count = max(1, len(successful) // 4)
+        if val_count >= len(successful):
+            val_count = len(successful) - 1
 
-        for decision in successful:
-            if decision.input_data is None:
-                continue
+        val_decisions = successful[-val_count:]
+        train_decisions = successful[:-val_count]
 
-            target_weights = np.zeros(len(specialist_names))
-            for i, name in enumerate(specialist_names):
-                target_weights[i] = decision.specialist_weights.get(name, 0.0)
-
-            train_samples.append({
-                'input': decision.input_data,
-                'target_weights': target_weights,
-                'performance': decision.outcome_performance
-            })
-
-        # Evaluation function
-        def eval_fn(weights, samples):
-            return 0.5 + np.random.rand() * 0.1
-
-        # Train one epoch
-        stats = self.swarm.train_specialist_epoch(
-            'router',
-            train_samples,
-            eval_fn,
-            use_self_update=True
+        lr = learning_rate or self.swarm.config.specialist_learning_rate
+        stats = self._train_router_gpu(
+            train_decisions=train_decisions,
+            val_decisions=val_decisions,
+            epochs=epochs,
+            learning_rate=lr,
+            log_prefix="[RouterUpdate]",
         )
 
-        success = stats.get('update_accepted', False)
-
-        if success:
-            print(f"[RouterSpecialist] ✓ Update accepted from {len(train_samples)} samples")
+        if stats['success']:
+            print(f"[RouterSpecialist] ✓ Update accepted from {len(train_decisions)} samples")
         else:
-            print(f"[RouterSpecialist] ✗ Update rejected (performance did not improve)")
+            print(f"[RouterSpecialist] ✗ Update rejected (no improvement)")
 
-        return success
+        return bool(stats['success'])
 
 
 class RouterTransition:
@@ -420,11 +580,16 @@ class RouterTransition:
             description = task.get('description')
             input_data = task.get('input')
 
-            if description:
-                weights = router.route_blend(task_description=description)
-            elif input_data is not None:
-                weights = router.route_blend(input_data=input_data)
+            if strategy == 'heuristic':
+                weights = router.route_blend(task_description=description) if description else {}
+                if (not weights) and (input_data is not None):
+                    weights = router.route_blend(input_data=input_data)
             else:
+                weights = router.route_blend(input_data=input_data) if input_data is not None else {}
+                if (not weights) and description:
+                    weights = router.route_blend(task_description=description)
+
+            if not weights:
                 continue
 
             performance = outcome_fn(task, weights)
