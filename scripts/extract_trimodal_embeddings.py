@@ -121,10 +121,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     args = parse_args(argv)
 
     print(f"[Load] Dataset: {args.dataset}")
+    print(f"[GPU] Using GPU-accelerated image/audio embedding extraction")
     embeddings = compute_embeddings(
         dataset_path=args.dataset,
         embedding_dim=args.embedding_dim,
         limit=args.limit,
+        use_gpu=True,  # Enable GPU acceleration for image/audio
     )
     print(f"[Compute] Derived embeddings for {len(embeddings)} samples")
 

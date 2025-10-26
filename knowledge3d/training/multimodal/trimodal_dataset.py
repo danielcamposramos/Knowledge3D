@@ -16,11 +16,12 @@ import json
 import wave
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, Iterator, List, Optional, Sequence
+from typing import Dict, Iterable, Iterator, List, Optional, Sequence, Tuple
 
 import numpy as np
 
 from knowledge3d.cranium.rpn_embedding_engine import RPNEmbeddingEngine
+from knowledge3d.cranium.ptx.modality_ops import PTXModalityOps
 
 __all__ = [
     "TextEntry",
@@ -107,27 +108,36 @@ def hash_embedding(payload: str, dim: int = 128) -> np.ndarray:
     return _normalise(vec)
 
 
-def embed_image(image_path: Path, caption: Optional[str], dim: int = 128) -> np.ndarray:
+def embed_image(image_path: Path, caption: Optional[str], dim: int = 128, gpu_ops: Optional[PTXModalityOps] = None) -> np.ndarray:
     """
-    Load an image from disk and derive a compact grayscale histogram embedding.
+    Load an image from disk and derive a compact embedding using GPU acceleration.
 
-    Falls back to hashing when Pillow is unavailable or the file cannot be read.
+    Falls back to hashing when the file cannot be read or GPU is unavailable.
     """
-    try:
-        from PIL import Image  # type: ignore
-    except ImportError:
-        source = caption or image_path.as_posix()
-        return hash_embedding(f"image:{source}", dim=dim)
-
     if not image_path.exists():
         source = caption or image_path.as_posix()
         return hash_embedding(f"image-missing:{source}", dim=dim)
 
     try:
+        # Try GPU-accelerated path first
+        if gpu_ops is not None:
+            features, _ = gpu_ops.image_features(str(image_path))
+            # Tile or truncate to match desired dimension
+            if features.size >= dim:
+                return _normalise(features[:dim])
+            else:
+                padded = np.zeros(dim, dtype=np.float32)
+                padded[:features.size] = features
+                return _normalise(padded)
+    except Exception:
+        pass  # Fall through to CPU fallback
+
+    # CPU fallback: PIL-based histogram
+    try:
+        from PIL import Image  # type: ignore
         with Image.open(image_path) as img:
             gray = img.convert("L").resize((32, 32))
             pixels = np.asarray(gray, dtype=np.float32).reshape(-1)
-            # Histogram with `dim` bins clipped to avoid outliers
             hist, _ = np.histogram(pixels, bins=dim, range=(0, 255), density=True)
             return _normalise(hist.astype(np.float32))
     except Exception:
@@ -135,14 +145,33 @@ def embed_image(image_path: Path, caption: Optional[str], dim: int = 128) -> np.
         return hash_embedding(f"image-error:{source}", dim=dim)
 
 
-def embed_audio(audio_path: Path, transcript: Optional[str], dim: int = 128) -> np.ndarray:
+def embed_audio(audio_path: Path, transcript: Optional[str], dim: int = 128, gpu_ops: Optional[PTXModalityOps] = None) -> np.ndarray:
     """
-    Load an audio waveform and compute a lightweight spectral fingerprint.
+    Load an audio waveform and compute a lightweight spectral fingerprint using GPU acceleration.
 
-    Only WAV containers are parsed directly. Other formats fall back to hashing.
+    Falls back to CPU FFT when GPU is unavailable or file cannot be read.
     """
+    if not audio_path.exists():
+        payload = transcript or audio_path.as_posix()
+        return hash_embedding(f"audio-missing:{payload}", dim=dim)
+
+    try:
+        # Try GPU-accelerated path first
+        if gpu_ops is not None:
+            features, _ = gpu_ops.audio_features(str(audio_path))
+            # Tile or truncate to match desired dimension
+            if features.size >= dim:
+                return _normalise(features[:dim])
+            else:
+                padded = np.zeros(dim, dtype=np.float32)
+                padded[:features.size] = features
+                return _normalise(padded)
+    except Exception:
+        pass  # Fall through to CPU fallback
+
+    # CPU fallback: NumPy FFT-based
     suffix = audio_path.suffix.lower()
-    if suffix != ".wav" or not audio_path.exists():
+    if suffix != ".wav":
         payload = transcript or audio_path.as_posix()
         return hash_embedding(f"audio-hash:{payload}", dim=dim)
 
@@ -155,7 +184,6 @@ def embed_audio(audio_path: Path, transcript: Optional[str], dim: int = 128) -> 
             elif sample_width == 4:
                 dtype = np.int32
             else:
-                # Unsupported width: revert to hashing
                 payload = transcript or audio_path.as_posix()
                 return hash_embedding(f"audio-width:{payload}", dim=dim)
 
@@ -163,7 +191,6 @@ def embed_audio(audio_path: Path, transcript: Optional[str], dim: int = 128) -> 
             if wav_file.getnchannels() > 1:
                 waveform = waveform.reshape(-1, wav_file.getnchannels()).mean(axis=1)
 
-            # Compute magnitude spectrum using FFT and retain lowest `dim` bins
             spectrum = np.fft.rfft(waveform)
             magnitudes = np.abs(spectrum)
             if magnitudes.size < dim:
@@ -206,9 +233,16 @@ def compute_embeddings(
     dataset_path: Path,
     embedding_dim: int = 128,
     limit: Optional[int] = None,
+    use_gpu: bool = True,
 ) -> List[Dict[str, object]]:
     """
     Compute per-sample embeddings for all modalities.
+
+    Args:
+        dataset_path: Path to trimodal JSONL dataset
+        embedding_dim: Target embedding dimension
+        limit: Optional limit on number of records to process
+        use_gpu: Whether to use GPU acceleration for image/audio (default: True)
 
     Returns a list of dictionaries with the following keys:
         - id
@@ -220,6 +254,15 @@ def compute_embeddings(
         - fused_embedding (modal-average)
     """
     embedder = RPNEmbeddingEngine(embedding_dim=embedding_dim)
+
+    # Initialize GPU ops if requested
+    gpu_ops: Optional[PTXModalityOps] = None
+    if use_gpu:
+        try:
+            gpu_ops = PTXModalityOps()
+            print("[GPU] PTXModalityOps initialized for image/audio processing")
+        except Exception as exc:
+            print(f"[GPU] Failed to initialize PTXModalityOps, falling back to CPU: {exc}")
 
     outputs: List[Dict[str, object]] = []
     for idx, record in enumerate(load_trimodal_dataset(dataset_path), start=1):
@@ -242,13 +285,13 @@ def compute_embeddings(
 
         if record.has_image():
             image_path = Path(record.image.path)
-            image_embedding = embed_image(image_path, record.image.caption, dim=embedding_dim)
+            image_embedding = embed_image(image_path, record.image.caption, dim=embedding_dim, gpu_ops=gpu_ops)
             result["image_embedding"] = image_embedding.tolist()
             embeddings.append(image_embedding)
 
         if record.has_audio():
             audio_path = Path(record.audio.path)
-            audio_embedding = embed_audio(audio_path, record.audio.transcript, dim=embedding_dim)
+            audio_embedding = embed_audio(audio_path, record.audio.transcript, dim=embedding_dim, gpu_ops=gpu_ops)
             result["audio_embedding"] = audio_embedding.tolist()
             embeddings.append(audio_embedding)
 
