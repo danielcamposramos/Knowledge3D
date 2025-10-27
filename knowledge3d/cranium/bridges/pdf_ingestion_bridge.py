@@ -870,34 +870,17 @@ class PDFIngestionBridge:
                 "text": "",
             }
 
-        try:
-            import pytesseract
-            from pytesseract import Output as TessOutput
-        except ImportError:
-            print("[WARN] pytesseract not available; OCR fallback skipped.")
-            return {
-                "objects_gpu": None,
-                "objects": np.zeros((0, 8), dtype=np.float32),
-                "object_count": 0,
-                "processing_time_us": 0,
-                "is_scanned": True,
-                "method": "tesseract-missing",
-                "text": "",
-            }
-
-        try:
-            from PIL import Image
-        except ImportError:
-            print("[WARN] Pillow not available; OCR fallback skipped.")
-            return {
-                "objects_gpu": None,
-                "objects": np.zeros((0, 8), dtype=np.float32),
-                "object_count": 0,
-                "processing_time_us": 0,
-                "is_scanned": True,
-                "method": "tesseract-missing",
-                "text": "",
-            }
+        # Sovereign OCR only - pytesseract fallback disabled
+        # DeepSeek OCR bridge handles all OCR needs
+        return {
+            "objects_gpu": None,
+            "objects": np.zeros((0, 8), dtype=np.float32),
+            "object_count": 0,
+            "processing_time_us": 0,
+            "is_scanned": True,
+            "method": "sovereign-ocr-only",
+            "text": "",
+        }
 
         try:
             doc = fitz.open(pdf_path)
