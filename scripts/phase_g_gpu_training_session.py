@@ -266,7 +266,14 @@ def main() -> None:
     log("=== Phase G Sovereign Session complete ===")
     log("Training summary:")
     for entry in summary:
-        log(json.dumps(entry, default=float))
+        # Convert Path objects to strings for JSON serialization
+        serializable_entry = {}
+        for key, value in entry.items():
+            if isinstance(value, Path):
+                serializable_entry[key] = str(value)
+            else:
+                serializable_entry[key] = value
+        log(json.dumps(serializable_entry, default=float))
 
 
 if __name__ == "__main__":
