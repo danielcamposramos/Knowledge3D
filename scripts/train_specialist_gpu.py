@@ -130,6 +130,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--learning-rate", type=float, default=0.002)
     parser.add_argument("--shuffle", action="store_true", default=True)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--parallel-workers", type=int, default=15, help="Max samples to process in parallel (<=15 recommended)")
     return parser.parse_args()
 
 
@@ -150,6 +151,7 @@ def run_training(
     seed: int = 42,
     load_checkpoint: Optional[Path] = None,
     swarm: Optional[AdaptiveSwarmTRM] = None,
+    parallel_workers: int = 15,
 ) -> Dict[str, any]:
     checkpoint_dir = checkpoint_dir
     load_path = load_checkpoint or (checkpoint_dir / "current")
@@ -193,36 +195,50 @@ def run_training(
     print()
 
     engine = LoRAGPUEngine()
+    batch_cap = max(1, min(15, parallel_workers, inputs_np.shape[0]))
     buffers = engine.allocate_buffers(
         base_matrix,
         adapter.A,
         adapter.B,
         inputs_np,
         targets_np,
+        max_batch=batch_cap,
     )
 
     rng = np.random.default_rng(seed)
-    indices = np.arange(inputs_np.shape[0])
+    dataset_size = inputs_np.shape[0]
 
     losses: List[float] = []
     try:
         for epoch in range(1, epochs + 1):
             if shuffle:
-                rng.shuffle(indices)
+                perm = rng.permutation(dataset_size)
+                epoch_inputs = inputs_np[perm]
+                epoch_targets = targets_np[perm]
+            else:
+                epoch_inputs = inputs_np
+                epoch_targets = targets_np
+
+            engine.update_dataset(buffers, epoch_inputs, epoch_targets)
 
             epoch_loss = 0.0
-            for idx in indices:
-                loss = engine.train_sample(
+            batches = 0
+            order = np.arange(dataset_size, dtype=np.int32)
+            for batch_start in range(0, dataset_size, batch_cap):
+                batch_end = min(batch_start + batch_cap, dataset_size)
+                batch_indices = order[batch_start:batch_end]
+                loss = engine.train_batch(
                     buffers=buffers,
-                    sample_index=int(idx),
+                    batch_indices=batch_indices,
                     dims=dims,
                     rank=rank,
                     alpha=alpha,
                     learning_rate=learning_rate,
                 )
                 epoch_loss += loss
+                batches += 1
 
-            avg_loss = epoch_loss / float(indices.size)
+            avg_loss = epoch_loss / float(batches or 1)
             losses.append(avg_loss)
             print(f"Epoch {epoch:03d}/{epochs} - loss={avg_loss:.6f}")
 
@@ -264,6 +280,7 @@ def main() -> None:
         shuffle=args.shuffle,
         seed=args.seed,
         load_checkpoint=args.load_checkpoint,
+        parallel_workers=args.parallel_workers,
     )
 
 

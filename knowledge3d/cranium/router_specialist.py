@@ -365,27 +365,37 @@ class RouterSpecialistTrainer:
         base_matrix = self.swarm.base.get_base_at_dim(dims).astype(np.float32, copy=True)
 
         engine = LoRAGPUEngine()
-        buffers = engine.allocate_buffers(base_matrix, adapter.A, adapter.B, inputs_np, targets_np)
+        batch_cap = max(1, min(15, len(train_decisions)))
+        buffers = engine.allocate_buffers(base_matrix, adapter.A, adapter.B, inputs_np, targets_np, max_batch=batch_cap)
 
         rng = np.random.default_rng(42)
-        indices = np.arange(inputs_np.shape[0])
+        dataset_size = inputs_np.shape[0]
 
         try:
             for epoch in range(1, epochs + 1):
-                rng.shuffle(indices)
+                perm = rng.permutation(dataset_size)
+                epoch_inputs = inputs_np[perm]
+                epoch_targets = targets_np[perm]
+                engine.update_dataset(buffers, epoch_inputs, epoch_targets)
+
+                order = np.arange(dataset_size, dtype=np.int32)
                 epoch_loss = 0.0
-                for idx in indices:
-                    loss = engine.train_sample(
+                batches = 0
+                for batch_start in range(0, dataset_size, batch_cap):
+                    batch_end = min(batch_start + batch_cap, dataset_size)
+                    batch_indices = order[batch_start:batch_end]
+                    loss = engine.train_batch(
                         buffers=buffers,
-                        sample_index=int(idx),
+                        batch_indices=batch_indices,
                         dims=dims,
                         rank=rank,
                         alpha=alpha,
                         learning_rate=learning_rate,
                     )
                     epoch_loss += loss
+                    batches += 1
 
-                avg_loss = epoch_loss / float(indices.size)
+                avg_loss = epoch_loss / float(batches or 1)
                 print(f"{log_prefix} Epoch {epoch:03d}/{epochs} - loss={avg_loss:.6f}")
 
             A_trained, B_trained = engine.fetch_weights(buffers, dims, rank)

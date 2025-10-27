@@ -45,6 +45,11 @@ try:
 except AttributeError:  # pragma: no cover - legacy drivers
     _cuMemsetD32 = getattr(nvcuda, "cuMemsetD32")
 
+try:
+    _cuMemcpyDtoD = getattr(nvcuda, "cuMemcpyDtoD_v2")
+except AttributeError:
+    _cuMemcpyDtoD = getattr(nvcuda, "cuMemcpyDtoD")
+
 if _cuMemGetInfo is not None:
     _cuMemGetInfo.restype = ctypes.c_int
     _cuMemGetInfo.argtypes = [
@@ -54,6 +59,8 @@ if _cuMemGetInfo is not None:
 
 _cuMemsetD32.restype = ctypes.c_int
 _cuMemsetD32.argtypes = [ctypes.c_uint64, ctypes.c_uint, ctypes.c_size_t]
+_cuMemcpyDtoD.restype = ctypes.c_int
+_cuMemcpyDtoD.argtypes = [ctypes.c_uint64, ctypes.c_uint64, ctypes.c_size_t]
 
 CUDA_MEMCPY_HOST_TO_DEVICE = 1
 CUDA_MEMCPY_DEVICE_TO_HOST = 2
@@ -417,11 +424,19 @@ def memcpy_dtoh(dst_host: ctypes.c_void_p, src_device: CUdeviceptr, size_bytes: 
         print(f"[loader] cuMemcpyDtoH -> {res}")
     ck(res)
 
+def memcpy_dtod(dst_device: CUdeviceptr, src_device: CUdeviceptr, size_bytes: int) -> None:
+    """Copy from device to device."""
+    _ensure_current_context()
+    res = _cuMemcpyDtoD(dst_device.value, src_device.value, size_bytes)
+    if os.environ.get("K3D_RPN_DEBUG"):
+        print(f"[loader] cuMemcpyDtoD -> {res}")
+    ck(res)
+
 
 def memset_d32(dst_device: CUdeviceptr, value: int, count: int) -> None:
     """Fill device memory with 32-bit value."""
     _ensure_current_context()
-    res = _cuMemsetD32(dst_device, ctypes.c_uint(value), ctypes.c_size_t(count))
+    res = _cuMemsetD32(dst_device.value, ctypes.c_uint(value), ctypes.c_size_t(count))
     if os.environ.get("K3D_RPN_DEBUG"):
         print(f"[loader] cuMemsetD32 -> {res} (count={count})")
     ck(res)
@@ -482,6 +497,48 @@ def synchronize() -> None:
     _ensure_init()
     ck(nvcuda.cuCtxSynchronize())
 
+
+# ==========================================
+# CUDA Stream Management
+# ==========================================
+def create_stream() -> CUstream:
+    """Create a CUDA stream for asynchronous execution.
+
+    Returns:
+        CUstream handle
+
+    Example:
+        stream = create_stream()
+        launch(kernel, grid, block, params, stream=stream)
+        stream_synchronize(stream)
+        destroy_stream(stream)
+    """
+    _ensure_init()
+    stream = CUstream()
+    ck(nvcuda.cuStreamCreate(ctypes.byref(stream), 0))
+    return stream
+
+
+def destroy_stream(stream: CUstream) -> None:
+    """Destroy a CUDA stream.
+
+    Args:
+        stream: Stream handle to destroy
+    """
+    if stream:
+        ck(nvcuda.cuStreamDestroy(stream))
+
+
+def stream_synchronize(stream: CUstream) -> None:
+    """Wait for all operations in a stream to complete.
+
+    Args:
+        stream: Stream handle to synchronize
+    """
+    if stream:
+        ck(nvcuda.cuStreamSynchronize(stream))
+
+
 def get_vram_usage() -> tuple[int, int]:
     """
     Return (used_bytes, total_bytes) for the current CUDA device.
@@ -525,6 +582,7 @@ __all__ = [
     "gpu_free",
     "memcpy_htod",
     "memcpy_dtoh",
+    "memcpy_dtod",
     "launch",
     "synchronize",
     "get_vram_usage",

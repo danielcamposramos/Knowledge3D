@@ -40,15 +40,176 @@ Speech specialist will learn from:
 - Text captions (semantic)
 - **Sound pictures (2D spectrograms, spatial + temporal)**
 
-### Key Insight from User
+### Key Insights from User
+
+#### Audio = Vibration in Frequency Over Time
+> "Sound is vibration on frequencies over time - just like radio and other signals (the audio generator could also leverage on SDR knowledge because all is frequency and vibration over time)"
+
+**This is PROFOUND!** All signals are fundamentally the same:
+
+| Signal Type | Frequency Range | But Same Math! |
+|------------|-----------------|----------------|
+| Audio (speech) | 20 Hz - 20 kHz | STFT → Spectrogram |
+| Ultrasound | 20 kHz - 200 MHz | STFT → Spectrogram |
+| Radio (FM) | 88 MHz - 108 MHz | STFT → Waterfall |
+| WiFi | 2.4 GHz / 5 GHz | STFT → Spectrogram |
+| Radar | 1 GHz - 100 GHz | STFT → Range-Doppler |
+
+**All are**: Time-series of frequency components!
+
+#### SDR (Software Defined Radio) Connection
+SDR visualization techniques are IDENTICAL to audio spectrograms:
+- **Waterfall plot** = Spectrogram (frequency × time, color = amplitude)
+- **FFT display** = Instantaneous frequency spectrum
+- **Constellation diagram** = Phase/amplitude relationships
+
+**This means**: Our PTX sound image kernel can process **ANY** time-series spectral data:
+- Audio (speech, music, environmental sounds)
+- Radio signals (AM, FM, digital modulation)
+- Sensor data (vibration, seismic, EEG/ECG)
+- Network traffic (packet timing patterns)
+
+#### Temporal + Line Behavior (User's First Insight)
 > "Digital audio is very similar to high dimensions, with a temporal and line behaviour that's interesting for the model to master as a multi-modal mind."
 
-**Temporal + line behavior** = audio has:
+**Temporal + line behavior** = signals have:
 - **Temporal dimension**: Evolution over time (sequence)
 - **Line behavior**: Frequency bands evolve in parallel (think spectrogram horizontal lines)
-- **High-dimensional**: Each time step = many frequency components
+- **High-dimensional**: Each time step = many frequency components (128 mel bins!)
+- **Resonance patterns**: Certain frequencies persist (formants in speech, carriers in radio)
 
 This is PERFECT for the RPN kernel which operates on geometric vectors!
+
+### Universal Signal Processing Architecture
+
+```
+ANY TIME-SERIES SIGNAL
+        ↓
+   [FFT/STFT]  ← Same math for all signals
+        ↓
+   Spectrogram (Frequency × Time)
+        ↓
+   [PTX Sound Image Kernel]  ← ONE kernel for everything!
+        ↓
+   2D Image (Height=Frequency, Width=Time)
+        ↓
+   [PTXModalityOps.image_features()]
+        ↓
+   128D Embedding
+        ↓
+   [Multi-Modal Head]
+```
+
+**Result**: The model learns that:
+- Speech formants = Frequency patterns over time
+- Radio carriers = Stable frequency lines
+- Music notes = Harmonic frequency stacks
+- **ALL are the same geometric phenomenon!**
+
+---
+
+## SDR-Inspired Universal Signal Kernel
+
+### Why SDR Techniques Matter
+
+**Software Defined Radio** has decades of optimized signal processing:
+- Real-time FFT on GPU (used for spectrum analysis)
+- Efficient windowing (Hann, Hamming, Blackman)
+- Fast frequency domain filtering
+- Parallel multi-channel processing
+
+**Key SDR concepts we can use**:
+
+1. **Complex I/Q samples** → Our kernel works with real samples, but same math
+2. **FFT sliding window** → Our STFT exactly
+3. **Waterfall display** → Our spectrogram exactly
+4. **Power spectral density** → Our mel scale conversion
+
+### Universal Kernel Design
+
+```cuda
+// universal_signal_image_kernel.cu
+// Processes ANY time-series signal to spectrogram
+
+__global__ void compute_spectrogram(
+    const float* signal,       // Input: time-series samples
+    float* spectrogram,        // Output: (n_bins × n_frames)
+    const float* window,       // Window function (Hann, etc.)
+    const float* filterbank,   // Frequency filterbank (mel, linear, etc.)
+    int n_samples,             // Signal length
+    int n_fft,                 // FFT size
+    int hop_length,            // Hop between frames
+    int n_bins,                // Output frequency bins
+    float sample_rate          // For frequency scaling
+) {
+    // Works for:
+    // - Audio: sample_rate=22050, n_bins=128 (mel scale)
+    // - Radio: sample_rate=2e6, n_bins=256 (linear scale)
+    // - Sensor: sample_rate=1000, n_bins=64 (custom scale)
+}
+```
+
+**Same kernel, different parameters!**
+
+### Frequency Scale Flexibility
+
+```python
+# Audio (mel scale - perceptual)
+generate_spectrogram(
+    audio_signal,
+    sample_rate=22050,
+    n_bins=128,
+    scale='mel',
+    fmin=20,
+    fmax=8000
+)
+
+# Radio (linear scale - physical)
+generate_spectrogram(
+    radio_signal,
+    sample_rate=2.4e6,  # 2.4 MHz
+    n_bins=256,
+    scale='linear',
+    fmin=2.4e9,  # 2.4 GHz WiFi
+    fmax=2.5e9
+)
+
+# Vibration (logarithmic scale - mechanical)
+generate_spectrogram(
+    vibration_signal,
+    sample_rate=10000,
+    n_bins=64,
+    scale='log',
+    fmin=10,
+    fmax=5000
+)
+```
+
+### Real-World Applications
+
+**Embodied AI with universal signal understanding**:
+
+1. **Speech Recognition** (audio, 20 Hz - 8 kHz)
+   - Formants = frequency patterns
+   - Intonation = frequency modulation over time
+   - Voice timbre = harmonic structure
+
+2. **Environment Awareness** (audio, full spectrum)
+   - Footsteps = low frequency transients
+   - Glass breaking = high frequency burst
+   - Machine sounds = periodic frequency patterns
+
+3. **Wireless Communication** (radio, 2.4 GHz / 5 GHz)
+   - WiFi presence = 2.4/5 GHz carriers
+   - Bluetooth = frequency hopping patterns
+   - Interference = overlapping spectral patterns
+
+4. **Physical Sensing** (vibration, 0-1000 Hz)
+   - Touch = mechanical vibration signature
+   - Movement = low frequency patterns
+   - Material resonance = frequency response
+
+**The model learns**: All are **vibration in frequency over time**!
 
 ---
 

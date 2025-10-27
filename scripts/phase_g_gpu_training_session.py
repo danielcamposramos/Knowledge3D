@@ -196,6 +196,12 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="DEBUG ONLY: Skip sleep-time consolidation steps (not recommended!)",
     )
+    parser.add_argument(
+        "--parallel-workers",
+        type=int,
+        default=15,
+        help="Maximum number of samples processed in parallel during specialist training",
+    )
     return parser.parse_args()
 
 
@@ -235,6 +241,7 @@ def main() -> None:
             seed=job.seed,
             load_checkpoint=None,
             swarm=swarm,
+            parallel_workers=args.parallel_workers,
         )
         summary.append({"specialist": job.name, **stats})
         log(f"--- Specialist '{job.name}' training completed ---")
