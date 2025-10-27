@@ -35,6 +35,14 @@ OP_MATMUL_SMALL = 0xA4
 OP_DOT_BATCH = 0xA5
 OP_TRACE_TENSOR = 0xA6
 
+# Sovereign clustering opcodes (Tier 1-2)
+OP_VEC_L2_NORM = 0xC0
+OP_VEC_NORMALIZE = 0xC1
+OP_VEC_ARGMAX = 0xC2
+OP_VEC_BLEND = 0xC3
+OP_COSINE_SIM_BATCH = 0xC4
+OP_CLUSTER_ASSIGN = 0xC5
+
 # Programmability opcodes (Step 13-E foundations)
 OP_BRANCH = 0xB0
 OP_LOOP = 0xB1
@@ -68,6 +76,12 @@ __all__ = [
     "OP_MATMUL_SMALL",
     "OP_DOT_BATCH",
     "OP_TRACE_TENSOR",
+    "OP_VEC_L2_NORM",
+    "OP_VEC_NORMALIZE",
+    "OP_VEC_ARGMAX",
+    "OP_VEC_BLEND",
+    "OP_COSINE_SIM_BATCH",
+    "OP_CLUSTER_ASSIGN",
     "OP_BRANCH",
     "OP_LOOP",
     "OP_NEXT",

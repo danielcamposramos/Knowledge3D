@@ -40,12 +40,20 @@ try:
 except AttributeError:
     _cuMemGetInfo = getattr(nvcuda, "cuMemGetInfo", None)
 
+try:
+    _cuMemsetD32 = getattr(nvcuda, "cuMemsetD32_v2")
+except AttributeError:  # pragma: no cover - legacy drivers
+    _cuMemsetD32 = getattr(nvcuda, "cuMemsetD32")
+
 if _cuMemGetInfo is not None:
     _cuMemGetInfo.restype = ctypes.c_int
     _cuMemGetInfo.argtypes = [
         ctypes.POINTER(ctypes.c_size_t),
         ctypes.POINTER(ctypes.c_size_t),
     ]
+
+_cuMemsetD32.restype = ctypes.c_int
+_cuMemsetD32.argtypes = [ctypes.c_uint64, ctypes.c_uint, ctypes.c_size_t]
 
 CUDA_MEMCPY_HOST_TO_DEVICE = 1
 CUDA_MEMCPY_DEVICE_TO_HOST = 2
@@ -407,6 +415,15 @@ def memcpy_dtoh(dst_host: ctypes.c_void_p, src_device: CUdeviceptr, size_bytes: 
     res = nvcuda.cuMemcpyDtoH(dst_host, src_device, size_bytes)
     if os.environ.get("K3D_RPN_DEBUG"):
         print(f"[loader] cuMemcpyDtoH -> {res}")
+    ck(res)
+
+
+def memset_d32(dst_device: CUdeviceptr, value: int, count: int) -> None:
+    """Fill device memory with 32-bit value."""
+    _ensure_current_context()
+    res = _cuMemsetD32(dst_device, ctypes.c_uint(value), ctypes.c_size_t(count))
+    if os.environ.get("K3D_RPN_DEBUG"):
+        print(f"[loader] cuMemsetD32 -> {res} (count={count})")
     ck(res)
 
 # ==========================================

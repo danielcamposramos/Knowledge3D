@@ -24,13 +24,8 @@ from typing import Dict, List, MutableMapping, Sequence, Tuple
 
 import numpy as np
 
-from knowledge3d.cranium.bridges.sovereign_bridges import VectorResonator
-from knowledge3d.cranium.clustering_rpn import (
-    compile_cosine_similarity_rpn,
-    compute_similarity_matrix_rpn,
-)
 from knowledge3d.cranium.rpn_embedding_engine import RPNEmbeddingEngine
-from knowledge3d.cranium.sovereign_rpn_executor import get_sovereign_rpn_executor
+from knowledge3d.cranium.sovereign_clustering_ops import SovereignClusteringOps
 
 
 def _normalize(vec: np.ndarray) -> np.ndarray:
@@ -40,12 +35,6 @@ def _normalize(vec: np.ndarray) -> np.ndarray:
     if norm <= 1e-8:
         return np.zeros_like(vec, dtype=np.float32)
     return (vec / norm).astype(np.float32)
-
-
-def _average_vectors(vectors: Sequence[np.ndarray]) -> np.ndarray:
-    """Average list of vectors (assumes consistent dimensionality)."""
-    stacked = np.stack(vectors, axis=0).astype(np.float32)
-    return stacked.mean(axis=0, dtype=np.float32)
 
 
 @dataclass
@@ -61,13 +50,11 @@ class SleepTimeConsolidator:
     _last_keys: List[int] | None = field(default=None, init=False, repr=False)
     _cohesion_before: float = field(default=0.0, init=False, repr=False)
     _cohesion_after: float = field(default=0.0, init=False, repr=False)
-    _vector_resonator: VectorResonator | None = field(default=None, init=False, repr=False)
-    _rpn_executor: object | None = field(default=None, init=False, repr=False)
+    _clustering_ops: SovereignClusteringOps | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
         """Initialize sovereign GPU components (zero CuPy)."""
-        self._vector_resonator = VectorResonator()
-        self._rpn_executor = get_sovereign_rpn_executor()
+        self._clustering_ops = SovereignClusteringOps()
 
     # ------------------------------------------------------------------ #
     # Public API
@@ -127,44 +114,40 @@ class SleepTimeConsolidator:
 
         rng = np.random.default_rng(0)
         seeds = rng.choice(num_embeddings, size=cluster_target, replace=False)
-        centroids = embeddings[seeds].copy()
-        centroids = np.stack([_normalize(vec) for vec in centroids], axis=0)
+        centroids = np.stack([_normalize(embeddings[idx]) for idx in seeds], axis=0)
 
         assignments = np.zeros(num_embeddings, dtype=np.int32)
         prev = None
+        clustering_ops = self._clustering_ops
 
         for _ in range(25):
-            similarity = compute_similarity_matrix_rpn(embeddings, centroids)
-            assignments = np.argmax(similarity, axis=1).astype(np.int32)
+            similarity = clustering_ops.cosine_similarity_matrix(embeddings, centroids)
+            assignments = clustering_ops.assign_to_clusters(similarity)
             if prev is not None and np.array_equal(assignments, prev):
                 break
             prev = assignments.copy()
 
-            for cluster_idx in range(cluster_target):
-                member_idx = np.where(assignments == cluster_idx)[0]
-                if member_idx.size == 0:
+            centroids, counts = clustering_ops.compute_centroids(
+                embeddings,
+                assignments,
+                cluster_target,
+            )
+            for cluster_idx, count in enumerate(counts):
+                if count == 0:
                     random_idx = int(rng.integers(0, num_embeddings))
-                    centroids[cluster_idx] = embeddings[random_idx]
-                    continue
+                    centroids[cluster_idx] = _normalize(embeddings[random_idx])
 
-                averaged = _average_vectors([embeddings[i] for i in member_idx])
-                centroids[cluster_idx] = _normalize(averaged)
-
-        similarity = compute_similarity_matrix_rpn(embeddings, centroids)
+        similarity = clustering_ops.cosine_similarity_matrix(embeddings, centroids)
         self._cohesion_before = float(np.mean(similarity[np.arange(num_embeddings), assignments]))
 
-        updated_vectors: List[np.ndarray] = []
-        for idx, vec in enumerate(embeddings):
-            centroid = centroids[assignments[idx]]
-            blended = self._vector_resonator.resonate(
-                vec.astype(np.float32),
-                centroid.astype(np.float32),
-                float(self.learning_rate),
-            )
-            updated_vectors.append(_normalize(blended))
-        updated = np.stack(updated_vectors, axis=0)
+        updated = clustering_ops.blend_toward_centroids(
+            embeddings,
+            centroids,
+            assignments,
+            float(self.learning_rate),
+        )
 
-        updated_similarity = compute_similarity_matrix_rpn(updated, centroids)
+        updated_similarity = clustering_ops.cosine_similarity_matrix(updated, centroids)
         self._cohesion_after = float(np.mean(updated_similarity[np.arange(num_embeddings), assignments]))
 
         for idx, trigram_hash in enumerate(keys):
@@ -193,7 +176,7 @@ class SleepTimeConsolidator:
         embedding_map = self.rpn_engine.embeddings
         merged_pairs = 0
 
-        executor = self._rpn_executor
+        clustering_ops = self._clustering_ops
         removed: List[int] = []
 
         for cluster_id in np.unique(assignments):
@@ -203,41 +186,52 @@ class SleepTimeConsolidator:
             if member_idx.size > self.max_cluster_size_for_pruning:
                 continue
 
-            member_vectors = [embedding_map[keys[i]] for i in member_idx]
-            centroid = _normalize(_average_vectors(member_vectors))
+            member_vectors = np.stack([embedding_map[keys[i]] for i in member_idx], axis=0).astype(
+                np.float32
+            )
 
-            programs = []
-            for vec in member_vectors:
-                programs.append(compile_cosine_similarity_rpn(vec, centroid))
-            sims = executor.execute_batch(programs, max_instances=len(programs))
+            local_assignments = np.zeros(member_idx.size, dtype=np.int32)
+            centroid_matrix, _ = clustering_ops.compute_centroids(
+                member_vectors,
+                local_assignments,
+                n_clusters=1,
+            )
+            centroid = centroid_matrix[0]
+
+            sims = clustering_ops.cosine_similarity_matrix(
+                member_vectors,
+                centroid[np.newaxis, :],
+            )[:, 0]
 
             high_members = [
-                (idx, member_vectors[i])
-                for idx, i in zip(member_idx, range(member_idx.size))
+                (cluster_member_idx, member_vectors[i], sims[i])
+                for i, cluster_member_idx in enumerate(member_idx)
                 if sims[i] >= self.redundancy_threshold
             ]
 
             if len(high_members) <= 1:
                 continue
 
-            high_members.sort(key=lambda item: float(sims[member_idx.tolist().index(item[0])]), reverse=True)
-            keeper_idx, keeper_vec = high_members[0]
+            high_members.sort(key=lambda item: float(item[2]), reverse=True)
+            keeper_idx, keeper_vec, _ = high_members[0]
             keeper_key = keys[keeper_idx]
-            aggregate = keeper_vec.astype(np.float32)
+            aggregate = keeper_vec.astype(np.float32, copy=True)
             blend_count = 1
 
-            for idx, vec in high_members[1:]:
+            for idx, vec, _ in high_members[1:]:
                 blend_count += 1
                 alpha = 1.0 / blend_count
-                aggregate = self._vector_resonator.resonate(
-                    aggregate.astype(np.float32),
-                    vec.astype(np.float32),
+                aggregate = clustering_ops.blend_toward_centroids(
+                    aggregate[np.newaxis, :],
+                    vec[np.newaxis, :],
+                    np.zeros(1, dtype=np.int32),
                     float(alpha),
-                )
+                )[0]
+
                 removed.append(keys[idx])
                 merged_pairs += 1
 
-            embedding_map[keeper_key] = _normalize(aggregate)
+            embedding_map[keeper_key] = aggregate
 
         for trigram_hash in removed:
             if trigram_hash in embedding_map:

@@ -9,7 +9,12 @@ Performance: ~100x faster than CuPy custom kernels.
 
 import numpy as np
 from typing import Dict, List, Tuple
-from knowledge3d.cranium.rpn_executor import get_rpn_executor
+try:
+    from knowledge3d.cranium.sovereign_rpn_executor import (
+        get_sovereign_rpn_executor as get_rpn_executor,
+    )
+except ImportError:  # Fallback for legacy path
+    from knowledge3d.cranium.rpn_executor import get_rpn_executor
 
 
 def compile_cosine_similarity_rpn(
@@ -17,72 +22,61 @@ def compile_cosine_similarity_rpn(
     vec_v: np.ndarray
 ) -> Dict[str, np.ndarray]:
     """
-    Compile cosine similarity formula to RPN.
+    Compile cosine similarity formula to RPN using matroska adaptive chunking.
 
     Formula: cosine(u, v) = (u·v) / (||u|| × ||v||)
 
-    RPN Program:
-        vec_u vec_v DOT      # u·v
-        vec_u NORM           # ||u||
-        vec_v NORM           # ||v||
-        MUL                  # ||u|| × ||v||
-        DIV                  # (u·v) / (||u|| × ||v||)
+    For high-dimensional vectors (>3D), uses adaptive chunking into 3D pieces:
+    - dot(u, v) = sum(dot3(u[i:i+3], v[i:i+3]) for all chunks)
+    - norm(u) = sqrt(sum(dot3(u[i:i+3], u[i:i+3]) for all chunks))
+
+    This aligns with the matroska embedding style - adaptive chunking for
+    arbitrary dimensions using the RPN kernel's native 3D operations.
+
+    RPN Program (per 3D chunk):
+        vec_u_chunk vec_v_chunk DOT  # chunk dot product
 
     Args:
         vec_u: First embedding vector (N-dim)
         vec_v: Second embedding vector (N-dim)
 
     Returns:
-        Dict with RPN program ready for execution
+        Dict with RPN program ready for execution (dot product for one 3D chunk)
     """
-    # Ensure vectors are normalized to 4-wide for RPN kernel
-    # (RPN kernel supports 4D vectors natively)
-    if len(vec_u) > 4:
-        # Use first 4 dimensions or compress via PCA
-        vec_u = vec_u[:4]
-        vec_v = vec_v[:4]
+    dim = len(vec_u)
 
-    # Pad to 4D if needed
-    vec_u_padded = np.zeros(4, dtype=np.float32)
-    vec_v_padded = np.zeros(4, dtype=np.float32)
-    vec_u_padded[:len(vec_u)] = vec_u
-    vec_v_padded[:len(vec_v)] = vec_v
+    # For dimensions <= 3, use directly
+    if dim <= 3:
+        # Pad to 3D
+        vec_u_padded = np.zeros(3, dtype=np.float32)
+        vec_v_padded = np.zeros(3, dtype=np.float32)
+        vec_u_padded[:dim] = vec_u
+        vec_v_padded[:dim] = vec_v
 
-    # RPN op-codes:
-    # 0x02 = VEC_LITERAL (vector index in lower byte)
-    # 0x30 = DOT (vector dot product)
-    # 0x31 = NORM (vector magnitude)
-    # 0x14 = MUL
-    # 0x15 = DIV
+        # RPN opcodes: 0x01=VEC_LITERAL, 0x3C=DOT
+        op_codes = np.array([
+            0x01,  # VEC_LITERAL vector[0] (vec_u)
+            0x01,  # VEC_LITERAL vector[1] (vec_v)
+            0x3C,  # DOT (u·v)
+        ], dtype=np.uint16)
 
-    op_codes = np.array([
-        # u·v
-        0x0200,  # VEC_LITERAL vector[0] (vec_u)
-        0x0201,  # VEC_LITERAL vector[1] (vec_v)
-        0x0030,  # DOT (u·v)
+        scalars = np.zeros(1, dtype=np.float32)
+        vectors = np.concatenate([vec_u_padded, vec_v_padded])  # 6 floats
 
-        # ||u||
-        0x0200,  # VEC_LITERAL vector[0] (vec_u)
-        0x0031,  # NORM (||u||)
+        return {
+            'op_codes': op_codes,
+            'scalars': scalars,
+            'vectors': vectors,
+            'result_type': 'scalar'  # dot product result
+        }
 
-        # ||v||
-        0x0201,  # VEC_LITERAL vector[1] (vec_v)
-        0x0031,  # NORM (||v||)
-
-        # ||u|| × ||v||
-        0x0014,  # MUL
-
-        # (u·v) / (||u|| × ||v||)
-        0x0015,  # DIV
-    ], dtype=np.uint16)
-
-    scalars = np.zeros(1, dtype=np.float32)  # No scalars needed
-    vectors = np.stack([vec_u_padded, vec_v_padded], axis=0)  # (2, 4)
-
+    # For high-dimensional vectors, return metadata for chunked computation
+    # The caller will handle adaptive chunking
     return {
-        'op_codes': op_codes,
-        'scalars': scalars,
-        'vectors': vectors
+        'vec_u': vec_u,
+        'vec_v': vec_v,
+        'dim': dim,
+        'requires_chunking': True
     }
 
 
@@ -91,26 +85,113 @@ def compute_cosine_similarity_rpn(
     vec_v: np.ndarray
 ) -> float:
     """
-    Compute cosine similarity between two vectors using RPN kernel.
+    Compute cosine similarity between two vectors using RPN kernel with adaptive chunking.
+
+    For high-dimensional vectors (>3D), uses matroska-style chunking:
+    - Breaks vectors into 3D chunks
+    - Computes dot3 for each chunk on GPU
+    - Accumulates results for final cosine similarity
 
     Args:
-        vec_u: First embedding vector
-        vec_v: Second embedding vector
+        vec_u: First embedding vector (N-dim)
+        vec_v: Second embedding vector (N-dim)
 
     Returns:
         Cosine similarity in [-1, 1]
     """
     program = compile_cosine_similarity_rpn(vec_u, vec_v)
+
+    # Simple case: <=3D, direct computation
+    if not program.get('requires_chunking', False):
+        executor = get_rpn_executor()
+        similarity = executor.execute_single(
+            instance_id=0,
+            op_codes=program['op_codes'],
+            scalars=program['scalars'],
+            vectors=program['vectors']
+        )
+        return float(np.clip(similarity, -1.0, 1.0))
+
+    # Adaptive chunking for high-dimensional vectors
+    vec_u = program['vec_u']
+    vec_v = program['vec_v']
+    dim = program['dim']
     executor = get_rpn_executor()
 
-    similarity = executor.execute_single(
-        instance_id=0,
-        op_codes=program['op_codes'],
-        scalars=program['scalars'],
-        vectors=program['vectors']
-    )
+    # Chunk into 3D pieces
+    chunk_size = 3
+    num_chunks = (dim + chunk_size - 1) // chunk_size  # Ceiling division
 
-    # Clamp to valid range
+    # Prepare all chunks upfront
+    chunks_u = []
+    chunks_v = []
+    for chunk_idx in range(num_chunks):
+        start = chunk_idx * chunk_size
+        end = min(start + chunk_size, dim)
+        chunk_dim = end - start
+
+        u_padded = np.zeros(3, dtype=np.float32)
+        v_padded = np.zeros(3, dtype=np.float32)
+        u_padded[:chunk_dim] = vec_u[start:end]
+        v_padded[:chunk_dim] = vec_v[start:end]
+
+        chunks_u.append(u_padded)
+        chunks_v.append(v_padded)
+
+    # Process chunks in batches of 15 (leverage 15 RPN instances!)
+    batch_size = 15
+    dot_product = 0.0
+    norm_u_sq = 0.0
+    norm_v_sq = 0.0
+
+    op_codes = np.array([0x01, 0x01, 0x3C], dtype=np.uint16)  # VEC, VEC, DOT
+    scalars = np.zeros(1, dtype=np.float32)
+
+    for batch_start in range(0, num_chunks, batch_size):
+        batch_end = min(batch_start + batch_size, num_chunks)
+        batch_chunks_u = chunks_u[batch_start:batch_end]
+        batch_chunks_v = chunks_v[batch_start:batch_end]
+
+        # Prepare batch programs for dot(u, v)
+        programs_uv = []
+        programs_uu = []
+        programs_vv = []
+
+        for u, v in zip(batch_chunks_u, batch_chunks_v):
+            programs_uv.append({
+                'op_codes': op_codes,
+                'scalars': scalars,
+                'vectors': np.concatenate([u, v])
+            })
+            programs_uu.append({
+                'op_codes': op_codes,
+                'scalars': scalars,
+                'vectors': np.concatenate([u, u])
+            })
+            programs_vv.append({
+                'op_codes': op_codes,
+                'scalars': scalars,
+                'vectors': np.concatenate([v, v])
+            })
+
+        # Execute batches in parallel (15 RPN instances!)
+        results_uv = executor.execute_batch(programs_uv, max_instances=batch_size)
+        results_uu = executor.execute_batch(programs_uu, max_instances=batch_size)
+        results_vv = executor.execute_batch(programs_vv, max_instances=batch_size)
+
+        # Accumulate batch results
+        dot_product += sum(results_uv)
+        norm_u_sq += sum(results_uu)
+        norm_v_sq += sum(results_vv)
+
+    # Compute final cosine similarity
+    norm_u = np.sqrt(norm_u_sq)
+    norm_v = np.sqrt(norm_v_sq)
+
+    if norm_u < 1e-8 or norm_v < 1e-8:
+        return 0.0
+
+    similarity = dot_product / (norm_u * norm_v)
     return float(np.clip(similarity, -1.0, 1.0))
 
 
@@ -168,14 +249,28 @@ def compute_similarity_matrix_rpn(
     """
     Compute cosine similarity between each pair (source_i, target_j) using RPN.
 
+    Uses adaptive chunking for high-dimensional vectors (matroska style).
+
     Args:
         sources: Source embedding matrix (N, D)
         targets: Target embedding matrix (K, D)
-        batch_size: Number of RPN instances to evaluate in parallel
+        batch_size: Number of RPN instances to evaluate in parallel (unused for chunked mode)
 
     Returns:
         Similarity matrix with shape (N, K)
     """
+    # Check if we need chunking by testing first vector pair
+    test_program = compile_cosine_similarity_rpn(sources[0], targets[0])
+
+    if test_program.get('requires_chunking', False):
+        # High-dimensional case: use adaptive chunking for each pair
+        sims = np.zeros((len(sources), len(targets)), dtype=np.float32)
+        for i, src in enumerate(sources):
+            for j, tgt in enumerate(targets):
+                sims[i, j] = compute_cosine_similarity_rpn(src, tgt)
+        return sims
+
+    # Low-dimensional case (<=3D): use batch execution
     executor = get_rpn_executor()
     sims = np.zeros((len(sources), len(targets)), dtype=np.float32)
 

@@ -37,6 +37,8 @@ def _save_filtered(
     output_path: Path,
     required_modalities: Sequence[str],
     fields: Sequence[str],
+    *,
+    min_modalities: int = 0,
 ) -> int:
     """
     Save a filtered view of embeddings requiring specific modalities.
@@ -46,6 +48,7 @@ def _save_filtered(
         output_path: Destination JSONL path.
         required_modalities: Modalities that must be present.
         fields: Fields to retain in the output records.
+        min_modalities: Minimum number of modalities (from text/image/audio) that must be present.
 
     Returns:
         Number of records written.
@@ -53,10 +56,15 @@ def _save_filtered(
     count = 0
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8") as handle:
+        modality_whitelist = {"text", "image", "audio"}
         for record in embeddings:
             modalities = set(record.get("modalities", []))
             if not all(mod in modalities for mod in required_modalities):
                 continue
+            if min_modalities:
+                available = modalities & modality_whitelist
+                if len(available) < min_modalities:
+                    continue
 
             payload = {key: record.get(key) for key in fields if key in record}
             payload["id"] = record.get("id")
@@ -153,8 +161,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     multimodal_count = _save_filtered(
         embeddings,
         args.multimodal_output,
-        required_modalities=("text", "image", "audio"),
+        required_modalities=("text",),
         fields=("text_embedding", "image_embedding", "audio_embedding", "fused_embedding"),
+        min_modalities=2,
     )
     print(f"[Multimodal] Saved {multimodal_count} samples -> {args.multimodal_output}")
 
