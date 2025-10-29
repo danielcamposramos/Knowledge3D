@@ -331,12 +331,16 @@ class PDFIngestionBridge:
         self._temp_image_storage.clear()
 
         pdf_bytes = self._load_pdf_bytes(pdf_path, page_num)
-        use_gpu_parser = self._enable_gpu_parser and self.gpu_enabled
+        use_gpu_parser = self._enable_gpu_parser and self.gpu_enabled and self._enable_deepseek_ocr
         pdf_buffer_gpu = self._upload_to_gpu(pdf_bytes) if use_gpu_parser else None
 
         parsed_objects = self._parse_pdf_structure(pdf_bytes, pdf_buffer_gpu, len(pdf_bytes), page_num)
         parsed_objects.setdefault("method", "structured")
-        if parsed_objects.get("is_scanned") or int(parsed_objects.get("object_count", 0)) == 0:
+        needs_fallback = (
+            bool(parsed_objects.get("is_scanned"))
+            or int(parsed_objects.get("object_count", 0)) == 0
+        )
+        if needs_fallback and self._enable_deepseek_ocr:
             parsed_objects = self._ocr_fallback(str(pdf_path), page_num)
 
         text_embeddings = self._generate_text_embeddings(parsed_objects)
@@ -409,9 +413,11 @@ class PDFIngestionBridge:
         buffer_size: int,
         page_num: int,
     ) -> Dict[str, object]:
+        if not self._enable_gpu_parser or not self._enable_deepseek_ocr:
+            return self._parse_pdf_structure_pymupdf(page_num)
+
         if (
-            self._enable_gpu_parser
-            and self.gpu_enabled
+            self.gpu_enabled
             and self.pdf_parser_kernel is not None
             and pdf_buffer_gpu is not None
         ):
@@ -634,16 +640,28 @@ class PDFIngestionBridge:
 
             # Additional image sweep (handles some vector-backed images)
             image_list = page.get_images(full=True)
+            consecutive_errors = 0
+            max_consecutive_errors = 50  # Bail out if too many bad images
+
             for img in image_list:
+                # Safety: break if too many consecutive errors (malformed PDF)
+                if consecutive_errors >= max_consecutive_errors:
+                    break
+
                 xref = img[0]
                 name = img[7] if len(img) > 7 else None
                 try:
                     bbox = page.get_image_bbox(name) if name else None
                 except Exception:
                     bbox = None
+                    consecutive_errors += 1
 
                 if not bbox:
+                    consecutive_errors += 1
                     continue
+
+                # Reset error counter on success
+                consecutive_errors = 0
 
                 x0, y0, x1, y1 = [float(val) for val in bbox]
                 w = x1 - x0
@@ -702,6 +720,7 @@ class PDFIngestionBridge:
             "object_count": len(objects),
             "processing_time_us": parse_time_us,
             "is_scanned": is_scanned,
+            "method": "structured-pymupdf",
         }
 
     def _simulate_parsed_objects(self) -> Dict[str, object]:

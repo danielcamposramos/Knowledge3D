@@ -55,10 +55,12 @@ class PhaseGPDFIngestionBridge(PDFIngestionBridge):
         # Initialize base bridge (sets up kernels, OCR, etc.)
         super().__init__()
 
-        # Phase G: Enable GPU OCR for all PDF processing
-        if self.deepseek_bridge is not None:
-            self.enable_deepseek_ocr(True)
-            print("[PhaseG] GPU OCR enabled for all pages")
+        # Phase G: GPU OCR disabled due to CUDA memory corruption issues
+        # TODO: Fix "illegal memory access" errors in DeepSeek OCR kernels
+        # if self.deepseek_bridge is not None:
+        #     self.enable_deepseek_ocr(True)
+        #     print("[PhaseG] GPU OCR enabled for all pages")
+        print("[PhaseG] GPU OCR disabled (memory corruption issues - fallback to PyMuPDF)")
 
         # Replace fixed-dimension RPN engine with adaptive engine
         print("[PhaseG] Initializing adaptive RPN engine...")

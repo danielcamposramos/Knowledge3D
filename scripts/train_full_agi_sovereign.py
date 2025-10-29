@@ -29,6 +29,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 
+import numpy as np
+
 # Add project to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -462,13 +464,21 @@ class FullAGITrainer:
                 print(f"    [{idx}/{min(10, len(pdf_files))}] {pdf_file.name} ({num_pages} pages)")
 
                 for page_num in range(num_pages):
-                    result = self.phase_g_bridge.ingest_pdf_page(str(pdf_file), page_num)
-                    pages_processed += 1
-                    if result.get("galaxy_star"):
-                        stars_created += 1
+                    try:
+                        result = self.phase_g_bridge.ingest_pdf_page(str(pdf_file), page_num)
+                        pages_processed += 1
+                        if result.get("galaxy_star"):
+                            stars_created += 1
 
-                    if (page_num + 1) % 10 == 0:
-                        print(f"      Page {page_num + 1}/{num_pages}")
+                        if (page_num + 1) % 10 == 0:
+                            print(f"      Page {page_num + 1}/{num_pages}")
+                    except Exception as page_exc:
+                        # Skip problematic pages (e.g., malformed images)
+                        if page_num == 0:
+                            print(f"    ⚠️  SKIPPING {pdf_file.name}: {str(page_exc)[:80]}")
+                            break  # Skip entire PDF if first page fails
+                        # Otherwise just skip the page and continue
+                        continue
 
                 doc.close()
 
@@ -484,21 +494,356 @@ class FullAGITrainer:
 
         return {"samples": pages_processed, "stars": stars_created}
 
+    def _get_3d_position_from_embedding(self, embedding: List[float]) -> List[float]:
+        """
+        Convert an embedding vector into a deterministic 3D unit-sphere position.
+        """
+        import hashlib
+
+        emb_array = np.asarray(embedding, dtype=np.float32).flatten()
+        if emb_array.size == 0:
+            return [0.0, 0.0, 1.0]
+
+        emb_bytes = emb_array.tobytes()
+        hash_val = int(hashlib.md5(emb_bytes).hexdigest(), 16)
+
+        theta = (hash_val % 360) * (np.pi / 180.0)
+        phi = ((hash_val // 360) % 180) * (np.pi / 180.0)
+
+        x = float(np.sin(phi) * np.cos(theta))
+        y = float(np.sin(phi) * np.sin(theta))
+        z = float(np.cos(phi))
+
+        return [x, y, z]
+
     def _process_jsonl_dataset(self, dataset: Dict[str, Any]) -> Dict[str, int]:
-        """Process JSONL dataset."""
-        return {"samples": 0, "stars": 0}
+        """
+        Process JSONL datasets (characters, multimodal embeddings, speech).
+        """
+        jsonl_path = Path(dataset.get("path", ""))
+        if not jsonl_path.exists():
+            print(f"  ⚠️  JSONL dataset missing: {jsonl_path}")
+            return {"samples": 0, "stars": 0}
+
+        samples = 0
+        stars = 0
+
+        with jsonl_path.open("r", encoding="utf-8") as handle:
+            for line_number, line in enumerate(handle, start=1):
+                if not line.strip():
+                    continue
+
+                try:
+                    item = json.loads(line)
+                except json.JSONDecodeError as exc:
+                    print(f"  ⚠️  Skipping invalid JSONL line {line_number}: {str(exc)[:50]}")
+                    continue
+
+                embedding_raw = item.get("embedding")
+                if embedding_raw is None:
+                    print(f"  ⚠️  Skipping line {line_number}: missing embedding")
+                    continue
+
+                try:
+                    embedding = np.asarray(embedding_raw, dtype=np.float32)
+                except Exception as exc:
+                    print(f"  ⚠️  Skipping line {line_number}: invalid embedding ({str(exc)[:50]})")
+                    continue
+
+                if embedding.ndim != 1 or embedding.size == 0:
+                    print(f"  ⚠️  Skipping line {line_number}: embedding must be 1D")
+                    continue
+
+                metadata_extra = item.get("metadata")
+                if not isinstance(metadata_extra, dict):
+                    metadata_extra = {}
+
+                embedding_list = embedding.tolist()
+                star = {
+                    "position": self._get_3d_position_from_embedding(embedding_list),
+                    "embedding": embedding_list,
+                    "embedding_dim": int(embedding.size),
+                    "metadata": {
+                        "source": str(jsonl_path),
+                        "text": str(item.get("text", "")),
+                        **metadata_extra,
+                    },
+                    "created_at": time.time(),
+                    "source_type": "jsonl",
+                    "pending_consolidation": True,
+                }
+
+                self.phase_g_bridge.galaxy_stars.append(star)
+                self.phase_g_bridge.galaxy_star_embeddings.append(embedding)
+
+                samples += 1
+                stars += 1
+
+                if stars % 1000 == 0:
+                    self.phase_g_bridge.save_galaxy_stars()
+
+        if stars > 0:
+            self.phase_g_bridge.save_galaxy_stars()
+
+        return {"samples": samples, "stars": stars}
 
     def _process_text_dataset(self, dataset: Dict[str, Any]) -> Dict[str, int]:
-        """Process text dataset."""
-        return {"samples": 0, "stars": 0}
+        """
+        Process plain text datasets and create Galaxy stars.
+        """
+        txt_path = Path(dataset.get("path", ""))
+        if not txt_path.exists():
+            print(f"  ⚠️  Text dataset missing: {txt_path}")
+            return {"samples": 0, "stars": 0}
+
+        try:
+            with txt_path.open("r", encoding="utf-8") as handle:
+                text = handle.read()
+        except Exception as exc:
+            print(f"  ⚠️  Failed to read text dataset {txt_path.name}: {exc}")
+            return {"samples": 0, "stars": 0}
+
+        sentences = [
+            sentence.strip()
+            for sentence in text.replace("\n", " ").split(".")
+            if len(sentence.strip()) > 10
+        ]
+
+        samples = 0
+        stars = 0
+
+        for sentence in sentences:
+            try:
+                embedding, dim = self.adaptive_rpn.embed_sentence(sentence)
+            except Exception as exc:
+                print(f"  ⚠️  Skipping sentence (RPN failure): {str(exc)[:50]}")
+                continue
+
+            embedding = embedding.astype(np.float32, copy=False)
+            embedding_list = embedding.tolist()
+            star = {
+                "position": self._get_3d_position_from_embedding(embedding_list),
+                "embedding": embedding_list,
+                "embedding_dim": int(dim),
+                "metadata": {
+                    "source": str(txt_path),
+                    "text": sentence[:200],
+                    "method": "adaptive_rpn",
+                },
+                "created_at": time.time(),
+                "source_type": "text",
+                "pending_consolidation": True,
+            }
+
+            self.phase_g_bridge.galaxy_stars.append(star)
+            self.phase_g_bridge.galaxy_star_embeddings.append(embedding.astype(np.float32))
+
+            samples += 1
+            stars += 1
+
+            if stars % 1000 == 0:
+                self.phase_g_bridge.save_galaxy_stars()
+
+        if stars > 0:
+            self.phase_g_bridge.save_galaxy_stars()
+
+        return {"samples": samples, "stars": stars}
 
     def _process_json_dataset(self, dataset: Dict[str, Any]) -> Dict[str, int]:
-        """Process JSON dataset."""
-        return {"samples": 0, "stars": 0}
+        """
+        Process JSON datasets (Wikipedia articles, ARC-AGI tasks).
+        """
+        json_path = Path(dataset.get("path", ""))
+        json_files: List[Path] = []
+
+        if json_path.is_dir():
+            json_files = sorted(json_path.glob("*.json"))
+        elif json_path.suffix.lower() == ".json" and json_path.exists():
+            json_files = [json_path]
+        else:
+            print(f"  ⚠️  JSON dataset missing or unsupported: {json_path}")
+            return {"samples": 0, "stars": 0}
+
+        samples = 0
+        stars = 0
+
+        for json_file in json_files:
+            try:
+                with json_file.open("r", encoding="utf-8") as handle:
+                    data = json.load(handle)
+            except Exception as exc:
+                print(f"  ⚠️  Skipping {json_file.name}: {str(exc)[:60]}")
+                continue
+
+            records = data if isinstance(data, list) else [data]
+
+            for record in records:
+                try:
+                    if isinstance(record, dict) and "text" in record:
+                        text = str(record.get("text", "")).strip()
+                        if not text:
+                            continue
+                        embedding_input = text[:1000]
+                        embedding, dim = self.adaptive_rpn.embed_sentence(embedding_input)
+                        metadata_text = text[:200]
+                    elif isinstance(record, dict) and "input" in record and "output" in record:
+                        grid_flat = json.dumps(record.get("input", [])) + json.dumps(record.get("output", []))
+                        embedding, dim = self.adaptive_rpn.embed_sentence(grid_flat)
+                        metadata_text = "ARC-AGI pair"
+                    else:
+                        continue
+                except Exception as exc:
+                    print(f"  ⚠️  Skipping record in {json_file.name}: {str(exc)[:50]}")
+                    continue
+
+                embedding = embedding.astype(np.float32, copy=False)
+                embedding_list = embedding.tolist()
+                star = {
+                    "position": self._get_3d_position_from_embedding(embedding_list),
+                    "embedding": embedding_list,
+                    "embedding_dim": int(dim),
+                    "metadata": {
+                        "source": str(json_file),
+                        "text": metadata_text,
+                        "method": "adaptive_rpn",
+                        **({k: v for k, v in record.items() if k not in {"text", "input", "output"}}),
+                    },
+                    "created_at": time.time(),
+                    "source_type": "json",
+                    "pending_consolidation": True,
+                }
+
+                self.phase_g_bridge.galaxy_stars.append(star)
+                self.phase_g_bridge.galaxy_star_embeddings.append(embedding.astype(np.float32))
+
+                samples += 1
+                stars += 1
+
+                if stars % 500 == 0:
+                    self.phase_g_bridge.save_galaxy_stars()
+
+        if stars > 0:
+            self.phase_g_bridge.save_galaxy_stars()
+
+        return {"samples": samples, "stars": stars}
 
     def _process_directory_dataset(self, dataset: Dict[str, Any]) -> Dict[str, int]:
-        """Process directory dataset."""
-        return {"samples": 0, "stars": 0}
+        """
+        Process directory datasets (COCO, AudioCaps, Clotho).
+        """
+        dir_path = Path(dataset.get("path", ""))
+        if not dir_path.exists() or not dir_path.is_dir():
+            print(f"  ⚠️  Directory dataset missing: {dir_path}")
+            return {"samples": 0, "stars": 0}
+
+        samples = 0
+        stars = 0
+        dataset_name = str(dataset.get("name", "")).lower()
+
+        if "coco" in dataset_name:
+            ann_files = sorted(dir_path.glob("**/captions_*.json"))
+            for ann_file in ann_files:
+                try:
+                    with ann_file.open("r", encoding="utf-8") as handle:
+                        data = json.load(handle)
+                except Exception as exc:
+                    print(f"  ⚠️  Skipping {ann_file.name}: {str(exc)[:60]}")
+                    continue
+
+                annotations = data.get("annotations", [])[:5000]
+                for ann in annotations:
+                    caption = str(ann.get("caption", "")).strip()
+                    if not caption:
+                        continue
+
+                    try:
+                        embedding, dim = self.adaptive_rpn.embed_sentence(caption)
+                    except Exception as exc:
+                        print(f"  ⚠️  Skipping COCO caption: {str(exc)[:50]}")
+                        continue
+
+                    embedding = embedding.astype(np.float32, copy=False)
+                    embedding_list = embedding.tolist()
+                    star = {
+                        "position": self._get_3d_position_from_embedding(embedding_list),
+                        "embedding": embedding_list,
+                        "embedding_dim": int(dim),
+                        "metadata": {
+                            "source": str(ann_file),
+                            "text": caption[:200],
+                            "image_id": ann.get("image_id"),
+                            "method": "adaptive_rpn",
+                        },
+                        "created_at": time.time(),
+                        "source_type": "coco",
+                        "pending_consolidation": True,
+                    }
+
+                    self.phase_g_bridge.galaxy_stars.append(star)
+                    self.phase_g_bridge.galaxy_star_embeddings.append(embedding.astype(np.float32))
+
+                    samples += 1
+                    stars += 1
+
+                    if stars % 1000 == 0:
+                        self.phase_g_bridge.save_galaxy_stars()
+
+        elif "audiocaps" in dataset_name or "clotho" in dataset_name:
+            csv_files = sorted(dir_path.glob("**/*.csv"))
+            for csv_file in csv_files:
+                try:
+                    import csv
+
+                    with csv_file.open("r", encoding="utf-8") as handle:
+                        reader = csv.DictReader(handle)
+                        for row in reader:
+                            caption = (
+                                str(row.get("caption", "")).strip()
+                                or str(row.get("description", "")).strip()
+                            )
+                            if not caption:
+                                continue
+
+                            try:
+                                embedding, dim = self.adaptive_rpn.embed_sentence(caption)
+                            except Exception as exc:
+                                print(f"  ⚠️  Skipping audio caption: {str(exc)[:50]}")
+                                continue
+
+                            embedding = embedding.astype(np.float32, copy=False)
+                            embedding_list = embedding.tolist()
+                            star = {
+                                "position": self._get_3d_position_from_embedding(embedding_list),
+                                "embedding": embedding_list,
+                                "embedding_dim": int(dim),
+                                "metadata": {
+                                    "source": str(csv_file),
+                                    "text": caption[:200],
+                                    "audio_id": row.get("audio_id") or row.get("file_id"),
+                                    "method": "adaptive_rpn",
+                                },
+                                "created_at": time.time(),
+                                "source_type": "audio",
+                                "pending_consolidation": True,
+                            }
+
+                            self.phase_g_bridge.galaxy_stars.append(star)
+                            self.phase_g_bridge.galaxy_star_embeddings.append(embedding.astype(np.float32))
+
+                            samples += 1
+                            stars += 1
+
+                            if stars % 1000 == 0:
+                                self.phase_g_bridge.save_galaxy_stars()
+
+                except Exception as exc:
+                    print(f"  ⚠️  Skipping {csv_file.name}: {str(exc)[:60]}")
+                    continue
+
+        if stars > 0:
+            self.phase_g_bridge.save_galaxy_stars()
+
+        return {"samples": samples, "stars": stars}
 
     def run_sleep_cycle_1_model_updates(self) -> Dict[str, Any]:
         """
