@@ -71,18 +71,19 @@ class PDFIngestionBridge:
         self.glyph_resonator_kernel = None
         self.gpu_enabled = False
 
+        self.glyph_max_dim: int = 2048
+        self.glyph_embeddings: Optional[np.ndarray] = None
+        self.glyph_dims: Optional[np.ndarray] = None
+        self.glyph_metadata: List[Dict[str, object]] = []
         self.glyph_embeddings_gpu = None
-        self.glyph_metadata: Optional[List[Dict[str, object]]] = None
+        self.glyph_dims_gpu = None
+        self._glyph_embeddings_bytes = 0
+        self._glyph_dims_bytes = 0
         self.glyph_count: int = 0
         self._ocr_warned_missing_glyph = False
         self._ocr_warned_missing_cv = False
 
-        self._coarse_chars: List[str] = []
-        self._coarse_embeddings: Optional[np.ndarray] = None
-        self._prototypes_by_char: Dict[str, np.ndarray] = {}
-        self._prototype_meta_by_char: Dict[str, List[Dict[str, object]]] = {}
-        self._coarse_topk: int = 12
-        self._min_proto_confidence: float = 0.6
+        self._min_proto_confidence: float = 0.4
 
         self._compile_pdf_kernels()
         self._load_kernels()
@@ -126,7 +127,15 @@ class PDFIngestionBridge:
         for source in sources:
             cu_path = self.kernel_dir / source
             ptx_path = cu_path.with_suffix(".ptx")
-            if not cu_path.exists() or ptx_path.exists():
+            if not cu_path.exists():
+                continue
+
+            needs_rebuild = (
+                not ptx_path.exists()
+                or cu_path.stat().st_mtime > ptx_path.stat().st_mtime
+            )
+
+            if not needs_rebuild:
                 continue
 
             try:
@@ -156,7 +165,7 @@ class PDFIngestionBridge:
             "layout_graph_optimizer.ptx", "layout_graph_optimizer"
         )
         self.glyph_resonator_kernel = self._load_kernel(
-            "glyph_resonator.ptx", "glyph_resonator"
+            "glyph_resonator.ptx", "glyph_resonator_matryoshka"
         )
 
         self.gpu_enabled = self.pdf_parser_kernel is not None
@@ -219,76 +228,157 @@ class PDFIngestionBridge:
             print(f"[WARN] Failed loading glyph database ({exc}). OCR disabled.")
             return
 
-        char_vectors: Dict[str, List[np.ndarray]] = {}
-        char_meta: Dict[str, List[Dict[str, object]]] = {}
+        glyph_variants: List[Dict[str, object]] = []
 
         for font_name, font_payload in font_db.items():
             glyphs = font_payload.get("glyphs", {}) if isinstance(font_payload, dict) else {}
+            is_symbol_font = bool(font_payload.get("is_symbol_font", False))
+            font_path = font_payload.get("font_path")
+
             for char, glyph_data in glyphs.items():
                 features = glyph_data.get("visual_features")
                 if features is None:
                     features = glyph_data.get("embedding")
                 if features is None:
                     continue
-                arr = np.asarray(features, dtype=np.float32)
-                if arr.shape != (128,):
+
+                base_embedding = np.asarray(features, dtype=np.float32).reshape(-1)
+                if base_embedding.size == 0:
                     continue
-                norm = np.linalg.norm(arr)
-                if norm > 1e-8:
-                    arr = arr / norm
-                char_vectors.setdefault(char, []).append(arr)
-                char_meta.setdefault(char, []).append(
+
+                matryoshka_emb, effective_dim, available_dims = self._generate_matryoshka_glyph(
+                    base_embedding,
+                    char
+                )
+
+                glyph_variants.append(
                     {
                         "char": char,
                         "font": font_name,
+                        "embedding": matryoshka_emb,
+                        "effective_dim": effective_dim,
+                        "available_dims": available_dims,
+                        "native_dim": int(min(base_embedding.size, self.glyph_max_dim)),
                         "confidence": float(glyph_data.get("confidence", 1.0)),
                         "is_symbol": bool(glyph_data.get("is_symbol", False)),
-                        "is_symbol_font": bool(font_payload.get("is_symbol_font", False)),
-                        "font_path": font_payload.get("font_path"),
+                        "is_symbol_font": is_symbol_font,
+                        "font_path": font_path,
                     }
                 )
 
-        if not char_vectors:
+        if not glyph_variants:
             print("[WARN] No glyph embeddings found in database. OCR disabled.")
             return
 
-        coarse_chars = sorted(char_vectors.keys())
-        coarse_embeddings: List[np.ndarray] = []
-        prototypes_by_char: Dict[str, np.ndarray] = {}
-        prototype_meta_by_char: Dict[str, List[Dict[str, object]]] = {}
+        embeddings = np.vstack([variant["embedding"] for variant in glyph_variants]).astype(np.float32)
+        dims = np.array([variant["effective_dim"] for variant in glyph_variants], dtype=np.int32)
 
-        for char in coarse_chars:
-            vectors = np.stack(char_vectors[char], axis=0).astype(np.float32, copy=False)
-            mean_vec = vectors.mean(axis=0)
-            norm = np.linalg.norm(mean_vec)
-            if norm > 1e-8:
-                mean_vec = mean_vec / norm
-            coarse_embeddings.append(mean_vec.astype(np.float32, copy=False))
-            prototypes_by_char[char] = np.ascontiguousarray(vectors, dtype=np.float32)
-            prototype_meta_by_char[char] = char_meta[char]
+        for variant in glyph_variants:
+            variant.pop("embedding", None)
 
-        self._coarse_chars = coarse_chars
-        self._coarse_embeddings = np.ascontiguousarray(np.vstack(coarse_embeddings), dtype=np.float32)
-        self._prototypes_by_char = prototypes_by_char
-        self._prototype_meta_by_char = prototype_meta_by_char
-
-        self.glyph_metadata = [
-            {
-                "char": char,
-                "font": "mean",
-                "confidence": 1.0,
-                "is_symbol": any(meta.get("is_symbol", False) for meta in char_meta[char]),
-            }
-            for char in coarse_chars
-        ]
-        self.glyph_count = len(coarse_chars)
+        self.glyph_embeddings = embeddings
+        self.glyph_dims = dims
+        self.glyph_metadata = glyph_variants
+        self.glyph_count = len(glyph_variants)
         self.glyph_embeddings_gpu = None
+        self.glyph_dims_gpu = None
 
-        total_variants = sum(vecs.shape[0] for vecs in prototypes_by_char.values())
+        unique_chars = len({variant["char"] for variant in glyph_variants})
+        max_dim_observed = int(dims.max())
         print(
-            f"[INFO] Loaded {self.glyph_count} coarse glyph means with "
-            f"{total_variants} per-font variants for OCR fallback."
+            f"[INFO] Loaded {self.glyph_count} glyph variants across {unique_chars} characters "
+            f"(max_dim={max_dim_observed})"
         )
+
+    def _generate_matryoshka_glyph(
+        self,
+        base_embedding: np.ndarray,
+        char: str,
+    ) -> Tuple[np.ndarray, int, List[int]]:
+        """
+        Generate Matryoshka multi-scale embedding for a single glyph variant.
+        """
+        target_dim = self.glyph_max_dim
+        base = np.asarray(base_embedding, dtype=np.float32).flatten()
+        if base.size == 0:
+            return np.zeros(target_dim, dtype=np.float32), 0, []
+
+        base_dim = min(base.size, target_dim)
+        matryoshka = np.zeros(target_dim, dtype=np.float32)
+        matryoshka[:base_dim] = base[:base_dim]
+
+        norm = np.linalg.norm(matryoshka[:base_dim])
+        if norm > 1e-8:
+            matryoshka[:base_dim] /= norm
+
+        complexity = self._estimate_glyph_complexity(char)
+        if base_dim >= target_dim:
+            effective_dim = target_dim
+        elif complexity >= 0.8:
+            effective_dim = target_dim
+        elif complexity >= 0.6:
+            effective_dim = 1024
+        elif complexity >= 0.4:
+            effective_dim = 512
+        else:
+            effective_dim = 256
+
+        effective_dim = max(base_dim, effective_dim)
+        effective_dim = min(effective_dim, target_dim)
+
+        import hashlib
+
+        seed_bytes = hashlib.sha256(base.tobytes() + char.encode("utf-8")).digest()
+        seed = int.from_bytes(seed_bytes[:4], "little", signed=False)
+        rng = np.random.RandomState(seed)
+
+        step = 64
+        cursor = base_dim
+        while cursor < effective_dim:
+            chunk = min(step, effective_dim - cursor)
+            scale = 0.12 / np.sqrt((cursor + chunk) / max(base_dim, 1))
+            matryoshka[cursor:cursor + chunk] = rng.randn(chunk).astype(np.float32) * scale
+            cursor += chunk
+
+        refined_norm = np.linalg.norm(matryoshka[:effective_dim])
+        if refined_norm > 1e-8:
+            matryoshka[:effective_dim] /= refined_norm
+
+        levels = [64, 128, 256, 512, 1024, 2048]
+        available = [dim for dim in levels if dim <= effective_dim]
+        if not available:
+            available = [effective_dim]
+
+        return matryoshka, effective_dim, available
+
+    @staticmethod
+    def _estimate_glyph_complexity(char: str) -> float:
+        """
+        Estimate visual complexity of a glyph using heuristic rules.
+        """
+        if not char or char.isspace():
+            return 0.1
+        simple_low = set("il1!|")
+        simple_letters = set("acemnorsuvwxz")
+        medium_letters = set("bdfghkpqty")
+        medium_upper = set("ACEMNORSUVWXZ")
+        high_symbols = set("@&%$#")
+
+        if char in simple_low:
+            return 0.2
+        if char in simple_letters:
+            return 0.4
+        if char in medium_letters:
+            return 0.6
+        if char in medium_upper:
+            return 0.7
+        if char in high_symbols:
+            return 0.9
+        if char.isdigit():
+            return 0.55
+        if char.isalpha():
+            return 0.5
+        return 0.65
 
     def _load_rpn_embeddings(self) -> None:
         """Load persisted RPN embeddings when available."""
@@ -806,40 +896,80 @@ class PDFIngestionBridge:
             scale_x = 2.0  # We rendered at 2× resolution
             scale_y = 2.0
 
+            feature_map = extraction.get("feature_map")
+            gpu_text, gpu_blocks = self._decode_feature_map_to_text(
+                feature_map,
+                page_image.shape,
+                page_rect,
+                scale_x,
+                scale_y,
+                feature_dim_hint=extraction.get("feature_dim"),
+            )
+
             # Split text into lines for object creation
-            lines = extraction['full_text'].split('\n')
             objects: List[List[float]] = []
-            y_offset = 50.0
+            text_outputs: List[str] = []
 
-            for line_text in lines:
-                if not line_text.strip():
-                    continue
+            gpu_text_clean = gpu_text.strip() if gpu_text else ""
+            gpu_text_viable = bool(gpu_blocks) and len(gpu_text_clean) >= 64
 
-                # Estimate bounding box (Phase E: simple layout)
-                # Phase F: Use actual layout detection
-                text_width = len(line_text) * 6.0  # ~6 pts per char
-                text_height = 12.0
+            if gpu_text_viable:
+                for block in gpu_blocks:
+                    text_content = (block.get("text") or "").strip()
+                    if not text_content:
+                        continue
+                    bbox_pdf = block.get("bbox") or (72.0, 72.0, 400.0, 16.0)
+                    importance = float(block.get("confidence", 0.85))
+                    text_index = len(self._temp_text_storage)
+                    self._temp_text_storage.append(text_content)
+                    objects.append([
+                        float(bbox_pdf[0]),
+                        float(bbox_pdf[1]),
+                        float(bbox_pdf[2]),
+                        float(bbox_pdf[3]),
+                        1.0,
+                        float(text_index),
+                        float(len(text_content)),
+                        max(0.1, min(1.0, importance)),
+                    ])
+                    text_outputs.append(text_content)
 
-                x_pdf = 72.0
-                y_pdf = y_offset
-                width_pdf = min(text_width, page_rect.width - 144.0)
-                height_pdf = text_height
+                full_text = gpu_text or "\n".join(text_outputs)
+            else:
+                if gpu_blocks and not gpu_text_viable:
+                    print("[PhaseG][GPU OCR] GPU text below threshold; using DeepSeek simple extractor fallback")
 
-                text_index = len(self._temp_text_storage)
-                self._temp_text_storage.append(line_text)
+                lines = extraction.get('full_text', '').split('\n')
+                y_offset = 50.0
+                for line_text in lines:
+                    if not line_text.strip():
+                        continue
 
-                objects.append([
-                    float(x_pdf),
-                    float(y_pdf),
-                    float(width_pdf),
-                    float(height_pdf),
-                    1.0,  # Text type
-                    float(text_index),
-                    float(len(line_text)),
-                    0.9,  # High confidence (DeepSeek has 97% accuracy)
-                ])
+                    text_width = len(line_text) * 6.0
+                    text_height = 12.0
+                    x_pdf = 72.0
+                    y_pdf = y_offset
+                    width_pdf = min(text_width, page_rect.width - 144.0)
+                    height_pdf = text_height
 
-                y_offset += text_height + 4.0
+                    text_index = len(self._temp_text_storage)
+                    self._temp_text_storage.append(line_text)
+
+                    objects.append([
+                        float(x_pdf),
+                        float(y_pdf),
+                        float(width_pdf),
+                        float(height_pdf),
+                        1.0,
+                        float(text_index),
+                        float(len(line_text)),
+                        0.9,
+                    ])
+
+                    text_outputs.append(line_text)
+                    y_offset += text_height + 4.0
+
+                full_text = "\n".join(text_outputs)
 
             objects_array = (
                 np.array(objects, dtype=np.float32)
@@ -854,7 +984,7 @@ class PDFIngestionBridge:
                 "processing_time_us": int((_time.perf_counter() - ocr_start) * 1_000_000),
                 "is_scanned": True,
                 "method": "deepseek",
-                "text": extraction['full_text'],
+                "text": full_text,
                 "compression_ratio": extraction['compression_ratio'],
                 "fidelity": extraction['fidelity'],
             }
@@ -1260,106 +1390,227 @@ class PDFIngestionBridge:
     # PHASE_E_TODO: The methods below support the shelved GPU-native OCR flow.
     # They remain in-place so Phase E can iterate on sovereign glyph matching
     # without reintroducing the full feature extractor from scratch.
+    def _ensure_glyphs_on_gpu(self) -> bool:
+        if self.glyph_embeddings is None or self.glyph_dims is None:
+            return False
+
+        if self.glyph_resonator_kernel is None:
+            return False
+
+        if self.glyph_embeddings_gpu is None:
+            embeddings = np.ascontiguousarray(self.glyph_embeddings, dtype=np.float32)
+            ptr = gpu_malloc(embeddings.nbytes)
+            memcpy_htod(ptr, embeddings.ctypes.data_as(ctypes.c_void_p), embeddings.nbytes)
+            self.glyph_embeddings_gpu = ptr
+            self._glyph_embeddings_bytes = embeddings.nbytes
+
+        if self.glyph_dims_gpu is None:
+            dims = np.ascontiguousarray(self.glyph_dims, dtype=np.int32)
+            ptr = gpu_malloc(dims.nbytes)
+            memcpy_htod(ptr, dims.ctypes.data_as(ctypes.c_void_p), dims.nbytes)
+            self.glyph_dims_gpu = ptr
+            self._glyph_dims_bytes = dims.nbytes
+
+        return True
+
     def _match_glyphs_gpu(
         self,
         char_features: np.ndarray,
         char_bboxes: List[Tuple[int, int, int, int]],
+        query_dim: int,
     ) -> List[Dict[str, object]]:
-        if char_features.size == 0:
-            return []
-
         if (
-            not self._coarse_chars
-            or self._coarse_embeddings is None
-            or not self._prototypes_by_char
+            char_features.size == 0
+            or self.glyph_embeddings is None
+            or self.glyph_dims is None
+            or not self._ensure_glyphs_on_gpu()
         ):
             return []
 
-        features = np.ascontiguousarray(char_features.astype(np.float32, copy=False))
-        coarse_matrix = self._coarse_embeddings
-        coarse_scores = features @ coarse_matrix.T
+        num_chars = char_features.shape[0]
+        if num_chars == 0:
+            return []
 
-        topk = min(self._coarse_topk, coarse_matrix.shape[0])
-        top_indices = np.argpartition(coarse_scores, -topk, axis=1)[:, -topk:]
+        query_dim = int(max(1, min(query_dim, char_features.shape[1], self.glyph_max_dim)))
+        features = np.ascontiguousarray(char_features[:, :query_dim], dtype=np.float32)
+
+        features_gpu = gpu_malloc(features.nbytes)
+        memcpy_htod(features_gpu, features.ctypes.data_as(ctypes.c_void_p), features.nbytes)
+
+        output = np.zeros((num_chars, 3), dtype=np.float32)
+        output_gpu = gpu_malloc(output.nbytes)
+
+        glyph_count = int(self.glyph_count)
+
+        launch(
+            self.glyph_resonator_kernel,
+            grid=((num_chars + 255) // 256, 1, 1),
+            block=(256, 1, 1),
+            params=[
+                ctypes.c_uint64(int(output_gpu.value)),
+                ctypes.c_uint64(int(features_gpu.value)),
+                ctypes.c_int(num_chars),
+                ctypes.c_uint64(int(self.glyph_embeddings_gpu.value)),
+                ctypes.c_int(glyph_count),
+                ctypes.c_uint64(int(self.glyph_dims_gpu.value)),
+                ctypes.c_int(query_dim),
+                ctypes.c_int(self.glyph_max_dim),
+            ],
+        )
+        synchronize()
+
+        memcpy_dtoh(
+            output.ctypes.data_as(ctypes.c_void_p),
+            output_gpu,
+            output.nbytes,
+        )
+
+        gpu_free(features_gpu)
+        gpu_free(output_gpu)
 
         recognized: List[Dict[str, object]] = []
 
-        for idx, feature in enumerate(features):
+        for idx in range(num_chars):
+            glyph_idx = int(output[idx, 1])
+            score = float(output[idx, 2])
+            if glyph_idx < 0 or glyph_idx >= glyph_count:
+                continue
+            if not np.isfinite(score):
+                continue
+
+            meta = self.glyph_metadata[glyph_idx]
+            confidence = score * float(meta.get("confidence", 1.0))
+
+            descriptor = f"{meta.get('font', '')}".lower()
+            font_path = meta.get("font_path")
+            if font_path:
+                descriptor += f" {font_path}".lower()
+
+            if meta.get("is_symbol") or meta.get("is_symbol_font"):
+                confidence -= 0.05
+            if any(token in descriptor for token in self._NON_LATIN_TOKENS):
+                confidence -= 0.05
+
+            if confidence < self._min_proto_confidence:
+                continue
+
             bbox = char_bboxes[idx]
-            width = max(1, int(bbox[2]))
-            height = max(1, int(bbox[3]))
-            aspect = float(width) / float(height)
-
-            candidate_indices = top_indices[idx]
-            candidate_indices = candidate_indices[
-                np.argsort(coarse_scores[idx, candidate_indices])[::-1]
-            ]
-
-            candidates: List[Dict[str, object]] = []
-            for char_idx in candidate_indices:
-                char_symbol = self._coarse_chars[char_idx]
-                prototypes = self._prototypes_by_char.get(char_symbol)
-                if prototypes is None or prototypes.size == 0:
-                    continue
-
-                proto_scores = prototypes @ feature
-                best_proto_idx = int(np.argmax(proto_scores))
-                best_proto_score = float(proto_scores[best_proto_idx])
-                if best_proto_score < self._min_proto_confidence:
-                    continue
-
-                meta = self._prototype_meta_by_char[char_symbol][best_proto_idx]
-                coarse_score = float(coarse_scores[idx, char_idx])
-                combined = (0.65 * best_proto_score) + (0.35 * coarse_score)
-
-                descriptor = f"{meta.get('font', '')}".lower()
-                font_path = meta.get("font_path")
-                if font_path:
-                    descriptor += f" {font_path}".lower()
-
-                penalty = 0.0
-                if meta.get("is_symbol") or meta.get("is_symbol_font"):
-                    penalty += 0.08
-                if any(token in descriptor for token in self._NON_LATIN_TOKENS):
-                    penalty += 0.08
-
-                adjusted = combined - penalty
-                if adjusted < 0.45:
-                    continue
-
-                candidates.append(
-                    {
-                        "char": char_symbol,
-                        "combined": adjusted,
-                        "proto_score": best_proto_score,
-                        "coarse_score": coarse_score,
-                        "meta": meta,
-                    }
-                )
-
-            if not candidates:
-                continue
-
-            candidates.sort(key=lambda item: item["combined"], reverse=True)
-            chosen = self._select_candidate_by_geometry(candidates, aspect)
-            if chosen is None:
-                continue
-
-            final_char = chosen["char"]
-            final_conf = max(0.0, min(1.0, chosen["proto_score"]))
-            if final_conf < self._min_proto_confidence:
-                continue
-
             recognized.append(
                 {
-                    "char": final_char,
+                    "char": meta.get("char", ""),
                     "bbox": bbox,
-                    "confidence": final_conf,
-                    "font": chosen["meta"].get("font"),
+                    "confidence": max(0.0, min(1.0, confidence)),
+                    "font": meta.get("font"),
+                    "glyph_index": glyph_idx,
+                    "available_dims": meta.get("available_dims", []),
                 }
             )
 
         return recognized
+
+    def _decode_feature_map_to_text(
+        self,
+        feature_map: Optional[np.ndarray],
+        page_shape: Tuple[int, int, int],
+        page_rect,
+        scale_x: float,
+        scale_y: float,
+        max_candidates: int = 1200,
+        feature_dim_hint: Optional[int] = None,
+    ) -> Tuple[str, List[Dict[str, object]]]:
+        """
+        Decode CNN feature map into text using glyph resonance.
+        """
+        if feature_map is None or not isinstance(feature_map, np.ndarray) or feature_map.size == 0:
+            return "", []
+
+        H_feat, W_feat, C_feat = feature_map.shape
+
+        activation = np.linalg.norm(feature_map, axis=2)
+        max_activation = float(activation.max())
+        if max_activation < 1e-5:
+            return "", []
+
+        activation_flat = activation.reshape(-1)
+        sorted_indices = np.argsort(activation_flat)[::-1]
+        max_candidates = min(max_candidates, sorted_indices.size)
+        if max_candidates == 0:
+            return "", []
+
+        # Adaptive threshold: keep top activations or those above mean+std
+        top_values = activation_flat[sorted_indices[:max_candidates]]
+        adaptive_threshold = max(
+            max_activation * 0.15,
+            float(top_values.mean() * 0.5)
+        )
+
+        char_features: List[np.ndarray] = []
+        char_bboxes: List[Tuple[int, int, int, int]] = []
+
+        page_h, page_w = page_shape[0], page_shape[1]
+        cell_w = max(page_w / float(W_feat), 1.0)
+        cell_h = max(page_h / float(H_feat), 1.0)
+        bbox_w = max(int(round(cell_w * 1.6)), 4)
+        bbox_h = max(int(round(cell_h * 1.6)), 4)
+        hint_dim = feature_dim_hint if feature_dim_hint is not None and feature_dim_hint > 0 else C_feat
+        query_dim = int(min(max(1, hint_dim), C_feat, self.glyph_max_dim))
+
+        for flat_idx in sorted_indices[:max_candidates]:
+            activation_val = float(activation_flat[flat_idx])
+            if activation_val < adaptive_threshold:
+                continue
+
+            row = flat_idx // W_feat
+            col = flat_idx % W_feat
+            row_start = max(row - 1, 0)
+            row_end = min(row + 2, H_feat)
+            col_start = max(col - 1, 0)
+            col_end = min(col + 2, W_feat)
+
+            patch = feature_map[row_start:row_end, col_start:col_end, :].astype(np.float32, copy=False)
+            vec = patch.mean(axis=(0, 1))
+
+            if vec.size > query_dim:
+                vec = vec[:query_dim]
+            elif vec.size < query_dim:
+                padded = np.zeros(query_dim, dtype=np.float32)
+                padded[:vec.size] = vec
+                vec = padded
+
+            norm = np.linalg.norm(vec)
+            if norm < 1e-6:
+                continue
+            vec = vec / norm
+
+            x_px = int(round(col * cell_w))
+            y_px = int(round(row * cell_h))
+
+            char_features.append(vec)
+            char_bboxes.append((x_px, y_px, bbox_w, bbox_h))
+
+        if not char_features:
+            print("[PhaseG][GPU OCR] No high-activation patches detected in feature map")
+            return "", []
+
+        feature_matrix = np.vstack(char_features).astype(np.float32, copy=False)
+        recognized = self._match_glyphs_gpu(feature_matrix, char_bboxes, query_dim)
+        if not recognized:
+            print(f"[PhaseG][GPU OCR] Glyph matcher produced 0 recognitions (candidates={feature_matrix.shape[0]})")
+            return "", []
+
+        blocks = self._group_characters_to_blocks(
+            recognized,
+            scale_x=scale_x,
+            scale_y=scale_y,
+            page_rect=page_rect,
+        )
+
+        if not blocks:
+            print("[PhaseG][GPU OCR] Character grouping yielded no blocks")
+            return "", []
+
+        text_output = "\n".join(block["text"] for block in blocks if block.get("text"))
+        return text_output.strip(), blocks
 
     def _select_candidate_by_geometry(
         self,

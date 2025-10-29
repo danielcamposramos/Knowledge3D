@@ -21,6 +21,7 @@ Key Improvements:
 
 from __future__ import annotations
 
+import pickle
 import time
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
@@ -55,12 +56,42 @@ class PhaseGPDFIngestionBridge(PDFIngestionBridge):
         # Initialize base bridge (sets up kernels, OCR, etc.)
         super().__init__()
 
-        # Phase G: GPU OCR disabled due to CUDA memory corruption issues
-        # TODO: Fix "illegal memory access" errors in DeepSeek OCR kernels
-        # if self.deepseek_bridge is not None:
-        #     self.enable_deepseek_ocr(True)
-        #     print("[PhaseG] GPU OCR enabled for all pages")
-        print("[PhaseG] GPU OCR disabled (memory corruption issues - fallback to PyMuPDF)")
+        self.ocr_stats: Dict[str, int] = {
+            "attempts": 0,
+            "gpu_success": 0,
+            "gpu_fail": 0,
+            "fallback": 0,
+            "skipped": 0,
+        }
+        self._last_ocr_log_ts = time.time()
+        self.gpu_ocr_enabled: bool = False
+        self._foundational_status: Dict[str, Any] = {}
+
+        if self.deepseek_bridge is None:
+            print("[PhaseG] DeepSeek OCR bridge unavailable; GPU OCR disabled")
+        else:
+            foundations_ready = self._verify_foundational_embeddings()
+            glyph_status = "OK" if self._foundational_status.get("glyph_ready") else "MISSING"
+            galaxy_ready = self._foundational_status.get("galaxy_ready")
+            galaxy_count = self._foundational_status.get("galaxy_total", 0)
+            non_zero_samples = self._foundational_status.get("non_zero_samples", 0)
+            galaxy_status = "OK" if galaxy_ready else "MISSING"
+            print(
+                f"[PhaseG] OCR foundation check → glyphs: {glyph_status}, "
+                f"galaxy: {galaxy_status} (stars={galaxy_count}, "
+                f"non_zero_sample={non_zero_samples})"
+            )
+
+            if foundations_ready:
+                try:
+                    self.enable_deepseek_ocr(True)
+                    self.gpu_ocr_enabled = True
+                    print("[PhaseG] GPU OCR enabled (DeepSeek bridge active)")
+                except Exception as exc:
+                    print(f"[PhaseG] WARNING: Failed to enable GPU OCR: {exc}")
+                    self.gpu_ocr_enabled = False
+            else:
+                print("[PhaseG] GPU OCR remains disabled until foundational embeddings are ready")
 
         # Replace fixed-dimension RPN engine with adaptive engine
         print("[PhaseG] Initializing adaptive RPN engine...")
@@ -147,6 +178,51 @@ class PhaseGPDFIngestionBridge(PDFIngestionBridge):
             self.matryoshka_system = None
             self.specialists_loaded = False
 
+    def _verify_foundational_embeddings(self) -> bool:
+        """
+        Ensure glyph prototypes and Galaxy embeddings are available before GPU OCR.
+        """
+        glyph_ready = bool(
+            isinstance(self.glyph_embeddings, np.ndarray) and self.glyph_embeddings.size > 0
+        )
+
+        galaxy_path = self.embeddings_path.parent / "galaxy_stars.pkl"
+        galaxy_ready = False
+        total_stars = 0
+        non_zero_samples = 0
+
+        if galaxy_path.exists():
+            try:
+                with galaxy_path.open("rb") as handle:
+                    data = pickle.load(handle)
+
+                total_stars = int(data.get("total_stars", 0))
+                embeddings = data.get("embeddings", [])
+
+                for emb in embeddings:
+                    arr = np.asarray(emb, dtype=np.float32)
+                    if arr.size == 0:
+                        continue
+                    if not np.allclose(arr, 0.0, atol=1e-6):
+                        non_zero_samples += 1
+                        if non_zero_samples >= 8:
+                            break
+
+                galaxy_ready = total_stars > 0 and non_zero_samples > 0
+            except Exception as exc:
+                print(f"[PhaseG] WARNING: Unable to verify Galaxy stars ({exc})")
+        else:
+            print(f"[PhaseG] WARNING: Galaxy star file missing at {galaxy_path}")
+
+        self._foundational_status = {
+            "glyph_ready": glyph_ready,
+            "galaxy_ready": galaxy_ready,
+            "galaxy_total": total_stars,
+            "non_zero_samples": non_zero_samples,
+        }
+
+        return glyph_ready and galaxy_ready
+
     def _generate_text_embeddings(self, parsed_objects: Dict[str, object]) -> np.ndarray:
         """
         Generate text embeddings using adaptive dimensions.
@@ -191,6 +267,111 @@ class PhaseGPDFIngestionBridge(PDFIngestionBridge):
 
         return embeddings_matrix.astype(np.float32)
 
+    @staticmethod
+    def _count_objects_of_type(parsed_objects: Dict[str, object], obj_type: float) -> int:
+        """Count objects of a given type in parsed PDF objects."""
+        objects = parsed_objects.get("objects")
+        if isinstance(objects, np.ndarray) and objects.size > 0:
+            return int(np.sum(objects[:, 4] == obj_type))
+        return 0
+
+    def _estimate_text_length(self, parsed_objects: Dict[str, object]) -> int:
+        """
+        Estimate total text length using cached storage indices.
+        """
+        objects = parsed_objects.get("objects")
+        if not isinstance(objects, np.ndarray) or objects.size == 0:
+            return 0
+
+        total_chars = 0
+        text_rows = objects[objects[:, 4] == 1.0]
+        for row in text_rows:
+            storage_idx = int(row[5])
+            if 0 <= storage_idx < len(self._temp_text_storage):
+                total_chars += len(self._temp_text_storage[storage_idx])
+            else:
+                total_chars += int(max(row[6], 0))
+        return total_chars
+
+    @staticmethod
+    def _project_embeddings_for_layout(embeddings: np.ndarray, target_dim: int = 128) -> np.ndarray:
+        """
+        Project embeddings to a fixed dimension for layout graph compatibility.
+        """
+        if embeddings.size == 0:
+            return embeddings
+
+        current_dim = embeddings.shape[1]
+        if current_dim == target_dim:
+            return embeddings
+
+        if current_dim > target_dim:
+            return embeddings[:, :target_dim].astype(np.float32, copy=False)
+
+        projected = np.zeros((embeddings.shape[0], target_dim), dtype=np.float32)
+        projected[:, :current_dim] = embeddings.astype(np.float32, copy=False)
+        return projected
+
+    def _attempt_gpu_ocr(self, pdf_path: str, page_num: int) -> Optional[Dict[str, object]]:
+        """
+        Run GPU OCR and capture success/failure statistics.
+        """
+        if not self.gpu_ocr_enabled:
+            self.ocr_stats["skipped"] += 1
+            return None
+
+        self.ocr_stats["attempts"] += 1
+
+        try:
+            result = self._ocr_fallback_deepseek(pdf_path, page_num)
+        except RuntimeError as exc:
+            self.ocr_stats["gpu_fail"] += 1
+            print(f"[PhaseG][GPU OCR] Runtime failure on {Path(pdf_path).name} p{page_num+1}: {exc}")
+            self._maybe_log_ocr_stats()
+            return None
+        except Exception as exc:
+            self.ocr_stats["gpu_fail"] += 1
+            print(f"[PhaseG][GPU OCR] Unexpected failure on {Path(pdf_path).name} p{page_num+1}: {exc}")
+            self._maybe_log_ocr_stats()
+            return None
+
+        method = result.get("method", "")
+        object_count = int(result.get("object_count", 0))
+
+        if method == "deepseek" and object_count > 0:
+            self.ocr_stats["gpu_success"] += 1
+            self._maybe_log_ocr_stats()
+            return result
+
+        self.ocr_stats["gpu_fail"] += 1
+        self._maybe_log_ocr_stats()
+        return None
+
+    def _maybe_log_ocr_stats(self, force: bool = False) -> None:
+        """Periodically log GPU OCR statistics."""
+        attempts = self.ocr_stats.get("attempts", 0)
+        if attempts == 0:
+            return
+
+        now = time.time()
+        should_log = force or attempts % 25 == 0 or (now - self._last_ocr_log_ts) > 300.0
+        if not should_log:
+            return
+
+        success = self.ocr_stats.get("gpu_success", 0)
+        fail = self.ocr_stats.get("gpu_fail", 0)
+        fallback = self.ocr_stats.get("fallback", 0)
+        skipped = self.ocr_stats.get("skipped", 0)
+        success_rate = (success / attempts * 100.0) if attempts else 0.0
+
+        print(
+            "[PhaseG][GPU OCR] stats → "
+            f"attempts={attempts}, success={success}, fail={fail}, "
+            f"fallback={fallback}, skipped={skipped}, "
+            f"success_rate={success_rate:.1f}%"
+        )
+        self._last_ocr_log_ts = now
+
     def _fuse_modalities(
         self, text_embeddings: np.ndarray, visual_embeddings: np.ndarray
     ) -> np.ndarray:
@@ -230,7 +411,14 @@ class PhaseGPDFIngestionBridge(PDFIngestionBridge):
 
             reservoirs = padded_reservoirs
 
-        combined = np.vstack(reservoirs)
+        try:
+            combined = np.vstack(reservoirs)
+        except ValueError as exc:
+            print(f"[PhaseG] WARNING: Modal fusion mismatch ({exc}); using primary reservoir only.")
+            primary = reservoirs[0]
+            if primary.ndim == 1:
+                primary = primary.reshape(1, -1)
+            return primary[:1]
 
         # For variable dimensions, use simple averaging instead of complex fusion
         # fusion_engine.transform expects fixed shapes
@@ -360,25 +548,53 @@ class PhaseGPDFIngestionBridge(PDFIngestionBridge):
         parsed_objects = self._parse_pdf_structure(pdf_bytes, pdf_buffer_gpu, len(pdf_bytes), page_num)
         parsed_objects.setdefault("method", "structured")
 
-        # Phase G: ALWAYS use GPU OCR for enhanced extraction (leverage sovereign OCR)
-        # This ensures GPU OCR + OCR specialist are used on ALL pages, not just scanned
-        use_gpu_ocr = True  # Phase G mode: sovereign OCR on all pages
+        text_objects = self._count_objects_of_type(parsed_objects, 1.0)
+        image_objects = self._count_objects_of_type(parsed_objects, 2.0)
+        estimated_text_len = self._estimate_text_length(parsed_objects)
+        is_scanned = bool(parsed_objects.get("is_scanned"))
 
-        if use_gpu_ocr or parsed_objects.get("is_scanned") or int(parsed_objects.get("object_count", 0)) == 0:
-            parsed_objects = self._ocr_fallback(str(pdf_path), page_num)
-            # Mark as OCR-enhanced for specialist selection
-            parsed_objects["ocr_enhanced"] = True
+        should_use_gpu = (
+            self.gpu_ocr_enabled
+            and (
+                text_objects == 0
+                or (estimated_text_len < 48 and (image_objects > 0 or is_scanned))
+            )
+        )
+
+        if should_use_gpu:
+            gpu_result = self._attempt_gpu_ocr(str(pdf_path), page_num)
+            if gpu_result:
+                parsed_objects = gpu_result
+                parsed_objects["ocr_enhanced"] = True
+            else:
+                parsed_objects["ocr_enhanced"] = False
+                self.ocr_stats["fallback"] += 1
+                print(
+                    f"[PhaseG][GPU OCR] Fallback to PyMuPDF ({pdf_path.name}, page {page_num + 1})"
+                )
+                self._maybe_log_ocr_stats()
+        else:
+            parsed_objects["ocr_enhanced"] = False
+            if not self.gpu_ocr_enabled:
+                self.ocr_stats["skipped"] += 1
+            else:
+                self._maybe_log_ocr_stats()
 
         # Generate embeddings (with adaptive dimensions!)
         text_embeddings = self._generate_text_embeddings(parsed_objects)
         visual_embeddings = self._generate_visual_embeddings(parsed_objects)
 
         # Build layout graph
-        layout_graph = self._build_layout_graph(parsed_objects, text_embeddings, visual_embeddings)
+        layout_graph = self._build_layout_graph(
+            parsed_objects,
+            self._project_embeddings_for_layout(text_embeddings),
+            self._project_embeddings_for_layout(visual_embeddings),
+        )
         optimized_graph = self._optimize_layout_graph(layout_graph)
 
         # Fuse modalities
         fused_embeddings = self._fuse_modalities(text_embeddings, visual_embeddings)
+        fused_embeddings_layout = self._project_embeddings_for_layout(fused_embeddings)
 
         # Select and apply specialist
         specialist_name = self._select_specialist_for_page(parsed_objects)
@@ -391,7 +607,7 @@ class PhaseGPDFIngestionBridge(PDFIngestionBridge):
             fused_embeddings = fused_embeddings_processed.reshape(1, -1)
 
         # Crystallize to galaxy position
-        galaxy_position = self._crystallize_to_galaxy(optimized_graph, fused_embeddings)
+        galaxy_position = self._crystallize_to_galaxy(optimized_graph, fused_embeddings_layout)
 
         # Create Galaxy star for knowledge storage
         star_metadata = {
@@ -481,7 +697,10 @@ class PhaseGPDFIngestionBridge(PDFIngestionBridge):
         stats = {
             'specialists_loaded': self.specialists_loaded,
             'galaxy_stars': len(self.galaxy_stars),
-            'adaptive_rpn_stats': self.adaptive_rpn.get_stats()
+            'adaptive_rpn_stats': self.adaptive_rpn.get_stats(),
+            'gpu_ocr_enabled': self.gpu_ocr_enabled,
+            'ocr_stats': dict(self.ocr_stats),
+            'ocr_foundations': dict(self._foundational_status),
         }
 
         if self.matryoshka_system:
@@ -501,6 +720,19 @@ class PhaseGPDFIngestionBridge(PDFIngestionBridge):
 
         # Adaptive RPN stats
         self.adaptive_rpn.print_stats()
+
+        # GPU OCR stats
+        ocr_stats = stats['ocr_stats']
+        attempts = ocr_stats.get('attempts', 0)
+        success = ocr_stats.get('gpu_success', 0)
+        fail = ocr_stats.get('gpu_fail', 0)
+        fallback = ocr_stats.get('fallback', 0)
+        skipped = ocr_stats.get('skipped', 0)
+        success_rate = (success / attempts * 100.0) if attempts else 0.0
+        print("\nGPU OCR:")
+        print(f"  Enabled: {stats['gpu_ocr_enabled']}")
+        print(f"  Attempts: {attempts}, Success: {success}, Fail: {fail}, Fallback: {fallback}, Skipped: {skipped}")
+        print(f"  Success rate: {success_rate:.1f}%")
 
         # Matryoshka stats
         if 'matryoshka_stats' in stats:

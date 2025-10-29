@@ -134,11 +134,14 @@ class DeepSeekOCRBridge:
             # Convert to float32 [0, 1] range for GPU model
             resized_float = resized.astype(np.float32) / 255.0
             gpu_results = self.gpu_ocr_model.forward(resized_float)
+            feature_map = gpu_results.get("feature_map")
 
             # TODO: Implement character detection from feature map
             # For now, fallback to PDF text extraction if available
             if pdf_path and pdf_path.exists():
                 text = self._extract_text_from_pdf(pdf_path, page_num)
+                if not text:
+                    text = self._extract_text_simple(resized)
             else:
                 text = self._extract_text_simple(resized)
 
@@ -158,6 +161,19 @@ class DeepSeekOCRBridge:
         output_tokens = compressed.shape[0] * compressed.shape[1]
         compression_ratio = float(input_tokens) / max(1, output_tokens)
 
+        feature_map_dim = feature_map.shape[2] if isinstance(feature_map, np.ndarray) and feature_map.ndim == 3 else 0
+        complexity_score = self._estimate_image_complexity(resized)
+        if feature_map_dim <= 0:
+            feature_dim = 0
+        elif complexity_score >= 0.75:
+            feature_dim = min(feature_map_dim, 256)
+        elif complexity_score >= 0.55:
+            feature_dim = min(feature_map_dim, 192)
+        elif complexity_score >= 0.35:
+            feature_dim = min(feature_map_dim, 128)
+        else:
+            feature_dim = min(feature_map_dim, 64)
+
         # Estimate fidelity (DeepSeek: 97% at <10× compression)
         if compression_ratio <= 10.0:
             fidelity = 0.97
@@ -173,7 +189,10 @@ class DeepSeekOCRBridge:
             'compression_ratio': compression_ratio,
             'fidelity': fidelity,
             'mode': self.mode,
-            'texture_size': self.texture_size
+            'texture_size': self.texture_size,
+            'feature_map': feature_map,
+            'feature_dim': feature_dim,
+            'feature_complexity': complexity_score,
         }
 
     def encode_ai_texture(self, compressed_features: np.ndarray, text: str) -> np.ndarray:
@@ -313,6 +332,28 @@ class DeepSeekOCRBridge:
         except Exception:
             # No OCR available
             return ""
+
+    @staticmethod
+    def _estimate_image_complexity(image: np.ndarray) -> float:
+        """
+        Estimate visual complexity of the page to choose embedding dimension.
+        """
+        if image.ndim == 3:
+            gray = image.mean(axis=2)
+        else:
+            gray = image.astype(np.float32)
+
+        gray = gray.astype(np.float32)
+        if gray.max() > 0.0:
+            gray = gray / gray.max()
+
+        gx = np.mean(np.abs(np.diff(gray, axis=1))) if gray.shape[1] > 1 else 0.0
+        gy = np.mean(np.abs(np.diff(gray, axis=0))) if gray.shape[0] > 1 else 0.0
+
+        score = (gx + gy) * 1.5
+        if np.isnan(score):
+            score = 0.0
+        return float(max(0.0, min(1.0, score)))
 
     def get_compression_stats(self) -> Dict[str, Any]:
         """
