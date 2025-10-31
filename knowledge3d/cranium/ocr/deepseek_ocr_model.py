@@ -67,6 +67,7 @@ class DeepSeekOCRModel:
 
         # GPU buffer cache
         self._buffers: Dict[str, loader.CUdeviceptr] = {}
+        self._buffer_sizes: Dict[str, int] = {}
 
     def _load_kernels(self):
         """Compile and load all required kernels."""
@@ -162,11 +163,14 @@ class DeepSeekOCRModel:
     def _allocate_buffer(self, name: str, size_bytes: int) -> loader.CUdeviceptr:
         """Allocate or reuse GPU buffer."""
         if name in self._buffers:
-            # TODO: Check if size matches, reallocate if needed
-            return self._buffers[name]
+            current_size = self._buffer_sizes.get(name, 0)
+            if current_size >= size_bytes:
+                return self._buffers[name]
+            loader.gpu_free(self._buffers[name])
 
         ptr = loader.gpu_malloc(size_bytes)
         self._buffers[name] = ptr
+        self._buffer_sizes[name] = size_bytes
         return ptr
 
     def _conv2d_forward(
@@ -402,8 +406,113 @@ class DeepSeekOCRModel:
 
     def __del__(self):
         """Clean up GPU resources."""
+        if not hasattr(self, "_buffers"):
+            return
         for ptr in self._buffers.values():
             loader.gpu_free(ptr)
+        self._buffers.clear()
+        if hasattr(self, "_buffer_sizes"):
+            self._buffer_sizes.clear()
+
+    # ------------------------------------------------------------------ #
+    # Weight loading helpers
+    # ------------------------------------------------------------------ #
+    def load_state_dict(self, state: Dict[str, np.ndarray], *, strict: bool = True) -> bool:
+        """
+        Load model parameters from dictionary.
+
+        Args:
+            state: Mapping of parameter name → numpy array.
+            strict: If True, require all parameters.
+
+        Returns:
+            True if loaded successfully, False otherwise.
+        """
+        if not isinstance(state, dict):
+            raise TypeError("State dict must be a dictionary")
+
+        expected = {
+            "conv1_weight": self.conv1_weight.shape,
+            "conv1_bias": self.conv1_bias.shape,
+            "bn1_gamma": self.bn1_gamma.shape,
+            "bn1_beta": self.bn1_beta.shape,
+            "conv2_weight": self.conv2_weight.shape,
+            "conv2_bias": self.conv2_bias.shape,
+            "bn2_gamma": self.bn2_gamma.shape,
+            "bn2_beta": self.bn2_beta.shape,
+            "conv3_weight": self.conv3_weight.shape,
+            "conv3_bias": self.conv3_bias.shape,
+            "bn3_gamma": self.bn3_gamma.shape,
+            "bn3_beta": self.bn3_beta.shape,
+        }
+
+        loaded_any = False
+
+        for name, shape in expected.items():
+            if name not in state:
+                if strict:
+                    raise KeyError(f"Missing parameter '{name}' in state dict")
+                continue
+
+            value = np.asarray(state[name], dtype=np.float32)
+            if value.shape != shape:
+                raise ValueError(f"Parameter '{name}' has shape {value.shape}, expected {shape}")
+
+            setattr(self, name, value.copy())
+            loaded_any = True
+
+        if not loaded_any:
+            if strict:
+                raise ValueError("No matching parameters found in provided state dict.")
+            return False
+
+        return True
+
+    def load_weights_from_file(self, path: Path, *, strict: bool = True) -> bool:
+        """
+        Load parameters from serialized file (.npz/.npy/.pkl).
+
+        Args:
+            path: Path to weights file.
+            strict: Enforce presence of every expected parameter.
+
+        Returns:
+            True if weights loaded, False otherwise.
+        """
+        if not path.exists():
+            raise FileNotFoundError(str(path))
+
+        suffix = path.suffix.lower()
+        state: Dict[str, np.ndarray]
+
+        if suffix == ".npz":
+            data = np.load(path, allow_pickle=True)
+            if "state_dict" in data.files:
+                state_obj = data["state_dict"].item()
+            else:
+                state_obj = {k: data[k] for k in data.files}
+            if not isinstance(state_obj, dict):
+                raise ValueError(f"Unexpected data structure in {path}")
+            state = state_obj
+        elif suffix in {".npy", ".npz"}:
+            arr = np.load(path, allow_pickle=True)
+            if isinstance(arr, np.ndarray) and arr.dtype == object:
+                state = arr.item()
+            elif isinstance(arr, dict):
+                state = arr
+            else:
+                raise ValueError(f"Unsupported .npy structure for weights ({type(arr)})")
+        elif suffix in {".pkl", ".pickle"}:
+            import pickle
+
+            with path.open("rb") as handle:
+                state = pickle.load(handle)
+            if not isinstance(state, dict):
+                raise ValueError(f"Unsupported pickle contents in {path}")
+        else:
+            raise ValueError(f"Unsupported weight file extension: {suffix}")
+
+        return self.load_state_dict(state, strict=strict)
 
 
 __all__ = ["DeepSeekOCRModel"]

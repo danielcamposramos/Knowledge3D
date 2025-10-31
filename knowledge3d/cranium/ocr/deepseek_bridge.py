@@ -50,7 +50,14 @@ class DeepSeekOCRBridge:
     Target: 7-20× compression, 97% fidelity at <10× compression
     """
 
-    def __init__(self, mode: str = 'small', use_gpu_ocr: bool = True):
+    def __init__(
+        self,
+        mode: str = 'small',
+        use_gpu_ocr: bool = True,
+        *,
+        load_trained_weights: bool = True,
+        checkpoint_dir: Optional[Path] = None,
+    ):
         """
         Initialize DeepSeek OCR bridge.
 
@@ -76,6 +83,13 @@ class DeepSeekOCRBridge:
         self.gpu_ocr_model = None
         self.use_gpu_ocr = use_gpu_ocr and GPU_OCR_AVAILABLE
 
+        self.weights_loaded: bool = False
+        self.checkpoint_dir = (
+            Path(checkpoint_dir)
+            if checkpoint_dir is not None
+            else Path("/K3D/Knowledge3D.local/checkpoints/phase_g/ocr_gpu_epoch_100")
+        )
+
         if self.use_gpu_ocr:
             try:
                 print("[PHASE_F.1] Initializing GPU-accelerated OCR model...")
@@ -84,7 +98,12 @@ class DeepSeekOCRBridge:
                     input_channels=3,
                     use_micro_trm=False  # Disable for stability
                 )
-                print(f"[PHASE_F.1] ✓ GPU OCR model ready (mode={mode})")
+                if load_trained_weights:
+                    self.weights_loaded = self._load_ocr_specialist_weights(self.checkpoint_dir)
+                print(
+                    f"[PHASE_F.1] ✓ GPU OCR model ready (mode={mode}, "
+                    f"weights={'trained' if self.weights_loaded else 'random'})"
+                )
             except Exception as exc:
                 print(f"[PHASE_F.1] WARNING: Could not initialize GPU OCR model - {exc}")
                 self.use_gpu_ocr = False
@@ -194,6 +213,57 @@ class DeepSeekOCRBridge:
             'feature_dim': feature_dim,
             'feature_complexity': complexity_score,
         }
+
+    # ------------------------------------------------------------------ #
+    # Weights management
+    # ------------------------------------------------------------------ #
+    def _load_ocr_specialist_weights(self, checkpoint_dir: Path) -> bool:
+        """
+        Attempt to load trained weights for the DeepSeek OCR CNN.
+
+        Args:
+            checkpoint_dir: Directory containing specialist checkpoint artefacts.
+
+        Returns:
+            True if weights loaded, False otherwise.
+        """
+        if self.gpu_ocr_model is None:
+            return False
+
+        candidate_files = [
+            "ocr_cnn_weights.npz",
+            "ocr_cnn_weights.npy",
+            "ocr_cnn_weights.pkl",
+            "cnn_weights.npz",
+            "cnn_weights.npy",
+            "cnn_weights.pkl",
+            "model_weights.npz",
+            "model_weights.npy",
+            "model_weights.pkl",
+            "specialist_cnn_weights.npz",
+            "specialist_cnn_weights.pkl",
+        ]
+
+        for filename in candidate_files:
+            weights_path = checkpoint_dir / filename
+            if not weights_path.exists():
+                continue
+            try:
+                self.gpu_ocr_model.load_weights_from_file(weights_path, strict=False)
+                print(f"[PHASE_F.1] ✓ Loaded OCR CNN weights from {weights_path}")
+                return True
+            except Exception as exc:
+                print(f"[PHASE_F.1] WARNING: Failed loading OCR CNN weights ({exc})")
+
+        print(
+            f"[PHASE_F.1] WARNING: No OCR CNN weight file found in {checkpoint_dir} "
+            "- continuing with randomly initialised weights"
+        )
+        return False
+
+    def get_feature_extractor(self) -> Optional[DeepSeekOCRModel]:
+        """Expose underlying CNN for reuse (e.g., template extraction)."""
+        return self.gpu_ocr_model
 
     def encode_ai_texture(self, compressed_features: np.ndarray, text: str) -> np.ndarray:
         """

@@ -9,10 +9,13 @@ without touching higher layers.
 
 from __future__ import annotations
 
+import contextlib
 import ctypes
 import hashlib
+import io
 import subprocess
 import time
+from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -84,19 +87,46 @@ class PDFIngestionBridge:
         self._ocr_warned_missing_cv = False
 
         self._min_proto_confidence: float = 0.4
+        self.character_detector = None
+        self._character_templates: Optional[np.ndarray] = None
+        self._pending_template_bank: Optional[Dict[str, np.ndarray]] = None
+        self._template_feature_cache: Dict[Tuple[str, str], np.ndarray] = {}
+        self._template_feature_model = None
+        self._template_weights_loaded = False
+        self._template_ocr_model = None
+        self._template_model_failed = False
 
         self._compile_pdf_kernels()
         self._load_kernels()
-        self._load_glyph_embeddings()
+        self._init_character_detector()
 
         # Phase E: Initialize DeepSeek OCR bridge (optional)
         self.deepseek_bridge = None
         if DEEPSEEK_OCR_AVAILABLE:
             try:
-                self.deepseek_bridge = DeepSeekOCRBridge(mode='small')
+                self.deepseek_bridge = DeepSeekOCRBridge(
+                    mode='small',
+                    use_gpu_ocr=True,
+                    load_trained_weights=True,
+                )
+                self._template_feature_model = self.deepseek_bridge.get_feature_extractor()
+                self._template_weights_loaded = getattr(self.deepseek_bridge, "weights_loaded", False)
                 print("[PHASE_E] DeepSeek OCR bridge initialized (mode: small)")
             except Exception as exc:
                 print(f"[PHASE_E] WARNING: Could not initialize DeepSeek OCR - {exc}")
+                self.deepseek_bridge = None
+                self._template_feature_model = None
+                self._template_weights_loaded = False
+        else:
+            self._template_feature_model = None
+            self._template_weights_loaded = False
+
+        self._load_glyph_embeddings()
+
+        # Normalize template feature model cache once glyphs loaded
+        if self._template_feature_model is None and self.deepseek_bridge is not None:
+            self._template_feature_model = self.deepseek_bridge.get_feature_extractor()
+            self._template_weights_loaded = getattr(self.deepseek_bridge, "weights_loaded", False)
 
         # Initialize sleep scheduler (last step)
         try:
@@ -197,6 +227,35 @@ class PDFIngestionBridge:
         if self._enable_deepseek_ocr:
             print("[PHASE_E] DeepSeek OCR enabled")
 
+    def _init_character_detector(self) -> None:
+        """Initialize Phase F.2 CharacterDetector when available."""
+        try:
+            from knowledge3d.cranium.ocr.character_detector import CharacterDetector
+
+            self.character_detector = CharacterDetector()
+            base_templates = self.character_detector.template_bank.get_templates()
+            self._character_templates = (
+                np.asarray(base_templates, dtype=np.float32).copy()
+                if base_templates is not None
+                else np.zeros((256, 128), dtype=np.float32)
+            )
+            if self._pending_template_bank:
+                try:
+                    self.character_detector.set_template_bank(self._pending_template_bank)
+                    print(
+                        "[PhaseF.2] Applied pending glyph template bank "
+                        f"({len(self._pending_template_bank)} characters)"
+                    )
+                except Exception as exc:
+                    print(f"[PhaseF.2] WARNING: Failed to apply pending template bank ({exc})")
+                else:
+                    self._pending_template_bank = None
+            print("[PhaseF.2] CharacterDetector initialized")
+        except Exception as exc:  # pragma: no cover - optional dependency
+            print(f"[PhaseF.2] WARNING: CharacterDetector unavailable ({exc})")
+            self.character_detector = None
+            self._character_templates = None
+
     def _load_kernel(self, filename: str, func_name: str):
         ptx_path = self.kernel_dir / filename
         if not ptx_path.exists():
@@ -229,6 +288,80 @@ class PDFIngestionBridge:
             return
 
         glyph_variants: List[Dict[str, object]] = []
+        ascii_chars = [chr(i) for i in range(32, 127)]
+        template_accumulator: Dict[int, List[Dict[str, object]]] = defaultdict(list)
+
+        def add_variant(
+            char_symbol: str,
+            base_embedding: np.ndarray,
+            font_name: str,
+            font_path: Optional[str],
+            confidence: float,
+            is_symbol: bool,
+            is_symbol_font: bool,
+        ) -> None:
+            if base_embedding.size == 0:
+                return
+
+            template_vec = None
+            if self._character_templates is not None and char_symbol:
+                code_point = ord(char_symbol)
+                if 0 <= code_point < self._character_templates.shape[0]:
+                    template_vec = self._character_templates[code_point]
+
+            rpn_embedding = None
+            if hasattr(self, "rpn_engine") and self.rpn_engine is not None:
+                try:
+                    rpn_result = self.rpn_engine.embed_sentence(char_symbol)
+                    if isinstance(rpn_result, tuple):
+                        rpn_embedding = np.asarray(rpn_result[0], dtype=np.float32).flatten()
+                    else:
+                        rpn_embedding = np.asarray(rpn_result, dtype=np.float32).flatten()
+                except Exception:
+                    rpn_embedding = None
+
+            matryoshka_emb, effective_dim, available_dims = self._generate_matryoshka_glyph(
+                base_embedding,
+                char_symbol,
+                template_vec=template_vec,
+                rpn_embedding=rpn_embedding,
+            )
+
+            code_point = ord(char_symbol) if char_symbol else -1
+            if 0 <= code_point < 256:
+                base_128 = base_embedding[:128]
+                if base_128.size < 128:
+                    base_128 = np.resize(base_128, 128).astype(np.float32)
+                else:
+                    base_128 = base_128[:128].astype(np.float32)
+                norm_base = np.linalg.norm(base_128)
+                if norm_base > 1e-8:
+                    base_128 = base_128 / norm_base
+                template_accumulator[code_point].append(
+                    {
+                        "vector": base_128.copy(),
+                        "font": font_name,
+                        "font_path": font_path,
+                        "confidence": float(confidence),
+                        "is_symbol": bool(is_symbol),
+                        "is_symbol_font": bool(is_symbol_font),
+                    }
+                )
+
+            glyph_variants.append(
+                {
+                    "char": char_symbol,
+                    "font": font_name,
+                    "embedding": matryoshka_emb,
+                    "effective_dim": effective_dim,
+                    "available_dims": available_dims,
+                    "native_dim": int(min(base_embedding.size, self.glyph_max_dim)),
+                    "confidence": float(confidence),
+                    "is_symbol": bool(is_symbol),
+                    "is_symbol_font": is_symbol_font,
+                    "font_path": font_path,
+                }
+            )
 
         for font_name, font_payload in font_db.items():
             glyphs = font_payload.get("glyphs", {}) if isinstance(font_payload, dict) else {}
@@ -246,25 +379,41 @@ class PDFIngestionBridge:
                 if base_embedding.size == 0:
                     continue
 
-                matryoshka_emb, effective_dim, available_dims = self._generate_matryoshka_glyph(
+                norm = np.linalg.norm(base_embedding)
+                if norm > 1e-8:
+                    base_embedding = base_embedding / norm
+
+                add_variant(
+                    char,
                     base_embedding,
-                    char
+                    font_name,
+                    font_path,
+                    confidence=float(glyph_data.get("confidence", 1.0)),
+                    is_symbol=bool(glyph_data.get("is_symbol", False)),
+                    is_symbol_font=is_symbol_font,
                 )
 
-                glyph_variants.append(
-                    {
-                        "char": char,
-                        "font": font_name,
-                        "embedding": matryoshka_emb,
-                        "effective_dim": effective_dim,
-                        "available_dims": available_dims,
-                        "native_dim": int(min(base_embedding.size, self.glyph_max_dim)),
-                        "confidence": float(glyph_data.get("confidence", 1.0)),
-                        "is_symbol": bool(glyph_data.get("is_symbol", False)),
-                        "is_symbol_font": is_symbol_font,
-                        "font_path": font_path,
-                    }
+            available_chars = set(glyphs.keys())
+            for missing_char in ascii_chars:
+                if missing_char in available_chars:
+                    continue
+                glyph_image = self._render_glyph(missing_char, font_path)
+                if glyph_image is None:
+                    continue
+                synthetic_embedding = self._glyph_image_to_embedding(glyph_image)
+                if synthetic_embedding.size == 0:
+                    continue
+                add_variant(
+                    missing_char,
+                    synthetic_embedding,
+                    font_name,
+                    font_path,
+                    confidence=0.35,
+                    is_symbol=False,
+                    is_symbol_font=is_symbol_font,
                 )
+
+        self._bootstrap_character_templates(template_accumulator)
 
         if not glyph_variants:
             print("[WARN] No glyph embeddings found in database. OCR disabled.")
@@ -294,6 +443,8 @@ class PDFIngestionBridge:
         self,
         base_embedding: np.ndarray,
         char: str,
+        template_vec: Optional[np.ndarray] = None,
+        rpn_embedding: Optional[np.ndarray] = None,
     ) -> Tuple[np.ndarray, int, List[int]]:
         """
         Generate Matryoshka multi-scale embedding for a single glyph variant.
@@ -311,10 +462,37 @@ class PDFIngestionBridge:
         if norm > 1e-8:
             matryoshka[:base_dim] /= norm
 
+        template_norm: Optional[np.ndarray] = None
+        if template_vec is not None:
+            template = np.asarray(template_vec, dtype=np.float32).flatten()
+            if template.size > 0:
+                templ_dim = min(template.size, target_dim)
+                template_norm = np.zeros(templ_dim, dtype=np.float32)
+                template_norm[:templ_dim] = template[:templ_dim]
+                t_norm = np.linalg.norm(template_norm)
+                if t_norm > 1e-8:
+                    template_norm /= t_norm
+                mix_dim = min(base_dim, templ_dim)
+                if mix_dim > 0:
+                    matryoshka[:mix_dim] = (
+                        0.65 * matryoshka[:mix_dim] + 0.35 * template_norm[:mix_dim]
+                    )
+
+        rpn_norm: Optional[np.ndarray] = None
+        if rpn_embedding is not None:
+            rpn = np.asarray(rpn_embedding, dtype=np.float32).flatten()
+            if rpn.size > 0:
+                rpn_dim = min(rpn.size, target_dim)
+                rpn_norm = np.zeros(rpn_dim, dtype=np.float32)
+                rpn_norm[:rpn_dim] = rpn[:rpn_dim]
+                r_norm = np.linalg.norm(rpn_norm)
+                if r_norm > 1e-8:
+                    rpn_norm /= r_norm
+
         complexity = self._estimate_glyph_complexity(char)
         if base_dim >= target_dim:
             effective_dim = target_dim
-        elif complexity >= 0.8:
+        elif complexity >= 0.85:
             effective_dim = target_dim
         elif complexity >= 0.6:
             effective_dim = 1024
@@ -326,18 +504,39 @@ class PDFIngestionBridge:
         effective_dim = max(base_dim, effective_dim)
         effective_dim = min(effective_dim, target_dim)
 
-        import hashlib
-
-        seed_bytes = hashlib.sha256(base.tobytes() + char.encode("utf-8")).digest()
-        seed = int.from_bytes(seed_bytes[:4], "little", signed=False)
-        rng = np.random.RandomState(seed)
+        sources: List[np.ndarray] = []
+        if template_norm is not None and template_norm.size > 0:
+            sources.append(template_norm)
+        if rpn_norm is not None and rpn_norm.size > 0:
+            sources.append(rpn_norm)
+        if base_dim > 0:
+            sources.append(matryoshka[:base_dim].copy())
 
         step = 64
         cursor = base_dim
+        source_idx = 0
         while cursor < effective_dim:
             chunk = min(step, effective_dim - cursor)
-            scale = 0.12 / np.sqrt((cursor + chunk) / max(base_dim, 1))
-            matryoshka[cursor:cursor + chunk] = rng.randn(chunk).astype(np.float32) * scale
+
+            if sources:
+                source = sources[source_idx % len(sources)]
+                source_idx += 1
+                if source.size == 0:
+                    base_chunk = np.zeros(chunk, dtype=np.float32)
+                elif source.size >= chunk:
+                    base_chunk = source[:chunk]
+                else:
+                    base_chunk = np.resize(source, chunk).astype(np.float32, copy=False)
+            else:
+                base_chunk = np.zeros(chunk, dtype=np.float32)
+
+            base_chunk = np.asarray(base_chunk, dtype=np.float32)
+            if base_chunk.size < chunk:
+                padded = np.zeros(chunk, dtype=np.float32)
+                padded[:base_chunk.size] = base_chunk
+                base_chunk = padded
+
+            matryoshka[cursor:cursor + chunk] = base_chunk
             cursor += chunk
 
         refined_norm = np.linalg.norm(matryoshka[:effective_dim])
@@ -379,6 +578,364 @@ class PDFIngestionBridge:
         if char.isalpha():
             return 0.5
         return 0.65
+
+    @staticmethod
+    def _render_glyph(char: str, font_path: Optional[str], size: int = 48) -> Optional[np.ndarray]:
+        """Render a glyph from a font file into a centered grayscale array."""
+        try:
+            from PIL import Image, ImageDraw, ImageFont  # type: ignore
+        except ImportError:  # pragma: no cover - optional dependency
+            return None
+
+        if not char or font_path is None or not Path(font_path).exists():
+            return None
+
+        try:
+            font = ImageFont.truetype(font_path, size)
+            canvas = Image.new("L", (size * 2, size * 2), color=255)
+            draw = ImageDraw.Draw(canvas)
+            text_bbox = draw.textbbox((0, 0), char, font=font)
+            width = text_bbox[2] - text_bbox[0]
+            height = text_bbox[3] - text_bbox[1]
+            offset_x = max((canvas.width - width) // 2, 0)
+            offset_y = max((canvas.height - height) // 2, 0)
+            draw.text((offset_x, offset_y), char, fill=0, font=font)
+            array = np.array(canvas, dtype=np.float32)
+            if array.max() > 0.0:
+                array = array / 255.0
+            array = 1.0 - array
+            return array
+        except Exception:
+            return None
+
+    def _bootstrap_character_templates(self, accumulator: Dict[int, List[np.ndarray]]) -> None:
+        """
+        Update CharacterDetector template bank with glyph-derived embeddings.
+
+        Creates both:
+            - Mean template matrix (used for Matryoshka blending)
+            - Diverse per-character template sets for CharacterDetector
+        """
+        if not accumulator:
+            return
+
+        if self._character_templates is None:
+            self._character_templates = np.zeros((256, 128), dtype=np.float32)
+
+        templates = self._character_templates.copy()
+        feature_dim = templates.shape[1]
+        updated = 0
+        glyph_template_bank: Dict[str, np.ndarray] = {}
+
+        for code_point, entries in accumulator.items():
+            if not entries or code_point < 0 or code_point >= templates.shape[0]:
+                continue
+
+            try:
+                stacked = np.stack(
+                    [np.asarray(entry.get("vector"), dtype=np.float32) for entry in entries],
+                    axis=0,
+                )
+            except Exception:
+                continue
+
+            if stacked.ndim != 2 or stacked.shape[1] == 0:
+                continue
+
+            norms = np.linalg.norm(stacked, axis=1, keepdims=True)
+            stacked = stacked / np.maximum(norms, 1e-8)
+
+            mean_vec = stacked.mean(axis=0)
+            if mean_vec.size < feature_dim:
+                padded = np.zeros(feature_dim, dtype=np.float32)
+                padded[:mean_vec.size] = mean_vec
+                mean_vec = padded
+            else:
+                mean_vec = mean_vec[:feature_dim]
+
+            mean_norm = np.linalg.norm(mean_vec)
+            if mean_norm > 1e-8:
+                mean_vec = mean_vec / mean_norm
+
+            templates[code_point] = mean_vec.astype(np.float32)
+            updated += 1
+
+            try:
+                char_symbol = chr(code_point)
+            except ValueError:
+                continue
+
+            selected_indices = self._select_diverse_templates(stacked, target_count=12)
+            candidate_templates: List[np.ndarray] = []
+            for idx in selected_indices:
+                if idx < 0 or idx >= len(entries):
+                    continue
+                entry = entries[idx]
+                template_vec = self._build_character_template_vector(
+                    char_symbol,
+                    entry,
+                    target_dim=feature_dim,
+                )
+                if template_vec is None:
+                    template_vec = self._fit_template_dimension(stacked[idx], feature_dim)
+                candidate_templates.append(template_vec)
+
+            if not candidate_templates:
+                candidate_templates.append(self._fit_template_dimension(stacked[0], feature_dim))
+
+            if candidate_templates:
+                glyph_template_bank[char_symbol] = np.stack(candidate_templates).astype(np.float32)
+
+        if updated == 0:
+            return
+
+        self._character_templates = templates
+
+        if self.character_detector is not None:
+            try:
+                # Update Galactic template matrix (baseline)
+                self.character_detector.template_bank.set_external_templates(templates.copy())
+            except Exception as exc:
+                print(f"[PhaseF.2] WARNING: Failed to update Galactic templates ({exc})")
+
+            try:
+                self.character_detector.set_template_bank(glyph_template_bank)
+            except Exception as exc:
+                print(f"[PhaseF.2] WARNING: Failed to load glyph template bank ({exc})")
+            else:
+                print(
+                    f"[PhaseF.2] Updated CharacterDetector templates "
+                    f"({updated} characters, {sum(len(v) for v in glyph_template_bank.values())} variants)"
+                )
+        else:
+            self._pending_template_bank = glyph_template_bank
+            print(f"[PhaseF.2] Prepared CharacterDetector templates ({updated} characters)")
+
+    @staticmethod
+    def _select_diverse_templates(vectors: np.ndarray, target_count: int) -> List[int]:
+        """Select a diverse subset of template indices using greedy farthest-point sampling."""
+        if vectors.ndim != 2:
+            total = vectors.shape[0] if vectors.ndim == 1 else len(vectors)
+            return list(range(min(target_count, total)))
+
+        total = vectors.shape[0]
+        if total <= target_count:
+            return list(range(total))
+
+        normalized = vectors.copy()
+        norms = np.linalg.norm(normalized, axis=1, keepdims=True)
+        normalized = normalized / np.maximum(norms, 1e-8)
+
+        centroid = normalized.mean(axis=0)
+        centroid_norm = np.linalg.norm(centroid)
+        if centroid_norm > 1e-8:
+            centroid = centroid / centroid_norm
+
+        similarities = normalized @ centroid
+        seed_idx = int(np.argmax(similarities))
+
+        selected = [seed_idx]
+        remaining = set(range(total))
+        remaining.discard(seed_idx)
+
+        while len(selected) < target_count and remaining:
+            best_candidate = None
+            best_similarity = 1.0
+            for idx in list(remaining):
+                max_sim = max(float(np.dot(normalized[idx], normalized[s_idx])) for s_idx in selected)
+                if max_sim < best_similarity - 1e-6:
+                    best_similarity = max_sim
+                    best_candidate = idx
+
+            if best_candidate is None:
+                best_candidate = remaining.pop()
+            else:
+                remaining.discard(best_candidate)
+
+            selected.append(best_candidate)
+
+        return selected
+
+    def _build_character_template_vector(
+        self,
+        char_symbol: str,
+        entry: Dict[str, object],
+        target_dim: int,
+    ) -> Optional[np.ndarray]:
+        """Render glyph variant and extract DeepSeek feature for template bank."""
+        font_path = entry.get("font_path")
+        cache_key = (str(font_path) if font_path else "", char_symbol)
+
+        if cache_key in self._template_feature_cache:
+            cached = self._template_feature_cache[cache_key]
+            return self._fit_template_dimension(cached, target_dim)
+
+        glyph_image = self._render_glyph(char_symbol, font_path, size=64)
+        if glyph_image is None:
+            return None
+
+        feature_vec = self._extract_template_feature(glyph_image)
+        if feature_vec is None:
+            return None
+
+        self._template_feature_cache[cache_key] = feature_vec
+        return self._fit_template_dimension(feature_vec, target_dim)
+
+    def _extract_template_feature(self, glyph_image: np.ndarray) -> Optional[np.ndarray]:
+        """Run DeepSeek OCR model on rendered glyph to obtain feature vector."""
+        if glyph_image.ndim != 2 or glyph_image.size == 0:
+            return None
+
+        model = self._get_template_ocr_model()
+        if model is None:
+            return None
+
+        glyph_norm = np.clip(glyph_image.astype(np.float32), 0.0, 1.0)
+        h, w = glyph_norm.shape
+        target = int(np.ceil(max(h, w, 32) / 4.0) * 4)
+        canvas = np.zeros((target, target), dtype=np.float32)
+        y_off = (target - h) // 2
+        x_off = (target - w) // 2
+        canvas[y_off:y_off + h, x_off:x_off + w] = glyph_norm
+        rgb = np.stack([canvas, canvas, canvas], axis=-1).astype(np.float32)
+
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                result = model.forward(rgb)
+        except Exception as exc:
+            print(f"[PhaseF.2] WARNING: Template OCR forward failed ({exc})")
+            return None
+
+        feature_map = result.get("feature_map")
+        if not isinstance(feature_map, np.ndarray) or feature_map.size == 0:
+            return None
+
+        h_map, w_map, _ = feature_map.shape
+        center_row = h_map // 2
+        center_col = w_map // 2
+        row_start = max(center_row - 1, 0)
+        row_end = min(center_row + 2, h_map)
+        col_start = max(center_col - 1, 0)
+        col_end = min(center_col + 2, w_map)
+        patch = feature_map[row_start:row_end, col_start:col_end, :]
+        vector = patch.mean(axis=(0, 1)).astype(np.float32)
+        norm = np.linalg.norm(vector)
+        if norm > 1e-8:
+            vector /= norm
+        return vector
+
+    @staticmethod
+    def _fit_template_dimension(vector: np.ndarray, target_dim: int) -> np.ndarray:
+        """Pad or truncate template vector to target dimension and normalize."""
+        fitted = np.zeros(target_dim, dtype=np.float32)
+        vec = np.asarray(vector, dtype=np.float32).flatten()
+        take = min(target_dim, vec.size)
+        if take > 0:
+            fitted[:take] = vec[:take]
+        norm = np.linalg.norm(fitted)
+        if norm > 1e-8:
+            fitted /= norm
+        return fitted
+
+    def _get_template_ocr_model(self):
+        """Lazily initialize DeepSeek OCR model for template feature extraction."""
+        if self._template_feature_model is not None:
+            return self._template_feature_model
+
+        if self._template_model_failed:
+            return None
+
+        if getattr(self, "_template_ocr_model", None) is not None:
+            return self._template_ocr_model
+
+        from knowledge3d.cranium.ocr.deepseek_ocr_model import DeepSeekOCRModel
+
+        try:
+            model = None
+            # Reuse DeepSeek bridge if available
+            if self.deepseek_bridge is not None:
+                model = self.deepseek_bridge.get_feature_extractor()
+                if model is not None:
+                    self._template_feature_model = model
+                    return model
+
+            # Instantiate standalone model (fallback)
+            model = DeepSeekOCRModel(
+                num_glyphs=256,
+                input_channels=3,
+                use_micro_trm=False,
+            )
+
+            # Attempt to load weights from checkpoint for consistency
+            candidate_dirs: List[Path] = []
+            if getattr(self, "deepseek_bridge", None) is not None:
+                candidate_dirs.append(self.deepseek_bridge.checkpoint_dir)
+            candidate_dirs.append(Path("/K3D/Knowledge3D.local/checkpoints/phase_g/current"))
+            candidate_dirs.append(Path("/K3D/Knowledge3D.local/checkpoints/phase_g/ocr_gpu_epoch_100"))
+
+            candidate_files = [
+                "ocr_cnn_weights.npz",
+                "ocr_cnn_weights.npy",
+                "ocr_cnn_weights.pkl",
+                "cnn_weights.npz",
+                "cnn_weights.npy",
+                "cnn_weights.pkl",
+                "model_weights.npz",
+                "model_weights.npy",
+                "model_weights.pkl",
+                "specialist_cnn_weights.npz",
+                "specialist_cnn_weights.pkl",
+            ]
+
+            loaded = False
+            for directory in candidate_dirs:
+                if directory is None:
+                    continue
+                for filename in candidate_files:
+                    path = directory / filename
+                    if path.exists():
+                        try:
+                            model.load_weights_from_file(path, strict=False)
+                            print(f"[PhaseF.2] Template OCR model loaded weights from {path}")
+                            loaded = True
+                            break
+                        except Exception as exc:
+                            print(f"[PhaseF.2] WARNING: Failed to load template weights ({exc})")
+                if loaded:
+                    break
+
+            self._template_ocr_model = model
+            self._template_feature_model = model
+            return model
+        except Exception as exc:
+            print(f"[PhaseF.2] WARNING: Unable to initialize template OCR model ({exc})")
+            self._template_ocr_model = None
+            self._template_model_failed = True
+            return None
+
+    @staticmethod
+    def _glyph_image_to_embedding(image: np.ndarray, target_dim: int = 128) -> np.ndarray:
+        """Convert a glyph image into a fixed-length embedding."""
+        if image.ndim != 2 or image.size == 0:
+            return np.zeros(target_dim, dtype=np.float32)
+
+        try:
+            from PIL import Image  # type: ignore
+
+            pil_img = Image.fromarray((image * 255.0).astype(np.uint8))
+            pil_resized = pil_img.resize((16, 16), Image.BILINEAR)
+            flat = np.asarray(pil_resized, dtype=np.float32).flatten() / 255.0
+        except Exception:
+            flat = image.flatten().astype(np.float32)
+
+        if flat.size == 0:
+            return np.zeros(target_dim, dtype=np.float32)
+
+        embedding = np.resize(flat, target_dim).astype(np.float32)
+        norm = np.linalg.norm(embedding)
+        if norm > 1e-8:
+            embedding /= norm
+        return embedding
 
     def _load_rpn_embeddings(self) -> None:
         """Load persisted RPN embeddings when available."""
@@ -1593,10 +2150,62 @@ class PDFIngestionBridge:
             return "", []
 
         feature_matrix = np.vstack(char_features).astype(np.float32, copy=False)
-        recognized = self._match_glyphs_gpu(feature_matrix, char_bboxes, query_dim)
-        if not recognized:
-            print(f"[PhaseG][GPU OCR] Glyph matcher produced 0 recognitions (candidates={feature_matrix.shape[0]})")
-            return "", []
+
+        recognized_detector: List[Dict[str, object]] = []
+        if self.character_detector is not None:
+            try:
+                fm = feature_map.astype(np.float32, copy=False)
+
+                with contextlib.redirect_stdout(io.StringIO()):
+                    detection_result = self.character_detector.detect(
+                        fm,
+                        page_shape[1],
+                        page_shape[0],
+                    )
+                print(
+                    f"[PhaseF.2] CharacterDetector patches={detection_result.get('num_patches', 0)} "
+                    f"detections={len(detection_result.get('detections', []))} "
+                    f"accepted={detection_result.get('accepted_templates', 0)} "
+                    f"max_score={detection_result.get('max_template_score', 0.0):.3f}"
+                )
+
+                for det in detection_result.get("detections", []):
+                    char_id = int(det.get("char_id", -1))
+                    if char_id < 32 or char_id > 126:
+                        continue
+                    char_symbol = chr(char_id)
+                    bbox = det.get("bbox", (0, 0, 0, 0))
+                    if not isinstance(bbox, (list, tuple)) or len(bbox) != 4:
+                        continue
+                    x1, y1, x2, y2 = bbox
+                    recognized_detector.append(
+                        {
+                            "char": char_symbol,
+                            "bbox": (
+                                int(x1),
+                                int(y1),
+                                int(max(1, x2 - x1)),
+                                int(max(1, y2 - y1)),
+                            ),
+                            "confidence": float(det.get("confidence", 0.0)),
+                        }
+                    )
+            except Exception as exc:
+                print(f"[PhaseG][GPU OCR] CharacterDetector failed: {exc}")
+                recognized_detector = []
+
+        recognized: List[Dict[str, object]] = []
+        if recognized_detector:
+            recognized = recognized_detector
+        else:
+            recognized_matry = self._match_glyphs_gpu(feature_matrix, char_bboxes, query_dim)
+            if not recognized_matry:
+                print(
+                    f"[PhaseG][GPU OCR] Glyph matcher produced 0 recognitions "
+                    f"(candidates={feature_matrix.shape[0]})"
+                )
+                return "", []
+            recognized = recognized_matry
 
         blocks = self._group_characters_to_blocks(
             recognized,

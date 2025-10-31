@@ -100,6 +100,25 @@ class GalacticTemplateBank:
         """Get active templates [num_glyphs, feature_dim]."""
         return self.active_templates
 
+    def set_external_templates(self, templates: np.ndarray) -> None:
+        """
+        Override active templates with externally supplied embeddings.
+
+        Args:
+            templates: Array with shape [num_glyphs, feature_dim]
+        """
+        if templates.ndim != 2:
+            raise ValueError("External templates must be 2-D")
+
+        if templates.shape[1] != self.feature_dim:
+            raise ValueError(
+                f"Expected template dim {self.feature_dim}, got {templates.shape[1]}"
+            )
+
+        norm = np.linalg.norm(templates, axis=1, keepdims=True)
+        norm = np.maximum(norm, 1e-6)
+        self.active_templates = templates / norm
+
     def update_learned_templates(self, learned: np.ndarray):
         """Update Layer 3 with RLWHF-trained templates."""
         if learned.shape != (self.num_glyphs, self.feature_dim):
@@ -445,13 +464,94 @@ class CharacterDetector:
 
         # Component 4: GLM's hierarchical NMS
         print("[F.2] Initializing HierarchicalNMS...")
-        self.nms = HierarchicalNMS(iou_threshold=0.3, conf_threshold=0.5)
+        self.nms = HierarchicalNMS(iou_threshold=0.3, conf_threshold=0.25)
 
         # Component 5: Grok's spatial decoder
         print("[F.2] Initializing SpatialTextDecoder...")
         self.decoder = SpatialTextDecoder(patch_size=patch_size)
 
+        self.last_template_score: float = 0.0
+
+        # External template storage (bootstrapped from glyph embeddings)
+        self.template_embeddings: Optional[np.ndarray] = None
+        self.template_char_ids: Optional[np.ndarray] = None
+        self.template_offsets: Dict[int, Tuple[int, int]] = {}
+        self.template_feature_dim: int = feature_dim
+        self._template_source: str = "synthetic"
+
         print("[F.2] ✓ CharacterDetector ready")
+
+    # ------------------------------------------------------------------ #
+    # Template management
+    # ------------------------------------------------------------------ #
+    def set_template_bank(self, template_bank: Dict[str, np.ndarray]) -> None:
+        """
+        Load externally supplied template bank (glyph embeddings).
+
+        Args:
+            template_bank: Dict mapping character string → [K, D] embeddings
+        """
+        if not template_bank:
+            return
+
+        rows: List[np.ndarray] = []
+        char_ids: List[int] = []
+        offsets: Dict[int, Tuple[int, int]] = {}
+        cursor = 0
+        target_dim = self.feature_dim
+
+        for char in sorted(template_bank.keys()):
+            vectors = np.asarray(template_bank[char], dtype=np.float32)
+            if vectors.size == 0:
+                continue
+
+            if vectors.ndim == 1:
+                vectors = vectors.reshape(1, -1)
+
+            norm = np.linalg.norm(vectors, axis=1, keepdims=True)
+            norm = np.maximum(norm, 1e-8)
+            vectors = vectors / norm
+
+            if vectors.shape[1] > target_dim:
+                vectors = vectors[:, :target_dim]
+            elif vectors.shape[1] < target_dim:
+                padded = np.zeros((vectors.shape[0], target_dim), dtype=np.float32)
+                padded[:, :vectors.shape[1]] = vectors
+                vectors = padded
+
+            rows.append(vectors)
+            count = vectors.shape[0]
+            char_id = ord(char) if char else -1
+            char_ids.extend([char_id] * count)
+            offsets[char_id] = (cursor, cursor + count)
+            cursor += count
+
+        if not rows:
+            return
+
+        template_matrix = np.vstack(rows).astype(np.float32, copy=False)
+        norms = np.linalg.norm(template_matrix, axis=1, keepdims=True)
+        template_matrix = template_matrix / np.maximum(norms, 1e-8)
+
+        self.template_embeddings = template_matrix
+        self.template_char_ids = np.asarray(char_ids, dtype=np.int32)
+        self.template_offsets = offsets
+        self.template_feature_dim = target_dim
+        self._template_source = "glyph_bootstrap"
+
+        print(
+            f"[F.2] Template bank loaded from glyphs: "
+            f"{len(offsets)} characters, {template_matrix.shape[0]} templates "
+            f"(dim={target_dim})"
+        )
+
+    def clear_template_bank(self) -> None:
+        """Reset to synthetic Galactic template bank."""
+        self.template_embeddings = None
+        self.template_char_ids = None
+        self.template_offsets = {}
+        self.template_feature_dim = self.feature_dim
+        self._template_source = "synthetic"
 
     def detect(self, feature_map: np.ndarray, image_width: int, image_height: int) -> Dict[str, Any]:
         """
@@ -480,7 +580,15 @@ class CharacterDetector:
             return {'text': '', 'detections': [], 'num_patches': 0}
 
         # Step 2: Match patches to templates (Kimi's glyph matcher)
-        print(f"[F.2] Matching {num_patches} patches to {self.num_glyphs} templates...")
+        template_count = (
+            int(self.template_embeddings.shape[0])
+            if self.template_embeddings is not None and self.template_embeddings.size > 0
+            else self.num_glyphs
+        )
+        print(
+            f"[F.2] Matching {num_patches} patches to {template_count} templates "
+            f"(source={self._template_source})..."
+        )
         detections = self._match_patches_to_glyphs(patches, positions, feature_map.shape)
         print(f"[F.2] Found {len(detections)} candidate detections")
 
@@ -497,7 +605,9 @@ class CharacterDetector:
         return {
             'text': text,
             'detections': detections,
-            'num_patches': num_patches
+            'num_patches': num_patches,
+            'max_template_score': float(self.last_template_score),
+            'accepted_templates': int(getattr(self, 'last_accept_count', 0)),
         }
 
     def _match_patches_to_glyphs(self, patches: np.ndarray,
@@ -518,8 +628,18 @@ class CharacterDetector:
         """
         H_feat, W_feat, C_feat = feature_shape
 
-        # Get templates
-        templates = self.template_bank.get_templates()  # [num_glyphs, feature_dim]
+        # Get templates (external glyph bank overrides synthetic templates)
+        if self.template_embeddings is not None and self.template_embeddings.size > 0:
+            templates = self.template_embeddings
+            template_char_ids = self.template_char_ids
+        else:
+            templates = self.template_bank.get_templates()
+            template_char_ids = np.arange(self.num_glyphs, dtype=np.int32)
+
+        if templates is None or templates.size == 0:
+            return []
+
+        templates = np.asarray(templates, dtype=np.float32)
 
         # For each patch, compute average feature vector
         patch_size = self.patch_size
@@ -530,13 +650,27 @@ class CharacterDetector:
         patch_norms = np.linalg.norm(patch_features, axis=1, keepdims=True)
         patch_features = patch_features / np.maximum(patch_norms, 1e-6)
 
+        # Align template dimensionality with feature map channels
+        if templates.shape[1] > C_feat:
+            templates = templates[:, :C_feat]
+        elif templates.shape[1] < C_feat:
+            padded = np.zeros((templates.shape[0], C_feat), dtype=np.float32)
+            padded[:, :templates.shape[1]] = templates
+            templates = padded
+
+        template_norms = np.linalg.norm(templates, axis=1, keepdims=True)
+        templates = templates / np.maximum(template_norms, 1e-6)
+
         # Compute similarity scores (cosine similarity)
         # scores[i, j] = similarity between patch i and template j
         scores = np.dot(patch_features, templates.T)  # [num_patches, num_glyphs]
 
+        self.last_template_score = float(np.max(scores)) if scores.size > 0 else 0.0
+
         # For each patch, find top-k matches
         detections = []
         top_k = 3  # Keep top 3 candidates per patch
+        accepted = 0
 
         for i, (row, col) in enumerate(positions):
             # Get top-k scores for this patch
@@ -549,6 +683,8 @@ class CharacterDetector:
                 if confidence < 0.3:
                     continue
 
+                accepted += 1
+
                 # Compute bounding box in feature space
                 # Scale to original image space (assuming 4× downsampling)
                 scale = 4
@@ -557,11 +693,16 @@ class CharacterDetector:
                 x2 = (col + patch_size) * scale
                 y2 = (row + patch_size) * scale
 
+                char_id = int(template_char_ids[idx]) if template_char_ids is not None else int(idx)
+                if char_id < 0:
+                    continue
+
                 detections.append({
                     'bbox': [x1, y1, x2, y2],
                     'confidence': confidence,
-                    'char_id': int(idx),
+                    'char_id': char_id,
                     'position': (row, col)
                 })
 
+        self.last_accept_count = accepted
         return detections

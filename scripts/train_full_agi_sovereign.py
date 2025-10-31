@@ -245,16 +245,16 @@ class DatasetRegistry:
         # PDF DATASETS (Curated Knowledge)
         # ================================================================
 
-        # EchoSystems Default Libraries (3.0 GB, 327 PDFs)
-        echosystems_pdfs = Path("/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries")
+        # OCR Training Set (6 scanned PDFs only, ~1040 pages)
+        echosystems_pdfs = Path("/mnt/arquivos/0 ChatGPTs/DataBase/OCR_TRAINING_SET")
         if echosystems_pdfs.exists():
             pdf_count = len(list(echosystems_pdfs.rglob("*.pdf")))
             self.datasets["pdf"].append({
-                "name": "EchoSystems Default Libraries",
+                "name": "OCR Training Set (Scanned PDFs)",
                 "path": echosystems_pdfs,
                 "format": "pdf",
-                "size_mb": 3000,
-                "description": f"Curated knowledge library ({pdf_count} PDFs)",
+                "size_mb": 100,
+                "description": f"Scanned PDFs for OCR training ({pdf_count} PDFs, ~1040 pages)",
                 "sovereign": True,  # Will process with Phase G
                 "estimated_samples": pdf_count * 50  # ~50 pages per PDF avg
             })
