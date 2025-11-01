@@ -54,7 +54,7 @@ class PDFIngestionBridge:
     """
 
     _MAX_OBJECTS = 1024
-    _EMBEDDINGS_PATH = Path("/K3D/Knowledge3D.local/house_zone7/embeddings/rpn_embeddings.pkl")
+    _EMBEDDINGS_PATH = Path("/K3D/Knowledge3D.local/house_zone7/embeddings/adaptive_rpn")
 
     def __init__(self) -> None:
         self.kernel_dir = Path(__file__).parent.parent / "kernels"
@@ -329,17 +329,29 @@ class PDFIngestionBridge:
 
             code_point = ord(char_symbol) if char_symbol else -1
             if 0 <= code_point < 256:
-                base_128 = base_embedding[:128]
-                if base_128.size < 128:
-                    base_128 = np.resize(base_128, 128).astype(np.float32)
+                # Prioritize trained RPN embeddings over font visual features
+                if rpn_embedding is not None and rpn_embedding.size > 0:
+                    # Use trained RPN embedding for template
+                    template_vec_128 = rpn_embedding[:128]
+                    if template_vec_128.size < 128:
+                        template_vec_128 = np.resize(template_vec_128, 128).astype(np.float32)
+                    else:
+                        template_vec_128 = template_vec_128[:128].astype(np.float32)
                 else:
-                    base_128 = base_128[:128].astype(np.float32)
-                norm_base = np.linalg.norm(base_128)
-                if norm_base > 1e-8:
-                    base_128 = base_128 / norm_base
+                    # Fallback to font visual features if RPN not available
+                    template_vec_128 = base_embedding[:128]
+                    if template_vec_128.size < 128:
+                        template_vec_128 = np.resize(template_vec_128, 128).astype(np.float32)
+                    else:
+                        template_vec_128 = template_vec_128[:128].astype(np.float32)
+
+                norm_template = np.linalg.norm(template_vec_128)
+                if norm_template > 1e-8:
+                    template_vec_128 = template_vec_128 / norm_template
+
                 template_accumulator[code_point].append(
                     {
-                        "vector": base_128.copy(),
+                        "vector": template_vec_128.copy(),
                         "font": font_name,
                         "font_path": font_path,
                         "confidence": float(confidence),
@@ -874,6 +886,8 @@ class PDFIngestionBridge:
             candidate_dirs.append(Path("/K3D/Knowledge3D.local/checkpoints/phase_g/ocr_gpu_epoch_100"))
 
             candidate_files = [
+                "base_weights.npy",  # Phase G standard weights
+                "base_weights.npz",
                 "ocr_cnn_weights.npz",
                 "ocr_cnn_weights.npy",
                 "ocr_cnn_weights.pkl",
@@ -942,10 +956,19 @@ class PDFIngestionBridge:
         path = self.embeddings_path
         try:
             if path.exists():
-                self.rpn_engine.load_embeddings(path)
-                print(
-                    f"[LOAD] RPN embeddings loaded: {len(self.rpn_engine.embeddings)} trigrams"
-                )
+                # Check if adaptive_rpn directory with multiple dimension files
+                if path.is_dir():
+                    # Load from adaptive RPN (prefer highest dimension with data)
+                    for dim in [2048, 1024, 512, 256, 128, 64]:
+                        dim_file = path / f"rpn_embeddings_{dim}d.pkl"
+                        if dim_file.exists() and dim_file.stat().st_size > 200:  # Has content
+                            self.rpn_engine.load_embeddings(dim_file)
+                            print(f"[LOAD] RPN embeddings loaded from {dim}D: {len(self.rpn_engine.embeddings)} trigrams")
+                            break
+                else:
+                    # Legacy single-file embeddings
+                    self.rpn_engine.load_embeddings(path)
+                    print(f"[LOAD] RPN embeddings loaded: {len(self.rpn_engine.embeddings)} trigrams")
         except Exception as exc:
             print(f"[LOAD] WARNING: Failed to load RPN embeddings ({exc})")
 

@@ -231,6 +231,8 @@ class DeepSeekOCRBridge:
             return False
 
         candidate_files = [
+            "base_weights.npy",  # Phase G standard weights
+            "base_weights.npz",
             "ocr_cnn_weights.npz",
             "ocr_cnn_weights.npy",
             "ocr_cnn_weights.pkl",

@@ -290,7 +290,7 @@ class DeepSeekOCRModel:
         H, W, C_in = image.shape
         assert C_in == 3
 
-        print(f"\n🔍 DeepSeek OCR Forward Pass: {H}×{W}×{C_in}")
+        # print(f"\n🔍 DeepSeek OCR Forward Pass: {H}×{W}×{C_in}")
 
         # Allocate buffers
         # (Simplified: allocate max sizes, reuse across layers)
@@ -311,7 +311,7 @@ class DeepSeekOCRModel:
         loader.memcpy_htod(d_conv1_b, self.conv1_bias.ctypes.data_as(ctypes.c_void_p), self.conv1_bias.nbytes)
 
         # Stage 1: Conv1 + Pool1 + BN1
-        print("  Stage 1: Conv1 (3→32) + MaxPool + BatchNorm")
+        # print("  Stage 1: Conv1 (3→32) + MaxPool + BatchNorm")
         self._conv2d_forward(
             d_stage1_in, d_conv1_w, d_conv1_b, None, None, d_stage1_out,
             H, W, 3, 32, relu=True
@@ -332,7 +332,7 @@ class DeepSeekOCRModel:
         loader.synchronize()
 
         # Stage 2: Conv2 + Pool2 + BN2
-        print(f"  Stage 2: Conv2 (32→64) + MaxPool + BatchNorm (now {H}×{W})")
+        # print(f"  Stage 2: Conv2 (32→64) + MaxPool + BatchNorm (now {H}×{W})")
         d_conv2_w = loader.gpu_malloc(self.conv2_weight.nbytes)
         d_conv2_b = loader.gpu_malloc(self.conv2_bias.nbytes)
         loader.memcpy_htod(d_conv2_w, self.conv2_weight.ctypes.data_as(ctypes.c_void_p), self.conv2_weight.nbytes)
@@ -356,7 +356,7 @@ class DeepSeekOCRModel:
         loader.synchronize()
 
         # Stage 3: Conv3 + BN3
-        print(f"  Stage 3: Conv3 (64→128) + BatchNorm (now {H}×{W})")
+        # print(f"  Stage 3: Conv3 (64→128) + BatchNorm (now {H}×{W})")
         d_conv3_w = loader.gpu_malloc(self.conv3_weight.nbytes)
         d_conv3_b = loader.gpu_malloc(self.conv3_bias.nbytes)
         loader.memcpy_htod(d_conv3_w, self.conv3_weight.ctypes.data_as(ctypes.c_void_p), self.conv3_weight.nbytes)
@@ -383,7 +383,7 @@ class DeepSeekOCRModel:
             feature_map.nbytes
         )
 
-        print(f"  ✓ Feature extraction complete: {H}×{W}×128")
+        # print(f"  ✓ Feature extraction complete: {H}×{W}×128")
 
         # Clean up temporary weights
         loader.gpu_free(d_conv1_w)
@@ -467,6 +467,28 @@ class DeepSeekOCRModel:
             return False
 
         return True
+
+    def get_state_dict(self) -> Dict[str, np.ndarray]:
+        """
+        Get model parameters as dictionary.
+
+        Returns:
+            Dictionary mapping parameter name → numpy array.
+        """
+        return {
+            "conv1_weight": self.conv1_weight.copy(),
+            "conv1_bias": self.conv1_bias.copy(),
+            "bn1_gamma": self.bn1_gamma.copy(),
+            "bn1_beta": self.bn1_beta.copy(),
+            "conv2_weight": self.conv2_weight.copy(),
+            "conv2_bias": self.conv2_bias.copy(),
+            "bn2_gamma": self.bn2_gamma.copy(),
+            "bn2_beta": self.bn2_beta.copy(),
+            "conv3_weight": self.conv3_weight.copy(),
+            "conv3_bias": self.conv3_bias.copy(),
+            "bn3_gamma": self.bn3_gamma.copy(),
+            "bn3_beta": self.bn3_beta.copy(),
+        }
 
     def load_weights_from_file(self, path: Path, *, strict: bool = True) -> bool:
         """
