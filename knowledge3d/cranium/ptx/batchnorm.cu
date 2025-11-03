@@ -246,6 +246,114 @@ extern "C" __global__ void batchnorm_fused(
 }
 
 /*
+ * batchnorm_forward_training - Training mode batch normalization
+ *
+ * Outputs normalized activations and per-batch statistics for backward pass.
+ *
+ * Args:
+ *   input: Input feature map [N, H, W, C]
+ *   output: Output feature map [N, H, W, C]
+ *   x_hat_out: Normalized activations [N, H, W, C]
+ *   batch_mean_out: Per-channel batch mean [C]
+ *   batch_var_out: Per-channel batch variance [C]
+ *   gamma: Scale parameter [C]
+ *   beta: Shift parameter [C]
+ *   N, H, W, C: Dimensions (NHWC layout)
+ *   eps: Epsilon for numerical stability
+ */
+extern "C" __global__ void batchnorm_forward_training(
+    const float* __restrict__ input,
+    float* __restrict__ output,
+    float* __restrict__ x_hat_out,
+    float* __restrict__ batch_mean_out,
+    float* __restrict__ batch_var_out,
+    const float* __restrict__ gamma,
+    const float* __restrict__ beta,
+    int N,
+    int H,
+    int W,
+    int C,
+    float eps
+) {
+    const int c = blockIdx.x;
+    if (c >= C) {
+        return;
+    }
+
+    const int tid = threadIdx.x;
+    const int spatial_size = N * H * W;
+
+    __shared__ float shared_sum[256];
+    __shared__ float shared_var_sum[256];
+    __shared__ float channel_mean;
+    __shared__ float channel_var;
+
+    // Compute mean
+    float sum = 0.0f;
+    for (int idx = tid; idx < spatial_size; idx += blockDim.x) {
+        sum += input[idx * C + c];
+    }
+    shared_sum[tid] = sum;
+    __syncthreads();
+
+    // Reduce mean
+    for (int stride = blockDim.x / 2; stride > 0; stride >>= 1) {
+        if (tid < stride) {
+            shared_sum[tid] += shared_sum[tid + stride];
+        }
+        __syncthreads();
+    }
+
+    if (tid == 0) {
+        channel_mean = shared_sum[0] / static_cast<float>(spatial_size);
+    }
+    __syncthreads();
+
+    // Compute variance
+    float var_sum = 0.0f;
+    for (int idx = tid; idx < spatial_size; idx += blockDim.x) {
+        float diff = input[idx * C + c] - channel_mean;
+        var_sum += diff * diff;
+    }
+    shared_var_sum[tid] = var_sum;
+    __syncthreads();
+
+    // Reduce variance
+    for (int stride = blockDim.x / 2; stride > 0; stride >>= 1) {
+        if (tid < stride) {
+            shared_var_sum[tid] += shared_var_sum[tid + stride];
+        }
+        __syncthreads();
+    }
+
+    if (tid == 0) {
+        channel_var = shared_var_sum[0] / static_cast<float>(spatial_size);
+        channel_var = fmaxf(channel_var, 1e-6f);
+        batch_mean_out[c] = channel_mean;
+        batch_var_out[c] = channel_var;
+    }
+    __syncthreads();
+
+    const float gamma_val = gamma[c];
+    const float beta_val = beta[c];
+    const float inv_std = 1.0f / sqrtf(channel_var + eps);
+
+    // Produce normalized activations and final output
+    for (int idx = tid; idx < spatial_size; idx += blockDim.x) {
+        const int offset = idx * C + c;
+        float x = input[offset];
+        float normalized = (x - channel_mean) * inv_std;
+
+        if (isnan(normalized) || isinf(normalized)) {
+            normalized = 0.0f;
+        }
+
+        x_hat_out[offset] = normalized;
+        output[offset] = gamma_val * normalized + beta_val;
+    }
+}
+
+/*
  * layernorm_forward - Layer normalization (normalize across channels)
  *
  * Alternative to batch norm that normalizes across feature dimension

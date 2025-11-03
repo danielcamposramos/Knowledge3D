@@ -479,6 +479,15 @@ class CharacterDetector:
         self.template_feature_dim: int = feature_dim
         self._template_source: str = "synthetic"
 
+        # Atomic classifier storage (Phase G)
+        self.atomic_classifier_matrix: Optional[np.ndarray] = None
+        self.atomic_classifier_bias: Optional[np.ndarray] = None
+        self.atomic_char_ids_list: Optional[np.ndarray] = None
+        self.atomic_classifier_threshold: float = 0.75
+        self.atomic_similarity_threshold: float = 0.5
+        self.atomic_mean_templates: Optional[np.ndarray] = None
+        self.atomic_low_embeddings: Optional[np.ndarray] = None
+
         print("[F.2] ✓ CharacterDetector ready")
 
     # ------------------------------------------------------------------ #
@@ -539,11 +548,53 @@ class CharacterDetector:
         self.template_feature_dim = target_dim
         self._template_source = "glyph_bootstrap"
 
-        print(
-            f"[F.2] Template bank loaded from glyphs: "
-            f"{len(offsets)} characters, {template_matrix.shape[0]} templates "
-            f"(dim={target_dim})"
-        )
+    def set_atomic_classifiers(self, classifiers: Dict[int, Tuple[np.ndarray, float]]) -> None:
+        """
+        Register atomic binary classifiers for each character.
+
+        Args:
+            classifiers: Mapping char_id -> (weight_vector, bias)
+        """
+        if not classifiers:
+            self.atomic_classifier_matrix = None
+            self.atomic_classifier_bias = None
+            self.atomic_char_ids_list = None
+            return
+
+        feature_dim = self.feature_dim
+        char_ids = sorted(classifiers.keys())
+        matrix = np.zeros((len(char_ids), feature_dim), dtype=np.float32)
+        bias = np.zeros(len(char_ids), dtype=np.float32)
+
+        for idx, char_id in enumerate(char_ids):
+            weight_vec, bias_val = classifiers[char_id]
+            weight_vec = np.asarray(weight_vec, dtype=np.float32).flatten()
+            if weight_vec.size > feature_dim:
+                weight_vec = weight_vec[:feature_dim]
+            elif weight_vec.size < feature_dim:
+                padded = np.zeros(feature_dim, dtype=np.float32)
+                padded[:weight_vec.size] = weight_vec
+                weight_vec = padded
+            matrix[idx] = weight_vec
+            bias[idx] = float(bias_val)
+
+        self.atomic_classifier_matrix = matrix
+        self.atomic_classifier_bias = bias
+        self.atomic_char_ids_list = np.asarray(char_ids, dtype=np.int32)
+
+    def set_atomic_mean_templates(self, mean_templates: Optional[np.ndarray]) -> None:
+        """Store mean template vectors for atomic embeddings."""
+        if mean_templates is None:
+            self.atomic_mean_templates = None
+        else:
+            self.atomic_mean_templates = np.asarray(mean_templates, dtype=np.float32)
+
+    def set_atomic_low_embeddings(self, low_embeddings: Optional[np.ndarray]) -> None:
+        """Store low-dimensional atomic embeddings for fast lookup."""
+        if low_embeddings is None:
+            self.atomic_low_embeddings = None
+        else:
+            self.atomic_low_embeddings = np.asarray(low_embeddings, dtype=np.float32)
 
     def clear_template_bank(self) -> None:
         """Reset to synthetic Galactic template bank."""
@@ -628,7 +679,19 @@ class CharacterDetector:
         """
         H_feat, W_feat, C_feat = feature_shape
 
-        # Get templates (external glyph bank overrides synthetic templates)
+        # For each patch, compute average feature vector
+        patch_size = self.patch_size
+        patch_tensor = patches.reshape(len(patches), patch_size, patch_size, C_feat)
+        patch_raw_features = patch_tensor.mean(axis=(1, 2))  # [num_patches, C_feat]
+
+        # Normalize patch features for cosine similarity/template matching
+        patch_norms = np.linalg.norm(patch_raw_features, axis=1, keepdims=True)
+        patch_features = patch_raw_features / np.maximum(patch_norms, 1e-6)
+
+        # Prepare template similarity (fallback)
+        template_char_ids = None
+        scores = None
+        templates = None
         if self.template_embeddings is not None and self.template_embeddings.size > 0:
             templates = self.template_embeddings
             template_char_ids = self.template_char_ids
@@ -636,44 +699,113 @@ class CharacterDetector:
             templates = self.template_bank.get_templates()
             template_char_ids = np.arange(self.num_glyphs, dtype=np.int32)
 
-        if templates is None or templates.size == 0:
+        if templates is not None and np.asarray(templates).size > 0:
+            templates = np.asarray(templates, dtype=np.float32)
+            if templates.shape[1] > C_feat:
+                templates = templates[:, :C_feat]
+            elif templates.shape[1] < C_feat:
+                padded = np.zeros((templates.shape[0], C_feat), dtype=np.float32)
+                padded[:, :templates.shape[1]] = templates
+                templates = padded
+
+            template_norms = np.linalg.norm(templates, axis=1, keepdims=True)
+            templates = templates / np.maximum(template_norms, 1e-6)
+            scores = np.dot(patch_features, templates.T)
+            template_char_ids = np.asarray(template_char_ids, dtype=np.int32)
+            self.last_template_score = float(np.max(scores)) if scores is not None and scores.size > 0 else 0.0
+        else:
+            templates = None
+            template_char_ids = None
+            scores = None
+            self.last_template_score = 0.0
+
+        # Atomic classifier logits (Phase G)
+        logistic_probs = None
+        if (
+            self.atomic_classifier_matrix is not None
+            and self.atomic_classifier_bias is not None
+            and self.atomic_char_ids_list is not None
+            and self.atomic_classifier_matrix.size > 0
+        ):
+            matrix = self.atomic_classifier_matrix
+            bias = self.atomic_classifier_bias
+            feature_dim = matrix.shape[1]
+            if patch_raw_features.shape[1] > feature_dim:
+                patch_for_logit = patch_raw_features[:, :feature_dim]
+            elif patch_raw_features.shape[1] < feature_dim:
+                padded = np.zeros((patch_raw_features.shape[0], feature_dim), dtype=np.float32)
+                padded[:, :patch_raw_features.shape[1]] = patch_raw_features
+                patch_for_logit = padded
+            else:
+                patch_for_logit = patch_raw_features
+
+            logits = np.dot(patch_for_logit, matrix.T) + bias
+            logistic_probs = 1.0 / (1.0 + np.exp(-logits))
+            self.last_template_score = float(np.max(logistic_probs)) if logistic_probs.size > 0 else 0.0
+        elif templates is None or scores is None or template_char_ids is None:
             return []
 
-        templates = np.asarray(templates, dtype=np.float32)
-
-        # For each patch, compute average feature vector
-        patch_size = self.patch_size
-        patch_features = patches.reshape(len(patches), patch_size, patch_size, C_feat)
-        patch_features = patch_features.mean(axis=(1, 2))  # [num_patches, C_feat]
-
-        # Normalize patch features
-        patch_norms = np.linalg.norm(patch_features, axis=1, keepdims=True)
-        patch_features = patch_features / np.maximum(patch_norms, 1e-6)
-
-        # Align template dimensionality with feature map channels
-        if templates.shape[1] > C_feat:
-            templates = templates[:, :C_feat]
-        elif templates.shape[1] < C_feat:
-            padded = np.zeros((templates.shape[0], C_feat), dtype=np.float32)
-            padded[:, :templates.shape[1]] = templates
-            templates = padded
-
-        template_norms = np.linalg.norm(templates, axis=1, keepdims=True)
-        templates = templates / np.maximum(template_norms, 1e-6)
-
-        # Compute similarity scores (cosine similarity)
-        # scores[i, j] = similarity between patch i and template j
-        scores = np.dot(patch_features, templates.T)  # [num_patches, num_glyphs]
-
-        self.last_template_score = float(np.max(scores)) if scores.size > 0 else 0.0
-
-        # For each patch, find top-k matches
         detections = []
-        top_k = 3  # Keep top 3 candidates per patch
+        top_k = 3  # Keep top candidates per patch (template fallback)
         accepted = 0
 
         for i, (row, col) in enumerate(positions):
-            # Get top-k scores for this patch
+            added = False
+
+            if logistic_probs is not None:
+                best_idx = int(np.argmax(logistic_probs[i]))
+                top_indices = [best_idx]
+                for idx in top_indices:
+                    probability = float(logistic_probs[i, idx])
+                    if probability < self.atomic_classifier_threshold:
+                        continue
+
+                    char_id = int(self.atomic_char_ids_list[idx])
+                    if char_id < 0:
+                        continue
+
+                    similarity = 0.0
+                    if (
+                        self.atomic_mean_templates is not None
+                        and 0 <= char_id < self.atomic_mean_templates.shape[0]
+                    ):
+                        template_vec = self.atomic_mean_templates[char_id]
+                        template_vec = np.asarray(template_vec, dtype=np.float32)
+                        if template_vec.size > patch_features.shape[1]:
+                            template_vec = template_vec[:patch_features.shape[1]]
+                        elif template_vec.size < patch_features.shape[1]:
+                            padded = np.zeros(patch_features.shape[1], dtype=np.float32)
+                            padded[:template_vec.size] = template_vec
+                            template_vec = padded
+                        vec_norm = np.linalg.norm(template_vec)
+                        if vec_norm > 1e-6:
+                            template_vec = template_vec / vec_norm
+                            similarity = float(np.dot(patch_features[i], template_vec))
+
+                    if similarity < self.atomic_similarity_threshold:
+                        continue
+
+                    accepted += 1
+                    added = True
+
+                    scale = 4
+                    x1 = col * scale
+                    y1 = row * scale
+                    x2 = (col + patch_size) * scale
+                    y2 = (row + patch_size) * scale
+
+                    detections.append({
+                        'bbox': [x1, y1, x2, y2],
+                        'confidence': probability * max(similarity, 0.0),
+                        'char_id': char_id,
+                        'position': (row, col)
+                    })
+
+            if logistic_probs is not None:
+                if added:
+                    continue
+
+            # Fallback: template-based cosine similarity
             top_indices = np.argsort(scores[i])[-top_k:][::-1]
 
             for idx in top_indices:

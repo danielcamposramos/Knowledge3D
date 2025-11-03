@@ -152,16 +152,16 @@ def main():
     trainer = GPUCNNTrainer(
         model=cnn_model,
         num_classes=len(chars),
-        learning_rate=0.01,
+        learning_rate=0.01,  # Conservative LR for stability with real data
         momentum=0.9
     )
-    print(f"       ✓ GPU trainer initialized (SGD with momentum)")
+    print(f"       ✓ GPU trainer initialized (SGD with momentum, LR=0.01)")
 
     # GPU training loop with backpropagation
     print(f"\n[6/6] Training CNN on character images (GPU backprop)...")
 
     n_epochs = 5  # Reduced for faster training
-    batch_size = 32  # Smaller batch for GPU memory
+    batch_size = 48  # Increased for better gradient stability
     n_batches = len(images) // batch_size
 
     for epoch in range(1, n_epochs + 1):

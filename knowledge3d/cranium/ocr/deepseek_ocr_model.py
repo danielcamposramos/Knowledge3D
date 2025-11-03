@@ -80,7 +80,7 @@ class DeepSeekOCRModel:
         kernels_to_load = [
             ("conv2d_3x3_v2.cu", ["conv2d_3x3_v2_fused", "conv2d_3x3_v2_no_relu"]),
             ("maxpool_2x2.cu", ["maxpool_2x2"]),
-            ("batchnorm.cu", ["batchnorm_fused"]),
+            ("batchnorm.cu", ["batchnorm_fused", "batchnorm_forward_training"]),
             ("glyph_match.cu", ["glyph_match_ncc", "glyph_match_top_k"]),
         ]
 
@@ -126,18 +126,27 @@ class DeepSeekOCRModel:
         self.conv1_bias = np.zeros(32, dtype=np.float32)
         self.bn1_gamma = np.ones(32, dtype=np.float32)
         self.bn1_beta = np.zeros(32, dtype=np.float32)
+        # CRITICAL FIX: Running statistics for BatchNorm1
+        self.bn1_running_mean = np.zeros(32, dtype=np.float32)
+        self.bn1_running_var = np.ones(32, dtype=np.float32)
 
         # Conv2: 32→64
         self.conv2_weight = np.random.randn(64, 3, 3, 32).astype(np.float32) * 0.1
         self.conv2_bias = np.zeros(64, dtype=np.float32)
         self.bn2_gamma = np.ones(64, dtype=np.float32)
         self.bn2_beta = np.zeros(64, dtype=np.float32)
+        # CRITICAL FIX: Running statistics for BatchNorm2
+        self.bn2_running_mean = np.zeros(64, dtype=np.float32)
+        self.bn2_running_var = np.ones(64, dtype=np.float32)
 
         # Conv3: 64→128
         self.conv3_weight = np.random.randn(128, 3, 3, 64).astype(np.float32) * 0.1
         self.conv3_bias = np.zeros(128, dtype=np.float32)
         self.bn3_gamma = np.ones(128, dtype=np.float32)
         self.bn3_beta = np.zeros(128, dtype=np.float32)
+        # CRITICAL FIX: Running statistics for BatchNorm3
+        self.bn3_running_mean = np.zeros(128, dtype=np.float32)
+        self.bn3_running_var = np.ones(128, dtype=np.float32)
 
         # Glyph templates: [num_glyphs, 8, 8, 128]
         self.glyph_templates = np.random.randn(
@@ -254,35 +263,96 @@ class DeepSeekOCRModel:
         d_beta: loader.CUdeviceptr,
         H: int,
         W: int,
-        C: int
+        C: int,
+        *,
+        return_stats: bool = False
     ):
-        """Execute batch normalization forward pass."""
+        """
+        Execute batch normalization forward pass.
+
+        Args:
+            d_input: Input tensor pointer
+            d_output: Output tensor pointer
+            d_gamma: Scale parameter pointer
+            d_beta: Shift parameter pointer
+            H, W, C: Spatial dimensions (NHWC layout)
+            return_stats: If True, also compute and return batch statistics
+                          along with normalized activations for backward pass.
+
+        Returns:
+            Dict with keys {"mean", "var", "x_hat"} when return_stats=True.
+            Otherwise, returns None.
+        """
         grid = (C, 1, 1)
         block = (256, 1, 1)
+
+        if not return_stats:
+            params = [
+                ctypes.c_uint64(d_input.value),
+                ctypes.c_uint64(d_output.value),
+                ctypes.c_uint64(d_gamma.value),
+                ctypes.c_uint64(d_beta.value),
+                ctypes.c_int(H),
+                ctypes.c_int(W),
+                ctypes.c_int(C),
+                ctypes.c_float(1e-5),
+            ]
+            loader.launch(self.kernels["batchnorm_fused"], grid, block, params)
+            return None
+
+        spatial_size = H * W * C
+        d_x_hat = loader.gpu_malloc(spatial_size * 4)
+        d_batch_mean = loader.gpu_malloc(C * 4)
+        d_batch_var = loader.gpu_malloc(C * 4)
 
         params = [
             ctypes.c_uint64(d_input.value),
             ctypes.c_uint64(d_output.value),
+            ctypes.c_uint64(d_x_hat.value),
+            ctypes.c_uint64(d_batch_mean.value),
+            ctypes.c_uint64(d_batch_var.value),
             ctypes.c_uint64(d_gamma.value),
             ctypes.c_uint64(d_beta.value),
+            ctypes.c_int(1),  # Batch dimension N (single image)
             ctypes.c_int(H),
             ctypes.c_int(W),
             ctypes.c_int(C),
-            ctypes.c_float(1e-5),  # eps
+            ctypes.c_float(1e-5),
         ]
 
-        loader.launch(self.kernels["batchnorm_fused"], grid, block, params)
+        loader.launch(self.kernels["batchnorm_forward_training"], grid, block, params)
+        loader.synchronize()
 
-    def forward(self, image: np.ndarray) -> Dict[str, np.ndarray]:
+        batch_mean = np.empty(C, dtype=np.float32)
+        batch_var = np.empty(C, dtype=np.float32)
+        x_hat = np.empty((H, W, C), dtype=np.float32)
+
+        loader.memcpy_dtoh(batch_mean.ctypes.data_as(ctypes.c_void_p), d_batch_mean, batch_mean.nbytes)
+        loader.memcpy_dtoh(batch_var.ctypes.data_as(ctypes.c_void_p), d_batch_var, batch_var.nbytes)
+        loader.memcpy_dtoh(x_hat.ctypes.data_as(ctypes.c_void_p), d_x_hat, x_hat.nbytes)
+
+        loader.gpu_free(d_x_hat)
+        loader.gpu_free(d_batch_mean)
+        loader.gpu_free(d_batch_var)
+
+        return {
+            "mean": batch_mean,
+            "var": batch_var,
+            "x_hat": x_hat,
+        }
+
+    def forward(self, image: np.ndarray, cache_for_backward: bool = False) -> Dict[str, np.ndarray]:
         """Run complete OCR pipeline.
 
         Args:
             image: Input PDF page image [H, W, 3] RGB, float32, range [0, 1]
+            cache_for_backward: If True, cache all intermediate activations for backprop
 
         Returns:
             Dictionary with:
                 - feature_map: Final feature map [H/4, W/4, 128]
                 - patches: Extracted 8×8 patches for character matching
+                - cache: (if cache_for_backward=True) All intermediate activations
                 - (Future: character detections with bounding boxes)
         """
         assert image.dtype == np.float32
@@ -303,6 +373,12 @@ class DeepSeekOCRModel:
         # Upload input image
         loader.memcpy_htod(d_stage1_in, image.ctypes.data_as(ctypes.c_void_p), image.nbytes)
 
+        # Initialize cache if requested
+        cache = {} if cache_for_backward else None
+        if cache_for_backward:
+            cache['input'] = image.copy()
+            cache['shapes'] = {}  # Track shapes at each stage
+
         # Upload weights (simplified: upload all at once)
         # TODO: Cache weights on GPU
         d_conv1_w = loader.gpu_malloc(self.conv1_weight.nbytes)
@@ -318,18 +394,59 @@ class DeepSeekOCRModel:
         )
         loader.synchronize()
 
+        # Cache Conv1 output (after ReLU, before MaxPool)
+        if cache_for_backward:
+            conv1_out = np.empty((H, W, 32), dtype=np.float32)
+            loader.memcpy_dtoh(conv1_out.ctypes.data_as(ctypes.c_void_p), d_stage1_out, conv1_out.nbytes)
+            cache['conv1_out'] = conv1_out
+            cache['shapes']['after_conv1'] = (H, W, 32)
+
         # MaxPool: [H, W, 32] → [H/2, W/2, 32]
         self._maxpool_forward(d_stage1_out, d_stage2_in, H, W, 32)
         H, W = H // 2, W // 2
         loader.synchronize()
+
+        # Cache MaxPool1 output (before BN1)
+        if cache_for_backward:
+            pool1_out = np.empty((H, W, 32), dtype=np.float32)
+            loader.memcpy_dtoh(pool1_out.ctypes.data_as(ctypes.c_void_p), d_stage2_in, pool1_out.nbytes)
+            cache['pool1_out'] = pool1_out
+            cache['shapes']['after_pool1'] = (H, W, 32)
 
         # BatchNorm
         d_bn1_gamma = loader.gpu_malloc(self.bn1_gamma.nbytes)
         d_bn1_beta = loader.gpu_malloc(self.bn1_beta.nbytes)
         loader.memcpy_htod(d_bn1_gamma, self.bn1_gamma.ctypes.data_as(ctypes.c_void_p), self.bn1_gamma.nbytes)
         loader.memcpy_htod(d_bn1_beta, self.bn1_beta.ctypes.data_as(ctypes.c_void_p), self.bn1_beta.nbytes)
-        self._batchnorm_forward(d_stage2_in, d_stage2_out, d_bn1_gamma, d_bn1_beta, H, W, 32)
+        bn1_stats = self._batchnorm_forward(
+            d_stage2_in,
+            d_stage2_out,
+            d_bn1_gamma,
+            d_bn1_beta,
+            H,
+            W,
+            32,
+            return_stats=cache_for_backward,
+        )
         loader.synchronize()
+
+        if cache_for_backward and bn1_stats is not None:
+            bn1_mean = bn1_stats["mean"]
+            bn1_var = np.maximum(bn1_stats["var"], 1e-3)
+            cache['bn1_mean'] = bn1_mean
+            cache['bn1_var'] = bn1_var
+            cache['bn1_x_hat'] = bn1_stats["x_hat"]
+
+            momentum = 0.1
+            self.bn1_running_mean = (1 - momentum) * self.bn1_running_mean + momentum * bn1_mean
+            self.bn1_running_var = (1 - momentum) * self.bn1_running_var + momentum * bn1_var
+
+        # Cache BN1 output
+        if cache_for_backward:
+            bn1_out = np.empty((H, W, 32), dtype=np.float32)
+            loader.memcpy_dtoh(bn1_out.ctypes.data_as(ctypes.c_void_p), d_stage2_out, bn1_out.nbytes)
+            cache['bn1_out'] = bn1_out
+            cache['shapes']['after_bn1'] = (H, W, 32)
 
         # Stage 2: Conv2 + Pool2 + BN2
         # print(f"  Stage 2: Conv2 (32→64) + MaxPool + BatchNorm (now {H}×{W})")
@@ -344,16 +461,57 @@ class DeepSeekOCRModel:
         )
         loader.synchronize()
 
+        # Cache Conv2 output (after ReLU, before MaxPool)
+        if cache_for_backward:
+            conv2_out = np.empty((H, W, 64), dtype=np.float32)
+            loader.memcpy_dtoh(conv2_out.ctypes.data_as(ctypes.c_void_p), d_stage1_out, conv2_out.nbytes)
+            cache['conv2_out'] = conv2_out
+            cache['shapes']['after_conv2'] = (H, W, 64)
+
         self._maxpool_forward(d_stage1_out, d_stage2_in, H, W, 64)
         H, W = H // 2, W // 2
         loader.synchronize()
+
+        # Cache MaxPool2 output (before BN2)
+        if cache_for_backward:
+            pool2_out = np.empty((H, W, 64), dtype=np.float32)
+            loader.memcpy_dtoh(pool2_out.ctypes.data_as(ctypes.c_void_p), d_stage2_in, pool2_out.nbytes)
+            cache['pool2_out'] = pool2_out
+            cache['shapes']['after_pool2'] = (H, W, 64)
 
         d_bn2_gamma = loader.gpu_malloc(self.bn2_gamma.nbytes)
         d_bn2_beta = loader.gpu_malloc(self.bn2_beta.nbytes)
         loader.memcpy_htod(d_bn2_gamma, self.bn2_gamma.ctypes.data_as(ctypes.c_void_p), self.bn2_gamma.nbytes)
         loader.memcpy_htod(d_bn2_beta, self.bn2_beta.ctypes.data_as(ctypes.c_void_p), self.bn2_beta.nbytes)
-        self._batchnorm_forward(d_stage2_in, d_stage2_out, d_bn2_gamma, d_bn2_beta, H, W, 64)
+        bn2_stats = self._batchnorm_forward(
+            d_stage2_in,
+            d_stage2_out,
+            d_bn2_gamma,
+            d_bn2_beta,
+            H,
+            W,
+            64,
+            return_stats=cache_for_backward,
+        )
         loader.synchronize()
+
+        # Cache BN2 output
+        if cache_for_backward:
+            bn2_out = np.empty((H, W, 64), dtype=np.float32)
+            loader.memcpy_dtoh(bn2_out.ctypes.data_as(ctypes.c_void_p), d_stage2_out, bn2_out.nbytes)
+            cache['bn2_out'] = bn2_out
+            cache['shapes']['after_bn2'] = (H, W, 64)
+
+            if bn2_stats is not None:
+                bn2_mean = bn2_stats["mean"]
+                bn2_var = np.maximum(bn2_stats["var"], 1e-3)
+                cache['bn2_mean'] = bn2_mean
+                cache['bn2_var'] = bn2_var
+                cache['bn2_x_hat'] = bn2_stats["x_hat"]
+
+                momentum = 0.1
+                self.bn2_running_mean = (1 - momentum) * self.bn2_running_mean + momentum * bn2_mean
+                self.bn2_running_var = (1 - momentum) * self.bn2_running_var + momentum * bn2_var
 
         # Stage 3: Conv3 + BN3
         # print(f"  Stage 3: Conv3 (64→128) + BatchNorm (now {H}×{W})")
@@ -368,11 +526,28 @@ class DeepSeekOCRModel:
         )
         loader.synchronize()
 
+        # Cache Conv3 output (after ReLU, before BN3)
+        if cache_for_backward:
+            conv3_out = np.empty((H, W, 128), dtype=np.float32)
+            loader.memcpy_dtoh(conv3_out.ctypes.data_as(ctypes.c_void_p), d_stage1_out, conv3_out.nbytes)
+            cache['conv3_out'] = conv3_out
+            cache['shapes']['after_conv3'] = (H, W, 128)
+            cache['conv3_out_device'] = d_stage1_out
+
         d_bn3_gamma = loader.gpu_malloc(self.bn3_gamma.nbytes)
         d_bn3_beta = loader.gpu_malloc(self.bn3_beta.nbytes)
         loader.memcpy_htod(d_bn3_gamma, self.bn3_gamma.ctypes.data_as(ctypes.c_void_p), self.bn3_gamma.nbytes)
         loader.memcpy_htod(d_bn3_beta, self.bn3_beta.ctypes.data_as(ctypes.c_void_p), self.bn3_beta.nbytes)
-        self._batchnorm_forward(d_stage1_out, d_stage2_out, d_bn3_gamma, d_bn3_beta, H, W, 128)
+        bn3_stats = self._batchnorm_forward(
+            d_stage1_out,
+            d_stage2_out,
+            d_bn3_gamma,
+            d_bn3_beta,
+            H,
+            W,
+            128,
+            return_stats=cache_for_backward,
+        )
         loader.synchronize()
 
         # Download final feature map
@@ -399,10 +574,28 @@ class DeepSeekOCRModel:
         loader.gpu_free(d_bn3_gamma)
         loader.gpu_free(d_bn3_beta)
 
-        return {
+        result = {
             "feature_map": feature_map,
             "output_shape": (H, W, 128),
         }
+
+        # Include cache if requested
+        if cache_for_backward:
+            cache['bn3_out'] = feature_map  # BN3 output = final feature map
+            cache['shapes']['after_bn3'] = (H, W, 128)
+            if bn3_stats is not None:
+                bn3_mean = bn3_stats["mean"]
+                bn3_var = np.maximum(bn3_stats["var"], 1e-3)
+                cache['bn3_mean'] = bn3_mean
+                cache['bn3_var'] = bn3_var
+                cache['bn3_x_hat'] = bn3_stats["x_hat"]
+
+                momentum = 0.1
+                self.bn3_running_mean = (1 - momentum) * self.bn3_running_mean + momentum * bn3_mean
+                self.bn3_running_var = (1 - momentum) * self.bn3_running_var + momentum * bn3_var
+            result['cache'] = cache
+
+        return result
 
     def __del__(self):
         """Clean up GPU resources."""

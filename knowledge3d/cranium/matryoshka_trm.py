@@ -36,6 +36,7 @@ Usage:
 
 from __future__ import annotations
 
+import ctypes
 import numpy as np
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional, Any
@@ -46,6 +47,8 @@ from knowledge3d.cranium.trm_adapters import (
     AdapterConfig,
     _to_serializable,
 )
+from knowledge3d.cranium.sovereign import loader
+from knowledge3d.cranium.bridges.matryoshka_bridge import MatryoshkaProjectionBridge
 
 
 class MatryoshkaTRM:
@@ -88,10 +91,30 @@ class MatryoshkaTRM:
         # Current working dimension (for efficiency mode)
         self.current_working_dim = max_dims
 
+        # GPU resources
+        self._bridge: Optional[MatryoshkaProjectionBridge] = None
+        self._gpu_weights: Optional[loader.CUdeviceptr] = None
+        self._initialise_gpu_resources()
+
         print(f"[MatryoshkaTRM] Initialized")
         print(f"  Dimension range: {min_dims} - {max_dims}")
         print(f"  Supported levels: {self.dim_levels}")
         print(f"  Memory: {self._get_memory_mb(max_dims):.1f} MB (full capacity)")
+
+    def _initialise_gpu_resources(self):
+        """Allocate and populate GPU buffers for the base weight matrix."""
+        try:
+            self._bridge = MatryoshkaProjectionBridge()
+            self._gpu_weights = loader.gpu_malloc(self.W_base_full.nbytes)
+            loader.memcpy_htod(
+                self._gpu_weights,
+                self.W_base_full.ctypes.data_as(ctypes.c_void_p),
+                self.W_base_full.nbytes,
+            )
+        except Exception as exc:
+            self._bridge = None
+            self._gpu_weights = None
+            print(f"[MatryoshkaTRM] GPU init failed, falling back to CPU projection: {exc}")
 
     def get_base_at_dim(self, dim: int) -> np.ndarray:
         """
@@ -113,6 +136,23 @@ class MatryoshkaTRM:
 
         # Return prefix submatrix
         return self.W_base_full[:dim, :dim].copy()
+
+    def project_vector(self, vector: np.ndarray, target_dim: int) -> np.ndarray:
+        """
+        Project `vector` using GPU path when available, else fall back to CPU.
+        """
+        if self._bridge is not None and self._gpu_weights is not None:
+            return self._bridge.project_host(self._gpu_weights, vector, target_dim, self.max_dims)
+
+        resized = np.zeros(target_dim, dtype=np.float32)
+        vec = np.asarray(vector, dtype=np.float32)
+        length = min(len(vec), target_dim)
+        resized[:length] = vec[:length]
+        weights = self.get_base_at_dim(target_dim)
+        projected = weights @ resized
+        projected = np.nan_to_num(projected, nan=0.0, posinf=0.0, neginf=0.0)
+        np.clip(projected, -10.0, 10.0, out=projected)
+        return projected.astype(np.float32)
 
     def register_specialist(self, name: str, required_dims: int,
                           rank: Optional[int] = None,
@@ -435,6 +475,15 @@ class MatryoshkaTRM:
     def _snap_to_nearest_dim(self, dim: int) -> int:
         """Snap requested dimension to nearest supported level."""
         return min(self.dim_levels, key=lambda x: abs(x - dim))
+
+    def __del__(self):
+        """Release GPU buffers when the Matryoshka instance is collected."""
+        try:
+            if self._gpu_weights is not None:
+                loader.gpu_free(self._gpu_weights)
+                self._gpu_weights = None
+        except Exception:
+            pass
 
     def _resize_input(self, input_data: np.ndarray, target_dim: int) -> np.ndarray:
         """Resize input vector to match target dimension."""

@@ -38,6 +38,7 @@ class GPUBackward:
         kernels_to_load = [
             ("maxpool_2x2_backward.ptx", ["maxpool_2x2_backward"]),
             ("batchnorm_backward.ptx", ["batchnorm_backward"]),
+            ("batchnorm_backward_training.ptx", ["batchnorm_backward_training"]),
             ("conv2d_3x3_backward.ptx", ["conv2d_backward_weight", "conv2d_backward_input", "relu_backward"]),
             ("classification_loss.ptx", [
                 "softmax_forward", "cross_entropy_forward", "cross_entropy_softmax_backward",
@@ -67,6 +68,7 @@ class GPUBackward:
         # Set specific kernel attributes
         self.maxpool_backward_kernel = self.kernels["maxpool_2x2_backward"]
         self.batchnorm_backward_kernel = self.kernels["batchnorm_backward"]
+        self.batchnorm_backward_training_kernel = self.kernels["batchnorm_backward_training"]
         self.conv_backward_weight_kernel = self.kernels["conv2d_backward_weight"]
         self.conv_backward_input_kernel = self.kernels["conv2d_backward_input"]
         self.relu_backward_kernel = self.kernels["relu_backward"]
@@ -180,6 +182,64 @@ class GPUBackward:
         # Cleanup
         loader.gpu_free(d_d_out)
         loader.gpu_free(d_x_in)
+        loader.gpu_free(d_gamma_val)
+        loader.gpu_free(d_mean)
+        loader.gpu_free(d_var)
+
+    def batchnorm_backward_training(
+        self,
+        d_out: np.ndarray,
+        x_hat: np.ndarray,
+        gamma: np.ndarray,
+        batch_mean: np.ndarray,
+        batch_var: np.ndarray,
+        d_input: int,
+        d_gamma: int,
+        d_beta: int,
+        eps: float = 1e-5
+    ):
+        """Full training-mode BatchNorm backward pass."""
+        H, W, C = d_out.shape
+        N = 1  # Inputs processed one sample at a time (can extend later)
+
+        d_d_out = loader.gpu_malloc(d_out.nbytes)
+        d_x_hat = loader.gpu_malloc(x_hat.nbytes)
+        d_gamma_val = loader.gpu_malloc(gamma.nbytes)
+        d_mean = loader.gpu_malloc(batch_mean.nbytes)
+        d_var = loader.gpu_malloc(batch_var.nbytes)
+
+        loader.memcpy_htod(d_d_out, d_out.ctypes.data_as(ctypes.c_void_p), d_out.nbytes)
+        loader.memcpy_htod(d_x_hat, x_hat.ctypes.data_as(ctypes.c_void_p), x_hat.nbytes)
+        loader.memcpy_htod(d_gamma_val, gamma.ctypes.data_as(ctypes.c_void_p), gamma.nbytes)
+        loader.memcpy_htod(d_mean, batch_mean.ctypes.data_as(ctypes.c_void_p), batch_mean.nbytes)
+        loader.memcpy_htod(d_var, batch_var.ctypes.data_as(ctypes.c_void_p), batch_var.nbytes)
+
+        block = (256, 1, 1)
+        grid = (C, 1, 1)
+
+        loader.launch(
+            self.batchnorm_backward_training_kernel,
+            grid=grid,
+            block=block,
+            params=[
+                d_d_out,
+                d_x_hat,
+                d_gamma_val,
+                d_mean,
+                d_var,
+                d_input,
+                d_gamma,
+                d_beta,
+                ctypes.c_int(N),
+                ctypes.c_int(H),
+                ctypes.c_int(W),
+                ctypes.c_int(C),
+                ctypes.c_float(eps),
+            ],
+        )
+
+        loader.gpu_free(d_d_out)
+        loader.gpu_free(d_x_hat)
         loader.gpu_free(d_gamma_val)
         loader.gpu_free(d_mean)
         loader.gpu_free(d_var)

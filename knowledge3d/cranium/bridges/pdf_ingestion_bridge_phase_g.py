@@ -24,7 +24,7 @@ from __future__ import annotations
 import pickle
 import time
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, Iterable, List, Optional, Tuple, Any
 
 import numpy as np
 
@@ -186,42 +186,176 @@ class PhaseGPDFIngestionBridge(PDFIngestionBridge):
             isinstance(self.glyph_embeddings, np.ndarray) and self.glyph_embeddings.size > 0
         )
 
-        galaxy_path = self.embeddings_path.parent / "galaxy_stars.pkl"
+        atomic_path = Path("/K3D/Knowledge3D.local/checkpoints/phase_g/atomic_chars/galaxy_character_embeddings.npz")
         galaxy_ready = False
         total_stars = 0
         non_zero_samples = 0
 
-        if galaxy_path.exists():
+        atomic_template_bank: Dict[str, np.ndarray] = {}
+        atomic_mean_templates: Optional[np.ndarray] = None
+        atomic_low_embeddings: Optional[np.ndarray] = None
+
+        if atomic_path.exists():
             try:
-                with galaxy_path.open("rb") as handle:
-                    data = pickle.load(handle)
+                data = np.load(atomic_path)
+                embeddings = np.asarray(data.get("embeddings"), dtype=np.float32)
+                low_embeddings = (
+                    np.asarray(data.get("embeddings_low"), dtype=np.float32)
+                    if "embeddings_low" in data
+                    else None
+                )
+                char_ids = np.asarray(data.get("char_ids"), dtype=np.int32)
 
-                total_stars = int(data.get("total_stars", 0))
-                embeddings = data.get("embeddings", [])
+                if embeddings.ndim != 2 or char_ids.shape[0] != embeddings.shape[0]:
+                    raise ValueError("Invalid shape for atomic character embeddings")
 
-                for emb in embeddings:
-                    arr = np.asarray(emb, dtype=np.float32)
-                    if arr.size == 0:
+                total_stars = int(embeddings.shape[0])
+
+                unique_ids = np.unique(char_ids)
+                feature_dim = embeddings.shape[1]
+                mean_templates = np.zeros((256, feature_dim), dtype=np.float32)
+
+                for char_id in unique_ids:
+                    mask = char_ids == char_id
+                    char_vectors = embeddings[mask].astype(np.float32, copy=True)
+                    norms = np.linalg.norm(char_vectors, axis=1, keepdims=True)
+                    valid_mask = (norms.squeeze(axis=1) > 1e-6)
+                    if not np.any(valid_mask):
                         continue
-                    if not np.allclose(arr, 0.0, atol=1e-6):
-                        non_zero_samples += 1
-                        if non_zero_samples >= 8:
-                            break
+                    char_vectors = char_vectors[valid_mask]
+                    norms = np.maximum(np.linalg.norm(char_vectors, axis=1, keepdims=True), 1e-6)
+                    char_vectors = char_vectors / norms
+                    non_zero_samples += char_vectors.shape[0]
 
+                    try:
+                        char_symbol = chr(int(char_id))
+                    except ValueError:
+                        continue
+
+                atomic_template_bank[char_symbol] = char_vectors
+
+                cp = int(char_id)
+                if 0 <= cp < mean_templates.shape[0]:
+                    mean_vec = char_vectors.mean(axis=0)
+                    mean_norm = np.linalg.norm(mean_vec)
+                    if mean_norm > 1e-8:
+                        mean_templates[cp] = (mean_vec / mean_norm).astype(np.float32)
+
+                atomic_mean_templates = mean_templates
+                atomic_low_embeddings = low_embeddings
                 galaxy_ready = total_stars > 0 and non_zero_samples > 0
             except Exception as exc:
-                print(f"[PhaseG] WARNING: Unable to verify Galaxy stars ({exc})")
+                print(f"[PhaseG] WARNING: Unable to load atomic Galaxy embeddings ({exc})")
         else:
-            print(f"[PhaseG] WARNING: Galaxy star file missing at {galaxy_path}")
+            print(f"[PhaseG] WARNING: Atomic Galaxy embeddings missing at {atomic_path}")
+
+        if galaxy_ready and atomic_template_bank:
+            self._apply_atomic_template_bank(atomic_template_bank, atomic_mean_templates, atomic_low_embeddings)
 
         self._foundational_status = {
             "glyph_ready": glyph_ready,
             "galaxy_ready": galaxy_ready,
             "galaxy_total": total_stars,
             "non_zero_samples": non_zero_samples,
+            "atomic_path": str(atomic_path),
+            "atomic_chars": len(atomic_template_bank),
         }
 
         return glyph_ready and galaxy_ready
+
+    def _apply_atomic_template_bank(
+        self,
+        template_bank: Dict[str, np.ndarray],
+        mean_templates: Optional[np.ndarray],
+        low_embeddings: Optional[np.ndarray],
+    ) -> None:
+        """Apply atomic character embeddings to the detector and template bank."""
+        if not template_bank:
+            return
+
+        self._pending_template_bank = template_bank
+
+        if self.character_detector is None:
+            print("[PhaseG] CharacterDetector unavailable; atomic templates pending")
+            return
+
+        try:
+            if mean_templates is not None:
+                current_templates = self.character_detector.template_bank.get_templates().copy()
+                if mean_templates.shape == current_templates.shape:
+                    for idx in range(mean_templates.shape[0]):
+                        vec = mean_templates[idx]
+                        if np.linalg.norm(vec) > 1e-6:
+                            current_templates[idx] = vec
+                    self.character_detector.template_bank.set_external_templates(current_templates)
+                self.character_detector.set_atomic_mean_templates(mean_templates.copy())
+        except Exception as exc:
+            print(f"[PhaseG] WARNING: Failed to update Galactic template matrix ({exc})")
+
+        try:
+            self.character_detector.set_template_bank(template_bank)
+        except Exception as exc:
+            print(f"[PhaseG] WARNING: Failed to load atomic template bank ({exc})")
+        else:
+            total_vectors = sum(arr.shape[0] for arr in template_bank.values())
+            print(
+                f"[PhaseG] Applied atomic Galaxy character embeddings "
+                f"({len(template_bank)} characters, {total_vectors} variants)"
+            )
+
+        classifier_map = self._load_atomic_classifiers(template_bank.keys())
+        if classifier_map:
+            try:
+                self.character_detector.set_atomic_classifiers(classifier_map)
+                print(f"[PhaseG] Registered {len(classifier_map)} atomic classifiers")
+            except Exception as exc:
+                print(f"[PhaseG] WARNING: Failed to register atomic classifiers ({exc})")
+
+        if low_embeddings is not None:
+            try:
+                self.character_detector.set_atomic_low_embeddings(low_embeddings.copy())
+            except Exception as exc:
+                print(f"[PhaseG] WARNING: Failed to register low-d embeddings ({exc})")
+
+    @staticmethod
+    def _load_atomic_classifiers(chars: Iterable[str]) -> Dict[int, Tuple[np.ndarray, float]]:
+        """Load binary classifiers (FC heads) for each character."""
+        classifier_dir = Path("/K3D/Knowledge3D.local/checkpoints/phase_g/atomic_chars")
+        classifiers: Dict[int, Tuple[np.ndarray, float]] = {}
+
+        if not classifier_dir.exists():
+            return classifiers
+
+        for char in chars:
+            if not char:
+                continue
+            char_code = ord(char)
+            weight_path = classifier_dir / f"char_{char_code}_{char}_weights.npz"
+            if not weight_path.exists():
+                continue
+
+            try:
+                data = np.load(weight_path)
+                fc_weight = np.asarray(data.get("fc_weight"), dtype=np.float32)
+                fc_bias = np.asarray(data.get("fc_bias"), dtype=np.float32)
+                if fc_weight is None or fc_bias is None:
+                    continue
+                if fc_weight.ndim != 2 or fc_weight.shape[0] != 2:
+                    continue
+
+                weight_vec = fc_weight[1] - fc_weight[0]
+                if fc_bias.size >= 2:
+                    bias_val = float(fc_bias[1] - fc_bias[0])
+                elif fc_bias.size == 1:
+                    bias_val = float(fc_bias[0])
+                else:
+                    bias_val = 0.0
+
+                classifiers[char_code] = (weight_vec.astype(np.float32), bias_val)
+            except Exception:
+                continue
+
+        return classifiers
 
     def _generate_text_embeddings(self, parsed_objects: Dict[str, object]) -> np.ndarray:
         """

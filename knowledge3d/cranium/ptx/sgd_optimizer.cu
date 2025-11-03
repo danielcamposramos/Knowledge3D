@@ -22,7 +22,7 @@ extern "C" __global__ void sgd_update(
 
 
 // ============================================================================
-// SGD Update with Momentum
+// SGD Update with Momentum (CRITICAL FIX: Added gradient/velocity clipping)
 // ============================================================================
 extern "C" __global__ void sgd_momentum_update(
     float* __restrict__ param,            // Parameters to update
@@ -35,12 +35,34 @@ extern "C" __global__ void sgd_momentum_update(
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= N) return;
 
+    float g = grad[idx];
+    float v_old = velocity[idx];
+
+    // CRITICAL FIX 1: Clip gradients to [-10, 10] before velocity update
+    if (isnan(g) || isinf(g)) {
+        g = 0.0f;
+    } else {
+        g = fmaxf(fminf(g, 10.0f), -10.0f);
+    }
+
     // Update velocity: v = momentum * v - lr * grad
-    float v = momentum * velocity[idx] - learning_rate * grad[idx];
+    float v = momentum * v_old - learning_rate * g;
+
+    // CRITICAL FIX 2: Clip velocity to [-1, 1]
+    if (isnan(v) || isinf(v)) {
+        v = 0.0f;
+    } else {
+        v = fmaxf(fminf(v, 1.0f), -1.0f);
+    }
+
     velocity[idx] = v;
 
-    // Update parameter: param = param + v
-    param[idx] += v;
+    // CRITICAL FIX 3: NaN/inf check before parameter update
+    float new_param = param[idx] + v;
+    if (!isnan(new_param) && !isinf(new_param)) {
+        param[idx] = new_param;
+    }
+    // If new_param is NaN/inf, keep old parameter value
 }
 
 

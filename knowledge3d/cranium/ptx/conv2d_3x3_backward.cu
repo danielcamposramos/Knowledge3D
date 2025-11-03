@@ -45,7 +45,7 @@ extern "C" __global__ void conv2d_backward_weight(
             int out_idx = (out_h * W_out + out_w) * Cout + cout;
             float grad = d_out[out_idx];
 
-            // Accumulate bias gradient
+            // Accumulate bias gradient (no clipping - rely on small LR)
             local_bias += grad;
 
             // Input window starts (accounting for padding)
@@ -67,7 +67,12 @@ extern "C" __global__ void conv2d_backward_weight(
                         int w_idx = ((cout * 3 + kh) * 3 + kw) * Cin + cin;
 
                         // Accumulate: d_weight = grad * input
-                        atomicAdd(&d_weight[w_idx], grad * in_val);
+                        float weight_grad = grad * in_val;
+                        // RPN-style NaN guard: only accumulate valid gradients
+                        if (!isnan(weight_grad) && !isinf(weight_grad)) {
+                            // No clipping - rely on small learning rate for stability
+                            atomicAdd(&d_weight[w_idx], weight_grad);
+                        }
                     }
                 }
             }
@@ -164,5 +169,10 @@ extern "C" __global__ void relu_backward(
     if (idx >= N) return;
 
     // d_input = d_out * (x_in > 0)
-    d_input[idx] = d_out[idx] * (x_in[idx] > 0.0f ? 1.0f : 0.0f);
+    float grad = d_out[idx];
+    // RPN-style NaN guard: zero out invalid gradients before ReLU masking
+    if (isnan(grad) || isinf(grad)) {
+        grad = 0.0f;
+    }
+    d_input[idx] = grad * (x_in[idx] > 0.0f ? 1.0f : 0.0f);
 }
