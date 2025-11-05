@@ -10,11 +10,14 @@ are exported to Galaxy memory for later composition.
 from __future__ import annotations
 
 import argparse
+import ctypes
+import pickle
 import random
 import sys
+from io import BytesIO
 from itertools import cycle
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, Iterable, List, Optional, Union
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
@@ -35,12 +38,29 @@ from knowledge3d.cranium.ocr.gpu_trainer import GPUCNNTrainer  # noqa: E402
 from knowledge3d.cranium.rpn_embedding_engine import RPNEmbeddingEngine  # noqa: E402
 from knowledge3d.cranium.bridges.trigram_embed_bridge import TrigramEmbedBridge  # noqa: E402
 from knowledge3d.cranium.bridges.spatial_pool_bridge import SpatialMeanPooler  # noqa: E402
+from knowledge3d.cranium.sovereign import loader  # noqa: E402
 
 MATRY_MAX_DIM = 2048
 CHAR_EMBED_DIM = 128
 LOW_DIM = 64
 DEFAULT_FONTS_PER_SCRIPT = 50
 FONT_CATEGORY_DIR = Path("/K3D/Knowledge3D.local/font_categories")
+CHECKPOINT_DIR = Path("/K3D/Knowledge3D.local/checkpoints/phase_g/atomic_chars")
+
+MODEL_STATE_KEYS = [
+    "conv1_weight",
+    "conv1_bias",
+    "bn1_gamma",
+    "bn1_beta",
+    "conv2_weight",
+    "conv2_bias",
+    "bn2_gamma",
+    "bn2_beta",
+    "conv3_weight",
+    "conv3_bias",
+    "bn3_gamma",
+    "bn3_beta",
+]
 
 CHINESE_COMMON = [
     '的', '一', '是', '在', '不', '了', '有', '和', '人', '这',
@@ -246,9 +266,174 @@ def render_glyph_image(char: str, font_path: str, size: int = 64) -> Optional[np
     return array
 
 
-def augment_character_patch(img: np.ndarray) -> List[np.ndarray]:
+def _has_glyph(font_meta: Dict[str, object], char: str) -> bool:
+    """Return True when font metadata declares that it contains the glyph."""
+    glyphs: Optional[Union[Iterable[int], Iterable[str], Dict[object, object]]] = font_meta.get("glyphs")  # type: ignore[assignment]
+    if glyphs is None:
+        return True
+
+    if isinstance(glyphs, dict):
+        keys = glyphs.keys()
+    else:
+        keys = glyphs
+
+    if char in keys:
+        return True
+
+    char_code = ord(char)
+    return char_code in keys
+
+
+def render_contextual_glyph(
+    char: str,
+    font_path: str,
+    size: int = 64,
+    context: bool = True,
+) -> Optional[np.ndarray]:
+    """
+    Render a glyph within sentence context to better match PDF patches.
+
+    Falls back to isolated rendering when context rendering fails.
+    """
+    try:
+        font = ImageFont.truetype(font_path, size)
+    except Exception:
+        return None
+
+    if not context:
+        return render_glyph_image(char, font_path, size=size)
+
+    prefix_chars = "The quick "
+    suffix_chars = " jumps over"
+    sentence = f"{prefix_chars}{char}{suffix_chars}"
+
+    canvas_width = 256
+    canvas_height = 64
+    bg_color = (255, 255, 255)
+    img = Image.new("RGB", (canvas_width, canvas_height), color=bg_color)
+    draw = ImageDraw.Draw(img)
+
+    try:
+        draw.text((10, 10), sentence, fill=(0, 0, 0), font=font)
+    except Exception:
+        return render_glyph_image(char, font_path, size=size)
+
+    try:
+        prefix_bbox = draw.textbbox((10, 10), prefix_chars, font=font)
+    except Exception:
+        prefix_bbox = font.getbbox(prefix_chars)  # type: ignore[attr-defined]
+        prefix_bbox = (0, 0, prefix_bbox[2] - prefix_bbox[0], prefix_bbox[3] - prefix_bbox[1])
+    prefix_width = prefix_bbox[2] - prefix_bbox[0]
+
+    try:
+        char_bbox = draw.textbbox((10 + prefix_width, 10), char, font=font)
+    except Exception:
+        char_bbox = font.getbbox(char)  # type: ignore[attr-defined]
+        char_bbox = (
+            10 + prefix_width,
+            10,
+            10 + prefix_width + (char_bbox[2] - char_bbox[0]),
+            10 + (char_bbox[3] - char_bbox[1]),
+        )
+
+    char_x0, char_y0, char_x1, char_y1 = char_bbox
+    if char_x0 == char_x1 or char_y0 == char_y1:
+        return render_glyph_image(char, font_path, size=size)
+
+    char_w = char_x1 - char_x0
+    char_h = char_y1 - char_y0
+    expand_x = int(char_w * 0.3)
+    expand_y = int(char_h * 0.3)
+
+    context_x0 = max(0, char_x0 - expand_x)
+    context_x1 = min(canvas_width, char_x1 + expand_x)
+    context_y0 = max(0, char_y0 - expand_y)
+    context_y1 = min(canvas_height, char_y1 + expand_y)
+
+    if context_x0 >= context_x1 or context_y0 >= context_y1:
+        return render_glyph_image(char, font_path, size=size)
+
+    img_array = np.array(img, dtype=np.uint8)
+    patch = img_array[context_y0:context_y1, context_x0:context_x1]
+    if patch.size == 0:
+        return render_glyph_image(char, font_path, size=size)
+
+    patch_pil = Image.fromarray(patch)
+    if hasattr(Image, "Resampling"):
+        resample_filter = Image.Resampling.LANCZOS  # type: ignore[attr-defined]
+    else:
+        resample_filter = Image.LANCZOS  # type: ignore[attr-defined]
+    patch_resized = patch_pil.resize((64, 64), resample_filter)
+    return np.array(patch_resized, dtype=np.float32) / 255.0
+
+
+def augment_pdf_style(img: np.ndarray) -> np.ndarray:
+    """
+    Apply PDF-like degradation (noise, compression, blur, paper texture).
+    """
+    degraded = img.astype(np.float32)
+
+    noise = np.random.normal(0, 3, degraded.shape).astype(np.float32)
+    degraded = np.clip(degraded + noise, 0, 255)
+
+    if random.random() < 0.5:
+        pil_img = Image.fromarray(degraded.astype(np.uint8))
+        buffer = BytesIO()
+        quality = random.randint(50, 80)
+        pil_img.save(buffer, format="JPEG", quality=quality)
+        buffer.seek(0)
+        try:
+            pil_img = Image.open(buffer)
+            if pil_img.mode != "RGB":
+                pil_img = pil_img.convert("RGB")
+            degraded = np.array(pil_img, dtype=np.float32)
+        except Exception:
+            degraded = img.astype(np.float32)
+
+    if cv2 is not None and random.random() < 0.3:
+        kernel = random.choice([3, 5])
+        degraded = cv2.GaussianBlur(degraded.astype(np.uint8), (kernel, kernel), 0.5).astype(np.float32)
+
+    if random.random() < 0.2:
+        texture = np.random.randint(248, 256, degraded.shape, dtype=np.uint8)
+        degraded = (degraded * 0.95 + texture.astype(np.float32) * 0.05)
+
+    return np.clip(degraded, 0, 255).astype(np.uint8)
+
+
+def _apply_fc_checkpoint(trainer: GPUCNNTrainer, fc_weight: np.ndarray, fc_bias: np.ndarray) -> None:
+    """Load FC weights/bias into trainer and sync GPU buffers."""
+    if fc_weight.shape != trainer.fc_weight.shape or fc_bias.shape != trainer.fc_bias.shape:
+        raise ValueError(
+            f"Checkpoint FC shape mismatch: weight {fc_weight.shape} vs {trainer.fc_weight.shape}, "
+            f"bias {fc_bias.shape} vs {trainer.fc_bias.shape}"
+        )
+
+    trainer.fc_weight = fc_weight.astype(np.float32).copy()
+    trainer.fc_bias = fc_bias.astype(np.float32).copy()
+    loader.memcpy_htod(
+        trainer.d_fc_weight,
+        trainer.fc_weight.ctypes.data_as(ctypes.c_void_p),
+        trainer.fc_weight.nbytes,
+    )
+    loader.memcpy_htod(
+        trainer.d_fc_bias,
+        trainer.fc_bias.ctypes.data_as(ctypes.c_void_p),
+        trainer.fc_bias.nbytes,
+    )
+
+    trainer.gpu_backward.zero_gradients(trainer.d_grad_fc_weight, trainer.fc_weight.size)
+    trainer.gpu_backward.zero_gradients(trainer.d_grad_fc_bias, trainer.fc_bias.size)
+    trainer.gpu_backward.zero_gradients(trainer.d_vel_fc_weight, trainer.fc_weight.size)
+    trainer.gpu_backward.zero_gradients(trainer.d_vel_fc_bias, trainer.fc_bias.size)
+
+
+def augment_character_patch(img: np.ndarray, pdf_augment: bool = True) -> List[np.ndarray]:
     """Augment a glyph image to match patch-level inference distribution."""
     base_uint8 = (np.clip(img, 0.0, 1.0) * 255.0).astype(np.uint8)
+    if pdf_augment and random.random() < 0.5:
+        base_uint8 = augment_pdf_style(base_uint8)
+
     augmented: List[np.ndarray] = [base_uint8]
 
     height, width = base_uint8.shape[:2]
@@ -263,7 +448,7 @@ def augment_character_patch(img: np.ndarray) -> List[np.ndarray]:
                 src_img = src_img.convert("L")
             canvas = Image.new("L", (64, 64), color=255)
             canvas.paste(src_img, (dx, dy))
-            augmented.append(np.array(canvas, dtype=np.uint8))
+            augmented.append(np.array(canvas.convert("RGB"), dtype=np.uint8))
         # Continue to normalisation stage
         normalized: List[np.ndarray] = []
         for arr in augmented:
@@ -303,7 +488,7 @@ def augment_character_patch(img: np.ndarray) -> List[np.ndarray]:
     for angle in [-12, -6, 6, 12]:
         matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
         rotated = cv2.warpAffine(base_uint8, matrix, (64, 64), borderValue=(255, 255, 255))
-        augmented.append(rotated)
+        augmented.append(rotated.astype(np.uint8))
 
     # Noise
     for _ in range(2):
@@ -381,7 +566,9 @@ def _build_dataset(
     base_positives: List[np.ndarray] = []
 
     for font_path in positive_fonts:
-        glyph = render_glyph_image(target_char, str(font_path))
+        glyph = render_contextual_glyph(target_char, str(font_path), context=True)
+        if glyph is None:
+            glyph = render_glyph_image(target_char, str(font_path))
         if glyph is not None:
             base_positives.append(glyph)
 
@@ -426,7 +613,9 @@ def _build_dataset(
         if char_candidate == target_char:
             continue
         font_path = next(font_iter)
-        glyph = render_glyph_image(char_candidate, str(font_path))
+        glyph = render_contextual_glyph(char_candidate, str(font_path), context=True)
+        if glyph is None:
+            glyph = render_glyph_image(char_candidate, str(font_path))
         if glyph is None:
             continue
         augmented = augment_character_patch(glyph)
@@ -458,8 +647,8 @@ def _build_dataset(
 def train_single_character(
     target_char: str,
     learning_rate: float = 0.01,
-    n_epochs: int = 100,
-    n_fonts: int = DEFAULT_FONTS_PER_SCRIPT,
+    n_epochs: int = 1500,
+    n_fonts: int = 0,
     fc_only: bool = False,
 ) -> Dict[str, object]:
     """Train CNN to recognize single character across fonts."""
@@ -470,15 +659,73 @@ def train_single_character(
     print(f"Script: {script}")
     print()
 
-    print("[1/6] Loading script-specific fonts...")
-    fonts = load_fonts_for_script(script, n_fonts)
+    char_code = ord(target_char)
+    checkpoint_dir = CHECKPOINT_DIR
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    weights_path = checkpoint_dir / f"char_{char_code}_{target_char}_weights.npz"
+
+    print("[1/6] Loading font database (all available fonts)...")
+    fonts: List[Path] = []
+    font_db_path = Path("/K3D/Knowledge3D.local/font_db.pkl")
+    if font_db_path.exists():
+        try:
+            with font_db_path.open("rb") as handle:
+                font_db = pickle.load(handle)
+        except Exception as exc:
+            print(f"       ⚠️  Failed to load font_db.pkl ({exc}); falling back to script fonts.")
+        else:
+            for font_meta in font_db.values():
+                font_path = font_meta.get("font_path")  # type: ignore[assignment]
+                if not font_path:
+                    continue
+                font_path_obj = Path(font_path)
+                if not font_path_obj.exists():
+                    continue
+                if font_meta.get("is_symbol_font"):  # type: ignore[call-arg]
+                    continue
+                if not _has_glyph(font_meta, target_char):
+                    continue
+                fonts.append(font_path_obj)
+
+    fonts = list(dict.fromkeys(fonts))
     if not fonts:
-        fonts = discover_system_fonts(n_fonts)
+        fonts = load_fonts_for_script(script, n_fonts if n_fonts else DEFAULT_FONTS_PER_SCRIPT)
+        fonts = list(dict.fromkeys(fonts))
+
+    if n_fonts and n_fonts > 0 and len(fonts) > n_fonts:
+            fonts = random.sample(fonts, n_fonts)
+
+    if not fonts:
+        raise RuntimeError(f"No fonts available for script '{script}' and character '{target_char}'")
+
     print(f"       Using {len(fonts)} fonts for script '{script}'")
     print()
 
     print("[2/6] Initializing binary CNN model...")
     model = DeepSeekOCRModel()
+    resume_best_accuracy = 0.0
+    resume_fc_weight: Optional[np.ndarray] = None
+    resume_fc_bias: Optional[np.ndarray] = None
+
+    if weights_path.exists():
+        try:
+            with np.load(weights_path, allow_pickle=True) as data:
+                state_dict = {name: data[name] for name in MODEL_STATE_KEYS if name in data}
+                if state_dict:
+                    model.load_state_dict(state_dict, strict=False)
+                    print(f"       ✓ Loaded {len(state_dict)} CNN parameter tensors from checkpoint")
+                if "fc_weight" in data and "fc_bias" in data:
+                    resume_fc_weight = np.array(data["fc_weight"])
+                    resume_fc_bias = np.array(data["fc_bias"])
+                if "accuracy" in data:
+                    resume_best_accuracy = float(np.squeeze(data["accuracy"]))
+            print(
+                "       Resuming from checkpoint "
+                f"(best accuracy: {resume_best_accuracy * 100:.2f}%)"
+            )
+        except Exception as exc:
+            print(f"       ⚠️  Failed to load checkpoint ({exc}); starting from scratch.")
+
     trainer = GPUCNNTrainer(
         model,
         num_classes=2,
@@ -487,6 +734,13 @@ def train_single_character(
         normalize_gradients=not fc_only,
         fc_only=fc_only,
     )
+    if resume_fc_weight is not None and resume_fc_bias is not None:
+        try:
+            _apply_fc_checkpoint(trainer, resume_fc_weight, resume_fc_bias)
+            print("       ✓ Loaded FC classifier weights from checkpoint")
+        except Exception as exc:
+            print(f"       ⚠️  Failed to load FC weights ({exc}); reinitializing FC layer.")
+
     mode_desc = "fc-only (frozen CNN)" if fc_only else "full CNN fine-tuning"
     print(f"       Task: Binary classification (is '{target_char}' vs not)")
     print(f"       Learning rate: {learning_rate}")
@@ -515,10 +769,7 @@ def train_single_character(
 
     batch_size = 32
     n_samples = len(images)
-    best_accuracy = 0.0
-
-    checkpoint_dir = Path("/K3D/Knowledge3D.local/checkpoints/phase_g/atomic_chars")
-    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    best_accuracy = max(0.0, resume_best_accuracy)
 
     for epoch in range(1, n_epochs + 1):
         indices = np.random.permutation(n_samples)
@@ -636,8 +887,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Train CNN on a single character (binary task).")
     parser.add_argument("--char", type=str, required=True, help="Target character (e.g., 'A')")
     parser.add_argument("--lr", type=float, default=0.01, help="Learning rate")
-    parser.add_argument("--epochs", type=int, default=100, help="Number of epochs")
-    parser.add_argument("--fonts", type=int, default=20, help="Number of fonts to sample")
+    parser.add_argument("--epochs", type=int, default=1500, help="Number of epochs (default: 1500)")
+    parser.add_argument(
+        "--fonts",
+        type=int,
+        default=0,
+        help="Number of fonts to sample (0 uses all available fonts).",
+    )
     parser.add_argument("--fc-only", action="store_true", help="Train only the final FC layer (freeze CNN)")
 
     args = parser.parse_args()

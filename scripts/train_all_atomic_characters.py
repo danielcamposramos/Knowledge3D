@@ -44,8 +44,13 @@ def check_embedding_file(char: str) -> Dict[str, float]:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Train all 62 base characters with GPU-sovereign pipeline.")
     parser.add_argument("--lr", type=float, default=0.01, help="Learning rate per character.")
-    parser.add_argument("--epochs", type=int, default=100, help="Epochs per character.")
-    parser.add_argument("--fonts", type=int, default=20, help="Font samples per character.")
+    parser.add_argument("--epochs", type=int, default=1500, help="Epochs per character (default: 1500).")
+    parser.add_argument(
+        "--fonts",
+        type=int,
+        default=0,
+        help="Font samples per character (0 uses all fonts declared in font_db.pkl).",
+    )
     parser.add_argument("--fc-only", action="store_true", help="Train only the final FC layer.")
     args = parser.parse_args()
 
@@ -55,7 +60,8 @@ def main() -> None:
     print(f"Characters: {len(BASE_CHARACTERS)} (A-Z, a-z, 0-9)")
     print(f"Learning rate: {args.lr}")
     print(f"Epochs: {args.epochs}")
-    print(f"Fonts per character: {args.fonts}")
+    font_desc = "all available fonts" if args.fonts == 0 else str(args.fonts)
+    print(f"Fonts per character: {font_desc}")
     print(f"Mode: {'FC-only' if args.fc_only else 'Full CNN fine-tuning'}")
     print("=" * 80)
 

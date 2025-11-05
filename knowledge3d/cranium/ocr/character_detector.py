@@ -483,10 +483,25 @@ class CharacterDetector:
         self.atomic_classifier_matrix: Optional[np.ndarray] = None
         self.atomic_classifier_bias: Optional[np.ndarray] = None
         self.atomic_char_ids_list: Optional[np.ndarray] = None
-        self.atomic_classifier_threshold: float = 0.75
-        self.atomic_similarity_threshold: float = 0.5
+        self.atomic_classifier_threshold: float = 0.5  # Matches training threshold (softmax argmax)
+        self.atomic_similarity_threshold: float = 0.6
         self.atomic_mean_templates: Optional[np.ndarray] = None
         self.atomic_low_embeddings: Optional[np.ndarray] = None
+        self.atomic_feature_mean: Optional[np.ndarray] = None
+        self.atomic_feature_std: Optional[np.ndarray] = None
+
+        stats_path = Path("/K3D/Knowledge3D.local/checkpoints/phase_g/atomic_chars/feature_stats.npz")
+        if stats_path.exists():
+            try:
+                stats = np.load(stats_path)
+                mean_vec = np.asarray(stats.get("mean"), dtype=np.float32)
+                std_vec = np.asarray(stats.get("std"), dtype=np.float32)
+                if mean_vec.ndim == 1 and std_vec.ndim == 1 and mean_vec.size == std_vec.size == feature_dim:
+                    self.atomic_feature_mean = mean_vec
+                    self.atomic_feature_std = np.maximum(std_vec, 1e-6)
+                    print(f"[F.2] Loaded atomic feature stats from {stats_path}")
+            except Exception as exc:
+                print(f"[F.2] WARNING: Failed to load feature stats ({exc})")
 
         print("[F.2] ✓ CharacterDetector ready")
 
@@ -683,10 +698,13 @@ class CharacterDetector:
         patch_size = self.patch_size
         patch_tensor = patches.reshape(len(patches), patch_size, patch_size, C_feat)
         patch_raw_features = patch_tensor.mean(axis=(1, 2))  # [num_patches, C_feat]
+        # Debug hooks: expose raw/normalized patch features for diagnostics
+        self.debug_last_patch_raw_features = patch_raw_features.copy()
 
         # Normalize patch features for cosine similarity/template matching
         patch_norms = np.linalg.norm(patch_raw_features, axis=1, keepdims=True)
         patch_features = patch_raw_features / np.maximum(patch_norms, 1e-6)
+        self.debug_last_patch_features = patch_features.copy()
 
         # Prepare template similarity (fallback)
         template_char_ids = None
@@ -721,6 +739,16 @@ class CharacterDetector:
 
         # Atomic classifier logits (Phase G)
         logistic_probs = None
+        mean_subset = None
+        if (
+            self.atomic_mean_templates is not None
+            and self.atomic_char_ids_list is not None
+        ):
+            try:
+                mean_subset = self.atomic_mean_templates[self.atomic_char_ids_list]
+            except Exception:
+                mean_subset = None
+
         if (
             self.atomic_classifier_matrix is not None
             and self.atomic_classifier_bias is not None
@@ -739,9 +767,18 @@ class CharacterDetector:
             else:
                 patch_for_logit = patch_raw_features
 
-            logits = np.dot(patch_for_logit, matrix.T) + bias
+            if self.atomic_feature_mean is not None and self.atomic_feature_std is not None:
+                mean_vec = self.atomic_feature_mean[:feature_dim]
+                std_vec = self.atomic_feature_std[:feature_dim]
+                patch_for_logit_normalized = (patch_for_logit - mean_vec) / std_vec
+            else:
+                patch_for_logit_normalized = patch_for_logit
+
+            logits = np.dot(patch_for_logit_normalized, matrix.T) + bias
+            logits = np.clip(logits, -20.0, 20.0)
             logistic_probs = 1.0 / (1.0 + np.exp(-logits))
             self.last_template_score = float(np.max(logistic_probs)) if logistic_probs.size > 0 else 0.0
+            self.debug_last_logistic_probs = logistic_probs.copy()
         elif templates is None or scores is None or template_char_ids is None:
             return []
 
@@ -752,54 +789,46 @@ class CharacterDetector:
         for i, (row, col) in enumerate(positions):
             added = False
 
-            if logistic_probs is not None:
-                best_idx = int(np.argmax(logistic_probs[i]))
-                top_indices = [best_idx]
-                for idx in top_indices:
-                    probability = float(logistic_probs[i, idx])
-                    if probability < self.atomic_classifier_threshold:
-                        continue
-
-                    char_id = int(self.atomic_char_ids_list[idx])
-                    if char_id < 0:
-                        continue
-
-                    similarity = 0.0
-                    if (
-                        self.atomic_mean_templates is not None
-                        and 0 <= char_id < self.atomic_mean_templates.shape[0]
-                    ):
-                        template_vec = self.atomic_mean_templates[char_id]
-                        template_vec = np.asarray(template_vec, dtype=np.float32)
-                        if template_vec.size > patch_features.shape[1]:
-                            template_vec = template_vec[:patch_features.shape[1]]
-                        elif template_vec.size < patch_features.shape[1]:
-                            padded = np.zeros(patch_features.shape[1], dtype=np.float32)
-                            padded[:template_vec.size] = template_vec
-                            template_vec = padded
-                        vec_norm = np.linalg.norm(template_vec)
-                        if vec_norm > 1e-6:
-                            template_vec = template_vec / vec_norm
-                            similarity = float(np.dot(patch_features[i], template_vec))
-
-                    if similarity < self.atomic_similarity_threshold:
-                        continue
-
-                    accepted += 1
-                    added = True
-
-                    scale = 4
-                    x1 = col * scale
-                    y1 = row * scale
-                    x2 = (col + patch_size) * scale
-                    y2 = (row + patch_size) * scale
-
-                    detections.append({
-                        'bbox': [x1, y1, x2, y2],
-                        'confidence': probability * max(similarity, 0.0),
-                        'char_id': char_id,
-                        'position': (row, col)
-                    })
+            if logistic_probs is not None and self.atomic_char_ids_list is not None:
+                if mean_subset is not None:
+                    similarity_vec = patch_features[i] @ mean_subset.T
+                    best_idx = int(np.argmax(similarity_vec))
+                    probability = float(logistic_probs[i, best_idx])
+                    similarity = float(similarity_vec[best_idx])
+                    char_id = int(self.atomic_char_ids_list[best_idx])
+                    if probability >= self.atomic_classifier_threshold and similarity >= self.atomic_similarity_threshold and char_id >= 0:
+                        accepted += 1
+                        added = True
+                        scale = 4
+                        x1 = col * scale
+                        y1 = row * scale
+                        x2 = (col + patch_size) * scale
+                        y2 = (row + patch_size) * scale
+                        detections.append({
+                            'bbox': [x1, y1, x2, y2],
+                            'confidence': probability * max(similarity, 0.0),
+                            'char_id': char_id,
+                            'position': (row, col)
+                        })
+                else:
+                    best_idx = int(np.argmax(logistic_probs[i]))
+                    probability = float(logistic_probs[i, best_idx])
+                    if probability >= self.atomic_classifier_threshold:
+                        char_id = int(self.atomic_char_ids_list[best_idx])
+                        if char_id >= 0:
+                            accepted += 1
+                            added = True
+                            scale = 4
+                            x1 = col * scale
+                            y1 = row * scale
+                            x2 = (col + patch_size) * scale
+                            y2 = (row + patch_size) * scale
+                            detections.append({
+                                'bbox': [x1, y1, x2, y2],
+                                'confidence': probability,
+                                'char_id': char_id,
+                                'position': (row, col)
+                            })
 
             if logistic_probs is not None:
                 if added:
@@ -837,4 +866,5 @@ class CharacterDetector:
                 })
 
         self.last_accept_count = accepted
+        self.debug_last_detections = detections
         return detections

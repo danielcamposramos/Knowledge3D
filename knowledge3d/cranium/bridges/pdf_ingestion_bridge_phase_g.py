@@ -232,14 +232,14 @@ class PhaseGPDFIngestionBridge(PDFIngestionBridge):
                     except ValueError:
                         continue
 
-                atomic_template_bank[char_symbol] = char_vectors
+                    atomic_template_bank[char_symbol] = char_vectors
 
-                cp = int(char_id)
-                if 0 <= cp < mean_templates.shape[0]:
-                    mean_vec = char_vectors.mean(axis=0)
-                    mean_norm = np.linalg.norm(mean_vec)
-                    if mean_norm > 1e-8:
-                        mean_templates[cp] = (mean_vec / mean_norm).astype(np.float32)
+                    cp = int(char_id)
+                    if 0 <= cp < mean_templates.shape[0]:
+                        mean_vec = char_vectors.mean(axis=0)
+                        mean_norm = np.linalg.norm(mean_vec)
+                        if mean_norm > 1e-8:
+                            mean_templates[cp] = (mean_vec / mean_norm).astype(np.float32)
 
                 atomic_mean_templates = mean_templates
                 atomic_low_embeddings = low_embeddings
