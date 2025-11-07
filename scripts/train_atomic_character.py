@@ -128,9 +128,12 @@ _FONT_CACHE: Dict[str, List[Path]] = {}
 
 
 def is_emoji(char: str) -> bool:
+    # Handle edge cases: empty string, None, or multi-character strings
+    if not char or len(char) != 1:
+        return False
     try:
         name = unicodedata.name(char)
-    except ValueError:
+    except (ValueError, TypeError):
         return False
     return "EMOJI" in name or ord(char) >= 0x1F300
 
@@ -646,10 +649,11 @@ def _build_dataset(
 
 def train_single_character(
     target_char: str,
-    learning_rate: float = 0.01,
+    learning_rate: float = 0.03,
     n_epochs: int = 1500,
     n_fonts: int = 0,
     fc_only: bool = False,
+    max_epochs: int = 3000,
 ) -> Dict[str, object]:
     """Train CNN to recognize single character across fonts."""
     print("=" * 80)
@@ -693,7 +697,7 @@ def train_single_character(
         fonts = list(dict.fromkeys(fonts))
 
     if n_fonts and n_fonts > 0 and len(fonts) > n_fonts:
-            fonts = random.sample(fonts, n_fonts)
+        fonts = random.sample(fonts, n_fonts)
 
     if not fonts:
         raise RuntimeError(f"No fonts available for script '{script}' and character '{target_char}'")
@@ -771,7 +775,15 @@ def train_single_character(
     n_samples = len(images)
     best_accuracy = max(0.0, resume_best_accuracy)
 
-    for epoch in range(1, n_epochs + 1):
+    epoch = 0
+    target_epochs = max(1, n_epochs)
+    max_epochs = max(max_epochs, target_epochs)
+    current_limit = target_epochs
+    extend_applied = False
+    accuracy_at_epoch_50: Optional[float] = None
+
+    while epoch < current_limit:
+        epoch += 1
         indices = np.random.permutation(n_samples)
         images_shuffled = images[indices]
         labels_shuffled = labels[indices]
@@ -796,7 +808,7 @@ def train_single_character(
         avg_loss = float(np.mean(epoch_losses)) if epoch_losses else 0.0
         avg_acc = float(np.mean(epoch_accs)) if epoch_accs else 0.0
 
-        print(f"Epoch {epoch:3d}/{n_epochs} | Loss: {avg_loss:.4f} | Acc: {avg_acc * 100:5.2f}%", end="")
+        print(f"Epoch {epoch:3d}/{current_limit} | Loss: {avg_loss:.4f} | Acc: {avg_acc * 100:5.2f}%", end="")
 
         if avg_acc > best_accuracy:
             best_accuracy = avg_acc
@@ -813,6 +825,37 @@ def train_single_character(
             print(" ✓ [saved]")
         else:
             print()
+
+        if accuracy_at_epoch_50 is None and epoch >= 50:
+            accuracy_at_epoch_50 = best_accuracy
+
+        if epoch % 50 == 0:
+            est_msg = ""
+            if accuracy_at_epoch_50 is not None and epoch > 50:
+                recent_improvement = best_accuracy - accuracy_at_epoch_50
+                epochs_remaining = current_limit - epoch
+                if epochs_remaining > 0:
+                    estimated_final = best_accuracy + (recent_improvement / max(1, epoch - 50)) * epochs_remaining
+                    est_msg = f"\n            Estimated final accuracy: {estimated_final * 100:.2f}%"
+            print(
+                f"            Progress checkpoint | Best so far: {best_accuracy * 100:5.2f}%{est_msg}"
+            )
+
+        if best_accuracy >= 0.85:
+            print(f"🎯 Target accuracy {best_accuracy * 100:.2f}% reached at epoch {epoch}!")
+            print("   Early stopping (target: 85%)")
+            break
+
+        if (
+            epoch == current_limit
+            and best_accuracy < 0.80
+            and not extend_applied
+            and max_epochs > current_limit
+        ):
+            print(f"⚠️  Accuracy {best_accuracy * 100:.2f}% below target at epoch {epoch}")
+            print(f"   Extending training to {max_epochs} epochs...")
+            current_limit = max_epochs
+            extend_applied = True
 
     print()
     print("=" * 80)
@@ -886,7 +929,7 @@ def train_single_character(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Train CNN on a single character (binary task).")
     parser.add_argument("--char", type=str, required=True, help="Target character (e.g., 'A')")
-    parser.add_argument("--lr", type=float, default=0.01, help="Learning rate")
+    parser.add_argument("--lr", type=float, default=0.03, help="Learning rate")
     parser.add_argument("--epochs", type=int, default=1500, help="Number of epochs (default: 1500)")
     parser.add_argument(
         "--fonts",
@@ -895,6 +938,12 @@ def main() -> None:
         help="Number of fonts to sample (0 uses all available fonts).",
     )
     parser.add_argument("--fc-only", action="store_true", help="Train only the final FC layer (freeze CNN)")
+    parser.add_argument(
+        "--max-epochs",
+        type=int,
+        default=3000,
+        help="Maximum epochs when extension is required (default: 3000).",
+    )
 
     args = parser.parse_args()
     if len(args.char) != 1:
@@ -906,6 +955,7 @@ def main() -> None:
         n_epochs=args.epochs,
         n_fonts=args.fonts,
         fc_only=args.fc_only,
+        max_epochs=args.max_epochs,
     )
 
     print(f"✓ Successfully trained '{result['char']}' with {result['best_accuracy'] * 100:.2f}% accuracy")
