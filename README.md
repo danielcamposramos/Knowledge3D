@@ -61,7 +61,7 @@ Knowledge3D has been accepted as a **reference implementation** and **conceptual
 
 ### W3C Report Contributions
 
-We've prepared comprehensive contributions organized into 5 insertion documents:
+We've prepared comprehensive contributions organized into 6 insertion documents:
 
 | Document | Focus | Key Points |
 |----------|-------|-----------|
@@ -70,6 +70,7 @@ We've prepared comprehensive contributions organized into 5 insertion documents:
 | [Standards Gaps Analysis](TEMP/W3C_INSERTION_3_STANDARDS_GAPS.md) | 5 critical gaps | What's missing in current standards |
 | [Mission Contribution](TEMP/W3C_INSERTION_4_MISSION_CONTRIBUTION.md) | Explainability, transparency, trust | How K3D addresses W3C AI KR mission |
 | [Vocabulary Intersection](TEMP/W3C_INSERTION_5_VOCABULARY_INTERSECTION.md) | AI KR vocabularies | Integration with W3C vocabulary work |
+| [Dual-Texture & Matryoshka](TEMP/W3C_INSERTION_6_DUAL_TEXTURE_AND_MATRYOSHKA.md) | VR textures, variable embeddings | Human-AI perceptual layers & RPN dimensions |
 
 ### Core Vocabulary Specifications
 
