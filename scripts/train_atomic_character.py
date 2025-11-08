@@ -771,7 +771,10 @@ def train_single_character(
     print("[4/6] Training binary CNN...")
     print("=" * 80)
 
-    batch_size = 32
+    # Increased from 32 to 128 for better GPU utilization
+    # With fc-only mode, memory usage is low enough for larger batches
+    # This reduces kernel launch overhead: 49 batches/epoch -> 13 batches/epoch
+    batch_size = 128
     n_samples = len(images)
     best_accuracy = max(0.0, resume_best_accuracy)
 
