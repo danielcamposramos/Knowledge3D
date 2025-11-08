@@ -67,12 +67,15 @@ def start_character_training(char: str) -> subprocess.Popen:
         '--fc-only'
     ]
 
-    print(f"[START] Character '{char}' training initiated")
+    log_path = Path(f"/tmp/dynamic_char_{ord(char)}_{char}.log")
+    log_file = log_path.open("w")
+
+    print(f"[START] Character '{char}' training initiated (log: {log_path})")
 
     process = subprocess.Popen(
         cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        stdout=log_file,
+        stderr=subprocess.STDOUT,
         env={**os.environ, 'CUDA_VISIBLE_DEVICES': '0'}
     )
 
