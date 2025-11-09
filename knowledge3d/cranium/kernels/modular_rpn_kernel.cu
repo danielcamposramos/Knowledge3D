@@ -15,6 +15,7 @@ constexpr uint32_t kErrorUnknownOpcode = 9001;
 constexpr uint32_t kErrorStackUnderflow = 9002;
 constexpr uint32_t kErrorStackOverflow = 9003;
 constexpr uint32_t kErrorTypeMismatch = 9004;
+constexpr uint32_t kErrorVerificationFailed = 9005;
 
 struct alignas(16) StackValue {
     float x;
@@ -32,6 +33,13 @@ struct alignas(16) InstanceState {
 };
 
 static_assert(sizeof(InstanceState) == 1040, "InstanceState layout mismatch");
+
+__device__ __constant__ float kProceduralPrototypeTable[4][3] = {
+    {0.5f, 0.0f, 0.0f},
+    {0.0f, 0.5f, 0.0f},
+    {0.0f, 0.0f, 0.5f},
+    {0.5f, 0.5f, 0.5f}
+};
 
 __device__ inline StackValue make_scalar(float v) {
     StackValue out{};
@@ -123,6 +131,34 @@ __device__ inline float3 normalize3(const float3& v) {
     float inv = 1.0f / mag;
     return make_float3(v.x * inv, v.y * inv, v.z * inv);
 }
+
+__device__ inline uint32_t mix32(uint32_t x) {
+    x ^= x >> 16;
+    x *= 0x7feb352d;
+    x ^= x >> 15;
+    x *= 0x846ca68b;
+    x ^= x >> 16;
+    return x;
+}
+
+__device__ inline uint32_t trigram_hash(uint32_t a, uint32_t b, uint32_t c) {
+    uint32_t hash = 0x811C9DC5u;
+    hash ^= a + 0x9e3779b9u + (hash << 6) + (hash >> 2);
+    hash ^= b + 0x9e3779b9u + (hash << 6) + (hash >> 2);
+    hash ^= c + 0x9e3779b9u + (hash << 6) + (hash >> 2);
+    return mix32(hash);
+}
+
+__device__ inline float3 pseudo_random_vec(uint32_t seed) {
+    seed = mix32(seed);
+    float x = (seed & 0x3FFu) / 1024.0f;
+    seed = mix32(seed >> 10);
+    float y = (seed & 0x3FFu) / 1024.0f;
+    seed = mix32(seed >> 10);
+    float z = (seed & 0x3FFu) / 1024.0f;
+    float3 vec = make_float3(x * 2.0f - 1.0f, y * 2.0f - 1.0f, z * 2.0f - 1.0f);
+    return normalize3(vec);
+}
 }  // namespace
 
 extern "C" __global__ void modular_rpn_geometric_kernel(
@@ -142,12 +178,17 @@ extern "C" __global__ void modular_rpn_geometric_kernel(
     __shared__ uint32_t error_code;
     __shared__ uint32_t scalar_index;
     __shared__ uint32_t vector_index;
+    __shared__ StackValue checkpoint_stack[kStackCapacity];
+    __shared__ uint32_t checkpoint_size;
+    __shared__ uint32_t checkpoint_valid;
 
     if (tid == 0) {
         stack_size = 0;
         error_code = kErrorNone;
         scalar_index = 0;
         vector_index = 0;
+        checkpoint_size = 0;
+        checkpoint_valid = 0;
     }
     __syncthreads();
 
@@ -321,6 +362,118 @@ extern "C" __global__ void modular_rpn_geometric_kernel(
                     push(stack, stack_size, make_vector(norm.x, norm.y, norm.z), error_code);
                     break;
                 }
+                case 0x20: {  // OP_TRIGRAM_HASH
+                    float3 tri{};
+                    if (!pop_vector(stack, stack_size, tri, error_code)) break;
+                    uint32_t h = trigram_hash(
+                        static_cast<uint32_t>(fabsf(tri.x) * 255.0f) & 0xFFu,
+                        static_cast<uint32_t>(fabsf(tri.y) * 255.0f) & 0xFFu,
+                        static_cast<uint32_t>(fabsf(tri.z) * 255.0f) & 0xFFu);
+                    float hash_norm = (h & 0xFFFFFFu) / static_cast<float>(0xFFFFFFu);
+                    push(stack, stack_size, make_scalar(hash_norm), error_code);
+                    break;
+                }
+                case 0x21: {  // OP_EMBED_LOOKUP
+                    float hash_scalar = 0.0f;
+                    if (!pop_scalar(stack, stack_size, hash_scalar, error_code)) break;
+                    uint32_t seed = static_cast<uint32_t>(fabsf(hash_scalar) * 4294967295.0f);
+                    float3 vec = pseudo_random_vec(seed);
+                    push(stack, stack_size, make_vector(vec.x, vec.y, vec.z), error_code);
+                    break;
+                }
+                case 0x22: {  // OP_ADAPTIVE_DIM
+                    float dim_scalar = 0.0f;
+                    float3 vec{};
+                    if (!pop_scalar(stack, stack_size, dim_scalar, error_code)) break;
+                    if (!pop_vector(stack, stack_size, vec, error_code)) break;
+                    int dims = max(1, min(3, static_cast<int>(dim_scalar + 0.5f)));
+                    if (dims < 3) vec.z = 0.0f;
+                    if (dims < 2) vec.y = 0.0f;
+                    push(stack, stack_size, vec, error_code);
+                    break;
+                }
+                case 0x23: {  // OP_NORMALIZE_L2
+                    float3 vec{};
+                    if (!pop_vector(stack, stack_size, vec, error_code)) break;
+                    float3 norm = normalize3(vec);
+                    push(stack, stack_size, make_vector(norm.x, norm.y, norm.z), error_code);
+                    break;
+                }
+                case 0x30: {  // OP_FRACTAL_EMIT
+                    float iterations = 0.0f;
+                    float3 seed_vec{};
+                    if (!pop_scalar(stack, stack_size, iterations, error_code)) break;
+                    if (!pop_vector(stack, stack_size, seed_vec, error_code)) break;
+                    float3 z = make_float3(0.0f, 0.0f, 0.0f);
+                    int iters = max(1, min(64, static_cast<int>(iterations)));
+                    for (int iter = 0; iter < iters; ++iter) {
+                        float x = z.x * z.x - z.y * z.y + seed_vec.x;
+                        float y = 2.0f * z.x * z.y + seed_vec.y;
+                        z.x = x;
+                        z.y = y;
+                        z.z = seed_vec.z;
+                        if (dot3(z, z) > 16.0f) break;
+                    }
+                    push(stack, stack_size, make_vector(z.x, z.y, z.z), error_code);
+                    break;
+                }
+                case 0x31: {  // OP_AUDIO_SYNTH
+                    float time_scalar = 0.0f;
+                    float freq_scalar = 0.0f;
+                    if (!pop_scalar(stack, stack_size, time_scalar, error_code)) break;
+                    if (!pop_scalar(stack, stack_size, freq_scalar, error_code)) break;
+                    float w = 2.0f * 3.1415926535f * freq_scalar * time_scalar;
+                    float3 audio = make_float3(sinf(w), cosf(w), sinf(w * 0.5f));
+                    push(stack, stack_size, audio, error_code);
+                    break;
+                }
+                case 0x32: {  // OP_MODALITY_FUSE
+                    float3 b{};
+                    float3 a{};
+                    if (!pop_vector(stack, stack_size, b, error_code)) break;
+                    if (!pop_vector(stack, stack_size, a, error_code)) break;
+                    float3 fused = make_float3(
+                        0.5f * (a.x + b.x),
+                        0.5f * (a.y + b.y),
+                        0.5f * (a.z + b.z));
+                    push(stack, stack_size, fused, error_code);
+                    break;
+                }
+                case 0x40: {  // OP_PROTOTYPE_LOAD
+                    float proto_idx_scalar = 0.0f;
+                    if (!pop_scalar(stack, stack_size, proto_idx_scalar, error_code)) break;
+                    int idx = max(0, min(3, static_cast<int>(proto_idx_scalar + 0.5f)));
+                    float3 proto = make_float3(
+                        kProceduralPrototypeTable[idx][0],
+                        kProceduralPrototypeTable[idx][1],
+                        kProceduralPrototypeTable[idx][2]);
+                    push(stack, stack_size, proto, error_code);
+                    break;
+                }
+                case 0x41: {  // OP_DELTA_APPLY
+                    float3 delta{};
+                    float3 base{};
+                    if (!pop_vector(stack, stack_size, delta, error_code)) break;
+                    if (!pop_vector(stack, stack_size, base, error_code)) break;
+                    float3 result = make_float3(base.x + delta.x, base.y + delta.y, base.z + delta.z);
+                    push(stack, stack_size, result, error_code);
+                    break;
+                }
+                case 0x42: {  // OP_UNCERTAINTY_FUSE
+                    float confidence = 0.0f;
+                    float3 proposal{};
+                    float3 reference{};
+                    if (!pop_scalar(stack, stack_size, confidence, error_code)) break;
+                    if (!pop_vector(stack, stack_size, proposal, error_code)) break;
+                    if (!pop_vector(stack, stack_size, reference, error_code)) break;
+                    float alpha = max(0.0f, min(1.0f, confidence));
+                    float3 fused = make_float3(
+                        reference.x * (1.0f - alpha) + proposal.x * alpha,
+                        reference.y * (1.0f - alpha) + proposal.y * alpha,
+                        reference.z * (1.0f - alpha) + proposal.z * alpha);
+                    push(stack, stack_size, fused, error_code);
+                    break;
+                }
                 case 0x43: {  // sigmoid approximation
                     float value = 0.0f;
                     if (!pop_scalar(stack, stack_size, value, error_code)) break;
@@ -360,15 +513,90 @@ extern "C" __global__ void modular_rpn_geometric_kernel(
                     push(stack, stack_size, make_vector(result.x, result.y, result.z), error_code);
                     break;
                 }
-                case 0x50: {  // ifelse
-                    StackValue false_branch{};
-                    StackValue true_branch{};
-                    float predicate = 0.0f;
-                    if (!pop(stack, stack_size, false_branch, error_code)) break;
-                    if (!pop(stack, stack_size, true_branch, error_code)) break;
-                    if (!pop_scalar(stack, stack_size, predicate, error_code)) break;
-                    const bool take_true = fabsf(predicate) > 1e-6f;
-                    push(stack, stack_size, take_true ? true_branch : false_branch, error_code);
+                case 0x50: {  // OP_SUPERPOSE (legacy ifelse fallback)
+                    bool handled_ifelse = false;
+                    if (stack_size >= 3) {
+                        const StackValue& predicate_candidate = stack[stack_size - 3];
+                        if (!is_vector(predicate_candidate)) {
+                            StackValue false_branch{};
+                            StackValue true_branch{};
+                            float predicate = 0.0f;
+                            if (!pop(stack, stack_size, false_branch, error_code)) break;
+                            if (!pop(stack, stack_size, true_branch, error_code)) break;
+                            if (!pop_scalar(stack, stack_size, predicate, error_code)) break;
+                            const bool take_true = fabsf(predicate) > 1e-6f;
+                            push(stack, stack_size, take_true ? true_branch : false_branch, error_code);
+                            handled_ifelse = true;
+                        }
+                    }
+                    if (!handled_ifelse) {
+                        float3 b{};
+                        float3 a{};
+                        if (!pop_vector(stack, stack_size, b, error_code)) break;
+                        if (!pop_vector(stack, stack_size, a, error_code)) break;
+                        float3 sum = make_float3(a.x + b.x, a.y + b.y, a.z + b.z);
+                        sum = normalize3(sum);
+                        push(stack, stack_size, sum, error_code);
+                    }
+                    break;
+                }
+                case 0x51: {  // OP_ENTANGLE
+                    float3 b{};
+                    float3 a{};
+                    if (!pop_vector(stack, stack_size, b, error_code)) break;
+                    if (!pop_vector(stack, stack_size, a, error_code)) break;
+                    float3 entangled = make_float3(
+                        a.x * b.y - a.y * b.x,
+                        a.y * b.z - a.z * b.y,
+                        a.z * b.x - a.x * b.z);
+                    push(stack, stack_size, entangled, error_code);
+                    break;
+                }
+                case 0x52: {  // OP_COLLAPSE
+                    float threshold = 0.0f;
+                    float3 state{};
+                    if (!pop_scalar(stack, stack_size, threshold, error_code)) break;
+                    if (!pop_vector(stack, stack_size, state, error_code)) break;
+                    float clamp = fabsf(threshold);
+                    if (fabsf(state.x) < clamp) state.x = 0.0f;
+                    if (fabsf(state.y) < clamp) state.y = 0.0f;
+                    if (fabsf(state.z) < clamp) state.z = 0.0f;
+                    push(stack, stack_size, state, error_code);
+                    break;
+                }
+                case 0x60: {  // OP_CHECKPOINT
+                    checkpoint_size = stack_size;
+                    for (uint32_t idx = 0; idx < stack_size && idx < kStackCapacity; ++idx) {
+                        checkpoint_stack[idx] = stack[idx];
+                    }
+                    checkpoint_valid = 1;
+                    break;
+                }
+                case 0x61: {  // OP_ROLLBACK
+                    if (!checkpoint_valid) {
+                        error_code = kErrorStackUnderflow;
+                        break;
+                    }
+                    stack_size = checkpoint_size;
+                    for (uint32_t idx = 0; idx < checkpoint_size && idx < kStackCapacity; ++idx) {
+                        stack[idx] = checkpoint_stack[idx];
+                    }
+                    break;
+                }
+                case 0x62: {  // OP_VERIFY
+                    bool ok = true;
+                    for (uint32_t idx = 0; idx < stack_size; ++idx) {
+                        const StackValue& val = stack[idx];
+                        if (!isfinite(val.x) || !isfinite(val.y) || !isfinite(val.z) || !isfinite(val.w)) {
+                            ok = false;
+                            break;
+                        }
+                    }
+                    if (!ok) {
+                        error_code = kErrorVerificationFailed;
+                        break;
+                    }
+                    push(stack, stack_size, make_scalar(1.0f), error_code);
                     break;
                 }
                 default:

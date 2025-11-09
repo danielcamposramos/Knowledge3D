@@ -51,6 +51,13 @@ from .router_specialist import (
     RoutingDecision
 )
 
+from .procedural_compiler import ProceduralCompiler, ProceduralProgram, PrototypeTable
+from .procedural_galaxy import ProceduralGalaxy
+from .phase_g_procedural_bridge import PhaseGProceduralBridge
+from .fidelity_validator import ProceduralFidelityValidator, ProceduralFidelityResult
+from .adaptive_procedural_bridge import AdaptiveDimensionCompressor
+from .phase_h_procedural_integration import PhaseHProceduralIntegration
+
 __all__ = [
     # Adaptive Swarm
     'AdaptiveSwarmTRM',
@@ -77,5 +84,16 @@ __all__ = [
     'RouterBootstrap',
     'RouterSpecialistTrainer',
     'RouterTransition',
-    'RoutingDecision'
+    'RoutingDecision',
+
+    # Procedural stack
+    'ProceduralCompiler',
+    'ProceduralProgram',
+    'PrototypeTable',
+    'ProceduralGalaxy',
+    'PhaseGProceduralBridge',
+    'ProceduralFidelityValidator',
+    'ProceduralFidelityResult',
+    'AdaptiveDimensionCompressor',
+    'PhaseHProceduralIntegration',
 ]

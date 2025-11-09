@@ -1,0 +1,28 @@
+{
+  "count": 1000,
+  "average_compression": 12.033921420380771,
+  "average_similarity": 0.9999566141963006,
+  "min_similarity": 0.9998757839202881,
+  "max_similarity": 0.9999707341194153,
+  "valid_ratio": 1.0,
+  "tokens_evaluated": 1000,
+  "embedding_dim": 2048,
+  "target_dimension": 2048,
+  "prototype_table": "validation_cache/prototype_table_2048d_512.npz",
+  "compression_ratio_min": 3.9728419010669254,
+  "compression_ratio_max": 19.883495145631066,
+  "average_topk": 0.0,
+  "min_topk": 0,
+  "max_topk": 0,
+  "proto_distance_avg": 0.37556770581007004,
+  "proto_distance_max": 0.9156246185302734,
+  "threshold": 0.99,
+  "topk": 16,
+  "topk_step": 8,
+  "topk_cap": 128,
+  "tokens_file": [
+    "data/ai_compendium.txt"
+  ],
+  "use_basis": false,
+  "codec": "dict"
+}
