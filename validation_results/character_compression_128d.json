@@ -1,0 +1,22 @@
+{
+  "dataset": "character_embeddings",
+  "path": "/K3D/Knowledge3D.local/checkpoints/phase_g/atomic_chars/galaxy_character_embeddings.npz",
+  "count": 4960,
+  "dimension": 128,
+  "quality": "fast",
+  "average_compression": 57.69014084507042,
+  "per_dimension_compression": 3.605633802816901,
+  "compression_min": 57.690140845070424,
+  "compression_max": 57.690140845070424,
+  "average_similarity": 0.99999209102973,
+  "similarity_min": 0.9999877521211845,
+  "similarity_max": 0.999995381499181,
+  "valid_ratio": 1.0,
+  "codec_usage": {
+    "pd04": 0.0,
+    "pd02": 1.0,
+    "simple": 0.0
+  },
+  "threshold": 0.99,
+  "dictionary_path": "validation_cache/dictionary_128d_128.npz"
+}

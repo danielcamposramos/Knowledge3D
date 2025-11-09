@@ -39,6 +39,8 @@ from knowledge3d.cranium.rpn_embedding_engine import RPNEmbeddingEngine  # noqa:
 from knowledge3d.cranium.bridges.trigram_embed_bridge import TrigramEmbedBridge  # noqa: E402
 from knowledge3d.cranium.bridges.spatial_pool_bridge import SpatialMeanPooler  # noqa: E402
 from knowledge3d.cranium.sovereign import loader  # noqa: E402
+from knowledge3d.cranium.adaptive_procedural_bridge import AdaptiveDimensionCompressor  # noqa: E402
+from knowledge3d.cranium.procedural_galaxy import ProceduralGalaxy  # noqa: E402
 
 MATRY_MAX_DIM = 2048
 CHAR_EMBED_DIM = 128
@@ -46,6 +48,7 @@ LOW_DIM = 64
 DEFAULT_FONTS_PER_SCRIPT = 50
 FONT_CATEGORY_DIR = Path("/K3D/Knowledge3D.local/font_categories")
 CHECKPOINT_DIR = Path("/K3D/Knowledge3D.local/checkpoints/phase_g/atomic_chars")
+PROCEDURAL_GALAXY_ROOT = Path("/K3D/Knowledge3D.local/procedural_galaxy")
 
 MODEL_STATE_KEYS = [
     "conv1_weight",
@@ -654,6 +657,8 @@ def train_single_character(
     n_fonts: int = 0,
     fc_only: bool = False,
     max_epochs: int = 3000,
+    compressor: Optional[AdaptiveDimensionCompressor] = None,
+    galaxy: Optional[ProceduralGalaxy] = None,
 ) -> Dict[str, object]:
     """Train CNN to recognize single character across fonts."""
     print("=" * 80)
@@ -913,6 +918,25 @@ def train_single_character(
     print(f"       ✓ Saved to {embedding_path}")
     print()
 
+    if compressor is not None and galaxy is not None:
+        try:
+            canonical_embedding = embeddings_array.mean(axis=0).astype(np.float32)
+            program, proc_meta = compressor.compress(canonical_embedding, quality="fast", return_metadata=True)
+            galaxy_key = f"char_{char_code}_{target_char}"
+            galaxy.store_program(galaxy_key, program, proc_meta["actual_compression"])
+            reconstructed = compressor.decompress(program, proc_meta["target_dim"])
+            denom = float(np.linalg.norm(canonical_embedding) * np.linalg.norm(reconstructed) + 1e-9)
+            cosine = float(np.dot(canonical_embedding, reconstructed) / denom)
+            overall_ratio = proc_meta["actual_compression"] * (2048 / proc_meta["target_dim"])
+            print(
+                f"       Procedural capture: {overall_ratio:.1f}:1 @ {cosine:.6f} fidelity "
+                f"(quality=fast, key={galaxy_key})"
+            )
+        except Exception as exc:
+            print(f"       ⚠️ Procedural compression skipped due to error: {exc}")
+    elif compressor is None or galaxy is None:
+        print("       Procedural compression disabled (raw embeddings only).")
+
     print("=" * 80)
     print(f"CHARACTER '{target_char}' TRAINING COMPLETE")
     print("=" * 80)
@@ -920,13 +944,16 @@ def train_single_character(
     print(f"Embeddings: {embeddings_array.shape}")
     print()
 
-    return {
+    result = {
         "char": target_char,
         "char_id": char_code,
         "best_accuracy": best_accuracy,
         "embeddings": embeddings_array,
         "checkpoint_path": embedding_path,
     }
+    if compressor is not None and galaxy is not None:
+        result["procedural_key"] = f"char_{char_code}_{target_char}"
+    return result
 
 
 def main() -> None:
@@ -947,10 +974,27 @@ def main() -> None:
         default=3000,
         help="Maximum epochs when extension is required (default: 3000).",
     )
+    parser.add_argument(
+        "--disable-procedural",
+        action="store_true",
+        help="Disable adaptive procedural compression (raw embeddings only).",
+    )
 
     args = parser.parse_args()
     if len(args.char) != 1:
         raise ValueError("--char argument must be a single character")
+
+    compressor: Optional[AdaptiveDimensionCompressor] = None
+    galaxy: Optional[ProceduralGalaxy] = None
+    if not args.disable_procedural:
+        try:
+            compressor = AdaptiveDimensionCompressor()
+            galaxy = ProceduralGalaxy(PROCEDURAL_GALAXY_ROOT)
+            print("[INFO] Adaptive procedural compression enabled (quality=fast, 128D).")
+        except Exception as exc:
+            print(f"[WARN] Failed to initialise adaptive compressor ({exc}); proceeding without procedural capture.")
+            compressor = None
+            galaxy = None
 
     result = train_single_character(
         target_char=args.char,
@@ -959,6 +1003,8 @@ def main() -> None:
         n_fonts=args.fonts,
         fc_only=args.fc_only,
         max_epochs=args.max_epochs,
+        compressor=compressor,
+        galaxy=galaxy,
     )
 
     print(f"✓ Successfully trained '{result['char']}' with {result['best_accuracy'] * 100:.2f}% accuracy")
