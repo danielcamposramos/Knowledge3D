@@ -1,0 +1,40 @@
+# Prototype Table Analysis
+
+**Source tokens:** 35879
+**Embedding dim:** 2048
+**Embeddings sampled:** 7897
+**Prototypes:** 512
+**Average distance:** 0.7251
+**Max distance:** 0.8456
+**Basis rank:** 48
+
+## Files
+- Prototype table: `validation_cache/prototype_table_2048d_512.npz`
+- JSON metrics: `validation_results/prototype_analysis.json`
+
+## Metadata
+```json
+{
+  "algorithm": "kmeans",
+  "num_embeddings": 7897,
+  "embedding_dim": 2048,
+  "num_prototypes": 512,
+  "max_iters": 40,
+  "avg_distance": 0.7250687479972839,
+  "max_distance": 0.8455524444580078,
+  "avg_distance_normalized": 0.36253437399864197,
+  "max_distance_normalized": 0.4227762222290039,
+  "seed": 1337,
+  "basis_rank": 48,
+  "coverage_avg_distance": 0.7250687479972839,
+  "coverage_max_distance": 0.8455524444580078,
+  "coverage_avg_distance_normalized": 0.36253437399864197,
+  "coverage_max_distance_normalized": 0.4227762222290039,
+  "coverage_num_embeddings": 7897,
+  "tokens_processed": 35879,
+  "source_files": [
+    "data/ai_compendium.txt"
+  ],
+  "table_path": "validation_cache/prototype_table_2048d_512.npz"
+}
+```
