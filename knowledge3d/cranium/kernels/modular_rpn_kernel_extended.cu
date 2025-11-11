@@ -1269,7 +1269,19 @@ extern "C" __global__ void modular_rpn_kernel_extended(
             case 0x16:  // log
             case 0x18:  // sin
             case 0x19:  // cos
-            case 0x1A: {  // tan
+            case 0x1A:  // tan
+            case 0x1B:  // asin (Phase 2)
+            case 0x1C:  // acos (Phase 2)
+            case 0x1D:  // atan (Phase 2)
+            case 0x1F:  // sinh (Phase 2)
+            case 0x25:  // cosh (Phase 2)
+            case 0x26:  // tanh (Phase 2)
+            case 0x27:  // abs (Phase 2)
+            case 0x29:  // ceil (Phase 2)
+            case 0x2B:  // floor (Phase 2)
+            case 0x2D:  // round (Phase 2)
+            case 0x39:  // log2 (Phase 2)
+            case 0x3A: {  // log10 (Phase 2)
                 float value = 0.0f;
                 if (!pop_scalar(stack, stack_size, value, error_code)) break;
                 float result = 0.0f;
@@ -1283,10 +1295,94 @@ extern "C" __global__ void modular_rpn_kernel_extended(
                     result = sinf(value);
                 } else if (opcode == 0x19) {
                     result = cosf(value);
-                } else {
+                } else if (opcode == 0x1A) {
                     result = tanf(value);
+                } else if (opcode == 0x1B) {
+                    if (value < -1.0f || value > 1.0f) { error_code = 9006; break; }  // Domain error
+                    result = asinf(value);
+                } else if (opcode == 0x1C) {
+                    if (value < -1.0f || value > 1.0f) { error_code = 9006; break; }
+                    result = acosf(value);
+                } else if (opcode == 0x1D) {
+                    result = atanf(value);
+                } else if (opcode == 0x1F) {
+                    result = sinhf(value);
+                } else if (opcode == 0x25) {
+                    result = coshf(value);
+                } else if (opcode == 0x26) {
+                    result = tanhf(value);
+                } else if (opcode == 0x27) {
+                    result = fabsf(value);
+                } else if (opcode == 0x29) {
+                    result = ceilf(value);
+                } else if (opcode == 0x2B) {
+                    result = floorf(value);
+                } else if (opcode == 0x2D) {
+                    result = roundf(value);
+                } else if (opcode == 0x39) {
+                    if (value <= 0.0f) { error_code = 9006; break; }
+                    result = log2f(value);
+                } else if (opcode == 0x3A) {
+                    if (value <= 0.0f) { error_code = 9006; break; }
+                    result = log10f(value);
                 }
                 push_scalar(stack, stack_size, result, error_code);
+                break;
+            }
+            case 0x1E: {  // atan2 (Phase 2) - two argument arctangent
+                float x = 0.0f;
+                float y = 0.0f;
+                if (!pop_scalar(stack, stack_size, x, error_code)) break;
+                if (!pop_scalar(stack, stack_size, y, error_code)) break;
+                float result = atan2f(y, x);
+                push_scalar(stack, stack_size, result, error_code);
+                break;
+            }
+            case 0x38: {  // mod (Phase 2) - modulo operation
+                float divisor = 0.0f;
+                float dividend = 0.0f;
+                if (!pop_scalar(stack, stack_size, divisor, error_code)) break;
+                if (!pop_scalar(stack, stack_size, dividend, error_code)) break;
+                if (divisor == 0.0f) { error_code = 9007; break; }  // Division by zero
+                float result = fmodf(dividend, divisor);
+                push_scalar(stack, stack_size, result, error_code);
+                break;
+            }
+            case 0x80: {  // and (Phase 2) - bitwise AND
+                float b_f = 0.0f;
+                float a_f = 0.0f;
+                if (!pop_scalar(stack, stack_size, b_f, error_code)) break;
+                if (!pop_scalar(stack, stack_size, a_f, error_code)) break;
+                int a = (int)a_f;
+                int b = (int)b_f;
+                push_scalar(stack, stack_size, (float)(a & b), error_code);
+                break;
+            }
+            case 0x81: {  // or (Phase 2) - bitwise OR
+                float b_f = 0.0f;
+                float a_f = 0.0f;
+                if (!pop_scalar(stack, stack_size, b_f, error_code)) break;
+                if (!pop_scalar(stack, stack_size, a_f, error_code)) break;
+                int a = (int)a_f;
+                int b = (int)b_f;
+                push_scalar(stack, stack_size, (float)(a | b), error_code);
+                break;
+            }
+            case 0x82: {  // xor (Phase 2) - bitwise XOR
+                float b_f = 0.0f;
+                float a_f = 0.0f;
+                if (!pop_scalar(stack, stack_size, b_f, error_code)) break;
+                if (!pop_scalar(stack, stack_size, a_f, error_code)) break;
+                int a = (int)a_f;
+                int b = (int)b_f;
+                push_scalar(stack, stack_size, (float)(a ^ b), error_code);
+                break;
+            }
+            case 0x83: {  // not (Phase 2) - bitwise NOT
+                float a_f = 0.0f;
+                if (!pop_scalar(stack, stack_size, a_f, error_code)) break;
+                int a = (int)a_f;
+                push_scalar(stack, stack_size, (float)(~a), error_code);
                 break;
             }
             case 0x28:  // gt

@@ -19,8 +19,8 @@ GPU_MAX_PARALLEL = MAX_VRAM_MB // VRAM_PER_CHAR_MB  # ~73 characters max (GPU li
 
 # CRITICAL: System RAM constraint - each character loads full 1572 font dataset
 # Brazilian Ryzen 5 with 93GB RAM (minus iGPU, KDE, system processes)
-# Batch size 6 was stable, limit to 10 for safety
-MAX_PARALLEL = 10  # System RAM + CPU constraint (overrides GPU calculation)
+# Previous runs: 10 parallel was stable. Corrupted checkpoints removed - use full capacity!
+MAX_PARALLEL = 12  # System RAM + CPU constraint (overrides GPU calculation)
 
 CHECK_INTERVAL = 10  # seconds
 
@@ -30,10 +30,15 @@ ALPHABET_UPPER = list('ABCDEFGHIJKLMNOPQRSTUVWXYZ')
 DIGITS = list('0123456789')
 ALL_CHARS = ALPHABET_LOWER + ALPHABET_UPPER + DIGITS
 
-# Already successfully trained characters on FULL 1572 font set
-# Batch 2 completed (verified from logs): N, O, Q, R
-# All other 58 characters still need training on full font set
-ALREADY_TRAINED = set('NOQR')  # Only these 4 completed on 1572 fonts
+# Successfully trained characters (50 completed)
+COMPLETED = set('BCDEGJKLMNOQRUVWXYabcdeghiklmnopqrsuvxyz0123456789')  # 50 completed successfully
+
+# Stuck characters with corrupted checkpoints (12 total) - RETRAIN FROM SCRATCH
+# Checkpoints backed up to *.CORRUPT_BACKUP (Nov 2-8, all had 61-84% accuracy but stuck at 50%)
+RETRAIN_FROM_SCRATCH = set('AFHIPSTZfjtw')  # 12 characters with corrupted checkpoints removed
+
+# Combined: Characters to skip (only the completed ones)
+ALREADY_TRAINED = COMPLETED  # 50 total to skip
 
 # Tracking
 active_processes: Dict[str, subprocess.Popen] = {}
@@ -64,7 +69,6 @@ def start_character_training(char: str) -> subprocess.Popen:
         '--char', char,
         '--epochs', '1500',
         # NO --fonts parameter = use all available fonts (1572 for latin)
-        '--fc-only'
     ]
 
     log_path = Path(f"/tmp/dynamic_char_{ord(char)}_{char}.log")

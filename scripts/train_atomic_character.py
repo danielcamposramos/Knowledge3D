@@ -99,6 +99,7 @@ NEGATIVE_CHAR_SETS = {
     "sea": list("กขคฆงจฉชซฌญฎฏฐฑฒณดตถทธนปผฝพฟภมยรลวศษสห"),
     "emoji": EMOJI_COMMON,
     "symbols": MATH_SYMBOLS + LATIN_PUNCT,
+    "math": MATH_SYMBOLS,  # Math symbols use math fonts
 }
 
 
@@ -142,6 +143,19 @@ def is_emoji(char: str) -> bool:
 
 
 def get_character_script(char: str) -> str:
+    """
+    Determine the script of a character to select appropriate fonts.
+
+    Math symbols are detected FIRST to ensure they use math fonts instead
+    of falling through to their nominal script (e.g., Greek letters -> 'math' not 'latin').
+    """
+    # Check math symbols FIRST (before Unicode name lookup)
+    # Import here to avoid circular dependencies
+    from knowledge3d.cranium.math_symbols_registry import is_math_symbol
+
+    if is_math_symbol(char):
+        return "math"
+
     try:
         name = unicodedata.name(char)
     except ValueError:
