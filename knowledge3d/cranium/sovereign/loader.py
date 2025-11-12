@@ -113,10 +113,24 @@ def ck(res: int) -> None:
 _initialized = False
 _device = None
 _context = None
+_init_pid = None  # Track which process initialized CUDA
 
 def _ensure_init():
     """Ensure CUDA is initialized (called automatically)."""
-    global _initialized, _device, _context
+    global _initialized, _device, _context, _init_pid
+
+    # CRITICAL: Detect if we're in a forked child process
+    # CUDA contexts are NOT fork-safe and must be recreated per-process
+    current_pid = os.getpid()
+    if _initialized and _init_pid != current_pid:
+        if os.environ.get("K3D_RPN_DEBUG"):
+            print(f"[loader] Detected fork: parent PID={_init_pid}, current PID={current_pid}")
+            print(f"[loader] Reinitializing CUDA context for child process")
+        # Reset state - force reinitialization in this process
+        _initialized = False
+        _context = None
+        _device = None
+
     if not _initialized:
         # Initialize CUDA
         ck(nvcuda.cuInit(0))
@@ -186,6 +200,7 @@ def _ensure_init():
         else:
             ck(nvcuda.cuCtxSetCurrent(ctx))
         _context = ctx
+        _init_pid = current_pid  # Track which process owns this context
         _initialized = True
 
 def _ensure_current_context():
