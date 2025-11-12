@@ -17,10 +17,10 @@ MAX_VRAM_MB = 11000  # Leave 1GB for system
 VRAM_PER_CHAR_MB = 150  # Conservative estimate (observed 128 MB + buffer)
 GPU_MAX_PARALLEL = MAX_VRAM_MB // VRAM_PER_CHAR_MB  # ~73 characters max (GPU limit)
 
-# CRITICAL: System RAM constraint - each character loads full 1572 font dataset
+# CRITICAL: System RAM + CPU constraint - each character loads full 1572 font dataset
 # Brazilian Ryzen 5 with 93GB RAM (minus iGPU, KDE, system processes)
-# Previous runs: 10 parallel was stable. Corrupted checkpoints removed - use full capacity!
-MAX_PARALLEL = 12  # System RAM + CPU constraint (overrides GPU calculation)
+# CPU bottleneck identified: 12 processes = 71% CPU each (slow). 8 processes = 100% CPU each (fast)
+MAX_PARALLEL = 8  # CPU-bound data augmentation constraint
 
 CHECK_INTERVAL = 10  # seconds
 
@@ -65,6 +65,7 @@ def start_character_training(char: str) -> subprocess.Popen:
     """Start training for a single character on FULL 1572 font set."""
     cmd = [
         '/K3D/Knowledge3D.local/envs/k3d-cranium/bin/python',
+        '-u',  # Unbuffered output for real-time logging
         'scripts/train_atomic_character.py',
         '--char', char,
         '--epochs', '1500',
@@ -72,7 +73,7 @@ def start_character_training(char: str) -> subprocess.Popen:
     ]
 
     log_path = Path(f"/tmp/dynamic_char_{ord(char)}_{char}.log")
-    log_file = log_path.open("w")
+    log_file = log_path.open("w", buffering=1)  # Line buffering
 
     print(f"[START] Character '{char}' training initiated (log: {log_path})")
 
@@ -80,7 +81,7 @@ def start_character_training(char: str) -> subprocess.Popen:
         cmd,
         stdout=log_file,
         stderr=subprocess.STDOUT,
-        env={**os.environ, 'CUDA_VISIBLE_DEVICES': '0'}
+        env={**os.environ, 'CUDA_VISIBLE_DEVICES': '0', 'PYTHONUNBUFFERED': '1'}
     )
 
     return process

@@ -18,6 +18,7 @@ constexpr uint32_t kErrorNone = 0;
 constexpr uint32_t kErrorUnknownOpcode = 9001;
 constexpr uint32_t kErrorStackUnderflow = 9002;
 constexpr uint32_t kErrorStackOverflow = 9003;
+constexpr uint32_t kErrorInvalidArgument = 9005;
 constexpr uint32_t kErrorInvalidMatrixDims = 9013;
 constexpr uint32_t kErrorSingularMatrix = 9014;
 constexpr uint16_t kOpMemcpyF32 = 0x90;
@@ -367,6 +368,195 @@ __device__ inline void transpose(const Matrix& m, Matrix& out) {
             out.data[r * out.cols + c] = m.data[c * m.cols + r];
         }
     }
+}
+
+// ============================================================================
+// PHASE 5 SOVEREIGN HELPER: RPN Function Evaluator
+// ============================================================================
+__device__ float evaluate_rpn_function(
+    const float* program,
+    int program_length,
+    float x,
+    uint32_t& error) {
+    if (program_length < 1 || program_length > 20) {
+        error = kErrorInvalidArgument;
+        return 0.0f;
+    }
+
+    StackItem temp_stack[32];
+    uint32_t temp_size = 0;
+
+    if (!push_scalar(temp_stack, temp_size, x, error)) {
+        return 0.0f;
+    }
+    if (error != kErrorNone) {
+        return 0.0f;
+    }
+
+    for (int i = 0; i < program_length; ++i) {
+        uint16_t opcode = static_cast<uint16_t>(program[i]);
+
+        switch (opcode) {
+            case 0x01: {  // ADD
+                float b, a;
+                if (!pop_scalar(temp_stack, temp_size, b, error)) return 0.0f;
+                if (!pop_scalar(temp_stack, temp_size, a, error)) return 0.0f;
+                if (!push_scalar(temp_stack, temp_size, a + b, error)) return 0.0f;
+                break;
+            }
+            case 0x02: {  // SUBTRACT
+                float b, a;
+                if (!pop_scalar(temp_stack, temp_size, b, error)) return 0.0f;
+                if (!pop_scalar(temp_stack, temp_size, a, error)) return 0.0f;
+                if (!push_scalar(temp_stack, temp_size, a - b, error)) return 0.0f;
+                break;
+            }
+            case 0x03: {  // MULTIPLY
+                float b, a;
+                if (!pop_scalar(temp_stack, temp_size, b, error)) return 0.0f;
+                if (!pop_scalar(temp_stack, temp_size, a, error)) return 0.0f;
+                if (!push_scalar(temp_stack, temp_size, a * b, error)) return 0.0f;
+                break;
+            }
+            case 0x04: {  // DIVIDE
+                float b, a;
+                if (!pop_scalar(temp_stack, temp_size, b, error)) return 0.0f;
+                if (!pop_scalar(temp_stack, temp_size, a, error)) return 0.0f;
+                if (fabsf(b) < 1e-10f) {
+                    error = kErrorInvalidArgument;
+                    return 0.0f;
+                }
+                if (!push_scalar(temp_stack, temp_size, a / b, error)) return 0.0f;
+                break;
+            }
+            case 0x05: {  // POWER
+                float b, a;
+                if (!pop_scalar(temp_stack, temp_size, b, error)) return 0.0f;
+                if (!pop_scalar(temp_stack, temp_size, a, error)) return 0.0f;
+                if (!push_scalar(temp_stack, temp_size, powf(a, b), error)) return 0.0f;
+                break;
+            }
+            case 0x14: {  // SQUARE
+                float a;
+                if (!pop_scalar(temp_stack, temp_size, a, error)) return 0.0f;
+                if (!push_scalar(temp_stack, temp_size, a * a, error)) return 0.0f;
+                break;
+            }
+            case 0x15: {  // SQRT
+                float a;
+                if (!pop_scalar(temp_stack, temp_size, a, error)) return 0.0f;
+                if (a < 0.0f) {
+                    error = kErrorInvalidArgument;
+                    return 0.0f;
+                }
+                if (!push_scalar(temp_stack, temp_size, sqrtf(a), error)) return 0.0f;
+                break;
+            }
+            case 0x18: {  // SIN
+                float a;
+                if (!pop_scalar(temp_stack, temp_size, a, error)) return 0.0f;
+                if (!push_scalar(temp_stack, temp_size, sinf(a), error)) return 0.0f;
+                break;
+            }
+            case 0x19: {  // COS
+                float a;
+                if (!pop_scalar(temp_stack, temp_size, a, error)) return 0.0f;
+                if (!push_scalar(temp_stack, temp_size, cosf(a), error)) return 0.0f;
+                break;
+            }
+            case 0x1A: {  // TAN
+                float a;
+                if (!pop_scalar(temp_stack, temp_size, a, error)) return 0.0f;
+                if (!push_scalar(temp_stack, temp_size, tanf(a), error)) return 0.0f;
+                break;
+            }
+            case 0x1B: {  // ASIN
+                float a;
+                if (!pop_scalar(temp_stack, temp_size, a, error)) return 0.0f;
+                if (!push_scalar(temp_stack, temp_size, asinf(a), error)) return 0.0f;
+                break;
+            }
+            case 0x1C: {  // ACOS
+                float a;
+                if (!pop_scalar(temp_stack, temp_size, a, error)) return 0.0f;
+                if (!push_scalar(temp_stack, temp_size, acosf(a), error)) return 0.0f;
+                break;
+            }
+            case 0x1D: {  // ATAN
+                float a;
+                if (!pop_scalar(temp_stack, temp_size, a, error)) return 0.0f;
+                if (!push_scalar(temp_stack, temp_size, atanf(a), error)) return 0.0f;
+                break;
+            }
+            case 0x16: {  // EXP
+                float a;
+                if (!pop_scalar(temp_stack, temp_size, a, error)) return 0.0f;
+                if (!push_scalar(temp_stack, temp_size, expf(a), error)) return 0.0f;
+                break;
+            }
+            case 0x17: {  // LOG
+                float a;
+                if (!pop_scalar(temp_stack, temp_size, a, error)) return 0.0f;
+                if (a <= 0.0f) {
+                    error = kErrorInvalidArgument;
+                    return 0.0f;
+                }
+                if (!push_scalar(temp_stack, temp_size, logf(a), error)) return 0.0f;
+                break;
+            }
+            default:
+                error = kErrorUnknownOpcode;
+                return 0.0f;
+        }
+
+        if (error != kErrorNone) {
+            return 0.0f;
+        }
+    }
+
+    if (temp_size != 1) {
+        error = kErrorStackUnderflow;
+        return 0.0f;
+    }
+
+    float result = 0.0f;
+    if (!pop_scalar(temp_stack, temp_size, result, error)) {
+        return 0.0f;
+    }
+    return result;
+}
+
+// ============================================================================
+// QUANTUM HELPER: Proper PRNG (xorshift128+)
+// ============================================================================
+__device__ uint64_t g_rng_state0 = 0;
+__device__ uint64_t g_rng_state1 = 0;
+
+__device__ void init_rng() {
+    if (g_rng_state0 == 0) {
+        g_rng_state0 = static_cast<uint64_t>(threadIdx.x) |
+                       (static_cast<uint64_t>(blockIdx.x) << 32);
+        g_rng_state1 = static_cast<uint64_t>(clock64());
+        if (g_rng_state1 == 0) {
+            g_rng_state1 = 0x9E3779B97F4A7C15ull;
+        }
+    }
+}
+
+__device__ float random_float() {
+    init_rng();
+
+    uint64_t s1 = g_rng_state0;
+    uint64_t s0 = g_rng_state1;
+    g_rng_state0 = s0;
+    s1 ^= s1 << 23;
+    s1 ^= s1 >> 17;
+    s1 ^= s0;
+    s1 ^= s0 >> 26;
+    g_rng_state1 = s1;
+
+    uint32_t result = static_cast<uint32_t>((s0 + s1) >> 32);
+    return (result & 0xFFFFFF) / 16777216.0f;
 }
 }  // namespace
 
@@ -1618,6 +1808,548 @@ extern "C" __global__ void modular_rpn_kernel_extended(
                     out[i] = x * sig;
                 }
                 push_tensor(stack, stack_size, out, 1024, 1, error_code);
+                break;
+            }
+            // ====================================================================
+            // PHASE 5: SYMBOLIC OPERATIONS (9 OPCODES) - SOVEREIGN VERSION
+            // ====================================================================
+            case 0xB5: {  // OP_SYMBOLIC_DIFF
+                float h, x, n_opcodes_f;
+                if (!pop_scalar(stack, stack_size, h, error_code)) break;
+                if (!pop_scalar(stack, stack_size, x, error_code)) break;
+                if (!pop_scalar(stack, stack_size, n_opcodes_f, error_code)) break;
+
+                if (fabsf(h) < 1e-12f) {
+                    error_code = kErrorInvalidArgument;
+                    break;
+                }
+
+                int n_opcodes = static_cast<int>(n_opcodes_f);
+                if (n_opcodes < 1 || n_opcodes > 20) {
+                    error_code = kErrorInvalidArgument;
+                    break;
+                }
+
+                float program[20];
+                for (int i = n_opcodes - 1; i >= 0; --i) {
+                    if (!pop_scalar(stack, stack_size, program[i], error_code)) break;
+                }
+                if (error_code != kErrorNone) break;
+
+                float f_plus = evaluate_rpn_function(program, n_opcodes, x + h, error_code);
+                if (error_code != kErrorNone) break;
+                float f_minus = evaluate_rpn_function(program, n_opcodes, x - h, error_code);
+                if (error_code != kErrorNone) break;
+
+                float derivative = (f_plus - f_minus) / (2.0f * h);
+                push_scalar(stack, stack_size, derivative, error_code);
+                break;
+            }
+            case 0xB6: {  // OP_GRADIENT
+                float h, n_vars_f;
+                if (!pop_scalar(stack, stack_size, h, error_code)) break;
+                if (!pop_scalar(stack, stack_size, n_vars_f, error_code)) break;
+
+                if (fabsf(h) < 1e-12f) {
+                    error_code = kErrorInvalidArgument;
+                    break;
+                }
+
+                int n_vars = static_cast<int>(n_vars_f);
+                if (n_vars < 1 || n_vars > 3) {
+                    error_code = kErrorInvalidArgument;
+                    break;
+                }
+
+                float point[3] = {0.0f, 0.0f, 0.0f};
+                for (int i = n_vars - 1; i >= 0; --i) {
+                    if (!pop_scalar(stack, stack_size, point[i], error_code)) break;
+                }
+                if (error_code != kErrorNone) break;
+
+                float n_opcodes_f;
+                if (!pop_scalar(stack, stack_size, n_opcodes_f, error_code)) break;
+                int n_opcodes = static_cast<int>(n_opcodes_f);
+                if (n_opcodes < 1 || n_opcodes > 20) {
+                    error_code = kErrorInvalidArgument;
+                    break;
+                }
+
+                float program[20];
+                for (int i = n_opcodes - 1; i >= 0; --i) {
+                    if (!pop_scalar(stack, stack_size, program[i], error_code)) break;
+                }
+                if (error_code != kErrorNone) break;
+
+                float gradient[3] = {0.0f, 0.0f, 0.0f};
+                for (int var = 0; var < n_vars; ++var) {
+                    float point_plus[3] = {point[0], point[1], point[2]};
+                    point_plus[var] += h;
+                    float f_plus = evaluate_rpn_function(program, n_opcodes, point_plus[var], error_code);
+                    if (error_code != kErrorNone) break;
+
+                    float point_minus[3] = {point[0], point[1], point[2]};
+                    point_minus[var] -= h;
+                    float f_minus = evaluate_rpn_function(program, n_opcodes, point_minus[var], error_code);
+                    if (error_code != kErrorNone) break;
+
+                    gradient[var] = (f_plus - f_minus) / (2.0f * h);
+                }
+                if (error_code != kErrorNone) break;
+
+                for (int i = 0; i < n_vars; ++i) {
+                    push_scalar(stack, stack_size, gradient[i], error_code);
+                    if (error_code != kErrorNone) break;
+                }
+                if (error_code != kErrorNone) break;
+                push_scalar(stack, stack_size, static_cast<float>(n_vars), error_code);
+                break;
+            }
+            case 0xB7: {  // OP_SYMBOLIC_INTEGRATE
+                float n_intervals_f, b, a, n_opcodes_f;
+                if (!pop_scalar(stack, stack_size, n_intervals_f, error_code)) break;
+                if (!pop_scalar(stack, stack_size, b, error_code)) break;
+                if (!pop_scalar(stack, stack_size, a, error_code)) break;
+                if (!pop_scalar(stack, stack_size, n_opcodes_f, error_code)) break;
+
+                int n_opcodes = static_cast<int>(n_opcodes_f);
+                if (n_opcodes < 1 || n_opcodes > 20) {
+                    error_code = kErrorInvalidArgument;
+                    break;
+                }
+
+                int n_intervals = static_cast<int>(n_intervals_f);
+                if (n_intervals < 1 || n_intervals > 100) {
+                    error_code = kErrorInvalidArgument;
+                    break;
+                }
+
+                float program[20];
+                for (int i = n_opcodes - 1; i >= 0; --i) {
+                    if (!pop_scalar(stack, stack_size, program[i], error_code)) break;
+                }
+                if (error_code != kErrorNone) break;
+
+                const float nodes[7] = {
+                    -0.949107912342759f, -0.741531185599394f, -0.405845151377397f, 0.0f,
+                     0.405845151377397f,  0.741531185599394f,  0.949107912342759f};
+                const float weights[7] = {
+                    0.129484966168870f, 0.279705391489277f, 0.381830050505119f, 0.417959183673469f,
+                    0.381830050505119f, 0.279705391489277f, 0.129484966168870f};
+
+                float interval_width = (b - a) / static_cast<float>(n_intervals);
+                float total_integral = 0.0f;
+
+                for (int interval = 0; interval < n_intervals; ++interval) {
+                    float interval_start = a + interval * interval_width;
+                    float interval_center = interval_start + interval_width * 0.5f;
+                    float interval_integral = 0.0f;
+
+                    #pragma unroll
+                    for (int i = 0; i < 7; ++i) {
+                        float x = interval_center + interval_width * 0.5f * nodes[i];
+                        float y = evaluate_rpn_function(program, n_opcodes, x, error_code);
+                        if (error_code != kErrorNone) break;
+                        interval_integral += weights[i] * y;
+                    }
+                    if (error_code != kErrorNone) break;
+                    total_integral += interval_integral * interval_width * 0.5f;
+                }
+                if (error_code != kErrorNone) break;
+
+                push_scalar(stack, stack_size, total_integral, error_code);
+                break;
+            }
+            case 0xB9: {  // OP_LIMIT
+                float max_steps_f, direction, x0, n_opcodes_f;
+                if (!pop_scalar(stack, stack_size, max_steps_f, error_code)) break;
+                if (!pop_scalar(stack, stack_size, direction, error_code)) break;
+                if (!pop_scalar(stack, stack_size, x0, error_code)) break;
+                if (!pop_scalar(stack, stack_size, n_opcodes_f, error_code)) break;
+
+                int n_opcodes = static_cast<int>(n_opcodes_f);
+                if (n_opcodes < 1 || n_opcodes > 20) {
+                    error_code = kErrorInvalidArgument;
+                    break;
+                }
+
+                int max_steps = static_cast<int>(max_steps_f);
+                if (max_steps < 1 || max_steps > 64) {
+                    error_code = kErrorInvalidArgument;
+                    break;
+                }
+
+                float program[20];
+                for (int i = n_opcodes - 1; i >= 0; --i) {
+                    if (!pop_scalar(stack, stack_size, program[i], error_code)) break;
+                }
+                if (error_code != kErrorNone) break;
+
+                if (fabsf(direction) < 1e-12f) {
+                    direction = 1.0f;
+                }
+
+                float h = 0.1f * direction;
+                float prev_value = evaluate_rpn_function(program, n_opcodes, x0 + h, error_code);
+                if (error_code != kErrorNone) break;
+
+                bool converged = false;
+                for (int step = 1; step < max_steps; ++step) {
+                    h *= 0.5f;
+                    float curr_value = evaluate_rpn_function(program, n_opcodes, x0 + h, error_code);
+                    if (error_code != kErrorNone) break;
+
+                    if (fabsf(curr_value - prev_value) < 1e-6f) {
+                        push_scalar(stack, stack_size, curr_value, error_code);
+                        converged = true;
+                        break;
+                    }
+                    prev_value = curr_value;
+                }
+                if (error_code != kErrorNone) break;
+
+                if (!converged) {
+                    push_scalar(stack, stack_size, prev_value, error_code);
+                }
+                break;
+            }
+            case 0xBA: {  // OP_SERIES_SUM
+                float n_terms_f, n_opcodes_f;
+                if (!pop_scalar(stack, stack_size, n_terms_f, error_code)) break;
+                if (!pop_scalar(stack, stack_size, n_opcodes_f, error_code)) break;
+
+                int n_opcodes = static_cast<int>(n_opcodes_f);
+                if (n_opcodes < 1 || n_opcodes > 20) {
+                    error_code = kErrorInvalidArgument;
+                    break;
+                }
+
+                int n_terms = static_cast<int>(n_terms_f);
+                if (n_terms < 0 || n_terms > 4096) {
+                    error_code = kErrorInvalidArgument;
+                    break;
+                }
+
+                float program[20];
+                for (int i = n_opcodes - 1; i >= 0; --i) {
+                    if (!pop_scalar(stack, stack_size, program[i], error_code)) break;
+                }
+                if (error_code != kErrorNone) break;
+
+                float sum = 0.0f;
+                float compensation = 0.0f;
+                for (int n = 0; n < n_terms; ++n) {
+                    float term = evaluate_rpn_function(program, n_opcodes, static_cast<float>(n), error_code);
+                    if (error_code != kErrorNone) break;
+
+                    float y = term - compensation;
+                    float t = sum + y;
+                    compensation = (t - sum) - y;
+                    sum = t;
+                }
+                if (error_code != kErrorNone) break;
+
+                push_scalar(stack, stack_size, sum, error_code);
+                break;
+            }
+            case 0xBB: {  // OP_SERIES_PRODUCT
+                float n_terms_f, n_opcodes_f;
+                if (!pop_scalar(stack, stack_size, n_terms_f, error_code)) break;
+                if (!pop_scalar(stack, stack_size, n_opcodes_f, error_code)) break;
+
+                int n_opcodes = static_cast<int>(n_opcodes_f);
+                if (n_opcodes < 1 || n_opcodes > 20) {
+                    error_code = kErrorInvalidArgument;
+                    break;
+                }
+
+                int n_terms = static_cast<int>(n_terms_f);
+                if (n_terms < 0 || n_terms > 2048) {
+                    error_code = kErrorInvalidArgument;
+                    break;
+                }
+
+                float program[20];
+                for (int i = n_opcodes - 1; i >= 0; --i) {
+                    if (!pop_scalar(stack, stack_size, program[i], error_code)) break;
+                }
+                if (error_code != kErrorNone) break;
+
+                float log_product = 0.0f;
+                for (int n = 0; n < n_terms; ++n) {
+                    float term = evaluate_rpn_function(program, n_opcodes, static_cast<float>(n), error_code);
+                    if (error_code != kErrorNone) break;
+                    if (term <= 0.0f) {
+                        error_code = kErrorInvalidArgument;
+                        break;
+                    }
+                    log_product += logf(term);
+                }
+                if (error_code != kErrorNone) break;
+
+                float product = expf(log_product);
+                push_scalar(stack, stack_size, product, error_code);
+                break;
+            }
+            case 0xBC: {  // OP_DIVERGENCE
+                float h, z, y, x;
+                if (!pop_scalar(stack, stack_size, h, error_code)) break;
+                if (!pop_scalar(stack, stack_size, z, error_code)) break;
+                if (!pop_scalar(stack, stack_size, y, error_code)) break;
+                if (!pop_scalar(stack, stack_size, x, error_code)) break;
+
+                if (fabsf(h) < 1e-12f) {
+                    error_code = kErrorInvalidArgument;
+                    break;
+                }
+
+                float Fz_opcode, Fy_opcode, Fx_opcode;
+                if (!pop_scalar(stack, stack_size, Fz_opcode, error_code)) break;
+                if (!pop_scalar(stack, stack_size, Fy_opcode, error_code)) break;
+                if (!pop_scalar(stack, stack_size, Fx_opcode, error_code)) break;
+
+                float Fx_plus = evaluate_rpn_function(&Fx_opcode, 1, x + h, error_code);
+                if (error_code != kErrorNone) break;
+                float Fx_minus = evaluate_rpn_function(&Fx_opcode, 1, x - h, error_code);
+                if (error_code != kErrorNone) break;
+                float dFx_dx = (Fx_plus - Fx_minus) / (2.0f * h);
+
+                float Fy_plus = evaluate_rpn_function(&Fy_opcode, 1, y + h, error_code);
+                if (error_code != kErrorNone) break;
+                float Fy_minus = evaluate_rpn_function(&Fy_opcode, 1, y - h, error_code);
+                if (error_code != kErrorNone) break;
+                float dFy_dy = (Fy_plus - Fy_minus) / (2.0f * h);
+
+                float Fz_plus = evaluate_rpn_function(&Fz_opcode, 1, z + h, error_code);
+                if (error_code != kErrorNone) break;
+                float Fz_minus = evaluate_rpn_function(&Fz_opcode, 1, z - h, error_code);
+                if (error_code != kErrorNone) break;
+                float dFz_dz = (Fz_plus - Fz_minus) / (2.0f * h);
+
+                float divergence = dFx_dx + dFy_dy + dFz_dz;
+                push_scalar(stack, stack_size, divergence, error_code);
+                break;
+            }
+            case 0xBD: {  // OP_CURL
+                float h, z, y, x;
+                if (!pop_scalar(stack, stack_size, h, error_code)) break;
+                if (!pop_scalar(stack, stack_size, z, error_code)) break;
+                if (!pop_scalar(stack, stack_size, y, error_code)) break;
+                if (!pop_scalar(stack, stack_size, x, error_code)) break;
+
+                if (fabsf(h) < 1e-12f) {
+                    error_code = kErrorInvalidArgument;
+                    break;
+                }
+
+                float Fz_opcode, Fy_opcode, Fx_opcode;
+                if (!pop_scalar(stack, stack_size, Fz_opcode, error_code)) break;
+                if (!pop_scalar(stack, stack_size, Fy_opcode, error_code)) break;
+                if (!pop_scalar(stack, stack_size, Fx_opcode, error_code)) break;
+
+                float dFz_dy = (evaluate_rpn_function(&Fz_opcode, 1, y + h, error_code) -
+                                evaluate_rpn_function(&Fz_opcode, 1, y - h, error_code)) / (2.0f * h);
+                if (error_code != kErrorNone) break;
+                float dFy_dz = (evaluate_rpn_function(&Fy_opcode, 1, z + h, error_code) -
+                                evaluate_rpn_function(&Fy_opcode, 1, z - h, error_code)) / (2.0f * h);
+                if (error_code != kErrorNone) break;
+                float dFx_dz = (evaluate_rpn_function(&Fx_opcode, 1, z + h, error_code) -
+                                evaluate_rpn_function(&Fx_opcode, 1, z - h, error_code)) / (2.0f * h);
+                if (error_code != kErrorNone) break;
+                float dFz_dx = (evaluate_rpn_function(&Fz_opcode, 1, x + h, error_code) -
+                                evaluate_rpn_function(&Fz_opcode, 1, x - h, error_code)) / (2.0f * h);
+                if (error_code != kErrorNone) break;
+                float dFy_dx = (evaluate_rpn_function(&Fy_opcode, 1, x + h, error_code) -
+                                evaluate_rpn_function(&Fy_opcode, 1, x - h, error_code)) / (2.0f * h);
+                if (error_code != kErrorNone) break;
+                float dFx_dy = (evaluate_rpn_function(&Fx_opcode, 1, y + h, error_code) -
+                                evaluate_rpn_function(&Fx_opcode, 1, y - h, error_code)) / (2.0f * h);
+                if (error_code != kErrorNone) break;
+
+                float curl_x = dFz_dy - dFy_dz;
+                float curl_y = dFx_dz - dFz_dx;
+                float curl_z = dFy_dx - dFx_dy;
+
+                push_scalar(stack, stack_size, curl_x, error_code);
+                if (error_code != kErrorNone) break;
+                push_scalar(stack, stack_size, curl_y, error_code);
+                if (error_code != kErrorNone) break;
+                push_scalar(stack, stack_size, curl_z, error_code);
+                if (error_code != kErrorNone) break;
+                push_scalar(stack, stack_size, 3.0f, error_code);
+                break;
+            }
+            case 0xBE: {  // OP_LAPLACIAN
+                float h, n_vars_f;
+                if (!pop_scalar(stack, stack_size, h, error_code)) break;
+                if (!pop_scalar(stack, stack_size, n_vars_f, error_code)) break;
+
+                if (fabsf(h) < 1e-12f) {
+                    error_code = kErrorInvalidArgument;
+                    break;
+                }
+
+                int n_vars = static_cast<int>(n_vars_f);
+                if (n_vars < 1 || n_vars > 3) {
+                    error_code = kErrorInvalidArgument;
+                    break;
+                }
+
+                float point[3] = {0.0f, 0.0f, 0.0f};
+                for (int i = n_vars - 1; i >= 0; --i) {
+                    if (!pop_scalar(stack, stack_size, point[i], error_code)) break;
+                }
+                if (error_code != kErrorNone) break;
+
+                float n_opcodes_f;
+                if (!pop_scalar(stack, stack_size, n_opcodes_f, error_code)) break;
+                int n_opcodes = static_cast<int>(n_opcodes_f);
+                if (n_opcodes < 1 || n_opcodes > 20) {
+                    error_code = kErrorInvalidArgument;
+                    break;
+                }
+
+                float program[20];
+                for (int i = n_opcodes - 1; i >= 0; --i) {
+                    if (!pop_scalar(stack, stack_size, program[i], error_code)) break;
+                }
+                if (error_code != kErrorNone) break;
+
+                float laplacian = 0.0f;
+                for (int var = 0; var < n_vars; ++var) {
+                    float f_center = evaluate_rpn_function(program, n_opcodes, point[var], error_code);
+                    if (error_code != kErrorNone) break;
+
+                    float point_plus[3] = {point[0], point[1], point[2]};
+                    point_plus[var] += h;
+                    float f_plus = evaluate_rpn_function(program, n_opcodes, point_plus[var], error_code);
+                    if (error_code != kErrorNone) break;
+
+                    float point_minus[3] = {point[0], point[1], point[2]};
+                    point_minus[var] -= h;
+                    float f_minus = evaluate_rpn_function(program, n_opcodes, point_minus[var], error_code);
+                    if (error_code != kErrorNone) break;
+
+                    laplacian += (f_plus - 2.0f * f_center + f_minus) / (h * h);
+                }
+                if (error_code != kErrorNone) break;
+
+                push_scalar(stack, stack_size, laplacian, error_code);
+                break;
+            }
+            // ====================================================================
+            // PHASE 8: QUANTUM OPERATIONS (6 OPCODES) - FIXED PRNG
+            // ====================================================================
+            case 0xD2: {  // OP_QUANTUM_SUPERPOSE
+                float beta, alpha;
+                if (!pop_scalar(stack, stack_size, beta, error_code)) break;
+                if (!pop_scalar(stack, stack_size, alpha, error_code)) break;
+
+                float norm = sqrtf(alpha * alpha + beta * beta);
+                if (norm < 1e-10f) {
+                    error_code = kErrorInvalidArgument;
+                    break;
+                }
+                alpha /= norm;
+                beta /= norm;
+
+                StackItem quantum_state{};
+                quantum_state.value[0] = alpha;
+                quantum_state.value[1] = beta;
+                quantum_state.value[2] = atan2f(beta, alpha);
+                quantum_state.value[3] = norm;
+                quantum_state.type = ItemType::kScalar;
+                quantum_state.rows = -1;
+                quantum_state.cols = 1;
+                quantum_state.row_index = 0;
+
+                push_item(stack, stack_size, quantum_state, error_code);
+                break;
+            }
+            case 0xD3: {  // OP_QUANTUM_MEASURE
+                StackItem quantum_state{};
+                if (!pop_item(stack, stack_size, quantum_state, error_code)) break;
+
+                if (quantum_state.rows != -1) {
+                    error_code = kErrorInvalidArgument;
+                    break;
+                }
+
+                float alpha = quantum_state.value[0];
+                float beta = quantum_state.value[1];
+                float prob_one = beta * beta;
+
+                float rnd = random_float();
+                float result = (rnd < prob_one) ? 1.0f : 0.0f;
+                push_scalar(stack, stack_size, result, error_code);
+                break;
+            }
+            case 0xD4: {  // OP_QUANTUM_ENTANGLE
+                StackItem state2{}, state1{};
+                if (!pop_item(stack, stack_size, state2, error_code)) break;
+                if (!pop_item(stack, stack_size, state1, error_code)) break;
+
+                if (state1.rows != -1 || state2.rows != -1) {
+                    error_code = kErrorInvalidArgument;
+                    break;
+                }
+
+                StackItem entangled{};
+                entangled.value[0] = state1.value[0] * state2.value[0];
+                entangled.value[1] = state1.value[1] * state2.value[1];
+                entangled.value[2] = state1.value[2] + state2.value[2];
+                entangled.value[3] = 1.0f / sqrtf(2.0f);
+                entangled.type = ItemType::kScalar;
+                entangled.rows = -2;
+                entangled.cols = 2;
+                entangled.row_index = 0;
+
+                push_item(stack, stack_size, entangled, error_code);
+                break;
+            }
+            case 0xD5: {  // OP_QUANTUM_PHASE
+                float phase_angle;
+                if (!pop_scalar(stack, stack_size, phase_angle, error_code)) break;
+
+                StackItem quantum_state{};
+                if (!pop_item(stack, stack_size, quantum_state, error_code)) break;
+
+                quantum_state.value[2] += phase_angle;
+                push_item(stack, stack_size, quantum_state, error_code);
+                break;
+            }
+            case 0xD6: {  // OP_QUANTUM_HADAMARD
+                StackItem quantum_state{};
+                if (!pop_item(stack, stack_size, quantum_state, error_code)) break;
+
+                float alpha = quantum_state.value[0];
+                float beta = quantum_state.value[1];
+                float inv_sqrt2 = 1.0f / sqrtf(2.0f);
+                quantum_state.value[0] = (alpha + beta) * inv_sqrt2;
+                quantum_state.value[1] = (alpha - beta) * inv_sqrt2;
+
+                push_item(stack, stack_size, quantum_state, error_code);
+                break;
+            }
+            case 0xD7: {  // OP_QUANTUM_CNOT
+                StackItem target{}, control{};
+                if (!pop_item(stack, stack_size, target, error_code)) break;
+                if (!pop_item(stack, stack_size, control, error_code)) break;
+
+                if (control.rows != -1 || target.rows != -1) {
+                    error_code = kErrorInvalidArgument;
+                    break;
+                }
+
+                if (control.value[1] > 0.5f) {
+                    float temp = target.value[0];
+                    target.value[0] = target.value[1];
+                    target.value[1] = temp;
+                }
+
+                push_item(stack, stack_size, control, error_code);
+                if (error_code != kErrorNone) break;
+                push_item(stack, stack_size, target, error_code);
                 break;
             }
             // ========== TIER 1: Clustering Vector Ops ==========

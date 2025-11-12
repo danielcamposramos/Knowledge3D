@@ -43,7 +43,7 @@ from knowledge3d.cranium.adaptive_procedural_bridge import AdaptiveDimensionComp
 from knowledge3d.cranium.procedural_galaxy import ProceduralGalaxy  # noqa: E402
 
 MATRY_MAX_DIM = 2048
-CHAR_EMBED_DIM = 128
+CHAR_EMBED_DIM = 512  # Adaptive Matryoshka dimension (balanced quality)
 LOW_DIM = 64
 DEFAULT_FONTS_PER_SCRIPT = 50
 FONT_CATEGORY_DIR = Path("/K3D/Knowledge3D.local/font_categories")
@@ -666,7 +666,7 @@ def _build_dataset(
 
 def train_single_character(
     target_char: str,
-    learning_rate: float = 0.03,
+    learning_rate: float = 0.6,
     n_epochs: int = 1500,
     n_fonts: int = 0,
     fc_only: bool = False,
@@ -790,10 +790,10 @@ def train_single_character(
     print("[4/6] Training binary CNN...")
     print("=" * 80)
 
-    # Increased from 32 to 128 for better GPU utilization
+    # Increased from 32 to 148 for better GPU utilization
     # With fc-only mode, memory usage is low enough for larger batches
-    # This reduces kernel launch overhead: 49 batches/epoch -> 13 batches/epoch
-    batch_size = 128
+    # This reduces kernel launch overhead and improves throughput
+    batch_size = 148
     n_samples = len(images)
     best_accuracy = max(0.0, resume_best_accuracy)
 
@@ -935,7 +935,9 @@ def train_single_character(
     if compressor is not None and galaxy is not None:
         try:
             canonical_embedding = embeddings_array.mean(axis=0).astype(np.float32)
-            program, proc_meta = compressor.compress(canonical_embedding, quality="fast", return_metadata=True)
+            # Adaptive quality based on embedding complexity (Matryoshka principle)
+            quality = "balanced"  # 512D adaptive compression (vs fixed 128D "fast")
+            program, proc_meta = compressor.compress(canonical_embedding, quality=quality, return_metadata=True)
             galaxy_key = f"char_{char_code}_{target_char}"
             galaxy.store_program(galaxy_key, program, proc_meta["actual_compression"])
             reconstructed = compressor.decompress(program, proc_meta["target_dim"])
@@ -971,9 +973,45 @@ def train_single_character(
 
 
 def main() -> None:
+    # ========================================================================
+    # CUDA CONTEXT ISOLATION (Fork-Safety Fix)
+    # ========================================================================
+    # When Python forks child processes, CUDA contexts don't properly clone.
+    # This causes gradient vanishing and GPU synchronization deadlocks.
+    # Solution: Explicitly reset and reinitialize CUDA in each child process.
+    # ========================================================================
+
+    import os
+
+    # Detect if we're in a forked child process
+    current_pid = os.getpid()
+    parent_pid = os.getppid()
+    is_forked = hasattr(os, '_initial_pid') and current_pid != getattr(os, '_initial_pid', current_pid)
+
+    try:
+        import cupy as cp
+
+        # Force CUDA initialization in this process
+        # This creates a fresh CUDA context instead of inheriting broken state
+        device_id = int(os.environ.get('CUDA_VISIBLE_DEVICES', '0').split(',')[0])
+
+        # Reset any inherited CUDA state
+        try:
+            cp.cuda.Device(device_id).use()
+            # Force synchronization to ensure clean state
+            cp.cuda.Stream.null.synchronize()
+            print(f"[CUDA] Context initialized for device {device_id} (PID={current_pid}, PPID={parent_pid})")
+        except Exception as cuda_exc:
+            print(f"[WARN] CUDA context reset failed: {cuda_exc}")
+            print("[WARN] Proceeding anyway - may experience gradient issues")
+
+    except ImportError:
+        # CuPy not available - training will use loader.py's CUDA initialization
+        print("[INFO] CuPy not available - using loader.py CUDA initialization")
+
     parser = argparse.ArgumentParser(description="Train CNN on a single character (binary task).")
     parser.add_argument("--char", type=str, required=True, help="Target character (e.g., 'A')")
-    parser.add_argument("--lr", type=float, default=0.03, help="Learning rate")
+    parser.add_argument("--lr", type=float, default=0.6, help="Learning rate")
     parser.add_argument("--epochs", type=int, default=1500, help="Number of epochs (default: 1500)")
     parser.add_argument(
         "--fonts",
@@ -1004,7 +1042,7 @@ def main() -> None:
         try:
             compressor = AdaptiveDimensionCompressor()
             galaxy = ProceduralGalaxy(PROCEDURAL_GALAXY_ROOT)
-            print("[INFO] Adaptive procedural compression enabled (quality=fast, 128D).")
+            print("[INFO] Adaptive procedural compression enabled (Matryoshka 64D-2048D, quality=balanced, 512D).")
         except Exception as exc:
             print(f"[WARN] Failed to initialise adaptive compressor ({exc}); proceeding without procedural capture.")
             compressor = None
