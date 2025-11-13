@@ -7,6 +7,7 @@ The primary guiding documents for this project are:
 1.  **[Knowledge3D (K3D) — Unified Project Brief & Technical Whitepaper](docs/Jules_K3D_Whitepaper.md)**: This is the new, authoritative single source of truth for the project. It contains the core vision, architecture, training methodology, and current roadmap. All work must be grounded in this document.
 
 2.  **[Codex Tasks (CODEX.md)](CODEX.md)**: This file provides a detailed, actionable task list that corresponds to the current phase of the roadmap outlined in the whitepaper. Agents should consult this file for specific implementation tasks.
+3.  **[K3D Sovereign Swarm Briefing](SOVEREIGN_SWARM_BRIEFING.md)**: Briefing for AI partners participating in the current human‑orchestrated chain (old paradigm). Read fully before contributing.
 
 4.  **[Memory Tablet & Dual-Space Architecture](docs/HOUSE_GALAXY_TABLET.md)**: Defines how Galaxy (RAM), House (persistent memory), Museum (deprecated archive), and the new Memory Tablet interact. Any knowledge-management change must follow this workflow.
 5.  **[Training Directives](docs/TRAINING_DIRECTIVES.md)**: Prompt hygiene, timestamp policies, dataset priorities, and lesson vs inference rules.
