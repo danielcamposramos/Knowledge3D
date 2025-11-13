@@ -294,9 +294,16 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Batch train atomic characters")
     parser.add_argument("--universal", action="store_true", help="Train universal multi-script set")
     parser.add_argument("--fonts", type=int, default=FONT_COUNT, help="Fonts per character (cap)")
+    parser.add_argument(
+        "--parallel",
+        type=int,
+        default=6,
+        help="Max characters to train concurrently per batch (default: 6)",
+    )
     args = parser.parse_args()
 
     FONT_COUNT = args.fonts
+    parallel_jobs = max(1, args.parallel)
 
     print("=" * 80)
     title = "UNIVERSAL ATOMIC CHARACTER BATCH TRAINING" if args.universal else "ATOMIC CHARACTER BATCH TRAINING - Phase G"
@@ -309,7 +316,7 @@ def main() -> None:
     print(f"Training {len(chars)} characters atomically")
     if args.universal:
         print("  - Multi-script character set (Latin, CJK, symbols, emoji, etc.)")
-    print("Using RPN stack architecture (15 parallel slots)")
+    print(f"Using RPN stack architecture with up to {parallel_jobs} concurrent slots")
     print(f"Fonts per script cap: {FONT_COUNT}")
     print()
 
@@ -330,7 +337,7 @@ def main() -> None:
         print("=" * 80)
         print()
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=min(15, len(batch_chars))) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(parallel_jobs, len(batch_chars))) as executor:
             futures = {
                 executor.submit(_train_character_atomic, char, 0.01, 100): char
                 for char in batch_chars
