@@ -49,6 +49,7 @@ DEFAULT_FONTS_PER_SCRIPT = 50
 FONT_CATEGORY_DIR = Path("/K3D/Knowledge3D.local/font_categories")
 CHECKPOINT_DIR = Path("/K3D/Knowledge3D.local/checkpoints/phase_g/atomic_chars")
 PROCEDURAL_GALAXY_ROOT = Path("/K3D/Knowledge3D.local/procedural_galaxy")
+MIN_RESUME_ACCURACY = 0.60  # Ignore checkpoints worse than random drift
 
 MODEL_STATE_KEYS = [
     "conv1_weight",
@@ -733,19 +734,25 @@ def train_single_character(
     if weights_path.exists():
         try:
             with np.load(weights_path, allow_pickle=True) as data:
-                state_dict = {name: data[name] for name in MODEL_STATE_KEYS if name in data}
-                if state_dict:
-                    model.load_state_dict(state_dict, strict=False)
-                    print(f"       ✓ Loaded {len(state_dict)} CNN parameter tensors from checkpoint")
-                if "fc_weight" in data and "fc_bias" in data:
-                    resume_fc_weight = np.array(data["fc_weight"])
-                    resume_fc_bias = np.array(data["fc_bias"])
-                if "accuracy" in data:
-                    resume_best_accuracy = float(np.squeeze(data["accuracy"]))
-            print(
-                "       Resuming from checkpoint "
-                f"(best accuracy: {resume_best_accuracy * 100:.2f}%)"
-            )
+                checkpoint_accuracy = float(np.squeeze(data["accuracy"])) if "accuracy" in data else 0.0
+                if checkpoint_accuracy >= MIN_RESUME_ACCURACY:
+                    state_dict = {name: data[name] for name in MODEL_STATE_KEYS if name in data}
+                    if state_dict:
+                        model.load_state_dict(state_dict, strict=False)
+                        print(f"       ✓ Loaded {len(state_dict)} CNN parameter tensors from checkpoint")
+                    if "fc_weight" in data and "fc_bias" in data:
+                        resume_fc_weight = np.array(data["fc_weight"])
+                        resume_fc_bias = np.array(data["fc_bias"])
+                    resume_best_accuracy = checkpoint_accuracy
+                    print(
+                        "       Resuming from checkpoint "
+                        f"(best accuracy: {resume_best_accuracy * 100:.2f}%)"
+                    )
+                else:
+                    print(
+                        f"       ⚠️  Checkpoint accuracy {checkpoint_accuracy * 100:.2f}% "
+                        f"below {MIN_RESUME_ACCURACY * 100:.0f}% threshold; starting from scratch."
+                    )
         except Exception as exc:
             print(f"       ⚠️  Failed to load checkpoint ({exc}); starting from scratch.")
 

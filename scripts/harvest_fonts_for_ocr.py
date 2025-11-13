@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 import pickle
+import string
 import sys
 from pathlib import Path
 from typing import Dict, List
@@ -24,6 +25,41 @@ except ImportError as exc:
 sys.path.insert(0, ".")
 
 from knowledge3d.cranium.rpn_embedding_engine import RPNEmbeddingEngine
+from knowledge3d.cranium.math_symbols_registry import ALL_MATH_SYMBOLS
+
+ASCII_PUNCTUATION = " " + string.punctuation
+
+
+def _build_char_inventory() -> str:
+    """
+    Compose the glyph inventory used for harvesting.
+
+    Includes:
+        - Latin uppercase/lowercase
+        - Decimal digits
+        - ASCII punctuation (plus space)
+        - Full math symbol registry (≈1k glyphs)
+
+    Ordering preserves the earlier alphanumeric core so downstream
+    scripts that rely on deterministic ordering remain stable.
+    """
+    base = (
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz"
+        "0123456789"
+    )
+    extra = ASCII_PUNCTUATION + "".join(ALL_MATH_SYMBOLS)
+
+    seen = set()
+    ordered_chars: List[str] = []
+    for ch in base + extra:
+        if ch not in seen:
+            seen.add(ch)
+            ordered_chars.append(ch)
+    return "".join(ordered_chars)
+
+
+CHARACTER_INVENTORY = _build_char_inventory()
 
 
 class FontGlyphHarvester:
@@ -33,7 +69,7 @@ class FontGlyphHarvester:
         self.rpn_engine = RPNEmbeddingEngine()
         self.glyph_database: Dict[str, Dict[str, object]] = {}
 
-    def harvest_fonts(self, font_dirs: List[str], output_path: str, max_fonts: int = 2000) -> None:
+    def harvest_fonts(self, font_dirs: List[str], output_path: str, max_fonts: int | None = None) -> None:
         font_files: List[str] = []
         for font_dir in font_dirs:
             directory = Path(font_dir).expanduser()
@@ -44,13 +80,10 @@ class FontGlyphHarvester:
                     font_files.append(str(path))
 
         print(f"[INFO] Found {len(font_files)} font files")
-        font_files = font_files[:max_fonts]
+        if max_fonts is not None and max_fonts > 0:
+            font_files = font_files[:max_fonts]
 
-        chars = (
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-            "abcdefghijklmnopqrstuvwxyz"
-            "0123456789"
-        )
+        chars = CHARACTER_INVENTORY
 
         total_glyphs = 0
 
@@ -240,6 +273,17 @@ class FontGlyphHarvester:
 
 
 def main() -> None:
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Regenerate font_db.pkl with extended glyph coverage.")
+    parser.add_argument(
+        "--max-fonts",
+        type=int,
+        default=0,
+        help="Limit number of fonts to harvest (0 = all detected).",
+    )
+    args = parser.parse_args()
+
     harvester = FontGlyphHarvester()
     font_dirs = [
         "/usr/share/fonts",
@@ -248,11 +292,12 @@ def main() -> None:
     ]
 
     output_path = "/K3D/Knowledge3D.local/font_db.pkl"
+    max_fonts = None if args.max_fonts <= 0 else args.max_fonts
 
     print("=" * 60)
     print("K3D Font Glyph Harvesting")
     print("=" * 60)
-    harvester.harvest_fonts(font_dirs, output_path, max_fonts=2000)
+    harvester.harvest_fonts(font_dirs, output_path, max_fonts=max_fonts)
     print("=" * 60)
     print("Harvest complete.")
     print("=" * 60)
