@@ -14,10 +14,11 @@ import ctypes
 import pickle
 import random
 import sys
+from dataclasses import dataclass
 from io import BytesIO
 from itertools import cycle
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Union
+from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
@@ -41,6 +42,8 @@ from knowledge3d.cranium.bridges.spatial_pool_bridge import SpatialMeanPooler  #
 from knowledge3d.cranium.sovereign import loader  # noqa: E402
 from knowledge3d.cranium.adaptive_procedural_bridge import AdaptiveDimensionCompressor  # noqa: E402
 from knowledge3d.cranium.procedural_galaxy import ProceduralGalaxy  # noqa: E402
+from knowledge3d.cranium.bridges.procedural_glyph_bridge import ProceduralGlyphBridge  # noqa: E402
+from knowledge3d.cranium.procedural_fonts import build_descriptor_batch  # noqa: E402
 
 MATRY_MAX_DIM = 2048
 CHAR_EMBED_DIM = 512  # Adaptive Matryoshka dimension (balanced quality)
@@ -130,6 +133,13 @@ except Exception as attach_exc:
 spatial_pooler = SpatialMeanPooler()
 
 _FONT_CACHE: Dict[str, List[Path]] = {}
+
+
+@dataclass
+class GlyphJob:
+    char: str
+    font_path: str
+    label: int
 
 
 def is_emoji(char: str) -> bool:
@@ -665,6 +675,95 @@ def _build_dataset(
     }
 
 
+def _build_procedural_jobs(
+    target_char: str,
+    target_script: str,
+    positive_fonts: List[Path],
+    negative_groups: Dict[str, List[str]],
+    font_buckets: Dict[str, List[Path]],
+) -> Tuple[List[GlyphJob], int, int]:
+    """Assemble glyph jobs without rasterizing upfront."""
+    jobs: List[GlyphJob] = []
+
+    for font_path in positive_fonts:
+        jobs.append(GlyphJob(char=target_char, font_path=str(font_path), label=1))
+
+    script_weights: List[str] = []
+    for script_name in negative_groups.keys():
+        weight = 3 if script_name == target_script else 1
+        script_weights.extend([script_name] * weight)
+    if not script_weights:
+        script_weights.append(target_script)
+
+    script_cycle = cycle(script_weights)
+    char_cycles = {name: cycle(chars) for name, chars in negative_groups.items() if chars}
+    font_cycles = {
+        name: cycle(font_buckets.get(name, positive_fonts))
+        for name in negative_groups.keys()
+        if font_buckets.get(name, positive_fonts)
+    }
+
+    target_count = len(jobs)
+    attempts = 0
+    max_attempts = target_count * 25
+    while len(jobs) < target_count * 2 and attempts < max_attempts:
+        attempts += 1
+        script_name = next(script_cycle)
+        char_iter = char_cycles.get(script_name)
+        font_iter = font_cycles.get(script_name)
+        if char_iter is None or font_iter is None:
+            continue
+        char_candidate = next(char_iter)
+        if char_candidate == target_char:
+            continue
+        font_path = next(font_iter)
+        jobs.append(GlyphJob(char=char_candidate, font_path=str(font_path), label=0))
+
+    if len(jobs) < target_count * 2:
+        shortfall = target_count * 2 - len(jobs)
+        jobs.extend(random.choices(jobs[-target_count:], k=shortfall))
+
+    positives = len(positive_fonts)
+    negatives = len(jobs) - positives
+    return jobs, positives, negatives
+
+
+class ProceduralGlyphStream:
+    """Streams glyph batches through the procedural rasterizer."""
+
+    def __init__(self, image_size: int = 64):
+        self.image_size = image_size
+        self.bridge = ProceduralGlyphBridge()
+
+    def _random_transforms(self, batch: int) -> np.ndarray:
+        scale = 1.0 + np.random.uniform(-0.1, 0.1, size=batch)
+        rotation = np.random.uniform(-0.2, 0.2, size=batch)
+        tx = np.random.uniform(-0.05, 0.05, size=batch)
+        ty = np.random.uniform(-0.05, 0.05, size=batch)
+        return np.stack([scale, rotation, tx, ty], axis=1).astype(np.float32)
+
+    def render_batch(self, jobs: List[GlyphJob]) -> np.ndarray:
+        if not jobs:
+            return np.zeros((0, self.image_size, self.image_size, 3), dtype=np.float32)
+
+        font_pairs = [(job.font_path, job.char) for job in jobs]
+        segments, offsets, lengths = build_descriptor_batch(font_pairs)
+        transforms = self._random_transforms(len(jobs))
+
+        batch = self.bridge.render(
+            segments=segments,
+            segment_offsets=offsets,
+            segment_lengths=lengths,
+            transforms=transforms,
+            batch=len(jobs),
+            height=self.image_size,
+            width=self.image_size,
+        )
+        glyphs = batch.to_numpy()
+        rgb = np.repeat(glyphs[:, :, :, None], 3, axis=3)
+        return rgb.astype(np.float32, copy=False)
+
+
 def train_single_character(
     target_char: str,
     learning_rate: float = 0.6,
@@ -674,6 +773,7 @@ def train_single_character(
     max_epochs: int = 3000,
     compressor: Optional[AdaptiveDimensionCompressor] = None,
     galaxy: Optional[ProceduralGalaxy] = None,
+    use_procedural: bool = True,
 ) -> Dict[str, object]:
     """Train CNN to recognize single character across fonts."""
     print("=" * 80)
@@ -724,6 +824,7 @@ def train_single_character(
 
     print(f"       Using {len(fonts)} fonts for script '{script}'")
     print()
+    procedural_stream = ProceduralGlyphStream() if use_procedural else None
 
     print("[2/6] Initializing binary CNN model...")
     model = DeepSeekOCRModel()
@@ -777,21 +878,37 @@ def train_single_character(
     print(f"       Trainer mode: {mode_desc}")
     print()
 
-    print("[3/6] Rendering glyphs...")
+    print("[3/6] Preparing glyph stream...")
     negative_groups = _prepare_negative_groups(target_char, script)
     font_buckets = _prepare_font_buckets(negative_groups, script, fonts, n_fonts)
-    dataset = _build_dataset(
-        target_char=target_char,
-        target_script=script,
-        positive_fonts=fonts,
-        negative_groups=negative_groups,
-        font_buckets=font_buckets,
-    )
-    images = dataset["images"]
-    labels = dataset["labels"]
-    print(f"       Positive samples ('{target_char}'): {dataset['n_positive']}")
-    print(f"       Negative samples (other chars): {dataset['n_negative']}")
-    print(f"       Total samples: {len(images)}")
+    dataset_images: Optional[np.ndarray] = None
+    dataset_labels: Optional[np.ndarray] = None
+    procedural_jobs: List[GlyphJob] = []
+
+    if use_procedural and procedural_stream is not None:
+        procedural_jobs, n_pos, n_neg = _build_procedural_jobs(
+            target_char=target_char,
+            target_script=script,
+            positive_fonts=fonts,
+            negative_groups=negative_groups,
+            font_buckets=font_buckets,
+        )
+        print(f"       Procedural positives: {n_pos}")
+        print(f"       Procedural negatives: {n_neg}")
+        print(f"       Total samples: {len(procedural_jobs)}")
+    else:
+        dataset = _build_dataset(
+            target_char=target_char,
+            target_script=script,
+            positive_fonts=fonts,
+            negative_groups=negative_groups,
+            font_buckets=font_buckets,
+        )
+        dataset_images = dataset["images"]
+        dataset_labels = dataset["labels"]
+        print(f"       Positive samples ('{target_char}'): {dataset['n_positive']}")
+        print(f"       Negative samples (other chars): {dataset['n_negative']}")
+        print(f"       Total samples: {len(dataset_images)}")
     print()
 
     print("[4/6] Training binary CNN...")
@@ -801,7 +918,10 @@ def train_single_character(
     # With fc-only mode, memory usage is low enough for larger batches
     # This reduces kernel launch overhead and improves throughput
     batch_size = 148
-    n_samples = len(images)
+    if dataset_images is not None:
+        n_samples = len(dataset_images)
+    else:
+        n_samples = len(procedural_jobs)
     best_accuracy = max(0.0, resume_best_accuracy)
 
     epoch = 0
@@ -814,16 +934,29 @@ def train_single_character(
     while epoch < current_limit:
         epoch += 1
         indices = np.random.permutation(n_samples)
-        images_shuffled = images[indices]
-        labels_shuffled = labels[indices]
+        if dataset_images is not None and dataset_labels is not None:
+            images_shuffled = dataset_images[indices]
+            labels_shuffled = dataset_labels[indices]
+            shuffled_jobs: Optional[List[GlyphJob]] = None
+        else:
+            shuffled_jobs = [procedural_jobs[i] for i in indices]
+            images_shuffled = None
+            labels_shuffled = None
 
         epoch_losses: List[float] = []
         epoch_accs: List[float] = []
 
         for start in range(0, n_samples, batch_size):
             end = min(start + batch_size, n_samples)
-            batch_imgs = [img for img in images_shuffled[start:end]]
-            batch_labels = [int(lbl) for lbl in labels_shuffled[start:end]]
+            if images_shuffled is not None and labels_shuffled is not None:
+                batch_imgs = [img for img in images_shuffled[start:end]]
+                batch_labels = [int(lbl) for lbl in labels_shuffled[start:end]]
+            else:
+                assert shuffled_jobs is not None and procedural_stream is not None
+                job_slice = shuffled_jobs[start:end]
+                rendered = procedural_stream.render_batch(job_slice)
+                batch_imgs = [img for img in rendered]
+                batch_labels = [job.label for job in job_slice]
 
             loss, acc = trainer.train_batch(batch_imgs, batch_labels)
 
@@ -1028,6 +1161,11 @@ def main() -> None:
     )
     parser.add_argument("--fc-only", action="store_true", help="Train only the final FC layer (freeze CNN)")
     parser.add_argument(
+        "--legacy-raster",
+        action="store_true",
+        help="Use the legacy PIL/OpenCV rasterizer instead of GPU procedural streaming.",
+    )
+    parser.add_argument(
         "--max-epochs",
         type=int,
         default=3000,
@@ -1055,6 +1193,8 @@ def main() -> None:
             compressor = None
             galaxy = None
 
+    use_procedural = not args.legacy_raster
+
     result = train_single_character(
         target_char=args.char,
         learning_rate=args.lr,
@@ -1064,6 +1204,7 @@ def main() -> None:
         max_epochs=args.max_epochs,
         compressor=compressor,
         galaxy=galaxy,
+        use_procedural=use_procedural,
     )
 
     print(f"✓ Successfully trained '{result['char']}' with {result['best_accuracy'] * 100:.2f}% accuracy")
