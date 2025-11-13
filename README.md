@@ -192,6 +192,7 @@ We've prepared comprehensive contributions organized into **9 insertion document
 | [Vocabulary Intersection](TEMP/W3C_INSERTION_5_VOCABULARY_INTERSECTION.md) | AI KR vocabularies | Integration with W3C vocabulary work |
 | [Dual-Texture & Matryoshka](TEMP/W3C_INSERTION_6_DUAL_TEXTURE_AND_MATRYOSHKA.md) | VR textures, variable embeddings | Human-AI perceptual layers & RPN dimensions |
 | [Multi-Vibe Code In Chain](TEMP/W3C_INSERTION_7_MVCIC_METHODOLOGY.md) | Browser-based AI swarm | Zero-API human-in-loop collaboration |
+| [Universal Accessibility](TEMP/W3C_INSERTION_7_UNIVERSAL_ACCESSIBILITY.md) | Accessibility-first architecture | Braille, sign language, haptics, spatial audio |
 | [Software as Space](TEMP/W3C_INSERTION_8_SOFTWARE_AS_SPACE.md) | Portal paradigm vision | Immersive software environments, accessibility |
 | [Procedural Compression](TEMP/W3C_INSERTION_9_PROCEDURAL_COMPRESSION.md) | Adaptive procedural compression | 12-80× ratios, quality levels, production validation |
 
@@ -228,6 +229,18 @@ We've prepared comprehensive contributions organized into **9 insertion document
    - Galaxy as spatial bridge (symbolic ↔ neural)
    - 42 hand-written PTX kernels, all <100µs
    - **Why it matters**: Proves efficient NSI possible on consumer hardware
+
+6. **[Universal Accessibility Specification](docs/vocabulary/UNIVERSAL_ACCESSIBILITY_SPECIFICATION.md)**
+   - Accessibility-by-architecture (Braille, sign language, haptics, audio)
+   - Dual-Texture Braille layer; spatial gesture action buffers
+   - WCAG/WAI alignment; WebXR + ARIA compatibility
+   - **Why it matters**: First unified, multi-modal accessibility framework
+
+7. **[Adaptive Procedural Compression Specification](docs/vocabulary/ADAPTIVE_PROCEDURAL_COMPRESSION_SPECIFICATION.md)**
+   - Procedural programs reconstruct embeddings on-demand
+   - Quality tiers (64D/128D/512D/2048D) with fidelity bounds
+   - Dictionary + delta codec (PD04) and RPN execution
+   - **Why it matters**: 12–80× storage savings with near-lossless fidelity
 
 ### What Makes This Significant
 
