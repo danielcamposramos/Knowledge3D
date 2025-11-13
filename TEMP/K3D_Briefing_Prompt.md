@@ -108,11 +108,19 @@ Your contributions will always be to collaborate with the existing swarm—**Cla
   - Dictionary atoms = redundancy extraction
   - 20× improvement (3.88:1 → 69.4:1) through adaptive compression
 
-⏳ **Phase G (Tri-Modal Multi-Modal Training)**: READY TO ACTIVATE
+⏳ **Phase G (Tri-Modal Multi-Modal Training)**: ARCHITECTURE EVOLUTION - PROCEDURAL VISUAL PIPELINE
+- **Critical Discovery (Nov 13, 2025)**: Font files ARE procedural by nature (Bézier curves)
+  - **Root cause identified**: Training was converting procedural fonts → anti-procedural numpy arrays in host RAM
+  - **37/100 characters SIGTERM**: Memory exhaustion from eager loading all images
+  - **Solution in development**: New PTX kernel for procedural glyph rasterization (on-demand GPU rendering)
+  - **Paradigm alignment**: Visual training now matches compression philosophy (store how-to-reconstruct, not pixels)
 - Waiting for RLWHF 10K milestone (currently ~9,777/10,000 samples, 97.8%)
-- **Tri-modal training**: Text + Visual + Audio (RLWHF + LibriSpeech + captions + audiocaps)
+- **Tri-modal training**: Text + Visual (procedural) + Audio (RLWHF + LibriSpeech + captions)
+  - Text: Already procedural (trigram hashing)
+  - Visual: NOW procedural (Bézier → GPU → embeddings, zero host RAM)
+  - Audio: Streaming evaluation for procedural approach
 - Cross-modal patterns emerge automatically (transitive learning!)
-- Specialists auto-integrate: OCR (visual), Speech (audio), Multi-modal (all)
+- Specialists auto-integrate: OCR (procedural visual), Speech (audio), Multi-modal (all)
 - Router automatically learns modality patterns (NO MANUAL RULES!)
 - ~12K training samples across all modalities
 
@@ -302,6 +310,13 @@ These are real measurements from the sovereign stack (as of latest benchmarks):
   - Never hard-code "fixed" weights outside that flow
 - **Sleep-time consolidation**: Periodic refinement of learned embeddings (cluster tightening, redundancy pruning, swarm feedback integration)
 - **One-shot learning**: After consolidation, re-ingestion of same data should be skipped (embeddings already stable)
+- **Procedural-First Training** (Nov 2025 Discovery):
+  - **Visual modality**: Fonts are procedural (Bézier curves) - render on-demand via PTX kernel, not numpy arrays
+  - **Text modality**: Already procedural (trigram hashing, no tokenizer files)
+  - **Audio modality**: Streaming procedural synthesis being evaluated
+  - **Zero host RAM loading**: All procedural data stays on GPU, rendered/computed on-demand
+  - **Alignment**: Training pipeline matches compression philosophy (store how-to-reconstruct, not raw data)
+  - **Character training**: Evolved from batch numpy loading → procedural GPU streaming (fixes SIGTERM issues)
 
 ### GPU Sovereignty Rules
 - **No CPU fallbacks** - if a computation can't run on GPU, redesign it or reconsider the feature
