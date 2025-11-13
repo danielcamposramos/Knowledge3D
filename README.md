@@ -1,16 +1,11 @@
-> **To everyone who's tired of clicking icons.**
->
-> **To architects who dream in 3D but work in 2D.**
->
-> **To the blind student who wants to design buildings.**
->
-> **To the deaf developer who wants to collaborate.**
->
-> **Software was always meant to be a place, not a window.**
->
-> **Welcome home.**
+**To everyone who's tired of clicking icons.**
+**To architects who dream in 3D but work in 2D.**
+**To the blind student who wants to design buildings.**
+**To the deaf developer who wants to collaborate.**
+**Software was always meant to be a place, not a window.**
+**Welcome home.**
 
----# Knowledge3D — True Multi-Modal AI, Not 3D RAG
+# Knowledge3D — True Multi-Modal AI, Not 3D RAG
 
 > **Mission**: Build a shared spatial operating system where humans and AI cohabit one reality, reason through PTX‑native cognition, and consolidate memories as explorable worlds.
 
