@@ -10,6 +10,7 @@ axes so the GPU kernel can operate without inspecting font units.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Iterable, List, Sequence, Tuple
@@ -108,10 +109,22 @@ def _segments_from_pen(pen: RecordingPen, steps: int = 12) -> List[Tuple[float, 
     return segments
 
 
-@lru_cache(maxsize=64)
+@lru_cache(maxsize=1024)
 def _load_font(font_path: str) -> TTFont:
     """Load and cache fonts for reuse."""
     return TTFont(font_path)
+
+
+def _get_curve_steps() -> int:
+    """Curve sampling granularity for Béziers.
+
+    Tunable via env var K3D_GLYPH_STEPS (int). Defaults to 12 for high fidelity.
+    Lower values (e.g., 8) improve training throughput with minor quality impact.
+    """
+    try:
+        return max(4, int(os.environ.get("K3D_GLYPH_STEPS", "12")))
+    except Exception:
+        return 12
 
 
 def extract_glyph(font_path: str, char: str) -> GlyphDescriptor:
@@ -141,7 +154,7 @@ def extract_glyph(font_path: str, char: str) -> GlyphDescriptor:
 
     pen = RecordingPen()
     glyph.draw(pen)
-    raw_segments = _segments_from_pen(pen)
+    raw_segments = _segments_from_pen(pen, steps=_get_curve_steps())
 
     if not raw_segments:
         return GlyphDescriptor(segments=np.zeros((0, 4), dtype=np.float32), advance=float(glyph.width or 0))
@@ -163,6 +176,12 @@ def extract_glyph(font_path: str, char: str) -> GlyphDescriptor:
     return GlyphDescriptor(segments=segments, advance=float(glyph.width or units_per_em))
 
 
+@lru_cache(maxsize=16384)
+def extract_glyph_cached(font_path: str, char: str) -> GlyphDescriptor:
+    """LRU-cached glyph extraction to avoid repeated CPU work per epoch."""
+    return extract_glyph(font_path, char)
+
+
 def build_descriptor_batch(jobs: Sequence[Tuple[str, str]]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Assemble batched descriptor buffers for GPU consumption.
@@ -179,7 +198,7 @@ def build_descriptor_batch(jobs: Sequence[Tuple[str, str]]) -> Tuple[np.ndarray,
 
     cursor = 0
     for idx, (font_path, ch) in enumerate(jobs):
-        descriptor = extract_glyph(font_path, ch)
+        descriptor = extract_glyph_cached(font_path, ch)
         segs = descriptor.segments
         all_segments.append(segs)
         offsets[idx] = cursor
