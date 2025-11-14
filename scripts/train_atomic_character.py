@@ -52,7 +52,7 @@ DEFAULT_FONTS_PER_SCRIPT = 50
 FONT_CATEGORY_DIR = Path("/K3D/Knowledge3D.local/font_categories")
 CHECKPOINT_DIR = Path("/K3D/Knowledge3D.local/checkpoints/phase_g/atomic_chars")
 PROCEDURAL_GALAXY_ROOT = Path("/K3D/Knowledge3D.local/procedural_galaxy")
-MIN_RESUME_ACCURACY = 0.60  # Ignore checkpoints worse than random drift
+MIN_RESUME_ACCURACY = 0.50  # Allow resume when prior run surpassed naive baseline
 
 MODEL_STATE_KEYS = [
     "conv1_weight",
@@ -685,7 +685,9 @@ def _build_procedural_jobs(
     """Assemble glyph jobs without rasterizing upfront."""
     jobs: List[GlyphJob] = []
 
-    for font_path in positive_fonts:
+    # Filter positives per-character to drop noisy glyphs
+    pos_fonts_filtered = [p for p in positive_fonts if _is_font_ok_for_char(p, target_char)] or list(positive_fonts)
+    for font_path in pos_fonts_filtered:
         jobs.append(GlyphJob(char=target_char, font_path=str(font_path), label=1))
 
     script_weights: List[str] = []
@@ -717,6 +719,9 @@ def _build_procedural_jobs(
         if char_candidate == target_char:
             continue
         font_path = next(font_iter)
+        # Per-character negative filtering as well
+        if not _is_font_ok_for_char(font_path, char_candidate):
+            continue
         jobs.append(GlyphJob(char=char_candidate, font_path=str(font_path), label=0))
 
     if len(jobs) < target_count * 2:
@@ -764,9 +769,40 @@ class ProceduralGlyphStream:
         return rgb.astype(np.float32, copy=False)
 
 
+_GLYPH_CACHE_QUALITY: Dict[Tuple[str, str], bool] = {}
+
+
+def _is_font_ok_for_char(font_path: Path, ch: str) -> bool:
+    """Heuristic filter to drop noisy/broken glyphs for a specific character.
+
+    Rules (per-character):
+      - At least 1 segment present
+      - Not excessively complex (segment cap)
+      - Advance width within sane bounds (guards corrupted cmap/name tables)
+    """
+    key = (str(font_path), ch)
+    ok = _GLYPH_CACHE_QUALITY.get(key)
+    if ok is not None:
+        return ok
+
+    try:
+        from knowledge3d.cranium.procedural_fonts import extract_glyph
+
+        desc = extract_glyph(str(font_path), ch)
+        segs = int(getattr(desc, "segments", np.zeros((0, 4), dtype=np.float32)).shape[0])
+        advance = float(getattr(desc, "advance", 0.0))
+        # Heuristics: allow 1..5000 segments; reject absurd advance widths
+        ok = (segs >= 1) and (segs <= 5000) and (0.0 <= advance <= 10000.0)
+    except Exception:
+        ok = False
+
+    _GLYPH_CACHE_QUALITY[key] = ok
+    return ok
+
+
 def train_single_character(
     target_char: str,
-    learning_rate: float = 0.6,
+    learning_rate: float = 0.5,
     n_epochs: int = 1500,
     n_fonts: int = 0,
     fc_only: bool = False,
@@ -821,6 +857,13 @@ def train_single_character(
 
     if not fonts:
         raise RuntimeError(f"No fonts available for script '{script}' and character '{target_char}'")
+
+    # Per-character font quality filter (drop only noisy fonts for this char)
+    before = len(fonts)
+    fonts = [f for f in fonts if _is_font_ok_for_char(f, target_char)] or fonts
+    dropped = before - len(fonts)
+    if dropped > 0:
+        print(f"       Filtered {dropped}/{before} noisy fonts for '{target_char}' (kept {len(fonts)})")
 
     print(f"       Using {len(fonts)} fonts for script '{script}'")
     print()
@@ -929,7 +972,17 @@ def train_single_character(
     max_epochs = max(max_epochs, target_epochs)
     current_limit = target_epochs
     extend_applied = False
-    accuracy_at_epoch_50: Optional[float] = None
+    # Plateau scheduler (dual-way): adjust LR every 50 epochs based on improvement window
+    window_start_epoch = 0
+    best_at_window_start = best_accuracy
+    # Scheduler constants (no extra CLI flags to keep launch simple)
+    PLATEAU_WINDOW = 50
+    EPS_DOWN = 0.005   # 0.5% improvement threshold → decay
+    EPS_UP = 0.020     # 2.0% strong improvement → grow (below 80% acc)
+    LR_DECAY = 0.5
+    LR_GROW = 1.25
+    LR_MIN = 0.02
+    LR_MAX = 0.60
 
     while epoch < current_limit:
         epoch += 1
@@ -988,20 +1041,33 @@ def train_single_character(
         else:
             print()
 
-        if accuracy_at_epoch_50 is None and epoch >= 50:
-            accuracy_at_epoch_50 = best_accuracy
-
-        if epoch % 50 == 0:
+        if epoch % PLATEAU_WINDOW == 0:
+            # Report progress and estimate
+            recent_improvement = best_accuracy - best_at_window_start
+            epochs_remaining = current_limit - epoch
             est_msg = ""
-            if accuracy_at_epoch_50 is not None and epoch > 50:
-                recent_improvement = best_accuracy - accuracy_at_epoch_50
-                epochs_remaining = current_limit - epoch
-                if epochs_remaining > 0:
-                    estimated_final = best_accuracy + (recent_improvement / max(1, epoch - 50)) * epochs_remaining
-                    est_msg = f"\n            Estimated final accuracy: {estimated_final * 100:.2f}%"
-            print(
-                f"            Progress checkpoint | Best so far: {best_accuracy * 100:5.2f}%{est_msg}"
-            )
+            if epochs_remaining > 0 and epoch > window_start_epoch:
+                est = best_accuracy + (recent_improvement / max(1, epoch - window_start_epoch)) * epochs_remaining
+                est_msg = f"\n            Estimated final accuracy: {est * 100:.2f}%"
+            print(f"            Progress checkpoint | Best so far: {best_accuracy * 100:5.2f}%{est_msg}")
+
+            # Dual-way LR scheduler
+            old_lr = trainer.learning_rate
+            new_lr = old_lr
+            if recent_improvement < EPS_DOWN:
+                new_lr = max(LR_MIN, old_lr * LR_DECAY)
+                if new_lr != old_lr:
+                    trainer.learning_rate = new_lr
+                    print(f"            LR ↓ plateau decay: {old_lr:.4f} → {new_lr:.4f} (Δ={recent_improvement*100:.2f}%)")
+            elif (recent_improvement > EPS_UP) and (best_accuracy < 0.80):
+                new_lr = min(LR_MAX, old_lr * LR_GROW)
+                if new_lr != old_lr:
+                    trainer.learning_rate = new_lr
+                    print(f"            LR ↑ growth: {old_lr:.4f} → {new_lr:.4f} (Δ={recent_improvement*100:.2f}%)")
+
+            # Reset window
+            window_start_epoch = epoch
+            best_at_window_start = best_accuracy
 
         if best_accuracy >= 0.85:
             print(f"🎯 Target accuracy {best_accuracy * 100:.2f}% reached at epoch {epoch}!")
@@ -1151,7 +1217,7 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(description="Train CNN on a single character (binary task).")
     parser.add_argument("--char", type=str, required=True, help="Target character (e.g., 'A')")
-    parser.add_argument("--lr", type=float, default=0.6, help="Learning rate")
+    parser.add_argument("--lr", type=float, default=0.5, help="Learning rate (plateau scheduler will adjust)")
     parser.add_argument("--epochs", type=int, default=1500, help="Number of epochs (default: 1500)")
     parser.add_argument(
         "--fonts",
