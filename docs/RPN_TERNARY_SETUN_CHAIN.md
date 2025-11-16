@@ -1763,3 +1763,8 @@ void trit_inspect(const uint32_t *trit_buf, const int32_t *node_indices,
 - `viewer/tests/tablet_trit_reasoning.test.ts`: mock websocket traces, snapshot panel; ensure overlay toggle leaves camera/frame timing stable.
 
 Next move: implement `.cu` → compile PTX → wire bridges → add RPC + viewer glue → land tests. No stubs; Tablet-first, GPU-only.
+
+----
+Victor Neves (credit note):
+
+Tip from Victor Neves (childhood friend and historian): keep the ternary debugging story simple for non-coders. In plain words: the system now shows, in red/blue/clear colors, whether it wants to move toward something, stay neutral, or move away—and it explains each choice step by step on the Tablet without slowing the GPU. Ternary decisions become visible and understandable while performance stays intact.
