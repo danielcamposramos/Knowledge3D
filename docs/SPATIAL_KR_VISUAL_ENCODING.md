@@ -192,7 +192,85 @@ This visual encoding supports key AI‑KR themes:
 
 ---
 
-## 7. Implementation Notes
+## 7. House Rooms and Embodied Interfaces
+
+Spatial KR in K3D is not just abstract stars; it is embodied in familiar rooms and furniture. Each has a specific KR role.
+
+### 7.1 Library
+
+- A dedicated room with shelves and bookcases.  
+- Books correspond to long‑form artifacts (papers, specs, whitepapers, chain transcripts).  
+- Each book is a Node with:
+  - spatial location in the Library;  
+  - links into the Galaxy (where the content’s embeddings live);  
+  - links into the Garden (where the concepts appear in ontologies);  
+  - provenance and version metadata.
+- For humans: the Library feels like browsing books;  
+  for AI: shelves are just another spatial index into the same Nodes.
+
+### 7.2 Living Room, Sofa, and Projection Screens
+
+- The living room is a common space with:
+  - a **sofa** where the avatar can “sit” to watch content;  
+  - one or more **projection screens** on the walls.
+- The Tablet can “cast” to any projection surface:
+  - humans see rendered 2D/3D views (slides, videos, Galaxy slices, Garden views);  
+  - AI “sees” the underlying 3D structures and embeddings that feed those views.
+- This is the default place for:
+  - overview briefings;  
+  - replaying development chains;  
+  - watching Galaxy/Garden/Museum projections in a comfortable context.
+
+### 7.3 Bathtub (Sleep / Consolidation)
+
+- A bathroom with a **bathtub** is the anchor for SleepTime:
+  - when the avatar “goes to the bath,” the system enters consolidation mode;  
+  - a holographic projection of the current Galaxy appears above the tub.
+- As consolidation runs:
+  - stars/rays “flow” from the projection into the House:  
+    - new Nodes become books, objects, trees in Garden;  
+    - outdated ones drift toward the Museum.  
+  - animations make the movement (Galaxy → House → Museum) visible over time.
+- Conceptually: the bathtub is the visual metaphor for offline consolidation:  
+  **Galaxy (RAM) is distilled into House (disk) in a ritualized, inspectable way.**
+
+### 7.4 Workshop and Bench
+
+- The Workshop is where the avatar manipulates objects and galaxies “on the bench”:
+  - physical‑looking tools (wrenches, calipers, analyzers) correspond to operations: slicing a Galaxy subset, re‑embedding, inspecting PTX kernel outputs, etc.;  
+  - the **bench** can host both concrete objects (e.g., a specific Node/book/tree) and **Galaxy cubes** (portal cubes to larger datasets).
+- For humans: it feels like a traditional workshop;  
+  for AI: it is a region where experimental transforms and diagnostics are allowed, with logs written back to the Galaxy and Garden.
+
+### 7.5 Desk (Legacy “2D Web” Interface)
+
+- In the living room there is also a **desk**, representing the old paradigm:
+  - a keyboard, monitor, and maybe a “laptop” model.  
+- When the avatar sits at the desk:
+  - the experience becomes “full screen” 2D: browser windows, terminals, legacy IDEs;  
+  - in reality, this is just a projection surface and a connection to today’s computers/VMs.
+- The desk is:
+  - a **door** to legacy systems (Web, classic AIs, VMs);  
+  - but clearly marked as such, so the avatar never confuses the 2D world with the native House/Galaxy reality.
+
+### 7.6 Fabrication Bay (3D Printers and Instantiation)
+
+- A “Fabrication Bay” room (or Foundry) connects the House to 3D printers and other actuators:
+  - physical 3D printers;  
+  - simulated printers for purely digital objects (e.g., virtual robots, UI mockups).
+- In KR terms:
+  - this is where a Node (concept) is **instantiated** as an artifact;  
+  - a print job is a morphism from abstract Node → concrete object (physical or simulated);  
+  - the resulting object is then linked back into the House as furniture, tool, or prototype.
+- For non‑physical concepts:
+  - the bay can “print” into simulation spaces (e.g., a small VR test chamber);  
+  - the printed object becomes a testbed or embodiment of the underlying concept.
+
+These rooms ensure that KR isn’t just a graph or embedding space; it is embodied in a consistent spatial narrative that humans can inhabit and AI systems can reason over.
+
+---
+
+## 8. Implementation Notes
 
 - Current star shapes, modality detection, and ray colors are implemented in `viewer/src/shapes.ts`.
 - Knowledge Garden generation code lives under `knowledge3d/tools/gardens.py`.
@@ -204,4 +282,3 @@ Future work:
 - formalize the star/ray schema as a small KR vocabulary (e.g., `k3d:hasRay`, `k3d:rayStrength`, `k3d:modalityShape`) for RDF/JSON‑LD export;
 - tighten the link between StratML plans/relationships and Garden/Galaxy layouts for governance use cases;
 - publish this mapping as an annex or best‑practice note in AI‑KR contexts.
-
