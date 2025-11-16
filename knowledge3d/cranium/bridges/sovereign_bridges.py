@@ -1601,3 +1601,123 @@ class WorldModelBridge:
             gpu_free(d_query)
             gpu_free(d_galaxy)
             gpu_free(d_resonance)
+
+
+# ============================================================================
+# Trit Overlay + Inspector (Balanced Ternary Diagnostics)
+# ============================================================================
+
+
+class TritOverlayGenerator:
+    """Generate RGBA8 overlays from packed ternary fields."""
+
+    def __init__(self):
+        ptx_path = KERNELS_DIR / "trit_overlay_generator.ptx"
+        self.kernel = load_ptx_file(str(ptx_path), "trit_overlay_generator")
+        self.guard = LatencyGuard(threshold_us=500.0)
+
+    def generate(
+        self,
+        trits_packed: np.ndarray,
+        grid_shape: Tuple[int, int, int],
+        field_stride: int,
+        field_type: int = 0,
+        threshold: float = 0.0,
+    ) -> np.ndarray:
+        """Render ternary field overlay to RGBA8."""
+        gx, gy, gz = (int(grid_shape[0]), int(grid_shape[1]), int(grid_shape[2]))
+        trits = np.ascontiguousarray(trits_packed, dtype=np.uint32)
+        rgba = np.zeros((gx * gy * gz * 4,), dtype=np.uint8)
+
+        d_trits = gpu_malloc(trits.nbytes)
+        d_rgba = gpu_malloc(rgba.nbytes)
+        try:
+            memcpy_htod(d_trits, trits.ctypes.data_as(ctypes.c_void_p), trits.nbytes)
+            self.guard.start()
+            launch(
+                self.kernel,
+                grid=(
+                    (gx + 7) // 8,
+                    (gy + 7) // 8,
+                    (gz + 7) // 8,
+                ),
+                block=(8, 8, 8),
+                params=[
+                    ctypes.c_uint64(d_trits.value),
+                    ctypes.c_uint64(d_rgba.value),
+                    ctypes.c_int32(gx),
+                    ctypes.c_int32(gy),
+                    ctypes.c_int32(gz),
+                    ctypes.c_int32(int(field_stride)),
+                    ctypes.c_int32(int(field_type)),
+                    ctypes.c_float(float(threshold)),
+                ],
+            )
+            synchronize()
+            self.guard.stop()
+            memcpy_dtoh(rgba.ctypes.data_as(ctypes.c_void_p), d_rgba, rgba.nbytes)
+            return rgba
+        finally:
+            gpu_free(d_trits)
+            gpu_free(d_rgba)
+
+
+class TritInspectorBridge:
+    """Inspect packed ternary fields for specific nodes."""
+
+    _dtype = np.dtype(
+        [
+            ("count", np.int32),
+            ("sum", np.int32),
+            ("mean", np.float32),
+            ("var", np.float32),
+            ("bottlenecks", np.int32),
+        ]
+    )
+
+    def __init__(self):
+        ptx_path = KERNELS_DIR / "trit_inspector.ptx"
+        self.kernel = load_ptx_file(str(ptx_path), "trit_inspector")
+        self.guard = LatencyGuard(threshold_us=500.0)
+
+    def inspect(
+        self,
+        trits_packed: np.ndarray,
+        node_indices: np.ndarray,
+        field_stride: int,
+    ) -> np.ndarray:
+        """Inspect ternary fields at node_indices."""
+        trits = np.ascontiguousarray(trits_packed, dtype=np.uint32)
+        nodes = np.ascontiguousarray(node_indices, dtype=np.int32)
+        n = int(nodes.shape[0])
+        out = np.zeros(n, dtype=self._dtype)
+
+        d_trits = gpu_malloc(trits.nbytes)
+        d_nodes = gpu_malloc(nodes.nbytes)
+        d_out = gpu_malloc(out.nbytes)
+        try:
+            memcpy_htod(d_trits, trits.ctypes.data_as(ctypes.c_void_p), trits.nbytes)
+            memcpy_htod(d_nodes, nodes.ctypes.data_as(ctypes.c_void_p), nodes.nbytes)
+            self.guard.start()
+            threads = 128
+            blocks = (n + threads - 1) // threads
+            launch(
+                self.kernel,
+                grid=(blocks, 1, 1),
+                block=(threads, 1, 1),
+                params=[
+                    ctypes.c_uint64(d_trits.value),
+                    ctypes.c_uint64(d_nodes.value),
+                    ctypes.c_int32(n),
+                    ctypes.c_int32(int(field_stride)),
+                    ctypes.c_uint64(d_out.value),
+                ],
+            )
+            synchronize()
+            self.guard.stop()
+            memcpy_dtoh(out.ctypes.data_as(ctypes.c_void_p), d_out, out.nbytes)
+            return out
+        finally:
+            gpu_free(d_trits)
+            gpu_free(d_nodes)
+            gpu_free(d_out)
