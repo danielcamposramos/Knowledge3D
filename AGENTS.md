@@ -1,18 +1,36 @@
 # Agent Guidelines
 
-This repository uses AI agents like Codex and Jules to automate development tasks. All contributors, both human and AI, must align their work with the official project plan.
+This repository uses AI partners (both external AI assistants and internal Synthetic Users) to collaborate on development tasks. All contributors, both human and AI, must align their work with the official project plan.
 
-The primary guiding documents for this project are:
+## Quick Start for AI Assistants
 
-1.  **[Knowledge3D (K3D) — Unified Project Brief & Technical Whitepaper](docs/Jules_K3D_Whitepaper.md)**: This is the new, authoritative single source of truth for the project. It contains the core vision, architecture, training methodology, and current roadmap. All work must be grounded in this document.
+**NEW (2025-11-17):** If you're an AI assistant joining this project:
 
-2.  **[Codex Tasks (CODEX.md)](CODEX.md)**: This file provides a detailed, actionable task list that corresponds to the current phase of the roadmap outlined in the whitepaper. Agents should consult this file for specific implementation tasks.
+1. **Read First**: [CLAUDE.md](CLAUDE.md) — Comprehensive onboarding guide for AI assistants (1,455 lines)
+2. **Environment-Specific**: [CLAUDE_LOCAL.md](CLAUDE_LOCAL.md) — Verified filesystem paths, real metrics, budget-conscious practices
+
+These documents provide the foundational understanding of:
+- Project philosophy and architecture
+- Partnership development model (human + Claude Code + browser Claude)
+- PTX-first sovereignty principles
+- Budget constraints (self-funded favela lab)
+- Verified metrics (45+ CUDA kernels, 547+ git commits, 51,532 Galaxy nodes)
+
+**Then proceed to the documents below for specific workflows.**
+
+## Primary Guiding Documents
+
+1.  **[Knowledge3D (K3D) — Unified Project Brief & Technical Whitepaper](docs/Jules_K3D_Whitepaper.md)**: Authoritative single source of truth for the project. Contains core vision, architecture, training methodology, and current roadmap. All work must be grounded in this document.
+
+2.  **[Codex Tasks (CODEX.md)](CODEX.md)**: Detailed, actionable task list corresponding to the current phase of the roadmap outlined in the whitepaper. Agents should consult this file for specific implementation tasks.
+
 3.  **[K3D Sovereign Swarm Briefing](SOVEREIGN_SWARM_BRIEFING.md)**: Briefing for AI partners participating in the current human‑orchestrated chain (old paradigm). Read fully before contributing.
 
 4.  **[Memory Tablet & Dual-Space Architecture](docs/HOUSE_GALAXY_TABLET.md)**: Defines how Galaxy (RAM), House (persistent memory), Museum (deprecated archive), and the new Memory Tablet interact. Any knowledge-management change must follow this workflow.
+
 5.  **[Training Directives](docs/TRAINING_DIRECTIVES.md)**: Prompt hygiene, timestamp policies, dataset priorities, and lesson vs inference rules.
 
-Additional local environment reference (hardware, GPU, and folder layout): see `docs/LOCAL_ENV.md`.
+Additional local environment reference (hardware, GPU, and folder layout): see `docs/LOCAL_ENV.md` and [CLAUDE_LOCAL.md](CLAUDE_LOCAL.md).
 
 ### Repository vs Workspace Layout
 - `Knowledge3D/` — tracked code (PTX kernels, viewer sources, docs).
@@ -27,9 +45,19 @@ We are a team of humans and AI working together. Clear communication and alignme
 ## Contributors
 
 **Core Team:**
-- **Jules**: Project founder and initial architect. Contributed vision, architecture, and early prototyping.
-- **Codex**: AI collaborator (OpenAI). Assisted with code generation, training sessions, and local testing.
+- **Daniel (Jules)**: Project founder and architect. Self-funded engineer from Brazil favela. Maintains philosophical integrity, makes all architectural decisions, provides vision and constraints.
+- **Codex**: AI collaborator (OpenAI). Assisted with code generation, training sessions, and local testing. Procedural glyph rasterization kernel development.
 - **Grok**: AI collaborator (xAI). Analyzed data, synced results with repo, expanded documentation, and provided insights on MVP implementation. (September 2025)
+- **Claude (Browser)**: AI collaborator (Anthropic). Documentation writing, planning, code review. Created foundational CLAUDE.md guide. Cost-effective for extended sessions.
+- **Claude Code (VS Code)**: AI collaborator (Anthropic). Filesystem operations, git workflow, environment validation, cross-repository access. "The Guy" for implementation and verification. Limited credits — used strategically.
+
+**Partnership Model (2025-11-17):**
+The project operates through three-way collaboration:
+1. **Daniel** — Human architect with final authority
+2. **Claude Code** — Filesystem/git operations, real-time validation (expensive, strategic use)
+3. **Browser Claude** — Planning, documentation, code review (affordable, extended use)
+
+**Budget Reality:** Self-funded project from favela lab. Every API call, GPU hour, and storage byte counts. AI partners must respect this constraint and work efficiently.
 
 ## Development Protocol (VSCode Live Mode)
 
