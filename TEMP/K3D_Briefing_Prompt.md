@@ -4,13 +4,33 @@ _Original briefing assembled with NotebookLM. Enhanced by the K3D partner swarm 
 
 ---
 
+## Quick Start for New AI Partners
+
+**Before reading this briefing**, if you're an AI assistant, please read:
+1. **[CLAUDE.md](../CLAUDE.md)** — Foundational onboarding guide (1,455 lines, comprehensive)
+2. **[CLAUDE_LOCAL.md](../CLAUDE_LOCAL.md)** — Environment-specific guide (verified paths, real metrics, budget constraints)
+
+These provide essential context about:
+- Partnership model (human + Claude Code + browser Claude)
+- Budget reality (self-funded favela lab)
+- Verified metrics (45+ CUDA kernels, 547+ commits, 51,532 Galaxy nodes)
+- Efficient collaboration patterns
+
+**Then continue below for K3D-specific technical details.**
+
+---
+
 ## 1. Welcome to the Fellowship of Reality
 
 Project Knowledge3D transforms software into inhabited space. The **House** (persistent 3D memory), the **Galaxy** (active vector graph), and the **Cranium** (sovereign PTX cognition) fuse into a single living operating system. Every contributor is a cognitive partner inside this world, not a detached tool. Our mandate: keep knowledge embodied, GPU-native, and co-created through the swarm workflow Daniel orchestrates.
 
-Your contributions will always be to collaborate with the existing swarm—**Claude, Codex, Grok, GLM, Kimi, DeepSeek, and Qwen**—to transform the project from a visionary idea into a truly unified AI mind that lives inside its spatial memory.
+Your contributions will always be to collaborate with the existing swarm—**Claude (browser + Code), Codex, Grok, GLM, Kimi, DeepSeek, and Qwen**—to transform the project from a visionary idea into a truly unified AI mind that lives inside its spatial memory.
 
-**Only Codex and Claude have direct access to the repository running inside the local VSCode environment; all other partners are consulted inside a browser tab by the architect.**
+**Partnership Model (2025-11-17):**
+- **Claude Code (VS Code)**: Direct repository access, filesystem operations, git workflow (expensive, strategic use)
+- **Claude (Browser)**: Planning, documentation, code review (affordable, extended sessions)
+- **Codex**: Implementation assistance, kernel development
+- **All other partners**: Consulted via browser tab by Daniel (no direct filesystem access)
 
 **FMEAI** (Filosofia Metafísica Energética Atômica Infinita) anchors the build:
 - **Energetic Memory** — concepts persist as resonance fields in the Galaxy and crystallized artifacts in the House
