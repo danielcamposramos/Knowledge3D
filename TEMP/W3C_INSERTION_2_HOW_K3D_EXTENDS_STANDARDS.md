@@ -112,7 +112,7 @@ While K3D builds upon established standards (glTF, RDF/OWL, WebXR), it introduce
 ### 3. WebXR Extensions for Embodied AI
 
 #### Extension: Dual-Client Shared Reality Protocol
-**Problem Solved**: WebXR is designed for human users only. AI agents have no standardized way to "inhabit" the same spatial environment.
+**Problem Solved**: WebXR is designed for human users only. Synthetic Users have no standardized way to "inhabit" the same spatial environment.
 
 **K3D Solution**: Define a **Dual-Client Contract** where:
 - **Human Client** (WebXR): Sees visual geometry, navigates with controllers/gaze
@@ -138,7 +138,7 @@ struct K3DAction {
 - **Collaborative KR**: Humans and AI can jointly explore, annotate, and build knowledge
 - **Verifiable Actions**: Every AI action is spatially grounded and auditable
 
-**Proposed W3C Standard**: `WebXR AI Agent API` - specification for AI avatars in WebXR environments
+**Proposed W3C Standard**: `WebXR Synthetic User API` - specification for AI avatars in WebXR environments
 
 ---
 
@@ -270,7 +270,7 @@ else:
 | **glTF 2.0** | `K3D_dual_texture` for VR/AR + AI dual layers | Khronos glTF Extension Registry |
 | **RDF/OWL** | Spatial proximity as semantic operator | W3C CG Note → potential WG |
 | **RDF/OWL** | Matryoshka embedding vocabulary | W3C AI KR vocabulary work |
-| **WebXR** | Dual-Client Shared Reality Protocol | Propose WebXR AI Agent API spec |
+| **WebXR** | Dual-Client Shared Reality Protocol | Propose WebXR Synthetic User API spec |
 | **Multi-Modal** | Spatial co-location for organic fusion | W3C Multi-Modal KR standards |
 
 **Core Principle**: Extensions preserve **backward compatibility** while adding **forward-looking capabilities** for spatial, embodied, multi-modal KR.

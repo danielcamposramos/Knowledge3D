@@ -114,7 +114,7 @@ LOCK(Galaxy) → EMA-UPDATE(embeddings) → PRUNE(redundancy)
 ### K3D Solution
 Implements **Sovereign GPU-Native Stack**:
 - **Zero External Dependencies**: No PyTorch, TensorFlow, or cloud APIs
-- **PTX Kernel Suite**: Hand-written, auditable GPU code (42 kernels, all open-source)
+- **PTX Kernel Suite**: Hand-written, auditable GPU code (45+ kernels, all open-source)
 - **Reproducible Builds**: Dockerfile + build scripts ensure bit-identical kernels
 - **Verifiable Execution**: PTX kernels can be formally verified (future work)
 
@@ -139,7 +139,7 @@ Implements **Sovereign GPU-Native Stack**:
 - ❌ No metrics for spatial transparency (e.g., reasoning path length, node revisits)
 
 **WebXR**: Enables immersive 3D, but:
-- ❌ No API for representing AI agents in shared space
+- ❌ No API for representing Synthetic Users in shared space
 - ❌ No protocol for "AI action buffers" (how AI communicates intentions)
 - ❌ No standards for visual debugging of neural network inference
 
@@ -163,7 +163,7 @@ Introduces **Embodied Explainability**:
 
 ### Standardization Path
 1. **Short-term**: Extend Model Cards spec with "Spatial Explainability" section
-2. **Medium-term**: Propose WebXR AI Agent API for embodied AI
+2. **Medium-term**: Propose WebXR Synthetic User API for embodied AI
 3. **Long-term**: W3C Recommendation for "Spatial AI Transparency Standards"
 
 ---

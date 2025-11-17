@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-K3D proposes a **fundamental rethinking of software architecture**: Not "opening applications" but **"entering spaces"**. Each piece of software—whether a social network, game, BIM modeling tool, or productivity app—becomes a spatial environment (a "House") with its own AI agents or swarms. Users don't click icons; they **walk through portals** to transition between collaborative spatial contexts.
+K3D proposes a **fundamental rethinking of software architecture**: Not "opening applications" but **"entering spaces"**. Each piece of software—whether a social network, game, BIM modeling tool, or productivity app—becomes a spatial environment (a "House") with its own Synthetic Users or swarms. Users don't click icons; they **walk through portals** to transition between collaborative spatial contexts.
 
 **Key Insight**: If knowledge is spatial, then **all software can be spatial**—and when software is spatial, it can be **AI-augmented by design**.
 
@@ -53,7 +53,7 @@ Each app is:
 **Current metaverse platforms** (Meta Horizon, VRChat, etc.):
 - Still use "app launcher" metaphor (VR menu of worlds to join)
 - Each world is isolated (can't carry knowledge between them)
-- No AI agents that follow you across spaces
+- No Synthetic Users that follow you across spaces
 - Proprietary, siloed ecosystems
 
 **Result**: VR headsets are just 3D versions of 2D desktops (missed opportunity)
@@ -551,7 +551,7 @@ xrSession.addPortal(portal);
 
 k3d:SpatialSoftware a owl:Class ;
     rdfs:label "Spatial Software Application" ;
-    rdfs:comment "Software reimagined as navigable 3D space with AI agents" .
+    rdfs:comment "Software reimagined as navigable 3D space with Synthetic Users" .
 
 k3d:hasPortal a owl:ObjectProperty ;
     rdfs:domain k3d:SpatialSoftware ;
@@ -561,7 +561,7 @@ k3d:hasPortal a owl:ObjectProperty ;
 k3d:hasAISwarm a owl:ObjectProperty ;
     rdfs:domain k3d:SpatialSoftware ;
     rdfs:range k3d:AIAgent ;
-    rdfs:comment "AI agents operating within this software space" .
+    rdfs:comment "Synthetic Users operating within this software space" .
 
 k3d:softwareCategory a owl:DatatypeProperty ;
     rdfs:domain k3d:SpatialSoftware ;
@@ -633,7 +633,7 @@ k3d:softwareCategory a owl:DatatypeProperty ;
 
 **K3D Advantage**:
 - Software IS knowledge space (not just visualization)
-- AI agents have spatial context (not just text prompts)
+- Synthetic Users have spatial context (not just text prompts)
 - Users navigate naturally (like walking, not clicking)
 
 ### 7.2 AI Integration Benefits
@@ -757,7 +757,7 @@ Result: Blind student learns chemistry through spatial haptics!
 **Long-term** (2027+):
 1. Spatial Web architecture (distributed Houses)
 2. Inter-portal protocols (like HTTP for portals)
-3. AI agent standards (how AIs traverse portals)
+3. Synthetic User standards (how AIs traverse portals)
 4. Privacy/security for spatial software
 
 ### 10.2 Collaboration Opportunities
@@ -767,7 +767,7 @@ Result: Blind student learns chemistry through spatial haptics!
 - **3D Graphics Groups**: glTF software containers
 - **WAI (Accessibility)**: Spatial software accessibility
 - **Architecture Groups**: Distributed spatial applications
-- **AI Groups**: Standards for AI agents in 3D spaces
+- **AI Groups**: Standards for Synthetic Users in 3D spaces
 
 **Industry Partners**:
 - **Autodesk**: BIM + K3D integration

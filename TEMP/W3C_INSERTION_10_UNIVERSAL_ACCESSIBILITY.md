@@ -1,4 +1,4 @@
-# W3C AI KR Report - Insertion 7: Universal Accessibility Through Spatial Multi-Modal KR
+# W3C AI KR Report - Insertion 10: Universal Accessibility Through Spatial Multi-Modal KR
 
 **Section**: How K3D Addresses W3C Web Accessibility Initiative (WAI) Mission
 **Date**: November 2025

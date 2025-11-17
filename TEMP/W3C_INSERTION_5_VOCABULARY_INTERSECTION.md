@@ -206,7 +206,7 @@ k3d:EmbodiedExplainability rdf:type xai:ExplainabilityMethod ;
 
 # AI Avatar
 k3d:AIAvatar rdf:type xai:AgentRepresentation ;
-    rdfs:label "AI Agent as Spatial Avatar" ;
+    rdfs:label "Synthetic User as Spatial Avatar" ;
     xai:manifestation "3D_object_in_shared_space" ;
     xai:capabilities [
         xai:navigation "pathfinding_through_knowledge_graph" ;
