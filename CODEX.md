@@ -2,6 +2,19 @@
 
 This file lists actionable tasks for AI agents working on the Knowledge3D repository. All tasks are derived from the official **[Project Roadmap](docs/ROADMAP.md)** and should be executed in accordance with the vision outlined in the **[K3D Research Report](docs/k3d-research.md)**.
 
+## Quick Start for AI Assistants
+
+**NEW (2025-11-17):** Before starting tasks, please read:
+1. **[CLAUDE.md](CLAUDE.md)** — Comprehensive AI assistant onboarding (philosophy, architecture, workflows)
+2. **[CLAUDE_LOCAL.md](CLAUDE_LOCAL.md)** — Environment-specific details (verified paths, real metrics, budget constraints)
+3. **[AGENTS.md](AGENTS.md)** — Agent collaboration guidelines and contributor protocol
+
+**Budget Consciousness:** This is a self-funded favela lab project. Work efficiently:
+- Use browser Claude for planning/documentation (affordable)
+- Use Claude Code for file operations/git only when necessary (expensive, limited credits)
+- Minimize GPU waste (test thoroughly before long training runs)
+- Respect the 547+ git commits, 45+ PTX kernels already built with limited resources
+
 ⚠️ **Memory Policy Reminder**: every task touching Galaxy, House, or Museum must follow [`docs/HOUSE_GALAXY_TABLET.md`](docs/HOUSE_GALAXY_TABLET.md). The Memory Tablet is now the primary interface for consolidated knowledge.
 
 ---
@@ -35,18 +48,20 @@ This file lists actionable tasks for AI agents working on the Knowledge3D reposi
 
 ## Phase 2 Tasks: The Interactive Agent (In Progress)
 
-**Objective:** Transform the passive viewing experience into an active, conversational one by integrating an embodied AI agent.
+**Objective:** Transform the passive viewing experience into an active, conversational one by integrating a Synthetic User (embodied AI inhabitant).
 
-1.  **Integrate Embodied AI Agent:**
-    -   [ ] **Task:** Add an agent to the viewer.
-    -   **Details:** Provide a visible avatar and minimal policy (seek-by-label, neighbor traversal), with a UI to issue simple commands (e.g., “go to <label>”). Later integrate voice/LLM when ready.
+**Note:** "Synthetic User" refers to AI entities that fully inhabit K3D as first-class citizens with spatial presence, not external AI assistants (see [Dual-Client Contract](docs/vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md#14-client-types-human-avatars-and-synthetic-users)).
 
-2.  **Develop Agent World Model:**
-    -   [ ] **Task:** Implement the agent's spatial reasoning capabilities.
-    -   **Details:** Create data structures that allow the agent to understand the location, properties, and relationships of the knowledge nodes in its environment. Ensure the fused head consumes the house-memory index produced during SleepTime before querying modality galaxies.
+1.  **Integrate Synthetic User:**
+    -   [ ] **Task:** Add a Synthetic User to the viewer.
+    -   **Details:** Provide a visible avatar and minimal policy (seek-by-label, neighbor traversal), with a UI to issue simple commands (e.g., "go to <label>"). Later integrate voice/LLM when ready.
+
+2.  **Develop Synthetic User World Model:**
+    -   [ ] **Task:** Implement the Synthetic User's spatial reasoning capabilities.
+    -   **Details:** Create data structures that allow the Synthetic User to understand the location, properties, and relationships of the knowledge nodes in its environment. Ensure the fused head consumes the house-memory index produced during SleepTime before querying modality galaxies.
 
 3.  **Implement Basic Interactivity:**
-    -   [ ] **Task:** Develop the user-to-agent interaction loop.
+    -   [ ] **Task:** Develop the user-to-Synthetic-User interaction loop.
     -   **Details:** Implement voice command recognition and the ability for the agent to provide multimodal feedback (e.g., speaking while highlighting a cluster of nodes).
 
 4.  **AI Diary (Vector‑Native):**
