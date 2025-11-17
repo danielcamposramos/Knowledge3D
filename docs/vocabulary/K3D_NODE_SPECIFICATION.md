@@ -9,7 +9,7 @@
 
 ## Abstract
 
-The **K3D Node** is the atomic unit of spatial knowledge representation in the Knowledge3D framework. It encapsulates both human-perceivable geometry and AI-processable semantic embeddings in a unified structure, enabling true dual-client architecture where humans and AI agents operate on identical knowledge.
+The **K3D Node** is the atomic unit of spatial knowledge representation in the Knowledge3D framework. It encapsulates both human-perceivable geometry and AI-processable semantic embeddings in a unified structure, enabling true dual-client architecture where humans and Synthetic Users operate on identical knowledge.
 
 ---
 

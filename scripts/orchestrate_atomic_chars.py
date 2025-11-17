@@ -88,6 +88,12 @@ def main() -> int:
         help="Max epochs when extension is required.",
     )
     parser.add_argument(
+        "--lr",
+        type=float,
+        default=0.5,
+        help="Initial learning rate for each character run (default: 0.5).",
+    )
+    parser.add_argument(
         "--parallel",
         type=int,
         default=1,
@@ -118,7 +124,18 @@ def main() -> int:
         print(f"[orchestrator] start '{ch}' → {log_path}")
         lf = open(log_path, "w", encoding="utf-8")
         proc = subprocess.Popen(
-            [args.python, trainer_script, "--char", ch, "--epochs", str(args.epochs), "--max-epochs", str(args.max_epochs)],
+            [
+                args.python,
+                trainer_script,
+                "--char",
+                ch,
+                "--epochs",
+                str(args.epochs),
+                "--max-epochs",
+                str(args.max_epochs),
+                "--lr",
+                str(args.lr),
+            ],
             cwd=str(repo_root),
             env=env,
             stdout=lf,
