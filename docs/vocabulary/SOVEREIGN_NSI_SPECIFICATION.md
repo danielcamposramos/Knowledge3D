@@ -48,7 +48,7 @@ Traditional NSI attempts glue these together via:
 
 **K3D Sovereignty**:
 1. **Zero External ML Frameworks**: No PyTorch, TensorFlow, JAX, etc.
-   - All computation via hand-written PTX kernels (42 kernels, <100µs each)
+   - All computation via hand-written PTX kernels (45+ kernels, <100µs each)
 2. **Zero External Symbolic Systems**: No Prolog, Datalog, theorem provers
    - Symbolic knowledge stored as RDF-compatible metadata in glTF files
 3. **Zero Cloud APIs**: No OpenAI, Google Gemini, Anthropic Claude for inference
@@ -468,7 +468,7 @@ RUN apt-get update && apt-get install -y \
 # Compile PTX kernels from source
 RUN nvcc -ptx -O3 -arch=sm_75 rpn_execute.cu -o rpn_execute.ptx
 RUN nvcc -ptx -O3 -arch=sm_75 trm_forward.cu -o trm_forward.ptx
-# ... (42 kernels total)
+# ... (45+ kernels total)
 
 # Verify reproducibility
 RUN sha256sum *.ptx > kernel_checksums.txt
@@ -524,7 +524,7 @@ ldd knowledge3d_binary
 |-----------|------|----------|
 | **TRM Weights** | 28 MB | GPU VRAM (7M params × 4 bytes) |
 | **Galaxy Nodes** | 12 MB | GPU VRAM (51,532 nodes) |
-| **PTX Kernels** | 2 MB | GPU VRAM (42 kernels) |
+| **PTX Kernels** | 2 MB | GPU VRAM (45+ kernels) |
 | **Spatial Index** | 8 MB | GPU VRAM (octree + KD-tree) |
 | **Total** | **50 MB** | RTX 3060 (0.4% of 12GB) |
 

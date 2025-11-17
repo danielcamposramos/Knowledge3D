@@ -470,7 +470,7 @@ Galaxy (mark nodes as consolidated)
 ### 8.1 Production Metrics (Phase G)
 
 **Cranium (Reasoning Engine)**:
-- ✅ 42 PTX kernels, all <100µs latency
+- ✅ 45+ PTX kernels, all <100µs latency
 - ✅ Zero CPU fallbacks (100% GPU-native)
 - ✅ 7M TRM parameters (10,000× more efficient than 70B LLMs)
 

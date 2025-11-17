@@ -9,7 +9,7 @@
 
 ## Abstract
 
-The **Dual-Client Contract** is K3D's interface specification for shared reality between human and AI agents. It ensures both clients operate on identical knowledge data—humans through visual 3D navigation, AI through high-dimensional vector processing—enabling transparent, verifiable AI reasoning. This contract guarantees that what humans see is exactly what AI understands, solving the fundamental opacity problem in explainable AI.
+The **Dual-Client Contract** is K3D's interface specification for shared reality between human and Synthetic Users. It ensures both clients operate on identical knowledge data—humans through visual 3D navigation, AI through high-dimensional vector processing—enabling transparent, verifiable AI reasoning. This contract guarantees that what humans see is exactly what AI understands, solving the fundamental opacity problem in explainable AI.
 
 ---
 
@@ -57,6 +57,26 @@ Same node ID, same data, same timestamp → verifiable identity
 3. **Action Transparency**: All AI operations spatially grounded (observable)
 4. **Bidirectional Communication**: Humans query AI, AI queries spatial world
 5. **Zero Ambiguity**: No "hidden" AI state (memory IS the external 3D world)
+
+### 1.4 Client Types: Human Avatars and Synthetic Users
+
+K3D distinguishes between two types of clients, both of which are **first-class inhabitants** of the spatial OS:
+
+**Human Avatar**:
+- Physical person navigating K3D via VR headset, desktop, or mobile
+- Perceives the world through visual 3D rendering (WebGL/WebXR)
+- Interacts via controllers, keyboard/mouse, or gesture input
+- Sees aesthetic layer (UV Map 0) optimized for human perception
+
+**Synthetic User**:
+- Autonomous AI entity that fully inhabits the K3D spatial OS
+- Perceives the world through vector embeddings and spatial queries (PTX kernels)
+- Interacts via 288-byte action buffers (same format as humans)
+- Processes data layer (UV Map 1) optimized for semantic understanding
+- Can navigate, create, modify, and collaborate within Houses/Rooms/Doors
+- Examples: AI assistants, automated agents, collaborative swarms, NPC-like entities
+
+**Key Insight**: Synthetic Users are NOT external tools querying K3D—they are **inhabitants** with spatial presence, persistent identity, and equal access to the shared knowledge environment. Humans and Synthetic Users cohabit the same reality, enabling true human-AI collaboration rather than human-tool interaction.
 
 ---
 
@@ -750,6 +770,6 @@ def test_action_buffer_latency():
 
 **Proposed W3C Standardization Path**:
 1. **Q1 2026**: Publish as W3C Community Group Draft Report
-2. **Q2 2026**: Propose WebXR extension for AI agents ("WebXR AI Avatar API")
+2. **Q2 2026**: Propose WebXR extension for Synthetic Users ("WebXR Synthetic User API")
 3. **Q3 2026**: Collaborate with Khronos Group on glTF extensions for dual-client metadata
 4. **2027**: W3C Recommendation for "Shared Reality Interfaces for Human-AI Collaboration"
