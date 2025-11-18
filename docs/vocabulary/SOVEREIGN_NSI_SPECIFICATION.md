@@ -578,6 +578,34 @@ ldd knowledge3d_binary
 
 ---
 
+## Attribution & Academic Context
+
+**For complete attributions**, see [ATTRIBUTIONS.md](../../ATTRIBUTIONS.md) in the K3D repository.
+
+**Key Credits**:
+
+1. **NVIDIA CUDA/PTX Platform**:
+   - Foundation for sovereign GPU computing
+   - K3D implements 45+ hand-written PTX kernels
+   - Zero external ML framework dependencies
+
+2. **RPN (Reverse Polish Notation)**:
+   - Neural engine architecture concept
+   - K3D uses RPN for transparent, traceable reasoning
+   - Every operation is auditable
+
+3. **RDF/OWL** (W3C):
+   - Symbolic knowledge representation standards
+   - K3D integrates with spatial neural processing
+
+4. **ARC-AGI Benchmark**:
+   - Framework for evaluating reasoning capabilities
+   - K3D demonstrates 10,000× parameter efficiency
+
+K3D's Sovereign NSI specification is a novel contribution that eliminates external dependencies while enabling neurosymbolic integration through spatial memory.
+
+---
+
 ## Contact & License
 
 **Author**: Daniel Campos Ramos, K3D Architect

@@ -719,6 +719,31 @@ def sleeptime_protocol_with_rollback():
 
 ---
 
+## Attribution & Academic Context
+
+**For complete attributions**, see [ATTRIBUTIONS.md](../../ATTRIBUTIONS.md) in the K3D repository.
+
+**Key Credits**:
+
+1. **Neuroscience** (Sleep and Memory Consolidation):
+   - Biological sleep consolidation mechanisms
+   - K3D applies to AI memory management (Galaxy → House)
+
+2. **Database Systems** (ACID Properties):
+   - Transaction processing concepts (Gray & Reuter, 1992)
+   - K3D adapts for spatial memory consolidation
+
+3. **Game Industry** (State Management):
+   - Save/load systems for game state
+   - K3D applies to knowledge persistence
+
+4. **glTF 2.0** (Khronos Group):
+   - Serialization format for persistent memory (House)
+
+K3D's SleepTime Protocol is a novel contribution that applies biological and database principles to AI memory consolidation.
+
+---
+
 ## Contact & License
 
 **Author**: Daniel Campos Ramos, K3D Architect

@@ -108,3 +108,36 @@ Reserve identifiers for accessibility facets and action types in the K3D registr
 
 This specification operationalizes the contribution in `TEMP/W3C_INSERTION_7_UNIVERSAL_ACCESSIBILITY.md` and references dual-texture details in `TEMP/W3C_INSERTION_6_DUAL_TEXTURE_AND_MATRYOSHKA.md`.
 
+---
+
+## 8. Attribution & Academic Context
+
+**For complete attributions**, see [ATTRIBUTIONS.md](../../ATTRIBUTIONS.md) in the K3D repository.
+
+**Key Credits**:
+
+1. **W3C WAI (Web Accessibility Initiative)**:
+   - WCAG 2.2 guidelines (ISO/IEC 40500:2025)
+   - ARIA standards for semantic markup
+   - Foundation for K3D's spatial accessibility
+
+2. **Multi-Modal Fusion Research**:
+   - Cross-modal alignment (text, image, audio, haptics)
+   - K3D implements organic spatial co-location
+   - 98.05% RLWHF accuracy on multi-modal tasks
+
+3. **Unicode Braille Standards**:
+   - Braille pattern encoding (U+2800-U+28FF)
+   - K3D implements GPU-native Braille rendering
+
+4. **Game Industry** (Accessibility):
+   - Audio-only game design principles
+   - Haptic feedback systems
+   - Spatial audio techniques
+
+5. **WebXR Accessibility**:
+   - VR/AR accessibility guidelines
+   - K3D extends with zero-config multi-modal support
+
+K3D's Universal Accessibility specification is a novel contribution that makes accessibility a first-class architectural property through spatial multi-modal integration.
+

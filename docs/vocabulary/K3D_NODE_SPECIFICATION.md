@@ -449,6 +449,32 @@ similar_nodes = galaxy.query_embedding_similarity(
 
 ---
 
+## Attribution & Academic Context
+
+**For complete attributions**, see [ATTRIBUTIONS.md](../../ATTRIBUTIONS.md) in the K3D repository.
+
+**Key Credits**:
+
+1. **glTF 2.0 Standard** (Khronos Group):
+   - Foundation for 3D asset representation
+   - K3D extends with `.k3d` node format for embeddings + metadata
+
+2. **RDF/OWL** (W3C):
+   - Semantic web standards for knowledge representation
+   - K3D integrates spatial semantics with RDF metadata
+
+3. **Qwen-embedding** (Matryoshka):
+   - Variable-dimensionality embeddings (64D-2048D)
+   - K3D implements bi-directional scaling
+
+4. **Multi-Modal Fusion Research**:
+   - Cross-modal alignment techniques
+   - K3D uses spatial co-location for organic fusion
+
+K3D's node specification builds upon established 3D and semantic web standards while introducing spatial knowledge representation capabilities.
+
+---
+
 ## Contact & License
 
 **Author**: Daniel Campos Ramos, K3D Architect

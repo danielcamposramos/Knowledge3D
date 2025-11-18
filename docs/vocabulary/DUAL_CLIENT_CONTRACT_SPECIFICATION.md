@@ -754,6 +754,32 @@ def test_action_buffer_latency():
 
 ---
 
+## Attribution & Academic Context
+
+**For complete attributions**, see [ATTRIBUTIONS.md](../../ATTRIBUTIONS.md) in the K3D repository.
+
+**Key Credits**:
+
+1. **WebXR Device API** (W3C):
+   - Foundation for VR/AR web experiences
+   - K3D extends with dual-client (human + Synthetic User) contract
+
+2. **glTF 2.0** (Khronos Group):
+   - Shared 3D asset format
+   - K3D uses for shared reality between human and AI clients
+
+3. **DeepSeek-OCR** (Dual-Texture Rendering):
+   - Text-as-image compression for AI texture layer
+   - K3D adapts for dual UV mapping
+
+4. **Game Industry** (Dual-Client Paradigms):
+   - Spectator mode concepts
+   - K3D applies to human-AI collaboration
+
+K3D's Dual-Client Contract is a novel contribution that enables humans and Synthetic Users to inhabit the same spatial knowledge environment.
+
+---
+
 ## Contact & License
 
 **Author**: Daniel Campos Ramos, K3D Architect

@@ -528,6 +528,32 @@ Galaxy (mark nodes as consolidated)
 
 ---
 
+## Attribution & Academic Context
+
+**For complete attributions**, see [ATTRIBUTIONS.md](../../ATTRIBUTIONS.md) in the K3D repository.
+
+**Key Credits**:
+
+1. **Neuroscience Research**:
+   - Hippocampus as cognitive map (O'Keefe & Nadel, 1978)
+   - Memory hierarchy concepts
+   - K3D applies neuroscience principles to AI architecture
+
+2. **Computer Architecture** (Hennessy & Patterson):
+   - Cache hierarchies and memory management
+   - K3D adapts for House (disk) / Galaxy (RAM) / Cranium (CPU) architecture
+
+3. **Game Industry** (Memory Management):
+   - LOD systems for efficient resource loading
+   - SleepTime protocol inspired by game state management
+
+4. **RDF/OWL** (W3C):
+   - Persistent knowledge representation (House layer)
+
+K3D's Three-Brain System is a novel contribution that applies biological and computer architecture principles to AI memory management.
+
+---
+
 ## Contact & License
 
 **Author**: Daniel Campos Ramos, K3D Architect
