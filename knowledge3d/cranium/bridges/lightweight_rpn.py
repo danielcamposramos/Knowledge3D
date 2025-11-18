@@ -24,7 +24,7 @@ from .rpn_config import RPN_GRID_DIM, TIER1_BLOCK_DIM
 class LightweightRPNEngine:
     """Tier‑1 RPN engine supporting the 20-op lightweight instruction set."""
 
-    MAX_INSTANCES = 15
+    MAX_INSTANCES = 18  # Tesla 3-6-9: 18/3=6 (ternary resonance)
     STACK_DEPTH = 64
     INSTANCE_STRIDE = 1040
     SUPPORTED_OPS = {
