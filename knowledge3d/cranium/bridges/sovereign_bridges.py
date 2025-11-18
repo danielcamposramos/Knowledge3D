@@ -1721,3 +1721,61 @@ class TritInspectorBridge:
             gpu_free(d_trits)
             gpu_free(d_nodes)
             gpu_free(d_out)
+
+
+class TernaryDepthField:
+    """Compute ternary attract/neutral/repel field for a query embedding."""
+
+    def __init__(self):
+        ptx_path = KERNELS_DIR / "ternary_depth_field.ptx"
+        self.kernel = load_ptx_file(str(ptx_path), "ternary_depth_field")
+        self.guard = LatencyGuard(threshold_us=500.0)
+
+    def compute(
+        self,
+        embeddings: np.ndarray,
+        query: np.ndarray,
+        attract_thresh: float = 0.35,
+        repel_thresh: float = -0.05,
+    ) -> np.ndarray:
+        """Return packed 2-bit trits indicating near/neutral/far (per node)."""
+        emb = np.ascontiguousarray(embeddings, dtype=np.float32)
+        q = np.ascontiguousarray(query, dtype=np.float32)
+        n_nodes, dim = emb.shape
+        assert q.shape[0] == dim, "query dim mismatch"
+        n_words = (n_nodes + 15) // 16
+        out_host = np.zeros(n_words, dtype=np.uint32)
+
+        d_emb = gpu_malloc(emb.nbytes)
+        d_query = gpu_malloc(q.nbytes)
+        d_out = gpu_malloc(out_host.nbytes)
+        try:
+            memcpy_htod(d_emb, emb.ctypes.data_as(ctypes.c_void_p), emb.nbytes)
+            memcpy_htod(d_query, q.ctypes.data_as(ctypes.c_void_p), q.nbytes)
+            # zero output buffer (host prepared zeros)
+            memcpy_htod(d_out, out_host.ctypes.data_as(ctypes.c_void_p), out_host.nbytes)
+            self.guard.start()
+            threads = 128
+            blocks = (n_nodes + threads - 1) // threads
+            launch(
+                self.kernel,
+                grid=(blocks, 1, 1),
+                block=(threads, 1, 1),
+                params=[
+                    ctypes.c_uint64(d_emb.value),
+                    ctypes.c_uint64(d_query.value),
+                    ctypes.c_int32(int(n_nodes)),
+                    ctypes.c_int32(int(dim)),
+                    ctypes.c_float(float(attract_thresh)),
+                    ctypes.c_float(float(repel_thresh)),
+                    ctypes.c_uint64(d_out.value),
+                ],
+            )
+            synchronize()
+            self.guard.stop()
+            memcpy_dtoh(out_host.ctypes.data_as(ctypes.c_void_p), d_out, out_host.nbytes)
+            return out_host
+        finally:
+            gpu_free(d_emb)
+            gpu_free(d_query)
+            gpu_free(d_out)

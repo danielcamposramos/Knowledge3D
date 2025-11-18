@@ -1626,6 +1626,22 @@ class LiveServer:
         if cmd == "/mem" and len(parts) >= 2:
             await self._handle_mem(parts[1:], client)
             return
+        if cmd == "/trit-overlay":
+            # /trit-overlay <field_type> [threshold]
+            await self._handle_trit_overlay(parts[1:], client)
+            return
+        if cmd == "/trit-inspect":
+            # /trit-inspect <node_index>
+            await self._handle_trit_inspect(parts[1:], client)
+            return
+        if cmd == "/trit-path":
+            # /trit-path <node_indices...>
+            await self._handle_trit_path(parts[1:], client)
+            return
+        if cmd == "/trit-depth":
+            # /trit-depth <query_text> [adaptive]
+            await self._handle_trit_depth(parts[1:], client)
+            return
         await self.send_system(client.channel, f"Unknown command: {cmd}")
 
     async def _handle_open(self, target: str, client: Client):
@@ -3091,6 +3107,249 @@ class LiveServer:
             await self.log({"type": "reasoning_path", "question": question, "payload": payload})
         except Exception:
             pass
+
+    async def _handle_trit_overlay(self, args, client: Client):
+        """Generate RGBA overlay from ternary field diagnostics."""
+        if len(args) < 1:
+            await self.send_system(client.channel, "Usage: /trit-overlay <field_type> [threshold]")
+            return
+
+        try:
+            field_type = int(args[0])
+            threshold = float(args[1]) if len(args) > 1 else 0.0
+        except ValueError:
+            await self.send_system(client.channel, "Invalid arguments. Usage: /trit-overlay <field_type:int> [threshold:float]")
+            return
+
+        # Get Galaxy graph
+        graph = self._graphs.get(client.channel)
+        if not graph:
+            await self.send_system(client.channel, "No Galaxy loaded.")
+            return
+
+        try:
+            from ..cranium.tools.trit_inspector import TritInspector
+            import numpy as np
+
+            # Mock: Generate synthetic trits for demo (replace with real Galaxy trits)
+            positions = graph.get("positions")
+            if not positions:
+                await self.send_system(client.channel, "No positions available for overlay.")
+                return
+
+            n_nodes = len(positions)
+            # Generate packed trits (mock - in production, load from Galaxy)
+            trits_mock = np.random.choice([-1, 0, 1], size=n_nodes).astype(np.int8)
+            packed = self._pack_trits_helper(trits_mock)
+
+            # Compute overlay
+            inspector = TritInspector(field_stride=1)
+            rgba = inspector.generate_overlay(
+                trits_packed=packed,
+                grid_shape=(n_nodes, 1, 1),
+                field_type=field_type,
+                threshold=threshold,
+            )
+
+            # Send overlay data to viewer
+            import base64
+            rgba_b64 = base64.b64encode(rgba.tobytes()).decode('utf-8')
+
+            payload = {
+                "field_type": field_type,
+                "threshold": threshold,
+                "rgba_data": rgba_b64,
+                "shape": [n_nodes, 1, 1],
+            }
+
+            await self.send_command("trit_overlay", json.dumps(payload), channel=client.channel)
+            await self.send_chat(sender="agent", text=f"Ternary overlay generated (field {field_type}, threshold {threshold})", channel=client.channel)
+
+        except Exception as e:
+            await self.send_system(client.channel, f"Overlay generation failed: {e}")
+
+    async def _handle_trit_inspect(self, args, client: Client):
+        """Inspect ternary field for a specific node."""
+        if len(args) < 1:
+            await self.send_system(client.channel, "Usage: /trit-inspect <node_index>")
+            return
+
+        try:
+            node_index = int(args[0])
+        except ValueError:
+            await self.send_system(client.channel, "Invalid node index.")
+            return
+
+        graph = self._graphs.get(client.channel)
+        if not graph:
+            await self.send_system(client.channel, "No Galaxy loaded.")
+            return
+
+        try:
+            from ..cranium.tools.trit_inspector import TritInspector
+            import numpy as np
+
+            # Mock trits (replace with real Galaxy data)
+            n_nodes = len(graph.get("ids", []))
+            trits_mock = np.random.choice([-1, 0, 1], size=n_nodes).astype(np.int8)
+            packed = self._pack_trits_helper(trits_mock)
+
+            # Inspect node
+            inspector = TritInspector(field_stride=1)
+            summary = inspector.inspect_node_trits(packed, node_index)
+
+            # Format output
+            msg = (
+                f"Node {node_index} ternary summary:\n"
+                f"  Count: {summary['count']}\n"
+                f"  Sum: {summary['sum']}\n"
+                f"  Mean: {summary['mean']:.3f}\n"
+                f"  Bottleneck: {summary['bottleneck']}"
+            )
+
+            await self.send_chat(sender="agent", text=msg, channel=client.channel)
+
+        except Exception as e:
+            await self.send_system(client.channel, f"Inspection failed: {e}")
+
+    async def _handle_trit_path(self, args, client: Client):
+        """Trace ternary summary along a path."""
+        if len(args) < 2:
+            await self.send_system(client.channel, "Usage: /trit-path <node_indices...>")
+            return
+
+        try:
+            path_indices = [int(arg) for arg in args]
+        except ValueError:
+            await self.send_system(client.channel, "Invalid node indices.")
+            return
+
+        graph = self._graphs.get(client.channel)
+        if not graph:
+            await self.send_system(client.channel, "No Galaxy loaded.")
+            return
+
+        try:
+            from ..cranium.tools.trit_inspector import TritInspector
+            import numpy as np
+
+            # Mock trits
+            n_nodes = len(graph.get("ids", []))
+            trits_mock = np.random.choice([-1, 0, 1], size=n_nodes).astype(np.int8)
+            packed = self._pack_trits_helper(trits_mock)
+
+            # Trace path
+            inspector = TritInspector(field_stride=1)
+            summary = inspector.trace_path_trits(packed, path_indices)
+
+            # Format output
+            msg = (
+                f"Path ternary summary ({summary['path_length']} nodes):\n"
+                f"  Mean of means: {summary['mean_of_means']:.3f}\n"
+                f"  Total sum: {summary['sum']}\n"
+                f"  Bottleneck nodes: {summary['bottlenecks']}"
+            )
+
+            await self.send_chat(sender="agent", text=msg, channel=client.channel)
+
+        except Exception as e:
+            await self.send_system(client.channel, f"Path trace failed: {e}")
+
+    async def _handle_trit_depth(self, args, client: Client):
+        """Compute ternary depth field for a query."""
+        if len(args) < 1:
+            await self.send_system(client.channel, "Usage: /trit-depth <query_text> [adaptive]")
+            return
+
+        query_text = " ".join(args[:-1]) if len(args) > 1 and args[-1] == "adaptive" else " ".join(args)
+        adaptive = args[-1] == "adaptive" if len(args) > 1 else False
+
+        graph = self._graphs.get(client.channel)
+        if not graph:
+            await self.send_system(client.channel, "No Galaxy loaded.")
+            return
+
+        try:
+            from ..cranium.tools.adaptive_ternary_depth import AdaptiveTernaryDepth
+            import numpy as np
+
+            # Mock: Generate embeddings (replace with real Galaxy embeddings)
+            n_nodes = len(graph.get("ids", []))
+            dim = 64
+            embeddings = np.random.randn(n_nodes, dim).astype(np.float32)
+            embeddings /= np.linalg.norm(embeddings, axis=1, keepdims=True)
+
+            # Mock query embedding (replace with real text→embedding)
+            query = np.random.randn(dim).astype(np.float32)
+            query /= np.linalg.norm(query)
+
+            # Compute depth field
+            depth_computer = AdaptiveTernaryDepth(adaptive_thresholds=adaptive)
+            packed_trits = depth_computer.compute(embeddings, query)
+
+            # Unpack and count
+            trits = depth_computer._unpack_trits(packed_trits, n_nodes)
+            attract_count = trits.count(1)
+            neutral_count = trits.count(0)
+            repel_count = trits.count(-1)
+
+            # Send summary
+            msg = (
+                f"Ternary depth for '{query_text}' ({'adaptive' if adaptive else 'fixed'} thresholds):\n"
+                f"  Attract (+1): {attract_count} nodes\n"
+                f"  Neutral (0): {neutral_count} nodes\n"
+                f"  Repel (-1): {repel_count} nodes"
+            )
+
+            await self.send_chat(sender="agent", text=msg, channel=client.channel)
+
+            # Send to viewer for visualization
+            import base64
+            rgba = self._trits_to_rgba(trits, n_nodes)
+            rgba_b64 = base64.b64encode(rgba.tobytes()).decode('utf-8')
+
+            payload = {
+                "query": query_text,
+                "adaptive": adaptive,
+                "rgba_data": rgba_b64,
+                "shape": [n_nodes, 1, 1],
+                "counts": {
+                    "attract": attract_count,
+                    "neutral": neutral_count,
+                    "repel": repel_count,
+                }
+            }
+
+            await self.send_command("trit_depth", json.dumps(payload), channel=client.channel)
+
+        except Exception as e:
+            await self.send_system(client.channel, f"Depth computation failed: {e}")
+
+    def _pack_trits_helper(self, trits):
+        """Pack trits into 2-bit uint32 array."""
+        import numpy as np
+        n = len(trits)
+        n_words = (n + 15) // 16
+        packed = np.zeros(n_words, dtype=np.uint32)
+        enc = {-1: 0, 0: 1, 1: 2}
+        for i, t in enumerate(trits):
+            bits = enc[int(t)]
+            word = i >> 4
+            shift = (i & 0xF) << 1
+            packed[word] |= np.uint32(bits << shift)
+        return packed
+
+    def _trits_to_rgba(self, trits, n):
+        """Convert trits to RGBA8 overlay."""
+        import numpy as np
+        rgba = np.zeros((n, 4), dtype=np.uint8)
+        for i, t in enumerate(trits):
+            if t == 1:  # Attract
+                rgba[i] = [255, 0, 0, 96]  # Red
+            elif t == -1:  # Repel
+                rgba[i] = [0, 0, 255, 96]  # Blue
+            # Neutral stays [0,0,0,0] (transparent)
+        return rgba.ravel()
 
     async def _compose_reflection(self, channel: str, requester: str) -> str:
         g = self._graphs.get(channel)
