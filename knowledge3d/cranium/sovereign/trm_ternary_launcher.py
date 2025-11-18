@@ -96,12 +96,18 @@ class TRMTernaryLauncher(TRMLauncher):
         else:
             masks = ternary_masks
         trits = self.attn.unpack_masks(masks, seq_len=1).reshape(batch_size)
+        # Fast path: zero-out repels without launching TRM kernels
+        keep_indices = []
         for i in range(batch_size):
-            factor = self._mask_factor(int(trits[i]))
             if int(trits[i]) < 0:
-                outputs_y[i] = np.zeros(512, dtype=np.float32)
-                outputs_z[i] = np.zeros(512, dtype=np.float32)
-                continue
+                outputs_y[i] = 0.0
+                outputs_z[i] = 0.0
+            else:
+                keep_indices.append(i)
+
+        # Launch TRM only for non-repel entries
+        for i in keep_indices:
+            factor = self._mask_factor(int(trits[i]))
             y_base, z_base = super().refine(
                 Q[i], Y[i], Z[i], W1, W2, W3, W4, n_steps=n_steps, eps=eps
             )
