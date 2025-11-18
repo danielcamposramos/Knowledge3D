@@ -43,7 +43,7 @@ class AdvancedRPNEngine:
     """Tier-3 RPN bridge that activates matrix-aware PTX operations."""
 
     MAX_INSTANCES = 18  # Tesla 3-6-9: 18/3=6 (ternary resonance)
-    STACK_DEPTH = 64
+    STACK_DEPTH = 69    # Tesla 6-9: 6+9=15→6, 6×9=54→9, perfect balance
     BLOCK_DIM = TIER3_BLOCK_DIM
     INSTANCE_STRIDE = 1040  # bytes per instance (header + 64*float4)
 

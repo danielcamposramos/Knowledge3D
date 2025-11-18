@@ -239,7 +239,11 @@ class TieredRPNEngine:
         if key == self._tier_cache_key:
             return self._tier_cache_value
 
-        has_tier3 = any(op >= self.MATRIX_OPCODE_THRESHOLD or op == 0x02 for op in iterable)
+        ternary_ops = {0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76}
+        has_tier3 = any(
+            (op not in ternary_ops) and (op >= self.MATRIX_OPCODE_THRESHOLD or op == 0x02)
+            for op in iterable
+        )
         if has_tier3:
             tier = 3
         else:

@@ -26,8 +26,8 @@ class SovereignRPNExecutor:
     """
 
     # RPN Kernel Constants
-    MAX_INSTANCES = 15
-    STACK_DEPTH = 64
+    MAX_INSTANCES = 18  # Tesla 3-6-9: 18/3=6 (ternary resonance)
+    STACK_DEPTH = 69    # Tesla 6-9: Yin-Yang balance, 6+9=15→6, 6×9=54→9
     INSTANCE_STRIDE = 1040  # bytes per instance state
 
     def __init__(self, ptx_path: Optional[Path] = None):
