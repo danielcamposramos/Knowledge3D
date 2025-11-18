@@ -143,6 +143,42 @@
 
 ---
 
+### 2.4 Procedural Generation (.kkrieger)
+
+**Original Work**: Farbrausch (2004)
+**Source**: [.kkrieger Wikipedia](https://en.wikipedia.org/wiki/.kkrieger)
+
+**What It Did**:
+- First-person shooter game compressed into **96 KB executable**
+- Expanded to **~300 MB** in VRAM through procedural generation
+- All textures, geometry, and sounds generated algorithmically at runtime
+- Demonstrated extreme compression through procedures instead of data
+
+**Our Adaptation**:
+- **Procedural Memory**: Instead of storing data, store generation programs
+- **PD04 Dictionary Codec**: Programs that reconstruct embeddings (12-80× compression)
+- **RPN Programs as Memory**: Embeddings stored as executable instructions
+- **On-Demand Expansion**: Decompress to full fidelity only when needed
+
+**The Lineage**:
+```
+.kkrieger (2004): 96 KB → 300 MB in VRAM via procedural generation
+    ↓ (Inspiration: Procedures > Data)
+K3D Procedural Memory (2025)
+    ↓ (Transformation: RPN programs for embeddings)
+Phase 2.6 Adaptive Procedural Compression
+    ↓ (Innovation: 12-80× with 99.96-99.998% fidelity)
+PD04 Dictionary Codec
+```
+
+**Credit**: Farbrausch for pioneering procedural content generation at extreme compression ratios. We adapted their paradigm from graphics to knowledge representation.
+
+**Additional Resources**:
+- Demo scene competition entry (2004)
+- Inspired by demo scene compression techniques (64k/4k demos)
+
+---
+
 ## 3. AI/ML Foundations
 
 ### 3.1 Reverse Polish Notation (RPN)
@@ -274,9 +310,161 @@ Matryoshka TRM with Self-Updating Specialists
 
 ---
 
-## 4. Software & Tools
+### 3.5 Setun Computer: Balanced Ternary Logic
 
-### 4.1 CUDA & PTX
+**Original Work**: Moscow State University (1958-1965)
+**Architect**: Nikolay Brusentsov
+**Source**: [YouTube: "The FORBIDDEN Soviet Computer That Defied Binary Logic"](https://www.youtube.com/watch?v=4vwOJE0Dq38)
+
+**What It Was**:
+- World's only mass-produced **ternary computer** (50 units)
+- Used balanced ternary logic: **{-1, 0, +1}** instead of binary {0, 1}
+- More natural for representing signed numbers and fuzzy states
+- Suppressed by Soviet bureaucracy favoring binary compatibility
+
+**What We Adapted**:
+- **Ternary Reasoning**: Three-valued logic for uncertainty and partial knowledge
+- **Balanced Representation**: Symmetric treatment of positive/negative/neutral states
+- **RPN Ternary Extension**: Implemented balanced ternary operations on binary GPUs
+- **Setun-Inspired Kernels**: PTX kernels that emulate ternary logic using binary hardware
+
+**Our Implementation**:
+```
+Binary GPU (CUDA PTX)
+    ↓ (Emulation layer)
+Balanced Ternary Operations {-1, 0, +1}
+    ↓ (Integration)
+K3D RPN Engine with Ternary Support
+    ↓ (Application)
+Fuzzy Reasoning and Uncertainty Handling
+```
+
+**Key Insights from Setun**:
+1. **Efficiency**: Ternary requires fewer "trits" than binary bits for same information
+2. **Natural Negation**: -1 is first-class, not a hack (no two's complement)
+3. **Uncertainty**: 0 can mean "unknown" or "neutral", not just "off"
+4. **Symmetry**: Balanced ternary is mathematically elegant
+
+**Our Contribution**:
+- First implementation of balanced ternary reasoning on modern binary GPUs
+- RPN ternary opcodes: `PUSH_TRIT`, `ADD_TERNARY`, `MUL_TERNARY`, `CMP_TERNARY`
+- Applied to fuzzy confidence scoring and partial knowledge states
+- Documented in: `docs/RPN_TERNARY_SETUN_CHAIN.md`
+
+**Credit**:
+- **Nikolay Brusentsov** and the Moscow State University team for pioneering ternary computing
+- **YouTube creator** for preserving and explaining this suppressed technology through accessible documentation
+- We honor Setun's legacy by proving ternary logic remains valuable in modern AI reasoning
+
+**Academic References** (from chain research):
+- Brusentsov, N. P. (1962). "Ternary Computers: Present and Future" (Russian)
+- Stakhov, A. P. (2002). "Brousentsov's Ternary Principle, Bergman's Number System and Ternary Mirror-symmetrical Arithmetic"
+
+---
+
+## 4. Theoretical Foundations & Collaboration
+
+### 4.1 Milton Ponson: Domains of Discourse and Mathematical Grounding
+
+**Collaborator**: Milton Ponson (Mathematician, W3C AI-KR Community Group member)
+**Contribution Period**: October-November 2025 (W3C TPAC 2025 aftermath)
+
+**What He Contributed**:
+- **Godelian Critique of LLM Scaling**: Mathematical proof that "scaling will solve everything" narrative is fundamentally flawed
+- **Domains of Discourse Framework**: Rigorous mathematical foundation for bounded knowledge representation
+- **MIP*=RE Connection**: Linked multi-prover interactive proofs to knowledge representation limits
+- **Adequacy vs Completeness**: Clarified K3D's engineering approach (bounded adequacy) vs fantasy (unbounded completeness)
+
+**The W3C Context**:
+After TPAC 2025, Milton wrote to the AI-KR mailing list with a mathematically grounded critique of the "LLM tribe" approach to AI. He explicitly stated:
+> "I feel Daniel is on to something with K3D... the engineer–mathematician pairing might help steer things back on track."
+
+He proposed a structured collaboration:
+- Milton teaches K3D team the core mathematics (domains of discourse, explainability framework)
+- K3D team teaches Milton GPU/CUDA/PTX and performance metrics
+- Together, map his theoretical framework to K3D's implementation
+
+**Our Integration**:
+- **House as Domain of Discourse**: Each K3D House represents a bounded domain with explicit adequacy criteria
+- **Procedural Compression**: Aligns with Milton's "codifying intentions before KR" principle
+- **Matryoshka Dimensions**: Maps to different levels of reasoning depth within bounded domains
+- **Galaxy Spatial Semantics**: Provides geometric structure to Milton's abstract discourse framework
+
+**The Paradigm Shift**:
+```
+LLM Scaling Narrative: More data + more parameters = AGI
+    ↓ (Milton's Critique)
+Mathematical Limits: Domains of discourse are fundamental (MIP*=RE)
+    ↓ (Collaboration)
+K3D Architecture: Bounded domains + procedural reasoning + spatial memory
+    ↓ (Synthesis)
+Engineering Adequacy: Explicit bounds, measurable fidelity, provable properties
+```
+
+**Credit**:
+- **Milton Ponson** for providing the mathematical rigor that grounds K3D's engineering choices
+- For recognizing K3D's potential when others dismissed it as "out of scope"
+- For the "shoulder to shoulder" collaborative approach rather than hierarchical gatekeeping
+
+**Future Work**:
+- Formal mapping of Milton's mandala framework (private IP) to K3D's public implementation
+- Joint publications on bounded adequacy in AI systems
+- Mathematical proofs of K3D's procedural compression guarantees
+
+**Note**: Milton's detailed framework remains his intellectual property. We credit the insights he's shared while respecting his IP boundaries.
+
+---
+
+### 4.2 Apollo 11 Guidance Computer: Modular Engineering Method
+
+**Source**: [Apollo 11 Source Code (GitHub)](https://github.com/chrislgarry/Apollo-11)
+**Original Engineers**: MIT Instrumentation Laboratory (1960s)
+**Documentation**: Apollo Guidance Computer History
+
+**What It Was**:
+- First embedded computer to land humans on the Moon (1969)
+- **4KB RAM**, **72KB ROM** (rope memory)
+- Modular software architecture with clear separation of concerns
+- Real-time constraints: Navigation, guidance, control under extreme reliability requirements
+
+**What Inspired Us**:
+- **Modular Design**: Clear module boundaries (P00-P99 programs, each with specific purpose)
+- **Resource Constraints**: Doing the impossible with minimal hardware
+- **Mission-Critical Reliability**: Every line of code matters when lives depend on it
+- **Engineering Discipline**: Rigorous testing, clear documentation, formal verification
+
+**Our Adaptation**:
+- **K3D Module Structure**: Clear separation (House/Galaxy/Cranium, Phase architecture)
+- **Resource Consciousness**: Self-funded favela lab, every byte counts
+- **PTX Sovereignty**: Like AGC's custom assembly, we write direct GPU code
+- **Phase-Based Development**: Incremental, testable milestones (like Apollo mission phases)
+
+**The Lineage**:
+```
+Apollo AGC (1969): 4KB RAM, modular architecture, mission-critical
+    ↓ (Inspiration: Do more with less)
+K3D Architecture (2025)
+    ↓ (Philosophy: Sovereignty through simplicity)
+45+ PTX Kernels, <200MB VRAM, modular design
+```
+
+**Engineering Principles We Adopted**:
+1. **Modularity**: Each kernel/component has single, clear purpose
+2. **Testability**: Every phase has validation criteria
+3. **Resource Discipline**: Optimize for constraints, not abundance
+4. **Documentation**: Code should tell its own story
+5. **Mission Focus**: Build for real use cases, not benchmarks
+
+**Credit**:
+- **MIT Instrumentation Lab engineers** for proving complex systems can run on minimal hardware
+- **Margaret Hamilton** (AGC software lead) for pioneering software engineering discipline
+- **Open-source preservation** for making this history accessible to future engineers
+
+---
+
+## 5. Software & Tools
+
+### 5.1 CUDA & PTX
 
 **Source**: NVIDIA Corporation
 **Documentation**: [CUDA Toolkit Documentation](https://docs.nvidia.com/cuda/)
@@ -295,7 +483,7 @@ Matryoshka TRM with Self-Updating Specialists
 
 ---
 
-### 4.2 Ollama
+### 5.2 Ollama
 
 **Source**: [Ollama GitHub](https://github.com/ollama/ollama)
 **Use**: Local LLM inference for question generation and teacher evaluation
@@ -314,7 +502,7 @@ Matryoshka TRM with Self-Updating Specialists
 
 ---
 
-### 4.3 PyMuPDF (fitz)
+### 5.3 PyMuPDF (fitz)
 
 **Source**: [PyMuPDF GitHub](https://github.com/pymupdf/PyMuPDF)
 **Use**: PDF text extraction (structured documents)
@@ -333,7 +521,7 @@ Matryoshka TRM with Self-Updating Specialists
 
 ---
 
-### 4.4 Tesseract OCR
+### 5.4 Tesseract OCR
 
 **Source**: [Tesseract GitHub](https://github.com/tesseract-ocr/tesseract)
 **Use**: Fallback OCR for scanned documents
@@ -547,9 +735,13 @@ We stand on the shoulders of:
 - **DeepSeek AI** for OCR research and thinking-enabled models
 - **Alibaba Cloud / Qwen Team** for Matryoshka representation learning in embeddings
 - **François Chollet** for ARC-AGI benchmark
+- **Milton Ponson** for mathematical grounding (domains of discourse, adequacy framework)
+- **Farbrausch** for .kkrieger and procedural generation pioneering
+- **Nikolay Brusentsov** and Moscow State University for Setun ternary computer
+- **MIT Instrumentation Lab** (Margaret Hamilton et al.) for Apollo 11 modular engineering
 - **Ollama team** for local LLM inference
 - **LoRA/Adapters research community** for low-rank adaptation techniques
-- **Game industry pioneers** for LOD/FOV systems
+- **Game industry pioneers** for LOD/FOV systems and demo scene compression
 - **Open-source ML community** for foundational research
 - **Historical CS giants** for RPN, spatial indexing, and core algorithms
 
@@ -557,5 +749,5 @@ We stand on the shoulders of:
 
 ---
 
-**Last Updated**: October 26, 2025
-**Version**: Phase H (Adaptive Swarm with Router-as-Specialist)
+**Last Updated**: November 17, 2025
+**Version**: Phase H (W3C Contributions Complete)
