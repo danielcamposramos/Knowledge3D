@@ -102,3 +102,31 @@ An implementation conforms if it:
 
 This specification operationalizes `TEMP/W3C_INSERTION_9_PROCEDURAL_COMPRESSION.md` and is referenced by `docs/vocabulary/THREE_BRAIN_SYSTEM_SPECIFICATION.md` for memory efficiency guarantees.
 
+---
+
+## 8. Attribution & Academic Context
+
+**For complete attributions**, see [ATTRIBUTIONS.md](../../ATTRIBUTIONS.md) in the K3D repository.
+
+**Key Credits**:
+
+1. **Game Industry** (LOD & Procedural Techniques):
+   - Level of Detail (LOD) for efficient rendering
+   - Procedural generation concepts
+   - K3D applies to knowledge compression
+
+2. **Qwen-embedding** (Matryoshka):
+   - Variable-dimensionality embeddings (64D-2048D)
+   - K3D integrates with procedural compression
+   - Bi-directional scaling (K3D extension)
+
+3. **NVIDIA CUDA/PTX Platform**:
+   - Sovereign GPU computing foundation
+   - PTX kernels for decompression (<100µs)
+
+4. **Database Systems** (Compression):
+   - Dictionary encoding techniques
+   - K3D adapts for RPN program encoding
+
+K3D's Adaptive Procedural Compression (PD04 codec) is a novel contribution that achieves 12-80× compression with 99.96-99.998% fidelity through executable knowledge programs.
+

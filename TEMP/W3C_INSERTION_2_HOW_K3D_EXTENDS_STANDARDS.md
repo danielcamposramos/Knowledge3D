@@ -299,6 +299,39 @@ We invite the W3C AI KR Community Group to:
 3. **Pilot** the Dual-Client protocol in WebXR environments
 4. **Collaborate** on formal standardization proposals
 
+---
+
+## Attribution & Academic Context
+
+K3D's extensions build upon established research and industry practices:
+
+**For complete attributions**, see [ATTRIBUTIONS.md](../ATTRIBUTIONS.md) in the K3D repository.
+
+**Key Credits**:
+
+1. **DeepSeek-OCR Research** (Dual-Texture Rendering):
+   - Text-as-image compression techniques (7-20× ratios)
+   - K3D adapted this for dual UV mapping (separate human/AI textures)
+   - Applied to glTF/GLB format with VR/AR optimization
+
+2. **Qwen-embedding** (Matryoshka Embeddings):
+   - Matryoshka representation learning (variable dimensionality)
+   - K3D extended this with bi-directional scaling (64D-16K dims)
+   - RPN interpretation: dimensions = reasoning operations
+
+3. **Game Industry** (Spatial Techniques):
+   - LOD (Level of Detail) for efficient 3D rendering
+   - FOV (Field of View) culling for performance
+   - Applied to knowledge representation (not just graphics)
+
+4. **NVIDIA CUDA/PTX**:
+   - Platform for sovereign GPU computing
+   - K3D implements 45+ hand-written PTX kernels
+
+K3D's novel contributions include the unified spatial KR architecture, procedural compression, and the dual-client contract for human-AI collaboration.
+
+---
+
 **Contact**: Daniel Campos Ramos, K3D Architect
 **Email**: daniel@echosystems.ai | capitain_jack@yahoo.com
 

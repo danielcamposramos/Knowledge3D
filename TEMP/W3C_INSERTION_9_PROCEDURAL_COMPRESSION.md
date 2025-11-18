@@ -527,6 +527,36 @@ Adaptive Procedural Compression represents a **paradigm shift** from storing emb
 
 ---
 
+## 10. Attribution & Academic Context
+
+**For complete attributions**, see [ATTRIBUTIONS.md](../ATTRIBUTIONS.md) in the K3D repository.
+
+**Key Credits**:
+
+1. **Game Industry** (LOD & Optimization):
+   - Level of Detail (LOD) techniques for efficient rendering
+   - Field of View (FOV) culling for performance
+   - K3D adapted these concepts from graphics to knowledge compression
+
+2. **NVIDIA CUDA/PTX Platform**:
+   - Sovereign GPU computing foundation
+   - K3D implements 45+ hand-written PTX kernels for decompression
+   - Sub-100µs latency for all operations
+
+3. **Qwen-embedding** (Matryoshka):
+   - Variable-dimensionality embeddings (64D-2048D)
+   - K3D integrates Matryoshka with procedural compression
+   - Bi-directional scaling (K3D extension)
+
+4. **Procedural Compression** (PD04 Codec):
+   - Novel contribution by K3D project
+   - Dictionary-based RPN program encoding
+   - 12-80× compression with 99.96-99.998% fidelity
+
+K3D's procedural compression represents a paradigm shift from "data storage" to "knowledge as executable programs," building upon established game industry practices and GPU computing platforms.
+
+---
+
 ## References
 
 - **Implementation**: https://github.com/danielcamposramos/Knowledge3D/tree/main/knowledge3d/cranium/procedural_compression

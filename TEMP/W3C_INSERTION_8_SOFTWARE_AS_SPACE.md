@@ -777,7 +777,36 @@ Result: Blind student learns chemistry through spatial haptics!
 
 ---
 
-## 11. References
+## 11. Attribution & Academic Context
+
+**For complete attributions**, see [ATTRIBUTIONS.md](../ATTRIBUTIONS.md) in the K3D repository.
+
+**Key Credits**:
+
+1. **Game Industry** (Spatial Design):
+   - Level of Detail (LOD) for efficient 3D rendering
+   - Field of View (FOV) culling for performance
+   - Spatial navigation and interaction paradigms
+   - K3D adapts these from gaming to knowledge representation
+
+2. **BIM/CAD Industry**:
+   - Building Information Modeling standards (ISO 19650, IFC)
+   - Spatial organization principles
+   - K3D applies these to software organization
+
+3. **WebXR Standards** (W3C):
+   - Foundation for VR/AR web experiences
+   - K3D extends with dual-client (human + AI) contract
+
+4. **Multi-Modal Fusion Research**:
+   - Spatial co-location for cross-modal understanding
+   - Applied to software navigation
+
+K3D's "Software as Space" paradigm builds upon established 3D design practices while introducing novel knowledge organization principles.
+
+---
+
+## 12. References
 
 - **K3D BIM Report**: [`docs/reports/Diverse_AI_Reports.md`](../docs/reports/Diverse_AI_Reports.md)
 - **K3D Architecture (Web 4.0)**: [`docs/K3D_Arch-From_Training_Base_Model_to_Web4.0.md`](../docs/K3D_Arch-From_Training_Base_Model_to_Web4.0.md)

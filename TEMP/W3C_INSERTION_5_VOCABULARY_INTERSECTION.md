@@ -451,6 +451,33 @@ We invite the W3C AI KR Community Group to:
 
 ---
 
+## Attribution & Academic Context
+
+**For complete attributions**, see [ATTRIBUTIONS.md](../ATTRIBUTIONS.md) in the K3D repository.
+
+**Key Credits**:
+
+1. **Multi-Modal Fusion Research**:
+   - Cross-modal alignment techniques (text, image, audio, video)
+   - K3D implements organic spatial co-location for fusion
+   - 98.05% RLWHF accuracy on multi-modal tasks
+
+2. **RDF/OWL Standards** (W3C):
+   - Foundation for semantic metadata
+   - K3D extends with spatial proximity as semantic operator
+
+3. **Qwen-embedding** (Matryoshka):
+   - Variable-dimensionality embeddings
+   - Integrated into K3D vocabulary specifications
+
+4. **Game Industry** (Spatial Techniques):
+   - LOD, FOV, spatial optimization
+   - Applied to knowledge representation
+
+K3D's vocabulary contributions build upon established semantic web standards while introducing spatial and multi-modal extensions.
+
+---
+
 ## Next Steps
 
 After CG review, K3D vocabularies could follow this progression:

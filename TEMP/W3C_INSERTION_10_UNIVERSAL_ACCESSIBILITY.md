@@ -863,6 +863,39 @@ k3d:hapticPattern a owl:DatatypeProperty ;
 
 ---
 
+## Attribution & Academic Context
+
+**For complete attributions**, see [ATTRIBUTIONS.md](../ATTRIBUTIONS.md) in the K3D repository.
+
+**Key Credits**:
+
+1. **Multi-Modal Fusion Research**:
+   - Cross-modal alignment (text, image, audio, haptics)
+   - K3D implements organic spatial co-location for accessibility
+   - 98.05% RLWHF accuracy on multi-modal tasks
+
+2. **W3C WAI (Web Accessibility Initiative)**:
+   - WCAG 2.2 guidelines (ISO/IEC 40500:2025)
+   - ARIA standards for semantic markup
+   - K3D builds upon these with spatial accessibility
+
+3. **Game Industry** (Accessibility):
+   - Audio-only game design principles
+   - Haptic feedback systems
+   - Spatial audio techniques
+
+4. **Unicode Braille Standards**:
+   - Braille pattern encoding
+   - K3D implements GPU-native Braille rendering
+
+5. **WebXR Accessibility**:
+   - VR/AR accessibility guidelines
+   - K3D extends with zero-config multi-modal support
+
+K3D's universal accessibility approach builds upon W3C standards while introducing spatial, multi-modal innovations that make accessibility a first-class architectural property, not an afterthought.
+
+---
+
 ## References
 
 - **W3C WAI**: https://www.w3.org/WAI/
