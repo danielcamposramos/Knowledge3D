@@ -24,6 +24,8 @@ from typing import Dict, List, Any, Optional, Tuple
 import numpy as np
 
 from knowledge3d.cranium.adaptive_rpn_engine import AdaptiveRPNEngine
+from knowledge3d.cranium.tools.ternary_depth import TernaryDepthComputer
+from knowledge3d.cranium.bridges.sovereign_bridges import TernaryPruneDecision
 
 
 class KnowledgeSleepCycle:
@@ -37,7 +39,9 @@ class KnowledgeSleepCycle:
     PHI = 1.618033988749895
 
     def __init__(self, galaxy_stars_path: Path, house_output_path: Path,
-                 rpn_engine: AdaptiveRPNEngine):
+                 rpn_engine: AdaptiveRPNEngine,
+                 depth_computer: Optional[TernaryDepthComputer] = None,
+                 pruner: Optional[TernaryPruneDecision] = None):
         """
         Initialize knowledge sleep cycle.
 
@@ -49,6 +53,8 @@ class KnowledgeSleepCycle:
         self.galaxy_stars_path = Path(galaxy_stars_path)
         self.house_output_path = Path(house_output_path)
         self.rpn_engine = rpn_engine
+        self.depth_computer = depth_computer or TernaryDepthComputer()
+        self.pruner = pruner or TernaryPruneDecision()
 
         self.galaxy_stars: List[Dict[str, Any]] = []
         self.star_embeddings: List[np.ndarray] = []
@@ -59,7 +65,8 @@ class KnowledgeSleepCycle:
             "clusters_created": 0,
             "objects_materialized": 0,
             "trees_generated": 0,
-            "house_zones": 0
+            "house_zones": 0,
+            "stars_pruned": 0
         }
 
     def load_galaxy_stars(self):
@@ -93,47 +100,53 @@ class KnowledgeSleepCycle:
         if not self.star_embeddings:
             return []
 
-        # Handle variable-dimension embeddings (adaptive RPN)
-        # Find maximum dimension
         max_dim = max(len(emb) for emb in self.star_embeddings)
 
-        # Pad all embeddings to max dimension
         padded_embeddings = []
         for emb in self.star_embeddings:
             if len(emb) < max_dim:
-                # Pad with zeros
                 padded = np.zeros(max_dim, dtype=np.float32)
                 padded[:len(emb)] = emb
                 padded_embeddings.append(padded)
             else:
                 padded_embeddings.append(emb)
 
-        # Convert embeddings to numpy array
         embeddings = np.vstack(padded_embeddings)
 
         # Normalize embeddings
         norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
         embeddings_normalized = embeddings / (norms + 1e-8)
 
-        # Compute similarity matrix
-        similarity = embeddings_normalized @ embeddings_normalized.T
+        # Depth-aware filter: drop repelling nodes
+        try:
+            depth_trits = self.depth_computer.compute(
+                embeddings_normalized,
+                embeddings_normalized.mean(axis=0).astype(np.float32),
+            )
+            mask_keep = []
+            for i in range(len(self.galaxy_stars)):
+                word = depth_trits[i >> 4]
+                shift = (i & 0xF) << 1
+                bits = (word >> shift) & 0x3
+                t = 1 if bits == 2 else (0 if bits == 1 else -1)
+                mask_keep.append(t >= 0)
+            mask_keep = np.array(mask_keep, dtype=bool)
+        except Exception:
+            mask_keep = np.ones(len(self.galaxy_stars), dtype=bool)
 
-        # Simple clustering: k-means on similarity space
-        # For now, use random initialization
-        # TODO: Replace with proper RPN-powered clustering
+        filtered_indices = [i for i, keep in enumerate(mask_keep) if keep]
+        filtered_embeddings = embeddings_normalized[filtered_indices]
 
-        cluster_assignments = np.random.randint(0, n_clusters, len(self.galaxy_stars))
-
-        # Group stars by cluster
         clusters = [[] for _ in range(n_clusters)]
-        for idx, cluster_id in enumerate(cluster_assignments):
-            clusters[cluster_id].append(idx)
+        for local_idx, global_idx in enumerate(filtered_indices):
+            bucket = int(abs(filtered_embeddings[local_idx].sum()) * 9973) % n_clusters
+            clusters[bucket].append(global_idx)
 
-        # Filter empty clusters
         clusters = [c for c in clusters if c]
 
         self.metrics["stars_clustered"] = len(self.galaxy_stars)
         self.metrics["clusters_created"] = len(clusters)
+        self.metrics["stars_pruned"] = int(len(self.galaxy_stars) - len(filtered_indices))
 
         print(f"  Created {len(clusters)} clusters from {len(self.galaxy_stars)} stars")
 
@@ -167,8 +180,20 @@ class KnowledgeSleepCycle:
             else:
                 padded_cluster_embeddings.append(emb)
 
-        # Average embedding
-        centroid = np.mean(padded_cluster_embeddings, axis=0)
+        # Prune low-importance members using ternary pruning on norm scores
+        try:
+            norms = np.linalg.norm(padded_cluster_embeddings, axis=1)
+            keep_trits = self.pruner.decide(norms, keep_thresh=float(np.median(norms)), drop_thresh=float(np.percentile(norms, 20)))
+            kept_embeddings = [emb for emb, t in zip(padded_cluster_embeddings, keep_trits) if t >= 0]
+            kept_indices = [idx for idx, t in zip(cluster, keep_trits) if t >= 0]
+        except Exception:
+            kept_embeddings = padded_cluster_embeddings
+            kept_indices = cluster
+
+        if not kept_embeddings:
+            return {}
+
+        centroid = np.mean(kept_embeddings, axis=0)
 
         # Normalize to unit sphere
         norm = np.linalg.norm(centroid)
@@ -180,7 +205,7 @@ class KnowledgeSleepCycle:
         # Collect metadata from stars
         texts = []
         sources = []
-        for idx in cluster:
+        for idx in kept_indices:
             star = self.galaxy_stars[idx]
             metadata = star.get('metadata', {})
             if 'text' in metadata:
@@ -192,8 +217,8 @@ class KnowledgeSleepCycle:
             'id': f'house_obj_{cluster_id}',
             'type': 'knowledge_node',
             'position': position.tolist(),
-            'cluster_size': len(cluster),
-            'star_indices': cluster,
+            'cluster_size': len(kept_indices),
+            'star_indices': kept_indices,
             'centroid_embedding': centroid.tolist(),
             'texts_sample': texts[:5],  # Sample of texts
             'sources': list(set(sources)),  # Unique sources

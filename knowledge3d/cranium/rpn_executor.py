@@ -24,8 +24,8 @@ class RPNExecutor:
     """
 
     # RPN Kernel Constants (from modular_rpn_kernel.ptx)
-    MAX_INSTANCES = 15
-    STACK_DEPTH = 64
+    MAX_INSTANCES = 18  # Tesla 3-6-9: 18/3=6 (ternary resonance)
+    STACK_DEPTH = 69    # Tesla 6-9: literal 6&9, mirror symmetry (Yin-Yang)
     INSTANCE_STRIDE = 1040  # bytes per instance state
 
     def __init__(self, ptx_path: Optional[Path] = None):
