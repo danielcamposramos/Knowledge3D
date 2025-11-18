@@ -287,6 +287,33 @@ All ternary components aligned with Tesla's "key to the universe" framework:
 
 ---
 
+## ✏️ Procedural Vector Drawing & Display Sovereignty (Research Grounded)
+
+**Inspiration**: Building on decades of work in **digital typography**, **vector graphics**, **ASCII art**, **CAD/BIM**, and **open display stacks**:
+- **TrueType fonts (Apple, 1980s–1990s)** — scalable outline fonts using **quadratic Bézier curves** and hinting
+- **ASCII art & terminal culture (1960s→)** — characters as images in low-bandwidth, text-only environments
+- **CorelDRAW-era vector editors (late 1980s/1990s)** — layered Bézier paths and procedural effects
+- **CAD/BIM standards (STEP, IGES, B-Rep, IFC)** — procedural solids and building semantics
+- **Mesa / Wayland / X.Org** — open, inspectable graphics and windowing stacks for pixel pipelines
+
+**What We Reuse Conceptually**:
+- Fonts, vectors, and CAD standards show that **visual structure can be stored as procedures** (outlines, paths, solids), not just pixels.
+- Terminal/ASCII culture proves that **text buffers can be visual media**, ideal for constrained environments.
+- Open display stacks demonstrate that **pixels on a monitor are the end of a procedural chain** of commands and protocols.
+
+**What We Innovate in K3D**:
+- **Procedural Vector Continuum**: One GPU-native pipeline from TTF glyph outlines → Corel/SVG-style vectors → CAD/B-Rep → BIM/IFC-like entities, all compiled into **RPN programs executed on PTX kernels** with ternary (-1/0/+1) routing.
+- **Glyphs as Atomic Programs**: Instead of precomputed glyph bitmaps, K3D treats font outlines as **procedural drawing code**—rendered on-demand via PTX, aligned with our “store how-to-reconstruct, not pixels” philosophy.
+- **ASCII Resonance Engine**: Design of a GPU-native ASCII kernel where character grids are **semantic fields**, ternary masks prune noise, and terminal capabilities (ANSI/sixel) are handled through a sovereign bridge for dashboards and floorplans.
+- **CAD/BIM Specialists**: Conceptual specialists that ingest STEP/B-Rep/IFC-like data as **sovereign binary/text streams**, compile to RPN, and anchor structural elements (walls, rooms, components) as House/Galaxy entities with cost/material reasoning.
+- **Display Turing Test**: Use Mesa-style software rasterization only as **offline ground truth** to validate our own `pixel_genesis` PTX kernels, never as a runtime dependency—keeping the hot path fully sovereign while still benchmarking against a mature open stack.
+
+For detailed partner contributions and PTX-level design, see:  
+- `docs/research/Procedural_Vector_Drawing.md`  
+- `ATTRIBUTIONS.md` §5.3 “Procedural Vector & Display Ecosystem”
+
+---
+
 ## 🌐 W3C AI Knowledge Representation Community Group Contribution (November 2025)
 
 **Major Achievement**: K3D formally contributing to W3C AI KR standards development for TPAC 2025!
