@@ -48,7 +48,7 @@ class ModularRPNEngine:
         print(result)  # 25.0
     """
 
-    _INSTANCE_COUNT = 15
+    _INSTANCE_COUNT = 18  # Tesla 3-6-9: 18/3=6 (ternary resonance)
     _STACK_MAX = 64
 
     OP_LITERAL = 0
@@ -87,6 +87,14 @@ class ModularRPNEngine:
         "scale": 71,
         "translate": 72,
         "ifelse": 80,
+        "tadd": 112,
+        "tmul": 113,
+        "tnot": 114,
+        "tcomp": 115,
+        "tquant": 116,
+        "tpack": 117,
+        "tunpack": 118,
+        "tfuse": 83,
     }
 
     CONSTANTS: Dict[str, float] = {
@@ -102,7 +110,7 @@ class ModularRPNEngine:
         """Initialize RPN engine with sovereign PTX backend.
 
         Args:
-            max_instances: Maximum parallel instances (default 15)
+            max_instances: Maximum parallel instances (default 18, Tesla 3-6-9 resonance)
         """
         if max_instances > self._INSTANCE_COUNT:
             raise ValueError(f"Maximum supported instances is {self._INSTANCE_COUNT}")
@@ -241,13 +249,13 @@ class ModularRPNEngine:
     def evaluate_batch(
         self,
         expressions: List[str],
-        max_parallel: int = 15
+        max_parallel: int = 18  # Tesla 3-6-9 resonance
     ) -> np.ndarray:
         """Evaluate multiple RPN expressions in parallel.
 
         Args:
             expressions: List of RPN expression strings
-            max_parallel: Maximum parallel instances (default 15)
+            max_parallel: Maximum parallel instances (default 18, Tesla 3-6-9 resonance)
 
         Returns:
             NumPy array of results
