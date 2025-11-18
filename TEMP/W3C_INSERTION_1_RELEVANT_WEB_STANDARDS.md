@@ -124,6 +124,26 @@ PTX Kernels (AI Processing)
 
 ---
 
+## Attribution & Academic Context
+
+K3D builds upon foundational research and industry best practices across multiple domains. For detailed attributions of all techniques, methodologies, and research that K3D leverages, please see:
+
+**[ATTRIBUTIONS.md](../ATTRIBUTIONS.md)** in the K3D repository
+
+Key areas of credit:
+- **DeepSeek-OCR**: Visual compression techniques (dual-texture rendering)
+- **Qwen-embedding**: Matryoshka representation learning
+- **AI-RLWHF**: Training methodology for spatial reasoning
+- **ARC-AGI**: Benchmark framework for evaluation
+- **Game Industry**: LOD, FOV, spatial optimization techniques
+- **NVIDIA CUDA/PTX**: Platform for sovereign GPU computing
+- **Multi-Modal Research**: Cross-modal fusion techniques
+- **RPN**: Neural engine architecture concepts
+
+K3D's novel contributions build upon these foundations while clearly documenting our transformations and extensions.
+
+---
+
 **Contact**: Daniel Campos Ramos, K3D Architect
 **Repository**: https://github.com/danielcamposramos/Knowledge3D
 **License**: Apache 2.0 (code), CC-BY-4.0 (documentation)

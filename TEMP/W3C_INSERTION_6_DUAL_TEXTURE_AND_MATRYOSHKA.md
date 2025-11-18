@@ -525,6 +525,8 @@ k3d:taskAdaptive a owl:DatatypeProperty ;
 
 ## 6. Attribution & Academic Context
 
+**For complete attributions**, see [ATTRIBUTIONS.md](../ATTRIBUTIONS.md) in the K3D repository.
+
 ### 6.1 DeepSeek OCR Research
 
 **Original Work**: DeepSeek AI Team

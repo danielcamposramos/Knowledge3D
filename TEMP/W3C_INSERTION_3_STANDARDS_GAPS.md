@@ -228,6 +228,30 @@ Implements **Sovereign NSI Architecture**:
 
 ---
 
+## Attribution & Academic Context
+
+**For complete attributions**, see [ATTRIBUTIONS.md](../ATTRIBUTIONS.md) in the K3D repository.
+
+**Key Credits**:
+
+1. **NVIDIA CUDA/PTX Platform**:
+   - Foundation for sovereign GPU computing
+   - K3D implements 45+ hand-written PTX kernels
+   - Sub-100µs latency for all operations
+
+2. **RPN (Reverse Polish Notation)**:
+   - Neural engine architecture concept
+   - K3D uses RPN for traceable, verifiable reasoning
+   - Every operation is auditable
+
+3. **Game Industry** (Memory Management):
+   - SleepTime protocol inspired by game engine state management
+   - Consolidation techniques adapted from LOD systems
+
+K3D's standardization proposals build upon these established foundations while addressing gaps unique to spatial KR systems.
+
+---
+
 ## Call for Community Engagement
 
 The W3C AI KR Community Group has a unique opportunity to lead standardization for spatial, multi-modal, neurosymbolic AI. We invite members to:

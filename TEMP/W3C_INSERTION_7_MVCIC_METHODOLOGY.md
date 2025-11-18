@@ -89,4 +89,28 @@ MVCIC ensures **every conversational step** is observable, authored by named par
 
 ---
 
-**Conclusion**: MVCIC is the missing human-in-loop pattern that merges W3C’s transparency goals with modern AI dev workflows. By latter embedding collaboration inside K3D’s spatial memory (House/Galaxy), every AI contribution will become a navigable, inspectable artifact—ready for standardization.
+## Attribution & Academic Context
+
+**For complete attributions**, see [ATTRIBUTIONS.md](../ATTRIBUTIONS.md) in the K3D repository.
+
+**Key Credits**:
+
+1. **AI-RLWHF Methodology**:
+   - Reinforcement Learning with Human Feedback adapted for spatial reasoning
+   - K3D applies this to navigation training (9,777/10,000 samples, 97.8% complete)
+   - Human orchestrator (Daniel) provides direct feedback on AI contributions
+
+2. **Multi-Vibe Code In Chain** (MVCIC):
+   - Novel contribution by K3D project
+   - Zero-API browser-based collaboration workflow
+   - Human-in-the-loop mediation with heterogeneous AI partners (Codex, Claude, Grok, GLM, Kimi, DeepSeek, Qwen)
+
+3. **Git-Based Provenance**:
+   - Standard version control for transparent audit trails
+   - Every contribution tracked with author, timestamp, and commit hash
+
+K3D's MVCIC methodology demonstrates how human orchestration enables coherent multi-AI collaboration while maintaining W3C transparency standards.
+
+---
+
+**Conclusion**: MVCIC is the missing human-in-loop pattern that merges W3C's transparency goals with modern AI dev workflows. By latter embedding collaboration inside K3D's spatial memory (House/Galaxy), every AI contribution will become a navigable, inspectable artifact—ready for standardization.
