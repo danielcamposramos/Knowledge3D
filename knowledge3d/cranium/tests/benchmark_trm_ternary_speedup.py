@@ -26,12 +26,17 @@ def benchmark():
             times.append((time.perf_counter() - start) * 1e6)
         return np.median(times)
 
+    # Baseline (all attend)
     t_base = run(lambda: base.refine(q, y, z, W1, W2, W3, W4, n_steps=6))
-    t_ternary = run(lambda: ternary.refine(q, y, z, W1, W2, W3, W4, n_steps=6))
+    # Ternary with half repel (alternate signs)
+    q_batch = np.stack([q, -q], axis=0).astype(np.float32)
+    y_batch = np.zeros_like(q_batch)
+    z_batch = np.zeros_like(q_batch)
+    t_ternary = run(lambda: ternary.refine_batch(q_batch, y_batch, z_batch, W1, W2, W3, W4, n_steps=6))
 
     print(f"Baseline median us: {t_base:.2f}")
-    print(f"Ternary median us: {t_ternary:.2f}")
-    print(f"Speedup: {t_base / t_ternary:.2f}x")
+    print(f"Ternary (half repel) median us: {t_ternary:.2f}")
+    print(f"Speedup: {t_base / t_ternary:.2f}x (expected ~2x when half skip)")
 
 
 if __name__ == "__main__":

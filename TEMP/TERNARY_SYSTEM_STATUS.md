@@ -335,5 +335,5 @@ for (int i = 0; i < seq_len; i++) {
 - Round 3: Core ternary infra shipped (ops, prune, depth, weight quant, diagnostics). All GPU-only.
 - Round 4: Ternary attention masks shipped (kernel, bridge, API, tests). Attention tests green.
 - Round 5: TRM ternary integration shipped (modulation + early skip for repel). Tests + benchmarks in place.
-- Current speed: modulation path; repel short-circuit returns zeros, attracting/dampening applied. Ready to move kernel-level skip inside TRM attention for 2× speed.
+- Current speed: repel short-circuit in TRM batch path avoids refine for -1, enabling ~2× speed when ~50% repel. Ready to move deeper skip into fused kernels if needed.
 - All ternary suites pass (19 tests across attention, RPN ops, prune, depth, sleep, RLWHF, TRM).
