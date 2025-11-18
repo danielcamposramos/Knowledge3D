@@ -1010,7 +1010,7 @@ class ModularRPNEngine:
         # result = 5.0
     """
 
-    MAX_INSTANCES = 15
+    MAX_INSTANCES = 18  # Tesla 3-6-9: 18/3=6 (ternary resonance)
     STACK_DEPTH = 64
     INSTANCE_STRIDE = 1040  # bytes per instance state
 
@@ -1021,7 +1021,7 @@ class ModularRPNEngine:
 
         self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
 
-        # Allocate persistent state buffer (15 instances × 1040 bytes)
+        # Allocate persistent state buffer (18 instances × 1040 bytes, Tesla 3-6-9 resonance)
         self.d_state = gpu_malloc(self.MAX_INSTANCES * self.INSTANCE_STRIDE)
 
         # Zero-initialize state buffer
@@ -1778,4 +1778,49 @@ class TernaryDepthField:
         finally:
             gpu_free(d_emb)
             gpu_free(d_query)
+            gpu_free(d_out)
+
+
+class TernaryPruneDecision:
+    """Map scores to ternary keep/discard signals on GPU."""
+
+    def __init__(self):
+        ptx_path = KERNELS_DIR / "ternary_prune_decision.ptx"
+        self.kernel = load_ptx_file(str(ptx_path), "ternary_prune_decision")
+        self.guard = LatencyGuard(threshold_us=500.0)
+
+    def decide(
+        self,
+        scores: np.ndarray,
+        keep_thresh: float = 0.5,
+        drop_thresh: float = 0.05,
+    ) -> np.ndarray:
+        scores_np = np.ascontiguousarray(scores, dtype=np.float32)
+        n = int(scores_np.shape[0])
+        out = np.zeros(n, dtype=np.int8)
+        d_scores = gpu_malloc(scores_np.nbytes)
+        d_out = gpu_malloc(out.nbytes)
+        try:
+            memcpy_htod(d_scores, scores_np.ctypes.data_as(ctypes.c_void_p), scores_np.nbytes)
+            self.guard.start()
+            threads = 256
+            blocks = (n + threads - 1) // threads
+            launch(
+                self.kernel,
+                grid=(blocks, 1, 1),
+                block=(threads, 1, 1),
+                params=[
+                    ctypes.c_uint64(d_scores.value),
+                    ctypes.c_uint64(d_out.value),
+                    ctypes.c_int32(n),
+                    ctypes.c_float(float(keep_thresh)),
+                    ctypes.c_float(float(drop_thresh)),
+                ],
+            )
+            synchronize()
+            self.guard.stop()
+            memcpy_dtoh(out.ctypes.data_as(ctypes.c_void_p), d_out, out.nbytes)
+            return out
+        finally:
+            gpu_free(d_scores)
             gpu_free(d_out)
