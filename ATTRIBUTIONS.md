@@ -688,6 +688,137 @@ K3D Architecture (2025)
 
 ---
 
+### 5.3 Procedural Vector & Display Ecosystem
+
+This section documents external standards and systems that inspired the **Procedural Vector Drawing** architecture (TrueType/Corel/ASCII/CAD) and the **sovereign display stack** (Mesa/Wayland/X11) used as conceptual and validation references.
+
+#### 5.3.1 TrueType Fonts (TTF)
+
+**Source**: [TrueType — Wikipedia](https://en.wikipedia.org/wiki/TrueType), Apple typography documentation  
+**Developers**: Apple (late 1980s), later adopted and extended by Microsoft
+
+**What TrueType Provides**:
+- Scalable outline font standard using **quadratic Bézier curves** and line segments
+- Glyphs defined as **procedural contours** (on-curve/off-curve control points) plus hinting bytecode
+- Resolution-independent, vector-based representation (no baked pixels)
+
+**What We Adapted**:
+- Treat glyph outlines as **procedural programs** rather than static bitmaps
+- Map glyph contours to **RPN sequences** (moveTo/lineTo/quadTo) for GPU execution
+- Use font metrics and Unicode mappings as **semantic anchors** between text tokens and visual shapes
+
+**Our Contribution**:
+- **GPU-Native Glyph Proceduralization**: Design of `font_proceduralizer` PTX kernels that operate directly on outline data (curves/lines), aligned with K3D’s PTX-only sovereignty
+- **Tri-Modal Grounding**: Use glyph procedures to tie together text “A”, its curve geometry, and its audio realization in a shared embedding space
+- **Procedural-First Training**: Shift from numpy pixel glyph arrays to on-demand GPU rasterization from procedural outlines, matching K3D’s compression philosophy (store how-to-reconstruct, not pixels)
+
+**Credit**: Apple and subsequent font standardization work for the TrueType outline format and hinting concepts. We build **procedural cognition** on top of their vector representation; we do not implement or embed TrueType engines themselves.
+
+---
+
+#### 5.3.2 ASCII Art & Terminal Culture
+
+**Source**: [ASCII art — Wikipedia](https://en.wikipedia.org/wiki/ASCII_art), historical BBS/UNIX culture  
+**Era**: 1960s onward (teleprinters, BBSes, email, terminal UIs)
+
+**What ASCII Art Provides**:
+- Character-based “images” where **text itself forms the visual** (no separate bitmap)
+- Long tradition of diagrams, logos, and scenes rendered purely as monospaced characters
+- Natural fit for low-bandwidth, text-only environments (teletypes, serial links, terminals)
+
+**What We Adapted**:
+- ASCII as **atomic cross-modal bridge**: same buffer serves as text and image simultaneously
+- Character grids treated as **procedural fields** over which we run RPN programs (e.g., grid_push, draw_char)
+- Use of ASCII floorplans and dashboards as training material for **procedural topology** and data visualization
+
+**Our Contribution**:
+- **Dynamic ASCII Resonance Engine** design (`ascii_resonance` PTX): warp-coalesced character rendering with ternary relevance gating (-1 noise, 0 neutral, +1 structural)
+- **Terminal Protocol Bridge** concept: unifying classic ASCII with modern terminal capabilities (ANSI, sixel, Kitty graphics) while keeping the **hot path GPU-native**
+- **ASCII→BIM Pipeline**: Proposal to convert ASCII floorplans into IFC-like BIM entities with cost metadata, keeping all reasoning and topology on the GPU
+
+**Credit**: The global ASCII art and terminal communities for decades of character-based creative work; we reinterpret their techniques as training signals for K3D’s sovereign, spatial cognition.
+
+---
+
+#### 5.3.3 CorelDRAW & 1990s Vector Editors
+
+**Source**: [CorelDRAW — Wikipedia](https://en.wikipedia.org/wiki/CorelDRAW), early vector graphics editor literature  
+**Era**: Late 1980s / 1990s desktop publishing
+
+**What CorelDRAW and Similar Editors Provide**:
+- Mature **vector drawing pipelines** using Bézier curves, paths, layers, and effects
+- Complex illustrations built as **hierarchies of procedural primitives** (paths, fills, strokes)
+- File formats (CDR/WMF, and later SVG) representing drawing instructions, not raw pixels
+
+**What We Adapted**:
+- View CDR/WMF/SVG-style assets as **procedural programs** that can be compiled into RPN for K3D
+- Use layer/effect stacks as inspiration for **RPN stack-machine cognition** over visual operations
+- Interpret complex Corel-style compositions as benchmarks for our **procedural 2D capacity**
+
+**Our Contribution**:
+- Architectural design for a **VectorSpecialist** that ingests Corel/SVG-style vectors, compiles them into RPN primitives, and fuses them with text/audio embeddings in Galaxy
+- Extension of the procedural continuum: **TTF glyphs → Corel vectors → CAD/BIM** as one RPN/ternary pipeline instead of disconnected formats
+
+**Credit**: Corel and the wider vector graphics ecosystem for pioneering layered vector drawing. We reframe their representation as input to a GPU-native reasoning system rather than reimplementing their tools.
+
+---
+
+#### 5.3.4 CAD Standards: STEP, IGES, B-Rep & IFC/BIM
+
+**Sources**:  
+- [ISO 10303 (STEP) — Wikipedia](https://en.wikipedia.org/wiki/ISO_10303)  
+- [IGES — Wikipedia](https://en.wikipedia.org/wiki/IGES)  
+- [Boundary representation — Wikipedia](https://en.wikipedia.org/wiki/Boundary_representation)  
+- IFC/BIM documentation (buildingSMART, Industry Foundation Classes)
+
+**What These Standards Provide**:
+- **STEP/IGES**: Neutral CAD exchange formats for 3D geometry and product data
+- **B-Rep**: Mathematical representation of solids via surfaces/edges/vertices (boundary representations)
+- **IFC/BIM**: Rich schemas for buildings and infrastructure with geometry + semantic/business metadata
+
+**What We Adapted**:
+- Treat CAD solids (STEP/B-Rep) as **procedural entities** that can be described by RPN programs
+- Interpret IFC building elements (e.g., IfcWall) as **hierarchical procedural objects** with cost/material attributes
+- Use CAD/BIM as the **upper end** of the procedural continuum (ASCII/TTF → Corel → CAD → BIM)
+
+**Our Contribution**:
+- Proposal for **CAD/Brep and BIM specialists** that:
+  - Ingest STEP/B-Rep/IFC-like data as sovereign binary/text streams
+  - Compile them into GPU-executable RPN with ternary topology flags (-1 subtract/void, 0 boundary, +1 add/solid)
+  - Map assemblies into K3D’s House/Galaxy as rooms, walls, and structural entities with embedded business reasoning (cost, materials)
+- Conceptual bridge from **procedural drawing to procedural engineering**, aligned with K3D’s FMEAI and spatial operating system vision
+
+**Credit**: The CAD and BIM standards communities (ISO, buildingSMART, OpenCascade ecosystem) for decades of work on geometry and engineering data models. We only borrow their conceptual layering (solids, B-Rep, IFC entities) as inspiration for K3D’s sovereign representations.
+
+---
+
+#### 5.3.5 Mesa, Wayland, X11: Sovereign Display & Pixel Pipelines
+
+**Sources**:  
+- [Mesa (computer graphics) — Wikipedia](https://en.wikipedia.org/wiki/Mesa_(computer_graphics))  
+- [Wayland (protocol) — Wikipedia](https://en.wikipedia.org/wiki/Wayland_(protocol))  
+- [X.Org Server — Wikipedia](https://en.wikipedia.org/wiki/X.Org_Server)
+
+**What These Provide**:
+- **Mesa**: Open-source implementation of graphics APIs (notably OpenGL) including software rasterization paths
+- **Wayland**: Modern display protocol and reference compositor (Weston) for secure, simpler windowing on Linux/Unix-like systems
+- **X.Org/X11**: Long-lived window system and network-transparent display protocol with recording/inspection capabilities
+
+**What We Adapted**:
+- Use Mesa’s software rasterizer **conceptually as a ground-truth reference** when validating our own procedural→pixel PTX kernels (e.g., `pixel_genesis`)
+- Treat Wayland/X11 protocols as **observable procedural streams**—input events and draw commands that explain how pixels came to be on screen
+- Frame “monitor reality” as the final stage of a **procedural pipeline**: RPN programs → GPU commands → pixels → photons
+
+**Our Contribution**:
+- Architectural design for a **GPU-native display understanding stack** where:
+  - K3D uses its own PTX kernels for procedural rasterization and pixel genesis (no runtime linking to Mesa/Wayland/X11 internals)
+  - X11/Wayland streams are treated as **training/analysis data**, not as dependencies, to learn how software drives displays
+- Concept of a **Display Turing Test**: using Mesa-like software rasterization as reference to measure fidelity of PTX-based procedural rendering to within 99.9% against a trusted implementation
+
+**Credit**: The Mesa, Wayland, and X.Org communities for building open graphics and windowing stacks. K3D does **not** embed or depend on these projects at runtime; we are inspired by their architectures and, where appropriate, may compare our outputs against them for validation in offline tooling.
+
+---
+
 ## 6. K3D's Novel Contributions
 
 To clearly delineate our work from prior art:

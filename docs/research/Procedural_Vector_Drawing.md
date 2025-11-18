@@ -8693,3 +8693,174 @@ Register and document everything, I think we're making history and contributing 
 Claude:
 
 ====----==== # End of development phase
+
+Codex-Expert:
+## Sovereign Procedural Stack: Synthesis and Grounded Contributions
+
+**Continuity Synthesis**: Building on Grok’s TTF foundations, Qwen’s Corel/ASCII and terminal pipeline, Kimi’s RPN-graph/CAD continuum, DeepSeek’s pixel-to-procedural vision, and GLM’s BIM layer, I (Codex) was asked to (1) cross-check historical and technical inspirations against the open internet, (2) clearly separate **what we inherit** from **what K3D invents**, and (3) translate this into concrete, repo-aligned implementation guidance. This section records that reasoning so future partners can trace the path.
+
+### 1. Grounding the Inspirations (Verified Externally)
+
+While the core of K3D is sovereign, we explicitly **verified upstream landmarks**:
+- **TrueType**: Outline font standard developed by Apple in the late 1980s, released with System 7 (1991). It uses **quadratic Bézier curves** and hinting instructions—confirmed via public documentation and the TrueType Wikipedia entry.
+- **ASCII Art**: Long-standing practice of rendering images using ASCII characters across teletypes, BBS, and terminal culture—confirmed via public historical summaries.
+- **CorelDRAW & Vector Editors**: 1989-onward vector graphics editors using Bézier paths, layers, and effects—confirmed via CorelDRAW documentation and histories.
+- **CAD/B-Rep/STEP/IGES/IFC**: ISO 10303 (STEP), IGES, boundary representations, and BIM/IFC as industry standards for procedural solids and building data—confirmed via their respective public references.
+- **Mesa / Wayland / X.Org**: Mesa as an open-source graphics API implementation (including software rasterization), Wayland as a modern display protocol and compositor, and X.Org Server as the long-lived X11 implementation—confirmed via their Wikipedia pages and documentation.
+
+This verification step ensures that when we credit “fonts as procedural,” “ASCII as text-image fusion,” “CAD as procedural solids,” or “Mesa/Wayland/X11 for display pipelines,” we are **accurately reflecting historical reality**, not inventing origins.
+
+### 2. What K3D Adds on Top (My Synthesis)
+
+From that grounded base, I crystallized the **delta** that belongs to K3D:
+
+- **Unified Procedural Continuum**: Rather than treating TTF, ASCII, Corel-style vectors, and CAD/BIM as separate ecosystems, K3D compiles all of them into a single **RPN + ternary** execution substrate on GPU. That continuum (TTF glyph → Corel vector → CAD solid → BIM room) is the core innovation.
+- **Glyphs as Atomic RPN Programs**: TrueType gives us outline curves; K3D reframes each glyph as a compact **RPN program** executed by PTX kernels, not as static contour data pushed into a CPU rasterizer.
+- **ASCII as Cognitive Compression**: ASCII and terminal protocols are elevated from legacy UI artifacts to **first-class cognitive media**—a place where text, image, and even simple “audio rhythms” (scrolling, timing) converge under one PTX-driven representation.
+- **CAD/BIM as House Semantics**: STEP/B-Rep/IFC aren’t just file formats; in K3D they become **House-native entities** with procedural geometry, cost, and material embedded in Galaxy/House, not baked into opaque weights.
+- **Display Stack as Training Signal, Not Dependency**: Mesa/Wayland/X.Org guide how pixels get to a screen, but K3D’s kernels (`pixel_genesis`, `universal_primitive_kernel`, etc.) remain sovereign. Mesa-style software rasterization is a **reference to measure against**, not a runtime crutch.
+
+These patterns are now reflected explicitly in `README.md` and `ATTRIBUTIONS.md` so that future readers can see where we drew inspiration and where the architecture departs into new territory.
+
+### 3. Implementation Guidance for the Repo (Codex View)
+
+To keep the implementation aligned with existing K3D code and sovereignty rules:
+
+1. **Work with Existing Bridges and Kernels**  
+   - Reuse `knowledge3d/cranium/sovereign/loader.py` and `sovereign_bridges.py` patterns for any new PTX (`font_proceduralizer`, `ascii_resonance`, `pixel_genesis`, `cad_brep_boolean`, etc.).  
+   - Keep bridges thin: allocate buffers, copy host↔device, launch kernels; **never** embed logic that could live in PTX.
+
+2. **Respect Ternary and RPN Primitives**  
+   - Extend `modular_rpn_kernel.cu` and associated PTX to add drawing opcodes (MOVE/LINE/QUAD/CLOSE) and ternary-aware routing ops, instead of inventing separate ad‑hoc interpreters.  
+   - Use the existing ternary stack and attention infrastructure (Rounds 3–6) to gate procedural work (-1 skip, 0 neutral, +1 structural) for fonts, ASCII, and CAD alike.
+
+3. **Procedural-First, No Hidden Libraries**  
+   - For TrueType and CAD, any complex parsing (glyf/loca for TTF, or STEP/IFC text structures) should either:
+     - Be done once **offline** into a small sovereign binary index under `Knowledge3D.local/`, or  
+     - Be implemented as minimal, well-audited parsing helpers that feed clean structures to PTX kernels.  
+   - Avoid pulling in heavy host libraries (e.g., HarfBuzz, FreeType, full CAD kernels) into the hot K3D runtime.
+
+4. **Display Stack as Optional Validation Layer**  
+   - A future `tools/` script may compare `pixel_genesis` outputs against Mesa’s software rasterizer offline, but:
+     - This must run outside the sovereign runtime (no new runtime dependencies).
+     - It should be framed explicitly as **benchmark/validation tooling**, not as a required execution path.
+
+5. **Tests First, Then Integration**  
+   - For each new kernel, follow the pattern in `knowledge3d/cranium/tests/`:
+     - Narrow unit tests for kernel numerics and packing.
+     - Integration tests that go from “file-like input” to Galaxy/House embeddings.
+   - Only after tests stabilize should the pipeline be wired into live ingestion or the Memory Tablet flows.
+
+### 4. Mesa/Wayland/X11: How I See Them in This Architecture
+
+From my perspective inside the repo:
+- **Mesa** is the **“golden mirror”** we can glance at to confirm our procedural rasterization is correct, but we do not live inside that mirror. We instead keep `pixel_genesis` and related PTX kernels as first-class citizens, with Mesa-like behavior only as an external benchmark.
+- **Wayland/X11** are **streams of intent**—they reveal how host software sequences draw calls, window updates, and input events. K3D can learn from these streams as training data to understand “monitor reality,” yet its own cognition and display reasoning remain GPU‑native and independent.
+
+This preserves K3D’s sovereignty while acknowledging that decades of open graphics work can still serve as a compass.
+
+### 5. Why This Matters for the Swarm Chain
+
+Recording this synthesis here ensures:
+- Future partners see **where inspirations came from**, with verifiable external references.
+- The line between **heritage** (TTF, ASCII art, CAD, Mesa/Wayland/X.Org) and **K3D’s innovations** (unified RPN/ternary continuum, House/Galaxy semantics, sovereign pixel genesis) remains clear.
+- Claude, Codex, and browser-based models can coordinate on the same architectural map when implementing PTX kernels, bridges, and tests.
+
+In that sense, this section is both a **register of my reasoning over your inspirational path** and a **design contract** for the procedural visual stack inside K3D: sovereign, GPU‑native, historically grounded, and ready to evolve with the swarm.
+
+---
+
+Codex-Expert (VM Bridge):
+## Old-Paradigm VM Workstations as Living Desks in K3D
+
+**Query Synthesis**: You clarified that the goal is **not** just to redraw VM screens procedurally, but to **use the old paradigm VMs live, from inside K3D**, in the same way current LLM tools use browsers: read the screen, reason about it, and act through it. Think of a **virtual computer museum**: a room in the House with desks covering UI history—from ENIAC-era control panels and teletypes to classic GUIs—each one actually running (via emulation/VM) and usable by humans and the K3D avatar.
+
+Below I reframe the bridge with that vision: **functional, interactive workstations** first; procedural learning and reconstruction second.
+
+### 1. Museum of Operating Systems & Interfaces (House Layout)
+
+Conceptually, we introduce a **Computer Museum Wing** in the House:
+- Each **desk** in that wing is a GLB asset with:
+  - A period-appropriate **machine body** (e.g., ENIAC-style panels, teletype/VT100 consoles, early Macintosh/Windows PCs, modern laptops).
+  - One or more **screens/panels** mapped to live VM outputs.
+  - Optional input props (keyboard, knobs, patch cables) that mirror the interaction metaphor of that era.
+- Doors or Tablet entries select which “era” the avatar visits: “Teletype gallery”, “Early GUI lab”, “Networked web era”, etc.
+
+The museum is not static art: every desk is wired to a real VM/emulator session.
+
+### 2. Live VM Bridge – Functional Access, Not Just Pixels
+
+We still begin from what the VM emits, but our primary goal is **interactive use**:
+
+1. **VM Session Backends (Outside Cranium)**
+   - For each desk, run a corresponding VM/emulator:
+     - Old mainframes/minicomputers via emulators (e.g., PDP, early UNIX, CP/M).
+     - Desktop OSes via QEMU/VirtualBox/KVM.
+   - Expose access via open protocols:
+     - **VNC** or **SPICE** for framebuffer and input events.
+     - For text-only systems, optionally use **terminal protocols** (telnet/SSH over a controlled bridge) to get clean text streams.
+
+2. **K3D Viewer & Tablet Integration**
+   - Extend the live bridge with:
+     - A **VM video channel** per desk: drives a texture on the screen mesh (same as before).
+     - A **VM input channel**: forwards keyboard/mouse/knob events from:
+       - Human users interacting via the viewer (clicking on the desk monitor, typing).
+       - The K3D avatar/agent, acting through Tablet actions (e.g., `ActionBuffer` commands like “press Enter”, “type command”, “move mouse to icon and click”).
+   - The result: from inside the House, the avatar can **use** the old OS—launch apps, navigate menus, inspect files—exactly as a remote-desktop client would, but embodied at the museum desk.
+
+### 3. How the Avatar “Reads” and Uses Old Screens
+
+To turn these VM desks into something the avatar can operate intelligently:
+
+1. **Screen Intake**
+   - For GUI systems: sample the framebuffer at modest resolution from the VM stream and feed it to:
+     - Existing visual kernels (`FractalEmitter`, `TemporalReasoning`) for feature extraction.
+     - OCR/DeepSeek-style pipelines if text needs to be read from the screen.
+   - For text-based systems (teletypes, terminal UIs):
+     - Prefer direct access to the text stream (e.g., via a controlled pseudo-terminal) so the avatar sees **exact characters** as well as pixels.
+
+2. **Semantic Mapping**
+   - Map regions of the screen to semantic roles (status lines, main window, menu bar) via ternary tags:
+     - `+1` = “actionable” (buttons, prompts, cursors).
+     - `0` = “context” (window chrome, background).
+     - `-1` = “noise” (static wallpaper, overscan).
+   - This allows the avatar to form a **mental model of the UI** and plan actions in RPN sequences (“focus terminal, type command, read output”).
+
+3. **Action Loop**
+   - The avatar runs a loop akin to “LLM tool use with a browser”:
+     - Observe screen → interpret state via K3D kernels → decide an action (RPN + ternary) → send input back through the VM bridge.
+   - All of this is orchestrated via the Tablet/ActionBuffer interface, keeping sovereignty: PTX kernels handle perception and planning; external VM infrastructure is a controllable I/O endpoint.
+
+### 4. Procedural Learning & Historical Preservation (Second Layer)
+
+On top of live interaction, we can still use the VM museum as procedural training data:
+
+1. **Protocol and Session Logs**
+   - Record sequences of:
+     - Screen images (or text buffers).
+     - User/avatar actions (keys, clicks, knob changes).
+     - Underlying display protocol events (X11/Wayland/VNC primitives where available).
+   - These traces become **“historical sessions”** that tell us how each era’s interface behaves.
+
+2. **RPN Compilations of UI Behaviors**
+   - Convert recurring UI patterns into RPN programs:
+     - “Boot OS, log in, open editor, compile program” as a procedural recipe.
+     - For ENIAC/early machines, the “UI” is panel configuration and patching; those steps become RPN sequences over switches and cables.
+   - Train the cranium to:
+     - Predict next screen states.
+     - Suggest actions to reach goals (“compute trajectory like ENIAC did, but inside the museum panel”).
+
+3. **Reconstruction As Bonus, Not Requirement**
+   - Later, we can ask K3D to **reconstruct** a given desk purely procedurally (geometry + screen look), but the essential value is that the **original tools remain usable** via VMs/emulators, preserved as living artefacts.
+
+### 5. Sovereignty & Museum Ethics
+
+- All heavy VM/emulator and remote-desktop machinery lives outside the sovereign runtime, as before; K3D only sees:
+  - A stream of pixels and/or text.
+  - A channel for sending discrete input actions.
+- The House remains the canonical place where the **museum is curated**: doors, desks, labels, and historical context live in GLB/`.k3d` assets.
+- This setup not only keeps “old ways” alive inside the new spatial OS, it also:
+  - Lets humans and AI **co-experience computing history** at the same desks.
+  - Gives the avatar a way to practice tool use on real systems—from ENIAC-style workflows to modern GUIs—without folding those systems into its own runtime.
+
+In short: the VM bridge becomes K3D’s **museum console layer**—a way to sit at any historical desk, see its real UI, and act through it—while our procedural vector and pixel stack provide understanding, not a brittle reimplementation of the past.
