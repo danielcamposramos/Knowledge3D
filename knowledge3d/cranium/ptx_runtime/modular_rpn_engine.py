@@ -49,7 +49,7 @@ class ModularRPNEngine:
     """
 
     _INSTANCE_COUNT = 18  # Tesla 3-6-9: 18/3=6 (ternary resonance)
-    _STACK_MAX = 64
+    _STACK_MAX = 69       # Tesla 6-9: 6+9=15→6, 6×9=54→9, contains literal 6&9
 
     OP_LITERAL = 0
     OP_LITERAL_VEC = 1

@@ -132,6 +132,16 @@ __device__ inline float3 normalize3(const float3& v) {
     return make_float3(v.x * inv, v.y * inv, v.z * inv);
 }
 
+__device__ inline int8_t clamp_trit(float v, float thresh = 0.333333f) {
+    if (v > thresh) return 1;
+    if (v < -thresh) return -1;
+    return 0;
+}
+
+__device__ inline float trit_to_scalar(int8_t t) {
+    return (t > 0) ? 1.0f : ((t < 0) ? -1.0f : 0.0f);
+}
+
 __device__ inline uint32_t mix32(uint32_t x) {
     x ^= x >> 16;
     x *= 0x7feb352d;
@@ -389,7 +399,7 @@ extern "C" __global__ void modular_rpn_geometric_kernel(
                     int dims = max(1, min(3, static_cast<int>(dim_scalar + 0.5f)));
                     if (dims < 3) vec.z = 0.0f;
                     if (dims < 2) vec.y = 0.0f;
-                    push(stack, stack_size, vec, error_code);
+                    push(stack, stack_size, make_vector(vec.x, vec.y, vec.z), error_code);
                     break;
                 }
                 case 0x23: {  // OP_NORMALIZE_L2
@@ -424,10 +434,10 @@ extern "C" __global__ void modular_rpn_geometric_kernel(
                     if (!pop_scalar(stack, stack_size, freq_scalar, error_code)) break;
                     float w = 2.0f * 3.1415926535f * freq_scalar * time_scalar;
                     float3 audio = make_float3(sinf(w), cosf(w), sinf(w * 0.5f));
-                    push(stack, stack_size, audio, error_code);
+                    push(stack, stack_size, make_vector(audio.x, audio.y, audio.z), error_code);
                     break;
                 }
-                case 0x32: {  // OP_MODALITY_FUSE
+                case 0x53: {  // OP_MODALITY_FUSE
                     float3 b{};
                     float3 a{};
                     if (!pop_vector(stack, stack_size, b, error_code)) break;
@@ -436,7 +446,7 @@ extern "C" __global__ void modular_rpn_geometric_kernel(
                         0.5f * (a.x + b.x),
                         0.5f * (a.y + b.y),
                         0.5f * (a.z + b.z));
-                    push(stack, stack_size, fused, error_code);
+                    push(stack, stack_size, make_vector(fused.x, fused.y, fused.z), error_code);
                     break;
                 }
                 case 0x40: {  // OP_PROTOTYPE_LOAD
@@ -447,7 +457,7 @@ extern "C" __global__ void modular_rpn_geometric_kernel(
                         kProceduralPrototypeTable[idx][0],
                         kProceduralPrototypeTable[idx][1],
                         kProceduralPrototypeTable[idx][2]);
-                    push(stack, stack_size, proto, error_code);
+                    push(stack, stack_size, make_vector(proto.x, proto.y, proto.z), error_code);
                     break;
                 }
                 case 0x41: {  // OP_DELTA_APPLY
@@ -456,7 +466,7 @@ extern "C" __global__ void modular_rpn_geometric_kernel(
                     if (!pop_vector(stack, stack_size, delta, error_code)) break;
                     if (!pop_vector(stack, stack_size, base, error_code)) break;
                     float3 result = make_float3(base.x + delta.x, base.y + delta.y, base.z + delta.z);
-                    push(stack, stack_size, result, error_code);
+                    push(stack, stack_size, make_vector(result.x, result.y, result.z), error_code);
                     break;
                 }
                 case 0x42: {  // OP_UNCERTAINTY_FUSE
@@ -471,7 +481,7 @@ extern "C" __global__ void modular_rpn_geometric_kernel(
                         reference.x * (1.0f - alpha) + proposal.x * alpha,
                         reference.y * (1.0f - alpha) + proposal.y * alpha,
                         reference.z * (1.0f - alpha) + proposal.z * alpha);
-                    push(stack, stack_size, fused, error_code);
+                    push(stack, stack_size, make_vector(fused.x, fused.y, fused.z), error_code);
                     break;
                 }
                 case 0x43: {  // sigmoid approximation
@@ -536,7 +546,7 @@ extern "C" __global__ void modular_rpn_geometric_kernel(
                         if (!pop_vector(stack, stack_size, a, error_code)) break;
                         float3 sum = make_float3(a.x + b.x, a.y + b.y, a.z + b.z);
                         sum = normalize3(sum);
-                        push(stack, stack_size, sum, error_code);
+                        push(stack, stack_size, make_vector(sum.x, sum.y, sum.z), error_code);
                     }
                     break;
                 }
@@ -549,7 +559,7 @@ extern "C" __global__ void modular_rpn_geometric_kernel(
                         a.x * b.y - a.y * b.x,
                         a.y * b.z - a.z * b.y,
                         a.z * b.x - a.x * b.z);
-                    push(stack, stack_size, entangled, error_code);
+                    push(stack, stack_size, make_vector(entangled.x, entangled.y, entangled.z), error_code);
                     break;
                 }
                 case 0x52: {  // OP_COLLAPSE
@@ -561,7 +571,68 @@ extern "C" __global__ void modular_rpn_geometric_kernel(
                     if (fabsf(state.x) < clamp) state.x = 0.0f;
                     if (fabsf(state.y) < clamp) state.y = 0.0f;
                     if (fabsf(state.z) < clamp) state.z = 0.0f;
-                    push(stack, stack_size, state, error_code);
+                    push(stack, stack_size, make_vector(state.x, state.y, state.z), error_code);
+                    break;
+                }
+                case 0x70: {  // OP_TADD
+                    float b = 0.0f, a = 0.0f;
+                    if (!pop_scalar(stack, stack_size, b, error_code)) break;
+                    if (!pop_scalar(stack, stack_size, a, error_code)) break;
+                    int8_t t = clamp_trit(a + b);
+                    push(stack, stack_size, make_scalar(trit_to_scalar(t)), error_code);
+                    break;
+                }
+                case 0x71: {  // OP_TMUL
+                    float b = 0.0f, a = 0.0f;
+                    if (!pop_scalar(stack, stack_size, b, error_code)) break;
+                    if (!pop_scalar(stack, stack_size, a, error_code)) break;
+                    int8_t t = clamp_trit(a * b);
+                    push(stack, stack_size, make_scalar(trit_to_scalar(t)), error_code);
+                    break;
+                }
+                case 0x72: {  // OP_TNOT (negate trit)
+                    float a = 0.0f;
+                    if (!pop_scalar(stack, stack_size, a, error_code)) break;
+                    int8_t t = clamp_trit(-a);
+                    push(stack, stack_size, make_scalar(trit_to_scalar(t)), error_code);
+                    break;
+                }
+                case 0x73: {  // OP_TCOMP (sign(a-b))
+                    float b = 0.0f, a = 0.0f;
+                    if (!pop_scalar(stack, stack_size, b, error_code)) break;
+                    if (!pop_scalar(stack, stack_size, a, error_code)) break;
+                    int8_t t = clamp_trit(a - b, 1e-6f);
+                    push(stack, stack_size, make_scalar(trit_to_scalar(t)), error_code);
+                    break;
+                }
+                case 0x74: {  // OP_TQUANT (quantize float to trit with 0.33 threshold)
+                    float a = 0.0f;
+                    if (!pop_scalar(stack, stack_size, a, error_code)) break;
+                    int8_t t = clamp_trit(a);
+                    push(stack, stack_size, make_scalar(trit_to_scalar(t)), error_code);
+                    break;
+                }
+                case 0x75: {  // OP_TPACK (pack two trits into scalar bits)
+                    float b = 0.0f, a = 0.0f;
+                    if (!pop_scalar(stack, stack_size, b, error_code)) break;
+                    if (!pop_scalar(stack, stack_size, a, error_code)) break;
+                    uint32_t ea = static_cast<uint32_t>(clamp_trit(a) == 1 ? 2 : (clamp_trit(a) == 0 ? 1 : 0));
+                    uint32_t eb = static_cast<uint32_t>(clamp_trit(b) == 1 ? 2 : (clamp_trit(b) == 0 ? 1 : 0));
+                    uint32_t packed = (ea & 0x3u) | ((eb & 0x3u) << 2);
+                    float as_float = __uint_as_float(packed);
+                    push(stack, stack_size, make_scalar(as_float), error_code);
+                    break;
+                }
+                case 0x76: {  // OP_TUNPACK (unpack two trits from scalar bits)
+                    float packed_scalar = 0.0f;
+                    if (!pop_scalar(stack, stack_size, packed_scalar, error_code)) break;
+                    uint32_t bits = __float_as_uint(packed_scalar);
+                    uint32_t a_bits = bits & 0x3u;
+                    uint32_t b_bits = (bits >> 2) & 0x3u;
+                    int8_t t0 = (a_bits == 2 ? 1 : (a_bits == 1 ? 0 : -1));
+                    int8_t t1 = (b_bits == 2 ? 1 : (b_bits == 1 ? 0 : -1));
+                    push(stack, stack_size, make_scalar(trit_to_scalar(t0)), error_code);
+                    push(stack, stack_size, make_scalar(trit_to_scalar(t1)), error_code);
                     break;
                 }
                 case 0x60: {  // OP_CHECKPOINT
