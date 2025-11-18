@@ -1824,3 +1824,117 @@ class TernaryPruneDecision:
         finally:
             gpu_free(d_scores)
             gpu_free(d_out)
+
+
+class TernaryAttentionMask:
+    """Compute ternary attention masks (packed 2-bit trits) from Q·K."""
+
+    def __init__(self):
+        ptx_path = KERNELS_DIR / "ternary_attention_mask.ptx"
+        self.kernel = load_ptx_file(str(ptx_path), "ternary_attention_mask")
+        self.threshold_kernel = load_ptx_file(str(ptx_path), "compute_adaptive_thresholds")
+        self.guard = LatencyGuard(threshold_us=500.0)
+
+    def compute(
+        self,
+        Q: np.ndarray,
+        K: np.ndarray,
+        attract_thresh: float,
+        repel_thresh: float,
+    ) -> np.ndarray:
+        """Return packed ternary masks for Q·K."""
+        if Q.shape != K.shape:
+            raise ValueError(f"Q and K must match; got {Q.shape} vs {K.shape}")
+        batch_size, seq_len, embed_dim = Q.shape
+        n_words = (seq_len * seq_len + 15) // 16
+
+        q = np.ascontiguousarray(Q, dtype=np.float32)
+        k = np.ascontiguousarray(K, dtype=np.float32)
+        masks = np.zeros((batch_size, n_words), dtype=np.uint32)
+
+        d_q = gpu_malloc(q.nbytes)
+        d_k = gpu_malloc(k.nbytes)
+        d_masks = gpu_malloc(masks.nbytes)
+        try:
+            memcpy_htod(d_q, q.ctypes.data_as(ctypes.c_void_p), q.nbytes)
+            memcpy_htod(d_k, k.ctypes.data_as(ctypes.c_void_p), k.nbytes)
+            memcpy_htod(d_masks, masks.ctypes.data_as(ctypes.c_void_p), masks.nbytes)  # zero out
+
+            block = (1, 1, 1)
+            grid = (seq_len, seq_len, batch_size)
+            self.guard.start()
+            launch(
+                self.kernel,
+                grid=grid,
+                block=block,
+                params=[
+                    ctypes.c_uint64(d_q.value),
+                    ctypes.c_uint64(d_k.value),
+                    ctypes.c_uint64(d_masks.value),
+                    ctypes.c_float(float(attract_thresh)),
+                    ctypes.c_float(float(repel_thresh)),
+                    ctypes.c_int32(int(batch_size)),
+                    ctypes.c_int32(int(seq_len)),
+                    ctypes.c_int32(int(embed_dim)),
+                ],
+            )
+            synchronize()
+            self.guard.stop()
+            memcpy_dtoh(masks.ctypes.data_as(ctypes.c_void_p), d_masks, masks.nbytes)
+            return masks
+        finally:
+            gpu_free(d_q)
+            gpu_free(d_k)
+            gpu_free(d_masks)
+
+    def compute_adaptive_thresholds(
+        self,
+        Q: np.ndarray,
+        K: np.ndarray,
+        percentile_attract: float = 75.0,
+        percentile_repel: float = 25.0,
+    ) -> tuple[float, float]:
+        """Compute approximate thresholds per batch, return averaged attract/repel."""
+        if Q.shape != K.shape:
+            raise ValueError(f"Q and K must match; got {Q.shape} vs {K.shape}")
+        batch_size, seq_len, embed_dim = Q.shape
+        q = np.ascontiguousarray(Q, dtype=np.float32)
+        k = np.ascontiguousarray(K, dtype=np.float32)
+        thresholds = np.zeros((batch_size, 2), dtype=np.float32)
+
+        d_q = gpu_malloc(q.nbytes)
+        d_k = gpu_malloc(k.nbytes)
+        d_thr = gpu_malloc(thresholds.nbytes)
+        try:
+            memcpy_htod(d_q, q.ctypes.data_as(ctypes.c_void_p), q.nbytes)
+            memcpy_htod(d_k, k.ctypes.data_as(ctypes.c_void_p), k.nbytes)
+            memcpy_htod(d_thr, thresholds.ctypes.data_as(ctypes.c_void_p), thresholds.nbytes)
+
+            block = (256, 1, 1)
+            grid = (batch_size, 1, 1)
+            self.guard.start()
+            launch(
+                self.threshold_kernel,
+                grid=grid,
+                block=block,
+                params=[
+                    ctypes.c_uint64(d_q.value),
+                    ctypes.c_uint64(d_k.value),
+                    ctypes.c_uint64(d_thr.value),
+                    ctypes.c_float(float(percentile_attract)),
+                    ctypes.c_float(float(percentile_repel)),
+                    ctypes.c_int32(int(batch_size)),
+                    ctypes.c_int32(int(seq_len)),
+                    ctypes.c_int32(int(embed_dim)),
+                ],
+            )
+            synchronize()
+            self.guard.stop()
+            memcpy_dtoh(thresholds.ctypes.data_as(ctypes.c_void_p), d_thr, thresholds.nbytes)
+            attract = float(thresholds[:, 0].mean())
+            repel = float(thresholds[:, 1].mean())
+            return attract, repel
+        finally:
+            gpu_free(d_q)
+            gpu_free(d_k)
+            gpu_free(d_thr)
