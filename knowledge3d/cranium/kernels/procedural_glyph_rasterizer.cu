@@ -44,11 +44,19 @@ extern "C" __global__ void procedural_glyph_rasterizer(
     float winding = 0.0f;
     float min_distance = 1e9f;
 
+    float stroke_r = 1.0f, stroke_g = 1.0f, stroke_b = 1.0f, stroke_a = 1.0f;
+    float stroke_width = 1.0f;
+
     for (int i = 0; i < seg_count; ++i) {
-        const float x0 = segments[(seg_offset + i) * 4 + 0];
-        const float y0 = segments[(seg_offset + i) * 4 + 1];
-        const float x1 = segments[(seg_offset + i) * 4 + 2];
-        const float y1 = segments[(seg_offset + i) * 4 + 3];
+        const float x0 = segments[(seg_offset + i) * 9 + 0];
+        const float y0 = segments[(seg_offset + i) * 9 + 1];
+        const float x1 = segments[(seg_offset + i) * 9 + 2];
+        const float y1 = segments[(seg_offset + i) * 9 + 3];
+        stroke_r = segments[(seg_offset + i) * 9 + 4];
+        stroke_g = segments[(seg_offset + i) * 9 + 5];
+        stroke_b = segments[(seg_offset + i) * 9 + 6];
+        stroke_a = segments[(seg_offset + i) * 9 + 7];
+        stroke_width = segments[(seg_offset + i) * 9 + 8];
 
         // winding number contribution
         bool cond1 = (y0 <= rot_y) && (y1 > rot_y);
@@ -72,6 +80,7 @@ extern "C" __global__ void procedural_glyph_rasterizer(
         float dx = rot_x - closest_x;
         float dy = rot_y - closest_y;
         float dist = sqrtf(dx * dx + dy * dy);
+        dist = fmaxf(dist - stroke_width * 0.5f, 0.0f);
         if (dist < min_distance) {
             min_distance = dist;
         }
@@ -79,6 +88,9 @@ extern "C" __global__ void procedural_glyph_rasterizer(
 
     float inside = (winding != 0.0f) ? 1.0f : 0.0f;
     float aa = expf(-min_distance * 32.0f);  // simple exponential falloff
-    float value = inside * 0.9f + aa * 0.1f;
-    output[pixel_index] = value;
+    float coverage = inside * 0.9f + aa * 0.1f;
+    output[pixel_index * 4 + 0] = stroke_r * coverage;
+    output[pixel_index * 4 + 1] = stroke_g * coverage;
+    output[pixel_index * 4 + 2] = stroke_b * coverage;
+    output[pixel_index * 4 + 3] = stroke_a * coverage;
 }

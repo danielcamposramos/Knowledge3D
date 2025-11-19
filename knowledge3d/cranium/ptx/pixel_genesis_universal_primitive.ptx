@@ -45,6 +45,8 @@
     .reg .u8     opcode;
     .reg .u32    rec_opcode, rec_offset, rec_count, rec_flags, rec_iter;
     .reg .u64    rec_ptr;
+    // Style state
+    .reg .f32    seg_r, seg_g, seg_b, seg_a, seg_w;
     // Path state
     .reg .f32    stroke_width;
     .reg .f32    stroke_r, stroke_g, stroke_b, stroke_a;
@@ -105,6 +107,11 @@ MATH_HEADER_DONE:
     mov.f32 stroke_a, 1.0;
     mov.f32 local_ternary_hint, 0.0;
     mov.u32 seg_count, 0;
+    mov.f32 seg_r, 1.0;
+    mov.f32 seg_g, 1.0;
+    mov.f32 seg_b, 1.0;
+    mov.f32 seg_a, 1.0;
+    mov.f32 seg_w, 1.0;
     mov.u32 idx, 0;
 
     // Initialize transform to identity
@@ -166,6 +173,7 @@ OPC_STROKE_WIDTH:
     cvt.u64.u32 addr, idx;
     add.u64 addr, prog_ptr, addr;
     ld.global.f32 stroke_width, [addr + 0];
+    mov.f32 seg_w, stroke_width;
     add.u32 idx, idx, 4;
     bra LOOP;
 
@@ -181,6 +189,10 @@ OPC_SET_COLOR:
     ld.global.f32 stroke_g, [addr + 4];
     ld.global.f32 stroke_b, [addr + 8];
     ld.global.f32 stroke_a, [addr + 12];
+    mov.f32 seg_r, stroke_r;
+    mov.f32 seg_g, stroke_g;
+    mov.f32 seg_b, stroke_b;
+    mov.f32 seg_a, stroke_a;
     add.u32 idx, idx, 16;
     bra LOOP;
 
@@ -312,7 +324,8 @@ PRECOMP_LOOP:
 
     setp.ge.u32 p0, seg_count, 4096;
     @p0 bra PRECOMP_DONE;
-    mul.lo.u32 seg_offset_u32, seg_count, 16;
+    // segment stride = 9 floats = 36 bytes
+    mul.lo.u32 seg_offset_u32, seg_count, 36;
     cvt.u64.u32 seg_offset, seg_offset_u32;
     add.u64 addr, seg_ptr, seg_offset;
 
@@ -341,6 +354,11 @@ PRECOMP_LOOP:
     st.global.f32 [addr + 4], y0_t_p;
     st.global.f32 [addr + 8], x1_t_p;
     st.global.f32 [addr + 12], y1_t_p;
+    st.global.f32 [addr + 16], seg_r;
+    st.global.f32 [addr + 20], seg_g;
+    st.global.f32 [addr + 24], seg_b;
+    st.global.f32 [addr + 28], seg_a;
+    st.global.f32 [addr + 32], seg_w;
     add.u32 seg_count, seg_count, 1;
 
     mov.f32 prev_x, path_x;
@@ -385,7 +403,7 @@ OPC_LINE:
 
     setp.ge.u32 p0, seg_count, 4096;
     @p0 bra LOOP;
-    mul.lo.u32 seg_offset_u32, seg_count, 16;
+    mul.lo.u32 seg_offset_u32, seg_count, 36;
     cvt.u64.u32 seg_offset, seg_offset_u32;
     add.u64 addr, seg_ptr, seg_offset;
 
@@ -416,6 +434,11 @@ OPC_LINE:
     st.global.f32 [addr + 4], y0_t;
     st.global.f32 [addr + 8], x1_t;
     st.global.f32 [addr + 12], y1_t;
+    st.global.f32 [addr + 16], seg_r;
+    st.global.f32 [addr + 20], seg_g;
+    st.global.f32 [addr + 24], seg_b;
+    st.global.f32 [addr + 28], seg_a;
+    st.global.f32 [addr + 32], seg_w;
     add.u32 seg_count, seg_count, 1;
     mov.f32 curx, fx1;
     mov.f32 cury, fy1;
@@ -491,7 +514,7 @@ QUAD_LOOP:
 
     setp.ge.u32 p0, seg_count, 4096;
     @p0 bra QUAD_DONE;
-    mul.lo.u32 seg_offset_u32, seg_count, 16;
+    mul.lo.u32 seg_offset_u32, seg_count, 36;
     cvt.u64.u32 seg_offset, seg_offset_u32;
     add.u64 addr, seg_ptr, seg_offset;
 
@@ -522,6 +545,11 @@ QUAD_LOOP:
     st.global.f32 [addr + 4], y0_t_q;
     st.global.f32 [addr + 8], x1_t_q;
     st.global.f32 [addr + 12], y1_t_q;
+    st.global.f32 [addr + 16], seg_r;
+    st.global.f32 [addr + 20], seg_g;
+    st.global.f32 [addr + 24], seg_b;
+    st.global.f32 [addr + 28], seg_a;
+    st.global.f32 [addr + 32], seg_w;
     add.u32 seg_count, seg_count, 1;
     mov.f32 curx, xt;
     mov.f32 cury, yt;
@@ -615,7 +643,7 @@ CUBIC_LOOP:
 
     setp.ge.u32 p0, seg_count, 4096;
     @p0 bra CUBIC_DONE;
-    mul.lo.u32 seg_offset_u32, seg_count, 16;
+    mul.lo.u32 seg_offset_u32, seg_count, 36;
     cvt.u64.u32 seg_offset, seg_offset_u32;
     add.u64 addr, seg_ptr, seg_offset;
 
@@ -646,6 +674,11 @@ CUBIC_LOOP:
     st.global.f32 [addr + 4], y0_t_c;
     st.global.f32 [addr + 8], x1_t_c;
     st.global.f32 [addr + 12], y1_t_c;
+    st.global.f32 [addr + 16], seg_r;
+    st.global.f32 [addr + 20], seg_g;
+    st.global.f32 [addr + 24], seg_b;
+    st.global.f32 [addr + 28], seg_a;
+    st.global.f32 [addr + 32], seg_w;
     add.u32 seg_count, seg_count, 1;
     mov.f32 curx, xt;
     mov.f32 cury, yt;
@@ -660,7 +693,7 @@ OPC_CLOSE:
     // Close current subpath
     setp.ge.u32 p0, seg_count, 4096;
     @p0 bra LOOP;
-    mul.lo.u32 idx, seg_count, 16;
+    mul.lo.u32 idx, seg_count, 36;
     cvt.u64.u32 seg_offset, idx;
     add.u64 addr, seg_ptr, seg_offset;
 
@@ -691,6 +724,11 @@ OPC_CLOSE:
     st.global.f32 [addr + 4], y0_t_close;
     st.global.f32 [addr + 8], x1_t_close;
     st.global.f32 [addr + 12], y1_t_close;
+    st.global.f32 [addr + 16], seg_r;
+    st.global.f32 [addr + 20], seg_g;
+    st.global.f32 [addr + 24], seg_b;
+    st.global.f32 [addr + 28], seg_a;
+    st.global.f32 [addr + 32], seg_w;
     add.u32 seg_count, seg_count, 1;
     bra LOOP;
 
