@@ -153,7 +153,27 @@ Knowledge3D stands on the shoulders of giants. We build upon foundational resear
 - This entire project built via MVCIC (not just assisted by AI)
 - Documented methodology for reproducible collaboration
 
-**The Lineage vs. The Innovation**: We clearly distinguish between what we borrowed (Matryoshka embeddings, dual-texture compression, LOD techniques) and what we uniquely created (spatial KR architecture, sovereign PTX stack, Three-Brain System, procedural compression codec). See [ATTRIBUTIONS.md](ATTRIBUTIONS.md) for the complete story.
+### 8. **Spatial UI Architecture: "Software as Space"** (NEW - November 2025)
+- **First comprehensive standard** for embodied AI/human spatial interfaces
+- **House as Game UI**: Rooms = game modes, knowledge = terrain, portals = hyperlinks
+- **Galaxy Universe**: Addressable 3D RAM where multiple galaxies load simultaneously (text, visual, audio, reasoning)
+- **Five Semantic Rooms**: Library (classification), Workshop (creation), Bathtub (sleep/introspection), Living Room (old paradigm bridge), Knowledge Gardens (ontologies)
+- **Portal Federation**: Decentralized network of interconnected houses (local/remote)
+- **Memory Tablet**: Universal interface bridging spatial and conventional paradigms
+- **VM Casting**: Zero-code-rewrite access to legacy systems (backwards compatibility)
+- **W3C Specification**: [Spatial UI Architecture Specification](docs/vocabulary/SPATIAL_UI_ARCHITECTURE_SPECIFICATION.md)
+
+**The Paradigm Shift**:
+```
+2D Web Paradigm:          3D Spatial Paradigm:
+├─ Websites               ├─ Houses (glTF environments)
+├─ Hyperlinks             ├─ Portals (federated doors)
+├─ Browser                ├─ Spatial Navigator
+├─ Bookmarks              ├─ Memory Tablet
+└─ Search Engine          └─ Galaxy Universe Queries
+```
+
+**The Lineage vs. The Innovation**: We clearly distinguish between what we borrowed (Matryoshka embeddings, dual-texture compression, LOD techniques, game engine scene management) and what we uniquely created (spatial KR architecture, sovereign PTX stack, Three-Brain System, procedural compression codec, Spatial UI standard). See [ATTRIBUTIONS.md](ATTRIBUTIONS.md) for the complete story.
 
 ---
 
