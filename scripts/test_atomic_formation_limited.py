@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Limited test of atomic knowledge formation.
 
@@ -17,27 +18,35 @@ from knowledge3d.cranium.specialists.procedural_drawing_specialist import Proced
 
 
 def load_limited_datasets():
-    """Load small subsets for testing."""
-    # Load font glyphs
+    """Load small subsets for testing (Latin + optional Cyrillic)."""
     font_path = Path("/K3D/Knowledge3D.local/datasets/atomic/fonts_procedural.jsonl")
     math_path = Path("/K3D/Knowledge3D.local/datasets/atomic/math_symbols_procedural.jsonl")
+    cyrillic_path = Path("/K3D/Knowledge3D.local/datasets/atomic/fonts_cyrillic_simple.jsonl")
 
     font_data = []
     with open(font_path, 'r') as f:
         for i, line in enumerate(f):
-            if i >= 50:  # Limit to 50
+            if i >= 50:
                 break
             font_data.append(json.loads(line))
 
     math_data = []
     with open(math_path, 'r') as f:
         for i, line in enumerate(f):
-            if i >= 50:  # Limit to 50
+            if i >= 50:
                 break
             math_data.append(json.loads(line))
 
-    print(f"✅ Loaded {len(font_data)} font glyphs, {len(math_data)} math symbols")
-    return font_data, math_data
+    cyrillic_data = []
+    if cyrillic_path.exists():
+        with open(cyrillic_path, 'r', encoding='utf-8') as f:
+            for i, line in enumerate(f):
+                if i >= 40:
+                    break
+                cyrillic_data.append(json.loads(line))
+
+    print(f"✅ Loaded {len(font_data)} Latin font glyphs, {len(math_data)} math symbols, {len(cyrillic_data)} Cyrillic glyphs")
+    return font_data, math_data, cyrillic_data
 
 
 def test_atomic_formation():
@@ -61,15 +70,22 @@ def test_atomic_formation():
 
     # Load limited datasets
     print("\n[3/5] Loading limited datasets...")
-    font_data, math_data = load_limited_datasets()
+    font_data, math_data, cyr_data = load_limited_datasets()
 
     # Split into train/val
     font_train = font_data[:40]
     font_val = font_data[40:50]
     math_train = math_data[:40]
     math_val = math_data[40:50]
+    cyr_train = cyr_data[:30]
+    cyr_val = cyr_data[30:40]
 
-    print(f"  Font: {len(font_train)} train, {len(font_val)} val")
+    font_train.extend(cyr_train)
+    font_val.extend(cyr_val)
+
+    print(f"  Font (Latin+Cyrillic): {len(font_train)} train, {len(font_val)} val")
+    print(f"    - Latin subset: 40 train / 10 val")
+    print(f"    - Cyrillic subset: {len(cyr_train)} train / {len(cyr_val)} val")
     print(f"  Math: {len(math_train)} train, {len(math_val)} val")
 
     # Train for 1 epoch
@@ -77,7 +93,7 @@ def test_atomic_formation():
     print("\n  [Font Glyphs Training]")
 
     # Convert font data to (char, rpn_program) tuples
-    font_batch = [(item['char'], item['rpn']) for item in font_train]
+    font_batch = [(item['char'], item['rpn'], item) for item in font_train]
     font_metrics = specialist.train_on_batch(
         font_batch,
         validation=False,
@@ -86,7 +102,7 @@ def test_atomic_formation():
     print(f"    Alignment: {font_metrics.text_visual_alignment:.4f}")
 
     print("\n  [Font Glyphs Validation]")
-    font_val_batch = [(item['char'], item['rpn']) for item in font_val]
+    font_val_batch = [(item['char'], item['rpn'], item) for item in font_val]
     font_val_metrics = specialist.train_on_batch(
         font_val_batch,
         validation=True,
@@ -97,7 +113,7 @@ def test_atomic_formation():
     print("\n  [Math Symbols Training]")
     # Math data: (char, visual_rpn, math_rpn, semantic)
     math_batch = [
-        (item['char'], item['visual_rpn'], item.get('math_rpn', ''), item['semantic'])
+        (item['char'], item['visual_rpn'], item.get('math_rpn', ''), item['semantic'], item)
         for item in math_train
     ]
     math_metrics = specialist.train_on_batch(
@@ -109,7 +125,7 @@ def test_atomic_formation():
 
     print("\n  [Math Symbols Validation]")
     math_val_batch = [
-        (item['char'], item['visual_rpn'], item.get('math_rpn', ''), item['semantic'])
+        (item['char'], item['visual_rpn'], item.get('math_rpn', ''), item['semantic'], item)
         for item in math_val
     ]
     math_val_metrics = specialist.train_on_batch(
@@ -127,10 +143,47 @@ def test_atomic_formation():
     sample_chars = list(specialist.atomic_units.keys())[:5]
     for char in sample_chars:
         unit = specialist.atomic_units[char]
+        glyphs = unit.get('glyphs', [])
+        langs = unit.get('languages', [])
+        lang_str = ', '.join(langs[:3])
+        if len(langs) > 3:
+            lang_str += f' (+{len(langs)-3} more)'
+
         print(f"\n  '{char}':")
         print(f"    Embedding shape: {unit['embedding'].shape}")
-        print(f"    Visual RPN: {unit['visual_rpn'][:50]}...")
-        print(f"    Math RPN: {unit['math_rpn']}")
+        print(f"    Glyphs: {len(glyphs)}")
+        if glyphs:
+            sample_glyph = glyphs[0]
+            font_meta = sample_glyph.get('font_metadata', {})
+            font_desc = font_meta.get('font_family', 'unknown')
+            print(f"    Sample font: {font_desc}")
+            print(f"    Visual RPN: {sample_glyph['visual_rpn'][:50]}...")
+        print(f"    Math RPN: {unit.get('math_rpn', '')}")
+        print(f"    Languages ({len(langs)}): {lang_str}")
+
+    # Cyrillic samples
+    cyr_sample_chars = [
+        char for char in specialist.atomic_units.keys()
+        if '\u0400' <= char <= '\u04FF'
+    ][:5]
+    if cyr_sample_chars:
+        print("\n[Cyrillic Samples]")
+        for char in cyr_sample_chars:
+            unit = specialist.atomic_units[char]
+            glyphs = unit.get('glyphs', [])
+            langs = unit.get('languages', [])
+            lang_str = ', '.join(langs[:3])
+            if len(langs) > 3:
+                lang_str += f' (+{len(langs)-3} more)'
+            font_set = sorted({
+                glyph.get('font_metadata', {}).get('font_family', 'unknown')
+                for glyph in glyphs[:5]
+                if glyph.get('font_metadata')
+            })
+            print(f"\n  '{char}':")
+            print(f"    Glyphs: {len(glyphs)}")
+            print(f"    Fonts: {', '.join(font_set) if font_set else 'unknown'}")
+            print(f"    Languages ({len(langs)}): {lang_str}")
 
     # Commit to ProceduralGalaxy
     print("\n[OPTIONAL] Committing to ProceduralGalaxy...")
@@ -143,7 +196,7 @@ def test_atomic_formation():
     print(f"  Font glyphs:  train={font_metrics.text_visual_alignment:.4f}, val={font_val_metrics.text_visual_alignment:.4f}")
     print(f"  Math symbols: train={math_metrics.text_visual_alignment:.4f}, val={math_val_metrics.text_visual_alignment:.4f}")
     print(f"  Atomic units: {len(specialist.atomic_units)} stored")
-    print(f"  Status: {'✅ PASS' if len(specialist.atomic_units) == 80 else '❌ FAIL'}")
+    print(f"  Status: {'✅ PASS' if len(specialist.atomic_units) >= 80 else '❌ FAIL'}")
 
     return specialist
 

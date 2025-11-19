@@ -22,7 +22,7 @@ from __future__ import annotations
 import json
 import numpy as np
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Any, Set
 from dataclasses import dataclass
 
 from datetime import datetime, timezone
@@ -33,6 +33,7 @@ from knowledge3d.cranium.bridges.sovereign_bridges import FractalEmitter
 from knowledge3d.cranium.procedural_galaxy import ProceduralGalaxy
 from knowledge3d.cranium.procedural_compiler import ProceduralCompiler
 from knowledge3d.cranium.specialists.batch_optimizer import BatchOptimizer
+from knowledge3d.cranium.specialists.character_languages import get_character_languages
 
 
 @dataclass
@@ -104,8 +105,8 @@ class ProceduralDrawingSpecialist:
         self.char_to_rpn_cache: Dict[str, str] = {}  # Learned RPN programs
         self.char_to_math_rpn_cache: Dict[str, str] = {}  # Learned execution bytecode
 
-        # Atomic unit cache (for deferred compression)
-        self.atomic_units: Dict[str, Dict] = {}  # char -> {unified_emb, form_rpn, meaning_rpn}
+        # Atomic unit cache (deferred compression, multi-glyph metadata)
+        self.atomic_units: Dict[str, Dict[str, Any]] = {}  # char -> {embedding, glyphs, languages, ...}
 
         # Execution embedder for math RPN (opcode embedding table)
         self._init_opcode_embedding_table()
@@ -114,6 +115,46 @@ class ProceduralDrawingSpecialist:
         """Select LoRA rank based on Matryoshka dimension."""
         # 18× memory reduction principle from Phase H
         return max(8, dim // 16)
+
+    def _build_glyph_metadata(self, char: str, source: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        """Normalize glyph metadata (font family, variant, source)."""
+        meta = source or {}
+        font_family = (
+            meta.get('font_family')
+            or meta.get('font')
+            or meta.get('font_name')
+            or "unknown"
+        )
+        font_name = meta.get('font_name') or font_family
+        font_weight = int(meta.get('font_weight') or meta.get('weight') or 400)
+        font_style = meta.get('font_style') or meta.get('style') or "normal"
+        font_variant = meta.get('font_variant') or meta.get('variant') or "regular"
+        font_source = meta.get('font_source') or meta.get('source') or "unknown"
+        unicode_codepoint = (
+            meta.get('unicode_codepoint')
+            or meta.get('unicode')
+            or (f"U+{ord(char):04X}" if char else "unknown")
+        )
+
+        return {
+            'font_family': font_family,
+            'font_name': font_name,
+            'font_weight': font_weight,
+            'font_style': font_style,
+            'font_variant': font_variant,
+            'font_source': font_source,
+            'unicode_codepoint': unicode_codepoint,
+        }
+
+    @staticmethod
+    def _ensure_rpn_string(program: Any) -> str:
+        """Normalize RPN program input to string form."""
+        if isinstance(program, bytes):
+            try:
+                return program.decode('utf-8')
+            except UnicodeDecodeError:
+                return program.decode('latin-1', errors='ignore')
+        return str(program)
 
     def _init_opcode_embedding_table(self):
         """
@@ -217,7 +258,9 @@ class ProceduralDrawingSpecialist:
         char: str,
         unified_emb: np.ndarray,
         form_rpn: str,
-        meaning_rpn: str
+        meaning_rpn: str,
+        glyph_metadata: Optional[Dict[str, Any]] = None,
+        form_embedding: Optional[np.ndarray] = None,
     ):
         """
         Store atomic knowledge unit in ProceduralGalaxy as a DUAL-PROGRAM STAR.
@@ -225,10 +268,17 @@ class ProceduralDrawingSpecialist:
         The star contains:
           - visual_rpn: How to DRAW the character (form)
           - math_rpn: What it DOES/MEANS (execution/semantic)
+          - languages: Which languages use this character (ISO 639-1 codes)
           - embedding: Compressed procedural program from visual form
 
         This compositional storage IS the fusion - both programs coexist
         in the same star, enabling cross-modal reasoning via the 3D contract.
+
+        Multilingual Support:
+          - Basic Latin (a-z, A-Z): ~30 languages (en, pt, es, fr, de, ...)
+          - Extended Latin (ç, ñ, ä): Subset of languages (pt/fr/ca, es, de)
+          - Math symbols (+, π, ∫): 'universal' (language-agnostic)
+          - Enables pronunciation encoding per language (future enhancement)
 
         Args:
             char: Character/symbol (lookup key)
@@ -236,14 +286,52 @@ class ProceduralDrawingSpecialist:
             form_rpn: Visual RPN program (HOW to draw)
             meaning_rpn: Math RPN bytecode (WHAT it does) or "" for non-math
         """
-        # Store in atomic_units cache (deferred compression for performance)
-        # During training, we accumulate; after training, we compress all at once
-        self.atomic_units[char] = {
-            'embedding': unified_emb,
+        # Get language metadata for this character
+        languages = get_character_languages(char)
+        glyph_meta = glyph_metadata or self._build_glyph_metadata(char, None)
+        glyph_timestamp = datetime.now(timezone.utc).isoformat()
+
+        glyph_entry = {
             'visual_rpn': form_rpn,
-            'math_rpn': meaning_rpn,
-            'timestamp': datetime.now(timezone.utc).isoformat()
+            'font_metadata': glyph_meta,
+            'timestamp': glyph_timestamp,
         }
+        if form_embedding is not None:
+            glyph_entry['form_embedding'] = form_embedding.astype(np.float32)
+
+        unit = self.atomic_units.get(char)
+
+        if unit is None:
+            unit = {
+                'embedding': unified_emb.astype(np.float32),
+                'math_rpn': meaning_rpn or "",
+                'languages': list(languages),
+                'glyphs': [glyph_entry],
+                'glyph_count': 1,
+                'timestamp': glyph_timestamp,
+            }
+            self.atomic_units[char] = unit
+            return
+
+        count = unit.get('glyph_count', 0)
+        prev_embedding = unit.get('embedding')
+        if prev_embedding is None:
+            unit['embedding'] = unified_emb.astype(np.float32)
+        else:
+            updated = (prev_embedding * count + unified_emb) / (count + 1)
+            unit['embedding'] = updated.astype(np.float32)
+
+        unit['glyphs'].append(glyph_entry)
+        unit['glyph_count'] = count + 1
+        unit['timestamp'] = glyph_timestamp
+
+        if meaning_rpn and not unit.get('math_rpn'):
+            unit['math_rpn'] = meaning_rpn
+
+        # Merge language coverage (union)
+        lang_set: Set[str] = set(unit.get('languages', []))
+        lang_set.update(languages)
+        unit['languages'] = sorted(lang_set)
 
     def _train_via_rpn_stacks(
         self,
@@ -318,15 +406,30 @@ class ProceduralDrawingSpecialist:
                 compressed_size = len(program_bytes)
                 compression_ratio = original_size / max(compressed_size, 1)
 
+                glyph_meta_list = [
+                    {
+                        'visual_rpn': glyph['visual_rpn'],
+                        'font_metadata': glyph.get('font_metadata', {}),
+                        'timestamp': glyph.get('timestamp'),
+                    }
+                    for glyph in unit.get('glyphs', [])
+                ]
+
+                metadata = {
+                    'math_rpn': unit.get('math_rpn', ''),
+                    'languages': unit.get('languages', []),  # ISO 639-1 codes
+                    'timestamp': unit.get('timestamp'),
+                    'glyph_count': len(glyph_meta_list),
+                    'glyphs': glyph_meta_list,
+                }
+
                 # Store dual-program star in ProceduralGalaxy
                 self.procedural_galaxy.store_program(
                     key=char,
                     program_bytes=program_bytes,
-                    compression_ratio=compression_ratio
+                    compression_ratio=compression_ratio,
+                    metadata=metadata  # Pass multilingual metadata
                 )
-
-                # TODO: Store visual_rpn and math_rpn alongside
-                # (ProceduralGalaxy needs extension to store multi-program stars)
 
                 committed += 1
 
@@ -486,20 +589,33 @@ class ProceduralDrawingSpecialist:
 
         # Compute unified embeddings (form + meaning fusion)
         for entry in batch:
+            glyph_meta_source: Optional[Dict[str, Any]] = None
+
             if dual_modal_math:
-                # Dual-modal math: (symbol, visual_rpn, math_rpn, semantic)
-                if isinstance(entry, tuple) and len(entry) == 4:
-                    symbol, visual_rpn, math_rpn, semantic = entry
-                else:
+                # Dual-modal math entries may be tuples or dicts
+                if isinstance(entry, dict):
                     symbol = entry.get('symbol', entry.get('char', ''))
-                    visual_rpn = entry.get('visual_rpn', '')
+                    visual_rpn = entry.get('visual_rpn', entry.get('rpn', ''))
                     math_rpn = entry.get('math_rpn', '')
                     semantic = entry.get('semantic', symbol)
+                    glyph_meta_source = entry
+                elif isinstance(entry, (tuple, list)):
+                    if len(entry) < 4:
+                        raise ValueError("Dual-modal entry must have at least four elements")
+                    symbol = entry[0]
+                    visual_rpn = entry[1]
+                    math_rpn = entry[2]
+                    semantic = entry[3]
+                    if len(entry) >= 5 and isinstance(entry[4], dict):
+                        glyph_meta_source = entry[4]
+                else:
+                    raise ValueError("Unsupported batch entry type for dual-modal math")
 
-                # Compute form embedding (visual)
+                visual_rpn = self._ensure_rpn_string(visual_rpn)
+                math_rpn = self._ensure_rpn_string(math_rpn) if math_rpn else ""
+
                 form_emb = self._compute_visual_embedding(visual_rpn)
 
-                # Compute meaning embedding (execution or semantic)
                 if math_rpn and not math_rpn.startswith('#'):
                     meaning_emb = self._compute_execution_embedding(math_rpn)
                 else:
@@ -510,13 +626,24 @@ class ProceduralDrawingSpecialist:
                 meaning_rpns.append(math_rpn if math_rpn else "")
 
             else:
-                # Standard glyph: (char, rpn_program)
-                char, rpn_program = entry
+                # Standard glyph entries: tuple or dict
+                if isinstance(entry, dict):
+                    char = entry.get('char', '')
+                    rpn_program = entry.get('rpn', entry.get('visual_rpn', ''))
+                    glyph_meta_source = entry
+                elif isinstance(entry, (tuple, list)):
+                    if not entry:
+                        raise ValueError("Empty batch entry encountered")
+                    char = entry[0]
+                    rpn_program = entry[1] if len(entry) >= 2 else ''
+                    if len(entry) >= 3 and isinstance(entry[2], dict):
+                        glyph_meta_source = entry[2]
+                else:
+                    raise ValueError("Unsupported batch entry type for glyph training")
 
-                # Form embedding (visual)
+                rpn_program = self._ensure_rpn_string(rpn_program)
+
                 form_emb = self._compute_visual_embedding(rpn_program)
-
-                # Meaning embedding (simple semantic encoding)
                 meaning_emb = self.encode_semantic_context(char)
 
                 symbols.append(char)
@@ -539,11 +666,17 @@ class ProceduralDrawingSpecialist:
 
             # Store in ProceduralGalaxy (if not validation)
             if not validation:
+                glyph_metadata = self._build_glyph_metadata(
+                    symbols[-1],
+                    glyph_meta_source,
+                )
                 self._store_atomic_star(
                     symbols[-1],
                     unified_emb,
                     form_rpns[-1],
-                    meaning_rpns[-1]
+                    meaning_rpns[-1],
+                    glyph_metadata=glyph_metadata,
+                    form_embedding=form_emb,
                 )
 
         # Train base model via RPN stack operations (sovereign training)
