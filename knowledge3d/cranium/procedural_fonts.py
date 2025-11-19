@@ -7,8 +7,6 @@ represented as a list of line segments normalized to the range [-1, 1] in both
 axes so the GPU kernel can operate without inspecting font units.
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 import os
 from functools import lru_cache
@@ -27,6 +25,8 @@ class GlyphDescriptor:
 
     segments: np.ndarray  # shape:(N,4) containing x0,y0,x1,y1 in [-1,1]
     advance: float
+    weight: int | None = None
+    italic: bool | None = None
 
 
 def _evaluate_quadratic(p0: Tuple[float, float], p1: Tuple[float, float], p2: Tuple[float, float], t: float) -> Tuple[float, float]:
@@ -142,7 +142,7 @@ def extract_glyph(font_path: str, char: str) -> GlyphDescriptor:
         ttfont = _load_font(font_path)
         glyph_set = ttfont.getGlyphSet()
     except ttLib.TTLibError:
-        return GlyphDescriptor(segments=np.zeros((0, 4), dtype=np.float32), advance=0.0)
+        return GlyphDescriptor(segments=np.zeros((0, 4), dtype=np.float32), advance=0.0, weight=None, italic=None)
 
     cmap_table = ttfont["cmap"] if "cmap" in ttfont else None
     cmap = cmap_table.getBestCmap() if cmap_table else None
@@ -157,7 +157,7 @@ def extract_glyph(font_path: str, char: str) -> GlyphDescriptor:
     raw_segments = _segments_from_pen(pen, steps=_get_curve_steps())
 
     if not raw_segments:
-        return GlyphDescriptor(segments=np.zeros((0, 4), dtype=np.float32), advance=float(glyph.width or 0))
+        return GlyphDescriptor(segments=np.zeros((0, 4), dtype=np.float32), advance=float(glyph.width or 0), weight=_get_weight(ttfont), italic=_get_italic(ttfont))
 
     units_per_em = ttfont["head"].unitsPerEm or 1000
     scale = 2.0 / units_per_em  # map font units to [-1,1]
@@ -173,7 +173,12 @@ def extract_glyph(font_path: str, char: str) -> GlyphDescriptor:
         )
 
     segments = np.asarray(normalized, dtype=np.float32)
-    return GlyphDescriptor(segments=segments, advance=float(glyph.width or units_per_em))
+    return GlyphDescriptor(
+        segments=segments,
+        advance=float(glyph.width or units_per_em),
+        weight=_get_weight(ttfont),
+        italic=_get_italic(ttfont),
+    )
 
 
 @lru_cache(maxsize=16384)
@@ -214,3 +219,92 @@ def build_descriptor_batch(jobs: Sequence[Tuple[str, str]]) -> Tuple[np.ndarray,
 
     stacked = np.vstack(all_segments).astype(np.float32, copy=False)
     return stacked, offsets, lengths
+
+
+def segments_to_rpn(
+    segments: np.ndarray,
+    *,
+    stroke_color: Tuple[float, float, float, float] = (1.0, 1.0, 1.0, 1.0),
+    stroke_width: float = 1.0,
+) -> str:
+    """
+    Convert segment array (x0,y0,x1,y1) into an RPN drawing program.
+
+    Returns a string with SET_COLOR/SET_LINE_WIDTH followed by MOVE/LINE and STROKE.
+    """
+    if segments.size == 0:
+        return ""
+    segs = np.asarray(segments, dtype=np.float32)
+    program_tokens: List[str] = []
+    r, g, b, a = stroke_color
+    program_tokens.extend([str(r), str(g), str(b), str(a), "SET_COLOR"])
+    program_tokens.extend([str(stroke_width), "STROKE_WIDTH"])
+    # Start at first segment start
+    x0, y0, x1, y1 = segs[0]
+    program_tokens.extend([str(x0), str(y0), "MOVE", str(x1), str(y1), "LINE"])
+    for seg in segs[1:]:
+        program_tokens.extend([str(seg[2]), str(seg[3]), "LINE"])
+    program_tokens.append("STROKE")
+    return " ".join(program_tokens)
+
+
+def glyph_to_rpn(
+    font_path: str,
+    char: str,
+    *,
+    stroke_color: Tuple[float, float, float, float] = (1.0, 1.0, 1.0, 1.0),
+    stroke_width: float = 1.0,
+) -> str:
+    """
+    Convert a font glyph into an RPN drawing program.
+    """
+    descriptor = extract_glyph(font_path, char)
+    inferred_width = stroke_width * _infer_width_from_font(font_path)
+    inferred_color = _infer_color_from_font(font_path, stroke_color)
+    return segments_to_rpn(descriptor.segments, stroke_color=inferred_color, stroke_width=inferred_width)
+
+
+def _infer_width_from_font(font_path: str) -> float:
+    """Heuristic: adjust stroke width based on font weight keywords."""
+    name = Path(font_path).name.lower()
+    if "black" in name or "heavy" in name:
+        return 1.8
+    if "bold" in name or "semi" in name:
+        return 1.4
+    if "light" in name or "thin" in name:
+        return 0.7
+    return 1.0
+
+
+def _infer_color_from_font(font_path: str, base_color: Tuple[float, float, float, float]) -> Tuple[float, float, float, float]:
+    """Optional: tweak tint for italic/oblique to mark style."""
+    name = Path(font_path).name.lower()
+    r, g, b, a = base_color
+    if "italic" in name or "oblique" in name:
+        return (r, min(1.0, g * 0.9), min(1.0, b * 1.1), a)
+    return base_color
+
+
+def _get_weight(ttfont: TTFont) -> int | None:
+    try:
+        return int(ttfont["OS/2"].usWeightClass)
+    except Exception:
+        return None
+
+
+def _get_italic(ttfont: TTFont) -> bool | None:
+    try:
+        mac_style = ttfont["head"].macStyle
+        return bool(mac_style & 0x02)
+    except Exception:
+        return None
+
+
+__all__ = [
+    "GlyphDescriptor",
+    "extract_glyph",
+    "extract_glyph_cached",
+    "build_descriptor_batch",
+    "segments_to_rpn",
+    "glyph_to_rpn",
+]
