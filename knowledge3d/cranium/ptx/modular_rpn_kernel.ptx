@@ -11,15 +11,15 @@
 .address_size 64
 
 	// .globl	modular_rpn_geometric_kernel
-// _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack has been demoted
-// _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size has been demoted
-// _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code has been demoted
-// _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE12scalar_index has been demoted
-// _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE12vector_index has been demoted
-// _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE16checkpoint_stack has been demoted
-// _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE15checkpoint_size has been demoted
-// _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE16checkpoint_valid has been demoted
-.const .align 4 .b8 _ZN60_INTERNAL_9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709862_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709825kProceduralPrototypeTableE[48] = {0, 0, 0, 63, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 63, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 63, 0, 0, 0, 63, 0, 0, 0, 63, 0, 0, 0, 63};
+// _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack has been demoted
+// _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size has been demoted
+// _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code has been demoted
+// _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE12scalar_index has been demoted
+// _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE12vector_index has been demoted
+// _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE16checkpoint_stack has been demoted
+// _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE15checkpoint_size has been demoted
+// _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE16checkpoint_valid has been demoted
+.const .align 4 .b8 _ZN59_INTERNAL_9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222561_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222525kProceduralPrototypeTableE[48] = {0, 0, 0, 63, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 63, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 63, 0, 0, 0, 63, 0, 0, 0, 63, 0, 0, 0, 63};
 .global .align 4 .b8 __cudart_i2opi_f[24] = {65, 144, 67, 60, 153, 149, 98, 219, 192, 221, 52, 245, 209, 87, 39, 252, 41, 21, 68, 78, 110, 131, 249, 162};
 
 .visible .entry modular_rpn_geometric_kernel(
@@ -41,21 +41,21 @@
 	.reg .f64 	%fd<17>;
 	.reg .b64 	%rd<207>;
 	// demoted variable
-	.shared .align 16 .b8 _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack[1024];
+	.shared .align 16 .b8 _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack[1024];
 	// demoted variable
-	.shared .align 4 .u32 _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size;
+	.shared .align 4 .u32 _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size;
 	// demoted variable
-	.shared .align 4 .u32 _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code;
+	.shared .align 4 .u32 _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code;
 	// demoted variable
-	.shared .align 4 .u32 _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE12scalar_index;
+	.shared .align 4 .u32 _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE12scalar_index;
 	// demoted variable
-	.shared .align 4 .u32 _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE12vector_index;
+	.shared .align 4 .u32 _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE12vector_index;
 	// demoted variable
-	.shared .align 16 .b8 _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE16checkpoint_stack[1024];
+	.shared .align 16 .b8 _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE16checkpoint_stack[1024];
 	// demoted variable
-	.shared .align 4 .u32 _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE15checkpoint_size;
+	.shared .align 4 .u32 _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE15checkpoint_size;
 	// demoted variable
-	.shared .align 4 .u32 _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE16checkpoint_valid;
+	.shared .align 4 .u32 _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE16checkpoint_valid;
 
 	mov.u64 	%SPL, __local_depot0;
 	ld.param.u32 	%rd5, [modular_rpn_geometric_kernel_param_0];
@@ -73,12 +73,12 @@
 	@%p3 bra 	$L__BB0_2;
 
 	mov.u32 	%r312, 0;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r312;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r312;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE12scalar_index], %r312;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE12vector_index], %r312;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE15checkpoint_size], %r312;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE16checkpoint_valid], %r312;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r312;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r312;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE12scalar_index], %r312;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE12vector_index], %r312;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE15checkpoint_size], %r312;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE16checkpoint_valid], %r312;
 
 $L__BB0_2:
 	bar.sync 	0;
@@ -92,7 +92,7 @@ $L__BB0_2:
 
 $L__BB0_4:
 	bar.sync 	0;
-	ld.shared.u32 	%r314, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code];
+	ld.shared.u32 	%r314, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code];
 	setp.ne.s32 	%p5, %r314, 0;
 	@%p5 bra 	$L__BB0_611;
 
@@ -130,14 +130,14 @@ $L__BB0_16:
 	bra.uni 	$L__BB0_17;
 
 $L__BB0_147:
-	ld.shared.u32 	%r3, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r3, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p74, %r3, 0;
 	@%p74 bra 	$L__BB0_164;
 
 	add.s32 	%r4, %r3, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r4;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r4;
 	shl.b32 	%r315, %r3, 4;
-	mov.u32 	%r316, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r316, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r5, %r316, %r315;
 	ld.shared.v4.f32 	{%f389, %f390, %f391, %f392}, [%r5+-16];
 	add.f32 	%f394, %f392, 0fBF800000;
@@ -151,7 +151,7 @@ $L__BB0_150:
 	@%p76 bra 	$L__BB0_163;
 
 	add.s32 	%r6, %r3, -2;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r6;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r6;
 	ld.shared.v4.f32 	{%f396, %f397, %f398, %f399}, [%r5+-32];
 	add.f32 	%f401, %f399, 0fBF800000;
 	abs.f32 	%f402, %f401;
@@ -195,14 +195,14 @@ $L__BB0_62:
 	bra.uni 	$L__BB0_146;
 
 $L__BB0_65:
-	ld.shared.u32 	%r129, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r129, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p230, %r129, 0;
 	@%p230 bra 	$L__BB0_364;
 
 	add.s32 	%r130, %r129, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r130;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r130;
 	shl.b32 	%r693, %r129, 4;
-	mov.u32 	%r694, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r694, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r131, %r694, %r693;
 	ld.shared.v4.f32 	{%f803, %f804, %f805, %f806}, [%r131+-16];
 	add.f32 	%f807, %f806, 0fBF800000;
@@ -213,7 +213,7 @@ $L__BB0_65:
 
 $L__BB0_363:
 	mov.u32 	%r698, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r698;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r698;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_27:
@@ -255,8 +255,8 @@ $L__BB0_108:
 	bra.uni 	$L__BB0_146;
 
 $L__BB0_111:
-	ld.shared.u32 	%r33, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE15checkpoint_size], %r33;
+	ld.shared.u32 	%r33, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE15checkpoint_size], %r33;
 	setp.eq.s32 	%p133, %r33, 0;
 	@%p133 bra 	$L__BB0_119;
 
@@ -273,9 +273,9 @@ $L__BB0_111:
 
 $L__BB0_114:
 	shl.b32 	%r439, %r1237, 4;
-	mov.u32 	%r440, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r440, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r441, %r440, %r439;
-	mov.u32 	%r442, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE16checkpoint_stack;
+	mov.u32 	%r442, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE16checkpoint_stack;
 	add.s32 	%r443, %r442, %r439;
 	ld.shared.v4.u32 	{%r444, %r445, %r446, %r447}, [%r441];
 	st.shared.v4.u32 	[%r443], {%r444, %r445, %r446, %r447};
@@ -295,9 +295,9 @@ $L__BB0_115:
 	@%p136 bra 	$L__BB0_119;
 
 	shl.b32 	%r476, %r1237, 4;
-	mov.u32 	%r477, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE16checkpoint_stack;
+	mov.u32 	%r477, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE16checkpoint_stack;
 	add.s32 	%r43, %r477, %r476;
-	mov.u32 	%r478, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r478, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r42, %r478, %r476;
 	ld.shared.v4.u32 	{%r479, %r480, %r481, %r482}, [%r42];
 	st.shared.v4.u32 	[%r43], {%r479, %r480, %r481, %r482};
@@ -314,7 +314,7 @@ $L__BB0_115:
 
 $L__BB0_119:
 	mov.u32 	%r503, 1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE16checkpoint_valid], %r503;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE16checkpoint_valid], %r503;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_21:
@@ -328,14 +328,14 @@ $L__BB0_21:
 	bra.uni 	$L__BB0_23;
 
 $L__BB0_502:
-	ld.shared.u32 	%r218, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r218, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p322, %r218, 0;
 	@%p322 bra 	$L__BB0_552;
 
 	add.s32 	%r219, %r218, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r219;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r219;
 	shl.b32 	%r954, %r218, 4;
-	mov.u32 	%r955, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r955, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r956, %r955, %r954;
 	ld.shared.v4.f32 	{%f1060, %f1061, %f1062, %f1063}, [%r956+-16];
 	add.f32 	%f1065, %f1063, 0fBF800000;
@@ -399,14 +399,14 @@ $L__BB0_86:
 	bra.uni 	$L__BB0_146;
 
 $L__BB0_89:
-	ld.shared.u32 	%r70, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r70, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p180, %r70, 0;
 	@%p180 bra 	$L__BB0_309;
 
 	add.s32 	%r71, %r70, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r71;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r71;
 	shl.b32 	%r576, %r70, 4;
-	mov.u32 	%r577, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r577, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r72, %r577, %r576;
 	ld.shared.v4.f32 	{%f646, %f647, %f648, %f649}, [%r72+-16];
 	add.f32 	%f651, %f649, 0fBF800000;
@@ -420,7 +420,7 @@ $L__BB0_278:
 	@%p182 bra 	$L__BB0_308;
 
 	add.s32 	%r73, %r70, -2;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r73;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r73;
 	ld.shared.v4.f32 	{%f653, %f654, %f655, %f656}, [%r72+-32];
 	add.f32 	%f657, %f656, 0fBF800000;
 	abs.f32 	%f658, %f657;
@@ -430,7 +430,7 @@ $L__BB0_278:
 
 $L__BB0_307:
 	mov.u32 	%r643, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r643;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r643;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_43:
@@ -449,14 +449,14 @@ $L__BB0_43:
 	bra.uni 	$L__BB0_146;
 
 $L__BB0_47:
-	ld.shared.u32 	%r142, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r142, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p247, %r142, 0;
 	@%p247 bra 	$L__BB0_436;
 
 	add.s32 	%r143, %r142, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r143;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r143;
 	shl.b32 	%r746, %r142, 4;
-	mov.u32 	%r747, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r747, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r144, %r747, %r746;
 	ld.shared.v4.f32 	{%f880, %f881, %f882, %f883}, [%r144+-16];
 	add.f32 	%f884, %f883, 0fBF800000;
@@ -470,7 +470,7 @@ $L__BB0_393:
 	@%p249 bra 	$L__BB0_435;
 
 	add.s32 	%r145, %r142, -2;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r145;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r145;
 	ld.shared.v4.f32 	{%f886, %f887, %f888, %f889}, [%r144+-32];
 	add.f32 	%f890, %f889, 0fBF800000;
 	abs.f32 	%f891, %f890;
@@ -523,14 +523,14 @@ $L__BB0_138:
 	bra.uni 	$L__BB0_146;
 
 $L__BB0_141:
-	ld.shared.u32 	%r280, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r280, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p388, %r280, 0;
 	@%p388 bra 	$L__BB0_582;
 
 	add.s32 	%r281, %r280, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r281;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r281;
 	shl.b32 	%r1082, %r280, 4;
-	mov.u32 	%r1083, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r1083, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r1084, %r1083, %r1082;
 	ld.shared.v4.f32 	{%f1220, %f1221, %f1222, %f1223}, [%r1084+-16];
 	add.f32 	%f1224, %f1223, 0fBF800000;
@@ -546,7 +546,7 @@ $L__BB0_579:
 
 $L__BB0_581:
 	mov.u32 	%r1086, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r1086;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r1086;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_58:
@@ -562,7 +562,7 @@ $L__BB0_58:
 
 $L__BB0_61:
 	mov.u32 	%r707, 0;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r707;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r707;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_29:
@@ -577,14 +577,14 @@ $L__BB0_29:
 	bra.uni 	$L__BB0_146;
 
 $L__BB0_32:
-	ld.shared.u32 	%r208, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r208, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p308, %r208, 0;
 	@%p308 bra 	$L__BB0_485;
 
 	add.s32 	%r209, %r208, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r209;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r209;
 	shl.b32 	%r872, %r208, 4;
-	mov.u32 	%r873, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r873, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r210, %r873, %r872;
 	ld.shared.v4.f32 	{%f1007, %f1008, %f1009, %f1010}, [%r210+-16];
 	add.f32 	%f1011, %f1010, 0fBF800000;
@@ -598,7 +598,7 @@ $L__BB0_478:
 	@%p310 bra 	$L__BB0_484;
 
 	add.s32 	%r211, %r208, -2;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r211;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r211;
 	ld.shared.v4.f32 	{%f1013, %f1014, %f1015, %f1016}, [%r210+-32];
 	add.f32 	%f1017, %f1016, 0fBF800000;
 	abs.f32 	%f1018, %f1017;
@@ -608,7 +608,7 @@ $L__BB0_478:
 
 $L__BB0_483:
 	mov.u32 	%r879, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r879;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r879;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_102:
@@ -623,14 +623,14 @@ $L__BB0_102:
 	bra.uni 	$L__BB0_146;
 
 $L__BB0_105:
-	ld.shared.u32 	%r48, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r48, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p144, %r48, 0;
 	@%p144 bra 	$L__BB0_226;
 
 	add.s32 	%r49, %r48, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r49;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r49;
 	shl.b32 	%r511, %r48, 4;
-	mov.u32 	%r512, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r512, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r50, %r512, %r511;
 	ld.shared.v4.f32 	{%f544, %f545, %f546, %f547}, [%r50+-16];
 	add.f32 	%f548, %f547, 0fBF800000;
@@ -644,7 +644,7 @@ $L__BB0_219:
 	@%p146 bra 	$L__BB0_225;
 
 	add.s32 	%r51, %r48, -2;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r51;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r51;
 	ld.shared.v4.f32 	{%f550, %f551, %f552, %f553}, [%r50+-32];
 	add.f32 	%f554, %f553, 0fBF800000;
 	abs.f32 	%f555, %f554;
@@ -654,7 +654,7 @@ $L__BB0_219:
 
 $L__BB0_224:
 	mov.u32 	%r515, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r515;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r515;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_80:
@@ -669,14 +669,14 @@ $L__BB0_80:
 	bra.uni 	$L__BB0_146;
 
 $L__BB0_83:
-	ld.shared.u32 	%r111, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r111, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p208, %r111, 0;
 	@%p208 bra 	$L__BB0_331;
 
 	add.s32 	%r112, %r111, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r112;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r112;
 	shl.b32 	%r656, %r111, 4;
-	mov.u32 	%r657, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r657, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r113, %r657, %r656;
 	ld.shared.v4.f32 	{%f727, %f728, %f729, %f730}, [%r113+-16];
 	add.f32 	%f731, %f730, 0fBF800000;
@@ -690,7 +690,7 @@ $L__BB0_320:
 	@%p210 bra 	$L__BB0_330;
 
 	add.s32 	%r114, %r111, -2;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r114;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r114;
 	ld.shared.v4.f32 	{%f733, %f734, %f735, %f736}, [%r113+-32];
 	add.f32 	%f737, %f736, 0fBF800000;
 	abs.f32 	%f738, %f737;
@@ -700,7 +700,7 @@ $L__BB0_320:
 
 $L__BB0_329:
 	mov.u32 	%r662, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r662;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r662;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_50:
@@ -715,12 +715,12 @@ $L__BB0_50:
 	bra.uni 	$L__BB0_146;
 
 $L__BB0_53:
-	ld.shared.u32 	%r139, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r139, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p243, %r139, 0;
 	@%p243 bra 	$L__BB0_384;
 
 	add.s32 	%r726, %r139, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r726;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r726;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_132:
@@ -735,14 +735,14 @@ $L__BB0_132:
 	bra.uni 	$L__BB0_146;
 
 $L__BB0_135:
-	ld.shared.u32 	%r273, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r273, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p372, %r273, 0;
 	@%p372 bra 	$L__BB0_567;
 
 	add.s32 	%r274, %r273, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r274;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r274;
 	shl.b32 	%r1069, %r273, 4;
-	mov.u32 	%r1070, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r1070, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r1071, %r1070, %r1069;
 	ld.shared.v4.f32 	{%f1196, %f1197, %f1198, %f1199}, [%r1071+-16];
 	add.f32 	%f1200, %f1199, 0fBF800000;
@@ -758,12 +758,12 @@ $L__BB0_564:
 
 $L__BB0_566:
 	mov.u32 	%r1073, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r1073;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r1073;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_552:
 	mov.u32 	%r1061, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r1061;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r1061;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_10:
@@ -778,7 +778,7 @@ $L__BB0_12:
 	ld.param.u64 	%rd188, [modular_rpn_geometric_kernel_param_3];
 	setp.eq.s64 	%p420, %rd188, 0;
 	mov.f32 	%f1305, 0f00000000;
-	ld.shared.u32 	%r293, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE12vector_index];
+	ld.shared.u32 	%r293, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE12vector_index];
 	mov.f32 	%f1306, %f1305;
 	mov.f32 	%f1307, %f1305;
 	@%p420 bra 	$L__BB0_14;
@@ -798,15 +798,15 @@ $L__BB0_12:
 
 $L__BB0_14:
 	add.s32 	%r1121, %r293, 1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE12vector_index], %r1121;
-	ld.shared.u32 	%r294, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE12vector_index], %r1121;
+	ld.shared.u32 	%r294, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.gt.u32 	%p421, %r294, 63;
 	@%p421 bra 	$L__BB0_604;
 	bra.uni 	$L__BB0_15;
 
 $L__BB0_604:
 	mov.u32 	%r1126, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r1126;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r1126;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_71:
@@ -818,14 +818,14 @@ $L__BB0_71:
 	bra.uni 	$L__BB0_146;
 
 $L__BB0_73:
-	ld.shared.u32 	%r123, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r123, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p223, %r123, 0;
 	@%p223 bra 	$L__BB0_352;
 
 	add.s32 	%r124, %r123, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r124;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r124;
 	shl.b32 	%r681, %r123, 4;
-	mov.u32 	%r682, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r682, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r683, %r682, %r681;
 	ld.shared.v4.f32 	{%f778, %f779, %f780, %f781}, [%r683+-16];
 	add.f32 	%f783, %f781, 0fBF800000;
@@ -836,7 +836,7 @@ $L__BB0_73:
 
 $L__BB0_351:
 	mov.u32 	%r685, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r685;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r685;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_38:
@@ -848,14 +848,14 @@ $L__BB0_38:
 	bra.uni 	$L__BB0_146;
 
 $L__BB0_40:
-	ld.shared.u32 	%r201, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r201, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p291, %r201, 0;
 	@%p291 bra 	$L__BB0_468;
 
 	add.s32 	%r202, %r201, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r202;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r202;
 	shl.b32 	%r859, %r201, 4;
-	mov.u32 	%r860, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r860, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r203, %r860, %r859;
 	ld.shared.v4.f32 	{%f975, %f976, %f977, %f978}, [%r203+-16];
 	add.f32 	%f980, %f978, 0fBF800000;
@@ -869,7 +869,7 @@ $L__BB0_451:
 	@%p293 bra 	$L__BB0_467;
 
 	add.s32 	%r204, %r201, -2;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r204;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r204;
 	ld.shared.v4.f32 	{%f982, %f983, %f984, %f985}, [%r203+-32];
 	add.f32 	%f987, %f985, 0fBF800000;
 	abs.f32 	%f988, %f987;
@@ -902,7 +902,7 @@ $L__BB0_120:
 	bra.uni 	$L__BB0_146;
 
 $L__BB0_122:
-	ld.shared.u32 	%r18, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r18, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p119, %r18, 0;
 	@%p119 bra 	$L__BB0_129;
 
@@ -910,7 +910,7 @@ $L__BB0_122:
 
 $L__BB0_124:
 	shl.b32 	%r357, %r1231, 4;
-	mov.u32 	%r358, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r358, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r20, %r358, %r357;
 	ld.shared.f32 	%f518, [%r20];
 	abs.f32 	%f519, %f518;
@@ -943,7 +943,7 @@ $L__BB0_129:
 
 $L__BB0_197:
 	mov.u32 	%r364, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r364;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r364;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_92:
@@ -955,14 +955,14 @@ $L__BB0_92:
 	bra.uni 	$L__BB0_146;
 
 $L__BB0_94:
-	ld.shared.u32 	%r62, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r62, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p170, %r62, 0;
 	@%p170 bra 	$L__BB0_266;
 
 	add.s32 	%r63, %r62, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r63;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r63;
 	shl.b32 	%r562, %r62, 4;
-	mov.u32 	%r563, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r563, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r64, %r563, %r562;
 	ld.shared.v4.f32 	{%f617, %f618, %f619, %f620}, [%r64+-16];
 	add.f32 	%f621, %f620, 0fBF800000;
@@ -973,7 +973,7 @@ $L__BB0_94:
 
 $L__BB0_265:
 	mov.u32 	%r567, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r567;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r567;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_144:
@@ -985,14 +985,14 @@ $L__BB0_144:
 	bra.uni 	$L__BB0_146;
 
 $L__BB0_594:
-	ld.shared.u32 	%r1264, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r1264, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p408, %r1264, 0;
 	@%p408 bra 	$L__BB0_603;
 
 	add.s32 	%r289, %r1264, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r289;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r289;
 	shl.b32 	%r1100, %r1264, 4;
-	mov.u32 	%r1101, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r1101, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r1102, %r1101, %r1100;
 	ld.shared.v4.f32 	{%f1241, %f1242, %f1243, %f1244}, [%r1102+-16];
 	add.f32 	%f1245, %f1244, 0fBF800000;
@@ -1009,33 +1009,33 @@ $L__BB0_597:
 
 $L__BB0_599:
 	mov.u32 	%r1107, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r1107;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r1107;
 	mov.u32 	%r1264, %r289;
 	bra.uni 	$L__BB0_600;
 
 $L__BB0_504:
 	mov.u32 	%r957, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r957;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r957;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_468:
 	mov.u32 	%r865, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r865;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r865;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_42:
 	mov.u32 	%r861, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r861;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r861;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_164:
 	mov.u32 	%r321, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r321;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r321;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_149:
 	mov.u32 	%r317, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r317;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r317;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_23:
@@ -1044,14 +1044,14 @@ $L__BB0_23:
 	bra.uni 	$L__BB0_146;
 
 $L__BB0_24:
-	ld.shared.u32 	%r11, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r11, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p107, %r11, 0;
 	@%p107 bra 	$L__BB0_185;
 
 	add.s32 	%r12, %r11, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r12;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r12;
 	shl.b32 	%r343, %r11, 4;
-	mov.u32 	%r344, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r344, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r345, %r344, %r343;
 	ld.shared.v4.f32 	{%f495, %f496, %f497, %f498}, [%r345+-16];
 	add.f32 	%f499, %f498, 0fBF800000;
@@ -1067,7 +1067,7 @@ $L__BB0_182:
 
 $L__BB0_184:
 	mov.u32 	%r347, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r347;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r347;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_17:
@@ -1076,14 +1076,14 @@ $L__BB0_17:
 	bra.uni 	$L__BB0_146;
 
 $L__BB0_18:
-	ld.shared.u32 	%r7, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r7, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p82, %r7, 0;
 	@%p82 bra 	$L__BB0_181;
 
 	add.s32 	%r8, %r7, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r8;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r8;
 	shl.b32 	%r322, %r7, 4;
-	mov.u32 	%r323, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r323, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r9, %r323, %r322;
 	ld.shared.v4.f32 	{%f404, %f405, %f406, %f407}, [%r9+-16];
 	add.f32 	%f409, %f407, 0fBF800000;
@@ -1097,7 +1097,7 @@ $L__BB0_165:
 	@%p84 bra 	$L__BB0_180;
 
 	add.s32 	%r10, %r7, -2;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r10;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r10;
 	ld.shared.v4.f32 	{%f411, %f412, %f413, %f414}, [%r9+-32];
 	add.f32 	%f416, %f414, 0fBF800000;
 	abs.f32 	%f417, %f416;
@@ -1218,18 +1218,18 @@ $L__BB0_177:
 
 $L__BB0_179:
 	mov.u32 	%r340, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r340;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r340;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_365:
-	ld.shared.u32 	%r133, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r133, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p235, %r133, 0;
 	@%p235 bra 	$L__BB0_375;
 
 	add.s32 	%r134, %r133, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r134;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r134;
 	shl.b32 	%r700, %r133, 4;
-	mov.u32 	%r701, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r701, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r135, %r701, %r700;
 	ld.shared.v4.f32 	{%f825, %f826, %f827, %f828}, [%r135+-16];
 	add.f32 	%f829, %f828, 0fBF800000;
@@ -1240,18 +1240,18 @@ $L__BB0_365:
 
 $L__BB0_374:
 	mov.u32 	%r705, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r705;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r705;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_469:
-	ld.shared.u32 	%r205, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r205, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p304, %r205, 0;
 	@%p304 bra 	$L__BB0_477;
 
 	add.s32 	%r206, %r205, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r206;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r206;
 	shl.b32 	%r866, %r205, 4;
-	mov.u32 	%r867, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r867, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r868, %r867, %r866;
 	ld.shared.v4.f32 	{%f992, %f993, %f994, %f995}, [%r868+-16];
 	add.f32 	%f997, %f995, 0fBF800000;
@@ -1262,18 +1262,18 @@ $L__BB0_469:
 
 $L__BB0_476:
 	mov.u32 	%r870, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r870;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r870;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_208:
-	ld.shared.u32 	%r44, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r44, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p139, %r44, 0;
 	@%p139 bra 	$L__BB0_218;
 
 	add.s32 	%r45, %r44, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r45;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r45;
 	shl.b32 	%r504, %r44, 4;
-	mov.u32 	%r505, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r505, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r46, %r505, %r504;
 	ld.shared.v4.f32 	{%f528, %f529, %f530, %f531}, [%r46+-16];
 	add.f32 	%f532, %f531, 0fBF800000;
@@ -1284,18 +1284,18 @@ $L__BB0_208:
 
 $L__BB0_217:
 	mov.u32 	%r509, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r509;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r509;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_310:
-	ld.shared.u32 	%r108, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r108, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p203, %r108, 0;
 	@%p203 bra 	$L__BB0_319;
 
 	add.s32 	%r109, %r108, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r109;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r109;
 	shl.b32 	%r646, %r108, 4;
-	mov.u32 	%r647, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r647, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r648, %r647, %r646;
 	ld.shared.v4.f32 	{%f700, %f701, %f702, %f703}, [%r648+-16];
 	add.f32 	%f704, %f703, 0fBF800000;
@@ -1311,18 +1311,18 @@ $L__BB0_313:
 
 $L__BB0_318:
 	mov.u32 	%r654, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r654;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r654;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_437:
-	ld.shared.u32 	%r194, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r194, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p282, %r194, 0;
 	@%p282 bra 	$L__BB0_450;
 
 	add.s32 	%r195, %r194, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r195;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r195;
 	shl.b32 	%r849, %r194, 4;
-	mov.u32 	%r850, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r850, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r196, %r850, %r849;
 	ld.shared.v4.f32 	{%f950, %f951, %f952, %f953}, [%r196+-16];
 	add.f32 	%f954, %f953, 0fBF800000;
@@ -1336,7 +1336,7 @@ $L__BB0_440:
 	@%p284 bra 	$L__BB0_449;
 
 	add.s32 	%r197, %r194, -2;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r197;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r197;
 	ld.shared.v4.f32 	{%f956, %f957, %f958, %f959}, [%r196+-32];
 	add.f32 	%f960, %f959, 0fBF800000;
 	abs.f32 	%f961, %f960;
@@ -1346,18 +1346,18 @@ $L__BB0_440:
 
 $L__BB0_448:
 	mov.u32 	%r856, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r856;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r856;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_568:
-	ld.shared.u32 	%r276, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r276, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p379, %r276, 0;
 	@%p379 bra 	$L__BB0_578;
 
 	add.s32 	%r277, %r276, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r277;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r277;
 	shl.b32 	%r1075, %r276, 4;
-	mov.u32 	%r1076, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r1076, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r278, %r1076, %r1075;
 	ld.shared.v4.f32 	{%f1205, %f1206, %f1207, %f1208}, [%r278+-16];
 	add.f32 	%f1209, %f1208, 0fBF800000;
@@ -1371,7 +1371,7 @@ $L__BB0_571:
 	@%p381 bra 	$L__BB0_577;
 
 	add.s32 	%r279, %r276, -2;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r279;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r279;
 	ld.shared.v4.f32 	{%f1211, %f1212, %f1213, %f1214}, [%r278+-32];
 	add.f32 	%f1215, %f1214, 0fBF800000;
 	abs.f32 	%f1216, %f1215;
@@ -1387,40 +1387,40 @@ $L__BB0_574:
 
 $L__BB0_576:
 	mov.u32 	%r1079, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r1079;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r1079;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_379:
-	ld.shared.u32 	%r138, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r138, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.lt.u32 	%p241, %r138, 2;
 	@%p241 bra 	$L__BB0_383;
 	bra.uni 	$L__BB0_380;
 
 $L__BB0_383:
 	mov.u32 	%r725, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r725;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r725;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_376:
-	ld.shared.u32 	%r137, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r137, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.lt.u32 	%p240, %r137, 3;
 	@%p240 bra 	$L__BB0_378;
 	bra.uni 	$L__BB0_377;
 
 $L__BB0_378:
 	mov.u32 	%r719, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r719;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r719;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_495:
-	ld.shared.u32 	%r215, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r215, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p319, %r215, 0;
 	@%p319 bra 	$L__BB0_501;
 
 	add.s32 	%r216, %r215, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r216;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r216;
 	shl.b32 	%r918, %r215, 4;
-	mov.u32 	%r919, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r919, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r920, %r919, %r918;
 	ld.shared.v4.f32 	{%f1045, %f1046, %f1047, %f1048}, [%r920+-16];
 	add.f32 	%f1049, %f1048, 0fBF800000;
@@ -1431,18 +1431,18 @@ $L__BB0_495:
 
 $L__BB0_500:
 	mov.u32 	%r952, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r952;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r952;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_486:
-	ld.shared.u32 	%r212, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r212, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p315, %r212, 0;
 	@%p315 bra 	$L__BB0_494;
 
 	add.s32 	%r213, %r212, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r213;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r213;
 	shl.b32 	%r882, %r212, 4;
-	mov.u32 	%r883, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r883, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r884, %r883, %r882;
 	ld.shared.v4.f32 	{%f1023, %f1024, %f1025, %f1026}, [%r884+-16];
 	add.f32 	%f1027, %f1026, 0fBF800000;
@@ -1515,15 +1515,15 @@ $L__BB0_491:
 
 $L__BB0_493:
 	mov.u32 	%r916, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r916;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r916;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_238:
-	ld.shared.u32 	%r56, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r56, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.lt.u32 	%p157, %r56, 3;
 	add.s32 	%r57, %r56, -3;
 	shl.b32 	%r525, %r56, 4;
-	mov.u32 	%r526, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r526, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r527, %r526, %r525;
 	@%p157 bra 	$L__BB0_240;
 
@@ -1540,7 +1540,7 @@ $L__BB0_253:
 	st.local.v4.f32 	[%rd3], {%f609, %f609, %f609, %f609};
 	st.local.v4.f32 	[%rd4], {%f609, %f609, %f609, %f609};
 	add.s32 	%r533, %r56, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r533;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r533;
 	add.s32 	%r1198, %r527, -48;
 	ld.shared.v4.u32 	{%r534, %r535, %r536, %r537}, [%r1198+32];
 	st.local.v4.u32 	[%rd3], {%r534, %r535, %r536, %r537};
@@ -1548,7 +1548,7 @@ $L__BB0_253:
 	@%p165 bra 	$L__BB0_261;
 
 	add.s32 	%r61, %r56, -2;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r61;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r61;
 	add.s32 	%r1199, %r527, -48;
 	ld.shared.v4.u32 	{%r542, %r543, %r544, %r545}, [%r1199+16];
 	st.local.v4.u32 	[%rd4], {%r542, %r543, %r544, %r545};
@@ -1556,7 +1556,7 @@ $L__BB0_253:
 	@%p166 bra 	$L__BB0_260;
 
 	add.s32 	%r1200, %r56, -3;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r1200;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r1200;
 	add.s32 	%r1201, %r527, -48;
 	ld.shared.v4.f32 	{%f610, %f611, %f612, %f613}, [%r1201];
 	add.f32 	%f614, %f613, 0fBF800000;
@@ -1572,18 +1572,18 @@ $L__BB0_257:
 
 $L__BB0_259:
 	mov.u32 	%r559, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r559;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r559;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_227:
-	ld.shared.u32 	%r52, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r52, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p152, %r52, 0;
 	@%p152 bra 	$L__BB0_237;
 
 	add.s32 	%r53, %r52, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r53;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r53;
 	shl.b32 	%r518, %r52, 4;
-	mov.u32 	%r519, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r519, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r54, %r519, %r518;
 	ld.shared.v4.f32 	{%f564, %f565, %f566, %f567}, [%r54+-16];
 	add.f32 	%f568, %f567, 0fBF800000;
@@ -1594,18 +1594,18 @@ $L__BB0_227:
 
 $L__BB0_236:
 	mov.u32 	%r523, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r523;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r523;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_343:
-	ld.shared.u32 	%r120, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r120, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p220, %r120, 0;
 	@%p220 bra 	$L__BB0_349;
 
 	add.s32 	%r121, %r120, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r121;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r121;
 	shl.b32 	%r672, %r120, 4;
-	mov.u32 	%r673, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r673, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r674, %r673, %r672;
 	ld.shared.v4.f32 	{%f767, %f768, %f769, %f770}, [%r674+-16];
 	add.f32 	%f771, %f770, 0fBF800000;
@@ -1621,18 +1621,18 @@ $L__BB0_346:
 
 $L__BB0_348:
 	mov.u32 	%r679, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r679;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r679;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_332:
-	ld.shared.u32 	%r116, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r116, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p215, %r116, 0;
 	@%p215 bra 	$L__BB0_342;
 
 	add.s32 	%r117, %r116, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r117;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r117;
 	shl.b32 	%r665, %r116, 4;
-	mov.u32 	%r666, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r666, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r118, %r666, %r665;
 	ld.shared.v4.f32 	{%f754, %f755, %f756, %f757}, [%r118+-16];
 	add.f32 	%f758, %f757, 0fBF800000;
@@ -1643,11 +1643,11 @@ $L__BB0_332:
 
 $L__BB0_341:
 	mov.u32 	%r670, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r670;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r670;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_388:
-	ld.shared.u32 	%r141, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r141, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p245, %r141, 0;
 	@%p245 bra 	$L__BB0_392;
 
@@ -1657,29 +1657,29 @@ $L__BB0_388:
 
 $L__BB0_391:
 	mov.u32 	%r744, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r744;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r744;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_385:
-	ld.shared.u32 	%r140, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r140, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.lt.u32 	%p244, %r140, 2;
 	@%p244 bra 	$L__BB0_387;
 	bra.uni 	$L__BB0_386;
 
 $L__BB0_387:
 	mov.u32 	%r739, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r739;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r739;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_186:
-	ld.shared.u32 	%r14, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r14, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p110, %r14, 0;
 	@%p110 bra 	$L__BB0_196;
 
 	add.s32 	%r15, %r14, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r15;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r15;
 	shl.b32 	%r349, %r14, 4;
-	mov.u32 	%r350, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r350, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r16, %r350, %r349;
 	ld.shared.v4.f32 	{%f503, %f504, %f505, %f506}, [%r16+-16];
 	add.f32 	%f507, %f506, 0fBF800000;
@@ -1693,7 +1693,7 @@ $L__BB0_189:
 	@%p112 bra 	$L__BB0_195;
 
 	add.s32 	%r17, %r14, -2;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r17;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r17;
 	ld.shared.v4.f32 	{%f509, %f510, %f511, %f512}, [%r16+-32];
 	add.f32 	%f513, %f512, 0fBF800000;
 	abs.f32 	%f514, %f513;
@@ -1709,18 +1709,18 @@ $L__BB0_192:
 
 $L__BB0_194:
 	mov.u32 	%r353, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r353;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r353;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_553:
-	ld.shared.u32 	%r269, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r269, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p363, %r269, 0;
 	@%p363 bra 	$L__BB0_563;
 
 	add.s32 	%r270, %r269, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r270;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r270;
 	shl.b32 	%r1062, %r269, 4;
-	mov.u32 	%r1063, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r1063, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r271, %r1063, %r1062;
 	ld.shared.v4.f32 	{%f1181, %f1182, %f1183, %f1184}, [%r271+-16];
 	add.f32 	%f1185, %f1184, 0fBF800000;
@@ -1734,7 +1734,7 @@ $L__BB0_556:
 	@%p365 bra 	$L__BB0_562;
 
 	add.s32 	%r272, %r269, -2;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r272;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r272;
 	ld.shared.v4.f32 	{%f1187, %f1188, %f1189, %f1190}, [%r271+-32];
 	add.f32 	%f1191, %f1190, 0fBF800000;
 	abs.f32 	%f1192, %f1191;
@@ -1750,12 +1750,12 @@ $L__BB0_559:
 
 $L__BB0_561:
 	mov.u32 	%r1066, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r1066;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r1066;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_605:
 	setp.eq.s64 	%p422, %rd50, 0;
-	ld.shared.u32 	%rd45, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE12scalar_index];
+	ld.shared.u32 	%rd45, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE12scalar_index];
 	mov.f32 	%f1308, 0f00000000;
 	@%p422 bra 	$L__BB0_607;
 
@@ -1766,26 +1766,26 @@ $L__BB0_605:
 $L__BB0_607:
 	cvt.u32.u64 	%r1127, %rd45;
 	add.s32 	%r1128, %r1127, 1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE12scalar_index], %r1128;
-	ld.shared.u32 	%r295, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE12scalar_index], %r1128;
+	ld.shared.u32 	%r295, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.gt.u32 	%p423, %r295, 63;
 	@%p423 bra 	$L__BB0_609;
 	bra.uni 	$L__BB0_608;
 
 $L__BB0_609:
 	mov.u32 	%r1133, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r1133;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r1133;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_353:
-	ld.shared.u32 	%r126, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r126, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p227, %r126, 0;
 	@%p227 bra 	$L__BB0_359;
 
 	add.s32 	%r127, %r126, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r127;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r127;
 	shl.b32 	%r687, %r126, 4;
-	mov.u32 	%r688, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r688, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r689, %r688, %r687;
 	ld.shared.v4.f32 	{%f793, %f794, %f795, %f796}, [%r689+-16];
 	add.f32 	%f797, %f796, 0fBF800000;
@@ -1796,16 +1796,16 @@ $L__BB0_353:
 
 $L__BB0_358:
 	mov.u32 	%r691, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r691;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r691;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_198:
-	ld.shared.u32 	%r365, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE16checkpoint_valid];
+	ld.shared.u32 	%r365, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE16checkpoint_valid];
 	setp.eq.s32 	%p126, %r365, 0;
 	@%p126 bra 	$L__BB0_207;
 
-	ld.shared.u32 	%r22, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE15checkpoint_size];
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r22;
+	ld.shared.u32 	%r22, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE15checkpoint_size];
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r22;
 	setp.eq.s32 	%p127, %r22, 0;
 	@%p127 bra 	$L__BB0_610;
 
@@ -1822,9 +1822,9 @@ $L__BB0_198:
 
 $L__BB0_202:
 	shl.b32 	%r370, %r1234, 4;
-	mov.u32 	%r371, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE16checkpoint_stack;
+	mov.u32 	%r371, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE16checkpoint_stack;
 	add.s32 	%r372, %r371, %r370;
-	mov.u32 	%r373, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r373, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r374, %r373, %r370;
 	ld.shared.v4.u32 	{%r375, %r376, %r377, %r378}, [%r372];
 	st.shared.v4.u32 	[%r374], {%r375, %r376, %r377, %r378};
@@ -1844,9 +1844,9 @@ $L__BB0_203:
 	@%p130 bra 	$L__BB0_610;
 
 	shl.b32 	%r407, %r1234, 4;
-	mov.u32 	%r408, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r408, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r32, %r408, %r407;
-	mov.u32 	%r409, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE16checkpoint_stack;
+	mov.u32 	%r409, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE16checkpoint_stack;
 	add.s32 	%r31, %r409, %r407;
 	ld.shared.v4.u32 	{%r410, %r411, %r412, %r413}, [%r31];
 	st.shared.v4.u32 	[%r32], {%r410, %r411, %r412, %r413};
@@ -1863,14 +1863,14 @@ $L__BB0_203:
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_267:
-	ld.shared.u32 	%r66, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r66, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p175, %r66, 0;
 	@%p175 bra 	$L__BB0_277;
 
 	add.s32 	%r67, %r66, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r67;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r67;
 	shl.b32 	%r569, %r66, 4;
-	mov.u32 	%r570, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r570, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r68, %r570, %r569;
 	ld.shared.v4.f32 	{%f630, %f631, %f632, %f633}, [%r68+-16];
 	add.f32 	%f634, %f633, 0fBF800000;
@@ -1884,7 +1884,7 @@ $L__BB0_270:
 	@%p177 bra 	$L__BB0_276;
 
 	add.s32 	%r69, %r66, -2;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r69;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r69;
 	ld.shared.v4.f32 	{%f636, %f637, %f638, %f639}, [%r68+-32];
 	add.f32 	%f640, %f639, 0fBF800000;
 	abs.f32 	%f641, %f640;
@@ -1894,18 +1894,18 @@ $L__BB0_270:
 
 $L__BB0_275:
 	mov.u32 	%r573, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r573;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r573;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_583:
-	ld.shared.u32 	%r283, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r283, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
 	setp.eq.s32 	%p395, %r283, 0;
 	@%p395 bra 	$L__BB0_593;
 
 	add.s32 	%r284, %r283, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r284;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r284;
 	shl.b32 	%r1088, %r283, 4;
-	mov.u32 	%r1089, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r1089, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r285, %r1089, %r1088;
 	ld.shared.v4.f32 	{%f1229, %f1230, %f1231, %f1232}, [%r285+-16];
 	add.f32 	%f1233, %f1232, 0fBF800000;
@@ -1919,7 +1919,7 @@ $L__BB0_586:
 	@%p397 bra 	$L__BB0_592;
 
 	add.s32 	%r286, %r283, -2;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r286;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r286;
 	ld.shared.v4.f32 	{%f1235, %f1236, %f1237, %f1238}, [%r285+-32];
 	add.f32 	%f1239, %f1238, 0fBF800000;
 	abs.f32 	%f1240, %f1239;
@@ -1948,12 +1948,12 @@ $L__BB0_589:
 
 $L__BB0_591:
 	mov.u32 	%r1097, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r1097;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r1097;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_146:
 	mov.u32 	%r1134, 9001;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r1134;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r1134;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_506:
@@ -1990,7 +1990,7 @@ $L__BB0_240:
 	@%p159 bra 	$L__BB0_252;
 
 	add.s32 	%r59, %r56, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r59;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r59;
 	add.s32 	%r1194, %r527, -48;
 	ld.shared.v4.f32 	{%f589, %f590, %f591, %f592}, [%r1194+32];
 	add.f32 	%f593, %f592, 0fBF800000;
@@ -2001,27 +2001,27 @@ $L__BB0_240:
 
 $L__BB0_251:
 	mov.u32 	%r531, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r531;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r531;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_467:
 	mov.u32 	%r864, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r864;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r864;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_620:
 	mov.u32 	%r359, 9005;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r359;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r359;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_15:
 	shl.b32 	%r1122, %r294, 4;
-	mov.u32 	%r1123, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r1123, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r1124, %r1123, %r1122;
 	mov.f32 	%f1256, 0f3F800000;
 	st.shared.v4.f32 	[%r1124], {%f1305, %f1306, %f1307, %f1256};
 	add.s32 	%r1125, %r294, 1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r1125;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r1125;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_380:
@@ -2031,12 +2031,12 @@ $L__BB0_380:
 
 $L__BB0_382:
 	mov.u32 	%r724, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r724;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r724;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_377:
 	shl.b32 	%r708, %r137, 4;
-	mov.u32 	%r709, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r709, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r710, %r709, %r708;
 	ld.shared.v4.f32 	{%f840, %f841, %f842, %f843}, [%r710+-16];
 	ld.shared.v4.f32 	{%f848, %f849, %f850, %f851}, [%r710+-48];
@@ -2048,7 +2048,7 @@ $L__BB0_377:
 
 $L__BB0_386:
 	shl.b32 	%r728, %r140, 4;
-	mov.u32 	%r729, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r729, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r730, %r729, %r728;
 	ld.shared.v4.f32 	{%f864, %f865, %f866, %f867}, [%r730+-16];
 	ld.shared.v4.u32 	{%r731, %r732, %r733, %r734}, [%r730+-32];
@@ -2058,187 +2058,187 @@ $L__BB0_386:
 
 $L__BB0_608:
 	shl.b32 	%r1129, %r295, 4;
-	mov.u32 	%r1130, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r1130, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r1131, %r1130, %r1129;
 	mov.f32 	%f1258, 0f00000000;
 	st.shared.v4.f32 	[%r1131], {%f1308, %f1258, %f1258, %f1258};
 	add.s32 	%r1132, %r295, 1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r1132;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r1132;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_453:
 	mov.u32 	%r862, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r862;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r862;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_163:
 	mov.u32 	%r320, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r320;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r320;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_152:
 	mov.u32 	%r318, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r318;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r318;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_364:
 	mov.u32 	%r699, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r699;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r699;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_309:
 	mov.u32 	%r645, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r645;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r645;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_436:
 	mov.u32 	%r848, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r848;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r848;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_582:
 	mov.u32 	%r1087, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r1087;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r1087;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_485:
 	mov.u32 	%r881, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r881;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r881;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_226:
 	mov.u32 	%r517, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r517;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r517;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_331:
 	mov.u32 	%r664, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r664;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r664;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_384:
 	mov.u32 	%r727, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r727;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r727;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_567:
 	mov.u32 	%r1074, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r1074;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r1074;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_352:
 	mov.u32 	%r686, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r686;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r686;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_266:
 	mov.u32 	%r568, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r568;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r568;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_603:
 	mov.u32 	%r1117, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r1117;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r1117;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_185:
 	mov.u32 	%r348, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r348;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r348;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_181:
 	mov.u32 	%r342, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r342;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r342;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_375:
 	mov.u32 	%r706, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r706;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r706;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_477:
 	mov.u32 	%r871, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r871;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r871;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_218:
 	mov.u32 	%r510, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r510;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r510;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_319:
 	mov.u32 	%r655, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r655;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r655;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_450:
 	mov.u32 	%r858, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r858;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r858;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_578:
 	mov.u32 	%r1081, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r1081;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r1081;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_501:
 	mov.u32 	%r953, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r953;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r953;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_494:
 	mov.u32 	%r917, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r917;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r917;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_237:
 	mov.u32 	%r524, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r524;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r524;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_349:
 	mov.u32 	%r680, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r680;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r680;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_342:
 	mov.u32 	%r671, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r671;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r671;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_392:
 	mov.u32 	%r745, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r745;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r745;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_196:
 	mov.u32 	%r355, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r355;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r355;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_563:
 	mov.u32 	%r1068, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r1068;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r1068;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_359:
 	mov.u32 	%r692, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r692;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r692;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_207:
 	mov.u32 	%r434, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r434;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r434;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_277:
 	mov.u32 	%r575, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r575;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r575;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_593:
 	mov.u32 	%r1099, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r1099;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r1099;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_67:
@@ -2246,7 +2246,7 @@ $L__BB0_67:
 	@%p232 bra 	$L__BB0_362;
 
 	add.s32 	%r132, %r129, -2;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r132;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r132;
 	ld.shared.v4.f32 	{%f809, %f810, %f811, %f812}, [%r131+-32];
 	add.f32 	%f813, %f812, 0fBF800000;
 	abs.f32 	%f814, %f813;
@@ -2256,7 +2256,7 @@ $L__BB0_67:
 
 $L__BB0_361:
 	mov.u32 	%r696, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r696;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r696;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_536:
@@ -2331,37 +2331,37 @@ $L__BB0_531:
 
 $L__BB0_91:
 	mov.u32 	%r578, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r578;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r578;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_49:
 	mov.u32 	%r748, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r748;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r748;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_143:
 	mov.u32 	%r1085, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r1085;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r1085;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_34:
 	mov.u32 	%r874, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r874;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r874;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_107:
 	mov.u32 	%r513, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r513;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r513;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_85:
 	mov.u32 	%r658, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r658;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r658;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_137:
 	mov.u32 	%r1072, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r1072;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r1072;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_75:
@@ -2387,7 +2387,7 @@ $L__BB0_77:
 
 $L__BB0_350:
 	mov.u32 	%r684, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r684;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r684;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_96:
@@ -2395,7 +2395,7 @@ $L__BB0_96:
 	@%p172 bra 	$L__BB0_264;
 
 	add.s32 	%r65, %r62, -2;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r65;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r65;
 	ld.shared.v4.f32 	{%f623, %f624, %f625, %f626}, [%r64+-32];
 	add.f32 	%f627, %f626, 0fBF800000;
 	abs.f32 	%f628, %f627;
@@ -2405,22 +2405,22 @@ $L__BB0_96:
 
 $L__BB0_263:
 	mov.u32 	%r565, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r565;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r565;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_596:
 	mov.u32 	%r1103, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r1103;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r1103;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_26:
 	mov.u32 	%r346, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r346;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r346;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_20:
 	mov.u32 	%r324, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r324;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r324;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_367:
@@ -2428,7 +2428,7 @@ $L__BB0_367:
 	@%p237 bra 	$L__BB0_373;
 
 	add.s32 	%r136, %r133, -2;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r136;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r136;
 	ld.shared.v4.f32 	{%f831, %f832, %f833, %f834}, [%r135+-32];
 	add.f32 	%f835, %f834, 0fBF800000;
 	abs.f32 	%f836, %f835;
@@ -2438,7 +2438,7 @@ $L__BB0_367:
 
 $L__BB0_372:
 	mov.u32 	%r703, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r703;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r703;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_471:
@@ -2464,7 +2464,7 @@ $L__BB0_473:
 
 $L__BB0_475:
 	mov.u32 	%r869, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r869;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r869;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_210:
@@ -2472,7 +2472,7 @@ $L__BB0_210:
 	@%p141 bra 	$L__BB0_216;
 
 	add.s32 	%r47, %r44, -2;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r47;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r47;
 	ld.shared.v4.f32 	{%f534, %f535, %f536, %f537}, [%r46+-32];
 	add.f32 	%f538, %f537, 0fBF800000;
 	abs.f32 	%f539, %f538;
@@ -2482,22 +2482,22 @@ $L__BB0_210:
 
 $L__BB0_215:
 	mov.u32 	%r507, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r507;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r507;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_312:
 	mov.u32 	%r649, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r649;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r649;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_439:
 	mov.u32 	%r851, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r851;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r851;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_570:
 	mov.u32 	%r1077, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r1077;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r1077;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_497:
@@ -2507,12 +2507,12 @@ $L__BB0_497:
 
 $L__BB0_499:
 	mov.u32 	%r951, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r951;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r951;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_488:
 	mov.u32 	%r885, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r885;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r885;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_229:
@@ -2520,7 +2520,7 @@ $L__BB0_229:
 	@%p154 bra 	$L__BB0_235;
 
 	add.s32 	%r55, %r52, -2;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r55;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r55;
 	ld.shared.v4.f32 	{%f570, %f571, %f572, %f573}, [%r54+-32];
 	add.f32 	%f574, %f573, 0fBF800000;
 	abs.f32 	%f575, %f574;
@@ -2530,12 +2530,12 @@ $L__BB0_229:
 
 $L__BB0_234:
 	mov.u32 	%r521, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r521;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r521;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_345:
 	mov.u32 	%r675, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r675;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r675;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_334:
@@ -2543,7 +2543,7 @@ $L__BB0_334:
 	@%p217 bra 	$L__BB0_340;
 
 	add.s32 	%r119, %r116, -2;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r119;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r119;
 	ld.shared.v4.f32 	{%f760, %f761, %f762, %f763}, [%r118+-32];
 	add.f32 	%f764, %f763, 0fBF800000;
 	abs.f32 	%f765, %f764;
@@ -2553,27 +2553,27 @@ $L__BB0_334:
 
 $L__BB0_339:
 	mov.u32 	%r668, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r668;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r668;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_390:
 	shl.b32 	%r740, %r141, 4;
-	mov.u32 	%r741, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r741, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r742, %r741, %r740;
 	ld.shared.v4.f32 	{%f872, %f873, %f874, %f875}, [%r742+-16];
 	st.shared.v4.f32 	[%r742], {%f872, %f873, %f874, %f875};
 	add.s32 	%r743, %r141, 1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r743;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r743;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_188:
 	mov.u32 	%r351, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r351;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r351;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_555:
 	mov.u32 	%r1064, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r1064;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r1064;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_355:
@@ -2586,17 +2586,17 @@ $L__BB0_355:
 
 $L__BB0_357:
 	mov.u32 	%r690, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r690;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r690;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_269:
 	mov.u32 	%r571, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r571;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r571;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_585:
 	mov.u32 	%r1090, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r1090;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r1090;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_539:
@@ -2629,28 +2629,28 @@ $L__BB0_547:
 
 $L__BB0_252:
 	mov.u32 	%r532, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r532;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r532;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_381:
 	shl.b32 	%r720, %r138, 4;
-	mov.u32 	%r721, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r721, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r722, %r721, %r720;
 	ld.shared.v4.f32 	{%f856, %f857, %f858, %f859}, [%r722+-32];
 	st.shared.v4.f32 	[%r722], {%f856, %f857, %f858, %f859};
 	add.s32 	%r723, %r138, 1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r723;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r723;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_130:
 	shl.b32 	%r360, %r18, 4;
-	mov.u32 	%r361, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r361, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r362, %r361, %r360;
 	mov.f32 	%f526, 0f00000000;
 	mov.f32 	%f527, 0f3F800000;
 	st.shared.v4.f32 	[%r362], {%f527, %f526, %f526, %f526};
 	add.s32 	%r363, %r18, 1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r363;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r363;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_458:
@@ -2668,7 +2668,7 @@ $L__BB0_242:
 	@%p161 bra 	$L__BB0_250;
 
 	add.s32 	%r60, %r56, -2;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r60;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r60;
 	add.s32 	%r1195, %r527, -48;
 	ld.shared.v4.f32 	{%f595, %f596, %f597, %f598}, [%r1195+16];
 	add.f32 	%f599, %f598, 0fBF800000;
@@ -2679,7 +2679,7 @@ $L__BB0_242:
 
 $L__BB0_249:
 	mov.u32 	%r529, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r529;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r529;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_580:
@@ -2692,7 +2692,7 @@ $L__BB0_580:
 	mov.f32 	%f1228, 0f00000000;
 	add.s32 	%r1226, %r1084, -16;
 	st.shared.v4.f32 	[%r1226], {%f1227, %f1228, %f1228, %f1228};
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r280;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r280;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_565:
@@ -2705,7 +2705,7 @@ $L__BB0_565:
 	mov.f32 	%f1204, 0f00000000;
 	add.s32 	%r1224, %r1071, -16;
 	st.shared.v4.f32 	[%r1224], {%f1203, %f1204, %f1204, %f1204};
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r273;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r273;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_598:
@@ -2722,7 +2722,7 @@ $L__BB0_598:
 	mov.f32 	%f1249, 0f00000000;
 	add.s32 	%r1228, %r1102, -16;
 	st.shared.v4.f32 	[%r1228], {%f1248, %f1249, %f1249, %f1249};
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r1264;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r1264;
 
 $L__BB0_600:
 	setp.gt.u32 	%p415, %r1264, 63;
@@ -2731,7 +2731,7 @@ $L__BB0_600:
 
 $L__BB0_602:
 	mov.u32 	%r1116, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r1116;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r1116;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_183:
@@ -2739,7 +2739,7 @@ $L__BB0_183:
 	mov.f32 	%f502, 0f00000000;
 	add.s32 	%r1188, %r345, -16;
 	st.shared.v4.f32 	[%r1188], {%f501, %f502, %f502, %f502};
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r11;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r11;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_314:
@@ -2767,7 +2767,7 @@ $L__BB0_492:
 	mov.f32 	%f1044, 0f3F800000;
 	add.s32 	%r1220, %r884, -16;
 	st.shared.v4.f32 	[%r1220], {%f1293, %f1294, %f1295, %f1044};
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r212;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r212;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_347:
@@ -2776,7 +2776,7 @@ $L__BB0_347:
 	min.s32 	%r677, %r676, 3;
 	max.s32 	%r678, %r677, 0;
 	mul.wide.u32 	%rd83, %r678, 12;
-	mov.u64 	%rd84, _ZN60_INTERNAL_9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709862_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709825kProceduralPrototypeTableE;
+	mov.u64 	%rd84, _ZN59_INTERNAL_9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222561_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222525kProceduralPrototypeTableE;
 	add.s64 	%rd85, %rd84, %rd83;
 	ld.const.f32 	%f774, [%rd85+8];
 	ld.const.f32 	%f775, [%rd85+4];
@@ -2784,21 +2784,21 @@ $L__BB0_347:
 	mov.f32 	%f777, 0f3F800000;
 	add.s32 	%r1210, %r674, -16;
 	st.shared.v4.f32 	[%r1210], {%f776, %f775, %f774, %f777};
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r120;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r120;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_78:
 	mov.f32 	%f792, 0f3F800000;
 	add.s32 	%r1211, %r683, -16;
 	st.shared.v4.f32 	[%r1211], {%f1272, %f1273, %f1274, %f792};
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r123;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r123;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_474:
 	mov.f32 	%f1006, 0f3F800000;
 	add.s32 	%r1218, %r868, -16;
 	st.shared.v4.f32 	[%r1218], {%f1290, %f1291, %f1292, %f1006};
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r205;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r205;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_498:
@@ -2843,7 +2843,7 @@ $L__BB0_498:
 	mov.f32 	%f1059, 0f00000000;
 	add.s32 	%r1221, %r920, -16;
 	st.shared.v4.f32 	[%r1221], {%f1058, %f1059, %f1059, %f1059};
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r215;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r215;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_356:
@@ -2851,7 +2851,7 @@ $L__BB0_356:
 	mov.f32 	%f802, 0f00000000;
 	add.s32 	%r1212, %r689, -16;
 	st.shared.v4.f32 	[%r1212], {%f801, %f802, %f802, %f802};
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r126;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r126;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_601:
@@ -2871,97 +2871,97 @@ $L__BB0_601:
 	add.s32 	%r1114, %r1101, %r1112;
 	st.shared.v4.f32 	[%r1114], {%f1251, %f1252, %f1252, %f1252};
 	add.s32 	%r1115, %r1264, 1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r1115;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r1115;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_308:
 	mov.u32 	%r644, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r644;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r644;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_435:
 	mov.u32 	%r847, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r847;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r847;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_484:
 	mov.u32 	%r880, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r880;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r880;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_225:
 	mov.u32 	%r516, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r516;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r516;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_330:
 	mov.u32 	%r663, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r663;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r663;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_180:
 	mov.u32 	%r341, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r341;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r341;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_449:
 	mov.u32 	%r857, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r857;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r857;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_577:
 	mov.u32 	%r1080, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r1080;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r1080;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_195:
 	mov.u32 	%r354, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r354;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r354;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_562:
 	mov.u32 	%r1067, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r1067;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r1067;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_276:
 	mov.u32 	%r574, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r574;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r574;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_592:
 	mov.u32 	%r1098, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r1098;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r1098;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_362:
 	mov.u32 	%r697, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r697;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r697;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_264:
 	mov.u32 	%r566, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r566;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r566;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_373:
 	mov.u32 	%r704, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r704;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r704;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_216:
 	mov.u32 	%r508, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r508;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r508;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_235:
 	mov.u32 	%r522, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r522;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r522;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_340:
 	mov.u32 	%r669, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r669;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r669;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_280:
@@ -2997,7 +2997,7 @@ $L__BB0_462:
 
 $L__BB0_573:
 	mov.u32 	%r1078, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r1078;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r1078;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_272:
@@ -3007,12 +3007,12 @@ $L__BB0_272:
 
 $L__BB0_274:
 	mov.u32 	%r572, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r572;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r572;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_588:
 	mov.u32 	%r1091, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r1091;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r1091;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_69:
@@ -3022,7 +3022,7 @@ $L__BB0_69:
 
 $L__BB0_360:
 	mov.u32 	%r695, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r695;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r695;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_98:
@@ -3035,7 +3035,7 @@ $L__BB0_98:
 
 $L__BB0_262:
 	mov.u32 	%r564, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r564;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r564;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_369:
@@ -3048,7 +3048,7 @@ $L__BB0_369:
 
 $L__BB0_371:
 	mov.u32 	%r702, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r702;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r702;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_212:
@@ -3061,7 +3061,7 @@ $L__BB0_212:
 
 $L__BB0_214:
 	mov.u32 	%r506, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r506;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r506;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_461:
@@ -3081,14 +3081,14 @@ $L__BB0_464:
 
 $L__BB0_466:
 	mov.u32 	%r863, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r863;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r863;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_465:
 	mov.f32 	%f991, 0f00000000;
 	st.shared.v4.f32 	[%r203+-32], {%f1289, %f991, %f991, %f991};
 	add.s32 	%r1217, %r201, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r1217;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r1217;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_158:
@@ -3109,19 +3109,19 @@ $L__BB0_160:
 
 $L__BB0_162:
 	mov.u32 	%r319, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r319;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r319;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_161:
 	mov.f32 	%f403, 0f00000000;
 	st.shared.v4.f32 	[%r5+-32], {%f1260, %f403, %f403, %f403};
 	add.s32 	%r1186, %r3, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r1186;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r1186;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_395:
 	mov.u32 	%r749, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r749;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r749;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_480:
@@ -3131,7 +3131,7 @@ $L__BB0_480:
 
 $L__BB0_482:
 	mov.u32 	%r878, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r878;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r878;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_221:
@@ -3141,7 +3141,7 @@ $L__BB0_221:
 
 $L__BB0_223:
 	mov.u32 	%r514, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r514;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r514;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_322:
@@ -3149,7 +3149,7 @@ $L__BB0_322:
 	@%p212 bra 	$L__BB0_328;
 
 	add.s32 	%r115, %r111, -3;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r115;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r115;
 	ld.shared.v4.f32 	{%f739, %f740, %f741, %f742}, [%r113+-48];
 	add.f32 	%f743, %f742, 0fBF800000;
 	abs.f32 	%f744, %f743;
@@ -3159,12 +3159,12 @@ $L__BB0_322:
 
 $L__BB0_327:
 	mov.u32 	%r660, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r660;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r660;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_167:
 	mov.u32 	%r325, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r325;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r325;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_442:
@@ -3207,17 +3207,17 @@ $L__BB0_445:
 
 $L__BB0_447:
 	mov.u32 	%r855, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r855;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r855;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_191:
 	mov.u32 	%r352, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r352;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r352;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_558:
 	mov.u32 	%r1065, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r1065;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r1065;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_231:
@@ -3227,7 +3227,7 @@ $L__BB0_231:
 
 $L__BB0_233:
 	mov.u32 	%r520, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r520;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r520;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_336:
@@ -3240,17 +3240,17 @@ $L__BB0_336:
 
 $L__BB0_338:
 	mov.u32 	%r667, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r667;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r667;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_261:
 	mov.u32 	%r561, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r561;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r561;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_250:
 	mov.u32 	%r530, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r530;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r530;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_315:
@@ -3275,7 +3275,7 @@ $L__BB0_317:
 	mov.f32 	%f726, 0f00000000;
 	add.s32 	%r1207, %r648, -16;
 	st.shared.v4.f32 	[%r1207], {%f725, %f726, %f726, %f726};
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r108;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r108;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_244:
@@ -3304,7 +3304,7 @@ $L__BB0_246:
 
 $L__BB0_248:
 	mov.u32 	%r528, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r528;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r528;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_514:
@@ -3418,7 +3418,7 @@ $L__BB0_522:
 
 $L__BB0_260:
 	mov.u32 	%r560, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r560;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r560;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_526:
@@ -3640,14 +3640,14 @@ $L__BB0_549:
 
 $L__BB0_551:
 	mov.u32 	%r1060, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r1060;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r1060;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_550:
 	mov.f32 	%f1180, 0f00000000;
 	add.s32 	%r1222, %r956, -16;
 	st.shared.v4.f32 	[%r1222], {%f1304, %f1180, %f1180, %f1180};
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r218;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r218;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_575:
@@ -3660,14 +3660,14 @@ $L__BB0_575:
 	mov.f32 	%f1219, 0f00000000;
 	st.shared.v4.f32 	[%r278+-32], {%f1218, %f1219, %f1219, %f1219};
 	add.s32 	%r1225, %r276, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r1225;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r1225;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_590:
 	mov.u32 	%r1096, 0;
 	st.shared.v4.u32 	[%r285+-32], {%r287, %r1096, %r1096, %r1096};
 	add.s32 	%r1227, %r283, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r1227;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r1227;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_273:
@@ -3677,7 +3677,7 @@ $L__BB0_273:
 	mov.f32 	%f645, 0f3F800000;
 	st.shared.v4.f32 	[%r68+-32], {%f642, %f643, %f644, %f645};
 	add.s32 	%r1205, %r66, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r1205;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r1205;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_70:
@@ -3693,21 +3693,21 @@ $L__BB0_70:
 	mov.f32 	%f824, 0f3F800000;
 	st.shared.v4.f32 	[%r131+-32], {%f823, %f822, %f821, %f824};
 	add.s32 	%r1213, %r129, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r1213;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r1213;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_99:
 	mov.f32 	%f629, 0f3F800000;
 	st.shared.v4.f32 	[%r64+-32], {%f88, %f89, %f90, %f629};
 	add.s32 	%r1204, %r62, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r1204;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r1204;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_370:
 	mov.f32 	%f839, 0f00000000;
 	st.shared.v4.f32 	[%r135+-32], {%f196, %f839, %f839, %f839};
 	add.s32 	%r1214, %r133, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r1214;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r1214;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_213:
@@ -3717,19 +3717,19 @@ $L__BB0_213:
 	mov.f32 	%f543, 0f3F800000;
 	st.shared.v4.f32 	[%r46+-32], {%f542, %f541, %f540, %f543};
 	add.s32 	%r1190, %r44, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r1190;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r1190;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_178:
 	mov.f32 	%f494, 0f00000000;
 	st.shared.v4.f32 	[%r9+-32], {%f1261, %f494, %f494, %f494};
 	add.s32 	%r1187, %r7, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r1187;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r1187;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_256:
 	mov.u32 	%r550, 9004;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r550;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r550;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_193:
@@ -3742,7 +3742,7 @@ $L__BB0_193:
 	mov.f32 	%f517, 0f00000000;
 	st.shared.v4.f32 	[%r16+-32], {%f516, %f517, %f517, %f517};
 	add.s32 	%r1189, %r14, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r1189;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r1189;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_560:
@@ -3755,7 +3755,7 @@ $L__BB0_560:
 	mov.f32 	%f1195, 0f00000000;
 	st.shared.v4.f32 	[%r271+-32], {%f1194, %f1195, %f1195, %f1195};
 	add.s32 	%r1223, %r269, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r1223;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r1223;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_481:
@@ -3770,7 +3770,7 @@ $L__BB0_481:
 	mov.f32 	%f1022, 0f3F800000;
 	st.shared.v4.f32 	[%r210+-32], {%f1013, %f1021, %f1020, %f1022};
 	add.s32 	%r1219, %r208, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r1219;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r1219;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_222:
@@ -3787,14 +3787,14 @@ $L__BB0_222:
 	mov.f32 	%f563, 0f3F800000;
 	st.shared.v4.f32 	[%r50+-32], {%f560, %f561, %f562, %f563};
 	add.s32 	%r1191, %r48, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r1191;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r1191;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_446:
 	mov.f32 	%f974, 0f3F800000;
 	st.shared.v4.f32 	[%r196+-32], {%f1288, %f1287, %f1286, %f974};
 	add.s32 	%r1216, %r194, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r1216;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r1216;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_232:
@@ -3810,19 +3810,19 @@ $L__BB0_232:
 	mov.f32 	%f585, 0f3F800000;
 	st.shared.v4.f32 	[%r54+-32], {%f582, %f584, %f583, %f585};
 	add.s32 	%r1192, %r52, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r1192;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r1192;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_337:
 	mov.f32 	%f766, 0f3F800000;
 	st.shared.v4.f32 	[%r118+-32], {%f158, %f159, %f160, %f766};
 	add.s32 	%r1209, %r116, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r1209;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r1209;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_328:
 	mov.u32 	%r661, 9002;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r661;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r661;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_247:
@@ -3830,7 +3830,7 @@ $L__BB0_247:
 	add.s32 	%r1196, %r527, -48;
 	st.shared.v4.f32 	[%r1196+16], {%f1262, %f1263, %f1264, %f608};
 	add.s32 	%r1197, %r56, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r1197;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r1197;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_324:
@@ -3851,7 +3851,7 @@ $L__BB0_324:
 
 $L__BB0_326:
 	mov.u32 	%r659, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r659;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r659;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_258:
@@ -3862,7 +3862,7 @@ $L__BB0_258:
 	add.s32 	%r1202, %r527, -48;
 	st.shared.v4.u32 	[%r1202], {%r551, %r552, %r553, %r554};
 	add.s32 	%r1203, %r56, -2;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r1203;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r1203;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_282:
@@ -4103,14 +4103,14 @@ $L__BB0_304:
 
 $L__BB0_306:
 	mov.u32 	%r642, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r642;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r642;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_305:
 	mov.f32 	%f699, 0f3F800000;
 	st.shared.v4.f32 	[%r72+-32], {%f124, %f125, %f655, %f699};
 	add.s32 	%r1206, %r70, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r1206;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r1206;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_398:
@@ -4480,20 +4480,20 @@ $L__BB0_432:
 
 $L__BB0_434:
 	mov.u32 	%r846, 9003;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code], %r846;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code], %r846;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_433:
 	mov.f32 	%f949, 0f3F800000;
 	st.shared.v4.f32 	[%r144+-32], {%f1277, %f1280, %f1283, %f949};
 	add.s32 	%r1215, %r142, -1;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r1215;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r1215;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_325:
 	st.shared.v4.f32 	[%r113+-48], {%f147, %f148, %f149, %f745};
 	add.s32 	%r1208, %r111, -2;
-	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size], %r1208;
+	st.shared.u32 	[_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size], %r1208;
 	bra.uni 	$L__BB0_610;
 
 $L__BB0_171:
@@ -4544,8 +4544,8 @@ $L__BB0_619:
 $L__BB0_612:
 	mul.lo.s64 	%rd178, %rd5, 1040;
 	add.s64 	%rd179, %rd1, %rd178;
-	ld.shared.u32 	%r297, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10stack_size];
-	ld.shared.u32 	%r1135, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE10error_code];
+	ld.shared.u32 	%r297, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10stack_size];
+	ld.shared.u32 	%r1135, [_ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE10error_code];
 	mov.u32 	%r1267, 0;
 	st.global.v4.u32 	[%rd179], {%r1267, %r297, %r1135, %r1267};
 	setp.eq.s32 	%p426, %r297, 0;
@@ -4565,7 +4565,7 @@ $L__BB0_615:
 	mul.wide.u32 	%rd182, %r1267, 16;
 	add.s64 	%rd183, %rd179, %rd182;
 	shl.b32 	%r1141, %r1267, 4;
-	mov.u32 	%r1142, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r1142, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r1143, %r1142, %r1141;
 	ld.shared.v4.u32 	{%r1144, %r1145, %r1146, %r1147}, [%r1143];
 	st.global.v4.u32 	[%rd183+16], {%r1144, %r1145, %r1146, %r1147};
@@ -4585,7 +4585,7 @@ $L__BB0_616:
 	@%p429 bra 	$L__BB0_619;
 
 	shl.b32 	%r1176, %r1267, 4;
-	mov.u32 	%r1177, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN62_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_5cabccba_198709813InstanceStateEjE5stack;
+	mov.u32 	%r1177, _ZZ28modular_rpn_geometric_kerneljPKtPKfS2_PN61_GLOBAL__N__9a41077b_21_modular_rpn_kernel_cu_22c3be2f_78222513InstanceStateEjE5stack;
 	add.s32 	%r1268, %r1177, %r1176;
 	mul.wide.u32 	%rd186, %r1267, 16;
 	add.s64 	%rd187, %rd179, %rd186;
@@ -4601,6 +4601,67 @@ $L__BB0_618:
 	setp.ne.s32 	%p430, %r1269, 0;
 	@%p430 bra 	$L__BB0_618;
 	bra.uni 	$L__BB0_619;
+
+}
+	// .globl	modular_rpn_extract_top
+.visible .entry modular_rpn_extract_top(
+	.param .u32 modular_rpn_extract_top_param_0,
+	.param .u64 modular_rpn_extract_top_param_1,
+	.param .u64 modular_rpn_extract_top_param_2,
+	.param .u32 modular_rpn_extract_top_param_3
+)
+{
+	.reg .pred 	%p<4>;
+	.reg .f32 	%f<2>;
+	.reg .b32 	%r<11>;
+	.reg .b64 	%rd<16>;
+
+
+	ld.param.u32 	%r2, [modular_rpn_extract_top_param_0];
+	ld.param.u64 	%rd6, [modular_rpn_extract_top_param_1];
+	ld.param.u64 	%rd5, [modular_rpn_extract_top_param_2];
+	ld.param.u32 	%r3, [modular_rpn_extract_top_param_3];
+	cvta.to.global.u64 	%rd1, %rd6;
+	mov.u32 	%r4, %tid.x;
+	setp.ne.s32 	%p1, %r4, 0;
+	@%p1 bra 	$L__BB1_5;
+
+	cvt.u64.u32 	%rd2, %r2;
+	mul.wide.u32 	%rd7, %r2, 1040;
+	add.s64 	%rd8, %rd1, %rd7;
+	add.s64 	%rd3, %rd8, 8;
+	ld.global.nc.u32 	%r5, [%rd8+8];
+	setp.ne.s32 	%p2, %r5, 0;
+	cvta.to.global.u64 	%rd9, %rd5;
+	mul.wide.u32 	%rd10, %r3, 4;
+	add.s64 	%rd4, %rd9, %rd10;
+	@%p2 bra 	$L__BB1_4;
+	bra.uni 	$L__BB1_2;
+
+$L__BB1_4:
+	mov.u32 	%r10, 2143289344;
+	st.global.u32 	[%rd4], %r10;
+	bra.uni 	$L__BB1_5;
+
+$L__BB1_2:
+	ld.global.nc.u32 	%r1, [%rd3+-4];
+	setp.eq.s32 	%p3, %r1, 0;
+	@%p3 bra 	$L__BB1_4;
+
+	ld.global.nc.u32 	%r6, [%rd3+-8];
+	add.s32 	%r7, %r6, %r1;
+	shl.b32 	%r8, %r7, 4;
+	mul.lo.s64 	%rd11, %rd2, 1040;
+	add.s64 	%rd12, %rd1, %rd11;
+	add.s32 	%r9, %r8, -16;
+	cvt.u64.u32 	%rd13, %r9;
+	and.b64  	%rd14, %rd13, 1008;
+	add.s64 	%rd15, %rd12, %rd14;
+	ld.global.nc.f32 	%f1, [%rd15+16];
+	st.global.f32 	[%rd4], %f1;
+
+$L__BB1_5:
+	ret;
 
 }
 

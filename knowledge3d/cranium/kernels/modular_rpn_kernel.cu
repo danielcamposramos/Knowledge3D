@@ -689,3 +689,20 @@ extern "C" __global__ void modular_rpn_geometric_kernel(
         }
     }
 }
+
+// Extract top-of-stack scalar from an instance state into a provided output buffer (device → device)
+extern "C" __global__ void modular_rpn_extract_top(
+    uint32_t instance_id,
+    const InstanceState* __restrict__ states,
+    float* __restrict__ out,
+    uint32_t out_index) {
+    if (threadIdx.x != 0) return;
+    const InstanceState* state = reinterpret_cast<const InstanceState*>(
+        reinterpret_cast<const uint8_t*>(states) + instance_id * sizeof(InstanceState));
+    if (state->error == kErrorNone && state->size > 0) {
+        uint32_t top = (state->head + state->size - 1) & 63u;
+        out[out_index] = state->stack[top].x;
+    } else {
+        out[out_index] = __int_as_float(0x7fc00000);  // NaN marker on error/underflow
+    }
+}

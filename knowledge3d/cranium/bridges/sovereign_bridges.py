@@ -32,6 +32,7 @@ from knowledge3d.cranium.sovereign.loader import (
     memcpy_dtoh,
     launch,
     synchronize,
+    CUdeviceptr,
 )
 from knowledge3d.cranium.bridges.rpn_config import RPN_GRID_DIM, TIER2_BLOCK_DIM
 
@@ -1020,6 +1021,7 @@ class ModularRPNEngine:
             raise FileNotFoundError(f"RPN PTX kernel not found: {ptx_path}")
 
         self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
+        self.extract_kernel = load_ptx_file(str(ptx_path), "modular_rpn_extract_top")
 
         # Allocate persistent state buffer (18 instances × 1040 bytes, Tesla 3-6-9 resonance)
         self.d_state = gpu_malloc(self.MAX_INSTANCES * self.INSTANCE_STRIDE)
@@ -1160,6 +1162,72 @@ class ModularRPNEngine:
                 results.append(result)
 
         return np.array(results, dtype=np.float32)
+
+    def execute_batch_device(
+        self,
+        programs: list,
+    ) -> tuple[CUdeviceptr, int]:
+        """Execute batch of RPN programs and write results to a device buffer.
+
+        Returns (device_pointer, count). Caller owns the device buffer and must free it.
+        """
+        count = len(programs)
+        if count == 0:
+            return CUdeviceptr(0), 0
+
+        d_out = gpu_malloc(count * 4)
+
+        # Process sequentially per instance slot (reusing instance 0..MAX_INSTANCES-1)
+        for i, program in enumerate(programs):
+            instance_id = i % self.MAX_INSTANCES
+            op_codes = np.ascontiguousarray(program["op_codes"], dtype=np.uint16)
+            scalars = np.ascontiguousarray(program["scalars"], dtype=np.float32)
+            vectors = np.ascontiguousarray(program["vectors"].flatten(), dtype=np.float32)
+
+            d_op_codes = gpu_malloc(op_codes.nbytes)
+            d_scalars = gpu_malloc(scalars.nbytes) if scalars.nbytes else None
+            d_vectors = gpu_malloc(vectors.nbytes) if vectors.nbytes else None
+
+            try:
+                memcpy_htod(d_op_codes, op_codes.ctypes.data_as(ctypes.c_void_p), op_codes.nbytes)
+                if d_scalars is not None:
+                    memcpy_htod(d_scalars, scalars.ctypes.data_as(ctypes.c_void_p), scalars.nbytes)
+                if d_vectors is not None and vectors.nbytes:
+                    memcpy_htod(d_vectors, vectors.ctypes.data_as(ctypes.c_void_p), vectors.nbytes)
+
+                launch(
+                    self.kernel,
+                    grid=(RPN_GRID_DIM, 1, 1),
+                    block=(TIER2_BLOCK_DIM, 1, 1),
+                    params=[
+                        ctypes.c_uint32(instance_id),
+                        ctypes.c_uint64(d_op_codes.value),
+                        ctypes.c_uint64(d_scalars.value if d_scalars is not None else 0),
+                        ctypes.c_uint64(d_vectors.value if d_vectors is not None else 0),
+                        ctypes.c_uint64(self.d_state.value),
+                        ctypes.c_uint32(len(op_codes)),
+                    ],
+                )
+                launch(
+                    self.extract_kernel,
+                    grid=(1, 1, 1),
+                    block=(1, 1, 1),
+                    params=[
+                        ctypes.c_uint32(instance_id),
+                        ctypes.c_uint64(self.d_state.value),
+                        ctypes.c_uint64(d_out.value),
+                        ctypes.c_uint32(i),
+                    ],
+                )
+            finally:
+                gpu_free(d_op_codes)
+                if d_scalars is not None:
+                    gpu_free(d_scalars)
+                if d_vectors is not None:
+                    gpu_free(d_vectors)
+
+        synchronize()
+        return d_out, count
 
     def reset_instance(self, instance_id: int):
         """Reset instance state (clear stack, reset head/size)"""
