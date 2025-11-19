@@ -164,6 +164,13 @@ class ProceduralDrawingBridge:
         self._d_math_hdrrec = loader.CUdeviceptr(0)
         self._d_math_payload = loader.CUdeviceptr(0)
         self._rpn_engine: ModularRPNEngine | None = None
+        # RPN executor kernel (device-side bytecode path)
+        rpn_exec_ptx = Path(__file__).parent.parent / "ptx" / "rpn_executor.ptx"
+        self.rpn_executor_kernel = (
+            loader.get_function(loader.load_module_from_file(str(rpn_exec_ptx)), "execute_rpn_bytecode")
+            if rpn_exec_ptx.exists()
+            else None
+        )
 
     def _get_rpn_engine(self):
         """Lazy-load RPN Math Kernel for trigonometric preprocessing."""
@@ -512,6 +519,45 @@ class ProceduralDrawingBridge:
     def execute_batch_gpu(self, programs: Sequence[str], width: int = 256, height: int = 256) -> List[RenderResult]:
         """Execute multiple RPN programs; placeholder loop until kernel batch mode exists."""
         return [self.execute_rpn_gpu(p, width, height) for p in programs]
+
+    def execute_rpn_bytecode_gpu(self, bytecode: bytes, width: int = 256, height: int = 256) -> RenderResult:
+        """Execute precompiled RPN bytecode via device-side executor (geometry only)."""
+        if self.rpn_executor_kernel is None:
+            raise RuntimeError("rpn_executor.ptx not available")
+        bc_np = np.frombuffer(bytecode, dtype=np.uint8)
+        if bc_np.nbytes > self._bytecode_cap:
+            loader.gpu_free(self._d_bytecode)
+            self._bytecode_cap = bc_np.nbytes * 2
+            self._d_bytecode = loader.gpu_malloc(self._bytecode_cap)
+        loader.memcpy_htod(self._d_bytecode, bc_np.ctypes.data_as(ctypes.c_void_p), bc_np.nbytes)
+        # segments buffer already allocated with stride 9
+        loader.memcpy_htod(self._d_count, (ctypes.c_uint32 * 1)(0), 4)
+        loader.launch(
+            self.rpn_executor_kernel,
+            grid=(1, 1, 1),
+            block=(32, 1, 1),
+            params=[
+                self._d_bytecode,
+                ctypes.c_uint32(bc_np.nbytes),
+                self._d_segments,
+                self._d_count,
+                ctypes.c_uint32(self.MAX_SEGMENTS),
+            ],
+        )
+        count_host = np.zeros(1, dtype=np.uint32)
+        loader.memcpy_dtoh(count_host.ctypes.data_as(ctypes.c_void_p), self._d_count, 4)
+        seg_count = min(int(count_host[0]), self.MAX_SEGMENTS)
+        segments = np.zeros((seg_count, self.SEGMENT_STRIDE), dtype=np.float32)
+        if seg_count:
+            loader.memcpy_dtoh(segments.ctypes.data_as(ctypes.c_void_p), self._d_segments, segments.nbytes)
+        framebuffer = self._render_segments(
+            segments,
+            np.array([0], dtype=np.int32),
+            np.array([seg_count], dtype=np.int32),
+            width,
+            height,
+        )
+        return RenderResult(segments=segments, rgba=framebuffer)
 
     def _render_segments(
         self,
