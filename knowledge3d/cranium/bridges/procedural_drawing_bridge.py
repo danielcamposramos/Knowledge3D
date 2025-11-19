@@ -520,7 +520,7 @@ class ProceduralDrawingBridge:
         """Execute multiple RPN programs; placeholder loop until kernel batch mode exists."""
         return [self.execute_rpn_gpu(p, width, height) for p in programs]
 
-    def execute_rpn_bytecode_gpu(self, bytecode: bytes, width: int = 256, height: int = 256) -> RenderResult:
+    def execute_rpn_bytecode_gpu(self, bytecode: bytes, width: int = 256, height: int = 256, ternary_meta: np.ndarray | None = None) -> RenderResult:
         """Execute precompiled RPN bytecode via device-side executor (geometry only)."""
         if self.rpn_executor_kernel is None:
             raise RuntimeError("rpn_executor.ptx not available")
@@ -532,6 +532,11 @@ class ProceduralDrawingBridge:
         loader.memcpy_htod(self._d_bytecode, bc_np.ctypes.data_as(ctypes.c_void_p), bc_np.nbytes)
         # segments buffer already allocated with stride 9
         loader.memcpy_htod(self._d_count, (ctypes.c_uint32 * 1)(0), 4)
+        meta_ptr = loader.CUdeviceptr(0)
+        if ternary_meta is not None:
+            meta_np = np.ascontiguousarray(ternary_meta.astype(np.int8, copy=False))
+            meta_ptr = loader.gpu_malloc(meta_np.nbytes)
+            loader.memcpy_htod(meta_ptr, meta_np.ctypes.data_as(ctypes.c_void_p), meta_np.nbytes)
         loader.launch(
             self.rpn_executor_kernel,
             grid=(1, 1, 1),
@@ -542,8 +547,11 @@ class ProceduralDrawingBridge:
                 self._d_segments,
                 self._d_count,
                 ctypes.c_uint32(self.MAX_SEGMENTS),
+                meta_ptr,
             ],
         )
+        if ternary_meta is not None and meta_ptr.value:
+            loader.gpu_free(meta_ptr)
         count_host = np.zeros(1, dtype=np.uint32)
         loader.memcpy_dtoh(count_host.ctypes.data_as(ctypes.c_void_p), self._d_count, 4)
         seg_count = min(int(count_host[0]), self.MAX_SEGMENTS)

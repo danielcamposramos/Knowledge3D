@@ -245,6 +245,26 @@ def test_rpn_arc_gpu_perf():
 
 
 @pytest.mark.cuda
+def test_quad_opcode_latency():
+    """Validate QUAD opcode latency stays within a reasonable budget."""
+    _require_gpu()
+    from knowledge3d.cranium.bridges.procedural_drawing_bridge import ProceduralDrawingBridge
+    import time
+    bridge = ProceduralDrawingBridge(matryoshka_dim=512)
+    _skip_if_kernel_missing(bridge)
+
+    rpn = "0.0 0.0 MOVE 0.5 1.0 1.0 1.0 QUAD STROKE"
+    bytecode = bridge.compile_rpn_to_bytecode(rpn).tobytes()
+    times = []
+    for _ in range(10):
+        t0 = time.perf_counter()
+        bridge.execute_rpn_bytecode_gpu(bytecode, width=64, height=64)
+        times.append((time.perf_counter() - t0) * 1e6)  # µs
+    avg_us = sum(times) / len(times)
+    assert avg_us < 1000.0, f"QUAD opcode too slow: {avg_us:.1f} µs"
+
+
+@pytest.mark.cuda
 def test_ternary_hint_modulation():
     """Verify ternary hint modulates tessellation quality."""
     _require_gpu()
