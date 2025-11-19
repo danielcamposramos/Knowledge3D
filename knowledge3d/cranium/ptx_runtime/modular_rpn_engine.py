@@ -321,6 +321,22 @@ class ModularRPNEngine:
 
         return results
 
+    def evaluate_batch_device(
+        self,
+        expressions: List[str],
+    ) -> tuple[loader.CUdeviceptr, int]:
+        """Evaluate multiple RPN expressions and return device buffer pointer + count."""
+        programs = []
+        for expr in expressions:
+            tokens = self.tokenize_rpn(expr)
+            op_codes, scalars, vectors = self.compile_tokens(tokens)
+            programs.append({
+                "op_codes": op_codes,
+                "scalars": scalars,
+                "vectors": vectors,
+            })
+        return self._sovereign_engine.execute_batch_device(programs)
+
     def reset(self, instance_id: int = 0) -> None:
         """Reset instance state (clear stack).
 
