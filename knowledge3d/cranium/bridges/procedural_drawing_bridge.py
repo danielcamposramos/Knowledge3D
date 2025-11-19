@@ -121,7 +121,9 @@ class MathRecord:
     """Descriptor for a math buffer primitive."""
 
     opcode: int
-    payload: np.ndarray
+    payload: np.ndarray | None = None
+    payload_exprs: List[str] | None = None
+    payload_len: int | None = None
     flags: int = 0
 
 
@@ -199,23 +201,31 @@ class ProceduralDrawingBridge:
                 segs = self.segments_per_curve
                 angles = np.linspace(start, start + sweep, segs + 1)
                 exprs = []
+                # First element is count
+                exprs.append(f"{len(angles)}")  # literal count
+                # Then x/y pairs per angle
                 for ang in angles:
-                    exprs.append(f"{ang} cos")
-                    exprs.append(f"{ang} sin")
+                    exprs.append(f"{rx} {ang} cos * {cx} +")
+                    exprs.append(f"{ry} {ang} sin * {cy} +")
 
+                # Host payload (fallback)
                 rpn_engine = self._get_rpn_engine()
-                trig = rpn_engine.evaluate_batch(exprs)
-
+                trig = rpn_engine.evaluate_batch([f"{ang} cos" for ang in angles] + [f"{ang} sin" for ang in angles])
                 arc_points = [len(angles)]
                 for i in range(len(angles)):
-                    cos_val = trig[2 * i]
-                    sin_val = trig[2 * i + 1]
+                    cos_val = trig[i]
+                    sin_val = trig[len(angles) + i]
                     x = cx + rx * cos_val
                     y = cy + ry * sin_val
                     arc_points.extend([x, y])
 
                 arc_records.append(
-                    MathRecord(opcode=0x7A, payload=np.array(arc_points, dtype=np.float32))
+                    MathRecord(
+                        opcode=0x7A,
+                        payload=np.array(arc_points, dtype=np.float32),
+                        payload_exprs=exprs,
+                        payload_len=len(exprs),
+                    )
                 )
                 cleaned_tokens.append("PRECOMPUTED_PATH")
             else:
@@ -268,7 +278,17 @@ class ProceduralDrawingBridge:
                 math_records.append(arc_records[arc_cursor])
                 arc_cursor += 1
             elif upper == "ROTATE_MATRIX" and rot_cursor < len(rotation_records):
-                math_records.append(rotation_records[rot_cursor])
+                math_records.append(
+                    MathRecord(
+                        opcode=rotation_records[rot_cursor].opcode,
+                        payload=rotation_records[rot_cursor].payload,
+                        payload_exprs=[
+                            f"{angle_exprs[rot_cursor]} cos",
+                            f"{angle_exprs[rot_cursor]} sin",
+                        ],
+                        payload_len=2,
+                    )
+                )
                 rot_cursor += 1
 
         if rot_cursor != len(rotation_records):
@@ -287,6 +307,8 @@ class ProceduralDrawingBridge:
         float_offset = 0
 
         for rec in math_records:
+            if rec.payload is None:
+                continue
             payload = np.ascontiguousarray(rec.payload.astype(np.float32, copy=False))
             payload_chunks.append(payload)
             records.append([rec.opcode, float_offset, payload.size, rec.flags])
@@ -303,6 +325,37 @@ class ProceduralDrawingBridge:
         )
         self._math_primitive_count = primitive_count
         return hdrrec, payload_np
+
+    def _build_math_buffers_device(
+        self, math_records: List[MathRecord], rpn_engine: ModularRPNEngine
+    ) -> tuple[np.ndarray, loader.CUdeviceptr, bool]:
+        """Compose math buffers using device-side RPN evaluation."""
+        if not math_records:
+            self._math_primitive_count = 0
+            return np.zeros(4, dtype=np.uint32), loader.CUdeviceptr(0), False
+
+        exprs: List[str] = []
+        per_record_counts: List[int] = []
+        for rec in math_records:
+            if not rec.payload_exprs or rec.payload_len is None:
+                # Fallback to host payload path
+                hdr, payload = self._build_math_buffers(math_records)
+                return hdr, loader.CUdeviceptr(0), False
+            exprs.extend(rec.payload_exprs)
+            per_record_counts.append(rec.payload_len)
+
+        d_payload, total_count = rpn_engine.evaluate_batch_device(exprs)
+        float_offset = 0
+        records: List[List[int]] = []
+        for rec, count in zip(math_records, per_record_counts):
+            records.append([rec.opcode, float_offset, count, rec.flags])
+            float_offset += count
+
+        header = np.array([len(records), float_offset, 0, 0], dtype=np.uint32)
+        record_arr = np.array(records, dtype=np.uint32).reshape(-1)
+        hdrrec = np.concatenate([header, record_arr]).astype(np.uint32)
+        self._math_primitive_count = len(records)
+        return hdrrec, d_payload, True
 
     def _normalize_math_buffer(self, math_buffer, program: str) -> List[MathRecord]:
         """Accept ndarray or MathRecord list and normalize to MathRecord list."""
@@ -338,6 +391,7 @@ class ProceduralDrawingBridge:
         skip_raster: bool = False,
         ternary_hint: float = 0.0,
         math_buffer: np.ndarray | MathRecord | Sequence[MathRecord] | None = None,
+        use_device_math: bool = True,
     ) -> RenderResult:
         """Execute drawing RPN entirely on GPU (bytecode → segments → rasterize).
 
@@ -367,13 +421,22 @@ class ProceduralDrawingBridge:
         )
 
         # Enhanced math buffer layout: [records][payload]
-        hdrrec_np, payload_np = self._build_math_buffers(math_records)
+        device_payload_ptr = None
+        device_payload_is_temp = False
+        if use_device_math:
+            hdrrec_np, d_payload_tmp, device_payload_is_temp = self._build_math_buffers_device(math_records, self._get_rpn_engine())
+            if device_payload_is_temp:
+                device_payload_ptr = d_payload_tmp
+        if not device_payload_is_temp:
+            hdrrec_np, payload_np = self._build_math_buffers(math_records)
+        else:
+            payload_np = np.zeros(0, dtype=np.float32)
         if hdrrec_np.nbytes > self._math_hdrrec_cap:
             if self._d_math_hdrrec.value:
                 loader.gpu_free(self._d_math_hdrrec)
             self._math_hdrrec_cap = max(hdrrec_np.nbytes, 256)
             self._d_math_hdrrec = loader.gpu_malloc(self._math_hdrrec_cap)
-        if payload_np.nbytes > self._math_payload_cap:
+        if payload_np.nbytes > self._math_payload_cap and not device_payload_is_temp:
             if self._d_math_payload.value:
                 loader.gpu_free(self._d_math_payload)
             self._math_payload_cap = max(payload_np.nbytes, 256)
@@ -381,8 +444,10 @@ class ProceduralDrawingBridge:
 
         if hdrrec_np.size:
             loader.memcpy_htod(self._d_math_hdrrec, hdrrec_np.ctypes.data_as(ctypes.c_void_p), hdrrec_np.nbytes)
-        if payload_np.size:
+        if payload_np.size and not device_payload_is_temp:
             loader.memcpy_htod(self._d_math_payload, payload_np.ctypes.data_as(ctypes.c_void_p), payload_np.nbytes)
+
+        payload_ptr = device_payload_ptr if device_payload_is_temp else self._d_math_payload
 
         loader.launch(
             self.pixel_genesis_kernel,
@@ -397,9 +462,12 @@ class ProceduralDrawingBridge:
                 ctypes.c_float(ternary_hint),
                 self._d_math_hdrrec,
                 ctypes.c_uint32(self._math_primitive_count),
-                self._d_math_payload,
+                payload_ptr,
             ],
         )
+
+        if device_payload_is_temp and device_payload_ptr is not None and device_payload_ptr.value:
+            loader.gpu_free(device_payload_ptr)
 
         count_host = np.zeros(1, dtype=np.uint32)
         loader.memcpy_dtoh(

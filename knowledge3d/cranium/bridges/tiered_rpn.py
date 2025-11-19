@@ -198,6 +198,11 @@ class TieredRPNEngine:
                 results.append(result)
         return np.asarray(results, dtype=np.float32)
 
+    def execute_batch_device(self, programs: Sequence[dict], max_instances: int = MAX_INSTANCES):
+        """Batch execution that writes results to a device buffer."""
+        # Route to tier2 where device extraction kernel lives
+        return self._tier2.execute_batch_device(programs)
+
     def cleanup(self) -> None:
         """Release resources associated with all tiers."""
         for engine in (self._tier1, self._tier2, self._tier3):
