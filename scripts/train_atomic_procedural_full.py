@@ -76,10 +76,18 @@ class MetricsLogger:
 
     def log_atomic_unit(self, char: str, unit_data: Dict):
         """Log atomic unit details."""
+        glyphs = unit_data.get('glyphs', [])
+        sample_font = None
+        if glyphs:
+            font_meta = glyphs[0].get('font_metadata', {})
+            sample_font = font_meta.get('font_family') or font_meta.get('font_name')
+
         entry = {
             'char': char,
-            'has_visual_rpn': bool(unit_data.get('visual_rpn', '')),
+            'has_visual_rpn': bool(glyphs),
             'has_math_rpn': bool(unit_data.get('math_rpn', '')),
+            'glyph_count': len(glyphs),
+            'sample_font': sample_font,
             'embedding_shape': list(unit_data['embedding'].shape) if 'embedding' in unit_data else [],
             'timestamp': unit_data.get('timestamp', datetime.now(timezone.utc).isoformat())
         }
@@ -88,7 +96,7 @@ class MetricsLogger:
     def compute_thesis_metrics(self, specialist: ProceduralDrawingSpecialist):
         """Compute metrics for W3C AIKR thesis."""
         total = len(specialist.atomic_units)
-        dual_modal = sum(1 for u in specialist.atomic_units.values() if u['math_rpn'])
+        dual_modal = sum(1 for u in specialist.atomic_units.values() if u.get('math_rpn'))
         visual_only = total - dual_modal
 
         self.thesis_metrics.update({
@@ -101,12 +109,14 @@ class MetricsLogger:
 
         # Cross-modality evidence: chars with both visual + math RPN
         for char, unit in specialist.atomic_units.items():
-            if unit['visual_rpn'] and unit['math_rpn']:
+            glyphs = unit.get('glyphs', [])
+            if glyphs and unit.get('math_rpn'):
                 self.thesis_metrics['cross_modality_evidence'].append({
                     'char': char,
-                    'visual_rpn_length': len(unit['visual_rpn']),
-                    'math_rpn': unit['math_rpn'],
-                    'embedding_dim': len(unit['embedding'])
+                    'visual_rpn_length': len(glyphs[0]['visual_rpn']),
+                    'math_rpn': unit.get('math_rpn', ''),
+                    'embedding_dim': len(unit['embedding']),
+                    'font_family': glyphs[0].get('font_metadata', {}).get('font_family')
                 })
 
     def save_final_report(self):
@@ -171,6 +181,8 @@ Examples of dual-program stars:
                 f.write(f"  - Visual RPN: {evidence['visual_rpn_length']} chars\n")
                 f.write(f"  - Math RPN: {evidence['math_rpn']}\n")
                 f.write(f"  - Embedding: {evidence['embedding_dim']}D\n")
+                if evidence.get('font_family'):
+                    f.write(f"  - Sample font: {evidence['font_family']}\n")
 
         print(f"\n✅ W3C AIKR evidence saved to {self.output_dir}/")
         return report
@@ -256,7 +268,7 @@ def train_full_atomic_knowledge(epochs: int = 5, validation_split: float = 0.1):
 
         # Font glyphs training
         print("\n  [Font Glyphs Training]")
-        font_batch = [(item['char'], item['rpn']) for item in font_train]
+        font_batch = [(item['char'], item['rpn'], item) for item in font_train]
         font_metrics = specialist.train_on_batch(
             font_batch,
             validation=False,
@@ -271,7 +283,7 @@ def train_full_atomic_knowledge(epochs: int = 5, validation_split: float = 0.1):
 
         # Font glyphs validation
         print("  [Font Glyphs Validation]")
-        font_val_batch = [(item['char'], item['rpn']) for item in font_val]
+        font_val_batch = [(item['char'], item['rpn'], item) for item in font_val]
         font_val_metrics = specialist.train_on_batch(
             font_val_batch,
             validation=True,
@@ -287,7 +299,7 @@ def train_full_atomic_knowledge(epochs: int = 5, validation_split: float = 0.1):
         # Math symbols training
         print("\n  [Math Symbols Training]")
         math_batch = [
-            (item['char'], item['visual_rpn'], item.get('math_rpn', ''), item['semantic'])
+            (item['char'], item['visual_rpn'], item.get('math_rpn', ''), item['semantic'], item)
             for item in math_train
         ]
         math_metrics = specialist.train_on_batch(
@@ -305,7 +317,7 @@ def train_full_atomic_knowledge(epochs: int = 5, validation_split: float = 0.1):
         # Math symbols validation
         print("  [Math Symbols Validation]")
         math_val_batch = [
-            (item['char'], item['visual_rpn'], item.get('math_rpn', ''), item['semantic'])
+            (item['char'], item['visual_rpn'], item.get('math_rpn', ''), item['semantic'], item)
             for item in math_val
         ]
         math_val_metrics = specialist.train_on_batch(

@@ -69,26 +69,20 @@ def prepare_training_batch(
 
     Now passes RPN strings directly (not bytecode) for GPU execution.
     """
+    batch = []
     if not dual_modal:
-        # Standard glyphs: (char, rpn_program)
-        batch = []
         for entry in entries:
             char = entry['char']
             rpn = entry['rpn']
-            # Pass RPN string directly (execute_rpn_gpu handles compilation)
-            batch.append((char, rpn))
-        return batch
+            batch.append((char, rpn, entry))
     else:
-        # Dual-modal math: (symbol, visual_rpn, math_rpn, semantic)
-        batch = []
         for entry in entries:
             symbol = entry['char']
             visual_rpn = entry['visual_rpn']
             math_rpn = entry['math_rpn']
             semantic = entry['semantic']
-            # Pass RPN strings directly (all GPU-accelerated now)
-            batch.append((symbol, visual_rpn, math_rpn, semantic))
-        return batch
+            batch.append((symbol, visual_rpn, math_rpn, semantic, entry))
+    return batch
 
 
 def validate_dual_modal_training(
