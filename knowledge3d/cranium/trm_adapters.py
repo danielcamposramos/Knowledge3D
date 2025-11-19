@@ -33,11 +33,16 @@ Usage:
 
 from __future__ import annotations
 
-import numpy as np
-from pathlib import Path
-from typing import Dict, List, Tuple, Optional, Callable, Any
 import json
+import math
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
+import numpy as np
+
+from knowledge3d.cranium.ptx_runtime.rpn_math_core import DeviceTensor, RPNMathCore
+from knowledge3d.cranium.sovereign import loader
 
 
 def _to_serializable(obj: Any) -> Any:
@@ -64,6 +69,30 @@ class AdapterConfig:
     gradient_clip: float = 1.0        # Gradient clipping threshold
     min_improvement: float = 0.001    # Minimum improvement to commit (0.1%)
     max_degradation: float = 0.05     # Maximum allowed degradation (5%)
+    require_gpu: bool = True          # Enforce GPU-only path
+
+
+@dataclass
+class AdapterDeviceBuffers:
+    """GPU-side buffers for sovereign adapter updates."""
+
+    dims: int
+    rank: int
+    gradient: DeviceTensor
+    grad_a: DeviceTensor
+    grad_b: DeviceTensor
+    A: DeviceTensor
+    B: DeviceTensor
+    A_transposed: DeviceTensor
+    B_transposed: DeviceTensor
+    grad_scale: DeviceTensor
+    a_scale: DeviceTensor
+    b_scale: DeviceTensor
+    a_zero: DeviceTensor
+    b_zero: DeviceTensor
+    grad_scale_value: Optional[float] = None
+    a_scale_value: Optional[float] = None
+    b_scale_value: Optional[float] = None
 
 
 class AdapterWeights:
@@ -116,6 +145,19 @@ class AdapterWeights:
         return self.alpha * (self.A @ self.B)
 
     def apply_gradient(self, gradient: np.ndarray, lr: float = 0.001):
+        if self._ensure_math_core():
+            self.apply_gradient_rpn(gradient, lr)
+            return
+
+        if self.config.require_gpu:
+            raise RuntimeError(
+                f"[{self.specialist_name}] GPU math core required but unavailable; "
+                "set require_gpu=False to enable CPU fallback."
+            )
+
+        self._apply_gradient_cpu(gradient, lr)
+
+    def _apply_gradient_cpu(self, gradient: np.ndarray, lr: float) -> None:
         """
         Update adapter weights given gradient for full ΔW.
 
@@ -142,6 +184,75 @@ class AdapterWeights:
         # Gradient descent
         self.A -= lr * grad_A
         self.B -= lr * grad_B
+        return None
+
+    def apply_gradient_rpn(self, gradient: np.ndarray, lr: float = 0.001) -> float:
+        """
+        Sovereign RPN-based gradient application.
+
+        Args:
+            gradient: Full ΔW gradient matrix
+            lr: Learning rate
+
+        Returns:
+            Gradient norm after clipping
+        """
+        buffers = self._ensure_device_buffers()
+        if buffers is None or self._math_core is None:
+            if self.config.require_gpu:
+                raise RuntimeError(
+                    f"[{self.specialist_name}] GPU buffers unavailable for RPN training"
+                )
+            self._apply_gradient_cpu(gradient, lr)
+            return float(np.linalg.norm(gradient))
+
+        dims = buffers.dims
+        rank = buffers.rank
+        if gradient.shape != (dims, dims):
+            raise ValueError(f"Gradient shape {gradient.shape} != adapter shape {(dims, dims)}")
+
+        grad_host = np.ascontiguousarray(gradient, dtype=np.float32)
+        RPNMathCore.copy_to_device(grad_host, buffers.gradient.ptr)
+        RPNMathCore.copy_to_device(self.A, buffers.A.ptr)
+        RPNMathCore.copy_to_device(self.B, buffers.B.ptr)
+
+        b_t_host = np.ascontiguousarray(self.B.T, dtype=np.float32)
+        RPNMathCore.copy_to_device(b_t_host, buffers.B_transposed.ptr)
+        a_t_host = np.ascontiguousarray(self.A.T, dtype=np.float32)
+        RPNMathCore.copy_to_device(a_t_host, buffers.A_transposed.ptr)
+
+        grad_vec = self._vector_view(buffers.gradient)
+        grad_norm = self._math_core.vector_norm(grad_vec)
+
+        clip = self.config.gradient_clip
+        if clip > 0.0 and grad_norm > clip:
+            scale = clip / max(grad_norm, 1e-6)
+            self._scale_vector(grad_vec, buffers.grad_scale, 'grad_scale_value', scale)
+            grad_norm = clip
+
+        # Compute grad_A = gradient @ B.T
+        self._math_core.matmul(buffers.grad_a, buffers.gradient, buffers.B_transposed)
+
+        # Compute grad_B = A.T @ gradient
+        self._math_core.matmul(buffers.grad_b, buffers.A_transposed, buffers.gradient)
+
+        # Update A
+        a_vec = self._vector_view(buffers.grad_a)
+        a_dest = self._vector_view(buffers.A)
+        self._scale_vector(a_vec, buffers.a_scale, 'a_scale_value', -lr)
+        self._math_core.vec_add3(a_dest, a_dest, a_vec, buffers.a_zero)
+
+        # Update B
+        b_vec = self._vector_view(buffers.grad_b)
+        b_dest = self._vector_view(buffers.B)
+        self._scale_vector(b_vec, buffers.b_scale, 'b_scale_value', -lr)
+        self._math_core.vec_add3(b_dest, b_dest, b_vec, buffers.b_zero)
+
+        # Sync back to host
+        RPNMathCore.copy_to_host(buffers.A.ptr, self.A)
+        RPNMathCore.copy_to_host(buffers.B.ptr, self.B)
+
+        return float(grad_norm)
 
     def get_num_params(self) -> int:
         """Get total number of parameters."""
@@ -220,10 +331,99 @@ class SelfUpdatingAdapter(AdapterWeights):
         print(f"  Shape: {shape}, Rank: {rank}")
         print(f"  Parameters: {self.get_num_params()/1e3:.1f}K ({self.get_memory_mb():.2f} MB)")
 
+        self._math_core: Optional[RPNMathCore] = None
+        self._device_buffers: Optional[AdapterDeviceBuffers] = None
+        self._rpn_available: bool = True
+
     def set_validation_samples(self, samples: List[Dict]):
         """Set specialist-specific validation set."""
         self.validation_samples = samples
         print(f"[{self.specialist_name}] Validation set: {len(samples)} samples")
+
+    def _ensure_math_core(self) -> bool:
+        """Initialize Tier-3 RPN math core if possible."""
+        if not self._rpn_available:
+            return False
+
+        if self._math_core is None:
+            try:
+                self._math_core = RPNMathCore()
+            except Exception as exc:  # pragma: no cover - GPU init failures
+                print(f"[{self.specialist_name}] ⚠️ RPN math core unavailable: {exc}")
+                self._rpn_available = False
+                return False
+        return True
+
+    @staticmethod
+    def _vector_view(tensor: DeviceTensor) -> DeviceTensor:
+        """Return a vector view (rows*cols, 1) for element-wise ops."""
+        return DeviceTensor(tensor.ptr, tensor.rows * tensor.cols, 1)
+
+    def _scale_vector(self, tensor: DeviceTensor, scale_buffer: DeviceTensor,
+                      attr_name: str, value: float) -> None:
+        """Scale tensor by value using cached buffer fills to avoid rewrites."""
+        buffers = self._device_buffers
+        if buffers is None or self._math_core is None:
+            raise RuntimeError("RPN math core unavailable for scaling")
+
+        current = getattr(buffers, attr_name)
+        if current is None or not math.isclose(current, value, rel_tol=1e-9, abs_tol=1e-12):
+            self._math_core.fill(scale_buffer, value)
+            setattr(buffers, attr_name, value)
+
+        self._math_core.vector_multiply(tensor, scale_buffer)
+
+    def _ensure_device_buffers(self) -> Optional[AdapterDeviceBuffers]:
+        if self._device_buffers is not None:
+            return self._device_buffers
+
+        if not self._ensure_math_core():
+            return None
+
+        dims = self.shape[0]
+        rank = self.rank
+        grad_len = dims * dims
+        a_len = dims * rank
+        b_len = rank * dims
+
+        def alloc(size: int) -> loader.CUdeviceptr:
+            return loader.gpu_malloc(size * 4)
+
+        gradient = DeviceTensor(alloc(grad_len), dims, dims)
+        grad_a = DeviceTensor(alloc(a_len), dims, rank)
+        grad_b = DeviceTensor(alloc(b_len), rank, dims)
+        A_dev = DeviceTensor(alloc(a_len), dims, rank)
+        B_dev = DeviceTensor(alloc(b_len), rank, dims)
+        A_transposed = DeviceTensor(alloc(a_len), rank, dims)
+        B_transposed = DeviceTensor(alloc(b_len), dims, rank)
+        grad_scale = DeviceTensor(alloc(grad_len), grad_len, 1)
+        a_scale = DeviceTensor(alloc(a_len), a_len, 1)
+        b_scale = DeviceTensor(alloc(b_len), b_len, 1)
+        a_zero = DeviceTensor(alloc(a_len), a_len, 1)
+        b_zero = DeviceTensor(alloc(b_len), b_len, 1)
+
+        buffers = AdapterDeviceBuffers(
+            dims=dims,
+            rank=rank,
+            gradient=gradient,
+            grad_a=grad_a,
+            grad_b=grad_b,
+            A=A_dev,
+            B=B_dev,
+            A_transposed=A_transposed,
+            B_transposed=B_transposed,
+            grad_scale=grad_scale,
+            a_scale=a_scale,
+            b_scale=b_scale,
+            a_zero=a_zero,
+            b_zero=b_zero,
+        )
+
+        # Initialize zero buffers once
+        self._math_core.fill(a_zero, 0.0)
+        self._math_core.fill(b_zero, 0.0)
+        self._device_buffers = buffers
+        return buffers
 
     def fork_to_shadow(self):
         """Copy primary weights → shadow for testing."""
@@ -243,12 +443,28 @@ class SelfUpdatingAdapter(AdapterWeights):
         """
         lr = lr or self.config.learning_rate
 
-        # Gradient clipping
+        if self._ensure_math_core():
+            primary_A = self.A
+            primary_B = self.B
+            try:
+                self.A = self.A_shadow
+                self.B = self.B_shadow
+                self.apply_gradient_rpn(gradient, lr)
+            finally:
+                self.A = primary_A
+                self.B = primary_B
+            return
+
+        # CPU fallback
+        if self.config.require_gpu:
+            raise RuntimeError(
+                f"[{self.specialist_name}] GPU math core required for shadow update"
+            )
+
         grad_norm = np.linalg.norm(gradient)
         if grad_norm > self.config.gradient_clip:
             gradient = gradient / grad_norm * self.config.gradient_clip
 
-        # Apply to shadow
         grad_A = gradient @ self.B_shadow.T
         grad_B = self.A_shadow.T @ gradient
 
@@ -279,12 +495,10 @@ class SelfUpdatingAdapter(AdapterWeights):
         W_shadow = base_weights + self.get_delta_shadow()
         shadow_perf = eval_fn(W_shadow, self.validation_samples)
 
-        # Decision criteria
-        improvement = shadow_perf - baseline_perf
-        degradation = baseline_perf - shadow_perf
+        # Ternary validation gate: TRUE, FALSE, UNKNOWN
+        decision = self._ternary_gate(baseline_perf, shadow_perf)
 
-        # Check for improvement
-        if improvement >= self.config.min_improvement:
+        if decision == "TRUE":
             # Performance improved → commit shadow → primary
             np.copyto(self.A, self.A_shadow)
             np.copyto(self.B, self.B_shadow)
@@ -292,13 +506,16 @@ class SelfUpdatingAdapter(AdapterWeights):
             self.baseline_performance = shadow_perf
             self.accepted_count += 1
 
+            improvement = shadow_perf - baseline_perf
+
             # Record success
             self.performance_history.append({
                 'step': self.update_count,
                 'baseline': baseline_perf,
                 'shadow': shadow_perf,
                 'improvement': improvement,
-                'accepted': True
+                'accepted': True,
+                'decision': 'TRUE'
             })
 
             print(f"[{self.specialist_name}] ✓ Update accepted: "
@@ -307,9 +524,10 @@ class SelfUpdatingAdapter(AdapterWeights):
             self.update_count += 1
             return True, baseline_perf, shadow_perf
 
-        elif degradation > self.config.max_degradation:
+        elif decision == "FALSE":
             # Excessive degradation → reject
             self.rejected_count += 1
+            degradation = baseline_perf - shadow_perf
 
             self.performance_history.append({
                 'step': self.update_count,
@@ -317,7 +535,8 @@ class SelfUpdatingAdapter(AdapterWeights):
                 'shadow': shadow_perf,
                 'degradation': degradation,
                 'accepted': False,
-                'reason': 'excessive_degradation'
+                'reason': 'excessive_degradation',
+                'decision': 'FALSE'
             })
 
             print(f"[{self.specialist_name}] ✗ Update rejected: "
@@ -327,9 +546,10 @@ class SelfUpdatingAdapter(AdapterWeights):
             self.update_count += 1
             return False, baseline_perf, shadow_perf
 
-        else:
-            # Insufficient improvement → reject
+        else:  # UNKNOWN
+            # Insufficient evidence → accumulate data
             self.rejected_count += 1
+            improvement = shadow_perf - baseline_perf
 
             self.performance_history.append({
                 'step': self.update_count,
@@ -337,15 +557,47 @@ class SelfUpdatingAdapter(AdapterWeights):
                 'shadow': shadow_perf,
                 'improvement': improvement,
                 'accepted': False,
-                'reason': 'insufficient_improvement'
+                'reason': 'insufficient_evidence',
+                'decision': 'UNKNOWN'
             })
 
-            print(f"[{self.specialist_name}] ✗ Update rejected: "
+            print(f"[{self.specialist_name}] ? Update deferred: "
                   f"{baseline_perf:.4f} → {shadow_perf:.4f} (+{improvement:.4f}) "
-                  f"- Insufficient improvement")
+                  f"- Insufficient evidence")
 
             self.update_count += 1
             return False, baseline_perf, shadow_perf
+
+    def _ternary_gate(self, baseline_perf: float, shadow_perf: float) -> str:
+        """
+        Ternary validation gate for sovereign training.
+
+        Decision logic:
+        - TRUE: Shadow significantly better (improvement >= min_improvement)
+        - FALSE: Shadow significantly worse (degradation > max_degradation)
+        - UNKNOWN: Marginal difference (accumulate more evidence)
+
+        Args:
+            baseline_perf: Primary adapter performance
+            shadow_perf: Shadow adapter performance
+
+        Returns:
+            "TRUE" | "FALSE" | "UNKNOWN"
+        """
+        improvement = shadow_perf - baseline_perf
+        degradation = baseline_perf - shadow_perf
+
+        # TRUE: Clear improvement
+        if improvement >= self.config.min_improvement:
+            return "TRUE"
+
+        # FALSE: Excessive degradation
+        elif degradation > self.config.max_degradation:
+            return "FALSE"
+
+        # UNKNOWN: Marginal difference (neither clearly better nor worse)
+        else:
+            return "UNKNOWN"
 
     def get_stats(self) -> Dict[str, Any]:
         """Get adapter statistics."""

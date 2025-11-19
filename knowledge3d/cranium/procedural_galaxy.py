@@ -40,16 +40,52 @@ class ProceduralGalaxy:
         safe = self._sanitize_key(key)
         return self.root / f"{safe}.ppr"
 
+    def _program_metadata_path(self, key: str) -> Path:
+        """Path to per-program metadata (multilingual, RPN programs, etc.)."""
+        safe = self._sanitize_key(key)
+        return self.root / f"{safe}.meta.json"
+
     def _meta_path(self) -> Path:
         return self.root / "galaxy_meta.json"
 
     # ------------------------------------------------------------------ #
     # CRUD
     # ------------------------------------------------------------------ #
-    def store_program(self, key: str, program_bytes: bytes, compression_ratio: float) -> None:
+    def store_program(
+        self,
+        key: str,
+        program_bytes: bytes,
+        compression_ratio: float,
+        metadata: Optional[Dict] = None
+    ) -> None:
+        """
+        Store procedural program with optional multilingual metadata.
+
+        Args:
+            key: Character/symbol key (e.g., 'a', 'ç', '+')
+            program_bytes: Compiled procedural program bytes
+            compression_ratio: Achieved compression ratio
+            metadata: Optional metadata dict with:
+                - math_rpn: What it does (execution bytecode or "")
+                - languages: ISO 639-1 codes ['en', 'pt', 'es', ...]
+                - glyph_count: Number of glyph variants stored
+                - glyphs: List of glyph metadata (visual_rpn, font metadata)
+                - timestamp: UTC timestamp
+        """
+        # Store program bytes
         path = self._program_path(key)
         path.write_bytes(program_bytes)
-        logging.info("ProceduralGalaxy: stored %s (%d bytes, %.1f:1 compression)", key, len(program_bytes), compression_ratio)
+        logging.info(
+            "ProceduralGalaxy: stored %s (%d bytes, %.1f:1 compression)",
+            key, len(program_bytes), compression_ratio
+        )
+
+        # Store per-program metadata (multilingual, RPN programs)
+        if metadata:
+            meta_path = self._program_metadata_path(key)
+            meta_path.write_text(json.dumps(metadata, indent=2), encoding='utf-8')
+
+        # Update global galaxy metadata (compression stats)
         self._update_meta(key, len(program_bytes), compression_ratio)
 
     def load_program(self, key: str) -> ProceduralProgram:
@@ -58,6 +94,20 @@ class ProceduralGalaxy:
             raise FileNotFoundError(f"No procedural program stored for key '{key}'")
         payload = path.read_bytes()
         return ProceduralProgram.from_bytes(payload)
+
+    def load_metadata(self, key: str) -> Optional[Dict]:
+        """
+        Load multilingual metadata for a stored program.
+
+        Returns:
+            Dictionary with visual_rpn, math_rpn, languages, timestamp
+            None if no metadata exists
+        """
+        meta_path = self._program_metadata_path(key)
+        if not meta_path.exists():
+            return None
+
+        return json.loads(meta_path.read_text(encoding='utf-8'))
 
     def execute_program(self, key: str) -> np.ndarray:
         program_path = self._program_path(key)
