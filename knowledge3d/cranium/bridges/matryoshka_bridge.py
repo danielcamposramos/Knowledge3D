@@ -47,6 +47,7 @@ class MatryoshkaProjectionBridge:
                 "-arch",
                 self._arch,
                 "-O3",
+                "-allow-unsupported-compiler",  # Sovereignty: no GCC version constraints
             ]
             try:
                 subprocess.run(cmd, check=True, capture_output=True, text=True)
