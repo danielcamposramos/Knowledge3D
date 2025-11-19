@@ -476,6 +476,74 @@ class AdaptiveSwarmTRM:
         # Placeholder: Random gradient (replace with actual backprop)
         return np.random.randn(dims, dims).astype(np.float32) * 0.01
 
+    def train_specialist_contrastive(
+        self,
+        specialist_name: str,
+        embedding_pairs: List[Tuple[np.ndarray, np.ndarray]],
+        learning_rate: Optional[float] = None
+    ) -> Dict[str, float]:
+        """
+        Train specialist using contrastive learning (pull embeddings together).
+
+        Args:
+            specialist_name: Which specialist to train
+            embedding_pairs: List of (input_emb, target_emb) pairs to align
+            learning_rate: Optional override for specialist LR
+
+        Returns:
+            Training statistics
+        """
+        if specialist_name not in self.base.specialists:
+            raise ValueError(f"Unknown specialist: {specialist_name}")
+
+        specialist = self.base.specialists[specialist_name]
+        adapter = specialist['adapter']
+        dims = specialist['dims']
+
+        lr = learning_rate if learning_rate is not None else self.config.specialist_learning_rate
+
+        total_loss = 0.0
+
+        for input_emb, target_emb in embedding_pairs:
+            # Ensure correct dimensions
+            if input_emb.shape[0] != dims or target_emb.shape[0] != dims:
+                # Pad or truncate
+                input_emb = np.pad(input_emb, (0, max(0, dims - len(input_emb))))[:dims]
+                target_emb = np.pad(target_emb, (0, max(0, dims - len(target_emb))))[:dims]
+
+            # Contrastive loss: minimize distance between embeddings
+            # Simple gradient: direction from input to target
+            diff = target_emb - input_emb
+            loss = np.linalg.norm(diff)
+            total_loss += loss
+
+            # Gradient for adapter: outer product of difference (simple update rule)
+            gradient = np.outer(diff, input_emb)
+
+            # Update adapter weights using proper low-rank gradient application
+            # SelfUpdatingAdapter has apply_gradient method that updates A and B matrices
+            if hasattr(adapter, 'apply_gradient'):
+                # Use adapter's built-in gradient method (handles A @ B decomposition)
+                adapter.apply_gradient(gradient, lr=lr)
+            elif hasattr(adapter, 'A') and hasattr(adapter, 'B'):
+                # Direct update to A and B (LoRA-style)
+                grad_A = gradient @ adapter.B.T
+                grad_B = adapter.A.T @ gradient
+                adapter.A -= lr * grad_A
+                adapter.B -= lr * grad_B
+
+        avg_loss = total_loss / len(embedding_pairs) if embedding_pairs else 0.0
+
+        # Increment specialist step counter
+        if specialist_name in self.specialist_steps:
+            self.specialist_steps[specialist_name] += len(embedding_pairs)
+
+        return {
+            'avg_loss': avg_loss,
+            'num_pairs': len(embedding_pairs),
+            'steps': self.specialist_steps.get(specialist_name, 0)
+        }
+
     def _validate_and_commit_base(self, eval_fn: Callable[[np.ndarray, List], float]) -> bool:
         """
         Validate shadow base weights and commit if improved.

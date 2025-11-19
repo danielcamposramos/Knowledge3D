@@ -103,18 +103,14 @@ class MatryoshkaTRM:
 
     def _initialise_gpu_resources(self):
         """Allocate and populate GPU buffers for the base weight matrix."""
-        try:
-            self._bridge = MatryoshkaProjectionBridge()
-            self._gpu_weights = loader.gpu_malloc(self.W_base_full.nbytes)
-            loader.memcpy_htod(
-                self._gpu_weights,
-                self.W_base_full.ctypes.data_as(ctypes.c_void_p),
-                self.W_base_full.nbytes,
-            )
-        except Exception as exc:
-            self._bridge = None
-            self._gpu_weights = None
-            print(f"[MatryoshkaTRM] GPU init failed, falling back to CPU projection: {exc}")
+        # Sovereignty: GPU-native only, no CPU fallback
+        self._bridge = MatryoshkaProjectionBridge()
+        self._gpu_weights = loader.gpu_malloc(self.W_base_full.nbytes)
+        loader.memcpy_htod(
+            self._gpu_weights,
+            self.W_base_full.ctypes.data_as(ctypes.c_void_p),
+            self.W_base_full.nbytes,
+        )
 
     def get_base_at_dim(self, dim: int) -> np.ndarray:
         """
@@ -139,20 +135,15 @@ class MatryoshkaTRM:
 
     def project_vector(self, vector: np.ndarray, target_dim: int) -> np.ndarray:
         """
-        Project `vector` using GPU path when available, else fall back to CPU.
+        Project `vector` using GPU-native path (sovereignty - no CPU fallback).
         """
-        if self._bridge is not None and self._gpu_weights is not None:
-            return self._bridge.project_host(self._gpu_weights, vector, target_dim, self.max_dims)
-
-        resized = np.zeros(target_dim, dtype=np.float32)
-        vec = np.asarray(vector, dtype=np.float32)
-        length = min(len(vec), target_dim)
-        resized[:length] = vec[:length]
-        weights = self.get_base_at_dim(target_dim)
-        projected = weights @ resized
-        projected = np.nan_to_num(projected, nan=0.0, posinf=0.0, neginf=0.0)
-        np.clip(projected, -10.0, 10.0, out=projected)
-        return projected.astype(np.float32)
+        if self._bridge is None or self._gpu_weights is None:
+            raise RuntimeError(
+                "Matryoshka GPU resources not initialized. "
+                "Sovereignty principle: no CPU fallback. "
+                "Ensure GPU is available and PTX compilation succeeded."
+            )
+        return self._bridge.project_host(self._gpu_weights, vector, target_dim, self.max_dims)
 
     def register_specialist(self, name: str, required_dims: int,
                           rank: Optional[int] = None,
