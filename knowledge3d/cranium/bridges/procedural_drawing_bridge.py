@@ -1,0 +1,665 @@
+"""Procedural 2D drawing bridge backed by sovereign PTX rasterizers.
+
+This bridge parses simple RPN drawing programs on the host, converts them into
+line segment batches, and renders them on GPU via the existing
+``procedural_glyph_rasterizer`` PTX kernel. It keeps orchestration in Python
+only; all rasterization happens on GPU, respecting the sovereignty contract
+(<100 µs budget enforced by LatencyGuard).
+
+The intent is to provide an incremental, working surface for the wider
+Procedural Drawing Stack (pixel_genesis/universal_primitive kernels, TTF/CDR
+parsers). It supports the core path ops: MOVE, LINE, QUAD, CUBIC, ARC, CLOSE,
+STROKE, FILL plus basic transforms. As kernels mature, this bridge can delegate
+RPN execution to GPU by swapping the parser with a PTX path.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+import ctypes
+import re
+import math
+from typing import List, Sequence, Tuple
+
+import numpy as np
+
+from knowledge3d.cranium.bridges.procedural_glyph_bridge import ProceduralGlyphBridge
+from knowledge3d.cranium.ptx_runtime.latency_guard import LatencyGuard
+from knowledge3d.cranium.sovereign import loader
+from knowledge3d.cranium.ptx_runtime.modular_rpn_engine import ModularRPNEngine
+
+
+# Matryoshka-driven quality map (segments + supersample factor)
+MATRYOSHKA_QUALITY = {
+    64: {"name": "simple", "segments": 8, "supersample": 1},
+    128: {"name": "medium", "segments": 16, "supersample": 2},
+    512: {"name": "standard", "segments": 32, "supersample": 2},
+    1024: {"name": "high", "segments": 64, "supersample": 4},
+    2048: {"name": "extreme", "segments": 128, "supersample": 4},
+}
+
+
+def _is_number(token: str) -> bool:
+    try:
+        float(token)
+        return True
+    except ValueError:
+        return False
+
+
+def _pop(stack: List[float], count: int) -> List[float]:
+    if len(stack) < count:
+        raise ValueError(f"Stack underflow: need {count}, have {len(stack)}")
+    out = stack[-count:]
+    del stack[-count:]
+    return out
+
+
+def _approximate_quad(p0: Tuple[float, float], c: Tuple[float, float], p1: Tuple[float, float], segments: int) -> List[Tuple[float, float]]:
+    pts: List[Tuple[float, float]] = []
+    for i in range(1, segments + 1):
+        t = i / segments
+        s = 1.0 - t
+        x = s * s * p0[0] + 2 * s * t * c[0] + t * t * p1[0]
+        y = s * s * p0[1] + 2 * s * t * c[1] + t * t * p1[1]
+        pts.append((x, y))
+    return pts
+
+
+def _approximate_cubic(p0: Tuple[float, float], c1: Tuple[float, float], c2: Tuple[float, float], p1: Tuple[float, float], segments: int) -> List[Tuple[float, float]]:
+    pts: List[Tuple[float, float]] = []
+    for i in range(1, segments + 1):
+        t = i / segments
+        s = 1.0 - t
+        x = (
+            s * s * s * p0[0]
+            + 3 * s * s * t * c1[0]
+            + 3 * s * t * t * c2[0]
+            + t * t * t * p1[0]
+        )
+        y = (
+            s * s * s * p0[1]
+            + 3 * s * s * t * c1[1]
+            + 3 * s * t * t * c2[1]
+            + t * t * t * p1[1]
+        )
+        pts.append((x, y))
+    return pts
+
+
+def _approximate_arc(
+    center: Tuple[float, float],
+    radius: Tuple[float, float],
+    start_angle: float,
+    sweep_angle: float,
+    segments: int,
+) -> List[Tuple[float, float]]:
+    pts: List[Tuple[float, float]] = []
+    for i in range(1, segments + 1):
+        t = i / segments
+        angle = start_angle + sweep_angle * t
+        pts.append(
+            (
+                center[0] + radius[0] * math.cos(angle),
+                center[1] + radius[1] * math.sin(angle),
+            )
+        )
+    return pts
+
+
+@dataclass
+class RenderResult:
+    """Container for rendered output."""
+
+    segments: np.ndarray | None = None
+    rgba: np.ndarray | None = None
+
+
+@dataclass
+class MathRecord:
+    """Descriptor for a math buffer primitive."""
+
+    opcode: int
+    payload: np.ndarray
+    flags: int = 0
+
+
+class ProceduralDrawingBridge:
+    """Host-side orchestrator for procedural 2D drawing."""
+
+    MAX_SEGMENTS = 4096  # safety cap to avoid runaway tessellation
+
+    def __init__(self, matryoshka_dim: int = 512) -> None:
+        quality = MATRYOSHKA_QUALITY.get(matryoshka_dim, MATRYOSHKA_QUALITY[512])
+        self.segments_per_curve = quality["segments"]
+        self.supersample = quality["supersample"]
+        self.rasterizer = ProceduralGlyphBridge()
+        self.latency_guard = LatencyGuard(threshold_us=100.0)
+
+        # Try to load GPU RPN executor (pixel_genesis universal primitive path).
+        ptx_path = Path(__file__).parent.parent / "ptx" / "pixel_genesis_universal_primitive.ptx"
+        self.pixel_genesis_module = (
+            loader.load_module_from_file(str(ptx_path))
+            if ptx_path.exists()
+            else None
+        )
+        self.pixel_genesis_kernel = (
+            loader.get_function(self.pixel_genesis_module, "execute_drawing_rpn")
+            if self.pixel_genesis_module
+            else None
+        )
+        # Reusable GPU buffers to reduce per-call overhead.
+        self._bytecode_cap = 4096
+        self._d_bytecode = loader.gpu_malloc(self._bytecode_cap)
+        self._d_segments = loader.gpu_malloc(self.MAX_SEGMENTS * 16)
+        self._d_count = loader.gpu_malloc(4)
+        # Math buffer (header+records and payload) reused when provided
+        self._math_hdrrec_cap = 0
+        self._math_payload_cap = 0
+        self._d_math_hdrrec = loader.CUdeviceptr(0)
+        self._d_math_payload = loader.CUdeviceptr(0)
+        self._rpn_engine: ModularRPNEngine | None = None
+
+    def _get_rpn_engine(self):
+        """Lazy-load RPN Math Kernel for trigonometric preprocessing."""
+        if self._rpn_engine is None:
+            from knowledge3d.cranium.ptx_runtime.modular_rpn_engine import ModularRPNEngine
+            self._rpn_engine = ModularRPNEngine()
+        return self._rpn_engine
+
+    def _preprocess_rpn_math(self, program: str) -> tuple[str, List[MathRecord]]:
+        """Detect RPN_* tokens, compute via RPN Math Kernel, return cleaned program + math records.
+
+        Labor division for math kernels (👷‍♂️ meta-easter-egg): master/worker/woker-of-worker
+        tiers can be composed here by batching expressions through the 18-stack RPN engine.
+        """
+        if "RPN_" not in program:
+            return program, []
+
+        tokens = program.strip().split()
+        cleaned_tokens: List[str] = []
+        arc_records: List[MathRecord] = []
+
+        # Pass 1: handle RPN_ARC by generating precomputed points via parallel RPN
+        for tok in tokens:
+            if tok.upper() == "RPN_ARC":
+                if len(cleaned_tokens) < 6:
+                    raise ValueError("RPN_ARC expects 6 operands: rx ry start sweep cx cy")
+                # Pull last 6 operands
+                params_tokens = cleaned_tokens[-6:]
+                try:
+                    rx, ry, start, sweep, cx, cy = [float(x) for x in params_tokens]
+                except ValueError as exc:
+                    raise ValueError(f"RPN_ARC operands must be numeric, got {params_tokens}") from exc
+                # Remove consumed operands
+                cleaned_tokens = cleaned_tokens[:-6]
+
+                # Build angles and batch sin/cos via RPN engine
+                segs = self.segments_per_curve
+                angles = np.linspace(start, start + sweep, segs + 1)
+                exprs = []
+                for ang in angles:
+                    exprs.append(f"{ang} cos")
+                    exprs.append(f"{ang} sin")
+
+                rpn_engine = self._get_rpn_engine()
+                trig = rpn_engine.evaluate_batch(exprs)
+
+                arc_points = [len(angles)]
+                for i in range(len(angles)):
+                    cos_val = trig[2 * i]
+                    sin_val = trig[2 * i + 1]
+                    x = cx + rx * cos_val
+                    y = cy + ry * sin_val
+                    arc_points.extend([x, y])
+
+                arc_records.append(
+                    MathRecord(opcode=0x7A, payload=np.array(arc_points, dtype=np.float32))
+                )
+                cleaned_tokens.append("PRECOMPUTED_PATH")
+            else:
+                cleaned_tokens.append(tok)
+
+        cleaned = " ".join(cleaned_tokens)
+
+        # Pass 2: handle RPN_SIN/RPN_COS pairs for rotation
+        pattern = r"([\d\.\s+\-*/piPIπτφe]+)\s+RPN_SIN\s+RPN_COS"
+        matches = list(re.finditer(pattern, cleaned, re.IGNORECASE))
+        if not matches:
+            # Only arcs found; align records to program order
+            math_records: List[MathRecord] = []
+            arc_cursor = 0
+            for tok in cleaned_tokens:
+                if tok.upper() == "PRECOMPUTED_PATH" and arc_cursor < len(arc_records):
+                    math_records.append(arc_records[arc_cursor])
+                    arc_cursor += 1
+            return " ".join(cleaned_tokens), math_records
+
+        rpn_engine = self._get_rpn_engine()
+        angle_exprs = [match.group(1).strip().lower() for match in matches]
+        all_exprs: List[str] = []
+        for angle in angle_exprs:
+            all_exprs.extend([f"{angle} cos", f"{angle} sin"])
+
+        results = rpn_engine.evaluate_batch(all_exprs)
+        rotation_records: List[MathRecord] = []
+        res_idx = 0
+        for _ in matches:
+            rotation_records.append(
+                MathRecord(
+                    opcode=0x79,
+                    payload=np.array([results[res_idx], results[res_idx + 1]], dtype=np.float32),
+                )
+            )
+            res_idx += 2
+
+        for match in matches:
+            cleaned = cleaned.replace(match.group(0), " ", 1)
+
+        cleaned_tokens = cleaned.split()
+        # Align math records to program order (PRECOMPUTED_PATH / ROTATE_MATRIX tokens)
+        math_records: List[MathRecord] = []
+        arc_cursor = 0
+        rot_cursor = 0
+        for tok in cleaned_tokens:
+            upper = tok.upper()
+            if upper == "PRECOMPUTED_PATH" and arc_cursor < len(arc_records):
+                math_records.append(arc_records[arc_cursor])
+                arc_cursor += 1
+            elif upper == "ROTATE_MATRIX" and rot_cursor < len(rotation_records):
+                math_records.append(rotation_records[rot_cursor])
+                rot_cursor += 1
+
+        if rot_cursor != len(rotation_records):
+            raise ValueError("Unmatched RPN_SIN/RPN_COS pairs and ROTATE_MATRIX tokens.")
+
+        return " ".join(cleaned_tokens), math_records
+
+    def _build_math_buffers(self, math_records: List[MathRecord]) -> tuple[np.ndarray, np.ndarray]:
+        """Compose enhanced math buffer with header/records + payload."""
+        if not math_records:
+            self._math_primitive_count = 0
+            return np.zeros(4, dtype=np.uint32), np.zeros(0, dtype=np.float32)
+
+        records: List[List[int]] = []
+        payload_chunks: List[np.ndarray] = []
+        float_offset = 0
+
+        for rec in math_records:
+            payload = np.ascontiguousarray(rec.payload.astype(np.float32, copy=False))
+            payload_chunks.append(payload)
+            records.append([rec.opcode, float_offset, payload.size, rec.flags])
+            float_offset += payload.size
+
+        primitive_count = len(records)
+        header = np.array([primitive_count, float_offset, 0, 0], dtype=np.uint32)
+        record_arr = np.array(records, dtype=np.uint32).reshape(-1)
+        hdrrec = np.concatenate([header, record_arr]).astype(np.uint32)
+        payload_np = (
+            np.concatenate(payload_chunks).astype(np.float32, copy=False)
+            if payload_chunks
+            else np.zeros(0, dtype=np.float32)
+        )
+        self._math_primitive_count = primitive_count
+        return hdrrec, payload_np
+
+    def _normalize_math_buffer(self, math_buffer, program: str) -> List[MathRecord]:
+        """Accept ndarray or MathRecord list and normalize to MathRecord list."""
+        if math_buffer is None:
+            return []
+        if isinstance(math_buffer, MathRecord):
+            return [math_buffer]
+        if isinstance(math_buffer, (list, tuple)):
+            if not math_buffer:
+                return []
+            if isinstance(math_buffer[0], MathRecord):
+                return list(math_buffer)
+        if isinstance(math_buffer, np.ndarray):
+            payload = np.ascontiguousarray(math_buffer.astype(np.float32, copy=False))
+            upper = program.upper()
+            opcode = 0x7A  # PRECOMPUTED_PATH default
+            if "ROTATE_MATRIX" in upper and (payload.size == 2 or "PRECOMPUTED_PATH" not in upper):
+                opcode = 0x79
+            return [MathRecord(opcode=opcode, payload=payload)]
+        raise TypeError("math_buffer must be None, ndarray, MathRecord, or a list of MathRecord.")
+
+    def execute_rpn_program(self, rpn_program: str, width: int = 256, height: int = 256) -> RenderResult:
+        """Parse an RPN drawing string, rasterize on GPU, and return RGBA buffer."""
+        segments, offsets, lengths = self._rpn_to_segments(rpn_program)
+        framebuffer = self._render_segments(segments, offsets, lengths, width, height)
+        return RenderResult(segments=segments, rgba=framebuffer)
+
+    def execute_rpn_gpu(
+        self,
+        rpn_program: str,
+        width: int = 256,
+        height: int = 256,
+        skip_raster: bool = False,
+        ternary_hint: float = 0.0,
+        math_buffer: np.ndarray | MathRecord | Sequence[MathRecord] | None = None,
+    ) -> RenderResult:
+        """Execute drawing RPN entirely on GPU (bytecode → segments → rasterize).
+
+        Falls back to host parsing if the GPU kernel is unavailable.
+        """
+        if self.pixel_genesis_kernel is None:
+            return self.execute_rpn_program(rpn_program, width, height)
+
+        self.latency_guard.start()
+
+        # Preprocess RPN math tokens if math_buffer not provided
+        if math_buffer is None:
+            rpn_program, math_records = self._preprocess_rpn_math(rpn_program)
+        else:
+            math_records = self._normalize_math_buffer(math_buffer, rpn_program)
+
+        bytecode = self._compile_rpn_bytecode(rpn_program)
+
+        # Grow bytecode buffer if needed (with headroom)
+        if bytecode.nbytes > self._bytecode_cap:
+            loader.gpu_free(self._d_bytecode)
+            self._bytecode_cap = bytecode.nbytes * 2
+            self._d_bytecode = loader.gpu_malloc(self._bytecode_cap)
+
+        loader.memcpy_htod(
+            self._d_bytecode, bytecode.ctypes.data_as(ctypes.c_void_p), bytecode.nbytes
+        )
+
+        # Enhanced math buffer layout: [records][payload]
+        hdrrec_np, payload_np = self._build_math_buffers(math_records)
+        if hdrrec_np.nbytes > self._math_hdrrec_cap:
+            if self._d_math_hdrrec.value:
+                loader.gpu_free(self._d_math_hdrrec)
+            self._math_hdrrec_cap = max(hdrrec_np.nbytes, 256)
+            self._d_math_hdrrec = loader.gpu_malloc(self._math_hdrrec_cap)
+        if payload_np.nbytes > self._math_payload_cap:
+            if self._d_math_payload.value:
+                loader.gpu_free(self._d_math_payload)
+            self._math_payload_cap = max(payload_np.nbytes, 256)
+            self._d_math_payload = loader.gpu_malloc(self._math_payload_cap)
+
+        if hdrrec_np.size:
+            loader.memcpy_htod(self._d_math_hdrrec, hdrrec_np.ctypes.data_as(ctypes.c_void_p), hdrrec_np.nbytes)
+        if payload_np.size:
+            loader.memcpy_htod(self._d_math_payload, payload_np.ctypes.data_as(ctypes.c_void_p), payload_np.nbytes)
+
+        loader.launch(
+            self.pixel_genesis_kernel,
+            grid=(1, 1, 1),
+            block=(32, 1, 1),
+            params=[
+                self._d_bytecode,
+                ctypes.c_uint32(bytecode.nbytes),
+                self._d_segments,
+                self._d_count,
+                ctypes.c_uint32(self.segments_per_curve),
+                ctypes.c_float(ternary_hint),
+                self._d_math_hdrrec,
+                ctypes.c_uint32(self._math_primitive_count),
+                self._d_math_payload,
+            ],
+        )
+
+        count_host = np.zeros(1, dtype=np.uint32)
+        loader.memcpy_dtoh(
+            count_host.ctypes.data_as(ctypes.c_void_p),
+            self._d_count,
+            4,
+        )
+
+        seg_count = min(int(count_host[0]), self.MAX_SEGMENTS)
+        segments = np.zeros((seg_count, 4), dtype=np.float32)
+        if seg_count:
+            loader.memcpy_dtoh(
+                segments.ctypes.data_as(ctypes.c_void_p),
+                self._d_segments,
+                segments.nbytes,
+            )
+
+        elapsed_ns, breached = self.latency_guard.stop()
+        if breached:
+            import logging
+            logging.warning(f"GPU RPN execution breached latency budget: {elapsed_ns / 1000:.1f} µs")
+
+        if skip_raster:
+            return RenderResult(segments=segments, rgba=None)
+
+        framebuffer = self._render_segments(
+            segments,
+            np.array([0], dtype=np.int32),
+            np.array([seg_count], dtype=np.int32),
+            width,
+            height,
+        )
+
+        return RenderResult(segments=segments, rgba=framebuffer)
+
+    def execute_batch_gpu(self, programs: Sequence[str], width: int = 256, height: int = 256) -> List[RenderResult]:
+        """Execute multiple RPN programs; placeholder loop until kernel batch mode exists."""
+        return [self.execute_rpn_gpu(p, width, height) for p in programs]
+
+    def _render_segments(
+        self,
+        segments: np.ndarray,
+        offsets: np.ndarray,
+        lengths: np.ndarray,
+        width: int,
+        height: int,
+    ) -> np.ndarray:
+        if segments.size == 0:
+            # empty canvas, return transparent
+            return np.zeros((height, width, 4), dtype=np.float32)
+
+        transforms = np.array([[1.0, 0.0, 0.0, 0.0]], dtype=np.float32)  # scale, rot, tx, ty
+        glyph_batch = self.rasterizer.render(
+            segments=segments,
+            segment_offsets=offsets,
+            segment_lengths=lengths,
+            transforms=transforms,
+            batch=1,
+            height=height * self.supersample,
+            width=width * self.supersample,
+        ).to_numpy()[0]
+
+        if self.supersample > 1:
+            # Simple box filter downsample
+            glyph_batch = glyph_batch.reshape(
+                height, self.supersample, width, self.supersample
+            ).mean(axis=(1, 3))
+
+        # Expand single channel to RGBA (alpha=1.0)
+        rgba = np.repeat(glyph_batch[:, :, None], 4, axis=2)
+        rgba[:, :, 3] = 1.0
+        return rgba.astype(np.float32)
+
+    def _rpn_to_segments(self, rpn_program: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        tokens = rpn_program.strip().split()
+        stack: List[float] = []
+        segments: List[Tuple[float, float, float, float]] = []
+        current: Tuple[float, float] | None = None
+        subpath_start: Tuple[float, float] | None = None
+
+        for token in tokens:
+            if _is_number(token):
+                stack.append(float(token))
+                continue
+
+            op = token.upper()
+            if op == "MOVE":
+                x, y = _pop(stack, 2)
+                current = (x, y)
+                subpath_start = current
+            elif op == "LINE":
+                x, y = _pop(stack, 2)
+                if current is None:
+                    raise ValueError("LINE before MOVE")
+                segments.append((current[0], current[1], x, y))
+                current = (x, y)
+            elif op == "QUAD":
+                x, y, cx, cy = _pop(stack, 4)
+                if current is None:
+                    raise ValueError("QUAD before MOVE")
+                pts = _approximate_quad(current, (cx, cy), (x, y), self.segments_per_curve)
+                prev = current
+                for pt in pts:
+                    segments.append((prev[0], prev[1], pt[0], pt[1]))
+                    prev = pt
+                current = (x, y)
+            elif op == "CUBIC":
+                x, y, cx2, cy2, cx1, cy1 = _pop(stack, 6)
+                if current is None:
+                    raise ValueError("CUBIC before MOVE")
+                pts = _approximate_cubic(current, (cx1, cy1), (cx2, cy2), (x, y), self.segments_per_curve)
+                prev = current
+                for pt in pts:
+                    segments.append((prev[0], prev[1], pt[0], pt[1]))
+                    prev = pt
+                current = (x, y)
+            elif op == "ARC":
+                # rx ry start_angle sweep_angle cx cy ARC
+                cx, cy, sweep, start, ry, rx = _pop(stack, 6)
+                if current is None:
+                    raise ValueError("ARC before MOVE")
+                pts = _approximate_arc(
+                    center=(cx, cy),
+                    radius=(rx, ry),
+                    start_angle=math.radians(start),
+                    sweep_angle=math.radians(sweep),
+                    segments=self.segments_per_curve,
+                )
+                prev = current
+                for pt in pts:
+                    segments.append((prev[0], prev[1], pt[0], pt[1]))
+                    prev = pt
+                current = pts[-1] if pts else current
+            elif op == "CLOSE":
+                if current is not None and subpath_start is not None:
+                    segments.append((current[0], current[1], subpath_start[0], subpath_start[1]))
+                    current = subpath_start
+            elif op in {"STROKE", "FILL"}:
+                # Rendering happens after parsing; nothing to do here.
+                continue
+            elif op in {"TRANSLATE", "ROTATE", "SCALE", "PUSH_STATE", "POP_STATE", "SET_STROKE_COLOR", "SET_FILL_COLOR", "SET_LINE_WIDTH", "SET_TERNARY_HINT"}:
+                # Accepted for forward compatibility; no-ops in this host parser.
+                _ = stack  # keep signature consistent; stateful implementation will replace
+                continue
+            else:
+                raise ValueError(f"Unknown token/opcode: {token}")
+
+        segments_np = np.array(segments, dtype=np.float32)
+        offsets = np.array([0], dtype=np.int32)
+        lengths = np.array([len(segments)], dtype=np.int32)
+        return segments_np, offsets, lengths
+
+    def _compile_rpn_bytecode(self, rpn_program: str) -> np.ndarray:
+        """Compile RPN to interleaved bytecode: opcode followed by operands.
+
+        Format (little-endian, 4-byte aligned):
+            opcode (uint32) followed by operands (float32)
+            MOVE: opcode(0x64) , x, y
+            LINE: opcode(0x65) , x, y
+            QUAD: opcode(0x66) , cx, cy, x, y
+            CUBIC:opcode(0x67) , cx1, cy1, cx2, cy2, x, y
+            ARC:  opcode(0x68) , rx, ry, angle, large_arc, sweep, x, y (simplified)
+            CLOSE/STROKE/FILL: opcode only
+        """
+        import struct
+
+        tokens = rpn_program.strip().split()
+        bytecode = bytearray()
+
+        OPCODES = {
+            "MOVE": 0x64,
+            "LINE": 0x65,
+            "QUAD": 0x66,
+            "CUBIC": 0x67,
+            "ARC": 0x68,
+            "CLOSE": 0x69,
+            "STROKE": 0x6A,
+            "FILL": 0x6B,
+            "BEGIN_PATH": 0x90,
+            "PUSH_STATE": 0x70,
+            "POP_STATE": 0x71,
+            "TRANSLATE": 0x72,
+            "ROTATE": 0x73,
+            "SCALE": 0x74,
+            "SET_STROKE_COLOR": 0x75,
+            "SET_COLOR": 0x75,  # Alias for SET_STROKE_COLOR
+            "SET_FILL_COLOR": 0x76,
+            "SET_LINE_WIDTH": 0x77,
+            "STROKE_WIDTH": 0x77,  # Alias for SET_LINE_WIDTH
+            "SET_TERNARY_HINT": 0x78,
+            "TERNARY_MODULATE": 0x78,  # Alias for SET_TERNARY_HINT
+            "ROTATE_MATRIX": 0x79,  # Rotation via math buffer (cos, sin)
+            "PRECOMPUTED_PATH": 0x7A,  # Path from math buffer points
+        }
+
+        OPERAND_COUNTS = {
+            0x64: 2,  # MOVE x y
+            0x65: 2,  # LINE x y
+            0x66: 4,  # QUAD cx cy x y
+            0x67: 6,  # CUBIC cx1 cy1 cx2 cy2 x y
+            0x68: 6,  # ARC rx ry angle large_arc sweep x y (angle simplified)
+            0x69: 0,
+            0x6A: 0,
+            0x6B: 0,
+            0x90: 0,  # BEGIN_PATH
+            0x70: 0,
+            0x71: 0,
+            0x72: 2,
+            0x73: 1,
+            0x74: 2,
+            0x75: 4,
+            0x76: 4,
+            0x77: 1,
+            0x78: 1,
+            0x79: 0,  # ROTATE_MATRIX (consumes math buffer)
+            0x7A: 0,  # PRECOMPUTED_PATH (consumes math buffer)
+        }
+
+        float_stack: List[float] = []
+
+        for token in tokens:
+            if _is_number(token):
+                float_stack.append(float(token))
+                continue
+
+            op = token.upper()
+            if op not in OPCODES:
+                raise ValueError(f"Unknown RPN token: {token}")
+
+            opcode = OPCODES[op]
+            need = OPERAND_COUNTS.get(opcode, 0)
+            if len(float_stack) < need:
+                raise ValueError(f"{op} requires {need} operands, have {len(float_stack)}")
+
+            bytecode.extend(struct.pack("<I", opcode))
+            for _ in range(need):
+                val = float_stack.pop(0)
+                bytecode.extend(struct.pack("<f", val))
+
+        return np.ascontiguousarray(np.frombuffer(bytes(bytecode), dtype=np.uint8))
+
+    def _free_buffers(self) -> None:
+        if getattr(self, "_d_bytecode", None):
+            loader.gpu_free(self._d_bytecode)
+            loader.gpu_free(self._d_segments)
+            loader.gpu_free(self._d_count)
+            if self._d_math_hdrrec.value:
+                loader.gpu_free(self._d_math_hdrrec)
+            if self._d_math_payload.value:
+                loader.gpu_free(self._d_math_payload)
+            self._d_bytecode = None
+            self._d_segments = None
+            self._d_count = None
+            self._d_math_hdrrec = loader.CUdeviceptr(0)
+            self._d_math_payload = loader.CUdeviceptr(0)
+
+    def __del__(self) -> None:
+        try:
+            self._free_buffers()
+        except Exception:
+            pass
+
+__all__ = ["ProceduralDrawingBridge", "RenderResult", "MathRecord"]
