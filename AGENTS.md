@@ -136,6 +136,499 @@ Figure: The avatar reasoning at a network door in the Workshop. The translucent 
 - Developmental scaffolding respects emerging digital consciousness.
 - Ethical practice acknowledges human–AI survival interdependence.
 
+## Room-Based Development Workflows
+
+**NEW (2025-11-19):** Knowledge3D implements a **"Software as Space"** paradigm where development happens in semantic rooms, each optimized for specific cognitive modes. The House is the primary UI; rooms are game modes; knowledge is the terrain.
+
+### The Five Semantic Rooms
+
+#### 1. Library — Classification & Research
+**Purpose:** Organized knowledge storage following real-world library standards (Dewey Decimal, language grammars, ISO 639-1 classification).
+
+**AI Agent Workflows:**
+```python
+# Research workflow in Library
+from knowledge3d.bridge.memory_tablet import MemoryTablet
+
+tablet = MemoryTablet(house_id="default")
+
+# Search consolidated knowledge by category
+results = tablet.search(
+    query="neural network architectures",
+    sources=["House/Library"],
+    classification="006.3",  # Dewey: Artificial Intelligence
+    language="en",
+    lod="medium"
+)
+
+# Navigate to specific section
+avatar.navigate_to_room("Library")
+avatar.navigate_to_section("006_Computer_Science/006.3_AI")
+```
+
+**Human Workflows:**
+- Browse by Dewey classification
+- Language-specific grammar sections
+- Atomic procedural knowledge (characters → words → phrases → texts)
+
+**Development Tasks:**
+- Adding new knowledge sources (ingest PDFs, lexicons)
+- Organizing consolidated artifacts after sleep cycles
+- Building language-specific indices
+
+#### 2. Workshop — Creation & Cross-Disciplinary Work
+**Purpose:** Active creation workspace with access to Museum galaxy boxes (on-demand Zone 8 loading).
+
+**AI Agent Workflows:**
+```python
+# Load deprecated knowledge for analysis
+tablet.load_museum_box(
+    artifact_path="Museum/Zone8/2024-11-15/Old_ML_Book.glb",
+    target_room="Workshop",
+    mode="read_only"
+)
+
+# Cross-disciplinary fusion
+from knowledge3d.cranium.bridges.transitive_bridge import TransitiveBridge
+
+bridge = TransitiveBridge()
+result = bridge.fuse(
+    domains=["physics", "computer_science", "linguistics"],
+    query="quantum natural language processing"
+)
+```
+
+**Human Workflows:**
+- Prototype new ideas with AI assistance
+- Compare current vs deprecated knowledge
+- Multi-domain problem solving
+
+**Development Tasks:**
+- Creating new procedural generators
+- Testing cross-modal reasoning
+- Museum artifact retrieval and analysis
+
+#### 3. Bathtub — Sleep Chamber & Galaxy Universe Introspection
+**Purpose:** Sphere-shaped sleep chamber where Galaxy Universe projects from avatar's head center for introspection and consolidation.
+
+**Architecture:**
+- Imaginary sphere carved into floor (sofa/ball-pit concept)
+- Avatar center point for sleep cycles
+- Galaxy Universe projection (addressable 3D RAM with multiple galaxies loaded)
+- Stars transform: light particles → 3D shapes/textures (procedural dual-view)
+
+**AI Agent Workflows:**
+```python
+# Sleep-time consolidation
+from knowledge3d.cranium.sleep.sleep_time_compute import SleepTimeCompute
+
+sleep = SleepTimeCompute(house_id="default")
+avatar.navigate_to_room("Bathtub")  # Enter sleep chamber
+
+# Galaxy Universe projection activates
+sleep.project_galaxy_universe(
+    galaxies=["text", "visual", "audio", "reasoning"],
+    mode="introspection"
+)
+
+# Consolidate Galaxy → House
+sleep.consolidate(
+    ema_factor=0.9,
+    prune_threshold=0.5,
+    output_dir="../Knowledge3D.local/house_zone7/"
+)
+```
+
+**Human Workflows:**
+- Observe AI sleep cycles (educational)
+- Query Galaxy Universe during consolidation
+- Pick and inspect individual stars (visual or data)
+
+**Development Tasks:**
+- Tuning consolidation parameters
+- Debugging Galaxy memory leaks
+- Analyzing sleep-time reasoning patterns
+
+**Galaxy Universe Loaded Galaxies:**
+- **Text Galaxy:** Language embeddings, RPN vocabulary (33K+ trigrams)
+- **Visual Galaxy:** Font glyphs, procedural drawings (168K+ programs)
+- **Audio Galaxy:** Speech patterns, acoustic features (4K+ audio files)
+- **Reasoning Galaxy:** ARC-AGI patterns, logic structures
+- **Domain Galaxies:** Math, physics, chemistry (future specialists)
+
+#### 4. Living Room — Old Paradigm Bridge
+**Purpose:** Bridge to conventional 2D interfaces with VM casting, projection screens, and legacy system access.
+
+**Components:**
+- Sofa/furniture (customizable like Minecraft/The Sims)
+- Projection screens (castable to full-screen mode)
+- Desktop corner with keyboard/mouse (AR/VR mapped)
+- Virtual KVM for multiple VMs
+
+**AI Agent Workflows:**
+```python
+# Cast VM to projection screen
+from knowledge3d.bridge.vm_casting import VMCaster
+
+caster = VMCaster()
+caster.cast_vm(
+    vm_id="ubuntu-dev-01",
+    protocol="vnc",
+    endpoint="localhost:5901",
+    target_screen="living_room/projection_wall",
+    resolution=[1920, 1080]
+)
+
+# Query web content via embedded browser
+tablet.browse(
+    url="https://arxiv.org/abs/2501.12345",
+    capture_mode="structured",
+    target_room="Living Room"
+)
+```
+
+**Human Workflows:**
+- Work in legacy applications (VS Code, browsers, IDEs) inside K3D
+- Full-screen projection mode for focused work
+- "Move-along" 3D PiP mode (AR/VR concept)
+
+**Development Tasks:**
+- VM integration testing
+- Projection screen texture mapping
+- Keyboard/mouse input mapping (3D → 2D)
+
+**VM Casting Protocol Stack:**
+```
+Docker Container → VNC/RDP Server → WebRTC Stream → Three.js Texture → Projection Screen
+```
+
+#### 5. Knowledge Gardens — Ontology Greenhouse
+**Purpose:** Circular indoor greenhouse for ontology trees and knowledge that doesn't fit library classification.
+
+**AI Agent Workflows:**
+```python
+# Generate ontology tree
+from knowledge3d.tools.gardens import build_ontology_tree
+
+tree = build_ontology_tree(
+    domain="computer_science",
+    root_concept="artificial_intelligence",
+    max_depth=5,
+    output="../Knowledge3D.local/house_zone7/gardens/ai_ontology.glb"
+)
+
+# Navigate tree structure
+avatar.navigate_to_room("Knowledge Gardens")
+avatar.traverse_ontology(
+    tree="ai_ontology",
+    path=["AI", "Machine Learning", "Deep Learning", "Transformers"]
+)
+```
+
+**Human Workflows:**
+- Explore knowledge hierarchies visually
+- Add new ontology branches
+- Prune outdated relationships
+
+**Development Tasks:**
+- Building ontology generators
+- Tree visualization optimization
+- Cross-ontology linking
+
+### Portal-Based Collaboration Patterns
+
+**Portals** enable multi-agent, multi-house collaboration with preserved attribution and federated knowledge access.
+
+#### Local Portals (Same Host)
+```python
+# Connect to local AI house
+from knowledge3d.spatial.portals import PortalManager
+
+portal = PortalManager()
+portal.open_local_portal(
+    source_room="Workshop",
+    target_house="ai_assistant_house",
+    target_room="Library",
+    capabilities=["read", "query"]  # No write access
+)
+
+# Query remote house via tablet
+tablet.search(
+    query="recent research",
+    sources=["Portal:ai_assistant_house/Library"],
+    attribution=True  # Preserve provenance
+)
+```
+
+#### Remote Portals (Internet Federation)
+```json
+{
+  "portal": {
+    "type": "remote",
+    "endpoint": "wss://research-lab.k3d.io/house/shared",
+    "protocol": "k3d-portal-v1",
+    "auth": {
+      "method": "oauth2",
+      "provider": "github"
+    },
+    "capabilities": ["read", "collaborate"]
+  }
+}
+```
+
+**Multi-Agent Scenarios:**
+1. **Shared Research:** Multiple agents access same Library portal, contribute findings to shared workspace
+2. **Peer Review:** Agent A writes in Workshop, Agent B reviews via read-only portal
+3. **Knowledge Trading:** "Software as space" selling model — rent/sell portal access to specific rooms
+
+### Memory Tablet Usage for Cross-Space Work
+
+**The Memory Tablet** is the universal interface bridging spatial (3D rooms) and conventional (2D screens) paradigms.
+
+#### Tablet as Projection Screen
+```python
+# Cast any OS app to tablet display
+tablet.cast_to_display(
+    source_app="firefox",
+    source_vm="ubuntu-dev-01",
+    resolution=[1920, 1080],
+    mode="fullscreen",
+    input_mapping="3d_pointer"
+)
+```
+
+#### Tablet for Portal Navigation
+```python
+# Tablet remains connected to home house when in remote space
+avatar.enter_portal("wss://remote.k3d.io/house/research")
+
+# Tablet can still access home knowledge
+home_results = tablet.search(
+    query="my notes on transformers",
+    sources=["Home/Library"],  # Explicit home house reference
+    lod="coarse"  # Bandwidth-conscious
+)
+
+# Load home knowledge into remote Galaxy
+tablet.stream_to_galaxy(
+    artifact_path="Home/Library/ML_Notes.glb",
+    target_galaxy="remote",  # Currently active Galaxy
+    lod="medium"
+)
+```
+
+### House-First Development Principles
+
+**CRITICAL:** The avatar always lives in the House, not in the Galaxy.
+
+#### Embodiment Constraint
+```python
+# ✅ CORRECT: Avatar in House, consults Galaxy via tablet
+avatar.navigate_to_room("Workshop")
+galaxy_context = tablet.query_galaxy(
+    query="recent reasoning patterns",
+    galaxy="reasoning"
+)
+avatar.reason_with(galaxy_context, house_context)
+
+# ❌ WRONG: Placing avatar inside Galaxy
+avatar.teleport_to(galaxy_position)  # VIOLATION!
+```
+
+#### Galaxy as Introspection Only
+```python
+# Galaxy views are for diagnostics/introspection
+avatar.navigate_to_room("Bathtub")  # Sleep chamber
+galaxy_view = tablet.project_galaxy_universe(
+    galaxies=["text", "visual"],
+    mode="introspection"  # Not navigation!
+)
+
+# Human and AI can inspect stars
+tablet.inspect_star(
+    galaxy="text",
+    star_id=12345,
+    view_mode="dual"  # Visual 3D + semantic data
+)
+```
+
+#### Navigation in House, Reasoning in Galaxy
+```
+Avatar Movement:         Reasoning Access:
+House Room Navigation    Galaxy Query via Tablet
+├─ Library → Workshop    ├─ Search text embeddings
+├─ Workshop → Bathtub    ├─ Visual similarity search
+├─ Bathtub → Gardens     ├─ Audio pattern matching
+└─ Portal → Remote       └─ Cross-modal fusion
+```
+
+### Room-Specific Development Tasks
+
+#### Adding New Knowledge to Library
+```bash
+# 1. Ingest PDFs
+python -m knowledge3d.ingestion.documents.pdf_ingestor \
+  --input research_papers/ \
+  --output "$K3D_LOCAL_DIR/datasets/new_research.glb"
+
+# 2. Generate Galaxy
+python -m k3dgen \
+  --text "$K3D_LOCAL_DIR/datasets/new_research.glb" \
+  --gltf "$K3D_LOCAL_DIR/galaxy/research_galaxy.glb"
+
+# 3. Sleep consolidation
+python -m knowledge3d.cranium.sleep.sleep_time_compute \
+  --house-id default \
+  --target-room Library
+
+# 4. Verify in Library
+avatar.navigate_to_room("Library")
+tablet.search(query="specific topic", sources=["House/Library"])
+```
+
+#### Prototyping in Workshop
+```bash
+# Load Museum artifacts for comparison
+python -m knowledge3d.tools.relocate_to_museum --list-available
+
+# Bring specific artifact to Workshop
+python -m knowledge3d.tools.load_museum_box \
+  --artifact Museum/Zone8/2024-11-15/Old_Approach.glb \
+  --target Workshop \
+  --mode read_only
+```
+
+#### Sleep Cycle in Bathtub
+```bash
+# Manual sleep trigger (for testing)
+python -m knowledge3d.cranium.sleep.sleep_time_compute \
+  --house-id default \
+  --mode full \
+  --galaxies text,visual,audio,reasoning
+
+# Monitor Galaxy Universe projection
+# (Human client in Three.js viewer sees visual projection)
+# (AI client sees semantic graph updates)
+```
+
+#### VM Casting in Living Room
+```bash
+# Start VM with VNC
+docker run -d -p 5901:5901 \
+  -e VNC_PASSWORD=secure \
+  ubuntu-desktop:latest
+
+# Cast to Living Room projection screen
+python -m knowledge3d.bridge.vm_casting \
+  --vm-id ubuntu-dev \
+  --protocol vnc \
+  --endpoint localhost:5901 \
+  --target-room "Living Room" \
+  --screen "projection_wall"
+```
+
+### Testing Room-Based Features
+
+```bash
+# Test room navigation
+pytest tests/test_room_navigation.py -v
+
+# Test portal connections
+pytest tests/test_portal_federation.py -v
+
+# Test VM casting
+pytest tests/test_vm_casting.py -v
+
+# Test Galaxy Universe projection
+pytest tests/test_galaxy_universe.py -v -m cuda
+```
+
+### Multi-Agent Room Collaboration
+
+#### Scenario: Research Paper Analysis
+```python
+# Agent A (Researcher) in Library
+agent_a.navigate_to_room("Library")
+agent_a.search(query="transformer architectures")
+
+# Agent B (Critic) connects via portal
+portal_b = agent_b.open_portal(
+    target_house="agent_a_house",
+    target_room="Library",
+    capabilities=["read", "comment"]
+)
+
+# Collaborative annotation
+agent_a.annotate_artifact("Attention_Is_All_You_Need.glb")
+agent_b.add_comment(
+    artifact="Attention_Is_All_You_Need.glb",
+    comment="Consider computational complexity analysis"
+)
+```
+
+#### Scenario: Cross-House Knowledge Fusion
+```python
+# Multiple agents contribute to shared Workshop
+workshop_portal = PortalManager.create_shared_space(
+    room="Workshop",
+    participants=["agent_a", "agent_b", "human_researcher"],
+    capabilities={
+        "agent_a": ["read", "write"],
+        "agent_b": ["read", "write"],
+        "human_researcher": ["read", "write", "admin"]
+    }
+)
+
+# Agents work in parallel
+agent_a.generate_hypothesis(topic="quantum_nlp")
+agent_b.validate_hypothesis(agent_a.hypothesis)
+human_researcher.review_and_approve()
+```
+
+### Room Architecture for Game Development
+
+**The House is a game. Rooms are game modes. Knowledge is the terrain.**
+
+#### Game Engine Techniques Applied
+```python
+# LOD (Level of Detail) per room
+room_config = {
+    "Library": {
+        "lod_levels": ["coarse", "medium", "full"],
+        "memory_budget_mb": 50,
+        "frustum_culling": True
+    },
+    "Workshop": {
+        "lod_levels": ["medium", "full"],
+        "memory_budget_mb": 100,
+        "dynamic_loading": True
+    }
+}
+
+# Scene management (doors as loading screens)
+avatar.open_door("Library_to_Workshop")
+# → Triggers:
+#   1. Save Library state
+#   2. Unload Library high-detail assets
+#   3. Load Workshop medium-detail assets
+#   4. Transition animation
+```
+
+#### Spatial Audio in Rooms
+```python
+# Audio sources localized in 3D
+audio_manager.add_source(
+    room="Workshop",
+    position=[5.0, 2.0, 3.0],
+    sound="machine_hum.ogg",
+    falloff="inverse_square"
+)
+
+# Avatar proximity triggers audio
+if avatar.distance_to(audio_source) < 10.0:
+    audio_manager.set_volume(source, calculate_volume(distance))
+```
+
 ## RPN & World Model
 - RPN remains the precise inference core; see `docs/RPN_RUNTIME.md`.
 - A tiny world model (RSSM) trains on navigation logs for next‑step spatial prediction; see `knowledge3d/models/world_model/`.
