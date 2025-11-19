@@ -1,0 +1,741 @@
+// GPU-native RPN drawing executor (skeleton).
+//
+// This PTX implements a minimal stack machine for drawing opcodes and emits
+// polyline segments (x0, y0, x1, y1) into an output buffer. It is structured
+// to be extended with full tessellation, ternary hint modulation, and batch
+// execution. Current implementation supports MOVE/LINE/CLOSE and counts
+// emitted segments; QUAD/CUBIC/ARC hooks are stubbed to keep sovereignty
+// compliant while we iterate.
+//
+// Entry: execute_drawing_rpn
+// Params:
+//   d_rpn_program (u64)  : pointer to bytecode buffer
+//   program_length (u32) : length in bytes
+//   d_segments_out (u64) : output buffer (float4 per segment)
+//   d_segment_count (u64): output count (u32)
+//   segments_per_curve(u32): tessellation quality hint
+//   ternary_hint (f32)   : -1.0 blur, 0.0 neutral, +1.0 sharpen (placeholder)
+//
+// NOTE: All math is performed in normalized space; caller handles scaling.
+
+.version 8.0
+.target sm_86
+.address_size 64
+
+.entry execute_drawing_rpn(
+    .param .u64 d_rpn_program,
+    .param .u32 program_length,
+    .param .u64 d_segments_out,
+    .param .u64 d_segment_count,
+    .param .u32 segments_per_curve,
+    .param .f32 ternary_hint,
+    .param .u64 d_math_header_records,  // pointer to header+records
+    .param .u32 math_primitive_count,    // number of records
+    .param .u64 d_math_payload          // pointer to payload floats
+) {
+    .reg .pred   p0;
+    .reg .u32    tid;
+    .reg .u64    prog_ptr, seg_ptr, cnt_ptr, addr, seg_offset;
+    .reg .u32    prog_len;
+    .reg .u32    idx, opcode32, seg_offset_u32;
+    .reg .f32    fx0, fy0, fx1, fy1, cx0, cy0, px1, py1;
+    .reg .f32    curx, cury, startx, starty;
+    .reg .f32    tmp; // Temporary for calculations and transforms
+    .reg .u32    seg_count;
+    .reg .u8     opcode;
+    .reg .u32    rec_opcode, rec_offset, rec_count, rec_flags, rec_iter;
+    .reg .u64    rec_ptr;
+    // Path state
+    .reg .f32    stroke_width;
+    .reg .f32    stroke_r, stroke_g, stroke_b, stroke_a;
+    .reg .f32    local_ternary_hint;
+
+    // Transform matrix (2×3 affine): [a c e; b d f]
+    // [x'] = [a c e] [x]
+    // [y']   [b d f] [y]
+    //                [1]
+    .reg .f32    mat_a, mat_b, mat_c, mat_d, mat_e, mat_f;
+
+    mov.u32 tid, %tid.x;
+    setp.ne.u32 p0, tid, 0;
+    @p0 bra DONE; // single-thread executor per block for now
+
+    .reg .u64 prog_ptr_param, seg_ptr_param, cnt_ptr_param;
+    ld.param.u64 prog_ptr_param, [d_rpn_program];
+    ld.param.u32 prog_len, [program_length];
+    ld.param.u64 seg_ptr_param, [d_segments_out];
+    ld.param.u64 cnt_ptr_param, [d_segment_count];
+
+    // Convert to global address space
+    cvta.to.global.u64 prog_ptr, prog_ptr_param;
+    cvta.to.global.u64 seg_ptr, seg_ptr_param;
+    cvta.to.global.u64 cnt_ptr, cnt_ptr_param;
+    // Math buffer (enhanced): header/records + payload
+    // Enhanced math buffer (header + records, plus payload)
+    .reg .u64 math_hdrrec_param, math_payload_param;
+    .reg .u64 math_hdrrec, math_payload_base, math_records_base;
+    .reg .u32 math_count;
+    .reg .u32 math_record_idx;
+    ld.param.u64 math_hdrrec_param, [d_math_header_records];
+    ld.param.u64 math_payload_param, [d_math_payload];
+    ld.param.u32 math_count, [math_primitive_count];
+
+    cvta.to.global.u64 math_hdrrec, math_hdrrec_param;
+    cvta.to.global.u64 math_payload_base, math_payload_param;
+    mov.u64 math_records_base, 0;
+    mov.u32 math_record_idx, 0;
+    setp.eq.u64 p0, math_hdrrec, 0;
+    @p0 bra NO_MATH_HEADER;
+    ld.global.u32 math_count, [math_hdrrec + 0];
+    add.u64 math_records_base, math_hdrrec, 16;
+    bra MATH_HEADER_DONE;
+NO_MATH_HEADER:
+    mov.u32 math_count, 0;
+    mov.u64 math_records_base, 0;
+MATH_HEADER_DONE:
+
+    mov.f32 curx, 0.0;
+    mov.f32 cury, 0.0;
+    mov.f32 startx, 0.0;
+    mov.f32 starty, 0.0;
+    mov.f32 stroke_width, 1.0;
+    mov.f32 stroke_r, 1.0;
+    mov.f32 stroke_g, 1.0;
+    mov.f32 stroke_b, 1.0;
+    mov.f32 stroke_a, 1.0;
+    mov.f32 local_ternary_hint, 0.0;
+    mov.u32 seg_count, 0;
+    mov.u32 idx, 0;
+
+    // Initialize transform to identity
+    mov.f32 mat_a, 1.0;
+    mov.f32 mat_b, 0.0;
+    mov.f32 mat_c, 0.0;
+    mov.f32 mat_d, 1.0;
+    mov.f32 mat_e, 0.0;
+    mov.f32 mat_f, 0.0;
+
+LOOP:
+    // Need at least 4 bytes for opcode
+    setp.ge.u32 p0, idx, prog_len;
+    @p0 bra WRITE_COUNT;
+    .reg .u32 next_idx;
+    add.u32 next_idx, idx, 4;
+    setp.gt.u32 p0, next_idx, prog_len;
+    @p0 bra WRITE_COUNT;
+
+    // Load opcode byte
+    cvt.u64.u32 addr, idx;
+    add.u64 addr, prog_ptr, addr;
+    ld.global.u32 opcode32, [addr];
+    add.u32 idx, idx, 4;
+
+    // opcode32 is already u32; keep a u8 copy if needed
+    cvt.u8.u32 opcode, opcode32;
+
+    // Drawing opcodes and state
+    setp.eq.u32 p0, opcode32, 0x64; @p0 bra OPC_MOVE;       // MOVE
+    setp.eq.u32 p0, opcode32, 0x65; @p0 bra OPC_LINE;       // LINE
+    setp.eq.u32 p0, opcode32, 0x66; @p0 bra OPC_QUAD;       // QUAD
+    setp.eq.u32 p0, opcode32, 0x67; @p0 bra OPC_CUBIC;      // CUBIC
+    setp.eq.u32 p0, opcode32, 0x68; @p0 bra OPC_ARC;        // ARC via PRECOMPUTED_PATH math buffer
+    setp.eq.u32 p0, opcode32, 0x69; @p0 bra OPC_CLOSE;      // CLOSE
+    setp.eq.u32 p0, opcode32, 0x90; @p0 bra OPC_BEGIN_PATH; // BEGIN_PATH
+    setp.eq.u32 p0, opcode32, 0x77; @p0 bra OPC_STROKE_WIDTH; // STROKE_WIDTH
+    setp.eq.u32 p0, opcode32, 0x75; @p0 bra OPC_SET_COLOR;  // SET_COLOR
+    setp.eq.u32 p0, opcode32, 0x78; @p0 bra OPC_TERNARY_MODULATE; // local hint
+    setp.eq.u32 p0, opcode32, 0x79; @p0 bra OPC_ROTATE_MATRIX; // ROTATE_MATRIX (uses math buffer)
+    setp.eq.u32 p0, opcode32, 0x7A; @p0 bra OPC_PRECOMPUTED_PATH; // PRECOMPUTED_PATH from math buffer
+    // Transform opcodes
+    setp.eq.u32 p0, opcode32, 0x72; @p0 bra OPC_TRANSLATE;  // TRANSLATE
+    setp.eq.u32 p0, opcode32, 0x74; @p0 bra OPC_SCALE;      // SCALE
+    // Skip unsupported ops for now
+    bra LOOP;
+
+OPC_BEGIN_PATH:
+    // Reset path state: clear accumulated segments
+    mov.u32 seg_count, 0;
+    bra LOOP;
+
+OPC_STROKE_WIDTH:
+    // operand: width
+    .reg .u32 need_stroke_width;
+    add.u32 need_stroke_width, idx, 4;
+    setp.gt.u32 p0, need_stroke_width, prog_len;
+    @p0 bra WRITE_COUNT;
+    cvt.u64.u32 addr, idx;
+    add.u64 addr, prog_ptr, addr;
+    ld.global.f32 stroke_width, [addr + 0];
+    add.u32 idx, idx, 4;
+    bra LOOP;
+
+OPC_SET_COLOR:
+    // operands: r,g,b,a
+    .reg .u32 need_color;
+    add.u32 need_color, idx, 16;
+    setp.gt.u32 p0, need_color, prog_len;
+    @p0 bra WRITE_COUNT;
+    cvt.u64.u32 addr, idx;
+    add.u64 addr, prog_ptr, addr;
+    ld.global.f32 stroke_r, [addr + 0];
+    ld.global.f32 stroke_g, [addr + 4];
+    ld.global.f32 stroke_b, [addr + 8];
+    ld.global.f32 stroke_a, [addr + 12];
+    add.u32 idx, idx, 16;
+    bra LOOP;
+
+OPC_TERNARY_MODULATE:
+    // operand: local ternary hint override
+    .reg .u32 need_ternary;
+    add.u32 need_ternary, idx, 4;
+    setp.gt.u32 p0, need_ternary, prog_len;
+    @p0 bra WRITE_COUNT;
+    cvt.u64.u32 addr, idx;
+    add.u64 addr, prog_ptr, addr;
+    ld.global.f32 local_ternary_hint, [addr + 0];
+    add.u32 idx, idx, 4;
+    bra LOOP;
+
+OPC_ROTATE_MATRIX:
+    // Uses enhanced math record: opcode=0x79, payload=[cos, sin]
+    setp.eq.u32 p0, math_count, 0;
+    @p0 bra LOOP;
+    mov.u32 rec_iter, math_record_idx;
+ROTATE_FIND:
+    setp.ge.u32 p0, rec_iter, math_count;
+    @p0 bra ROTATE_NO_RECORD;
+    mul.wide.u32 addr, rec_iter, 16;
+    add.u64 rec_ptr, math_records_base, addr;
+    ld.global.u32 rec_opcode, [rec_ptr + 0];
+    ld.global.u32 rec_offset, [rec_ptr + 4];
+    ld.global.u32 rec_count,  [rec_ptr + 8];
+    ld.global.u32 rec_flags,  [rec_ptr + 12];
+    add.u32 rec_iter, rec_iter, 1;
+    setp.ne.u32 p0, rec_opcode, 0x79;
+    @p0 bra ROTATE_FIND;
+    mov.u32 math_record_idx, rec_iter;
+    setp.lt.u32 p0, rec_count, 2;
+    @p0 bra LOOP;
+    setp.eq.u64 p0, math_payload_base, 0;
+    @p0 bra LOOP;
+    mul.wide.u32 addr, rec_offset, 4;
+    add.u64 addr, math_payload_base, addr;
+    .reg .f32 cos_val, sin_val;
+    ld.global.f32 cos_val, [addr + 0];
+    ld.global.f32 sin_val, [addr + 4];
+    .reg .f32 new_a, new_b, new_c, new_d;
+    .reg .f32 neg_sin;
+    // new_a = a*cos + c*sin
+    mul.f32 new_a, mat_a, cos_val;
+    mul.f32 tmp, mat_c, sin_val;
+    add.f32 new_a, new_a, tmp;
+    // new_b = b*cos + d*sin
+    mul.f32 new_b, mat_b, cos_val;
+    mul.f32 tmp, mat_d, sin_val;
+    add.f32 new_b, new_b, tmp;
+    // new_c = -a*sin + c*cos
+    neg.f32 neg_sin, sin_val;
+    mul.f32 new_c, mat_a, neg_sin;
+    mul.f32 tmp, mat_c, cos_val;
+    add.f32 new_c, new_c, tmp;
+    // new_d = -b*sin + d*cos
+    mul.f32 new_d, mat_b, neg_sin;
+    mul.f32 tmp, mat_d, cos_val;
+    add.f32 new_d, new_d, tmp;
+    mov.f32 mat_a, new_a;
+    mov.f32 mat_b, new_b;
+    mov.f32 mat_c, new_c;
+    mov.f32 mat_d, new_d;
+    bra LOOP;
+
+ROTATE_NO_RECORD:
+    mov.u32 math_record_idx, rec_iter;
+    bra LOOP;
+
+OPC_ARC:
+OPC_PRECOMPUTED_PATH:
+    // math payload layout: [count, x0, y0, x1, y1, ...] from math record opcode 0x7A
+    setp.eq.u32 p0, math_count, 0;
+    @p0 bra LOOP;
+    mov.u32 rec_iter, math_record_idx;
+PRECOMP_FIND:
+    setp.ge.u32 p0, rec_iter, math_count;
+    @p0 bra PRECOMP_NO_RECORD;
+    mul.wide.u32 addr, rec_iter, 16;
+    add.u64 rec_ptr, math_records_base, addr;
+    ld.global.u32 rec_opcode, [rec_ptr + 0];
+    ld.global.u32 rec_offset, [rec_ptr + 4];
+    ld.global.u32 rec_count,  [rec_ptr + 8];
+    ld.global.u32 rec_flags,  [rec_ptr + 12];
+    add.u32 rec_iter, rec_iter, 1;
+    setp.ne.u32 p0, rec_opcode, 0x7A;
+    @p0 bra PRECOMP_FIND;
+    mov.u32 math_record_idx, rec_iter;
+    setp.lt.u32 p0, rec_count, 3; // need count + at least one point
+    @p0 bra LOOP;
+    setp.eq.u64 p0, math_payload_base, 0;
+    @p0 bra LOOP;
+    mul.wide.u32 addr, rec_offset, 4;
+    add.u64 addr, math_payload_base, addr;
+    mov.u64 rec_ptr, addr; // reuse rec_ptr as payload base for this record
+    .reg .f32 point_count_f;
+    .reg .u32 point_count;
+    ld.global.f32 point_count_f, [rec_ptr + 0];
+    cvt.rzi.u32.f32 point_count, point_count_f;
+    .reg .u32 required_size;
+    mul.lo.u32 required_size, point_count, 2;
+    add.u32 required_size, required_size, 1;
+    setp.gt.u32 p0, required_size, rec_count;
+    @p0 bra LOOP;
+
+    .reg .u32 i_path;
+    .reg .u32 offset;
+    .reg .f32 prev_x, prev_y, path_x, path_y;
+    // load first point
+    ld.global.f32 prev_x, [rec_ptr + 4];
+    ld.global.f32 prev_y, [rec_ptr + 8];
+    mov.f32 curx, prev_x;
+    mov.f32 cury, prev_y;
+    mov.u32 i_path, 1;
+
+PRECOMP_LOOP:
+    setp.ge.u32 p0, i_path, point_count;
+    @p0 bra PRECOMP_DONE;
+
+    mul.lo.u32 offset, i_path, 8;
+    add.u32 offset, offset, 4; // skip count field
+    .reg .u64 offset64;
+    cvt.u64.u32 offset64, offset;
+    add.u64 addr, rec_ptr, offset64;
+    ld.global.f32 path_x, [addr + 0];
+    ld.global.f32 path_y, [addr + 4];
+
+    setp.ge.u32 p0, seg_count, 4096;
+    @p0 bra PRECOMP_DONE;
+    mul.lo.u32 seg_offset_u32, seg_count, 16;
+    cvt.u64.u32 seg_offset, seg_offset_u32;
+    add.u64 addr, seg_ptr, seg_offset;
+
+    // transform prev
+    .reg .f32 x0_t_p, y0_t_p, x1_t_p, y1_t_p;
+    mul.f32 x0_t_p, mat_a, prev_x;
+    mul.f32 tmp, mat_c, prev_y;
+    add.f32 x0_t_p, x0_t_p, tmp;
+    add.f32 x0_t_p, x0_t_p, mat_e;
+    mul.f32 y0_t_p, mat_b, prev_x;
+    mul.f32 tmp, mat_d, prev_y;
+    add.f32 y0_t_p, y0_t_p, tmp;
+    add.f32 y0_t_p, y0_t_p, mat_f;
+
+    // transform current
+    mul.f32 x1_t_p, mat_a, path_x;
+    mul.f32 tmp, mat_c, path_y;
+    add.f32 x1_t_p, x1_t_p, tmp;
+    add.f32 x1_t_p, x1_t_p, mat_e;
+    mul.f32 y1_t_p, mat_b, path_x;
+    mul.f32 tmp, mat_d, path_y;
+    add.f32 y1_t_p, y1_t_p, tmp;
+    add.f32 y1_t_p, y1_t_p, mat_f;
+
+    st.global.f32 [addr + 0], x0_t_p;
+    st.global.f32 [addr + 4], y0_t_p;
+    st.global.f32 [addr + 8], x1_t_p;
+    st.global.f32 [addr + 12], y1_t_p;
+    add.u32 seg_count, seg_count, 1;
+
+    mov.f32 prev_x, path_x;
+    mov.f32 prev_y, path_y;
+    mov.f32 curx, path_x;
+    mov.f32 cury, path_y;
+    add.u32 i_path, i_path, 1;
+    bra PRECOMP_LOOP;
+
+PRECOMP_DONE:
+    bra LOOP;
+
+PRECOMP_NO_RECORD:
+    mov.u32 math_record_idx, rec_iter;
+    bra LOOP;
+
+OPC_MOVE:
+    // Decode 2 operands (x, y)
+    .reg .u32 need_move;
+    add.u32 need_move, idx, 8;
+    setp.gt.u32 p0, need_move, prog_len;
+    @p0 bra WRITE_COUNT;
+    cvt.u64.u32 addr, idx;
+    add.u64 addr, prog_ptr, addr;
+    ld.global.f32 curx, [addr + 0];
+    ld.global.f32 cury, [addr + 4];
+    add.u32 idx, idx, 8;
+    mov.f32 startx, curx;
+    mov.f32 starty, cury;
+    bra LOOP;
+
+OPC_LINE:
+    .reg .u32 need_line;
+    add.u32 need_line, idx, 8;
+    setp.gt.u32 p0, need_line, prog_len;
+    @p0 bra WRITE_COUNT;
+    cvt.u64.u32 addr, idx;
+    add.u64 addr, prog_ptr, addr;
+    ld.global.f32 fx1, [addr + 0]; // target x
+    ld.global.f32 fy1, [addr + 4]; // target y
+    add.u32 idx, idx, 8;
+
+    setp.ge.u32 p0, seg_count, 4096;
+    @p0 bra LOOP;
+    mul.lo.u32 seg_offset_u32, seg_count, 16;
+    cvt.u64.u32 seg_offset, seg_offset_u32;
+    add.u64 addr, seg_ptr, seg_offset;
+
+    // Transform start point: (curx, cury) → (x0_t, y0_t)
+    .reg .f32 x0_t, y0_t, x1_t, y1_t;
+    mul.f32 x0_t, mat_a, curx;
+    mul.f32 tmp, mat_c, cury;
+    add.f32 x0_t, x0_t, tmp;
+    add.f32 x0_t, x0_t, mat_e;
+
+    mul.f32 y0_t, mat_b, curx;
+    mul.f32 tmp, mat_d, cury;
+    add.f32 y0_t, y0_t, tmp;
+    add.f32 y0_t, y0_t, mat_f;
+
+    // Transform end point: (fx1, fy1) → (x1_t, y1_t)
+    mul.f32 x1_t, mat_a, fx1;
+    mul.f32 tmp, mat_c, fy1;
+    add.f32 x1_t, x1_t, tmp;
+    add.f32 x1_t, x1_t, mat_e;
+
+    mul.f32 y1_t, mat_b, fx1;
+    mul.f32 tmp, mat_d, fy1;
+    add.f32 y1_t, y1_t, tmp;
+    add.f32 y1_t, y1_t, mat_f;
+
+    st.global.f32 [addr + 0], x0_t;
+    st.global.f32 [addr + 4], y0_t;
+    st.global.f32 [addr + 8], x1_t;
+    st.global.f32 [addr + 12], y1_t;
+    add.u32 seg_count, seg_count, 1;
+    mov.f32 curx, fx1;
+    mov.f32 cury, fy1;
+    bra LOOP;
+
+OPC_QUAD:
+    // operands: cx, cy, x1, y1
+    .reg .u32 need_quad;
+    add.u32 need_quad, idx, 16;
+    setp.gt.u32 p0, need_quad, prog_len;
+    @p0 bra WRITE_COUNT;
+    cvt.u64.u32 addr, idx;
+    add.u64 addr, prog_ptr, addr;
+    ld.global.f32 cx0, [addr + 0];
+    ld.global.f32 cy0, [addr + 4];
+    ld.global.f32 px1, [addr + 8];
+    ld.global.f32 py1, [addr + 12];
+    add.u32 idx, idx, 16;
+
+    .reg .u32 segs, i;
+    .reg .f32 t, s, xt, yt;
+    .reg .f32 hint, scale, segs_f;
+    ld.param.f32 hint, [ternary_hint];
+    abs.f32 tmp, local_ternary_hint;
+    setp.gt.f32 p0, tmp, 0.001;
+    @p0 mov.f32 hint, local_ternary_hint;
+    ld.param.u32 segs, [segments_per_curve];
+    // Modulate segments by ternary hint (-1 → 0.5x, +1 → 1.5x)
+    mul.f32 scale, hint, 0.5;
+    add.f32 scale, scale, 1.0;
+    cvt.rn.f32.u32 segs_f, segs;
+    mul.f32 segs_f, segs_f, scale;
+    cvt.rni.u32.f32 segs, segs_f;
+    // Clamp to [4, 128]
+    .reg .u32 segs_min, segs_max;
+    mov.u32 segs_min, 4;
+    mov.u32 segs_max, 128;
+    max.u32 segs, segs, segs_min;
+    min.u32 segs, segs, segs_max;
+    mov.u32 i, 0;
+QUAD_LOOP:
+    add.u32 i, i, 1;
+    setp.gt.u32 p0, i, segs;
+    @p0 bra QUAD_DONE;
+
+    cvt.rn.f32.u32 t, i;
+    cvt.rn.f32.u32 tmp, segs;
+    div.rn.f32 t, t, tmp;
+    mov.f32 s, 1.0;
+    sub.f32 s, s, t;
+
+    // xt = s^2*curx + 2*s*t*cx0 + t^2*px1
+    mul.f32 xt, s, s;
+    mul.f32 xt, xt, curx;
+    mul.f32 tmp, s, t;
+    mul.f32 tmp, tmp, 2.0;
+    mul.f32 tmp, tmp, cx0;
+    add.f32 xt, xt, tmp;
+    mul.f32 tmp, t, t;
+    mul.f32 tmp, tmp, px1;
+    add.f32 xt, xt, tmp;
+
+    // yt = s^2*cury + 2*s*t*cy0 + t^2*py1
+    mul.f32 yt, s, s;
+    mul.f32 yt, yt, cury;
+    mul.f32 tmp, s, t;
+    mul.f32 tmp, tmp, 2.0;
+    mul.f32 tmp, tmp, cy0;
+    add.f32 yt, yt, tmp;
+    mul.f32 tmp, t, t;
+    mul.f32 tmp, tmp, py1;
+    add.f32 yt, yt, tmp;
+
+    setp.ge.u32 p0, seg_count, 4096;
+    @p0 bra QUAD_DONE;
+    mul.lo.u32 seg_offset_u32, seg_count, 16;
+    cvt.u64.u32 seg_offset, seg_offset_u32;
+    add.u64 addr, seg_ptr, seg_offset;
+
+    // Transform start point: (curx, cury) → (x0_t, y0_t)
+    .reg .f32 x0_t_q, y0_t_q, x1_t_q, y1_t_q;
+    mul.f32 x0_t_q, mat_a, curx;
+    mul.f32 tmp, mat_c, cury;
+    add.f32 x0_t_q, x0_t_q, tmp;
+    add.f32 x0_t_q, x0_t_q, mat_e;
+
+    mul.f32 y0_t_q, mat_b, curx;
+    mul.f32 tmp, mat_d, cury;
+    add.f32 y0_t_q, y0_t_q, tmp;
+    add.f32 y0_t_q, y0_t_q, mat_f;
+
+    // Transform end point: (xt, yt) → (x1_t, y1_t)
+    mul.f32 x1_t_q, mat_a, xt;
+    mul.f32 tmp, mat_c, yt;
+    add.f32 x1_t_q, x1_t_q, tmp;
+    add.f32 x1_t_q, x1_t_q, mat_e;
+
+    mul.f32 y1_t_q, mat_b, xt;
+    mul.f32 tmp, mat_d, yt;
+    add.f32 y1_t_q, y1_t_q, tmp;
+    add.f32 y1_t_q, y1_t_q, mat_f;
+
+    st.global.f32 [addr + 0], x0_t_q;
+    st.global.f32 [addr + 4], y0_t_q;
+    st.global.f32 [addr + 8], x1_t_q;
+    st.global.f32 [addr + 12], y1_t_q;
+    add.u32 seg_count, seg_count, 1;
+    mov.f32 curx, xt;
+    mov.f32 cury, yt;
+    bra QUAD_LOOP;
+
+QUAD_DONE:
+    // snap to endpoint
+    mov.f32 curx, px1;
+    mov.f32 cury, py1;
+    bra LOOP;
+
+OPC_CUBIC:
+    // operands: cx1, cy1, cx2, cy2, x1, y1
+    .reg .u32 need_cubic;
+    add.u32 need_cubic, idx, 24;
+    setp.gt.u32 p0, need_cubic, prog_len;
+    @p0 bra WRITE_COUNT;
+    cvt.u64.u32 addr, idx;
+    add.u64 addr, prog_ptr, addr;
+    .reg .f32 cx1, cy1, cx2, cy2;
+    ld.global.f32 cx1, [addr + 0];
+    ld.global.f32 cy1, [addr + 4];
+    ld.global.f32 cx2, [addr + 8];
+    ld.global.f32 cy2, [addr + 12];
+    ld.global.f32 px1, [addr + 16];
+    ld.global.f32 py1, [addr + 20];
+    add.u32 idx, idx, 24;
+
+    .reg .u32 segs_cubic, i_cubic;
+    .reg .f32 s2, s3, t2, t3;
+    .reg .f32 hint_c, scale_c, segs_fc;
+    ld.param.f32 hint_c, [ternary_hint];
+    abs.f32 tmp, local_ternary_hint;
+    setp.gt.f32 p0, tmp, 0.001;
+    @p0 mov.f32 hint_c, local_ternary_hint;
+    ld.param.u32 segs_cubic, [segments_per_curve];
+    // Modulate by hint
+    mul.f32 scale_c, hint_c, 0.5;
+    add.f32 scale_c, scale_c, 1.0;
+    cvt.rn.f32.u32 segs_fc, segs_cubic;
+    mul.f32 segs_fc, segs_fc, scale_c;
+    cvt.rni.u32.f32 segs_cubic, segs_fc;
+    .reg .u32 segs_min_c, segs_max_c;
+    mov.u32 segs_min_c, 4;
+    mov.u32 segs_max_c, 128;
+    max.u32 segs_cubic, segs_cubic, segs_min_c;
+    min.u32 segs_cubic, segs_cubic, segs_max_c;
+
+    mov.u32 i_cubic, 0;
+CUBIC_LOOP:
+    add.u32 i_cubic, i_cubic, 1;
+    setp.gt.u32 p0, i_cubic, segs_cubic;
+    @p0 bra CUBIC_DONE;
+
+    cvt.rn.f32.u32 t, i_cubic;
+    cvt.rn.f32.u32 tmp, segs_cubic;
+    div.rn.f32 t, t, tmp;
+    mov.f32 s, 1.0;
+    sub.f32 s, s, t;
+
+    mul.f32 s2, s, s;
+    mul.f32 s3, s2, s;
+    mul.f32 t2, t, t;
+    mul.f32 t3, t2, t;
+
+    // xt = s^3*curx + 3*s^2*t*cx1 + 3*s*t^2*cx2 + t^3*px1
+    mul.f32 xt, s3, curx;
+    mul.f32 tmp, s2, t;
+    mul.f32 tmp, tmp, 3.0;
+    mul.f32 tmp, tmp, cx1;
+    add.f32 xt, xt, tmp;
+    mul.f32 tmp, s, t2;
+    mul.f32 tmp, tmp, 3.0;
+    mul.f32 tmp, tmp, cx2;
+    add.f32 xt, xt, tmp;
+    mul.f32 tmp, t3, px1;
+    add.f32 xt, xt, tmp;
+
+    // yt
+    mul.f32 yt, s3, cury;
+    mul.f32 tmp, s2, t;
+    mul.f32 tmp, tmp, 3.0;
+    mul.f32 tmp, tmp, cy1;
+    add.f32 yt, yt, tmp;
+    mul.f32 tmp, s, t2;
+    mul.f32 tmp, tmp, 3.0;
+    mul.f32 tmp, tmp, cy2;
+    add.f32 yt, yt, tmp;
+    mul.f32 tmp, t3, py1;
+    add.f32 yt, yt, tmp;
+
+    setp.ge.u32 p0, seg_count, 4096;
+    @p0 bra CUBIC_DONE;
+    mul.lo.u32 seg_offset_u32, seg_count, 16;
+    cvt.u64.u32 seg_offset, seg_offset_u32;
+    add.u64 addr, seg_ptr, seg_offset;
+
+    // Transform start point: (curx, cury) → (x0_t, y0_t)
+    .reg .f32 x0_t_c, y0_t_c, x1_t_c, y1_t_c;
+    mul.f32 x0_t_c, mat_a, curx;
+    mul.f32 tmp, mat_c, cury;
+    add.f32 x0_t_c, x0_t_c, tmp;
+    add.f32 x0_t_c, x0_t_c, mat_e;
+
+    mul.f32 y0_t_c, mat_b, curx;
+    mul.f32 tmp, mat_d, cury;
+    add.f32 y0_t_c, y0_t_c, tmp;
+    add.f32 y0_t_c, y0_t_c, mat_f;
+
+    // Transform end point: (xt, yt) → (x1_t, y1_t)
+    mul.f32 x1_t_c, mat_a, xt;
+    mul.f32 tmp, mat_c, yt;
+    add.f32 x1_t_c, x1_t_c, tmp;
+    add.f32 x1_t_c, x1_t_c, mat_e;
+
+    mul.f32 y1_t_c, mat_b, xt;
+    mul.f32 tmp, mat_d, yt;
+    add.f32 y1_t_c, y1_t_c, tmp;
+    add.f32 y1_t_c, y1_t_c, mat_f;
+
+    st.global.f32 [addr + 0], x0_t_c;
+    st.global.f32 [addr + 4], y0_t_c;
+    st.global.f32 [addr + 8], x1_t_c;
+    st.global.f32 [addr + 12], y1_t_c;
+    add.u32 seg_count, seg_count, 1;
+    mov.f32 curx, xt;
+    mov.f32 cury, yt;
+    bra CUBIC_LOOP;
+
+CUBIC_DONE:
+    mov.f32 curx, px1;
+    mov.f32 cury, py1;
+    bra LOOP;
+
+OPC_CLOSE:
+    // Close current subpath
+    setp.ge.u32 p0, seg_count, 4096;
+    @p0 bra LOOP;
+    mul.lo.u32 idx, seg_count, 16;
+    cvt.u64.u32 seg_offset, idx;
+    add.u64 addr, seg_ptr, seg_offset;
+
+    // Transform current point: (curx, cury) → (x0_t, y0_t)
+    .reg .f32 x0_t_close, y0_t_close, x1_t_close, y1_t_close;
+    mul.f32 x0_t_close, mat_a, curx;
+    mul.f32 tmp, mat_c, cury;
+    add.f32 x0_t_close, x0_t_close, tmp;
+    add.f32 x0_t_close, x0_t_close, mat_e;
+
+    mul.f32 y0_t_close, mat_b, curx;
+    mul.f32 tmp, mat_d, cury;
+    add.f32 y0_t_close, y0_t_close, tmp;
+    add.f32 y0_t_close, y0_t_close, mat_f;
+
+    // Transform start point: (startx, starty) → (x1_t, y1_t)
+    mul.f32 x1_t_close, mat_a, startx;
+    mul.f32 tmp, mat_c, starty;
+    add.f32 x1_t_close, x1_t_close, tmp;
+    add.f32 x1_t_close, x1_t_close, mat_e;
+
+    mul.f32 y1_t_close, mat_b, startx;
+    mul.f32 tmp, mat_d, starty;
+    add.f32 y1_t_close, y1_t_close, tmp;
+    add.f32 y1_t_close, y1_t_close, mat_f;
+
+    st.global.f32 [addr + 0], x0_t_close;
+    st.global.f32 [addr + 4], y0_t_close;
+    st.global.f32 [addr + 8], x1_t_close;
+    st.global.f32 [addr + 12], y1_t_close;
+    add.u32 seg_count, seg_count, 1;
+    bra LOOP;
+
+OPC_TRANSLATE:
+    // operands: dx, dy
+    .reg .u32 need_translate;
+    add.u32 need_translate, idx, 8;
+    setp.gt.u32 p0, need_translate, prog_len;
+    @p0 bra WRITE_COUNT;
+    cvt.u64.u32 addr, idx;
+    add.u64 addr, prog_ptr, addr;
+    .reg .f32 dx, dy;
+    ld.global.f32 dx, [addr + 0];
+    ld.global.f32 dy, [addr + 4];
+    add.u32 idx, idx, 8;
+    // Apply translation: mat_e += dx, mat_f += dy
+    add.f32 mat_e, mat_e, dx;
+    add.f32 mat_f, mat_f, dy;
+    bra LOOP;
+
+OPC_SCALE:
+    // operands: sx, sy
+    .reg .u32 need_scale;
+    add.u32 need_scale, idx, 8;
+    setp.gt.u32 p0, need_scale, prog_len;
+    @p0 bra WRITE_COUNT;
+    cvt.u64.u32 addr, idx;
+    add.u64 addr, prog_ptr, addr;
+    .reg .f32 sx, sy;
+    ld.global.f32 sx, [addr + 0];
+    ld.global.f32 sy, [addr + 4];
+    add.u32 idx, idx, 8;
+    // Apply scale: multiply matrix by scale
+    // [a c e]   [sx  0  0]   [a*sx  c*sy  e]
+    // [b d f] × [ 0 sy  0] = [b*sx  d*sy  f]
+    //           [ 0  0  1]
+    mul.f32 mat_a, mat_a, sx;
+    mul.f32 mat_b, mat_b, sx;
+    mul.f32 mat_c, mat_c, sy;
+    mul.f32 mat_d, mat_d, sy;
+    bra LOOP;
+
+WRITE_COUNT:
+    st.global.u32 [cnt_ptr], seg_count;
+
+DONE:
+    ret;
+}
