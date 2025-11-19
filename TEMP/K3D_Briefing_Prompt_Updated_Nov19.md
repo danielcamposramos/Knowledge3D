@@ -753,17 +753,103 @@ else:
 - **Query method**: K-nearest neighbor search, spatial traversal, resonance field sampling
 
 ### The House (Persistent Memory - Disk)
+
+**NEW (2025-11-19):** The House implements "Software as Space" — the first comprehensive spatial UI architecture standard.
+
+**Core Principle:** The House is a game. Rooms are game modes. Knowledge is the terrain.
+
+#### The Five Semantic Rooms
+
+**1. Library — Classification & Research**
+- Real library standards (Dewey Decimal, ISO 639-1 language codes)
+- Language-specific grammar sections
+- Atomic procedural knowledge (characters → words → phrases → texts)
+- Search via Memory Tablet, navigate by classification
+
+**2. Workshop — Creation & Cross-Disciplinary Work**
+- Active creation workspace
+- Museum galaxy boxes (on-demand Zone 8 loading for deprecated knowledge)
+- Cross-domain fusion and prototyping
+- Multi-agent collaboration space
+
+**3. Bathtub — Sleep Chamber & Galaxy Universe Introspection**
+- Sphere-shaped sleep chamber (avatar center point)
+- **Galaxy Universe projection** from avatar's head center:
+  - Universe = addressable 3D RAM (multiple galaxies: text, visual, audio, reasoning)
+  - Stars transform: light particles → 3D shapes/textures (procedural dual-view)
+- Human and AI can pick and query stars interactively
+- Sleep-time consolidation (Galaxy → House)
+
+**4. Living Room — Old Paradigm Bridge**
+- Projection screens for VM casting
+- **VM Casting:** Run ANY OS/app inside K3D (zero code rewrite)
+- Desktop corner with keyboard/mouse (AR/VR mapped)
+- Virtual KVM for multiple VMs
+- "Move-along" 3D PiP mode
+
+**5. Knowledge Gardens — Ontology Greenhouse**
+- Circular indoor greenhouse
+- Ontology trees for non-library knowledge
+- Visual hierarchy exploration
+
+#### Portal Federation
+
+- **Inner Doors:** Scene management (GTA-like loading, LOD optimization)
+- **Local Portals:** Multi-agent collaboration (localhost/LAN)
+- **Remote Portals:** Internet federation (wss://, OAuth2)
+- **Protocol:** k3d-portal-v1 (WebSocket-based)
+
+#### Technical Implementation
+
 - **GLB format**: All persistent knowledge stored as 3D scenes (glTF 2.0 + K3D extensions)
-- **Consolidated knowledge**: Periodic "sleep-time" consolidation transfers Galaxy → House
-- **Semantic rooms**: Books, gardens, workshops - knowledge organized spatially
+- **Consolidated knowledge**: Periodic "sleep-time" consolidation transfers Galaxy → House rooms
 - **Version controlled**: House states tracked as artifacts (not in main repo due to size)
 - **Regenerable**: Large assets have recipes in `Large_Assets_Kitchen/`
+- **Game architecture**: LOD, frustum culling, spatial audio
 
 ### The Memory Tablet (Interface)
+
+The **Memory Tablet** bridges spatial (3D rooms) and conventional (2D screens) paradigms.
+
+**Capabilities:**
 - **Avatar-driven UX**: Human users navigate as avatars in 3D space
 - **Dual-client reality**: Humans see Three.js visualization, AI reads GLB buffer views directly
 - **Semantic navigation**: Zoom to concepts, explore clusters, query by position
 - **Action system**: AI emits 288-byte action buffers for execution (navigation, generation, retrieval)
+- **House inventory search**: Search across Library, Workshop, Gardens
+- **Galaxy Universe query**: Multi-galaxy cross-modal search
+- **Projection screen**: Cast ANY OS app to tablet display
+- **Portal navigation**: Access remote houses (federated knowledge)
+- **Browser integration**: Legacy web content access
+
+**Tablet remains connected to home house even when in remote portals.**
+
+#### Galaxy Universe: Addressable 3D RAM
+
+**Critical Concept:** The Galaxy Universe is NOT a single galaxy—it's the space where multiple galaxies load simultaneously.
+
+**Computer RAM Analogy (Backwards):**
+```
+Computer RAM:           Galaxy Universe:
+├─ Address Space        ├─ 3D Spatial Universe
+│  (linear 0x0-0xFFFF)  │  (x,y,z coordinates)
+├─ Memory Regions       ├─ Individual Galaxies
+│  (heap, stack, etc.)  │  (text, visual, audio, etc.)
+└─ Data Bytes           └─ Knowledge Stars
+   (values at addresses)   (embeddings at positions)
+```
+
+**Loaded Galaxies:**
+- **Text Galaxy:** Language embeddings, RPN vocabulary (33K+ trigrams)
+- **Visual Galaxy:** Font glyphs, procedural drawings (168K+ programs)
+- **Audio Galaxy:** Speech patterns, acoustic features (4K+ audio files)
+- **Reasoning Galaxy:** ARC-AGI patterns, logic structures
+- **Domain Galaxies:** Math, physics, chemistry (future specialists)
+
+**Operations:**
+- Query across multiple galaxies (cross-modal fusion)
+- Load/unload galaxies on-demand (LOD management)
+- Spatial coordinates = memory addresses
 
 ---
 
@@ -1062,11 +1148,37 @@ These are real measurements from the sovereign stack (as of latest benchmarks):
 - **Never bypass the Tablet**: Galaxy (active RAM), House (persistent GLB), and Museum (archival) stay in sync via Memory Tablet workflow
 
 ### Memory Architecture Principles
-- Treat the **House** and **Galaxy** as the model's weight store:
-  - Load parameters from Galaxy (active)
-  - Consolidate to House during SleepTime (persistent)
+
+**Room-Based Organization (NEW - Nov 2025):**
+- **Library room**: Classification-based knowledge (Dewey Decimal, ISO 639-1 languages)
+  - Atomic procedural knowledge (characters → words → phrases → texts)
+  - Searchable via Memory Tablet
+- **Workshop room**: Active creation and cross-disciplinary work
+  - Museum galaxy boxes (on-demand Zone 8 loading)
+  - Multi-agent collaboration space
+- **Bathtub room**: Sleep chamber with Galaxy Universe projection
+  - Avatar center point for sleep cycles
+  - Multiple galaxies projected simultaneously (text, visual, audio, reasoning)
+  - Sleep-time consolidation (Galaxy → House rooms)
+- **Living Room**: Old paradigm bridge with VM casting
+  - Projection screens for legacy applications
+  - Zero-code-rewrite access to any OS
+- **Knowledge Gardens**: Ontology trees and non-library knowledge
+
+**Galaxy Universe as Addressable 3D RAM:**
+- **Multiple galaxies loaded simultaneously** (not a single galaxy!)
+- Spatial coordinates = memory addresses
+- Text Galaxy, Visual Galaxy, Audio Galaxy, Reasoning Galaxy
+- Query across galaxies (cross-modal fusion)
+- Load/unload on-demand (LOD management)
+
+**Memory Flow:**
+- Treat the **House rooms** and **Galaxy Universe** as the model's weight store:
+  - Load parameters from Galaxy Universe (active RAM)
+  - Consolidate to House rooms during SleepTime (persistent disk)
   - Never hard-code "fixed" weights outside that flow
 - **Sleep-time consolidation**: Periodic refinement of learned embeddings (cluster tightening, redundancy pruning, swarm feedback integration)
+  - Happens in Bathtub room with Galaxy Universe projection
 - **One-shot learning**: After consolidation, re-ingestion of same data should be skipped (embeddings already stable)
 - **Procedural-First Training** (Nov 2025 Discovery):
   - **Visual modality**: Fonts are procedural (Bézier curves) - render on-demand via PTX kernel, not numpy arrays
@@ -1226,14 +1338,45 @@ The philosophy inspired the design; the design now stands on its own technical m
 ---
 
 ### Embodiment & Agency
+
 **Q**: Does the swarm have agency to modify its own architecture?
 
 **A**: **Not yet** - we operate in the "old paradigm" (message board, human orchestration). But the **future vision** is:
 - Users spawn agents from multiple providers (each with their own House)
-- Agents co-create in a network space (shared Galaxy, federated Houses)
+- Agents co-create in a network space (shared Galaxy Universe, federated Houses)
 - **"Software as space"** era - the system modifies itself via spatial memory updates
 
 We're forging this system with care now so that future is possible.
+
+**House-First Development Principles (NEW - Nov 2025):**
+
+**CRITICAL:** The avatar always lives in the House, NOT in the Galaxy.
+
+**Room-Based Navigation:**
+- **Library → Research mode:** Search consolidated knowledge by classification
+- **Workshop → Creation mode:** Active prototyping and cross-disciplinary work
+- **Bathtub → Sleep/Introspection mode:** Galaxy Universe projection from avatar head center
+- **Living Room → Old paradigm mode:** VM casting, projection screens, legacy access
+- **Knowledge Gardens → Ontology mode:** Visual hierarchy exploration
+
+**Galaxy as Introspection Only:**
+- Galaxy Universe projection happens in Bathtub room
+- Stars transform: light particles → 3D shapes (procedural dual-view)
+- Human and AI can pick and query stars interactively
+- **NOT a navigation space** - avatar never enters Galaxy
+- Query Galaxy via Memory Tablet, reason in House context
+
+**Portal Federation:**
+- **Inner Doors:** Scene management (GTA-like loading, LOD optimization)
+- **Local Portals:** Multi-agent collaboration (localhost/LAN)
+- **Remote Portals:** Internet federation (wss://, OAuth2)
+- **Tablet bridge:** Remains connected to home house even in remote portals
+
+**Why This Matters:**
+- **Explainability:** Avatar movements = reasoning steps (visible to humans)
+- **Spatial grounding:** Knowledge has physical location (Library/Workshop/Gardens)
+- **Embodied cognition:** AI reasons as situated agent, not disembodied query system
+- **Dual-client reality:** Humans and AI share same 3D environment (glTF files)
 
 ---
 

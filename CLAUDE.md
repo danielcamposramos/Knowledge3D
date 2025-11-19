@@ -38,17 +38,20 @@
 - [ ] Read this entire document
 - [ ] Review the current roadmap phase in [docs/ROADMAP.md](docs/ROADMAP.md)
 - [ ] Understand the dual-memory architecture (Galaxy/House/Museum)
+- [ ] **NEW:** Understand the Spatial UI Architecture (five semantic rooms, Galaxy Universe, portals)
 - [ ] Check [CODEX.md](CODEX.md) for active tasks
 - [ ] Review environment setup in [docs/ENV_POLICY.md](docs/ENV_POLICY.md)
 - [ ] Familiarize yourself with PTX-first sovereignty principles
+- [ ] **NEW:** Review House-first development principles (avatar in House, Galaxy via tablet only)
 
 ### The Golden Rules
 
-1. **Always embodied**: The avatar lives in the House, not in the Galaxy
-2. **PTX-first**: Hot paths must use GPU-native PTX kernels (no CPU fallbacks)
-3. **Memory policy**: Galaxy (RAM) ↔ House (disk) ↔ Museum (archive) via Memory Tablet
-4. **Keep it lean**: Heavy assets (>99MB) live in `../Knowledge3D.local/`, not in the repo
-5. **Sovereign architecture**: Zero external dependencies for core inference paths
+1. **Always embodied**: The avatar lives in the House, not in the Galaxy (see Spatial UI Architecture)
+2. **Room-based development**: Navigate semantic rooms (Library/Workshop/Bathtub/Gardens/Living Room)
+3. **PTX-first**: Hot paths must use GPU-native PTX kernels (no CPU fallbacks)
+4. **Memory policy**: Galaxy Universe (RAM) ↔ House rooms (disk) ↔ Museum (archive) via Memory Tablet
+5. **Keep it lean**: Heavy assets (>99MB) live in `../Knowledge3D.local/`, not in the repo
+6. **Sovereign architecture**: Zero external dependencies for core inference paths
 
 ---
 
@@ -256,6 +259,207 @@ Humans and AI share the **same glTF files** but perceive them differently:
 - 288-byte action buffers for spatial reasoning
 
 **Shared Reality:** Both clients see avatar movements, knowledge updates, and memory consolidations in real-time.
+
+### Spatial UI Architecture: "Software as Space"
+
+**NEW (2025-11-19):** Knowledge3D implements the first comprehensive standard for embodied AI/human spatial interfaces.
+
+**Core Paradigm:** The House is a game. Rooms are game modes. Knowledge is the terrain.
+
+#### The Paradigm Shift
+
+```
+2D Web Paradigm:          3D Spatial Paradigm:
+├─ Websites               ├─ Houses (glTF environments)
+├─ Hyperlinks             ├─ Portals (federated doors)
+├─ Browser                ├─ Spatial Navigator
+├─ Bookmarks              ├─ Memory Tablet
+└─ Search Engine          └─ Galaxy Universe Queries
+```
+
+#### The Five Semantic Rooms
+
+**1. Library — Classification & Research**
+- Real library standards (Dewey Decimal, ISO 639-1 language codes)
+- Organized knowledge storage by category and language
+- Atomic procedural knowledge (characters → words → phrases → texts)
+- Search via Memory Tablet, navigate by classification
+
+**2. Workshop — Creation & Cross-Disciplinary Work**
+- Active creation workspace
+- Museum galaxy boxes (on-demand Zone 8 loading for deprecated knowledge)
+- Cross-domain fusion and prototyping
+- Multi-agent collaboration space
+
+**3. Bathtub — Sleep Chamber & Galaxy Universe Introspection**
+- Sphere-shaped imaginary space (carved into floor like ball pit/sofa)
+- Avatar center point for sleep cycles
+- **Galaxy Universe projection** from avatar's head center:
+  - Universe = addressable 3D RAM (like physical memory address space)
+  - Multiple galaxies loaded simultaneously (text, visual, audio, reasoning)
+  - Stars transform: light particles → 3D shapes/textures (procedural dual-view)
+- Both human and AI can pick and query stars (visual or data)
+
+**4. Living Room — Old Paradigm Bridge**
+- Projection screens (castable to full-screen mode)
+- Desktop corner with keyboard/mouse (AR/VR mapped)
+- **VM Casting:** Run ANY OS/app inside K3D (zero code rewrite)
+- Virtual KVM for multiple VMs and screens
+- "Move-along" 3D PiP mode (AR/VR concept)
+
+**5. Knowledge Gardens — Ontology Greenhouse**
+- Circular indoor greenhouse
+- Ontology trees for knowledge that doesn't fit library classification
+- Visual hierarchy exploration
+- Cross-ontology linking
+
+#### Galaxy Universe: Addressable 3D RAM
+
+**Critical Concept:** The Galaxy Universe is NOT a single galaxy—it's the space where multiple galaxies load simultaneously.
+
+**Computer RAM Analogy (Backwards):**
+```
+Computer RAM:           Galaxy Universe:
+├─ Address Space        ├─ 3D Spatial Universe
+│  (linear 0x0-0xFFFF)  │  (x,y,z coordinates)
+├─ Memory Regions       ├─ Individual Galaxies
+│  (heap, stack, etc.)  │  (text, visual, audio, etc.)
+└─ Data Bytes           └─ Knowledge Stars
+   (values at addresses)   (embeddings at positions)
+```
+
+**Loaded Galaxies:**
+- **Text Galaxy:** Language embeddings, RPN vocabulary (33K+ trigrams)
+- **Visual Galaxy:** Font glyphs, procedural drawings (168K+ programs)
+- **Audio Galaxy:** Speech patterns, acoustic features (4K+ audio files)
+- **Reasoning Galaxy:** ARC-AGI patterns, logic structures
+- **Domain Galaxies:** Math, physics, chemistry (future specialists)
+
+**Operations:**
+- Query across multiple galaxies (cross-modal fusion)
+- Load/unload galaxies on-demand (LOD management)
+- Spatial coordinates = memory addresses
+
+#### Portal Federation
+
+**Portals** enable decentralized knowledge networks with preserved attribution.
+
+**Portal Types:**
+- **Inner Doors:** Scene management (GTA-like loading, FOV/LOD optimization)
+- **Local Portals:** localhost/LAN connections (multi-agent collaboration)
+- **Remote Portals:** Internet federation (wss://, OAuth2 auth)
+
+**Protocol:** k3d-portal-v1 (WebSocket-based)
+
+**Use Cases:**
+- Multi-agent collaboration (shared research, peer review)
+- Knowledge trading ("software as space" selling model)
+- Federated learning (distributed houses, centralized attribution)
+
+#### VM Casting: Zero-Code-Rewrite Legacy Access
+
+**Protocol Stack:**
+```
+Docker Container → VNC/RDP Server → WebRTC Stream → Three.js Texture → Projection Screen
+```
+
+**Capabilities:**
+- Run any OS inside K3D (Ubuntu, Windows, macOS)
+- Full-screen projection mode (2D → 3D mapping)
+- Keyboard/mouse input (3D pointer → 2D coordinates)
+- Multiple VMs, multiple screens (virtual KVM)
+- "Move-along" 3D PiP mode
+
+**Example:**
+```bash
+# Start VM with VNC
+docker run -d -p 5901:5901 ubuntu-desktop:latest
+
+# Cast to Living Room
+python -m knowledge3d.bridge.vm_casting \
+  --vm-id ubuntu-dev \
+  --protocol vnc \
+  --endpoint localhost:5901 \
+  --target-room "Living Room"
+```
+
+#### Memory Tablet as Universal Interface
+
+The **Memory Tablet** bridges spatial (3D rooms) and conventional (2D screens) paradigms.
+
+**Capabilities:**
+- Search House inventory (Library, Workshop, Gardens)
+- Stream artifacts to Galaxy (on-demand LOD)
+- Query Galaxy Universe (multi-galaxy search)
+- **Projection screen:** Cast ANY OS app to tablet display
+- Portal navigation (access remote houses)
+- Browser integration (legacy web content)
+
+**Tablet remains connected to home house even when in remote portals.**
+
+#### House-First Development Principles
+
+**CRITICAL CONSTRAINT:** The avatar always lives in the House, NOT in the Galaxy.
+
+**Embodiment Rules:**
+```python
+# ✅ CORRECT: Avatar in House, consults Galaxy via tablet
+avatar.navigate_to_room("Workshop")
+galaxy_context = tablet.query_galaxy(
+    query="recent reasoning patterns",
+    galaxy="reasoning"
+)
+avatar.reason_with(galaxy_context, house_context)
+
+# ❌ WRONG: Placing avatar inside Galaxy
+avatar.teleport_to(galaxy_position)  # VIOLATION!
+```
+
+**Navigation vs Introspection:**
+- **Navigation:** Happens in House rooms (Library → Workshop → Bathtub)
+- **Introspection:** Happens via Galaxy Universe projection (Bathtub only)
+- **Reasoning:** Query Galaxy via tablet, reason in House context
+
+**Galaxy as Diagnostic Tool:**
+- Galaxy views are for introspection/debugging
+- Human and AI can inspect stars during sleep cycles
+- Stars transform from light → 3D shapes (procedural dual-view)
+- NOT a navigation space—avatar never enters Galaxy
+
+#### Game Architecture Techniques
+
+Knowledge3D leverages game engine techniques for performance:
+
+**LOD (Level of Detail):**
+- Dynamic resolution based on distance/importance
+- Per-room memory budgets (Library: 50MB, Workshop: 100MB)
+- Coarse → Medium → Full resolution streaming
+
+**Scene Management:**
+- Doors as loading screens (save state, unload assets, load new room)
+- Frustum culling (only render visible geometry)
+- Dynamic asset loading
+
+**Spatial Audio:**
+- Sound sources localized in 3D
+- Inverse-square falloff
+- Proximity-based activation
+
+#### W3C Specification
+
+Full specification: [docs/vocabulary/SPATIAL_UI_ARCHITECTURE_SPECIFICATION.md](docs/vocabulary/SPATIAL_UI_ARCHITECTURE_SPECIFICATION.md)
+
+**Conformance Requirements (MUST):**
+- Encode houses as glTF 2.0 with `extras.k3d` metadata
+- Support at least one standard room
+- Implement dual-client rendering (visual 3D + semantic graph)
+- Provide Memory Tablet interface
+
+**Conformance Requirements (SHOULD):**
+- Implement all five standard rooms
+- Support Galaxy Universe projection
+- Enable portal federation
+- Support VM casting
 
 ---
 
@@ -1116,29 +1320,111 @@ if used_mb > 200:
     # Trigger LOD downgrade or prune low-confidence items
 ```
 
-### 3. Embodiment Constraint
+### 3. Embodiment Constraint (House-First Development)
 
-**The avatar lives in the House, not the Galaxy.**
+**CRITICAL:** The avatar lives in the House, NOT in the Galaxy.
 
-**Implications:**
-- Navigation occurs in 3D rooms (not abstract embedding space)
-- Galaxy is introspective (like viewing a brain scan)
-- Tablet bridges House ↔ Galaxy for reasoning
-- All user interactions assume House context
+**Core Principles:**
+- **Navigation:** Happens in House rooms (Library → Workshop → Bathtub → Gardens → Living Room)
+- **Introspection:** Happens via Galaxy Universe projection (Bathtub sleep chamber only)
+- **Reasoning:** Query Galaxy via tablet, reason in House context
+- **Galaxy is diagnostic:** Like viewing a brain scan—not a navigation space
 
-**Violation Example (WRONG):**
+**Room-Based Navigation:**
 ```python
-# WRONG: Placing avatar inside Galaxy
-avatar.teleport_to(galaxy_position)
-```
+# ✅ CORRECT: Avatar navigates between semantic rooms
+avatar.navigate_to_room("Library")  # Research mode
+avatar.navigate_to_room("Workshop")  # Creation mode
+avatar.navigate_to_room("Bathtub")  # Sleep/introspection mode
 
-**Correct Example:**
-```python
-# CORRECT: Avatar in House, consults Galaxy via tablet
-tablet = MemoryTablet()
-galaxy_context = tablet.query_galaxy(semantic_query)
+# Galaxy Universe projection (Bathtub only)
+galaxy_view = tablet.project_galaxy_universe(
+    galaxies=["text", "visual", "audio"],
+    mode="introspection"  # NOT navigation!
+)
+
+# Query Galaxy for reasoning
+galaxy_context = tablet.query_galaxy(
+    query="recent reasoning patterns",
+    galaxy="reasoning"
+)
 avatar.reason_with(galaxy_context, house_context)
 ```
+
+**Violation Examples (WRONG):**
+```python
+# ❌ WRONG: Placing avatar inside Galaxy
+avatar.teleport_to(galaxy_position)
+
+# ❌ WRONG: Treating Galaxy as navigation space
+avatar.navigate_in_galaxy(target_star_id=12345)
+
+# ❌ WRONG: Bypassing tablet for Galaxy access
+direct_galaxy_access = galaxy.load_embeddings()  # Use tablet!
+```
+
+**Correct Patterns:**
+```python
+# ✅ CORRECT: Room-based workflow
+# Step 1: Navigate to appropriate room
+avatar.navigate_to_room("Library")
+
+# Step 2: Search via tablet (checks House first, then Galaxy)
+results = tablet.search(
+    query="transformer architectures",
+    sources=["House/Library", "Galaxy/text"],
+    lod="medium"
+)
+
+# Step 3: Stream to Galaxy if needed (on-demand)
+tablet.stream_to_galaxy(
+    artifact_path="House/Library/Attention_Paper.glb",
+    lod="full"
+)
+
+# Step 4: Reason in House context
+avatar.reason_about(results, house_location="Library")
+```
+
+**Galaxy Universe in Bathtub:**
+```python
+# ✅ CORRECT: Sleep-time Galaxy introspection
+avatar.navigate_to_room("Bathtub")
+
+# Galaxy Universe projects from avatar head center
+sleep = SleepTimeCompute(house_id="default")
+sleep.project_galaxy_universe(
+    galaxies=["text", "visual", "audio", "reasoning"],
+    mode="introspection"
+)
+
+# Human and AI can inspect stars (dual-view)
+tablet.inspect_star(
+    galaxy="text",
+    star_id=12345,
+    view_mode="dual"  # Visual 3D + semantic data
+)
+
+# Stars transform: light particles → 3D shapes (procedural)
+# Both clients can pick and query interactively
+```
+
+**Spatial Paradigm:**
+```
+Avatar Movement:         Reasoning Access:
+House Room Navigation    Galaxy Query via Tablet
+├─ Library → Research    ├─ Search text embeddings
+├─ Workshop → Create     ├─ Visual similarity search
+├─ Bathtub → Sleep       ├─ Audio pattern matching
+├─ Gardens → Ontology    ├─ Cross-modal fusion
+└─ Portal → Remote       └─ Federated knowledge
+```
+
+**Why This Matters:**
+- **Explainability:** Avatar movements = reasoning steps (visible to humans)
+- **Spatial grounding:** Knowledge has physical location (Library/Workshop/Gardens)
+- **Embodied cognition:** AI reasons as situated agent, not disembodied query system
+- **Dual-client reality:** Humans and AI share same 3D environment
 
 ### 4. File Size Limits
 
