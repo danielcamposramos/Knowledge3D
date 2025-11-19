@@ -240,8 +240,8 @@ def test_rpn_arc_gpu_perf():
     # skip raster to focus on math + segment emission
     bridge.execute_rpn_gpu(program, width=128, height=128, skip_raster=True)
     elapsed_ms = (time.perf_counter() - t0) * 1000.0
-    # Generous threshold; PTX RPN + drawing should stay sub-30 ms even on mid GPUs
-    assert elapsed_ms < 30.0, f"Arc GPU path too slow: {elapsed_ms:.2f} ms"
+    # Expect ~13-26 ms on 3060-class; allow headroom for runtime variance
+    assert elapsed_ms < 27.0, f"Arc GPU path too slow: {elapsed_ms:.2f} ms"
 
 
 @pytest.mark.cuda

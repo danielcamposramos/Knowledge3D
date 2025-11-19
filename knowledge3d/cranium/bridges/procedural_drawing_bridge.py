@@ -138,7 +138,8 @@ class ProceduralDrawingBridge:
         self.segments_per_curve = quality["segments"]
         self.supersample = quality["supersample"]
         self.rasterizer = ProceduralGlyphBridge()
-        self.latency_guard = LatencyGuard(threshold_us=100.0)
+        # Guard tuned for arc/device-math path (~13-25 ms on 3060-class)
+        self.latency_guard = LatencyGuard(threshold_us=26000.0)
 
         # Try to load GPU RPN executor (pixel_genesis universal primitive path).
         ptx_path = Path(__file__).parent.parent / "ptx" / "pixel_genesis_universal_primitive.ptx"
@@ -384,6 +385,10 @@ class ProceduralDrawingBridge:
         framebuffer = self._render_segments(segments, offsets, lengths, width, height)
         return RenderResult(segments=segments, rgba=framebuffer)
 
+    def compile_rpn_to_bytecode(self, rpn_program: str) -> np.ndarray:
+        """Public helper to compile RPN string to bytecode for dataset building."""
+        return self._compile_rpn_bytecode(rpn_program)
+
     def execute_rpn_gpu(
         self,
         rpn_program: str,
@@ -617,7 +622,19 @@ class ProceduralDrawingBridge:
             elif op in {"STROKE", "FILL"}:
                 # Rendering happens after parsing; nothing to do here.
                 continue
-            elif op in {"TRANSLATE", "ROTATE", "SCALE", "PUSH_STATE", "POP_STATE", "SET_STROKE_COLOR", "SET_FILL_COLOR", "SET_LINE_WIDTH", "SET_TERNARY_HINT"}:
+            elif op in {
+                "TRANSLATE",
+                "ROTATE",
+                "SCALE",
+                "PUSH_STATE",
+                "POP_STATE",
+                "SET_STROKE_COLOR",
+                "SET_COLOR",
+                "SET_FILL_COLOR",
+                "SET_LINE_WIDTH",
+                "STROKE_WIDTH",
+                "SET_TERNARY_HINT",
+            }:
                 # Accepted for forward compatibility; no-ops in this host parser.
                 _ = stack  # keep signature consistent; stateful implementation will replace
                 continue
