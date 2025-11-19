@@ -73,6 +73,10 @@ Before opening a pull request:
 
 If tests are flaky or environment‑sensitive, note this clearly in your pull request.
 
+### About CI and PTX‑backed Tests
+
+Most of the critical test suite exercises sovereign PTX kernels and requires a real NVIDIA GPU with `libcuda.so` available. GitHub‑hosted runners do not provide this environment, so CI‑based test runs are disabled by design and will not pass there. Contributors are expected to run relevant tests locally in a properly configured `k3d-cranium` environment and report results in their pull requests.
+
 ## Opening Issues
 
 When filing an issue, please:
@@ -110,4 +114,3 @@ If your change affects the memory model, PTX kernels, or Tablet UX, clearly desc
 ## Code of Conduct
 
 By participating in this project, you agree to abide by the Code of Conduct (`CODE_OF_CONDUCT.md`). Be respectful, collaborative, and mindful of the constraints and realities under which this project operates.
-
