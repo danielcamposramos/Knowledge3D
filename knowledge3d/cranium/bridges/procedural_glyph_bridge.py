@@ -28,7 +28,7 @@ class RasterizerBatch:
 
     def to_numpy(self) -> np.ndarray:
         """Copy the rendered batch back to host memory."""
-        host = np.empty((self.batch, self.height, self.width), dtype=np.float32)
+        host = np.empty((self.batch, self.height, self.width, 4), dtype=np.float32)
         loader.memcpy_dtoh(
             host.ctypes.data_as(ctypes.c_void_p),
             self.device_ptr,
@@ -69,7 +69,7 @@ class ProceduralGlyphBridge:
         Render glyphs described by the provided segments.
 
         Args:
-            segments: float32 array (N,4) describing x0,y0,x1,y1.
+            segments: float32 array (N,9) describing x0,y0,x1,y1,r,g,b,a,width.
             segment_offsets: int32 offsets per glyph.
             segment_lengths: int32 lengths per glyph.
             transforms: float32 array (batch, 4) -> scale, rotation, tx, ty.
@@ -85,7 +85,7 @@ class ProceduralGlyphBridge:
         d_offsets = loader.gpu_malloc(offsets.nbytes)
         d_lengths = loader.gpu_malloc(lengths.nbytes)
         d_transforms = loader.gpu_malloc(transforms.nbytes)
-        output_bytes = batch * height * width * 4
+        output_bytes = batch * height * width * 4 * 4  # RGBA float32
         d_output = loader.gpu_malloc(output_bytes)
 
         if segments.size:

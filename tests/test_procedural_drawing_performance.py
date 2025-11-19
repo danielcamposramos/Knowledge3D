@@ -355,6 +355,25 @@ def test_transform_scale():
 
 
 @pytest.mark.cuda
+def test_segments_stride_and_style():
+    """Segments should include style fields (stride=9) and rasterization should honor color."""
+    _require_gpu()
+    from knowledge3d.cranium.bridges.procedural_drawing_bridge import ProceduralDrawingBridge
+
+    bridge = ProceduralDrawingBridge(matryoshka_dim=512)
+    _skip_if_kernel_missing(bridge)
+
+    program = "1.0 0.0 0.0 1.0 SET_COLOR 0.05 STROKE_WIDTH 0 0 MOVE 1 0 LINE STROKE"
+    result = bridge.execute_rpn_gpu(program, width=64, height=64)
+    assert result.segments.shape[1] == 9, "Expected stride=9 (x,y + rgba + width)"
+    rgba = result.rgba
+    red = rgba[..., 0].mean()
+    green = rgba[..., 1].mean()
+    blue = rgba[..., 2].mean()
+    assert red > green + 1e-3 and red > blue + 1e-3, "Red channel should dominate for red stroke"
+
+
+@pytest.mark.cuda
 def test_parallel_batch_drawing():
     """Run multiple programs; placeholder loop until kernel batch mode lands."""
     _require_gpu()

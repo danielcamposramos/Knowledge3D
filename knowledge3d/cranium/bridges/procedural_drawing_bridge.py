@@ -131,6 +131,7 @@ class ProceduralDrawingBridge:
     """Host-side orchestrator for procedural 2D drawing."""
 
     MAX_SEGMENTS = 4096  # safety cap to avoid runaway tessellation
+    SEGMENT_STRIDE = 9   # x0,y0,x1,y1,r,g,b,a,width
 
     def __init__(self, matryoshka_dim: int = 512) -> None:
         quality = MATRYOSHKA_QUALITY.get(matryoshka_dim, MATRYOSHKA_QUALITY[512])
@@ -154,7 +155,7 @@ class ProceduralDrawingBridge:
         # Reusable GPU buffers to reduce per-call overhead.
         self._bytecode_cap = 4096
         self._d_bytecode = loader.gpu_malloc(self._bytecode_cap)
-        self._d_segments = loader.gpu_malloc(self.MAX_SEGMENTS * 16)
+        self._d_segments = loader.gpu_malloc(self.MAX_SEGMENTS * self.SEGMENT_STRIDE * 4)
         self._d_count = loader.gpu_malloc(4)
         # Math buffer (header+records and payload) reused when provided
         self._math_hdrrec_cap = 0
@@ -477,7 +478,7 @@ class ProceduralDrawingBridge:
         )
 
         seg_count = min(int(count_host[0]), self.MAX_SEGMENTS)
-        segments = np.zeros((seg_count, 4), dtype=np.float32)
+        segments = np.zeros((seg_count, self.SEGMENT_STRIDE), dtype=np.float32)
         if seg_count:
             loader.memcpy_dtoh(
                 segments.ctypes.data_as(ctypes.c_void_p),
@@ -517,7 +518,14 @@ class ProceduralDrawingBridge:
     ) -> np.ndarray:
         if segments.size == 0:
             # empty canvas, return transparent
-            return np.zeros((height, width, 4), dtype=np.float32)
+            rgba = np.zeros((height, width, 4), dtype=np.float32)
+            return rgba
+
+        # Ensure stride includes style: x0,y0,x1,y1,r,g,b,a,width
+        if segments.shape[1] == 4:
+            style = self._extract_style_defaults()
+            style_vec = np.array(style, dtype=np.float32)
+            segments = np.hstack([segments, np.tile(style_vec, (segments.shape[0], 1))]).astype(np.float32)
 
         transforms = np.array([[1.0, 0.0, 0.0, 0.0]], dtype=np.float32)  # scale, rot, tx, ty
         glyph_batch = self.rasterizer.render(
@@ -533,13 +541,14 @@ class ProceduralDrawingBridge:
         if self.supersample > 1:
             # Simple box filter downsample
             glyph_batch = glyph_batch.reshape(
-                height, self.supersample, width, self.supersample
+                height, self.supersample, width, self.supersample, 4
             ).mean(axis=(1, 3))
 
-        # Expand single channel to RGBA (alpha=1.0)
-        rgba = np.repeat(glyph_batch[:, :, None], 4, axis=2)
-        rgba[:, :, 3] = 1.0
-        return rgba.astype(np.float32)
+        return glyph_batch.astype(np.float32)
+
+    def _extract_style_defaults(self) -> List[float]:
+        """Default style vector: r,g,b,a,width."""
+        return [1.0, 1.0, 1.0, 1.0, 1.0]
 
     def _rpn_to_segments(self, rpn_program: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         tokens = rpn_program.strip().split()
