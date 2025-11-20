@@ -15,7 +15,7 @@
 - **Chinese (zh-cn):**
   - Pinyin syllables: audio-cmn (GitHub hugolpz/audio-cmn), syllabs/ folder ~1700 pinyin MP3s.
 - **Japanese (ja):**
-  - Kana syllables (hiragana/katakana): use Lingua Libre filtered for Kana classes; alternative GitHub “Japanese-Alphabet-Audio” style repos; Common Voice–derived kana sets on HF.
+  - Kana syllables (hiragana/katakana): use Lingua Libre filtered for Kana classes; alternative GitHub “Japanese-Alphabet-Audio” style repos; Common Voice–derived kana sets on HF. (dar5in repo 404; need a valid kana source)
 - **Spanish (es):**
   - Alphabet/phonemes: Wikimedia Commons Spanish alphabet (OGG split or individual files); CC Anki decks with media (check licenses).
 

@@ -22,7 +22,8 @@ clone_if_missing() {
 }
 
 clone_if_missing "https://github.com/jona70x/Alphabet-with-sounds.git" "$DEST_ROOT/Alphabet-with-sounds"
-clone_if_missing "https://github.com/dar5in/japanese-kana-dataset.git" "$DEST_ROOT/japanese-kana-dataset"
+# Japanese kana: alternative repo (original link 404). Placeholder for future valid source.
+# clone_if_missing "https://github.com/dar5in/japanese-kana-dataset.git" "$DEST_ROOT/japanese-kana-dataset"
 clone_if_missing "https://github.com/rmcpantoja/SUCSpeech.git" "$DEST_ROOT/SUCSpeech"
 
 echo "[done] Repos cloned under $DEST_ROOT"
