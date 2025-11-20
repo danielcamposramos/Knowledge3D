@@ -31,16 +31,18 @@ SPARQL_URL = "https://query.wikidata.org/sparql"
 
 
 def build_query(lang: str, limit: int) -> str:
+    # Fetch items that are letters or phonemes, have pronunciation audio (P443),
+    # and have a label in the desired language.
     return f"""
 SELECT ?item ?itemLabel ?audio WHERE {{
   VALUES ?cls {{ wd:Q708031 wd:Q9779 }}  # phoneme or letter
-  ?item wdt:P31 ?cls .
+  ?item wdt:P31|wdt:P31/wdt:P279* ?cls .
   ?item wdt:P443 ?audio .
-  ?item wdt:P424 "{lang}" .
-  SERVICE wikibase:label {{ bd:serviceParam wikibase:language "[AUTO_LANGUAGE],{lang}". }}
+  FILTER(LANG(?itemLabel) = "{lang}")
+  SERVICE wikibase:label {{ bd:serviceParam wikibase:language "{lang},en". }}
 }}
 LIMIT {limit}
-    """
+"""
 
 
 def fetch_entries(lang: str, limit: int) -> List[Dict[str, str]]:
@@ -62,7 +64,7 @@ def download_file(url: str, dest: Path) -> None:
     dest.parent.mkdir(parents=True, exist_ok=True)
     if dest.exists():
         return
-    with requests.get(url, stream=True, timeout=30) as r:
+    with requests.get(url, stream=True, timeout=30, headers={"User-Agent": "K3D-pho-loader"}) as r:
         r.raise_for_status()
         with open(dest, "wb") as f:
             for chunk in r.iter_content(chunk_size=8192):
