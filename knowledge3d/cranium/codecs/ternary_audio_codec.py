@@ -29,9 +29,10 @@ logger = logging.getLogger(__name__)
 class TernaryAudioCodec:
     """
     Ternary audio codec using procedural synthesis + ternary MDCT.
+    GPU-only: no CPU fallback paths.
     """
 
-    def __init__(self, sample_rate: int = 44100, frame_size: int = 1024, n_harmonics: int = 20, use_gpu: bool = False):
+    def __init__(self, sample_rate: int = 44100, frame_size: int = 1024, n_harmonics: int = 20, use_gpu: bool = True):
         if sample_rate <= 0:
             raise ValueError("sample_rate must be positive")
         if frame_size <= 0 or frame_size % 2 != 0:
@@ -42,16 +43,11 @@ class TernaryAudioCodec:
         self.frame_size = int(frame_size)
         self.hop_size = self.frame_size // 2
         self.n_harmonics = int(n_harmonics)
-        self.synthesizer = ProceduralAudioSynthesizer(sample_rate)
-        # Precompute transform matrix for DCT-IV (self-inverse).
-        n = np.arange(self.frame_size)
-        self._dct_matrix = np.cos(np.pi / self.frame_size * (n + 0.5)[:, None] * (n + 0.5))
-        self._dct_norm = math.sqrt(2.0 / self.frame_size)
+        self.synthesizer = ProceduralAudioSynthesizer(sample_rate, frame_size)
         self._mdct_gpu: Optional[TernaryMDCTKernel] = None
         self._require_gpu = use_gpu
-        if use_gpu:
-            self._mdct_gpu = TernaryMDCTKernel(n=self.frame_size)
-            logger.info("TernaryMDCTKernel initialised for frame_size=%d", self.frame_size)
+        self._mdct_gpu = TernaryMDCTKernel(n=self.frame_size)
+        logger.info("TernaryMDCTKernel initialised for frame_size=%d", self.frame_size)
         self.rpn = ModularRPNEngine()
 
     def encode(self, audio: np.ndarray) -> Dict:
@@ -73,7 +69,7 @@ class TernaryAudioCodec:
             harmonics, duration_sec=float(samples.size) / self.sample_rate
         )
         approximation = approximation[: samples.size]
-        residual = (samples - approximation).astype(np.float32)
+        residual = self.synthesizer.compute_residual(samples, harmonics)
 
         window = np.hanning(self.frame_size).astype(np.float32)
         frames_q: List[np.ndarray] = []
@@ -89,7 +85,7 @@ class TernaryAudioCodec:
                 frame = np.pad(frame, (0, self.frame_size - frame.size), mode="constant")
             windowed = frame * window
             mdct_coeffs = self.mdct_frame(windowed)
-            quantized, meta = quantize_ternary(mdct_coeffs, adaptive=True, threshold=0.1)
+            quantized, meta = quantize_ternary(mdct_coeffs, adaptive=False, threshold=0.1)
             encoded = entropy_encode_ternary(quantized)
             frames_q.append(quantized)
             mdct_metadata.append(meta)
@@ -160,40 +156,25 @@ class TernaryAudioCodec:
     def imdct_frame(self, coeffs: np.ndarray) -> np.ndarray:
         """
         Inverse transform matching mdct_frame (DCT-IV is self-inverse).
-        Uses GPU if available, otherwise CPU.
+        GPU-only: raises if GPU path fails.
         """
+        if self._mdct_gpu is None:
+            raise RuntimeError("GPU MDCT kernel not initialised")
         c = np.asarray(coeffs, dtype=np.float32)
         if c.size != self.frame_size:
             raise ValueError(f"coeffs must have length {self.frame_size}")
-        if self._mdct_gpu is not None:
-            try:
-                return self._mdct_gpu.inverse(c).astype(np.float32)
-            except Exception as exc:
-                if self._require_gpu:
-                    raise
-                logger.warning("GPU iMDCT failed, falling back to CPU: %s", exc)
-        c64 = c.astype(np.float64, copy=False)
-        reconstructed = self._dct_norm * np.dot(c64, self._dct_matrix)
-        return reconstructed.astype(np.float32)
+        return self._mdct_gpu.inverse(c).astype(np.float32)
 
     def mdct_frame(self, frame: np.ndarray) -> np.ndarray:  # type: ignore[override]
         """
-        Compute MDCT using GPU if available, otherwise CPU.
+        Compute MDCT on GPU. No CPU fallback.
         """
+        if self._mdct_gpu is None:
+            raise RuntimeError("GPU MDCT kernel not initialised")
         x = np.asarray(frame, dtype=np.float32)
         if x.size != self.frame_size:
             raise ValueError(f"frame must have length {self.frame_size}")
-        if self._mdct_gpu is not None:
-            try:
-                return self._mdct_gpu.forward(x).astype(np.float32)
-            except Exception as exc:
-                if self._require_gpu:
-                    raise
-                logger.warning("GPU MDCT failed, falling back to CPU: %s", exc)
-        # CPU path
-        x64 = x.astype(np.float64, copy=False)
-        coeffs = self._dct_norm * np.dot(x64, self._dct_matrix)
-        return coeffs.astype(np.float32)
+        return self._mdct_gpu.forward(x).astype(np.float32)
 
     def compute_compression_ratio(self, original_size: int, encoded: Dict) -> float:
         """

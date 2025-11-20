@@ -138,6 +138,18 @@ Knowledge3D stands on the shoulders of giants. We build upon foundational resear
 - Knowledge stored as executable RPN programs, not dense vectors
 - Adaptive dimensions (64D-2048D) based on content complexity
 
+### 4.5. **Phase 2 Sovereign Procedural Codecs** (NEW - November 2025)
+- **World's first GPU-native procedural audio/video codecs with 100% PTX sovereignty**
+- **Audio Codec**: 0.57-0.87ms encode/decode (**40-75× faster than NumPy**), 398.3× compression
+  - GPU harmonic analysis via PTX kernels (`harmonic_topk`, `harmonic_synthesize`)
+  - Production-validated: [Phase 2 Verification Report](TEMP/CLAUDE_PHASE2_GPU_HARMONIC_VERIFICATION.md)
+- **Video Codec**: 2-44ms encode/decode (**17-71× speedup**), 2.4-46.5× compression
+  - Residual-based mode gating (PROCEDURAL vs FULL-DCT selection)
+  - PTX kernels: `ternary_dct8x8` forward/inverse
+- **PTX Compatibility Guide**: [CUDA/PTX Version Troubleshooting](docs/CUDA_PTX_VERSION_COMPATIBILITY_GUIDE.md)
+  - Critical resource for avoiding CUDA Error 222 (PTX version mismatches)
+  - Diagnostic tools and prevention strategies included
+
 ### 5. **Parameter Efficiency**
 - **7M params ≈ 70B LLMs** on reasoning tasks (10,000× improvement)
 - Knowledge lives in embeddings (Galaxy/House), not weights

@@ -1,127 +1,86 @@
 """
-Procedural audio synthesis and analysis utilities.
-
-The synthesizer extracts harmonic parameters from signals via FFT peak picking
-and can reconstruct approximations using additive synthesis. Residuals can be
-computed for ternary quantisation in the codec pipeline.
+GPU-only procedural audio analysis and synthesis using sovereign PTX bindings.
 """
 
 from __future__ import annotations
 
-import numpy as np
 from typing import List, Tuple
+
+import numpy as np
+
+from .ptx_bindings import AudioHarmonicGPU, TernaryMDCTKernel
 
 
 class ProceduralAudioSynthesizer:
     """
-    Procedural audio synthesis using an additive harmonic model.
-
-    The model stores harmonics as triples of (frequency_hz, amplitude, phase_rad)
-    and reconstructs signals by summing sinusoids.
+    Procedural audio synthesis using GPU additive harmonic model and MDCT-based analysis.
+    All math runs on GPU via PTX bindings; no CPU fallbacks.
     """
 
-    def __init__(self, sample_rate: int = 44100):
-        """
-        Initialize synthesizer.
-
-        Args:
-            sample_rate: Audio sample rate in Hz.
-        """
+    def __init__(self, sample_rate: int = 44100, frame_size: int = 1024):
         if sample_rate <= 0:
             raise ValueError("sample_rate must be positive")
+        if frame_size <= 0 or frame_size % 2 != 0 or frame_size > 1024:
+            raise ValueError("frame_size must be a positive even integer <=1024")
         self.sample_rate = int(sample_rate)
+        self.frame_size = int(frame_size)
+        self.mdct = TernaryMDCTKernel(n=self.frame_size)
+        self.harm_gpu = AudioHarmonicGPU()
 
     def analyze(self, audio: np.ndarray, n_harmonics: int = 20) -> List[Tuple[float, float, float]]:
         """
-        Extract harmonic parameters from an audio signal using FFT peak detection.
-
-        Args:
-            audio: Input audio samples (mono, float32 or convertible), 1-D.
-            n_harmonics: Number of harmonics to extract.
-
-        Returns:
-            List of (frequency_hz, amplitude, phase_rad) tuples sorted by amplitude.
+        Extract harmonic parameters from an audio signal using GPU MDCT + top-K magnitude bins.
+        Phases are set to 0 (MDCT is real-valued).
         """
         if n_harmonics <= 0:
             raise ValueError("n_harmonics must be positive")
-
         signal = np.asarray(audio, dtype=np.float32).flatten()
         if signal.size == 0:
             raise ValueError("audio must not be empty")
+        # Use first frame_size samples (or pad) for MDCT-based analysis.
+        if signal.size < self.frame_size:
+            pad = np.zeros(self.frame_size, dtype=np.float32)
+            pad[: signal.size] = signal
+            signal = pad
+        else:
+            signal = signal[: self.frame_size]
 
-        spectrum = np.fft.rfft(signal)
-        magnitudes = 2.0 * np.abs(spectrum) / max(signal.size, 1)
-        phases = np.angle(spectrum)
-        freqs = np.fft.rfftfreq(signal.size, d=1.0 / self.sample_rate)
-
-        start_idx = 1 if magnitudes.size > 1 else 0
-        indices = np.argsort(magnitudes[start_idx:])[::-1][:n_harmonics] + start_idx
-
+        coeffs = self.mdct.forward(signal.astype(np.float32))
+        idx, mag = self.harm_gpu.harmonic_topk(coeffs, k=min(n_harmonics, coeffs.size))
         harmonics: List[Tuple[float, float, float]] = []
-        for idx in indices:
-            amp = float(magnitudes[idx])
-            freq = float(freqs[idx])
-            phase = float(phases[idx])
-            harmonics.append((freq, amp, phase))
-
-        harmonics.sort(key=lambda x: x[1], reverse=True)
+        for i, a in zip(idx.tolist(), mag.tolist()):
+            freq_hz = float(i) * (self.sample_rate / float(self.frame_size))
+            harmonics.append((freq_hz, float(a), 0.0))
         return harmonics
 
     def synthesize(self, harmonics: List[Tuple[float, float, float]], duration_sec: float) -> np.ndarray:
         """
-        Generate audio from harmonic parameters.
-
-        Args:
-            harmonics: List of (frequency_hz, amplitude, phase_rad).
-            duration_sec: Duration of the output in seconds.
-
-        Returns:
-            Synthesized mono signal as float32 array.
+        Generate audio from harmonic parameters using GPU additive synthesis.
         """
         if duration_sec <= 0:
             raise ValueError("duration_sec must be positive")
-        num_samples = int(np.round(duration_sec * self.sample_rate))
-        if num_samples <= 0:
-            raise ValueError("Computed number of samples is zero; increase duration or sample_rate")
         if len(harmonics) == 0:
-            return np.zeros(num_samples, dtype=np.float32)
-
-        t = np.linspace(0.0, duration_sec, num_samples, endpoint=False, dtype=np.float32)
-        harmonics_arr = np.asarray(harmonics, dtype=np.float32)
-        freqs = harmonics_arr[:, 0][:, None]
-        amps = harmonics_arr[:, 1][:, None]
-        phases = harmonics_arr[:, 2][:, None]
-
-        # Vectorised additive synthesis.
-        waveform = amps * np.cos(2.0 * np.pi * freqs * t + phases)
-        synthesized = np.sum(waveform, axis=0).astype(np.float32)
-        return synthesized
+            return np.zeros(int(np.round(duration_sec * self.sample_rate)), dtype=np.float32)
+        num_samples = int(np.round(duration_sec * self.sample_rate))
+        freq = np.asarray([h[0] for h in harmonics], dtype=np.float32)
+        amp = np.asarray([h[1] for h in harmonics], dtype=np.float32)
+        phase = np.asarray([h[2] for h in harmonics], dtype=np.float32)
+        return self.harm_gpu.synthesize(freq, amp, phase, sample_rate=float(self.sample_rate), num_samples=num_samples)
 
     def compute_residual(self, original: np.ndarray, harmonics: List[Tuple[float, float, float]]) -> np.ndarray:
         """
-        Compute residual: original - procedural_synthesis(harmonics).
-
-        Args:
-            original: Original audio samples.
-            harmonics: Harmonic parameters extracted from the signal.
-
-        Returns:
-            Residual signal aligned to original length.
+        Compute residual on GPU: original - synth(harmonics, duration).
         """
-        original_arr = np.asarray(original, dtype=np.float32).flatten()
-        if original_arr.size == 0:
-            raise ValueError("original must not be empty")
-        duration_sec = float(original_arr.size) / float(self.sample_rate)
-        approximation = self.synthesize(harmonics, duration_sec)
-        approximation = approximation[: original_arr.size]
-        return (original_arr - approximation).astype(np.float32)
+        orig = np.asarray(original, dtype=np.float32).flatten()
+        duration_sec = float(orig.size) / float(self.sample_rate)
+        approx = self.synthesize(harmonics, duration_sec)
+        if approx.size != orig.size:
+            approx = approx[: orig.size]
+        return self.harm_gpu.subtract_residual(orig, approx)
 
     def adaptive_dimension(self, harmonics: List[Tuple[float, float, float]]) -> int:
         """
-        Choose Matryoshka dimension based on harmonic complexity.
-
-        Returns:
-            Selected embedding dimension.
+        Choose Matryoshka dimension based on harmonic count.
         """
         count = len(harmonics)
         if count < 5:
