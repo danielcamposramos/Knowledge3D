@@ -42,5 +42,10 @@ Encode ~35–44 ms; decode ~3–8 ms.
 - Ensure ternary heuristics in routers (stratified sampling, carry-free TMUL) to speed bootstrap.
 - For 3D modality: ternary helps packing; guard against transitive dilution with TAND propagation of unknowns.
 
+### Audio proceduralization utilities (added)
+- `scripts/proceduralize_audio.py`: converts labeled audio (manifest-driven or filename fallback) into procedural harmonic seeds (letters/phonemes); uses ffmpeg fallback for decoding.
+- `scripts/generate_audio_manifest_skeleton.py`: scans audio roots and emits a CSV skeleton (path,text,phoneme,lang) for manual/automatic labeling since minds14/Librispeech filenames lack labels.
+- `scripts/generate_phoneme_bank.py`: synthesizes a small open phoneme bank via espeak for en/pt/es/zh into `/K3D/K3D_llama_cpp/datasets/audio/phoneme_bank/<lang>/`.
+
 ### Decision
 Content coherence is paramount, compression acceptable in a short range. Current codec stage is acceptable to move on to fused-head/audio ingestion work.
