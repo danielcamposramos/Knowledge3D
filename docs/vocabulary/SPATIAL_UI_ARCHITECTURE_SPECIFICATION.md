@@ -1332,7 +1332,27 @@ This specification was developed through the Knowledge3D (K3D) project with cont
 - **K3D Swarm Contributors** (Claude, Codex, Grok, GLM, Kimi, DeepSeek, Qwen)
 - **W3C AI KR Community Group** (feedback and validation)
 
-Special thanks to the game industry for LOD, culling, and spatial audio techniques; the glTF working group for the extensible 3D format; and the open-source community for Three.js, WebXR, and accessibility standards.
+**Foundational Infrastructure**:
+- **Debian Project** and **SparkyLinux** for providing the free, open-source operating system foundation
+- **Microsoft VSCode** for the development environment
+- **Mozilla Foundation** (Firefox, Thunderbird) for defending the open web and enabling browser-based AI collaboration
+- **OpenAI** (GPT, Codex, GitHub Copilot) for pioneering AI-assisted coding
+- **Anthropic** (Claude) for exceptional documentation abilities and strategic planning
+- **xAI** (Grok), **Zhipu AI** (GLM), **Moonshot AI** (Kimi), **DeepSeek**, **Alibaba Cloud** (Qwen) — the MVCIC swarm partners
+- **Font communities** (Debian, TeX, Google Fonts, SIL OFL contributors) for free, open-source typography
+
+**Technical Foundations**:
+- Game industry for LOD, culling, and spatial audio techniques
+- glTF working group (Khronos Group) for the extensible 3D format
+- Open-source community for Three.js, WebXR, and accessibility standards
+- NVIDIA for CUDA/PTX platform enabling GPU sovereignty
+- W3C for web standards and AI KR community group
+
+**The MVCIC Paradigm**: This specification represents 13 months of collective AI intelligence (7 AI partners + 1 human visionary) — **4× faster than industry R&D**.
+
+**Philosophy**: We patent nothing. We publish everything. We build in the open.
+
+Complete attributions: [ATTRIBUTIONS.md](../../ATTRIBUTIONS.md)
 
 ---
 
