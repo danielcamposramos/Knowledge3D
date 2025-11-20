@@ -16,7 +16,7 @@ Author: K3D Adaptive Swarm
 Date: 2025-11-19
 """
 
-from typing import Dict, List, Set
+from typing import Dict, List, Sequence, Set, Tuple
 
 # Basic Latin alphabet (A-Z, a-z) - used across many Western languages
 LATIN_BASIC_LANGUAGES = [
@@ -300,6 +300,135 @@ EXTENDED_CYRILLIC_LANGUAGES: Dict[str, List[str]] = {
     'Ү': ['tt', 'ba'],
 }
 
+# Script range definitions for non-Latin/Cyrillic alphabets
+GREEK_LANGUAGES = ['el']
+GREEK_RANGES = ((0x0370, 0x03FF), (0x1F00, 0x1FFF))
+
+HEBREW_LANGUAGES = ['he', 'yi']
+HEBREW_RANGES = ((0x0590, 0x05FF),)
+
+ARABIC_LANGUAGES = ['ar', 'fa', 'ur', 'ps', 'ug', 'ku', 'ks', 'dv', 'sd']
+ARABIC_RANGES = ((0x0600, 0x06FF), (0x0750, 0x077F), (0x08A0, 0x08FF), (0xFB50, 0xFDFF), (0xFE70, 0xFEFF))
+
+DEVANAGARI_LANGUAGES = ['hi', 'mr', 'ne', 'sd']
+DEVANAGARI_RANGES = ((0x0900, 0x097F),)
+
+BENGALI_LANGUAGES = ['bn', 'as']
+BENGALI_RANGES = ((0x0980, 0x09FF),)
+
+GURMUKHI_LANGUAGES = ['pa']
+GURMUKHI_RANGES = ((0x0A00, 0x0A7F),)
+
+GUJARATI_LANGUAGES = ['gu']
+GUJARATI_RANGES = ((0x0A80, 0x0AFF),)
+
+ORIYA_LANGUAGES = ['or']
+ORIYA_RANGES = ((0x0B00, 0x0B7F),)
+
+TAMIL_LANGUAGES = ['ta']
+TAMIL_RANGES = ((0x0B80, 0x0BFF),)
+
+TELUGU_LANGUAGES = ['te']
+TELUGU_RANGES = ((0x0C00, 0x0C7F),)
+
+KANNADA_LANGUAGES = ['kn']
+KANNADA_RANGES = ((0x0C80, 0x0CFF),)
+
+MALAYALAM_LANGUAGES = ['ml']
+MALAYALAM_RANGES = ((0x0D00, 0x0D7F),)
+
+SINHALA_LANGUAGES = ['si']
+SINHALA_RANGES = ((0x0D80, 0x0DFF),)
+
+THAI_LANGUAGES = ['th']
+THAI_RANGES = ((0x0E00, 0x0E7F),)
+
+LAO_LANGUAGES = ['lo']
+LAO_RANGES = ((0x0E80, 0x0EFF),)
+
+TIBETAN_LANGUAGES = ['bo']
+TIBETAN_RANGES = ((0x0F00, 0x0FFF),)
+
+MYANMAR_LANGUAGES = ['my']
+MYANMAR_RANGES = ((0x1000, 0x109F), (0xA9E0, 0xA9FF))
+
+GEORGIAN_LANGUAGES = ['ka']
+GEORGIAN_RANGES = ((0x10A0, 0x10FF), (0x2D00, 0x2D2F), (0x1C90, 0x1CBF))
+
+ARMENIAN_LANGUAGES = ['hy']
+ARMENIAN_RANGES = ((0x0530, 0x058F),)
+
+ETHIOPIC_LANGUAGES = ['am', 'ti', 'om', 'so']
+ETHIOPIC_RANGES = ((0x1200, 0x137F), (0x1380, 0x139F), (0x2D80, 0x2DDF))
+
+CHEROKEE_LANGUAGES = ['chr']
+CHEROKEE_RANGES = ((0x13A0, 0x13FF), (0xAB70, 0xABBF))
+
+CANADIAN_LANGUAGES = ['cr', 'iu', 'oj']
+CANADIAN_RANGES = ((0x1400, 0x167F),)
+
+BRAILLE_LANGUAGES = ['universal']
+BRAILLE_RANGES = ((0x2800, 0x28FF),)
+
+BOPOMOFO_LANGUAGES = ['zh']
+BOPOMOFO_RANGES = ((0x3100, 0x312F), (0x31A0, 0x31BF))
+
+HIRAGANA_LANGUAGES = ['ja']
+HIRAGANA_RANGES = ((0x3040, 0x309F),)
+
+KATAKANA_LANGUAGES = ['ja']
+KATAKANA_RANGES = ((0x30A0, 0x30FF), (0x31F0, 0x31FF))
+
+HANGUL_LANGUAGES = ['ko']
+HANGUL_RANGES = ((0xAC00, 0xD7A3), (0x1100, 0x11FF), (0x3130, 0x318F))
+
+CJK_LANGUAGES = ['zh', 'ja', 'ko']
+CJK_RANGES = ((0x3400, 0x4DBF), (0x4E00, 0x9FFF), (0xF900, 0xFAFF))
+
+
+def _in_ranges(char: str, ranges: Sequence[Tuple[int, int]]) -> bool:
+    code = ord(char)
+    for start, end in ranges:
+        if start <= code <= end:
+            return True
+    return False
+
+
+def _range_length(ranges: Sequence[Tuple[int, int]]) -> int:
+    return sum((end - start + 1) for start, end in ranges)
+
+
+SCRIPT_STATS_INFO = [
+    ('greek_chars', GREEK_RANGES, GREEK_LANGUAGES),
+    ('hebrew_chars', HEBREW_RANGES, HEBREW_LANGUAGES),
+    ('arabic_chars', ARABIC_RANGES, ARABIC_LANGUAGES),
+    ('devanagari_chars', DEVANAGARI_RANGES, DEVANAGARI_LANGUAGES),
+    ('bengali_chars', BENGALI_RANGES, BENGALI_LANGUAGES),
+    ('gurmukhi_chars', GURMUKHI_RANGES, GURMUKHI_LANGUAGES),
+    ('gujarati_chars', GUJARATI_RANGES, GUJARATI_LANGUAGES),
+    ('oriya_chars', ORIYA_RANGES, ORIYA_LANGUAGES),
+    ('tamil_chars', TAMIL_RANGES, TAMIL_LANGUAGES),
+    ('telugu_chars', TELUGU_RANGES, TELUGU_LANGUAGES),
+    ('kannada_chars', KANNADA_RANGES, KANNADA_LANGUAGES),
+    ('malayalam_chars', MALAYALAM_RANGES, MALAYALAM_LANGUAGES),
+    ('sinhala_chars', SINHALA_RANGES, SINHALA_LANGUAGES),
+    ('thai_chars', THAI_RANGES, THAI_LANGUAGES),
+    ('lao_chars', LAO_RANGES, LAO_LANGUAGES),
+    ('tibetan_chars', TIBETAN_RANGES, TIBETAN_LANGUAGES),
+    ('myanmar_chars', MYANMAR_RANGES, MYANMAR_LANGUAGES),
+    ('georgian_chars', GEORGIAN_RANGES, GEORGIAN_LANGUAGES),
+    ('armenian_chars', ARMENIAN_RANGES, ARMENIAN_LANGUAGES),
+    ('ethiopic_chars', ETHIOPIC_RANGES, ETHIOPIC_LANGUAGES),
+    ('cherokee_chars', CHEROKEE_RANGES, CHEROKEE_LANGUAGES),
+    ('canadian_chars', CANADIAN_RANGES, CANADIAN_LANGUAGES),
+    ('braille_chars', BRAILLE_RANGES, BRAILLE_LANGUAGES),
+    ('bopomofo_chars', BOPOMOFO_RANGES, BOPOMOFO_LANGUAGES),
+    ('hiragana_chars', HIRAGANA_RANGES, HIRAGANA_LANGUAGES),
+    ('katakana_chars', KATAKANA_RANGES, KATAKANA_LANGUAGES),
+    ('hangul_chars', HANGUL_RANGES, HANGUL_LANGUAGES),
+    ('cjk_chars', CJK_RANGES, CJK_LANGUAGES),
+]
+
 # Math symbols - language agnostic (universal across languages)
 MATH_SYMBOLS_UNIVERSAL = [
     '+', '-', '×', '÷', '=', '≠', '≈', '≡',
@@ -375,6 +504,90 @@ def get_character_languages(char: str) -> List[str]:
     # Basic Latin alphabet (A-Z, a-z)
     if char.isascii() and char.isalpha():
         return _unique_list(LATIN_BASIC_LANGUAGES)
+
+    if _in_ranges(char, GREEK_RANGES):
+        return _unique_list(GREEK_LANGUAGES)
+
+    if _in_ranges(char, HEBREW_RANGES):
+        return _unique_list(HEBREW_LANGUAGES)
+
+    if _in_ranges(char, ARABIC_RANGES):
+        return _unique_list(ARABIC_LANGUAGES)
+
+    if _in_ranges(char, DEVANAGARI_RANGES):
+        return _unique_list(DEVANAGARI_LANGUAGES)
+
+    if _in_ranges(char, BENGALI_RANGES):
+        return _unique_list(BENGALI_LANGUAGES)
+
+    if _in_ranges(char, GURMUKHI_RANGES):
+        return _unique_list(GURMUKHI_LANGUAGES)
+
+    if _in_ranges(char, GUJARATI_RANGES):
+        return _unique_list(GUJARATI_LANGUAGES)
+
+    if _in_ranges(char, ORIYA_RANGES):
+        return _unique_list(ORIYA_LANGUAGES)
+
+    if _in_ranges(char, TAMIL_RANGES):
+        return _unique_list(TAMIL_LANGUAGES)
+
+    if _in_ranges(char, TELUGU_RANGES):
+        return _unique_list(TELUGU_LANGUAGES)
+
+    if _in_ranges(char, KANNADA_RANGES):
+        return _unique_list(KANNADA_LANGUAGES)
+
+    if _in_ranges(char, MALAYALAM_RANGES):
+        return _unique_list(MALAYALAM_LANGUAGES)
+
+    if _in_ranges(char, SINHALA_RANGES):
+        return _unique_list(SINHALA_LANGUAGES)
+
+    if _in_ranges(char, THAI_RANGES):
+        return _unique_list(THAI_LANGUAGES)
+
+    if _in_ranges(char, LAO_RANGES):
+        return _unique_list(LAO_LANGUAGES)
+
+    if _in_ranges(char, TIBETAN_RANGES):
+        return _unique_list(TIBETAN_LANGUAGES)
+
+    if _in_ranges(char, MYANMAR_RANGES):
+        return _unique_list(MYANMAR_LANGUAGES)
+
+    if _in_ranges(char, GEORGIAN_RANGES):
+        return _unique_list(GEORGIAN_LANGUAGES)
+
+    if _in_ranges(char, ARMENIAN_RANGES):
+        return _unique_list(ARMENIAN_LANGUAGES)
+
+    if _in_ranges(char, ETHIOPIC_RANGES):
+        return _unique_list(ETHIOPIC_LANGUAGES)
+
+    if _in_ranges(char, CHEROKEE_RANGES):
+        return _unique_list(CHEROKEE_LANGUAGES)
+
+    if _in_ranges(char, CANADIAN_RANGES):
+        return _unique_list(CANADIAN_LANGUAGES)
+
+    if _in_ranges(char, BRAILLE_RANGES):
+        return _unique_list(BRAILLE_LANGUAGES)
+
+    if _in_ranges(char, BOPOMOFO_RANGES):
+        return _unique_list(BOPOMOFO_LANGUAGES)
+
+    if _in_ranges(char, HIRAGANA_RANGES):
+        return _unique_list(HIRAGANA_LANGUAGES)
+
+    if _in_ranges(char, KATAKANA_RANGES):
+        return _unique_list(KATAKANA_LANGUAGES)
+
+    if _in_ranges(char, HANGUL_RANGES):
+        return _unique_list(HANGUL_LANGUAGES)
+
+    if _in_ranges(char, CJK_RANGES):
+        return _unique_list(CJK_LANGUAGES)
 
     # Unknown character
     return []
@@ -462,6 +675,48 @@ def get_language_name(code: str) -> str:
         'lez': 'Lezgian',
         'tab': 'Tabasaran',
         'universal': 'Universal (language-agnostic)',
+        'el': 'Greek',
+        'he': 'Hebrew',
+        'yi': 'Yiddish',
+        'ar': 'Arabic',
+        'fa': 'Persian',
+        'ur': 'Urdu',
+        'ps': 'Pashto',
+        'ug': 'Uyghur',
+        'ku': 'Kurdish',
+        'ks': 'Kashmiri',
+        'dv': 'Dhivehi',
+        'sd': 'Sindhi',
+        'hi': 'Hindi',
+        'mr': 'Marathi',
+        'ne': 'Nepali',
+        'bn': 'Bengali',
+        'as': 'Assamese',
+        'pa': 'Punjabi',
+        'gu': 'Gujarati',
+        'or': 'Odia',
+        'ta': 'Tamil',
+        'te': 'Telugu',
+        'kn': 'Kannada',
+        'ml': 'Malayalam',
+        'si': 'Sinhala',
+        'th': 'Thai',
+        'lo': 'Lao',
+        'bo': 'Tibetan',
+        'my': 'Burmese',
+        'ka': 'Georgian',
+        'hy': 'Armenian',
+        'am': 'Amharic',
+        'ti': 'Tigrinya',
+        'om': 'Oromo',
+        'so': 'Somali',
+        'chr': 'Cherokee',
+        'cr': 'Cree',
+        'iu': 'Inuktitut',
+        'oj': 'Ojibwe',
+        'ja': 'Japanese',
+        'zh': 'Chinese',
+        'ko': 'Korean',
     }
 
     return language_names.get(code, f'Unknown ({code})')
@@ -498,6 +753,14 @@ def get_character_stats() -> Dict[str, float]:
         unique_chars.add(char)
         total_language_links += len(langs)
 
+    # Additional scripts (ranges)
+    for _, ranges, languages in SCRIPT_STATS_INFO:
+        for start, end in ranges:
+            for codepoint in range(start, end + 1):
+                char = chr(codepoint)
+                unique_chars.add(char)
+                total_language_links += len(languages)
+
     universal_count = (
         len(MATH_SYMBOLS_UNIVERSAL)
         + len(DIGITS_UNIVERSAL)
@@ -507,13 +770,17 @@ def get_character_stats() -> Dict[str, float]:
     total_chars = len(unique_chars) + universal_count
     avg_languages = total_language_links / max(len(unique_chars), 1)
 
-    return {
+    stats = {
         'total_chars': float(total_chars),
         'universal_chars': float(universal_count),
         'latin_chars': float(52 + len(EXTENDED_LATIN_LANGUAGES)),
-        'cyrillic_chars': float((0x0500 - 0x0400) + len(EXTENDED_CYRILLIC_LANGUAGES)),
+        'cyrillic_chars': float((0x052F - 0x0400 + 1) + len(EXTENDED_CYRILLIC_LANGUAGES)),
         'avg_languages_per_char': float(avg_languages),
+        'total_scripts_tracked': float(len(SCRIPT_STATS_INFO) + 2),
     }
+    for key, ranges, _ in SCRIPT_STATS_INFO:
+        stats[key] = float(_range_length(ranges))
+    return stats
 
 
 if __name__ == '__main__':

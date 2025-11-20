@@ -7,8 +7,9 @@ with ternary-quantised transform residuals for efficient compression.
 
 from __future__ import annotations
 
+import logging
 import math
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -19,6 +20,10 @@ from .ternary_quantization import (
     entropy_encode_ternary,
     quantize_ternary,
 )
+from .ptx_bindings import TernaryMDCTKernel
+from ..ptx_runtime.modular_rpn_engine import ModularRPNEngine
+
+logger = logging.getLogger(__name__)
 
 
 class TernaryAudioCodec:
@@ -26,7 +31,7 @@ class TernaryAudioCodec:
     Ternary audio codec using procedural synthesis + ternary MDCT.
     """
 
-    def __init__(self, sample_rate: int = 44100, frame_size: int = 1024, n_harmonics: int = 20):
+    def __init__(self, sample_rate: int = 44100, frame_size: int = 1024, n_harmonics: int = 20, use_gpu: bool = False):
         if sample_rate <= 0:
             raise ValueError("sample_rate must be positive")
         if frame_size <= 0 or frame_size % 2 != 0:
@@ -42,6 +47,12 @@ class TernaryAudioCodec:
         n = np.arange(self.frame_size)
         self._dct_matrix = np.cos(np.pi / self.frame_size * (n + 0.5)[:, None] * (n + 0.5))
         self._dct_norm = math.sqrt(2.0 / self.frame_size)
+        self._mdct_gpu: Optional[TernaryMDCTKernel] = None
+        self._require_gpu = use_gpu
+        if use_gpu:
+            self._mdct_gpu = TernaryMDCTKernel(n=self.frame_size)
+            logger.info("TernaryMDCTKernel initialised for frame_size=%d", self.frame_size)
+        self.rpn = ModularRPNEngine()
 
     def encode(self, audio: np.ndarray) -> Dict:
         """
@@ -146,28 +157,43 @@ class TernaryAudioCodec:
         output = procedural[:num_samples] + residual
         return output.astype(np.float32)
 
-    def mdct_frame(self, frame: np.ndarray) -> np.ndarray:
-        """
-        Compute DCT-IV based transform of a single frame.
-
-        Returns:
-            Transform coefficients (same length as frame_size for invertibility).
-        """
-        x = np.asarray(frame, dtype=np.float64)
-        if x.size != self.frame_size:
-            raise ValueError(f"frame must have length {self.frame_size}")
-        coeffs = self._dct_norm * np.dot(x, self._dct_matrix)
-        return coeffs.astype(np.float32)
-
     def imdct_frame(self, coeffs: np.ndarray) -> np.ndarray:
         """
         Inverse transform matching mdct_frame (DCT-IV is self-inverse).
+        Uses GPU if available, otherwise CPU.
         """
-        c = np.asarray(coeffs, dtype=np.float64)
+        c = np.asarray(coeffs, dtype=np.float32)
         if c.size != self.frame_size:
             raise ValueError(f"coeffs must have length {self.frame_size}")
-        reconstructed = self._dct_norm * np.dot(c, self._dct_matrix)
+        if self._mdct_gpu is not None:
+            try:
+                return self._mdct_gpu.inverse(c).astype(np.float32)
+            except Exception as exc:
+                if self._require_gpu:
+                    raise
+                logger.warning("GPU iMDCT failed, falling back to CPU: %s", exc)
+        c64 = c.astype(np.float64, copy=False)
+        reconstructed = self._dct_norm * np.dot(c64, self._dct_matrix)
         return reconstructed.astype(np.float32)
+
+    def mdct_frame(self, frame: np.ndarray) -> np.ndarray:  # type: ignore[override]
+        """
+        Compute MDCT using GPU if available, otherwise CPU.
+        """
+        x = np.asarray(frame, dtype=np.float32)
+        if x.size != self.frame_size:
+            raise ValueError(f"frame must have length {self.frame_size}")
+        if self._mdct_gpu is not None:
+            try:
+                return self._mdct_gpu.forward(x).astype(np.float32)
+            except Exception as exc:
+                if self._require_gpu:
+                    raise
+                logger.warning("GPU MDCT failed, falling back to CPU: %s", exc)
+        # CPU path
+        x64 = x.astype(np.float64, copy=False)
+        coeffs = self._dct_norm * np.dot(x64, self._dct_matrix)
+        return coeffs.astype(np.float32)
 
     def compute_compression_ratio(self, original_size: int, encoded: Dict) -> float:
         """
@@ -191,3 +217,42 @@ class TernaryAudioCodec:
         if compressed_size == 0:
             return float("inf")
         return float(original_size) / float(compressed_size)
+
+    def encode_to_rpn(self, audio: np.ndarray) -> Dict:
+        """
+        Encode audio and push harmonics to RPN Stack 7, returning metadata.
+        """
+        harmonics = self.synthesizer.analyze(audio, n_harmonics=self.n_harmonics)
+        stack_id = 7
+        offsets = []
+        for freq, amp, phase in harmonics:
+            offsets.append(self.rpn.get_depth(stack_id=stack_id))
+            self.rpn.push(float(freq), stack_id=stack_id)
+            self.rpn.push(float(amp), stack_id=stack_id)
+            self.rpn.push(float(phase), stack_id=stack_id)
+        encoded = self.encode(audio)
+        metadata = {
+            "stack_id": stack_id,
+            "n_harmonics": len(harmonics),
+            "offsets": offsets,
+            "encoded_residual": encoded,
+            "duration_sec": len(audio) / self.sample_rate,
+            "sample_rate": self.sample_rate,
+        }
+        return metadata
+
+    def decode_from_rpn(self, metadata: Dict) -> np.ndarray:
+        """
+        Decode audio using harmonics from RPN Stack 7 and stored residual metadata.
+        """
+        stack_id = metadata.get("stack_id", 7)
+        n_harmonics = int(metadata.get("n_harmonics", 0))
+        harmonics = []
+        for _ in range(n_harmonics):
+            phase = self.rpn.pop(stack_id=stack_id)
+            amp = self.rpn.pop(stack_id=stack_id)
+            freq = self.rpn.pop(stack_id=stack_id)
+            harmonics.insert(0, (freq, amp, phase))
+        encoded = dict(metadata.get("encoded_residual", {}))
+        encoded["harmonics"] = harmonics
+        return self.decode(encoded)

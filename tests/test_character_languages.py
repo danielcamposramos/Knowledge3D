@@ -32,8 +32,20 @@ class TestCharacterLanguages:
         assert get_character_languages('3') == ['universal']
         assert get_character_languages('!') == ['universal']
 
+    def test_additional_scripts(self):
+        assert 'el' in get_character_languages('Ω')
+        assert 'he' in get_character_languages('ש')
+        assert 'ar' in get_character_languages('م')
+        assert 'hi' in get_character_languages('क')
+        assert 'bn' in get_character_languages('ড')
+        assert 'pa' in get_character_languages('ਘ')
+        assert 'ta' in get_character_languages('ழ')
+        assert 'ja' in get_character_languages('あ')
+        assert 'ko' in get_character_languages('한')
+        assert 'zh' in get_character_languages('漢')
+
     def test_stats(self):
         stats = get_character_stats()
         assert stats['total_chars'] > 450
         assert stats['cyrillic_chars'] > 100
-        assert stats['avg_languages_per_char'] > 5
+        assert stats['avg_languages_per_char'] > 2

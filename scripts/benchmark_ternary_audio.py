@@ -95,8 +95,8 @@ def validate_targets(results: List[Dict]) -> None:
             raise AssertionError("Speech benchmark did not meet quality/ratio targets")
 
 
-def benchmark_audio_codec() -> List[Dict]:
-    codec = TernaryAudioCodec(sample_rate=44100)
+def benchmark_audio_codec(use_gpu: bool = False) -> List[Dict]:
+    codec = TernaryAudioCodec(sample_rate=44100, use_gpu=use_gpu)
     test_cases: List[Tuple[str, np.ndarray]] = [
         ("sine_440hz", generate_sine_wave(440, duration=1.0)),
         ("speech_synth", load_or_generate_speech(duration=1.0)),
@@ -133,6 +133,12 @@ def benchmark_audio_codec() -> List[Dict]:
 
 
 if __name__ == "__main__":
-    results = benchmark_audio_codec()
+    import argparse
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--gpu", action="store_true", help="Enable GPU MDCT path if available")
+    args = ap.parse_args()
+
+    results = benchmark_audio_codec(use_gpu=args.gpu)
     print_benchmark_table(results)
     validate_targets(results)

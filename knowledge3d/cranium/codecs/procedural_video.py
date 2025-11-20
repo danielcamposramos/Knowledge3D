@@ -141,8 +141,10 @@ class ProceduralVideoGenerator:
         for i in range(max_iter):
             x_new = x * x - y * y + cx
             y_new = 2 * x * y + cy
-            x, y = x_new, y_new
-            escaped = (x * x + y * y) > 4.0
+            x = np.clip(x_new, -1e3, 1e3)
+            y = np.clip(y_new, -1e3, 1e3)
+            magnitude_sq = np.clip(x * x + y * y, 0.0, 1e6)
+            escaped = magnitude_sq > 4.0
             newly_escaped = escaped & mask
             iter_counts[newly_escaped] = i
             mask = mask & (~escaped)
