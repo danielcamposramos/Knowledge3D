@@ -28,18 +28,24 @@ import requests
 
 OUTPUT_ROOT = Path("/K3D/K3D_llama_cpp/datasets/audio/phoneme_external")
 SPARQL_URL = "https://query.wikidata.org/sparql"
+# Language QIDs for filtering; override with CLI if needed.
+LANG_QID = {
+    "en": "Q1860",
+    "es": "Q1321",
+    "pt": "Q5146",
+    "zh": "Q9192",  # Mandarin Chinese
+}
 
 
 def build_query(lang: str, limit: int) -> str:
-    # Fetch items that are letters or phonemes, have pronunciation audio (P443),
-    # and have a label in the desired language.
+    # Fetch any item (usually lexemes) with pronunciation audio (P443) and language (P407).
+    qid = LANG_QID.get(lang, "Q1860")
     return f"""
 SELECT ?item ?itemLabel ?audio WHERE {{
-  VALUES ?cls {{ wd:Q708031 wd:Q9779 }}  # phoneme or letter
-  ?item wdt:P31|wdt:P31/wdt:P279* ?cls .
   ?item wdt:P443 ?audio .
-  FILTER(LANG(?itemLabel) = "{lang}")
+  ?item wdt:P407 wd:{qid} .
   SERVICE wikibase:label {{ bd:serviceParam wikibase:language "{lang},en". }}
+  FILTER(STRLEN(?itemLabel) < 4)
 }}
 LIMIT {limit}
 """
