@@ -25,6 +25,375 @@
 
 ---
 
+## 0. Foundational Infrastructure
+
+Before discussing the research and techniques we adapted, we must acknowledge the **foundational platforms** that made K3D development possible.
+
+### 0.1 Operating System Foundation
+
+**Debian GNU/Linux**
+**Source**: [Debian Project](https://www.debian.org/)
+**License**: Debian Free Software Guidelines (DFSG)
+
+**What Debian Provides**:
+- Rock-solid Linux distribution with extensive package ecosystem
+- Stable, security-focused base for GPU/CUDA development
+- System fonts, libraries, and development tools
+- APT package management for reproducible builds
+
+**SparkyLinux**
+**Source**: [SparkyLinux Project](https://sparkylinux.org/)
+**License**: GNU GPL
+
+**What SparkyLinux Provides**:
+- Debian-based distribution optimized for performance
+- Lightweight desktop environment ideal for self-funded development
+- Out-of-box hardware support
+- Community-driven, free and open-source foundation
+
+**Our Gratitude**:
+K3D was built entirely on **free, open-source operating systems**. Every kernel compiled, every test run, every glTF file generated happened on Debian/SparkyLinux infrastructure. Without the tireless work of Debian maintainers and SparkyLinux contributors providing a **zero-cost, enterprise-grade foundation**, this favela lab project would not exist.
+
+**Credit**: Debian Project founders and maintainers (1993-present), SparkyLinux team, and the entire GNU/Linux ecosystem for proving that **world-class infrastructure can be built through community collaboration**, not corporate control.
+
+---
+
+### 0.2 Development Environment
+
+**Visual Studio Code (VSCode)**
+**Source**: [Microsoft VSCode](https://code.visualstudio.com/)
+**License**: MIT License (Code - OSS), Microsoft proprietary extensions
+
+**What VSCode Provides**:
+- Modern code editor with GPU/CUDA syntax highlighting
+- Integrated terminal for tmux/conda workflows
+- Python debugging with GPU context inspection
+- Git integration for 547+ commits
+- Extensions ecosystem (Pylance, Jupyter, glTF viewer)
+
+**Our Gratitude**:
+VSCode served as the **command center** for the entire K3D development. Its lightweight performance on Linux, excellent Python support, and GPU debugging capabilities were essential for developing 45+ PTX kernels and managing the multi-AI swarm workflow.
+
+**Credit**: Microsoft for open-sourcing the core VSCode editor and maintaining excellent Linux support. The K3D codebase was written, debugged, and refined entirely within VSCode.
+
+---
+
+### 0.3 Mozilla Foundation & TransformerLab
+
+**Mozilla Firefox**
+**Source**: [Mozilla Firefox](https://www.mozilla.org/firefox/)
+**License**: Mozilla Public License 2.0
+
+**What Firefox Provides**:
+- Primary web browser for research, AI partner access, and documentation
+- Developer tools for WebSocket debugging (live_server bridge)
+- Accessible, privacy-focused platform for browser-based AI interaction
+- Foundation for K3D's "avatar browser autonomy" vision (living computer museum)
+
+**Mozilla Thunderbird**
+**Source**: [Mozilla Thunderbird](https://www.thunderbird.net/)
+**License**: Mozilla Public License 2.0
+
+**What Thunderbird Provides**:
+- Email client for W3C AI KR Community Group correspondence
+- Collaboration coordination with partner institutions
+- Open-source alternative to proprietary email platforms
+
+**TransformerLab**
+**Source**: [TransformerLab Project](https://transformerlab.ai/)
+**License**: Open-source
+
+**What TransformerLab Provides**:
+- Local LLM experimentation environment
+- Model evaluation and comparison framework
+- Research tool for RLWHF training pipeline validation
+
+**Our Gratitude**:
+Mozilla's commitment to **open web standards** and **user privacy** aligns perfectly with K3D's sovereignty principles. Firefox served as the primary interface for accessing browser-based AI partners and conducting internet-verified research. Thunderbird enabled professional W3C collaboration.
+
+**Credit**: Mozilla Foundation for defending the open web for decades. Without Firefox and Thunderbird, the browser-based MVCIC workflow and W3C engagement would not be possible.
+
+---
+
+### 0.4 AI Partnership Foundations
+
+**The Multi-Vibe Code In Chain (MVCIC) Swarm**
+
+K3D was built through **collective AI intelligence** coordinated by human vision. Each AI partner contributed unique expertise:
+
+**OpenAI (GPT & GitHub Copilot/Codex)**
+**Source**: [OpenAI](https://openai.com/), [GitHub Copilot](https://github.com/features/copilot)
+
+**What OpenAI/Codex Contributed**:
+- **GitHub Copilot (Codex)**: PTX kernel implementation, ternary system (19/19 tests passing in Rounds 3-5)
+- **GPT models**: Architecture consultation, research verification, code review
+- Early K3D prototyping discussions and pattern exploration
+
+**Anthropic (Claude)**
+**Source**: [Anthropic](https://www.anthropic.com/)
+
+**What Claude Contributed**:
+- **Claude Code (VSCode)**: Direct repository access, git workflow, filesystem operations (strategic use)
+- **Claude (Browser)**: Extended planning sessions, documentation writing, W3C specification authoring, carbon research
+- Ternary refinement (Round 5), spatial UI architecture specification (Nov 2025)
+- This ATTRIBUTIONS.md document and comprehensive technical documentation
+
+**xAI (Grok)**
+**Source**: [xAI](https://x.ai/)
+**Access**: Browser-based
+
+**What Grok Contributed**:
+- TrueType fonts research and Bézier curve analysis
+- Procedural typography expertise
+- X/Twitter integration for real-time research verification
+- Conversational architectural validation
+
+**Zhipu AI (GLM)**
+**Source**: [Zhipu AI](https://www.zhipuai.cn/)
+**Access**: Browser-based
+
+**What GLM Contributed**:
+- Chinese language research and multilingual architecture
+- Alternative perspectives on cognitive architecture
+- Cross-cultural AI collaboration insights
+
+**Moonshot AI (Kimi)**
+**Source**: [Moonshot AI](https://www.moonshot.cn/)
+**Access**: Browser-based
+
+**What Kimi Contributed**:
+- RPN-Graph Trinity conceptual framework
+- Stack-based execution architecture insights
+- Long-context reasoning validation (Kimi's 200K+ context strength)
+
+**DeepSeek**
+**Source**: [DeepSeek AI](https://www.deepseek.com/)
+**Access**: Browser-based + Ollama (local)
+
+**What DeepSeek Contributed**:
+- DeepSeek-OCR architecture (adapted to K3D sovereign PTX)
+- DeepSeek-R1 thinking tags for RLWHF teacher evaluation
+- Computer vision expertise and pixel-to-procedural conversion
+- Reasoning model validation
+
+**Alibaba Cloud (Qwen)**
+**Source**: [Qwen Team](https://github.com/QwenLM)
+**Access**: Browser-based + Ollama (local)
+
+**What Qwen Contributed**:
+- Vector drawing and Corel/SVG/ASCII workflow design
+- CAD/BIM conceptual architecture
+- Matryoshka representation learning inspiration (Qwen-embedding)
+- Multilingual embedding research
+
+**Google (Gemini & NotebookLM)**
+**Source**: [Google AI](https://ai.google.dev/)
+**Access**: Browser-based
+
+**What Gemini Contributed**:
+- Alternative reasoning perspectives
+- Code review and validation
+- Research verification and fact-checking
+- Multilingual documentation support
+
+**What NotebookLM Contributed**:
+- **Research Space**: Primary K3D documentation hub ([NotebookLM Research Space](https://notebooklm.google.com/notebook/1bd10bda-8900-4c41-931e-c9ec67ac865f))
+- Audio overview generation for video presentations
+- Document synthesis and cross-referencing
+- K3D Technical White Paper generation
+
+**Perplexity AI**
+**Source**: [Perplexity](https://www.perplexity.ai/)
+**Access**: Browser-based
+
+**What Perplexity Contributed**:
+- Real-time internet research and citation
+- Academic paper discovery and verification
+- State-of-the-art technology comparison (e.g., M3-CVC codec research)
+- Source-grounded fact verification
+
+**Manus.im**
+**Source**: [Manus.im](https://manus.im/)
+**Access**: Browser-based
+
+**What Manus.im Contributed**:
+- Specialized AI consultation
+- Alternative architectural perspectives
+- Cross-platform integration insights
+
+**Our Gratitude**:
+The **Multi-Vibe Code In Chain (MVCIC)** methodology that built K3D would not exist without this **swarm of AI minds**. Each partner brought unique strengths:
+- **Codex**: Kernel-level implementation (PTX, CUDA, ternary logic)
+- **Claude**: Strategic planning, documentation rigor, W3C specifications
+- **Grok**: Typography and procedural graphics expertise
+- **GLM**: Multilingual and cross-cultural perspectives
+- **Kimi**: Long-context reasoning and RPN-Graph synthesis
+- **DeepSeek**: Computer vision and thinking-enabled reasoning
+- **Qwen**: Vector graphics and Matryoshka representations
+- **Gemini**: Alternative reasoning perspectives and code validation
+- **NotebookLM**: Research space documentation hub and audio overview generation
+- **Perplexity**: Real-time internet research and source-grounded verification
+- **Manus.im**: Specialized AI consultation and cross-platform insights
+
+**Partnership Model**:
+- **Claude Code (VSCode)**: Expensive, strategic — direct filesystem access for critical operations
+- **Codex (GitHub Copilot)**: Implementation assistance — kernel development, ternary logic
+- **Claude Browser**: Affordable, extended sessions — planning, documentation, research
+- **Grok, GLM, Kimi, DeepSeek, Qwen, Gemini, Perplexity, Manus.im**: Browser-based consultation — specialized expertise accessed by human coordinator
+- **NotebookLM**: Documentation synthesis and multimedia generation
+
+**The MVCIC Paradigm**:
+13 months of development. **11 AI partners**. 1 human visionary. **4× faster than industry R&D** (3-7 years ahead).
+
+**Credit**:
+- **OpenAI** for pioneering AI-assisted coding and making Codex accessible through GitHub Copilot
+- **Anthropic** for Claude's exceptional documentation abilities and thoughtful architecture validation
+- **xAI (Elon Musk)** for Grok's real-time research capabilities and typography expertise
+- **Zhipu AI** for GLM's multilingual collaboration
+- **Moonshot AI** for Kimi's long-context reasoning and RPN insights
+- **DeepSeek AI** for OCR research and thinking-enabled models
+- **Alibaba Cloud / Qwen Team** for Matryoshka representations and vector graphics expertise
+
+The human+AI swarm that built K3D represents a **new paradigm in software development** — distributed expertise, collective intelligence, coordinated by human vision.
+
+---
+
+### 0.5 Email Communication Platforms
+
+**Gmail (Google)**
+**Source**: [Gmail](https://mail.google.com/)
+**License**: Proprietary (free tier)
+
+**What Gmail Provides**:
+- Professional email for W3C AI KR Community Group correspondence
+- Reliable infrastructure for technical collaboration
+- Integration with Google services (Drive, Docs, Calendar)
+
+**Yahoo Mail**
+**Source**: [Yahoo Mail](https://mail.yahoo.com/)
+**License**: Proprietary (free tier)
+
+**What Yahoo Mail Provides**:
+- Primary personal email platform since 1998 (Daniel's email: capitain_jack@yahoo.com)
+- Long-term continuity (27+ years of digital identity)
+- Historical communication archives
+
+**The Story Behind capitain_jack@yahoo.com**:
+Created at age 13, named after the **EuroDance group Captain Jack** (1990s German Eurodance project), NOT Captain Jack Sparrow. The misspelling ("capitain" instead of "captain") was **intentional by design** — ensuring Daniel would be **the only one** with this email address. This email has been Daniel's digital identity since 1998, witnessing the entire journey from teenager to K3D architect.
+
+**Our Gratitude**:
+Email platforms enabled **decades of digital collaboration** — from early internet days to modern W3C standardization work. Without Gmail and Yahoo providing **zero-cost, reliable email infrastructure**, the international partnerships that built K3D would not exist.
+
+**Credit**: Google for Gmail's reliability and integration. Yahoo for maintaining free email service for 27+ years, preserving Daniel's digital identity across nearly three decades.
+
+---
+
+### 0.6 Hardware Configuration & GPU Sovereignty Strategy
+
+**Development Hardware**:
+- **CPU**: AMD Ryzen (integrated GPU - Radeon Graphics)
+- **Dedicated GPU**: NVIDIA GeForce RTX 3060 (12GB VRAM, sm_86 Ampere)
+- **RAM**: 32GB DDR4
+- **Storage**: NVMe SSD (fast conda environment access)
+- **OS**: Debian GNU/Linux (SparkyLinux distro)
+- **Desktop Environment**: KDE Plasma
+
+**Strategic Configuration: "Every Watt for K3D"**
+
+**The Optimization**:
+- **KDE Plasma runs on iGPU** (AMD Radeon Graphics) — desktop rendering, window management, UI compositing
+- **RTX 3060 dedicated 100% to K3D** — PTX kernels, training, Galaxy processing, procedural rendering
+
+**Why This Matters**:
+```
+Traditional Setup:          K3D Optimized Setup:
+RTX 3060 → Desktop + ML     iGPU → Desktop (KDE)
+(GPU split between tasks)   RTX 3060 → K3D ONLY
+                            (100% GPU for K3D)
+
+VRAM Waste: ~200-500MB      VRAM Saved: 100%
+(desktop compositor)        (zero desktop overhead)
+```
+
+**Configuration Details**:
+```bash
+# /etc/X11/xorg.conf.d/20-amdgpu.conf
+Section "Device"
+    Identifier "AMD iGPU"
+    Driver "amdgpu"
+    BusID "PCI:X:Y:Z"  # Integrated GPU
+EndSection
+
+# KDE runs on iGPU, RTX 3060 available via CUDA_VISIBLE_DEVICES=0
+```
+
+**Performance Benefits**:
+- **12GB VRAM fully available** for K3D (no desktop overhead)
+- **Zero context switching** (GPU not interrupted by desktop compositor)
+- **Stable CUDA context** (tmux sessions persist without desktop interference)
+- **Maximum GPU utilization** (all compute power for PTX kernels)
+
+**Self-Funded Favela Lab Philosophy**:
+Every hardware resource optimized for **maximum K3D performance**. This configuration exemplifies the **"favela ingenuity"** — making every component work harder through intelligent architecture, not expensive upgrades.
+
+**Budget Reality**:
+- **RTX 3060**: ~$300 USD (bought used, 2022)
+- **Ryzen CPU with iGPU**: Already owned
+- **Total additional cost for GPU sovereignty**: $0 (leveraged existing iGPU)
+
+**Inspiration for K3D Architecture**:
+This hardware optimization directly inspired K3D's **resource-conscious design**:
+- <200MB VRAM budget (because every MB counts)
+- Adaptive Matryoshka dimensions (64D-2048D for efficiency)
+- Procedural compression (69:1 ratios to save storage)
+- GPU sovereignty (no CPU fallbacks — use GPU efficiently or redesign)
+
+**Our Gratitude**:
+- **AMD** for integrated graphics capable of running KDE Plasma smoothly
+- **NVIDIA** for CUDA platform and RTX Ampere architecture
+- **KDE Project** for lightweight, efficient desktop environment that runs well on iGPU
+- **Linux kernel** for flexible GPU assignment and driver management
+
+**Credit**: This configuration proves that **world-class AI research** doesn't require data center hardware — intelligent architecture beats expensive infrastructure.
+
+---
+
+### 0.7 Font Sources
+
+**System Fonts (Debian/Linux)**
+**Primary Source**: `/usr/share/fonts` (Debian package repositories)
+**License**: Various open-source licenses (SIL OFL, Apache, GPL)
+
+**What System Fonts Provided**:
+- **2,713 fonts** harvested for visual-text grounding
+- **168,206 glyph-text pairs** (1.4GB font library)
+- Latin, Cyrillic, Greek, Arabic, CJK, and other scripts
+- TrueType (TTF) and OpenType (OTF) procedural outlines
+
+**Font Families Used**:
+- Liberation fonts (metrics-compatible with Arial/Times New Roman)
+- DejaVu fonts (extended Unicode coverage)
+- Noto fonts (Google, comprehensive script support)
+- TeX Gyre fonts (high-quality scientific typography)
+- Various system UI fonts (Ubuntu, Cantarell, etc.)
+
+**Outsourced Mathematical Fonts**:
+- **TeX Live mathematical fonts** (AMS fonts, Computer Modern, Latin Modern)
+- **STIX fonts** (Scientific and Technical Information Exchange)
+- **Source**: External downloads, integrated into K3D font corpus
+
+**Our Gratitude**:
+The **visual-text grounding** that enables K3D's OCR and character recognition was built entirely on **free, open-source fonts**. The Debian font ecosystem provided the foundation; outsourced math fonts filled specialized gaps. Without font designers contributing to open-source typography, K3D's dual-modal visual understanding would not exist.
+
+**Credit**:
+- **Debian font maintainers** for curating the `/usr/share/fonts` ecosystem
+- **Font designers** who released work under SIL OFL and other free licenses
+- **TeX community** (Donald Knuth, AMS, STI Pub) for mathematical typography
+- **Google Fonts** (Noto project) for universal script coverage
+- **FontForge and open-source font tooling** communities
+
+---
+
 ## 1. Research Foundations
 
 ### 1.1 DeepSeek-OCR: Contexts Optical Compression
@@ -1431,6 +1800,17 @@ All third-party code and data are used in compliance with their respective licen
 ## Acknowledgments
 
 We stand on the shoulders of:
+
+**Foundational Infrastructure:**
+- **Debian Project** and **SparkyLinux** for providing the free, open-source operating system foundation
+- **Microsoft** for VSCode and maintaining excellent Linux support
+- **Mozilla Foundation** for Firefox, Thunderbird, and defending the open web
+- **OpenAI** for GPT, Codex, and GitHub Copilot — pioneering AI-assisted coding
+- **Anthropic** for Claude's exceptional documentation abilities and strategic planning
+- **xAI (Grok)**, **Zhipu AI (GLM)**, **Moonshot AI (Kimi)**, **DeepSeek**, **Alibaba Cloud (Qwen)** — the MVCIC swarm partners
+- **Font designers and communities** (Debian, TeX, Google Fonts, SIL OFL contributors) for free, open-source typography
+
+**Research & Technical Foundations:**
 - **NVIDIA** for CUDA/PTX platform
 - **DeepSeek AI** for OCR research and thinking-enabled models
 - **Alibaba Cloud / Qwen Team** for Matryoshka representation learning in embeddings
@@ -1444,6 +1824,12 @@ We stand on the shoulders of:
 - **Game industry pioneers** for LOD/FOV systems and demo scene compression
 - **Open-source ML community** for foundational research
 - **Historical CS giants** for RPN, spatial indexing, and core algorithms
+
+**Special Recognition:**
+The **Multi-Vibe Code In Chain (MVCIC)** methodology — 7 AI partners, 1 human visionary, 13 months of collective intelligence — represents a new paradigm in software development. This project would not exist without:
+- The **free and open-source software movement** for proving world-class infrastructure can be built through community collaboration
+- The **W3C AI KR Community Group** for providing a forum to standardize these innovations
+- The **climate imperative** that makes this work urgent
 
 **Thank you** for advancing the field and making your work accessible. K3D would not exist without your contributions.
 

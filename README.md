@@ -992,7 +992,33 @@ Security, ethics, and embodiment commitments are detailed in [`docs/COVENANT.md`
 
 ---
 
-## 9. Community & Roadmap
+## 9. Acknowledgments
+
+K3D stands on the shoulders of giants. **Full attributions**: [ATTRIBUTIONS.md](ATTRIBUTIONS.md)
+
+**Foundational Infrastructure:**
+- **Debian Project** & **SparkyLinux** — Free, open-source OS foundation
+- **Microsoft VSCode** — Development environment
+- **Mozilla** (Firefox, Thunderbird) — Open web platform
+- **OpenAI** (GPT, Codex) — AI-assisted coding pioneer
+- **Anthropic** (Claude) — Documentation & strategic planning
+- **MVCIC Swarm Partners**: xAI (Grok), Zhipu AI (GLM), Moonshot AI (Kimi), DeepSeek, Alibaba Cloud (Qwen)
+- **Font communities** — Debian, TeX, Google Fonts, SIL OFL contributors
+
+**Key Research Foundations:**
+- **NVIDIA** (CUDA/PTX), **DeepSeek AI** (OCR, thinking models), **Alibaba/Qwen** (Matryoshka embeddings)
+- **François Chollet** (ARC-AGI), **Milton Ponson** (mathematical grounding), **Nikolay Brusentsov** (Setun ternary computer)
+- **Farbrausch** (.kkrieger procedural generation), **MIT Instrumentation Lab** (Apollo 11 engineering)
+
+**The MVCIC Paradigm**: 7 AI partners, 1 human visionary, 13 months → **4× faster than industry R&D** (3-7 years ahead).
+
+**Philosophy**: We patent nothing. We publish everything. We build in the open.
+
+**Special thanks** to the free and open-source software movement for proving world-class infrastructure can be built through community collaboration, not corporate control.
+
+---
+
+## 10. Community & Roadmap
 
 - **Deep Dive (Best Entry Point)**: [**NotebookLM Research Space**](https://notebooklm.google.com/notebook/1bd10bda-8900-4c41-931e-c9ec67ac865f)
 - **Roadmap status**: [`docs/ROADMAP.md`](docs/ROADMAP.md)
