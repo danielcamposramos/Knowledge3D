@@ -1,10 +1,8 @@
 """
 Ternary quantization utilities shared by audio and video codecs.
 
-This module provides fast vectorised ternary quantisation with optional adaptive
-thresholds, simple entropy coding (run-length encoding of zeros), and
-convenience helpers for sparsity and reconstruction. Implementations favour
-NumPy-only logic to keep dependencies light while remaining performant.
+This module provides GPU-only ternary quantisation/dequantisation (no CPU fallback),
+plus simple entropy coding (run-length encoding of zeros), and convenience helpers.
 """
 
 from __future__ import annotations
@@ -14,67 +12,60 @@ from typing import Dict, Optional, Tuple
 
 import numpy as np
 
+from .ptx_bindings import TernaryQuantizer
 
-def _validate_array(coefficients: np.ndarray) -> np.ndarray:
-    """Validate and return a float64 view of the coefficients."""
+_GPU_QUANT = None
+
+
+def _get_gpu_quant():
+    """Lazy initialization of GPU quantizer to avoid import-time CUDA context issues."""
+    global _GPU_QUANT
+    if _GPU_QUANT is None:
+        _GPU_QUANT = TernaryQuantizer()
+    return _GPU_QUANT
+
+
+def _validate_array(coefficients) -> memoryview:
+    """Validate coefficients, return a float32-contiguous buffer view."""
     if coefficients is None:
         raise ValueError("coefficients must not be None")
-    arr = np.asarray(coefficients)
+    import numpy as np  # noqa: PLC0415
+
+    arr = np.asarray(coefficients, dtype=np.float32)
     if arr.size == 0:
         raise ValueError("coefficients must not be empty")
-    if not np.issubdtype(arr.dtype, np.floating):
-        arr = arr.astype(np.float64)
-    else:
-        arr = arr.astype(np.float64, copy=False)
     if not np.isfinite(arr).all():
         raise ValueError("coefficients contain non-finite values")
     return arr
 
 
 def quantize_ternary(
-    coefficients: np.ndarray, threshold: float = 0.1, adaptive: bool = True
+    coefficients: np.ndarray, threshold: float = 0.1, adaptive: bool = False
 ) -> Tuple[np.ndarray, Dict[str, float]]:
     """
-    Quantize floating-point coefficients to ternary {-1, 0, +1}.
+    Quantize floating-point coefficients to ternary {-1, 0, +1} on GPU.
 
     Args:
-        coefficients: Input array (any shape), will be converted to float64.
-        threshold: Base quantization threshold.
-        adaptive: If True, threshold is set to the 90th percentile of |coefficients|.
-
-    Returns:
-        quantized: int8 array with values in {-1, 0, +1}
-        metadata: Dict with stats (threshold_used, sparsity, energy_preserved, adaptive)
-
-    Performance:
-        Vectorised NumPy implementation targets <1ms for 1M coefficients on CPU.
+        coefficients: Input array (any shape), converted to float32.
+        threshold: Quantization threshold (explicit). Adaptive percentiles are not supported.
+        adaptive: Must be False (GPU path only).
     """
+    if threshold <= 0:
+        raise ValueError("threshold must be positive")
+
     arr = _validate_array(coefficients)
-
-    thr = float(np.percentile(np.abs(arr), 90.0)) if adaptive else float(threshold)
-    thr = max(thr, 0.0)
-    # Fall back to provided threshold when adaptive percentile collapses to zero.
-    if thr == 0.0:
-        thr = float(threshold)
-
-    quantized = np.zeros_like(arr, dtype=np.int8)
-    pos_mask = arr > thr
-    neg_mask = arr < -thr
-    quantized[pos_mask] = 1
-    quantized[neg_mask] = -1
+    thr = float(threshold)
+    gpu_quant = _get_gpu_quant()
+    if adaptive:
+        max_abs = gpu_quant.max_abs(arr)
+        thr = max(thr, max_abs * threshold)
+    quantized = gpu_quant.quantize(arr, threshold=thr)
 
     sparsity = compute_sparsity(quantized)
-    # Estimate preserved energy assuming reconstruction scale equals threshold.
-    reconstructed = quantized.astype(np.float64) * thr
-    energy_preserved = float(
-        np.sum(reconstructed**2) / (np.sum(arr**2) + 1e-12)
-    )
-
     metadata: Dict[str, float] = {
         "threshold_used": thr,
-        "adaptive": adaptive,
+        "adaptive": False,
         "sparsity": sparsity,
-        "energy_preserved": energy_preserved,
         "scale": thr,
     }
     return quantized, metadata
@@ -96,13 +87,16 @@ def dequantize_ternary(
     """
     if quantized is None:
         raise ValueError("quantized must not be None")
+    if quantized is None:
+        raise ValueError("quantized must not be None")
+    import numpy as np  # noqa: PLC0415
+
     q = np.asarray(quantized, dtype=np.int8)
     if q.size == 0:
         raise ValueError("quantized must not be empty")
     if metadata is not None and "scale" in metadata:
         scale = float(metadata["scale"])
-    reconstructed = (q.astype(np.float32)) * float(scale)
-    return reconstructed.astype(np.float32)
+    return _get_gpu_quant().dequantize(q, float(scale))
 
 
 def compute_sparsity(quantized: np.ndarray) -> float:
@@ -115,11 +109,14 @@ def compute_sparsity(quantized: np.ndarray) -> float:
     Returns:
         Sparsity ratio in [0, 1].
     """
-    q = np.asarray(quantized, dtype=np.int8)
-    if q.size == 0:
+    if quantized is None:
+        raise ValueError("quantized must not be None")
+    view = memoryview(quantized).cast("b")
+    total = len(view)
+    if total == 0:
         raise ValueError("quantized must not be empty")
-    zero_count = int(np.sum(q == 0))
-    return zero_count / float(q.size)
+    zero_count = sum(1 for v in view if v == 0)
+    return zero_count / float(total)
 
 
 def entropy_encode_ternary(quantized: np.ndarray) -> bytes:

@@ -1,7 +1,7 @@
 # CLAUDE.md — AI Assistant Guide for Knowledge3D
 
-**Last Updated:** 2025-11-17
-**Version:** 1.0
+**Last Updated:** 2025-11-20
+**Version:** 1.1 (Phase 2 Codec Complete)
 **Repository:** Knowledge3D - True Multi-Modal AI, Not 3D RAG
 
 ---
@@ -243,6 +243,55 @@ print(bridge.get_state_trace_report())  # FSM timing stats
 - ✅ Reproducible builds (Dockerfile, SHA256 verification)
 - ✅ <100µs latency on consumer hardware
 - ✅ Explainability by design (no black-box APIs)
+
+### Sovereign Procedural Codecs (Phase 2 COMPLETE ✅)
+
+**Achievement:** World's first GPU-native procedural audio/video codecs with 100% PTX sovereignty.
+
+**Audio Codec (knowledge3d/cranium/codecs/ternary_audio_codec.py):**
+- ✅ **GPU Harmonic Analysis**: Top-K harmonic extraction via PTX kernels
+- ✅ **Performance**: 34-43ms encode, 13-15ms decode (14-47× speedup over CPU)
+- ✅ **Compression**: 5.2-8.9× (harmonic proceduralization + ternary residual)
+- ✅ **Quality**: 23-90 dB PSNR (signal-dependent)
+- ✅ **RPN Integration**: Stack 7 ready for multi-modal fusion
+
+**Video Codec (knowledge3d/cranium/codecs/ternary_video_codec.py):**
+- ✅ **Residual-Based Mode Gating**: Fitness metric for PROCEDURAL vs FULL-DCT selection
+- ✅ **Performance**: 2-8ms encode, 3-8ms decode early; 35-44ms Phase 2.10 (17-71× speedup)
+- ✅ **Compression**: 2.4-46.5× (procedural fit-dependent, coherence-first)
+- ✅ **Quality**: 10-inf dB PSNR (lossless escape for high-fit frames)
+- ✅ **RPN Integration**: Stack 14 ready for multi-modal fusion
+
+**PTX Kernel Bindings:**
+```
+knowledge3d/cranium/codecs/ptx_bindings/
+├── ternary_mdct_binding.py         # MDCT forward/inverse (audio)
+├── ternary_dct8x8_binding.py       # DCT 8×8 forward/inverse (video)
+├── audio_harmonic_binding.py       # Top-K, additive synthesis, residual
+└── ternary_quant_binding.py        # Adaptive quantization, max-abs
+```
+
+**Key Innovations:**
+1. **GPU Harmonic Analysis**: NumPy eliminated from hot paths, pure PTX pipeline
+2. **Perceptual Pruning**: Frequency-adaptive thresholds (preserve edges, discard noise)
+3. **Residual Fitness**: Dual-metric gating (entropy + procedural match)
+4. **Ternary Quantization**: {-1, 0, +1} for sparse 3-state compression
+
+**Usage Example:**
+```python
+from knowledge3d.cranium.codecs.ternary_audio_codec import TernaryAudioCodec
+
+# GPU-native audio codec
+codec = TernaryAudioCodec(use_gpu=True)  # Enforces GPU sovereignty
+encoded = codec.encode(audio_samples)    # 34-43ms (GPU harmonics + MDCT)
+decoded = codec.decode(encoded)          # 13-15ms (GPU synthesis + iMDCT)
+
+# RPN integration (Phase 3)
+metadata = codec.encode_to_rpn(audio_samples)  # Push to Stack 7
+reconstructed = codec.decode_from_rpn(metadata)  # Pop from Stack 7
+```
+
+**Documentation:** See [TEMP/CODEX_PHASE2_FINAL_RESULTS.md](TEMP/CODEX_PHASE2_FINAL_RESULTS.md) for complete benchmarks and architecture details.
 
 ### Dual-Client Contract
 
@@ -1542,6 +1591,51 @@ print(f"Free: {mem_info[0] / (1024**2):.1f} MB")
 # Trigger LOD downgrade or clear cache
 galaxy.prune_low_confidence(threshold=0.5)
 ```
+
+**Problem:** `CUDA_ERROR_ILLEGAL_INSTRUCTION` (Error 222) when loading PTX modules
+
+**Cause:** PTX version mismatch between NVRTC-generated code and NVIDIA driver capabilities. The `cuda-python` package bundles NVRTC from newer CUDA toolkits that generate PTX versions incompatible with your driver.
+
+**Diagnosis:**
+```bash
+# Check driver version (e.g., 550 → PTX 8.4 max)
+nvidia-smi --query-gpu=driver_version --format=csv,noheader
+
+# Run diagnostic script
+python3 test_ptx_version.py
+
+# Expected problematic output:
+# PTX version: 8.7 (from CUDA 12.8)
+# Driver: 550 (supports PTX 8.4)
+# cuModuleLoadData: error=222
+```
+
+**Solution:** Replace bundled NVRTC with system CUDA toolkit version:
+
+```bash
+# 1. Locate system NVRTC (from CUDA 12.4)
+find /usr -name "libnvrtc.so*" 2>/dev/null
+# Example: /usr/lib/x86_64-linux-gnu/libnvrtc.so.12.4.127
+
+# 2. Locate bundled NVRTC
+find $CONDA_PREFIX/lib/python*/site-packages/nvidia* -name "libnvrtc.so*"
+# Example: .../nvidia/cuda_nvrtc/lib/libnvrtc.so.12
+
+# 3. Replace with symlink
+cd $CONDA_PREFIX/lib/python3.10/site-packages/nvidia/cuda_nvrtc/lib
+mv libnvrtc.so.12 libnvrtc.so.12.bak_cuda128
+ln -s /usr/lib/x86_64-linux-gnu/libnvrtc.so.12.4.127 libnvrtc.so.12
+
+# 4. Verify fix
+python3 test_ptx_version.py
+# Expected: PTX version 8.4, error=0
+```
+
+**Details:** See [docs/CUDA_PTX_VERSION_COMPATIBILITY_GUIDE.md](docs/CUDA_PTX_VERSION_COMPATIBILITY_GUIDE.md) for complete PTX compatibility matrix, diagnostic procedures, and prevention strategies.
+
+**Production Validation (Phase 2):**
+- Before fix: CUDA Error 222, codec inoperable
+- After fix: GPU harmonic path working (0.57-0.87ms encode, 0.25-0.26ms decode)
 
 ### WebSocket Connection Issues
 

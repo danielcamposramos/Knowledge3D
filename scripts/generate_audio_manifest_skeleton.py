@@ -18,6 +18,12 @@ Default roots scanned:
 Usage:
     PYTHONPATH=. python3 scripts/generate_audio_manifest_skeleton.py \
         --output /K3D/Knowledge3D.local/datasets/audio_manifest_skeleton.csv
+
+    # Single source dir with explicit lang/type (e.g., kana batch)
+    PYTHONPATH=. python3 scripts/generate_audio_manifest_skeleton.py \
+        --source_dir /K3D/K3D_llama_cpp/datasets/audio/phoneme_external/ja_kana \
+        --lang ja --type phoneme \
+        --output /K3D/K3D_llama_cpp/datasets/audio/phoneme_external/ja_kana_manifest.csv
 """
 
 from __future__ import annotations
@@ -25,9 +31,10 @@ from __future__ import annotations
 import argparse
 import csv
 from pathlib import Path
-from typing import Iterable, List
+from typing import Iterable, List, Sequence
 
-SUPPORTED_EXTS = {".wav", ".flac", ".mp3"}
+# Include ogg/oga for Commons + Lingua Libre pulls.
+SUPPORTED_EXTS = {".wav", ".flac", ".mp3", ".ogg", ".oga", ".opus"}
 
 DEFAULT_ROOTS = [
     Path("/K3D/K3D_llama_cpp/datasets/audio"),
@@ -35,12 +42,13 @@ DEFAULT_ROOTS = [
 ]
 
 
-def list_audio_files(roots: Iterable[Path]) -> List[Path]:
+def list_audio_files(roots: Iterable[Path], exts: Sequence[str]) -> List[Path]:
     files: List[Path] = []
+    normalized = {e.lower() for e in exts}
     for root in roots:
         if not root.exists():
             continue
-        for ext in SUPPORTED_EXTS:
+        for ext in normalized:
             files.extend(root.rglob(f"*{ext}"))
     return sorted(files)
 
@@ -73,22 +81,50 @@ def main() -> None:
         default=DEFAULT_ROOTS,
         help="Roots to scan for audio files",
     )
+    ap.add_argument(
+        "--source_dir",
+        type=Path,
+        help="Shortcut for a single source directory (overrides --roots when provided)",
+    )
+    ap.add_argument(
+        "--lang",
+        type=str,
+        default=None,
+        help="Optional language override to set the lang column for all rows",
+    )
+    ap.add_argument(
+        "--type",
+        type=str,
+        default=None,
+        help="Optional type column value for all rows (e.g., phoneme)",
+    )
+    ap.add_argument(
+        "--exts",
+        nargs="+",
+        default=sorted(SUPPORTED_EXTS),
+        help="File extensions to include (defaults to common audio types)",
+    )
     args = ap.parse_args()
 
-    files = list_audio_files(args.roots)
+    roots = [args.source_dir] if args.source_dir else args.roots
+    files = list_audio_files(roots, args.exts)
     args.output.parent.mkdir(parents=True, exist_ok=True)
+    fieldnames = ["path", "text", "phoneme", "lang"]
+    if args.type:
+        fieldnames.append("type")
     with args.output.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["path", "text", "phoneme", "lang"])
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         for p in files:
-            writer.writerow(
-                {
-                    "path": str(p),
-                    "text": "",
-                    "phoneme": "",
-                    "lang": infer_lang(p),
-                }
-            )
+            row = {
+                "path": str(p),
+                "text": "",
+                "phoneme": "",
+                "lang": args.lang or infer_lang(p),
+            }
+            if args.type:
+                row["type"] = args.type
+            writer.writerow(row)
 
     print(f"Wrote skeleton manifest with {len(files)} rows to {args.output}")
 

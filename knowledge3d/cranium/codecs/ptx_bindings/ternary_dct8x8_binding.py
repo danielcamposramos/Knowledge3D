@@ -93,20 +93,26 @@ class TernaryDCT8x8Kernel:
         self._init_cuda()
 
     def _init_cuda(self) -> None:
+        # Use shared context from sovereign loader (fork-safe, proven in production)
+        from knowledge3d.cranium.sovereign import loader
+        loader._ensure_init()
+
         cuda = self.cuda
-        err, = cuda.cuInit(0)
+
+        # Get existing context (sovereign loader guarantees one exists)
+        err, ctx = cuda.cuCtxGetCurrent()
         if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuInit failed: {err}")
-        err, dev = cuda.cuDeviceGet(self.device_index)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuDeviceGet failed: {err}")
-        err, ctx = cuda.cuDevicePrimaryCtxRetain(dev)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuDevicePrimaryCtxRetain failed: {err}")
-        err, = cuda.cuCtxSetCurrent(ctx)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuCtxSetCurrent failed: {err}")
+            raise RuntimeError(f"cuCtxGetCurrent failed: {err}")
+
+        if ctx is None or int(ctx) == 0:
+            raise RuntimeError("No CUDA context available after loader._ensure_init()")
+
         self._ctx = ctx
+
+        # Get device from context
+        err, dev = cuda.cuCtxGetDevice()
+        if err != cuda.CUresult.CUDA_SUCCESS:
+            raise RuntimeError(f"cuCtxGetDevice failed: {err}")
         self._compile_and_load(dev)
 
     def _compile_and_load(self, dev) -> None:
