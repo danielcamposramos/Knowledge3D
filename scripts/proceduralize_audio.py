@@ -30,8 +30,8 @@ import json
 import math
 import os
 import sys
-import tempfile
 import subprocess
+import tempfile
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Iterable, List, Optional, Tuple, Dict
@@ -84,7 +84,7 @@ def parse_labels(path: Path) -> Tuple[str, str]:
 def load_audio(path: Path) -> Tuple[int, np.ndarray]:
     """
     Load audio as mono float32. Uses soundfile if available; falls back to wave
-    for WAV; or uses ffmpeg to decode to WAV in a temp file.
+    for WAV; or uses ffmpeg to decode to PCM float via stdout.
     """
     # Try soundfile
     try:
@@ -106,22 +106,55 @@ def load_audio(path: Path) -> Tuple[int, np.ndarray]:
                     data = data.reshape(-1, wf.getnchannels()).mean(axis=1)
                 data /= np.abs(data).max() + 1e-9
         except Exception:
-            # Fallback to ffmpeg decode
-            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
-                tmp_path = Path(tmp.name)
+            # Fallback to ffmpeg decode -> raw float32 PCM
+            # Probe sample rate; default to 16000 if probe fails.
+            sr = 16000
             try:
-                subprocess.run(
-                    ["ffmpeg", "-y", "-i", str(path), "-ac", "1", "-ar", "16000", str(tmp_path)],
+                probe = subprocess.run(
+                    [
+                        "ffprobe",
+                        "-v",
+                        "error",
+                        "-select_streams",
+                        "a:0",
+                        "-show_entries",
+                        "stream=sample_rate",
+                        "-of",
+                        "default=noprint_wrappers=1:nokey=1",
+                        str(path),
+                    ],
                     check=True,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
+                    capture_output=True,
+                    text=True,
                 )
-                import soundfile as sf
+                sr = int(probe.stdout.strip())
+            except Exception:
+                sr = 16000
 
-                data, sr = sf.read(tmp_path)
-            finally:
-                if tmp_path.exists():
-                    tmp_path.unlink()
+            proc = subprocess.Popen(
+                [
+                    "ffmpeg",
+                    "-v",
+                    "error",
+                    "-i",
+                    str(path),
+                    "-f",
+                    "f32le",
+                    "-acodec",
+                    "pcm_f32le",
+                    "-ac",
+                    "1",
+                    "-ar",
+                    str(sr),
+                    "-",
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+            )
+            raw = proc.stdout.read() if proc.stdout else b""
+            proc.wait()
+            data = np.frombuffer(raw, dtype=np.float32)
+
     if data.ndim > 1:
         data = data.mean(axis=1)
     return int(sr), data.astype(np.float32)
@@ -217,10 +250,9 @@ def process_manifest(rows: List[Dict[str, str]]) -> List[AudioSeed]:
         text = row.get("text", "").strip()
         phoneme = row.get("phoneme", "").strip()
         lang = row.get("lang", row.get("language", "unknown")).strip() or "unknown"
-        if len(text) != 1 and not phoneme:
-            continue  # only letters/single characters for now
-        if not phoneme:
-            phoneme = text
+        if not phoneme and not text:
+            continue  # require at least one label
+        phoneme = phoneme or text
         if not path.exists():
             continue
         seed = process_file_with_override(path, lang, phoneme)
