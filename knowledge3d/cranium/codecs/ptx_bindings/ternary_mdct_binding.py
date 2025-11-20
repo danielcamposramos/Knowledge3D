@@ -193,7 +193,6 @@ class TernaryMDCTKernel:
             _ct.cast(_ct.pointer(out_arg), _ct.c_void_p),
             _ct.cast(_ct.pointer(n_arg), _ct.c_void_p),
         )
-
         err, = cuda.cuLaunchKernel(
             func,
             int(grid[0]), int(grid[1]), int(grid[2]),
