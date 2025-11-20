@@ -156,19 +156,17 @@ class TernaryDCT8x8Kernel:
             raise RuntimeError(f"cuModuleGetFunction inverse failed: {err}")
         self._kernel_inv = ifunc
 
-    def _launch(self, func, args_list, grid, block) -> None:
+    def _launch(self, func, d_in, d_out, num_blocks, grid, block) -> None:
         cuda = self.cuda
-        arg_objs = []
-        arg_ptrs = (ctypes.c_void_p * len(args_list))()
-        for i, a in enumerate(args_list):
-            if isinstance(a, float):
-                obj = ctypes.c_float(a)
-            elif isinstance(a, int):
-                obj = ctypes.c_int(a)
-            else:
-                obj = ctypes.c_void_p(int(a))
-            arg_objs.append(obj)
-            arg_ptrs[i] = ctypes.cast(ctypes.pointer(obj), ctypes.c_void_p)
+        in_arg = ctypes.c_void_p(int(d_in))
+        out_arg = ctypes.c_void_p(int(d_out))
+        n_arg = ctypes.c_int(int(num_blocks))
+        param_array = (ctypes.c_void_p * 3)(
+            ctypes.cast(ctypes.pointer(in_arg), ctypes.c_void_p),
+            ctypes.cast(ctypes.pointer(n_arg), ctypes.c_void_p),
+            ctypes.cast(ctypes.pointer(out_arg), ctypes.c_void_p),
+        )
+        param_ptr = int(ctypes.addressof(param_array))
         err, = cuda.cuLaunchKernel(
             func,
             int(grid[0]),
@@ -179,8 +177,8 @@ class TernaryDCT8x8Kernel:
             int(block[2]),
             0,
             0,
-            arg_ptrs,
-            None,
+            param_ptr,
+            0,
         )
         if err != cuda.CUresult.CUDA_SUCCESS:
             raise RuntimeError(f"cuLaunchKernel failed: {err}")
@@ -214,9 +212,8 @@ class TernaryDCT8x8Kernel:
             if err != cuda.CUresult.CUDA_SUCCESS:
                 raise RuntimeError(f"cuMemcpyHtoD failed: {err}")
             block = (64, 1, 1)
-            grid = (num_blocks, 1, 1)
-            args = [d_input, int(num_blocks), d_output]
-            self._launch(self._kernel, args, grid, block)
+            grid = (int(num_blocks), 1, 1)
+            self._launch(self._kernel, d_input, d_output, num_blocks, grid, block)
             out = np.empty_like(b)
             err, = cuda.cuMemcpyDtoH(out.ctypes.data, d_output, out.nbytes)
             if err != cuda.CUresult.CUDA_SUCCESS:
@@ -247,9 +244,8 @@ class TernaryDCT8x8Kernel:
             if err != cuda.CUresult.CUDA_SUCCESS:
                 raise RuntimeError(f"cuMemcpyHtoD failed: {err}")
             block = (64, 1, 1)
-            grid = (num_blocks, 1, 1)
-            args = [d_input, int(num_blocks), d_output]
-            self._launch(self._kernel_inv, args, grid, block)
+            grid = (int(num_blocks), 1, 1)
+            self._launch(self._kernel_inv, d_input, d_output, num_blocks, grid, block)
             out = np.empty_like(c)
             err, = cuda.cuMemcpyDtoH(out.ctypes.data, d_output, out.nbytes)
             if err != cuda.CUresult.CUDA_SUCCESS:

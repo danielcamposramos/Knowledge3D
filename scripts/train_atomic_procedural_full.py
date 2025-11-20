@@ -23,12 +23,14 @@ Author: K3D Adaptive Swarm
 Date: 2025-11-19
 """
 
-import sys
-import json
-import numpy as np
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import Dict, List, Tuple
+import argparse
+import json
+import sys
+
+import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -188,16 +190,27 @@ Examples of dual-program stars:
         return report
 
 
-def load_datasets():
-    """Load full atomic datasets."""
-    font_path = Path("/K3D/Knowledge3D.local/datasets/atomic/fonts_procedural.jsonl")
+def load_datasets(font_glob: str, font_limit_per_file: int | None):
+    """Load font + math datasets (multi-script aware)."""
     math_path = Path("/K3D/Knowledge3D.local/datasets/atomic/math_symbols_procedural.jsonl")
 
-    font_data = []
-    with open(font_path, 'r') as f:
-        for line in f:
-            if line.strip():
+    # Discover all font datasets matching the glob
+    font_files = sorted(Path().glob(font_glob))
+    if not font_files:
+        raise FileNotFoundError(f"No font datasets found for glob: {font_glob}")
+
+    font_data: List[Dict] = []
+    for font_file in font_files:
+        loaded = 0
+        with font_file.open("r", encoding="utf-8") as f:
+            for line in f:
+                if not line.strip():
+                    continue
                 font_data.append(json.loads(line))
+                loaded += 1
+                if font_limit_per_file and loaded >= font_limit_per_file:
+                    break
+        print(f"  • {font_file}: {loaded} entries")
 
     math_data = []
     with open(math_path, 'r') as f:
@@ -205,11 +218,11 @@ def load_datasets():
             if line.strip():
                 math_data.append(json.loads(line))
 
-    print(f"✅ Loaded {len(font_data)} font glyphs, {len(math_data)} math symbols")
+    print(f"✅ Loaded {len(font_data)} font glyphs across {len(font_files)} files, {len(math_data)} math symbols")
     return font_data, math_data
 
 
-def train_full_atomic_knowledge(epochs: int = 5, validation_split: float = 0.1):
+def train_full_atomic_knowledge(epochs: int = 5, validation_split: float = 0.1, font_glob: str = "/K3D/Knowledge3D.local/datasets/atomic/fonts_*_procedural.jsonl", font_limit_per_file: int | None = None):
     """
     Train full atomic knowledge base with comprehensive metric tracking.
 
@@ -243,7 +256,7 @@ def train_full_atomic_knowledge(epochs: int = 5, validation_split: float = 0.1):
 
     # Load datasets
     print("\n[3/6] Loading full datasets...")
-    font_data, math_data = load_datasets()
+    font_data, math_data = load_datasets(font_glob, font_limit_per_file)
 
     # Split into train/val
     font_split = int(len(font_data) * (1 - validation_split))
@@ -372,8 +385,20 @@ def train_full_atomic_knowledge(epochs: int = 5, validation_split: float = 0.1):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Full atomic procedural training (multi-script).")
+    parser.add_argument("--epochs", type=int, default=5, help="Training epochs.")
+    parser.add_argument("--validation-split", type=float, default=0.1, help="Validation fraction.")
+    parser.add_argument("--font-glob", type=str, default="/K3D/Knowledge3D.local/datasets/atomic/fonts_*_procedural.jsonl", help="Glob for font datasets to include.")
+    parser.add_argument("--font-limit-per-file", type=int, default=None, help="Optional cap per font dataset file for memory control.")
+    args = parser.parse_args()
+
     try:
-        specialist, logger = train_full_atomic_knowledge(epochs=5)
+        specialist, logger = train_full_atomic_knowledge(
+            epochs=args.epochs,
+            validation_split=args.validation_split,
+            font_glob=args.font_glob,
+            font_limit_per_file=args.font_limit_per_file,
+        )
         print("\n✅ Full atomic training completed successfully!\n")
         print("Next steps:")
         print("  1. Review W3C AIKR evidence in logs/atomic_training/")

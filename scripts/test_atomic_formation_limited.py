@@ -21,7 +21,9 @@ def load_limited_datasets():
     """Load small subsets for testing (Latin + optional Cyrillic)."""
     font_path = Path("/K3D/Knowledge3D.local/datasets/atomic/fonts_procedural.jsonl")
     math_path = Path("/K3D/Knowledge3D.local/datasets/atomic/math_symbols_procedural.jsonl")
-    cyrillic_path = Path("/K3D/Knowledge3D.local/datasets/atomic/fonts_cyrillic_simple.jsonl")
+    cyrillic_path_preferred = Path("/K3D/Knowledge3D.local/datasets/atomic/fonts_cyrillic_procedural.jsonl")
+    cyrillic_path_fallback = Path("/K3D/Knowledge3D.local/datasets/atomic/fonts_cyrillic_simple.jsonl")
+    cyrillic_path = cyrillic_path_preferred if cyrillic_path_preferred.exists() else cyrillic_path_fallback
 
     font_data = []
     with open(font_path, 'r') as f:
@@ -44,6 +46,7 @@ def load_limited_datasets():
                 if i >= 40:
                     break
                 cyrillic_data.append(json.loads(line))
+        print(f"  • Cyrillic source: {cyrillic_path}")
 
     print(f"✅ Loaded {len(font_data)} Latin font glyphs, {len(math_data)} math symbols, {len(cyrillic_data)} Cyrillic glyphs")
     return font_data, math_data, cyrillic_data
