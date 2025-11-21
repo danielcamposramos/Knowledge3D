@@ -59,13 +59,9 @@ Large (>99 MB) or bulk-generated artifacts live outside the repo under `../Kno
        --ud-root /K3D/K3D_llama_cpp/datasets/ud/ud-treebanks-v2.14 \
        --out /K3D/Knowledge3D.local/datasets/word_stars_ud.jsonl
 
-     python3 scripts/pd_pack_word_stars.py \
-       --input /K3D/Knowledge3D.local/datasets/word_stars_ud.jsonl \
-       --output /K3D/Knowledge3D.local/datasets/word_stars_ud_pd.jsonl
-
      python3 scripts/merge_word_stars.py \
-       --inputs /K3D/Knowledge3D.local/datasets/word_stars_ud_pd.jsonl \
-       --output /K3D/Knowledge3D.local/datasets/word_stars_all_pd.jsonl
+       --inputs /K3D/Knowledge3D.local/datasets/word_stars_ud.jsonl \
+       --output /K3D/Knowledge3D.local/datasets/word_stars_all.jsonl
      ```
   4. Upsert to Galaxy/House: implement bridge in `scripts/load_word_stars_into_galaxy.py` (placeholder).
 
