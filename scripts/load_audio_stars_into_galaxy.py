@@ -34,6 +34,10 @@ import json
 from pathlib import Path
 from typing import Dict, Any
 
+# Note: No direct Galaxy upsert bridge exists in sovereign_bridges.py.
+# This loader prepares upsert payloads; replace the TODO hook below with the
+# project’s actual Galaxy/House attachment API when available.
+
 
 def load_audio_stars(path: Path):
     with path.open("r", encoding="utf-8") as f:
@@ -74,19 +78,21 @@ def main() -> None:
     )
     args = ap.parse_args()
 
-    # In a full integration, replace this collector with Galaxy/House upsert calls.
-    collected = []
+    collected = 0
+    out_entries = []
     for star in load_audio_stars(args.audio_stars):
         entry = build_audio_entry(star)
-        # Upsert hook: attach to character galaxy (placeholder)
-        collected.append(entry)
+        # TODO: Replace this with the project’s Galaxy/House upsert call.
+        out_entries.append(entry)
+        collected += 1
 
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    with args.output.open("w", encoding="utf-8") as f:
-        for e in collected:
-            f.write(json.dumps(e) + "\n")
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        with args.output.open("w", encoding="utf-8") as f:
+            for e in out_entries:
+                f.write(json.dumps(e) + "\n")
 
-    print(f"Wrote {len(collected)} audio entries (ready to upsert) to {args.output}")
+    print(f"Prepared {collected} audio entries. Diagnostic dump: {args.output}")
 
 
 if __name__ == "__main__":
