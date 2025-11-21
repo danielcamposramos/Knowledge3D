@@ -56,6 +56,7 @@ class AudioSeed:
     harmonics: List[Tuple[float, float, float]]  # (freq, amp, phase)
     envelope: Tuple[float, float, float, float]  # ADSR in seconds
     noise_level: float
+    kind: str  # e.g., phoneme-en, spoken_name-en
     source: str
 
 
@@ -243,7 +244,7 @@ def load_manifest(manifest_path: Path, fmt: str) -> List[Dict[str, str]]:
     return rows
 
 
-def process_manifest(rows: List[Dict[str, str]]) -> List[AudioSeed]:
+def process_manifest(rows: List[Dict[str, str]], default_kind: str) -> List[AudioSeed]:
     seeds: List[AudioSeed] = []
     for row in rows:
         path = Path(row.get("path", "").strip())
@@ -253,15 +254,18 @@ def process_manifest(rows: List[Dict[str, str]]) -> List[AudioSeed]:
         if not phoneme and not text:
             continue  # require at least one label
         phoneme = phoneme or text
+        kind = row.get("kind") or row.get("type") or default_kind
+        if lang and not kind.endswith(f"-{lang}"):
+            kind = f"{kind}-{lang}"
         if not path.exists():
             continue
-        seed = process_file_with_override(path, lang, phoneme)
+        seed = process_file_with_override(path, lang, phoneme, kind)
         if seed:
             seeds.append(seed)
     return seeds
 
 
-def process_file_with_override(path: Path, lang: str, phoneme: str) -> Optional[AudioSeed]:
+def process_file_with_override(path: Path, lang: str, phoneme: str, kind: str) -> Optional[AudioSeed]:
     try:
         sr, audio = load_audio(path)
     except Exception as exc:
@@ -279,6 +283,7 @@ def process_file_with_override(path: Path, lang: str, phoneme: str) -> Optional[
         harmonics=harms,
         envelope=env,
         noise_level=noise,
+        kind=kind,
         source=str(path),
     )
 
@@ -303,12 +308,18 @@ def main() -> None:
         default="csv",
         help="Manifest format if provided",
     )
+    ap.add_argument(
+        "--default-kind",
+        type=str,
+        default="phoneme",
+        help="Default kind label when manifest does not provide one (will be suffixed with '-<lang>')",
+    )
     args = ap.parse_args()
 
     seeds: List[AudioSeed] = []
     if args.manifest:
         rows = load_manifest(args.manifest, args.manifest_format)
-        seeds.extend(process_manifest(rows))
+        seeds.extend(process_manifest(rows, args.default_kind))
     else:
         files = list_audio_files(DATA_ROOTS)
         for path in files:
