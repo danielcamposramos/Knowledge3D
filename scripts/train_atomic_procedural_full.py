@@ -195,7 +195,11 @@ def load_datasets(font_glob: str, font_limit_per_file: int | None):
     math_path = Path("/K3D/Knowledge3D.local/datasets/atomic/math_symbols_procedural.jsonl")
 
     # Discover all font datasets matching the glob
-    font_files = sorted(Path().glob(font_glob))
+    fg_path = Path(font_glob)
+    if fg_path.is_absolute():
+        font_files = sorted(fg_path.parent.glob(fg_path.name))
+    else:
+        font_files = sorted(Path().glob(font_glob))
     if not font_files:
         raise FileNotFoundError(f"No font datasets found for glob: {font_glob}")
 
@@ -222,7 +226,12 @@ def load_datasets(font_glob: str, font_limit_per_file: int | None):
     return font_data, math_data
 
 
-def train_full_atomic_knowledge(epochs: int = 5, validation_split: float = 0.1, font_glob: str = "/K3D/Knowledge3D.local/datasets/atomic/fonts_*_procedural.jsonl", font_limit_per_file: int | None = None):
+def train_full_atomic_knowledge(
+    epochs: int = 5,
+    validation_split: float = 0.1,
+    font_glob: str | None = None,
+    font_limit_per_file: int | None = None,
+):
     """
     Train full atomic knowledge base with comprehensive metric tracking.
 
@@ -256,6 +265,8 @@ def train_full_atomic_knowledge(epochs: int = 5, validation_split: float = 0.1, 
 
     # Load datasets
     print("\n[3/6] Loading full datasets...")
+    if font_glob is None:
+        font_glob = "/K3D/Knowledge3D.local/datasets/atomic/fonts_*_procedural.jsonl"
     font_data, math_data = load_datasets(font_glob, font_limit_per_file)
 
     # Split into train/val
@@ -388,7 +399,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Full atomic procedural training (multi-script).")
     parser.add_argument("--epochs", type=int, default=5, help="Training epochs.")
     parser.add_argument("--validation-split", type=float, default=0.1, help="Validation fraction.")
-    parser.add_argument("--font-glob", type=str, default="/K3D/Knowledge3D.local/datasets/atomic/fonts_*_procedural.jsonl", help="Glob for font datasets to include.")
+    parser.add_argument(
+        "--font-glob",
+        type=str,
+        default=None,
+        help="Glob for font datasets to include (default: /K3D/Knowledge3D.local/datasets/atomic/fonts_*_procedural.jsonl).",
+    )
     parser.add_argument("--font-limit-per-file", type=int, default=None, help="Optional cap per font dataset file for memory control.")
     args = parser.parse_args()
 
