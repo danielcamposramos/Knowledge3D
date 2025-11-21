@@ -149,7 +149,7 @@ Knowledge3D stands on the shoulders of giants. We build upon foundational resear
 - **PTX Compatibility Guide**: [CUDA/PTX Version Troubleshooting](docs/CUDA_PTX_VERSION_COMPATIBILITY_GUIDE.md)
   - Critical resource for avoiding CUDA Error 222 (PTX version mismatches)
   - Diagnostic tools and prevention strategies included
-- **Word Galaxy ingest (UD v2.14)**: `scripts/ingest_ud_word_stars.py` reads all CoNLL-U treebanks into lemma-level stars (forms, POS/morph, deps), PD-packed via `scripts/pd_pack_word_stars.py` and merged at `/K3D/Knowledge3D.local/datasets/word_stars_all_pd.jsonl` ready for Galaxy/House upsert.
+- **Word Galaxy ingest (UD v2.14)**: `scripts/ingest_ud_word_stars.py` reads all CoNLL-U treebanks into lemma-level stars (forms, POS/morph, deps), merged at `/K3D/Knowledge3D.local/datasets/word_stars_all.jsonl` ready for Galaxy/House upsert.
 
 ### 5. **Parameter Efficiency**
 - **7M params ≈ 70B LLMs** on reasoning tasks (10,000× improvement)
