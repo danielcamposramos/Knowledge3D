@@ -22,8 +22,26 @@
 - Dual-texture paradigm for *human-AI cohabitation*
 - GPU-batched RLWHF pipeline leveraging *tiny model parallelization*
 - Integration of DeepSeek-OCR techniques with *sovereign PTX kernels*
+- Universal Dependencies → word-star ingestion (lemma-level procedural meaning_program)
+- Lexique382 → French lexical enrichment (IPA/morph/frequency) for word stars
 
 ---
+
+## 5. Lexical Resources for Word Galaxy
+
+### 5.1 Universal Dependencies v2.14
+**Source**: [Universal Dependencies Consortium](https://universaldependencies.org/)
+**License**: CC BY-SA 4.0 (treebanks), dataset-specific licenses listed per treebank
+**Usage in K3D**:
+- Parsed all UD v2.14 CoNLL-U treebanks into lemma-level word stars (forms, POS/morph, deps, sources)
+- PD-packed meaning payload for GPU-native storage (`word_stars_ud_pd.jsonl`)
+
+### 5.2 Lexique382 (French Lexicon)
+**Source**: [Lexique Project](http://www.lexique.org/)
+**License**: CC BY-SA 4.0
+**Usage in K3D**:
+- French lexical data (orthography, IPA, morphology, frequency) planned for enriching French word stars
+- Downloaded `Lexique382.tsv.gz` for ingestion into word galaxy
 
 ## 0. Foundational Infrastructure
 
