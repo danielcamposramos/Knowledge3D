@@ -413,6 +413,25 @@ Computer RAM:           Galaxy Universe:
 - **Visual/Drawing Grammars**: optional libraries for drawing primitives→strokes→shapes→scenes; user gallery empty by default (procedural-first, dual-client).
 - **User Phrase Galaxy**: empty by default; writable at runtime for idioms/multiword expressions (separate from curated phrase galaxy).
 
+### 4.2.2 Reality Enabler Galaxies (Procedural Fabric)
+
+The **Reality Enabler** extends the Galaxy Universe with **procedural physics/chemistry/biology galaxies** built from dual-program stars, reusing existing sovereign kernels rather than wrapping external simulators.
+
+- **Physics Galaxy**: Stars encode physical primitives (forces, integrators, constraints) as `meaning_rpn` programs executed by `ModularRPNEngine`, `VectorResonator`, and `WorldModelBridge` (dynamic mesh generation). Visual form (orbits, fields, bodies) is provided via `visual_rpn` + existing drawing kernels (`rpn_executor.ptx`, `FractalEmitter`).
+- **Chemistry Galaxy**: Stars represent atoms, bonds, and molecules as compositional programs: atomic `reality_atom` nodes (H, O, C, …) combine via `component_refs` into molecular stars. Behavior RPN captures valence rules and simple reaction schemas; training data comes from tools like RDKit/OpenBabel/GROMACS but is distilled into sovereign programs and PD04-compressed embeddings.
+- **Biology / Growth Galaxies**: Stars encode L-system–style and cellular-automata growth rules. Existing kernels (`FractalEmitter`, `GraphCrystallizer`, `TemporalReasoning`) provide space-time evolution; `meaning_rpn` defines metabolic and structural constraints.
+
+**Stacked Compositional Galaxies (Symlink Style)**:
+- Letter/Word/Phrase galaxies already stack symbols via `letter_refs` and `word_refs`. Reality Enabler galaxies follow the same pattern:
+  - **Atoms → Molecules → Materials → Scenes**: Higher-level stars keep **symlink-style references** (e.g., `component_refs`) to lower-level stars instead of copying data.
+  - Any update to an atomic star (letter, atom, primitive stroke) automatically propagates through the stack because higher tiers execute or reference the same underlying RPN programs.
+- Matryoshka dimensions `{64, 128, 512, 2048}` and PD04 programs from the Adaptive Procedural Compression spec provide **simulation LOD**:
+  - 64D: coarse “intuition” tier (is this structure stable / valid?).
+  - 512D: structural/Newtonian tier (rigid body, basic reactions).
+  - 2048D: high-fidelity tier (fluids, soft bodies, detailed reaction pathways).
+
+These galaxies are **domain/specialist galaxies** under this spec and MUST obey the dual-client contract: humans see simulations as evolving geometry; AI sees and executes the same underlying `meaning_rpn` on sovereign PTX kernels.
+
 ### 4.2.1 Loading Policy (Default vs On-Demand)
 - **Defaultly Loaded**: Base galaxies (text/visual/audio/reasoning), Word Meaning galaxy (atomic seeds), Math Symbol galaxy (execution operators/constants), Punctuation galaxy (structure).
 - **On-Demand**: Letter Meaning galaxies by detected scripts (user hint + document detection) to minimize VRAM; optional sublexical (syllables/morphemes) per language when needed; load only required scripts; unload with consolidation when idle. Phrase Meaning curated/user galaxies are small; can be default-loaded or on-demand.

@@ -7,8 +7,8 @@ _Original briefing assembled with NotebookLM. Enhanced by the K3D partner swarm 
 ## Quick Start for New AI Partners
 
 **Before reading this briefing**, if you're an AI assistant, please read:
-1. **[CLAUDE.md](../CLAUDE.md)** — Foundational onboarding guide (1,455 lines, comprehensive)
-2. **[CLAUDE_LOCAL.md](../CLAUDE_LOCAL.md)** — Environment-specific guide (verified paths, real metrics, budget constraints)
+1. **[CLAUDE.md](../../CLAUDE.md)** — Foundational onboarding guide (1,455 lines, comprehensive)
+2. **[CLAUDE_LOCAL.md](../../CLAUDE_LOCAL.md)** — Environment-specific guide (verified paths, real metrics, budget constraints)
 
 These provide essential context about:
 - Partnership model (human + Claude Code + browser Claude)
