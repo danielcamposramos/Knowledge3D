@@ -56,6 +56,17 @@ Implementations SHOULD ingest nodes using meaning as the identity key and attach
   - `procedural_programs`: math_rpn (execution), visual_rpn (render), optional audio_rpn (verbalization)
   - `embeddings`: Matryoshka tiers for search/LOD only; regenerable from procedures
 
+- **Reality Atom Node (physics / chemistry / biology)**
+  - `node_type`: `reality_atom` | `reality_molecule` | `reality_material` | `reality_system`
+  - `semantic_identity`: domain-specific invariants (mass, charge, valence, lattice type, species, organ, etc.), including units and reference frames.
+  - `component_refs`: symlink-style references to lower-tier nodes (e.g., H/O atoms for H₂O, amino acids for proteins, cells for tissues). No duplication of embeddings; composition is by pointer and RPN execution.
+  - `procedural_programs`:
+    - `visual_rpn`: how to render the object at each LOD (atoms → spheres/clouds; molecules → bonds; materials → fields/volumes).
+    - `behavior_rpn` / `meaning_rpn`: how the object behaves under forces or reactions (simple kinematics, reaction rules, growth rules), executed by `ModularRPNEngine`, `VectorResonator`, `WorldModelBridge`, and related kernels.
+    - `law_rpn` (optional): local constraints (e.g., conservation laws, stability bounds) used by SleepTime and Reality Enabler checks.
+  - `embeddings`: Matryoshka tiers `{64, 128, 512, 2048}` regenerated from the above procedures and compressed via PD04 programs. Lower tiers encode coarse “is this plausible?” judgments; higher tiers encode detailed dynamics or properties.
+  - **Placement**: These nodes live in specialist galaxies (physics, chemistry, biology) and participate in the same compositional stack as letter/word/phrase nodes: atoms ↔ molecules ↔ materials ↔ scenes, linked by `component_refs` and shared procedures.
+
 ---
 
 ## 2. Specification
