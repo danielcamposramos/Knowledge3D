@@ -446,6 +446,13 @@ Computer RAM:           Galaxy Universe:
 }
 ```
 
+**Note on Procedural Reasoning Paradigm**:
+The Galaxy Universe is NOT a static embedding store—it's a **procedural execution environment**. Stars contain executable RPN programs that define both visual rendering (how to draw) and semantic operations (how to reason). This procedural-first paradigm enables:
+- **GPU-native reasoning**: PTX kernels execute RPN programs directly on GPU
+- **Regenerable representations**: Visual glyphs and embeddings derived from canonical procedures
+- **Compositional semantics**: Meaning emerges from procedural composition, not lookup tables
+- **Dual-client contract**: Same procedural program generates visual geometry (humans) and semantic embeddings (AI)
+
 ### 4.3 Star Representation (Procedural-First, Meaning-First)
 
 **Primary Storage = Procedures (NOT meshes/textures)**:
