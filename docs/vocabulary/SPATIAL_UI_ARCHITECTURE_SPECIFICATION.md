@@ -390,22 +390,34 @@ Computer RAM:           Galaxy Universe:
    (values at addresses)   (embeddings at positions)
 ```
 
-**Galaxy Types**:
-- **Language Galaxies**: Character sets per language (loaded on-demand based on user language hint + document detection)
-- **Meaning Galaxies**: Word-level semantic embeddings
-- **Base Galaxies**: Text, visual, audio, reasoning (core modalities)
-- **Consolidated Knowledge**: Sleep-time crystallized stars from house rooms
+**Galaxy Types (Meaning-First Taxonomy)**:
+- **Letter Meaning Galaxies** (per script): Semantic letters with all glyph variants (uppercase/lowercase/small-caps/italic) grouped by meaning, not by Unicode code point; used for text composition and ASCII art. Loaded on-demand by detected scripts.
+- **Word Meaning Galaxy**: Sense-disambiguated word meanings (polysemy split; “apple” fruit ≠ “Apple” company). Defaultly loaded as atomic seeds.
+- **Math Symbol Galaxy**: Mathematical operators/constants with execution RPN (no case variants, no word-composition rules). Always loaded; distinct from letter galaxies even when glyphs look similar.
+- **Punctuation Galaxy**: Sentence/structure symbols (.,!?:;()[]{}"'). Defaultly loaded.
+- **Base Galaxies**: Text, visual, audio, reasoning (core modalities; always loaded).
+- **Consolidated Knowledge**: Sleep-time crystallized stars from house rooms.
 
 ### 4.2 Multi-Galaxy Loading
 
 **Specification**: Implementations **MUST** support loading multiple galaxies simultaneously within the Universe.
 
-**Standard Galaxies**:
-- **Text Galaxy**: Language embeddings, RPN vocabulary
-- **Visual Galaxy**: Font glyphs, procedural drawings
-- **Audio Galaxy**: Speech patterns, acoustic features
-- **Reasoning Galaxy**: ARC-AGI patterns, logic structures
-- **Domain Galaxies**: Math, physics, chemistry (specialist-specific)
+**Standard Galaxies** (multi-load required):
+- **Base** (always): text, visual, audio, reasoning.
+- **Word Meaning** (always): semantic word stars (sense-split), Matryoshka tiers {128D, 512D, 2048D}, compositional letter_refs.
+- **Phrase Meaning** (always small curated; user phrase galaxy empty by default): idioms/multiword expressions with word_refs + meaning_rpn; user-defined phrases go to a separate writable galaxy.
+- **Math Symbols** (always): operators/constants with math_rpn execution; no case variants; dual-client contract for visual glyph + executable RPN.
+- **Letter Meaning** (on-demand by script/language/doc): Latin, Cyrillic, Arabic, CJK, Braille, etc. Stars group all glyph variants (upper/lower/italic/bold) under one meaning; include compositional rules (case selection, kerning, baseline).
+- **Punctuation** (always): structure symbols; no case; spacing rules separate from letters.
+- **Domain/Specialist Galaxies**: math/physics/chemistry, etc. (specialist-specific).
+- **Visual/Drawing Grammars**: optional libraries for drawing primitives→strokes→shapes→scenes; user gallery empty by default (procedural-first, dual-client).
+- **User Phrase Galaxy**: empty by default; writable at runtime for idioms/multiword expressions (separate from curated phrase galaxy).
+
+### 4.2.1 Loading Policy (Default vs On-Demand)
+- **Defaultly Loaded**: Base galaxies (text/visual/audio/reasoning), Word Meaning galaxy (atomic seeds), Math Symbol galaxy (execution operators/constants), Punctuation galaxy (structure).
+- **On-Demand**: Letter Meaning galaxies by detected scripts (user hint + document detection) to minimize VRAM; optional sublexical (syllables/morphemes) per language when needed; load only required scripts; unload with consolidation when idle. Phrase Meaning curated/user galaxies are small; can be default-loaded or on-demand.
+- **Separation by Purpose**: Math symbols stay in the math galaxy even if glyphs resemble letters; letters stay in script-specific letter galaxies; word meanings live in the word galaxy with sense disambiguation.
+- **Budget Target**: Stay within ~200MB VRAM by combining default load + minimal script set; CJK subsets can be frequency-based (e.g., top 5K) when needed.
 
 **Metadata Format**:
 ```json
@@ -434,31 +446,29 @@ Computer RAM:           Galaxy Universe:
 }
 ```
 
-### 4.3 Star Representation
+### 4.3 Star Representation (Procedural-First, Meaning-First)
 
-**Dual-View Construction**:
+**Primary Storage = Procedures (NOT meshes/textures)**:
+- **visual_rpn**: executable drawing program (how to render glyph/shape on GPU).
+- **audio_rpn / codec**: executable pronunciation/sound program (letters/phonemes only when available).
+- **math_rpn**: executable operation (math symbols/operators); for letters this is conceptual (alphabet position/identity), not computation.
+- **meaning_rpn**: semantic program for word/phrase/concept stars.
+- **glyph_variants**: list of procedural visual_rpn variants (fonts, weights, styles). Upper/lowercase are variants of the *same letter meaning* within a script; diacritics remain per-meaning.
+- **compositional_rules (letters)**: case selection, kerning, baseline alignment, structural vs detail roles (ASCII art/typography).
+- **execution_rules (math symbols)**: stack effects, arity, commutativity/associativity; no case, no word-composition rules.
 
-**For Humans (Visual)**:
-- Light particles (brightness = confidence)
-- 3D shapes (procedurally generated from embeddings)
-- Color-coded by modality (text = blue, visual = red, audio = green)
-- Size indicates semantic importance
+**Secondary Storage = Embeddings (Regenerable)**:
+- Matryoshka tiers {64/128/512/2048} compressed via PD codecs; explicitly marked regenerable from procedures.
+- Used for spatial search and LOD; not the canonical knowledge.
 
-**For AI (Semantic)**:
-- Embeddings (64D-2048D vectors)
-- Graph topology (neighbors, clusters)
-- Spatial queries (k-NN, range search)
-- Cross-galaxy transitive learning
+**Dual-Client Contract (shared glTF)**:
+- Humans render procedural execution results (generated meshes/lines on demand; optional inline UV0 for convenience).
+- AI reads `extras.k3d` procedural programs + embeddings from the same node; no hidden state.
+- Math symbols and letters share the glTF format but live in different galaxies and have distinct procedural fields (math symbols: math_rpn execution, no case; letters: compositional variants, no arithmetic semantics).
 
-**Transformation**:
-```
-Star Embedding (512D float32)
-    ↓ Procedural Drawing Engine
-Visual: Light Particle → 3D Shape + Texture
-AI: Embedding → Graph Node + Neighbors
-    ↓ Shared in glTF
-extras.k3d.stars[i] = {visual_mesh, embedding_buffer}
-```
+**Meaning-Based Identity**:
+- Same meaning → one star with many glyph variants (Latin A/a small-caps/italic = one LETTER_A_LATIN star).
+- Different meaning → separate stars even if glyphs are visually similar (Latin A vs Cyrillic А; “apple” fruit vs “Apple” company; π as Greek letter vs π as math constant lives in math galaxy).
 
 ### 4.4 Galaxy Universe Operations
 
@@ -651,6 +661,7 @@ The **Memory Tablet** is a universal interface object available to avatars at al
   - Example: EN user accessing PT document → Load Latin + Portuguese diacritics only
   - Example: RU user accessing AR document → Load Cyrillic + Arabic scripts
 - **Universal shared world**: All users in same 3D space, tablets render appropriate character sets
+- **Default baseload**: Tablet always has base galaxies (text/visual/audio/reasoning), Word Meaning galaxy, Math Symbol galaxy, and Punctuation galaxy; letter meaning galaxies load on-demand per script.
 
 ### 6.2 Tablet Display Protocol
 

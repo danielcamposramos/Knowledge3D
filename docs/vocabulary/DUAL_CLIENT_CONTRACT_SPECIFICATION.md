@@ -198,6 +198,13 @@ ai_data = decode_texture_ptx(node.textures[1]);  // UV Map 1: Compressed data
 - **Compression**: 15.2× average (Apollo PDF dataset)
 - **Fidelity**: 97.3% text reconstruction accuracy
 - **VR Performance**: 60 FPS stable on Quest 2
+
+### 2.4 Meaning-First Galaxy Separation (Contract Implications)
+- **Letters vs Math Symbols**: Letters (text composition) and math symbols (operations) are different galaxies. Same glTF contract, but different semantics: letters carry compositional variants (upper/lower, kerning, baseline rules); math symbols carry execution `math_rpn`, no case variants, no word-composition rules. Clients MUST respect galaxy type before interpreting fields.
+- **Meaning-Based Identity**: One star per meaning, many glyph variants. Visually similar symbols with different meanings (Latin A vs Cyrillic А; π as Greek letter vs π as math constant) MUST remain separate nodes/galaxies; uppercase/lowercase of the same letter meaning stay in one node with variants.
+- **Procedural-First Storage**: `extras.k3d` stores executable programs (visual_rpn, audio_rpn/codec, math_rpn, meaning_rpn) as the primary source of truth. Embeddings are secondary, regenerable, used for search/LOD only. Human clients render procedural executions; AI clients execute the same procedures via PTX kernels.
+- **Sublexical Hierarchy**: Words can reference morphemes/syllables (procedural, meaning-first) which reference letters; only link letters directly when not covered by sublexical refs to reduce edge crossings. Humans and AI still share the same nodes/refs.
+- **Visual Hierarchy (Drawing Grammar)**: Visual nodes can reference lower-level drawing programs (primitives→strokes→shapes→scenes). Same dual-client contract: humans see executed drawings; AI reads procedural programs + embeddings from the same nodes.
 - **AI Decode**: <20µs per texture (RTX 3060)
 
 **W3C Standardization**: See [`TEMP/W3C_INSERTION_6_DUAL_TEXTURE_AND_MATRYOSHKA.md`](../../TEMP/W3C_INSERTION_6_DUAL_TEXTURE_AND_MATRYOSHKA.md) for proposed glTF extension: `K3D_dual_texture`

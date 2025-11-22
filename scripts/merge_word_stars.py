@@ -2,7 +2,7 @@
 """
 Merge multiple word star JSONL files into a single deduplicated file.
 
-Deduplication key: (lang, lemma)
+Meaning-first deduplication key: (lang, sense, lemma) if sense is present, else (lang, lemma).
 If fields collide, later files override earlier ones for matching keys.
 """
 
@@ -23,7 +23,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    merged: Dict[Tuple[str, str], dict] = {}
+    merged: Dict[Tuple[str, str, str], dict] = {}
 
     for path_str in args.inputs:
         path = Path(path_str)
@@ -32,7 +32,11 @@ def main() -> None:
                 if not line.strip():
                     continue
                 star = json.loads(line)
-                key = (star.get("lang", ""), star.get("lemma", ""))
+                key = (
+                    star.get("lang", ""),
+                    star.get("sense", "default"),
+                    star.get("lemma", ""),
+                )
                 merged[key] = star  # later wins
 
     out_path = Path(args.output)

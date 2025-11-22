@@ -111,7 +111,20 @@ CPU parity is available via `ProceduralCompiler.decompile_program`, enabling off
 
 ---
 
-## 7. References
+## 7. Sublexical Hierarchy (Words as Compositions of Procedural Parts)
+
+- Words MAY reference sublexical stars (morphemes, syllables) which themselves reference letter stars.
+- Morpheme stars define role (prefix/suffix/root/inflection), letter_refs composition, and morph_rpn/meaning_rpn.
+- Syllable stars define letter_refs, pattern metadata (CV/CVC...), and optional phonetic_rpn.
+- Guideline: prefer linking words → morphemes/syllables and only link letters for positions not covered, to reduce graph clutter and retain meaning-first identity.
+
+## 8. Visual Hierarchy (Drawing Grammar)
+
+- Visual concepts may reference lower-level drawing programs: primitives (lines, arcs, Béziers) → strokes (width/color/joins) → shapes/icons → scenes/layouts → collections.
+- Store procedural drawing programs as primary data (visual_rpn + transforms); embeddings are secondary/regenerable for search/LOD.
+- Same dual-client contract: humans render the executed drawing; AI consumes procedural programs/embeddings from the same node (extras.k3d).
+
+## 9. References
 
 - *.kkrieger* (2004) — Farbrausch / .theprodukkt (procedural FPS, 96 KB)
 - Milton Ponson, *Mathematical Foundations for Convergent Models* (2024)
@@ -120,4 +133,3 @@ CPU parity is available via `ProceduralCompiler.decompile_program`, enabling off
 ---
 
 *This document is intended for discussion within the W3C AI KR Community Group ahead of TPAC 2025.*
-
