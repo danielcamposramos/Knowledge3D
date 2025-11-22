@@ -80,6 +80,20 @@ K3D distinguishes between two types of clients, both of which are **first-class 
 
 ---
 
+### 1.5 Reality Enabler Nodes (Simulated Reality)
+
+The Dual-Client Contract applies equally to **simulated reality** produced by the Reality Enabler:
+
+- Reality nodes (`reality_atom`, `reality_molecule`, `reality_material`, `reality_system`) expose:
+  - `visual_rpn` for human-visible simulations (orbits, fluids, growth, etc.),
+  - `behavior_rpn` / `meaning_rpn` for AI-executable physics/chemistry/biology.
+- Human avatars see evolving geometry in rooms like the Workshop or Bathtub; Synthetic Users execute the same underlying programs via PTX kernels (e.g., `ModularRPNEngine`, `VectorResonator`, `WorldModelBridge`).
+- When a Synthetic User emits an action to “run” or “refine” a simulation, it MUST:
+  - operate on the same K3D nodes and coordinates the human sees,
+  - write results back to Galaxy/House in a way that remains inspectable (same glTF + `extras.k3d` contract).
+
+Simulated reality is thus not a separate black box; it is part of the shared spatial memory, subject to the same guarantees of identity, transparency, and auditability as all other K3D nodes.
+
 ## 2. Contract Overview
 
 ### 2.1 Core Guarantee

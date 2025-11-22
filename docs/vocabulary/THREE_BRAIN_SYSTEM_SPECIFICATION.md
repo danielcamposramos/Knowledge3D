@@ -263,6 +263,13 @@ def sleep_time_consolidation():
     galaxy.unlock()
 ```
 
+For **Reality Enabler** artifacts (simulated physics/chemistry/biology and other domains), SleepTime MUST additionally:
+- consult `law_rpn` / `behavior_rpn` for relevant `reality_*` nodes via Cranium kernels,
+- reject or quarantine scenes that violate basic domain constraints (e.g., obviously unstable structures, impossible reactions) before crystallizing them to House,
+- optionally lower simulation LOD (Matryoshka tier) while preserving key invariants when writing to persistent GLBs.
+
+This keeps House artifacts physically/chemically/biologically coherent while allowing Galaxy to remain a more experimental, high-resolution workspace.
+
 **Measured Performance**:
 - Consolidation time: ~8.3ms for 51,532 nodes (meets <10ms target)
 - Compression ratio: 4:1 (34MB → 8.5MB GLB with Draco)
