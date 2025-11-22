@@ -10,6 +10,7 @@ Each star captures lemma-level aggregates per language:
 - source treebanks that contributed the evidence
 - procedural morph_rpn (simple deterministic RPN string)
 - meaning_program: compact JSON string (procedural payload for PD/galaxy ingest)
+- meaning_id/sense: meaning-first identity (sense defaulted here; polysemy split upstream)
 
 Input:
     --ud-root /K3D/K3D_llama_cpp/datasets/ud/ud-treebanks-v2.14
@@ -149,9 +150,14 @@ def ingest_ud(ud_root: Path, out_path: Path) -> None:
     with out_path.open("w", encoding="utf-8") as out_f:
         for (lang, lemma), data in aggregates.items():
             morph_rpn = build_morph_rpn(lang, lemma, data["upos"], data["feats"])
+            # UD has no sense annotations; keep explicit default sense for meaning-first identity.
+            sense = "default"
+            meaning_id = f"WORD_{lang}_{lemma}_{sense}"
             star = {
                 "lang": lang,
                 "lemma": lemma,
+                "sense": sense,
+                "meaning_id": meaning_id,
                 "forms": sorted(data["forms"]),
                 "upos": dict(data["upos"]),
                 "xpos": dict(data["xpos"]),

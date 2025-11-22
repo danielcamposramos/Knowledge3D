@@ -30,6 +30,31 @@ Traditional knowledge representation separates visual presentation from semantic
 3. **Self-Describing**: Metadata declares modality, provenance, confidence
 4. **Spatially Grounded**: (x, y, z) position encodes semantic proximity
 5. **glTF-Compatible**: Can be loaded by any glTF viewer (graceful degradation)
+6. **Procedural-First**: Executable programs (visual_rpn, audio_rpn/codec, math/meaning_rpn) are the primary source of truth; embeddings are regenerable, secondary search indexes.
+7. **Meaning-First Identity**: Node identity is determined by meaning/domain, not glyph similarity. Letter meanings group upper/lower/variant glyphs into one node; math symbols/operators remain separate nodes/galaxies even if glyphs resemble letters.
+
+### 1.3 Meaning-First Archetypes (Ingestion Guidance)
+Implementations SHOULD ingest nodes using meaning as the identity key and attach procedural programs as primary data. Examples:
+
+- **Letter Meaning Node (per script)**
+  - `letter_concept`: e.g., `LETTER_A_LATIN`
+  - `semantic_identity`: alphabet position/category, phonetic values by language
+  - `glyph_variants`: visual_rpn list (uppercase/lowercase/italic/bold/etc.) + font metadata; compositional rules (case selection, kerning, baseline)
+  - `procedural_programs`: visual_rpn (canonical), audio_rpn/codec (if available), meaning_rpn (conceptual), usage rules
+  - `embeddings`: Matryoshka tiers {64/128/512/2048}, regenerable from procedures
+
+- **Word Meaning Node (sense-disambiguated)**
+  - `semantic_identity`: lemma, POS, sense id (fruit vs company), definition/semantic features
+  - `letter_refs`: symlinks to letter meaning nodes (with per-position case selection rules)
+  - `procedural_programs`: meaning_rpn, morphology_rpn (inflection), phonetic_rpn, syntactic/dependency hints
+  - `embeddings`: Matryoshka tiers {128/512/2048}, regenerable from compositional procedures
+
+- **Math Symbol Node (operator/constant)**
+  - `symbol_concept`: e.g., `ADDITION_OPERATOR`, `PI_CONSTANT`
+  - `semantic_identity`: operation/arity/stack-effect (operators) or constant value (pi, e)
+  - `glyph_variants`: visual_rpn by size/font; NO case variants and NO word-composition rules
+  - `procedural_programs`: math_rpn (execution), visual_rpn (render), optional audio_rpn (verbalization)
+  - `embeddings`: Matryoshka tiers for search/LOD only; regenerable from procedures
 
 ---
 
