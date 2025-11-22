@@ -2,6 +2,12 @@
 """
 Loader scaffold: merge PD-packed word stars and prepare for Galaxy/House ingestion.
 
+Meaning/procedural-first rules (aligns with vocab specs):
+- Identity is by meaning/sense (e.g., "apple" fruit vs "Apple" company are different stars).
+- Letters are referenced as letter-meaning nodes (case variants inside the letter node; no math symbols here).
+- Math symbols/operators are a separate galaxy and must not be merged with word/letter galaxies.
+- Procedural programs are primary; embeddings are secondary/regenerable. Keep raw procedural fields intact.
+
 Note: The actual Galaxy/House upsert bridge is not implemented here (no public API
 present in repo). This script produces a merged file ready for an upsert bridge,
 and logs basic stats. Replace the placeholder `wire_to_galaxy` once the bridge
@@ -51,7 +57,11 @@ def main() -> None:
                 if not line.strip():
                     continue
                 star = json.loads(line)
-                key = (star.get("lang", ""), star.get("lemma", ""))
+                key = (
+                    star.get("lang", ""),
+                    star.get("sense", "default"),
+                    star.get("lemma", ""),
+                )
                 merged[key] = star
 
     out_path.parent.mkdir(parents=True, exist_ok=True)

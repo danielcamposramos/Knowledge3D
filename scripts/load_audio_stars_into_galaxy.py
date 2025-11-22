@@ -25,6 +25,11 @@ Outline:
 
 This operates at the metadata layer; actual procedural audio is already
 encoded as harmonics/envelope. No CPU audio calculation is performed.
+
+Meaning/procedural-first guardrails:
+- Attach audio to letter-meaning stars (not math symbols; not separate per case).
+- Keep procedural fields intact (harmonics/envelope/codec); embeddings are secondary/regenerable.
+- Math symbols/operators live in their own galaxy; do not mix with phoneme/audio stars.
 """
 
 from __future__ import annotations

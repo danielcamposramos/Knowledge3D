@@ -64,6 +64,11 @@ Large (>99 MB) or bulk-generated artifacts live outside the repo under `../Kno
        --output /K3D/Knowledge3D.local/datasets/word_stars_all.jsonl
      ```
   4. Upsert to Galaxy/House: implement bridge in `scripts/load_word_stars_into_galaxy.py` (placeholder).
+  5. Meaning/procedural-first guardrails:
+     - Words are sense-disambiguated (fruit vs company, etc.); identity by meaning.
+     - Letters are referenced as letter-meaning nodes (case variants live inside the letter node); do not merge math symbols/operators.
+     - Procedural programs stay primary (meaning_rpn/morph_rpn/phonetic); embeddings are secondary/regenerable.
+     - Default loads: base + word meaning + math symbols + punctuation; letter galaxies load on-demand per script.
 
 ## Legacy Examples
 - Target: `Knowledge3D.local/old_attempts/legacy_fancy_rag/examples/`
