@@ -229,6 +229,24 @@ An implementation conforms to the Reality Enabler Specification if it:
    - physically/chemically/biologically plausible scenes are crystallized to House,
    - invalid scenes are either corrected or archived.
 
+### 6.1 Backend Portability and Example Implementation
+
+This specification is intentionally **storage- and semantics-first**:
+
+- Normative:
+  - Node shapes (`reality_*` types, `visual_rpn`, `behavior_rpn`/`law_rpn`, `component_refs`).
+  - Galaxy structure (specialist galaxies, stacked composition, Matryoshka+PD04 usage).
+  - Dual-client contract (same stars for humans and AI).
+- Non-normative:
+  - The current CUDA/PTX implementation of math cores and bridges.
+
+Other engines and backends (e.g., Vulkan compute, WebGPU, Metal, CPU SIMD, or even transformer-based modules that implement the same `behavior_rpn` semantics) MAY be used, as long as they:
+- respect the RPN and opcode semantics defined by the Math Core and RPN foundation docs,
+- preserve determinism guarantees for laws and PD04 decompression where required,
+- continue to honour the dual-client and Three-Brain contracts.
+
+K3D’s PTX+RPN stack is therefore a **reference implementation**, not a constraint on the standard. The standards live in the glTF+`extras.k3d` schemas, Matryoshka/PD04 programs, and RPN law semantics; multiple heterogeneous engines can coexist above that substrate, just as multiple LLM architectures coexist above common data formats today.
+
 ---
 
 ## 7. References
