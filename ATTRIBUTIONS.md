@@ -74,6 +74,11 @@ K3D was built entirely on **free, open-source operating systems**. Every kernel 
 
 **Credit**: Debian Project founders and maintainers (1993-present), SparkyLinux team, and the entire GNU/Linux ecosystem for proving that **world-class infrastructure can be built through community collaboration**, not corporate control.
 
+**Special Thanks — Pawel "pavroo" (SparkyLinux)**:
+- Creator and maintainer of SparkyLinux, whose work provided the daily driver OS for early K3D development.
+- Personally encouraged the maintainer of this project to take first steps with GitHub and deepen Bash/Linux automation skills.
+- Many of the habits behind K3D’s reproducible scripts and shell workflows were formed while experimenting on SparkyLinux and the planned SparkyOS project.
+
 ---
 
 ### 0.2 Development Environment
