@@ -76,6 +76,10 @@ The following small systems in `knowledge3d/cranium/physics_demo.py` and `physic
   - Law: 1D heat diffusion `T_i^{n+1} = T_i^n + α·dt/dx²·(T_{i+1}^n − 2T_i^n + T_{i−1}^n)`.  
   - RPN usage: integration step delegated to RPN; stencil computed in host code, with future work to move more of the stencil math into pure RPN if desired.
 
+- **Heat2D**:  
+   - Law: 2D heat diffusion with 5-point stencil over a rectangular grid.  
+   - RPN usage: similar pattern to Heat1D; the 2D Laplacian is assembled host-side, and the integration step `T_{i,j}^{n+1} = T_{i,j}^n + dT_{i,j}` is executed via scalar RPN programs per cell.
+
 All of these reuse the shared RPN math surface; they are examples of how to encode ODEs and simple PDEs without adding new opcodes.
 
 ---

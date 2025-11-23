@@ -62,7 +62,7 @@ Reality Enabler extends the **Galaxy Universe** (see SPATIAL_UI_ARCHITECTURE_SPE
   - Current seeds (local demo layer):
     - 1D constant acceleration and 1D harmonic oscillator (`ConstantAcceleration1D`, `HarmonicOscillator1D` in `knowledge3d/cranium/physics_demo.py`).
     - 2D central-force orbit (`Orbital2D` in `physics_demo.py`).
-    - 1D heat diffusion (`Heat1D` in `physics_demo.py`).
+    - 1D and 2D heat diffusion (`Heat1D`, `Heat2D` in `physics_demo.py`).
     - Procedural storage via `PhysicsGalaxy` (`knowledge3d/cranium/physics_galaxy.py`) using PD0x/ProceduralGalaxy as a physics‑specific galaxy root.
 
 - **Chemistry Galaxy**:

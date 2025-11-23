@@ -5,6 +5,7 @@ from knowledge3d.cranium.physics_demo import (
     HarmonicOscillator1D,
     Orbital2D,
     Heat1D,
+    Heat2D,
     PhysicsGalaxyDemo,
 )
 
@@ -129,6 +130,37 @@ def test_heat1d_diffuses_peak_and_preserves_total_energy():
     assert T_final[center] < 1.0
     assert T_final[center - 1] > 0.0
     assert T_final[center + 1] > 0.0
+
+    # Total heat should be approximately conserved.
+    assert np.isclose(T_final.sum(), T0.sum(), atol=1e-2)
+
+
+def test_heat2d_diffuses_peak_and_preserves_total_energy():
+    """
+    2D heat diffusion sanity check:
+    - Start with a delta-like peak in the center of a 2D grid.
+    - After several steps, the peak spreads while total heat remains
+      approximately constant.
+    """
+    H, W = 9, 9
+    alpha = 0.1
+    dx = 1.0
+    dt = 0.02
+    steps = 50
+
+    T0 = np.zeros((H, W), dtype=np.float32)
+    ci, cj = H // 2, W // 2
+    T0[ci, cj] = 1.0
+
+    system = Heat2D(temperature=T0, alpha=alpha, dx=dx, dt=dt)
+    T_final = system.step(n_steps=steps)
+
+    # Central value should decrease; neighbors in 4-neighborhood should increase.
+    assert T_final[ci, cj] < 1.0
+    assert T_final[ci + 1, cj] > 0.0
+    assert T_final[ci - 1, cj] > 0.0
+    assert T_final[ci, cj + 1] > 0.0
+    assert T_final[ci, cj - 1] > 0.0
 
     # Total heat should be approximately conserved.
     assert np.isclose(T_final.sum(), T0.sum(), atol=1e-2)

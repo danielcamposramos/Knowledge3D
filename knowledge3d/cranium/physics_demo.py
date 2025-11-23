@@ -273,6 +273,72 @@ class Heat1D:
         return T
 
 
+@dataclass
+class Heat2D:
+    """
+    2D heat diffusion on a rectangular grid using an explicit scheme.
+
+    Discrete update (5-point stencil):
+        T_{i,j}^{n+1} = T_{i,j}^n + alpha * dt / dx^2 * (
+            T_{i+1,j}^n + T_{i-1,j}^n + T_{i,j+1}^n + T_{i,j-1}^n - 4 T_{i,j}^n
+        )
+
+    Boundary conditions:
+        - Fixed (Dirichlet): border cells remain unchanged.
+
+    As with Heat1D, the stencil is assembled on host; the RPN math core
+    performs the final integration step for each interior cell.
+    """
+
+    temperature: np.ndarray  # shape [H, W]
+    alpha: float
+    dx: float
+    dt: float
+    _engine: ModularRPNEngine | None = None
+
+    @property
+    def engine(self) -> ModularRPNEngine:
+        if self._engine is None:
+            self._engine = ModularRPNEngine()
+        return self._engine
+
+    def _eval(self, expr: str) -> float:
+        return self.engine.evaluate(expr)
+
+    def step(self, n_steps: int = 1) -> np.ndarray:
+        """
+        Advance the 2D field by n_steps.
+
+        Returns:
+            Updated temperature array.
+        """
+        T = np.asarray(self.temperature, dtype=np.float32)
+        h, w = T.shape
+        if h < 3 or w < 3:
+            return T
+
+        coeff = self.alpha * self.dt / max(self.dx * self.dx, 1e-12)
+
+        for _ in range(n_steps):
+            T_new = T.copy()
+            for i in range(1, h - 1):
+                for j in range(1, w - 1):
+                    lap = (
+                        T[i + 1, j]
+                        + T[i - 1, j]
+                        + T[i, j + 1]
+                        + T[i, j - 1]
+                        - 4.0 * T[i, j]
+                    )
+                    dT = coeff * lap
+                    expr = f"{float(T[i, j])} {float(dT)} 1.0 * +"
+                    T_new[i, j] = self._eval(expr)
+            T = T_new
+
+        self.temperature = T
+        return T
+
+
 class PhysicsGalaxyDemo:
     """
     Minimal persistence layer for constant-acceleration systems.
