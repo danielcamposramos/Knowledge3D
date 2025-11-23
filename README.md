@@ -33,6 +33,8 @@
 
 > **Mission**: Build a shared spatial operating system where humans and AI cohabit one reality, reason through PTX‑native cognition, and consolidate memories as explorable worlds.
 
+**VIDEO PLAYLIST SHORTCUT: SEE \"K3D MULTI-LANGUAGE VIDEO PLAYLIST\" SECTION BELOW**
+
 [![status](https://img.shields.io/badge/status-Phase_G_Training_Complete-green)](docs/ROADMAP.md) [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE) [![FMEAI](https://img.shields.io/badge/Philosophy-FMEAI-purple)](docs/PHILOSOPHY.md)
 
 > 🎓 **Deep Dive**: For comprehensive understanding of the project architecture, philosophy, and technical details, visit our [**NotebookLM Research Space**](https://notebooklm.google.com/notebook/1bd10bda-8900-4c41-931e-c9ec67ac865f) — the best place to explore Knowledge3D in depth.
@@ -187,6 +189,31 @@ Knowledge3D stands on the shoulders of giants. We build upon foundational resear
 ```
 
 **The Lineage vs. The Innovation**: We clearly distinguish between what we borrowed (Matryoshka embeddings, dual-texture compression, LOD techniques, game engine scene management) and what we uniquely created (spatial KR architecture, sovereign PTX stack, Three-Brain System, procedural compression codec, Spatial UI standard). See [ATTRIBUTIONS.md](ATTRIBUTIONS.md) for the complete story.
+
+---
+
+## K3D Multi-Language Video Playlist
+
+- **Knowledge3D : Un plan différent — Souveraineté GPU, Révolution Procédurale (Web 4.0)**  
+  https://www.youtube.com/watch?v=hThHxP9evFU
+- **Knowledge3D: Wszechświat Znaczenia \| Otwarty, Suwerenny OS Kognitywny 3D (XAI)**  
+  https://www.youtube.com/watch?v=qowvrwJqmkg
+- **Knowledge3D: Вселенная смысла \| GPU-Суверенный 3D Когнитивный OS и Открытый Стандарт для Web 4.0**  
+  https://www.youtube.com/watch?v=OX_RXiACXVM
+- **K3D: Un Universo Soberano y Espacial – El Sistema Operativo Cognitivo 3D Abierto (Web 4.0)**  
+  https://www.youtube.com/watch?v=fOhAsVcVZVM
+- **K3D 선언문: AI의 대안적 미래 \| GPU 주권, 검증 가능한 추론, 그리고 12기가톤의 CO₂ 절감을 위한 공간 인지 OS**  
+  https://www.youtube.com/watch?v=k2YeeMAcs7E
+- **Knowledge3D：一個生生不息的知識宇宙 — 突破LLM記憶限制，實現空間知識、GPU主權與可解釋AI (XAI)**  
+  https://www.youtube.com/watch?v=GimgTqTgSPM
+- **Knowledge3D: 信頼できるAIの宇宙 — XAI、GPU主権、空間記憶を通じて人間とAIの共生を可能にする**  
+  https://www.youtube.com/watch?v=lEu_uMuIzsw
+- **Knowledge3D: Manifesto Web \| O Padrão Soberano e Espacial (Web 4.0) Inteligência Coletiva Humano-IA**  
+  https://www.youtube.com/watch?v=27eKTnSl8XA
+- **Knowledge3D: A New Universe – Building the GPU-Sovereign, 3D Cognitive OS, Procedural Intelligence**  
+  https://www.youtube.com/watch?v=yK8cawwGvj0
+- **Knowledge3D：共享AI宇宙宣言 — 以 K3D 架構實現 GPU 主權、可解釋的 3D 認知操作系統**  
+  https://www.youtube.com/watch?v=SZf4GIZuPsw
 
 ---
 
