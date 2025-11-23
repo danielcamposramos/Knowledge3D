@@ -618,6 +618,19 @@ With neural nets? You can't do any of this. It's a black box.
 
 **W3C AI KR Mission**: "Explainable, transparent, trustworthy AI"
 
+---
+
+## 9. Relationship to Math Cores, Compression, and Reality Enabler
+
+RPN in K3D is not an isolated component—it is the **execution surface** for the tiered Math Core and the Reality Enabler:
+
+- The **Math Core Specification** formalizes how the Modular RPN Engine (18 instances, 69‑instruction programs) is organized into simple/mid/high math cores (worker‑worker → worker → master). All use the same RPN semantics defined in this document; only scheduling and opcode subsets differ.
+- The **Adaptive Procedural Compression Specification (PD04)** treats RPN‑generated embeddings (Matryoshka tiers) as regenerable, compressible state. PD04 programs and ternary codecs let us store and reload RPN outputs (and even law embeddings) with 12–80× compression while preserving mathematical fidelity.
+- The **Reality Enabler Specification** uses RPN as the language of physical/chemical/biological laws: every `behavior_rpn` or `law_rpn` attached to `reality_*` nodes is an executable RPN program running on math cores. Dual‑program stars (visual_rpn + behavior_rpn) thus unify math, compression, and procedural reality in a single, auditable computational fabric.
+- The **adaptive swarm and specialist architecture** treats RPN programs as first‑class assets: specialists refine both their procedural libraries (RPN programs / stars) and their adapter weights (LoRA‑style, with shadow copy validation), so self‑improvement happens at two levels—explicit programs and the routing/logic that chooses and parameterizes those programs.
+
+In short: RPN gives us the formal semantics; math cores provide the tiered execution engine; PD04/ternary codecs compress its outputs; Reality Enabler uses the same machinery to make 3D worlds behave like coherent reality.
+
 **RPN Contribution**:
 - ✅ **Explainable**: Every RPN operation has clear semantics (ADD = addition, not "learned transform 42")
 - ✅ **Transparent**: Full execution trace available for audit
