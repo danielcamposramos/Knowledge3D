@@ -78,6 +78,9 @@ Fidelity thresholds are measured on validation sets and MUST be verified per dep
 - Programs are byte-addressable and MAY be embedded in glTF via K3D extensions.
 - Matryoshka ordering ensures monotonic refinement across dimensions.
 - Deterministic PTX kernel execution ensures reproducibility on consumer GPUs.
+- PD04 programs are primary compression format for:
+  - **Reality Enabler** simulation states and law embeddings (see `REALITY_ENABLER_SPECIFICATION.md`),
+  - multi-tier Matryoshka embeddings used by the **math cores** and TRM for fast LOD switching (see `MATH_CORE_SPECIFICATION.md`).
 
 ---
 
@@ -129,4 +132,3 @@ This specification operationalizes `TEMP/W3C_INSERTION_9_PROCEDURAL_COMPRESSION.
    - K3D adapts for RPN program encoding
 
 K3D's Adaptive Procedural Compression (PD04 codec) is a novel contribution that achieves 12-80× compression with 99.96-99.998% fidelity through executable knowledge programs.
-
