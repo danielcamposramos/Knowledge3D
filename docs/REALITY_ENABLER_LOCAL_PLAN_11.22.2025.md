@@ -46,16 +46,17 @@
 ### Phase 3 — Minimal Physics Reality Enabler Demo
 
 - Define a tiny **Physics Galaxy**:
-  - Example: 2-body system (sun + planet) or pendulum.  
+  - DONE (first slice): 1D constant-acceleration and harmonic oscillator systems in `knowledge3d/cranium/physics_demo.py`.  
+  - NEXT: extend to a simple orbital system (2D/3D) or pendulum using the same pattern.
 - Implement `reality_*` nodes:
   - `reality_atom` / `reality_system` for the chosen scenario.  
   - `visual_rpn`: simple body geometry + trajectory visualization using drawing opcodes/FractalEmitter.  
-  - `behavior_rpn`: kinematic update as RPN (Euler or similar) over existing math opcodes.
+  - `behavior_rpn`: kinematic update as RPN (Euler or similar) over existing math opcodes (already proven for constant acceleration + harmonic oscillator).
 - Wire to math cores:
-  - Use `TieredRPNEngine` to execute step programs and write state back into Galaxy as Matryoshka+PD04 embeddings.
+  - Use `TieredRPNEngine` / `ModularRPNEngine` to execute step programs and write state back into Galaxy as Matryoshka+PD04 embeddings.
 - Tests:
   - Unit: one simulation step matches a Python reference integrator (within tolerance).  
-  - Integration: 100-step run completes under ~1s and produces coherent orbits/trajectories.
+  - Integration: 100-step run completes under ~1s and produces coherent trajectories (1D and 2D/3D as demos).
 
 ### Phase 4 — Minimal Chemistry & Biology Examples
 
@@ -187,4 +188,3 @@ This plan assumes and reinforces:
 
 Future work will update individual documentation files as implementation converges, but this plan is the guiding contract:  
 **Base model + adapters + procedural stars, with self-improvement at both RPN and weight levels, all grounded in the Math Core and Galaxy/House memory architecture.**
-
