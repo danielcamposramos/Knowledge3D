@@ -56,6 +56,28 @@ Without introducing new opcodes, physics primitives can be described via:
 
 In Reality Enabler terms, a **physics galaxy** star’s `behavior_rpn` is a composition of these existing ops, scheduled across simple/mid/high math cores depending on complexity.
 
+### 2.1 Current Physics Implementations (Reference)
+
+The following small systems in `knowledge3d/cranium/physics_demo.py` and `physics_galaxy.py` use this surface today:
+
+- **ConstantAcceleration1D**:  
+  - Law: `v_{t+1} = v_t + a·dt`, `x_{t+1} = x_t + v_{t+1}·dt`.  
+  - RPN usage: scalar `+`/`*` via `ModularRPNEngine` (Tier‑1/2).
+
+- **HarmonicOscillator1D**:  
+  - Law: `x'' + ω²x = 0` rewritten as `v' = -ω²x`, `x' = v`.  
+  - RPN usage: integration steps in RPN; state‑dependent acceleration computed in host, ready to be inlined into RPN if needed.
+
+- **Orbital2D**:  
+  - Law: `a = -μ r / |r|³` for central gravitational force in 2D.  
+  - RPN usage: per‑component integration for `(vx, vy, x, y)`; radius/energy checks in tests demonstrate physical plausibility.
+
+- **Heat1D**:  
+  - Law: 1D heat diffusion `T_i^{n+1} = T_i^n + α·dt/dx²·(T_{i+1}^n − 2T_i^n + T_{i−1}^n)`.  
+  - RPN usage: integration step delegated to RPN; stencil computed in host code, with future work to move more of the stencil math into pure RPN if desired.
+
+All of these reuse the shared RPN math surface; they are examples of how to encode ODEs and simple PDEs without adding new opcodes.
+
 ---
 
 ## 3. Chemistry-Oriented Opcodes (Via Math + Graph Programs)
@@ -130,4 +152,3 @@ Any new opcode MUST:
 - `knowledge3d/cranium/ptx_runtime/rpn_math_core.py`  
 - `docs/vocabulary/MATH_CORE_SPECIFICATION.md`  
 - `docs/vocabulary/REALITY_ENABLER_SPECIFICATION.md`  
-

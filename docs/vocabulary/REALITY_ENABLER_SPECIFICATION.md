@@ -59,6 +59,11 @@ Reality Enabler extends the **Galaxy Universe** (see SPATIAL_UI_ARCHITECTURE_SPE
   - Stars: forces, constraints, integrators, simple bodies, fields.
   - Behavior: `behavior_rpn` executed via `ModularRPNEngine`, `VectorResonator`, `GraphCrystallizer`, and `WorldModelBridge` (dynamic meshes, temporal coherence).
   - Visuals: `visual_rpn` + drawing kernels (`rpn_executor.ptx`, `FractalEmitter`) render orbits, trajectories, fields.
+  - Current seeds (local demo layer):
+    - 1D constant acceleration and 1D harmonic oscillator (`ConstantAcceleration1D`, `HarmonicOscillator1D` in `knowledge3d/cranium/physics_demo.py`).
+    - 2D central-force orbit (`Orbital2D` in `physics_demo.py`).
+    - 1D heat diffusion (`Heat1D` in `physics_demo.py`).
+    - Procedural storage via `PhysicsGalaxy` (`knowledge3d/cranium/physics_galaxy.py`) using PD0x/ProceduralGalaxy as a physics‑specific galaxy root.
 
 - **Chemistry Galaxy**:
   - Stars: `reality_atom` (H, O, C, …), `reality_molecule`, `reality_material`.
