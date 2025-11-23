@@ -238,5 +238,5 @@ An implementation conforms to the Reality Enabler Specification if it:
 - `docs/vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md`  
 - `docs/vocabulary/THREE_BRAIN_SYSTEM_SPECIFICATION.md`  
 - `docs/vocabulary/ADAPTIVE_PROCEDURAL_COMPRESSION_SPECIFICATION.md`  
+- `docs/vocabulary/MATH_CORE_SPECIFICATION.md`  
 - `docs/Reality_Enabler.md`  
-
