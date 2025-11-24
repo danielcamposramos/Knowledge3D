@@ -339,6 +339,320 @@ class Heat2D:
         return T
 
 
+@dataclass
+class Projectile2D:
+    """
+    2D projectile motion with air resistance.
+
+    State:
+        x, y   : position components
+        vx, vy : velocity components
+        g      : gravitational acceleration (positive downward)
+        k      : air resistance coefficient
+        dt     : timestep
+
+    Forces:
+        F_gravity = (0, -g)
+        F_drag = -k * v * |v|  (quadratic drag)
+
+    Discrete update (Euler-like):
+        a = (0, -g) - k * v * |v|
+        v_{t+1} = v_t + a * dt
+        x_{t+1} = x_t + v_{t+1} * dt
+    """
+
+    x: float
+    y: float
+    vx: float
+    vy: float
+    g: float
+    k: float
+    dt: float
+    _engine: ModularRPNEngine | None = None
+
+    @property
+    def engine(self) -> ModularRPNEngine:
+        if self._engine is None:
+            self._engine = ModularRPNEngine()
+        return self._engine
+
+    def _eval(self, expr: str) -> float:
+        return self.engine.evaluate(expr)
+
+    def step(self, n_steps: int = 1) -> tuple[float, float, float, float]:
+        """
+        Advance the projectile by n_steps.
+
+        Returns:
+            (x, y, vx, vy) after the last step.
+        """
+        for _ in range(n_steps):
+            # Compute drag force: F_drag = -k * v * |v|
+            v_mag = math.sqrt(self.vx * self.vx + self.vy * self.vy)
+            drag_factor = self.k * v_mag
+
+            # ax = -k * vx * |v|
+            ax = -drag_factor * self.vx
+
+            # ay = -g - k * vy * |v|
+            ay = -self.g - drag_factor * self.vy
+
+            # v_{t+1} = v_t + a * dt (component-wise via RPN)
+            expr_vx = f"{self.vx} {ax} {self.dt} * +"
+            expr_vy = f"{self.vy} {ay} {self.dt} * +"
+            new_vx = self._eval(expr_vx)
+            new_vy = self._eval(expr_vy)
+
+            # x_{t+1} = x_t + v_{t+1} * dt (component-wise via RPN)
+            expr_x = f"{self.x} {new_vx} {self.dt} * +"
+            expr_y = f"{self.y} {new_vy} {self.dt} * +"
+            new_x = self._eval(expr_x)
+            new_y = self._eval(expr_y)
+
+            self.vx = new_vx
+            self.vy = new_vy
+            self.x = new_x
+            self.y = new_y
+
+        return self.x, self.y, self.vx, self.vy
+
+
+@dataclass
+class DoublePendulum2D:
+    """
+    Chaotic double pendulum using RPN for integration.
+
+    State:
+        theta1, theta2 : angles of pendulum 1 and 2 (from vertical)
+        omega1, omega2 : angular velocities
+        L1, L2         : lengths
+        m1, m2         : masses
+        g              : gravity
+        dt             : timestep
+
+    Equations of motion (derived from Lagrangian):
+        Complex coupled second-order ODEs; we compute accelerations in Python
+        and delegate integration to RPN.
+
+    This demonstrates a chaotic system where small changes in initial
+    conditions lead to drastically different trajectories.
+    """
+
+    theta1: float
+    theta2: float
+    omega1: float
+    omega2: float
+    L1: float
+    L2: float
+    m1: float
+    m2: float
+    g: float
+    dt: float
+    _engine: ModularRPNEngine | None = None
+
+    @property
+    def engine(self) -> ModularRPNEngine:
+        if self._engine is None:
+            self._engine = ModularRPNEngine()
+        return self._engine
+
+    def _eval(self, expr: str) -> float:
+        return self.engine.evaluate(expr)
+
+    def step(self, n_steps: int = 1) -> tuple[float, float, float, float]:
+        """
+        Advance the double pendulum by n_steps.
+
+        Returns:
+            (theta1, theta2, omega1, omega2) after the last step.
+        """
+        for _ in range(n_steps):
+            # Compute angular accelerations using double pendulum equations
+            # (simplified Lagrangian mechanics)
+            delta = self.theta2 - self.theta1
+            sin_delta = math.sin(delta)
+            cos_delta = math.cos(delta)
+
+            denom1 = (self.m1 + self.m2) * self.L1 - self.m2 * self.L1 * cos_delta * cos_delta
+            denom2 = (self.L2 / self.L1) * denom1
+
+            # alpha1 (angular acceleration of pendulum 1)
+            alpha1 = (
+                self.m2 * self.L1 * self.omega1 * self.omega1 * sin_delta * cos_delta
+                + self.m2 * self.g * math.sin(self.theta2) * cos_delta
+                + self.m2 * self.L2 * self.omega2 * self.omega2 * sin_delta
+                - (self.m1 + self.m2) * self.g * math.sin(self.theta1)
+            ) / denom1
+
+            # alpha2 (angular acceleration of pendulum 2)
+            alpha2 = (
+                -self.m2 * self.L2 * self.omega2 * self.omega2 * sin_delta * cos_delta
+                + (self.m1 + self.m2) * self.g * math.sin(self.theta1) * cos_delta
+                - (self.m1 + self.m2) * self.L1 * self.omega1 * self.omega1 * sin_delta
+                - (self.m1 + self.m2) * self.g * math.sin(self.theta2)
+            ) / denom2
+
+            # Integrate using RPN
+            expr_omega1 = f"{self.omega1} {alpha1} {self.dt} * +"
+            expr_omega2 = f"{self.omega2} {alpha2} {self.dt} * +"
+            new_omega1 = self._eval(expr_omega1)
+            new_omega2 = self._eval(expr_omega2)
+
+            expr_theta1 = f"{self.theta1} {new_omega1} {self.dt} * +"
+            expr_theta2 = f"{self.theta2} {new_omega2} {self.dt} * +"
+            new_theta1 = self._eval(expr_theta1)
+            new_theta2 = self._eval(expr_theta2)
+
+            self.omega1 = new_omega1
+            self.omega2 = new_omega2
+            self.theta1 = new_theta1
+            self.theta2 = new_theta2
+
+        return self.theta1, self.theta2, self.omega1, self.omega2
+
+
+@dataclass
+class CoupledOscillators:
+    """
+    Two coupled harmonic oscillators connected by a spring.
+
+    State:
+        x1, x2 : displacements from equilibrium
+        v1, v2 : velocities
+        k      : spring constant for each oscillator
+        k_c    : coupling spring constant
+        m1, m2 : masses
+        dt     : timestep
+
+    Equations:
+        F1 = -k * x1 - k_c * (x1 - x2)
+        F2 = -k * x2 - k_c * (x2 - x1)
+
+        a1 = F1 / m1
+        a2 = F2 / m2
+
+    Discrete update:
+        v_{t+1} = v_t + a * dt
+        x_{t+1} = x_t + v_{t+1} * dt
+    """
+
+    x1: float
+    x2: float
+    v1: float
+    v2: float
+    k: float
+    k_c: float
+    m1: float
+    m2: float
+    dt: float
+    _engine: ModularRPNEngine | None = None
+
+    @property
+    def engine(self) -> ModularRPNEngine:
+        if self._engine is None:
+            self._engine = ModularRPNEngine()
+        return self._engine
+
+    def _eval(self, expr: str) -> float:
+        return self.engine.evaluate(expr)
+
+    def step(self, n_steps: int = 1) -> tuple[float, float, float, float]:
+        """
+        Advance the coupled oscillators by n_steps.
+
+        Returns:
+            (x1, x2, v1, v2) after the last step.
+        """
+        for _ in range(n_steps):
+            # Compute forces
+            F1 = -self.k * self.x1 - self.k_c * (self.x1 - self.x2)
+            F2 = -self.k * self.x2 - self.k_c * (self.x2 - self.x1)
+
+            # Accelerations
+            a1 = F1 / max(self.m1, 1e-12)
+            a2 = F2 / max(self.m2, 1e-12)
+
+            # Integrate velocities using RPN
+            expr_v1 = f"{self.v1} {a1} {self.dt} * +"
+            expr_v2 = f"{self.v2} {a2} {self.dt} * +"
+            new_v1 = self._eval(expr_v1)
+            new_v2 = self._eval(expr_v2)
+
+            # Integrate positions using RPN
+            expr_x1 = f"{self.x1} {new_v1} {self.dt} * +"
+            expr_x2 = f"{self.x2} {new_v2} {self.dt} * +"
+            new_x1 = self._eval(expr_x1)
+            new_x2 = self._eval(expr_x2)
+
+            self.v1 = new_v1
+            self.v2 = new_v2
+            self.x1 = new_x1
+            self.x2 = new_x2
+
+        return self.x1, self.x2, self.v1, self.v2
+
+
+@dataclass
+class RigidBody2D:
+    """
+    2D rigid body rotation under external torque.
+
+    State:
+        theta  : angle (orientation)
+        omega  : angular velocity
+        I      : moment of inertia
+        tau    : applied torque
+        dt     : timestep
+
+    Equation:
+        alpha = tau / I  (angular acceleration)
+
+    Discrete update:
+        omega_{t+1} = omega_t + alpha * dt
+        theta_{t+1} = theta_t + omega_{t+1} * dt
+    """
+
+    theta: float
+    omega: float
+    I: float
+    tau: float
+    dt: float
+    _engine: ModularRPNEngine | None = None
+
+    @property
+    def engine(self) -> ModularRPNEngine:
+        if self._engine is None:
+            self._engine = ModularRPNEngine()
+        return self._engine
+
+    def _eval(self, expr: str) -> float:
+        return self.engine.evaluate(expr)
+
+    def step(self, n_steps: int = 1) -> tuple[float, float]:
+        """
+        Advance the rigid body by n_steps.
+
+        Returns:
+            (theta, omega) after the last step.
+        """
+        for _ in range(n_steps):
+            # Compute angular acceleration
+            alpha = self.tau / max(self.I, 1e-12)
+
+            # omega_{t+1} = omega_t + alpha * dt
+            expr_omega = f"{self.omega} {alpha} {self.dt} * +"
+            new_omega = self._eval(expr_omega)
+
+            # theta_{t+1} = theta_t + omega_{t+1} * dt
+            expr_theta = f"{self.theta} {new_omega} {self.dt} * +"
+            new_theta = self._eval(expr_theta)
+
+            self.omega = new_omega
+            self.theta = new_theta
+
+        return self.theta, self.omega
+
+
 class PhysicsGalaxyDemo:
     """
     Minimal persistence layer for constant-acceleration systems.
