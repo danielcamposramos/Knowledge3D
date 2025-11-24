@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -27,6 +28,7 @@ from knowledge3d.cranium.reality_physics_export import (
     export_rigid_body_2d,
     export_rlc_circuit,
 )
+from knowledge3d.cranium.ptx_runtime.math_core_pool import MathCorePool
 
 
 def test_multi_system_parallel_execution() -> None:
@@ -35,11 +37,11 @@ def test_multi_system_parallel_execution() -> None:
 
     # Add systems spanning all three tiers
     systems = [
-        export_constant_acceleration_1d(),  # Tier-1, instance 0
-        export_projectile_2d(),             # Tier-1, instance 2
-        export_lc_circuit(),                # Tier-1, instance 5
-        export_coupled_oscillators(),       # Tier-2, instance 13
-        export_double_pendulum_2d(),        # Tier-3, instance 16
+        export_constant_acceleration_1d(auto_allocate=False),  # Tier-1, instance 0
+        export_projectile_2d(auto_allocate=False),             # Tier-1, instance 2
+        export_lc_circuit(auto_allocate=False),                # Tier-1, instance 5
+        export_coupled_oscillators(auto_allocate=False),       # Tier-2, instance 13
+        export_double_pendulum_2d(auto_allocate=False),        # Tier-3, instance 16
     ]
 
     for sys in systems:
@@ -71,22 +73,22 @@ def test_13_systems_full_allocation() -> None:
 
     # Add all 13 systems
     phase_4a = [
-        export_constant_acceleration_1d(),
-        export_harmonic_oscillator_1d(),
-        export_projectile_2d(),
-        export_rigid_body_2d(),
-        export_heat_1d(),
-        export_coupled_oscillators(),
-        export_orbital_2d(),
-        export_heat_2d(),
-        export_double_pendulum_2d(),
+        export_constant_acceleration_1d(auto_allocate=False),
+        export_harmonic_oscillator_1d(auto_allocate=False),
+        export_projectile_2d(auto_allocate=False),
+        export_rigid_body_2d(auto_allocate=False),
+        export_heat_1d(auto_allocate=False),
+        export_coupled_oscillators(auto_allocate=False),
+        export_orbital_2d(auto_allocate=False),
+        export_heat_2d(auto_allocate=False),
+        export_double_pendulum_2d(auto_allocate=False),
     ]
 
     phase_4b = [
-        export_point_charge_2d(),
-        export_lc_circuit(),
-        export_rc_circuit(),
-        export_rlc_circuit(),
+        export_point_charge_2d(auto_allocate=False),
+        export_lc_circuit(auto_allocate=False),
+        export_rc_circuit(auto_allocate=False),
+        export_rlc_circuit(auto_allocate=False),
     ]
 
     all_systems = phase_4a + phase_4b
@@ -183,6 +185,40 @@ def test_ternary_ops_across_systems() -> None:
     print(f"    Projectile drag sign: {projectile_state['sign_vx']}")
     print(f"    Charge sign: {charge_state['q1_sign']}")
     print(f"    RLC damping regime: {rlc_state['damping_regime']}")
+
+
+def test_1000_systems_dynamic_spawning() -> None:
+    """Stress test: 1000 physics systems with dynamic core allocation."""
+    pool = MathCorePool(gpu_id=0)
+    if pool.max_cores < 1000:
+        pytest.skip(f"Insufficient Math Core capacity ({pool.max_cores}) for 1000-system test")
+
+    galaxy = RealityGalaxy(math_core_pool=pool)
+
+    systems = []
+    for i in range(1000):
+        if i % 3 == 0:
+            sys = export_projectile_2d(auto_allocate=True)
+        elif i % 3 == 1:
+            sys = export_point_charge_2d(auto_allocate=True)
+        else:
+            sys = export_lc_circuit(auto_allocate=True)
+        sys.node_id = f"{sys.node_id}:{i}"
+        systems.append(sys)
+
+    for sys in systems:
+        galaxy.add_node(sys)
+
+    start = time.perf_counter()
+    for sys in systems:
+        galaxy.step_system(sys.node_id, n_steps=1)
+    elapsed = time.perf_counter() - start
+
+    print(f"\n  1000 systems stepped in {elapsed:.3f}s")
+    print(f"  Throughput: {1000/elapsed:.1f} systems/sec")
+    print(f"  Avg latency: {elapsed/1000*1000:.3f} ms/system")
+
+    assert elapsed < 5.0, f"1000 systems took {elapsed:.3f}s (should be <5s)"
 
 
 def test_galaxy_persistence_with_all_systems() -> None:

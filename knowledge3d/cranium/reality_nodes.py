@@ -67,7 +67,7 @@ class RealitySystem(RealityNode):
     state: Dict[str, float] = field(default_factory=dict)
     # Tier metadata
     rpn_tier: int = 1  # 1: simple, 2: mid, 3: high
-    rpn_instance: int = 0  # specific math core instance id
+    rpn_instance: Optional[int] = 0  # specific math core instance id (None => auto)
     matryoshka_dim: int = 128  # preferred embedding dimension
 
     def __post_init__(self) -> None:
