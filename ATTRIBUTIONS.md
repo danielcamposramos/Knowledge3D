@@ -1211,6 +1211,40 @@ This section documents external standards and systems that inspired the **Proced
 
 ---
 
+## 5.6 Community & Reference Resources
+
+### 5.6.1 Awesome Machine Learning
+
+**Source**: [josephmisiti/awesome-machine-learning](https://github.com/josephmisiti/awesome-machine-learning)
+**Maintainer**: Joseph Misiti and contributors
+**License**: CC0 1.0 Universal (Public Domain)
+
+**What It Provides**:
+- Curated list of machine learning frameworks, libraries, and software organized by language
+- Community-maintained reference for ML ecosystem landscape
+- Valuable resource for discovering state-of-the-art tools and approaches
+
+**How We Used It**:
+- Consulted during K3D's research phase to understand existing ML architectures and paradigms
+- Informed architectural decisions by studying what approaches exist and their limitations
+- Helped identify the gap that K3D fills: sovereign GPU-native neurosymbolic AI with zero external dependencies
+
+**K3D's Listing**:
+Knowledge3D is now listed under the **CUDA PTX** category (not "Tools") as a neurosymbolic AI architecture:
+- Sovereign GPU-native spatial AI architecture
+- PTX-first cognitive engine (RPN/TRM reasoning)
+- Tri-modal fusion (text/visual/audio)
+- 3D persistent memory ("Houses")
+- Sub-100µs inference, 69:1 compression
+- Zero external dependencies for core inference
+
+**Our Gratitude**:
+The awesome-machine-learning repository serves as an essential map of the ML landscape. By studying existing approaches cataloged there, we identified the architectural niche K3D fills: truly sovereign, GPU-native neurosymbolic AI that doesn't rely on black-box frameworks.
+
+**Credit**: Joseph Misiti and the awesome-machine-learning community for maintaining this invaluable reference and for listing K3D alongside other foundational ML approaches.
+
+---
+
 ## 6. K3D's Novel Contributions
 
 To clearly delineate our work from prior art:

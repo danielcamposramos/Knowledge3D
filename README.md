@@ -35,7 +35,7 @@
 
 **VIDEO PLAYLIST SHORTCUT: SEE \"K3D MULTI-LANGUAGE VIDEO PLAYLIST\" SECTION BELOW**
 
-[![status](https://img.shields.io/badge/status-Phase_G_Training_Complete-green)](docs/ROADMAP.md) [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE) [![FMEAI](https://img.shields.io/badge/Philosophy-FMEAI-purple)](docs/PHILOSOPHY.md)
+[![status](https://img.shields.io/badge/status-Phase_G_Training_Complete-green)](docs/ROADMAP.md) [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE) [![FMEAI](https://img.shields.io/badge/Philosophy-FMEAI-purple)](docs/PHILOSOPHY.md) [![Awesome](https://awesome.re/mentioned-badge.svg)](https://github.com/josephmisiti/awesome-machine-learning#cuda-ptx)
 
 > 🎓 **Deep Dive**: For comprehensive understanding of the project architecture, philosophy, and technical details, visit our [**NotebookLM Research Space**](https://notebooklm.google.com/notebook/1bd10bda-8900-4c41-931e-c9ec67ac865f) — the best place to explore Knowledge3D in depth.
 
@@ -1034,6 +1034,7 @@ K3D stands on the shoulders of giants. **Full attributions**: [ATTRIBUTIONS.md](
 - **NVIDIA** (CUDA/PTX), **DeepSeek AI** (OCR, thinking models), **Alibaba/Qwen** (Matryoshka embeddings)
 - **François Chollet** (ARC-AGI), **Milton Ponson** (mathematical grounding), **Nikolay Brusentsov** (Setun ternary computer)
 - **Farbrausch** (.kkrieger procedural generation), **MIT Instrumentation Lab** (Apollo 11 engineering)
+- **Joseph Misiti & Contributors** ([awesome-machine-learning](https://github.com/josephmisiti/awesome-machine-learning)) — ML ecosystem reference, K3D listed under CUDA PTX category
 
 **The MVCIC Paradigm**: 7 AI partners, 1 human visionary, 13 months → **4× faster than industry R&D** (3-7 years ahead).
 
