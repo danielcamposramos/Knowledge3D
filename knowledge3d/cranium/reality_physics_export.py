@@ -7,7 +7,10 @@ from typing import Dict
 from knowledge3d.cranium.reality_nodes import RealitySystem
 
 
-def export_constant_acceleration_1d(params: Dict | None = None) -> RealitySystem:
+def export_constant_acceleration_1d(
+    params: Dict | None = None,
+    auto_allocate: bool = True,
+) -> RealitySystem:
     p = params or {}
     return RealitySystem(
         node_id="system:constant_accel_1d",
@@ -22,12 +25,15 @@ def export_constant_acceleration_1d(params: Dict | None = None) -> RealitySystem
         behavior_rpn="v RECALL a RECALL dt RECALL * + v STORE x RECALL v RECALL dt RECALL * + x STORE",
         law_rpn="F RECALL m RECALL / a RECALL - abs 1e-6 lt",
         rpn_tier=1,
-        rpn_instance=0,
+        rpn_instance=None if auto_allocate else 0,
         matryoshka_dim=64,
     )
 
 
-def export_harmonic_oscillator_1d(params: Dict | None = None) -> RealitySystem:
+def export_harmonic_oscillator_1d(
+    params: Dict | None = None,
+    auto_allocate: bool = True,
+) -> RealitySystem:
     p = params or {}
     return RealitySystem(
         node_id="system:harmonic_osc_1d",
@@ -41,12 +47,15 @@ def export_harmonic_oscillator_1d(params: Dict | None = None) -> RealitySystem:
         behavior_rpn="x RECALL omega RECALL omega RECALL * * -1 * a STORE v RECALL a RECALL dt RECALL * + v STORE x RECALL v RECALL dt RECALL * + x STORE",
         law_rpn="",
         rpn_tier=1,
-        rpn_instance=1,
+        rpn_instance=None if auto_allocate else 1,
         matryoshka_dim=64,
     )
 
 
-def export_projectile_2d(params: Dict | None = None) -> RealitySystem:
+def export_projectile_2d(
+    params: Dict | None = None,
+    auto_allocate: bool = True,
+) -> RealitySystem:
     p = params or {}
     return RealitySystem(
         node_id="system:projectile_2d",
@@ -73,12 +82,15 @@ def export_projectile_2d(params: Dict | None = None) -> RealitySystem:
         """,
         law_rpn="",
         rpn_tier=1,
-        rpn_instance=2,
+        rpn_instance=None if auto_allocate else 2,
         matryoshka_dim=128,
     )
 
 
-def export_rigid_body_2d(params: Dict | None = None) -> RealitySystem:
+def export_rigid_body_2d(
+    params: Dict | None = None,
+    auto_allocate: bool = True,
+) -> RealitySystem:
     p = params or {}
     return RealitySystem(
         node_id="system:rigid_body_2d",
@@ -92,12 +104,15 @@ def export_rigid_body_2d(params: Dict | None = None) -> RealitySystem:
         behavior_rpn="tau RECALL I RECALL / alpha STORE omega RECALL alpha RECALL dt RECALL * + omega STORE theta RECALL omega RECALL dt RECALL * + theta STORE",
         law_rpn="",
         rpn_tier=1,
-        rpn_instance=3,
+        rpn_instance=None if auto_allocate else 3,
         matryoshka_dim=128,
     )
 
 
-def export_heat_1d(params: Dict | None = None) -> RealitySystem:
+def export_heat_1d(
+    params: Dict | None = None,
+    auto_allocate: bool = True,
+) -> RealitySystem:
     p = params or {}
     return RealitySystem(
         node_id="system:heat_1d",
@@ -109,12 +124,15 @@ def export_heat_1d(params: Dict | None = None) -> RealitySystem:
         behavior_rpn="",  # host-side stencil
         law_rpn="",
         rpn_tier=2,
-        rpn_instance=12,
+        rpn_instance=None if auto_allocate else 12,
         matryoshka_dim=128,
     )
 
 
-def export_coupled_oscillators(params: Dict | None = None) -> RealitySystem:
+def export_coupled_oscillators(
+    params: Dict | None = None,
+    auto_allocate: bool = True,
+) -> RealitySystem:
     p = params or {}
     return RealitySystem(
         node_id="system:coupled_oscillators",
@@ -132,12 +150,15 @@ def export_coupled_oscillators(params: Dict | None = None) -> RealitySystem:
         behavior_rpn="x1 RECALL sign x1s STORE x2 RECALL sign x2s STORE x1s RECALL x2s RECALL * mode_product STORE",
         law_rpn="",
         rpn_tier=2,
-        rpn_instance=13,
+        rpn_instance=None if auto_allocate else 13,
         matryoshka_dim=512,
     )
 
 
-def export_orbital_2d(params: Dict | None = None) -> RealitySystem:
+def export_orbital_2d(
+    params: Dict | None = None,
+    auto_allocate: bool = True,
+) -> RealitySystem:
     p = params or {}
     return RealitySystem(
         node_id="system:orbital_2d",
@@ -152,12 +173,15 @@ def export_orbital_2d(params: Dict | None = None) -> RealitySystem:
         behavior_rpn="",  # heavy math in host for now
         law_rpn="",
         rpn_tier=2,
-        rpn_instance=14,
+        rpn_instance=None if auto_allocate else 14,
         matryoshka_dim=512,
     )
 
 
-def export_heat_2d(params: Dict | None = None) -> RealitySystem:
+def export_heat_2d(
+    params: Dict | None = None,
+    auto_allocate: bool = True,
+) -> RealitySystem:
     p = params or {}
     return RealitySystem(
         node_id="system:heat_2d",
@@ -169,12 +193,15 @@ def export_heat_2d(params: Dict | None = None) -> RealitySystem:
         behavior_rpn="",
         law_rpn="",
         rpn_tier=2,
-        rpn_instance=15,
+        rpn_instance=None if auto_allocate else 15,
         matryoshka_dim=512,
     )
 
 
-def export_double_pendulum_2d(params: Dict | None = None) -> RealitySystem:
+def export_double_pendulum_2d(
+    params: Dict | None = None,
+    auto_allocate: bool = True,
+) -> RealitySystem:
     p = params or {}
     return RealitySystem(
         node_id="system:double_pendulum_2d",
@@ -193,7 +220,7 @@ def export_double_pendulum_2d(params: Dict | None = None) -> RealitySystem:
         behavior_rpn="",
         law_rpn="",
         rpn_tier=3,
-        rpn_instance=16,
+        rpn_instance=None if auto_allocate else 16,
         matryoshka_dim=2048,
     )
 
@@ -201,7 +228,10 @@ def export_double_pendulum_2d(params: Dict | None = None) -> RealitySystem:
 # ========== Phase 4B: Electromagnetism Systems ==========
 
 
-def export_point_charge_2d(params: Dict | None = None) -> RealitySystem:
+def export_point_charge_2d(
+    params: Dict | None = None,
+    auto_allocate: bool = True,
+) -> RealitySystem:
     """Export two-charge Coulomb system with ternary charge signs."""
     p = params or {}
     return RealitySystem(
@@ -247,12 +277,15 @@ def export_point_charge_2d(params: Dict | None = None) -> RealitySystem:
         """,
         law_rpn="",
         rpn_tier=1,
-        rpn_instance=4,
+        rpn_instance=None if auto_allocate else 4,
         matryoshka_dim=128,
     )
 
 
-def export_lc_circuit(params: Dict | None = None) -> RealitySystem:
+def export_lc_circuit(
+    params: Dict | None = None,
+    auto_allocate: bool = True,
+) -> RealitySystem:
     """Export LC oscillator with resonant frequency validation."""
     p = params or {}
     return RealitySystem(
@@ -272,12 +305,15 @@ def export_lc_circuit(params: Dict | None = None) -> RealitySystem:
         """,
         law_rpn="",
         rpn_tier=1,
-        rpn_instance=5,
+        rpn_instance=None if auto_allocate else 5,
         matryoshka_dim=128,
     )
 
 
-def export_rc_circuit(params: Dict | None = None) -> RealitySystem:
+def export_rc_circuit(
+    params: Dict | None = None,
+    auto_allocate: bool = True,
+) -> RealitySystem:
     """Export RC charging with exponential time constant."""
     p = params or {}
     return RealitySystem(
@@ -297,12 +333,15 @@ def export_rc_circuit(params: Dict | None = None) -> RealitySystem:
         """,
         law_rpn="V RECALL 0 ge V RECALL V_source RECALL le *",
         rpn_tier=1,
-        rpn_instance=6,
+        rpn_instance=None if auto_allocate else 6,
         matryoshka_dim=64,
     )
 
 
-def export_rlc_circuit(params: Dict | None = None) -> RealitySystem:
+def export_rlc_circuit(
+    params: Dict | None = None,
+    auto_allocate: bool = True,
+) -> RealitySystem:
     """Export RLC circuit with ternary damping regime detection."""
     p = params or {}
     return RealitySystem(
@@ -325,6 +364,6 @@ def export_rlc_circuit(params: Dict | None = None) -> RealitySystem:
         """,
         law_rpn="",
         rpn_tier=2,
-        rpn_instance=12,
+        rpn_instance=None if auto_allocate else 12,
         matryoshka_dim=512,
     )

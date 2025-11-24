@@ -33,10 +33,10 @@ from knowledge3d.cranium.reality_physics_export import (
 def test_tier1_simple_systems() -> None:
     galaxy = RealityGalaxy()
     systems = [
-        export_constant_acceleration_1d(),
-        export_harmonic_oscillator_1d(),
-        export_projectile_2d(),
-        export_rigid_body_2d(),
+        export_constant_acceleration_1d(auto_allocate=False),
+        export_harmonic_oscillator_1d(auto_allocate=False),
+        export_projectile_2d(auto_allocate=False),
+        export_rigid_body_2d(auto_allocate=False),
     ]
     for sys in systems:
         galaxy.add_node(sys)
@@ -48,10 +48,10 @@ def test_tier1_simple_systems() -> None:
 def test_tier2_mid_systems() -> None:
     galaxy = RealityGalaxy()
     systems = [
-        export_heat_1d(),
-        export_coupled_oscillators(),
-        export_orbital_2d(),
-        export_heat_2d(),
+        export_heat_1d(auto_allocate=False),
+        export_coupled_oscillators(auto_allocate=False),
+        export_orbital_2d(auto_allocate=False),
+        export_heat_2d(auto_allocate=False),
     ]
     for sys in systems:
         galaxy.add_node(sys)
@@ -62,7 +62,7 @@ def test_tier2_mid_systems() -> None:
 
 def test_tier3_high_systems() -> None:
     galaxy = RealityGalaxy()
-    sys = export_double_pendulum_2d()
+    sys = export_double_pendulum_2d(auto_allocate=False)
     galaxy.add_node(sys)
     assert sys.rpn_tier == 3
     assert sys.rpn_instance == 16

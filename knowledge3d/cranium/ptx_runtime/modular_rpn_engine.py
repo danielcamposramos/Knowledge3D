@@ -13,12 +13,14 @@ All computation happens on GPU via modular_rpn_kernel.ptx.
 from __future__ import annotations
 
 import math
-import re
-from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
 
 import numpy as np
 
+from knowledge3d.cranium.ptx_runtime.math_core_pool import (
+    MathCorePool,
+    get_global_math_core_pool,
+)
 from .rpn_opcodes import (
     OP_ENTROPY_SUM,
     OP_SIGMOID_APPROX,
@@ -142,16 +144,27 @@ class ModularRPNEngine:
         "e": math.e,
     }
 
-    def __init__(self, max_instances: int = _INSTANCE_COUNT) -> None:
+    def __init__(
+        self,
+        max_instances: int = _INSTANCE_COUNT,
+        *,
+        pool: Optional[MathCorePool] = None,
+        instance_id: Optional[int] = None,
+    ) -> None:
         """Initialize RPN engine with sovereign PTX backend.
 
         Args:
             max_instances: Maximum parallel instances (default 18, Tesla 3-6-9 resonance)
+            pool: Optional shared MathCorePool for dynamic allocation
+            instance_id: Optional pre-allocated math core to bind to
         """
         if max_instances > self._INSTANCE_COUNT:
             raise ValueError(f"Maximum supported instances is {self._INSTANCE_COUNT}")
 
         self.max_instances = max_instances
+        self.pool = pool or get_global_math_core_pool()
+        self.instance_id: Optional[int] = instance_id
+        self._owned = instance_id is None
         # Lazy import keeps module importable in environments without CUDA bindings
         from knowledge3d.cranium.bridges.tiered_rpn import (
             TieredRPNEngine as SovereignRPNEngine,
@@ -241,14 +254,14 @@ class ModularRPNEngine:
     def evaluate(
         self,
         expression: str,
-        instance_id: int = 0,
+        instance_id: Optional[int] = None,
         return_vector: bool = False
     ) -> float:
         """Evaluate RPN expression on GPU.
 
         Args:
             expression: RPN expression string (e.g., "2 3 +")
-            instance_id: Instance slot (0-14)
+            instance_id: Optional math core instance. When None, allocate via pool.
             return_vector: If True, return full float4 (NOT IMPLEMENTED - returns scalar only)
 
         Returns:
@@ -263,8 +276,9 @@ class ModularRPNEngine:
             >>> engine.evaluate("[1,0,0] [0,1,0] cross mag")  # Cross product magnitude
             1.0
         """
+        core_id = self._ensure_core(tier=1, override_instance=instance_id)
         # Reset instance to clear stack before evaluation
-        self._sovereign_engine.reset_instance(instance_id)
+        self._sovereign_engine.reset_instance(core_id)
 
         # Tokenize expression
         tokens = self.tokenize_rpn(expression)
@@ -274,7 +288,7 @@ class ModularRPNEngine:
 
         # Execute on GPU via sovereign bridge
         result = self._sovereign_engine.execute_single(
-            instance_id=instance_id,
+            instance_id=core_id,
             op_codes=op_codes,
             scalars=scalars,
             vectors=vectors
@@ -347,6 +361,11 @@ class ModularRPNEngine:
 
     def close(self) -> None:
         """Clean up GPU resources."""
+        if self._owned and self.instance_id is not None:
+            try:
+                self.pool.release_core(self.instance_id)
+            except Exception:
+                pass
         self._sovereign_engine.cleanup()
 
     def __del__(self):
@@ -355,6 +374,22 @@ class ModularRPNEngine:
             self.close()
         except:
             pass
+
+    # ------------------------------------------------------------------ #
+    # Internal helpers
+    # ------------------------------------------------------------------ #
+    def _ensure_core(self, tier: int = 1, *, override_instance: Optional[int] = None) -> int:
+        """Ensure a math core is available and return its instance id."""
+        if override_instance is not None:
+            self.instance_id = override_instance
+            self._owned = False
+            return override_instance
+
+        if self.instance_id is None:
+            self.instance_id = self.pool.spawn_core(tier=tier)
+        else:
+            self.pool.touch(self.instance_id)
+        return self.instance_id
 
 
 # Convenience API for quick calculations
