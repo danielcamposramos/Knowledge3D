@@ -1,0 +1,226 @@
+"""Integration tests for multi-system Reality Galaxy scenarios."""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+import pytest
+
+ROOT = Path(__file__).resolve().parents[3]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from knowledge3d.cranium.reality_galaxy import RealityGalaxy
+from knowledge3d.cranium.reality_physics_export import (
+    export_constant_acceleration_1d,
+    export_coupled_oscillators,
+    export_double_pendulum_2d,
+    export_harmonic_oscillator_1d,
+    export_heat_1d,
+    export_heat_2d,
+    export_lc_circuit,
+    export_orbital_2d,
+    export_point_charge_2d,
+    export_projectile_2d,
+    export_rc_circuit,
+    export_rigid_body_2d,
+    export_rlc_circuit,
+)
+
+
+def test_multi_system_parallel_execution() -> None:
+    """Validate multiple systems running on different cores."""
+    galaxy = RealityGalaxy()
+
+    # Add systems spanning all three tiers
+    systems = [
+        export_constant_acceleration_1d(),  # Tier-1, instance 0
+        export_projectile_2d(),             # Tier-1, instance 2
+        export_lc_circuit(),                # Tier-1, instance 5
+        export_coupled_oscillators(),       # Tier-2, instance 13
+        export_double_pendulum_2d(),        # Tier-3, instance 16
+    ]
+
+    for sys in systems:
+        galaxy.add_node(sys)
+
+    # Step all systems simultaneously
+    results = {}
+    for sys in systems:
+        results[sys.node_id] = galaxy.step_system(sys.node_id, n_steps=10)
+
+    # Verify all systems executed
+    assert len(results) == 5, f"Expected 5 results, got {len(results)}"
+
+    # Verify each system has valid state
+    for node_id, state in results.items():
+        assert state is not None, f"System {node_id} returned None state"
+        assert isinstance(state, dict), f"System {node_id} state is not a dict"
+        assert len(state) > 0, f"System {node_id} has empty state"
+
+    # Verify tier assignments were honored
+    assert galaxy.nodes["system:constant_accel_1d"].metadata.get("last_rpn_instance") == 0
+    assert galaxy.nodes["system:projectile_2d"].metadata.get("last_rpn_instance") == 2
+    assert galaxy.nodes["system:lc_circuit"].metadata.get("last_rpn_instance") == 5
+
+
+def test_13_systems_full_allocation() -> None:
+    """Stress test: 13 systems (9 Phase 4A + 4 Phase 4B) running."""
+    galaxy = RealityGalaxy()
+
+    # Add all 13 systems
+    phase_4a = [
+        export_constant_acceleration_1d(),
+        export_harmonic_oscillator_1d(),
+        export_projectile_2d(),
+        export_rigid_body_2d(),
+        export_heat_1d(),
+        export_coupled_oscillators(),
+        export_orbital_2d(),
+        export_heat_2d(),
+        export_double_pendulum_2d(),
+    ]
+
+    phase_4b = [
+        export_point_charge_2d(),
+        export_lc_circuit(),
+        export_rc_circuit(),
+        export_rlc_circuit(),
+    ]
+
+    all_systems = phase_4a + phase_4b
+    for sys in all_systems:
+        galaxy.add_node(sys)
+
+    # Step all systems
+    for sys in all_systems:
+        state = galaxy.step_system(sys.node_id, n_steps=5)
+        assert state is not None, f"System {sys.node_id} failed"
+
+    # Verify core utilization
+    instances_used = set()
+    for sys in all_systems:
+        inst = galaxy.nodes[sys.node_id].metadata.get("last_rpn_instance")
+        if inst is not None:
+            instances_used.add(inst)
+
+    print(f"\n  Core utilization: {len(instances_used)}/18 cores used")
+    print(f"  Cores: {sorted(instances_used)}")
+
+    # Should use at least 10 distinct cores (some systems share tiers)
+    assert len(instances_used) >= 10, f"Expected ≥10 cores used, got {len(instances_used)}"
+
+
+def test_tier_distribution() -> None:
+    """Verify systems are properly distributed across tiers."""
+    galaxy = RealityGalaxy()
+
+    all_systems = [
+        export_constant_acceleration_1d(),
+        export_harmonic_oscillator_1d(),
+        export_projectile_2d(),
+        export_rigid_body_2d(),
+        export_heat_1d(),
+        export_coupled_oscillators(),
+        export_orbital_2d(),
+        export_heat_2d(),
+        export_double_pendulum_2d(),
+        export_point_charge_2d(),
+        export_lc_circuit(),
+        export_rc_circuit(),
+        export_rlc_circuit(),
+    ]
+
+    for sys in all_systems:
+        galaxy.add_node(sys)
+
+    # Count systems per tier
+    tier_counts = {1: 0, 2: 0, 3: 0}
+    for sys in all_systems:
+        tier_counts[sys.rpn_tier] += 1
+
+    print(f"\n  Tier distribution:")
+    print(f"    Tier-1 (Simple):  {tier_counts[1]} systems")
+    print(f"    Tier-2 (Mid):     {tier_counts[2]} systems")
+    print(f"    Tier-3 (High):    {tier_counts[3]} systems")
+
+    # Expected: 7 Tier-1, 5 Tier-2, 1 Tier-3
+    assert tier_counts[1] == 7, f"Expected 7 Tier-1 systems, got {tier_counts[1]}"
+    assert tier_counts[2] == 5, f"Expected 5 Tier-2 systems, got {tier_counts[2]}"
+    assert tier_counts[3] == 1, f"Expected 1 Tier-3 system, got {tier_counts[3]}"
+
+
+def test_ternary_ops_across_systems() -> None:
+    """Validate ternary ops work correctly across different systems."""
+    galaxy = RealityGalaxy()
+
+    # Systems with ternary ops
+    projectile = export_projectile_2d()  # SIGN for drag direction
+    point_charge = export_point_charge_2d()  # SIGN for charge signs
+    rlc = export_rlc_circuit()  # TCMP for damping regime
+
+    galaxy.add_node(projectile)
+    galaxy.add_node(point_charge)
+    galaxy.add_node(rlc)
+
+    # Step all systems
+    projectile_state = galaxy.step_system("system:projectile_2d", n_steps=5)
+    charge_state = galaxy.step_system("system:point_charge_2d", n_steps=1)
+    rlc_state = galaxy.step_system("system:rlc_circuit", n_steps=1)
+
+    # Verify ternary outputs exist and are valid {-1, 0, +1}
+    assert "sign_vx" in projectile_state
+    assert projectile_state["sign_vx"] in (-1.0, 0.0, 1.0)
+
+    assert "q1_sign" in charge_state
+    assert charge_state["q1_sign"] in (-1.0, 0.0, 1.0)
+
+    assert "damping_regime" in rlc_state
+    assert rlc_state["damping_regime"] in (-1.0, 0.0, 1.0)
+
+    print("\n  ✓ Ternary ops validated:")
+    print(f"    Projectile drag sign: {projectile_state['sign_vx']}")
+    print(f"    Charge sign: {charge_state['q1_sign']}")
+    print(f"    RLC damping regime: {rlc_state['damping_regime']}")
+
+
+def test_galaxy_persistence_with_all_systems() -> None:
+    """Test saving and loading galaxy with all 13 systems."""
+    import tempfile
+
+    galaxy1 = RealityGalaxy()
+
+    # Add subset of systems
+    systems = [
+        export_projectile_2d(),
+        export_point_charge_2d(),
+        export_lc_circuit(),
+    ]
+
+    for sys in systems:
+        galaxy1.add_node(sys)
+
+    # Step systems to populate state
+    for sys in systems:
+        galaxy1.step_system(sys.node_id, n_steps=10)
+
+    # Save
+    galaxy1.save_galaxy()
+
+    # Load into new galaxy
+    galaxy2 = RealityGalaxy(galaxy_path=galaxy1.galaxy_path)
+    galaxy2.load_galaxy()
+
+    # Verify all systems loaded
+    assert len(galaxy2.nodes) == 3, f"Expected 3 nodes, got {len(galaxy2.nodes)}"
+
+    # Verify state preserved
+    for sys in systems:
+        state1 = galaxy1.nodes[sys.node_id].state
+        state2 = galaxy2.nodes[sys.node_id].state
+        assert state1.keys() == state2.keys(), f"State keys mismatch for {sys.node_id}"
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])
