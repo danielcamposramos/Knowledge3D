@@ -51,6 +51,59 @@ We are a team of humans and AI working together. Clear communication and alignme
 - **Claude (Browser)**: AI collaborator (Anthropic). Documentation writing, planning, code review. Created foundational CLAUDE.md guide. Cost-effective for extended sessions.
 - **Claude Code (VS Code)**: AI collaborator (Anthropic). Filesystem operations, git workflow, environment validation, cross-repository access. "The Guy" for implementation and verification. Limited credits — used strategically.
 
+---
+
+## Multi-Agent Collaboration Patterns (NEW)
+
+### Pattern: Architect + Implementer (Claude + Codex)
+
+**When:** Complex features needing design + implementation.
+
+**Roles:**
+- **Architect (Claude):** Design, specs, success criteria, validation.
+- **Implementer (Codex):** Implement per spec, write tests, deliver code.
+
+**Workflow:**
+- **Phase 1: Design (Architect)**  
+  1) Analyze requirements  
+  2) Design architecture  
+  3) Write spec (TEMP/*.md)  
+  4) Define success criteria  
+  5) Commit spec
+- **Phase 2: Handoff**  
+  Architect: “Spec ready in TEMP/X.md. Implement Y, target tests: N/N.”  
+  Implementer: “Received. ETA X days. Will commit incrementally.”
+- **Phase 3: Implementation (Implementer)**  
+  Implement, test, commit often; surface blockers fast.
+- **Phase 4: Review (Architect)**  
+  Review commits, run tests, request changes, approve when aligned.
+- **Phase 5: Completion (Architect)**  
+  Write completion report (TEMP/*), update ROADMAP/BRIEFING, commit docs.
+
+**Example (Phase 4A Tier Integration):**  
+Claude designed 3-tier allocation + specs; Codex added tier metadata, ternary ops, exports, and tier tests; 32/32 tests passed; completion report in TEMP/CODEX_PHASE4A_TIER_INTEGRATION_COMPLETE_11.24.2025.md.
+
+### Pattern: Parallel Implementation
+Independent features in parallel branches (codex/<task>, claude/<task>); merge sequentially with tests to avoid conflicts.
+
+### Pattern: Ping-Pong Review
+Iterative Q&A between architect and implementer for complex designs; clarify, adjust, retest, approve.
+
+### Communication Guidelines
+1. Declare role (“I’m Claude (architect)…”, “I’m Codex (implementer)…”).  
+2. Reference prior work (specs, commits, file paths).  
+3. State assumptions; flag blockers immediately.  
+4. Document decisions (TEMP/*.md for major choices; brief comments for non-obvious code).  
+5. Keep hot path sovereign; ingestion flexibility is fine if isolated.  
+
+### Example Session (Phase 4A)
+Daniel → Claude: Need tier integration.  
+Claude: Designs spec in TEMP/CODEX_PHASE4A_TIER_INTEGRATION_11.24.2025.md.  
+Claude → Codex: “Implement tier metadata, ternary drag/mode, export 9 systems, add tests; target 32/32 green.”  
+Codex: Implements incrementally, reports test pass.  
+Claude: Reviews, validates, writes completion report; updates BRIEFING/ROADMAP.  
+Daniel: Approves milestone; next phase queued.
+
 **Partnership Model (2025-11-17):**
 The project operates through three-way collaboration:
 1. **Daniel** — Human architect with final authority
