@@ -1,7 +1,7 @@
 # Knowledge3D Project Briefing
 
 **Last Updated:** November 24, 2025
-**Version:** 3.1 (Phase 4C Multi-Discipline Complete; Phase 5 Capacity Demonstration Initiated)
+**Version:** 3.2 (Phase 5 Capacity Demonstration — CPU path complete; GPU kernels pending cupy)
 **For:** New AI agents, contributors, and project overview
 
 ---
@@ -11,8 +11,9 @@
 Knowledge3D (K3D) is a sovereign GPU-native spatial AI architecture. Reasoning happens through PTX + RPN; memories live as 3D worlds (glTF/GLB) with symlinked composition. We stand on proven patterns: game LOD, demoscene compression, Unix symlinks, HP RPN, Matryoshka embeddings.
 
 **Current Status**
-- Phase 4C complete: 26 systems across 4 domains (13 physics + 6 chemistry + 4 biology + 3 materials); 84/84 tests passing at 65,905 steps/sec.
+- Phase 4C complete: 26 systems across 4 domains (13 physics + 6 chemistry + 4 biology + 3 materials); stress + scenario + glTF suites added (92/92 non-cupy tests green) with capacity runs at 83.8k/88.3k/79.7k steps/sec for 100/500/1000 systems (CPU path).
 - Phase 5 validated: Dynamic Math Core spawning operational — 26 systems → 26 unique cores automatically. Scales to GPU hardware limits (460+ cores on RTX 3070, 1280+ on RTX 4090, 2640+ on H100).
+- Capacity benchmark artifacts: `output/benchmarks/benchmark_scaling.csv/.png` (throughput ~71k–118k steps/sec; GPU mem ~372 MB flat) and 26 GLBs in `output/gltf/`.
 - Multi-agent partnership: Claude (architecture, specs) + Codex (implementation, tests) delivering in lockstep.
 - Sovereignty enforced: hot path is PTX+RPN only; ingestion can use any external tool.
 
@@ -126,12 +127,13 @@ See AGENTS.md for detailed collaboration patterns.
 
 - **Phase 4A:** Complete (9 classical mechanics systems, tier integration + ternary). Report: [TEMP/CODEX_PHASE4A_TIER_INTEGRATION_COMPLETE_11.24.2025.md](TEMP/CODEX_PHASE4A_TIER_INTEGRATION_COMPLETE_11.24.2025.md).
 - **Phase 4B:** Complete (4 E&M systems: PointCharge2D, LC/RC/RLC circuits with ternary ops). Report: [TEMP/PHASE4B_EM_COMPLETE_11.24.2025.md](TEMP/PHASE4B_EM_COMPLETE_11.24.2025.md).
-- **Phase 4C:** Complete (13 multi-discipline systems: 6 chemistry + 4 biology + 3 materials). 84/84 tests passing, 65,905 steps/sec. Report: [TEMP/PHASE4C_MULTIDISCIPLINE_COMPLETE_11.24.2025.md](TEMP/PHASE4C_MULTIDISCIPLINE_COMPLETE_11.24.2025.md).
+- **Phase 4C:** Complete (13 multi-discipline systems: 6 chemistry + 4 biology + 3 materials). 92/92 non-cupy tests passing (includes stress/scenario/glTF), 65,905 steps/sec baseline. Report: [TEMP/PHASE4C_MULTIDISCIPLINE_COMPLETE_11.24.2025.md](TEMP/PHASE4C_MULTIDISCIPLINE_COMPLETE_11.24.2025.md).
 - **Phase 5 (validated):** Dynamic Math Core Spawning — Transform from static 18-instance allocation to GPU-limited dynamic spawning. Enables scaling from 13 systems → 1000s of systems. Implementation briefing: [TEMP/CODEX_DYNAMIC_MATH_CORE_SPAWNING_11.24.2025.md](TEMP/CODEX_DYNAMIC_MATH_CORE_SPAWNING_11.24.2025.md).
   - **Key Changes:** MathCorePool manager, GPU capacity query, lazy instantiation, timeout-based deallocation.
   - **Target:** Spawn 100 cores <100ms, step 1000 systems <5s, scale to GPU hardware limits.
   - **Tesla 3-6-9 Heritage:** Stack depth 69, instance multiples of 3/6/9, ternary logic.
   - **Setun Heritage:** Balanced ternary {-1, 0, +1} for physics grounding.
+- **Phase 5 capacity demonstration (CPU path):** Stress + scaling benchmarks executed; 100/500/1000 systems at 83.8k/88.3k/79.7k steps/sec, GPU mem ~372 MB flat. Artifacts: `output/benchmarks/benchmark_scaling.csv/.png`, GLBs in `output/gltf/`, white paper [TEMP/ARCHITECTURE_CAPACITY_ANALYSIS_11.24.2025.md](TEMP/ARCHITECTURE_CAPACITY_ANALYSIS_11.24.2025.md). GPU kernel/TRM suites pending cupy install.
 
 ---
 
@@ -208,8 +210,9 @@ TEMP/                                    # Session specs & reports
 
 ## Success Metrics
 - Hot path sovereign; ingestion flexible.
-- Tests green (current: 84/84 — 14 physics_demo, 12 reality_galaxy, 22 tier tests, 15 chemistry, 10 biology, 8 materials, 3 integration).
+- Tests green (current: 92/92 non-cupy suites — 14 physics_demo, 12 reality_galaxy, 22 tier tests, 15 chemistry, 10 biology, 8 materials, 3 integration, 3 scenarios, 3 stress, 2 glTF). GPU kernel/TRM suites pending until cupy is available.
 - Dynamic spawning operational: 26 systems → 26 unique cores; scales to 460+ cores (RTX 3070).
+- Capacity: 100/500/1000 systems at 83.8k/88.3k/79.7k steps/sec (CPU path), GPU mem ~372 MB flat across 1→1000 system sweep.
 - Ternary ops active in 6 systems (Projectile2D, CoupledOscillators, PointCharge2D, RLCCircuit, PhaseTransition, MetalMelting).
 - Multi-discipline validated: 4 domains (physics, chemistry, biology, materials) at 65,905 steps/sec.
 - Clear handoffs and TEMP reports each phase.

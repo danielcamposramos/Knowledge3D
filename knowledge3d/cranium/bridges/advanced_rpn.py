@@ -13,10 +13,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Sequence
 
-import numpy as np
-
 from knowledge3d.cranium.sovereign import loader
 from .rpn_config import RPN_GRID_DIM, TIER3_BLOCK_DIM
+import struct
+from array import array
 
 
 @dataclass(frozen=True)
@@ -31,7 +31,7 @@ class StackEntryMetadata:
 
 def _decode_meta(value: float) -> StackEntryMetadata:
     """Decode packed metadata emitted in the W lane."""
-    bits = np.frombuffer(np.float32(value).tobytes(), dtype=np.uint32)[0]
+    bits = struct.unpack("<I", struct.pack("<f", value))[0]
     item_type = bits & 0xFF
     rows = (bits >> 8) & 0xFF
     cols = (bits >> 16) & 0xFF
@@ -60,8 +60,8 @@ class AdvancedRPNEngine:
         self._kernel = loader.load_ptx_file(str(ptx_path), "modular_rpn_kernel_extended")
         self._state = loader.gpu_malloc(self.MAX_INSTANCES * self.INSTANCE_STRIDE)
 
-        zeros = np.zeros(self.MAX_INSTANCES * self.INSTANCE_STRIDE, dtype=np.uint8)
-        loader.memcpy_htod(self._state, zeros.ctypes.data_as(ctypes.c_void_p), zeros.nbytes)
+        zeros = (ctypes.c_uint8 * (self.MAX_INSTANCES * self.INSTANCE_STRIDE))()
+        loader.memcpy_htod(self._state, ctypes.cast(zeros, ctypes.c_void_p), ctypes.sizeof(zeros))
 
     # ------------------------------------------------------------------ #
     # Public API
@@ -71,22 +71,22 @@ class AdvancedRPNEngine:
         instance_id: int,
         op_codes: Sequence[int],
         scalars: Optional[Sequence[float]] = None,
-        vectors: Optional[np.ndarray] = None,
-        matrices: Optional[np.ndarray] = None,
-    ) -> np.ndarray:
+        vectors: Optional[Sequence[Sequence[float]]] = None,
+        matrices: Optional[Sequence[float]] = None,
+    ):
         """Execute a Tier-3 RPN program and return the raw stack buffer."""
         if not (0 <= instance_id < self.MAX_INSTANCES):
             raise ValueError(f"Invalid instance_id {instance_id} (expected 0-{self.MAX_INSTANCES - 1})")
 
-        op_codes_np = np.ascontiguousarray(op_codes, dtype=np.uint16)
-        scalars_np = np.ascontiguousarray(scalars if scalars is not None else [], dtype=np.float32)
-        vectors_np = np.ascontiguousarray(vectors if vectors is not None else [], dtype=np.float32)
-        matrices_np = np.ascontiguousarray(matrices if matrices is not None else [], dtype=np.float32)
+        op_codes_seq = list(op_codes)
+        scalars_seq = list(scalars) if scalars is not None else []
+        vectors_seq = [list(v) for v in vectors] if vectors is not None else []
+        matrices_seq = list(matrices) if matrices is not None else []
 
-        d_op_codes = self._maybe_upload(op_codes_np)
-        d_scalars = self._maybe_upload(scalars_np)
-        d_vectors = self._maybe_upload(vectors_np)
-        d_matrices = self._maybe_upload(matrices_np)
+        d_op_codes = self._maybe_upload_uint16(op_codes_seq)
+        d_scalars = self._maybe_upload_float(scalars_seq)
+        d_vectors = self._maybe_upload_float(vectors_seq)
+        d_matrices = self._maybe_upload_float(matrices_seq)
 
         instance_offset = instance_id * self.INSTANCE_STRIDE
 
@@ -112,11 +112,11 @@ class AdvancedRPNEngine:
             self._maybe_free(d_vectors)
             self._maybe_free(d_matrices)
 
-        header = np.zeros(4, dtype=np.uint32)
+        header = (ctypes.c_uint32 * 4)()
         loader.memcpy_dtoh(
-            header.ctypes.data_as(ctypes.c_void_p),
+            ctypes.cast(header, ctypes.c_void_p),
             ctypes.c_void_p(self._state.value + instance_offset),
-            header.nbytes,
+            ctypes.sizeof(header),
         )
 
         error_code = int(header[2])
@@ -125,15 +125,16 @@ class AdvancedRPNEngine:
 
         stack_size = int(header[1])
         if stack_size == 0:
-            return np.zeros((0, 4), dtype=np.float32)
+            return []
 
-        stack_buffer = np.zeros((stack_size, 4), dtype=np.float32)
+        stack_buffer = (ctypes.c_float * (stack_size * 4))()
         loader.memcpy_dtoh(
-            stack_buffer.ctypes.data_as(ctypes.c_void_p),
+            ctypes.cast(stack_buffer, ctypes.c_void_p),
             ctypes.c_void_p(self._state.value + instance_offset + 16),
             stack_size * 16,
         )
-        return stack_buffer
+        flat = [float(stack_buffer[i]) for i in range(stack_size * 4)]
+        return [flat[i:i + 4] for i in range(0, len(flat), 4)]
 
     def execute_prebuilt(
         self,
@@ -217,18 +218,18 @@ class AdvancedRPNEngine:
         instance_id: int,
         op_codes: Sequence[int],
         scalars: Optional[Sequence[float]] = None,
-        vectors: Optional[np.ndarray] = None,
-        matrices: Optional[np.ndarray] = None,
+        vectors: Optional[Sequence[Sequence[float]]] = None,
+        matrices: Optional[Sequence[float]] = None,
     ) -> float:
         """Execute a program and return the scalar at the top of the stack."""
         stack = self.execute_program(instance_id, op_codes, scalars, vectors, matrices)
         if len(stack) == 0:
             raise RuntimeError("Advanced RPN produced an empty stack")
 
-        meta = _decode_meta(float(stack[-1, 3]))
+        meta = _decode_meta(float(stack[-1][3]))
         if meta.item_type != self.TYPE_SCALAR:
             raise RuntimeError(f"Expected scalar result, found item_type={meta.item_type}")
-        return float(stack[-1, 0])
+        return float(stack[-1][0])
 
     def execute_matrix(
         self,
@@ -237,8 +238,8 @@ class AdvancedRPNEngine:
         *,
         output_shape: tuple[int, int],
         scalars: Optional[Sequence[float]] = None,
-        matrices: Optional[np.ndarray] = None,
-    ) -> np.ndarray:
+        matrices: Optional[Sequence[float]] = None,
+    ):
         """Execute a program and retrieve the matrix result with given shape."""
         rows, cols = output_shape
         if rows <= 0 or cols <= 0:
@@ -248,7 +249,7 @@ class AdvancedRPNEngine:
         if len(stack) < rows:
             raise RuntimeError("Insufficient stack entries for requested matrix")
 
-        matrix = np.zeros((rows, cols), dtype=np.float32)
+        matrix = [[0.0 for _ in range(cols)] for _ in range(rows)]
         relevant_entries = stack[-rows:]
 
         for entry in relevant_entries:
@@ -261,11 +262,11 @@ class AdvancedRPNEngine:
                 )
             if meta.row_index >= rows:
                 raise RuntimeError(f"Row index {meta.row_index} exceeds output rows {rows}")
-            matrix[meta.row_index, 0] = entry[0]
+            matrix[meta.row_index][0] = entry[0]
             if cols > 1:
-                matrix[meta.row_index, 1] = entry[1]
+                matrix[meta.row_index][1] = entry[1]
             if cols > 2:
-                matrix[meta.row_index, 2] = entry[2]
+                matrix[meta.row_index][2] = entry[2]
 
         return matrix
 
@@ -277,11 +278,27 @@ class AdvancedRPNEngine:
         return device_allocation.value if device_allocation is not None else 0
 
     @staticmethod
-    def _maybe_upload(array: np.ndarray) -> Optional[ctypes.c_void_p]:
-        if array.size == 0:
+    def _maybe_upload_float(array: Sequence[Sequence[float]] | Sequence[float]) -> Optional[ctypes.c_void_p]:
+        if not array:
             return None
-        device_ptr = loader.gpu_malloc(array.nbytes)
-        loader.memcpy_htod(device_ptr, array.ctypes.data_as(ctypes.c_void_p), array.nbytes)
+        flat: list[float] = []
+        if isinstance(array[0], (list, tuple)):  # type: ignore[index]
+            for row in array:  # type: ignore[assignment]
+                flat.extend([float(x) for x in row])  # type: ignore[arg-type]
+        else:
+            flat = [float(x) for x in array]  # type: ignore[list-item]
+        buf = (ctypes.c_float * len(flat))(*flat)
+        device_ptr = loader.gpu_malloc(ctypes.sizeof(buf))
+        loader.memcpy_htod(device_ptr, ctypes.cast(buf, ctypes.c_void_p), ctypes.sizeof(buf))
+        return device_ptr
+
+    @staticmethod
+    def _maybe_upload_uint16(array: Sequence[int]) -> Optional[ctypes.c_void_p]:
+        if not array:
+            return None
+        buf = (ctypes.c_uint16 * len(array))(*[int(x) for x in array])
+        device_ptr = loader.gpu_malloc(ctypes.sizeof(buf))
+        loader.memcpy_htod(device_ptr, ctypes.cast(buf, ctypes.c_void_p), ctypes.sizeof(buf))
         return device_ptr
 
     @staticmethod

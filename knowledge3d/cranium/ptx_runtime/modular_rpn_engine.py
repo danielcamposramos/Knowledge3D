@@ -13,9 +13,7 @@ All computation happens on GPU via modular_rpn_kernel.ptx.
 from __future__ import annotations
 
 import math
-from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
-
-import numpy as np
+from typing import Dict, List, Optional, Sequence, Tuple, TYPE_CHECKING
 
 from knowledge3d.cranium.ptx_runtime.math_core_pool import (
     MathCorePool,
@@ -201,7 +199,7 @@ class ModularRPNEngine:
         self,
         tokens: List[str],
         instance_id: int = 0
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    ) -> Tuple[List[int], List[float], List[Tuple[float, float, float]]]:
         """Compile tokens into op_codes, scalars, and vectors for GPU execution.
 
         Args:
@@ -241,15 +239,7 @@ class ModularRPNEngine:
                 except ValueError:
                     raise ValueError(f"Unknown token: {token}")
 
-        # Convert to NumPy arrays
-        op_codes_np = np.array(op_codes, dtype=np.uint16)
-        scalars_np = np.array(scalar_literals, dtype=np.float32)
-        if vector_literals:
-            vectors_np = np.array(vector_literals, dtype=np.float32)
-        else:
-            vectors_np = np.zeros((0, 3), dtype=np.float32)
-
-        return op_codes_np, scalars_np, vectors_np
+        return op_codes, scalar_literals, vector_literals
 
     def evaluate(
         self,
@@ -300,7 +290,7 @@ class ModularRPNEngine:
         self,
         expressions: List[str],
         max_parallel: int = 18  # Tesla 3-6-9 resonance
-    ) -> np.ndarray:
+    ) -> List[float]:
         """Evaluate multiple RPN expressions in parallel.
 
         Args:
@@ -333,7 +323,7 @@ class ModularRPNEngine:
         # Execute batch via sovereign bridge
         results = self._sovereign_engine.execute_batch(programs, max_instances=max_parallel)
 
-        return results
+        return list(results)
 
     def evaluate_batch_device(
         self,
@@ -476,13 +466,16 @@ class RPNProgram:
         self._resolve_ptrs()
         return bytes(self.bytecode)
 
-    def to_uint32_array(self) -> np.ndarray:
+    def to_uint32_array(self) -> list[int]:
         """Convert to uint32 array for GPU execution"""
         self._resolve_ptrs()
         # Pad to uint32 boundary
         while len(self.bytecode) % 4 != 0:
             self.bytecode.append(0)
-        return np.frombuffer(self.bytecode, dtype=np.uint32)
+        return [
+            int.from_bytes(self.bytecode[i:i + 4], byteorder="little", signed=False)
+            for i in range(0, len(self.bytecode), 4)
+        ]
 
     # ------------------------------------------------------------------ #
     # Internal helpers
