@@ -7,10 +7,30 @@ Codex-style agents lead implementation, Reality Galaxy, and testing. Read BRIEFI
 
 ---
 
-## Quick Start
-- Read BRIEFING.md (central overview).
+## ⚠️ CRITICAL: Read Latest Briefing FIRST
+
+**BEFORE starting ANY implementation:**
+
+1. **Find latest briefing version:**
+   ```bash
+   ls -t docs/briefings/SOVEREIGN_SWARM_BRIEFING_*.md | head -n1
+   ```
+
+2. **Read it COMPLETELY** — Do NOT rely on IDE selections or snippets
+
+3. **THEN read these documents:**
+   - BRIEFING.md (central overview)
+   - docs/ROADMAP.md (current phase)
+   - TEMP/*.md (Claude's specs)
+
+**Why:** Partial reads cause sovereignty violations (numpy in hot path!), architecture misunderstandings, and wasted implementation work.
+
+---
+
+## Quick Start (After Reading Briefing)
 - Check docs/ROADMAP.md for current phase.
-- Review Claude’s specs in TEMP/*.md.
+- Review Claude's specs in TEMP/*.md (latest dated).
+- Verify hot path sovereignty (no numpy in ptx_runtime/, reality_galaxy.py, bridges/).
 - Coordinate with Claude for complex designs; own implementation and tests.
 
 ---
