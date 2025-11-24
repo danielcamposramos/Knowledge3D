@@ -196,3 +196,135 @@ def export_double_pendulum_2d(params: Dict | None = None) -> RealitySystem:
         rpn_instance=16,
         matryoshka_dim=2048,
     )
+
+
+# ========== Phase 4B: Electromagnetism Systems ==========
+
+
+def export_point_charge_2d(params: Dict | None = None) -> RealitySystem:
+    """Export two-charge Coulomb system with ternary charge signs."""
+    p = params or {}
+    return RealitySystem(
+        node_id="system:point_charge_2d",
+        state={
+            "x1": float(p.get("x1", -1.0)),
+            "y1": float(p.get("y1", 0.0)),
+            "x2": float(p.get("x2", 1.0)),
+            "y2": float(p.get("y2", 0.0)),
+            "vx1": float(p.get("vx1", 0.0)),
+            "vy1": float(p.get("vy1", 0.0)),
+            "vx2": float(p.get("vx2", 0.0)),
+            "vy2": float(p.get("vy2", 0.0)),
+            "q1": float(p.get("q1", 1e-6)),
+            "q2": float(p.get("q2", 1e-6)),
+            "m1": float(p.get("m1", 1.0)),
+            "m2": float(p.get("m2", 1.0)),
+            "k": float(p.get("k", 8.99e9)),
+            "dt": float(p.get("dt", 0.001)),
+        },
+        behavior_rpn="""
+            x2 RECALL x1 RECALL - dx STORE
+            y2 RECALL y1 RECALL - dy STORE
+            dx RECALL dup * dy RECALL dup * + sqrt r STORE
+            k RECALL q1 RECALL * q2 RECALL * r RECALL r RECALL * / F_mag STORE
+            q1 RECALL sign q1_sign STORE
+            q2 RECALL sign q2_sign STORE
+            q1_sign RECALL q2_sign RECALL * charge_product STORE
+            F_mag RECALL dx RECALL * r RECALL / Fx STORE
+            F_mag RECALL dy RECALL * r RECALL / Fy STORE
+            Fx RECALL NEG m1 RECALL / ax1 STORE
+            Fy RECALL NEG m1 RECALL / ay1 STORE
+            Fx RECALL m2 RECALL / ax2 STORE
+            Fy RECALL m2 RECALL / ay2 STORE
+            vx1 RECALL ax1 RECALL dt RECALL * + vx1 STORE
+            vy1 RECALL ay1 RECALL dt RECALL * + vy1 STORE
+            vx2 RECALL ax2 RECALL dt RECALL * + vx2 STORE
+            vy2 RECALL ay2 RECALL dt RECALL * + vy2 STORE
+            x1 RECALL vx1 RECALL dt RECALL * + x1 STORE
+            y1 RECALL vy1 RECALL dt RECALL * + y1 STORE
+            x2 RECALL vx2 RECALL dt RECALL * + x2 STORE
+            y2 RECALL vy2 RECALL dt RECALL * + y2 STORE
+        """,
+        law_rpn="",
+        rpn_tier=1,
+        rpn_instance=4,
+        matryoshka_dim=128,
+    )
+
+
+def export_lc_circuit(params: Dict | None = None) -> RealitySystem:
+    """Export LC oscillator with resonant frequency validation."""
+    p = params or {}
+    return RealitySystem(
+        node_id="system:lc_circuit",
+        state={
+            "I": float(p.get("I", 1.0)),
+            "V": float(p.get("V", 0.0)),
+            "L": float(p.get("L", 1e-3)),
+            "C": float(p.get("C", 1e-6)),
+            "dt": float(p.get("dt", 1e-6)),
+        },
+        behavior_rpn="""
+            V RECALL NEG L RECALL / dI_dt STORE
+            I RECALL C RECALL / dV_dt STORE
+            I RECALL dI_dt RECALL dt RECALL * + I STORE
+            V RECALL dV_dt RECALL dt RECALL * + V STORE
+        """,
+        law_rpn="",
+        rpn_tier=1,
+        rpn_instance=5,
+        matryoshka_dim=128,
+    )
+
+
+def export_rc_circuit(params: Dict | None = None) -> RealitySystem:
+    """Export RC charging with exponential time constant."""
+    p = params or {}
+    return RealitySystem(
+        node_id="system:rc_circuit",
+        state={
+            "V": float(p.get("V", 0.0)),
+            "V_source": float(p.get("V_source", 5.0)),
+            "R": float(p.get("R", 1000.0)),
+            "C": float(p.get("C", 1e-6)),
+            "dt": float(p.get("dt", 1e-5)),
+        },
+        behavior_rpn="""
+            V_source RECALL V RECALL - V_diff STORE
+            R RECALL C RECALL * tau STORE
+            V_diff RECALL tau RECALL / dV_dt STORE
+            V RECALL dV_dt RECALL dt RECALL * + V STORE
+        """,
+        law_rpn="V RECALL 0 ge V RECALL V_source RECALL le *",
+        rpn_tier=1,
+        rpn_instance=6,
+        matryoshka_dim=64,
+    )
+
+
+def export_rlc_circuit(params: Dict | None = None) -> RealitySystem:
+    """Export RLC circuit with ternary damping regime detection."""
+    p = params or {}
+    return RealitySystem(
+        node_id="system:rlc_circuit",
+        state={
+            "I": float(p.get("I", 1.0)),
+            "V": float(p.get("V", 0.0)),
+            "R": float(p.get("R", 10.0)),
+            "L": float(p.get("L", 1e-3)),
+            "C": float(p.get("C", 1e-6)),
+            "dt": float(p.get("dt", 1e-6)),
+        },
+        behavior_rpn="""
+            R RECALL 0.5 * C RECALL L RECALL / sqrt * zeta STORE
+            zeta RECALL 1.0 tcmp damping_regime STORE
+            V RECALL NEG L RECALL / R RECALL I RECALL * L RECALL / - dI_dt STORE
+            I RECALL C RECALL / dV_dt STORE
+            I RECALL dI_dt RECALL dt RECALL * + I STORE
+            V RECALL dV_dt RECALL dt RECALL * + V STORE
+        """,
+        law_rpn="",
+        rpn_tier=2,
+        rpn_instance=12,
+        matryoshka_dim=512,
+    )
