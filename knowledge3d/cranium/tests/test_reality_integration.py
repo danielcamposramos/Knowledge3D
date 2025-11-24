@@ -14,19 +14,32 @@ if str(ROOT) not in sys.path:
 
 from knowledge3d.cranium.reality_galaxy import RealityGalaxy
 from knowledge3d.cranium.reality_physics_export import (
+    export_acid_base_reaction,
+    export_combustion,
     export_constant_acceleration_1d,
     export_coupled_oscillators,
     export_double_pendulum_2d,
+    export_dna_replication,
+    export_enzyme_kinetics,
+    export_crystal_lattice,
     export_harmonic_oscillator_1d,
     export_heat_1d,
     export_heat_2d,
+    export_ideal_gas,
     export_lc_circuit,
+    export_metal_melting,
     export_orbital_2d,
+    export_phase_transition_water,
+    export_population_dynamics,
     export_point_charge_2d,
     export_projectile_2d,
     export_rc_circuit,
     export_rigid_body_2d,
     export_rlc_circuit,
+    export_simple_cell,
+    export_composite_material,
+    export_co2_molecule,
+    export_water_molecule,
 )
 from knowledge3d.cranium.ptx_runtime.math_core_pool import MathCorePool
 
@@ -256,6 +269,68 @@ def test_galaxy_persistence_with_all_systems() -> None:
         state1 = galaxy1.nodes[sys.node_id].state
         state2 = galaxy2.nodes[sys.node_id].state
         assert state1.keys() == state2.keys(), f"State keys mismatch for {sys.node_id}"
+
+
+def test_26_systems_full_allocation() -> None:
+    """Integration test across physics, chemistry, biology, and materials."""
+    pool = MathCorePool()
+    if pool.max_cores < 26:
+        pool.max_cores = 32
+    galaxy = RealityGalaxy(math_core_pool=pool)
+
+    phase_4a = [
+        export_constant_acceleration_1d(auto_allocate=True),
+        export_harmonic_oscillator_1d(auto_allocate=True),
+        export_projectile_2d(auto_allocate=True),
+        export_rigid_body_2d(auto_allocate=True),
+        export_heat_1d(auto_allocate=True),
+        export_coupled_oscillators(auto_allocate=True),
+        export_orbital_2d(auto_allocate=True),
+        export_heat_2d(auto_allocate=True),
+        export_double_pendulum_2d(auto_allocate=True),
+    ]
+
+    phase_4b = [
+        export_point_charge_2d(auto_allocate=True),
+        export_lc_circuit(auto_allocate=True),
+        export_rc_circuit(auto_allocate=True),
+        export_rlc_circuit(auto_allocate=True),
+    ]
+
+    phase_4c_chem = [
+        export_water_molecule(auto_allocate=True),
+        export_ideal_gas(auto_allocate=True),
+        export_combustion(auto_allocate=True),
+        export_co2_molecule(auto_allocate=True),
+        export_acid_base_reaction(auto_allocate=True),
+        export_phase_transition_water(auto_allocate=True),
+    ]
+
+    phase_4c_bio = [
+        export_simple_cell(auto_allocate=True),
+        export_enzyme_kinetics(auto_allocate=True),
+        export_dna_replication(auto_allocate=True),
+        export_population_dynamics(auto_allocate=True),
+    ]
+
+    phase_4c_mat = [
+        export_crystal_lattice(auto_allocate=True),
+        export_composite_material(auto_allocate=True),
+        export_metal_melting(auto_allocate=True),
+    ]
+
+    systems = phase_4a + phase_4b + phase_4c_chem + phase_4c_bio + phase_4c_mat
+    for sys in systems:
+        galaxy.add_node(sys)
+
+    instance_ids = [galaxy.nodes[sys.node_id].rpn_instance for sys in systems]
+    assert len(set(instance_ids)) == len(systems), "All 26 systems should have unique cores"
+
+    for sys in systems:
+        state = galaxy.step_system(sys.node_id, n_steps=5)
+        assert state is not None
+
+    print(f"\n  26 systems (4 domains) running across {len(set(instance_ids))} cores")
 
 
 if __name__ == "__main__":
