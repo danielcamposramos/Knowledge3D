@@ -8,13 +8,12 @@ from __future__ import annotations
 
 import base64
 import json
+import math
+from array import array
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-import numpy as np
-
 from knowledge3d.bridge import glb_ctypes_loader
-from knowledge3d.cranium.adaptive_procedural_bridge import AdaptiveDimensionCompressor
 from knowledge3d.cranium.reality_nodes import (
     RealityAtom,
     RealityMaterial,
@@ -43,7 +42,7 @@ class RealityGalaxy:
         galaxy_path: Optional[Path] = None,
         *,
         rpn_engine: Optional[ModularRPNEngine] = None,
-        compressor: Optional[AdaptiveDimensionCompressor] = None,
+        compressor: Optional["AdaptiveDimensionCompressor"] = None,
         math_core_pool: Optional["MathCorePool"] = None,
     ) -> None:
         root = galaxy_path or DEFAULT_REALITY_GALAXY_ROOT
@@ -54,7 +53,10 @@ class RealityGalaxy:
         from knowledge3d.cranium.ptx_runtime.math_core_pool import MathCorePool
 
         self._math_core_pool = math_core_pool or MathCorePool()
-        self._rpn = rpn_engine or ModularRPNEngine(pool=self._math_core_pool)
+        # GPU-backed ModularRPNEngine is optional and not required for the
+        # sovereign CPU hot path used by RealityGalaxy.step_system(). Callers
+        # that need GPU RPN can inject an engine via the rpn_engine parameter.
+        self._rpn = rpn_engine
         self._compressor = compressor
         self._compressor_checked = compressor is not None
 
@@ -127,6 +129,19 @@ class RealityGalaxy:
 
     def step_system(self, system_id: str, n_steps: int = 1) -> Dict[str, float]:
         """Step a reality_system forward by n_steps with law validation."""
+        # SOVEREIGNTY GUARD
+        import sys
+        if __debug__:
+            # Enforce that array/accelerator libraries stay out of the hot path.
+            # Torch is validated separately in test_hot_path_no_torch.
+            forbidden = {"numpy", "tensorflow", "cupy"}
+            loaded = forbidden & set(sys.modules.keys())
+            if loaded:
+                raise RuntimeError(
+                    f"SOVEREIGNTY VIOLATION: {loaded} in hot path! "
+                    f"Only PTX+RPN allowed in inference loop."
+                )
+
         node = self.get_node(system_id)
         if not isinstance(node, RealitySystem):
             raise ValueError(f"{system_id} is not a reality_system")
@@ -208,14 +223,19 @@ class RealityGalaxy:
         if compressor is None:
             node.embedding = {
                 "tier": quality,
-                "dimension": features.size,
-                "program": base64.b64encode(features.tobytes()).decode("ascii"),
+                "dimension": len(features),
+                "program": base64.b64encode(array("f", features).tobytes()).decode("ascii"),
                 "codec": "raw_f32",
                 "fidelity": 1.0,
             }
             return
 
-        program_bytes, meta = compressor.compress(features, quality=quality, return_metadata=True)
+        # Lazy numpy import confined to compression path (outside hot loop)
+        import numpy as np  # type: ignore
+
+        program_bytes, meta = compressor.compress(
+            np.asarray(features, dtype=np.float32), quality=quality, return_metadata=True
+        )
         node.embedding = {
             "tier": quality,
             "dimension": meta.get("target_dim"),
@@ -226,11 +246,12 @@ class RealityGalaxy:
             "metadata": meta,
         }
 
-    def _ensure_compressor(self) -> Optional[AdaptiveDimensionCompressor]:
+    def _ensure_compressor(self) -> Optional["AdaptiveDimensionCompressor"]:
         if self._compressor_checked:
             return self._compressor
         self._compressor_checked = True
         try:
+            from knowledge3d.cranium.adaptive_procedural_bridge import AdaptiveDimensionCompressor
             self._compressor = AdaptiveDimensionCompressor()
         except FileNotFoundError:
             self._compressor = None
@@ -252,9 +273,9 @@ class RealityGalaxy:
             return "maximum"
         return tier
 
-    def _extract_node_features(self, node: RealityNode) -> np.ndarray:
+    def _extract_node_features(self, node: RealityNode) -> List[float]:
         """Sovereign feature extraction from metadata, RPN programs, and composition."""
-        features = np.zeros(512, dtype=np.float32)
+        features = [0.0] * 512
         meta_vec = self._extract_metadata_features(node)
         rpn_vec, _ = self._extract_rpn_features(node)
         comp_vec = self._extract_compositional_features(node)
@@ -263,8 +284,8 @@ class RealityGalaxy:
         features[448:512] = comp_vec[:64]
         return features
 
-    def _extract_metadata_features(self, node: RealityNode) -> np.ndarray:
-        vec = np.zeros(64, dtype=np.float32)
+    def _extract_metadata_features(self, node: RealityNode) -> List[float]:
+        vec = [0.0] * 64
         if node.node_type == "reality_atom":
             vec[0] = float(node.metadata.get("mass", 0.0))
             vec[1] = float(node.metadata.get("charge", 0.0))
@@ -284,9 +305,9 @@ class RealityGalaxy:
             vec[0] = float(len(node.component_refs))
         return vec
 
-    def _extract_rpn_features(self, node: RealityNode) -> Tuple[np.ndarray, int]:
+    def _extract_rpn_features(self, node: RealityNode) -> Tuple[List[float], int]:
         """Extract opcode histogram + program stats."""
-        vec = np.zeros(384, dtype=np.float32)
+        vec = [0.0] * 384
         combined_rpn = " ".join([node.visual_rpn, node.behavior_rpn, node.law_rpn])
         tokens = [t for t in combined_rpn.split() if t]
         vec[0] = float(len(combined_rpn))
@@ -342,14 +363,15 @@ class RealityGalaxy:
             max_depth = max(max_depth, depth)
             i += 1
 
-        total_op = float(np.sum(vec[2:2 + len(opcode_map)]))
+        total_op = float(sum(vec[2:2 + len(opcode_map)]))
         if total_op > 0:
-            vec[2:2 + len(opcode_map)] /= total_op
+            for j in range(len(opcode_map)):
+                vec[2 + j] /= total_op
         vec[20] = float(max_depth)
         return vec, max_depth
 
-    def _extract_compositional_features(self, node: RealityNode) -> np.ndarray:
-        vec = np.zeros(64, dtype=np.float32)
+    def _extract_compositional_features(self, node: RealityNode) -> List[float]:
+        vec = [0.0] * 64
         vec[0] = float(len(node.component_refs))
         vec[1] = float(self._compute_hierarchy_depth(node))
         return vec
@@ -374,10 +396,10 @@ class RealityGalaxy:
         program = payload.pop("program", None)
         if isinstance(program, (bytes, bytearray)):
             payload["program_b64"] = base64.b64encode(program).decode("ascii")
-        elif isinstance(program, np.ndarray):
-            payload["program_b64"] = base64.b64encode(program.tobytes()).decode("ascii")
         elif isinstance(program, str):
             payload["program_b64"] = program
+        elif hasattr(program, "tobytes"):
+            payload["program_b64"] = base64.b64encode(program.tobytes()).decode("ascii")
         return payload
 
     def _deserialise_embedding(self, embedding: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
@@ -499,7 +521,7 @@ class RealityGalaxy:
                 if not stack:
                     raise ValueError("SQRT requires value on stack")
                 val = stack.pop()
-                stack.append(float(np.sqrt(val)))
+                stack.append(float(math.sqrt(val)))
                 i += 1
                 continue
 

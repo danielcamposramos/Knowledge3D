@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import ctypes
 from dataclasses import dataclass
-from typing import List
-
-import numpy as np
+import struct
+from typing import Iterable, List, Sequence
 
 from knowledge3d.cranium.bridges.advanced_rpn import AdvancedRPNEngine
 from knowledge3d.cranium.ptx_runtime import rpn_opcodes as ropc
@@ -15,8 +14,8 @@ from knowledge3d.cranium.sovereign import loader
 
 def _encode_pointer(ptr_value: int, rows: int, cols: int = 1) -> List[float]:
     """Encode device pointer metadata for OP_POINTER_LITERAL."""
-    lo_bits = np.array([ptr_value & 0xFFFFFFFF], dtype=np.uint32).view(np.float32)[0]
-    hi_bits = np.array([(ptr_value >> 32) & 0xFFFFFFFF], dtype=np.uint32).view(np.float32)[0]
+    lo_bits = struct.unpack("<f", struct.pack("<I", ptr_value & 0xFFFFFFFF))[0]
+    hi_bits = struct.unpack("<f", struct.pack("<I", (ptr_value >> 32) & 0xFFFFFFFF))[0]
     return [float(rows), float(cols), float(lo_bits), float(hi_bits)]
 
 
@@ -36,19 +35,19 @@ class RPNMathCore:
     # ------------------------------------------------------------------ #
     # Generic helpers
     # ------------------------------------------------------------------ #
-    def _exec(self, op_codes: List[int], scalars: List[float]) -> np.ndarray:
-        op_np = np.asarray(op_codes, dtype=np.uint16)
-        scalars_np = np.asarray(scalars, dtype=np.float32)
+    def _exec(self, op_codes: List[int], scalars: List[float]):
+        op_arr = (ctypes.c_uint16 * len(op_codes))(*op_codes) if op_codes else (ctypes.c_uint16 * 1)(0)
+        scalars_arr = (ctypes.c_float * len(scalars))(*scalars) if scalars else (ctypes.c_float * 1)(0.0)
         self.engine.reset_instance(0)
-        return self.engine.execute_program(0, op_np, scalars_np)
+        return self.engine.execute_program(0, op_arr, scalars_arr)
 
     def vector_norm(self, tensor: DeviceTensor) -> float:
         op_codes = [ropc.OP_POINTER_LITERAL, ropc.OP_VEC_L2_NORM]
         scalars = _encode_pointer(int(tensor.ptr.value), tensor.rows * tensor.cols, 1)
         stack = self._exec(op_codes, scalars)
-        if stack.size == 0:
+        if not stack:
             return 0.0
-        return float(stack[-1, 0])
+        return float(stack[-1][0])
 
     def fill(self, tensor: DeviceTensor, value: float) -> None:
         op_codes = [ropc.OP_POINTER_LITERAL, ropc.OP_LITERAL_SCALAR, ropc.OP_FILL_F32]
@@ -102,19 +101,25 @@ class RPNMathCore:
     # ------------------------------------------------------------------ #
     @staticmethod
     def to_device(array: np.ndarray) -> loader.CUdeviceptr:
-        tensor = np.ascontiguousarray(array, dtype=np.float32)
-        ptr = loader.gpu_malloc(tensor.nbytes)
-        loader.memcpy_htod(ptr, tensor.ctypes.data_as(ctypes.c_void_p), tensor.nbytes)
+        data = [float(x) for x in array]
+        nbytes = len(data) * ctypes.sizeof(ctypes.c_float)
+        buf = (ctypes.c_float * len(data))(*data)
+        ptr = loader.gpu_malloc(nbytes)
+        loader.memcpy_htod(ptr, ctypes.cast(buf, ctypes.c_void_p), nbytes)
         return ptr
 
     @staticmethod
-    def copy_to_device(array: np.ndarray, ptr: loader.CUdeviceptr) -> None:
-        tensor = np.ascontiguousarray(array, dtype=np.float32)
-        loader.memcpy_htod(ptr, tensor.ctypes.data_as(ctypes.c_void_p), tensor.nbytes)
+    def copy_to_device(array: Sequence[float], ptr: loader.CUdeviceptr) -> None:
+        data = [float(x) for x in array]
+        buf = (ctypes.c_float * len(data))(*data)
+        loader.memcpy_htod(ptr, ctypes.cast(buf, ctypes.c_void_p), ctypes.sizeof(buf))
 
     @staticmethod
-    def copy_to_host(ptr: loader.CUdeviceptr, array: np.ndarray) -> None:
-        loader.memcpy_dtoh(array.ctypes.data_as(ctypes.c_void_p), ptr, array.nbytes)
+    def copy_to_host(ptr: loader.CUdeviceptr, array: Sequence[float]) -> List[float]:
+        nbytes = len(array) * ctypes.sizeof(ctypes.c_float)
+        buf = (ctypes.c_float * len(array))()
+        loader.memcpy_dtoh(ctypes.cast(buf, ctypes.c_void_p), ptr, nbytes)
+        return [float(buf[i]) for i in range(len(array))]
 
     @staticmethod
     def free(ptr: loader.CUdeviceptr) -> None:

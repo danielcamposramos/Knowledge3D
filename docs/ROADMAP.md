@@ -12,6 +12,8 @@ Each phase builds on the previous one. Status labels reflect our current progres
 
 Figure: The Cognitive House illustrates the House (persistent memory), Cranium (active processing), and Logic Layer (models) that guide the roadmap. See the generation prompt in `docs/images/cognitive_house_prompt.md`.
 
+> Status note (2025-11-24): Phase 5 capacity demonstration (CPU path) is complete. Stress + scaling benchmarks executed (artifacts in `output/benchmarks/`), 26 GLBs exported (`output/gltf/`), and analysis captured in `TEMP/ARCHITECTURE_CAPACITY_ANALYSIS_11.24.2025.md`. Next: Phase 6 UI integration and GPU-kernel validation once cupy is available.
+
 ---
 
 ## Phase A — PTX Fused Head & Dual Memory Spine _(Status: Partially Complete)_

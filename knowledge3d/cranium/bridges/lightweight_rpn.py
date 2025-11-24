@@ -13,9 +13,10 @@ from __future__ import annotations
 import ctypes
 import os
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Optional
 
-import numpy as np
+import math
+import struct
 
 from knowledge3d.cranium.sovereign import loader
 from .rpn_config import RPN_GRID_DIM, TIER1_BLOCK_DIM
@@ -49,9 +50,9 @@ class LightweightRPNEngine:
         self._cached_scalars_bytes: Optional[bytes] = None
         self._cached_vectors_bytes: Optional[bytes] = None
         self._cached_result: Optional[float] = None
-        self._cached_codes_obj: Optional[np.ndarray] = None
-        self._cached_scalars_obj: Optional[np.ndarray] = None
-        self._cached_vectors_obj: Optional[np.ndarray] = None
+        self._cached_codes_obj: Optional[bytes] = None
+        self._cached_scalars_obj: Optional[bytes] = None
+        self._cached_vectors_obj: Optional[bytes] = None
 
         ptx_path = Path(__file__).parent.parent / "ptx" / "modular_rpn_kernel_lite.ptx"
         if ptx_path.exists():
@@ -64,16 +65,14 @@ class LightweightRPNEngine:
                 self._device_state = loader.gpu_malloc(self.MAX_INSTANCES * self.INSTANCE_STRIDE)
                 if os.environ.get("K3D_RPN_DEBUG"):
                     print("[LightweightRPN] Allocated device state")
-                zeros = np.zeros(self.MAX_INSTANCES * self.INSTANCE_STRIDE, dtype=np.uint8)
-                loader.memcpy_htod(self._device_state, zeros.ctypes.data_as(ctypes.c_void_p), zeros.nbytes)
-                self._gpu_enabled = True
+                zeros = (ctypes.c_uint8 * (self.MAX_INSTANCES * self.INSTANCE_STRIDE))()
+                loader.memcpy_htod(self._device_state, ctypes.cast(zeros, ctypes.c_void_p), ctypes.sizeof(zeros))
                 if os.environ.get("K3D_RPN_DEBUG"):
                     print("[LightweightRPN] GPU path enabled")
             except RuntimeError as exc:
                 # GPU unavailable – fall back to CPU interpreter.
                 self._kernel = None
                 self._device_state = None
-                self._gpu_enabled = False
                 if os.environ.get("K3D_RPN_DEBUG"):
                     print(f"[LightweightRPN] GPU path disabled (RuntimeError): {exc}")
 
@@ -129,29 +128,26 @@ class LightweightRPNEngine:
     def execute_single(
         self,
         instance_id: int,
-        op_codes: np.ndarray,
-        scalars: np.ndarray,
-        vectors: np.ndarray,
+        op_codes: Iterable[int],
+        scalars: Iterable[float],
+        vectors: Iterable[Iterable[float]],
     ) -> float:
         """Execute a single RPN program on Tier‑1."""
-        if not (isinstance(op_codes, np.ndarray) and op_codes.dtype == np.uint16 and op_codes.flags.c_contiguous):
-            op_codes = np.asarray(op_codes, dtype=np.uint16)
-        if not (isinstance(scalars, np.ndarray) and scalars.dtype == np.float32 and scalars.flags.c_contiguous):
-            scalars = np.asarray(scalars, dtype=np.float32)
-        if not (isinstance(vectors, np.ndarray) and vectors.dtype == np.float32 and vectors.flags.c_contiguous):
-            vectors = np.asarray(vectors, dtype=np.float32)
+        op_codes_list = [int(o) for o in op_codes]
+        scalars_list = [float(s) for s in scalars]
+        vectors_list = [[float(c) for c in v] for v in vectors]
 
         cached = (
             self._cached_result is not None
-            and op_codes is self._cached_codes_obj
-            and scalars is self._cached_scalars_obj
-            and vectors is self._cached_vectors_obj
+            and self._cached_codes_bytes == bytes(self._encode_uint16(op_codes_list))
+            and self._cached_scalars_bytes == self._encode_f32(scalars_list)
+            and self._cached_vectors_bytes == self._encode_f32_flat(vectors_list)
         )
 
         if cached and self._gpu_enabled:
             return self._cached_result
 
-        unsupported = [op for op in op_codes if op not in self.SUPPORTED_OPS]
+        unsupported = [op for op in op_codes_list if op not in self.SUPPORTED_OPS]
         if unsupported:
             raise ValueError(
                 f"Unsupported ops for Tier 1: {unsupported}. "
@@ -159,16 +155,16 @@ class LightweightRPNEngine:
             )
 
         if self._gpu_enabled:
-            return self._execute_gpu(instance_id, op_codes, scalars, vectors)
+            return self._execute_gpu(instance_id, op_codes_list, scalars_list, vectors_list)
 
-        result = self._execute_cpu(op_codes, scalars, vectors)
+        result = self._execute_cpu(op_codes_list, scalars_list, vectors_list)
         self._cached_result = result
-        self._cached_codes_obj = op_codes
-        self._cached_scalars_obj = scalars
-        self._cached_vectors_obj = vectors
-        self._cached_codes_bytes = op_codes.tobytes()
-        self._cached_scalars_bytes = scalars.tobytes()
-        self._cached_vectors_bytes = vectors.tobytes()
+        self._cached_codes_obj = None
+        self._cached_scalars_obj = None
+        self._cached_vectors_obj = None
+        self._cached_codes_bytes = bytes(self._encode_uint16(op_codes_list))
+        self._cached_scalars_bytes = self._encode_f32(scalars_list)
+        self._cached_vectors_bytes = self._encode_f32_flat(vectors_list)
         return result
 
     # ------------------------------------------------------------------ #
@@ -177,20 +173,21 @@ class LightweightRPNEngine:
     def _execute_gpu(
         self,
         instance_id: int,
-        op_codes: np.ndarray,
-        scalars: np.ndarray,
-        vectors: np.ndarray,
+        op_codes: list[int],
+        scalars: list[float],
+        vectors: list[list[float]],
     ) -> float:
-        d_codes = self._ensure_scratch_buffer("codes", op_codes.nbytes)
-        d_scalars = self._ensure_scratch_buffer("scalars", scalars.nbytes)
-        d_vectors = self._ensure_scratch_buffer("vectors", vectors.nbytes)
-        codes_bytes = op_codes.tobytes()
-        scalars_bytes = scalars.tobytes()
-        vectors_bytes = vectors.tobytes()
+        codes_bytes = bytes(self._encode_uint16(op_codes))
+        scalars_bytes = self._encode_f32(scalars)
+        vectors_bytes = self._encode_f32_flat(vectors)
 
-        loader.memcpy_htod(d_codes, op_codes.ctypes.data_as(ctypes.c_void_p), op_codes.nbytes)
-        loader.memcpy_htod(d_scalars, scalars.ctypes.data_as(ctypes.c_void_p), scalars.nbytes)
-        loader.memcpy_htod(d_vectors, vectors.ctypes.data_as(ctypes.c_void_p), vectors.nbytes)
+        d_codes = self._ensure_scratch_buffer("codes", len(codes_bytes))
+        d_scalars = self._ensure_scratch_buffer("scalars", len(scalars_bytes))
+        d_vectors = self._ensure_scratch_buffer("vectors", len(vectors_bytes))
+
+        loader.memcpy_htod(d_codes, ctypes.c_void_p(ctypes.addressof(ctypes.create_string_buffer(codes_bytes))), len(codes_bytes))
+        loader.memcpy_htod(d_scalars, ctypes.c_void_p(ctypes.addressof(ctypes.create_string_buffer(scalars_bytes))), len(scalars_bytes))
+        loader.memcpy_htod(d_vectors, ctypes.c_void_p(ctypes.addressof(ctypes.create_string_buffer(vectors_bytes))), len(vectors_bytes))
 
         loader.launch(
             self._kernel,
@@ -207,11 +204,11 @@ class LightweightRPNEngine:
         )
 
         # Read stack header to locate top value
-        header = np.zeros(4, dtype=np.uint32)
+        header = (ctypes.c_uint32 * 4)()
         loader.memcpy_dtoh(
-            header.ctypes.data_as(ctypes.c_void_p),
+            ctypes.cast(header, ctypes.c_void_p),
             loader.CUdeviceptr(int(self._device_state.value + instance_id * self.INSTANCE_STRIDE)),
-            header.nbytes,
+            ctypes.sizeof(header),
         )
         size = int(header[1])
         if size == 0:
@@ -219,11 +216,11 @@ class LightweightRPNEngine:
 
         stack_top = (header[0] + size - 1) & 63
         element_offset = instance_id * self.INSTANCE_STRIDE + 16 + stack_top * 16
-        result_vec = np.zeros(4, dtype=np.float32)
+        result_vec = (ctypes.c_float * 4)()
         loader.memcpy_dtoh(
-            result_vec.ctypes.data_as(ctypes.c_void_p),
+            ctypes.cast(result_vec, ctypes.c_void_p),
             loader.CUdeviceptr(int(self._device_state.value + element_offset)),
-            result_vec.nbytes,
+            ctypes.sizeof(result_vec),
         )
         result = float(result_vec[0])
         self._cached_result = result
@@ -242,7 +239,7 @@ class LightweightRPNEngine:
         if not self._gpu_enabled or self._device_state is None:
             return
 
-        header_zero = np.zeros(4, dtype=np.uint32)
+        header_zero = (ctypes.c_uint32 * 4)()
         offset = instance_id * self.INSTANCE_STRIDE
         loader.memcpy_htod(
             loader.CUdeviceptr(int(self._device_state.value + offset)),
@@ -256,10 +253,10 @@ class LightweightRPNEngine:
     def _execute_cpu(
         self,
         op_codes: Iterable[int],
-        scalars: np.ndarray,
-        vectors: np.ndarray,
+        scalars: Iterable[float],
+        vectors: Iterable[Iterable[float]],
     ) -> float:
-        stack: list[np.ndarray] = []
+        stack: list[list[float]] = []
         scalar_index = 0
         vector_index = 0
 
@@ -270,15 +267,17 @@ class LightweightRPNEngine:
             return float(value[0])
 
         def push_scalar(value: float) -> None:
-            stack.append(np.array([value, 0.0, 0.0, 0.0], dtype=np.float32))
+            stack.append([value, 0.0, 0.0, 0.0])
 
         for op in op_codes:
             if op == 0:  # literal scalar
                 push_scalar(float(scalars[scalar_index]))
                 scalar_index += 1
             elif op == 1:  # literal vector
-                vec = np.zeros(4, dtype=np.float32)
-                vec[:3] = vectors[vector_index][:3]
+                vec = [0.0, 0.0, 0.0, 0.0]
+                cur_vec = list(vectors[vector_index])
+                for idx in range(min(3, len(cur_vec))):
+                    vec[idx] = cur_vec[idx]
                 vector_index += 1
                 stack.append(vec)
             elif op in (10, 11, 12, 13):  # add/sub/mul/div
@@ -297,17 +296,17 @@ class LightweightRPNEngine:
             elif op in (20, 21, 22, 24, 25, 26):
                 a = pop_scalar()
                 if op == 20:
-                    push_scalar(np.sqrt(a))
+                    push_scalar(math.sqrt(a))
                 elif op == 21:
-                    push_scalar(np.exp(a))
+                    push_scalar(math.exp(a))
                 elif op == 22:
-                    push_scalar(np.log(a))
+                    push_scalar(math.log(a))
                 elif op == 24:
-                    push_scalar(np.sin(a))
+                    push_scalar(math.sin(a))
                 elif op == 25:
-                    push_scalar(np.cos(a))
+                    push_scalar(math.cos(a))
                 else:
-                    push_scalar(np.tan(a))
+                    push_scalar(math.tan(a))
             elif op in (40, 42, 44, 46, 47):
                 b = pop_scalar()
                 a = pop_scalar()
@@ -316,7 +315,7 @@ class LightweightRPNEngine:
                 elif op == 42:
                     push_scalar(1.0 if a < b else 0.0)
                 elif op == 44:
-                    push_scalar(1.0 if np.isclose(a, b) else 0.0)
+                    push_scalar(1.0 if abs(a - b) <= 1e-6 else 0.0)
                 elif op == 46:
                     push_scalar(max(a, b))
                 else:
@@ -324,7 +323,7 @@ class LightweightRPNEngine:
             elif op == 50:  # dup
                 if not stack:
                     raise RuntimeError("Tier‑1 CPU fallback stack underflow")
-                stack.append(stack[-1].copy())
+                stack.append(list(stack[-1]))
             elif op == 51:  # swap
                 if len(stack) < 2:
                     raise RuntimeError("Tier‑1 CPU fallback stack underflow")
@@ -339,5 +338,26 @@ class LightweightRPNEngine:
         if not stack:
             raise RuntimeError("Tier‑1 CPU fallback produced empty stack")
         return float(stack[-1][0])
+
+    # ------------------------------------------------------------------ #
+    # Encoding helpers
+    # ------------------------------------------------------------------ #
+    @staticmethod
+    def _encode_uint16(values: Iterable[int]) -> list[int]:
+        out: list[int] = []
+        for v in values:
+            out.append(int(v) & 0xFFFF)
+        return out
+
+    @staticmethod
+    def _encode_f32(values: Iterable[float]) -> bytes:
+        return b"".join(struct.pack("<f", float(v)) for v in values)
+
+    @staticmethod
+    def _encode_f32_flat(vectors: Iterable[Iterable[float]]) -> bytes:
+        flat: list[float] = []
+        for vec in vectors:
+            flat.extend(float(x) for x in vec)
+        return b"".join(struct.pack("<f", v) for v in flat)
 
 __all__ = ["LightweightRPNEngine"]
