@@ -369,13 +369,26 @@ nvcc -ptx -arch=sm_86 --ptxas-options=-v \
 ```
 
 ### Step 3: Load via Sovereign Loader
+
+**⚡ CRITICAL ARCHITECTURAL INSIGHT:** Each kernel has its OWN GPU context. Kernels are isolated. The sovereign loader manages this automatically—there is NO context complexity to fear when removing numpy from bridges.
+
 ```python
 from knowledge3d.cranium.sovereign.loader import SovereignLoader
 
 loader = SovereignLoader()
 module = loader.load_ptx("ptx/my_kernel.ptx")
 kernel = module.get_function("my_kernel_name")
+
+# Each kernel manages its own context
+# No interference between kernels
+# No numpy needed—ctypes handles GPU buffers
 ```
+
+**RPN Kernel Output Modes:**
+1. **Internal mode** (hot path): RPN results stay on GPU, consumed by other kernels
+2. **External mode** (output): Results copied to host for export/visualization
+
+**Key Point:** Removing numpy from bridges doesn't break anything. PTX kernels already work. Bridges just orchestrate buffer allocation and kernel launches via ctypes. The complexity you might fear has already been solved by the sovereign loader architecture.
 
 ### Step 4: Create ctypes Bridge
 ```python
