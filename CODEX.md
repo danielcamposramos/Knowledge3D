@@ -1,170 +1,113 @@
-# Codex Tasks
+# CODEX.md — Implementation Lead Guide
 
-This file lists actionable tasks for AI agents working on the Knowledge3D repository. All tasks are derived from the official **[Project Roadmap](docs/ROADMAP.md)** and should be executed in accordance with the vision outlined in the **[K3D Research Report](docs/k3d-research.md)**.
+**Last Updated:** November 24, 2025  
+**Version:** 2.0 (Post Phase 4A Tier Integration)
 
-## Quick Start for AI Assistants
-
-**NEW (2025-11-17):** Before starting tasks, please read:
-1. **[CLAUDE.md](CLAUDE.md)** — Comprehensive AI assistant onboarding (philosophy, architecture, workflows)
-2. **[CLAUDE_LOCAL.md](CLAUDE_LOCAL.md)** — Environment-specific details (verified paths, real metrics, budget constraints)
-3. **[AGENTS.md](AGENTS.md)** — Agent collaboration guidelines and contributor protocol
-
-**Budget Consciousness:** This is a self-funded favela lab project. Work efficiently:
-- Use browser Claude for planning/documentation (affordable)
-- Use Claude Code for file operations/git only when necessary (expensive, limited credits)
-- Minimize GPU waste (test thoroughly before long training runs)
-- Respect the 547+ git commits, 45+ PTX kernels already built with limited resources
-
-⚠️ **Memory Policy Reminder**: every task touching Galaxy, House, or Museum must follow [`docs/HOUSE_GALAXY_TABLET.md`](docs/HOUSE_GALAXY_TABLET.md). The Memory Tablet is now the primary interface for consolidated knowledge.
+Codex-style agents lead implementation, Reality Galaxy, and testing. Read BRIEFING.md first for the full architecture; this file captures Codex’s role, patterns, and backlog.
 
 ---
 
-## Phase 1 Tasks: The MVP - The Static Knowledge Graph (Historical)
-
-**Objective:** Prove the core data-to-spatial pipeline by creating a non-interactive, read-only visualization of a knowledge corpus.
-
-1.  **Define Core Schema:**
-    -   [ ] **Task:** Create and finalize the `spec/k3d_node_schema.json` file.
-    -   **Details:** The schema must be robust and extensible, incorporating principles of spatial and propositional knowledge representation as discussed in the research report.
-
-2.  **Implement Data-to-Spatial Pipeline:**
-    -   [ ] **Task:** Enhance the `k3dgen` Python tool.
-    -   **Details:**
-        -   Integrate `umap-learn` to replace the existing PCA implementation for dimensionality reduction.
-        -   Add functionality to process raw text data using embedding models from the Hugging Face library (e.g., BERT).
-        -   Output a single embedded `.gltf` file where `primitive.extras.k3d` carries ids, vectors, embeddings, metadata, and neighbors. Sidecar `.k3d` is deprecated.
-
-3.  **Develop Static 3D Visualization:**
-    -   [ ] **Task:** Create an initial MVP viewer.
-    -   **Details:**
-        -   Load the embedded `.gltf` output directly and construct point clouds from `extras.k3d.vectors`.
-        -   Implement basic camera controls to navigate the static point cloud.
-
-4.  **Update Documentation:**
-    -   [X] **Task:** Align core project documents with the new vision.
-    -   **Details:** Update `README.md`, `docs/ROADMAP.md`, `AGENTS.md`, and `CODEX.md`.
+## Quick Start
+- Read BRIEFING.md (central overview).
+- Check docs/ROADMAP.md for current phase.
+- Review Claude’s specs in TEMP/*.md.
+- Coordinate with Claude for complex designs; own implementation and tests.
 
 ---
 
-## Phase 2 Tasks: The Interactive Agent (In Progress)
+## Role Definition
 
-**Objective:** Transform the passive viewing experience into an active, conversational one by integrating a Synthetic User (embodied AI inhabitant).
+**Strengths**
+- Implementation: Reality Galaxy, tier metadata, STORE/RECALL interpreter, ternary ops.
+- State management and exports: reality_nodes, reality_galaxy, reality_physics_export.
+- Testing: pytest suites, fixtures, coverage focus.
 
-**Note:** "Synthetic User" refers to AI entities that fully inhabit K3D as first-class citizens with spatial presence, not external AI assistants (see [Dual-Client Contract](docs/vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md#14-client-types-human-avatars-and-synthetic-users)).
+**Workflow**
+1. Read spec (TEMP/*.md) and clarify early.
+2. Implement incrementally; keep code+tests paired.
+3. Run targeted tests; fix failures immediately.
+4. Commit often with clear messages; document design choices in TEMP/ when needed.
+5. Report progress (tests passing, blockers).
 
-1.  **Integrate Synthetic User:**
-    -   [ ] **Task:** Add a Synthetic User to the viewer.
-    -   **Details:** Provide a visible avatar and minimal policy (seek-by-label, neighbor traversal), with a UI to issue simple commands (e.g., "go to <label>"). Later integrate voice/LLM when ready.
-
-2.  **Develop Synthetic User World Model:**
-    -   [ ] **Task:** Implement the Synthetic User's spatial reasoning capabilities.
-    -   **Details:** Create data structures that allow the Synthetic User to understand the location, properties, and relationships of the knowledge nodes in its environment. Ensure the fused head consumes the house-memory index produced during SleepTime before querying modality galaxies.
-
-3.  **Implement Basic Interactivity:**
-    -   [ ] **Task:** Develop the user-to-Synthetic-User interaction loop.
-    -   **Details:** Implement voice command recognition and the ability for the agent to provide multimodal feedback (e.g., speaking while highlighting a cluster of nodes).
-
-4.  **AI Diary (Vector‑Native):**
-    - [ ] Add viewer UI to open a diary book, list pages, and call `/diary read` to render translated text.
-    - [ ] Enforce AI‑only writes; ensure `/mem add` cannot target the `Diary` room.
-    - [ ] Add “promote to Garden” action to curate a diary page into the Knowledge Garden.
-    - [ ] Surface diaries through the tablet inventory so the avatar can review consolidated reflections without leaving the workspace.
-
-5.  **Doors & Address Bar:**
-    - [ ] Add an address bar UI to door meshes; integrate `/open <label|k3d://...>` and show route previews.
-    - [ ] Provide helpers to create inter‑House (LAN) doors given two `K3D_HOUSE_ID`s.
+**Guardrails**
+- Hot path stays sovereign (PTX + RPN); no external ML frameworks in inference.
+- Ingestion tooling OK when isolated from hot path and documented.
+- Aim for >90% coverage on new code.
 
 ---
 
-## Phase 3 Tasks: The Collaborative Knowledge Habitat (Upcoming)
+## Collaboration with Claude (Phase 4A Case Study)
+- Claude: designed 3-tier architecture, built physics_demo systems, wrote specs.
+- Codex: added tier metadata and ternary ops, built export layer, authored tier tests.
+- Result: 32/32 tests passing; 9 systems distributed across 18 cores.
 
-**Objective:** Expand the single-user experience into a fully-featured, multiplayer, real-time collaborative environment.
-
-1.  **Transition to High-Fidelity Engine (Optional but Recommended):**
-    -   [ ] **Task:** Evaluate and potentially migrate the project to Unreal Engine.
-    -   **Details:** The research report suggests Unreal Engine for its superior graphics and scalability for large, collaborative environments.
-
-2.  **Implement Multiplayer Functionality:**
-    -   [ ] **Task:** Add networking capabilities to the viewer.
-    -   **Details:** Use a networking solution (e.g., Photon, Netcode for GameObjects) to enable multiple users to share the same space.
-
-3.  **Build Collaborative Tools:**
-    -   [ ] **Task:** Develop features for shared interaction.
-    -   **Details:** Implement tools for real-time annotations, data manipulation, and other collaborative activities.
-
-## Phase 4 Tasks: Memory Tablet & Dual-Space Operations
-
-**Objective:** Make the House “disk” and Galaxy “RAM” operate through the Memory Tablet, with SleepTime consolidating and relocating knowledge automatically.
-
-1. **House Memory Builder**
-    - [ ] **Task:** Extend SleepTime to emit a PTX-ready `house_memory.glb` + manifest summarising consolidated artifacts (books, diaries, learning insights, dream records).
-    - **Details:** Mirror `learning_memory_builder` but source `viewer/public/house/materialized_objects/`. Tag nodes with artifact type and zone for tablet filtering.
-
-2. **Tablet Viewer & Search**
-    - [ ] **Task:** Implement the 3D tablet UI in the viewer. Support search, filters, LOD toggles, and on-demand loads from House → Galaxy.
-    - **Details:** The tablet must query the house-memory index first, show provenance (Galaxy / House / Museum), and expose actions to promote, archive, or relocate artifacts.
-
-3. **Browser Bridge**
-    - [ ] **Task:** Integrate the Firefox-based (or existing) browser container with the tablet so the avatar can open legacy web pages and capture them as structured notes.
-    - **Details:** Each browsing session should produce a tablet note that SleepTime can consolidate into the House and tag with source metadata.
-
-4. **Prompt Hygiene & Verification Loop**
-    - [ ] **Task:** Remove nonsensical prompts (e.g., “What happened in 000?”), retire prompts after two perfect runs, and ensure every session logs timezone-aware timestamps.
-    - **Details:** Update Phase18/Phase25 trainers to maintain mastered vs active pools, record retirement decisions, and follow `docs/TRAINING_DIRECTIVES.md`.
-
-5. **Museum Relocation Automation**
-    - [ ] **Task:** Automate calls to `relocate_to_museum` (or a refactored helper) whenever SleepTime supersedes an artifact.
-    - **Details:** Deprecation records should include `relocated_at`, `previous_zone`, and a pointer to the superseding artifact. The tablet must surface these in “Museum mode”.
-
-6. **LOD Streaming Pipeline**
-    - [ ] **Task:** Implement game-style LOD tiers for memory streaming (coarse centroids, medium embeddings, full GLBs).
-    - **Details:** Respect GPU budgets; allow the tablet to request upgrades/downgrades per artifact. Expose current LOD state to the fused head so PTX kernels know what data is loaded.
-
-7. **Telemetry & Confidence**
-    - [ ] **Task:** Instrument tablet interactions so we can measure how often the avatar consults House vs Galaxy vs Museum, including timezone-aware timestamps.
-    - **Details:** Store telemetry alongside learning-memory entries to help tune SleepTime thresholds and critical reflection.
+**Communication Pattern**
+- Codex → Claude: “Spec received, implementing X; tests targeted: Y; blockers: Z.”
+- Claude → Codex: architecture specs, success criteria, examples/templates, reviews.
+- Close loop: tests green, doc updates, completion report in TEMP/.
 
 ---
 
-## Ongoing Research Tasks
+## Current Backlog (Codex-owned)
 
--   **XAI Integration:** Investigate and implement methods like SHAP to provide explanations for data patterns.
--   **Knowledge Graph & RAG:** Research and develop a robust backend using a knowledge graph and a Retrieval-Augmented Generation (RAG) system.
--   **3D Data Standards:** Continue to monitor and align with standards like glTF, OpenUSD, and 3D Tiles.
--   **Graph Database Standards:** Continue to align K3D's data model with standards like openCypher and RDF.
--   **Phase 25 Sleep Consolidation:** Keep the `k3d-cranium` CUDA toolchain (with `cuda-python`) ready so `SleepTimeCompute` continues persisting Phase 25 knowledge into the House. Verify that each cycle rebuilds both `learning_memory.glb` and `house_memory.glb`, absorbs trusted teacher feedback immediately, and records timezone-aware timestamps.
--   **Lexicon Refinement:** Rebuild Q&A material from the cleaned book sources using exaone3.5 with full-document context to avoid page-break artifacts (e.g., `ma- chine`).
--   **Galaxy Coverage:** Ingest the balanced EN/ES/PT_PT/ZH Wikipedia splits into `viewer/public/galaxy/working/` while keeping mastered prompts out of the active drill queues.
--   **Time & Math Enrichment:** Pull curated time and math corpora from `/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/...` directories, augment with exaone models, and feed them through the Phase18/Phase25 trainers following `docs/TRAINING_DIRECTIVES.md`.
--   **Thinking Tags Visibility:** Run the Phase 10 thinking-tag trainer after long RLWHF sessions to keep reasoning labels exposed during evaluation.
--   **Generalisation Benchmarks:** After consolidation, measure zero-shot math reasoning on `Maxwell-Jia/AIME_2024` to confirm the model generalises beyond retrievable content.
+**High Priority**
+- Phase 4B E&M systems (awaiting Claude’s spec): implement 6 systems in reality_physics_export.py, tier assignment (instances 4-6, 17), ternary for charge/damping, add tests; target 38/38 tests green.
+- Ternary performance benchmarks: measure SIGN/TQUANT vs float/branch; document results in TEMP/PHASE4A_TERNARY_BENCHMARK_RESULTS.md.
+- TieredRPNEngine integration: wire reality_galaxy to tiered engine (force instance where needed); keep Python interpreter as fallback.
 
----
+**Medium**
+- glTF export with tier metadata: serialize rpn_tier/rpn_instance/matryoshka_dim + RPN programs into extras.k3d; round-trip test.
+- Multi-system parallel execution: run systems on separate cores, profile utilization/speedup.
 
-## Assets
-
-- **Location:** Store all visual assets in `docs/images/`.
-- **Naming:** Use descriptive, kebab-case names, e.g., `cognitive_house.png`, `avatar_workshop.png`.
-- **Prompt Pairing:** For each asset, add a matching prompt file named `<image>_prompt.md` containing the generation prompt and any parameters.
-- **Referencing:** When adding an asset, embed it in relevant docs (`README.md`, `docs/k3d-research.md`, `docs/ROADMAP.md`, `AGENTS.md`) and link to its prompt file.
-- **Attribution & License:** Ensure images comply with the repo license or include source/usage notes in the prompt file if different.
+**Low**
+- PTX ternary ops: verify SIGN/TQUANT/TCMP in GPU path; extend kernels if missing; benchmark.
+- Adaptive Matryoshka LOD: dynamic dim switching (64↔2048) based on importance/FOV.
 
 ---
 
-## Recent Implementation Notes (2025‑09‑10)
+## Implementation Patterns
 
-- Live server stability: fixed an event‑loop starvation issue in log maintenance by yielding with an async sleep each pass. This restored reliable WS handshakes for local/remote clients.
-- Mode seeding: added `K3D_SEED_GRAPH_MAX` to cap the size of the `dataset_graph` payload sent by the seeder to avoid WebSocket frame overflow (1009). Seeder now uses a context‑managed connect (`websockets==10.4`).
-- Mode selector training: made classification report robust when a fold has only one class. Current log set is skewed toward `compose_generate`; expand seeding for factual prompts to balance labels.
-- New generator: `knowledge3d.tools.gen_text_ollama` to produce topic‑coherent text via local Ollama (e.g., `exaone3.5:latest`).
-- Built a modality‑balanced Galaxy (v7) with ~55 text (exaone) + ~55 3D assets. Unify projects embeddings to a common subspace (effective dims = min(target, max_dim, n‑1)). Cross‑modal edges added for navigation.
-- Core head transition: The external LLM wrapper path is deprecated for core runs. Use the single in‑process Cranium Core head (docs/CRANIUM_CORE.md). TTS is first‑class. CPU fallbacks are invalid. See `docs/DEPRECATIONS.md`.
-- Balanced Expansion Policy: apply per‑modality and per‑topic balancing for new galaxies; degrade gracefully only when open‑source data is exhausted (see `docs/EXPANSION_POLICY.md`).
-- Local models playbook: roles/hosts and orchestration are documented in `docs/LOCAL_OLLAMA_MODELS.md`.
+**Pattern 1: Tier Metadata**
+1. Assess complexity → tier (1/2/3), instance (0–17), matryoshka_dim (64/128/512/2048).
+2. Set on RealitySystem export function.
 
-### Recent Implementation Notes (2025‑09‑29)
-- Fused head RPN trace: optional explanation blocks (tokens + register map) are appended to math answers when `K3D_RPN_TRACE=1`.
-- ARC/HLE tester hardening: supports unlimited `--limit 0` and a lightweight `--teacher` feedback score without influencing answers; avoids crashes on empty predictions.
-- Math bench auto‑discovery: new flags in `phase25/math_bench_evaluator.py` — `--auto`, `--list`, `--repos` — to run multiple locally cached HF math suites.
-- Wikipedia sweep evaluator: `knowledge3d.tools.wiki_sweep_evaluator` checks non‑math routing and extractive summaries across a large AI topics corpus.
-- Fused‑head fallback fixed: memory/tablet lookup and neural fallback now always produce an answer (no `None`). Summarize‑inline fallback added for `Summarize: <text>` prompts.
+**Pattern 2: Ternary Integration**
+1. Use SIGN/TQUANT/TCMP for sign/mode/damping.
+2. Keep magnitudes in binary; hybrid ternary+float is preferred.
+3. Test ternary outputs in {-1,0,+1}.
+
+**Pattern 3: TDD**
+1. Write test first (pytest).
+2. Implement minimal code to pass.
+3. Re-run; refactor; commit code+test together.
+
+---
+
+## Working with Claude
+
+If you’re Codex:
+- Read Claude’s TEMP specs carefully; ask questions early.
+- Implement per spec, keep commits small and tested.
+- Report blockers quickly; share test results.
+- Expect Claude to review for architecture alignment and physics correctness.
+
+If you’re another agent:
+- Treat Codex as implementation owner; propose changes with tests and context.
+
+Example opening:  
+“I’m Codex-style. Read BRIEFING and Phase 4A completion. Waiting on Phase 4B E&M spec; will start ternary benchmarks meanwhile.”
+
+---
+
+## Key References
+- BRIEFING.md — project overview and Phase 4A status.
+- CLAUDE.md — architecture partner role.
+- docs/vocabulary/MATH_CORE_SPECIFICATION.md — 3-tier details.
+- knowledge3d/cranium/reality_galaxy.py — Reality Enabler core.
+- knowledge3d/cranium/reality_physics_export.py — tiered exports.
+- knowledge3d/cranium/tests/test_reality_physics_tiers.py — tier validation tests.
+- TEMP/CODEX_PHASE4A_TIER_INTEGRATION_COMPLETE_11.24.2025.md — recent milestone report.
+
+---
+
+Codex’s mandate: implement fast, test first, keep the hot path sovereign, and communicate clearly. For architecture context, always start with BRIEFING.md.***
