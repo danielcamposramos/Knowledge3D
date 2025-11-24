@@ -11,6 +11,7 @@ except (ImportError, RuntimeError):
     ModularRPNEngine = None  # type: ignore
     _HAS_MODULAR_RPN = False
 
+from .math_core_pool import MathCorePool, get_global_math_core_pool
 from .rpn_calculator import RPNCalculator
 
 # Optional imports (may have external dependencies)
@@ -69,6 +70,8 @@ from .trm_rpn_program import build_trm_refine_program, expected_trm_opcode_seque
 
 __all__ = [
     "ModularRPNEngine",
+    "MathCorePool",
+    "get_global_math_core_pool",
     "RPNCalculator",
     "TextTo3DGenerator",
     "SleepTimeCompute",

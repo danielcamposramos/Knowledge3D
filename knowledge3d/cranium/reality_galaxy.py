@@ -44,13 +44,17 @@ class RealityGalaxy:
         *,
         rpn_engine: Optional[ModularRPNEngine] = None,
         compressor: Optional[AdaptiveDimensionCompressor] = None,
+        math_core_pool: Optional["MathCorePool"] = None,
     ) -> None:
         root = galaxy_path or DEFAULT_REALITY_GALAXY_ROOT
         self.galaxy_path = Path(root).expanduser().resolve()
         self.galaxy_path.mkdir(parents=True, exist_ok=True)
 
         self.nodes: Dict[str, RealityNode] = {}
-        self._rpn = rpn_engine or ModularRPNEngine()
+        from knowledge3d.cranium.ptx_runtime.math_core_pool import MathCorePool
+
+        self._math_core_pool = math_core_pool or MathCorePool()
+        self._rpn = rpn_engine or ModularRPNEngine(pool=self._math_core_pool)
         self._compressor = compressor
         self._compressor_checked = compressor is not None
 
@@ -59,9 +63,21 @@ class RealityGalaxy:
     # ------------------------------------------------------------------ #
     def add_node(self, node: RealityNode, *, encode_embedding: bool = False) -> None:
         """Add node to galaxy, optionally attaching a PD04 embedding."""
+        previous = self.nodes.get(node.node_id)
+        if isinstance(previous, RealitySystem) and previous.rpn_instance is not None:
+            self._math_core_pool.release_core(previous.rpn_instance)
+        if isinstance(node, RealitySystem) and node.rpn_instance is None:
+            # Dynamic spawning: allocate a math core on demand.
+            node.rpn_instance = self._math_core_pool.spawn_core(tier=node.rpn_tier)
         if encode_embedding and node.embedding is None:
             self.encode_node_embedding(node)
         self.nodes[node.node_id] = node
+
+    def remove_node(self, node_id: str) -> None:
+        """Remove node from galaxy and release any allocated math core."""
+        node = self.nodes.pop(node_id, None)
+        if isinstance(node, RealitySystem) and node and node.rpn_instance is not None:
+            self._math_core_pool.release_core(node.rpn_instance)
 
     def get_node(self, node_id: str) -> Optional[RealityNode]:
         return self.nodes.get(node_id)
