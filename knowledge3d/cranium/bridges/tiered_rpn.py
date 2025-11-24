@@ -9,8 +9,6 @@ from __future__ import annotations
 
 from typing import Iterable, Optional, Sequence
 
-import numpy as np
-
 from knowledge3d.cranium.bridges.advanced_rpn import AdvancedRPNEngine
 from knowledge3d.cranium.bridges.lightweight_rpn import LightweightRPNEngine
 from knowledge3d.cranium.bridges.sovereign_bridges import (
@@ -72,21 +70,16 @@ class TieredRPNEngine:
             self._last_tier[instance_id] = tier
             return float(result)
         elif tier == 2:
-            op_codes_np = np.asarray(op_codes, dtype=np.uint16)
-            scalars_np = np.asarray(scalars, dtype=np.float32)
-            vectors_np = np.asarray(vectors, dtype=np.float32)
-            result = self._tier2.execute_single(instance_id, op_codes_np, scalars_np, vectors_np)
+            result = self._tier2.execute_single(instance_id, list(op_codes), list(scalars), list(vectors))
         else:
-            op_codes_np = np.asarray(op_codes, dtype=np.uint16).copy()
-            op_codes_np[op_codes_np == 0x0064] = 0x005E
-            scalars_np = np.asarray(scalars, dtype=np.float32)
-            matrices_np = np.asarray(matrices if matrices is not None else [], dtype=np.float32)
+            remapped = [0x005E if op == 0x0064 else int(op) for op in op_codes]
+            matrices_seq = list(matrices) if matrices is not None else []
             result = self._tier3.execute_scalar(
                 instance_id,
-                op_codes_np,
-                scalars_np,
-                None if vectors is None else np.asarray(vectors, dtype=np.float32),
-                matrices_np,
+                remapped,
+                list(scalars),
+                vectors,
+                matrices_seq,
             )
         self._last_tier[instance_id] = tier
         self._tier_counts[tier] += 1
@@ -96,7 +89,7 @@ class TieredRPNEngine:
         self,
         op_codes: Sequence[int],
         scalars: Optional[Sequence[float]] = None,
-        vectors: Optional[np.ndarray] = None,
+        vectors: Optional[Sequence[Sequence[float]]] = None,
         matrices: Optional[Iterable[float]] = None,
         *,
         instance_id: int = 0,
@@ -114,9 +107,9 @@ class TieredRPNEngine:
 
         if tier == 1:
             if scalars is None:
-                scalars = np.zeros(len(op_codes), dtype=np.float32)
+                scalars = [0.0] * len(op_codes)
             if vectors is None:
-                vectors = np.zeros((len(op_codes), 3), dtype=np.float32)
+                vectors = [[0.0, 0.0, 0.0] for _ in op_codes]
             key = (id(op_codes), id(scalars), id(vectors))
             if self._tier1_cache_key == key and self._tier1_cache_value is not None:
                 self._last_tier[instance_id] = 1
@@ -129,21 +122,19 @@ class TieredRPNEngine:
             self._tier_counts[1] += 1
             return float(result)
         elif tier == 2:
-            op_codes_np = np.asarray(op_codes, dtype=np.uint16)
-            scalars_np = np.asarray(scalars if scalars is not None else np.zeros(len(op_codes_np), dtype=np.float32), dtype=np.float32)
-            vectors_np = np.asarray(vectors if vectors is not None else np.zeros((len(op_codes_np), 3), dtype=np.float32), dtype=np.float32)
-            result = self._tier2.execute_single(instance_id, op_codes_np, scalars_np, vectors_np)
+            scalars_seq = list(scalars) if scalars is not None else [0.0] * len(op_codes)
+            vectors_seq = list(vectors) if vectors is not None else [[0.0, 0.0, 0.0] for _ in op_codes]
+            result = self._tier2.execute_single(instance_id, list(op_codes), scalars_seq, vectors_seq)
         else:
-            op_codes_np = np.asarray(op_codes, dtype=np.uint16).copy()
-            op_codes_np[op_codes_np == 0x0064] = 0x005E
-            scalars_np = np.asarray(scalars if scalars is not None else np.zeros(len(op_codes_np), dtype=np.float32), dtype=np.float32)
-            matrices_np = np.asarray(matrices if matrices is not None else [], dtype=np.float32)
+            remapped = [0x005E if op == 0x0064 else int(op) for op in op_codes]
+            scalars_seq = list(scalars) if scalars is not None else [0.0] * len(op_codes)
+            matrices_seq = list(matrices) if matrices is not None else []
             result = self._tier3.execute_scalar(
                 instance_id,
-                op_codes_np,
-                scalars_np,
-                None if vectors is None else np.asarray(vectors, dtype=np.float32),
-                matrices_np,
+                remapped,
+                scalars_seq,
+                vectors,
+                matrices_seq,
             )
         self._last_tier[instance_id] = tier
         self._tier_counts[tier] += 1
@@ -155,24 +146,23 @@ class TieredRPNEngine:
         *,
         matrix_shape: tuple[int, int],
         scalars: Optional[Sequence[float]] = None,
-        matrices: Optional[np.ndarray] = None,
+        matrices: Optional[Sequence[float]] = None,
         instance_id: int = 0,
-    ) -> np.ndarray:
+    ):
         """Execute a program that yields a matrix result."""
         tier = self._determine_tier(op_codes)
         if tier != 3:
             raise ValueError("Matrix execution requires Tier-3 operations")
 
-        op_codes_np = np.asarray(op_codes, dtype=np.uint16)
-        scalars_np = np.asarray(scalars if scalars is not None else [], dtype=np.float32)
-        matrices_np = np.asarray(matrices if matrices is not None else [], dtype=np.float32)
-
+        op_codes_seq = [int(o) for o in op_codes]
+        scalars_seq = list(scalars) if scalars is not None else []
+        matrices_seq = list(matrices) if matrices is not None else []
         result = self._tier3.execute_matrix(
             instance_id,
-            op_codes_np,
+            op_codes_seq,
             output_shape=matrix_shape,
-            scalars=scalars_np,
-            matrices=matrices_np,
+            scalars=scalars_seq,
+            matrices=matrices_seq,
         )
         self._last_tier[instance_id] = 3
         return result
@@ -181,7 +171,7 @@ class TieredRPNEngine:
         self,
         programs: Sequence[dict],
         max_instances: int = MAX_INSTANCES,
-    ) -> np.ndarray:
+    ) -> list[float]:
         """Batch execution mirroring the legacy API."""
         results: list[float] = []
         for batch_start in range(0, len(programs), max_instances):
@@ -196,7 +186,7 @@ class TieredRPNEngine:
                     matrices=program.get("matrices"),
                 )
                 results.append(result)
-        return np.asarray(results, dtype=np.float32)
+        return results
 
     def execute_batch_device(self, programs: Sequence[dict], max_instances: int = MAX_INSTANCES):
         """Batch execution that writes results to a device buffer."""
@@ -235,10 +225,7 @@ class TieredRPNEngine:
     # ------------------------------------------------------------------ #
     def _determine_tier(self, op_codes: Sequence[int]) -> int:
         """Return tier index (1-3) for given op-code sequence."""
-        if isinstance(op_codes, np.ndarray):
-            iterable = [int(op) for op in op_codes.tolist()]
-        else:
-            iterable = [int(op) for op in op_codes]
+        iterable = [int(op) for op in op_codes]
 
         key = tuple(iterable)
         if key == self._tier_cache_key:

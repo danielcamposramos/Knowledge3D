@@ -118,23 +118,54 @@ class MathCorePool:
         self.idle_pool = keep
 
     def _query_gpu_capacity(self) -> int:
-        """Query GPU SM count + VRAM to determine max concurrent cores."""
+        """Query GPU SM count + VRAM to determine max concurrent cores.
+
+        Uses sovereign ctypes approach (libcuda.so directly) to avoid cupy dependency.
+        """
         try:
-            import cupy as cp
+            import ctypes
 
-            with cp.cuda.Device(self.gpu_id):
-                props = cp.cuda.runtime.getDeviceProperties(self.gpu_id)
-                sm_count = props.get("multiProcessorCount", 0)
-                hardware_limit = max(self.FALLBACK_MAX_CORES, sm_count * 10)
+            # Load CUDA Driver API
+            try:
+                nvcuda = ctypes.CDLL("libcuda.so.1")
+            except OSError:
+                nvcuda = ctypes.CDLL("libcuda.so")
 
-                free_bytes, _ = cp.cuda.runtime.memGetInfo()
-                free_mb = free_bytes / (1024 ** 2)
-                # 1% of free VRAM, 2 KB per core
-                vram_limit = int((free_mb * 0.01) / 0.002)
+            # Initialize CUDA
+            nvcuda.cuInit(0)
 
-                capacity = min(hardware_limit, vram_limit)
-                return max(self.FALLBACK_MAX_CORES, capacity)
+            # Get device handle
+            device = ctypes.c_int()
+            nvcuda.cuDeviceGet(ctypes.byref(device), self.gpu_id)
+
+            # Query SM count (multiProcessorCount = attribute 16)
+            CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT = 16
+            sm_count = ctypes.c_int()
+            nvcuda.cuDeviceGetAttribute(
+                ctypes.byref(sm_count),
+                CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT,
+                device
+            )
+            hardware_limit = max(self.FALLBACK_MAX_CORES, sm_count.value * 10)
+
+            # Query VRAM (cuMemGetInfo_v2 or cuMemGetInfo)
+            try:
+                cuMemGetInfo = getattr(nvcuda, "cuMemGetInfo_v2")
+            except AttributeError:
+                cuMemGetInfo = getattr(nvcuda, "cuMemGetInfo")
+
+            free_bytes = ctypes.c_size_t()
+            total_bytes = ctypes.c_size_t()
+            cuMemGetInfo(ctypes.byref(free_bytes), ctypes.byref(total_bytes))
+
+            free_mb = free_bytes.value / (1024 ** 2)
+            # 1% of free VRAM, 2 KB per core
+            vram_limit = int((free_mb * 0.01) / 0.002)
+
+            capacity = min(hardware_limit, vram_limit)
+            return max(self.FALLBACK_MAX_CORES, capacity)
         except Exception:
+            # Fall back to static limit if GPU query fails
             return self.FALLBACK_MAX_CORES
 
 
