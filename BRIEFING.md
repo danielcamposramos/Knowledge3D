@@ -1,7 +1,7 @@
 # Knowledge3D Project Briefing
 
 **Last Updated:** November 24, 2025
-**Version:** 3.0 (Phase 4B Complete; Phase 5 Dynamic Spawning Initiated)
+**Version:** 3.1 (Phase 4C Multi-Discipline Complete; Phase 5 Capacity Demonstration Initiated)
 **For:** New AI agents, contributors, and project overview
 
 ---
@@ -11,8 +11,8 @@
 Knowledge3D (K3D) is a sovereign GPU-native spatial AI architecture. Reasoning happens through PTX + RPN; memories live as 3D worlds (glTF/GLB) with symlinked composition. We stand on proven patterns: game LOD, demoscene compression, Unix symlinks, HP RPN, Matryoshka embeddings.
 
 **Current Status**
-- Phase 4B complete: 13 physics systems (9 classical mechanics + 4 E&M) across 3-tier math core; 48/48 tests passing.
-- Phase 5 initiated: Dynamic Math Core spawning paradigm — Math Cores are instantiable templates, not fixed at 18. Scales to GPU hardware limits (460+ cores on RTX 3070, 1280+ on RTX 4090, 2640+ on H100).
+- Phase 4C complete: 26 systems across 4 domains (13 physics + 6 chemistry + 4 biology + 3 materials); 84/84 tests passing at 65,905 steps/sec.
+- Phase 5 validated: Dynamic Math Core spawning operational — 26 systems → 26 unique cores automatically. Scales to GPU hardware limits (460+ cores on RTX 3070, 1280+ on RTX 4090, 2640+ on H100).
 - Multi-agent partnership: Claude (architecture, specs) + Codex (implementation, tests) delivering in lockstep.
 - Sovereignty enforced: hot path is PTX+RPN only; ingestion can use any external tool.
 
@@ -53,7 +53,7 @@ Knowledge3D (K3D) is a sovereign GPU-native spatial AI architecture. Reasoning h
 | Tier-2 Mid | ModularRPNEngine | 12-15 | 128/512D | Matvec, reductions | ✅ |
 | Tier-3 High | AdvancedRPN/TRM | 16-17 | 512/2048D | Complex/chaotic, TRM | ✅ |
 
-Orchestrator: TieredRPNEngine routes by opcode analysis. Current utilization: 12/18 cores (66.7%); Phase 5 will unlock dynamic spawning to GPU limits.
+Orchestrator: TieredRPNEngine routes by opcode analysis. Phase 5 dynamic spawning operational: 26/26 cores allocated for multi-discipline workload; scales to GPU limits (460+ cores).
 
 **Hybrid ternary/binary computation**
 - Ternary: SIGN/TQUANT/TCMP for direction/state classification.
@@ -83,7 +83,7 @@ Orchestrator: TieredRPNEngine routes by opcode analysis. Current utilization: 12
 | RLCCircuit | 2 | 16 | 512D | TCMP (damping regime) | 4B |
 | DoublePendulum2D | 3 | 17 | 2048D | - | 4A |
 
-Validation: 48/48 tests passing (14 physics_demo, 12 reality_galaxy, 14 tier tests, 8 E&M tests).
+Validation: 84/84 tests passing (14 physics_demo, 12 reality_galaxy, 22 tier tests, 15 chemistry, 10 biology, 8 materials, 3 integration).
 
 ---
 
@@ -126,7 +126,8 @@ See AGENTS.md for detailed collaboration patterns.
 
 - **Phase 4A:** Complete (9 classical mechanics systems, tier integration + ternary). Report: [TEMP/CODEX_PHASE4A_TIER_INTEGRATION_COMPLETE_11.24.2025.md](TEMP/CODEX_PHASE4A_TIER_INTEGRATION_COMPLETE_11.24.2025.md).
 - **Phase 4B:** Complete (4 E&M systems: PointCharge2D, LC/RC/RLC circuits with ternary ops). Report: [TEMP/PHASE4B_EM_COMPLETE_11.24.2025.md](TEMP/PHASE4B_EM_COMPLETE_11.24.2025.md).
-- **Phase 5 (initiated):** Dynamic Math Core Spawning — Transform from static 18-instance allocation to GPU-limited dynamic spawning. Enables scaling from 13 systems → 1000s of systems. Implementation briefing: [TEMP/CODEX_DYNAMIC_MATH_CORE_SPAWNING_11.24.2025.md](TEMP/CODEX_DYNAMIC_MATH_CORE_SPAWNING_11.24.2025.md).
+- **Phase 4C:** Complete (13 multi-discipline systems: 6 chemistry + 4 biology + 3 materials). 84/84 tests passing, 65,905 steps/sec. Report: [TEMP/PHASE4C_MULTIDISCIPLINE_COMPLETE_11.24.2025.md](TEMP/PHASE4C_MULTIDISCIPLINE_COMPLETE_11.24.2025.md).
+- **Phase 5 (validated):** Dynamic Math Core Spawning — Transform from static 18-instance allocation to GPU-limited dynamic spawning. Enables scaling from 13 systems → 1000s of systems. Implementation briefing: [TEMP/CODEX_DYNAMIC_MATH_CORE_SPAWNING_11.24.2025.md](TEMP/CODEX_DYNAMIC_MATH_CORE_SPAWNING_11.24.2025.md).
   - **Key Changes:** MathCorePool manager, GPU capacity query, lazy instantiation, timeout-based deallocation.
   - **Target:** Spawn 100 cores <100ms, step 1000 systems <5s, scale to GPU hardware limits.
   - **Tesla 3-6-9 Heritage:** Stack depth 69, instance multiples of 3/6/9, ternary logic.
@@ -207,9 +208,10 @@ TEMP/                                    # Session specs & reports
 
 ## Success Metrics
 - Hot path sovereign; ingestion flexible.
-- Tests green (current: 48/48 — 14 physics_demo, 12 reality_galaxy, 22 tier/E&M tests).
-- Tier utilization: 12/18 cores (66.7%); Phase 5 will enable 1000s of dynamic cores.
-- Ternary ops active in 4 systems (Projectile2D, CoupledOscillators, PointCharge2D, RLCCircuit).
+- Tests green (current: 84/84 — 14 physics_demo, 12 reality_galaxy, 22 tier tests, 15 chemistry, 10 biology, 8 materials, 3 integration).
+- Dynamic spawning operational: 26 systems → 26 unique cores; scales to 460+ cores (RTX 3070).
+- Ternary ops active in 6 systems (Projectile2D, CoupledOscillators, PointCharge2D, RLCCircuit, PhaseTransition, MetalMelting).
+- Multi-discipline validated: 4 domains (physics, chemistry, biology, materials) at 65,905 steps/sec.
 - Clear handoffs and TEMP reports each phase.
 
 ---
