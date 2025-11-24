@@ -1,7 +1,7 @@
 # Knowledge3D Project Briefing
 
-**Last Updated:** November 24, 2025  
-**Version:** 2.0 (Phase 4A Tier Integration Complete)  
+**Last Updated:** November 24, 2025
+**Version:** 3.0 (Phase 4B Complete; Phase 5 Dynamic Spawning Initiated)
 **For:** New AI agents, contributors, and project overview
 
 ---
@@ -11,7 +11,8 @@
 Knowledge3D (K3D) is a sovereign GPU-native spatial AI architecture. Reasoning happens through PTX + RPN; memories live as 3D worlds (glTF/GLB) with symlinked composition. We stand on proven patterns: game LOD, demoscene compression, Unix symlinks, HP RPN, Matryoshka embeddings.
 
 **Current Status**
-- Phase 4A complete: 9 physics systems distributed across the 3-tier math core; 32/32 tests passing (14 physics, 12 galaxy, 6 tier).
+- Phase 4B complete: 13 physics systems (9 classical mechanics + 4 E&M) across 3-tier math core; 48/48 tests passing.
+- Phase 5 initiated: Dynamic Math Core spawning paradigm — Math Cores are instantiable templates, not fixed at 18. Scales to GPU hardware limits (460+ cores on RTX 3070, 1280+ on RTX 4090, 2640+ on H100).
 - Multi-agent partnership: Claude (architecture, specs) + Codex (implementation, tests) delivering in lockstep.
 - Sovereignty enforced: hot path is PTX+RPN only; ingestion can use any external tool.
 
@@ -52,33 +53,37 @@ Knowledge3D (K3D) is a sovereign GPU-native spatial AI architecture. Reasoning h
 | Tier-2 Mid | ModularRPNEngine | 12-15 | 128/512D | Matvec, reductions | ✅ |
 | Tier-3 High | AdvancedRPN/TRM | 16-17 | 512/2048D | Complex/chaotic, TRM | ✅ |
 
-Orchestrator: TieredRPNEngine routes by opcode analysis. Current utilization: 9/18 cores (50%); remaining cores reserved for Phase 4B E&M.
+Orchestrator: TieredRPNEngine routes by opcode analysis. Current utilization: 12/18 cores (66.7%); Phase 5 will unlock dynamic spawning to GPU limits.
 
 **Hybrid ternary/binary computation**
 - Ternary: SIGN/TQUANT/TCMP for direction/state classification.
 - Binary: Magnitudes and continuous integration.
 - Natural {-1,0,+1} encoding improves speed and compression.
 
-### Reality Enabler (Phase 3B–4A)
+### Reality Enabler (Phase 3B–4B)
 - Stacked galaxy: atoms → molecules → materials → systems via `component_refs` (symlinks, zero duplication).
 - `behavior_rpn`: dynamic updates; `law_rpn`: invariants.
 - Ternary ops integrated in behaviors.
 - Matryoshka+PD04 embeddings attached per tier.
 
-### Phase 4A Physics Systems
-| System | Tier | Instance | Matryoshka | Ternary |
-|--------|------|----------|------------|---------|
-| ConstantAcceleration1D | 1 | 0 | 64D | - |
-| HarmonicOscillator1D | 1 | 1 | 64D | - |
-| Projectile2D | 1 | 2 | 128D | SIGN (drag) |
-| RigidBody2D | 1 | 3 | 128D | - |
-| Heat1D | 2 | 12 | 128D | - |
-| CoupledOscillators | 2 | 13 | 512D | SIGN (mode detection) |
-| Orbital2D | 2 | 14 | 512D | - |
-| Heat2D | 2 | 15 | 512D | - |
-| DoublePendulum2D | 3 | 16 | 2048D | - |
+### Phase 4A+4B Physics Systems
+| System | Tier | Instance | Matryoshka | Ternary | Phase |
+|--------|------|----------|------------|---------|-------|
+| ConstantAcceleration1D | 1 | 0 | 64D | - | 4A |
+| HarmonicOscillator1D | 1 | 1 | 64D | - | 4A |
+| Projectile2D | 1 | 2 | 128D | SIGN (drag) | 4A |
+| RigidBody2D | 1 | 3 | 128D | - | 4A |
+| PointCharge2D | 1 | 4 | 128D | SIGN (charges) | 4B |
+| LCCircuit | 1 | 5 | 128D | - | 4B |
+| RCCircuit | 1 | 6 | 128D | - | 4B |
+| Heat1D | 2 | 12 | 128D | - | 4A |
+| CoupledOscillators | 2 | 13 | 512D | SIGN (mode detection) | 4A |
+| Orbital2D | 2 | 14 | 512D | - | 4A |
+| Heat2D | 2 | 15 | 512D | - | 4A |
+| RLCCircuit | 2 | 16 | 512D | TCMP (damping regime) | 4B |
+| DoublePendulum2D | 3 | 17 | 2048D | - | 4A |
 
-Validation: 32/32 tests passing (physics_demo, reality_galaxy, tier suite).
+Validation: 48/48 tests passing (14 physics_demo, 12 reality_galaxy, 14 tier tests, 8 E&M tests).
 
 ---
 
@@ -119,9 +124,13 @@ See AGENTS.md for detailed collaboration patterns.
 
 ## Current Phase and Next Steps
 
-- **Phase 4A:** Complete (tier integration + ternary). Report: TEMP/CODEX_PHASE4A_TIER_INTEGRATION_COMPLETE_11.24.2025.md.
-- **Phase 4B (next):** Electromagnetism systems (PointCharge2D, Electric/Magnetic fields, LC/RC/RLC). Reserve cores: Tier-1 instances 4-6, Tier-3 instance 17 for complex RLC if needed. Integrate ternary for charge signs and damping regimes.
-- **Planned docs:** TEMP/PHASE4B_EM_COMPLETE.md after delivery.
+- **Phase 4A:** Complete (9 classical mechanics systems, tier integration + ternary). Report: [TEMP/CODEX_PHASE4A_TIER_INTEGRATION_COMPLETE_11.24.2025.md](TEMP/CODEX_PHASE4A_TIER_INTEGRATION_COMPLETE_11.24.2025.md).
+- **Phase 4B:** Complete (4 E&M systems: PointCharge2D, LC/RC/RLC circuits with ternary ops). Report: [TEMP/PHASE4B_EM_COMPLETE_11.24.2025.md](TEMP/PHASE4B_EM_COMPLETE_11.24.2025.md).
+- **Phase 5 (initiated):** Dynamic Math Core Spawning — Transform from static 18-instance allocation to GPU-limited dynamic spawning. Enables scaling from 13 systems → 1000s of systems. Implementation briefing: [TEMP/CODEX_DYNAMIC_MATH_CORE_SPAWNING_11.24.2025.md](TEMP/CODEX_DYNAMIC_MATH_CORE_SPAWNING_11.24.2025.md).
+  - **Key Changes:** MathCorePool manager, GPU capacity query, lazy instantiation, timeout-based deallocation.
+  - **Target:** Spawn 100 cores <100ms, step 1000 systems <5s, scale to GPU hardware limits.
+  - **Tesla 3-6-9 Heritage:** Stack depth 69, instance multiples of 3/6/9, ternary logic.
+  - **Setun Heritage:** Balanced ternary {-1, 0, +1} for physics grounding.
 
 ---
 
@@ -133,15 +142,19 @@ knowledge3d/cranium/
   bridges/              # Tier engines and orchestrator
   reality_galaxy.py     # Reality Enabler core (Codex)
   reality_nodes.py      # Node dataclasses with tier metadata
-  reality_physics_export.py  # Phase 4A exports (tiered)
+  reality_physics_export.py  # Phase 4A+4B exports (13 systems)
   physics_demo.py       # Original physics systems (Claude)
 tests/knowledge3d/cranium/
-  test_physics_demo.py          # 14 physics tests
+  test_physics_demo.py          # 14 physics tests (Phase 4A)
   test_reality_galaxy.py        # 12 galaxy tests
-  test_reality_physics_tiers.py # 6 tier tests
+  test_reality_physics_tiers.py # 22 tier tests (14 Phase 4A + 8 Phase 4B)
+  benchmarks/                   # Performance benchmarks
+  test_reality_integration.py   # Multi-system integration tests
 docs/
-  vocabulary/MATH_CORE_SPECIFICATION.md  # 3-tier details
+  vocabulary/MATH_CORE_SPECIFICATION.md  # 3-tier details + Phase 5 dynamic spawning
   ROADMAP.md                             # Phase milestones
+scripts/
+  reality_enabler_demo.py       # 13-system demonstration
 AGENTS.md, CLAUDE.md, CODEX.md, BRIEFING.md  # Roles and overview
 TEMP/                                    # Session specs & reports
 ```
@@ -174,9 +187,14 @@ TEMP/                                    # Session specs & reports
 | Game Engines | LOD/FOV | Matryoshka tiers, spatial LOD |
 | Demoscene | Procedural compression | PD04, 69:1 ratios |
 | Unix | Symlinks/pipes | `component_refs`, RPN composition |
-| HP Calculators | RPN | 18-core math architecture |
-| Setun (1958) | Ternary | SIGN/TQUANT/TCMP |
+| HP Calculators | RPN | Dynamic RPN math cores (Phase 5) |
+| Tesla (3-6-9) | Harmonic patterns | Stack depth 69, instance multiples |
+| Setun (1958) | Balanced ternary | SIGN/TQUANT/TCMP {-1, 0, +1} |
 | Matryoshka (2022) | Nested embeddings | 64 ⊂ 128 ⊂ 512 ⊂ 2048 |
+
+**Phase 5 Heritage Context:**
+- **Tesla's 3-6-9:** Architectural constants resonate with Tesla's observation that 3, 6, 9 form universal patterns. Stack depth 69 contains both digits; baseline 18 instances divisible by all three.
+- **Setun's Ternary Logic:** First mass-produced ternary computer (USSR 1958). Abandoned due to tooling, not technical merit. K3D resurrects balanced ternary {-1, 0, +1} for semantic clarity in physics (charge signs, damping regimes, comparison results).
 
 ---
 
@@ -189,8 +207,9 @@ TEMP/                                    # Session specs & reports
 
 ## Success Metrics
 - Hot path sovereign; ingestion flexible.
-- Tests green (current: 32/32).
-- Tier utilization documented; ternary ops active.
+- Tests green (current: 48/48 — 14 physics_demo, 12 reality_galaxy, 22 tier/E&M tests).
+- Tier utilization: 12/18 cores (66.7%); Phase 5 will enable 1000s of dynamic cores.
+- Ternary ops active in 4 systems (Projectile2D, CoupledOscillators, PointCharge2D, RLCCircuit).
 - Clear handoffs and TEMP reports each phase.
 
 ---

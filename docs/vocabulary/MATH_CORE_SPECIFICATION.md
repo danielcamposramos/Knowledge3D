@@ -97,17 +97,42 @@ This hierarchy is conceptual and implemented via:
 
 ### 2.3 Instantiation and Scaling
 
-Implementations MAY:
+**CRITICAL PARADIGM:** Math Cores are **instantiable templates**, not fixed resources.
 
-- Instantiate **multiple math core pools**:
-  - e.g., 2× high, 4× mid, 12× simple cores mapped to the 18 instance slots and/or multiple GPU streams.
-  - Use routing logic (e.g., based on expression complexity, length, or required opcodes) to dispatch each RPN program to an appropriate core tier.
+The **18-instance baseline** (`_INSTANCE_COUNT = 18`) represents **one instantiation pattern**, not a hard limit. Implementations SHOULD:
 
-- Use **complexity heuristics** (e.g., estimated FLOPs, opcode types, vector sizes) to:
-  - keep simple operations on simple cores for minimal latency,
-  - reserve high cores for TRM integration, symbolic ops, or Reality Enabler heavy physics/chem/biological routines.
+- **Spawn Math Cores dynamically** based on GPU capacity and workload:
+  - Query GPU hardware (SM count, VRAM, warp capacity)
+  - Calculate max concurrent cores: `sm_count × cores_per_sm`
+  - Instantiate on-demand, deallocate when idle
 
-From the perspective of higher layers (swarm, Reality Enabler, compression), a “math core” is a **single logical service** that internally fans out to simple/mid/high RPN workers.
+- **Scale to GPU hardware limits**:
+  - **Consumer GPUs** (RTX 3070): 46 SMs → 460+ concurrent cores
+  - **Enthusiast GPUs** (RTX 4090): 128 SMs → 1,280+ concurrent cores
+  - **Datacenter GPUs** (H100): 132 SMs → 2,640+ concurrent cores
+
+- **Resource allocation per core**:
+  - Stack state: 69 lines × 4 bytes = 276 bytes per core
+  - Metadata: ~2 KB per core (instance ID, tier, history)
+  - **Total overhead negligible**: 10,000 cores = 22 MB
+
+- **Dynamic lifecycle management**:
+  - Spawn cores on first request (lazy instantiation)
+  - Pool idle cores for reuse (avoid allocation overhead)
+  - Deallocate after timeout (prevent memory fragmentation)
+  - Monitor GPU utilization, scale up/down dynamically
+
+**Architectural Constants (Per Core Instance):**
+- `STACK_DEPTH = 69` (Tesla 6-9 resonance)
+- `TERNARY_OPS = {SIGN, TQUANT, TCMP}` (Setun heritage)
+- `MAX_PROGRAM_LENGTH = 69` instructions
+
+**Scaling Philosophy:**
+- **Tier-1 (Simple):** 66% of cores for high-frequency operations
+- **Tier-2 (Mid):** 22% of cores for moderate complexity
+- **Tier-3 (High):** 11% of cores for chaotic/quantum systems
+
+From the perspective of higher layers (swarm, Reality Enabler, compression), a "math core" is a **single logical service** that internally fans out to simple/mid/high RPN workers and **scales horizontally** to match GPU parallelism.
 
 ---
 
@@ -212,13 +237,66 @@ Future backends (e.g., Vulkan compute, WebGPU, Metal, FPGA/ASIC implementations,
 
 This mirrors LLM diversity: the **storage and semantics standards** (RPN programs, opcodes, Matryoshka embeddings) are stable; different engines can implement them as long as they respect the contract.
 
-## 6. Conformance
+## 6. Tesla 3-6-9 and Setun Ternary Heritage
 
-An implementation conforms to the Math Core Specification if:
+K3D Math Cores embody two foundational principles:
+
+### 6.1 Tesla's 3-6-9 Harmonic Pattern
+
+**Architectural Resonance:**
+- **Stack Depth:** 69 lines (contains literal 6 and 9)
+  - Digital root: 6 + 9 = 15 → 1 + 5 = 6
+  - Product: 6 × 9 = 54 → 5 + 4 = 9
+- **Instance Count:** 18 baseline (divisible by 3, 6, 9)
+  - 18 / 3 = 6 (ternary resonance)
+  - Digital root: 1 + 8 = 9
+- **Ternary Base:** {-1, 0, +1} (three-state balanced logic)
+
+**Design Philosophy:** Tesla observed that 3, 6, and 9 form the fundamental pattern of the universe. K3D honors this through stack depth, instance multiples, and ternary operations.
+
+### 6.2 Setun Ternary Computer Legacy
+
+**Historical Context:**
+- Setun (USSR, 1958): World's only mass-produced ternary computer
+- **Balanced ternary:** {-1, 0, +1} instead of binary {0, 1}
+- Advantages: More efficient for signed arithmetic, natural zero representation
+- Abandoned due to tooling/ecosystem, not technical limits
+
+**K3D Resurrection:**
+```
+Setun Innovation          K3D Implementation
+├─ Ternary logic          ├─ SIGN, TQUANT, TCMP opcodes
+├─ Balanced representation├─ {-1, 0, +1} for physics directions
+├─ Efficient arithmetic   ├─ Semantic clarity (charge, comparison)
+└─ 50% fewer "trits"      └─ GPU-friendly PTX kernels
+```
+
+**Why Ternary for Physics:**
+- **Direction:** Velocity signs, charge polarity, force vectors
+- **Comparison:** Less than / Equal / Greater than (single opcode)
+- **Classification:** Underdamped / Critical / Overdamped (natural encoding)
+- **Semantic clarity:** {-1, 0, +1} maps directly to physical meaning
+
+**Performance:**
+- CPU: Ternary ops may be slower (binary hardware dominance)
+- GPU: Ternary ops often faster (parallel three-way classification)
+- **Trade-off:** Semantic clarity outweighs raw CPU speed for physics grounding
+
+## 7. Conformance
+
+An implementation conforms to the Math Core Specification v2.0 if:
 
 1. It uses the shared opcode surface from `rpn_opcodes.py` as the canonical math vocabulary.
-2. It exposes a `ModularRPNEngine`-compatible core (18 instances, 69‑instruction programs).
-3. It implements a simple/mid/high tiering strategy for math workloads, even if tiers share the same underlying PTX executor.
-4. It documents which kernels / bridges (e.g., `TieredRPNEngine`, `AdvancedRPNEngine`, `RPNMathCore`) correspond to each tier in its deployment.
+2. It exposes a `ModularRPNEngine`-compatible core (instantiable template, 69‑instruction programs per core).
+3. It implements **dynamic core spawning** that scales to GPU hardware limits (not fixed at 18 instances).
+4. It implements a simple/mid/high tiering strategy for math workloads, even if tiers share the same underlying PTX executor.
+5. It documents which kernels / bridges (e.g., `TieredRPNEngine`, `AdvancedRPNEngine`, `RPNMathCore`) correspond to each tier in its deployment.
+6. It implements **ternary operations** (SIGN, TQUANT, TCMP) following Setun balanced ternary semantics.
+7. It honors **Tesla 3-6-9 resonance** in architectural constants (stack depth 69, instance multiples of 3/6/9).
 
-Future revisions MAY add a normative complexity heuristic and explicit routing API; for now, tiering is an architectural pattern rather than a hard-coded interface.
+**Version 2.0 Changes:**
+- Added dynamic instantiation requirement (Section 2.3)
+- Documented Tesla 3-6-9 and Setun ternary heritage (Section 6)
+- Upgraded conformance to require scalable spawning (not fixed 18 cores)
+
+Future revisions MAY add normative complexity heuristics, explicit routing API, and multi-GPU federation protocols.
