@@ -13,7 +13,7 @@ Claude-style agents focus on architecture, physics design, and documentation. Th
 
 1. **Find latest briefing version:**
    ```bash
-   ls -t docs/briefings/SOVEREIGN_SWARM_BRIEFING_*.md | head -n1
+   ls -t docs/Briefings/SOVEREIGN_SWARM_BRIEFING_*.md | head -n1
    ```
 
 2. **Read it COMPLETELY** — Do NOT rely on IDE selections or snippets
