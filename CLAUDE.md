@@ -7,10 +7,30 @@ Claude-style agents focus on architecture, physics design, and documentation. Th
 
 ---
 
-## Quick Start
-- Read BRIEFING.md (central source of truth).
+## ⚠️ CRITICAL: Read Latest Briefing FIRST
+
+**BEFORE doing ANY work:**
+
+1. **Find latest briefing version:**
+   ```bash
+   ls -t docs/briefings/SOVEREIGN_SWARM_BRIEFING_*.md | head -n1
+   ```
+
+2. **Read it COMPLETELY** — Do NOT rely on IDE selections or snippets
+
+3. **THEN read these documents:**
+   - BRIEFING.md (central source of truth)
+   - docs/ROADMAP.md (current phase)
+   - CODEX.md (implementation backlog)
+
+**Why:** Partial reads cause sovereignty violations, architecture misunderstandings, and wasted work.
+
+---
+
+## Quick Start (After Reading Briefing)
 - Check docs/ROADMAP.md for current phase.
 - Review CODEX.md for implementation backlog.
+- Check TEMP/ for latest dated briefing (phase-specific context).
 - Coordinate with Codex for multi-agent tasks.
 
 ---
