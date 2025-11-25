@@ -11,10 +11,15 @@
 Knowledge3D (K3D) is a sovereign GPU-native spatial AI architecture. Reasoning happens through PTX + RPN; memories live as 3D worlds (glTF/GLB) with symlinked composition. We stand on proven patterns: game LOD, demoscene compression, Unix symlinks, HP RPN, Matryoshka embeddings.
 
 **Current Status**
-- Phase 4C complete: 26 systems across 4 domains (13 physics + 6 chemistry + 4 biology + 3 materials); stress + scenario + glTF suites added (92/92 non-cupy tests green) with capacity runs at 83.8k/88.3k/79.7k steps/sec for 100/500/1000 systems (CPU path).
+- ✅ **Sovereignty Complete (Nov 24, 2025)**: ALL reality physics RPN now executes on PTX kernels
+  - Reality hot path: `step_system()` → GPU RPN engine (zero CPU math)
+  - Performance: **82.5ms for 1000 steps** (harmonic oscillator, sub-second target met)
+  - Tests: **51/51 passing** (physics tiers, chemistry, biology, materials, galaxy, integration)
+  - NumPy/CuPy: Zero presence in hot path (sovereignty tests validate)
+- Phase 4C complete: 26 systems across 4 domains (13 physics + 6 chemistry + 4 biology + 3 materials)
 - Phase 5 validated: Dynamic Math Core spawning operational — 26 systems → 26 unique cores automatically. Scales to GPU hardware limits (460+ cores on RTX 3070, 1280+ on RTX 4090, 2640+ on H100).
 - Capacity benchmark artifacts: `output/benchmarks/benchmark_scaling.csv/.png` (throughput ~71k–118k steps/sec; GPU mem ~372 MB flat) and 26 GLBs in `output/gltf/`.
-- Multi-agent partnership: Claude (architecture, specs) + Codex (implementation, tests) delivering in lockstep.
+- Multi-agent partnership: Claude (architecture, specs) + Codex + GPT-5.1 (implementation, tests) delivering in lockstep.
 - Sovereignty enforced: hot path is PTX+RPN only; ingestion can use any external tool.
 
 **Not:** A retrieval wrapper. **Is:** A sovereign cognitive stack with spatial memory and embodied reasoning.
@@ -134,6 +139,14 @@ See AGENTS.md for detailed collaboration patterns.
   - **Tesla 3-6-9 Heritage:** Stack depth 69, instance multiples of 3/6/9, ternary logic.
   - **Setun Heritage:** Balanced ternary {-1, 0, +1} for physics grounding.
 - **Phase 5 capacity demonstration (CPU path):** Stress + scaling benchmarks executed; 100/500/1000 systems at 83.8k/88.3k/79.7k steps/sec, GPU mem ~372 MB flat. Artifacts: `output/benchmarks/benchmark_scaling.csv/.png`, GLBs in `output/gltf/`, white paper [TEMP/ARCHITECTURE_CAPACITY_ANALYSIS_11.24.2025.md](TEMP/ARCHITECTURE_CAPACITY_ANALYSIS_11.24.2025.md). GPU kernel/TRM suites pending cupy install.
+- **Sovereignty Refactor Complete (Nov 24, 2025):** Hot path now 100% PTX + RPN
+  - **Achievement:** Reality physics loop (`RealityGalaxy.step_system()`) executes entirely on GPU via PTX RPN engine
+  - **Implementation:** STORE/RECALL compilation layer routes behavior_rpn through ModularRPNEngine
+  - **Performance:** 82.5ms for 1000 physics steps (harmonic oscillator) — **12× faster than 1-second target**
+  - **Tests:** 51/51 passing (test_reality_physics_tiers, test_reality_chemistry, test_reality_biology, test_reality_materials, test_reality_galaxy, test_reality_integration)
+  - **Sovereignty validation:** test_sovereignty.py confirms zero NumPy/CuPy/PyTorch in hot path
+  - **Team:** Claude (architecture spec), GPT-5.1 (implementation + debug iterations)
+  - **Report:** Reality physics now matches public claim: "Hot path = PTX + RPN ONLY"
 
 ---
 
