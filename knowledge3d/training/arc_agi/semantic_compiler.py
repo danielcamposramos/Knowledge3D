@@ -39,6 +39,22 @@ class SemanticToRPNCompiler:
         if action == "grammar_rule":
             return f"GRAMMAR_RULE {semantic['rule_id']}"
 
+        # Math domain
+        if domain == "math":
+            if action == "fill_conditional":
+                return self._compile_math_conditional(semantic)
+            if action == "check_symmetry":
+                return self._compile_math_symmetry(semantic)
+            if action == "repeat_pattern":
+                return self._compile_math_repeat(semantic)
+
+        # Drawing domain
+        if domain == "drawing":
+            if action == "draw_shape":
+                return self._compile_draw_shape(semantic)
+            if action == "fill_pattern":
+                return self._compile_fill_pattern(semantic)
+
         raise ValueError(f"Unknown action: {action}")
 
     # ------------------------------------------------------------------ #
@@ -52,15 +68,20 @@ class SemanticToRPNCompiler:
             "Move red object to bottom-right"
             → "FIND_OBJECT 2 GET_POSITION bottom-right COMPUTE_OFFSET translate"
         """
-        color_token = sem["object"]["color"]
-        color = COLOR_SEMANTICS[color_token]["value"]
+        obj = sem.get("object", {})
+        color_token = obj.get("color")
+        color = COLOR_SEMANTICS[color_token]["value"] if color_token in COLOR_SEMANTICS else None
         dest = sem.get("destination")
         direction = sem.get("direction")
 
-        rpn_parts = [str(color), "FIND_OBJECT", "GET_POSITION"]
+        if color is None:
+            rpn_parts = ["FIND_ANY_OBJECT", "GET_POSITION"]
+        else:
+            rpn_parts = [str(color), "FIND_OBJECT", "GET_POSITION"]
 
         if dest is not None:
-            rpn_parts.append(dest["position"].upper())
+            position_token = dest["position"].replace(" ", "-").upper()
+            rpn_parts.append(position_token)
             rpn_parts.append("COMPUTE_OFFSET")
             rpn_parts.append("translate")
         elif direction is not None:
@@ -90,16 +111,28 @@ class SemanticToRPNCompiler:
             "Fill largest rectangle with blue"
             → "FIND_SHAPES rectangle GET_SIZES MAX_SIZE SELECT 1 FILL"
         """
-        shape = sem["object"]["shape"]
-        size = sem["object"]["size"]
+        obj = sem.get("object", {})
+        shape = obj.get("shape")
+        size = obj.get("size")
+        position = obj.get("position")
         color = COLOR_SEMANTICS[sem["color"]]["value"]
 
-        rpn_parts = [f"FIND_SHAPES {shape}"]
+        rpn_parts = []
 
-        if size == "largest":
-            rpn_parts += ["GET_SIZES", "MAX_SIZE", "SELECT"]
-        elif size == "smallest":
-            rpn_parts += ["GET_SIZES", "MIN_SIZE", "SELECT"]
+        if shape:
+            rpn_parts.append(f"FIND_SHAPES {shape}")
+
+            if size == "largest":
+                rpn_parts += ["GET_SIZES", "MAX_SIZE", "SELECT"]
+            elif size == "smallest":
+                rpn_parts += ["GET_SIZES", "MIN_SIZE", "SELECT"]
+
+        elif position:
+            rpn_parts.append(position.replace(" ", "-").upper())
+            rpn_parts.append("POSITION_MASK")
+
+        else:
+            rpn_parts.append("FIND_ANY_OBJECT")
 
         rpn_parts.append(str(color))
         rpn_parts.append("FILL")
@@ -169,7 +202,10 @@ class SemanticToRPNCompiler:
             → "2 FIND_OBJECT DUP GET_POSITION TOP-RIGHT COMPUTE_OFFSET 2 COPY_MASK"
         """
         color_token = sem["object"]["color"]
-        dest = sem["destination"]["position"]
+        dest_info = sem.get("destination")
+        if dest_info is None or "position" not in dest_info:
+            raise ValueError("Copy semantic missing destination position")
+        dest = dest_info["position"]
         color = COLOR_SEMANTICS[color_token]["value"]
 
         parts = [
@@ -183,6 +219,78 @@ class SemanticToRPNCompiler:
             "COPY_MASK",
         ]
         return " ".join(parts)
+
+    # ------------------------------------------------------------------ #
+    # Math compilers
+    # ------------------------------------------------------------------ #
+    def _compile_math_conditional(self, sem: Dict) -> str:
+        """
+        Compile conditional math expressions.
+        Example:
+            {"action": "fill_conditional", "expression": "row + col", "condition": "even"}
+        """
+        expression = sem.get("expression", "")
+        condition = sem.get("condition", "")
+
+        rpn_parts = ["FOR_EACH_CELL"]
+
+        if "row" in expression and "col" in expression:
+            if "+" in expression:
+                rpn_parts += ["GET_ROW", "GET_COL", "ADD"]
+            elif "-" in expression:
+                rpn_parts += ["GET_ROW", "GET_COL", "SUB"]
+            elif "*" in expression or "×" in expression:
+                rpn_parts += ["GET_ROW", "GET_COL", "MUL"]
+
+        if condition == "even":
+            rpn_parts += ["2", "MOD", "0", "EQ"]
+        elif condition == "odd":
+            rpn_parts += ["2", "MOD", "1", "EQ"]
+        elif condition == "positive":
+            rpn_parts += ["0", "GT"]
+        elif condition == "negative":
+            rpn_parts += ["0", "LT"]
+
+        rpn_parts += ["IF_TRUE", "CURRENT_COLOR", "FILL"]
+        return " ".join(rpn_parts)
+
+    def _compile_math_symmetry(self, sem: Dict) -> str:
+        angle = sem.get("angle", 90)
+        return f"GET_GRID DUP {angle} ROTATE EQ IF_TRUE MARK_SYMMETRIC"
+
+    def _compile_math_repeat(self, sem: Dict) -> str:
+        period = sem.get("period", 1)
+        return f"DETECT_PATTERN {period} REPEAT_WITH_PERIOD"
+
+    # ------------------------------------------------------------------ #
+    # Drawing compilers
+    # ------------------------------------------------------------------ #
+    def _compile_draw_shape(self, sem: Dict) -> str:
+        shape = sem.get("shape", "")
+        position = sem.get("position", "center")
+        start = sem.get("start")
+        end = sem.get("end")
+
+        rpn_parts = []
+        if position:
+            rpn_parts.append(position.upper().replace("-", "_"))
+            rpn_parts.append("COMPUTE")
+
+        if shape == "square":
+            rpn_parts += ["10", "10", "RECTANGLE", "FILL"]
+        elif shape == "rectangle":
+            rpn_parts += ["15", "10", "RECTANGLE", "FILL"]
+        elif shape == "circle":
+            rpn_parts += ["10", "CIRCLE", "FILL"]
+        elif shape in ("line", "diagonal"):
+            s = (start or "TOP_LEFT").upper().replace("-", "_")
+            e = (end or "BOTTOM_RIGHT").upper().replace("-", "_")
+            rpn_parts = [s, "MOVE", e, "LINE", "STROKE"]
+
+        return " ".join(rpn_parts)
+
+    def _compile_fill_pattern(self, sem: Dict) -> str:
+        return "DETECT_PATTERN FILL_WITH_PATTERN"
 
 
 __all__ = ["SemanticToRPNCompiler"]

@@ -32,26 +32,6 @@ class SemanticParser:
         self.grammar = grammar or GrammarGalaxy()
         self.grammar_exec = GrammarRPNExecutor()
 
-        # Pre-compile simple regex patterns for fast matching.
-        self._patterns = [
-            ("move_to_position", re.compile(r"move the (\w+)\s+object to the ([\w-]+)(?:\s+corner)?")),
-            ("move_direction", re.compile(r"move the (\w+)\s+object\s+(left|right|up|down)")),
-            ("fill_shape_color", re.compile(r"fill the (largest|smallest)?\s*(\w+)?\s*with\s+(\w+)")),
-            ("rotate_pattern", re.compile(r"rotate .*? (90|180|270) degrees(?:\s+(clockwise|counterclockwise))?")),
-            ("continue_direction", re.compile(r"continue .*? to the (right|left|up|down)")),
-            ("copy_to_position", re.compile(r"copy (?:the\s+)?(\w+)\s+object to (?:the\s+)?([\w-]+)(?:\s+corner)?")),
-            ("flip_axis", re.compile(r"(flip|mirror) .*?(horizontally|vertically)")),
-            ("recolor", re.compile(r"(change|replace|recolor|paint)\s+(\w+)\s+(?:to|with)\s+(\w+)")),
-        ]
-
-        # Optional phrase→grammar rule map for quick hits (ARC-like patterns or scene descriptions).
-        self._phrase_rule_map: Dict[str, str] = {
-            "describe the scene": "en_visual_description",
-            "describe the grid": "en_visual_description",
-            "describe the video": "en_video_scene_graph",
-            "describe the audio": "en_audio_description",
-        }
-
         # Optional normalizer to handle slang/typos (via grammar galaxy variants).
         if normalizer is None:
             try:
@@ -61,6 +41,14 @@ class SemanticParser:
                 self.normalizer = None
         else:
             self.normalizer = normalizer
+
+        # Optional phrase→grammar rule map for quick hits (ARC-like patterns or scene descriptions).
+        self._phrase_rule_map: Dict[str, str] = {
+            "describe the scene": "en_visual_description",
+            "describe the grid": "en_visual_description",
+            "describe the video": "en_video_scene_graph",
+            "describe the audio": "en_audio_description",
+        }
 
         # Cache of grammar example surfaces for fuzzy/embedding-like matching.
         self._grammar_surfaces: List[Tuple[str, str]] = []
@@ -92,14 +80,234 @@ class SemanticParser:
             except Exception:
                 pass
 
-        # Try grammar-galaxy phrase matches (exact then fuzzy).
+        spatial_parsers = [
+            self._parse_move_instruction,
+            self._parse_fill_instruction,
+            self._parse_rotate_instruction,
+            self._parse_flip_instruction,
+            self._parse_continue_instruction,
+            self._parse_copy_instruction,
+            self._parse_recolor_instruction,
+        ]
+
+        for parser in spatial_parsers:
+            result = parser(text)
+            if result:
+                return result
+
+        grammar_result = self._parse_via_grammar(text)
+        if grammar_result:
+            return grammar_result
+
+        raise ValueError(f"Could not parse instruction: {instruction}")
+
+    # ------------------------------------------------------------------ #
+    # Spatial parsers
+    # ------------------------------------------------------------------ #
+    def _parse_move_instruction(self, text: str) -> Dict | None:
+        """
+        Parse move/translate instructions.
+
+        Examples:
+            "Move the red object to the bottom-right corner"
+            "Move red square to center"
+            "Translate blue left"
+        """
+        # Move to explicit position
+        m = re.search(r"(move|translate)\s+(?:the\s+)?(\w+)(?:\s+(\w+))?\s+(?:to\s+)?(?:the\s+)?([\w-]+)", text)
+        if m:
+            _, token_a, token_b, dest = m.groups()
+            obj = self._build_object(token_a, token_b)
+            if obj:
+                return {
+                    "action": "move",
+                    "object": obj,
+                    "destination": {"position": dest, "type": "position"},
+                }
+
+        # Move in direction by one step (optionally with count)
+        m = re.search(r"(move|translate)\s+(?:the\s+)?(\w+)(?:\s+(\w+))?\s+(left|right|up|down)(?:\s+by\s+(\d+))?", text)
+        if m:
+            _, token_a, token_b, direction, steps = m.groups()
+            obj = self._build_object(token_a, token_b)
+            steps_int = int(steps) if steps else 1
+            if obj:
+                return {
+                    "action": "move",
+                    "object": obj,
+                    "direction": direction,
+                    "steps": steps_int,
+                }
+
+        return None
+
+    def _parse_fill_instruction(self, text: str) -> Dict | None:
+        """
+        Parse fill/paint instructions.
+
+        Examples:
+            "Fill the largest rectangle with blue"
+            "Fill center with red"
+            "Paint the square blue"
+        """
+        m = re.search(r"(fill|paint)\s+(?:the\s+)?(?:(\w+)\s+)?(?:(\w+)\s+)?(?:with\s+)?(\w+)", text)
+        if not m:
+            return None
+
+        _, mod1, mod2, color_token = m.groups()
+        obj: Dict[str, str] = {}
+        for mod in (mod1, mod2):
+            if not mod:
+                continue
+            if mod in self.sizes:
+                obj["size"] = mod
+            elif mod in self.shapes:
+                obj["shape"] = mod
+            elif mod in self.spatial:
+                obj["position"] = mod
+
+        if not obj:
+            obj["type"] = "region"
+
+        if color_token not in self.colors:
+            return None
+
+        return {
+            "action": "fill",
+            "object": obj,
+            "color": color_token,
+        }
+
+    def _parse_rotate_instruction(self, text: str) -> Dict | None:
+        """
+        Parse rotation/turn instructions.
+
+        Examples:
+            "Rotate the pattern 90 degrees clockwise"
+            "Rotate 180 degrees"
+            "Turn the grid clockwise"
+        """
+        m = re.search(r"(rotate|turn)\s+(?:the\s+)?(\w+)?\s*(\d+)?\s*(?:degrees?)?\s*(\w+)?", text)
+        if not m:
+            return None
+
+        _, obj_token, angle_token, direction_token = m.groups()
+        angle = int(angle_token) if angle_token else 90
+        direction = direction_token if direction_token in self.spatial else "counterclockwise"
+        result: Dict[str, object] = {"action": "rotate", "angle": angle, "direction": direction}
+
+        if obj_token and obj_token not in {"the", "it", "pattern", "grid"}:
+            result["object"] = obj_token
+        else:
+            result["object"] = "pattern"
+
+        return result
+
+    def _parse_flip_instruction(self, text: str) -> Dict | None:
+        """
+        Parse flip/mirror instructions.
+
+        Examples:
+            "Flip the pattern vertically"
+            "Flip horizontally"
+            "Mirror the grid"
+        """
+        m = re.search(r"(flip|mirror)\s+(?:the\s+)?(\w+)?\s*(vertical|horizontal|vert|horiz|vertically|horizontally)?", text)
+        if not m:
+            return None
+
+        _, obj_token, axis_token = m.groups()
+        axis = "horizontal"
+        if axis_token:
+            if "vert" in axis_token:
+                axis = "vertical"
+            elif "horiz" in axis_token:
+                axis = "horizontal"
+
+        result: Dict[str, object] = {"action": "flip", "axis": axis}
+        if obj_token and obj_token not in {"pattern", "grid", "it", "the"}:
+            result["object"] = obj_token
+        return result
+
+    def _parse_continue_instruction(self, text: str) -> Dict | None:
+        """
+        Parse continuation/extension instructions.
+
+        Examples:
+            "Continue the sequence to the right"
+            "Extend the pattern downward"
+            "Repeat to the left"
+        """
+        m = re.search(r"(continue|extend|repeat)\s+(?:the\s+)?(\w+)?\s+(?:to\s+)?(?:the\s+)?(\w+)", text)
+        if not m:
+            return None
+
+        _, obj_token, direction = m.groups()
+        if direction not in self.spatial:
+            return None
+
+        result: Dict[str, object] = {"action": "continue", "direction": direction}
+        if obj_token and obj_token not in {"sequence", "pattern", "it", "the"}:
+            result["object"] = obj_token
+        else:
+            result["object"] = "sequence"
+        return result
+
+    def _parse_copy_instruction(self, text: str) -> Dict | None:
+        """
+        Parse copy/duplicate instructions.
+
+        Examples:
+            "Copy the red object"
+            "Duplicate the pattern to bottom-right"
+        """
+        m = re.search(r"(copy|duplicate)\s+(?:the\s+)?(\w+)?\s*(\w+)?(?:\s+to\s+(?:the\s+)?([\w-]+))?", text)
+        if not m:
+            return None
+
+        _, token_a, token_b, dest = m.groups()
+        obj = self._build_object(token_a, token_b)
+        if not obj:
+            return None
+
+        result: Dict[str, object] = {"action": "copy", "object": obj}
+        if dest:
+            result["destination"] = {"position": dest, "type": "position"}
+        return result
+
+    def _parse_recolor_instruction(self, text: str) -> Dict | None:
+        """
+        Parse recolor/paint instructions.
+
+        Examples:
+            "Change red to blue"
+            "Replace green with yellow"
+        """
+        m = re.search(r"(change|replace|recolor|paint|color|colour)\s+(\w+)\s+(?:to|with)\s+(\w+)", text)
+        if not m:
+            return None
+
+        _, src_token, dst_token = m.groups()
+        if src_token not in self.colors or dst_token not in self.colors:
+            return None
+
+        return {
+            "action": "recolor",
+            "source_color": src_token,
+            "target_color": dst_token,
+        }
+
+    # ------------------------------------------------------------------ #
+    # Grammar fallback
+    # ------------------------------------------------------------------ #
+    def _parse_via_grammar(self, text: str) -> Dict | None:
+        """Fallback: map to Grammar Galaxy rules using multiple matching strategies."""
         exact = next(((rid, surface) for surface, rid in self._grammar_surfaces if surface == text), None)
         if exact:
             rid, surface = exact
             ctx = self._find_example_context(rid, surface)
             return {"action": "grammar_rule", "rule_id": rid, "context": ctx}
 
-        # Fuzzy match (closest example).
         surfaces = [s for s, _ in self._grammar_surfaces]
         if surfaces:
             best = difflib.get_close_matches(text, surfaces, n=1, cutoff=0.8)
@@ -109,128 +317,50 @@ class SemanticParser:
                 ctx = self._find_example_context(rid, surface)
                 return {"action": "grammar_rule", "rule_id": rid, "context": ctx}
 
-        # Token-overlap heuristic: choose example with highest token overlap.
         rid_ctx = self._best_overlap_rule(text)
         if rid_ctx:
             rid, ctx = rid_ctx
             return {"action": "grammar_rule", "rule_id": rid, "context": ctx}
 
-        # Bag-of-words cosine similarity to grammar examples.
         rid_ctx = self._best_cosine_rule(text)
         if rid_ctx:
             rid, ctx = rid_ctx
             return {"action": "grammar_rule", "rule_id": rid, "context": ctx}
 
-        # Dense embedding similarity (placeholder: simple hashing to vector).
         rid_ctx = self._best_dense_rule(text)
         if rid_ctx:
             rid, ctx = rid_ctx
             return {"action": "grammar_rule", "rule_id": rid, "context": ctx}
 
-        # Phrase map fallback.
         for phrase, rid in self._phrase_rule_map.items():
             if phrase in text:
                 ctx = self._find_example_context(rid, None)
                 return {"action": "grammar_rule", "rule_id": rid, "context": ctx}
 
-        # Pattern 1: Move [color] object to [position]
-        m = self._match("move_to_position", text)
-        if m:
-            color_token, dest_token = m.groups()
-            color = self._lookup_color(color_token)
-            dest = dest_token
-            return {
-                "action": "move",
-                "object": {"color": color, "type": "object"},
-                "destination": {"position": dest, "type": "position"},
-            }
-
-        # Pattern 2: Fill [size] [shape] with [color]
-        m = self._match("fill_shape_color", text)
-        if m:
-            size_token, shape_token, color_token = m.groups()
-            size = self._lookup_size(size_token)
-            shape = self._lookup_shape(shape_token)
-            color = self._lookup_color(color_token)
-            return {
-                "action": "fill",
-                "object": {"shape": shape, "size": size},
-                "color": color,
-            }
-
-        # Pattern 3: Rotate ... [angle] degrees [direction]
-        m = self._match("rotate_pattern", text)
-        if m:
-            angle_token, direction_token = m.groups()
-            angle = int(angle_token)
-            direction = direction_token or "counterclockwise"
-            return {
-                "action": "rotate",
-                "object": "pattern",
-                "angle": angle,
-                "direction": direction,
-            }
-
-        # Pattern 4: Continue the sequence to the [direction]
-        m = self._match("continue_direction", text)
-        if m:
-            direction_token = m.group(1)
-            return {
-                "action": "continue",
-                "object": "sequence",
-                "direction": direction_token,
-            }
-
-        # Pattern 5: Copy object to position
-        m = self._match("copy_to_position", text)
-        if m:
-            color_token, dest_token = m.groups()
-            color = self._lookup_color(color_token)
-            return {
-                "action": "copy",
-                "object": {"color": color, "type": "object"},
-                "destination": {"position": dest_token, "type": "position"},
-            }
-
-        # Pattern 6: Move by direction (step = 1)
-        m = self._match("move_direction", text)
-        if m:
-            color_token, direction_token = m.groups()
-            color = self._lookup_color(color_token)
-            return {
-                "action": "move",
-                "object": {"color": color, "type": "object"},
-                "direction": direction_token,
-                "steps": 1,
-            }
-
-        # Pattern 7: Flip / mirror horizontally or vertically
-        m = self._match("flip_axis", text)
-        if m:
-            _, axis_token = m.groups()
-            axis = "horizontal" if "horiz" in axis_token else "vertical"
-            return {
-                "action": "flip",
-                "axis": axis,
-            }
-
-        # Pattern 8: Recolor
-        m = self._match("recolor", text)
-        if m:
-            _, src_token, dst_token = m.groups()
-            src = self._lookup_color(src_token)
-            dst = self._lookup_color(dst_token)
-            return {
-                "action": "recolor",
-                "source_color": src,
-                "target_color": dst,
-            }
-
-        raise ValueError(f"Could not parse instruction: {instruction}")
+        return None
 
     # ------------------------------------------------------------------ #
     # Helpers
     # ------------------------------------------------------------------ #
+    def _build_object(self, token_a: Optional[str], token_b: Optional[str]) -> Dict[str, str] | None:
+        """Build an object dict from up to two tokens (color/shape/size)."""
+        obj: Dict[str, str] = {}
+        for tok in (token_a, token_b):
+            if not tok:
+                continue
+            if tok in self.colors and "color" not in obj:
+                obj["color"] = tok
+                obj.setdefault("type", "object")
+            elif tok in self.shapes and "shape" not in obj:
+                obj["shape"] = tok
+                obj.setdefault("type", "shape")
+            elif tok in self.sizes and "size" not in obj:
+                obj["size"] = tok
+
+        if not obj and token_a:
+            obj["type"] = "object"
+        return obj if obj else None
+
     def _lookup_color(self, token: Optional[str]) -> str:
         if token and token in self.colors:
             return token
@@ -247,12 +377,6 @@ class SemanticParser:
             return token
         # Default size when not specified
         return "largest"
-
-    def _match(self, key: str, text: str):
-        for name, pattern in self._patterns:
-            if name == key:
-                return pattern.search(text)
-        return None
 
     def _find_example_context(self, rule_id: str, surface: str | None) -> Dict[str, str]:
         """Find example dict for a given rule and surface string (or first example)."""
@@ -279,7 +403,7 @@ class SemanticParser:
                 if overlap > best_score:
                     best_score = overlap
                     best = (rule.rule_id, ex)
-        if best_score >= 0.5:
+        if best_score >= 0.5 and best:
             rid, ctx = best
             return rid, ctx
         return None
@@ -320,7 +444,6 @@ class SemanticParser:
         for tok in text.split():
             h = hash(tok) % dim
             vec[h] += 1.0
-        # L2 norm
         norm = np.linalg.norm(vec)
         if norm > 0:
             vec /= norm

@@ -6,19 +6,21 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
 
+
 @dataclass
 class GrammarRule:
     rule_id: str
     language: str
     pattern: str
     rpn_program: str
+    domain: str = "text"
     examples: List[Dict[str, str]] = field(default_factory=list)
     description: str | None = None
 
 
 def default_grammar_rules() -> List[GrammarRule]:
     """Baseline multilingual grammar rules expressed as procedural RPN."""
-    return [
+    rules = [
         GrammarRule(
             rule_id="en_simple_sentence",
             language="en",
@@ -265,6 +267,24 @@ def default_grammar_rules() -> List[GrammarRule]:
             description="Logical implication",
         ),
     ]
+
+    from knowledge3d.training.arc_agi.grammar_languages.tier1_top10 import get_tier1_rules
+    from knowledge3d.training.arc_agi.grammar_languages.tier2_next20 import get_tier2_rules
+    from knowledge3d.training.arc_agi.grammar_languages.tier3_next20 import get_tier3_rules
+    from knowledge3d.training.arc_agi.grammar_math import get_math_rules
+    from knowledge3d.training.arc_agi.grammar_drawing import get_drawing_rules
+
+    text_rules = get_tier1_rules() + get_tier2_rules() + get_tier3_rules()
+    math_rules = get_math_rules()
+    drawing_rules = get_drawing_rules()
+
+    combined: Dict[str, GrammarRule] = {}
+    for rule in rules + text_rules + math_rules + drawing_rules:
+        if rule.rule_id in combined:
+            continue
+        combined[rule.rule_id] = rule
+
+    return list(combined.values())
 
 
 def default_user_profiles() -> Dict[str, Dict]:

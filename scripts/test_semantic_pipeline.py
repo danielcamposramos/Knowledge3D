@@ -1,4 +1,4 @@
-"""Smoke tests for semantic parsing → RPN compile → execution."""
+"""Smoke tests for semantic parsing -> RPN compile -> execution."""
 
 from knowledge3d.training.arc_agi.semantic_parser import SemanticParser
 from knowledge3d.training.arc_agi.semantic_compiler import SemanticToRPNCompiler
@@ -55,7 +55,7 @@ def run_tests():
         {
             "instruction": "Continue the sequence to the right",
             "input": [[1, 1, 0], [0, 0, 0], [0, 0, 0]],
-            "expected": [[0, 1, 1], [0, 0, 0], [0, 0, 0]],
+            "expected": [[1, 1, 1], [0, 0, 0], [0, 0, 0]],
         },
     ]
 

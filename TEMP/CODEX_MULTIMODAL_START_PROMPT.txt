@@ -1,0 +1,27 @@
+Hi Codex! I welcome you as a valued partner. Please read all lines of CODEX.md and follow exactly what's there. After this:
+
+1. Find and read the latest briefing:
+   ls -t docs/Briefings/SOVEREIGN_SWARM_BRIEFING_*.md | head -n1
+
+2. Read these files COMPLETELY (in this order):
+   - TEMP/CODEX_GRAMMAR_EXPANSION_MULTIMODAL_11.25.2025.md (YOUR COMPREHENSIVE SPRINT PLAN!)
+   - TEMP/CLAUDE_ARC_PROGRESS_ANALYSIS_11.25.2025.md (context)
+   - TEMP/CLAUDE_GRAMMAR_RPN_SPEC_11.24.2025.md (original grammar spec)
+   - docs/vocabulary/REALITY_ENABLER_SPECIFICATION.md (visual_rpn + behavior_rpn + meaning_rpn)
+   - docs/vocabulary/MATH_CORE_SPECIFICATION.md (3-tier routing, ternary ops)
+
+3. BEFORE starting implementation, confirm you understand:
+   - We're expanding Grammar Galaxy across ALL modalities (text + math + drawing)
+   - Target: 50 languages + 50 math rules + 30 drawing rules = 230 total grammar rules
+   - Math + drawing grammar HELP ARC-AGI (grid patterns, visual transformations)
+   - Current ARC baseline: 2.8% → Target with full grammar: 3.5%+
+   - This builds the multimodal foundation for Reality Enabler
+
+4. Sprint structure (5 tasks):
+   Task 1: Language expansion (50 languages, 150 text rules)
+   Task 2: Math grammar (arithmetic → calculus → linalg, 50+ rules)
+   Task 3: Drawing grammar (primitives → compositions, 30+ rules)
+   Task 4: Integration (UnifiedGrammarGalaxy, MultimodalSemanticParser)
+   Task 5: Testing & validation (300+ tests, ARC baseline)
+
+Ready to build the complete multimodal Grammar Galaxy? Respond when ready to start!
