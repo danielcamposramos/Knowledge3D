@@ -12,6 +12,8 @@ SPATIAL_SEMANTICS = {
     "left": {"type": "position", "x": 0, "anchor": "left"},
     "right": {"type": "position", "x": "max", "anchor": "right"},
     "center": {"type": "position", "x": "mid", "y": "mid"},
+    "middle": {"type": "position", "x": "mid", "y": "mid"},
+    "centre": {"type": "position", "x": "mid", "y": "mid"},
     "corner": {"type": "position", "compound": True},
     "top-left": {"type": "position", "x": 0, "y": 0, "anchor": "corner"},
     "top-right": {"type": "position", "x": "max", "y": 0, "anchor": "corner"},
@@ -25,6 +27,8 @@ SPATIAL_SEMANTICS = {
     "right_dir": {"type": "direction", "dx": +1},
     "horizontal": {"type": "direction_axis", "axis": "horizontal"},
     "vertical": {"type": "direction_axis", "axis": "vertical"},
+    "horizontally": {"type": "direction_axis", "axis": "horizontal"},
+    "vertically": {"type": "direction_axis", "axis": "vertical"},
 
     # Transformation
     "rotate": {"type": "transform", "rpn_op": "rotate", "opcode": 70},
@@ -64,6 +68,10 @@ SHAPE_SEMANTICS = {
     "diagonal": {"type": "shape", "pattern": "diagonal"},
     "border": {"type": "shape", "pattern": "border"},
     "fill": {"type": "shape", "pattern": "fill_region"},
+    "pattern": {"type": "shape", "pattern": "detect_pattern"},
+    "object": {"type": "shape", "pattern": "connected_component"},
+    "component": {"type": "shape", "pattern": "connected_component"},
+    "region": {"type": "shape", "pattern": "region"},
 }
 
 SIZE_SEMANTICS = {
@@ -71,6 +79,9 @@ SIZE_SEMANTICS = {
     "smallest": {"type": "size", "comparator": "min"},
     "bigger": {"type": "size", "comparator": "greater"},
     "smaller": {"type": "size", "comparator": "less"},
+    "biggest": {"type": "size", "comparator": "max"},
+    "small": {"type": "size", "comparator": "less"},
+    "large": {"type": "size", "comparator": "greater"},
 }
 
 ACTION_SEMANTICS = {
@@ -86,6 +97,9 @@ ACTION_SEMANTICS = {
     "mirror": {"type": "action", "rpn_op": "flip"},
     "recolor": {"type": "action", "rpn_op": "recolor"},
     "paint": {"type": "action", "rpn_op": "recolor"},
+    "color": {"type": "action", "rpn_op": "recolor"},
+    "colour": {"type": "action", "rpn_op": "recolor"},
+    "translate": {"type": "action", "rpn_op": "translate", "opcode": 72},
 }
 
 __all__ = [

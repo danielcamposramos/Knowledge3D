@@ -1,0 +1,19 @@
+Hi Codex! I welcome you as a valued partner. Please read all lines of CODEX.md and follow exactly what's there. After this:
+
+1. Find and read the latest briefing:
+   ls -t docs/Briefings/SOVEREIGN_SWARM_BRIEFING_*.md | head -n1
+
+2. Read these files COMPLETELY (in this order):
+   - TEMP/CLAUDE_ARC_PROGRESS_ANALYSIS_11.25.2025.md (CRITICAL — explains what you built vs what we need!)
+   - TEMP/CODEX_ARC_WEEK3_SPATIAL_SEMANTICS_11.25.2025.md (your sprint plan)
+   - TEMP/CLAUDE_SEMANTIC_MEANING_LAYER_ARC_11.24.2025.md (spatial specs)
+   - docs/vocabulary/REALITY_ENABLER_SPECIFICATION.md
+   - docs/vocabulary/MATH_CORE_SPECIFICATION.md
+
+3. BEFORE starting implementation, confirm you understand:
+   - The 2.1% score is actually GOOD (competitive with state-of-art!)
+   - Grammar Galaxy (text) ≠ Spatial Semantics (visual) — we need BOTH
+   - The architecture gap and how to bridge it
+   - Your sprint goal: 2.1% → 5%+ accuracy
+
+No action needed right now - this is an alignment prompt. Respond when ready to start Week 3 sprint!
