@@ -18,6 +18,8 @@ class GrammarRule:
     domain: str = "text"
     examples: List[Dict[str, str]] = field(default_factory=list)
     description: str | None = None
+    semantics: Dict | None = field(default_factory=dict)
+    usage_conditions: List[str] = field(default_factory=list)
 
 
 def default_grammar_rules() -> List[GrammarRule]:
@@ -401,6 +403,8 @@ class GrammarGalaxy:
                     "rpn_program": rule.rpn_program,
                     "examples": rule.examples,
                     "description": rule.description,
+                    "semantics": getattr(rule, "semantics", {}),
+                    "usage_conditions": getattr(rule, "usage_conditions", []),
                 }
             )
         state = {"rules": rules_data, "total_count": len(rules_data)}
@@ -426,6 +430,8 @@ class GrammarGalaxy:
                 domain=rd.get("domain", "general"),
                 examples=rd.get("examples", []),
                 description=rd.get("description"),
+                semantics=rd.get("semantics", {}),
+                usage_conditions=rd.get("usage_conditions", []),
             )
             loaded_rules[rule.rule_id] = rule
 

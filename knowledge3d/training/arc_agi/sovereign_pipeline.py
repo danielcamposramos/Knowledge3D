@@ -39,9 +39,9 @@ class SovereignAIPipeline:
     def __init__(self, matryoshka_dim: int = 512, *, staged_shadow: bool = False) -> None:
         self.drawing = DrawingGalaxy()
         self.grammar = GrammarGalaxy()
-        self.router = SovereignTRMRouter(self.drawing, self.grammar, matryoshka_dim=matryoshka_dim)
-        self.composer = ProgramComposer()
         self.shadow = DualShadowCopy(self.drawing, self.grammar, staged=staged_shadow)
+        self.router = SovereignTRMRouter(self.drawing, self.grammar, shadow_copy=self.shadow, matryoshka_dim=matryoshka_dim)
+        self.composer = ProgramComposer()
         self.results: List[TaskResult] = []
 
     def process_task(
@@ -81,17 +81,28 @@ class SovereignAIPipeline:
             )
 
         for cand in trm_candidates:
-            compositions = self.composer.compose(cand.drawing_program, [cand.grammar_rule])
-            for prog, ptype in compositions:
+            if "program" in cand:
                 merged.append(
                     {
-                        "program": prog,
-                        "program_type": ptype,
-                        "source": "trm",
-                        "output": None,  # to be executed
-                        "signature": cand.signature,
+                        "program": cand["program"],
+                        "program_type": cand.get("program_type", "semantic"),
+                        "source": cand.get("source", "semantic_match"),
+                        "output": None,
+                        "signature": cand.get("semantic_context") or cand.get("signature", {}),
                     }
                 )
+            else:
+                compositions = self.composer.compose(cand["drawing_program"], [cand["grammar_rule"]])
+                for prog, ptype in compositions:
+                    merged.append(
+                        {
+                            "program": prog,
+                            "program_type": ptype,
+                            "source": cand.get("source", "trm"),
+                            "output": None,  # to be executed
+                            "signature": cand.get("signature", {}),
+                        }
+                    )
 
         if not merged:
             raise RuntimeError("No candidates generated")
@@ -128,8 +139,16 @@ class SovereignAIPipeline:
         assert chosen is not None
         signature = chosen.get("signature") or {"source": chosen["source"]}
 
-        # Record discoveries according to shadow thresholds
-        self.shadow.record(signature, chosen["program"], chosen["program_type"], chosen["score"])
+        # Record discoveries according to shadow thresholds (with semantic context)
+        self.shadow.record(
+            signature,
+            chosen["program"],
+            chosen["program_type"],
+            chosen["score"],
+            input_grid=test_input_arr,
+            output_grid=chosen["output"],
+            task_id=task_id,
+        )
 
         result = TaskResult(
             task_id=task_id,

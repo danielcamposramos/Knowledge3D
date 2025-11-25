@@ -12,7 +12,10 @@ Each phase builds on the previous one. Status labels reflect our current progres
 
 Figure: The Cognitive House illustrates the House (persistent memory), Cranium (active processing), and Logic Layer (models) that guide the roadmap. See the generation prompt in `docs/images/cognitive_house_prompt.md`.
 
-> Status note (2025-11-24): Phase 5 capacity demonstration (CPU path) is complete. Stress + scaling benchmarks executed (artifacts in `output/benchmarks/`), 26 GLBs exported (`output/gltf/`), and analysis captured in `TEMP/ARCHITECTURE_CAPACITY_ANALYSIS_11.24.2025.md`. Next: Phase 6 UI integration and GPU-kernel validation once cupy is available.
+> Status note (2025-11-25): **Parallel workstreams active**:
+> - **ARC-AGI (Phase 3):** Sovereign visual reasoning using Drawing + Grammar + Character Galaxy composition. Current: Training library growth (1662 rules, 1556 shapes). Next: Deduplication + quality filtering. Goal: 5-10% accuracy via semantic TRM routing. See [TEMP/CODEX_IMPLEMENT_QUALITY_SEMANTIC_CORRECT_11.25.2025.txt](../TEMP/CODEX_IMPLEMENT_QUALITY_SEMANTIC_CORRECT_11.25.2025.txt)
+> - **Reality Galaxy (Phases 4-5):** Phase 5 capacity demonstration (CPU path) complete. Stress + scaling benchmarks executed (artifacts in `output/benchmarks/`), 26 GLBs exported (`output/gltf/`), analysis in [TEMP/ARCHITECTURE_CAPACITY_ANALYSIS_11.24.2025.md](../TEMP/ARCHITECTURE_CAPACITY_ANALYSIS_11.24.2025.md). Next: Phase 6 UI integration and GPU-kernel validation once cupy available.
+> - **Architectural clarification:** Dual Client Reality + Procedural Foundation documented in [BRIEFING.md](../BRIEFING.md) and [docs/vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md](vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md)
 
 ---
 

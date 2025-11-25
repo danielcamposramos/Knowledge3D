@@ -11,7 +11,7 @@ Key responsibilities:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Sequence, Tuple
+from typing import Any, Dict, List, Sequence, Tuple
 
 import numpy as np
 
@@ -20,6 +20,7 @@ from knowledge3d.cranium.trm_adapters import SelfUpdatingAdapter
 from knowledge3d.cranium.ptx_runtime.rpn_math_core import RPNMathCore
 from knowledge3d.training.arc_agi.drawing_galaxy import DrawingGalaxy
 from knowledge3d.training.arc_agi.grammar_galaxy import GrammarGalaxy, GrammarRule
+from knowledge3d.training.arc_agi.semantic_context import SemanticContext
 
 
 @dataclass
@@ -33,10 +34,19 @@ class RoutingCandidate:
 class SovereignTRMRouter:
     """Heuristic router that keeps all computation sovereign (no torch)."""
 
-    def __init__(self, drawing_galaxy: DrawingGalaxy, grammar_galaxy: GrammarGalaxy, matryoshka_dim: int = 512):
+    def __init__(
+        self,
+        drawing_galaxy: DrawingGalaxy,
+        grammar_galaxy: GrammarGalaxy,
+        shadow_copy=None,
+        matryoshka_dim: int = 512,
+    ):
         self.drawing = drawing_galaxy
         self.grammar = grammar_galaxy
         self.matryoshka_dim = int(matryoshka_dim)
+        self.semantic_context: SemanticContext | None = None
+        if shadow_copy is not None and hasattr(shadow_copy, "semantic_context"):
+            self.semantic_context = shadow_copy.semantic_context
 
         # Sovereign components (instantiated, not trained here)
         self.base_trm = MatryoshkaTRM(max_dims=self.matryoshka_dim, min_dims=64)
@@ -102,23 +112,60 @@ class SovereignTRMRouter:
         projected = self.base_trm.project_vector(padded, target_dim=self.matryoshka_dim)
         return projected.astype(np.float32, copy=False)
 
-    def route(self, grid: Sequence[Sequence[int]], top_k: int = 3) -> List[RoutingCandidate]:
+    def route(self, grid: Sequence[Sequence[int]], top_k: int = 3, use_semantics: bool = True) -> List[Dict[str, Any]]:
         drawing_program = self.grid_to_drawing_rpn(grid)
         signature = self.task_signature(grid)
         embedding = self.embed_task(grid)
 
-        # Heuristic selection: favor drawing/spatial domains first, then fall back.
-        candidates: List[RoutingCandidate] = []
+        candidates: List[Dict[str, Any]] = []
+
+        # Semantic matches (prioritized)
+        if use_semantics and self.semantic_context is not None:
+            try:
+                matches = self.semantic_context.find_matching_contexts(np.asarray(grid), top_k=top_k * 2)
+                for ctx in matches:
+                    candidates.append(
+                        {
+                            "program": ctx["program"],
+                            "program_type": "semantic",
+                            "source": "semantic_match",
+                            "score": ctx.get("score", 0.6),
+                            "signature": signature,
+                            "semantic_context": ctx,
+                        }
+                    )
+                print(f"  [SEMANTIC] Found {len(matches)} context matches")
+            except Exception as e:
+                print(f"  [SEMANTIC] Warning: semantic matching failed: {e}")
+
+        # Grammar-driven candidates (existing path)
         for rule in self._rank_rules(embedding, top_k=top_k):
             candidates.append(
-                RoutingCandidate(
-                    drawing_program=drawing_program,
-                    grammar_rule=rule,
-                    signature=signature,
-                    score=rule_score_hint(rule, signature),
-                )
+                {
+                    "drawing_program": drawing_program,
+                    "grammar_rule": rule,
+                    "signature": signature,
+                    "source": "grammar",
+                    "score": rule_score_hint(rule, signature),
+                }
             )
-        return candidates
+
+        # Deduplicate by program string when available
+        unique: List[Dict[str, Any]] = []
+        seen = set()
+        for cand in candidates:
+            prog = cand.get("program") or cand.get("grammar_rule").rpn_program if cand.get("grammar_rule") else None
+            if prog and prog in seen:
+                continue
+            if prog:
+                seen.add(prog)
+            unique.append(cand)
+
+        # Trim to top_k but keep semantic matches first
+        semantic_first = [c for c in unique if c.get("source") == "semantic_match"]
+        rest = [c for c in unique if c.get("source") != "semantic_match"]
+        ordered = semantic_first + rest
+        return ordered[:top_k]
 
     # ------------------------------------------------------------------ #
     # Internal helpers
@@ -128,7 +175,7 @@ class SovereignTRMRouter:
         drawing_rules = [r for r in self.grammar.list_rules() if getattr(r, "domain", "") in {"drawing", "spatial"}]
         other_rules = [r for r in self.grammar.list_rules() if r not in drawing_rules]
         ordered = drawing_rules + other_rules
-        return ordered[: max(1, int(top_k))]
+        return ordered[: max(1, int(top_k * 2))]
 
 
 def rule_score_hint(rule: GrammarRule, signature: Dict[str, int]) -> float:

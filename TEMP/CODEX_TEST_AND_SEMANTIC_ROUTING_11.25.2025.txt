@@ -1,0 +1,478 @@
+Hi Codex! Test Semantic Layer + Implement TRM Semantic Routing
+
+## Mission
+
+Two-part task:
+1. **Verify Phase 2 semantic layer works** (testing)
+2. **Implement Phase 3 TRM semantic routing** (use semantics to guide program selection)
+
+**Expected Result**: 0% → 5-10% accuracy through context-aware routing
+
+---
+
+## Part 1: Verify Semantic Layer (30 min)
+
+### Test 1: Quick Training Run to Generate Semantic Data
+
+```bash
+# Clear old checkpoints to start fresh
+rm -rf /K3D/Knowledge3D.local/checkpoints/arc_agi/*.json
+
+# Short training run with semantic layer
+conda run -n k3d-cranium env PYTHONPATH=. CUDA_VISIBLE_DEVICES=0 \
+  python scripts/train_arc_sovereign_loop.py \
+    --arc-dirs /K3D/Knowledge3D.local/datasets/arc_agi/ARC-AGI-master/data/training \
+    --max-tasks 10 --epochs 1 --cycles 1 --matryoshka-dim 512 --top-k 12 \
+    > /tmp/arc_semantic_test.log 2>&1
+
+# Check what was created
+ls -lh /K3D/Knowledge3D.local/checkpoints/arc_agi/
+```
+
+**Expected files:**
+- `drawing_galaxy.json`
+- `grammar_galaxy.json`
+- `shadow_copy.json`
+- `deduplication_index.json` (Phase 1)
+- `semantic_context.json` (Phase 2 - NEW!)
+
+### Test 2: Verify Semantic Context Structure
+
+```bash
+# Check semantic context exists and has data
+cat /K3D/Knowledge3D.local/checkpoints/arc_agi/semantic_context.json | \
+  python3 -c "import json, sys; data=json.load(sys.stdin); \
+  print(f'Total contexts: {len(data.get(\"contexts\", []))}'); \
+  if data.get('contexts'): \
+    ctx = data['contexts'][0]; \
+    print(f'Sample context:'); \
+    print(f'  Program: {ctx.get(\"program\", \"?\")}'); \
+    print(f'  Transformation type: {ctx.get(\"transformation_type\", \"?\")}'); \
+    print(f'  When to use: {ctx.get(\"when_to_use\", [])}'); \
+    print(f'  Input signature hash: {ctx.get(\"input_signature\", {}).get(\"signature_hash\", \"?\")}')"
+```
+
+**Expected output:**
+```
+Total contexts: 40-60 (roughly one per unique discovery)
+Sample context:
+  Program: 1 rotate
+  Transformation type: rotation_or_reflection
+  When to use: ['asymmetric_input', 'rotation_task']
+  Input signature hash: a3f5b2c1
+```
+
+### Test 3: Verify Grammar Rules Have Semantics
+
+```bash
+# Check grammar rules have semantic metadata
+cat /K3D/Knowledge3D.local/checkpoints/arc_agi/grammar_galaxy.json | \
+  python3 -c "import json, sys; data=json.load(sys.stdin); \
+  rules_with_semantics = [r for r in data['rules'] if 'semantics' in r]; \
+  print(f'Rules with semantics: {len(rules_with_semantics)}/{len(data[\"rules\"])}'); \
+  if rules_with_semantics: \
+    rule = rules_with_semantics[0]; \
+    print(f'Sample rule:'); \
+    print(f'  Rule ID: {rule.get(\"rule_id\", \"?\")}'); \
+    print(f'  RPN: {rule.get(\"rpn_program\", \"?\")}'); \
+    print(f'  Semantics: {rule.get(\"semantics\", {})}'); \
+    print(f'  Usage conditions: {rule.get(\"usage_conditions\", [])}')"
+```
+
+**Expected output:**
+```
+Rules with semantics: 10-20/196+
+Sample rule:
+  Rule ID: DISCOVERED_RULE_XXX
+  RPN: 1 rotate
+  Semantics: {'transformation_type': 'rotation_or_reflection', ...}
+  Usage conditions: ['asymmetric_input', 'rotation_task']
+```
+
+### Test 4: Verify Deduplication Still Working
+
+```bash
+# Check dedup index
+cat /K3D/Knowledge3D.local/checkpoints/arc_agi/deduplication_index.json | \
+  python3 -c "import json, sys; data=json.load(sys.stdin); \
+  print(f'Unique programs: {data.get(\"total_unique\", 0)}'); \
+  print(f'Total references: {data.get(\"total_references\", 0)}'); \
+  if data.get('total_unique') > 0: \
+    ratio = data['total_references'] / data['total_unique']; \
+    print(f'Avg reuse: {ratio:.1f}x per program')"
+```
+
+**Expected output:**
+```
+Unique programs: 40-60
+Total references: 150-250
+Avg reuse: 3-5x per program
+```
+
+**✅ If all 4 tests pass, Phase 2 is working! Proceed to Part 2.**
+
+---
+
+## Part 2: Implement TRM Semantic Routing (2-3 hours)
+
+### Goal: Use Semantic Context to Guide Program Selection
+
+**Current behavior:**
+- TRM tries random programs from library (blind trial)
+- 269 unique programs × 72 tasks = low hit rate
+- Accuracy: 0%
+
+**Target behavior:**
+- TRM queries semantic context for similar past successes
+- Prioritizes programs that worked in similar contexts
+- Accuracy: 5-10% (semantic routing reduces search space)
+
+---
+
+### Implementation: Update SovereignTRMRouter
+
+**File**: `knowledge3d/training/arc_agi/sovereign_trm_router.py` (MODIFY)
+
+**Add import:**
+```python
+import numpy as np
+from knowledge3d.training.arc_agi.semantic_signature import SemanticSignature
+from knowledge3d.training.arc_agi.semantic_context import SemanticContext
+```
+
+**Update `__init__`:**
+```python
+def __init__(self, drawing_galaxy, grammar_galaxy, shadow_copy, matryoshka_dim=512):
+    # ... existing code ...
+
+    self.shadow = shadow_copy
+
+    # Add semantic context access
+    if hasattr(shadow_copy, 'semantic_context'):
+        self.semantic_context = shadow_copy.semantic_context
+    else:
+        print("[SovereignTRMRouter] Warning: No semantic context available")
+        self.semantic_context = None
+```
+
+**Update `route()` method:**
+```python
+def route(
+    self,
+    test_input: Sequence[Sequence[int]],
+    top_k: int = 3,
+    use_semantics: bool = True
+) -> List[Dict]:
+    """
+    Route with semantic-aware candidate selection.
+
+    Args:
+        test_input: Input grid to process
+        top_k: Number of candidates to return
+        use_semantics: Whether to use semantic matching (default True)
+
+    Returns:
+        List of candidate programs with scores
+    """
+    candidates = []
+
+    # NEW: Semantic matching (if available and enabled)
+    if use_semantics and self.semantic_context is not None:
+        try:
+            input_array = np.array(test_input)
+            matching_contexts = self.semantic_context.find_matching_contexts(
+                input_array,
+                top_k=top_k * 2  # Get more matches, filter later
+            )
+
+            for ctx in matching_contexts:
+                candidates.append({
+                    "program": ctx["program"],
+                    "source": "semantic_match",
+                    "score": ctx["score"],
+                    "transformation_type": ctx.get("transformation_type", "unknown"),
+                    "when_to_use": ctx.get("when_to_use", []),
+                    "match_reason": f"Similar to: {ctx.get('input_signature', {}).get('signature_hash', 'unknown')}"
+                })
+
+            print(f"  [SEMANTIC] Found {len(matching_contexts)} context matches")
+        except Exception as e:
+            print(f"  [SEMANTIC] Warning: Semantic matching failed: {e}")
+
+    # Existing: Grammar-based candidates
+    # (Keep your existing grammar candidate generation here)
+
+    # Existing: Drawing-based candidates
+    # (Keep your existing drawing candidate generation here)
+
+    # Combine and deduplicate by program content
+    seen_programs = set()
+    unique_candidates = []
+
+    # Prioritize semantic matches
+    for candidate in candidates:
+        prog = candidate["program"]
+        if prog not in seen_programs:
+            seen_programs.add(prog)
+            unique_candidates.append(candidate)
+
+    # Return top-k
+    return unique_candidates[:top_k]
+```
+
+**Add debug logging:**
+```python
+def _log_routing_decision(self, test_input, candidates):
+    """Log routing decision for debugging."""
+    print(f"\n[ROUTING] Input grid: {np.array(test_input).shape}")
+    print(f"[ROUTING] Candidates generated: {len(candidates)}")
+
+    semantic_count = sum(1 for c in candidates if c.get("source") == "semantic_match")
+    grammar_count = sum(1 for c in candidates if c.get("source") == "grammar")
+    drawing_count = sum(1 for c in candidates if c.get("source") == "drawing")
+
+    print(f"  Semantic: {semantic_count}, Grammar: {grammar_count}, Drawing: {drawing_count}")
+
+    # Show top 3 candidates
+    for i, candidate in enumerate(candidates[:3]):
+        print(f"  [{i+1}] {candidate['source']}: {candidate['program'][:50]} (score={candidate.get('score', 0):.2f})")
+```
+
+---
+
+### Implementation: Update Pipeline to Enable Semantic Routing
+
+**File**: `knowledge3d/training/arc_agi/sovereign_pipeline.py` (MODIFY)
+
+**Update `process_task()` to use semantic routing:**
+```python
+def process_task(
+    self,
+    task_id: str,
+    test_input: Sequence[Sequence[int]],
+    train_examples: List[Dict] = None,
+    expected_output = None,
+    top_k: int = 3
+) -> TaskResult:
+    """Process task using semantic-aware TRM routing."""
+
+    # 1. Get procedural candidates from baseline (existing)
+    procedural_candidates = []
+    if train_examples:
+        gen = CandidateGenerator(matryoshka_dim=self.router.matryoshka_dim)
+        procedural_candidates = gen.generate_candidates(test_input, train_examples)
+
+    # 2. Get TRM candidates with SEMANTIC ROUTING (NEW!)
+    trm_candidates = self.router.route(
+        test_input,
+        top_k=top_k,
+        use_semantics=True  # Enable semantic matching!
+    )
+
+    # 3. Merge candidates (prioritize semantic matches)
+    all_candidates = trm_candidates + procedural_candidates
+
+    # 4. Execute and score
+    # ... existing execution logic ...
+
+    # 5. Record discovery with semantic context (already implemented in Phase 2)
+    if best_candidate:
+        self.shadow.record(
+            signature={},
+            program=best_candidate["program"],
+            program_type=best_candidate["source"],
+            score=best_score,
+            input_grid=test_input,
+            output_grid=expected_output,
+            task_id=task_id
+        )
+
+    return TaskResult(...)
+```
+
+---
+
+### Testing Phase 3: Semantic Routing
+
+**Test 1: Short Run with Semantic Routing (15 min)**
+
+```bash
+# Run with semantic routing enabled
+conda run -n k3d-cranium env PYTHONPATH=. CUDA_VISIBLE_DEVICES=0 \
+  python scripts/train_arc_sovereign_loop.py \
+    --arc-dirs /K3D/Knowledge3D.local/datasets/arc_agi/ARC-AGI-master/data/training \
+    --max-tasks 20 --epochs 1 --cycles 1 --matryoshka-dim 512 --top-k 12 \
+    > /tmp/arc_semantic_routing.log 2>&1
+
+# Check for semantic routing logs
+grep "SEMANTIC" /tmp/arc_semantic_routing.log | head -20
+grep "ROUTING" /tmp/arc_semantic_routing.log | head -20
+```
+
+**Expected output:**
+```
+[SEMANTIC] Found 5 context matches
+[ROUTING] Input grid: (3, 3)
+[ROUTING] Candidates generated: 15
+  Semantic: 5, Grammar: 7, Drawing: 3
+  [1] semantic_match: 1 rotate (score=0.85)
+  [2] semantic_match: compose 1 rotate 2 flip (score=0.78)
+  [3] grammar: IDENTITY (score=0.60)
+```
+
+**Test 2: Check for Accuracy Improvement**
+
+```bash
+# Check if any tasks were solved
+grep "correct" /tmp/arc_semantic_routing.log | tail -10
+```
+
+**Expected:**
+- Might see 1-2 tasks correct out of 20 (5-10% accuracy)
+- If still 0%, context matching is working but library needs more coverage
+
+**Test 3: Full Moderate Run with Semantic Routing (2-3 hours)**
+
+```bash
+# Full run to build semantic library + test routing
+tmux new-session -s arc_semantic_full
+
+conda run -n k3d-cranium env PYTHONPATH=. CUDA_VISIBLE_DEVICES=0 \
+  python scripts/train_arc_sovereign_loop.py \
+    --arc-dirs /K3D/Knowledge3D.local/datasets/arc_agi/ARC-AGI-master/data/training \
+               /K3D/Knowledge3D.local/datasets/arc_agi/ARC-AGI-master/data/evaluation \
+    --max-tasks 72 --epochs 6 --cycles 6 --matryoshka-dim 512 --top-k 12 \
+    > /tmp/arc_semantic_full.log 2>&1
+
+# Detach: Ctrl+B, D
+```
+
+**Monitor progress:**
+```bash
+# Watch semantic matching activity
+tail -f /tmp/arc_semantic_full.log | grep -E "SEMANTIC|correct"
+
+# Check intermediate accuracy
+grep "Epoch.*correct" /tmp/arc_semantic_full.log | tail -20
+```
+
+**Expected results:**
+- Dedup index: 269 unique programs (stable from Phase 1)
+- Semantic context: 200-250 contexts (grows with discoveries)
+- Grammar rules with semantics: 50-100 (accumulated)
+- Accuracy: **1-3 tasks correct out of 72 (1-5%)** in later epochs
+- Routing: Semantic matches prioritized, falls back to procedural
+
+---
+
+## Success Criteria
+
+### Phase 2 Verification ✅
+- [x] `semantic_context.json` created and populated
+- [x] Grammar rules have `semantics` and `usage_conditions` fields
+- [x] Semantic signatures extracted from grids
+- [x] Deduplication still working
+
+### Phase 3 Implementation ✅
+- [x] TRM queries semantic context
+- [x] `find_matching_contexts()` returns similar past successes
+- [x] Semantic candidates prioritized over random
+- [x] Routing logs show semantic matching activity
+
+### Accuracy Improvement 🎯
+- [ ] Epoch 1-2: 0/72 (still building library)
+- [ ] Epoch 3-4: 0-1/72 (first semantic matches)
+- [ ] Epoch 5-6: 1-3/72 (1-5% accuracy from semantic routing)
+
+**Key insight**: Semantic routing effectiveness depends on:
+1. **Context coverage**: Need diverse contexts in library
+2. **Signature quality**: Better signature extraction → better matching
+3. **Library size**: 269 unique programs may need scaling to 500-1000
+
+---
+
+## Debugging Tips
+
+### If semantic matching returns 0 contexts:
+
+**Check signature extraction:**
+```python
+from knowledge3d.training.arc_agi.semantic_signature import SemanticSignature
+import numpy as np
+
+grid = np.array([[1, 0, 1], [0, 1, 0], [1, 0, 1]])
+sig = SemanticSignature.extract(grid)
+print(f"Signature: {sig}")
+print(f"Hash: {sig['signature_hash']}")
+```
+
+**Check context similarity:**
+```python
+from knowledge3d.training.arc_agi.semantic_context import SemanticContext
+
+ctx = SemanticContext()
+# Load from checkpoint
+ctx.load(Path("/K3D/Knowledge3D.local/checkpoints/arc_agi/semantic_context.json"))
+
+# Try to find matches
+matches = ctx.find_matching_contexts(grid, top_k=5)
+print(f"Found {len(matches)} matches")
+```
+
+### If accuracy still 0% after semantic routing:
+
+**Possible reasons:**
+1. Library too small (269 programs not enough coverage)
+2. Signature similarity threshold too strict (lower from 0.7 to 0.5)
+3. Tasks too diverse (need more training to cover patterns)
+
+**Solutions:**
+1. Scale training to Option 2 (108 tasks × 12 epochs) to build larger library
+2. Adjust similarity threshold in `semantic_context.py`
+3. Add more compound transformations to Grammar bootstrap
+
+---
+
+## Expected Final State
+
+**After Phase 3 complete:**
+
+```
+Checkpoints:
+- drawing_galaxy.json: 1,576 shapes
+- grammar_galaxy.json: 1,662 rules (50-100 with semantics)
+- shadow_copy.json: 269 unique programs
+- deduplication_index.json: 269 unique, 4,590 refs
+- semantic_context.json: 200-250 contexts
+
+Training logs:
+- [SEMANTIC] Found X context matches (per task)
+- [ROUTING] Semantic: Y, Grammar: Z candidates
+- Epoch 6: 1-3/72 correct (1-5% accuracy)
+
+Architecture:
+✅ Deduplication working (82% reduction)
+✅ Quality filtering working (compound > simple)
+✅ Semantic context recorded (WHEN/WHY)
+✅ TRM semantic routing (context-aware)
+```
+
+**Next steps after Phase 3:**
+- If 1-5% accuracy achieved → Scale to Option 2 (target 5-10%)
+- If still 0% → Debug signature matching, adjust thresholds
+- If 5%+ achieved → Scale to Option 3 (target 10-15%)
+
+---
+
+## Implementation Order
+
+1. ✅ **Verify Phase 2** (30 min) - Run Tests 1-4
+2. 🔧 **Implement semantic routing** (2 hours) - Update router + pipeline
+3. 🧪 **Test semantic routing** (15 min) - Short run, check logs
+4. 🚀 **Full training run** (2-3 hours) - Build library + measure accuracy
+5. 📊 **Analyze results** (30 min) - Check accuracy, context coverage
+
+**Total time**: 5-6 hours
+**Expected outcome**: Working semantic routing with 1-5% accuracy! 🎯
+
+Ready to execute! Let's build context-aware AI! 🧠✨
