@@ -14,6 +14,7 @@ from functools import lru_cache
 from typing import Optional, Tuple
 
 import numpy as np
+from knowledge3d.cranium.sovereign import loader
 
 
 @lru_cache(maxsize=1)
@@ -142,18 +143,17 @@ class AudioHarmonicGPU:
 
     def _init_cuda(self) -> None:
         # Use shared context from sovereign loader (fork-safe, proven in production)
-        from knowledge3d.cranium.sovereign import loader
         loader._ensure_init()
 
         cuda = self.cuda
 
-        # Get existing context (sovereign loader guarantees one exists)
+        # Bind loader context to cuda-python
         err, ctx = cuda.cuCtxGetCurrent()
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuCtxGetCurrent failed: {err}")
-
-        if ctx is None or int(ctx) == 0:
+        if err != cuda.CUresult.CUDA_SUCCESS or ctx is None or int(ctx) == 0:
             raise RuntimeError("No CUDA context available after loader._ensure_init()")
+        err, = cuda.cuCtxSetCurrent(ctx)
+        if err != cuda.CUresult.CUDA_SUCCESS:
+            raise RuntimeError(f"cuCtxSetCurrent failed: {err}")
 
         self._ctx = ctx
 
@@ -225,31 +225,25 @@ class AudioHarmonicGPU:
             raise ValueError("k must be positive")
         k = min(k, n)
         cuda = self.cuda
-        err, d_in = cuda.cuMemAlloc(x.nbytes)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuMemAlloc input failed: {err}")
-        err, d_idx = cuda.cuMemAlloc(k * 4)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            cuda.cuMemFree(d_in)
-            raise RuntimeError(f"cuMemAlloc idx failed: {err}")
-        err, d_mag = cuda.cuMemAlloc(k * 4)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            cuda.cuMemFree(d_in); cuda.cuMemFree(d_idx)
-            raise RuntimeError(f"cuMemAlloc mag failed: {err}")
+        d_in = loader.gpu_malloc(x.nbytes)
+        d_idx = loader.gpu_malloc(k * 4)
+        d_mag = loader.gpu_malloc(k * 4)
         try:
-            err, = cuda.cuMemcpyHtoD(d_in, x.ctypes.data, x.nbytes)
-            if err != cuda.CUresult.CUDA_SUCCESS:
-                raise RuntimeError(f"cuMemcpyHtoD failed: {err}")
+            loader.memcpy_htod(
+                dst_device=d_in,
+                src_host=_ct.c_void_p(x.ctypes.data),
+                size_bytes=x.nbytes,
+            )
             block_dim = 1
             while block_dim < n and block_dim < 1024:
                 block_dim <<= 1
             grid = (1, 1, 1)
             blk = (block_dim, 1, 1)
-            in_arg = _ct.c_void_p(int(d_in))
+            in_arg = _ct.c_void_p(int(getattr(d_in, "value", d_in)))
             n_arg = _ct.c_int(int(n))
             k_arg = _ct.c_int(int(k))
-            idx_arg = _ct.c_void_p(int(d_idx))
-            mag_arg = _ct.c_void_p(int(d_mag))
+            idx_arg = _ct.c_void_p(int(getattr(d_idx, "value", d_idx)))
+            mag_arg = _ct.c_void_p(int(getattr(d_mag, "value", d_mag)))
             params = (_ct.c_void_p * 5)(
                 _ct.cast(_ct.pointer(in_arg), _ct.c_void_p),
                 _ct.cast(_ct.pointer(n_arg), _ct.c_void_p),
@@ -268,15 +262,19 @@ class AudioHarmonicGPU:
                 raise RuntimeError(f"cuLaunchKernel harmonic_topk failed: {err}")
             idx_host = np.empty(k, dtype=np.int32)
             mag_host = np.empty(k, dtype=np.float32)
-            err, = cuda.cuMemcpyDtoH(idx_host.ctypes.data, d_idx, idx_host.nbytes)
-            if err != cuda.CUresult.CUDA_SUCCESS:
-                raise RuntimeError(f"cuMemcpyDtoH idx failed: {err}")
-            err, = cuda.cuMemcpyDtoH(mag_host.ctypes.data, d_mag, mag_host.nbytes)
-            if err != cuda.CUresult.CUDA_SUCCESS:
-                raise RuntimeError(f"cuMemcpyDtoH mag failed: {err}")
+            loader.memcpy_dtoh(
+                dst_host=_ct.c_void_p(idx_host.ctypes.data),
+                src_device=d_idx,
+                size_bytes=idx_host.nbytes,
+            )
+            loader.memcpy_dtoh(
+                dst_host=_ct.c_void_p(mag_host.ctypes.data),
+                src_device=d_mag,
+                size_bytes=mag_host.nbytes,
+            )
             return idx_host, mag_host
         finally:
-            cuda.cuMemFree(d_in); cuda.cuMemFree(d_idx); cuda.cuMemFree(d_mag)
+            loader.gpu_free(d_in); loader.gpu_free(d_idx); loader.gpu_free(d_mag)
 
     def synthesize(self, freq: np.ndarray, amp: np.ndarray, phase: np.ndarray, sample_rate: float, num_samples: int) -> np.ndarray:
         """Additive synth on GPU."""
@@ -287,32 +285,26 @@ class AudioHarmonicGPU:
             raise ValueError("freq, amp, phase size mismatch")
         n_harm = f.size
         cuda = self.cuda
-        err, d_f = cuda.cuMemAlloc(f.nbytes)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuMemAlloc freq failed: {err}")
-        err, d_a = cuda.cuMemAlloc(a.nbytes)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            cuda.cuMemFree(d_f); raise RuntimeError(f"cuMemAlloc amp failed: {err}")
-        err, d_p = cuda.cuMemAlloc(p.nbytes)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            cuda.cuMemFree(d_f); cuda.cuMemFree(d_a); raise RuntimeError(f"cuMemAlloc phase failed: {err}")
-        err, d_out = cuda.cuMemAlloc(num_samples * 4)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            cuda.cuMemFree(d_f); cuda.cuMemFree(d_a); cuda.cuMemFree(d_p); raise RuntimeError(f"cuMemAlloc out failed: {err}")
+        d_f = loader.gpu_malloc(f.nbytes)
+        d_a = loader.gpu_malloc(a.nbytes)
+        d_p = loader.gpu_malloc(p.nbytes)
+        d_out = loader.gpu_malloc(num_samples * 4)
         try:
             for buf, data in [(d_f, f), (d_a, a), (d_p, p)]:
-                err, = cuda.cuMemcpyHtoD(buf, data.ctypes.data, data.nbytes)
-                if err != cuda.CUresult.CUDA_SUCCESS:
-                    raise RuntimeError(f"cuMemcpyHtoD failed")
+                loader.memcpy_htod(
+                    dst_device=buf,
+                    src_host=_ct.c_void_p(data.ctypes.data),
+                    size_bytes=data.nbytes,
+                )
             blk = (256, 1, 1)
             grid = (int((num_samples + blk[0] - 1) // blk[0]), 1, 1)
-            f_arg = _ct.c_void_p(int(d_f))
-            a_arg = _ct.c_void_p(int(d_a))
-            p_arg = _ct.c_void_p(int(d_p))
+            f_arg = _ct.c_void_p(int(getattr(d_f, "value", d_f)))
+            a_arg = _ct.c_void_p(int(getattr(d_a, "value", d_a)))
+            p_arg = _ct.c_void_p(int(getattr(d_p, "value", d_p)))
             n_arg = _ct.c_int(int(n_harm))
             sr_arg = _ct.c_float(float(sample_rate))
             ns_arg = _ct.c_int(int(num_samples))
-            out_arg = _ct.c_void_p(int(d_out))
+            out_arg = _ct.c_void_p(int(getattr(d_out, "value", d_out)))
             params = (_ct.c_void_p * 7)(
                 _ct.cast(_ct.pointer(f_arg), _ct.c_void_p),
                 _ct.cast(_ct.pointer(a_arg), _ct.c_void_p),
@@ -331,12 +323,14 @@ class AudioHarmonicGPU:
             if err != cuda.CUresult.CUDA_SUCCESS:
                 raise RuntimeError(f"cuLaunchKernel harmonic_synthesize failed: {err}")
             out = np.empty(num_samples, dtype=np.float32)
-            err, = cuda.cuMemcpyDtoH(out.ctypes.data, d_out, out.nbytes)
-            if err != cuda.CUresult.CUDA_SUCCESS:
-                raise RuntimeError(f"cuMemcpyDtoH failed")
+            loader.memcpy_dtoh(
+                dst_host=_ct.c_void_p(out.ctypes.data),
+                src_device=d_out,
+                size_bytes=out.nbytes,
+            )
             return out
         finally:
-            cuda.cuMemFree(d_f); cuda.cuMemFree(d_a); cuda.cuMemFree(d_p); cuda.cuMemFree(d_out)
+            loader.gpu_free(d_f); loader.gpu_free(d_a); loader.gpu_free(d_p); loader.gpu_free(d_out)
 
     def subtract_residual(self, original: np.ndarray, approx: np.ndarray) -> np.ndarray:
         """Residual = original - approx on GPU."""
@@ -346,26 +340,22 @@ class AudioHarmonicGPU:
             raise ValueError("original and approx size mismatch")
         n = o.size
         cuda = self.cuda
-        err, d_o = cuda.cuMemAlloc(o.nbytes)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuMemAlloc original failed: {err}")
-        err, d_a = cuda.cuMemAlloc(a.nbytes)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            cuda.cuMemFree(d_o); raise RuntimeError(f"cuMemAlloc approx failed: {err}")
-        err, d_out = cuda.cuMemAlloc(o.nbytes)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            cuda.cuMemFree(d_o); cuda.cuMemFree(d_a); raise RuntimeError(f"cuMemAlloc out failed: {err}")
+        d_o = loader.gpu_malloc(o.nbytes)
+        d_a = loader.gpu_malloc(a.nbytes)
+        d_out = loader.gpu_malloc(o.nbytes)
         try:
             for buf, data in [(d_o, o), (d_a, a)]:
-                err, = cuda.cuMemcpyHtoD(buf, data.ctypes.data, data.nbytes)
-                if err != cuda.CUresult.CUDA_SUCCESS:
-                    raise RuntimeError(f"cuMemcpyHtoD failed")
+                loader.memcpy_htod(
+                    dst_device=buf,
+                    src_host=_ct.c_void_p(data.ctypes.data),
+                    size_bytes=data.nbytes,
+                )
             blk = (256, 1, 1)
             grid = (int((n + blk[0] - 1) // blk[0]), 1, 1)
-            o_arg = _ct.c_void_p(int(d_o))
-            a_arg = _ct.c_void_p(int(d_a))
+            o_arg = _ct.c_void_p(int(getattr(d_o, "value", d_o)))
+            a_arg = _ct.c_void_p(int(getattr(d_a, "value", d_a)))
             n_arg = _ct.c_int(int(n))
-            out_arg = _ct.c_void_p(int(d_out))
+            out_arg = _ct.c_void_p(int(getattr(d_out, "value", d_out)))
             params = (_ct.c_void_p * 4)(
                 _ct.cast(_ct.pointer(o_arg), _ct.c_void_p),
                 _ct.cast(_ct.pointer(a_arg), _ct.c_void_p),
@@ -381,12 +371,14 @@ class AudioHarmonicGPU:
             if err != cuda.CUresult.CUDA_SUCCESS:
                 raise RuntimeError(f"cuLaunchKernel subtract_residual failed: {err}")
             out = np.empty(n, dtype=np.float32)
-            err, = cuda.cuMemcpyDtoH(out.ctypes.data, d_out, out.nbytes)
-            if err != cuda.CUresult.CUDA_SUCCESS:
-                raise RuntimeError(f"cuMemcpyDtoH failed")
+            loader.memcpy_dtoh(
+                dst_host=_ct.c_void_p(out.ctypes.data),
+                src_device=d_out,
+                size_bytes=out.nbytes,
+            )
             return out
         finally:
-            cuda.cuMemFree(d_o); cuda.cuMemFree(d_a); cuda.cuMemFree(d_out)
+            loader.gpu_free(d_o); loader.gpu_free(d_a); loader.gpu_free(d_out)
 
 
 __all__ = ["AudioHarmonicGPU"]
