@@ -1,0 +1,348 @@
+## Phase 3: SOVEREIGN PROCEDURAL Architecture (Corrected!)
+
+**CRITICAL**: K3D is PROCEDURAL, not neural networks!
+
+---
+
+## ❌ What I Proposed (WRONG):
+- PyTorch LoRA adapters (neural networks!)
+- "Training" routers and decisors (ML!)
+- Weights that "learn" (not sovereign!)
+
+## ✅ What K3D Actually Is (CORRECT):
+- **Grammar Galaxy**: 196 RPN programs (procedural knowledge!)
+- **TRM**: Executes RPN programs (not neural networks!)
+- **Shadow Copy**: Stores successful RPN programs (not weights!)
+- **Sovereignty**: PTX + RPN execution ONLY!
+
+---
+
+## The PROCEDURAL Architecture
+
+### 1. Task Proceduralizer
+**Convert ARC task → RPN representation**
+
+```python
+class ARCTaskProceduralizer:
+    """Convert ARC task into procedural RPN representation."""
+
+    def proceduralize_task(self, train_examples, test_input):
+        """
+        Analyze task and extract procedural patterns.
+
+        Returns:
+            task_rpn: RPN program representing task pattern
+            task_signature: Dict with detected patterns
+        """
+        # Detect patterns (rotations, colors, symmetries, etc.)
+        patterns = self._detect_patterns(train_examples)
+
+        # Convert to RPN representation
+        task_rpn = self._patterns_to_rpn(patterns, test_input)
+
+        # Signature for matching
+        signature = {
+            "grid_shape": test_input.shape,
+            "num_colors": len(np.unique(test_input)),
+            "has_rotation": patterns.get("rotation", False),
+            "has_symmetry": patterns.get("symmetry", False),
+            "pattern_type": patterns.get("type", "unknown"),
+        }
+
+        return task_rpn, signature
+```
+
+### 2. Grammar Matcher (PROCEDURAL!)
+**Match task to grammar rules via RPN program**
+
+```python
+class GrammarMatcher:
+    """Match ARC tasks to grammar rules using RPN programs."""
+
+    def __init__(self, grammar_galaxy: GrammarGalaxy):
+        self.grammar = grammar_galaxy
+        self.rpn_engine = ModularRPNEngine()  # Sovereign RPN!
+
+    def match_rules(self, task_signature, top_k=3):
+        """
+        Find grammar rules matching task signature.
+
+        Uses RPN program to compute similarity!
+        """
+        matches = []
+
+        for rule in self.grammar.rules:
+            # RPN program computes match score
+            match_rpn = self._build_match_rpn(task_signature, rule.pattern)
+
+            # Execute on sovereign RPN engine
+            score = self.rpn_engine.execute_single(match_rpn)
+
+            matches.append((rule, score))
+
+        # Sort by score
+        matches.sort(key=lambda x: x[1], reverse=True)
+
+        return [rule for rule, score in matches[:top_k]]
+
+    def _build_match_rpn(self, task_sig, rule_pattern):
+        """Build RPN program to compute match score."""
+        # Example: Check grid shape match + color count match + pattern match
+        # Returns RPN program like:
+        # "TASK_GRID_SHAPE RULE_GRID_SHAPE EQ 0.5 *
+        #  TASK_NUM_COLORS RULE_NUM_COLORS EQ 0.3 * +
+        #  TASK_PATTERN RULE_PATTERN EQ 0.2 * +"
+        # (Weighted sum of matches)
+        pass
+```
+
+### 3. Candidate Generator (EXECUTE GRAMMAR RPN!)
+**Execute matched grammar rules to generate candidates**
+
+```python
+class ProceduralCandidateGenerator:
+    """Generate candidates by EXECUTING grammar rule RPN programs."""
+
+    def __init__(self):
+        self.rpn_engine = ModularRPNEngine()
+        self.semantic_compiler = SemanticCompiler()
+        self.rpn_executor = RPNExecutor()
+
+    def generate_candidates(self, test_input, matched_rules):
+        """
+        Generate candidates by executing grammar rule RPN programs.
+
+        NO TRAINING! Just EXECUTE the procedural rules!
+        """
+        candidates = []
+
+        for rule in matched_rules:
+            # Parse rule's RPN program
+            semantic = self.semantic_compiler.compile(rule.rpn_program, test_input)
+
+            # Execute RPN program (sovereign GPU!)
+            output = self.rpn_executor.execute(semantic, test_input)
+
+            candidates.append((output, rule.rule_id, rule.rpn_program))
+
+        return candidates
+```
+
+### 4. Quality Scorer (RPN COMPARISON!)
+**Score candidates using RPN program**
+
+```python
+class ProceduralQualityScorer:
+    """Score candidate quality using RPN programs (NOT neural networks!)."""
+
+    def __init__(self):
+        self.rpn_engine = ModularRPNEngine()
+
+    def score_candidate(self, candidate_output, expected_output):
+        """
+        Compute quality score using RPN program.
+
+        Procedural comparison, not ML!
+        """
+        # Build RPN program for grid comparison
+        comparison_rpn = self._build_comparison_rpn(candidate_output, expected_output)
+
+        # Execute on sovereign RPN engine
+        score = self.rpn_engine.execute_single(comparison_rpn)
+
+        return score
+
+    def _build_comparison_rpn(self, candidate, expected):
+        """
+        Build RPN program to compute similarity.
+
+        Example:
+        - Count matching cells
+        - Divide by total cells
+        - Return percentage match
+        """
+        # Simplified: percent of matching cells
+        matching = np.sum(candidate == expected)
+        total = candidate.size
+        return f"{matching} {total} /"  # RPN: matching / total
+```
+
+### 5. Shadow Copy (STORE SUCCESSFUL RPN!)
+**Store successful (task → grammar_rule) mappings**
+
+```python
+class ShadowCopyLearner:
+    """Store successful task → grammar_rule mappings (PROCEDURAL!)."""
+
+    def __init__(self, grammar_galaxy: GrammarGalaxy):
+        self.grammar = grammar_galaxy
+        self.success_library = []  # (task_sig, rule_id, score)
+
+    def record_success(self, task_signature, rule_id, score):
+        """Record successful task → rule mapping."""
+        self.success_library.append({
+            "task_signature": task_signature,
+            "rule_id": rule_id,
+            "score": score
+        })
+
+    def query_similar_tasks(self, task_signature, k=5):
+        """
+        Find similar successful tasks (k-NN lookup).
+
+        NO ML! Just procedural similarity matching!
+        """
+        similarities = []
+
+        for entry in self.success_library:
+            sim = self._compute_similarity(task_signature, entry["task_signature"])
+            similarities.append((entry["rule_id"], sim))
+
+        similarities.sort(key=lambda x: x[1], reverse=True)
+
+        return [rule_id for rule_id, sim in similarities[:k]]
+
+    def _compute_similarity(self, sig1, sig2):
+        """Compute similarity between task signatures (procedural!)."""
+        score = 0.0
+        if sig1.get("grid_shape") == sig2.get("grid_shape"):
+            score += 0.4
+        if sig1.get("num_colors") == sig2.get("num_colors"):
+            score += 0.3
+        if sig1.get("pattern_type") == sig2.get("pattern_type"):
+            score += 0.3
+        return score
+```
+
+---
+
+## The Complete PROCEDURAL Pipeline
+
+```python
+def evaluate_arc_procedural():
+    """Evaluate ARC-AGI with PROCEDURAL architecture (NO ML!)."""
+
+    # Initialize procedural components
+    proceduralizer = ARCTaskProceduralizer()
+    grammar = GrammarGalaxy()  # 196 procedural rules!
+    matcher = GrammarMatcher(grammar)
+    generator = ProceduralCandidateGenerator()
+    scorer = ProceduralQualityScorer()
+    shadow_copy = ShadowCopyLearner(grammar)
+
+    for task_id, task_data in arc_data.items():
+        # 1. Proceduralize task
+        task_rpn, task_sig = proceduralizer.proceduralize_task(
+            train_examples, test_input
+        )
+
+        # 2. Match to grammar rules (RPN program!)
+        matched_rules = matcher.match_rules(task_sig, top_k=3)
+
+        # 3. Generate candidates (EXECUTE RPN programs!)
+        candidates = generator.generate_candidates(test_input, matched_rules)
+
+        # 4. Score candidates (RPN comparison!)
+        scored = []
+        for output, rule_id, rpn in candidates:
+            score = scorer.score_candidate(output, expected_output)
+            scored.append((output, rule_id, rpn, score))
+
+        # 5. Select best
+        best = max(scored, key=lambda x: x[3])
+
+        # 6. Shadow copy successful mapping
+        if best[3] > 0.9:  # High score = success!
+            shadow_copy.record_success(task_sig, best[1], best[3])
+```
+
+---
+
+## Key Differences (Procedural vs ML)
+
+| Aspect | ML Approach (WRONG) | Procedural Approach (CORRECT) |
+|--------|---------------------|-------------------------------|
+| Router | Neural network adapter | RPN program matching |
+| Decisor | Neural network adapter | RPN program comparison |
+| Knowledge | Learned weights | Grammar rules (RPN programs) |
+| Training | Backprop, gradients | Execute + store successes |
+| Execution | PyTorch forward pass | ModularRPNEngine.execute() |
+| Learning | Update weights | Add new RPN programs |
+| Sovereignty | ❌ PyTorch dependency | ✅ PTX + RPN only |
+
+---
+
+## Why This Is Better
+
+**Sovereignty** ✅:
+- Pure RPN execution (ModularRPNEngine)
+- No PyTorch, no TensorFlow
+- PTX kernels only!
+
+**Explainability** ✅:
+- Every rule is a readable RPN program
+- Every decision is a deterministic RPN execution
+- No black box weights!
+
+**Efficiency** ✅:
+- No training loops!
+- Just execute grammar rules (fast!)
+- Shadow copy is simple storage (no backprop!)
+
+**K3D Philosophy** ✅:
+- Knowledge in Galaxy (grammar rules)
+- Execution via RPN programs
+- Procedural, not statistical!
+
+---
+
+## Files to Create
+
+1. `knowledge3d/training/arc_agi/task_proceduralizer.py`
+   - Convert ARC task → RPN representation
+
+2. `knowledge3d/training/arc_agi/grammar_matcher.py`
+   - Match task to grammar rules via RPN
+
+3. `knowledge3d/training/arc_agi/procedural_generator.py`
+   - Execute grammar rule RPN programs
+
+4. `knowledge3d/training/arc_agi/procedural_scorer.py`
+   - Score candidates via RPN comparison
+
+5. `knowledge3d/training/arc_agi/shadow_copy_learner.py`
+   - Store successful (task → rule) mappings
+
+6. `scripts/evaluate_arc_procedural.py`
+   - Full procedural pipeline
+
+---
+
+## Action Items for Codex
+
+1. ✅ **Delete** PyTorch router_specialist.py (NOT sovereign!)
+2. ✅ **Create** procedural components (above files)
+3. ✅ **Use** ModularRPNEngine for all execution
+4. ✅ **Use** GrammarGalaxy's 196 RPN programs
+5. ✅ **Store** successes in shadow copy (not train weights!)
+
+---
+
+## Environment
+
+```bash
+# Conda location:
+/home/daniel/miniforge/bin/conda
+
+# Activate k3d-cranium:
+conda activate k3d-cranium
+
+# Run tests:
+pytest tests/test_arc_procedural.py -v
+```
+
+---
+
+**This is the K3D way: PROCEDURAL, not ML!** 🚀
+
+Ready to build the correct sovereign procedural architecture?

@@ -1,0 +1,445 @@
+Hi Codex! Quality + Semantic Enhancement via Procedural Foundation
+
+## Critical Understanding: Dual Client Reality
+
+**K3D Dual Client**: Humans AND AI both understand the procedural data!
+
+**Existing Procedural Layers** (DON'T duplicate these!):
+```
+Drawing Galaxy:
+  - LINE, CIRCLE, RECT (procedural RPN primitives)
+  - Humans: "This is a line"
+  - AI: Execute RPN drawing programs
+
+Character Galaxy (procedural_fonts.py):
+  - 'r' = glyph segments + language + pronunciation
+  - Humans: "Letter R in English"
+  - AI: Render glyph, compose into words
+  - ALREADY HAS: font, language, meaning clustered!
+
+Word Level (character sequences):
+  - "rotation_task" = [char('r'), char('o'), char('t'), ...]
+  - Humans: Read as "rotation task"
+  - AI: Character sequence with embedded meaning
+
+Grammar Galaxy:
+  - "1 ROTATE" = procedural RPN transformation
+  - Humans: "Rotate 90 degrees"
+  - AI: Execute RPN program
+```
+
+**Key Principle**: Save information - don't duplicate letters/characters! Each character already has font, language, meaning. Just REFERENCE them!
+
+---
+
+## Mission: Two Enhancements (NOT three!)
+
+### Enhancement 1: Deduplication + Quality (VALID)
+**Problem**: 1662 rules but 1200 are "1 rotate" duplicates
+**Solution**: Content-based deduplication with quality scoring
+**Result**: 1662 → 400-500 unique RPN programs
+
+### Enhancement 2: Semantic Metadata on Grammar Rules (CORRECTED!)
+**Problem**: Grammar rules lack context (WHEN/WHY to use them)
+**Solution**: Add metadata fields to existing Grammar rules
+**Result**: TRM can route using context, GPU executes using RPN
+**Key**: Metadata uses character composition (references), not duplicate strings!
+
+---
+
+## Implementation: Deduplication Only (Phase 1)
+
+### Part 1: Content Deduplicator (1 hour)
+
+**File**: `knowledge3d/training/arc_agi/content_deduplicator.py` (NEW)
+
+```python
+"""
+Content-based deduplication for RPN programs.
+Uses SHA256 hashing for canonical references.
+"""
+
+import hashlib
+import json
+from pathlib import Path
+from typing import Dict, List, Optional
+
+
+class ContentDeduplicator:
+    """
+    Deduplicate RPN programs using content hashing.
+
+    Stores:
+    1. Canonical programs (unique RPN content)
+    2. Usage metadata (when/where each program worked)
+    """
+
+    def __init__(self):
+        self.canonical_programs: Dict[str, Dict] = {}  # hash → program data
+        self.usage_metadata: Dict[str, List[Dict]] = {}  # hash → usage records
+
+    def compute_hash(self, program: str) -> str:
+        """Compute SHA256 hash of normalized RPN program."""
+        normalized = " ".join(program.split())
+        return hashlib.sha256(normalized.encode('utf-8')).hexdigest()[:16]
+
+    def add_or_reference(
+        self,
+        program: str,
+        program_type: str,
+        score: float,
+        context: Optional[Dict] = None
+    ) -> tuple[str, bool]:
+        """
+        Add program or return reference to existing.
+
+        Returns:
+            (canonical_hash, is_new)
+        """
+        prog_hash = self.compute_hash(program)
+
+        # Check if already exists
+        if prog_hash in self.canonical_programs:
+            # Update usage metadata
+            self.usage_metadata[prog_hash].append({
+                "score": score,
+                "context": context or {}
+            })
+            return prog_hash, False  # Not new
+
+        # Add as new canonical program
+        self.canonical_programs[prog_hash] = {
+            "hash": prog_hash,
+            "program": program,
+            "type": program_type,
+            "first_seen_score": score,
+            "usage_count": 1
+        }
+
+        self.usage_metadata[prog_hash] = [{
+            "score": score,
+            "context": context or {}
+        }]
+
+        return prog_hash, True  # New program
+
+    def get_usage_stats(self, prog_hash: str) -> Dict:
+        """Get usage statistics for a program."""
+        usage_records = self.usage_metadata.get(prog_hash, [])
+        if not usage_records:
+            return {}
+
+        scores = [r["score"] for r in usage_records]
+        return {
+            "usage_count": len(usage_records),
+            "avg_score": sum(scores) / len(scores),
+            "max_score": max(scores),
+            "min_score": min(scores)
+        }
+
+    def prune_low_quality(self, min_usage: int = 2, min_score: float = 0.6) -> int:
+        """Remove programs with low usage/quality."""
+        to_remove = []
+
+        for prog_hash, program in self.canonical_programs.items():
+            stats = self.get_usage_stats(prog_hash)
+
+            # Remove if used only once with low score
+            if (stats["usage_count"] < min_usage and stats["max_score"] < 0.8) or \
+               (stats["avg_score"] < min_score):
+                to_remove.append(prog_hash)
+
+        for prog_hash in to_remove:
+            del self.canonical_programs[prog_hash]
+            del self.usage_metadata[prog_hash]
+
+        return len(to_remove)
+
+    def save(self, path: Path) -> None:
+        """Save deduplication index."""
+        state = {
+            "canonical_programs": self.canonical_programs,
+            "usage_metadata": self.usage_metadata,
+            "total_unique": len(self.canonical_programs),
+            "total_references": sum(len(u) for u in self.usage_metadata.values())
+        }
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(state, f, indent=2)
+
+    def load(self, path: Path) -> None:
+        """Load deduplication index."""
+        if not path.exists():
+            print(f"[ContentDeduplicator] No checkpoint at {path}, starting fresh")
+            return
+
+        with open(path, 'r', encoding='utf-8') as f:
+            state = json.load(f)
+
+        self.canonical_programs = state.get("canonical_programs", {})
+        self.usage_metadata = state.get("usage_metadata", {})
+
+        print(f"[ContentDeduplicator] Loaded {len(self.canonical_programs)} unique programs "
+              f"({state.get('total_references', 0)} total references)")
+```
+
+### Part 2: Quality Scorer (30 min)
+
+**File**: `knowledge3d/training/arc_agi/quality_scorer.py` (NEW)
+
+```python
+"""
+Quality scoring for RPN programs.
+Rewards compound transformations, penalizes simple duplicates.
+"""
+
+import re
+from typing import Set
+
+
+class QualityScorer:
+    """Score program quality: compound > simple."""
+
+    SIMPLE_PATTERNS = {
+        r'^\d+ rotate$',
+        r'^\d+ flip$',
+        r'^\d+ \d+ RECOLOR$',
+        r'^IDENTITY$',
+    }
+
+    COMPOUND_INDICATORS = ['compose', 'COMPOSE', 'then', 'THEN', 'and', 'AND']
+
+    def __init__(self):
+        self.seen_patterns: Set[str] = set()
+
+    def score_quality(self, program: str, execution_score: float) -> float:
+        """
+        Compute quality score.
+
+        Combines:
+        - Execution score (does it work?)
+        - Complexity bonus (compound?)
+        - Novelty bonus (new pattern?)
+        """
+        quality = execution_score
+
+        # Penalty for simple patterns
+        is_simple = any(re.match(pattern, program) for pattern in self.SIMPLE_PATTERNS)
+        if is_simple:
+            quality *= 0.5
+
+        # Bonus for compound transformations
+        is_compound = any(indicator in program for indicator in self.COMPOUND_INDICATORS)
+        if is_compound:
+            quality = min(quality * 1.3, 1.0)
+
+        # Bonus for novel patterns
+        pattern_sig = self._extract_pattern_signature(program)
+        if pattern_sig not in self.seen_patterns:
+            quality = min(quality * 1.2, 1.0)
+            self.seen_patterns.add(pattern_sig)
+
+        return quality
+
+    def _extract_pattern_signature(self, program: str) -> str:
+        """Extract structural pattern (normalize numbers)."""
+        tokens = program.split()
+        signature = []
+        for token in tokens:
+            if token.isdigit():
+                signature.append('N')
+            else:
+                signature.append(token)
+        return ' '.join(signature)
+
+    def get_complexity_level(self, program: str) -> str:
+        """Classify complexity."""
+        is_simple = any(re.match(pattern, program) for pattern in self.SIMPLE_PATTERNS)
+        is_compound = any(indicator in program for indicator in self.COMPOUND_INDICATORS)
+
+        if is_compound:
+            return "compound"
+        elif is_simple:
+            return "simple"
+        else:
+            return "intermediate"
+```
+
+### Part 3: Integrate into DualShadowCopy (1 hour)
+
+**File**: `knowledge3d/training/arc_agi/dual_shadow_copy.py` (MODIFY)
+
+**Add imports**:
+```python
+from knowledge3d.training.arc_agi.content_deduplicator import ContentDeduplicator
+from knowledge3d.training.arc_agi.quality_scorer import QualityScorer
+```
+
+**Update `__init__`**:
+```python
+def __init__(self, drawing_galaxy, grammar_galaxy, staged: bool = False):
+    # ... existing code ...
+
+    # Add deduplication + quality
+    self.deduplicator = ContentDeduplicator()
+    self.quality_scorer = QualityScorer()
+```
+
+**Update `record()` method**:
+```python
+def record(self, signature, program, program_type, score):
+    """Record discovery with deduplication + quality filtering."""
+
+    # 1. Compute quality score
+    quality_score = self.quality_scorer.score_quality(program, score)
+
+    # 2. Quality threshold
+    if quality_score < 0.65:
+        return  # Skip low quality
+
+    # 3. Deduplication check
+    prog_hash, is_new = self.deduplicator.add_or_reference(
+        program=program,
+        program_type=program_type,
+        score=quality_score
+    )
+
+    # 4. Only log new discoveries
+    if is_new:
+        complexity = self.quality_scorer.get_complexity_level(program)
+        print(f"  [NEW] {complexity}: {program[:60]} (Q={quality_score:.2f})")
+
+        entry = {
+            "hash": prog_hash,
+            "program": program,
+            "type": program_type,
+            "quality_score": quality_score,
+            "complexity": complexity
+        }
+
+        if self.staged:
+            self.pending.append(entry)
+        else:
+            self.library.append(entry)
+    else:
+        stats = self.deduplicator.get_usage_stats(prog_hash)
+        print(f"  [DUP] {stats['usage_count']} uses (avg={stats['avg_score']:.2f})")
+```
+
+**Add pruning**:
+```python
+def prune_low_quality(self) -> Dict[str, int]:
+    """Remove low-quality duplicates."""
+    removed = self.deduplicator.prune_low_quality(min_usage=2, min_score=0.65)
+
+    valid_hashes = set(self.deduplicator.canonical_programs.keys())
+    original = len(self.library)
+    self.library = [e for e in self.library if e.get("hash") in valid_hashes]
+
+    return {
+        "removed_programs": removed,
+        "removed_from_library": original - len(self.library),
+        "unique_remaining": len(self.deduplicator.canonical_programs)
+    }
+```
+
+**Update save/load**:
+```python
+def save(self, path: Path) -> None:
+    # ... save library ...
+
+    # Save deduplication index
+    dedupe_path = path.parent / "deduplication_index.json"
+    self.deduplicator.save(dedupe_path)
+
+def load(self, path: Path) -> None:
+    # ... load library ...
+
+    # Load deduplication index
+    dedupe_path = path.parent / "deduplication_index.json"
+    self.deduplicator.load(dedupe_path)
+```
+
+### Part 4: Update Training Loop (30 min)
+
+**File**: `scripts/train_arc_sovereign_loop.py` (MODIFY)
+
+**Add pruning after each cycle**:
+```python
+def main():
+    # ... existing code ...
+
+    for cycle in range(args.cycles):
+        print(f"\nCycle {cycle+1}/{args.cycles} using {args.max_tasks} tasks...")
+
+        # Run epochs
+        for epoch in range(args.epochs):
+            run_epoch(pipeline, tasks, args)
+
+        # Prune low-quality duplicates
+        print("\n[PRUNING] Removing low-quality duplicates...")
+        stats = pipeline.shadow.prune_low_quality()
+        print(f"  Removed: {stats['removed_programs']} programs")
+        print(f"  Unique remaining: {stats['unique_remaining']}")
+
+        # Commit
+        if hasattr(pipeline.shadow, 'commit'):
+            pipeline.shadow.commit()
+```
+
+---
+
+## Testing
+
+### Test 1: Deduplication Working (15 min)
+
+```bash
+# Clear checkpoints
+rm -rf /K3D/Knowledge3D.local/checkpoints/arc_agi/*.json
+
+# Short run
+conda run -n k3d-cranium env PYTHONPATH=. CUDA_VISIBLE_DEVICES=0 \
+  python scripts/train_arc_sovereign_loop.py \
+    --arc-dirs /K3D/Knowledge3D.local/datasets/arc_agi/ARC-AGI-master/data/training \
+    --max-tasks 10 --epochs 1 --cycles 1 --matryoshka-dim 512 --top-k 12
+
+# Check results
+cat /K3D/Knowledge3D.local/checkpoints/arc_agi/deduplication_index.json | grep total_unique
+cat /K3D/Knowledge3D.local/checkpoints/arc_agi/deduplication_index.json | grep total_references
+```
+
+**Expected**:
+```
+[NEW] simple: 1 rotate (Q=0.35)
+[DUP] 5 uses (avg=0.38)
+[NEW] compound: compose 1 rotate 2 flip (Q=0.91)
+[PRUNING] Removed: 8 programs
+  Unique remaining: 42
+```
+
+---
+
+## Next Phase: Semantic Metadata (After deduplication works)
+
+**Phase 2 will add**:
+- Metadata fields to Grammar rules
+- Character composition for semantic tags
+- Reference existing procedural layers (NOT duplicate!)
+
+**But FIRST**: Get deduplication working to clean up the 1662 → 400-500 unique programs!
+
+---
+
+## Success Criteria (Phase 1 Only)
+
+- [x] Content hashing detects duplicates
+- [x] Only unique programs stored
+- [x] Quality scoring working (compound > simple)
+- [x] Pruning removes low-quality
+- [x] Library: 1662 → 400-500 unique programs
+
+**Timeline**: 3-4 hours
+**Expected**: Clean library ready for semantic metadata!
+
+Let's start with deduplication! 🔧

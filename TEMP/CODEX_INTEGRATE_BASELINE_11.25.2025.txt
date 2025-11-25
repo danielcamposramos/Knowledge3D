@@ -1,0 +1,364 @@
+Hi Codex! Task: Integrate 3.3% Baseline with Sovereign TRM
+
+## Current Status
+
+**What's Working** ✅:
+- Sovereign infrastructure (MatryoshkaTRM + SelfUpdatingAdapter + RPNMathCore)
+- Drawing Galaxy + Grammar Galaxy integration
+- Multi-galaxy discovery (Drawing shapes: 7 → 23!)
+- DualShadowCopy recording patterns
+- No PyTorch, no CPU fallbacks (strict sovereignty)
+
+**Current Problem** ❌:
+- Accuracy: 0% (0/20 tasks correct)
+- Router uses only heuristics (doesn't learn from train examples)
+- Generated programs don't leverage task patterns
+
+**What We Already Have** ✅:
+- CandidateGenerator (knowledge3d/training/arc_agi/candidate_generator.py)
+  - Achieves 3.3% accuracy baseline
+  - Analyzes train examples to infer transformations
+  - Uses procedural pattern detection
+  - Generates ~20 candidates per task
+
+## The Integration Plan
+
+### Goal
+Combine the best of both worlds:
+1. **CandidateGenerator** = Procedural baseline (3.3%) via train example analysis
+2. **SovereignTRMRouter** = Multi-galaxy reasoning + discovery
+3. **Result** = Match/exceed 3.3% baseline + evolve over time
+
+### Architecture Flow
+
+```
+ARC Task (train + test)
+    ↓
+1. CandidateGenerator analyzes train examples
+   → Generates ~20 procedural candidates
+   → Uses ARCGridProcessor.detect_spatial_primitive()
+
+    ↓
+2. SovereignTRMRouter routes test input
+   → Converts to Drawing Galaxy RPN
+   → Selects Grammar transformations
+   → Uses TRM to reason about patterns
+
+    ↓
+3. Merge candidates from BOTH sources
+   → CandidateGenerator candidates (procedural)
+   → Router candidates (multi-galaxy)
+   → ~30-40 total candidates
+
+    ↓
+4. Execute ALL candidates via ARCRPNExecutor
+   → Validate against expected output
+   → Select best match
+
+    ↓
+5. DualShadowCopy records success
+   → Store in Drawing Galaxy (if visual pattern)
+   → Store in Grammar Galaxy (if transformation)
+   → Update TRM adapters (if using GPU)
+```
+
+### Implementation Tasks
+
+**Task 1: Update SovereignAIPipeline to Use Train Examples** (1-2 hours)
+
+Current code:
+```python
+# sovereign_pipeline.py (line 44)
+def process_task(self, task_id: str, grid: Sequence[Sequence[int]], top_k: int = 3):
+    candidates = self.router.route(grid, top_k=top_k)
+    # ... only uses router candidates
+```
+
+New code:
+```python
+def process_task(
+    self,
+    task_id: str,
+    test_input: Sequence[Sequence[int]],
+    train_examples: List[Dict] = None,  # NEW: train examples
+    top_k: int = 3
+) -> TaskResult:
+    """Process task using BOTH procedural baseline + TRM reasoning."""
+
+    # 1. Get procedural candidates from baseline (train example analysis)
+    procedural_candidates = []
+    if train_examples:
+        from knowledge3d.training.arc_agi import CandidateGenerator
+        gen = CandidateGenerator(matryoshka_dim=self.router.matryoshka_dim)
+        procedural_candidates = gen.generate_candidates(test_input, train_examples)
+
+    # 2. Get TRM candidates (multi-galaxy reasoning)
+    trm_candidates = self.router.route(test_input, top_k=top_k)
+
+    # 3. Merge candidates
+    all_candidates = []
+
+    # Add procedural candidates (from train example analysis)
+    for output, instruction, rpn in procedural_candidates:
+        all_candidates.append({
+            'output': output,
+            'program': rpn,
+            'type': 'procedural',
+            'source': 'baseline'
+        })
+
+    # Add TRM candidates (from multi-galaxy reasoning)
+    for cand in trm_candidates:
+        # Compose Drawing + Grammar
+        compositions = self.composer.compose(cand.drawing_program, [cand.grammar_rule])
+        for prog, ptype in compositions:
+            all_candidates.append({
+                'output': None,  # Execute later
+                'program': prog,
+                'type': ptype,
+                'source': 'trm'
+            })
+
+    # 4. Execute candidates that need execution
+    from knowledge3d.training.arc_agi.rpn_executor import ARCRPNExecutor
+    executor = ARCRPNExecutor()
+
+    for cand in all_candidates:
+        if cand['output'] is None:
+            try:
+                cand['output'] = executor.execute(test_input, cand['program'])
+            except Exception as e:
+                # Skip failed candidates
+                cand['output'] = test_input  # Identity fallback
+
+    # 5. Return best candidate (for now, just first one)
+    # TODO: Add scoring/selection logic
+    if all_candidates:
+        best = all_candidates[0]
+        result = TaskResult(
+            task_id=task_id,
+            best_program=best['program'],
+            program_type=best['type'],
+            score=0.8 if best['source'] == 'procedural' else 0.6,
+            signature={'source': best['source']}
+        )
+        self.shadow.record(result.signature, result.best_program, result.program_type, result.score)
+        self.results.append(result)
+        return result
+
+    # Fallback: empty result
+    return TaskResult(task_id=task_id, best_program="", program_type="none", score=0.0, signature={})
+```
+
+**Task 2: Update evaluate_arc_with_validation.py to Pass Train Examples** (30 min)
+
+Current code:
+```python
+# evaluate_arc_with_validation.py (line 48)
+def evaluate_task(pipeline: SovereignAIPipeline, task: Dict, task_id: str) -> Dict:
+    test_pairs = task.get("test", [])
+    test_input = test_pairs[0]["input"]
+    test_output = test_pairs[0]["output"]
+
+    # Only passes test input (no train examples!)
+    result = pipeline.process_task(task_id, test_input, top_k=3)
+```
+
+New code:
+```python
+def evaluate_task(pipeline: SovereignAIPipeline, task: Dict, task_id: str) -> Dict:
+    test_pairs = task.get("test", [])
+    train_examples = task.get("train", [])  # NEW: extract train examples
+
+    if not test_pairs:
+        return {"task_id": task_id, "correct": 0, "test_pairs": 0}
+
+    test_input = test_pairs[0]["input"]
+    test_output = test_pairs[0]["output"]
+
+    # Pass train examples to pipeline
+    result = pipeline.process_task(
+        task_id,
+        test_input,
+        train_examples=train_examples,  # NEW!
+        top_k=3
+    )
+
+    # Validate against expected output
+    predicted_output = execute_rpn_program(result.best_program, test_input)
+    correct = 1 if grids_match(predicted_output, test_output) else 0
+
+    return {
+        "task_id": task_id,
+        "correct": correct,
+        "test_pairs": len(test_pairs),
+        "program": result.best_program,
+        "program_type": result.program_type,
+        "heuristic_score": result.score,
+        "matched": correct == 1,
+        "source": result.signature.get("source", "unknown")  # Track source
+    }
+```
+
+**Task 3: Add Candidate Scoring/Selection** (1 hour)
+
+Add proper scoring to select best candidate from merged pool:
+
+```python
+# In sovereign_pipeline.py, after executing all candidates:
+
+def _score_candidate(self, output_grid, expected_grid=None):
+    """
+    Score candidate quality.
+
+    If expected_grid provided, use exact match.
+    Otherwise, use heuristic scoring.
+    """
+    if expected_grid is not None:
+        # Validation mode: exact match = 1.0, else 0.0
+        return 1.0 if np.array_equal(output_grid, expected_grid) else 0.0
+
+    # Training mode: heuristic scoring
+    # Prefer non-trivial outputs (not identity transform)
+    if np.array_equal(output_grid, self._input_grid):
+        return 0.1  # Identity = low score
+
+    # Prefer outputs with structure
+    num_colors = len(np.unique(output_grid))
+    filled_ratio = np.count_nonzero(output_grid) / output_grid.size
+
+    score = 0.5
+    if num_colors > 1:
+        score += 0.2
+    if 0.1 < filled_ratio < 0.9:  # Not empty, not full
+        score += 0.2
+
+    return score
+```
+
+**Task 4: Run Full Evaluation** (10 min)
+
+After implementation, run:
+
+```bash
+export PATH="/home/daniel/miniforge/bin:/home/daniel/miniforge/condabin:$PATH"
+conda run -n k3d-cranium env PYTHONPATH=. CUDA_VISIBLE_DEVICES=0 \
+  python scripts/evaluate_arc_with_validation.py \
+  --max-tasks 50 \
+  --matryoshka-dim 128 \
+  --output-json /tmp/arc_results.json
+```
+
+Expected results:
+- Accuracy: ≥3.3% (match baseline)
+- Procedural candidates: ~20 per task (from CandidateGenerator)
+- TRM candidates: ~10 per task (from multi-galaxy routing)
+- Total: ~30 candidates per task
+- Best candidate selection via scoring
+
+## Success Criteria
+
+**Baseline Achievement** ✅:
+- [ ] Accuracy ≥ 3.3% (match pure procedural baseline)
+- [ ] Train examples used for candidate generation
+- [ ] CandidateGenerator integrated with pipeline
+
+**Multi-Galaxy Evolution** ✅:
+- [ ] Drawing Galaxy discoveries still happening
+- [ ] Grammar Galaxy discoveries still happening
+- [ ] DualShadowCopy recording successes
+- [ ] Source tracking (procedural vs TRM vs hybrid)
+
+**Sovereignty** ✅:
+- [ ] No PyTorch dependencies
+- [ ] GPU-only MatryoshkaTRM (no CPU fallback)
+- [ ] All RPN execution via ARCRPNExecutor
+
+## Files to Modify
+
+1. **knowledge3d/training/arc_agi/sovereign_pipeline.py**
+   - Update `process_task()` signature to accept `train_examples`
+   - Integrate CandidateGenerator
+   - Merge procedural + TRM candidates
+   - Add candidate scoring/selection
+
+2. **scripts/evaluate_arc_with_validation.py**
+   - Extract train examples from task JSON
+   - Pass to pipeline.process_task()
+   - Track candidate source in results
+
+3. **tests/test_arc_sovereign_drawing_router.py** (optional)
+   - Add test for train example integration
+   - Verify candidate merging works
+
+## Environment
+
+```bash
+# Conda environment (already set up)
+conda activate k3d-cranium
+
+# GPU exposure
+export CUDA_VISIBLE_DEVICES=0
+
+# Python path
+export PYTHONPATH=.
+```
+
+## Expected Output
+
+```
+============================================================
+RESULTS:
+  Total tasks: 50
+  Correct: 2-3 (4-6% accuracy)  # ← Should match/exceed 3.3% baseline
+
+  Candidate sources:
+    Procedural (baseline): ~1000 total
+    TRM (multi-galaxy): ~500 total
+    Successes from procedural: 2
+    Successes from TRM: 0-1
+
+  Drawing shapes: 30+ (continued growth)
+  Grammar rules: 196-200 (some discoveries)
+  Shadow entries: 50 (all attempts)
+============================================================
+```
+
+## Notes
+
+**Why This Works**:
+- CandidateGenerator provides proven baseline (3.3%)
+- SovereignTRMRouter adds multi-galaxy reasoning
+- Merged candidates = best of both worlds
+- Shadow copy still learns from successes
+- Over time, TRM learns from procedural successes
+
+**Sovereignty Preserved**:
+- CandidateGenerator is pure procedural (no ML)
+- TRM uses Math Cores (sovereign GPU path)
+- ARCRPNExecutor is CPU-based (validation only, not hot path)
+- No external ML frameworks
+
+**Evolution Path**:
+1. **Now**: Match 3.3% baseline via integration
+2. **Next**: TRM learns from procedural successes (shadow copy feedback)
+3. **Future**: TRM discovers patterns procedural baseline misses
+4. **Goal**: 7-10%+ via multi-galaxy evolution
+
+## Ready to Implement?
+
+Confirm you understand:
+1. ✅ Integrate CandidateGenerator (3.3% baseline)
+2. ✅ Pass train examples to pipeline
+3. ✅ Merge procedural + TRM candidates
+4. ✅ Score and select best candidate
+5. ✅ Track source (procedural vs TRM)
+6. ✅ Target: ≥3.3% accuracy
+7. ✅ Maintain sovereignty (no PyTorch)
+
+Then proceed with implementation!
+
+**Expected time**: 2-3 hours total
+**Expected result**: 3-5% accuracy on 50 tasks
+
+Let's integrate the baseline and build toward multi-galaxy evolution! 🧠✨🚀

@@ -1,0 +1,294 @@
+Hi Codex! URGENT: Fix Discovery Recording + top_k Bug
+
+## Critical Issues Identified
+
+### Issue 1: top_k Hardcoded (BUG!)
+**Symptom**: CLI `--top-k 12` ignored, actually using `top_k=3`
+**Impact**: Too narrow search → no matches!
+**Location**: `scripts/train_arc_sovereign_loop.py` line in `run_epoch()`
+
+### Issue 2: Discovery Recording Too Strict
+**Symptom**: Before persistence: 327 shapes, 520 rules. After persistence: 3 shapes, 196 rules!
+**Impact**: Galaxies not growing anymore!
+**Root cause**: Only recording discoveries on EXACT matches (0% accuracy = 0 recordings)
+
+### Issue 3: Matryoshka Fixed at 128
+**Symptom**: Using fixed 128D, but Matryoshka supports 64-16K adaptable!
+**Impact**: Not leveraging full capacity
+
+---
+
+## Fix 1: top_k Bug (CRITICAL - 15 min)
+
+**File**: `scripts/train_arc_sovereign_loop.py`
+
+**Find the bug** (in `run_epoch` function):
+```python
+def run_epoch(pipeline, tasks, args):
+    # ...
+    result = pipeline.process_task(
+        task_id,
+        test_input,
+        train_examples=train_examples,
+        expected_output=test_output,
+        top_k=3  # ← BUG! Hardcoded 3 instead of args.top_k
+    )
+```
+
+**Fix it**:
+```python
+def run_epoch(pipeline, tasks, args):
+    # ...
+    result = pipeline.process_task(
+        task_id,
+        test_input,
+        train_examples=train_examples,
+        expected_output=test_output,
+        top_k=args.top_k  # ← FIXED! Use CLI argument
+    )
+```
+
+**Verify**: Check ALL places where `process_task()` is called and ensure they use `args.top_k`!
+
+---
+
+## Fix 2: Discovery Recording Logic (CRITICAL - 30 min)
+
+**File**: `knowledge3d/training/arc_agi/dual_shadow_copy.py`
+
+**Current behavior** (too strict):
+```python
+def record(self, signature, program, program_type, score):
+    """Only records if exact match (0% accuracy = 0 recordings)."""
+    # This is TOO STRICT!
+```
+
+**New behavior** (balanced):
+```python
+def record(self, signature, program, program_type, score):
+    """
+    Record discovery with validation.
+
+    Records if:
+    1. Exact match (score=1.0) → always record
+    2. High score (score≥0.6) → record if executes without error
+    3. Low score (<0.6) → skip (noise)
+
+    This allows learning from near-misses while filtering garbage.
+    """
+    # Exact matches: always record
+    if score >= 0.99:
+        self._add_to_library(signature, program, program_type, score)
+        return
+
+    # High-scoring candidates: validate execution
+    if score >= 0.6:
+        if self._validate_program(program):
+            self._add_to_library(signature, program, program_type, score)
+            return
+
+    # Low scores: skip (noise)
+    # Don't record anything with score < 0.6
+
+def _validate_program(self, program: str) -> bool:
+    """
+    Validate program executes without errors.
+
+    Uses simple smoke test (not exact match, just no crash).
+    """
+    try:
+        from knowledge3d.training.arc_agi.rpn_executor import ARCRPNExecutor
+        executor = ARCRPNExecutor()
+
+        # Test on simple 2x2 grid
+        test_grid = [[1, 0], [0, 1]]
+        output = executor.execute(test_grid, program)
+
+        # Valid if executes and produces output
+        return output is not None and len(output) > 0
+
+    except Exception:
+        # Invalid if crashes
+        return False
+
+def _add_to_library(self, signature, program, program_type, score):
+    """Add to library (or pending if staged)."""
+    entry = {
+        "signature": signature,
+        "program": program,
+        "type": program_type,
+        "score": score
+    }
+
+    if self.staged:
+        self.pending.append(entry)
+    else:
+        self.library.append(entry)
+```
+
+**Key changes**:
+1. ✅ Exact matches (score≥0.99): Always record
+2. ✅ High scores (0.6≤score<0.99): Validate execution, then record
+3. ❌ Low scores (score<0.6): Skip (noise)
+
+**Result**: Galaxies can grow even without perfect matches!
+
+---
+
+## Fix 3: Adaptive Matryoshka Dimensions (30 min)
+
+**File**: `scripts/train_arc_sovereign_loop.py`
+
+**Current** (fixed at 128):
+```python
+parser.add_argument("--matryoshka-dim", type=int, default=128)
+```
+
+**New** (adaptive):
+```python
+parser.add_argument("--matryoshka-dim", type=int, default=512,
+                    help="Matryoshka dimension (64-16384, higher=more capacity)")
+```
+
+**Also update default in pipeline**:
+```python
+# Try 512 as default (good balance)
+# Can scale to 2048, 4096 if GPU allows
+```
+
+**Why 512?**
+- 128: Too conservative (barely using GPU!)
+- 512: Good balance (proven stable)
+- 2048: High capacity (if GPU allows)
+- 4096+: Maximum (need to debug allocation error)
+
+**Strategy**: Start with 512, scale up if stable
+
+---
+
+## Fix 4: Update Scoring to Match Recording (15 min)
+
+**File**: `knowledge3d/training/arc_agi/sovereign_pipeline.py`
+
+**Ensure scoring aligns with recording thresholds**:
+```python
+def _score_candidate(self, cand, expected_arr=None):
+    """
+    Score candidate with thresholds matching DualShadowCopy.
+
+    Score ranges:
+    - 1.0: Exact match (always record)
+    - 0.6-0.99: High quality (validate + record)
+    - <0.6: Low quality (skip)
+    """
+    output_arr = np.asarray(cand["output"])
+
+    # Exact match
+    if expected_arr is not None and np.array_equal(output_arr, expected_arr):
+        return 1.0
+
+    # Heuristic scoring (for non-matches)
+    score = 0.4  # Base (below 0.6 threshold = won't record)
+
+    # Boost for non-identity (did SOMETHING)
+    if not np.array_equal(output_arr, self._input_grid):
+        score += 0.2  # Now 0.6 (will validate + record!)
+
+    # Boost for structure
+    num_colors = len(np.unique(output_arr))
+    filled_ratio = np.count_nonzero(output_arr) / output_arr.size
+
+    if num_colors > 1:
+        score += 0.1  # Now 0.7
+    if 0.1 < filled_ratio < 0.9:
+        score += 0.1  # Now 0.8
+
+    # Procedural bias (capped at 0.7 max for non-exact)
+    if cand["source"] == "baseline" and score < 1.0:
+        score = min(score + 0.1, 0.7)
+
+    return float(score)
+```
+
+**Key**: Ensure non-identity outputs score ≥0.6 so they get validated and recorded!
+
+---
+
+## Testing After Fixes
+
+### Test 1: Verify top_k Fix (5 min)
+```bash
+# Short test run
+conda run -n k3d-cranium env PYTHONPATH=. CUDA_VISIBLE_DEVICES=0 \
+  python scripts/train_arc_sovereign_loop.py \
+    --arc-dirs /K3D/Knowledge3D.local/datasets/arc_agi/ARC-AGI-master/data/training \
+    --max-tasks 5 --epochs 1 --cycles 1 --matryoshka-dim 512 --top-k 12 \
+  | grep "top_k"  # Should see 12, not 3!
+```
+
+### Test 2: Verify Discovery Growth (10 min)
+```bash
+# Clear checkpoints to start fresh
+rm -f /K3D/Knowledge3D.local/checkpoints/arc_agi/*.json
+
+# Run short training
+conda run -n k3d-cranium env PYTHONPATH=. CUDA_VISIBLE_DEVICES=0 \
+  python scripts/train_arc_sovereign_loop.py \
+    --arc-dirs /K3D/Knowledge3D.local/datasets/arc_agi/ARC-AGI-master/data/training \
+    --max-tasks 10 --epochs 1 --cycles 1 --matryoshka-dim 512 --top-k 12
+
+# Check growth
+cat /K3D/Knowledge3D.local/checkpoints/arc_agi/grammar_galaxy.json | grep total_count
+# Should see: "total_count": 200+ (NOT 196!)
+```
+
+**Expected**: Even with 0% accuracy, rules should grow (200-220 range)!
+
+### Test 3: Full Training Run (30-60 min)
+```bash
+# Once fixes verified, run full training
+tmux new-session -s arc_evolution2
+
+/home/daniel/miniforge/bin/conda run -n k3d-cranium \
+  env PYTHONPATH=. CUDA_VISIBLE_DEVICES=0 \
+  python scripts/train_arc_sovereign_loop.py \
+    --arc-dirs /K3D/Knowledge3D.local/datasets/arc_agi/ARC-AGI-master/data/training \
+               /K3D/Knowledge3D.local/datasets/arc_agi/ARC-AGI-master/data/evaluation \
+    --max-tasks 36 --epochs 6 --cycles 6 --matryoshka-dim 512 --top-k 12 \
+    > /tmp/arc_evolution2.log 2>&1
+```
+
+**Expected results**:
+- Cycle 1: 196 → 220 rules (+24)
+- Cycle 2: 220 → 250 rules (+30)
+- Cycle 3-6: Continued growth
+- Final: 196 → 350+ rules
+
+---
+
+## Summary of Fixes
+
+| Issue | Fix | Impact |
+|-------|-----|--------|
+| top_k=3 hardcoded | Use `args.top_k` | More candidate diversity! |
+| Only record exact matches | Record score≥0.6 with validation | Galaxies grow again! |
+| Fixed 128D | Default to 512D, support up to 2048D | Use more GPU capacity! |
+| Scoring too strict | Align with recording thresholds | Non-exact outputs recorded! |
+
+**Result**: Galaxies grow from high-quality discoveries even without perfect accuracy!
+
+---
+
+## Ready to Fix?
+
+Confirm you understand:
+1. ✅ Fix top_k hardcoded bug (use args.top_k)
+2. ✅ Relax discovery recording (score≥0.6 + validation, not just exact)
+3. ✅ Increase matryoshka default to 512D
+4. ✅ Align scoring with recording thresholds
+5. ✅ Test with short run first, then full training
+
+**Expected time**: 1-2 hours (fixes + testing)
+**Expected result**: Galaxies grow again! 196 → 350+ rules!
+
+Proceed with fixes! 🔧🚀

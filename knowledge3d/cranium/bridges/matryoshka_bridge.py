@@ -9,8 +9,6 @@ leaving the GPU.
 from __future__ import annotations
 
 import ctypes
-import subprocess
-import tempfile
 from pathlib import Path
 from typing import Union
 
@@ -24,42 +22,19 @@ class MatryoshkaProjectionBridge:
 
     def __init__(self, arch: str = "sm_86"):
         kernel_dir = Path(__file__).parent.parent / "ptx"
-        self._cu_path = kernel_dir / "matryoshka_project.cu"
-        if not self._cu_path.exists():
-            raise FileNotFoundError(f"Matryoshka kernel not found: {self._cu_path}")
+        self._ptx_path = kernel_dir / "matryoshka_project.ptx"
+        if not self._ptx_path.exists():
+            raise FileNotFoundError(f"Matryoshka PTX not found: {self._ptx_path}")
 
-        self._arch = arch
+        self._arch = arch  # retained for clarity; PTX is precompiled
         self._module = None
         self._kernel = None
-        self._compile_and_load()
+        self._load_ptx()
 
-    def _compile_and_load(self) -> None:
-        with tempfile.NamedTemporaryFile(suffix=".ptx", delete=False) as tmp:
-            ptx_path = Path(tmp.name)
-
-        try:
-            cmd = [
-                "nvcc",
-                "-ptx",
-                str(self._cu_path),
-                "-o",
-                str(ptx_path),
-                "-arch",
-                self._arch,
-                "-O3",
-                "-allow-unsupported-compiler",  # Sovereignty: no GCC version constraints
-            ]
-            try:
-                subprocess.run(cmd, check=True, capture_output=True, text=True)
-            except subprocess.CalledProcessError as exc:
-                raise RuntimeError(
-                    f"Failed to compile Matryoshka kernel ({self._cu_path}): {exc.stderr}"
-                ) from exc
-
-            self._module = loader.load_module_from_file(str(ptx_path))
-            self._kernel = loader.get_function(self._module, "matryoshka_project")
-        finally:
-            ptx_path.unlink(missing_ok=True)
+    def _load_ptx(self) -> None:
+        # Sovereign path: load precompiled PTX shipped in the repo.
+        self._module = loader.load_module_from_file(str(self._ptx_path))
+        self._kernel = loader.get_function(self._module, "matryoshka_project")
 
     @property
     def kernel(self):
