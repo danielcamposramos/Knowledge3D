@@ -14,6 +14,7 @@ from functools import lru_cache
 from typing import Optional, Tuple
 
 import numpy as np
+from knowledge3d.cranium.sovereign import loader
 
 logger = logging.getLogger(__name__)
 
@@ -84,24 +85,22 @@ class TernaryMDCTKernel:
         self._module: Optional[int] = None
         self._kernel_fwd: Optional[int] = None
         self._kernel_inv: Optional[int] = None
-        self._d_in: Optional[int] = None
-        self._d_out: Optional[int] = None
         self._init_cuda()
 
     def _init_cuda(self) -> None:
-        # Use shared context from sovereign loader (fork-safe, proven in production)
-        from knowledge3d.cranium.sovereign import loader
+        # Initialise sovereign loader (ctypes context) and reuse its context for cuda-python kernels.
         loader._ensure_init()
 
         cuda = self.cuda
 
-        # Get existing context (sovereign loader guarantees one exists)
+        # Bind the current context (created by loader) to cuda-python.
         err, ctx = cuda.cuCtxGetCurrent()
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuCtxGetCurrent failed: {err}")
-
-        if ctx is None or int(ctx) == 0:
+        if err != cuda.CUresult.CUDA_SUCCESS or ctx is None or int(ctx) == 0:
             raise RuntimeError("No CUDA context available after loader._ensure_init()")
+
+        err, = cuda.cuCtxSetCurrent(ctx)
+        if err != cuda.CUresult.CUDA_SUCCESS:
+            raise RuntimeError(f"cuCtxSetCurrent failed: {err}")
 
         self._ctx = ctx
 
@@ -111,17 +110,6 @@ class TernaryMDCTKernel:
             raise RuntimeError(f"cuCtxGetDevice failed: {err}")
 
         self._compile_and_load(dev)
-
-        err, d_in = cuda.cuMemAlloc(self.n * 4)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuMemAlloc input failed: {err}")
-
-        err, d_out = cuda.cuMemAlloc(self.n * 4)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuMemAlloc output failed: {err}")
-
-        self._d_in = d_in
-        self._d_out = d_out
 
     def _compile_and_load(self, dev) -> None:
         cuda = self.cuda
@@ -186,8 +174,8 @@ class TernaryMDCTKernel:
         cuda = self.cuda
 
         # K3D pattern from nvrtc_ptx_loader.py lines 197-207
-        in_arg = _ct.c_void_p(int(d_in))
-        out_arg = _ct.c_void_p(int(d_out))
+        in_arg = _ct.c_void_p(int(getattr(d_in, "value", d_in)))
+        out_arg = _ct.c_void_p(int(getattr(d_out, "value", d_out)))
         n_arg = _ct.c_int(int(n))
 
         param_array = (_ct.c_void_p * 3)(
@@ -209,84 +197,89 @@ class TernaryMDCTKernel:
 
     def forward(self, frame: np.ndarray) -> np.ndarray:
         """Run MDCT on GPU."""
-        if self._kernel_fwd is None or self._d_in is None or self._d_out is None:
+        if self._kernel_fwd is None:
             raise RuntimeError("Kernel not initialised")
 
         x = np.ascontiguousarray(frame.astype(np.float32))
         if x.size != self.n:
             raise ValueError(f"frame length must be {self.n}")
 
-        cuda = self.cuda
-        cuda.cuCtxSetCurrent(self._ctx)
+        # Allocate on-demand using sovereign loader memory helpers.
+        d_in = loader.gpu_malloc(x.nbytes)
+        d_out = loader.gpu_malloc(x.nbytes)
 
-        err, = cuda.cuMemcpyHtoD(self._d_in, x.ctypes.data, x.nbytes)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuMemcpyHtoD failed: {err}")
+        try:
+            loader.memcpy_htod(
+                dst_device=d_in,
+                src_host=_ct.c_void_p(x.ctypes.data),
+                size_bytes=x.nbytes,
+            )
 
-        block = (256, 1, 1)
-        grid = (int(math.ceil(self.n / 256)), 1, 1)
+            block = (256, 1, 1)
+            grid = (int(math.ceil(self.n / 256)), 1, 1)
 
-        self._launch(self._kernel_fwd, self._d_in, self._d_out, self.n, grid, block)
+            self._launch(self._kernel_fwd, d_in, d_out, self.n, grid, block)
 
-        # Synchronize
-        err, = cuda.cuCtxSynchronize()
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuCtxSynchronize failed: {err}")
+            # Synchronize
+            loader.synchronize()
 
-        out = np.empty(self.n, dtype=np.float32)
-        err, = cuda.cuMemcpyDtoH(out.ctypes.data, self._d_out, out.nbytes)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuMemcpyDtoH failed: {err}")
+            out = np.empty(self.n, dtype=np.float32)
+            loader.memcpy_dtoh(
+                dst_host=_ct.c_void_p(out.ctypes.data),
+                src_device=d_out,
+                size_bytes=out.nbytes,
+            )
 
-        return out
+            return out
+        finally:
+            loader.gpu_free(d_in)
+            loader.gpu_free(d_out)
 
     def inverse(self, coeffs: np.ndarray) -> np.ndarray:
         """Run inverse MDCT on GPU."""
-        if self._kernel_inv is None or self._d_in is None or self._d_out is None:
+        if self._kernel_inv is None:
             raise RuntimeError("Kernel not initialised")
 
         c = np.ascontiguousarray(coeffs.astype(np.float32))
         if c.size != self.n:
             raise ValueError(f"coeff length must be {self.n}")
 
-        cuda = self.cuda
-        cuda.cuCtxSetCurrent(self._ctx)
+        # Allocate on-demand using sovereign loader memory helpers.
+        d_in = loader.gpu_malloc(c.nbytes)
+        d_out = loader.gpu_malloc(c.nbytes)
 
-        err, = cuda.cuMemcpyHtoD(self._d_in, c.ctypes.data, c.nbytes)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuMemcpyHtoD failed: {err}")
+        try:
+            loader.memcpy_htod(
+                dst_device=d_in,
+                src_host=_ct.c_void_p(c.ctypes.data),
+                size_bytes=c.nbytes,
+            )
 
-        block = (256, 1, 1)
-        grid = (int(math.ceil(self.n / 256)), 1, 1)
+            block = (256, 1, 1)
+            grid = (int(math.ceil(self.n / 256)), 1, 1)
 
-        self._launch(self._kernel_inv, self._d_in, self._d_out, self.n, grid, block)
+            self._launch(self._kernel_inv, d_in, d_out, self.n, grid, block)
 
-        # Synchronize
-        err, = cuda.cuCtxSynchronize()
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuCtxSynchronize failed: {err}")
+            # Synchronize
+            loader.synchronize()
 
-        out = np.empty(self.n, dtype=np.float32)
-        err, = cuda.cuMemcpyDtoH(out.ctypes.data, self._d_out, out.nbytes)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuMemcpyDtoH failed: {err}")
+            out = np.empty(self.n, dtype=np.float32)
+            loader.memcpy_dtoh(
+                dst_host=_ct.c_void_p(out.ctypes.data),
+                src_device=d_out,
+                size_bytes=out.nbytes,
+            )
 
-        return out
+            return out
+        finally:
+            loader.gpu_free(d_in)
+            loader.gpu_free(d_out)
 
     def close(self) -> None:
-        """Free buffers."""
-        if self._d_in is not None:
-            self.cuda.cuMemFree(self._d_in)
-            self._d_in = None
-        if self._d_out is not None:
-            self.cuda.cuMemFree(self._d_out)
-            self._d_out = None
+        """Free buffers (no persistent buffers with on-demand allocation)."""
+        pass
 
     def __del__(self) -> None:  # pragma: no cover
-        try:
-            self.close()
-        except Exception:
-            pass
         try:
             if self._module is not None and self.cuda is not None:
                 self.cuda.cuModuleUnload(self._module)

@@ -14,6 +14,7 @@ from typing import Optional
 
 import numpy as np
 import ctypes
+from knowledge3d.cranium.sovereign import loader
 
 logger = logging.getLogger(__name__)
 
@@ -94,18 +95,17 @@ class TernaryDCT8x8Kernel:
 
     def _init_cuda(self) -> None:
         # Use shared context from sovereign loader (fork-safe, proven in production)
-        from knowledge3d.cranium.sovereign import loader
         loader._ensure_init()
 
         cuda = self.cuda
 
-        # Get existing context (sovereign loader guarantees one exists)
+        # Bind the loader context to cuda-python
         err, ctx = cuda.cuCtxGetCurrent()
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuCtxGetCurrent failed: {err}")
-
-        if ctx is None or int(ctx) == 0:
+        if err != cuda.CUresult.CUDA_SUCCESS or ctx is None or int(ctx) == 0:
             raise RuntimeError("No CUDA context available after loader._ensure_init()")
+        err, = cuda.cuCtxSetCurrent(ctx)
+        if err != cuda.CUresult.CUDA_SUCCESS:
+            raise RuntimeError(f"cuCtxSetCurrent failed: {err}")
 
         self._ctx = ctx
 
@@ -164,8 +164,8 @@ class TernaryDCT8x8Kernel:
 
     def _launch(self, func, d_in, d_out, num_blocks, grid, block) -> None:
         cuda = self.cuda
-        in_arg = ctypes.c_void_p(int(d_in))
-        out_arg = ctypes.c_void_p(int(d_out))
+        in_arg = ctypes.c_void_p(int(getattr(d_in, "value", d_in)))
+        out_arg = ctypes.c_void_p(int(getattr(d_out, "value", d_out)))
         n_arg = ctypes.c_int(int(num_blocks))
         param_array = (ctypes.c_void_p * 3)(
             ctypes.cast(ctypes.pointer(in_arg), ctypes.c_void_p),
@@ -204,30 +204,28 @@ class TernaryDCT8x8Kernel:
         if b.ndim != 3 or b.shape[1:] != (8, 8):
             raise ValueError("blocks must have shape (num_blocks, 8, 8)")
         num_blocks = b.shape[0]
-        cuda = self.cuda
-        # Allocate
-        err, d_input = cuda.cuMemAlloc(b.nbytes)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuMemAlloc input failed: {err}")
-        err, d_output = cuda.cuMemAlloc(b.nbytes)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            cuda.cuMemFree(d_input)
-            raise RuntimeError(f"cuMemAlloc output failed: {err}")
+        # Allocate via sovereign loader
+        d_input = loader.gpu_malloc(b.nbytes)
+        d_output = loader.gpu_malloc(b.nbytes)
         try:
-            err, = cuda.cuMemcpyHtoD(d_input, b.ctypes.data, b.nbytes)
-            if err != cuda.CUresult.CUDA_SUCCESS:
-                raise RuntimeError(f"cuMemcpyHtoD failed: {err}")
+            loader.memcpy_htod(
+                dst_device=d_input,
+                src_host=ctypes.c_void_p(b.ctypes.data),
+                size_bytes=b.nbytes,
+            )
             block = (64, 1, 1)
             grid = (int(num_blocks), 1, 1)
             self._launch(self._kernel, d_input, d_output, num_blocks, grid, block)
             out = np.empty_like(b)
-            err, = cuda.cuMemcpyDtoH(out.ctypes.data, d_output, out.nbytes)
-            if err != cuda.CUresult.CUDA_SUCCESS:
-                raise RuntimeError(f"cuMemcpyDtoH failed: {err}")
+            loader.memcpy_dtoh(
+                dst_host=ctypes.c_void_p(out.ctypes.data),
+                src_device=d_output,
+                size_bytes=out.nbytes,
+            )
             return out
         finally:
-            cuda.cuMemFree(d_input)
-            cuda.cuMemFree(d_output)
+            loader.gpu_free(d_input)
+            loader.gpu_free(d_output)
 
     def inverse(self, coeffs: np.ndarray) -> np.ndarray:
         """Run 8x8 inverse DCT on a batch."""
@@ -237,29 +235,27 @@ class TernaryDCT8x8Kernel:
         if c.ndim != 3 or c.shape[1:] != (8, 8):
             raise ValueError("coeffs must have shape (num_blocks, 8, 8)")
         num_blocks = c.shape[0]
-        cuda = self.cuda
-        err, d_input = cuda.cuMemAlloc(c.nbytes)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuMemAlloc input failed: {err}")
-        err, d_output = cuda.cuMemAlloc(c.nbytes)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            cuda.cuMemFree(d_input)
-            raise RuntimeError(f"cuMemAlloc output failed: {err}")
+        d_input = loader.gpu_malloc(c.nbytes)
+        d_output = loader.gpu_malloc(c.nbytes)
         try:
-            err, = cuda.cuMemcpyHtoD(d_input, c.ctypes.data, c.nbytes)
-            if err != cuda.CUresult.CUDA_SUCCESS:
-                raise RuntimeError(f"cuMemcpyHtoD failed: {err}")
+            loader.memcpy_htod(
+                dst_device=d_input,
+                src_host=ctypes.c_void_p(c.ctypes.data),
+                size_bytes=c.nbytes,
+            )
             block = (64, 1, 1)
             grid = (int(num_blocks), 1, 1)
             self._launch(self._kernel_inv, d_input, d_output, num_blocks, grid, block)
             out = np.empty_like(c)
-            err, = cuda.cuMemcpyDtoH(out.ctypes.data, d_output, out.nbytes)
-            if err != cuda.CUresult.CUDA_SUCCESS:
-                raise RuntimeError(f"cuMemcpyDtoH failed: {err}")
+            loader.memcpy_dtoh(
+                dst_host=ctypes.c_void_p(out.ctypes.data),
+                src_device=d_output,
+                size_bytes=out.nbytes,
+            )
             return out
         finally:
-            cuda.cuMemFree(d_input)
-            cuda.cuMemFree(d_output)
+            loader.gpu_free(d_input)
+            loader.gpu_free(d_output)
 
 
 __all__ = ["TernaryDCT8x8Kernel"]

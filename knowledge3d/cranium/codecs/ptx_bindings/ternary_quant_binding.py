@@ -11,6 +11,7 @@ from functools import lru_cache
 from typing import Optional, Tuple
 
 import numpy as np
+from knowledge3d.cranium.sovereign import loader
 
 
 @lru_cache(maxsize=1)
@@ -99,18 +100,17 @@ class TernaryQuantizer:
 
     def _init_cuda(self) -> None:
         # Use shared context from sovereign loader (fork-safe, proven in production)
-        from knowledge3d.cranium.sovereign import loader
         loader._ensure_init()
 
         cuda = self.cuda
 
-        # Get existing context (sovereign loader guarantees one exists)
+        # Bind loader context to cuda-python
         err, ctx = cuda.cuCtxGetCurrent()
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuCtxGetCurrent failed: {err}")
-
-        if ctx is None or int(ctx) == 0:
+        if err != cuda.CUresult.CUDA_SUCCESS or ctx is None or int(ctx) == 0:
             raise RuntimeError("No CUDA context available after loader._ensure_init()")
+        err, = cuda.cuCtxSetCurrent(ctx)
+        if err != cuda.CUresult.CUDA_SUCCESS:
+            raise RuntimeError(f"cuCtxSetCurrent failed: {err}")
 
         self._ctx = ctx
 
@@ -176,10 +176,10 @@ class TernaryQuantizer:
         cuda = self.cuda
         blk = (256, 1, 1)
         grd = (int((n + blk[0] - 1) // blk[0]), 1, 1)
-        in_arg = _ct.c_void_p(int(d_in))
+        in_arg = _ct.c_void_p(int(getattr(d_in, "value", d_in)))
         n_arg = _ct.c_int(int(n))
         thr_arg = _ct.c_float(float(threshold))
-        out_arg = _ct.c_void_p(int(d_out))
+        out_arg = _ct.c_void_p(int(getattr(d_out, "value", d_out)))
         params = (_ct.c_void_p * 4)(
             _ct.cast(_ct.pointer(in_arg), _ct.c_void_p),
             _ct.cast(_ct.pointer(n_arg), _ct.c_void_p),
@@ -199,10 +199,10 @@ class TernaryQuantizer:
         cuda = self.cuda
         blk = (256, 1, 1)
         grd = (int((n + blk[0] - 1) // blk[0]), 1, 1)
-        in_arg = _ct.c_void_p(int(d_in))
+        in_arg = _ct.c_void_p(int(getattr(d_in, "value", d_in)))
         n_arg = _ct.c_int(int(n))
         scale_arg = _ct.c_float(float(scale))
-        out_arg = _ct.c_void_p(int(d_out))
+        out_arg = _ct.c_void_p(int(getattr(d_out, "value", d_out)))
         params = (_ct.c_void_p * 4)(
             _ct.cast(_ct.pointer(in_arg), _ct.c_void_p),
             _ct.cast(_ct.pointer(n_arg), _ct.c_void_p),
@@ -221,9 +221,9 @@ class TernaryQuantizer:
     def _launch_max_abs(self, d_in, d_part, n: int, grid) -> None:
         cuda = self.cuda
         blk = (256, 1, 1)
-        in_arg = _ct.c_void_p(int(d_in))
+        in_arg = _ct.c_void_p(int(getattr(d_in, "value", d_in)))
         n_arg = _ct.c_int(int(n))
-        out_arg = _ct.c_void_p(int(d_part))
+        out_arg = _ct.c_void_p(int(getattr(d_part, "value", d_part)))
         params = (_ct.c_void_p * 3)(
             _ct.cast(_ct.pointer(in_arg), _ct.c_void_p),
             _ct.cast(_ct.pointer(n_arg), _ct.c_void_p),
@@ -243,81 +243,75 @@ class TernaryQuantizer:
         """Compute max(|coefficients|) on GPU (no CPU fallback)."""
         x = np.ascontiguousarray(coefficients, dtype=np.float32)
         n = x.size
-        cuda = self.cuda
         blk = 256
         grid = (int((n + blk - 1) // blk), 1, 1)
-        err, d_in = cuda.cuMemAlloc(x.nbytes)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuMemAlloc input failed: {err}")
-        err, d_part = cuda.cuMemAlloc(grid[0] * 4)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            cuda.cuMemFree(d_in)
-            raise RuntimeError(f"cuMemAlloc partial failed: {err}")
+        d_in = loader.gpu_malloc(x.nbytes)
+        d_part = loader.gpu_malloc(grid[0] * 4)
         try:
-            err, = cuda.cuMemcpyHtoD(d_in, x.ctypes.data, x.nbytes)
-            if err != cuda.CUresult.CUDA_SUCCESS:
-                raise RuntimeError(f"cuMemcpyHtoD failed: {err}")
+            loader.memcpy_htod(
+                dst_device=d_in,
+                src_host=_ct.c_void_p(x.ctypes.data),
+                size_bytes=x.nbytes,
+            )
             self._launch_max_abs(d_in, d_part, n, grid)
             partial = np.empty(grid[0], dtype=np.float32)
-            err, = cuda.cuMemcpyDtoH(partial.ctypes.data, d_part, partial.nbytes)
-            if err != cuda.CUresult.CUDA_SUCCESS:
-                raise RuntimeError(f"cuMemcpyDtoH failed: {err}")
+            loader.memcpy_dtoh(
+                dst_host=_ct.c_void_p(partial.ctypes.data),
+                src_device=d_part,
+                size_bytes=partial.nbytes,
+            )
             return float(partial.max()) if partial.size > 0 else 0.0
         finally:
-            cuda.cuMemFree(d_in)
-            cuda.cuMemFree(d_part)
+            loader.gpu_free(d_in)
+            loader.gpu_free(d_part)
 
     def quantize(self, coefficients: np.ndarray, threshold: float) -> np.ndarray:
         """Quantize on GPU to int8 {-1,0,+1}."""
         x = np.ascontiguousarray(coefficients, dtype=np.float32)
         n = x.size
-        cuda = self.cuda
-        err, d_in = cuda.cuMemAlloc(x.nbytes)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuMemAlloc input failed: {err}")
-        err, d_out = cuda.cuMemAlloc(n)  # int8
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            cuda.cuMemFree(d_in)
-            raise RuntimeError(f"cuMemAlloc output failed: {err}")
+        d_in = loader.gpu_malloc(x.nbytes)
+        d_out = loader.gpu_malloc(n)  # int8
         try:
-            err, = cuda.cuMemcpyHtoD(d_in, x.ctypes.data, x.nbytes)
-            if err != cuda.CUresult.CUDA_SUCCESS:
-                raise RuntimeError(f"cuMemcpyHtoD failed: {err}")
+            loader.memcpy_htod(
+                dst_device=d_in,
+                src_host=_ct.c_void_p(x.ctypes.data),
+                size_bytes=x.nbytes,
+            )
             self._launch_quant(d_in, d_out, n, threshold)
             out = np.empty(n, dtype=np.int8)
-            err, = cuda.cuMemcpyDtoH(out.ctypes.data, d_out, out.nbytes)
-            if err != cuda.CUresult.CUDA_SUCCESS:
-                raise RuntimeError(f"cuMemcpyDtoH failed: {err}")
+            loader.memcpy_dtoh(
+                dst_host=_ct.c_void_p(out.ctypes.data),
+                src_device=d_out,
+                size_bytes=out.nbytes,
+            )
             return out.reshape(x.shape)
         finally:
-            cuda.cuMemFree(d_in)
-            cuda.cuMemFree(d_out)
+            loader.gpu_free(d_in)
+            loader.gpu_free(d_out)
 
     def dequantize(self, quantized: np.ndarray, scale: float) -> np.ndarray:
         """Dequantize on GPU back to float32."""
         q = np.ascontiguousarray(quantized, dtype=np.int8)
         n = q.size
-        cuda = self.cuda
-        err, d_in = cuda.cuMemAlloc(q.nbytes)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuMemAlloc input failed: {err}")
-        err, d_out = cuda.cuMemAlloc(n * 4)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            cuda.cuMemFree(d_in)
-            raise RuntimeError(f"cuMemAlloc output failed: {err}")
+        d_in = loader.gpu_malloc(q.nbytes)
+        d_out = loader.gpu_malloc(n * 4)
         try:
-            err, = cuda.cuMemcpyHtoD(d_in, q.ctypes.data, q.nbytes)
-            if err != cuda.CUresult.CUDA_SUCCESS:
-                raise RuntimeError(f"cuMemcpyHtoD failed: {err}")
+            loader.memcpy_htod(
+                dst_device=d_in,
+                src_host=_ct.c_void_p(q.ctypes.data),
+                size_bytes=q.nbytes,
+            )
             self._launch_dequant(d_in, d_out, n, scale)
             out = np.empty(n, dtype=np.float32)
-            err, = cuda.cuMemcpyDtoH(out.ctypes.data, d_out, out.nbytes)
-            if err != cuda.CUresult.CUDA_SUCCESS:
-                raise RuntimeError(f"cuMemcpyDtoH failed: {err}")
+            loader.memcpy_dtoh(
+                dst_host=_ct.c_void_p(out.ctypes.data),
+                src_device=d_out,
+                size_bytes=out.nbytes,
+            )
             return out.reshape(q.shape)
         finally:
-            cuda.cuMemFree(d_in)
-            cuda.cuMemFree(d_out)
+            loader.gpu_free(d_in)
+            loader.gpu_free(d_out)
 
 
 __all__ = ["TernaryQuantizer"]
