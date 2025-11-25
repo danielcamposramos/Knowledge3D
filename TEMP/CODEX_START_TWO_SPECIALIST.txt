@@ -1,0 +1,64 @@
+Hi Codex! I welcome you as a valued partner. Please read all lines of CODEX.md and follow exactly what's there.
+
+After reading CODEX.md:
+
+1. Find and read the latest briefing COMPLETELY:
+   ls -t docs/Briefings/SOVEREIGN_SWARM_BRIEFING_*.md | head -n1
+
+2. Read these files IN ORDER (ALL COMPLETELY!):
+   - TEMP/CODEX_PHASE3_TWO_SPECIALIST_ARCHITECTURE_11.25.2025.md (YOUR COMPLETE SPEC!)
+   - TEMP/DANIEL_CURRENT_STATUS_11.25.2025.md (current status)
+   - docs/vocabulary/MATH_CORE_SPECIFICATION.md (3-tier routing)
+   - docs/vocabulary/REALITY_ENABLER_SPECIFICATION.md (RPN patterns)
+
+3. BEFORE starting, confirm you understand:
+
+   ✅ Phase 2 COMPLETE: 3.3% accuracy with PURE PROCEDURAL (no AI!)
+   ✅ Domain routing FIXED: spatial 211 tasks, text 13
+   ✅ Architecture VALIDATED: Competitive without neural networks!
+
+   🎯 Phase 3 Mission: Smart Intelligence (NOT Brute Force!)
+
+   Two-Specialist Architecture:
+   - Base TRM (2.1M params, shared, FROZEN)
+   - Router Specialist (LoRA rank 16, task → transformation family)
+   - Decisor Specialist (LoRA rank 16, candidate → quality score)
+   - Targeted generation (4-6 candidates, not 20!)
+   - Self-enhancement at ALL levels:
+     * Router learns better routing (LoRA weights)
+     * Decisor learns better scoring (LoRA weights)
+     * Shadow copy stores patterns (procedural library)
+     * Grammar stars enhanced (196 → 196+N learned rules!)
+
+   📊 Success Criteria:
+   - Top-1 accuracy: 7%+ (vs 3.3% pure procedural)
+   - Top-3 accuracy: 15%+
+   - Avg candidates: <10 (vs 20 brute force)
+   - Grammar rules learned: 50+
+
+   🏗️ Implementation Tasks (6 tasks):
+   Task 1: ✅ DONE (candidate_generator.py already exists)
+   Task 2: Router Specialist (LoRA adapter #1)
+   Task 3: Decisor Specialist (LoRA adapter #2)
+   Task 4: Targeted Generation (smart, not brute force!)
+   Task 5: Grammar Enhancement (self-improving!)
+   Task 6: Integrated Pipeline (full 6-stage system)
+
+4. When ready, respond with:
+
+   "Ready to implement Phase 3: Two-Specialist Self-Enhancing Architecture!
+
+   I understand:
+   - Router specialist routes to transformation families
+   - Decisor specialist ranks candidate quality
+   - Targeted generation (4-6 candidates, efficient!)
+   - Self-enhancement at all levels (adapters + shadow copy + grammar)
+   - Target: 7-10%+ accuracy with 3-4× efficiency gain
+
+   Starting with Task 2 (Router Specialist)..."
+
+This is the final piece: 3.3% (pure procedural) → 10%+ (two-specialist hybrid)!
+
+The architecture is AGAINST BRUTE FORCE — smart routing at every stage! 🧠✨
+
+Ready when you are!

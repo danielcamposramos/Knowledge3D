@@ -1,0 +1,638 @@
+Hi Codex! Integrated Implementation: Quality + Semantics via Galaxy Universe
+
+## Mission
+
+Implement THREE critical enhancements using Galaxy Universe architecture:
+
+1. **Word Galaxy** → Semantic meaning storage (form + meaning!)
+2. **Deduplication + Quality Filtering** → Clean library (1662 → 400-500 unique)
+3. **Semantic Context via Word References** → Symlink pattern (no duplicate strings!)
+
+**Combined Result**: High-quality, semantically-annotated knowledge base!
+
+---
+
+## Why These Work Together (Galaxy Universe Pattern!)
+
+**Problem**: Volume without quality or context
+- 1662 rules (but 1200 duplicates)
+- 0% accuracy (no semantic understanding)
+- Semantic tags duplicated as strings (storage waste)
+
+**Solution Part 1 (Word Galaxy)**: Semantic foundation
+- Meanings stored ONCE, referenced many times (symlink!)
+- "rotation_task" → stored 1×, referenced 250×
+- Galaxy Universe composition (Drawing + Grammar + Word!)
+
+**Solution Part 2 (Deduplication)**: Quality over quantity
+- 1662 → 400-500 unique programs
+- Compound transformations prioritized
+- Content-based canonical references
+
+**Solution Part 3 (Semantic Context)**: Context via Word references
+- Each program annotated with Word Galaxy refs
+- Semantic matching guides composition
+- Storage: ~70% reduction (symlink pattern!)
+
+**Synergy**: Word Galaxy + Quality filtering + Semantic refs = Galaxy Universe! 🌌
+
+---
+
+## Implementation Plan
+
+### Phase 0: Word Galaxy Foundation (1-2 hours) - CRITICAL!
+
+**Files to create:**
+1. `knowledge3d/training/arc_agi/word_galaxy.py`
+
+**See**: [TEMP/CLAUDE_GALAXY_UNIVERSE_SEMANTIC_11.25.2025.md](TEMP/CLAUDE_GALAXY_UNIVERSE_SEMANTIC_11.25.2025.md) for full spec
+
+**Key points:**
+- Word class (word_id, meaning, category, relations, references)
+- WordGalaxy class (storage + reference management)
+- Bootstrap with semantic primitives (spatial, transformation, pattern, visual)
+- get_or_create() for deduplication
+- ref() for symlink pattern
+- resolve() for following references
+- Persistence (save/load)
+
+**Why first**: All semantic context will reference Word Galaxy!
+
+### Phase 1: Deduplication (2-3 hours)
+
+**Files to create:**
+1. `knowledge3d/training/arc_agi/content_deduplicator.py`
+2. `knowledge3d/training/arc_agi/quality_scorer.py`
+
+**Files to modify:**
+3. `knowledge3d/training/arc_agi/dual_shadow_copy.py`
+4. `scripts/train_arc_sovereign_loop.py`
+
+**See**: [TEMP/CODEX_IMPLEMENT_DEDUPLICATION_11.25.2025.txt](TEMP/CODEX_IMPLEMENT_DEDUPLICATION_11.25.2025.txt) for full spec
+
+**Key points:**
+- Content hashing (SHA256) for duplicate detection
+- Quality scoring (compound > simple)
+- Canonical references (symlink approach)
+- Pruning after each cycle
+
+### Phase 2: Semantic Context (2-3 hours)
+
+**Files to create:**
+1. `knowledge3d/training/arc_agi/semantic_signature.py`
+2. `knowledge3d/training/arc_agi/semantic_context.py`
+
+**Files to modify:**
+3. `knowledge3d/training/arc_agi/dual_shadow_copy.py` (add semantic recording)
+4. `knowledge3d/training/arc_agi/sovereign_trm_router.py` (semantic routing)
+5. `knowledge3d/training/arc_agi/sovereign_pipeline.py` (pass grid data)
+
+**See**: [TEMP/CLAUDE_SEMANTIC_ARCHITECTURE_11.25.2025.md](TEMP/CLAUDE_SEMANTIC_ARCHITECTURE_11.25.2025.md) for full spec
+
+**Key points:**
+- Extract semantic signatures (structural, color, pattern features)
+- Record context (WHEN/WHY programs work)
+- Semantic matching (find similar past successes)
+- Context-aware routing (prioritize semantic matches)
+
+### Phase 3: Integration (1 hour)
+
+**Ensure both systems work together:**
+- Deduplicator uses semantic context for quality scoring
+- Semantic context only records unique programs
+- TRM routing uses both quality + semantic signals
+
+---
+
+## Detailed Implementation Steps
+
+### Step 0: Create Word Galaxy (1 hour) - FOUNDATION!
+
+```bash
+# Create: knowledge3d/training/arc_agi/word_galaxy.py
+```
+
+**Implementation**: Copy from [TEMP/CLAUDE_GALAXY_UNIVERSE_SEMANTIC_11.25.2025.md](TEMP/CLAUDE_GALAXY_UNIVERSE_SEMANTIC_11.25.2025.md)
+
+**Key classes:**
+- `Word`: Semantic unit (word_id, meaning, category, relations, references)
+- `WordGalaxy`: Galaxy storage (words, category_index, meaning_hash_index)
+
+**Key methods:**
+- `_bootstrap_semantic_primitives()`: Initialize with 40+ semantic concepts
+- `add_word(word_id, meaning, category)`: Add or dedupe
+- `get_or_create(word_id, meaning)`: Get existing or create
+- `ref(word_id)`: Create reference (symlink pattern!)
+- `resolve(word_id)`: Follow reference to actual Word
+- `save(path)`, `load(path)`: Persistence
+
+**Test:**
+```python
+from knowledge3d.training.arc_agi.word_galaxy import WordGalaxy
+
+galaxy = WordGalaxy()
+
+# Bootstrap should have semantic primitives
+assert "rotation_task" in galaxy.words
+assert "asymmetric" in galaxy.words
+
+# Test symlink pattern
+ref1 = galaxy.ref("rotation_task")
+ref2 = galaxy.ref("rotation_task")
+assert ref1 == ref2  # Same reference!
+
+word = galaxy.resolve(ref1)
+assert word.meaning == "Task involves rotating elements"
+assert word.references == 2  # Referenced twice!
+
+print(f"✓ Word Galaxy with {len(galaxy.words)} semantic concepts")
+```
+
+### Step 1: Create Deduplicator (45 min)
+
+```bash
+# Create: knowledge3d/training/arc_agi/content_deduplicator.py
+```
+
+**Key methods:**
+- `compute_hash(program)` → SHA256 hash
+- `add_or_reference(program, type, score, context)` → (hash, is_new)
+- `get_usage_stats(hash)` → usage count, avg score
+- `prune_low_quality(min_usage, min_score)` → remove duplicates
+- `save(path)`, `load(path)` → persistence
+
+**Test:**
+```python
+from knowledge3d.training.arc_agi.content_deduplicator import ContentDeduplicator
+
+dedup = ContentDeduplicator()
+
+# Should return same hash, is_new=False
+hash1, new1 = dedup.add_or_reference("1 rotate", "grammar", 0.7)
+hash2, new2 = dedup.add_or_reference("1 rotate", "grammar", 0.75)
+
+assert hash1 == hash2
+assert new1 == True
+assert new2 == False
+```
+
+### Step 2: Create Quality Scorer (30 min)
+
+```bash
+# Create: knowledge3d/training/arc_agi/quality_scorer.py
+```
+
+**Key methods:**
+- `score_quality(program, execution_score)` → adjusted score
+- `get_complexity_level(program)` → "simple" | "intermediate" | "compound"
+- `_extract_pattern_signature(program)` → structural pattern
+
+**Test:**
+```python
+from knowledge3d.training.arc_agi.quality_scorer import QualityScorer
+
+scorer = QualityScorer()
+
+# Simple pattern should be penalized
+simple_score = scorer.score_quality("1 rotate", 0.7)
+assert simple_score < 0.7  # Penalty applied
+
+# Compound pattern should be rewarded
+compound_score = scorer.score_quality("compose 1 rotate 2 flip", 0.7)
+assert compound_score > 0.7  # Bonus applied
+```
+
+### Step 3: Create Semantic Signature (1 hour)
+
+```bash
+# Create: knowledge3d/training/arc_agi/semantic_signature.py
+```
+
+**Key methods:**
+- `extract(grid)` → semantic signature dict
+- `_extract_structural(grid)` → symmetry, sparsity, dimensions
+- `_extract_color(grid)` → colors, background, foreground
+- `_extract_pattern(grid)` → components, borders, repetition
+- `compute_transformation_type(input_sig, output_sig)` → semantic type
+
+**Test:**
+```python
+import numpy as np
+from knowledge3d.training.arc_agi.semantic_signature import SemanticSignature
+
+grid = np.array([[1, 0, 1], [0, 1, 0], [1, 0, 1]])
+sig = SemanticSignature.extract(grid)
+
+print(sig["structural"]["dimensions"])  # "3x3"
+print(sig["structural"]["symmetric_diagonal"])  # True
+print(sig["color"]["num_colors"])  # 2
+print(sig["signature_hash"])  # e.g., "a3f5b2c1"
+```
+
+### Step 4: Create Semantic Context (1 hour)
+
+```bash
+# Create: knowledge3d/training/arc_agi/semantic_context.py
+```
+
+**Key methods:**
+- `record_context(program, input_grid, output_grid, task_id, score)` → context dict
+- `_infer_usage_conditions(input_sig, transformation_type)` → when_to_use tags
+- `find_matching_contexts(query_grid, top_k)` → matching contexts
+- `_compute_similarity(sig1, sig2)` → similarity score
+
+**Test:**
+```python
+import numpy as np
+from knowledge3d.training.arc_agi.semantic_context import SemanticContext
+
+ctx = SemanticContext()
+
+input_grid = np.array([[1, 2], [3, 4]])
+output_grid = np.array([[3, 1], [4, 2]])  # Rotated
+
+context = ctx.record_context(
+    program="1 rotate",
+    input_grid=input_grid,
+    output_grid=output_grid,
+    task_id="test_001",
+    score=0.85
+)
+
+print(context["transformation_type"])  # "rotation_or_reflection"
+print(context["when_to_use"])  # ["asymmetric_input", "rotation_task"]
+```
+
+### Step 5: Integrate into DualShadowCopy (1 hour)
+
+```bash
+# Modify: knowledge3d/training/arc_agi/dual_shadow_copy.py
+```
+
+**Changes:**
+1. Add imports:
+```python
+from knowledge3d.training.arc_agi.content_deduplicator import ContentDeduplicator
+from knowledge3d.training.arc_agi.quality_scorer import QualityScorer
+from knowledge3d.training.arc_agi.semantic_context import SemanticContext
+```
+
+2. Update `__init__`:
+```python
+def __init__(self, drawing_galaxy, grammar_galaxy, staged: bool = False):
+    # ... existing ...
+    self.deduplicator = ContentDeduplicator()
+    self.quality_scorer = QualityScorer()
+    self.semantic_context = SemanticContext()
+```
+
+3. Update `record()` signature:
+```python
+def record(
+    self,
+    signature,
+    program,
+    program_type,
+    score,
+    input_grid=None,   # NEW
+    output_grid=None,  # NEW
+    task_id=None       # NEW
+):
+    # 1. Quality scoring
+    quality_score = self.quality_scorer.score_quality(program, score)
+
+    # 2. Quality threshold
+    if quality_score < 0.65:
+        return
+
+    # 3. Semantic context (if grids provided)
+    semantic_ctx = None
+    if input_grid is not None and output_grid is not None:
+        semantic_ctx = self.semantic_context.record_context(
+            program, np.array(input_grid), np.array(output_grid),
+            task_id or "unknown", quality_score
+        )
+
+    # 4. Deduplication
+    prog_hash, is_new = self.deduplicator.add_or_reference(
+        program, program_type, quality_score,
+        context=semantic_ctx
+    )
+
+    # 5. Record if new
+    if is_new:
+        complexity = self.quality_scorer.get_complexity_level(program)
+        print(f"  [NEW] {complexity}: {program[:60]} (Q={quality_score:.2f})")
+
+        entry = {
+            "hash": prog_hash,
+            "program": program,
+            "type": program_type,
+            "quality_score": quality_score,
+            "complexity": complexity
+        }
+
+        if semantic_ctx:
+            entry["semantic_context"] = {
+                "transformation_type": semantic_ctx["transformation_type"],
+                "when_to_use": semantic_ctx["when_to_use"],
+                "signature_hash": semantic_ctx["input_signature"]["signature_hash"]
+            }
+
+        if self.staged:
+            self.pending.append(entry)
+        else:
+            self.library.append(entry)
+    else:
+        stats = self.deduplicator.get_usage_stats(prog_hash)
+        print(f"  [DUP] {stats['usage_count']} uses (avg={stats['avg_score']:.2f})")
+```
+
+4. Add pruning:
+```python
+def prune_low_quality(self) -> Dict[str, int]:
+    removed = self.deduplicator.prune_low_quality(min_usage=2, min_score=0.65)
+    valid_hashes = set(self.deduplicator.canonical_programs.keys())
+    original = len(self.library)
+    self.library = [e for e in self.library if e.get("hash") in valid_hashes]
+    return {
+        "removed_programs": removed,
+        "removed_from_library": original - len(self.library),
+        "unique_remaining": len(self.deduplicator.canonical_programs)
+    }
+```
+
+5. Update save/load to include deduplicator + semantic_context
+
+### Step 6: Update Training Loop (30 min)
+
+```bash
+# Modify: scripts/train_arc_sovereign_loop.py
+```
+
+**Changes:**
+
+1. Pass grid data to shadow recording:
+```python
+def run_epoch(pipeline, tasks, args):
+    # ... existing ...
+
+    result = pipeline.process_task(
+        task_id,
+        test_input,
+        train_examples=train_examples,
+        expected_output=test_output,
+        top_k=args.top_k
+    )
+
+    # Record with semantic context
+    if result.best_program:
+        pipeline.shadow.record(
+            signature={},  # existing
+            program=result.best_program,
+            program_type=result.source,
+            score=result.score,
+            input_grid=test_input,     # NEW
+            output_grid=test_output,   # NEW
+            task_id=task_id            # NEW
+        )
+```
+
+2. Add pruning after each cycle:
+```python
+def main():
+    # ... existing cycle loop ...
+
+    for cycle in range(args.cycles):
+        # ... run epochs ...
+
+        # Prune low-quality duplicates
+        print("\n[PRUNING] Removing low-quality duplicates...")
+        stats = pipeline.shadow.prune_low_quality()
+        print(f"  Removed: {stats['removed_programs']} programs")
+        print(f"  Unique remaining: {stats['unique_remaining']}")
+
+        # Commit
+        if hasattr(pipeline.shadow, 'commit'):
+            pipeline.shadow.commit()
+```
+
+### Step 7: Add Semantic Routing (1 hour)
+
+```bash
+# Modify: knowledge3d/training/arc_agi/sovereign_trm_router.py
+```
+
+**Add semantic matching to route()**:
+```python
+def route(
+    self,
+    test_input: Sequence[Sequence[int]],
+    top_k: int = 3
+) -> List[Dict]:
+    """Route with semantic-aware candidate selection."""
+
+    # NEW: Semantic matching
+    input_array = np.array(test_input)
+    matching_contexts = self.shadow.semantic_context.find_matching_contexts(
+        input_array,
+        top_k=top_k
+    )
+
+    semantic_candidates = []
+    for ctx in matching_contexts:
+        semantic_candidates.append({
+            "program": ctx["program"],
+            "source": "semantic_match",
+            "score": ctx["score"],
+            "transformation_type": ctx["transformation_type"],
+            "when_to_use": ctx["when_to_use"]
+        })
+
+    # Combine with existing candidates
+    all_candidates = semantic_candidates + procedural_candidates + trm_candidates
+
+    # ... rest of routing ...
+```
+
+---
+
+## Testing Strategy
+
+### Test 1: Unit Tests (30 min)
+
+```bash
+# Test each component independently
+python -c "from knowledge3d.training.arc_agi.content_deduplicator import ContentDeduplicator; d = ContentDeduplicator(); print('✓ Deduplicator')"
+python -c "from knowledge3d.training.arc_agi.quality_scorer import QualityScorer; q = QualityScorer(); print('✓ Quality Scorer')"
+python -c "from knowledge3d.training.arc_agi.semantic_signature import SemanticSignature; print('✓ Semantic Signature')"
+python -c "from knowledge3d.training.arc_agi.semantic_context import SemanticContext; print('✓ Semantic Context')"
+```
+
+### Test 2: Integration Test (15 min)
+
+```bash
+# Clear checkpoints
+rm -rf /K3D/Knowledge3D.local/checkpoints/arc_agi/*.json
+
+# Short training run
+conda run -n k3d-cranium env PYTHONPATH=. CUDA_VISIBLE_DEVICES=0 \
+  python scripts/train_arc_sovereign_loop.py \
+    --arc-dirs /K3D/Knowledge3D.local/datasets/arc_agi/ARC-AGI-master/data/training \
+    --max-tasks 10 --epochs 1 --cycles 1 --matryoshka-dim 512 --top-k 12
+
+# Check results
+cat /K3D/Knowledge3D.local/checkpoints/arc_agi/deduplication_index.json | grep total_unique
+cat /K3D/Knowledge3D.local/checkpoints/arc_agi/shadow_copy.json | grep semantic_context
+```
+
+**Expected output:**
+```
+[NEW] compound: compose 1 rotate 2 flip (Q=0.91)
+[DUP] 3 uses (avg=0.75)
+[PRUNING] Removed: 5 programs
+  Unique remaining: 45
+```
+
+### Test 3: Full Training Run (2-3 hours)
+
+```bash
+tmux new-session -s arc_quality_semantic
+
+/home/daniel/miniforge/bin/conda run -n k3d-cranium \
+  env PYTHONPATH=. CUDA_VISIBLE_DEVICES=0 \
+  python scripts/train_arc_sovereign_loop.py \
+    --arc-dirs /K3D/Knowledge3D.local/datasets/arc_agi/ARC-AGI-master/data/training \
+               /K3D/Knowledge3D.local/datasets/arc_agi/ARC-AGI-master/data/evaluation \
+    --max-tasks 72 --epochs 9 --cycles 9 --matryoshka-dim 512 --top-k 12 \
+    > /tmp/arc_quality_semantic.log 2>&1
+```
+
+**Expected results:**
+```
+Final state:
+- Unique programs: 400-500 (down from 1662!)
+- Semantic annotations: 400-500 (one per unique program)
+- Quality distribution:
+  - Simple: 50-100 (penalized)
+  - Intermediate: 150-250
+  - Compound: 100-150 (rewarded)
+- Accuracy: 0% → 5-10% (semantic routing working!)
+```
+
+---
+
+## Success Criteria
+
+### Deduplication Working
+- [x] Content hashing detects duplicates
+- [x] Only unique programs stored (1662 → 400-500)
+- [x] Usage metadata tracked (avg score, count)
+- [x] Low-quality programs pruned
+
+### Quality Filtering Working
+- [x] Simple patterns penalized (score × 0.5)
+- [x] Compound patterns rewarded (score × 1.3)
+- [x] Quality threshold enforced (0.65 minimum)
+
+### Semantic Context Working
+- [x] Signatures extracted from grids
+- [x] Transformation types inferred
+- [x] Usage conditions tagged
+- [x] Context stored with each discovery
+
+### Semantic Routing Working
+- [x] Matching finds similar contexts
+- [x] Semantic candidates prioritized
+- [x] TRM uses context for composition
+- [x] Accuracy improved (0% → 5-10%)
+
+---
+
+## Timeline
+
+**Total estimated time: 6-8 hours**
+
+| Phase | Component | Time |
+|-------|-----------|------|
+| 1 | content_deduplicator.py | 45 min |
+| 1 | quality_scorer.py | 30 min |
+| 1 | Update dual_shadow_copy.py (dedup) | 1 hour |
+| 2 | semantic_signature.py | 1 hour |
+| 2 | semantic_context.py | 1 hour |
+| 2 | Update dual_shadow_copy.py (semantic) | 30 min |
+| 3 | Update train_arc_sovereign_loop.py | 30 min |
+| 3 | Update sovereign_trm_router.py | 1 hour |
+| 3 | Testing | 1 hour |
+
+---
+
+## Expected Final State
+
+**Library Quality:**
+```json
+{
+  "unique_programs": 450,
+  "total_references": 1800,
+  "quality_distribution": {
+    "simple": 80,
+    "intermediate": 220,
+    "compound": 150
+  },
+  "semantic_annotations": 450,
+  "avg_quality_score": 0.78
+}
+```
+
+**Sample Entry:**
+```json
+{
+  "hash": "a3f5b2c19d4e",
+  "program": "compose 1 rotate 2 flip",
+  "type": "grammar",
+  "quality_score": 0.91,
+  "complexity": "compound",
+  "semantic_context": {
+    "transformation_type": "rotation_or_reflection",
+    "when_to_use": ["asymmetric_input", "rotation_task"],
+    "signature_hash": "7d3c8a12"
+  }
+}
+```
+
+**Routing Example:**
+```python
+# Input: 3×3 asymmetric grid
+# Semantic match finds: "compose 1 rotate 2 flip" @ "rotation_task"
+# TRM tries semantic match FIRST (not blind trial!)
+# Result: Higher success rate, faster convergence
+```
+
+---
+
+## Why This is the Right Approach
+
+**User's Insights**:
+1. ✅ Deduplication with merge properties (symlink approach)
+2. ✅ Semantic reasoning (form + meaning)
+3. ✅ Quality-based discovery (compound > simple)
+
+**Architecture Completion**:
+- Before: Form only (Drawing + Grammar galaxies)
+- After: Form + Meaning (+ Semantic context layer)
+
+**Human Analogy**:
+- Before: Memorizing "1+1=2" 1000 times without understanding
+- After: Understanding "addition applies to similar quantities" + deduping identical facts
+
+**Expected Impact**:
+- Library: 1662 → 450 unique (-73% bloat)
+- Quality: Simple 80% → 18%, Compound 5% → 33%
+- Accuracy: 0% → 5-10% (semantic routing)
+- Disk: 163KB → 60KB (canonical references)
+
+This completes the Phase 3 architecture! 🧠✨🚀
+
+---
+
+**Ready to implement! Let's build form + meaning together!** 💪

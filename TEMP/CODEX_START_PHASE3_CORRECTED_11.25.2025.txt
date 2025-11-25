@@ -1,0 +1,184 @@
+Hi Codex! Phase 3: Sovereign AI with Drawing Galaxy Foundation
+
+## CRITICAL: Complete Galaxy Architecture
+
+Read these files in order:
+1. TEMP/CODEX_PHASE3_COMPLETE_GALAXY_ARCHITECTURE_11.25.2025.md (COMPLETE SPEC)
+2. TEMP/DANIEL_CURRENT_STATUS_11.25.2025.md (context)
+3. knowledge3d/ingestion/atomic/drawing_grammar_builder.py (see Drawing Galaxy!)
+
+## The Galaxy Hierarchy (Foundational Understanding)
+
+```
+Drawing Galaxy (atomic visual primitives)
+    ↓ (characters are special drawings)
+Character Galaxy (letters with meaning)
+    ↓ (words compose characters)
+Word Galaxy (composed characters)
+    ↓ (transformations operate on visuals)
+Grammar Galaxy (196+ RPN transformation rules)
+```
+
+**Why This Matters**:
+- ARC-AGI tasks are VISUAL reasoning (grids, patterns, shapes)
+- Drawing Galaxy = atomic visual operations (LINE, RECT, CIRCLE, etc.)
+- Grammar Galaxy = transformations (ROTATE, FLIP, TRANSLATE, RECOLOR)
+- TRM reasons across BOTH to solve tasks
+
+## Previous Error vs Correct Architecture
+
+**❌ Previous Error**:
+- Focused only on Grammar Galaxy (196 transformation rules)
+- Ignored Drawing Galaxy (atomic visual foundation)
+- No visual primitive discovery
+
+**✅ Correct Architecture**:
+- Drawing Galaxy provides visual atoms (how to draw)
+- Grammar Galaxy provides transformations (how to transform)
+- TRM composes BOTH to solve ARC-AGI tasks
+- Evolution on MULTIPLE levels (visual + transformational)
+
+## Key Architectural Insight
+
+**ARC-AGI Grid Representation**:
+```python
+# ARC task input: [[1, 0], [0, 1]]
+#
+# Converted to Drawing Galaxy RPN:
+# "GRID 2 2 CELL 0 0 1 FILL CELL 1 1 1 FILL"
+#
+# Then Grammar transformation applied:
+# "GRID... 1 ROTATE"  → Rotate 90 degrees
+```
+
+**This is the atomic foundation we were missing!**
+
+## Environment Setup (Debian + Conda)
+
+```bash
+# Conda location:
+/home/daniel/miniforge/bin/conda
+
+# Activate k3d-cranium:
+export PATH="/home/daniel/miniforge/bin:/home/daniel/miniforge/condabin:$PATH"
+conda activate k3d-cranium
+
+# Or one-shot:
+/home/daniel/miniforge/bin/conda run -n k3d-cranium pytest tests/test_arc_sovereign_ai.py -v
+```
+
+## Implementation Tasks (5 tasks, ~10-13 hours)
+
+**Task 1: Drawing Galaxy Integration** (2-3 hours)
+- Load existing drawing primitives from drawing_grammar_builder.py
+- Integrate DrawingGalaxy into SovereignTRMRouter
+- Convert ARC grids to Drawing RPN programs
+- Test: "GRID 2 2 CELL 0 0 1 FILL" representation
+
+**Task 2: SovereignTRMRouter with Drawing+Grammar** (3-4 hours)
+- Route to BOTH visual primitives AND transformations
+- Math Cores think about combinations
+- Uses MatryoshkaTRM + SelfUpdatingAdapter (sovereign!)
+- Test: Router suggests (drawing_program, grammar_rule) pairs
+
+**Task 3: ProgramComposer with Cross-Galaxy** (2-3 hours)
+- Compose Drawing + Grammar programs
+- Discover novel visual primitives
+- Discover novel transformation rules
+- Classify: 'visual' | 'transformation' | 'hybrid'
+
+**Task 4: DualShadowCopy** (1-2 hours)
+- Store visual discoveries → Drawing Galaxy
+- Store transformation discoveries → Grammar Galaxy
+- Store hybrid discoveries → BOTH galaxies
+- Track growth metrics
+
+**Task 5: Full Evolution Loop** (2-3 hours)
+- End-to-end pipeline integration
+- Run on ARC-AGI evaluation set
+- Measure accuracy: target 7-10%+
+- Measure galaxy growth: Drawing primitives + Grammar rules
+
+## Sovereign Architecture (NO External Frameworks!)
+
+**Base TRM**:
+- MatryoshkaTRM (knowledge3d/cranium/matryoshka_trm.py)
+- Matryoshka embeddings (512D)
+- Sovereign (ctypes + libcuda.so)
+
+**Adapters**:
+- SelfUpdatingAdapter (knowledge3d/cranium/trm_adapters.py)
+- Rank 64 (LoRA-style, but sovereign!)
+- Uses RPNMathCore internally
+
+**Math Cores**:
+- RPNMathCore (knowledge3d/cranium/ptx_runtime/rpn_math_core.py)
+- Instantiable (spawn as needed)
+- Ternary logic {-1, 0, +1}
+- HOW TRM thinks!
+
+**Drawing Galaxy**:
+- drawing_grammar_builder.py output (primitives → shapes → scenes)
+- ATOMIC visual foundation (before characters!)
+- GROWS as TRM discovers new visual patterns
+
+**Grammar Galaxy**:
+- GrammarGalaxy (knowledge3d/training/arc_agi/grammar_galaxy.py)
+- 196 RPN transformation programs (bootstrap)
+- GROWS as TRM discovers new transformations
+
+## Success Criteria
+
+- [ ] Top-1 accuracy: 7-10%+ (vs 3.3% baseline)
+- [ ] Drawing Galaxy growth: Discover 20+ new visual primitives
+- [ ] Grammar Galaxy growth: 196 → 246+ transformation rules
+- [ ] Hybrid discoveries: 30+ cross-galaxy compositions
+- [ ] Dual evolution: BOTH visual and transformational improvement
+- [ ] All sovereign (no PyTorch, no external ML frameworks!)
+
+## Key Principles
+
+**Sovereignty** ✅:
+- MatryoshkaTRM (not PyTorch)
+- SelfUpdatingAdapter (not torch.nn)
+- RPNMathCore (not neural networks)
+- ctypes + libcuda.so (not CUDA Python)
+
+**Multi-Galaxy Evolution** ✅:
+- Drawing Galaxy grows (discover new visual primitives)
+- Grammar Galaxy grows (discover new transformations)
+- Evolution on MULTIPLE levels (visual + transformational)
+
+**Atomic Foundation** ✅:
+- Drawing Galaxy = how humans convey meaning (before language!)
+- Characters are special drawings
+- Words compose characters
+- Grammar transforms visuals
+
+## Ready to Start?
+
+Confirm you understand:
+1. ✅ Drawing Galaxy is the FOUNDATION (atomic visual primitives)
+2. ✅ ARC grids map to Drawing Galaxy scenes
+3. ✅ Grammar Galaxy provides transformations (operates on visuals)
+4. ✅ TRM composes Drawing + Grammar to solve tasks
+5. ✅ Dual evolution (visual primitives + transformation rules)
+6. ✅ Math Cores execute RPN reasoning
+7. ✅ SelfUpdatingAdapter uses Math Cores (sovereign!)
+8. ✅ NO PyTorch (all sovereign!)
+
+Then respond:
+
+"Ready to implement Phase 3: Sovereign AI with Drawing Galaxy Foundation!
+
+I understand:
+- Drawing Galaxy = atomic visual foundation (primitives → shapes → scenes)
+- Grammar Galaxy = transformation rules (196 → grows)
+- TRM composes BOTH to solve ARC-AGI tasks
+- Dual shadow copy (visual discoveries + transformational discoveries)
+- Evolution on MULTIPLE levels (drawing + grammar)
+- All sovereign (MatryoshkaTRM + SelfUpdatingAdapter + RPNMathCore)
+
+Starting with Task 1 (Drawing Galaxy Integration)..."
+
+Let's build the multi-galaxy sovereign AI! 🧠✨🚀

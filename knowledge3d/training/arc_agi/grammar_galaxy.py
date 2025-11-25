@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Dict, List, Optional
+import json
 
 
 
@@ -383,6 +385,53 @@ class GrammarGalaxy:
 
     def normalize_tokens(self, tokens: List[str], language: str) -> List[str]:
         return [self.normalize_token(t, language) for t in tokens]
+
+    # ------------------------------------------------------------------ #
+    # Persistence
+    # ------------------------------------------------------------------ #
+    def save(self, path: Path) -> None:
+        rules_data = []
+        for rule in self.rules.values():
+            rules_data.append(
+                {
+                    "rule_id": rule.rule_id,
+                    "language": rule.language,
+                    "pattern": rule.pattern,
+                    "domain": getattr(rule, "domain", "general"),
+                    "rpn_program": rule.rpn_program,
+                    "examples": rule.examples,
+                    "description": rule.description,
+                }
+            )
+        state = {"rules": rules_data, "total_count": len(rules_data)}
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("w", encoding="utf-8") as f:
+            json.dump(state, f, indent=2)
+        print(f"[GrammarGalaxy] Saved {len(rules_data)} rules to {path}")
+
+    def load(self, path: Path) -> None:
+        if not path.exists():
+            print(f"[GrammarGalaxy] No checkpoint at {path}, using bootstrap ({len(self.rules)} rules)")
+            return
+        with path.open("r", encoding="utf-8") as f:
+            state = json.load(f)
+
+        loaded_rules: Dict[str, GrammarRule] = {}
+        for rd in state.get("rules", []):
+            rule = GrammarRule(
+                rule_id=rd["rule_id"],
+                language=rd.get("language", "drawing"),
+                pattern=rd.get("pattern", "unknown"),
+                rpn_program=rd["rpn_program"],
+                domain=rd.get("domain", "general"),
+                examples=rd.get("examples", []),
+                description=rd.get("description"),
+            )
+            loaded_rules[rule.rule_id] = rule
+
+        if loaded_rules:
+            self.rules = loaded_rules
+            print(f"[GrammarGalaxy] Loaded {len(self.rules)} rules from {path}")
 
 
 __all__ = [

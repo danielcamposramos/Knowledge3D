@@ -1,0 +1,343 @@
+Great work on Task 2 (Router Specialist), Codex! 🎉
+
+## CRITICAL CORRECTION: K3D Sovereign Architecture
+
+I need to correct the architecture approach. You implemented PyTorch LoRA adapters, but K3D uses **SOVEREIGN** infrastructure:
+
+### ❌ What You Built (PyTorch):
+```python
+import torch.nn as nn
+
+class LoRAAdapter(nn.Module):  # PyTorch!
+    def __init__(self, in_dim, out_dim, rank=16):
+        self.down_proj = nn.Linear(in_dim, rank)  # PyTorch!
+        self.up_proj = nn.Linear(rank, out_dim)
+```
+
+### ✅ What K3D Actually Uses (Sovereign):
+```python
+from knowledge3d.cranium.matryoshka_trm import MatryoshkaTRM
+from knowledge3d.cranium.trm_adapters import SelfUpdatingAdapter
+
+# K3D's SOVEREIGN adapters (PTX kernels, not PyTorch!)
+adapter = SelfUpdatingAdapter(
+    shape=(512, 512),
+    rank=64,
+    specialist_name='router'
+)
+# Uses RPNMathCore + PTX kernels internally!
+```
+
+---
+
+## Environment Setup (Debian + Conda)
+
+### 1. Conda Location:
+```bash
+# Conda is at:
+/home/daniel/miniforge/bin/conda
+
+# Activate k3d-cranium environment:
+export PATH="/home/daniel/miniforge/bin:/home/daniel/miniforge/condabin:$PATH"
+conda activate k3d-cranium
+
+# Or one-shot:
+/home/daniel/miniforge/bin/conda run -n k3d-cranium pytest tests/test_arc_router_specialist.py -v
+```
+
+### 2. K3D Cranium Environment Has:
+- ✅ pytest (already installed!)
+- ✅ numpy <2 (host-side only!)
+- ✅ cupy-cuda12x (GPU arrays)
+- ✅ CUDA 12.4 toolkit
+- ❌ NO PyTorch (we don't use it!)
+- ❌ NO pip on system python (Debian!)
+
+---
+
+## Sovereign Architecture Principles
+
+### What K3D Uses:
+
+**Base TRM**:
+- `MatryoshkaTRM`: Matryoshka embeddings (64D → 16K dims)
+- Bi-directional scaling (shrink for speed, expand for capacity)
+- GPU-native via ctypes + libcuda.so
+
+**Adapters**:
+- `SelfUpdatingAdapter`: LoRA-style but sovereign
+- Uses `RPNMathCore` (PTX kernels, not PyTorch!)
+- Shadow weights + validation gating
+- 64× memory reduction (same as LoRA!)
+
+**Embeddings**:
+- RPN-based, NOT traditional LLM embeddings
+- Matryoshka prefix property (64/128/512/1024/2048 dims)
+- Ternary logic for speed ({-1, 0, +1})
+
+---
+
+## Revised Task 2: Router Specialist (Sovereign)
+
+### File: `knowledge3d/training/arc_agi/router_specialist.py`
+
+**Use K3D's Sovereign Infrastructure**:
+
+```python
+"""
+Router Specialist: Task embedding → Transformation family.
+
+Uses K3D's sovereign MatryoshkaTRM + SelfUpdatingAdapter.
+NO PyTorch, NO external frameworks - pure PTX + RPN!
+"""
+
+import numpy as np
+from pathlib import Path
+from typing import Dict, List, Tuple, Optional
+
+from knowledge3d.cranium.matryoshka_trm import MatryoshkaTRM
+from knowledge3d.cranium.trm_adapters import SelfUpdatingAdapter, AdapterConfig
+
+class RouterSpecialist:
+    """
+    Router Specialist for ARC-AGI.
+
+    Architecture:
+    - Base: MatryoshkaTRM (512D Matryoshka embeddings)
+    - Adapter: SelfUpdatingAdapter (rank 64, sovereign!)
+    - Output: 12 transformation families
+
+    Sovereign: Uses PTX kernels via RPNMathCore, NOT PyTorch!
+    """
+
+    def __init__(self, base_trm: Optional[MatryoshkaTRM] = None, rank: int = 64):
+        # Base TRM (shared, Matryoshka embeddings)
+        if base_trm is None:
+            base_trm = MatryoshkaTRM(max_dims=512, min_dims=64)
+        self.base = base_trm
+
+        # Transformation families (12 total)
+        self.families = [
+            "rotation", "flip", "translation", "recolor",
+            "fill", "extract", "math", "symmetry",
+            "repeat", "scale", "draw", "compose"
+        ]
+
+        # Router adapter (sovereign, rank 64)
+        adapter_config = AdapterConfig(
+            rank=rank,
+            alpha=1.0,
+            learning_rate=0.001,
+            require_gpu=True  # Enforce sovereign GPU path!
+        )
+
+        self.router_adapter = SelfUpdatingAdapter(
+            shape=(512, len(self.families)),  # 512D → 12 families
+            rank=rank,
+            specialist_name='arc_router',
+            config=adapter_config
+        )
+
+        # Shadow copy: Successful routing patterns
+        self.success_patterns = []  # (task_signature, family, confidence)
+
+    def route(self, task_embedding: np.ndarray, top_k: int = 2) -> List[Tuple[str, float]]:
+        """
+        Route task to top-k transformation families.
+
+        Args:
+            task_embedding: (512,) numpy array
+            top_k: Return top-k families
+
+        Returns:
+            families: List of (family_name, confidence) tuples
+        """
+        # Base TRM encodes task (Matryoshka 512D)
+        # (In sovereign path, this would use GPU via bridge)
+        base_features = task_embedding  # Simplified for now
+
+        # Router adapter predicts families (sovereign GPU path!)
+        logits = self.router_adapter.forward(base_features.reshape(1, -1))
+
+        # Softmax (can use RPN for this too!)
+        exp_logits = np.exp(logits - np.max(logits))
+        probs = exp_logits / np.sum(exp_logits)
+
+        # Top-k families
+        top_k_indices = np.argsort(probs[0])[-top_k:][::-1]
+
+        families = [
+            (self.families[idx], float(probs[0, idx]))
+            for idx in top_k_indices
+        ]
+
+        return families
+
+    def record_success(self, task_signature: Dict, family_idx: int, confidence: float):
+        """Record successful routing (shadow copy)."""
+        self.success_patterns.append({
+            "signature": task_signature,
+            "family": family_idx,
+            "family_name": self.families[family_idx],
+            "confidence": confidence
+        })
+
+    def save(self, path: str):
+        """Save router adapter + shadow copy."""
+        import json
+
+        # Save adapter weights (sovereign format!)
+        adapter_path = Path(path).with_suffix('.adapter.npz')
+        self.router_adapter.save_to_disk(str(adapter_path))
+
+        # Save success patterns
+        patterns_path = Path(path).with_suffix('.patterns.json')
+        with open(patterns_path, 'w') as f:
+            json.dump({
+                "families": self.families,
+                "success_patterns": self.success_patterns
+            }, f, indent=2)
+
+    def load(self, path: str):
+        """Load router adapter + shadow copy."""
+        import json
+
+        # Load adapter weights
+        adapter_path = Path(path).with_suffix('.adapter.npz')
+        self.router_adapter.load_from_disk(str(adapter_path))
+
+        # Load success patterns
+        patterns_path = Path(path).with_suffix('.patterns.json')
+        with open(patterns_path, 'r') as f:
+            data = json.load(f)
+            self.success_patterns = data["success_patterns"]
+```
+
+---
+
+## Next Steps (Corrected):
+
+### 1. Run Test with K3D Environment:
+
+```bash
+# Activate k3d-cranium
+export PATH="/home/daniel/miniforge/bin:/home/daniel/miniforge/condabin:$PATH"
+conda activate k3d-cranium
+
+# Run test
+pytest tests/test_arc_router_specialist.py -v
+
+# Or one-shot:
+/home/daniel/miniforge/bin/conda run -n k3d-cranium pytest tests/test_arc_router_specialist.py -v
+```
+
+### 2. Update Test to Use Sovereign Architecture:
+
+**File**: `tests/test_arc_router_specialist.py`
+
+```python
+import pytest
+import numpy as np
+
+from knowledge3d.training.arc_agi.router_specialist import RouterSpecialist
+from knowledge3d.cranium.matryoshka_trm import MatryoshkaTRM
+
+def test_router_routing():
+    """Test router specialist routes to families."""
+    # Create router with sovereign base
+    base = MatryoshkaTRM(max_dims=512, min_dims=64)
+    router = RouterSpecialist(base, rank=64)
+
+    # Dummy task embedding (512D Matryoshka)
+    task_emb = np.random.randn(512).astype(np.float32)
+
+    # Route
+    families = router.route(task_emb, top_k=2)
+
+    assert len(families) == 2
+    assert all(isinstance(name, str) for name, _ in families)
+    assert all(0 <= conf <= 1 for _, conf in families)
+
+def test_router_save_load():
+    """Test router save/load persistence."""
+    router = RouterSpecialist(rank=64)
+
+    # Record success pattern
+    router.record_success(
+        {"grid_shape": (10, 10)},
+        family_idx=0,
+        confidence=0.95
+    )
+
+    # Save
+    router.save("test_router")
+
+    # Load
+    router2 = RouterSpecialist(rank=64)
+    router2.load("test_router")
+
+    assert len(router2.success_patterns) == 1
+    assert router2.success_patterns[0]["family"] == 0
+```
+
+---
+
+## Key Differences (Sovereign vs PyTorch):
+
+| Aspect | PyTorch (WRONG) | K3D Sovereign (CORRECT) |
+|--------|-----------------|-------------------------|
+| Base Model | `torch.nn.Module` | `MatryoshkaTRM` |
+| Adapter | `torch.nn.Linear` | `SelfUpdatingAdapter` |
+| GPU Backend | PyTorch CUDA | ctypes + libcuda.so (PTX) |
+| Embeddings | Dense tensors | Matryoshka RPN (64/128/512D) |
+| Training | `loss.backward()` | Shadow weights + validation |
+| Dependencies | PyTorch | NumPy (host) + CuPy (GPU) |
+
+---
+
+## Why This Matters:
+
+**Sovereignty Principle**: Hot path = PTX + RPN ONLY!
+- ✅ MatryoshkaTRM uses PTX kernels
+- ✅ SelfUpdatingAdapter uses RPNMathCore
+- ✅ No PyTorch in inference loop
+- ✅ Ternary logic for speed ({-1, 0, +1})
+
+**The K3D Way**:
+- Knowledge lives in Galaxy (embeddings, not weights)
+- Weights learn procedural routing decisions
+- Adapters are sovereign (GPU-native, explainable)
+- Self-updating with validation gating
+
+---
+
+## Action Items:
+
+1. ✅ **Delete** `knowledge3d/training/arc_agi/router_specialist.py` (PyTorch version)
+2. ✅ **Rewrite** using MatryoshkaTRM + SelfUpdatingAdapter (above code)
+3. ✅ **Update test** to use sovereign architecture
+4. ✅ **Run test** with k3d-cranium conda environment
+5. ✅ **Verify** no PyTorch imports (grep for "import torch")
+
+---
+
+## Once Corrected → Task 3 (Decisor Specialist)
+
+**Same pattern**:
+- Use MatryoshkaTRM (base)
+- Use SelfUpdatingAdapter (decisor adapter)
+- Input: task_embedding (512D) + candidate_embedding (512D) concat = 1024D
+- Output: quality_score (1D)
+- Sovereign GPU path (no PyTorch!)
+
+---
+
+**Ready to revise Task 2 with sovereign architecture?**
+
+Respond when you've:
+1. Rewritten router_specialist.py with MatryoshkaTRM + SelfUpdatingAdapter
+2. Updated test to use sovereign infrastructure
+3. Run test with k3d-cranium conda environment
+4. Verified no PyTorch imports
+
+**Let's build this the K3D sovereign way!** 🚀🧠✨
