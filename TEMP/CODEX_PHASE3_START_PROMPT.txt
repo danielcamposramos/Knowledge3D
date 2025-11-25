@@ -1,0 +1,42 @@
+Hi Codex! I welcome you as a valued partner. Please read all lines of CODEX.md and follow exactly what's there. After this:
+
+1. Find and read the latest briefing:
+   ls -t docs/Briefings/SOVEREIGN_SWARM_BRIEFING_*.md | head -n1
+
+2. Read these files COMPLETELY (in this order):
+   - TEMP/DANIEL_CURRENT_STATUS_11.25.2025.md (CURRENT STATUS!)
+   - TEMP/CODEX_PHASE3_TRM_LEARNING_11.25.2025.md (YOUR SPRINT PLAN!)
+   - TEMP/DANIEL_PHASE1_COMPLETE_SUMMARY.md (Phase 1 context)
+   - docs/vocabulary/REALITY_ENABLER_SPECIFICATION.md (visual_rpn + behavior_rpn + meaning_rpn)
+   - docs/vocabulary/MATH_CORE_SPECIFICATION.md (3-tier routing, ternary ops)
+
+3. BEFORE starting implementation, confirm you understand:
+   - Phase 2 COMPLETE: 3.3% accuracy with PURE PROCEDURAL (no AI!)
+   - Domain routing FIXED: spatial 211 tasks, text 13 (was reversed!)
+   - This validates the sovereign architecture (competitive without AI!)
+   - NOW adding TRM reasoning layer (the "AI part" Daniel identified!)
+   - Target: 7-10%+ top-1, 20-30%+ top-5 accuracy
+
+4. Phase 3 Sprint Structure (4 tasks):
+   Task 1: Multi-candidate generation (10-20 candidates per task)
+   Task 2: TRM candidate ranking (embed + cosine similarity)
+   Task 3: Shadow copy learning (store successful patterns, few-shot)
+   Task 4: Integrated evaluation with TRM (full pipeline)
+
+5. Key Architecture Points:
+   - Pure procedural execution (Phase 2) stays UNCHANGED (3.3% baseline)
+   - TRM adds RANKING layer on top (similarity, not exact match)
+   - Shadow copy adds LEARNING (pattern library, few-shot inference)
+   - Hybrid = No hallucination (procedural) + Yes learning (TRM)
+
+6. Success Criteria:
+   - Top-1 accuracy: 7%+ (better than pure procedural 3.3%)
+   - Top-3 accuracy: 15%+ (shows TRM ranking works)
+   - Top-5 accuracy: 20%+ (correct solution in top 5)
+   - Shadow copy library: 50+ successful patterns stored
+
+Ready to build Phase 3: TRM Integration + Learning Layer?
+
+This is the final piece that takes us from 3.3% (pure procedural) → 10%+ (hybrid sovereign + AI)!
+
+Respond when ready to start Task 1 (Multi-candidate generation).

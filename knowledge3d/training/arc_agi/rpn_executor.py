@@ -37,6 +37,48 @@ class ARCRPNExecutor:
                 dx = int(stack.pop())
                 grid_array = self._translate_grid(grid_array, dx, dy)
 
+            elif token == "FOR_EACH_CELL":
+                stack.append("CELL_ITERATION")
+
+            elif token == "GET_ROW":
+                stack.append("ROW")
+
+            elif token == "GET_COL":
+                stack.append("COL")
+
+            elif token in ("ADD", "SUB", "MUL"):
+                b = stack.pop()
+                a = stack.pop()
+                if token == "ADD":
+                    stack.append(self._combine_math(a, b, "+"))
+                elif token == "SUB":
+                    stack.append(self._combine_math(a, b, "-"))
+                elif token == "MUL":
+                    stack.append(self._combine_math(a, b, "*"))
+
+            elif token == "MOD":
+                divisor = stack.pop()
+                value = stack.pop()
+                stack.append(self._combine_math(value, divisor, "%"))
+
+            elif token in ("EQ", "GT", "LT"):
+                b = stack.pop()
+                a = stack.pop()
+                op = {"EQ": "==", "GT": ">", "LT": "<"}[token]
+                stack.append(self._combine_math(a, b, op))
+
+            elif token == "IF_TRUE":
+                condition = stack.pop()
+                mode = stack.pop() if stack else None
+                if mode == "CELL_ITERATION":
+                    mask = self._evaluate_cell_condition(grid_array, condition)
+                    stack.append(mask)
+                else:
+                    stack.append(condition)
+
+            elif token == "CURRENT_COLOR":
+                stack.append(1)
+
             elif token == "FILL":
                 color = int(stack.pop())
                 region = stack.pop()
@@ -45,6 +87,10 @@ class ARCRPNExecutor:
             elif token == "FIND_OBJECT":
                 color = int(stack.pop())
                 mask = grid_array == color
+                stack.append(mask)
+
+            elif token == "FIND_ANY_OBJECT":
+                mask = grid_array != 0
                 stack.append(mask)
 
             elif token == "DUP":
@@ -93,6 +139,32 @@ class ARCRPNExecutor:
                 pos = self._get_centroid(mask)
                 stack.append(pos)
 
+            elif token == "POSITION_MASK":
+                dest = stack.pop()
+                mask = self._position_mask(grid_array.shape, dest)
+                stack.append(mask)
+
+            elif token == "CENTER":
+                h, w = grid_array.shape
+                stack.append((h // 2, w // 2))
+
+            elif token == "COMPUTE":
+                # Passthrough; position already on stack.
+                pass
+
+            elif token == "RECTANGLE":
+                height = int(stack.pop())
+                width = int(stack.pop())
+                pos = stack.pop()
+                mask = self._rectangle_mask(grid_array.shape, pos, width, height)
+                stack.append(mask)
+
+            elif token == "CIRCLE":
+                radius = int(stack.pop())
+                pos = stack.pop()
+                mask = self._circle_mask(grid_array.shape, pos, radius)
+                stack.append(mask)
+
             elif token in (
                 "BOTTOM",
                 "TOP",
@@ -132,7 +204,9 @@ class ARCRPNExecutor:
             elif token == "EXTEND_SEQUENCE":
                 dy = int(stack.pop())
                 dx = int(stack.pop())
-                grid_array = self._translate_grid(grid_array, dx, dy)
+                pattern = stack.pop()
+                translated = self._translate_grid(pattern, dx, dy)
+                grid_array = np.where(translated != 0, translated, grid_array)
 
             elif token == "FLIP_H":
                 grid_array = np.fliplr(grid_array)
@@ -179,7 +253,7 @@ class ARCRPNExecutor:
         cy, cx = current
         dest = dest.lower()
 
-        if dest in ("center", "centre"):
+        if dest in ("center", "centre", "middle"):
             ty, tx = h // 2, w // 2
         elif dest == "bottom-right":
             ty, tx = h - 1, w - 1
@@ -239,6 +313,94 @@ class ARCRPNExecutor:
                 if 0 <= ny < h and 0 <= nx < w:
                     result[ny, nx] = True
         return result
+
+    def _position_mask(self, shape: tuple[int, int], dest: str) -> np.ndarray:
+        """Create a boolean mask for a single target position keyword."""
+        h, w = shape
+        mask = np.zeros((h, w), dtype=bool)
+        dest = dest.lower()
+
+        if dest in ("center", "centre", "middle"):
+            ty, tx = h // 2, w // 2
+        elif dest == "bottom-right":
+            ty, tx = h - 1, w - 1
+        elif dest == "bottom-left":
+            ty, tx = h - 1, 0
+        elif dest == "top-right":
+            ty, tx = 0, w - 1
+        elif dest == "top-left":
+            ty, tx = 0, 0
+        elif dest == "top":
+            ty, tx = 0, w // 2
+        elif dest == "bottom":
+            ty, tx = h - 1, w // 2
+        elif dest == "left":
+            ty, tx = h // 2, 0
+        elif dest == "right":
+            ty, tx = h // 2, w - 1
+        else:
+            return mask
+
+        mask[ty, tx] = True
+        return mask
+
+    def _rectangle_mask(self, shape: tuple[int, int], pos: tuple[int, int], width: int, height: int) -> np.ndarray:
+        h, w = shape
+        cy, cx = pos
+        mask = np.zeros((h, w), dtype=bool)
+        y1 = max(0, cy - height // 2)
+        y2 = min(h, cy + height // 2)
+        x1 = max(0, cx - width // 2)
+        x2 = min(w, cx + width // 2)
+        mask[y1:y2, x1:x2] = True
+        return mask
+
+    def _circle_mask(self, shape: tuple[int, int], pos: tuple[int, int], radius: int) -> np.ndarray:
+        h, w = shape
+        cy, cx = pos
+        mask = np.zeros((h, w), dtype=bool)
+        for y in range(h):
+            for x in range(w):
+                if (y - cy) ** 2 + (x - cx) ** 2 <= radius ** 2:
+                    mask[y, x] = True
+        return mask
+
+    def _combine_math(self, a, b, op: str):
+        """Combine two operands, keeping symbolic strings for per-cell eval."""
+        if isinstance(a, str) or isinstance(b, str):
+            return f"({a}){op}({b})"
+        if op == "+":
+            return a + b
+        if op == "-":
+            return a - b
+        if op == "*":
+            return a * b
+        if op == "%":
+            return a % b
+        if op == "==":
+            return a == b
+        if op == ">":
+            return a > b
+        if op == "<":
+            return a < b
+        return 0
+
+    def _evaluate_cell_condition(self, grid: np.ndarray, condition: str) -> np.ndarray:
+        """
+        Evaluate condition expression for each cell.
+        Example: "(ROW)+(COL)%2==(0)"
+        """
+        h, w = grid.shape
+        mask = np.zeros((h, w), dtype=bool)
+        for y in range(h):
+            for x in range(w):
+                expr = condition.replace("ROW", str(y)).replace("COL", str(x))
+                try:
+                    result = eval(expr)
+                    mask[y, x] = bool(result)
+                except Exception:
+                    pass
+        return mask
 
 
 __all__ = ["ARCRPNExecutor"]
