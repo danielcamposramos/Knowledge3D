@@ -103,7 +103,6 @@ class MatryoshkaTRM:
 
     def _initialise_gpu_resources(self):
         """Allocate and populate GPU buffers for the base weight matrix."""
-        # Sovereignty: GPU-native only, no CPU fallback
         self._bridge = MatryoshkaProjectionBridge()
         self._gpu_weights = loader.gpu_malloc(self.W_base_full.nbytes)
         loader.memcpy_htod(
@@ -135,15 +134,14 @@ class MatryoshkaTRM:
 
     def project_vector(self, vector: np.ndarray, target_dim: int) -> np.ndarray:
         """
-        Project `vector` using GPU-native path (sovereignty - no CPU fallback).
+        Project `vector` using GPU-native path (sovereign only).
         """
         if self._bridge is None or self._gpu_weights is None:
             raise RuntimeError(
-                "Matryoshka GPU resources not initialized. "
-                "Sovereignty principle: no CPU fallback. "
-                "Ensure GPU is available and PTX compilation succeeded."
+                "Matryoshka GPU resources not initialized. Sovereign path requires CUDA + PTX loader."
             )
-        return self._bridge.project_host(self._gpu_weights, vector, target_dim, self.max_dims)
+        vec = np.asarray(vector, dtype=np.float32)
+        return self._bridge.project_host(self._gpu_weights, vec, target_dim, self.max_dims)
 
     def register_specialist(self, name: str, required_dims: int,
                           rank: Optional[int] = None,
