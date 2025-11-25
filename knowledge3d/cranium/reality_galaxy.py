@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import base64
 import json
-import math
 from array import array
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -21,7 +20,6 @@ from knowledge3d.cranium.reality_nodes import (
     RealityNode,
     RealitySystem,
 )
-from knowledge3d.cranium.ptx_runtime.modular_rpn_engine import ModularRPNEngine
 
 
 DEFAULT_REALITY_GALAXY_ROOT = Path("../Knowledge3D.local/reality_galaxy")
@@ -53,10 +51,13 @@ class RealityGalaxy:
         from knowledge3d.cranium.ptx_runtime.math_core_pool import MathCorePool
 
         self._math_core_pool = math_core_pool or MathCorePool()
-        # GPU-backed ModularRPNEngine is optional and not required for the
-        # sovereign CPU hot path used by RealityGalaxy.step_system(). Callers
-        # that need GPU RPN can inject an engine via the rpn_engine parameter.
-        self._rpn = rpn_engine
+        # GPU-backed RPN engine is required for the hot path; Python only
+        # orchestrates STORE/RECALL and state dict updates.
+        if rpn_engine is None:
+            from knowledge3d.cranium.ptx_runtime.modular_rpn_engine import ModularRPNEngine
+
+            rpn_engine = ModularRPNEngine(pool=self._math_core_pool)
+        self._rpn_engine = rpn_engine
         self._compressor = compressor
         self._compressor_checked = compressor is not None
 
@@ -96,13 +97,117 @@ class RealityGalaxy:
     # ------------------------------------------------------------------ #
     # Behavior execution
     # ------------------------------------------------------------------ #
+    def _split_by_store(self, tokens: List[str]) -> List[Tuple[List[str], str]]:
+        """Split RPN token stream into (expression, target_var) segments at each STORE."""
+        segments: List[Tuple[List[str], str]] = []
+        current_expr: List[str] = []
+
+        i = 0
+        while i < len(tokens):
+            tok = tokens[i]
+            if tok.upper() == "STORE":
+                if not current_expr:
+                    raise ValueError("STORE encountered with empty expression")
+                target_var = current_expr[-1]
+                expr = current_expr[:-1]
+                if not expr:
+                    raise ValueError(f"STORE for {target_var} has empty expression")
+                segments.append((expr, target_var))
+                current_expr = []
+                i += 1
+            else:
+                current_expr.append(tok)
+                i += 1
+
+        return segments
+
+    def _compile_to_gpu_rpn(
+        self,
+        expr_tokens: List[str],
+        state: Dict[str, float],
+        dt: float,
+    ) -> str:
+        """Compile a STORE-free RPN expression into a GPU-ready RPN string."""
+        compiled: List[str] = []
+        i = 0
+
+        while i < len(expr_tokens):
+            tok = expr_tokens[i]
+            lower_tok = tok.lower()
+            next_tok = expr_tokens[i + 1].lower() if i + 1 < len(expr_tokens) else ""
+
+            # var RECALL pattern
+            if next_tok == "recall":
+                var_name = tok
+                if var_name == "dt":
+                    value = dt
+                else:
+                    if var_name not in state:
+                        raise KeyError(f"Variable {var_name} not in state")
+                    value = state[var_name]
+                compiled.append(str(float(value)))
+                i += 2
+                continue
+
+            # Bare dt literal
+            if lower_tok == "dt":
+                compiled.append(str(float(dt)))
+                i += 1
+                continue
+
+            # Numeric literal
+            try:
+                value = float(tok)
+            except ValueError:
+                value = None
+            if value is not None:
+                compiled.append(str(float(value)))
+                i += 1
+                continue
+
+            # Ternary aliases
+            if lower_tok in {"ternary_quant", "tquant"}:
+                compiled.append("tquant")
+                i += 1
+                continue
+            if lower_tok in {"ternary_cmp", "tcmp"}:
+                compiled.append("tcomp")
+                i += 1
+                continue
+
+            # Comparison macros: le/ge in terms of gt/lt
+            if lower_tok == "le":
+                # a b le  => a b gt 1 swap -
+                compiled.extend(["gt", "1", "swap", "-"])
+                i += 1
+                continue
+            if lower_tok == "ge":
+                # a b ge  => a b lt 1 swap -
+                compiled.extend(["lt", "1", "swap", "-"])
+                i += 1
+                continue
+
+            # SIGN macro: sign(x) -> dup 0 gt swap 0 lt -
+            if lower_tok == "sign":
+                compiled.extend(["dup", "0", "gt", "swap", "0", "lt", "-"])
+                i += 1
+                continue
+
+            # ABS macro: abs(x) -> dup * sqrt
+            if lower_tok == "abs":
+                compiled.extend(["dup", "*", "sqrt"])
+                i += 1
+                continue
+
+            # Simple opcode forwarding (lower-cased)
+            compiled.append(lower_tok)
+            i += 1
+
+        return " ".join(compiled)
+
     def execute_behavior(self, node_id: str, state: Optional[Dict[str, float]] = None) -> Dict[str, float]:
         """
-        Execute behavior_rpn using explicit STORE/RECALL stack semantics.
-
-        Example (postfix):
-            v RECALL a RECALL dt RECALL * + v STORE
-            x RECALL v RECALL dt RECALL * + x STORE
+        Execute behavior_rpn on GPU using explicit STORE/RECALL semantics.
         """
         node = self.get_node(node_id)
         if node is None:
@@ -118,29 +223,32 @@ class RealityGalaxy:
         if not program:
             return initial_state
 
-        result_state, _ = self._execute_rpn_with_state(
-            program,
-            initial_state,
-            instance_id=node.rpn_instance if isinstance(node, RealitySystem) else 0,
-        )
+        # Split into STORE segments and execute each on GPU.
+        tokens = [t for t in program.split() if t]
+        segments = self._split_by_store(tokens)
+        dt = float(initial_state.get("dt", 0.0))
+        raw_instance = node.rpn_instance if isinstance(node, RealitySystem) else None
+        max_gpu_instances = getattr(self._rpn_engine, "max_instances", 18)
+        instance_id = None
+        if raw_instance is not None:
+            instance_id = int(raw_instance) % int(max_gpu_instances)
+
+        for expr_tokens, target_var in segments:
+            gpu_rpn = self._compile_to_gpu_rpn(expr_tokens, initial_state, dt)
+            result = self._rpn_engine.evaluate(gpu_rpn, instance_id=instance_id)
+            initial_state[target_var] = result
+
         if isinstance(node, RealitySystem):
-            node.state = result_state
-        return result_state
+            node.state = initial_state
+        return initial_state
 
     def step_system(self, system_id: str, n_steps: int = 1) -> Dict[str, float]:
         """Step a reality_system forward by n_steps with law validation."""
-        # SOVEREIGNTY GUARD
         import sys
-        if __debug__:
-            # Enforce that array/accelerator libraries stay out of the hot path.
-            # Torch is validated separately in test_hot_path_no_torch.
-            forbidden = {"numpy", "tensorflow", "cupy"}
-            loaded = forbidden & set(sys.modules.keys())
-            if loaded:
-                raise RuntimeError(
-                    f"SOVEREIGNTY VIOLATION: {loaded} in hot path! "
-                    f"Only PTX+RPN allowed in inference loop."
-                )
+        # Capture baseline forbidden modules before stepping; any new imports
+        # during the hot path will be treated as sovereignty violations.
+        forbidden = {"numpy", "tensorflow", "cupy"}
+        baseline_forbidden = forbidden & set(sys.modules.keys())
 
         node = self.get_node(system_id)
         if not isinstance(node, RealitySystem):
@@ -156,6 +264,15 @@ class RealityGalaxy:
         node.state = state
         # Track last executed instance for diagnostics
         node.metadata["last_rpn_instance"] = node.rpn_instance
+
+        if __debug__:
+            loaded = forbidden & set(sys.modules.keys())
+            new_loaded = loaded - baseline_forbidden
+            if new_loaded:
+                raise RuntimeError(
+                    f"SOVEREIGNTY VIOLATION: {new_loaded} imported during hot path! "
+                    f"Only PTX+RPN allowed in inference loop."
+                )
         return state
 
     # ------------------------------------------------------------------ #
@@ -422,173 +539,33 @@ class RealityGalaxy:
         node = self.get_node(node_id)
         if not node or not node.law_rpn.strip():
             return True
+
+        tokens = [t for t in node.law_rpn.split() if t]
+        dt = float(state.get("dt", 0.0))
+        raw_instance: Optional[int] = node.rpn_instance if isinstance(node, RealitySystem) else None
+        max_gpu_instances = getattr(self._rpn_engine, "max_instances", 18)
+        instance_id: Optional[int] = None
+        if raw_instance is not None:
+            instance_id = int(raw_instance) % int(max_gpu_instances)
+
         try:
-            _, stack = self._execute_rpn_with_state(node.law_rpn, state, return_stack=True)
+            gpu_rpn = self._compile_to_gpu_rpn(tokens, state, dt)
+            result = self._rpn_engine.evaluate(gpu_rpn, instance_id=instance_id)
         except Exception:
             return False
-        if stack:
-            return bool(stack[-1])
-        return True
+
+        return bool(result)
 
     # ------------------------------------------------------------------ #
-    # RPN with STORE/RECALL
+    # Deprecated CPU RPN path
     # ------------------------------------------------------------------ #
-    def _execute_rpn_with_state(
-        self,
-        program: str,
-        state: Dict[str, float],
-        *,
-        return_stack: bool = False,
-        instance_id: int = 0,
-    ) -> Tuple[Dict[str, float], List[float]]:
-        tokens = [t for t in program.split() if t]
-        stack: List[float] = []
-        result_state = dict(state)
-        i = 0
+    def _execute_rpn_with_state(self, *args: Any, **kwargs: Any) -> Tuple[Dict[str, float], List[float]]:
+        """CPU RPN interpreter has been removed; hot path is PTX-only."""
+        raise RuntimeError(
+            "CPU RPN interpreter removed. Hot path is PTX only. "
+            "If you see this, RealityGalaxy was not initialized correctly."
+        )
 
-        def pop2() -> Tuple[float, float]:
-            if len(stack) < 2:
-                raise ValueError("Insufficient operands")
-            b = stack.pop()
-            a = stack.pop()
-            return a, b
-
-        while i < len(tokens):
-            tok = tokens[i]
-            next_tok = tokens[i + 1].lower() if i + 1 < len(tokens) else ""
-            lower_tok = tok.lower()
-
-            if next_tok == "recall":
-                if tok not in result_state:
-                    raise ValueError(f"Variable {tok} not in state")
-                stack.append(float(result_state[tok]))
-                i += 2
-                continue
-
-            if next_tok == "store":
-                if not stack:
-                    raise ValueError("STORE requires value on stack")
-                result_state[tok] = float(stack.pop())
-                i += 2
-                continue
-
-            if lower_tok in {"+", "-", "*", "/"}:
-                a, b = pop2()
-                if lower_tok == "+":
-                    stack.append(a + b)
-                elif lower_tok == "-":
-                    stack.append(a - b)
-                elif lower_tok == "*":
-                    stack.append(a * b)
-                elif lower_tok == "/":
-                    stack.append(a / b if b != 0 else 0.0)
-                i += 1
-                continue
-
-            if lower_tok == "neg":
-                if not stack:
-                    raise ValueError("NEG requires value on stack")
-                stack.append(-stack.pop())
-                i += 1
-                continue
-
-            if lower_tok == "dup":
-                if stack:
-                    stack.append(stack[-1])
-                i += 1
-                continue
-
-            if lower_tok == "swap":
-                if len(stack) >= 2:
-                    stack[-1], stack[-2] = stack[-2], stack[-1]
-                i += 1
-                continue
-
-            if lower_tok == "drop":
-                if stack:
-                    stack.pop()
-                i += 1
-                continue
-
-            if lower_tok == "abs":
-                if not stack:
-                    raise ValueError("ABS requires value on stack")
-                stack.append(abs(stack.pop()))
-                i += 1
-                continue
-
-            if lower_tok == "sqrt":
-                if not stack:
-                    raise ValueError("SQRT requires value on stack")
-                val = stack.pop()
-                stack.append(float(math.sqrt(val)))
-                i += 1
-                continue
-
-            if lower_tok == "sign":
-                if not stack:
-                    raise ValueError("SIGN requires value on stack")
-                val = stack.pop()
-                stack.append(-1.0 if val < 0 else (1.0 if val > 0 else 0.0))
-                i += 1
-                continue
-
-            if lower_tok in {"ternary_quant", "tquant"}:
-                if len(stack) < 2:
-                    raise ValueError("TERNARY_QUANT requires value and threshold on stack")
-                thresh = stack.pop()
-                val = stack.pop()
-                if val > thresh:
-                    stack.append(1.0)
-                elif val < -thresh:
-                    stack.append(-1.0)
-                else:
-                    stack.append(0.0)
-                i += 1
-                continue
-
-            if lower_tok in {"ternary_cmp", "tcmp"}:
-                a, b = pop2()
-                diff = a - b
-                stack.append(-1.0 if diff < 0 else (1.0 if diff > 0 else 0.0))
-                i += 1
-                continue
-
-            if lower_tok in {"lt", "gt", "eq", "le", "ge"}:
-                a, b = pop2()
-                if lower_tok == "lt":
-                    stack.append(1.0 if a < b else 0.0)
-                elif lower_tok == "gt":
-                    stack.append(1.0 if a > b else 0.0)
-                elif lower_tok == "eq":
-                    stack.append(1.0 if a == b else 0.0)
-                elif lower_tok == "le":
-                    stack.append(1.0 if a <= b else 0.0)
-                elif lower_tok == "ge":
-                    stack.append(1.0 if a >= b else 0.0)
-                i += 1
-                continue
-
-            if lower_tok == "assert":
-                if not stack:
-                    raise ValueError("ASSERT requires value on stack")
-                val = stack.pop()
-                if not val:
-                    raise AssertionError("Law assertion failed")
-                i += 1
-                continue
-
-            # literal or implicit recall
-            try:
-                stack.append(float(tok))
-            except ValueError:
-                if tok in result_state:
-                    stack.append(float(result_state[tok]))
-                else:
-                    raise ValueError(f"Unknown token: {tok}")
-            i += 1
-
-        return (result_state, stack if return_stack else [])
 
     # ------------------------------------------------------------------ #
     # glTF export

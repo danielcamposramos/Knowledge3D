@@ -1,86 +1,45 @@
-"""PTX runtime helpers migrated from legacy phase directories."""
+"""PTX runtime helpers migrated from legacy phase directories.
 
-# Conditional imports to avoid cuda.bindings dependency issues
-# ModularRPNEngine requires cuda.bindings which may not be available
-# Other modules use CuPy which works in k3d-cranium environment
+This package exposes PTX runtime helpers but avoids importing heavy
+dependencies (NumPy/CuPy) at import time. Symbols are resolved lazily
+on attribute access.
+"""
 
-try:
-    from .modular_rpn_engine import ModularRPNEngine
-    _HAS_MODULAR_RPN = True
-except (ImportError, RuntimeError):
-    ModularRPNEngine = None  # type: ignore
-    _HAS_MODULAR_RPN = False
+from __future__ import annotations
 
-from .math_core_pool import MathCorePool, get_global_math_core_pool
-from .rpn_calculator import RPNCalculator
+from typing import Any, Dict, Tuple
 
-# Optional imports (may have external dependencies)
-try:
-    from .thinking_tag_embedder import ThinkingTagEmbedder
-    _HAS_THINKING_EMBEDDER = True
-except (ImportError, AttributeError, RuntimeError):
-    ThinkingTagEmbedder = None  # type: ignore
-    _HAS_THINKING_EMBEDDER = False
 
-try:
-    from .text_to_3d_generator import TextTo3DGenerator
-    _HAS_TEXT_TO_3D = True
-except (ImportError, RuntimeError):
-    TextTo3DGenerator = None  # type: ignore
-    _HAS_TEXT_TO_3D = False
+_LAZY_ATTRS: Dict[str, Tuple[str, str]] = {
+    "ModularRPNEngine": ("modular_rpn_engine", "ModularRPNEngine"),
+    "MathCorePool": ("math_core_pool", "MathCorePool"),
+    "get_global_math_core_pool": ("math_core_pool", "get_global_math_core_pool"),
+    "RPNCalculator": ("rpn_calculator", "RPNCalculator"),
+    "ThinkingTagEmbedder": ("thinking_tag_embedder", "ThinkingTagEmbedder"),
+    "TextTo3DGenerator": ("text_to_3d_generator", "TextTo3DGenerator"),
+    "SleepTimeCompute": ("sleep_time_compute", "SleepTimeCompute"),
+    "GalaxyStateSerializer": ("galaxy_state_serializer", "GalaxyStateSerializer"),
+    "GalaxyMemoryUpdater": ("galaxy_memory_updater", "GalaxyMemoryUpdater"),
+    "NVRTCPTXLoader": ("nvrtc_ptx_loader", "NVRTCPTXLoader"),
+    "TRMEngine": ("trm_engine", "TRMEngine"),
+    "TRMConfig": ("trm_engine", "TRMConfig"),
+    "build_trm_refine_program": ("trm_rpn_program", "build_trm_refine_program"),
+    "expected_trm_opcode_sequence": ("trm_rpn_program", "expected_trm_opcode_sequence"),
+}
 
-try:
-    from .sleep_time_compute import SleepTimeCompute
-    _HAS_SLEEP_TIME = True
-except (ImportError, RuntimeError):
-    SleepTimeCompute = None  # type: ignore
-    _HAS_SLEEP_TIME = False
 
-try:
-    from .galaxy_state_serializer import GalaxyStateSerializer
-    _HAS_GALAXY_SERIALIZER = True
-except (ImportError, RuntimeError):
-    GalaxyStateSerializer = None  # type: ignore
-    _HAS_GALAXY_SERIALIZER = False
+def __getattr__(name: str) -> Any:
+    if name in _LAZY_ATTRS:
+        module_name, attr_name = _LAZY_ATTRS[name]
+        module = __import__(f"{__name__}.{module_name}", fromlist=[attr_name])
+        value = getattr(module, attr_name)
+        globals()[name] = value
+        return value
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
-try:
-    from .galaxy_memory_updater import GalaxyMemoryUpdater
-    _HAS_GALAXY_MEMORY = True
-except (ImportError, RuntimeError):
-    GalaxyMemoryUpdater = None  # type: ignore
-    _HAS_GALAXY_MEMORY = False
 
-try:
-    from .nvrtc_ptx_loader import NVRTCPTXLoader
-    _HAS_NVRTC_LOADER = True
-except (ImportError, RuntimeError):
-    NVRTCPTXLoader = None  # type: ignore
-    _HAS_NVRTC_LOADER = False
+def __dir__() -> list[str]:
+    return sorted(list(globals().keys()) + list(_LAZY_ATTRS.keys()))
 
-# TRMEngine uses CuPy (no cuda.bindings dependency)
-try:
-    from .trm_engine import TRMEngine, TRMConfig
-    _HAS_TRM_ENGINE = True
-except (ImportError, RuntimeError):
-    TRMEngine = None  # type: ignore
-    TRMConfig = None  # type: ignore
-    _HAS_TRM_ENGINE = False
 
-from .trm_rpn_program import build_trm_refine_program, expected_trm_opcode_sequence
-
-__all__ = [
-    "ModularRPNEngine",
-    "MathCorePool",
-    "get_global_math_core_pool",
-    "RPNCalculator",
-    "TextTo3DGenerator",
-    "SleepTimeCompute",
-    "ThinkingTagEmbedder",
-    "GalaxyStateSerializer",
-    "GalaxyMemoryUpdater",
-    "NVRTCPTXLoader",
-    "TRMEngine",
-    "TRMConfig",
-    "build_trm_refine_program",
-    "expected_trm_opcode_sequence",
-]
+__all__ = list(_LAZY_ATTRS.keys())
