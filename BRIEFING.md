@@ -1,7 +1,7 @@
 # Knowledge3D Project Briefing
 
-**Last Updated:** November 24, 2025
-**Version:** 3.2 (Phase 5 Capacity Demonstration — CPU path complete; GPU kernels pending cupy)
+**Last Updated:** November 25, 2025
+**Version:** 3.3 (Phase 3 ARC-AGI + Dual Client Reality Documentation)
 **For:** New AI agents, contributors, and project overview
 
 ---
@@ -93,6 +93,103 @@ Validation: 84/84 tests passing (14 physics_demo, 12 reality_galaxy, 22 tier tes
 
 ---
 
+## Dual Client Reality: Procedural Foundation
+
+**Critical Principle**: K3D serves TWO clients simultaneously — **Humans AND AI** — using the SAME procedural data.
+
+### Procedural Layers (Form + Meaning)
+
+Everything in K3D is **procedural RPN + metadata**, readable by both humans and AI:
+
+```
+Drawing Galaxy (knowledge3d/ingestion/atomic/drawing_grammar_builder.py):
+  - LINE, CIRCLE, RECT = procedural RPN primitives
+  - Humans: "This is a line"
+  - AI: Execute RPN drawing programs
+  - Form + Meaning: Visual primitives with semantic labels
+
+Character Galaxy (knowledge3d/cranium/procedural_fonts.py):
+  - 'r' = glyph segments (Bézier → line segments) + language + pronunciation
+  - Humans: "Letter R in English, pronounced /ɑːr/"
+  - AI: Render glyph procedurally, compose into words
+  - Form + Meaning: Each character has font, language, meaning CLUSTERED
+  - DON'T DUPLICATE: Already stored with full metadata
+
+Word Level (character sequences):
+  - "rotation_task" = [char('r'), char('o'), char('t'), ...]
+  - Humans: Read as "rotation task"
+  - AI: Character sequence with embedded meaning (language, context)
+  - Form + Meaning: Composed from characters, inherits metadata
+
+Grammar Galaxy (knowledge3d/training/arc_agi/grammar_galaxy.py):
+  - "1 ROTATE" = procedural RPN transformation
+  - Humans: "Rotate 90 degrees"
+  - AI: Execute RPN program on GPU
+  - Form + Meaning: Transformation rules + context metadata
+```
+
+### Save Information Principle
+
+**Don't duplicate letters/characters!** Each character already has:
+- Font (procedural glyph via Bézier curves → line segments)
+- Language (en, pt, es, etc. — see character_languages.py)
+- Pronunciation metadata
+- Unicode mapping
+- Meaning cluster
+
+**Use references (symlink pattern)** instead of duplicating:
+- Words reference character IDs
+- Grammar metadata references word IDs
+- Discoveries reference canonical programs
+- Storage efficiency: ~70% reduction through deduplication
+
+### Galaxy Universe Composition
+
+Each galaxy stores ONE type of knowledge; galaxies REFERENCE each other:
+
+```
+Drawing Galaxy → primitives (LINE, CIRCLE, RECT)
+    ↓ referenced by
+Character Galaxy → glyphs composed from drawing primitives
+    ↓ composed into
+Word Galaxy → character sequences with semantic meaning
+    ↓ referenced by
+Grammar Galaxy → transformation rules with word metadata
+    ↓ reasoned by
+TRM → semantic-aware routing using all galaxies
+```
+
+**Result**: Single source of truth, zero duplication, human + AI both understand.
+
+### Example: Semantic Tag Storage
+
+**WRONG** (duplicate strings):
+```python
+discovery = {
+    "program": "1 rotate",
+    "transformation_type": "rotation_or_reflection",  # STRING duplicated!
+    "when_to_use": ["asymmetric_input", "rotation_task"]  # STRINGS duplicated!
+}
+# Result: 400 discoveries × 3 strings = 1200 duplicate strings
+```
+
+**CORRECT** (character composition + references):
+```python
+# Characters already exist with full metadata (procedural_fonts.py)
+# Words compose from character IDs
+word_id = compose_word_from_chars("rotation_task")  # Stored once
+
+discovery = {
+    "program": "1 rotate",
+    "transformation_type": word_ref("rotation_or_reflection"),  # Reference
+    "when_to_use": [word_ref("asymmetric_input"), word_ref("rotation_task")]  # References
+}
+# Result: 400 discoveries × 3 references = 1200 lightweight refs
+# Characters stored once, meanings composed, references lightweight
+```
+
+---
+
 ## Sovereignty Principles
 
 **Hot Path (must stay sovereign)**
@@ -130,6 +227,14 @@ See AGENTS.md for detailed collaboration patterns.
 
 ## Current Phase and Next Steps
 
+- **Phase 3 (ARC-AGI):** In Progress (Nov 25, 2025) — Sovereign visual reasoning for ARC-AGI competition
+  - **Architecture:** Drawing + Grammar + Character Galaxy composition (dual client reality)
+  - **Baseline:** 3.3% accuracy (procedural candidate generation)
+  - **Current:** Training library growth (456 → 1662 grammar rules, 269 → 1556 shapes)
+  - **Next:** Deduplication + quality filtering (1662 → 400-500 unique programs)
+  - **Goal:** 5-10% accuracy via semantic-aware TRM routing, ultimate 45.1%+ (beat Gemini 3)
+  - **Specs:** [TEMP/CODEX_IMPLEMENT_QUALITY_SEMANTIC_CORRECT_11.25.2025.txt](TEMP/CODEX_IMPLEMENT_QUALITY_SEMANTIC_CORRECT_11.25.2025.txt)
+  - **Session summary:** [TEMP/CLAUDE_SESSION_SUMMARY_PROCEDURAL_REALITY_11.25.2025.md](TEMP/CLAUDE_SESSION_SUMMARY_PROCEDURAL_REALITY_11.25.2025.md)
 - **Phase 4A:** Complete (9 classical mechanics systems, tier integration + ternary). Report: [TEMP/CODEX_PHASE4A_TIER_INTEGRATION_COMPLETE_11.24.2025.md](TEMP/CODEX_PHASE4A_TIER_INTEGRATION_COMPLETE_11.24.2025.md).
 - **Phase 4B:** Complete (4 E&M systems: PointCharge2D, LC/RC/RLC circuits with ternary ops). Report: [TEMP/PHASE4B_EM_COMPLETE_11.24.2025.md](TEMP/PHASE4B_EM_COMPLETE_11.24.2025.md).
 - **Phase 4C:** Complete (13 multi-discipline systems: 6 chemistry + 4 biology + 3 materials). 92/92 non-cupy tests passing (includes stress/scenario/glTF), 65,905 steps/sec baseline. Report: [TEMP/PHASE4C_MULTIDISCIPLINE_COMPLETE_11.24.2025.md](TEMP/PHASE4C_MULTIDISCIPLINE_COMPLETE_11.24.2025.md).

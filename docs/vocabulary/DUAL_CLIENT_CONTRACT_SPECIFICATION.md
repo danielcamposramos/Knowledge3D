@@ -1,9 +1,9 @@
 # Dual-Client Contract Specification
 
-**Version**: 1.0
-**Status**: Production (Phase G Complete)
+**Version**: 1.1
+**Status**: Production (Phase 3 ARC-AGI + Procedural Foundation)
 **License**: CC-BY-4.0 (Documentation), Apache 2.0 (Implementation)
-**Date**: November 2025
+**Date**: November 25, 2025
 
 ---
 
@@ -93,6 +93,91 @@ The Dual-Client Contract applies equally to **simulated reality** produced by th
   - write results back to Galaxy/House in a way that remains inspectable (same glTF + `extras.k3d` contract).
 
 Simulated reality is thus not a separate black box; it is part of the shared spatial memory, subject to the same guarantees of identity, transparency, and auditability as all other K3D nodes.
+
+---
+
+### 1.6 Procedural Foundation: Form + Meaning for Both Clients
+
+**Critical Principle**: K3D serves both clients using the SAME procedural data structure—**procedural RPN + metadata**—ensuring both human readability and AI executability.
+
+#### Procedural Layers
+
+Everything in K3D is **procedural** (RPN programs) with **metadata** (semantic meaning):
+
+**Drawing Galaxy** (`knowledge3d/ingestion/atomic/drawing_grammar_builder.py`):
+- **Form**: LINE, CIRCLE, RECT as procedural RPN primitives
+- **Meaning**: Semantic labels ("line segment", "circular arc")
+- **Human**: Sees geometric shapes
+- **AI**: Executes RPN drawing programs
+
+**Character Galaxy** (`knowledge3d/cranium/procedural_fonts.py`):
+- **Form**: Glyph outlines as Bézier curves → line segments (procedural)
+- **Meaning**: Language, pronunciation, unicode (metadata cluster)
+- **Human**: Reads "Letter R in English, pronounced /ɑːr/"
+- **AI**: Renders glyph procedurally, composes into words
+- **Storage**: Each character stored ONCE with font + language + meaning
+
+**Word Level** (character sequences):
+- **Form**: Sequence of character IDs (references)
+- **Meaning**: Composed semantic meaning from characters
+- **Human**: Reads as "rotation_task"
+- **AI**: Character sequence with embedded language/context metadata
+
+**Grammar Galaxy** (`knowledge3d/training/arc_agi/grammar_galaxy.py`):
+- **Form**: RPN transformation programs ("1 ROTATE")
+- **Meaning**: Context metadata (when/why to apply)
+- **Human**: Understands "Rotate 90 degrees clockwise"
+- **AI**: Executes RPN program on GPU, uses metadata for routing
+
+#### Save Information Principle
+
+**Don't duplicate!** Use references (symlink pattern):
+- Characters stored once with full metadata (font, language, pronunciation, meaning cluster)
+- Words reference character IDs (not duplicate glyphs)
+- Grammar metadata references word IDs (not duplicate strings)
+- Discoveries reference canonical programs (content-based deduplication)
+
+**Example: Semantic Tag Storage**
+
+WRONG (duplicate strings):
+```json
+{
+  "program": "1 rotate",
+  "transformation_type": "rotation_or_reflection",
+  "when_to_use": ["asymmetric_input", "rotation_task"]
+}
+```
+Result: 400 discoveries × 3 strings = 1200 duplicate strings
+
+CORRECT (character composition + references):
+```json
+{
+  "program": "1 rotate",
+  "transformation_type": word_ref("rotation_or_reflection"),
+  "when_to_use": [word_ref("asymmetric_input"), word_ref("rotation_task")]
+}
+```
+Result: 400 discoveries × 3 references = 1200 lightweight refs (characters stored once, ~70% storage reduction)
+
+#### Galaxy Universe Composition
+
+Each galaxy stores ONE type of knowledge; galaxies REFERENCE each other:
+
+```
+Drawing Galaxy → primitives (LINE, CIRCLE, RECT)
+    ↓ referenced by
+Character Galaxy → glyphs from drawing primitives
+    ↓ composed into
+Word Galaxy → character sequences with semantic meaning
+    ↓ referenced by
+Grammar Galaxy → transformation rules with word metadata
+    ↓ reasoned by
+TRM → semantic-aware routing using all galaxies
+```
+
+**Result**: Single source of truth, zero duplication, both clients understand identical data.
+
+---
 
 ## 2. Contract Overview
 

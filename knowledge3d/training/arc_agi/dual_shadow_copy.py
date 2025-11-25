@@ -12,6 +12,7 @@ from knowledge3d.training.arc_agi.drawing_galaxy import DrawingGalaxy
 from knowledge3d.training.arc_agi.grammar_galaxy import GrammarGalaxy, GrammarRule
 from knowledge3d.training.arc_agi.content_deduplicator import ContentDeduplicator
 from knowledge3d.training.arc_agi.quality_scorer import QualityScorer
+from knowledge3d.training.arc_agi.semantic_context import SemanticContext
 
 
 class DualShadowCopy:
@@ -25,8 +26,19 @@ class DualShadowCopy:
         self._pending: List[Dict] = []
         self.deduplicator = ContentDeduplicator()
         self.quality_scorer = QualityScorer()
+        self.semantic_context = SemanticContext()
 
-    def record(self, task_signature: Dict, program: str, program_type: str, score: float) -> None:
+    def record(
+        self,
+        task_signature: Dict,
+        program: str,
+        program_type: str,
+        score: float,
+        *,
+        input_grid=None,
+        output_grid=None,
+        task_id: str = "",
+    ) -> None:
         """
         Record discovery with deduplication + quality filtering.
 
@@ -47,6 +59,12 @@ class DualShadowCopy:
         if not is_new:
             return
 
+        context = None
+        if input_grid is not None and output_grid is not None:
+            context = self.semantic_context.record_context(
+                program, input_grid, output_grid, task_id or str(task_signature), quality_score
+            )
+
         complexity = self.quality_scorer.get_complexity_level(program)
         entry = {
             "hash": prog_hash,
@@ -55,6 +73,7 @@ class DualShadowCopy:
             "program_type": program_type,
             "quality_score": float(quality_score),
             "complexity": complexity,
+            "semantic_context": context or {},
         }
 
         if self.staged:
@@ -82,6 +101,8 @@ class DualShadowCopy:
                 rpn_program=program,
                 examples=[signature],
                 description="Discovered transformation from ARC task",
+                semantics=entry.get("semantic_context", {}),
+                usage_conditions=entry.get("semantic_context", {}).get("when_to_use", []),
             )
         else:  # hybrid
             shape_id = f"DISCOVERED_SHAPE_{len(self.drawing.shapes)}"
@@ -95,6 +116,8 @@ class DualShadowCopy:
                 rpn_program=program,
                 examples=[signature],
                 description="Discovered hybrid program from ARC task",
+                semantics=entry.get("semantic_context", {}),
+                usage_conditions=entry.get("semantic_context", {}).get("when_to_use", []),
             )
 
     def commit_pending(self) -> None:
@@ -172,6 +195,8 @@ class DualShadowCopy:
         print(f"[DualShadowCopy] Saved {len(self.library)} entries to {path}")
         dedupe_path = path.parent / "deduplication_index.json"
         self.deduplicator.save(dedupe_path)
+        semantic_path = path.parent / "semantic_context.json"
+        self.semantic_context.save(semantic_path)
 
     def load(self, path: Path) -> None:
         if not path.exists():
@@ -184,6 +209,8 @@ class DualShadowCopy:
         print(f"[DualShadowCopy] Loaded {len(self.library)} shadow entries from {path}")
         dedupe_path = path.parent / "deduplication_index.json"
         self.deduplicator.load(dedupe_path)
+        semantic_path = path.parent / "semantic_context.json"
+        self.semantic_context.load(semantic_path)
 
     def summary(self) -> Dict[str, int]:
         return {

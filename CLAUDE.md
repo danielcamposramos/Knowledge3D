@@ -1,7 +1,7 @@
 # CLAUDE.md — Architecture Partner Guide
 
-**Last Updated:** November 24, 2025  
-**Version:** 2.0 (Streamlined; see BRIEFING.md for architecture)
+**Last Updated:** November 25, 2025
+**Version:** 2.1 (Dual Client Reality + Procedural Foundation)
 
 Claude-style agents focus on architecture, physics design, and documentation. This file explains Claude’s role and how to collaborate. For the full project overview, read BRIEFING.md first.
 
@@ -75,6 +75,55 @@ Claude-style agents focus on architecture, physics design, and documentation. Th
 - Sovereignty guardrail: hot path = PTX + RPN only; no external ML frameworks in inference loops.
 - Ingestion is flexible: any tools/libs OK when kept out of the hot path and documented.
 - Emphasize test-first and doc-first delivery; every feature ships with specs + tests.
+
+---
+
+## Critical Architectural Principle: Dual Client Reality
+
+**IMPORTANT**: K3D serves TWO clients with the SAME data — **Humans AND AI**.
+
+### Procedural Foundation (Form + Meaning)
+
+Everything in K3D is **procedural RPN + metadata**, readable by BOTH clients:
+
+**Drawing Galaxy** → Visual primitives (LINE, CIRCLE, RECT as RPN programs)
+**Character Galaxy** → Glyphs (Bézier → segments) + language/pronunciation metadata
+**Word Level** → Character sequences (references, not duplicates)
+**Grammar Galaxy** → Transformation rules (RPN) + context metadata
+
+### Save Information Principle
+
+**DON'T duplicate what exists!** Use references (symlink pattern):
+- Characters already have font + language + meaning (procedural_fonts.py)
+- Words reference character IDs (not duplicate glyphs)
+- Grammar metadata references words (not duplicate strings)
+- Discoveries reference canonical programs (content-based deduplication)
+
+### When Designing New Features
+
+**ASK:**
+1. Does this already exist in procedural form? (Drawing/Character/Grammar Galaxy)
+2. Can I reference existing data instead of duplicating?
+3. Does this work for BOTH humans (readable) AND AI (executable)?
+4. Is the metadata attached to the right layer?
+
+**Example (Phase 3 ARC-AGI lesson learned):**
+
+WRONG:
+```python
+# Create separate "Word Galaxy" storing semantic strings
+word_galaxy = {"rotation_task": "Task involves rotating elements"}  # DUPLICATE!
+```
+
+CORRECT:
+```python
+# Use existing Character Galaxy (procedural fonts)
+# Words = character sequences (references)
+word_id = compose_word("rotation_task")  # [char('r'), char('o'), ...]
+# Each char already has font + language + meaning!
+```
+
+See: [docs/vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md](docs/vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md) section 1.6
 
 ---
 
