@@ -87,6 +87,8 @@ class ModularRPNEngine:
         "scale": 71,
         "translate": 72,
         "ifelse": 80,
+        # Extended scalar ops used by physics:
+        "abs": 0x27,
         # Procedural drawing opcodes (host parser may also consume)
         "MOVE": 0x64,
         "LINE": 0x65,
