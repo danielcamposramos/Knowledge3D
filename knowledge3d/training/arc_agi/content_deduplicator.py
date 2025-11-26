@@ -37,13 +37,21 @@ class ContentDeduplicator:
         """
         Add a program to the canonical set or reference an existing one.
 
+        SOVEREIGN FIX: Aggregate statistics instead of accumulating full list!
+
         Returns:
             (canonical_hash, is_new)
         """
         prog_hash = self.compute_hash(program)
 
         if prog_hash in self.canonical_programs:
-            self.usage_metadata.setdefault(prog_hash, []).append({"score": score, "context": context or {}})
+            # SOVEREIGN FIX: Aggregate stats instead of storing every reference!
+            prog = self.canonical_programs[prog_hash]
+            prog["usage_count"] = prog.get("usage_count", 1) + 1
+            prog["max_score"] = max(prog.get("max_score", score), score)
+            prog["min_score"] = min(prog.get("min_score", score), score)
+            prog["total_score"] = prog.get("total_score", 0.0) + score
+            # DON'T append to usage_metadata list (memory leak!)
             return prog_hash, False
 
         self.canonical_programs[prog_hash] = {
@@ -52,22 +60,27 @@ class ContentDeduplicator:
             "type": program_type,
             "first_seen_score": score,
             "usage_count": 1,
+            "max_score": score,
+            "min_score": score,
+            "total_score": score,
         }
-        self.usage_metadata[prog_hash] = [{"score": score, "context": context or {}}]
+        # Store empty metadata (no list growth!)
+        self.usage_metadata[prog_hash] = []
         return prog_hash, True
 
     def get_usage_stats(self, prog_hash: str) -> Dict:
-        """Return usage statistics for a program hash."""
-        records = self.usage_metadata.get(prog_hash, [])
-        if not records:
+        """Return usage statistics from aggregated data (no list iteration!)."""
+        prog = self.canonical_programs.get(prog_hash)
+        if not prog:
             return {"usage_count": 0, "avg_score": 0.0, "max_score": 0.0, "min_score": 0.0}
 
-        scores = [r["score"] for r in records]
+        usage_count = prog.get("usage_count", 0)
+        total_score = prog.get("total_score", 0.0)
         return {
-            "usage_count": len(records),
-            "avg_score": sum(scores) / len(scores),
-            "max_score": max(scores),
-            "min_score": min(scores),
+            "usage_count": usage_count,
+            "avg_score": total_score / max(1, usage_count),
+            "max_score": prog.get("max_score", 0.0),
+            "min_score": prog.get("min_score", 0.0),
         }
 
     def prune_low_quality(self, min_usage: int = 2, min_score: float = 0.65) -> int:

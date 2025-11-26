@@ -9,9 +9,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Dict, List, Optional
-
-import numpy as np
+from typing import Dict, List, Optional, Sequence
 
 from knowledge3d.training.arc_agi.semantic_signature import SemanticSignature
 
@@ -123,8 +121,8 @@ class SemanticContext:
     def record_context(
         self,
         program: str,
-        input_grid: np.ndarray,
-        output_grid: Optional[np.ndarray],
+        input_grid: Sequence[Sequence[int]],
+        output_grid: Optional[Sequence[Sequence[int]]],
         task_id: str,
         score: float,
     ) -> Dict:
@@ -133,14 +131,24 @@ class SemanticContext:
         transformation_type = SemanticSignature.compute_transformation_type(input_sig, output_sig)
         when_to_use = self._infer_usage_conditions(input_sig, transformation_type)
 
+        # SOVEREIGN FIX: Store only word refs and lightweight metadata (NO FULL SIGNATURES!)
+        # Full signatures contain nested dicts that accumulate memory
         context = {
             "program": program,
             "task_id": task_id,
             "score": score,
             "transformation_type_ref": self.vocabulary.ref(transformation_type),
             "when_to_use_refs": [self.vocabulary.ref(w) for w in when_to_use],
-            "input_signature": input_sig,
-            "output_signature": output_sig,
+            # Lightweight metadata only (for matching)
+            "dimensions": input_sig.get("dimensions", "unknown"),
+            "num_colors": input_sig.get("num_colors", 0),
+            "sparsity": round(input_sig.get("sparsity", 0.5), 2),
+            "sparsity_label": input_sig.get("sparsity_label", "unknown"),
+            "symmetry_v": input_sig.get("symmetry_vertical", False),
+            "symmetry_h": input_sig.get("symmetry_horizontal", False),
+            "has_border": input_sig.get("has_border", False),
+            "has_repetition": input_sig.get("has_repetition", False),
+            "connected_components": input_sig.get("connected_components", 0),
         }
         self.contexts.append(context)
         return context
@@ -183,7 +191,7 @@ class SemanticContext:
 
     def find_matching_contexts(
         self,
-        query_grid: np.ndarray,
+        query_grid: Sequence[Sequence[int]],
         top_k: int = 5,
         similarity_threshold: float = 0.5,
         use_fuzzy_matching: bool = True,
@@ -191,13 +199,13 @@ class SemanticContext:
         query_sig = SemanticSignature.extract(query_grid)
         matches: List[Dict] = []
         for ctx in self.contexts:
-            input_sig = ctx["input_signature"]
-            structural_sim = self._structural_similarity(query_sig, input_sig)
-            color_sim = self._color_similarity(query_sig, input_sig)
-            pattern_sim = self._pattern_similarity(query_sig, input_sig)
+            # Use lightweight metadata (no full signatures stored!)
+            structural_sim = self._structural_similarity_lite(query_sig, ctx)
+            color_sim = self._color_similarity_lite(query_sig, ctx)
+            pattern_sim = self._pattern_similarity_lite(query_sig, ctx)
             similarity = 0.4 * structural_sim + 0.3 * pattern_sim + 0.3 * color_sim
             if use_fuzzy_matching and similarity < similarity_threshold:
-                if self._fuzzy_match(query_sig, input_sig):
+                if self._fuzzy_match_lite(query_sig, ctx):
                     similarity = max(similarity, similarity_threshold - 0.05)
             if similarity >= similarity_threshold:
                 t_ref = ctx.get("transformation_type_ref")
@@ -220,8 +228,23 @@ class SemanticContext:
         matches.sort(key=lambda x: x["score"], reverse=True)
         return matches[:top_k]
 
-    # Similarity helpers
+    # Similarity helpers (lightweight versions using stored metadata)
+    def _structural_similarity_lite(self, query_sig: Dict, ctx: Dict) -> float:
+        """Compare query signature against lightweight context metadata."""
+        score = 0.0
+        if query_sig.get("symmetry_vertical") == ctx.get("symmetry_v"):
+            score += 0.1
+        if query_sig.get("symmetry_horizontal") == ctx.get("symmetry_h"):
+            score += 0.1
+        sparsity_diff = abs(query_sig.get("sparsity", 0.5) - ctx.get("sparsity", 0.5))
+        if sparsity_diff < 0.2:
+            score += 0.3
+        if query_sig.get("dimensions") == ctx.get("dimensions"):
+            score += 0.2
+        return min(score, 1.0)
+
     def _structural_similarity(self, sig1: Dict, sig2: Dict) -> float:
+        """Legacy function kept for compatibility."""
         score = 0.0
         for key in ("symmetry_vertical", "symmetry_horizontal", "symmetry_diagonal"):
             if sig1.get(key) == sig2.get(key):
@@ -233,7 +256,15 @@ class SemanticContext:
             score += 0.2
         return min(score, 1.0)
 
+    def _color_similarity_lite(self, query_sig: Dict, ctx: Dict) -> float:
+        """Compare color features using lightweight metadata."""
+        score = 0.0
+        if query_sig.get("num_colors") == ctx.get("num_colors"):
+            score += 1.0
+        return min(score, 1.0)
+
     def _color_similarity(self, sig1: Dict, sig2: Dict) -> float:
+        """Legacy function kept for compatibility."""
         score = 0.0
         if sig1.get("num_colors") == sig2.get("num_colors"):
             score += 0.5
@@ -244,7 +275,20 @@ class SemanticContext:
             score += 0.5 * jaccard
         return min(score, 1.0)
 
+    def _pattern_similarity_lite(self, query_sig: Dict, ctx: Dict) -> float:
+        """Compare pattern features using lightweight metadata."""
+        score = 0.0
+        comp_diff = abs(query_sig.get("connected_components", 0) - ctx.get("connected_components", 0))
+        if comp_diff <= 2:
+            score += 0.4
+        if query_sig.get("has_border") == ctx.get("has_border"):
+            score += 0.3
+        if query_sig.get("has_repetition") == ctx.get("has_repetition"):
+            score += 0.3
+        return min(score, 1.0)
+
     def _pattern_similarity(self, sig1: Dict, sig2: Dict) -> float:
+        """Legacy function kept for compatibility."""
         score = 0.0
         comp_diff = abs(sig1.get("connected_components", 0) - sig2.get("connected_components", 0))
         if comp_diff <= 2:
@@ -255,7 +299,24 @@ class SemanticContext:
             score += 0.3
         return min(score, 1.0)
 
+    def _fuzzy_match_lite(self, query_sig: Dict, ctx: Dict) -> bool:
+        """Fuzzy matching using lightweight metadata."""
+        d1 = query_sig.get("dimensions", "0x0")
+        d2 = ctx.get("dimensions", "0x0")
+        try:
+            h1, w1 = map(int, str(d1).split("x"))
+            h2, w2 = map(int, str(d2).split("x"))
+            if h1 and h2 and w1 and w2:
+                if min(h1 / h2, h2 / h1) > 0.5 and min(w1 / w2, w2 / w1) > 0.5:
+                    return True
+        except Exception:
+            pass
+        if query_sig.get("has_border") == ctx.get("has_border"):
+            return True
+        return False
+
     def _fuzzy_match(self, sig1: Dict, sig2: Dict) -> bool:
+        """Legacy function kept for compatibility."""
         d1 = sig1.get("dimensions", "0x0")
         d2 = sig2.get("dimensions", "0x0")
         try:

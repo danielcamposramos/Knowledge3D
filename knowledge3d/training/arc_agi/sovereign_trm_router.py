@@ -13,7 +13,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, List, Sequence, Tuple
 
-import numpy as np
+# SOVEREIGN: No numpy in hot path! Removed numpy import.
+# TODO: MatryoshkaTRM should use RPNMathCore instead of numpy for matrix ops
 
 from knowledge3d.cranium.matryoshka_trm import MatryoshkaTRM
 from knowledge3d.cranium.trm_adapters import SelfUpdatingAdapter
@@ -115,14 +116,15 @@ class SovereignTRMRouter:
     def route(self, grid: Sequence[Sequence[int]], top_k: int = 3, use_semantics: bool = True) -> List[Dict[str, Any]]:
         drawing_program = self.grid_to_drawing_rpn(grid)
         signature = self.task_signature(grid)
-        embedding = self.embed_task(grid)
+        # embedding = self.embed_task(grid)  # TODO: Not currently used, remove to avoid numpy
 
         candidates: List[Dict[str, Any]] = []
 
         # Semantic matches (prioritized)
         if use_semantics and self.semantic_context is not None:
             try:
-                matches = self.semantic_context.find_matching_contexts(np.asarray(grid), top_k=top_k * 2)
+                # SOVEREIGN FIX: Pass grid as-is (no numpy conversion!)
+                matches = self.semantic_context.find_matching_contexts(grid, top_k=top_k * 2)
                 for ctx in matches:
                     candidates.append(
                         {
@@ -139,7 +141,7 @@ class SovereignTRMRouter:
                 print(f"  [SEMANTIC] Warning: semantic matching failed: {e}")
 
         # Grammar-driven candidates (existing path)
-        for rule in self._rank_rules(embedding, top_k=top_k):
+        for rule in self._rank_rules(top_k=top_k):
             candidates.append(
                 {
                     "drawing_program": drawing_program,
@@ -170,7 +172,13 @@ class SovereignTRMRouter:
     # ------------------------------------------------------------------ #
     # Internal helpers
     # ------------------------------------------------------------------ #
-    def _rank_rules(self, embedding: np.ndarray, top_k: int) -> List[GrammarRule]:
+    def _rank_rules(self, top_k: int) -> List[GrammarRule]:
+        """
+        Rank rules heuristically (no embedding needed for now).
+
+        SOVEREIGN: Simple domain-based filtering, no numpy/TRM embedding.
+        TODO: Use RPN-based semantic similarity when embeddings are needed.
+        """
         # Simple heuristic: prefer drawing/spatial domain rules, then others.
         drawing_rules = [r for r in self.grammar.list_rules() if getattr(r, "domain", "") in {"drawing", "spatial"}]
         other_rules = [r for r in self.grammar.list_rules() if r not in drawing_rules]
