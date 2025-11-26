@@ -35,7 +35,8 @@ class QualityScorer:
 
         is_simple = any(re.match(pattern, program) for pattern in self.SIMPLE_PATTERNS)
         if is_simple:
-            quality *= 0.5
+            # Ultra-permissive: minimal penalty to keep simple programs flowing in
+            quality *= 0.85
 
         is_compound = any(indicator in program for indicator in self.COMPOUND_INDICATORS)
         if is_compound:

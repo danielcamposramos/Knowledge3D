@@ -48,6 +48,12 @@ def collect_tasks(dirs: List[Path], limit: int) -> List[Path]:
     random.shuffle(tail)
     return tail[:limit]
 
+def save_checkpoints(pipeline: SovereignAIPipeline) -> None:
+    CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
+    pipeline.drawing.save(DRAWING_CHECKPOINT)
+    pipeline.grammar.save(GRAMMAR_CHECKPOINT)
+    pipeline.shadow.save(SHADOW_CHECKPOINT)
+
 
 def run_epoch(
     pipeline: SovereignAIPipeline,
@@ -135,6 +141,9 @@ def main() -> None:
             stats = run_epoch(pipeline, task_files, executor, epoch + cycle * args.epochs, args)
             epoch_stats.append(stats)
             print(f"  Epoch {epoch+1} (cycle {cycle+1}): {stats['correct']}/{stats['total']} correct ({stats['correct']/max(1,stats['total']):.2%})")
+            # Save after every epoch to accumulate discoveries incrementally
+            print(f"  [SAVE] Saving checkpoints after epoch {epoch+1}...")
+            save_checkpoints(pipeline)
 
         # Dedup/prune after each cycle to keep quality high
         print("\n[PRUNING] Removing low-quality duplicates...")
@@ -150,10 +159,7 @@ def main() -> None:
     pruned = pipeline.shadow.prune_discovered(executor)
     summary = pipeline.summary()
     print("\n[SAVING] Updated galaxy state to checkpoints...")
-    CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
-    pipeline.drawing.save(DRAWING_CHECKPOINT)
-    pipeline.grammar.save(GRAMMAR_CHECKPOINT)
-    pipeline.shadow.save(SHADOW_CHECKPOINT)
+    save_checkpoints(pipeline)
 
     print("\nCommit complete.")
     print(f"Pruned: {pruned}")

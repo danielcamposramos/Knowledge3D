@@ -31,6 +31,20 @@ class SemanticSignature:
 
         sig["topology"] = SemanticSignature._compute_topology(grid)
         sig["signature_hash"] = SemanticSignature._compute_signature_hash(grid)
+
+        # Flatten a few commonly used fields for easier matching/usage
+        sig["dimensions"] = sig["structural"].get("dimensions")
+        sig["sparsity"] = sig["structural"].get("sparsity")
+        sig["sparsity_label"] = sig["structural"].get("sparsity_label")
+        sig["symmetry_vertical"] = sig["structural"].get("symmetric_vertical")
+        sig["symmetry_horizontal"] = sig["structural"].get("symmetric_horizontal")
+        sig["symmetry_diagonal"] = sig["structural"].get("symmetric_diagonal")
+        sig["num_colors"] = sig["color"].get("num_colors")
+        sig["color_distribution"] = sig["color"].get("color_distribution")
+        sig["has_border"] = sig["pattern"].get("has_border")
+        sig["has_repetition"] = sig["pattern"].get("has_repetition")
+        sig["connected_components"] = sig["pattern"].get("num_components")
+
         return sig
 
     @staticmethod
