@@ -14,7 +14,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, List, Sequence, Optional
 
-import numpy as np
+# SOVEREIGN: No numpy in hot path! Use plain lists for grids.
 
 from knowledge3d.training.arc_agi.drawing_galaxy import DrawingGalaxy
 from knowledge3d.training.arc_agi.grammar_galaxy import GrammarGalaxy
@@ -31,6 +31,16 @@ class TaskResult:
     score: float
     signature: Dict
     output_grid: Optional[List[List[int]]] = None
+
+
+def _grids_equal(grid1: Sequence[Sequence[int]], grid2: Sequence[Sequence[int]]) -> bool:
+    """SOVEREIGN: Compare grids without numpy."""
+    if len(grid1) != len(grid2):
+        return False
+    for row1, row2 in zip(grid1, grid2):
+        if len(row1) != len(row2) or list(row1) != list(row2):
+            return False
+    return True
 
 
 class SovereignAIPipeline:
@@ -76,7 +86,7 @@ class SovereignAIPipeline:
                     "program": rpn,
                     "program_type": "procedural",
                     "source": "baseline",
-                    "output": np.asarray(output, dtype=np.int32),
+                    "output": output,  # SOVEREIGN: Keep as list, no numpy conversion
                 }
             )
 
@@ -107,8 +117,9 @@ class SovereignAIPipeline:
         if not merged:
             raise RuntimeError("No candidates generated")
 
-        test_input_arr = np.asarray(test_input, dtype=np.int32)
-        expected_arr = np.asarray(expected_output, dtype=np.int32) if expected_output is not None else None
+        # SOVEREIGN: Keep grids as lists, no numpy conversion
+        test_input_list = [list(row) for row in test_input]
+        expected_list = [list(row) for row in expected_output] if expected_output is not None else None
 
         # 4) Execute programs needing execution and score.
         best = None
@@ -116,18 +127,18 @@ class SovereignAIPipeline:
         for cand in merged:
             if cand["output"] is None:
                 try:
-                    cand["output"] = np.asarray(executor.execute(test_input, cand["program"]), dtype=np.int32)
+                    cand["output"] = executor.execute(test_input, cand["program"])  # Returns list already
                 except Exception:
-                    cand["output"] = test_input_arr
+                    cand["output"] = test_input_list
             score = self._score_candidate(
                 cand["output"],
-                test_input_arr,
-                expected_arr,
+                test_input_list,
+                expected_list,
                 source=cand["source"],
             )
             cand["score"] = score
             # Track exact procedural matches first
-            if expected_arr is not None and cand["source"] == "baseline" and np.array_equal(cand["output"], expected_arr):
+            if expected_list is not None and cand["source"] == "baseline" and _grids_equal(cand["output"], expected_list):
                 if exact_proc_best is None or score > exact_proc_best["score"]:
                     exact_proc_best = cand
             if best is None or score > best["score"]:
@@ -145,7 +156,7 @@ class SovereignAIPipeline:
             chosen["program"],
             chosen["program_type"],
             chosen["score"],
-            input_grid=test_input_arr,
+            input_grid=test_input_list,  # SOVEREIGN: Pass list, not numpy array
             output_grid=chosen["output"],
             task_id=task_id,
         )
@@ -156,7 +167,7 @@ class SovereignAIPipeline:
             program_type=chosen["program_type"],
             score=float(chosen["score"]),
             signature=signature,
-            output_grid=chosen["output"].tolist(),
+            output_grid=chosen["output"],  # SOVEREIGN: Already a list, no .tolist() needed
         )
         self.results.append(result)
         return result
@@ -171,24 +182,30 @@ class SovereignAIPipeline:
 
     @staticmethod
     def _score_candidate(
-        output: np.ndarray,
-        input_grid: np.ndarray,
-        expected: Optional[np.ndarray] = None,
+        output: Sequence[Sequence[int]],
+        input_grid: Sequence[Sequence[int]],
+        expected: Optional[Sequence[Sequence[int]]] = None,
         *,
         source: str = "unknown",
     ) -> float:
-        """Score candidates; align thresholds with DualShadowCopy recording."""
-        if expected is not None and np.array_equal(output, expected):
+        """Score candidates (SOVEREIGN: no numpy!); align thresholds with DualShadowCopy recording."""
+        if expected is not None and _grids_equal(output, expected):
             return 1.0
 
         score = 0.4  # below recording threshold
 
         # Reward non-identity transforms
-        if not np.array_equal(output, input_grid):
+        if not _grids_equal(output, input_grid):
             score += 0.2  # 0.6 baseline for any change
 
-        num_colors = len(np.unique(output))
-        filled_ratio = float(np.count_nonzero(output)) / float(output.size or 1)
+        # Count unique colors (no numpy unique!)
+        all_values = [val for row in output for val in row]
+        num_colors = len(set(all_values)) if all_values else 0
+
+        # Compute filled ratio (no numpy count_nonzero!)
+        total_cells = sum(len(row) for row in output)
+        nonzero_count = sum(1 for val in all_values if val != 0)
+        filled_ratio = float(nonzero_count) / float(total_cells or 1)
 
         if num_colors > 1:
             score += 0.1  # 0.7
