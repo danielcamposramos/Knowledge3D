@@ -33,7 +33,7 @@ from knowledge3d.cranium.ptx_runtime.modular_rpn_engine import ModularRPNEngine
 from knowledge3d.cranium.specialists.procedural_drawing_specialist import (
     ProceduralDrawingSpecialist,
 )
-from knowledge3d.cranium.adaptive_swarm import AdaptiveSwarmTRM
+from knowledge3d.cranium.adaptive_swarm import AdaptiveSwarmTRM, SwarmConfig
 from .embedders.multimodal_grid_embedder import MultiModalGridEmbedder
 from .embedders.video_grid_embedder import VideoGridEmbedder
 from .embedders.audio_grid_embedder import AudioGridEmbedder
@@ -113,7 +113,11 @@ class ARCGridProcessor:
 
         # Reuse procedural drawing infrastructure
         # (Character glyphs and grids are BOTH procedural drawings.)
-        self.swarm = AdaptiveSwarmTRM()
+        cfg = SwarmConfig()
+        cfg.base_dims = matryoshka_dim
+        cfg.min_dims = 64
+        cfg.enable_auto_expansion = False
+        self.swarm = AdaptiveSwarmTRM(config=cfg)
         self.drawing_specialist = ProceduralDrawingSpecialist(
             swarm=self.swarm,
             matryoshka_dim=matryoshka_dim,

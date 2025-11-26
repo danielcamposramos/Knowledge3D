@@ -46,7 +46,7 @@ class DualShadowCopy:
         - Deduplicate by content hash; only persist first occurrence.
         """
         quality_score = self.quality_scorer.score_quality(program, score)
-        if quality_score < 0.65:
+        if quality_score < 0.45:
             return
 
         prog_hash, is_new = self.deduplicator.add_or_reference(
@@ -167,7 +167,7 @@ class DualShadowCopy:
 
     def prune_low_quality(self) -> Dict[str, int]:
         """Remove low-quality duplicates and clean library/pending lists."""
-        removed_programs = self.deduplicator.prune_low_quality(min_usage=2, min_score=0.65)
+        removed_programs = self.deduplicator.prune_low_quality(min_usage=2, min_score=0.45)
         valid = set(self.deduplicator.canonical_programs.keys())
         before_lib = len(self.library)
         before_pending = len(self._pending)
