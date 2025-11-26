@@ -88,7 +88,7 @@ class AdaptiveSwarmTRM:
         # Matryoshka base (variable dimensionality)
         self.base = MatryoshkaTRM(
             max_dims=self.config.base_dims,
-            min_dims=self.config.min_dims
+            min_dims=self.config.min_dims,
         )
 
         # Training state

@@ -1,12 +1,14 @@
 """
-Semantic context recorder for discovered programs.
+Semantic context using procedural word references (character composition).
 
-Attaches input/output signatures and inferred usage hints to programs so TRM
-can route by context instead of blind trial.
+Words are stored once as character sequences (symlink pattern) and referenced
+by discoveries. This preserves dual-client reality: humans read, AI executes.
 """
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Dict, List, Optional
 
 import numpy as np
@@ -14,59 +16,168 @@ import numpy as np
 from knowledge3d.training.arc_agi.semantic_signature import SemanticSignature
 
 
-class SemanticContext:
-    """Record and lookup semantic contexts for programs."""
+class SemanticWord:
+    """Semantic word stored as character sequence with meaning/category."""
+
+    def __init__(self, word_id: str, characters: List[int], meaning: str, category: str):
+        self.word_id = word_id
+        self.characters = characters
+        self.meaning = meaning
+        self.category = category
+        self.references = 0
+
+    def to_dict(self) -> Dict:
+        return {
+            "word_id": self.word_id,
+            "characters": self.characters,
+            "meaning": self.meaning,
+            "category": self.category,
+            "references": self.references,
+        }
+
+    @staticmethod
+    def from_dict(data: Dict) -> "SemanticWord":
+        w = SemanticWord(
+            word_id=data["word_id"],
+            characters=data.get("characters", []),
+            meaning=data.get("meaning", ""),
+            category=data.get("category", "unknown"),
+        )
+        w.references = data.get("references", 0)
+        return w
+
+
+class SemanticVocabulary:
+    """Vocabulary of semantic words (deduplicated)."""
 
     def __init__(self) -> None:
-        self.context_index: Dict[str, List[Dict]] = {}  # input signature hash -> contexts
+        self.words: Dict[str, SemanticWord] = {}
+        self._bootstrap()
+
+    def _bootstrap(self) -> None:
+        for word_id, meaning, category in [
+            ("rotation_or_reflection", "Rotation or reflection transformation", "transformation"),
+            ("color_transformation", "Color mapping transformation", "transformation"),
+            ("pattern_repetition", "Pattern repetition transformation", "transformation"),
+            ("geometric_transformation", "Generic geometric transformation", "transformation"),
+            ("spatial_rearrangement", "Spatial rearrangement of elements", "transformation"),
+            ("asymmetric_input", "Input has no symmetry", "condition"),
+            ("symmetric_input", "Input has symmetry", "condition"),
+            ("sparse_grid", "Grid with many empty cells", "condition"),
+            ("dense_grid", "Grid with few empty cells", "condition"),
+            ("multiple_objects", "Input has multiple objects", "condition"),
+            ("single_object", "Input has single object", "condition"),
+            ("rotation_task", "Task involves rotation", "pattern"),
+            ("reflection_task", "Task involves reflection", "pattern"),
+            ("color_change_task", "Task involves color changes", "pattern"),
+            ("repetition_task", "Task involves repetition", "pattern"),
+            ("border_task", "Task involves borders", "pattern"),
+            ("has_border", "Grid has border", "property"),
+            ("has_repetition", "Grid has repeating pattern", "property"),
+            ("connected_components", "Grid has connected components", "property"),
+            ("multiple_colors", "Grid has multiple colors", "property"),
+        ]:
+            self._add_word(word_id, meaning, category)
+
+    def _add_word(self, word_id: str, meaning: str, category: str) -> None:
+        characters = [ord(c) for c in word_id]
+        self.words[word_id] = SemanticWord(word_id, characters, meaning, category)
+
+    def ref(self, word_id: str) -> Optional[str]:
+        if word_id in self.words:
+            self.words[word_id].references += 1
+            return word_id
+        return None
+
+    def resolve(self, word_id: Optional[str]) -> Optional[SemanticWord]:
+        if word_id is None:
+            return None
+        return self.words.get(word_id)
+
+    def get_or_create(self, word_id: str, meaning: str = "", category: str = "unknown") -> str:
+        if word_id not in self.words:
+            self._add_word(word_id, meaning or f"Semantic concept: {word_id}", category)
+        return self.ref(word_id) or word_id
+
+    def to_dict(self) -> Dict:
+        return {
+            "words": {wid: w.to_dict() for wid, w in self.words.items()},
+            "total_words": len(self.words),
+            "total_references": sum(w.references for w in self.words.values()),
+        }
+
+    @staticmethod
+    def from_dict(data: Dict) -> "SemanticVocabulary":
+        vocab = SemanticVocabulary()
+        vocab.words = {wid: SemanticWord.from_dict(wd) for wid, wd in data.get("words", {}).items()}
+        return vocab
+
+
+class SemanticContext:
+    """Record and lookup semantic contexts using vocabulary references."""
+
+    def __init__(self) -> None:
+        self.contexts: List[Dict] = []
+        self.vocabulary = SemanticVocabulary()
 
     def record_context(
         self,
         program: str,
         input_grid: np.ndarray,
-        output_grid: np.ndarray,
+        output_grid: Optional[np.ndarray],
         task_id: str,
         score: float,
     ) -> Dict:
         input_sig = SemanticSignature.extract(input_grid)
-        output_sig = SemanticSignature.extract(output_grid)
+        output_sig = SemanticSignature.extract(output_grid) if output_grid is not None else {}
         transformation_type = SemanticSignature.compute_transformation_type(input_sig, output_sig)
+        when_to_use = self._infer_usage_conditions(input_sig, transformation_type)
 
         context = {
             "program": program,
             "task_id": task_id,
-            "score": float(score),
+            "score": score,
+            "transformation_type_ref": self.vocabulary.ref(transformation_type),
+            "when_to_use_refs": [self.vocabulary.ref(w) for w in when_to_use],
             "input_signature": input_sig,
             "output_signature": output_sig,
-            "transformation_type": transformation_type,
-            "when_to_use": self._infer_usage_conditions(input_sig, transformation_type),
         }
-
-        sig_hash = input_sig["signature_hash"]
-        self.context_index.setdefault(sig_hash, []).append(context)
+        self.contexts.append(context)
         return context
 
-    @staticmethod
-    def _infer_usage_conditions(input_sig: Dict, transformation_type: str) -> List[str]:
+    def _infer_usage_conditions(self, input_sig: Dict, transformation_type: str) -> List[str]:
         conditions: List[str] = []
-        structural = input_sig["structural"]
+        sparsity = input_sig.get("sparsity", 0.5)
+        if sparsity > 0.7:
+            conditions.append(self.vocabulary.get_or_create("sparse_grid", category="condition"))
+        elif sparsity < 0.3:
+            conditions.append(self.vocabulary.get_or_create("dense_grid", category="condition"))
 
-        if structural["symmetric_vertical"] or structural["symmetric_horizontal"]:
-            conditions.append("symmetric_input")
+        has_symmetry = any(
+            (
+                input_sig.get("symmetry_vertical"),
+                input_sig.get("symmetry_horizontal"),
+                input_sig.get("symmetry_diagonal"),
+            )
+        )
+        if has_symmetry:
+            conditions.append(self.vocabulary.get_or_create("symmetric_input", category="condition"))
         else:
-            conditions.append("asymmetric_input")
+            conditions.append(self.vocabulary.get_or_create("asymmetric_input", category="condition"))
 
-        if structural["sparsity_label"] == "sparse":
-            conditions.append("sparse_pattern")
-        elif structural["sparsity_label"] == "dense":
-            conditions.append("dense_pattern")
+        if input_sig.get("has_border"):
+            conditions.append(self.vocabulary.get_or_create("has_border", category="property"))
+        if input_sig.get("has_repetition"):
+            conditions.append(self.vocabulary.get_or_create("has_repetition", category="property"))
+        if input_sig.get("num_colors", 0) > 1:
+            conditions.append(self.vocabulary.get_or_create("multiple_colors", category="property"))
 
-        if transformation_type == "rotation_or_reflection":
-            conditions.append("rotation_task")
-        elif transformation_type == "recoloring":
-            conditions.append("color_mapping")
-        elif transformation_type == "pattern_completion":
-            conditions.append("pattern_completion")
+        if "rotation" in transformation_type:
+            conditions.append(self.vocabulary.get_or_create("rotation_task", category="pattern"))
+        if "color" in transformation_type:
+            conditions.append(self.vocabulary.get_or_create("color_change_task", category="pattern"))
+        if "repetition" in transformation_type:
+            conditions.append(self.vocabulary.get_or_create("repetition_task", category="pattern"))
 
         return conditions
 
@@ -77,125 +188,114 @@ class SemanticContext:
         similarity_threshold: float = 0.5,
         use_fuzzy_matching: bool = True,
     ) -> List[Dict]:
-        """
-        Return contexts using multi-component similarity (structural/color/pattern).
-        """
         query_sig = SemanticSignature.extract(query_grid)
         matches: List[Dict] = []
-
-        for ctxs in self.context_index.values():
-            for ctx in ctxs:
-                input_sig = ctx.get("input_signature", {})
-                structural_sim = self._structural_similarity(query_sig, input_sig)
-                color_sim = self._color_similarity(query_sig, input_sig)
-                pattern_sim = self._pattern_similarity(query_sig, input_sig)
-                similarity = 0.4 * structural_sim + 0.3 * pattern_sim + 0.3 * color_sim
-
-                if use_fuzzy_matching and similarity < similarity_threshold:
-                    if self._fuzzy_match(query_sig, input_sig):
-                        similarity = max(similarity, similarity_threshold - 0.05)
-
-                if similarity >= similarity_threshold:
-                    matches.append(
-                        {
-                            "program": ctx.get("program"),
-                            "score": similarity,
-                            "transformation_type": ctx.get("transformation_type"),
-                            "when_to_use": ctx.get("when_to_use", []),
-                            "input_signature": input_sig,
-                            "match_components": {
-                                "structural": structural_sim,
-                                "color": color_sim,
-                                "pattern": pattern_sim,
-                            },
-                        }
-                    )
-
+        for ctx in self.contexts:
+            input_sig = ctx["input_signature"]
+            structural_sim = self._structural_similarity(query_sig, input_sig)
+            color_sim = self._color_similarity(query_sig, input_sig)
+            pattern_sim = self._pattern_similarity(query_sig, input_sig)
+            similarity = 0.4 * structural_sim + 0.3 * pattern_sim + 0.3 * color_sim
+            if use_fuzzy_matching and similarity < similarity_threshold:
+                if self._fuzzy_match(query_sig, input_sig):
+                    similarity = max(similarity, similarity_threshold - 0.05)
+            if similarity >= similarity_threshold:
+                t_ref = ctx.get("transformation_type_ref")
+                t_word = self.vocabulary.resolve(t_ref)
+                when_refs = ctx.get("when_to_use_refs", [])
+                when_words = [self.vocabulary.resolve(r) for r in when_refs]
+                matches.append(
+                    {
+                        "program": ctx["program"],
+                        "score": similarity,
+                        "transformation_type": t_word.word_id if t_word else "unknown",
+                        "when_to_use": [w.word_id for w in when_words if w],
+                        "match_components": {
+                            "structural": structural_sim,
+                            "color": color_sim,
+                            "pattern": pattern_sim,
+                        },
+                    }
+                )
         matches.sort(key=lambda x: x["score"], reverse=True)
         return matches[:top_k]
 
-    # ------------------------------------------------------------------ #
     # Similarity helpers
-    # ------------------------------------------------------------------ #
     def _structural_similarity(self, sig1: Dict, sig2: Dict) -> float:
-        s1 = sig1.get("structural", {})
-        s2 = sig2.get("structural", {})
         score = 0.0
-        for key in ("symmetric_vertical", "symmetric_horizontal", "symmetric_diagonal"):
-            if s1.get(key) == s2.get(key):
+        for key in ("symmetry_vertical", "symmetry_horizontal", "symmetry_diagonal"):
+            if sig1.get(key) == sig2.get(key):
                 score += 0.1
-        sparsity_diff = abs(s1.get("sparsity", 0.5) - s2.get("sparsity", 0.5))
+        sparsity_diff = abs(sig1.get("sparsity", 0.5) - sig2.get("sparsity", 0.5))
         if sparsity_diff < 0.2:
             score += 0.2
-        if s1.get("dimensions") == s2.get("dimensions"):
+        if sig1.get("dimensions") == sig2.get("dimensions"):
             score += 0.2
         return min(score, 1.0)
 
     def _color_similarity(self, sig1: Dict, sig2: Dict) -> float:
-        c1 = sig1.get("color", {})
-        c2 = sig2.get("color", {})
         score = 0.0
-        if c1.get("num_colors") == c2.get("num_colors"):
+        if sig1.get("num_colors") == sig2.get("num_colors"):
             score += 0.5
-        colors1 = set(c1.get("color_distribution", {}).keys())
-        colors2 = set(c2.get("color_distribution", {}).keys())
+        colors1 = set(sig1.get("color_distribution", {}).keys())
+        colors2 = set(sig2.get("color_distribution", {}).keys())
         if colors1 and colors2:
             jaccard = len(colors1 & colors2) / len(colors1 | colors2)
             score += 0.5 * jaccard
         return min(score, 1.0)
 
     def _pattern_similarity(self, sig1: Dict, sig2: Dict) -> float:
-        p1 = sig1.get("pattern", {})
-        p2 = sig2.get("pattern", {})
         score = 0.0
-        comp_diff = abs(p1.get("num_components", 0) - p2.get("num_components", 0))
+        comp_diff = abs(sig1.get("connected_components", 0) - sig2.get("connected_components", 0))
         if comp_diff <= 2:
             score += 0.4
-        if p1.get("has_border") == p2.get("has_border"):
+        if sig1.get("has_border") == sig2.get("has_border"):
             score += 0.3
-        if p1.get("has_repetition") == p2.get("has_repetition"):
+        if sig1.get("has_repetition") == sig2.get("has_repetition"):
             score += 0.3
         return min(score, 1.0)
 
     def _fuzzy_match(self, sig1: Dict, sig2: Dict) -> bool:
-        # Dimensions similarity
-        d1 = sig1.get("structural", {}).get("dimensions", "0x0")
-        d2 = sig2.get("structural", {}).get("dimensions", "0x0")
+        d1 = sig1.get("dimensions", "0x0")
+        d2 = sig2.get("dimensions", "0x0")
         try:
             h1, w1 = map(int, str(d1).split("x"))
             h2, w2 = map(int, str(d2).split("x"))
-            ratio_h = min(h1 / h2, h2 / h1) if h1 and h2 else 0
-            ratio_w = min(w1 / w2, w2 / w1) if w1 and w2 else 0
-            if ratio_h > 0.5 and ratio_w > 0.5:
-                return True
+            if h1 and h2 and w1 and w2:
+                if min(h1 / h2, h2 / h1) > 0.5 and min(w1 / w2, w2 / w1) > 0.5:
+                    return True
         except Exception:
             pass
-
-        # If border presence matches, consider near-match
-        if sig1.get("pattern", {}).get("has_border") == sig2.get("pattern", {}).get("has_border"):
+        if sig1.get("has_border") == sig2.get("has_border"):
             return True
-
         return False
 
-    def save(self, path) -> None:
-        import json
+    # Persistence
+    def save(self, path: Path) -> None:
+        state = {"contexts": self.contexts, "vocabulary": self.vocabulary.to_dict(), "total_contexts": len(self.contexts)}
         path.parent.mkdir(parents=True, exist_ok=True)
-        # Flatten contexts for easier inspection
-        flat = []
-        for ctxs in self.context_index.values():
-            flat.extend(ctxs)
         with path.open("w", encoding="utf-8") as f:
-            json.dump({"context_index": self.context_index, "contexts": flat}, f, indent=2)
+            json.dump(state, f, indent=2)
+        total_refs = state["vocabulary"].get("total_references", 0)
+        total_words = state["vocabulary"].get("total_words", 0)
+        if total_refs:
+            savings = (1 - total_words / total_refs) * 100
+            print(f"[SemanticContext] Storage savings: {savings:.1f}% ({total_words} words, {total_refs} refs)")
 
-    def load(self, path) -> None:
-        import json
+    def load(self, path: Path) -> None:
         if not path.exists():
             print(f"[SemanticContext] No checkpoint at {path}, starting fresh")
             return
         with path.open("r", encoding="utf-8") as f:
             state = json.load(f)
-        self.context_index = state.get("context_index", {})
-        print(f"[SemanticContext] Loaded contexts for {len(self.context_index)} signatures from {path}")
+        self.contexts = state.get("contexts", [])
+        vocab_state = state.get("vocabulary", {})
+        self.vocabulary = SemanticVocabulary.from_dict(vocab_state) if vocab_state else SemanticVocabulary()
+        total_refs = vocab_state.get("total_references", 0)
+        print(
+            f"[SemanticContext] Loaded {len(self.contexts)} contexts, "
+            f"{len(self.vocabulary.words)} words, {total_refs} references"
+        )
 
 
-__all__ = ["SemanticContext"]
+__all__ = ["SemanticContext", "SemanticVocabulary", "SemanticWord"]
