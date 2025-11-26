@@ -141,6 +141,12 @@ def main() -> None:
             stats = run_epoch(pipeline, task_files, executor, epoch + cycle * args.epochs, args)
             epoch_stats.append(stats)
             print(f"  Epoch {epoch+1} (cycle {cycle+1}): {stats['correct']}/{stats['total']} correct ({stats['correct']/max(1,stats['total']):.2%})")
+
+            # SOVEREIGN: Update router from discoveries (closes feedback loop!)
+            print(f"  [FEEDBACK] Updating router from shadow copy discoveries...")
+            update_stats = pipeline.router.update_from_discoveries(pipeline.shadow, top_n=100)
+            print(f"    Processed: {update_stats['processed']}, High-quality: {update_stats['high_quality']}, Pattern types: {update_stats['pattern_types']}")
+
             # Save after every epoch to accumulate discoveries incrementally
             print(f"  [SAVE] Saving checkpoints after epoch {epoch+1}...")
             save_checkpoints(pipeline)
