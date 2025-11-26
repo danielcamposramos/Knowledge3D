@@ -38,7 +38,12 @@ def _grids_equal(grid1: Sequence[Sequence[int]], grid2: Sequence[Sequence[int]])
     if len(grid1) != len(grid2):
         return False
     for row1, row2 in zip(grid1, grid2):
-        if len(row1) != len(row2) or list(row1) != list(row2):
+        if len(row1) != len(row2):
+            return False
+        # Convert to lists and compare to handle any type differences
+        list1 = [int(x) for x in row1]  # Ensure integers
+        list2 = [int(x) for x in row2]
+        if list1 != list2:
             return False
     return True
 
@@ -61,7 +66,7 @@ class SovereignAIPipeline:
         *,
         train_examples: Optional[List[Dict]] = None,
         expected_output: Optional[Sequence[Sequence[int]]] = None,
-        top_k: int = 12,
+        top_k: int = 69,  # SOVEREIGN: Tesla 3-6-9 (increased from 12)
     ) -> TaskResult:
         """Process task merging procedural baseline + sovereign routing."""
 
@@ -71,9 +76,34 @@ class SovereignAIPipeline:
 
         executor = ARCRPNExecutor()
         procedural_candidates: List[Dict] = []
+
+        # SOVEREIGN: Extract semantic hints from context to guide generation
+        semantic_hints: List[str] = []
+        if self.shadow.semantic_context is not None:
+            try:
+                # Get top semantic matches and extract their word hints
+                matches = self.shadow.semantic_context.find_matching_contexts(test_input, top_k=9)
+                print(f"  [SEMANTIC EXTRACTION] Found {len(matches)} matching contexts")
+                for ctx in matches:
+                    # Extract transformation types and usage conditions as hints
+                    # NOTE: find_matching_contexts() returns resolved words, not refs!
+                    if "transformation_type" in ctx:
+                        word = ctx["transformation_type"]
+                        if isinstance(word, str) and word:
+                            semantic_hints.append(word)
+                    if "when_to_use" in ctx and isinstance(ctx["when_to_use"], list):
+                        semantic_hints.extend([str(w) for w in ctx["when_to_use"] if w])
+                if semantic_hints:
+                    print(f"  [SEMANTIC HINTS] Extracted {len(semantic_hints)} hints: {semantic_hints[:5]}")
+                else:
+                    print(f"  [SEMANTIC HINTS] No hints extracted from {len(matches)} contexts")
+            except Exception as e:
+                print(f"  [PIPELINE] Warning: Could not extract semantic hints: {e}")
+
         if train_examples:
             gen = CandidateGenerator(matryoshka_dim=self.router.matryoshka_dim)
-            procedural_candidates = gen.generate_candidates(test_input, train_examples)
+            procedural_candidates = gen.generate_candidates(test_input, train_examples, semantic_hints=semantic_hints)
+            print(f"  [CANDIDATES] Generated {len(procedural_candidates)} procedural candidates (max={gen.max_candidates})")
 
         # 2) TRM router candidates.
         trm_candidates = self.router.route(test_input, top_k=top_k)
@@ -149,6 +179,21 @@ class SovereignAIPipeline:
 
         assert chosen is not None
         signature = chosen.get("signature") or {"source": chosen["source"]}
+
+        # DIAGNOSTIC: Log answer comparison details
+        if expected_list is not None:
+            is_correct = _grids_equal(chosen["output"], expected_list)
+            print(f"  [ANSWER CHECK] Task {task_id}: score={chosen['score']:.2f}, correct={is_correct}, source={chosen['source']}")
+            if is_correct:
+                print(f"  [ANSWER CHECK] ✅ CORRECT ANSWER FOUND!")
+            elif chosen["score"] >= 0.9:
+                print(f"  [ANSWER CHECK] High score but not exact match - checking grids:")
+                print(f"    Expected shape: {len(expected_list)}×{len(expected_list[0]) if expected_list else 0}")
+                print(f"    Got shape: {len(chosen['output'])}×{len(chosen['output'][0]) if chosen['output'] else 0}")
+                # Show first few cells for debugging
+                if len(expected_list) <= 5 and len(expected_list[0]) <= 5:
+                    print(f"    Expected: {expected_list}")
+                    print(f"    Got: {chosen['output']}")
 
         # Record discoveries according to shadow thresholds (with semantic context)
         self.shadow.record(
