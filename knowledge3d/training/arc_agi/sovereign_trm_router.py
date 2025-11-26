@@ -113,7 +113,7 @@ class SovereignTRMRouter:
         projected = self.base_trm.project_vector(padded, target_dim=self.matryoshka_dim)
         return projected.astype(np.float32, copy=False)
 
-    def route(self, grid: Sequence[Sequence[int]], top_k: int = 3, use_semantics: bool = True) -> List[Dict[str, Any]]:
+    def route(self, grid: Sequence[Sequence[int]], top_k: int = 27, use_semantics: bool = True) -> List[Dict[str, Any]]:  # SOVEREIGN: Tesla 3-6-9 (increased from 3)
         drawing_program = self.grid_to_drawing_rpn(grid)
         signature = self.task_signature(grid)
         # embedding = self.embed_task(grid)  # TODO: Not currently used, remove to avoid numpy
@@ -124,7 +124,7 @@ class SovereignTRMRouter:
         if use_semantics and self.semantic_context is not None:
             try:
                 # SOVEREIGN FIX: Pass grid as-is (no numpy conversion!)
-                matches = self.semantic_context.find_matching_contexts(grid, top_k=top_k * 2)
+                matches = self.semantic_context.find_matching_contexts(grid, top_k=top_k * 3)  # SOVEREIGN: Tesla 3-6-9 (increased from top_k*2)
                 for ctx in matches:
                     candidates.append(
                         {
@@ -172,16 +172,79 @@ class SovereignTRMRouter:
     # ------------------------------------------------------------------ #
     # Internal helpers
     # ------------------------------------------------------------------ #
+    def update_from_discoveries(self, shadow_copy, top_n: int = 100) -> Dict[str, int]:
+        """
+        Update router weights from discovered patterns in shadow copy.
+
+        SOVEREIGN: This closes the discovery → routing feedback loop.
+        High-quality discoveries should influence future routing decisions.
+
+        Args:
+            shadow_copy: DualShadowCopy with library of discoveries
+            top_n: Number of recent high-quality discoveries to consider
+
+        Returns:
+            Dict with update statistics
+        """
+        if not hasattr(shadow_copy, 'library') or not shadow_copy.library:
+            return {"processed": 0, "high_quality": 0}
+
+        # Get recent high-quality discoveries (sorted by quality score)
+        recent = sorted(shadow_copy.library, key=lambda e: e.get("quality_score", 0.0), reverse=True)[:top_n]
+        high_quality = [e for e in recent if e.get("quality_score", 0.0) >= 0.75]
+
+        # Update router_adapter with successful patterns
+        # For now, track pattern frequencies to bias future routing
+        pattern_counts: Dict[str, int] = {}
+        for entry in high_quality:
+            program = entry.get("program", "")
+            # Extract pattern type from program (simplified heuristic)
+            if "rotate" in program.lower():
+                pattern_counts["rotation"] = pattern_counts.get("rotation", 0) + 1
+            if "flip" in program.lower():
+                pattern_counts["flip"] = pattern_counts.get("flip", 0) + 1
+            if "recolor" in program.lower():
+                pattern_counts["recolor"] = pattern_counts.get("recolor", 0) + 1
+            if "translate" in program.lower():
+                pattern_counts["translate"] = pattern_counts.get("translate", 0) + 1
+
+        # TODO: When GPU toolchain is wired, update self.router_adapter weights
+        # For now, store pattern preferences for heuristic ranking
+        if not hasattr(self, '_pattern_prefs'):
+            self._pattern_prefs: Dict[str, int] = {}
+        for pattern, count in pattern_counts.items():
+            self._pattern_prefs[pattern] = self._pattern_prefs.get(pattern, 0) + count
+
+        return {
+            "processed": len(recent),
+            "high_quality": len(high_quality),
+            "pattern_types": len(pattern_counts),
+        }
+
     def _rank_rules(self, top_k: int) -> List[GrammarRule]:
         """
         Rank rules heuristically (no embedding needed for now).
 
-        SOVEREIGN: Simple domain-based filtering, no numpy/TRM embedding.
+        SOVEREIGN: Simple domain-based filtering + learned pattern preferences.
         TODO: Use RPN-based semantic similarity when embeddings are needed.
         """
         # Simple heuristic: prefer drawing/spatial domain rules, then others.
         drawing_rules = [r for r in self.grammar.list_rules() if getattr(r, "domain", "") in {"drawing", "spatial"}]
         other_rules = [r for r in self.grammar.list_rules() if r not in drawing_rules]
+
+        # SOVEREIGN: Apply learned pattern preferences if available
+        if hasattr(self, '_pattern_prefs') and self._pattern_prefs:
+            def rule_priority(rule: GrammarRule) -> int:
+                priority = 0
+                rule_id_lower = rule.rule_id.lower()
+                for pattern, count in self._pattern_prefs.items():
+                    if pattern in rule_id_lower:
+                        priority += count
+                return priority
+
+            drawing_rules = sorted(drawing_rules, key=rule_priority, reverse=True)
+            other_rules = sorted(other_rules, key=rule_priority, reverse=True)
+
         ordered = drawing_rules + other_rules
         return ordered[: max(1, int(top_k * 2))]
 
