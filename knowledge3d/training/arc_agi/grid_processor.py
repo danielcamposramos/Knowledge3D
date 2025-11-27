@@ -46,7 +46,6 @@ from .sovereign_utils import (
     rotate_ccw,
     rotate_cw,
     to_int_grid,
-    translate_grid,
     unique_counts,
 )
 
@@ -269,6 +268,41 @@ class ARCGridProcessor:
 
         return [float(v) for v in fractal_embedding]
 
+    def _grid_to_spatial_embedding_batch(
+        self,
+        grids: Sequence[Sequence[Sequence[int]]],
+        routing: int = 0,
+    ) -> List[List[float]]:
+        """
+        Batched embedding helper using codec embedders when available.
+        """
+        if not grids:
+            return []
+        if self.codec_embedder is None:
+            return [self.grid_to_spatial_embedding(g, routing=routing) for g in grids]
+        if self.embedder_type == "video":
+            raw = self.codec_embedder.grid_to_video_embedding_batch(grids)  # type: ignore[attr-defined]
+        elif self.embedder_type == "audio":
+            raw = self.codec_embedder.grid_to_audio_embedding_batch(grids, target_dim=self.matryoshka_dim)  # type: ignore[attr-defined]
+        else:
+            # Multimodal: embed video and audio separately, then fuse per item.
+            video_embs = self.codec_embedder.video_embedder.grid_to_video_embedding_batch(grids)  # type: ignore[attr-defined]
+            audio_embs = self.codec_embedder.audio_embedder.grid_to_audio_embedding_batch(grids, target_dim=self.matryoshka_dim)  # type: ignore[attr-defined]
+            raw = []
+            for v, a in zip(video_embs, audio_embs):
+                max_len = max(len(v), len(a))
+                v_pad = pad_or_truncate(v, max_len, 0.0)
+                a_pad = pad_or_truncate(a, max_len, 0.0)
+                fused = [0.5 * float(vv) + 0.5 * float(aa) for vv, aa in zip(v_pad, a_pad)]
+                raw.append(pad_or_truncate(fused, self.matryoshka_dim, 0.0))
+        projected: List[List[float]] = []
+        for r in raw:
+            if len(r) != self.matryoshka_dim:
+                projected.append(self._project_to_matryoshka(r))
+            else:
+                projected.append([float(v) for v in r])
+        return projected
+
     def _execute_visual_rpn(self, rpn_program: str) -> List[List[float]]:
         """
         Execute RPN program to generate a simple raster representation.
@@ -340,9 +374,9 @@ class ARCGridProcessor:
                 "confidence": float,  # pattern match confidence
             }
         """
-        # Embed both grids (reserved for future TRM-based scoring).
-        _ = self.grid_to_spatial_embedding(grid_before)
-        _ = self.grid_to_spatial_embedding(grid_after)
+        # Embed both grids for semantic scoring.
+        emb_before = self.grid_to_spatial_embedding(grid_before)
+        emb_after = self.grid_to_spatial_embedding(grid_after)
 
         primitives: List[Dict[str, Any]] = []
 
@@ -350,36 +384,45 @@ class ARCGridProcessor:
         for angle in (0, 90, 180, 270):
             rotated = self._apply_rotation(grid_before, angle) if angle != 0 else grid_before
             if self._grids_match(rotated, grid_after):
+                score = self._cosine_similarity(
+                    self.grid_to_spatial_embedding(rotated), emb_after
+                )
                 primitives.append(
                     {
                         "primitive": f"ROTATE_{angle}",
                         "parameters": {"angle": angle},
                         "rpn_program": f"{angle} ROTATE",
-                        "confidence": 1.0,
+                        "confidence": float(score),
                     }
                 )
 
         # Test horizontal flip
         flipped_h = self._apply_flip_horizontal(grid_before)
         if self._grids_match(flipped_h, grid_after):
+            score = self._cosine_similarity(
+                self.grid_to_spatial_embedding(flipped_h), emb_after
+            )
             primitives.append(
                 {
                     "primitive": "FLIP_H",
                     "parameters": {},
                     "rpn_program": "-1 1 SCALE",
-                    "confidence": 1.0,
+                    "confidence": float(score),
                 }
             )
 
         # Test vertical flip
         flipped_v = self._apply_flip_vertical(grid_before)
         if self._grids_match(flipped_v, grid_after):
+            score = self._cosine_similarity(
+                self.grid_to_spatial_embedding(flipped_v), emb_after
+            )
             primitives.append(
                 {
                     "primitive": "FLIP_V",
                     "parameters": {},
                     "rpn_program": "1 -1 SCALE",
-                    "confidence": 1.0,
+                    "confidence": float(score),
                 }
             )
 
@@ -387,12 +430,16 @@ class ARCGridProcessor:
         translation = self._detect_translation(grid_before, grid_after)
         if translation is not None:
             dx, dy = translation
+            moved = self._apply_translation(grid_before, dx, dy)
+            score = self._cosine_similarity(
+                self.grid_to_spatial_embedding(moved), emb_after
+            )
             primitives.append(
                 {
                     "primitive": "TRANSLATE",
                     "parameters": {"dx": dx, "dy": dy},
                     "rpn_program": f"{dx} {dy} TRANSLATE",
-                    "confidence": 1.0,
+                    "confidence": float(score),
                 }
             )
 
@@ -402,12 +449,16 @@ class ARCGridProcessor:
             translation = self._detect_translation(rotated, grid_after)
             if translation is not None:
                 dx, dy = translation
+                moved = self._apply_translation(rotated, dx, dy)
+                score = self._cosine_similarity(
+                    self.grid_to_spatial_embedding(moved), emb_after
+                )
                 primitives.append(
                     {
                         "primitive": "ROTATE_TRANSLATE",
                         "parameters": {"angle": angle, "dx": dx, "dy": dy},
                         "rpn_program": f"{angle} ROTATE {dx} {dy} TRANSLATE",
-                        "confidence": 1.0,
+                        "confidence": float(score),
                     }
                 )
 
@@ -461,17 +512,22 @@ class ARCGridProcessor:
                     angle, dx, dy = param
                     rpn.append(f"{angle} ROTATE {dx} {dy} TRANSLATE")
                 rpn.append(f"{src} {dst} RECOLOR")
+                scored = self._cosine_similarity(
+                    self.grid_to_spatial_embedding(tgrid), emb_after
+                )
                 primitives.append(
                     {
                         "primitive": f"{name}_RECOLOR",
                         "parameters": {"transform": name, "param": param, "src": src, "dst": dst},
                         "rpn_program": " ".join(rpn),
-                        "confidence": 1.0,
+                        "confidence": float(scored),
                     }
                 )
 
         # Final heuristic: prefer recolor, then translate/rotate-translate, else first match.
-        return self._prioritize(primitives)
+        scored = self._prioritize(primitives)
+        scored["similarity"] = float(self._cosine_similarity(emb_before, emb_after))
+        return scored
 
     def _apply_rotation(
         self,
@@ -487,32 +543,18 @@ class ARCGridProcessor:
         elif angle == 270:
             program = "3 rotate"
         if program:
-            try:
-                return self.executor.execute(grid, program)
-            except Exception:
-                pass
-        # fallback
-        if angle == 90:
-            return rotate_cw(grid, 1)
-        if angle == 180:
-            return rotate_cw(grid, 2)
-        if angle == 270:
-            return rotate_ccw(grid, 1)
-        return to_int_grid(grid)
+            return self.executor.execute(grid, program)
+        if angle == 0:
+            return to_int_grid(grid)
+        raise RuntimeError("Unsupported rotation angle")
 
     def _apply_flip_horizontal(self, grid: Sequence[Sequence[int]]) -> List[List[int]]:
         """Apply horizontal flip to grid."""
-        try:
-            return self.executor.execute(grid, "FLIP_H")
-        except Exception:
-            return flip_horizontal(grid)
+        return self.executor.execute(grid, "FLIP_H")
 
     def _apply_flip_vertical(self, grid: Sequence[Sequence[int]]) -> List[List[int]]:
         """Apply vertical flip to grid."""
-        try:
-            return self.executor.execute(grid, "FLIP_V")
-        except Exception:
-            return flip_vertical(grid)
+        return self.executor.execute(grid, "FLIP_V")
 
     @staticmethod
     def _detect_translation(
@@ -525,29 +567,34 @@ class ARCGridProcessor:
         Returns:
             (dx, dy) if translation detected, None otherwise.
         """
-        before = to_int_grid(grid_before)
-        after = to_int_grid(grid_after)
-
-        if grid_shape(before) != grid_shape(after):
+        if grid_shape(grid_before) != grid_shape(grid_after):
             return None
 
-        h, w = grid_shape(before)
+        h, w = grid_shape(grid_before)
 
         # Brute-force search over plausible integer shifts within bounds.
         for dy in range(-h + 1, h):
             for dx in range(-w + 1, w):
-                shifted = translate_grid(before, dx=dx, dy=dy, fill=0)
-                if grids_equal(shifted, after):
+                shifted = self._apply_translation(grid_before, dx, dy)
+                if grids_equal(shifted, grid_after):
                     return dx, dy
 
         return None
 
     def _apply_translation(self, grid: Sequence[Sequence[int]], dx: int, dy: int) -> List[List[int]]:
         """Apply translation to grid with zero fill."""
-        try:
-            return self.executor.execute(grid, f"{dx} {dy} TRANSLATE")
-        except Exception:
-            return translate_grid(grid, dx=dx, dy=dy, fill=0)
+        return self.executor.execute(grid, f"{dx} {dy} TRANSLATE")
+
+    @staticmethod
+    def _cosine_similarity(vec_a: Sequence[float], vec_b: Sequence[float]) -> float:
+        """Cosine similarity without CPU fallbacks."""
+        if len(vec_a) != len(vec_b):
+            raise ValueError("Vectors must have same length for cosine similarity")
+        mag_a = l2_norm(vec_a)
+        mag_b = l2_norm(vec_b)
+        if mag_a == 0.0 or mag_b == 0.0:
+            return 0.0
+        return dot(vec_a, vec_b) / (mag_a * mag_b)
 
     @staticmethod
     def _grids_match(

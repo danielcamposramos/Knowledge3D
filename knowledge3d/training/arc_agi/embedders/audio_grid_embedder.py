@@ -43,11 +43,17 @@ class AudioGridEmbedder:
 
         self.sample_rate = int(sample_rate)
         self.frame_size = int(frame_size)
+        self.hop_size = self.frame_size // 2  # 50% overlap for MDCT/IMDCT
         self.n_harmonics = int(n_harmonics)
 
-        self.codec = codec or SovereignTernaryAudioCodec(
-            frame_size=self.frame_size, hop_size=self.hop_size, threshold=0.2
-        )
+        if codec is None:
+            self.codec = SovereignTernaryAudioCodec(
+                frame_size=self.frame_size, hop_size=self.hop_size, threshold=0.2
+            )
+        else:
+            if not isinstance(codec, SovereignTernaryAudioCodec):
+                raise RuntimeError("Non-sovereign audio codecs are forbidden in the sovereign path")
+            self.codec = codec
 
     # ------------------------------------------------------------------ #
     # Public API
@@ -68,33 +74,54 @@ class AudioGridEmbedder:
         # Normalise grid colors [0,9] → audio range [-1, 1].
         waveform_norm = [(v / 9.0) * 2.0 - 1.0 for v in waveform] if waveform else []
 
-        # Wrap waveform into ternary vector (simple sign mapping) and encode via sovereign codec
+        # Wrap waveform into ternary vector (simple sign mapping) and encode via sovereign codec only.
+        if not isinstance(self.codec, SovereignTernaryAudioCodec):
+            raise RuntimeError("Non-sovereign audio codec detected; CPU fallbacks are forbidden")
         ternary_samples = [0 if v == 0 else (1 if v > 0 else -1) for v in waveform]
         tvec = TernaryVector(ternary_samples)
-        if not isinstance(self.codec, SovereignTernaryAudioCodec):
-            import numpy as np  # local legacy path
-
-            # Legacy codec path (tests inject fakes)
-            encoded = self.codec.encode(np.array(waveform_norm, dtype=np.float32))  # type: ignore[arg-type]
-            harmonics_raw = encoded.get("harmonics", [])
-            mdct_quantized_raw = encoded.get("mdct_quantized")
-            mdct_quantized = mdct_quantized_raw if mdct_quantized_raw is not None else []
-            stats = self._compute_ternary_stats(mdct_quantized)
-            features: List[float] = []
-            if hasattr(harmonics_raw, "ravel"):
-                features.extend([float(v) for v in harmonics_raw.ravel().tolist()])  # type: ignore[arg-type]
-            else:
-                features.extend([float(v) for v in flatten([harmonics_raw])])
-            features.extend([float(stats["sparsity"]), float(stats["entropy"])])
-            return pad_or_truncate(features, target_dim, 0.0)
-        else:
-            meta = self.codec.encode("clip_embed", tvec)  # type: ignore[call-arg]
-            _ = meta  # unused
-            decoded = self.codec.decode("clip_embed")  # type: ignore[call-arg]
-            decoded_vals = decoded.to_python()
+        self.codec.encode("clip_embed", tvec)  # type: ignore[call-arg]
+        decoded = self.codec.decode("clip_embed")  # type: ignore[call-arg]
+        decoded_vals = decoded.to_python()
 
         # Project to target_dim
         return pad_or_truncate([float(v) for v in decoded_vals], target_dim, 0.0)
+
+    def grid_to_audio_embedding_batch(
+        self,
+        grids: Sequence[Sequence[Sequence[int]]],
+        target_dim: int = 512,
+    ) -> List[List[float]]:
+        """
+        Batch audio-style embeddings; uses sovereign codec when available.
+        Falls back to per-grid embedding for legacy codecs.
+        """
+        if not grids:
+            return []
+
+        if not isinstance(self.codec, SovereignTernaryAudioCodec):
+            return [self.grid_to_audio_embedding(g, target_dim=target_dim) for g in grids]
+
+        waveforms: List[List[float]] = [self._grid_to_waveform(grid) for grid in grids]
+
+        samples: List[int] = []
+        for waveform in waveforms:
+            ternary_samples = [0 if v == 0 else (1 if v > 0 else -1) for v in waveform]
+            samples.extend(ternary_samples)
+
+        # One batched MDCT + quant; IMDCT not needed for embedding
+        frame_size = self.frame_size
+        program = f"{frame_size} BATCH_MDCT {self.codec.ops.threshold} TERNARY_QUANT"
+        quantized_all = self.codec.rpn.evaluate(program, data=samples, return_vector=True)
+
+        coeffs_per_grid = frame_size // 2
+        embeddings: List[List[float]] = []
+        for idx in range(len(grids)):
+            start = idx * coeffs_per_grid
+            end = start + coeffs_per_grid
+            coeff_slice = quantized_all[start:end]
+            embeddings.append(pad_or_truncate([float(v) for v in coeff_slice], target_dim, 0.0))
+
+        return embeddings
 
     # ------------------------------------------------------------------ #
     # Internal helpers

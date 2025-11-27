@@ -5,9 +5,7 @@ from typing import Any, Dict, List, Sequence
 
 from knowledge3d.cranium.codecs import SovereignTernaryVideoCodec
 from knowledge3d.cranium.ternary import TernaryVector, TernaryTensor
-from knowledge3d.training.arc_agi.sovereign_utils import flatten, pad_or_truncate
-
-from knowledge3d.training.arc_agi.sovereign_utils import flatten, pad_or_truncate, zeros2d
+from knowledge3d.training.arc_agi.sovereign_utils import pad_or_truncate, zeros2d
 
 
 class VideoGridEmbedder:
@@ -42,14 +40,10 @@ class VideoGridEmbedder:
         self.height = int(height)
 
         if codec is None:
-            # Lazy import to avoid loading GPU bindings in environments that
-            # only exercise CPU tests.
-            from knowledge3d.cranium.codecs.ternary_video_codec import (
-                TernaryVideoCodec,
-            )
-
-            self.codec = TernaryVideoCodec(width=self.width, height=self.height)
+            self.codec = SovereignTernaryVideoCodec(width=self.width, height=self.height)
         else:
+            if not isinstance(codec, SovereignTernaryVideoCodec):
+                raise RuntimeError("CPU/legacy video codecs are not permitted in sovereign path")
             self.codec = codec
 
         # ARC color palette (0-9) mapped to RGB.
@@ -88,40 +82,61 @@ class VideoGridEmbedder:
         ternary_rgb = [0 if v == 0 else (1 if v > 5 else -1) for v in rgb_flat]
         tensor = TernaryTensor((self.height, self.width, 3), TernaryVector(ternary_rgb))
 
-        # Allow injected legacy codec for tests; otherwise use sovereign path.
-        if hasattr(self, "codec") and self.codec is not None and not isinstance(self.codec, SovereignTernaryVideoCodec):
-            import numpy as np  # local, test-only
+        if not isinstance(self.codec, SovereignTernaryVideoCodec):
+            raise RuntimeError("Non-sovereign video codec detected; CPU fallbacks are forbidden")
 
-            rgb_frame = np.array(self._grid_to_rgb(padded), dtype=np.uint8)
-            encoded = self.codec.encode(rgb_frame)  # type: ignore[arg-type]
-            quantized_raw = encoded.get("quantized", [])
-            if hasattr(quantized_raw, "ravel"):
-                quantized_flat = [int(v) for v in quantized_raw.ravel().tolist()]  # type: ignore[arg-type]
-            else:
-                quantized_flat = [int(v) for v in flatten([quantized_raw])]
-            stats = self._compute_ternary_stats(quantized_flat)
-            tail_len = 500
-            tail = pad_or_truncate([float(v) for v in quantized_flat[:tail_len]], tail_len, 0.0)
-            features: List[float] = []
-            features.extend([float(v) for v in flatten([encoded.get("seed", [])])])
-            features.extend(
-                [
-                    float(stats["sparsity"]),
-                    float(stats["pos_ratio"]),
-                    float(stats["neg_ratio"]),
-                    float(stats["entropy"]),
-                ]
-            )
-            features.extend(tail)
-            decoded_vals = features
-        else:
-            codec = SovereignTernaryVideoCodec(width=self.width, height=self.height)
-            codec.encode("frame_embed", tensor)
-            decoded = codec.decode("frame_embed")
-            decoded_vals = decoded.values.to_python()
+        codec = self.codec
+        codec.encode("frame_embed", tensor)
+        decoded = codec.decode("frame_embed")
+        decoded_vals = decoded.values.to_python()
 
         # Use flattened ternary values; project to fixed embedding length (510 as before).
         return pad_or_truncate([float(v) for v in decoded_vals], 510, 0.0)
+
+    def grid_to_video_embedding_batch(
+        self,
+        grids: Sequence[Sequence[Sequence[int]]],
+    ) -> List[List[float]]:
+        """
+        Batch video embeddings; uses sovereign codec path when available.
+        """
+        if not grids:
+            return []
+
+        if not isinstance(getattr(self, "codec", None), SovereignTernaryVideoCodec):
+            return [self.grid_to_video_embedding(g) for g in grids]
+
+        blocks_all: list[float] = []
+        grids_count = len(grids)
+        # Each grid contributes fixed number of blocks.
+        blocks_per_grid = (self.width * self.height // 64) * 3
+        values_per_grid = blocks_per_grid * 64
+
+        for grid in grids:
+            padded = self._pad_to_frame_size(grid)
+            rgb_flat: List[int] = []
+            for row in padded:
+                for color in row:
+                    rgb_flat.extend([int(color)] * 3)
+            ternary_rgb = [0 if v == 0 else (1 if v > 5 else -1) for v in rgb_flat]
+            tensor = TernaryTensor((self.height, self.width, 3), TernaryVector(ternary_rgb))
+            # Use codec helpers to build contiguous blocks for all channels.
+            for channel in range(3):
+                chan_vals = self.codec._extract_channel(tensor.values.to_python(), channel)
+                chan_blocks = self.codec._blocks_from_channel(chan_vals, self.width, self.height)
+                blocks_all.extend(chan_blocks)
+
+        rpn_program = f"DCT8X8_FORWARD {self.codec.ops.threshold} TERNARY_QUANT"
+        quantized_all = self.codec.rpn.evaluate(rpn_program, data=blocks_all, return_vector=True)
+
+        embeddings: List[List[float]] = []
+        for idx in range(grids_count):
+            start = idx * values_per_grid
+            end = start + values_per_grid
+            slice_vals = quantized_all[start:end]
+            embeddings.append(pad_or_truncate([float(v) for v in slice_vals], 510, 0.0))
+
+        return embeddings
 
     # ------------------------------------------------------------------ #
     # Internal helpers
