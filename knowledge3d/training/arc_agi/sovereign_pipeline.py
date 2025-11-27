@@ -21,6 +21,7 @@ from knowledge3d.training.arc_agi.grammar_galaxy import GrammarGalaxy
 from knowledge3d.training.arc_agi.sovereign_trm_router import SovereignTRMRouter, rule_score_hint
 from knowledge3d.training.arc_agi.program_composer import ProgramComposer
 from knowledge3d.training.arc_agi.dual_shadow_copy import DualShadowCopy
+from knowledge3d.training.arc_agi.embedders import MultiModalGridEmbedder
 
 
 def compute_ternary_reward(score: float) -> int:
@@ -77,6 +78,8 @@ class SovereignAIPipeline:
         self.shadow = DualShadowCopy(self.drawing, self.grammar, staged=staged_shadow)
         self.router = SovereignTRMRouter(self.drawing, self.grammar, shadow_copy=self.shadow, matryoshka_dim=matryoshka_dim)
         self.composer = ProgramComposer()
+        # Shared codec embedder (singleton) to avoid repeated PTX loads across workers.
+        self.codec_embedder = MultiModalGridEmbedder(matryoshka_dim=matryoshka_dim)
         self.results: List[TaskResult] = []
 
     def process_task(
@@ -130,6 +133,7 @@ class SovereignAIPipeline:
                     top_k=3,
                     matryoshka_dim=self.router.matryoshka_dim,
                     shadow_copy=self.shadow,
+                    codec_embedder=self.codec_embedder,
                 )
                 procedural_candidates = par_gen.generate_parallel(
                     input_grid=test_input,
@@ -143,6 +147,7 @@ class SovereignAIPipeline:
                 gen = CandidateGenerator(
                     matryoshka_dim=self.router.matryoshka_dim,
                     shadow_copy=self.shadow,
+                    codec_embedder=self.codec_embedder,
                 )
                 procedural_candidates = gen.generate_candidates(
                     test_input,
