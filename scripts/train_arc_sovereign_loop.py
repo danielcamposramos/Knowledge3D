@@ -37,16 +37,66 @@ def load_task(path: Path) -> Dict:
 
 
 def collect_tasks(dirs: List[Path], limit: int) -> List[Path]:
-    files: List[Path] = []
+    """
+    Mixed curriculum: sample tasks with proportional difficulty.
+
+    Strategy (Daniel's recommendation):
+    - 1/3 from training set (easy - basic patterns)
+    - 1/3 from first half of evaluation (mid - moderate complexity)
+    - 1/3 from second half of evaluation (hard - competition difficulty)
+
+    This provides:
+    - Easy wins to build library
+    - Mid challenges to stretch capabilities
+    - Hard aspirational targets for advanced patterns
+    """
+    training_files: List[Path] = []
+    evaluation_files: List[Path] = []
+
     for d in dirs:
-        if d.exists():
-            files.extend(sorted(d.glob("*.json")))
-    if not files:
-        return []
-    mid = len(files) // 2
-    tail = files[mid:]
-    random.shuffle(tail)
-    return tail[:limit]
+        if not d.exists():
+            continue
+        if "training" in str(d):
+            training_files.extend(sorted(d.glob("*.json")))
+        elif "evaluation" in str(d):
+            evaluation_files.extend(sorted(d.glob("*.json")))
+
+    # Calculate proportional splits (1/3 each category)
+    easy_count = limit // 3
+    mid_count = limit // 3
+    hard_count = limit - easy_count - mid_count  # Remainder goes to hard
+
+    selected: List[Path] = []
+
+    # Easy: sample from training set
+    if training_files:
+        random.shuffle(training_files)
+        selected.extend(training_files[:easy_count])
+        print(f"  [CURRICULUM] Easy (training): {len(selected)} tasks")
+
+    # Mid + Hard: sample from evaluation set
+    if evaluation_files:
+        mid_point = len(evaluation_files) // 2
+        easy_eval = evaluation_files[:mid_point]
+        hard_eval = evaluation_files[mid_point:]
+
+        # Mid: first half of evaluation
+        random.shuffle(easy_eval)
+        mid_tasks = easy_eval[:mid_count]
+        selected.extend(mid_tasks)
+        print(f"  [CURRICULUM] Mid (easy eval): {len(mid_tasks)} tasks")
+
+        # Hard: second half of evaluation
+        random.shuffle(hard_eval)
+        hard_tasks = hard_eval[:hard_count]
+        selected.extend(hard_tasks)
+        print(f"  [CURRICULUM] Hard (hard eval): {len(hard_tasks)} tasks")
+
+    # Shuffle final mix so difficulty isn't sequential
+    random.shuffle(selected)
+    print(f"  [CURRICULUM] Total mixed: {len(selected)} tasks (easy={easy_count}, mid={mid_count}, hard={hard_count})")
+
+    return selected
 
 def save_checkpoints(pipeline: SovereignAIPipeline) -> None:
     CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)

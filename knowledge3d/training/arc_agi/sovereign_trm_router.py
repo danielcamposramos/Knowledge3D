@@ -22,14 +22,7 @@ from knowledge3d.cranium.ptx_runtime.rpn_math_core import RPNMathCore
 from knowledge3d.training.arc_agi.drawing_galaxy import DrawingGalaxy
 from knowledge3d.training.arc_agi.grammar_galaxy import GrammarGalaxy, GrammarRule
 from knowledge3d.training.arc_agi.semantic_context import SemanticContext
-
-
-@dataclass
-class RoutingCandidate:
-    drawing_program: str
-    grammar_rule: GrammarRule
-    signature: Dict[str, int]
-    score: float
+from knowledge3d.training.arc_agi.sovereign_utils import l2_norm, pad_or_truncate
 
 
 class SovereignTRMRouter:
@@ -92,26 +85,29 @@ class SovereignTRMRouter:
             "filled_cells": non_zero,
         }
 
-    def embed_task(self, grid: Sequence[Sequence[int]]) -> np.ndarray:
+    def embed_task(self, grid: Sequence[Sequence[int]]) -> List[float]:
         """Deterministic embedding: flatten grid stats → Matryoshka projection."""
         signature = self.task_signature(grid)
-        flat_features = np.array(
-            [
-                signature["grid_rows"],
-                signature["grid_cols"],
-                signature["num_colors"],
-                signature["filled_cells"],
-            ],
-            dtype=np.float32,
-        )
-        norm = np.linalg.norm(flat_features) or 1.0
-        flat_features = flat_features / norm
-
-        padded = np.zeros(self.matryoshka_dim, dtype=np.float32)
-        padded[: flat_features.size] = flat_features
-        # Sovereign projection to enforce matryoshka contract.
+        flat_features = [
+            float(signature["grid_rows"]),
+            float(signature["grid_cols"]),
+            float(signature["num_colors"]),
+            float(signature["filled_cells"]),
+        ]
+        norm = l2_norm(flat_features) or 1.0
+        flat_features = [v / norm for v in flat_features]
+        padded = pad_or_truncate(flat_features, self.matryoshka_dim, 0.0)
         projected = self.base_trm.project_vector(padded, target_dim=self.matryoshka_dim)
-        return projected.astype(np.float32, copy=False)
+        return [float(v) for v in projected]
+
+    class _AttrDict(dict):
+        """Dict with attribute access for compatibility with legacy tests."""
+
+        def __getattr__(self, item):
+            try:
+                return self[item]
+            except KeyError as exc:
+                raise AttributeError(item) from exc
 
     def route(self, grid: Sequence[Sequence[int]], top_k: int = 27, use_semantics: bool = True) -> List[Dict[str, Any]]:  # SOVEREIGN: Tesla 3-6-9 (increased from 3)
         drawing_program = self.grid_to_drawing_rpn(grid)
@@ -167,7 +163,8 @@ class SovereignTRMRouter:
         semantic_first = [c for c in unique if c.get("source") == "semantic_match"]
         rest = [c for c in unique if c.get("source") != "semantic_match"]
         ordered = semantic_first + rest
-        return ordered[:top_k]
+        # Wrap to provide attribute access while retaining dict interface.
+        return [self._AttrDict(c) for c in ordered[:top_k]]
 
     # ------------------------------------------------------------------ #
     # Internal helpers

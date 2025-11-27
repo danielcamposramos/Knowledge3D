@@ -1,8 +1,13 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Sequence
+import math
+from typing import Any, Dict, List, Sequence
 
-import numpy as np
+from knowledge3d.cranium.codecs import SovereignTernaryVideoCodec
+from knowledge3d.cranium.ternary import TernaryVector, TernaryTensor
+from knowledge3d.training.arc_agi.sovereign_utils import flatten, pad_or_truncate
+
+from knowledge3d.training.arc_agi.sovereign_utils import flatten, pad_or_truncate, zeros2d
 
 
 class VideoGridEmbedder:
@@ -67,7 +72,7 @@ class VideoGridEmbedder:
     def grid_to_video_embedding(
         self,
         grid: Sequence[Sequence[int]],
-    ) -> np.ndarray:
+    ) -> List[float]:
         """
         Convert grid to video-style embedding using ternary DCT features.
 
@@ -75,71 +80,82 @@ class VideoGridEmbedder:
             1D float32 feature vector (length ~510 before Matryoshka).
         """
         padded = self._pad_to_frame_size(grid)
-        rgb_frame = self._grid_to_rgb(padded)
+        rgb_flat: List[int] = []
+        for row in padded:
+            for color in row:
+                rgb_flat.extend([int(color)] * 3)  # replicate across RGB
+        # Map to ternary palette for tensor
+        ternary_rgb = [0 if v == 0 else (1 if v > 5 else -1) for v in rgb_flat]
+        tensor = TernaryTensor((self.height, self.width, 3), TernaryVector(ternary_rgb))
 
-        encoded = self.codec.encode(rgb_frame)
-        seed = np.asarray(encoded["seed"], dtype=np.float32).ravel()
-        quantized = np.asarray(encoded["quantized"], dtype=np.int8)
+        # Allow injected legacy codec for tests; otherwise use sovereign path.
+        if hasattr(self, "codec") and self.codec is not None and not isinstance(self.codec, SovereignTernaryVideoCodec):
+            import numpy as np  # local, test-only
 
-        stats = self._compute_ternary_stats(quantized)
-        quantized_flat = quantized.ravel()
-
-        # Truncate quantized tail for compact Matryoshka-friendly vector.
-        tail_len = 500
-        if quantized_flat.size < tail_len:
-            tail = np.zeros(tail_len, dtype=np.float32)
-            tail[: quantized_flat.size] = quantized_flat.astype(np.float32)
+            rgb_frame = np.array(self._grid_to_rgb(padded), dtype=np.uint8)
+            encoded = self.codec.encode(rgb_frame)  # type: ignore[arg-type]
+            quantized_raw = encoded.get("quantized", [])
+            if hasattr(quantized_raw, "ravel"):
+                quantized_flat = [int(v) for v in quantized_raw.ravel().tolist()]  # type: ignore[arg-type]
+            else:
+                quantized_flat = [int(v) for v in flatten([quantized_raw])]
+            stats = self._compute_ternary_stats(quantized_flat)
+            tail_len = 500
+            tail = pad_or_truncate([float(v) for v in quantized_flat[:tail_len]], tail_len, 0.0)
+            features: List[float] = []
+            features.extend([float(v) for v in flatten([encoded.get("seed", [])])])
+            features.extend(
+                [
+                    float(stats["sparsity"]),
+                    float(stats["pos_ratio"]),
+                    float(stats["neg_ratio"]),
+                    float(stats["entropy"]),
+                ]
+            )
+            features.extend(tail)
+            decoded_vals = features
         else:
-            tail = quantized_flat[:tail_len].astype(np.float32)
+            codec = SovereignTernaryVideoCodec(width=self.width, height=self.height)
+            codec.encode("frame_embed", tensor)
+            decoded = codec.decode("frame_embed")
+            decoded_vals = decoded.values.to_python()
 
-        features = np.concatenate(
-            [
-                seed.astype(np.float32),  # typically 6-D
-                np.array(
-                    [
-                        stats["sparsity"],
-                        stats["pos_ratio"],
-                        stats["neg_ratio"],
-                        stats["entropy"],
-                    ],
-                    dtype=np.float32,
-                ),
-                tail,
-            ]
-        )
-        return features.astype(np.float32, copy=False)
+        # Use flattened ternary values; project to fixed embedding length (510 as before).
+        return pad_or_truncate([float(v) for v in decoded_vals], 510, 0.0)
 
     # ------------------------------------------------------------------ #
     # Internal helpers
     # ------------------------------------------------------------------ #
-    def _pad_to_frame_size(self, grid: Sequence[Sequence[int]]) -> np.ndarray:
+    def _pad_to_frame_size(self, grid: Sequence[Sequence[int]]) -> Sequence[Sequence[int]]:
         """Pad (or crop) grid to codec frame size."""
         h = len(grid)
         w = len(grid[0]) if h > 0 else 0
-        arr = np.zeros((self.height, self.width), dtype=np.uint8)
+        arr = zeros2d(self.height, self.width, 0)
         if h == 0 or w == 0:
             return arr
 
         h_use = min(h, self.height)
         w_use = min(w, self.width)
-        arr[:h_use, :w_use] = np.asarray(grid, dtype=np.uint8)[:h_use, :w_use]
-        return arr
+        for y in range(h_use):
+            for x in range(w_use):
+                arr[y][x] = int(grid[y][x])
+        return arr  # type: ignore[return-value]
 
-    def _grid_to_rgb(self, grid: np.ndarray) -> np.ndarray:
+    def _grid_to_rgb(self, grid: Sequence[Sequence[int]]) -> Sequence[Sequence[Sequence[int]]]:
         """Map grid colors 0-9 to RGB frame."""
-        rgb = np.zeros((self.height, self.width, 3), dtype=np.uint8)
-        for color_idx, rgb_value in self.palette.items():
-            mask = grid == color_idx
-            if not np.any(mask):
-                continue
-            rgb[mask] = np.asarray(rgb_value, dtype=np.uint8)
+        rgb = [[[0, 0, 0] for _ in range(self.width)] for _ in range(self.height)]
+        for y in range(self.height):
+            for x in range(self.width):
+                color_idx = grid[y][x] if y < len(grid) and x < len(grid[y]) else 0
+                rgb_value = self.palette.get(int(color_idx), (0, 0, 0))
+                rgb[y][x] = [int(rgb_value[0]), int(rgb_value[1]), int(rgb_value[2])]
         return rgb
 
     @staticmethod
-    def _compute_ternary_stats(quantized: np.ndarray) -> Dict[str, float]:
+    def _compute_ternary_stats(quantized: Sequence[int]) -> Dict[str, float]:
         """Compute basic statistics of ternary quantisation."""
-        q = np.asarray(quantized, dtype=np.int8)
-        total = int(q.size)
+        q = [int(v) for v in quantized]
+        total = len(q)
         if total == 0:
             return {
                 "sparsity": 1.0,
@@ -148,9 +164,9 @@ class VideoGridEmbedder:
                 "entropy": 0.0,
             }
 
-        zeros = int(np.sum(q == 0))
-        pos = int(np.sum(q == 1))
-        neg = int(np.sum(q == -1))
+        zeros = sum(1 for v in q if v == 0)
+        pos = sum(1 for v in q if v == 1)
+        neg = sum(1 for v in q if v == -1)
 
         p_zero = zeros / total
         p_pos = pos / total
@@ -159,7 +175,7 @@ class VideoGridEmbedder:
         entropy = 0.0
         for p in (p_zero, p_pos, p_neg):
             if p > 0.0:
-                entropy -= p * float(np.log2(p))
+                entropy -= p * float(math.log2(p))
 
         return {
             "sparsity": float(p_zero),
@@ -167,4 +183,3 @@ class VideoGridEmbedder:
             "neg_ratio": float(p_neg),
             "entropy": float(entropy),
         }
-

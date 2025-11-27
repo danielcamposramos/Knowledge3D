@@ -14,6 +14,13 @@ from __future__ import annotations
 import hashlib
 from typing import Dict, List, Sequence
 
+from .sovereign_utils import (
+    count_nonzero_grid,
+    grid_shape,
+    most_common_value,
+    unique_counts,
+    zeros_like_grid,
+)
 
 class SemanticSignature:
     """
@@ -233,21 +240,27 @@ class SemanticSignature:
         return False
 
     @staticmethod
-    def _downsample_signature(grid: np.ndarray, factor: int) -> Dict:
+    def _downsample_signature(grid: List[List[int]], factor: int) -> Dict:
         """Extract coarse signature from a downsampled view."""
-        h, w = grid.shape
+        h, w = grid_shape(grid)
         if h < factor or w < factor:
             return {}
-        ds = grid[::factor, ::factor]
-        uniques, counts = np.unique(ds, return_counts=True)
+        ds = [
+            [int(grid[r][c]) for c in range(0, w, factor)]
+            for r in range(0, h, factor)
+        ]
+        flat_ds = [cell for row in ds for cell in row]
+        uniques, counts = unique_counts(flat_ds)
+        size = len(flat_ds) or 1
+        nonzero = count_nonzero_grid(ds)
         return {
             "num_colors": len(uniques),
-            "sparsity": round(1.0 - (float(np.count_nonzero(ds)) / float(ds.size or 1)), 2),
-            "color_distribution": {int(c): float(cnt / ds.size) for c, cnt in zip(uniques, counts)},
+            "sparsity": round(1.0 - (float(nonzero) / float(size)), 2),
+            "color_distribution": {int(c): float(cnt / size) for c, cnt in zip(uniques, counts)},
         }
 
     @staticmethod
-    def _compute_topology(grid: np.ndarray) -> Dict:
+    def _compute_topology(grid: List[List[int]]) -> Dict:
         """Compute simple topological descriptors."""
         beta0 = SemanticSignature._count_components(grid)
         holes = SemanticSignature._count_holes(grid)
@@ -258,11 +271,11 @@ class SemanticSignature:
         }
 
     @staticmethod
-    def _count_holes(grid: np.ndarray) -> int:
+    def _count_holes(grid: List[List[int]]) -> int:
         """Count holes by components of background minus exterior."""
-        h, w = grid.shape
-        background = np.argmax(np.bincount(grid.flatten()))
-        visited = np.zeros_like(grid, dtype=bool)
+        h, w = grid_shape(grid)
+        background = most_common_value([int(v) for row in grid for v in row])
+        visited = zeros_like_grid(grid, False)
         comps = 0
 
         def neighbors(r: int, c: int):
@@ -274,19 +287,19 @@ class SemanticSignature:
         touches_border: List[bool] = []
         for r in range(h):
             for c in range(w):
-                if visited[r, c] or grid[r, c] != background:
+                if visited[r][c] or grid[r][c] != background:
                     continue
                 comps += 1
                 stack = [(r, c)]
-                visited[r, c] = True
+                visited[r][c] = True
                 border = False
                 while stack:
                     cr, cc = stack.pop()
                     if cr in (0, h - 1) or cc in (0, w - 1):
                         border = True
                     for nr, nc in neighbors(cr, cc):
-                        if not visited[nr, nc] and grid[nr, nc] == background:
-                            visited[nr, nc] = True
+                        if not visited[nr][nc] and grid[nr][nc] == background:
+                            visited[nr][nc] = True
                             stack.append((nr, nc))
                 touches_border.append(border)
         # Holes are background components that do not touch border; subtract exterior

@@ -9,7 +9,11 @@ from .ternary_quantization import (
 )
 from .procedural_audio import ProceduralAudioSynthesizer
 from .ternary_audio_codec import TernaryAudioCodec
+from .ternary_video_codec import TernaryVideoCodec
 from .procedural_video import ProceduralVideoGenerator
+from .ternary_codec_ops import TernaryCodecOps
+from .sovereign_ternary_video_codec import SovereignTernaryVideoCodec
+from .sovereign_ternary_audio_codec import SovereignTernaryAudioCodec
 
 __all__ = [
     "quantize_ternary",
@@ -19,5 +23,9 @@ __all__ = [
     "entropy_decode_ternary",
     "ProceduralAudioSynthesizer",
     "TernaryAudioCodec",
+    "TernaryVideoCodec",
     "ProceduralVideoGenerator",
+    "TernaryCodecOps",
+    "SovereignTernaryVideoCodec",
+    "SovereignTernaryAudioCodec",
 ]

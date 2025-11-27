@@ -25,18 +25,30 @@ Notes:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-import numpy as np
-
-from knowledge3d.cranium.ptx_runtime.modular_rpn_engine import ModularRPNEngine
-from knowledge3d.cranium.specialists.procedural_drawing_specialist import (
-    ProceduralDrawingSpecialist,
-)
-from knowledge3d.cranium.adaptive_swarm import AdaptiveSwarmTRM, SwarmConfig
 from .embedders.multimodal_grid_embedder import MultiModalGridEmbedder
 from .embedders.video_grid_embedder import VideoGridEmbedder
 from .embedders.audio_grid_embedder import AudioGridEmbedder
+from .rpn_executor import ARCRPNExecutor
+from .sovereign_utils import (
+    copy_grid,
+    count_nonzero_grid,
+    dot,
+    flatten,
+    flip_horizontal,
+    flip_vertical,
+    grid_shape,
+    grids_equal,
+    l2_norm,
+    max_abs,
+    pad_or_truncate,
+    rotate_ccw,
+    rotate_cw,
+    to_int_grid,
+    translate_grid,
+    unique_counts,
+)
 
 
 @dataclass
@@ -54,7 +66,7 @@ class _DefaultVisualEmbedder:
 
     matryoshka_dim: int
 
-    def emit_fractal_features(self, raster: np.ndarray) -> np.ndarray:
+    def emit_fractal_features(self, raster: Sequence[Sequence[float]]) -> List[float]:
         """
         Derive a deterministic feature vector from a raster.
 
@@ -62,20 +74,18 @@ class _DefaultVisualEmbedder:
             - Flatten the raster, normalise to [0, 1].
             - Take a truncated or padded copy to matryoshka_dim.
         """
-        flat = np.asarray(raster, dtype=np.float32).ravel()
-        if flat.size == 0:
-            return np.zeros(self.matryoshka_dim, dtype=np.float32)
+        flat = [float(v) for v in flatten(raster)]
+        if not flat:
+            return [0.0 for _ in range(self.matryoshka_dim)]
 
-        max_val = float(np.max(np.abs(flat)))
+        max_val = max_abs(flat)
         if max_val > 0.0:
-            flat = flat / max_val
+            flat = [v / max_val for v in flat]
 
-        if flat.size >= self.matryoshka_dim:
-            return flat[: self.matryoshka_dim].astype(np.float32, copy=False)
+        if len(flat) >= self.matryoshka_dim:
+            return flat[: self.matryoshka_dim]
 
-        out = np.zeros(self.matryoshka_dim, dtype=np.float32)
-        out[: flat.size] = flat
-        return out
+        return pad_or_truncate(flat, self.matryoshka_dim, 0.0)
 
 
 class ARCGridProcessor:
@@ -93,6 +103,7 @@ class ARCGridProcessor:
         *,
         visual_embedder: Any | None = None,
         embedder_type: str = "procedural",
+        executor: Optional[ARCRPNExecutor] = None,
     ):
         """
         Initialize grid processor.
@@ -100,7 +111,7 @@ class ARCGridProcessor:
         Args:
             matryoshka_dim: Embedding dimension (128-2048 adaptive).
             visual_embedder:
-                Optional object providing `emit_fractal_features(raster) -> np.ndarray`
+                Optional object providing `emit_fractal_features(raster) -> List[float]`
                 used for the procedural RPN→raster path.
             embedder_type:
                 "procedural" (default) uses the RPN drawing + visual embedder path.
@@ -109,19 +120,7 @@ class ARCGridProcessor:
         """
         self.matryoshka_dim = matryoshka_dim
         self.embedder_type = embedder_type
-        self.rpn_engine = ModularRPNEngine()
-
-        # Reuse procedural drawing infrastructure
-        # (Character glyphs and grids are BOTH procedural drawings.)
-        cfg = SwarmConfig()
-        cfg.base_dims = matryoshka_dim
-        cfg.min_dims = 64
-        cfg.enable_auto_expansion = False
-        self.swarm = AdaptiveSwarmTRM(config=cfg)
-        self.drawing_specialist = ProceduralDrawingSpecialist(
-            swarm=self.swarm,
-            matryoshka_dim=matryoshka_dim,
-        )
+        self.executor = executor or ARCRPNExecutor()
 
         # Visual embedder (pluggable for CPU vs GPU backends) used when
         # embedder_type == "procedural" or when a custom embedder is provided.
@@ -216,7 +215,7 @@ class ARCGridProcessor:
         self,
         grid: Sequence[Sequence[int]],
         routing: int = 0,
-    ) -> np.ndarray:
+    ) -> List[float]:
         """
         Convert grid to spatial embedding for Galaxy Universe.
 
@@ -249,23 +248,28 @@ class ARCGridProcessor:
                 raw = self.codec_embedder.grid_to_multimodal_embedding(
                     grid, routing=routing
                 )
-            raw = np.asarray(raw, dtype=np.float32).ravel()
-            if raw.size != self.matryoshka_dim:
-                raw = self._project_to_matryoshka(raw)
-            return raw.astype(np.float32, copy=False)
+            if isinstance(raw, (list, tuple)):
+                if raw and isinstance(raw[0], (list, tuple)):
+                    raw_list = [float(v) for v in flatten(raw)]  # type: ignore[arg-type]
+                else:
+                    raw_list = [float(v) for v in raw]  # type: ignore[arg-type]
+            else:
+                raw_list = [float(raw)]  # type: ignore[arg-type]
+            if len(raw_list) != self.matryoshka_dim:
+                raw_list = self._project_to_matryoshka(raw_list)
+            return raw_list
 
         # Procedural RPN path (default).
         rpn_program = self.grid_to_rpn_program(grid)
         visual_features = self._execute_visual_rpn(rpn_program)
         fractal_embedding = self.visual_embedder.emit_fractal_features(visual_features)
 
-        fractal_embedding = np.asarray(fractal_embedding, dtype=np.float32).ravel()
-        if fractal_embedding.size != self.matryoshka_dim:
+        if len(fractal_embedding) != self.matryoshka_dim:
             fractal_embedding = self._project_to_matryoshka(fractal_embedding)
 
-        return fractal_embedding.astype(np.float32, copy=False)
+        return [float(v) for v in fractal_embedding]
 
-    def _execute_visual_rpn(self, rpn_program: str) -> np.ndarray:
+    def _execute_visual_rpn(self, rpn_program: str) -> List[List[float]]:
         """
         Execute RPN program to generate a simple raster representation.
 
@@ -281,11 +285,11 @@ class ARCGridProcessor:
         coords: List[float] = [float(t) for t in tokens if self._is_number(t)]
 
         if not coords:
-            return np.zeros((32, 32), dtype=np.float32)
+            return [[0.0 for _ in range(32)] for _ in range(32)]
 
         max_coord = int(max(coords)) + 1
         size = max(4, max_coord * 2)
-        raster = np.zeros((size, size), dtype=np.float32)
+        raster = [[0.0 for _ in range(size)] for _ in range(size)]
 
         # Simple occupancy raster: mark cell centers that appear in RPN.
         # Full implementation will rely on GPU RPN executor.
@@ -295,7 +299,7 @@ class ARCGridProcessor:
                 break
             y = int(coords[i + 1])
             if 0 <= x < size and 0 <= y < size:
-                raster[y, x] = 1.0
+                raster[y][x] = 1.0
 
         return raster
 
@@ -308,20 +312,10 @@ class ARCGridProcessor:
         except ValueError:
             return False
 
-    def _project_to_matryoshka(self, embedding: np.ndarray) -> np.ndarray:
+    def _project_to_matryoshka(self, embedding: Sequence[float]) -> List[float]:
         """Project embedding to target Matryoshka dimension."""
-        current_dim = int(embedding.size)
-
-        if current_dim == self.matryoshka_dim:
-            return embedding.astype(np.float32, copy=False)
-        if current_dim > self.matryoshka_dim:
-            # Truncate (Matryoshka nested property)
-            return embedding[: self.matryoshka_dim].astype(np.float32, copy=False)
-
-        # Pad with zeros
-        padded = np.zeros(self.matryoshka_dim, dtype=np.float32)
-        padded[:current_dim] = embedding
-        return padded
+        projected = pad_or_truncate([float(v) for v in embedding], self.matryoshka_dim, 0.0)
+        return projected
 
     # --------------------------------------------------------------------- #
     # Primitive detection (before/after grids)
@@ -479,32 +473,46 @@ class ARCGridProcessor:
         # Final heuristic: prefer recolor, then translate/rotate-translate, else first match.
         return self._prioritize(primitives)
 
-    @staticmethod
     def _apply_rotation(
+        self,
         grid: Sequence[Sequence[int]],
         angle: int,
     ) -> List[List[int]]:
-        """Apply rotation to grid."""
-        np_grid = np.asarray(grid, dtype=int)
+        """Apply rotation to grid using RPN executor where possible."""
+        program = None
         if angle == 90:
-            rotated = np.rot90(np_grid, k=-1)  # Clockwise
+            program = "1 rotate"
         elif angle == 180:
-            rotated = np.rot90(np_grid, k=2)
+            program = "2 rotate"
         elif angle == 270:
-            rotated = np.rot90(np_grid, k=1)  # Counter-clockwise
-        else:
-            rotated = np_grid
-        return rotated.tolist()
+            program = "3 rotate"
+        if program:
+            try:
+                return self.executor.execute(grid, program)
+            except Exception:
+                pass
+        # fallback
+        if angle == 90:
+            return rotate_cw(grid, 1)
+        if angle == 180:
+            return rotate_cw(grid, 2)
+        if angle == 270:
+            return rotate_ccw(grid, 1)
+        return to_int_grid(grid)
 
-    @staticmethod
-    def _apply_flip_horizontal(grid: Sequence[Sequence[int]]) -> List[List[int]]:
+    def _apply_flip_horizontal(self, grid: Sequence[Sequence[int]]) -> List[List[int]]:
         """Apply horizontal flip to grid."""
-        return np.fliplr(np.asarray(grid, dtype=int)).tolist()
+        try:
+            return self.executor.execute(grid, "FLIP_H")
+        except Exception:
+            return flip_horizontal(grid)
 
-    @staticmethod
-    def _apply_flip_vertical(grid: Sequence[Sequence[int]]) -> List[List[int]]:
+    def _apply_flip_vertical(self, grid: Sequence[Sequence[int]]) -> List[List[int]]:
         """Apply vertical flip to grid."""
-        return np.flipud(np.asarray(grid, dtype=int)).tolist()
+        try:
+            return self.executor.execute(grid, "FLIP_V")
+        except Exception:
+            return flip_vertical(grid)
 
     @staticmethod
     def _detect_translation(
@@ -517,53 +525,29 @@ class ARCGridProcessor:
         Returns:
             (dx, dy) if translation detected, None otherwise.
         """
-        before = np.asarray(grid_before, dtype=int)
-        after = np.asarray(grid_after, dtype=int)
+        before = to_int_grid(grid_before)
+        after = to_int_grid(grid_after)
 
-        if before.shape != after.shape:
+        if grid_shape(before) != grid_shape(after):
             return None
 
-        h, w = before.shape
+        h, w = grid_shape(before)
 
         # Brute-force search over plausible integer shifts within bounds.
         for dy in range(-h + 1, h):
             for dx in range(-w + 1, w):
-                shifted = np.zeros_like(before)
-                src_y_start = max(0, -dy)
-                src_y_end = min(h, h - dy)
-                src_x_start = max(0, -dx)
-                src_x_end = min(w, w - dx)
-
-                dst_y_start = max(0, dy)
-                dst_y_end = dst_y_start + (src_y_end - src_y_start)
-                dst_x_start = max(0, dx)
-                dst_x_end = dst_x_start + (src_x_end - src_x_start)
-
-                if src_y_end <= src_y_start or src_x_end <= src_x_start:
-                    continue
-
-                shifted[dst_y_start:dst_y_end, dst_x_start:dst_x_end] = before[
-                    src_y_start:src_y_end, src_x_start:src_x_end
-                ]
-
-                if np.array_equal(shifted, after):
+                shifted = translate_grid(before, dx=dx, dy=dy, fill=0)
+                if grids_equal(shifted, after):
                     return dx, dy
 
         return None
 
-    @staticmethod
-    def _apply_translation(grid: Sequence[Sequence[int]], dx: int, dy: int) -> List[List[int]]:
+    def _apply_translation(self, grid: Sequence[Sequence[int]], dx: int, dy: int) -> List[List[int]]:
         """Apply translation to grid with zero fill."""
-        arr = np.asarray(grid, dtype=int)
-        h, w = arr.shape
-        out = np.zeros_like(arr)
-        for y in range(h):
-            for x in range(w):
-                ny = y + dy
-                nx = x + dx
-                if 0 <= ny < h and 0 <= nx < w:
-                    out[ny, nx] = arr[y, x]
-        return out.tolist()
+        try:
+            return self.executor.execute(grid, f"{dx} {dy} TRANSLATE")
+        except Exception:
+            return translate_grid(grid, dx=dx, dy=dy, fill=0)
 
     @staticmethod
     def _grids_match(
@@ -571,7 +555,7 @@ class ARCGridProcessor:
         grid2: Sequence[Sequence[int]],
     ) -> bool:
         """Check if two grids are identical."""
-        return np.array_equal(np.asarray(grid1, dtype=int), np.asarray(grid2, dtype=int))
+        return grids_equal(grid1, grid2)
 
     @staticmethod
     def _detect_color_map(
@@ -579,21 +563,35 @@ class ARCGridProcessor:
         grid_after: Sequence[Sequence[int]],
     ) -> Tuple[int, int] | None:
         """Detect a simple one-to-one color remap if only one color changed."""
-        before = np.asarray(grid_before, dtype=int)
-        after = np.asarray(grid_after, dtype=int)
-        if before.shape != after.shape:
+        before = to_int_grid(grid_before)
+        after = to_int_grid(grid_after)
+        if grid_shape(before) != grid_shape(after):
             return None
-        diff_mask = before != after
-        if not diff_mask.any():
+        diff_mask = [
+            [before[y][x] != after[y][x] for x in range(len(before[0]))]
+            for y in range(len(before))
+        ]
+        if not any(any(row) for row in diff_mask):
             return None
-        src_colors = before[diff_mask]
-        dst_colors = after[diff_mask]
-        if len(np.unique(src_colors)) == 1 and len(np.unique(dst_colors)) == 1:
-            return int(src_colors[0]), int(dst_colors[0])
+        src_colors = []
+        dst_colors = []
+        for y, row in enumerate(diff_mask):
+            for x, changed in enumerate(row):
+                if changed:
+                    src_colors.append(int(before[y][x]))
+                    dst_colors.append(int(after[y][x]))
+        uniques_src, counts_src = unique_counts(src_colors)
+        uniques_dst, counts_dst = unique_counts(dst_colors)
+        if len(uniques_src) == 1 and len(uniques_dst) == 1 and counts_src[0] == counts_dst[0]:
+            return uniques_src[0], uniques_dst[0]
         return None
 
     def _prioritize(self, primitives: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Simple prioritization: favor recolor, then translate/rotate-translate, else first."""
+        """
+        Prioritize detected primitives.
+
+        Order: recolor > rotate/flip > translate/rotate-translate > first.
+        """
         if not primitives:
             return {
                 "primitive": "UNKNOWN",
@@ -604,6 +602,9 @@ class ARCGridProcessor:
         recolors = [p for p in primitives if "RECOLOR" in p["primitive"]]
         if recolors:
             return recolors[0]
+        rot_90_270 = [p for p in primitives if p["primitive"] in ("ROTATE_90", "ROTATE_270")]
+        if rot_90_270:
+            return rot_90_270[0]
         translates = [
             p
             for p in primitives
@@ -611,6 +612,11 @@ class ARCGridProcessor:
         ]
         if translates:
             return translates[0]
+        other_rot_flip = [
+            p for p in primitives if p["primitive"].startswith("ROTATE") or p["primitive"].startswith("FLIP")
+        ]
+        if other_rot_flip:
+            return other_rot_flip[0]
         return primitives[0]
 
 

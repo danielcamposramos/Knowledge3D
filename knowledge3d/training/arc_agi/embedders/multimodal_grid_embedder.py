@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Sequence
+from typing import List, Sequence
 
-import numpy as np
+from knowledge3d.training.arc_agi.sovereign_utils import pad_or_truncate
 
 from .video_grid_embedder import VideoGridEmbedder
 from .audio_grid_embedder import AudioGridEmbedder
@@ -32,7 +32,7 @@ class MultiModalGridEmbedder:
         self,
         grid: Sequence[Sequence[int]],
         routing: int = 0,
-    ) -> np.ndarray:
+    ) -> List[float]:
         """
         Compute fused embedding with ternary routing.
 
@@ -41,9 +41,7 @@ class MultiModalGridEmbedder:
             routing: -1 (video-heavy), 0 (balanced), +1 (audio-heavy).
         """
         video_emb = self.video_embedder.grid_to_video_embedding(grid)
-        audio_emb = self.audio_embedder.grid_to_audio_embedding(
-            grid, target_dim=512
-        )
+        audio_emb = self.audio_embedder.grid_to_audio_embedding(grid, target_dim=512)
 
         # Ternary routing weights.
         if routing == -1:
@@ -54,19 +52,13 @@ class MultiModalGridEmbedder:
             w_video, w_audio = 0.5, 0.5
 
         # Pad video to match audio length.
-        video_padded = np.zeros_like(audio_emb, dtype=np.float32)
-        v_len = min(video_emb.size, video_padded.size)
-        video_padded[:v_len] = video_emb[:v_len].astype(np.float32)
+        max_len = max(len(video_emb), len(audio_emb))
+        video_padded = pad_or_truncate(video_emb, max_len, 0.0)
+        audio_padded = pad_or_truncate(audio_emb, max_len, 0.0)
 
-        fused = (w_video * video_padded) + (w_audio * audio_emb.astype(np.float32))
+        fused = [
+            w_video * float(video_padded[i]) + w_audio * float(audio_padded[i])
+            for i in range(max_len)
+        ]
 
-        # Matryoshka projection.
-        if fused.size == self.matryoshka_dim:
-            return fused.astype(np.float32, copy=False)
-        if fused.size > self.matryoshka_dim:
-            return fused[: self.matryoshka_dim].astype(np.float32, copy=False)
-
-        out = np.zeros(self.matryoshka_dim, dtype=np.float32)
-        out[: fused.size] = fused.astype(np.float32)
-        return out
-
+        return pad_or_truncate(fused, self.matryoshka_dim, 0.0)
