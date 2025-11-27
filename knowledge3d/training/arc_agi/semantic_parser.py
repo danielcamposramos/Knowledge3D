@@ -6,8 +6,6 @@ import re
 import difflib
 from typing import Dict, Optional, List, Tuple
 
-import numpy as np
-
 from .semantic_primitives import (
     SPATIAL_SEMANTICS,
     COLOR_SEMANTICS,
@@ -17,6 +15,7 @@ from .semantic_primitives import (
 )
 from .grammar_galaxy import GrammarGalaxy
 from .grammar_executor import GrammarRPNExecutor
+from .sovereign_utils import dot, l2_norm, zeros1d
 
 
 class SemanticParser:
@@ -53,7 +52,7 @@ class SemanticParser:
         # Cache of grammar example surfaces for fuzzy/embedding-like matching.
         self._grammar_surfaces: List[Tuple[str, str]] = []
         self._grammar_vectors: List[Tuple[str, Dict[str, int]]] = []
-        self._grammar_embs: List[Tuple[str, np.ndarray]] = []
+        self._grammar_embs: List[Tuple[str, List[float]]] = []
         for rule in self.grammar.list_rules(language=self.language):
             for ex in rule.examples:
                 surface = " ".join(ex.values()).lower()
@@ -438,15 +437,15 @@ class SemanticParser:
             return best_rid, ctx
         return None
 
-    def _embed_dense(self, text: str, dim: int = 32) -> np.ndarray:
+    def _embed_dense(self, text: str, dim: int = 32) -> List[float]:
         """Very lightweight hashing embed (placeholder for real embeddings)."""
-        vec = np.zeros(dim, dtype=np.float32)
+        vec = zeros1d(dim, 0.0)
         for tok in text.split():
             h = hash(tok) % dim
             vec[h] += 1.0
-        norm = np.linalg.norm(vec)
+        norm = l2_norm(vec)
         if norm > 0:
-            vec /= norm
+            vec = [v / norm for v in vec]
         return vec
 
     def _best_dense_rule(self, text: str) -> Tuple[str, Dict[str, str]] | None:
@@ -454,7 +453,7 @@ class SemanticParser:
         best_score = 0.0
         best_rid = None
         for rid, rvec in self._grammar_embs:
-            score = float(np.dot(vec, rvec))
+            score = float(dot(vec, rvec))
             if score > best_score:
                 best_score = score
                 best_rid = rid

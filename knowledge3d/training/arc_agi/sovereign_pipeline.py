@@ -23,6 +23,21 @@ from knowledge3d.training.arc_agi.program_composer import ProgramComposer
 from knowledge3d.training.arc_agi.dual_shadow_copy import DualShadowCopy
 
 
+def compute_ternary_reward(score: float) -> int:
+    """
+    Map continuous score to balanced ternary reward {-1, 0, +1}.
+
+    -1: score < 0.50 (punish)
+     0: 0.50 ≤ score < 0.99 (neutral)
+    +1: score ≥ 0.99 (reward)
+    """
+    if score < 0.50:
+        return -1
+    if score < 0.99:
+        return 0
+    return 1
+
+
 @dataclass
 class TaskResult:
     task_id: str
@@ -35,9 +50,14 @@ class TaskResult:
 
 def _grids_equal(grid1: Sequence[Sequence[int]], grid2: Sequence[Sequence[int]]) -> bool:
     """SOVEREIGN: Compare grids without numpy."""
+    # Basic shape check
+    if not isinstance(grid1, (list, tuple)) or not isinstance(grid2, (list, tuple)):
+        return False
     if len(grid1) != len(grid2):
         return False
     for row1, row2 in zip(grid1, grid2):
+        if not isinstance(row1, (list, tuple)) or not isinstance(row2, (list, tuple)):
+            return False
         if len(row1) != len(row2):
             return False
         # Convert to lists and compare to handle any type differences
@@ -101,9 +121,36 @@ class SovereignAIPipeline:
                 print(f"  [PIPELINE] Warning: Could not extract semantic hints: {e}")
 
         if train_examples:
-            gen = CandidateGenerator(matryoshka_dim=self.router.matryoshka_dim)
-            procedural_candidates = gen.generate_candidates(test_input, train_examples, semantic_hints=semantic_hints)
-            print(f"  [CANDIDATES] Generated {len(procedural_candidates)} procedural candidates (max={gen.max_candidates})")
+            try:
+                from knowledge3d.training.arc_agi.parallel_generator import ParallelCandidateGenerator
+
+                par_gen = ParallelCandidateGenerator(
+                    num_workers=3,  # TEMP: OOM validation (was 9 for Tesla 3-6-9)
+                    candidates_per_worker=6,
+                    top_k=3,
+                    matryoshka_dim=self.router.matryoshka_dim,
+                    shadow_copy=self.shadow,
+                )
+                procedural_candidates = par_gen.generate_parallel(
+                    input_grid=test_input,
+                    train_examples=train_examples,
+                    semantic_hints=semantic_hints,
+                    expected_output=expected_output,
+                )
+                print(f"  [CANDIDATES] Parallel generated {len(procedural_candidates)} candidates (Tesla 3-6-9)")
+            except Exception as e:
+                print(f"  [PIPELINE] Parallel generation failed ({e}); falling back to sequential")
+                gen = CandidateGenerator(
+                    matryoshka_dim=self.router.matryoshka_dim,
+                    shadow_copy=self.shadow,
+                )
+                procedural_candidates = gen.generate_candidates(
+                    test_input,
+                    train_examples,
+                    semantic_hints=semantic_hints,
+                    expected_output=expected_output,
+                )
+                print(f"  [CANDIDATES] Generated {len(procedural_candidates)} procedural candidates (max={gen.max_candidates})")
 
         # 2) TRM router candidates.
         trm_candidates = self.router.route(test_input, top_k=top_k)
@@ -182,8 +229,12 @@ class SovereignAIPipeline:
 
         # DIAGNOSTIC: Log answer comparison details
         if expected_list is not None:
-            is_correct = _grids_equal(chosen["output"], expected_list)
-            print(f"  [ANSWER CHECK] Task {task_id}: score={chosen['score']:.2f}, correct={is_correct}, source={chosen['source']}")
+            reward = compute_ternary_reward(chosen["score"])
+            reward_label = {-1: "PUNISH", 0: "NEUTRAL", 1: "REWARD"}[reward]
+            is_correct = reward == 1
+            print(
+                f"  [ANSWER CHECK] Task {task_id}: score={chosen['score']:.2f}, reward={reward_label}, source={chosen['source']}"
+            )
             if is_correct:
                 print(f"  [ANSWER CHECK] ✅ CORRECT ANSWER FOUND!")
             elif chosen["score"] >= 0.9:
@@ -234,6 +285,10 @@ class SovereignAIPipeline:
         source: str = "unknown",
     ) -> float:
         """Score candidates (SOVEREIGN: no numpy!); align thresholds with DualShadowCopy recording."""
+        # Guard against malformed outputs (e.g., flat lists or scalars).
+        if not isinstance(output, (list, tuple)) or any(not isinstance(row, (list, tuple)) for row in output):
+            return 0.0
+
         if expected is not None and _grids_equal(output, expected):
             return 1.0
 

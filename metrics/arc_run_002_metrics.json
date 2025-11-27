@@ -1,0 +1,848 @@
+{
+  "timestamp": "2025-11-26T21:48:19.793132",
+  "log_file": "/tmp/arc_run_002.log",
+  "accuracy_progression": [
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 0,
+      "total": 60,
+      "accuracy": 0.0
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 1,
+      "total": 60,
+      "accuracy": 0.0167
+    },
+    {
+      "correct": 2,
+      "total": 60,
+      "accuracy": 0.0333
+    },
+    {
+      "correct": 2,
+      "total": 60,
+      "accuracy": 0.0333
+    },
+    {
+      "correct": 2,
+      "total": 60,
+      "accuracy": 0.0333
+    },
+    {
+      "correct": 2,
+      "total": 60,
+      "accuracy": 0.0333
+    },
+    {
+      "correct": 2,
+      "total": 60,
+      "accuracy": 0.0333
+    },
+    {
+      "correct": 2,
+      "total": 60,
+      "accuracy": 0.0333
+    },
+    {
+      "correct": 2,
+      "total": 60,
+      "accuracy": 0.0333
+    },
+    {
+      "correct": 2,
+      "total": 60,
+      "accuracy": 0.0333
+    },
+    {
+      "correct": 2,
+      "total": 60,
+      "accuracy": 0.0333
+    },
+    {
+      "correct": 2,
+      "total": 60,
+      "accuracy": 0.0333
+    },
+    {
+      "correct": 2,
+      "total": 60,
+      "accuracy": 0.0333
+    },
+    {
+      "correct": 2,
+      "total": 60,
+      "accuracy": 0.0333
+    },
+    {
+      "correct": 2,
+      "total": 60,
+      "accuracy": 0.0333
+    },
+    {
+      "correct": 2,
+      "total": 60,
+      "accuracy": 0.0333
+    },
+    {
+      "correct": 2,
+      "total": 60,
+      "accuracy": 0.0333
+    },
+    {
+      "correct": 2,
+      "total": 60,
+      "accuracy": 0.0333
+    },
+    {
+      "correct": 2,
+      "total": 60,
+      "accuracy": 0.0333
+    },
+    {
+      "correct": 2,
+      "total": 60,
+      "accuracy": 0.0333
+    },
+    {
+      "correct": 2,
+      "total": 60,
+      "accuracy": 0.0333
+    },
+    {
+      "correct": 2,
+      "total": 60,
+      "accuracy": 0.0333
+    },
+    {
+      "correct": 2,
+      "total": 60,
+      "accuracy": 0.0333
+    },
+    {
+      "correct": 2,
+      "total": 60,
+      "accuracy": 0.0333
+    },
+    {
+      "correct": 2,
+      "total": 60,
+      "accuracy": 0.0333
+    },
+    {
+      "correct": 2,
+      "total": 60,
+      "accuracy": 0.0333
+    },
+    {
+      "correct": 2,
+      "total": 60,
+      "accuracy": 0.0333
+    },
+    {
+      "correct": 2,
+      "total": 60,
+      "accuracy": 0.0333
+    },
+    {
+      "correct": 2,
+      "total": 60,
+      "accuracy": 0.0333
+    }
+  ],
+  "final_state": {
+    "library_programs": 45,
+    "drawing_shapes": 14,
+    "grammar_rules": 210,
+    "pattern_types": 4
+  },
+  "curriculum": {
+    "total": 60,
+    "easy": 20,
+    "mid": 20,
+    "hard": 20
+  },
+  "peak_accuracy": 0.0333,
+  "final_accuracy": 0.0333,
+  "checkpoints": {
+    "library": {
+      "programs": 47,
+      "total_references": 0,
+      "avg_quality": 0.888851063829788
+    },
+    "deduplication": {
+      "unique_programs": 47,
+      "total_references": 3029,
+      "dedup_efficiency": 0.9844833278309674
+    },
+    "semantic": {
+      "contexts": 141,
+      "vocabulary_words": 20,
+      "vocabulary_refs": 0,
+      "storage_savings": 0.0
+    }
+  }
+}

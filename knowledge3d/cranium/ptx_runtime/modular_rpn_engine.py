@@ -31,6 +31,20 @@ from .rpn_opcodes import (
     OP_TRM_SWIGLU_512,
     OP_TRM_VEC_ADD3_512,
 )
+from .codec_opcodes import (
+    OP_TERNARY_QUANT,
+    OP_TERNARY_DEQUANT,
+    OP_TERNARY_ADD,
+    OP_TERNARY_MUL,
+    OP_DCT8X8,
+    OP_IDCT8X8,
+    OP_MDCT_FRAME,
+    OP_IMDCT_FRAME,
+    OP_BATCH_DCT,
+    OP_BATCH_MDCT,
+    OP_RESHAPE_TO_BLOCKS,
+    OP_BLOCKS_TO_GRID,
+)
 
 if TYPE_CHECKING:  # pragma: no cover - only for type hints
     from knowledge3d.cranium.bridges.tiered_rpn import TieredRPNEngine as SovereignRPNEngine
@@ -133,6 +147,21 @@ class ModularRPNEngine:
         "tpack": 117,
         "tunpack": 118,
         "tfuse": 83,
+        # Ternary codec ops
+        "TERNARY_QUANT": OP_TERNARY_QUANT,
+        "TERNARY_DEQUANT": OP_TERNARY_DEQUANT,
+        "TERNARY_ADD": OP_TERNARY_ADD,
+        "TERNARY_MUL": OP_TERNARY_MUL,
+        "DCT8": OP_DCT8X8,
+        "IDCT8": OP_IDCT8X8,
+        "MDCT": OP_MDCT_FRAME,
+        "IMDCT": OP_IMDCT_FRAME,
+        "MDCT_FORWARD": OP_MDCT_FRAME,
+        "IMDCT_INVERSE": OP_IMDCT_FRAME,
+        "BATCH_DCT": OP_BATCH_DCT,
+        "BATCH_MDCT": OP_BATCH_MDCT,
+        "RESHAPE_TO_BLOCKS": OP_RESHAPE_TO_BLOCKS,
+        "BLOCKS_TO_GRID": OP_BLOCKS_TO_GRID,
     }
 
     CONSTANTS: Dict[str, float] = {
@@ -142,6 +171,24 @@ class ModularRPNEngine:
         "phi": (1.0 + math.sqrt(5.0)) / 2.0,
         "φ": (1.0 + math.sqrt(5.0)) / 2.0,
         "e": math.e,
+    }
+    CODEC_TOKENS = {
+        "TERNARY_QUANT",
+        "TERNARY_DEQUANT",
+        "DCT8",
+        "DCT8X8",
+        "DCT8X8_FORWARD",
+        "IDCT8",
+        "IDCT8X8",
+        "IDCT8X8_INVERSE",
+        "MDCT",
+        "MDCT_FORWARD",
+        "IMDCT",
+        "IMDCT_INVERSE",
+        "BATCH_MDCT",
+        "BATCH_DCT",
+        "TERNARY_ADD",
+        "TERNARY_MUL",
     }
 
     def __init__(
@@ -247,7 +294,8 @@ class ModularRPNEngine:
         self,
         expression: str,
         instance_id: Optional[int] = None,
-        return_vector: bool = False
+        return_vector: bool = False,
+        data=None,
     ) -> float:
         """Evaluate RPN expression on GPU.
 
@@ -255,6 +303,7 @@ class ModularRPNEngine:
             expression: RPN expression string (e.g., "2 3 +")
             instance_id: Optional math core instance. When None, allocate via pool.
             return_vector: If True, return full float4 (NOT IMPLEMENTED - returns scalar only)
+            data: Optional vector/tensor payload for codec ops (DCT/MDCT paths)
 
         Returns:
             Result from top of stack (scalar)
@@ -268,14 +317,16 @@ class ModularRPNEngine:
             >>> engine.evaluate("[1,0,0] [0,1,0] cross mag")  # Cross product magnitude
             1.0
         """
+        tokens = self.tokenize_rpn(expression)
+        if any(token in self.CODEC_TOKENS for token in tokens):
+            # Codec ops are orchestrated directly through TieredRPNEngine to GPU kernels
+            return self._sovereign_engine.execute_codec(tokens, data=data, return_vector=return_vector)
+
         core_id = self._ensure_core(tier=1, override_instance=instance_id)
         # Reset instance to clear stack before evaluation
         self._sovereign_engine.reset_instance(core_id)
 
         # Tokenize expression
-        tokens = self.tokenize_rpn(expression)
-
-        # Compile to GPU-ready format
         op_codes, scalars, vectors = self.compile_tokens(tokens, instance_id)
 
         # Execute on GPU via sovereign bridge
@@ -315,6 +366,8 @@ class ModularRPNEngine:
 
         for expr in expressions:
             tokens = self.tokenize_rpn(expr)
+            if any(token in self.CODEC_TOKENS for token in tokens):
+                raise ValueError("Codec opcodes are not supported in evaluate_batch; use evaluate with data.")
             op_codes, scalars, vectors = self.compile_tokens(tokens)
             programs.append({
                 'op_codes': op_codes,
