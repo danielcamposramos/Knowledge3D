@@ -25,6 +25,7 @@ class ParallelCandidateGenerator:
         top_k: int = 3,
         matryoshka_dim: int = 512,
         shadow_copy: Optional[DualShadowCopy] = None,
+        codec_embedder: Any | None = None,
     ) -> None:
         self.num_workers = num_workers
         self.candidates_per_worker = candidates_per_worker
@@ -32,6 +33,7 @@ class ParallelCandidateGenerator:
         self.matryoshka_dim = matryoshka_dim
         self.shadow_copy = shadow_copy
         self.core_pool = get_global_math_core_pool()
+        self.codec_embedder = codec_embedder
 
     def generate_parallel(
         self,
@@ -65,6 +67,7 @@ class ParallelCandidateGenerator:
                     max_candidates=self.candidates_per_worker,
                     shadow_copy=self.shadow_copy,
                     executor=executor,
+                    codec_embedder=self.codec_embedder,
                 )
                 cand_list = gen.generate_candidates(
                     input_grid=input_grid,
