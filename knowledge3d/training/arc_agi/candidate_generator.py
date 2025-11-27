@@ -44,7 +44,7 @@ class CandidateGenerator:
         self.executor = executor or ARCRPNExecutor()
         self.processor = ARCGridProcessor(
             matryoshka_dim=matryoshka_dim,
-            embedder_type="procedural",
+            embedder_type="multimodal",
             executor=self.executor,
         )
         self.max_candidates = max_candidates  # SOVEREIGN: Tesla 3-6-9 (increased from 69)
