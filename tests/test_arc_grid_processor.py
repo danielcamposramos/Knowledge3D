@@ -50,9 +50,13 @@ def test_grid_to_spatial_embedding_shape_and_type():
         [0, 1, 0],
     ]
     emb = processor.grid_to_spatial_embedding(grid)
-    assert isinstance(emb, np.ndarray)
-    assert emb.shape == (dim,)
-    assert emb.dtype == np.float32
+    if isinstance(emb, np.ndarray):
+        assert emb.shape == (dim,)
+        assert emb.dtype == np.float32
+    else:
+        assert isinstance(emb, list)
+        assert len(emb) == dim
+        assert all(isinstance(v, float) for v in emb)
 
 
 def test_detect_spatial_primitive_rotation_90():
@@ -100,4 +104,3 @@ def test_detect_spatial_primitive_translation():
     assert result["primitive"] == "TRANSLATE"
     assert result["parameters"]["dx"] == 0
     assert result["parameters"]["dy"] == 2
-

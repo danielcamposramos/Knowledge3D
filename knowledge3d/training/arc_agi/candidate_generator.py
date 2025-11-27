@@ -8,14 +8,22 @@ up to ~20 unique candidates that downstream TRM ranking can score.
 
 from __future__ import annotations
 
-from typing import Dict, Iterable, List, Sequence, Tuple
-
-import numpy as np
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 from knowledge3d.training.arc_agi.grid_processor import ARCGridProcessor
 from knowledge3d.training.arc_agi.multimodal_parser import MultimodalSemanticParser
 from knowledge3d.training.arc_agi.rpn_executor import ARCRPNExecutor
 from knowledge3d.training.arc_agi.semantic_compiler import SemanticToRPNCompiler
+from knowledge3d.training.arc_agi.dual_shadow_copy import DualShadowCopy
+from knowledge3d.training.arc_agi.sovereign_utils import (
+    bounding_box_nonzero,
+    grids_equal,
+    grid_shape,
+    is_grid,
+    to_int_grid,
+    translate_grid,
+    unique_nonzero,
+)
 
 
 Candidate = Tuple[List[List[int]], str, str]  # (output_grid, instruction, rpn_program)
@@ -24,15 +32,37 @@ Candidate = Tuple[List[List[int]], str, str]  # (output_grid, instruction, rpn_p
 class CandidateGenerator:
     """Generate multiple candidate solutions for ARC tasks."""
 
-    def __init__(self, matryoshka_dim: int = 512, max_candidates: int = 369):
+    def __init__(
+        self,
+        matryoshka_dim: int = 512,
+        max_candidates: int = 369,
+        shadow_copy: Optional[DualShadowCopy] = None,
+        executor: Optional[ARCRPNExecutor] = None,
+    ):
         self.parser = MultimodalSemanticParser()
         self.compiler = SemanticToRPNCompiler()
-        self.executor = ARCRPNExecutor()
-        self.processor = ARCGridProcessor(matryoshka_dim=matryoshka_dim, embedder_type="procedural")
+        self.executor = executor or ARCRPNExecutor()
+        self.processor = ARCGridProcessor(
+            matryoshka_dim=matryoshka_dim,
+            embedder_type="procedural",
+            executor=self.executor,
+        )
         self.max_candidates = max_candidates  # SOVEREIGN: Tesla 3-6-9 (increased from 69)
+        self.shadow_copy = shadow_copy  # Optional access to discovered programs for compositions
+
+    def _exec_rpn(self, grid: Sequence[Sequence[int]], program: str) -> Optional[List[List[int]]]:
+        """Execute RPN program via executor; return None on failure."""
+        try:
+            return self.executor.execute(grid, program)
+        except Exception:
+            return None
 
     def generate_candidates(
-        self, input_grid: Sequence[Sequence[int]], train_examples: List[Dict], semantic_hints: List[str] = None
+        self,
+        input_grid: Sequence[Sequence[int]],
+        train_examples: List[Dict],
+        semantic_hints: List[str] = None,
+        expected_output: Optional[Sequence[Sequence[int]]] = None,
     ) -> List[Candidate]:
         """
         Generate multiple deterministic candidates for a single ARC grid.
@@ -73,6 +103,13 @@ class CandidateGenerator:
         # 5) Math-style patterns: checkerboard even/odd fills.
         candidates.extend(self._generate_math_candidates(input_grid))
 
+        # 6) Compositional discovery: chain discovered programs (if available).
+        if self.shadow_copy is not None and expected_output is not None:
+            compositional = self._generate_compositional_candidates(input_grid, expected_output)
+            if compositional:
+                print(f"  [COMPOSITIONAL GEN] Generated {len(compositional)} compositional candidates")
+            candidates.extend(compositional)
+
         # Deduplicate by output grid content and cap the list.
         return self._deduplicate_candidates(candidates)[: self.max_candidates]
 
@@ -109,24 +146,27 @@ class CandidateGenerator:
     # ------------------------------------------------------------------ #
     def _generate_primitive_candidates(self, grid: Sequence[Sequence[int]]) -> List[Candidate]:
         candidates: List[Candidate] = []
-        arr = np.asarray(grid, dtype=int)
+        base_grid = to_int_grid(grid)
 
         # Rotations
         for k, angle in ((1, 90), (2, 180), (3, 270)):
-            rotated = self.processor._apply_rotation(grid, angle)
-            candidates.append((rotated, f"Rotate {angle} degrees", f"{k} rotate"))
+            rpn = f"{k} rotate"
+            rotated = self._exec_rpn(grid, rpn)
+            if rotated is None:
+                rotated = self.processor._apply_rotation(grid, angle)
+            candidates.append((rotated, f"Rotate {angle} degrees", rpn))
 
         # Flips
-        candidates.append(
-            (self.processor._apply_flip_horizontal(grid), "Flip horizontally", "FLIP_H")
-        )
-        candidates.append((self.processor._apply_flip_vertical(grid), "Flip vertically", "FLIP_V"))
+        fh = self._exec_rpn(grid, "FLIP_H") or self.processor._apply_flip_horizontal(grid)
+        fv = self._exec_rpn(grid, "FLIP_V") or self.processor._apply_flip_vertical(grid)
+        candidates.append((fh, "Flip horizontally", "FLIP_H"))
+        candidates.append((fv, "Flip vertically", "FLIP_V"))
 
         # Translations to canonical anchors using bounding box.
-        bbox = self._bounding_box(arr)
+        bbox = self._bounding_box(base_grid)
         if bbox is not None:
             y0, y1, x0, x1 = bbox
-            h, w = arr.shape
+            h, w = grid_shape(base_grid)
             anchors = {
                 "top-left": (0 - y0, 0 - x0),
                 "top-right": (0 - y0, (w - 1) - x1),
@@ -135,63 +175,102 @@ class CandidateGenerator:
                 "center": (h // 2 - (y0 + y1) // 2, w // 2 - (x0 + x1) // 2),
             }
             for name, (dy, dx) in anchors.items():
-                translated = self.processor._apply_translation(grid, dx=int(dx), dy=int(dy))
                 rpn = f"{dx} {dy} TRANSLATE"
+                translated = self._exec_rpn(grid, rpn) or self.processor._apply_translation(grid, dx=int(dx), dy=int(dy))
                 candidates.append((translated, f"Move object to {name}", rpn))
 
         # Single-color recolors (try observed colors).
-        unique_colors = [int(c) for c in np.unique(arr) if c != 0]
+        unique_colors = self._get_unique_colors(base_grid)
         for src in unique_colors:
             for dst in range(1, 10):
                 if dst == src:
                     continue
-                recolored = arr.copy()
-                recolored[recolored == src] = dst
-                candidates.append((recolored.tolist(), f"Recolor {src}->{dst}", f"{src} {dst} RECOLOR"))
+                recolored = self._recolor_grid(base_grid, src, dst)
+                candidates.append((recolored, f"Recolor {src}->{dst}", f"{src} {dst} RECOLOR"))
 
         return candidates
+
+    # ------------------------------------------------------------------ #
+    # Compositional discovery (beam over discovered programs)
+    # ------------------------------------------------------------------ #
+    def _generate_compositional_candidates(
+        self,
+        input_grid: Sequence[Sequence[int]],
+        expected_output: Sequence[Sequence[int]],
+        *,
+        max_depth: int = 4,
+        beam_width: int = 10,
+    ) -> List[Candidate]:
+        """
+        Generate N-step compositions from discovered programs using beam search.
+
+        This is intentionally lightweight: we only explore top-k library entries
+        by quality and keep the beam pruned by score at each depth.
+        """
+        try:
+            from knowledge3d.training.arc_agi.compositional_generator import CompositionalCandidateGenerator
+        except Exception as e:
+            print(f"  [COMPOSITIONAL GEN] Skipping (import failed): {e}")
+            return []
+
+        if self.shadow_copy is None or not getattr(self.shadow_copy, "library", None):
+            return []
+
+        comp_gen = CompositionalCandidateGenerator(
+            shadow_copy=self.shadow_copy,
+            executor=self.executor,
+            max_depth=max_depth,
+            beam_width=beam_width,
+        )
+        comps = comp_gen.generate_compositions(
+            input_grid=input_grid,
+            expected_output=expected_output,
+        )
+
+        # Map to Candidate tuples
+        return [(c["output"], c["description"], c["program"]) for c in comps]
 
     # ------------------------------------------------------------------ #
     # Composition candidates
     # ------------------------------------------------------------------ #
     def _generate_composition_candidates(self, grid: Sequence[Sequence[int]]) -> List[Candidate]:
         candidates: List[Candidate] = []
-        arr = np.asarray(grid, dtype=int)
-        colors = [int(c) for c in np.unique(arr) if c != 0]
+        base_grid = to_int_grid(grid)
+        colors = self._get_unique_colors(base_grid)
         colors = colors or [1]
 
         # Rotate then recolor dominant color.
         if colors:
             dominant = colors[0]
             for k, angle in ((1, 90), (2, 180), (3, 270)):
-                rotated = np.array(self.processor._apply_rotation(grid, angle))
+                rpn_rotate = f"{k} rotate"
+                rotated = self._exec_rpn(grid, rpn_rotate) or self.processor._apply_rotation(grid, angle)
                 for dst in range(1, 4):
                     if dst == dominant:
                         continue
-                    recolored = rotated.copy()
-                    recolored[recolored == dominant] = dst
+                    rpn = f"{rpn_rotate} {dominant} {dst} RECOLOR"
+                    recolored = self._exec_rpn(rotated, f"{dominant} {dst} RECOLOR") or self._recolor_grid(rotated, dominant, dst)
                     candidates.append(
                         (
-                            recolored.tolist(),
+                            recolored,
                             f"Rotate {angle} then recolor {dominant}->{dst}",
-                            f"{k} rotate {dominant} {dst} RECOLOR",
+                            rpn,
                         )
                     )
 
         # Flip then recolor.
         for flip_name, flipped in [
-            ("Flip horizontally", np.array(self.processor._apply_flip_horizontal(grid))),
-            ("Flip vertically", np.array(self.processor._apply_flip_vertical(grid))),
+            ("Flip horizontally", self._exec_rpn(grid, "FLIP_H") or self.processor._apply_flip_horizontal(grid)),
+            ("Flip vertically", self._exec_rpn(grid, "FLIP_V") or self.processor._apply_flip_vertical(grid)),
         ]:
             for src in colors:
                 for dst in range(1, 4):
                     if dst == src:
                         continue
-                    recolored = flipped.copy()
-                    recolored[recolored == src] = dst
+                    recolored = self._exec_rpn(flipped, f"{src} {dst} RECOLOR") or self._recolor_grid(flipped, src, dst)
                     candidates.append(
                         (
-                            recolored.tolist(),
+                            recolored,
                             f"{flip_name} then recolor {src}->{dst}",
                             f"{'FLIP_H' if 'horizontally' in flip_name else 'FLIP_V'} {src} {dst} RECOLOR",
                         )
@@ -212,7 +291,7 @@ class CandidateGenerator:
         Word meanings instruct new candidate generation to expand search space.
         """
         candidates: List[Candidate] = []
-        arr = np.asarray(grid, dtype=int)
+        base_grid = to_int_grid(grid)
 
         # Extract pattern types from semantic hints
         hints_lower = [h.lower() for h in semantic_hints]
@@ -227,14 +306,15 @@ class CandidateGenerator:
         # Generate MORE rotation variants if rotation hint detected
         if has_rotation:
             for k, angle in ((1, 90), (2, 180), (3, 270)):
-                rotated = self.processor._apply_rotation(grid, angle)
-                candidates.append((rotated, f"[SEMANTIC] Rotate {angle}°", f"{k} rotate"))
+                rpn = f"{k} rotate"
+                rotated = self._exec_rpn(grid, rpn) or self.processor._apply_rotation(grid, angle)
+                candidates.append((rotated, f"[SEMANTIC] Rotate {angle}°", rpn))
             # Add 45-degree variants if grid is square
-            h, w = arr.shape
+            h, w = grid_shape(base_grid)
             if h == w and h <= 10:  # Only for small square grids
                 for angle in [45, 135, 225, 315]:
                     # Approximate 45° rotation with composition
-                    temp = self.processor._apply_rotation(grid, 90)
+                    temp = self._exec_rpn(grid, "1 rotate") or self.processor._apply_rotation(grid, 90)
                     candidates.append((temp, f"[SEMANTIC] Rotate ~{angle}°", "1 rotate"))
 
         # Generate MORE flip variants if flip hint detected
@@ -252,22 +332,18 @@ class CandidateGenerator:
         # Generate fill patterns if sparse hint detected
         if has_sparse:
             for color in range(1, 10):
-                filled = arr.copy()
-                filled[filled == 0] = color
-                candidates.append(
-                    (filled.tolist(), f"[SEMANTIC] Fill empty with {color}", f"0 {color} RECOLOR")
-                )
+                filled = self._fill_empty(base_grid, color)
+                candidates.append((filled, f"[SEMANTIC] Fill empty with {color}", f"0 {color} RECOLOR"))
 
         # Generate MORE recoloring variants if color_change hint detected
         if has_color_change:
-            unique_colors = [int(c) for c in np.unique(arr) if c != 0]
+            unique_colors = self._get_unique_colors(base_grid)
             for src in unique_colors:
                 for dst in range(1, 10):
                     if dst != src:
-                        recolored = arr.copy()
-                        recolored[recolored == src] = dst
+                        recolored = self._exec_rpn(base_grid, f"{src} {dst} RECOLOR") or self._recolor_grid(base_grid, src, dst)
                         candidates.append(
-                            (recolored.tolist(), f"[SEMANTIC] Recolor {src}→{dst}", f"{src} {dst} RECOLOR")
+                            (recolored, f"[SEMANTIC] Recolor {src}→{dst}", f"{src} {dst} RECOLOR")
                         )
 
         # Generate translation variants if movement hint detected
@@ -278,6 +354,101 @@ class CandidateGenerator:
                     (translated, f"[SEMANTIC] Shift ({dx},{dy})", f"{dx} {dy} TRANSLATE")
                 )
 
+        # Cross-pattern compositions when multiple patterns detected
+        cross_candidates = self._generate_cross_pattern_candidates(
+            grid,
+            has_rotation=has_rotation,
+            has_flip=has_flip,
+            has_color_change=has_color_change,
+            has_translation=has_translation,
+        )
+        if cross_candidates:
+            print(f"  [SEMANTIC CROSS] Generated {len(cross_candidates)} cross-pattern candidates")
+            candidates.extend(cross_candidates)
+
+        return candidates
+
+    def _generate_cross_pattern_candidates(
+        self,
+        grid: Sequence[Sequence[int]],
+        *,
+        has_rotation: bool,
+        has_flip: bool,
+        has_color_change: bool,
+        has_translation: bool,
+    ) -> List[Candidate]:
+        """Generate simple two-step cross-pattern compositions driven by hints."""
+        base_grid = to_int_grid(grid)
+        candidates: List[Candidate] = []
+
+        # rotation + color
+        if has_rotation and has_color_change:
+            colors = self._get_unique_colors(base_grid) or [1]
+            dominant = colors[0]
+            for k, angle in ((1, 90), (2, 180), (3, 270)):
+                rpn_rotate = f"{k} rotate"
+                rotated = self._exec_rpn(grid, rpn_rotate) or self.processor._apply_rotation(grid, angle)
+                for dst in range(1, 4):
+                    if dst == dominant:
+                        continue
+                    recolored = self._exec_rpn(rotated, f"{dominant} {dst} RECOLOR") or self._recolor_grid(rotated, dominant, dst)
+                    candidates.append(
+                        (
+                            recolored,
+                            f"[SEMANTIC CROSS] Rotate {angle} then recolor {dominant}->{dst}",
+                            f"{rpn_rotate} {dominant} {dst} RECOLOR",
+                        )
+                    )
+
+        # flip + translation
+        if has_flip and has_translation:
+            bbox = self._bounding_box(base_grid)
+            if bbox is not None:
+                y0, y1, x0, x1 = bbox
+                h, w = grid_shape(base_grid)
+                anchors = [
+                    (0 - y0, 0 - x0, "top-left"),
+                    (0 - y0, (w - 1) - x1, "top-right"),
+                    ((h - 1) - y1, 0 - x0, "bottom-left"),
+                    ((h - 1) - y1, (w - 1) - x1, "bottom-right"),
+                ]
+                flips = [
+                    ("FLIP_H", self._exec_rpn(grid, "FLIP_H") or self.processor._apply_flip_horizontal(grid)),
+                    ("FLIP_V", self._exec_rpn(grid, "FLIP_V") or self.processor._apply_flip_vertical(grid)),
+                ]
+                for flip_name, flipped in flips:
+                    for dy, dx, label in anchors:
+                        translated = self._exec_rpn(flipped, f"{int(dx)} {int(dy)} TRANSLATE") or self.processor._apply_translation(flipped, dx=int(dx), dy=int(dy))
+                        rpn = f"{flip_name} {int(dx)} {int(dy)} TRANSLATE"
+                        candidates.append(
+                            (
+                                translated,
+                                f"[SEMANTIC CROSS] {flip_name} then move to {label}",
+                                rpn,
+                            )
+                        )
+
+        # rotation + translation (rotate then center)
+        if has_rotation and has_translation:
+            bbox = self._bounding_box(base_grid)
+            if bbox is not None:
+                y0, y1, x0, x1 = bbox
+                h, w = grid_shape(base_grid)
+                dy = h // 2 - (y0 + y1) // 2
+                dx = w // 2 - (x0 + x1) // 2
+                for k, angle in ((1, 90), (2, 180), (3, 270)):
+                    rpn_rotate = f"{k} rotate"
+                    rotated = self._exec_rpn(grid, rpn_rotate) or self.processor._apply_rotation(grid, angle)
+                    translated = self._exec_rpn(rotated, f"{int(dx)} {int(dy)} TRANSLATE") or self.processor._apply_translation(rotated, dx=int(dx), dy=int(dy))
+                    rpn = f"{k} rotate {int(dx)} {int(dy)} TRANSLATE"
+                    candidates.append(
+                        (
+                            translated,
+                            f"[SEMANTIC CROSS] Rotate {angle} then center",
+                            rpn,
+                        )
+                    )
+
         return candidates
 
     # ------------------------------------------------------------------ #
@@ -285,20 +456,19 @@ class CandidateGenerator:
     # ------------------------------------------------------------------ #
     def _generate_math_candidates(self, grid: Sequence[Sequence[int]]) -> List[Candidate]:
         candidates: List[Candidate] = []
-        arr = np.asarray(grid, dtype=int)
-        h, w = arr.shape
+        base_grid = to_int_grid(grid)
+        h, w = grid_shape(base_grid)
 
         for condition, parity in (("even", 0), ("odd", 1)):
-            mask = ((np.arange(h)[:, None] + np.arange(w)) % 2) == parity
             for color in range(1, 4):
-                filled = arr.copy()
-                filled[mask] = color
+                rpn_fill = f"FOR_EACH_CELL GET_ROW GET_COL ADD 2 MOD {parity} EQ IF_TRUE {color} FILL"
+                filled = self._exec_rpn(base_grid, rpn_fill) or self._checkerboard_fill(base_grid, parity, color)
                 instruction = f"Fill cells where row+col is {condition} with {color}"
                 rpn_program = (
                     "FOR_EACH_CELL GET_ROW GET_COL ADD 2 MOD "
                     f"{parity} EQ IF_TRUE {color} FILL"
                 )
-                candidates.append((filled.tolist(), instruction, rpn_program))
+                candidates.append((filled, instruction, rpn_program))
 
         return candidates
 
@@ -310,6 +480,8 @@ class CandidateGenerator:
         seen = set()
         unique: List[Candidate] = []
         for output, instruction, rpn in candidates:
+            if not is_grid(output):
+                continue
             key = tuple(tuple(row) for row in output)
             if key in seen:
                 continue
@@ -318,13 +490,41 @@ class CandidateGenerator:
         return unique
 
     @staticmethod
-    def _bounding_box(arr: np.ndarray) -> Tuple[int, int, int, int] | None:
+    def _bounding_box(grid: Sequence[Sequence[int]]) -> Tuple[int, int, int, int] | None:
         """Return bounding box (y0, y1, x0, x1) of non-zero pixels."""
-        mask = arr != 0
-        if not mask.any():
-            return None
-        ys, xs = np.nonzero(mask)
-        return ys.min(), ys.max(), xs.min(), xs.max()
+        return bounding_box_nonzero(grid)
+
+    @staticmethod
+    def _get_unique_colors(grid: Sequence[Sequence[int]]) -> List[int]:
+        """Unique non-zero colors from grid."""
+        return unique_nonzero(grid)
+
+    @staticmethod
+    def _recolor_grid(grid: Sequence[Sequence[int]], src: int, dst: int) -> List[List[int]]:
+        """Recolor src→dst using pure Python."""
+        recolored = []
+        for row in grid:
+            recolored.append([dst if int(cell) == src else int(cell) for cell in row])
+        return recolored
+
+    @staticmethod
+    def _fill_empty(grid: Sequence[Sequence[int]], color: int) -> List[List[int]]:
+        """Fill zero cells with the provided color."""
+        return [[color if int(cell) == 0 else int(cell) for cell in row] for row in grid]
+
+    @staticmethod
+    def _checkerboard_fill(grid: Sequence[Sequence[int]], parity: int, color: int) -> List[List[int]]:
+        """Fill cells where (row+col) % 2 == parity with color."""
+        filled = []
+        for y, row in enumerate(grid):
+            new_row = []
+            for x, cell in enumerate(row):
+                if (y + x) % 2 == parity:
+                    new_row.append(color)
+                else:
+                    new_row.append(int(cell))
+            filled.append(new_row)
+        return filled
 
     # ------------------------------------------------------------------ #
     # Optional: semantic execution path (kept for completeness)

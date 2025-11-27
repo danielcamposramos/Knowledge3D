@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Dict
-
-import numpy as np
+from typing import Dict, List
 
 
 class DrawingGrammarExecutor:
@@ -14,7 +12,7 @@ class DrawingGrammarExecutor:
         # Wiring to procedural drawing specialist can be added when needed.
         self._placeholder = True
 
-    def execute_drawing_rpn(self, program: str, context: Dict | None = None) -> np.ndarray:
+    def execute_drawing_rpn(self, program: str, context: Dict | None = None) -> List[List[float]]:
         """
         Execute drawing RPN program to generate visual output.
 
@@ -22,7 +20,7 @@ class DrawingGrammarExecutor:
         """
         _ = program
         _ = context
-        return np.zeros((1, 1), dtype=np.float32)
+        return [[0.0]]
 
 
 __all__ = ["DrawingGrammarExecutor"]
