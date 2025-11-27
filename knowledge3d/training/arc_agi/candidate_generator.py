@@ -8,7 +8,7 @@ up to ~20 unique candidates that downstream TRM ranking can score.
 
 from __future__ import annotations
 
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from knowledge3d.training.arc_agi.grid_processor import ARCGridProcessor
 from knowledge3d.training.arc_agi.multimodal_parser import MultimodalSemanticParser
@@ -38,13 +38,16 @@ class CandidateGenerator:
         max_candidates: int = 369,
         shadow_copy: Optional[DualShadowCopy] = None,
         executor: Optional[ARCRPNExecutor] = None,
+        codec_embedder: Any | None = None,
+        embedder_type: str = "multimodal",
     ):
         self.parser = MultimodalSemanticParser()
         self.compiler = SemanticToRPNCompiler()
         self.executor = executor or ARCRPNExecutor()
         self.processor = ARCGridProcessor(
             matryoshka_dim=matryoshka_dim,
-            embedder_type="multimodal",
+            codec_embedder=codec_embedder,
+            embedder_type=embedder_type,
             executor=self.executor,
         )
         self.max_candidates = max_candidates  # SOVEREIGN: Tesla 3-6-9 (increased from 69)

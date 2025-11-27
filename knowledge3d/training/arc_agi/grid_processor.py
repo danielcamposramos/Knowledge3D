@@ -101,6 +101,7 @@ class ARCGridProcessor:
         matryoshka_dim: int = 512,
         *,
         visual_embedder: Any | None = None,
+        codec_embedder: Any | None = None,
         embedder_type: str = "procedural",
         executor: Optional[ARCRPNExecutor] = None,
     ):
@@ -112,6 +113,10 @@ class ARCGridProcessor:
             visual_embedder:
                 Optional object providing `emit_fractal_features(raster) -> List[float]`
                 used for the procedural RPN→raster path.
+            codec_embedder:
+                Optional shared codec embedder (video/audio/multimodal). For
+                parallel workloads, inject a singleton here to avoid reloading
+                PTX modules per worker (prevents GPU OOM).
             embedder_type:
                 "procedural" (default) uses the RPN drawing + visual embedder path.
                 "video" / "audio" / "multimodal" route through ternary codecs via
@@ -129,10 +134,21 @@ class ARCGridProcessor:
             else _DefaultVisualEmbedder(matryoshka_dim=matryoshka_dim)
         )
 
-        # Optional ternary codec embedders. These are only constructed when
-        # requested so that tests can continue to use the lightweight path.
+        # Optional ternary codec embedder. Inject a shared singleton to avoid
+        # repeated PTX module loads in parallel execution.
         self.codec_embedder: Any | None = None
-        if visual_embedder is None:
+        if codec_embedder is not None:
+            self.codec_embedder = codec_embedder
+            if self.embedder_type == "procedural":
+                if isinstance(codec_embedder, MultiModalGridEmbedder):
+                    self.embedder_type = "multimodal"
+                elif isinstance(codec_embedder, VideoGridEmbedder):
+                    self.embedder_type = "video"
+                elif isinstance(codec_embedder, AudioGridEmbedder):
+                    self.embedder_type = "audio"
+        elif visual_embedder is None and embedder_type in ("video", "audio", "multimodal"):
+            # Backwards-compatible creation (single-instance use). For parallel
+            # workloads, supply codec_embedder to avoid OOM from repeated PTX loads.
             if embedder_type == "video":
                 self.codec_embedder = VideoGridEmbedder()
             elif embedder_type == "audio":
