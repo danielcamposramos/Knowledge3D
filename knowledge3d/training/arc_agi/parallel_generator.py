@@ -26,6 +26,8 @@ class ParallelCandidateGenerator:
         matryoshka_dim: int = 512,
         shadow_copy: Optional[DualShadowCopy] = None,
         codec_embedder: Any | None = None,
+        embedding_galaxy: Optional[Dict[int, List[float]]] = None,
+        cosine_bridge: Any | None = None,
     ) -> None:
         self.num_workers = num_workers
         self.candidates_per_worker = candidates_per_worker
@@ -34,6 +36,8 @@ class ParallelCandidateGenerator:
         self.shadow_copy = shadow_copy
         self.core_pool = get_global_math_core_pool()
         self.codec_embedder = codec_embedder
+        self.embedding_galaxy = embedding_galaxy
+        self.cosine_bridge = cosine_bridge
 
     def generate_parallel(
         self,
@@ -58,9 +62,28 @@ class ParallelCandidateGenerator:
             for i in range(missing):
                 executors.append(ARCRPNExecutor(pool=self.core_pool, instance_id=core_ids[len(executors)]))
 
+        # Partition semantic hints across available workers to avoid redundant work.
+        num_worker_slots = len(executors) if executors else 1
+        semantic_partitions: List[Optional[List[str]]] = []
+        if semantic_hints:
+            total_hints = len(semantic_hints)
+            hints_per_worker = max(1, total_hints // num_worker_slots)
+            for worker_idx in range(num_worker_slots):
+                start_idx = worker_idx * hints_per_worker
+                end_idx = start_idx + hints_per_worker if worker_idx < num_worker_slots - 1 else total_hints
+                worker_hints = semantic_hints[start_idx:end_idx] if start_idx < total_hints else []
+                semantic_partitions.append(worker_hints)
+                print(f"  [WORKER {worker_idx}] Assigned hints {start_idx}:{end_idx} ({len(worker_hints)} hints)")
+        else:
+            semantic_partitions = [None for _ in range(num_worker_slots)]
+
         all_candidates: List[Candidate] = []
-        pairs = list(zip(core_ids, executors)) if core_ids else [(None, ARCRPNExecutor(pool=self.core_pool, instance_id=None))]
-        for core_id, executor in pairs:
+        pairs = (
+            list(zip(core_ids, executors, semantic_partitions))
+            if core_ids
+            else [(None, ARCRPNExecutor(pool=self.core_pool, instance_id=None), semantic_partitions[0])]
+        )
+        for worker_idx, (core_id, executor, worker_hints) in enumerate(pairs):
             try:
                 gen = CandidateGenerator(
                     matryoshka_dim=self.matryoshka_dim,
@@ -68,13 +91,17 @@ class ParallelCandidateGenerator:
                     shadow_copy=self.shadow_copy,
                     executor=executor,
                     codec_embedder=self.codec_embedder,
+                    embedding_galaxy=self.embedding_galaxy,
+                    cosine_bridge=self.cosine_bridge,
                 )
                 cand_list = gen.generate_candidates(
                     input_grid=input_grid,
                     train_examples=train_examples,
-                    semantic_hints=semantic_hints,
+                    semantic_hints=worker_hints,
                     expected_output=expected_output,
                 )
+                hint_count = len(worker_hints) if worker_hints else 0
+                print(f"  [WORKER {worker_idx}] Generated {len(cand_list)} candidates from {hint_count} hints")
                 all_candidates.extend(cand_list)
             finally:
                 if core_id is not None:
@@ -88,32 +115,11 @@ class ParallelCandidateGenerator:
             rate = (100.0 * succ / total) if total else 0.0
             print(f"  [PARALLEL GEN] PTX success={succ}, fallback={fallback}, rate={rate:.1f}%")
 
-        # Score and select top-K by overlap with expected output if available; otherwise keep first K.
-        if expected_output:
-            scored = []
-            for grid, instr, prog in all_candidates:
-                scored.append((self._score(grid, expected_output), grid, instr, prog))
-            scored.sort(key=lambda x: x[0], reverse=True)
-            top = scored[: self.top_k]
-            return [(g, i, p) for _, g, i, p in top]
+        print(f"  [PARALLEL GEN] Total candidates before dedup: {len(all_candidates)}")
 
-        # Fallback: return first top_k
-        return all_candidates[: self.top_k]
-
-    @staticmethod
-    def _score(output_grid: Sequence[Sequence[int]], expected_grid: Sequence[Sequence[int]]) -> float:
-        if not output_grid or not expected_grid:
-            return 0.0
-        if len(output_grid) != len(expected_grid) or len(output_grid[0]) != len(expected_grid[0]):
-            return 0.0
-        matches = 0
-        total = 0
-        for r1, r2 in zip(output_grid, expected_grid):
-            for a, b in zip(r1, r2):
-                total += 1
-                if a == b:
-                    matches += 1
-        return matches / total if total else 0.0
+        # Sovereign: return all candidates for downstream semantic ranking (PTX cosine).
+        print(f"  [PARALLEL GEN] Returning all {len(all_candidates)} candidates for semantic ranking")
+        return all_candidates
 
 
 __all__ = ["ParallelCandidateGenerator"]

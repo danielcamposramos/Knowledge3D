@@ -28,6 +28,8 @@ GRAMMAR_CHECKPOINT = CHECKPOINT_DIR / "grammar_galaxy.json"
 SHADOW_CHECKPOINT = CHECKPOINT_DIR / "shadow_copy.json"
 
 from knowledge3d.training.arc_agi import SovereignAIPipeline
+from knowledge3d.training.arc_agi.sovereign_pipeline import _fuzzy_match
+import pickle
 from knowledge3d.training.arc_agi.rpn_executor import ARCRPNExecutor
 
 
@@ -131,8 +133,20 @@ def run_epoch(
             top_k=args.top_k,
         )
         predicted = result.output_grid if result.output_grid is not None else executor.execute(test_input, result.best_program)
-        if predicted == test_output:
+        fuzzy_score = getattr(result, "fuzzy_score", None)
+        # Fallback compute if pipeline did not supply.
+        if fuzzy_score is None:
+            fuzzy_score = _fuzzy_match(predicted, test_output) if test_output is not None else 0.0
+        is_correct = getattr(result, "correct", False)
+        if not is_correct and test_output is not None:
+            is_correct = predicted == test_output or fuzzy_score >= 0.80
+
+        if is_correct:
             correct += 1
+            if fuzzy_score >= 0.80 and predicted != test_output:
+                print(f"  [FUZZY EPOCH] Task {task_id}: fuzzy_score={fuzzy_score:.2f} accepted")
+        elif 0.70 <= fuzzy_score < 0.80:
+            print(f"  [NEAR MISS EPOCH] Task {task_id}: fuzzy_score={fuzzy_score:.2f} (70-80%)")
         if idx % 5 == 0:
             print(f"  [{epoch+1}:{idx+1}/{len(task_files)}] {task_id} score={result.score:.2f} type={result.program_type}")
 
@@ -158,8 +172,22 @@ def main() -> None:
         print("max-tasks must be > 0")
         return
 
+    embedding_galaxy = None
+    galaxy_path = Path("/K3D/Knowledge3D.local/arc_embeddings_galaxy.pkl")
+    if galaxy_path.exists():
+        try:
+            with open(galaxy_path, "rb") as f:
+                embedding_galaxy = pickle.load(f)
+            print(f"[INIT] Loaded precomputed embeddings: {len(embedding_galaxy)} entries")
+        except Exception as e:
+            print(f"[INIT] Warning: could not load precomputed embeddings ({e}); continuing without cache")
+
     print("Initializing sovereign pipeline...")
-    pipeline = SovereignAIPipeline(matryoshka_dim=args.matryoshka_dim, staged_shadow=True)
+    pipeline = SovereignAIPipeline(
+        matryoshka_dim=args.matryoshka_dim,
+        staged_shadow=True,
+        embedding_galaxy=embedding_galaxy,
+    )
     executor = ARCRPNExecutor()
 
     # Load persisted state

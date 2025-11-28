@@ -119,7 +119,13 @@ class AudioGridEmbedder:
             start = idx * coeffs_per_grid
             end = start + coeffs_per_grid
             coeff_slice = quantized_all[start:end]
-            embeddings.append(pad_or_truncate([float(v) for v in coeff_slice], target_dim, 0.0))
+            flat: List[float] = []
+            for v in coeff_slice:
+                if isinstance(v, (list, tuple)):
+                    flat.extend([float(x) for x in flatten([v])])
+                else:
+                    flat.append(float(v))
+            embeddings.append(pad_or_truncate(flat, target_dim, 0.0))
 
         return embeddings
 
