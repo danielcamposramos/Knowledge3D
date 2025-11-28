@@ -11,15 +11,18 @@ from __future__ import annotations
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from knowledge3d.training.arc_agi.grid_processor import ARCGridProcessor
+from knowledge3d.cranium.bridges.cosine_similarity_bridge import CosineSimilarityBridge
 from knowledge3d.training.arc_agi.multimodal_parser import MultimodalSemanticParser
 from knowledge3d.training.arc_agi.rpn_executor import ARCRPNExecutor
 from knowledge3d.training.arc_agi.semantic_compiler import SemanticToRPNCompiler
 from knowledge3d.training.arc_agi.dual_shadow_copy import DualShadowCopy
 from knowledge3d.training.arc_agi.sovereign_utils import (
     bounding_box_nonzero,
+    dot,
     grids_equal,
     grid_shape,
     is_grid,
+    l2_norm,
     to_int_grid,
     translate_grid,
     unique_nonzero,
@@ -40,6 +43,8 @@ class CandidateGenerator:
         executor: Optional[ARCRPNExecutor] = None,
         codec_embedder: Any | None = None,
         embedder_type: str = "multimodal",
+        embedding_galaxy: Optional[Dict[int, List[float]]] = None,
+        cosine_bridge: Optional[CosineSimilarityBridge] = None,
     ):
         self.parser = MultimodalSemanticParser()
         self.compiler = SemanticToRPNCompiler()
@@ -52,6 +57,8 @@ class CandidateGenerator:
         )
         self.max_candidates = max_candidates  # SOVEREIGN: Tesla 3-6-9 (increased from 69)
         self.shadow_copy = shadow_copy  # Optional access to discovered programs for compositions
+        self.embedding_galaxy = embedding_galaxy
+        self.cosine_bridge = cosine_bridge or CosineSimilarityBridge()
 
     def _exec_rpn(self, grid: Sequence[Sequence[int]], program: str) -> Optional[List[List[int]]]:
         """Execute RPN program via executor; return None on failure."""
@@ -113,8 +120,43 @@ class CandidateGenerator:
                 print(f"  [COMPOSITIONAL GEN] Generated {len(compositional)} compositional candidates")
             candidates.extend(compositional)
 
-        # Deduplicate by output grid content and cap the list.
-        return self._deduplicate_candidates(candidates)[: self.max_candidates]
+        # Sovereign: embedding galaxy must exist; batch-compute any missing embeddings on GPU.
+        if self.embedding_galaxy is None:
+            raise RuntimeError(
+                "SOVEREIGNTY VIOLATION: embedding_galaxy is None. "
+                "Run preprocessing: python scripts/preprocess_arc_embeddings.py"
+            )
+
+        missing_grids: List[Sequence[Sequence[int]]] = []
+        missing_hashes: List[int] = []
+
+        if expected_output is not None:
+            exp_hash = self._hash_grid(expected_output)
+            if exp_hash not in self.embedding_galaxy:
+                missing_grids.append(expected_output)
+                missing_hashes.append(exp_hash)
+
+        for grid, _, _ in candidates:
+            h = self._hash_grid(grid)
+            if h not in self.embedding_galaxy:
+                missing_grids.append(grid)
+                missing_hashes.append(h)
+
+        if missing_grids:
+            print(f"  [GALAXY LAZY] Computing {len(missing_grids)} missing embeddings (batch GPU)")
+            batch_embeddings = self.processor._grid_to_spatial_embedding_batch(missing_grids)
+            for h, emb in zip(missing_hashes, batch_embeddings):
+                self.embedding_galaxy[h] = emb
+
+        # Deduplicate by output grid content.
+        deduped = self._deduplicate_candidates(candidates)
+
+        # Semantic ranking using sovereign embeddings when expected output is available.
+        if expected_output is not None and deduped:
+            deduped = self._rank_by_similarity(deduped, expected_output)
+
+        # Cap the list.
+        return deduped[: self.max_candidates]
 
     # ------------------------------------------------------------------ #
     # Example-driven inference
@@ -501,6 +543,49 @@ class CandidateGenerator:
     def _get_unique_colors(grid: Sequence[Sequence[int]]) -> List[int]:
         """Unique non-zero colors from grid."""
         return unique_nonzero(grid)
+
+    def _rank_by_similarity(
+        self,
+        candidates: List[Candidate],
+        expected_output: Sequence[Sequence[int]],
+    ) -> List[Candidate]:
+        """Rank candidates by cosine similarity using SOVEREIGN Galaxy + PTX (no fallbacks)."""
+        if not candidates:
+            return candidates
+
+        if self.embedding_galaxy is None:
+            raise RuntimeError(
+                "SOVEREIGNTY VIOLATION: embedding_galaxy is None. "
+                "Run preprocessing: python scripts/preprocess_arc_embeddings.py"
+            )
+
+        expected_hash = self._hash_grid(expected_output)
+        expected_emb = self.embedding_galaxy.get(expected_hash)
+        if expected_emb is None:
+            raise RuntimeError(
+                f"SOVEREIGNTY VIOLATION: Expected output embedding not found in Galaxy (hash={expected_hash}). "
+                "Preprocessing incomplete or grid not in preprocessing set."
+            )
+
+        embeddings: List[List[float]] = []
+        for grid, _, _ in candidates:
+            h = self._hash_grid(grid)
+            emb = self.embedding_galaxy.get(h)
+            if emb is None:
+                raise RuntimeError(
+                    f"SOVEREIGNTY VIOLATION: Candidate embedding not found in Galaxy (hash={h}). "
+                    "Grid not present in preprocessing set."
+                )
+            embeddings.append(emb)
+
+        scores = self.cosine_bridge.compute_similarities(embeddings, expected_emb)
+        scored = list(zip(scores, candidates))
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return [cand for _, cand in scored]
+
+    @staticmethod
+    def _hash_grid(grid: Sequence[Sequence[int]]) -> int:
+        return hash(tuple(tuple(int(c) for c in row) for row in grid))
 
     @staticmethod
     def _recolor_grid(grid: Sequence[Sequence[int]], src: int, dst: int) -> List[List[int]]:

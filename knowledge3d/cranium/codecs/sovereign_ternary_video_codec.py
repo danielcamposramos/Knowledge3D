@@ -59,7 +59,8 @@ class SovereignTernaryVideoCodec:
     def decode(self, frame_id: str) -> TernaryTensor:
         seed_rpn, residual = self.galaxy.load_frame(frame_id)
         _ = seed_rpn  # placeholder for future procedural reconstruction
-        coeffs = residual.to_python()
+        # Ensure integer coeffs for dequantisation (ternary {-1,0,+1})
+        coeffs = [int(round(v)) for v in residual.to_python()]
         inv = self.rpn.evaluate("TERNARY_DEQUANT IDCT8X8", data=coeffs, return_vector=True)
 
         # Reconstruct channels from blocks

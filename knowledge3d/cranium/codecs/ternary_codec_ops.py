@@ -67,7 +67,8 @@ class TernaryCodecOps:
         n = len(values)
         if n == 0:
             return []
-        in_buf = (ctypes.c_int * n)(*values)
+        ints = [int(round(v)) for v in values]
+        in_buf = (ctypes.c_int * n)(*ints)
         d_in = loader.gpu_malloc(n * ctypes.sizeof(ctypes.c_int))
         d_out = loader.gpu_malloc(n * ctypes.sizeof(ctypes.c_float))
         try:
