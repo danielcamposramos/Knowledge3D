@@ -388,6 +388,9 @@ class GrammarGalaxy:
     def normalize_tokens(self, tokens: List[str], language: str) -> List[str]:
         return [self.normalize_token(t, language) for t in tokens]
 
+    def has_rule(self, rule_id: str) -> bool:
+        return rule_id in self.rules
+
     # ------------------------------------------------------------------ #
     # Persistence
     # ------------------------------------------------------------------ #
