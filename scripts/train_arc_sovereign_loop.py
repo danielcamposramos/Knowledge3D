@@ -120,7 +120,7 @@ def select_108_tasks_tesla() -> List[Path]:
 
 
 def generate_tesla_curriculum(task_files: List[Path], pipeline: SovereignAIPipeline, total_epochs: int = 162) -> List[List[Path]]:
-    """3-phase curriculum: easy, medium, hard; each 54 epochs."""
+    """3-phase curriculum: mix easy/medium/hard each epoch (108 tasks)."""
     import random
 
     # Derive difficulty from shadow history.
@@ -145,19 +145,21 @@ def generate_tesla_curriculum(task_files: List[Path], pipeline: SovereignAIPipel
         hard = hard or task_files[2 * third :]
 
     curriculum: List[List[Path]] = []
-    phase_epochs = total_epochs // 3
-    for _ in range(phase_epochs):
-        tmp = easy[:]
-        random.shuffle(tmp)
-        curriculum.append(tmp)
-    for _ in range(phase_epochs):
-        tmp = medium[:]
-        random.shuffle(tmp)
-        curriculum.append(tmp)
-    for _ in range(total_epochs - 2 * phase_epochs):
-        tmp = hard[:]
-        random.shuffle(tmp)
-        curriculum.append(tmp)
+    for _ in range(total_epochs):
+        e = easy[:]
+        m = medium[:]
+        h = hard[:]
+        random.shuffle(e)
+        random.shuffle(m)
+        random.shuffle(h)
+        epoch_tasks = (e[:36] + m[:36] + h[:36])
+        random.shuffle(epoch_tasks)
+        # Ensure exactly 108 entries
+        if len(epoch_tasks) < 108:
+            filler = (easy + medium + hard)
+            random.shuffle(filler)
+            epoch_tasks.extend(filler[: max(0, 108 - len(epoch_tasks))])
+        curriculum.append(epoch_tasks[:108])
     return curriculum
 
 def save_checkpoints(pipeline: SovereignAIPipeline) -> None:
@@ -262,13 +264,11 @@ def main() -> None:
     print(f"Staged training: tasks per cycle={args.max_tasks}, epochs={args.epochs}, cycles={args.cycles}")
     epoch_stats = []
     base_task_files: List[Path] = []
+    curriculum = None
     if args.max_tasks == 108:
         print("[TESLA SELECT] Using 36 easy + 36 medium + 36 hard (108 total)")
         base_task_files = select_108_tasks_tesla()
-    curriculum = None
-    if args.max_tasks == 108 and args.epochs >= 54:
-        task_files = base_task_files or collect_tasks(args.arc_dirs, args.max_tasks)
-        curriculum = generate_tesla_curriculum(task_files, pipeline, total_epochs=args.epochs)
+        curriculum = generate_tesla_curriculum(base_task_files, pipeline, total_epochs=args.epochs)
 
     for cycle in range(args.cycles):
         task_files = base_task_files or collect_tasks(args.arc_dirs, args.max_tasks)
