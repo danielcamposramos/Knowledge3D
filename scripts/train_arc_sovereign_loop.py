@@ -100,6 +100,66 @@ def collect_tasks(dirs: List[Path], limit: int) -> List[Path]:
 
     return selected
 
+
+def select_108_tasks_tesla() -> List[Path]:
+    """Select 108 tasks as 36 easy (training), 36 medium (mid eval), 36 hard (late eval)."""
+    train_dir = Path("/K3D/Knowledge3D.local/datasets/arc_agi/ARC-AGI-master/data/training")
+    eval_dir = Path("/K3D/Knowledge3D.local/datasets/arc_agi/ARC-AGI-master/data/evaluation")
+    train_tasks = sorted(train_dir.glob("*.json"))
+    eval_tasks = sorted(eval_dir.glob("*.json"))
+
+    easy = train_tasks[:36]
+    n_eval = len(eval_tasks)
+    start_medium = n_eval // 3
+    medium = eval_tasks[start_medium : start_medium + 36]
+    hard = eval_tasks[-36:]
+
+    selected = easy + medium + hard
+    print(f"[TASK SELECT] Easy: {len(easy)}, Medium: {len(medium)}, Hard: {len(hard)}, Total: {len(selected)}")
+    return selected[:108]
+
+
+def generate_tesla_curriculum(task_files: List[Path], pipeline: SovereignAIPipeline, total_epochs: int = 162) -> List[List[Path]]:
+    """3-phase curriculum: easy, medium, hard; each 54 epochs."""
+    import random
+
+    # Derive difficulty from shadow history.
+    easy: List[Path] = []
+    medium: List[Path] = []
+    hard: List[Path] = []
+    for p in task_files:
+        tid = p.stem
+        hist = pipeline.shadow.get_task_history(tid)
+        sr = hist.get("success_rate", 0.5) if hist else 0.5
+        if sr > 0.7:
+            easy.append(p)
+        elif sr < 0.3:
+            hard.append(p)
+        else:
+            medium.append(p)
+
+    if not easy or not medium or not hard:
+        third = len(task_files) // 3
+        easy = easy or task_files[:third]
+        medium = medium or task_files[third : 2 * third]
+        hard = hard or task_files[2 * third :]
+
+    curriculum: List[List[Path]] = []
+    phase_epochs = total_epochs // 3
+    for _ in range(phase_epochs):
+        tmp = easy[:]
+        random.shuffle(tmp)
+        curriculum.append(tmp)
+    for _ in range(phase_epochs):
+        tmp = medium[:]
+        random.shuffle(tmp)
+        curriculum.append(tmp)
+    for _ in range(total_epochs - 2 * phase_epochs):
+        tmp = hard[:]
+        random.shuffle(tmp)
+        curriculum.append(tmp)
+    return curriculum
+
 def save_checkpoints(pipeline: SovereignAIPipeline) -> None:
     CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
     pipeline.drawing.save(DRAWING_CHECKPOINT)
@@ -157,7 +217,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--arc-dirs", nargs="+", type=Path, required=True, help="One or more ARC task directories.")
     ap.add_argument("--max-tasks", type=int, default=25, help="Number of tasks to stage.")
-    ap.add_argument("--epochs", type=int, default=3, help="Number of epochs before committing shadow.")
+    ap.add_argument("--epochs", type=int, default=162, help="Number of epochs before committing shadow.")
     ap.add_argument("--cycles", type=int, default=3, help="Number of cycles (Tesla-inspired).")
     ap.add_argument(
         "--matryoshka-dim",
@@ -201,8 +261,17 @@ def main() -> None:
 
     print(f"Staged training: tasks per cycle={args.max_tasks}, epochs={args.epochs}, cycles={args.cycles}")
     epoch_stats = []
+    base_task_files: List[Path] = []
+    if args.max_tasks == 108:
+        print("[TESLA SELECT] Using 36 easy + 36 medium + 36 hard (108 total)")
+        base_task_files = select_108_tasks_tesla()
+    curriculum = None
+    if args.max_tasks == 108 and args.epochs >= 54:
+        task_files = base_task_files or collect_tasks(args.arc_dirs, args.max_tasks)
+        curriculum = generate_tesla_curriculum(task_files, pipeline, total_epochs=args.epochs)
+
     for cycle in range(args.cycles):
-        task_files = collect_tasks(args.arc_dirs, args.max_tasks)
+        task_files = base_task_files or collect_tasks(args.arc_dirs, args.max_tasks)
         # Sort tasks by grid area (easy first, hard last)
         def _area(path: Path) -> int:
             try:
@@ -216,7 +285,8 @@ def main() -> None:
 
         print(f"\nCycle {cycle+1}/{args.cycles} using {len(task_files)} tasks...")
         for epoch in range(args.epochs):
-            stats = run_epoch(pipeline, task_files, executor, epoch + cycle * args.epochs, args)
+            epoch_tasks = curriculum[epoch] if curriculum else task_files
+            stats = run_epoch(pipeline, epoch_tasks, executor, epoch + cycle * args.epochs, args)
             epoch_stats.append(stats)
             print(f"  Epoch {epoch+1} (cycle {cycle+1}): {stats['correct']}/{stats['total']} correct ({stats['correct']/max(1,stats['total']):.2%})")
 
