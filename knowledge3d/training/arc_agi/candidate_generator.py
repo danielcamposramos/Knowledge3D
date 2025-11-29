@@ -16,6 +16,7 @@ from knowledge3d.training.arc_agi.multimodal_parser import MultimodalSemanticPar
 from knowledge3d.training.arc_agi.rpn_executor import ARCRPNExecutor
 from knowledge3d.training.arc_agi.semantic_compiler import SemanticToRPNCompiler
 from knowledge3d.training.arc_agi.dual_shadow_copy import DualShadowCopy
+from knowledge3d.training.arc_agi.semantic_context import SemanticVocabulary
 from knowledge3d.training.arc_agi.sovereign_utils import (
     bounding_box_nonzero,
     dot,
@@ -98,9 +99,18 @@ class CandidateGenerator:
         # 2) Semantic-guided candidates: use word hints to expand search space.
         # SOVEREIGN: Closes the semantic layer → generation feedback loop.
         if semantic_hints:
+            semantic_hints = self._expand_semantic_hints_with_neighbors(semantic_hints)
             semantic_candidates = self._generate_semantic_guided_candidates(input_grid, semantic_hints)
             print(f"  [SEMANTIC GEN] Generated {len(semantic_candidates)} semantic-guided candidates from {len(semantic_hints)} hints")
-            candidates.extend(semantic_candidates)
+            # Dedup semantic early to reduce redundancy
+            seen_sem: set[Tuple[str, int]] = set()
+            for grid, instr, prog in semantic_candidates:
+                h = self._hash_grid(grid)
+                key = (prog, h)
+                if key in seen_sem:
+                    continue
+                seen_sem.add(key)
+                candidates.append((grid, instr, prog))
         else:
             print(f"  [SEMANTIC GEN] No semantic hints provided, skipping semantic-guided generation")
 
@@ -157,6 +167,43 @@ class CandidateGenerator:
 
         # Cap the list.
         return deduped[: self.max_candidates]
+
+    def _expand_semantic_hints_with_neighbors(self, semantic_hints: List[str], neighbor_depth: int = 1) -> List[str]:
+        vocab = SemanticVocabulary()
+        vocab_words = list(vocab.words.keys())
+        word_index = {w: i for i, w in enumerate(vocab_words)}
+
+        def neighbor(word: str, direction: int) -> str:
+            if word not in word_index:
+                return word
+            idx = word_index[word] + direction
+            idx = max(0, min(len(vocab_words) - 1, idx))
+            return vocab_words[idx]
+
+        expanded: List[str] = []
+        for hint in semantic_hints:
+            words = hint.split()
+            if not words:
+                continue
+            patterns = [
+                [+1] * len(words),
+                [-1] * len(words),
+                [(-1) ** i for i in range(len(words))],
+                [(-1) ** (i + 1) for i in range(len(words))],
+            ]
+            for pattern in patterns:
+                varied = [neighbor(w, d) for w, d in zip(words, pattern)]
+                expanded.append(" ".join(varied))
+        expanded.extend(semantic_hints)
+        # Deduplicate while preserving order
+        seen = set()
+        uniq: List[str] = []
+        for h in expanded:
+            if h not in seen:
+                seen.add(h)
+                uniq.append(h)
+        print(f"  [SEMANTIC EXPAND] Expanded hints to {len(uniq)} variations")
+        return uniq
 
     # ------------------------------------------------------------------ #
     # Example-driven inference

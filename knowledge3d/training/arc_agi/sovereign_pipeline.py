@@ -390,6 +390,26 @@ class SovereignAIPipeline:
         # 4) Execute programs needing execution and score.
         best = None
         exact_proc_best = None
+        seen_programs = set()
+        seen_outputs = set()
+        filtered: List[Dict] = []
+        for cand in merged:
+            prog = cand.get("program", "")
+            if prog in seen_programs:
+                continue
+            out = cand.get("output")
+            if out:
+                h_out = len(out)
+                w_out = len(out[0]) if out else 0
+                out_sig = (h_out, w_out, self._hash_grid(out))
+                if out_sig in seen_outputs:
+                    continue
+                seen_outputs.add(out_sig)
+            seen_programs.add(prog)
+            filtered.append(cand)
+
+        merged = filtered
+
         for cand_idx, cand in enumerate(merged):
             if cand["output"] is None:
                 try:
@@ -399,6 +419,8 @@ class SovereignAIPipeline:
             # Size-aware preprocessing for scoring
             cand_output = cand["output"]
             fuzzy_threshold = 0.80
+            drop_candidate = False
+            downscale_factor = 1.0
             if expected_list is not None:
                 exp_h = len(expected_list)
                 exp_w = len(expected_list[0]) if expected_list else 0
@@ -407,9 +429,33 @@ class SovereignAIPipeline:
                 pred_h = len(cand_output) if cand_output else 0
                 pred_w = len(cand_output[0]) if cand_output else 0
                 if (pred_h, pred_w) != (exp_h, exp_w):
-                    print(f"  [RESIZE] Task {task_id}: {pred_h}x{pred_w} -> {exp_h}x{exp_w}")
-                    cand_output = _procedural_resize(cand_output, exp_h, exp_w)
-                    cand["output"] = cand_output
+                    ratio_h = max(pred_h / exp_h, exp_h / pred_h) if pred_h and exp_h else 10.0
+                    ratio_w = max(pred_w / exp_w, exp_w / pred_w) if pred_w and exp_w else 10.0
+                    downscale_factor = max(ratio_h, ratio_w)
+                    # Hard drop when > 2.5x in either dimension.
+                    if ratio_h >= 2.5 or ratio_w >= 2.5:
+                        print(f"  [DROP SIZE] Task {task_id}: {pred_h}x{pred_w} vs {exp_h}x{exp_w} (ratio_h={ratio_h:.2f}, ratio_w={ratio_w:.2f})")
+                        drop_candidate = True
+                    else:
+                        print(f"  [RESIZE] Task {task_id}: {pred_h}x{pred_w} -> {exp_h}x{exp_w}")
+                        cand_output = _procedural_resize(cand_output, exp_h, exp_w)
+                        cand["output"] = cand_output
+                        pred_h, pred_w = exp_h, exp_w
+                else:
+                    ratio_h = ratio_w = 1.0
+                    downscale_factor = 1.0
+                aspect_pred = (pred_h / pred_w) if pred_h and pred_w else 0.0
+                aspect_exp = (exp_h / exp_w) if exp_h and exp_w else 0.0
+                aspect_ok = True
+                if aspect_pred and aspect_exp:
+                    aspect_ratio = max(aspect_pred / aspect_exp, aspect_exp / aspect_pred)
+                    aspect_ok = aspect_ratio <= 1.5
+                if not aspect_ok:
+                    print(f"  [DROP SIZE] Task {task_id}: aspect mismatch pred={aspect_pred:.2f} exp={aspect_exp:.2f}")
+                    drop_candidate = True
+
+                if drop_candidate:
+                    continue
 
             fuzzy_score = (
                 _fuzzy_match(cand_output, expected_list) if expected_list is not None else 0.0
@@ -420,12 +466,15 @@ class SovereignAIPipeline:
                 expected_list,
                 source=cand["source"],
             )
+            if expected_list is not None and downscale_factor > 2.0:
+                fuzzy_threshold = max(0.60, fuzzy_threshold - 0.10)
             if expected_list is not None and fuzzy_score >= fuzzy_threshold:
                 score = max(score, fuzzy_score)
-                print(
-                    f"  [FUZZY MATCH] Task {task_id}: fuzzy_score={fuzzy_score:.2f} "
-                    f"(threshold={fuzzy_threshold:.2f})"
-                )
+                if cand_idx == 0:
+                    print(
+                        f"  [FUZZY MATCH] Task {task_id}: fuzzy_score={fuzzy_score:.2f} "
+                        f"(threshold={fuzzy_threshold:.2f})"
+                    )
             elif expected_list is not None and 0.70 <= fuzzy_score < 0.80:
                 print(f"  [NEAR MISS] Task {task_id}: fuzzy_score={fuzzy_score:.2f} (70-80%, review needed)")
             cand["score"] = score
@@ -463,6 +512,18 @@ class SovereignAIPipeline:
 
         # Prefer exact procedural match if available
         chosen = exact_proc_best or best
+        if chosen is None:
+            # No viable candidates survived filtering; return a neutral result.
+            return TaskResult(
+                task_id=task_id,
+                best_program="",
+                program_type="none",
+                score=0.0,
+                signature={"source": "none"},
+                output_grid=test_input_list,
+                correct=False,
+                fuzzy_score=0.0,
+            )
 
         assert chosen is not None
         signature = chosen.get("signature") or {"source": chosen["source"]}
@@ -676,6 +737,14 @@ class SovereignAIPipeline:
             elif sr > 0.8:
                 base *= 1.05
         return min(0.90, max(0.60, base))
+
+    def _hash_grid(self, grid: Sequence[Sequence[int]]) -> int:
+        """Deterministic hash of a grid (SOVEREIGN: pure Python)."""
+        h = 0
+        for row in grid:
+            for val in row:
+                h = ((h * 31) + int(val) + 7) & 0xFFFFFFFF
+        return h
 
     def _evaluate_procedural_with_trm(
         self,
