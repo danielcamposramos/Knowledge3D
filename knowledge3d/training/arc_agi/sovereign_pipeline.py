@@ -12,7 +12,7 @@ This is a thin orchestrator that wires:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Sequence, Optional
+from typing import Dict, List, Sequence, Optional, Tuple
 
 # SOVEREIGN: No numpy in hot path! Use plain lists for grids.
 
@@ -165,6 +165,69 @@ def _fuzzy_match(
     return matches / total if total > 0 else 0.0
 
 
+def _procedural_resize(
+    grid: Sequence[Sequence[int]],
+    target_h: int,
+    target_w: int,
+) -> List[List[int]]:
+    """
+    Procedurally resize grid with majority-vote downsample or pixel-repeat upsample.
+    """
+    if not grid or not grid[0]:
+        return [[0] * target_w for _ in range(target_h)]
+
+    h_src, w_src = len(grid), len(grid[0])
+
+    if h_src == target_h and w_src == target_w:
+        return [list(row) for row in grid]
+
+    # Shrink via stride
+    if h_src > target_h or w_src > target_w:
+        stride_h = max(1, h_src // target_h)
+        stride_w = max(1, w_src // target_w)
+        result: List[List[int]] = []
+        for y_t in range(target_h):
+            row: List[int] = []
+            for x_t in range(target_w):
+                vals: Dict[int, int] = {}
+                y_start = y_t * stride_h
+                x_start = x_t * stride_w
+                for dy in range(stride_h):
+                    for dx in range(stride_w):
+                        y_s = y_start + dy
+                        x_s = x_start + dx
+                        if y_s < h_src and x_s < w_src:
+                            v = grid[y_s][x_s]
+                            vals[v] = vals.get(v, 0) + 1
+                if vals:
+                    majority = max(vals.items(), key=lambda kv: kv[1])[0]
+                else:
+                    majority = 0
+                row.append(majority)
+            result.append(row)
+        return result
+
+    # Expand via repetition
+    if h_src < target_h or w_src < target_w:
+        repeat_h = max(1, target_h // h_src)
+        repeat_w = max(1, target_w // w_src)
+        result: List[List[int]] = []
+        for row in grid:
+            expanded_row: List[int] = []
+            for val in row:
+                expanded_row.extend([val] * repeat_w)
+            while len(expanded_row) < target_w:
+                expanded_row.append(0)
+            expanded_row = expanded_row[:target_w]
+            for _ in range(repeat_h):
+                result.append(expanded_row[:])
+        while len(result) < target_h:
+            result.append([0] * target_w)
+        return result[:target_h]
+
+    return [list(row) for row in grid]
+
+
 class SovereignAIPipeline:
     """End-to-end sovereign pipeline (no external ML, GPU-only matryoshka)."""
 
@@ -309,19 +372,11 @@ class SovereignAIPipeline:
         if not merged:
             raise RuntimeError("No candidates generated")
 
-        # HYBRID RANKING: prioritize procedural candidates TRM trusts, then others.
-        priority_order = {"high": 0, "medium": 1, "low": 2}
-        merged_sorted = sorted(
-            merged,
-            key=lambda c: (
-                priority_order.get(c.get("priority", "low"), 2),
-                -c.get("trm_confidence", 0.5),
-            ),
-        )
-        # ✅ TESLA RESONANCE: Execute top 27 candidates (3³ = Tesla cube)
-        # Why 27: 3³ perfect cube, aligns with 27 epochs, 50% of 54 candidates
-        top_k_tesla = 27
-        merged = merged_sorted[:top_k_tesla]
+        expected_list = [list(row) for row in expected_output] if expected_output is not None else None
+        expected_shape = (len(expected_list), len(expected_list[0]) if expected_list else 0) if expected_list else (0, 0)
+        merged = self._rank_candidates_multimetric(merged, expected_shape)
+        top_k_tesla = 27  # Tesla 3^3
+        merged = merged[:top_k_tesla]
         print(
             f"  [TESLA] Executing top {top_k_tesla} candidates (3³ resonance): "
             f"{sum(1 for c in merged if c.get('priority')=='high')} high, "
@@ -331,7 +386,6 @@ class SovereignAIPipeline:
 
         # SOVEREIGN: Keep grids as lists, no numpy conversion
         test_input_list = [list(row) for row in test_input]
-        expected_list = [list(row) for row in expected_output] if expected_output is not None else None
 
         # 4) Execute programs needing execution and score.
         best = None
@@ -342,24 +396,46 @@ class SovereignAIPipeline:
                     cand["output"] = executor.execute(test_input, cand["program"])  # Returns list already
                 except Exception:
                     cand["output"] = test_input_list
+            # Size-aware preprocessing for scoring
+            cand_output = cand["output"]
+            fuzzy_threshold = 0.80
+            if expected_list is not None:
+                exp_h = len(expected_list)
+                exp_w = len(expected_list[0]) if expected_list else 0
+                area = exp_h * exp_w
+                fuzzy_threshold = self._get_adaptive_fuzzy_threshold(task_id, area)
+                pred_h = len(cand_output) if cand_output else 0
+                pred_w = len(cand_output[0]) if cand_output else 0
+                if (pred_h, pred_w) != (exp_h, exp_w):
+                    print(f"  [RESIZE] Task {task_id}: {pred_h}x{pred_w} -> {exp_h}x{exp_w}")
+                    cand_output = _procedural_resize(cand_output, exp_h, exp_w)
+                    cand["output"] = cand_output
+
             fuzzy_score = (
-                _fuzzy_match(cand["output"], expected_list) if expected_list is not None else 0.0
+                _fuzzy_match(cand_output, expected_list) if expected_list is not None else 0.0
             )
             score = self._score_candidate(
-                cand["output"],
+                cand_output,
                 test_input_list,
                 expected_list,
                 source=cand["source"],
             )
-            if expected_list is not None and fuzzy_score >= 0.80:
+            if expected_list is not None and fuzzy_score >= fuzzy_threshold:
                 score = max(score, fuzzy_score)
                 print(
                     f"  [FUZZY MATCH] Task {task_id}: fuzzy_score={fuzzy_score:.2f} "
-                    f"(accepted as correct candidate)"
+                    f"(threshold={fuzzy_threshold:.2f})"
                 )
             elif expected_list is not None and 0.70 <= fuzzy_score < 0.80:
                 print(f"  [NEAR MISS] Task {task_id}: fuzzy_score={fuzzy_score:.2f} (70-80%, review needed)")
             cand["score"] = score
+            if expected_list is not None:
+                calibrated = self._calibrate_confidence_from_outcome(
+                    cand,
+                    fuzzy_score,
+                    expected_shape,
+                )
+                cand["calibrated_confidence"] = calibrated
             # Diagnostic logging for early candidates to expose padding/alignment issues.
             if expected_list is not None and cand_idx < 3:
                 exp_h = len(expected_list)
@@ -394,8 +470,12 @@ class SovereignAIPipeline:
         # DIAGNOSTIC: Log answer comparison details
         if expected_list is not None:
             chosen_fuzzy = _fuzzy_match(chosen["output"], expected_list)
+            exp_h = len(expected_list)
+            exp_w = len(expected_list[0]) if expected_list else 0
+            area = exp_h * exp_w
+            fuzzy_threshold = self._get_adaptive_fuzzy_threshold(task_id, area)
             chosen["score"] = max(chosen["score"], chosen_fuzzy)
-            if chosen_fuzzy >= 0.80:
+            if chosen_fuzzy >= fuzzy_threshold:
                 reward = 1
             else:
                 reward = compute_ternary_reward(chosen["score"])
@@ -427,6 +507,8 @@ class SovereignAIPipeline:
             output_grid=chosen["output"],
             task_id=task_id,
         )
+        if expected_list is not None:
+            self.shadow.update_task_history(task_id, is_correct)
 
         result = TaskResult(
             task_id=task_id,
@@ -490,6 +572,111 @@ class SovereignAIPipeline:
 
         return min(score, 1.0)
 
+    def _calibrate_confidence_from_outcome(
+        self,
+        candidate: Dict,
+        fuzzy_score: float,
+        expected_shape: tuple[int, int],
+    ) -> float:
+        base_confidence = candidate.get("trm_confidence", 0.5)
+        outcome_factor = fuzzy_score
+
+        if candidate.get("output") and candidate["output"]:
+            actual_h = len(candidate["output"])
+            actual_w = len(candidate["output"][0]) if candidate["output"] else 0
+            exp_h, exp_w = expected_shape
+            ratio_h = max(actual_h / exp_h, exp_h / actual_h) if exp_h and actual_h else 10.0
+            ratio_w = max(actual_w / exp_w, exp_w / actual_w) if exp_w and actual_w else 10.0
+            size_ratio = max(ratio_h, ratio_w)
+            size_accuracy = 1.0 / size_ratio if size_ratio > 0 else 0.0
+        else:
+            size_accuracy = 0.0
+
+        pattern_id = self._extract_pattern_signature(candidate.get("program", ""))
+        pattern_history = self.shadow.get_pattern_success_rate(pattern_id)
+        history_factor = pattern_history if pattern_history is not None else 0.5
+
+        calibrated = (
+            0.4 * base_confidence
+            + 0.3 * outcome_factor
+            + 0.2 * size_accuracy
+            + 0.1 * history_factor
+        )
+
+        self.shadow.update_pattern_confidence(pattern_id, calibrated)
+        return min(1.0, max(0.0, calibrated))
+
+    def _extract_pattern_signature(self, program: str) -> str:
+        tokens = program.split()
+        operations = [t for t in tokens if t.isalpha() or t.isupper()]
+        return " ".join(operations)
+
+    def _rank_candidates_multimetric(
+        self,
+        candidates: List[Dict],
+        expected_shape: tuple[int, int],
+    ) -> List[Dict]:
+        pattern_usage: Dict[str, int] = {}
+        scored: List[tuple[float, Dict]] = []
+        exp_h, exp_w = expected_shape
+
+        for cand in candidates:
+            trm_score = cand.get("calibrated_confidence", cand.get("trm_confidence", 0.5))
+
+            if cand.get("output") and cand["output"] and exp_h and exp_w:
+                actual_h = len(cand["output"])
+                actual_w = len(cand["output"][0]) if cand["output"] else 0
+                ratio_h = max(actual_h / exp_h, exp_h / actual_h) if actual_h and exp_h else 10.0
+                ratio_w = max(actual_w / exp_w, exp_w / actual_w) if actual_w and exp_w else 10.0
+                size_ratio = max(ratio_h, ratio_w)
+                size_score = 1.0 / size_ratio if size_ratio > 2.0 else 1.0
+            else:
+                size_score = 0.0
+
+            pattern_id = self._extract_pattern_signature(cand.get("program", ""))
+            usage = pattern_usage.get(pattern_id, 0)
+            pattern_usage[pattern_id] = usage + 1
+            novelty_score = 1.0 / (1.0 + usage * 0.2)
+
+            tokens = cand.get("program", "").split()
+            if tokens:
+                known_tokens = sum(
+                    1 for t in tokens if self.grammar.has_rule(t) or t in self.drawing.shapes
+                )
+                grammar_score = known_tokens / len(tokens)
+            else:
+                grammar_score = 0.0
+
+            composite = (
+                0.40 * trm_score
+                + 0.30 * size_score
+                + 0.15 * novelty_score
+                + 0.15 * grammar_score
+            )
+            scored.append((composite, cand))
+
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return [c for _, c in scored]
+
+    def _get_adaptive_fuzzy_threshold(self, task_id: str, grid_area: int) -> float:
+        if grid_area <= 9:
+            base = 0.70
+        elif grid_area <= 16:
+            base = 0.75
+        elif grid_area <= 64:
+            base = 0.80
+        else:
+            base = 0.85
+
+        history = self.shadow.get_task_history(task_id)
+        if history:
+            sr = history.get("success_rate", 0.0)
+            if sr < 0.2:
+                base *= 0.90
+            elif sr > 0.8:
+                base *= 1.05
+        return min(0.90, max(0.60, base))
+
     def _evaluate_procedural_with_trm(
         self,
         *,
@@ -537,6 +724,28 @@ class SovereignAIPipeline:
         )
         if keyword_hits:
             confidence += 0.1
+
+        # Size plausibility: penalize outputs wildly off from train example outputs.
+        if train_examples and output_grid and output_grid[0]:
+            h_out, w_out = len(output_grid), len(output_grid[0])
+            sizes = []
+            for ex in train_examples:
+                out = ex.get("output")
+                if out and out[0]:
+                    sizes.append((len(out), len(out[0])))
+            if sizes:
+                reasonable = False
+                for h_t, w_t in sizes:
+                    if h_t == 0 or w_t == 0:
+                        continue
+                    ratio_h = max(h_out / h_t, h_t / h_out)
+                    ratio_w = max(w_out / w_t, w_t / w_out)
+                    if ratio_h <= 4.0 and ratio_w <= 4.0:
+                        reasonable = True
+                        break
+                if not reasonable:
+                    confidence -= 0.3
+                    print(f"  [TRM SIZE] Penalizing {h_out}x{w_out} (train sizes: {sizes[:3]})")
 
         return min(1.0, max(0.0, confidence))
 

@@ -27,6 +27,10 @@ class DualShadowCopy:
         self.deduplicator = ContentDeduplicator()
         self.quality_scorer = QualityScorer()
         self.semantic_context = SemanticContext()
+        # Pattern/task confidence tracking for calibration.
+        self._pattern_confidence: Dict[str, float] = {}
+        self._pattern_counts: Dict[str, int] = {}
+        self._task_history: Dict[str, Dict[str, float]] = {}
 
     def record(
         self,
@@ -219,6 +223,30 @@ class DualShadowCopy:
             "grammar_rules": len(self.grammar.rules),
             "pending": len(self._pending),
         }
+
+    # ------------------------------------------------------------------ #
+    # Pattern/task confidence helpers
+    # ------------------------------------------------------------------ #
+    def get_pattern_success_rate(self, pattern_id: str) -> float | None:
+        return self._pattern_confidence.get(pattern_id)
+
+    def update_pattern_confidence(self, pattern_id: str, confidence: float) -> None:
+        prev = self._pattern_confidence.get(pattern_id, 0.5)
+        count = self._pattern_counts.get(pattern_id, 0)
+        new_conf = (prev * count + confidence) / (count + 1)
+        self._pattern_confidence[pattern_id] = new_conf
+        self._pattern_counts[pattern_id] = count + 1
+
+    def get_task_history(self, task_id: str) -> Dict[str, float] | None:
+        return self._task_history.get(task_id)
+
+    def update_task_history(self, task_id: str, success: bool) -> None:
+        hist = self._task_history.get(task_id, {"success": 0, "total": 0})
+        hist["total"] += 1
+        if success:
+            hist["success"] += 1
+        hist["success_rate"] = hist["success"] / max(1, hist["total"])
+        self._task_history[task_id] = hist
 
 
 __all__ = ["DualShadowCopy"]
