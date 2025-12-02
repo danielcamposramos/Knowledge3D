@@ -1,8 +1,8 @@
 # Spatial UI Architecture Specification (SUAS)
 
-**W3C Community Group Contribution**
-**Status**: Draft Proposal
 **Version**: 1.0
+**Status**: Draft Proposal (W3C Community Group Contribution)
+**License**: CC-BY-4.0 (Documentation), Apache 2.0 (Implementation)
 **Date**: November 19, 2025
 **Authors**: Daniel Ramos (Knowledge3D Project), K3D Swarm Contributors
 

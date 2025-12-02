@@ -1,8 +1,9 @@
 # Sovereign Training Architecture Specification
 
 **Version:** 1.0
-**Date:** November 28, 2025
 **Status:** Production-Validated (46.7% ARC-AGI Accuracy)
+**License**: CC-BY-4.0 (Documentation), Apache 2.0 (Implementation)
+**Date:** November 28, 2025
 
 ---
 
