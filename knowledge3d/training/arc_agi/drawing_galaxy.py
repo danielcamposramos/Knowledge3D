@@ -29,6 +29,42 @@ class DrawingItem:
     payload: Dict
 
 
+SCALE_INVARIANT_PRIMITIVES = {
+    "REL_LINE": {
+        "id": "REL_LINE",
+        "type": "scale_invariant",
+        "params": ["x0_frac", "y0_frac", "x1_frac", "y1_frac"],
+        "visual_rpn": "REL_LINE {x0_frac} {y0_frac} {x1_frac} {y1_frac}",
+        "description": "Line from (x0_frac*W, y0_frac*H) to (x1_frac*W, y1_frac*H)",
+        "example": "REL_LINE 0.0 0.0 1.0 1.0  # Diagonal from top-left to bottom-right",
+    },
+    "REL_RECT": {
+        "id": "REL_RECT",
+        "type": "scale_invariant",
+        "params": ["x_frac", "y_frac", "w_frac", "h_frac"],
+        "visual_rpn": "REL_RECT {x_frac} {y_frac} {w_frac} {h_frac}",
+        "description": "Rectangle at relative position with relative size",
+        "example": "REL_RECT 0.25 0.25 0.5 0.5  # Centered quarter-size box",
+    },
+    "PROPORTIONAL_GRID": {
+        "id": "PROP_GRID",
+        "type": "scale_invariant",
+        "params": ["rows", "cols"],
+        "visual_rpn": "PROP_GRID {rows} {cols}",
+        "description": "Grid that adapts to input size (cell size = W/cols × H/rows)",
+        "example": "PROP_GRID 3 3  # 3×3 grid regardless of input size",
+    },
+    "FLOOD_FILL_REL": {
+        "id": "FLOOD_REL",
+        "type": "scale_invariant",
+        "params": ["x_frac", "y_frac"],
+        "visual_rpn": "FLOOD_FILL {x_frac} {y_frac}",
+        "description": "Flood fill from relative position",
+        "example": "FLOOD_FILL 0.5 0.5  # Fill from center",
+    },
+}
+
+
 class DrawingGalaxy:
     """In-memory registry for drawing primitives and derived items."""
 
@@ -79,6 +115,16 @@ class DrawingGalaxy:
         if source:
             payload["discovered_from"] = source
         self.scenes[scene_id] = DrawingItem(scene_id, "scene", payload)
+
+    def add_scale_invariant_primitives(self) -> None:
+        """Register primitives that operate on relative coordinates."""
+        for prim_id, prim_def in SCALE_INVARIANT_PRIMITIVES.items():
+            if prim_id in self.shapes:
+                continue
+            payload = dict(prim_def)
+            payload.setdefault("type", "scale_invariant")
+            self.shapes[prim_id] = DrawingItem(prim_id, payload["type"], payload)
+            print(f"[DRAWING GALAXY] Registered scale-invariant primitive: {prim_id}")
 
     # ------------------------------------------------------------------ #
     # Introspection

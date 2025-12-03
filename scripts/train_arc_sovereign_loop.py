@@ -257,6 +257,7 @@ def main() -> None:
     pipeline.drawing.load(DRAWING_CHECKPOINT)
     pipeline.grammar.load(GRAMMAR_CHECKPOINT)
     pipeline.shadow.load(SHADOW_CHECKPOINT)
+    pipeline.drawing.add_scale_invariant_primitives()
     print(f"  Drawing shapes: {len(pipeline.drawing.shapes)}")
     print(f"  Grammar rules: {len(pipeline.grammar.rules)}")
     print(f"  Shadow entries: {len(pipeline.shadow.library)}")
@@ -270,6 +271,7 @@ def main() -> None:
         base_task_files = select_108_tasks_tesla()
         curriculum = generate_tesla_curriculum(base_task_files, pipeline, total_epochs=args.epochs)
 
+    best_epoch_accuracy = 0.0
     for cycle in range(args.cycles):
         task_files = base_task_files or collect_tasks(args.arc_dirs, args.max_tasks)
         # Sort tasks by grid area (easy first, hard last)
@@ -288,7 +290,13 @@ def main() -> None:
             epoch_tasks = curriculum[epoch] if curriculum else task_files
             stats = run_epoch(pipeline, epoch_tasks, executor, epoch + cycle * args.epochs, args)
             epoch_stats.append(stats)
-            print(f"  Epoch {epoch+1} (cycle {cycle+1}): {stats['correct']}/{stats['total']} correct ({stats['correct']/max(1,stats['total']):.2%})")
+            accuracy = stats['correct'] / max(1, stats['total'])
+            print(f"  Epoch {epoch+1} (cycle {cycle+1}): {stats['correct']}/{stats['total']} correct ({accuracy:.2%})")
+
+            global_epoch = epoch + 1 + cycle * args.epochs
+            if (global_epoch % 10 == 0) or (accuracy > best_epoch_accuracy):
+                pipeline._log_vocabulary_quality(global_epoch)
+                best_epoch_accuracy = max(best_epoch_accuracy, accuracy)
 
             # SOVEREIGN: Update router from discoveries (closes feedback loop!)
             print(f"  [FEEDBACK] Updating router from shadow copy discoveries...")

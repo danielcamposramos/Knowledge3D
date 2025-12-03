@@ -20,6 +20,7 @@ class GrammarRule:
     description: str | None = None
     semantics: Dict | None = field(default_factory=dict)
     usage_conditions: List[str] = field(default_factory=list)
+    is_canonical: bool = False
 
 
 def default_grammar_rules() -> List[GrammarRule]:
@@ -408,6 +409,7 @@ class GrammarGalaxy:
                     "description": rule.description,
                     "semantics": getattr(rule, "semantics", {}),
                     "usage_conditions": getattr(rule, "usage_conditions", []),
+                    "is_canonical": getattr(rule, "is_canonical", False),
                 }
             )
         state = {"rules": rules_data, "total_count": len(rules_data)}
@@ -435,6 +437,7 @@ class GrammarGalaxy:
                 description=rd.get("description"),
                 semantics=rd.get("semantics", {}),
                 usage_conditions=rd.get("usage_conditions", []),
+                is_canonical=rd.get("is_canonical", False),
             )
             loaded_rules[rule.rule_id] = rule
 
