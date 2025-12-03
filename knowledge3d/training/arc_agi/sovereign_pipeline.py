@@ -11,6 +11,7 @@ This is a thin orchestrator that wires:
 
 from __future__ import annotations
 
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from typing import Dict, List, Sequence, Optional, Tuple
 
@@ -390,25 +391,7 @@ class SovereignAIPipeline:
         # 4) Execute programs needing execution and score.
         best = None
         exact_proc_best = None
-        seen_programs = set()
-        seen_outputs = set()
-        filtered: List[Dict] = []
-        for cand in merged:
-            prog = cand.get("program", "")
-            if prog in seen_programs:
-                continue
-            out = cand.get("output")
-            if out:
-                h_out = len(out)
-                w_out = len(out[0]) if out else 0
-                out_sig = (h_out, w_out, self._hash_grid(out))
-                if out_sig in seen_outputs:
-                    continue
-                seen_outputs.add(out_sig)
-            seen_programs.add(prog)
-            filtered.append(cand)
-
-        merged = filtered
+        merged = self._deduplicate_candidates(merged)
 
         for cand_idx, cand in enumerate(merged):
             if cand["output"] is None:
@@ -592,6 +575,58 @@ class SovereignAIPipeline:
             "grammar_rules": len(self.grammar.rules),
         }
 
+    def _log_vocabulary_quality(self, epoch: int) -> None:
+        if not hasattr(self, "shadow") or not self.shadow.library:
+            return
+
+        recent_entries = [
+            entry for entry in self.shadow.library if entry.get("quality_score", 0.0) > 0.6
+        ][-100:]
+        if not recent_entries:
+            return
+
+        rule_usage: Dict[str, int] = defaultdict(int)
+        rule_quality: Dict[str, List[float]] = defaultdict(list)
+        shape_usage: Dict[str, int] = defaultdict(int)
+        shape_lookup = {shape_id.lower(): shape_id for shape_id in self.drawing.shapes}
+
+        for entry in recent_entries:
+            program = entry.get("program", "")
+            quality = float(entry.get("quality_score", 0.0))
+            if entry.get("program_type") == "transformation":
+                rules_used = self._parse_grammar_rules_from_program(program)
+                for rule in rules_used:
+                    rule_usage[rule] += 1
+                    rule_quality[rule].append(quality)
+            if entry.get("program_type") in {"visual", "hybrid"}:
+                tokens = program.split()
+                for token in tokens:
+                    norm = token.lower()
+                    if norm in shape_lookup:
+                        shape_usage[shape_lookup[norm]] += 1
+
+        print(f"\n[VOCAB QUALITY Epoch {epoch}]")
+        if rule_usage:
+            print("  Top Grammar Rules (high-quality solutions):")
+            sorted_rules = sorted(rule_usage.items(), key=lambda item: item[1], reverse=True)[:10]
+            for rule, count in sorted_rules:
+                scores = rule_quality.get(rule, [0.0])
+                avg_q = sum(scores) / len(scores)
+                print(f"    {rule}: {count}× used, avg_quality={avg_q:.3f}")
+        else:
+            print("  No grammar usage recorded in last 100 high-quality entries.")
+
+        if shape_usage:
+            print("  Top Drawing Shapes (high-quality solutions):")
+            sorted_shapes = sorted(shape_usage.items(), key=lambda item: item[1], reverse=True)[:10]
+            for shape_id, count in sorted_shapes:
+                print(f"    {shape_id}: {count}× used")
+        else:
+            print("  No drawing shapes recorded in last 100 high-quality entries.")
+
+        avg_depth = sum(len(entry.get("program", "").split()) for entry in recent_entries) / max(1, len(recent_entries))
+        print(f"  Avg composition depth: {avg_depth:.1f} tokens")
+
     @staticmethod
     def _score_candidate(
         output: Sequence[Sequence[int]],
@@ -672,6 +707,17 @@ class SovereignAIPipeline:
         operations = [t for t in tokens if t.isalpha() or t.isupper()]
         return " ".join(operations)
 
+    def _parse_grammar_rules_from_program(self, program: str) -> List[str]:
+        if not program:
+            return []
+        lookup = {rule_id.lower(): rule_id for rule_id in self.grammar.rules}
+        matched: List[str] = []
+        for token in program.split():
+            normalized = token.lower()
+            if normalized in lookup:
+                matched.append(lookup[normalized])
+        return matched
+
     def _rank_candidates_multimetric(
         self,
         candidates: List[Dict],
@@ -708,16 +754,52 @@ class SovereignAIPipeline:
             else:
                 grammar_score = 0.0
 
+            attractor_strength = cand.get("attractor_strength", 1)
+            attractor_score = min(1.0, attractor_strength / 20.0)
+
             composite = (
-                0.40 * trm_score
-                + 0.30 * size_score
+                0.35 * trm_score
+                + 0.25 * size_score
                 + 0.15 * novelty_score
                 + 0.15 * grammar_score
+                + 0.10 * attractor_score
             )
-            scored.append((composite, cand))
+        scored.append((composite, cand))
 
         scored.sort(key=lambda x: x[0], reverse=True)
         return [c for _, c in scored]
+
+    def _analyze_program_attractors(self, candidates: List[Dict]) -> Dict[str, int]:
+        programs = [cand.get("program", "") for cand in candidates if cand.get("program")]
+        counts = Counter(programs)
+        strong = {prog: count for prog, count in counts.items() if count >= 15}
+        if strong:
+            print(f"[ATTRACTORS] Found {len(strong)} strong canonical candidates:")
+            preview = sorted(strong.items(), key=lambda item: item[1], reverse=True)[:5]
+            for program, count in preview:
+                snippet = program.replace("\n", " ")
+                snippet = (snippet[:50] + "...") if len(snippet) > 50 else snippet
+                print(f"  '{snippet}': discovered {count}× (canonical strength)")
+        return dict(counts)
+
+    def _deduplicate_candidates(self, candidates: List[Dict]) -> List[Dict]:
+        attractor_counts = self._analyze_program_attractors(candidates)
+        seen = set()
+        unique: List[Dict] = []
+        for cand in candidates:
+            program = cand.get("program", "")
+            out = cand.get("output")
+            key = program
+            if isinstance(out, (list, tuple)) and out:
+                height = len(out)
+                width = len(out[0]) if out and isinstance(out[0], (list, tuple)) else 0
+                key = (height, width, self._hash_grid(out))
+            if key in seen:
+                continue
+            seen.add(key)
+            cand["attractor_strength"] = attractor_counts.get(program, 1)
+            unique.append(cand)
+        return unique
 
     def _get_adaptive_fuzzy_threshold(self, task_id: str, grid_area: int) -> float:
         if grid_area <= 9:
