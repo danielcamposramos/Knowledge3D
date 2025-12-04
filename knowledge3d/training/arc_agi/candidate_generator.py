@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from knowledge3d.training.arc_agi.grid_processor import ARCGridProcessor
+from knowledge3d.training.arc_agi.drawing_galaxy import DrawingGalaxy, DrawingItem
 from knowledge3d.cranium.bridges.cosine_similarity_bridge import CosineSimilarityBridge
 from knowledge3d.training.arc_agi.multimodal_parser import MultimodalSemanticParser
 from knowledge3d.training.arc_agi.rpn_executor import ARCRPNExecutor
@@ -41,6 +42,7 @@ class CandidateGenerator:
         matryoshka_dim: int = 512,
         max_candidates: int = 369,
         shadow_copy: Optional[DualShadowCopy] = None,
+        drawing_galaxy: Optional[DrawingGalaxy] = None,
         executor: Optional[ARCRPNExecutor] = None,
         codec_embedder: Any | None = None,
         embedder_type: str = "multimodal",
@@ -60,6 +62,7 @@ class CandidateGenerator:
         self.shadow_copy = shadow_copy  # Optional access to discovered programs for compositions
         self.embedding_galaxy = embedding_galaxy
         self.cosine_bridge = cosine_bridge or CosineSimilarityBridge()
+        self.drawing_galaxy = drawing_galaxy
 
     def _exec_rpn(self, grid: Sequence[Sequence[int]], program: str) -> Optional[List[List[int]]]:
         """Execute RPN program via executor; return None on failure."""
@@ -122,6 +125,14 @@ class CandidateGenerator:
 
         # 5) Math-style patterns: checkerboard even/odd fills.
         candidates.extend(self._generate_math_candidates(input_grid))
+
+        # 6) Scale-invariant primitives registered in Drawing Galaxy.
+        scale_inv_candidates = self._generate_scale_invariant_candidates(input_grid)
+        candidates.extend(scale_inv_candidates)
+        if scale_inv_candidates:
+            print(
+                f"  [SCALE-INV GEN] Generated {len(scale_inv_candidates)} candidate(s) from scale-invariant primitives"
+            )
 
         # 6) Compositional discovery: chain discovered programs (if available).
         if self.shadow_copy is not None and expected_output is not None:
@@ -563,6 +574,171 @@ class CandidateGenerator:
                 candidates.append((filled, instruction, rpn_program))
 
         return candidates
+
+    # ------------------------------------------------------------------ #
+    # Scale-invariant primitives
+    # ------------------------------------------------------------------ #
+    def _generate_scale_invariant_candidates(self, grid: Sequence[Sequence[int]]) -> List[Candidate]:
+        if not self.drawing_galaxy:
+            return []
+
+        param_library: Dict[str, List[Dict[str, float]]] = {
+            "REL_LINE": [
+                {"x0_frac": 0.0, "y0_frac": 0.0, "x1_frac": 1.0, "y1_frac": 1.0},
+                {"x0_frac": 0.0, "y0_frac": 1.0, "x1_frac": 1.0, "y1_frac": 0.0},
+                {"x0_frac": 0.0, "y0_frac": 0.5, "x1_frac": 1.0, "y1_frac": 0.5},
+                {"x0_frac": 0.5, "y0_frac": 0.0, "x1_frac": 0.5, "y1_frac": 1.0},
+            ],
+            "REL_RECT": [
+                {"x_frac": 0.0, "y_frac": 0.0, "w_frac": 1.0, "h_frac": 1.0},
+                {"x_frac": 0.25, "y_frac": 0.25, "w_frac": 0.5, "h_frac": 0.5},
+                {"x_frac": 0.1, "y_frac": 0.1, "w_frac": 0.8, "h_frac": 0.8},
+            ],
+            "PROPORTIONAL_GRID": [
+                {"rows": 2, "cols": 2},
+                {"rows": 3, "cols": 3},
+                {"rows": 4, "cols": 4},
+            ],
+            "FLOOD_FILL_REL": [
+                {"x_frac": 0.5, "y_frac": 0.5},
+                {"x_frac": 0.25, "y_frac": 0.25},
+                {"x_frac": 0.75, "y_frac": 0.75},
+            ],
+        }
+
+        candidates: List[Candidate] = []
+        for shape_id, item in self.drawing_galaxy.shapes.items():
+            payload = item.payload if isinstance(item, DrawingItem) else item
+            if payload.get("type") != "scale_invariant":
+                continue
+            template = payload.get("visual_rpn")
+            if not template:
+                composition = payload.get("procedural_programs", {}).get("composition")
+                template = composition
+            if not template:
+                continue
+            param_sets = param_library.get(shape_id, [])
+            if not param_sets:
+                continue
+            for params in param_sets:
+                try:
+                    rpn_program = template.format(**params)
+                except Exception:
+                    continue
+                output = self._exec_rpn(grid, rpn_program)
+                if output is None:
+                    output = self._render_scale_primitive(shape_id, params, grid)
+                if output is None:
+                    continue
+                candidates.append((output, f"[SCALE] {shape_id}", rpn_program))
+        return candidates
+
+    def _render_scale_primitive(
+        self,
+        shape_id: str,
+        params: Dict[str, float],
+        grid: Sequence[Sequence[int]],
+    ) -> Optional[List[List[int]]]:
+        if not grid or not grid[0]:
+            return None
+        height = len(grid)
+        width = len(grid[0])
+        canvas = [list(row) for row in grid]
+        color = self._dominant_color(canvas)
+        if shape_id == "REL_LINE":
+            x0 = int(params.get("x0_frac", 0.0) * max(0, width - 1))
+            y0 = int(params.get("y0_frac", 0.0) * max(0, height - 1))
+            x1 = int(params.get("x1_frac", 1.0) * max(0, width - 1))
+            y1 = int(params.get("y1_frac", 1.0) * max(0, height - 1))
+            self._draw_line(canvas, x0, y0, x1, y1, color)
+        elif shape_id == "REL_RECT":
+            x = int(params.get("x_frac", 0.0) * width)
+            y = int(params.get("y_frac", 0.0) * height)
+            w = max(1, int(params.get("w_frac", 1.0) * width))
+            h = max(1, int(params.get("h_frac", 1.0) * height))
+            self._fill_rect(canvas, x, y, w, h, color)
+        elif shape_id == "PROPORTIONAL_GRID":
+            rows = max(1, int(params.get("rows", 2)))
+            cols = max(1, int(params.get("cols", 2)))
+            self._draw_grid(canvas, rows, cols, color)
+        elif shape_id == "FLOOD_FILL_REL":
+            x = int(params.get("x_frac", 0.5) * max(0, width - 1))
+            y = int(params.get("y_frac", 0.5) * max(0, height - 1))
+            self._flood_fill(canvas, x, y, color)
+        else:
+            return None
+        return canvas
+
+    def _dominant_color(self, grid: Sequence[Sequence[int]]) -> int:
+        counts: Dict[int, int] = {}
+        for row in grid:
+            for val in row:
+                counts[val] = counts.get(val, 0) + 1
+        counts.pop(0, None)
+        if not counts:
+            return 1
+        return max(counts.items(), key=lambda item: item[1])[0]
+
+    def _draw_line(self, canvas: List[List[int]], x0: int, y0: int, x1: int, y1: int, color: int) -> None:
+        dx = abs(x1 - x0)
+        dy = -abs(y1 - y0)
+        sx = 1 if x0 < x1 else -1
+        sy = 1 if y0 < y1 else -1
+        err = dx + dy
+        while True:
+            if 0 <= y0 < len(canvas) and 0 <= x0 < len(canvas[0]):
+                canvas[y0][x0] = color
+            if x0 == x1 and y0 == y1:
+                break
+            e2 = 2 * err
+            if e2 >= dy:
+                err += dy
+                x0 += sx
+            if e2 <= dx:
+                err += dx
+                y0 += sy
+
+    def _fill_rect(self, canvas: List[List[int]], x: int, y: int, w: int, h: int, color: int) -> None:
+        for yy in range(y, min(y + h, len(canvas))):
+            for xx in range(x, min(x + w, len(canvas[0]))):
+                canvas[yy][xx] = color
+
+    def _draw_grid(self, canvas: List[List[int]], rows: int, cols: int, color: int) -> None:
+        h = len(canvas)
+        w = len(canvas[0])
+        if rows <= 0 or cols <= 0:
+            return
+        row_step = max(1, h // rows)
+        col_step = max(1, w // cols)
+        for r in range(0, h, row_step):
+            for c in range(w):
+                canvas[r][c] = color
+        for c in range(0, w, col_step):
+            for r in range(h):
+                canvas[r][c] = color
+
+    def _flood_fill(self, canvas: List[List[int]], x: int, y: int, color: int) -> None:
+        h = len(canvas)
+        w = len(canvas[0])
+        if not (0 <= x < w and 0 <= y < h):
+            return
+        target = canvas[y][x]
+        if target == color:
+            canvas[y][x] = color
+            return
+        stack = [(x, y)]
+        visited = set()
+        while stack:
+            cx, cy = stack.pop()
+            if (cx, cy) in visited:
+                continue
+            visited.add((cx, cy))
+            if not (0 <= cx < w and 0 <= cy < h):
+                continue
+            if canvas[cy][cx] != target:
+                continue
+            canvas[cy][cx] = color
+            stack.extend([(cx + 1, cy), (cx - 1, cy), (cx, cy + 1), (cx, cy - 1)])
 
     # ------------------------------------------------------------------ #
     # Utilities
