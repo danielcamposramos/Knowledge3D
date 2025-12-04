@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import List, Sequence, Dict, Any, Optional
 
 from knowledge3d.training.arc_agi.candidate_generator import CandidateGenerator, Candidate
+from knowledge3d.training.arc_agi.drawing_galaxy import DrawingGalaxy
 from knowledge3d.training.arc_agi.dual_shadow_copy import DualShadowCopy
 from knowledge3d.cranium.ptx_runtime.math_core_pool import MathCorePool, get_global_math_core_pool
 from knowledge3d.training.arc_agi.rpn_executor import ARCRPNExecutor
@@ -25,6 +26,7 @@ class ParallelCandidateGenerator:
         top_k: int = 3,
         matryoshka_dim: int = 512,
         shadow_copy: Optional[DualShadowCopy] = None,
+        drawing_galaxy: Optional[DrawingGalaxy] = None,
         codec_embedder: Any | None = None,
         embedding_galaxy: Optional[Dict[int, List[float]]] = None,
         cosine_bridge: Any | None = None,
@@ -34,6 +36,7 @@ class ParallelCandidateGenerator:
         self.top_k = top_k
         self.matryoshka_dim = matryoshka_dim
         self.shadow_copy = shadow_copy
+        self.drawing_galaxy = drawing_galaxy
         self.core_pool = get_global_math_core_pool()
         self.codec_embedder = codec_embedder
         self.embedding_galaxy = embedding_galaxy
@@ -89,6 +92,7 @@ class ParallelCandidateGenerator:
                     matryoshka_dim=self.matryoshka_dim,
                     max_candidates=self.candidates_per_worker,
                     shadow_copy=self.shadow_copy,
+                    drawing_galaxy=self.drawing_galaxy,
                     executor=executor,
                     codec_embedder=self.codec_embedder,
                     embedding_galaxy=self.embedding_galaxy,

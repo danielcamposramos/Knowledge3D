@@ -96,6 +96,8 @@ class DrawingGalaxy:
             self.scenes[scene["id"]] = DrawingItem(scene["id"], "scene", scene)
         for col in collections:
             self.collections[col["id"]] = DrawingItem(col["id"], "collection", col)
+        # Always register scale-invariant primitives so bootstrap uses procedural definitions
+        self.add_scale_invariant_primitives()
 
     # ------------------------------------------------------------------ #
     # Discovery APIs
@@ -178,6 +180,8 @@ class DrawingGalaxy:
         self.collections = _load_map(state.get("collections", {}), "collection") or self.collections
 
         print(f"[DrawingGalaxy] Loaded {len(self.shapes)} shapes from {path}")
+        # Ensure scale-invariant primitives are always available even if checkpoint lacked them
+        self.add_scale_invariant_primitives()
 
     def add_discovered_shape(self, shape: Dict) -> None:
         """Add discovered shape (recorded by shadow copy)."""

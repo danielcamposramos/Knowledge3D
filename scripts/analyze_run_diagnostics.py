@@ -19,25 +19,20 @@ def analyze_log(log_path: Path) -> None:
     log_text = log_path.read_text(encoding="utf-8")
 
     epoch_accuracies = []
-    pattern = re.compile(r"Epoch (\\d+) \\(cycle .*?): (\\d+)/(\\d+) correct")
+    pattern = re.compile(r"Epoch (\d+) \(cycle .*?\): (\d+)/(\d+) correct")
     for match in pattern.finditer(log_text):
         epoch_num = int(match.group(1))
         correct = int(match.group(2))
         total = int(match.group(3))
         epoch_accuracies.append((epoch_num, correct, total, correct / total if total else 0.0))
 
-    vocab_blocks = re.findall(r"\\[VOCAB QUALITY Epoch (\\d+)\\](.*?)(?=\\n\\[|$)", log_text, re.DOTALL)
+    vocab_blocks = re.findall(r"\[VOCAB QUALITY Epoch (\d+)\](.*?)(?=\n\[|$)", log_text, re.DOTALL)
 
     scale_inv_usage = defaultdict(int)
     for match in re.finditer(r"(REL_LINE|REL_RECT|PROP_GRID|FLOOD_REL)", log_text):
         scale_inv_usage[match.group(1)] += 1
 
-    attractor_matches = re.findall(r"\\[ATTRACTORS?\\].*?discovered (\\d+)\\u00d7|\\[ATTRACTORS?\\].*?discovered (\\d+)\\x", log_text)
-    attractors = []
-    for a, b in attractor_matches:
-        value = a or b
-        if value:
-            attractors.append(int(value))
+    attractors = [int(match.group(1)) for match in re.finditer(r"\[ATTRACTORS?\].*?discovered (\d+)×", log_text)]
 
     shadow_counts = [int(m) for m in re.findall(r"Shadow entries: (\\d+)", log_text)]
 

@@ -42,7 +42,7 @@ def main() -> None:
         shadow_copy,
         drawing_galaxy,
         grammar_galaxy,
-        min_quality=0.6,
+        min_quality=0.5,
         min_uses_for_canonical=5,
         canonical_success_threshold=0.7,
     )
@@ -54,13 +54,64 @@ def main() -> None:
     grammar_galaxy.save(GRAMMAR_CHECKPOINT)
     shadow_copy.save(SHADOW_CHECKPOINT)
 
-    report_name = f"consolidation_report_{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}.json"
+    timestamp = datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')
+    report_name = f"consolidation_report_{timestamp}.json"
     report_path = CHECKPOINT_DIR / report_name
     with report_path.open("w", encoding="utf-8") as fp:
         json.dump(stats, fp, indent=2)
 
+    audit_path = CHECKPOINT_DIR / f"consolidation_audit_{timestamp}.txt"
+    with audit_path.open("w", encoding="utf-8") as audit:
+        audit.write("=" * 80 + "\n")
+        audit.write("SLEEPTIME CONSOLIDATION AUDIT\n")
+        audit.write("=" * 80 + "\n\n")
+        audit.write(f"Timestamp: {timestamp}\n")
+        audit.write(f"Pruning threshold: {consolidator.min_quality:.2f}\n")
+        audit.write(f"Entries pruned: {stats.get('pruned_count', 0)}\n")
+        audit.write(f"Canonical promoted: {stats.get('canonical_promoted', 0)}\n\n")
+
+        pruned = stats.get("pruned_entries_audit", [])
+        if pruned:
+            audit.write("Pruned Entries Detail:\n")
+            audit.write("-" * 80 + "\n")
+            for entry in pruned:
+                audit.write(
+                    f"Hash: {entry.get('hash', 'unknown')}\n"
+                    f"Quality: {entry.get('quality_score', 0.0):.4f}\n"
+                    f"Type: {entry.get('program_type', 'unknown')}\n"
+                    f"Program: {entry.get('program', '')}\n"
+                    + "-" * 80 + "\n"
+                )
+
+        rule_detail = stats.get("rule_stats_detail", [])
+        if rule_detail:
+            audit.write("\nRule Usage Detail:\n")
+            audit.write("-" * 80 + "\n")
+            for entry in rule_detail:
+                audit.write(
+                    f"Rule: {entry.get('rule_id')}\n"
+                    f"Uses: {entry.get('uses')}\n"
+                    f"Success Rate: {entry.get('success_rate', 0.0):.4f}\n"
+                    f"Average Quality: {entry.get('avg_quality', 0.0):.4f}\n"
+                    + "-" * 80 + "\n"
+                )
+
+        shape_detail = stats.get("shape_stats_detail", [])
+        if shape_detail:
+            audit.write("\nShape Usage Detail:\n")
+            audit.write("-" * 80 + "\n")
+            for entry in shape_detail:
+                audit.write(
+                    f"Shape: {entry.get('shape_id')}\n"
+                    f"Uses: {entry.get('uses')}\n"
+                    f"Success Rate: {entry.get('success_rate', 0.0):.4f}\n"
+                    f"Average Quality: {entry.get('avg_quality', 0.0):.4f}\n"
+                    + "-" * 80 + "\n"
+                )
+
     print(f"\n[SLEEPTIME] Consolidation complete. Report saved to: {report_path}")
-    print("  Ready for Run 035.")
+    print(f"  Audit log saved to: {audit_path}")
+    print("  Ready for training.")
 
 
 if __name__ == "__main__":
