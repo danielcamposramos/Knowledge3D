@@ -243,6 +243,10 @@ class SovereignAIPipeline:
         self.embedding_galaxy = embedding_galaxy
         self.cosine_bridge = cosine_bridge or CosineSimilarityBridge()
         self.results: List[TaskResult] = []
+        self._grammar_token_index: Dict[str, set[str]] = {}
+        self._grammar_token_version = 0
+        self._shape_token_index: Dict[str, set[str]] = {}
+        self._shape_token_version = 0
 
     def process_task(
         self,
@@ -294,6 +298,7 @@ class SovereignAIPipeline:
                 top_k=3,
                 matryoshka_dim=self.router.matryoshka_dim,
                 shadow_copy=self.shadow,
+                drawing_galaxy=self.drawing,
                 codec_embedder=self.codec_embedder,
                 embedding_galaxy=self.embedding_galaxy,
                 cosine_bridge=self.cosine_bridge,
@@ -588,7 +593,6 @@ class SovereignAIPipeline:
         rule_usage: Dict[str, int] = defaultdict(int)
         rule_quality: Dict[str, List[float]] = defaultdict(list)
         shape_usage: Dict[str, int] = defaultdict(int)
-        shape_lookup = {shape_id.lower(): shape_id for shape_id in self.drawing.shapes}
 
         for entry in recent_entries:
             program = entry.get("program", "")
@@ -599,11 +603,9 @@ class SovereignAIPipeline:
                     rule_usage[rule] += 1
                     rule_quality[rule].append(quality)
             if entry.get("program_type") in {"visual", "hybrid"}:
-                tokens = program.split()
-                for token in tokens:
-                    norm = token.lower()
-                    if norm in shape_lookup:
-                        shape_usage[shape_lookup[norm]] += 1
+                shapes_used = self._parse_drawing_shapes_from_program(program)
+                for shape_id in shapes_used:
+                    shape_usage[shape_id] += 1
 
         print(f"\n[VOCAB QUALITY Epoch {epoch}]")
         if rule_usage:
@@ -710,13 +712,65 @@ class SovereignAIPipeline:
     def _parse_grammar_rules_from_program(self, program: str) -> List[str]:
         if not program:
             return []
-        lookup = {rule_id.lower(): rule_id for rule_id in self.grammar.rules}
+        self._ensure_grammar_token_index()
+        tokens = set(token.lower() for token in program.split())
         matched: List[str] = []
-        for token in program.split():
-            normalized = token.lower()
-            if normalized in lookup:
-                matched.append(lookup[normalized])
+        for rule_id, token_set in self._grammar_token_index.items():
+            if token_set and token_set.intersection(tokens):
+                matched.append(rule_id)
         return matched
+
+    def _parse_drawing_shapes_from_program(self, program: str) -> List[str]:
+        if not program:
+            return []
+        self._ensure_shape_token_index()
+        tokens = set(token.lower() for token in program.split())
+        matched: List[str] = []
+        for shape_id, token_set in self._shape_token_index.items():
+            if token_set and token_set.intersection(tokens):
+                matched.append(shape_id)
+        return matched
+
+    def _ensure_grammar_token_index(self) -> None:
+        current_version = len(self.grammar.rules)
+        if getattr(self, "_grammar_token_version", 0) == current_version and self._grammar_token_index:
+            return
+        token_index: Dict[str, set[str]] = {}
+        for rule_id, rule in self.grammar.rules.items():
+            tokens: set[str] = set()
+            rpn_program = getattr(rule, "rpn_program", "") or (rule.get("rpn_program") if isinstance(rule, dict) else "")
+            if rpn_program:
+                tokens.update(token.lower() for token in rpn_program.split())
+            pattern = getattr(rule, "pattern", None) or (rule.get("pattern") if isinstance(rule, dict) else None)
+            if pattern:
+                tokens.add(str(pattern).lower())
+            token_index[rule_id] = tokens
+        self._grammar_token_index = token_index
+        self._grammar_token_version = current_version
+
+    def _ensure_shape_token_index(self) -> None:
+        current_version = len(self.drawing.shapes)
+        if getattr(self, "_shape_token_version", 0) == current_version and self._shape_token_index:
+            return
+        token_index: Dict[str, set[str]] = {}
+        for shape_id, item in self.drawing.shapes.items():
+            payload = item.payload if hasattr(item, "payload") else item
+            tokens: set[str] = set()
+            visual_rpn = payload.get("visual_rpn") if isinstance(payload, dict) else None
+            if visual_rpn:
+                tokens.update(token.lower() for token in visual_rpn.split())
+            composition = (
+                payload.get("procedural_programs", {}).get("composition")
+                if isinstance(payload, dict)
+                else None
+            )
+            if composition:
+                tokens.update(token.lower() for token in composition.split())
+            if not tokens and isinstance(payload, dict):
+                tokens.add(shape_id.lower())
+            token_index[shape_id] = tokens
+        self._shape_token_index = token_index
+        self._shape_token_version = current_version
 
     def _rank_candidates_multimetric(
         self,

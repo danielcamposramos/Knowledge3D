@@ -29,6 +29,7 @@ class SleepTimeConsolidator:
         self.min_quality = min_quality
         self.min_uses_canonical = min_uses_for_canonical
         self.canonical_threshold = canonical_success_threshold
+        self._pruned_audit: List[Dict] = []
 
     def consolidate(self) -> Dict:
         stats: Dict[str, object] = {}
@@ -40,6 +41,10 @@ class SleepTimeConsolidator:
         stats["top_canonical_candidates"] = canonical
         stats["total_rules"] = len(self.grammar.rules)
         stats["total_shapes"] = len(self.drawing.shapes)
+        if self._pruned_audit:
+            stats["pruned_entries_audit"] = self._pruned_audit
+        stats["rule_stats_detail"] = self._serialize_stat_block(stats["rule_stats"], kind="rule")
+        stats["shape_stats_detail"] = self._serialize_stat_block(stats["shape_stats"], kind="shape")
         self._log_consolidation_report(stats)
         return stats
 
@@ -49,16 +54,38 @@ class SleepTimeConsolidator:
     def _prune_low_quality(self) -> int:
         removed_hashes = set()
         kept_entries: List[Dict] = []
+        pruned_entries: List[Dict] = []
         for entry in self.shadow.library:
             score = float(entry.get("quality_score", 0.0))
             if score < self.min_quality:
                 prog_hash = entry.get("hash")
                 if prog_hash:
                     removed_hashes.add(prog_hash)
+                pruned_entries.append(
+                    {
+                        "hash": entry.get("hash", "unknown"),
+                        "quality_score": score,
+                        "program_type": entry.get("program_type", "unknown"),
+                        "program": entry.get("program", "")[:200],
+                    }
+                )
                 continue
             kept_entries.append(entry)
 
         pruned = len(self.shadow.library) - len(kept_entries)
+        self._pruned_audit = pruned_entries
+        print("\n[SLEEPTIME PRUNING AUDIT]")
+        print(f"  Threshold: {self.min_quality:.2f}")
+        print(f"  Total entries: {len(self.shadow.library)}")
+        print(f"  Pruned: {pruned}")
+        print(f"  Kept: {len(kept_entries)}")
+        if pruned_entries:
+            preview = pruned_entries[:5]
+            print("  Sample pruned entries:")
+            for item in preview:
+                print(
+                    f"    hash={item['hash'][:16]}... quality={item['quality_score']:.3f} type={item['program_type']}"
+                )
         if not pruned:
             return 0
 
@@ -210,6 +237,9 @@ class SleepTimeConsolidator:
         else:
             print("\n  Canonical Patterns Promoted: none this cycle")
 
+        if stats.get("pruned_entries_audit"):
+            print("\n  Pruning audit available for detailed inspection.")
+
     # ------------------------------------------------------------------ #
     # Utility helpers
     # ------------------------------------------------------------------ #
@@ -221,6 +251,20 @@ class SleepTimeConsolidator:
             if normalized in lookup:
                 matched.append(lookup[normalized])
         return matched
+
+    def _serialize_stat_block(self, stats: Dict[str, Dict], *, kind: str) -> List[Dict]:
+        serialized: List[Dict] = []
+        for key, data in stats.items():
+            serialized.append(
+                {
+                    f"{kind}_id": key,
+                    "uses": data.get("uses", 0),
+                    "success_rate": data.get("success_rate", 0.0),
+                    "avg_quality": data.get("avg_quality", 0.0),
+                    "tasks_solved": data.get("tasks_solved", []) if kind == "rule" else [],
+                }
+            )
+        return serialized
 
     @staticmethod
     def _format_task_signature(signature: Dict) -> str:
