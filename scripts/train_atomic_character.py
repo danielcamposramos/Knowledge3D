@@ -765,8 +765,16 @@ class ProceduralGlyphStream:
             width=self.image_size,
         )
         glyphs = batch.to_numpy()
+
+        # Procedural bridge returns vec4 per pixel; collapse to single channel for CNN
+        if glyphs.ndim == 4 and glyphs.shape[-1] == 4:
+            glyphs = glyphs[..., 0]
+        elif glyphs.ndim != 3:
+            glyphs = glyphs.reshape(len(jobs), self.image_size, self.image_size)
+
+        glyphs = glyphs.astype(np.float32, copy=False)
         rgb = np.repeat(glyphs[:, :, :, None], 3, axis=3)
-        return rgb.astype(np.float32, copy=False)
+        return rgb
 
 
 _GLYPH_CACHE_QUALITY: Dict[Tuple[str, str], bool] = {}
@@ -1088,6 +1096,19 @@ def train_single_character(
     print()
     print("=" * 80)
     print("[5/6] Extracting character embeddings...")
+
+    # Reuse the exact samples used during training to extract embeddings.
+    # For procedural mode we re-render only positive jobs to avoid undefined `images`.
+    if dataset_images is not None and dataset_labels is not None:
+        images = dataset_images
+        labels = dataset_labels
+    else:
+        assert procedural_stream is not None
+        positive_jobs = [job for job in procedural_jobs if job.label == 1]
+        if not positive_jobs:
+            raise RuntimeError("No positive procedural jobs available for embedding extraction")
+        images = procedural_stream.render_batch(positive_jobs)
+        labels = np.ones(len(positive_jobs), dtype=np.int32)
 
     fused_embeddings: List[np.ndarray] = []
     low_dim_embeddings: List[np.ndarray] = []

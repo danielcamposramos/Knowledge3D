@@ -788,7 +788,141 @@ When multiple domains reference the same Layer 1 symbol (e.g., ∑), the system 
 
 ## 5. Integration with Existing Systems
 
-### 5.1 Math Symbol Galaxy
+### 5.1 TRM (Tiny Recursive Model) with Matryoshka Architecture
+
+**Status**: Phase H Complete (8/8 tests passing), currently training Run 038
+
+**Overview**: TRM is K3D's **sovereign reasoning engine** with bi-directional variable dimensionality and recursive refinement. When generative approaches fail to produce correct results, TRM recursively explores deeper reasoning chains via specialized adapters.
+
+**Architecture Components**:
+
+**1. Matryoshka Bi-Directional Scaling**:
+- **Downward (efficiency)**: Shrink to 64-512 dims for simple tasks (1024× speedup)
+- **Upward (capacity)**: Expand to 4K-16K dims for complex reasoning (research-level depth)
+- **Key property**: All prefix dimensions are self-contained (W[:256,:256] works independently)
+
+**2. Router-as-Specialist (The Atomic Insight ⚛️)**:
+- **Key innovation**: The MoE router IS itself a specialist in the swarm
+- **Bootstrap workflow**:
+  1. Heuristic routing (keyword matching) collects initial decisions
+  2. Train router specialist on successful patterns
+  3. Transition to learned routing
+  4. Router self-updates from new data → **fully recursive system**
+
+**3. Recursive Refinement with Deep Exploration**:
+- Each dimension level = one RPN stack line of reasoning depth
+- **64 dims**: Trivial tasks (single char OCR)
+- **128 dims**: Simple tasks (word recognition)
+- **512 dims**: Medium tasks (sentence understanding)
+- **1024 dims**: Complex tasks (multi-hop reasoning)
+- **4096+ dims**: Research tasks (meta-analysis, deep exploration)
+
+**When generative fails** → TRM automatically deepens reasoning:
+```
+Attempt 1: 128 dims (fast generative) → Wrong
+Attempt 2: 512 dims (deeper chains) → Wrong
+Attempt 3: 1024 dims (full exploration) → Correct!
+```
+
+**4. Hybrid Parallel+Sequential Architecture (ARC-AGI Application)**:
+
+The TRM integrates with K3D's parallel candidate generation via **adaptive hybrid architecture**:
+
+**Two-tier worker pool**:
+- **Tier 1 (Quick)**: 9 workers × 6 candidates = 54 (parallel breadth, K3D standard)
+- **Tier 2 (Deep)**: 3 workers × 21 refinements (sequential depth, TRM-style)
+
+**Adaptive routing with ternary gating**:
+```python
+# Ternary routing: {-1: poor, 0: borderline, +1: solved}
+quick_score_ternary = SIGN(quick_score - 0.95)
+
+if quick_score_ternary >= 0:  # ≥95% accuracy
+    return quick_candidates  # Skip deep (time saved)
+else:
+    activate_deep_workers()  # Need sequential refinement
+```
+
+**Multi-tier math core orchestration**:
+- Tier-1 cores: Simple patterns (sub-100µs, arithmetic ops)
+- Tier-2 cores: Medium patterns (matrix ops, reductions)
+- Tier-3 cores: Complex patterns (TRM ops, symbolic differentiation)
+
+**Integration with foundational knowledge**:
+
+Layer 4 self-reflection meta-rules guide TRM refinement strategy:
+```rpn
+# Meta-rule: Should we activate deep workers?
+"meta_should_use_deep_refinement" =>
+    TASK_COMPLEXITY RECALL     # From Layer 3 analysis
+    QUICK_SCORE RECALL          # From initial attempt
+    PATTERN_CONFIDENCE RECALL   # From Shadow Copy
+
+    # Ternary signals aggregation
+    QUICK_SCORE 0.95 - SIGN    # Score signal {-1, 0, +1}
+    1index 0.70 - SIGN         # Complexity signal
+    2index 0.75 - SIGN         # Confidence signal
+
+    # Sum signals: aggregate ≤ -1 → activate deep
+    + +
+    -1 TCMP                    # Compare to threshold
+    0 <=                       # Activate if ≤ 0
+```
+
+**References**:
+- `TEMP/CLAUDE_HYBRID_TRM_ARCHITECTURE_SPEC.md` — Complete hybrid architecture specification
+- `knowledge3d/cranium/router_specialist.py` — Router-as-specialist implementation
+- `knowledge3d/training/arc_agi/parallel_generator.py` — 9 workers × 6 candidates (Tier 1)
+
+**Integration with Foundational Knowledge**:
+
+Ternary logic enhances the 4-layer knowledge architecture by enabling **intelligent sparsity** — Layer 3 rules can mark which Layer 1 symbols are relevant (+1), irrelevant (-1), or uncertain (0) for a given task:
+
+```python
+# Example: ARC-AGI task with mathematical symbols
+class GrammarRule:
+    rule_id: str = "arc_rotation_rule"
+    rpn_program: str = "GRID ROTATE_90_CW"
+    symbol_refs: List[int] = [8721, 8747]  # ∑, ∫ (Layer 1 references)
+
+    # NEW: Ternary relevance mask for this rule
+    ternary_mask: np.ndarray = np.array([
+        +1,  # ∑ highly relevant (counting/iteration)
+        -1,  # ∫ not relevant (rotation is discrete, not continuous)
+    ], dtype=np.int8)
+```
+
+**Performance Benefits**:
+- **16× compression** for Layer 3 rule metadata (1,000 rules × 152 symbols × 1 bit → 19 KB vs 304 KB)
+- **2× speedup** via sparse computation (skip -1 positions during semantic search)
+- **Emergent semantics**: 0 values indicate uncertainty → opportunity for discovery
+
+**Sleeptime Consolidation Integration**:
+
+Ternary masks guide consolidation — during sleep, Layer 4 self-reflection meta-rules update ternary masks based on task performance:
+
+```rpn
+# Self-reflection updates ternary mask
+"meta_update_ternary_mask" =>
+    RULE_ID RECALL TASK_RESULT RECALL
+    TASK_RESULT SUCCESS ==
+    {
+        # Success: Reinforce relevant symbols (+1)
+        RULE_ID SYMBOL_REFS RETRIEVE
+        EACH_SYMBOL { TERNARY_MASK_INCREMENT }
+    } {
+        # Failure: Penalize assumed-relevant symbols
+        RULE_ID SYMBOL_REFS RETRIEVE
+        EACH_SYMBOL { TERNARY_MASK_DECREMENT }
+    } ifelse
+```
+
+**Files**:
+- `knowledge3d/cranium/matryoshka_trm.py` — MatryoshkaTRM with ternary attention
+- `knowledge3d/cranium/sovereign/trm_ternary_launcher.py` — TRMTernaryLauncher for RLWHF training
+- `TEMP/TERNARY_COMPLETE_DOCUMENTATION.md` — Complete ternary system documentation
+
+### 5.2 Math Symbol Galaxy
 
 **Existing**: `knowledge3d/cranium/math_symbols_registry.py` (~152 symbols registered)
 
@@ -859,7 +993,81 @@ class SleeptimeConsolidator:
         return self.meta_rules.evaluate("meta_identify_error_pattern", failed_experiences)
 ```
 
-### 5.4 Discovery Layer
+### 5.4 Vector Dot Maps and Multi-Modal Procedural Representation
+
+**Status**: Research phase (design complete, implementation planned post-Phase 6)
+
+**Overview**: Vector Dot Maps represent a paradigm shift in visual knowledge representation — moving from fixed pixel grids (bitmaps) to **procedural quantum field emitters** that generate visual content on-demand. This aligns perfectly with the Save Information Principle: store generative equations, not pixel data.
+
+**Architecture**:
+
+- **Quantum Dot Field Theory (QDFT)**: Each vector dot exists as a quantum-inspired field emitter with superpositional states (position, color, brightness) that "collapse" during rendering
+- **Neural Field Dot Emission (NFDE)**: Dots emerge from continuous neural fields rather than discrete points — store field equations, not coordinates
+- **Physical Display Integration**: Inspired by LCD/LED/micro-LED architecture (hex grids, emissive properties, PWM modulation)
+- **Biological Vision Integration**: Variable density (foveal concentration), rod-cone duality, neural adaptation
+
+**Integration with Foundational Knowledge**:
+
+Vector Dot Maps enhance Layer 1 (Form) by providing **resolution-independent procedural glyphs**:
+
+```python
+# Traditional Layer 1: Store Bézier curves (procedural but still geometry)
+char_summation = {
+    "char_id": 8721,  # ∑
+    "visual_data": bezier_curve_segments,  # 32 segments, 256 bytes
+}
+
+# Vector Dot Maps: Store quantum field coefficients (generative)
+char_summation_qdft = {
+    "char_id": 8721,  # ∑
+    "field_coefficients": np.array([...], dtype=np.float16),  # 8 coefficients, 16 bytes
+    "emission_function": "harmonic_summation_field",  # RPN program
+    # At render time: dots emerge from field at any resolution
+}
+```
+
+**Compression Benefits**:
+- **16:1** vs Bézier representation (field coefficients vs curve segments)
+- **1000:1** vs bitmap at 4K resolution
+- **Infinite scalability**: 8K/16K emerge from same field equations without additional storage
+
+**Multi-Modal Cross-Resonance**:
+
+Vector Dot Maps enable **organic tri-modal emergence** (visual-text-audio) without manual wiring:
+
+```rpn
+# Audio peak → Visual dot cluster (entangled dots)
+"multimodal_audio_to_visual" =>
+    AUDIO_WAVEFORM PEAK_DETECT       # Find audio peak frequency
+    VISUAL_FIELD HARMONIC_MATCH      # Find matching visual harmonic
+    DOT_CLUSTER_EMIT                 # Emit entangled dots at resonant frequency
+
+# Text symbol ∑ → Visual dots + Audio resonance
+"multimodal_summation_symbol" =>
+    8721 CHAR_REF                    # Layer 1: ∑ reference
+    VISUAL_FIELD_COEFFICIENTS LOAD   # Load QDFT field
+    AUDIO_HARMONIC_SERIES GENERATE   # Generate audio summation tones
+    CROSS_MODAL_ENTANGLE             # Link visual dots ↔ audio peaks
+```
+
+**Relevance to Foundational Knowledge Ingestion**:
+
+When ingesting the 74 PDFs (5,988 pages), Vector Dot Maps provide **perceptually-optimized visual encoding**:
+- Math symbols (∑, ∫, ∂) stored as quantum fields → 16× compression vs current Bézier
+- Diagram figures encoded as dot density maps → 100× compression vs bitmap
+- Cross-modal links: Visual dot clusters for ∑ resonate with audio "accumulation" tones
+
+**Implementation Path** (Post-Phase 6):
+1. Replace `FractalEmitter` with `QuantumFieldEmitter` in `knowledge3d/cranium/`
+2. Add PTX kernels: `quantum_field_collapse.ptx`, `harmonic_dot_emission.ptx`
+3. Extend Layer 1 storage: `character_galaxy.py` stores field coefficients instead of Bézier
+4. Tri-modal bootstrap: Train on 5K samples (visual dots + text + audio) with cross-modal emergence validation
+
+**References**:
+- `TEMP/DANIEL_VECTORDOTMAP_PLANS_V1.md` — Complete research and architectural design
+- Future: `knowledge3d/cranium/quantum_field_emitter.py` — QDFT implementation
+
+### 5.5 Discovery Layer
 
 **New**: `discovery_layer.py` (to be created in Phase 5)
 
