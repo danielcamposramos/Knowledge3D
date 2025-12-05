@@ -54,6 +54,7 @@ Key architecture and protocol specs live under `docs/vocabulary/`:
 - `docs/vocabulary/RPN_DOMAIN_OPCODE_REGISTRY.md` — Domain-oriented RPN opcode grouping for Reality Enabler
 - `docs/vocabulary/ADAPTIVE_PROCEDURAL_COMPRESSION_SPECIFICATION.md` — PD04 procedural embedding codec (Matryoshka-compatible)
 - `docs/vocabulary/SLEEPTIME_PROTOCOL_SPECIFICATION.md` — SleepTime memory consolidation protocol (Galaxy → House)
+- `docs/vocabulary/FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md` — 4-layer always-loaded base knowledge (Form → Meaning → Rules → Meta-Rules), 74 PDFs (5,988 pages), symlink architecture, sleeptime consolidation
 - `docs/vocabulary/SOVEREIGN_NSI_SPECIFICATION.md` — Sovereign neurosymbolic integration via spatial bridge
 - `docs/vocabulary/UNIVERSAL_ACCESSIBILITY_SPECIFICATION.md` — Multi-modal accessibility (text, Braille, sign, audio, haptics)
 
