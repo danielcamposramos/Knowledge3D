@@ -74,6 +74,8 @@ class DrawingGalaxy:
         self.shapes: Dict[str, DrawingItem] = {}
         self.scenes: Dict[str, DrawingItem] = {}
         self.collections: Dict[str, DrawingItem] = {}
+        self.rel_shapes: List[str] = []
+        self.prop_shapes: List[str] = []
         self._bootstrap_defaults()
 
     # ------------------------------------------------------------------ #
@@ -98,6 +100,7 @@ class DrawingGalaxy:
             self.collections[col["id"]] = DrawingItem(col["id"], "collection", col)
         # Always register scale-invariant primitives so bootstrap uses procedural definitions
         self.add_scale_invariant_primitives()
+        self._rebuild_shape_indices()
 
     # ------------------------------------------------------------------ #
     # Discovery APIs
@@ -111,6 +114,7 @@ class DrawingGalaxy:
         if source:
             payload["discovered_from"] = source
         self.shapes[shape_id] = DrawingItem(shape_id, "shape", payload)
+        self._rebuild_shape_indices()
 
     def add_scene(self, scene_id: str, shape_refs: List[str], layout: str = "GRID", source: Optional[Dict] = None) -> None:
         payload = {"id": scene_id, "type": "scene", "shape_refs": list(shape_refs), "layout": layout}
@@ -127,6 +131,7 @@ class DrawingGalaxy:
             payload.setdefault("type", "scale_invariant")
             self.shapes[prim_id] = DrawingItem(prim_id, payload["type"], payload)
             print(f"[DRAWING GALAXY] Registered scale-invariant primitive: {prim_id}")
+        self._rebuild_shape_indices()
 
     # ------------------------------------------------------------------ #
     # Introspection
@@ -182,6 +187,7 @@ class DrawingGalaxy:
         print(f"[DrawingGalaxy] Loaded {len(self.shapes)} shapes from {path}")
         # Ensure scale-invariant primitives are always available even if checkpoint lacked them
         self.add_scale_invariant_primitives()
+        self._rebuild_shape_indices()
 
     def add_discovered_shape(self, shape: Dict) -> None:
         """Add discovered shape (recorded by shadow copy)."""
@@ -189,6 +195,12 @@ class DrawingGalaxy:
         payload = dict(shape)
         payload["id"] = shape_id
         self.shapes[shape_id] = DrawingItem(shape_id, payload.get("type", "shape"), payload)
+        self._rebuild_shape_indices()
+
+    def _rebuild_shape_indices(self) -> None:
+        """Precompute REL_/PROP_ shape ids to avoid hot-path string scans."""
+        self.rel_shapes = [sid for sid in self.shapes.keys() if "REL_" in sid]
+        self.prop_shapes = [sid for sid in self.shapes.keys() if "PROP_" in sid]
 
 
 __all__ = ["DrawingGalaxy", "DrawingItem"]
