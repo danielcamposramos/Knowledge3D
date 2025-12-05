@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import json
 import random
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, List
 
@@ -31,6 +32,7 @@ from knowledge3d.training.arc_agi import SovereignAIPipeline
 from knowledge3d.training.arc_agi.sovereign_pipeline import _fuzzy_match
 import pickle
 from knowledge3d.training.arc_agi.rpn_executor import ARCRPNExecutor
+from knowledge3d.training.arc_agi.sleeptime_consolidator import SleepTimeConsolidator
 
 
 def load_task(path: Path) -> Dict:
@@ -169,6 +171,60 @@ def save_checkpoints(pipeline: SovereignAIPipeline) -> None:
     pipeline.shadow.save(SHADOW_CHECKPOINT)
 
 
+def maybe_run_sleeptime(
+    pipeline: SovereignAIPipeline,
+    global_epoch: int,
+    last_consolidated_idx: int,
+    interval: int,
+) -> int:
+    """
+    Consolidate shadow discoveries into House at a fixed interval using SleepTime.
+
+    Returns updated last_consolidated_idx.
+    """
+    if interval <= 0:
+        return last_consolidated_idx
+    if global_epoch % interval != 0:
+        return last_consolidated_idx
+
+    new_entries = max(0, len(pipeline.shadow.library) - last_consolidated_idx)
+    if new_entries == 0:
+        return last_consolidated_idx
+
+    print(f"\n[SLEEPTIME] Epoch {global_epoch}: consolidating {new_entries} new shadow entries...")
+    try:
+        if hasattr(pipeline.shadow, "recompute_opcode_quality"):
+            pipeline.shadow.recompute_opcode_quality()
+    except Exception as exc:  # pragma: no cover - defensive log only
+        print(f"[SLEEPTIME] Warning: could not recompute opcode quality ({exc})")
+
+    consolidator = SleepTimeConsolidator(
+        shadow_copy=pipeline.shadow,
+        drawing_galaxy=pipeline.drawing,
+        grammar_galaxy=pipeline.grammar,
+        min_quality=0.6,
+    )
+    stats = consolidator.consolidate()
+
+    audit = {
+        "epoch": global_epoch,
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "new_entries": new_entries,
+        "library_size": len(pipeline.shadow.library),
+        "drawing_shapes": len(pipeline.drawing.shapes),
+        "grammar_rules": len(pipeline.grammar.rules),
+        "stats": stats,
+    }
+    log_dir = Path("/K3D/Knowledge3D.local/logs")
+    log_dir.mkdir(parents=True, exist_ok=True)
+    audit_path = log_dir / f"sleeptime_audit_{global_epoch}.json"
+    with audit_path.open("w", encoding="utf-8") as f:
+        json.dump(audit, f, indent=2)
+    print(f"[SLEEPTIME] Audit written to {audit_path}")
+
+    return len(pipeline.shadow.library)
+
+
 def run_epoch(
     pipeline: SovereignAIPipeline,
     task_files: List[Path],
@@ -228,6 +284,17 @@ def main() -> None:
         help="Matryoshka dimension (64-16384, higher = more capacity).",
     )
     ap.add_argument("--top-k", type=int, default=12, help="Top-K routing candidates.")
+    ap.add_argument(
+        "--hybrid-mode",
+        action="store_true",
+        help="Enable hybrid parallel+sequential generation (TRM-style depth)",
+    )
+    ap.add_argument(
+        "--sleeptime-interval",
+        type=int,
+        default=0,
+        help="Consolidate shadow discoveries to House every N epochs (0=disabled).",
+    )
     args = ap.parse_args()
 
     if args.max_tasks <= 0:
@@ -249,6 +316,7 @@ def main() -> None:
         matryoshka_dim=args.matryoshka_dim,
         staged_shadow=True,
         embedding_galaxy=embedding_galaxy,
+        hybrid_mode=args.hybrid_mode,
     )
     executor = ARCRPNExecutor()
 
@@ -272,6 +340,7 @@ def main() -> None:
         curriculum = generate_tesla_curriculum(base_task_files, pipeline, total_epochs=args.epochs)
 
     best_epoch_accuracy = 0.0
+    last_consolidated_idx = len(pipeline.shadow.library)
     for cycle in range(args.cycles):
         task_files = base_task_files or collect_tasks(args.arc_dirs, args.max_tasks)
         # Sort tasks by grid area (easy first, hard last)
@@ -302,6 +371,14 @@ def main() -> None:
             print(f"  [FEEDBACK] Updating router from shadow copy discoveries...")
             update_stats = pipeline.router.update_from_discoveries(pipeline.shadow, top_n=100)
             print(f"    Processed: {update_stats['processed']}, High-quality: {update_stats['high_quality']}, Pattern types: {update_stats['pattern_types']}")
+
+            # Periodic SleepTime consolidation (symlinked references + audit)
+            last_consolidated_idx = maybe_run_sleeptime(
+                pipeline=pipeline,
+                global_epoch=global_epoch,
+                last_consolidated_idx=last_consolidated_idx,
+                interval=args.sleeptime_interval,
+            )
 
             # Save after every epoch to accumulate discoveries incrementally
             print(f"  [SAVE] Saving checkpoints after epoch {epoch+1}...")

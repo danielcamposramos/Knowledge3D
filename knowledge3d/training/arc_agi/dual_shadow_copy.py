@@ -13,6 +13,7 @@ from knowledge3d.training.arc_agi.grammar_galaxy import GrammarGalaxy, GrammarRu
 from knowledge3d.training.arc_agi.content_deduplicator import ContentDeduplicator
 from knowledge3d.training.arc_agi.quality_scorer import QualityScorer
 from knowledge3d.training.arc_agi.semantic_context import SemanticContext
+from knowledge3d.training.arc_agi.pattern_quality import compute_pattern_quality_opcode_aware, _infer_tier_from_tokens
 
 
 class DualShadowCopy:
@@ -79,6 +80,9 @@ class DualShadowCopy:
             "complexity": complexity,
             "semantic_context": context or {},
         }
+        # Cache opcode-aware metrics up front (outside hot path)
+        entry["quality_score_opcode"] = compute_pattern_quality_opcode_aware(entry, [])
+        entry["tier"] = _infer_tier_from_tokens(program.split())
 
         if self.staged:
             self.library.append(entry)
@@ -86,6 +90,8 @@ class DualShadowCopy:
         else:
             self.library.append(entry)
             self._commit_entry(entry)
+        # Maintain descending order by cached quality (keeps refiner hot path simple)
+        self.library.sort(key=lambda e: e.get("quality_score_opcode", e.get("quality_score", 0.0)), reverse=True)
 
     def _commit_entry(self, entry: Dict) -> None:
         program_type = entry["program_type"]
@@ -171,6 +177,8 @@ class DualShadowCopy:
 
     def prune_low_quality(self) -> Dict[str, int]:
         """Remove low-quality duplicates and clean library/pending lists."""
+        # Refresh opcode-aware quality scores before pruning
+        self.recompute_opcode_quality()
         removed_programs = self.deduplicator.prune_low_quality(min_usage=2, min_score=0.45)
         valid = set(self.deduplicator.canonical_programs.keys())
         before_lib = len(self.library)
@@ -183,6 +191,12 @@ class DualShadowCopy:
             "removed_from_pending": before_pending - len(self._pending),
             "unique_remaining": len(valid),
         }
+
+    def recompute_opcode_quality(self) -> None:
+        """Compute opcode-aware quality scores for all patterns."""
+        for entry in self.library:
+            history = entry.get("execution_history", [])
+            entry["quality_score_opcode"] = compute_pattern_quality_opcode_aware(entry, history)
 
     # ------------------------------------------------------------------ #
     # Persistence
@@ -215,6 +229,13 @@ class DualShadowCopy:
         self.deduplicator.load(dedupe_path)
         semantic_path = path.parent / "semantic_context.json"
         self.semantic_context.load(semantic_path)
+        # Re-cache opcode-aware quality/tier once at load (outside hot path)
+        for entry in self.library:
+            prog = entry.get("program", "") or ""
+            entry["quality_score_opcode"] = compute_pattern_quality_opcode_aware(entry, entry.get("execution_history", []))
+            entry["tier"] = _infer_tier_from_tokens(prog.split())
+        # Keep library sorted by cached quality
+        self.library.sort(key=lambda e: e.get("quality_score_opcode", e.get("quality_score", 0.0)), reverse=True)
 
     def summary(self) -> Dict[str, int]:
         return {

@@ -445,6 +445,28 @@ class GrammarGalaxy:
             self.rules = loaded_rules
             print(f"[GrammarGalaxy] Loaded {len(self.rules)} rules from {path}")
 
+    # ------------------------------------------------------------------ #
+    # Introspection helpers
+    # ------------------------------------------------------------------ #
+    def get_high_confidence_rules(self, min_score: float = 0.70) -> List[Dict]:
+        """
+        Return grammar rules with an implicit confidence (canonical rules assumed high).
+
+        Discovered rules may carry a quality_score attribute. Canonical rules default to 1.0.
+        """
+        selected: List[Dict] = []
+        for rule in self.rules.values():
+            score = getattr(rule, "quality_score", 1.0)
+            if score >= min_score:
+                selected.append(
+                    {
+                        "id": rule.rule_id,
+                        "rpn_program": rule.rpn_program,
+                        "quality_score": score,
+                    }
+                )
+        return selected
+
 
 __all__ = [
     "GrammarRule",

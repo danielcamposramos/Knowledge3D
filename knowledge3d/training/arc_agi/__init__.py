@@ -15,6 +15,7 @@ __all__ = [
     "DualShadowCopy",
     "SovereignAIPipeline",
     "TaskResult",
+    "HybridCandidateGenerator",
 ]
 
 _LAZY_IMPORTS: dict[str, Tuple[str, str]] = {
@@ -29,6 +30,7 @@ _LAZY_IMPORTS: dict[str, Tuple[str, str]] = {
     "DualShadowCopy": ("knowledge3d.training.arc_agi.dual_shadow_copy", "DualShadowCopy"),
     "SovereignAIPipeline": ("knowledge3d.training.arc_agi.sovereign_pipeline", "SovereignAIPipeline"),
     "TaskResult": ("knowledge3d.training.arc_agi.sovereign_pipeline", "TaskResult"),
+    "HybridCandidateGenerator": ("knowledge3d.training.arc_agi.hybrid_generator", "HybridCandidateGenerator"),
 }
 
 
