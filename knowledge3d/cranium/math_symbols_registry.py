@@ -203,6 +203,9 @@ NARY_OPS: List[str] = [
     '∫', '∬', '∭', '∮', '∯', '∰', '∱', '∲', '∳',  # Integrals
 ]
 
+# Aggregated operator set (core + extended, excluding arrows/relations)
+OPERATORS: List[str] = BASIC_OPS + ADDITIONAL_OPS + NARY_OPS
+
 # ============================================================================
 # Supplemental Mathematical Operators (U+2A00-U+2AFF) - Extended operators
 # ============================================================================
