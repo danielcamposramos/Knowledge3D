@@ -20,6 +20,7 @@ from typing import Dict, List, Sequence, Optional, Tuple
 from knowledge3d.training.arc_agi.drawing_galaxy import DrawingGalaxy
 from knowledge3d.training.arc_agi.grammar_galaxy import GrammarGalaxy
 from knowledge3d.training.arc_agi.sovereign_trm_router import SovereignTRMRouter, rule_score_hint
+from knowledge3d.training.arc_agi.hybrid_generator import HybridCandidateGenerator
 from knowledge3d.training.arc_agi.program_composer import ProgramComposer
 from knowledge3d.training.arc_agi.dual_shadow_copy import DualShadowCopy
 from knowledge3d.training.arc_agi.embedders import MultiModalGridEmbedder
@@ -166,6 +167,17 @@ def _fuzzy_match(
     return matches / total if total > 0 else 0.0
 
 
+def _task_complexity(grid: Sequence[Sequence[int]]) -> float:
+    """Heuristic complexity based on grid area (normalized)."""
+    if not grid or not grid[0]:
+        return 0.0
+    h = len(grid)
+    w = len(grid[0])
+    area = h * w
+    # Normalize roughly: 0 at 0 area, ~1 at 30x30 (~900)
+    return min(1.0, area / 900.0)
+
+
 def _procedural_resize(
     grid: Sequence[Sequence[int]],
     target_h: int,
@@ -232,7 +244,15 @@ def _procedural_resize(
 class SovereignAIPipeline:
     """End-to-end sovereign pipeline (no external ML, GPU-only matryoshka)."""
 
-    def __init__(self, matryoshka_dim: int = 512, *, staged_shadow: bool = False, embedding_galaxy=None, cosine_bridge=None) -> None:
+    def __init__(
+        self,
+        matryoshka_dim: int = 512,
+        *,
+        staged_shadow: bool = False,
+        embedding_galaxy=None,
+        cosine_bridge=None,
+        hybrid_mode: bool = False,
+    ) -> None:
         self.drawing = DrawingGalaxy()
         self.grammar = GrammarGalaxy()
         self.shadow = DualShadowCopy(self.drawing, self.grammar, staged=staged_shadow)
@@ -242,6 +262,7 @@ class SovereignAIPipeline:
         self.codec_embedder = MultiModalGridEmbedder(matryoshka_dim=matryoshka_dim)
         self.embedding_galaxy = embedding_galaxy
         self.cosine_bridge = cosine_bridge or CosineSimilarityBridge()
+        self.hybrid_mode = hybrid_mode
         self.results: List[TaskResult] = []
         self._grammar_token_index: Dict[str, set[str]] = {}
         self._grammar_token_version = 0
@@ -303,13 +324,34 @@ class SovereignAIPipeline:
                 embedding_galaxy=self.embedding_galaxy,
                 cosine_bridge=self.cosine_bridge,
             )
-            procedural_candidates = par_gen.generate_parallel(
-                input_grid=test_input,
-                train_examples=train_examples,
-                semantic_hints=semantic_hints,
-                expected_output=expected_output,
-            )
-            print(f"  [CANDIDATES] Parallel generated {len(procedural_candidates)} candidates (Tesla 3-6-9)")
+            if getattr(self, "hybrid_mode", False):
+                hybrid_gen = HybridCandidateGenerator(
+                    parallel_gen=par_gen,
+                    shadow_copy=self.shadow,
+                    drawing_galaxy=self.drawing,
+                    grammar_galaxy=self.grammar,
+                    core_pool=par_gen.core_pool,
+                    quick_solve_threshold=0.95,
+                    embedding_galaxy=self.embedding_galaxy,
+                    cosine_bridge=self.cosine_bridge,
+                )
+                procedural_candidates = hybrid_gen.generate_hybrid(
+                    input_grid=test_input,
+                    train_examples=train_examples,
+                    semantic_hints=semantic_hints,
+                    expected_output=expected_output,
+                    task_history=[],
+                    task_complexity=_task_complexity(test_input),
+                )
+                print(f"  [CANDIDATES] Hybrid generated {len(procedural_candidates)} candidates (parallel + deep)")
+            else:
+                procedural_candidates = par_gen.generate_parallel(
+                    input_grid=test_input,
+                    train_examples=train_examples,
+                    semantic_hints=semantic_hints,
+                    expected_output=expected_output,
+                )
+                print(f"  [CANDIDATES] Parallel generated {len(procedural_candidates)} candidates (Tesla 3-6-9)")
 
         # 2) TRM router candidates.
         trm_candidates = self.router.route(test_input, top_k=top_k)

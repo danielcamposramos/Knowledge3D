@@ -171,7 +171,7 @@ class RealityGalaxy:
                 i += 1
                 continue
             if lower_tok in {"ternary_cmp", "tcmp"}:
-                compiled.append("tcomp")
+                compiled.append("tcmp")
                 i += 1
                 continue
 
@@ -190,6 +190,20 @@ class RealityGalaxy:
             # SIGN macro: sign(x) -> dup 0 gt swap 0 lt -
             if lower_tok == "sign":
                 compiled.extend(["dup", "0", "gt", "swap", "0", "lt", "-"])
+                i += 1
+                continue
+
+            # TQUANT macro: ternary quantization -> {-1, 0, +1}
+            # dup 0.33 gt swap dup -0.33 lt -
+            if lower_tok == "tquant":
+                compiled.extend(["dup", "0.33", "gt", "swap", "dup", "-0.33", "lt", "-"])
+                i += 1
+                continue
+
+            # TCMP macro: ternary comparison with deadband 0.05 -> {-1, 0, +1}
+            # swap - dup 0.05 gt swap -0.05 lt -
+            if lower_tok == "tcmp":
+                compiled.extend(["swap", "-", "dup", "0.05", "gt", "swap", "-0.05", "lt", "-"])
                 i += 1
                 continue
 
