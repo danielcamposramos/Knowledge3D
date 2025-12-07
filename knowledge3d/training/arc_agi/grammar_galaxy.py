@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 import json
 
+from knowledge3d.cranium.math_galaxy import get_math_galaxy
 
 
 @dataclass
@@ -16,11 +17,19 @@ class GrammarRule:
     pattern: str
     rpn_program: str
     domain: str = "text"
+    # Symlink references (canonical knowledge, no duplication)
+    symbol_refs: List[int] = field(default_factory=list)  # Math Galaxy codepoints
+    word_refs: List[str] = field(default_factory=list)    # Word/lexicon IDs
     examples: List[Dict[str, str]] = field(default_factory=list)
     description: str | None = None
     semantics: Dict | None = field(default_factory=dict)
     usage_conditions: List[str] = field(default_factory=list)
     is_canonical: bool = False
+
+    def validate_symbol_refs(self) -> bool:
+        """Ensure symbol_refs all exist in Math Galaxy."""
+        math_galaxy = get_math_galaxy()
+        return all(math_galaxy.get(cp) is not None for cp in self.symbol_refs)
 
 
 def default_grammar_rules() -> List[GrammarRule]:

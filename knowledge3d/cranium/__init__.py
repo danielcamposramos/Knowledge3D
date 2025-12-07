@@ -26,6 +26,9 @@ from __future__ import annotations
 
 from typing import Any, Dict, Tuple
 
+# Always-loaded foundational knowledge
+from knowledge3d.cranium.math_galaxy import get_math_galaxy
+
 
 _LAZY_ATTRS: Dict[str, Tuple[str, str]] = {
     # Adaptive Swarm
@@ -78,6 +81,8 @@ def __dir__() -> list[str]:
     """Expose lazy symbols via dir()."""
     return sorted(list(globals().keys()) + list(_LAZY_ATTRS.keys()))
 
+MATH_GALAXY = get_math_galaxy()
+
 __all__ = [
     # Adaptive Swarm
     'AdaptiveSwarmTRM',
@@ -116,4 +121,6 @@ __all__ = [
     'ProceduralFidelityResult',
     'AdaptiveDimensionCompressor',
     'PhaseHProceduralIntegration',
+    # Foundational knowledge
+    'get_math_galaxy',
 ]
