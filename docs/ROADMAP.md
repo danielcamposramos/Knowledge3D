@@ -12,9 +12,12 @@ Each phase builds on the previous one. Status labels reflect our current progres
 
 Figure: The Cognitive House illustrates the House (persistent memory), Cranium (active processing), and Logic Layer (models) that guide the roadmap. See the generation prompt in `docs/images/cognitive_house_prompt.md`.
 
-> Status note (2025-11-25): **Parallel workstreams active**:
-> - **ARC-AGI (Phase 3):** Sovereign visual reasoning using Drawing + Grammar + Character Galaxy composition. Current: Training library growth (1662 rules, 1556 shapes). Next: Deduplication + quality filtering. Goal: 5-10% accuracy via semantic TRM routing. See [TEMP/CODEX_IMPLEMENT_QUALITY_SEMANTIC_CORRECT_11.25.2025.txt](../TEMP/CODEX_IMPLEMENT_QUALITY_SEMANTIC_CORRECT_11.25.2025.txt)
-> - **Reality Galaxy (Phases 4-5):** Phase 5 capacity demonstration (CPU path) complete. Stress + scaling benchmarks executed (artifacts in `output/benchmarks/`), 26 GLBs exported (`output/gltf/`), analysis in [TEMP/ARCHITECTURE_CAPACITY_ANALYSIS_11.24.2025.md](../TEMP/ARCHITECTURE_CAPACITY_ANALYSIS_11.24.2025.md). Next: Phase 6 UI integration and GPU-kernel validation once cupy available.
+> Status note (2025-12-07): **Parallel workstreams active**:
+>
+> - **ARC-AGI (Phase 3):** Hybrid TRM training with Math Galaxy integration. Current: Run achieving 42-51% on 108 tasks. Math Galaxy live (176 symbols procedural RPN). See [TEMP/CLAUDE_HYBRID_TRM_ARCHITECTURE_SPEC.md](../TEMP/CLAUDE_HYBRID_TRM_ARCHITECTURE_SPEC.md)
+> - **Drawing Galaxy (Phase C.1):** 8-layer procedural visual architecture. VectorDotMap codec (~2KB/image). Implementation in [TEMP/CODEX_DRAWING_GALAXY_IMPLEMENTATION_12.07.2025.md](../TEMP/CODEX_DRAWING_GALAXY_IMPLEMENTATION_12.07.2025.md)
+> - **Unified Signal (Phase C.2):** Frequency-time unification for audio/SDR/video. Spectrogram as VectorDotMap. See [docs/vocabulary/UNIFIED_SIGNAL_SPECIFICATION.md](vocabulary/UNIFIED_SIGNAL_SPECIFICATION.md)
+> - **Accessibility (Phase C.3):** Braille Galaxy + Sign Language Galaxy (ASL, Libras, BSL). See [docs/vocabulary/UNIVERSAL_ACCESSIBILITY_SPECIFICATION.md](vocabulary/UNIVERSAL_ACCESSIBILITY_SPECIFICATION.md)
 > - **Architectural clarification:** Dual Client Reality + Procedural Foundation documented in [BRIEFING.md](../BRIEFING.md) and [docs/vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md](vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md)
 
 ---
@@ -47,7 +50,60 @@ Figure: The Cognitive House illustrates the House (persistent memory), Cranium (
 
 **Exit criteria:** the avatar can solve tasks using PTX reasoning plus tablet tools; consolidated knowledge is always reachable through the tablet before querying external sources.
 
-## Phase C — Self-Supervised Consolidation & Autonomy _(Status: Planned)_
+## Phase C — Procedural Galaxies & Multi-Modal Foundation _(Status: Active)_
+
+**Objective:** materialize the full procedural galaxy ecosystem (Drawing, Audio, Accessibility) with unified signal architecture, then ingest foundational knowledge.
+
+### Phase C.1 — Drawing Galaxy _(Status: Active)_
+
+| Deliverable | Purpose | Status |
+|-------------|---------|--------|
+| 8-layer Drawing Galaxy | Quantum Fields → Primitives → Strokes → Shapes → Gradients → Filters → Lighting → Scenes | 🔄 In Progress |
+| VectorDotMap encoder | Procedural image codec (~2KB/image, infinite LOD) | ⏳ Planned |
+| Gradient/Filter kernels | GPU-native gradient rasterization and convolution filters | ⏳ Planned |
+| Math Core integration | Route operations through 3-tier RPN engine (18 cores) | ⏳ Planned |
+
+See: [TEMP/CODEX_DRAWING_GALAXY_IMPLEMENTATION_12.07.2025.md](../TEMP/CODEX_DRAWING_GALAXY_IMPLEMENTATION_12.07.2025.md), [PROCEDURAL_VISUAL_SPECIFICATION.md](vocabulary/PROCEDURAL_VISUAL_SPECIFICATION.md)
+
+### Phase C.2 — Unified Signal Architecture _(Status: Planned)_
+
+| Deliverable | Purpose |
+|-------------|---------|
+| Frequency-time bridge | Treat audio, SDR, video as frequency components over time |
+| Spectrogram as VectorDotMap | Audio visualization using same procedural codec as images |
+| Binaural spatial audio | HRTF-based 3D sound positioning in Galaxy/House |
+| Cross-modal discovery | Find connections between sounds and images via shared representation |
+
+See: [UNIFIED_SIGNAL_SPECIFICATION.md](vocabulary/UNIFIED_SIGNAL_SPECIFICATION.md)
+
+### Phase C.3 — Accessibility Galaxies _(Status: Planned)_
+
+| Deliverable | Purpose |
+|-------------|---------|
+| Braille Galaxy | Procedural dot patterns (6/8-dot, Grade 1/2, multi-language) |
+| Sign Language Galaxy | Gesture sequences as RPN (ASL, Libras, BSL, JSL) |
+| Spatial audio descriptions | HRTF-positioned audio for visual content |
+| Haptic integration | Braille display and vibration pattern output |
+
+See: [UNIVERSAL_ACCESSIBILITY_SPECIFICATION.md](vocabulary/UNIVERSAL_ACCESSIBILITY_SPECIFICATION.md)
+
+### Phase C.4 — Foundational Knowledge Ingestion _(Status: Planned)_
+
+| Deliverable | Purpose |
+|-------------|---------|
+| Layer 1: Form | 176 math symbols + drawing primitives as procedural RPN |
+| Layer 2: Meaning | 15K words with semantic links (reference pattern, no duplication) |
+| Layer 3: Rules | 1K grammar rules as transformation RPN |
+| Layer 4: Meta-Rules | 500 meta-rules for pedagogy, eloquence, self-reflection |
+| 74 PDF ingestion | 5,988 pages → procedural storage (666× compression via symlinks) |
+
+See: [FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md](vocabulary/FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md)
+
+**Exit criteria:** All galaxies operational with GPU-only execution; foundational knowledge ingested and queryable via TRM.
+
+---
+
+## Phase D — Self-Supervised Consolidation & Autonomy _(Status: Planned)_
 
 **Objective:** let the model curate its own drills, retire solved prompts, and expand the dream/critique loop without human intervention.
 
@@ -57,12 +113,10 @@ Figure: The Cognitive House illustrates the House (persistent memory), Cranium (
 | Honesty & confidence gating | Tablet and fused head report provenance + confidence for every response. |
 | Museum analytics | Mine deprecated artifacts for error signatures and retro-train corrections. |
 | Continuous tool adaptation | Benchmark external tool usage; prioritise open-source replacements where feasible. |
-| Time & math enrichment | Expand curated datasets (machine/human time, basic & financial math) via exaone models, feeding them through the house-tablet pipeline. |
-| Foundational knowledge ingestion | Ingest 74 PDFs (5,988 pages) as always-loaded base knowledge: 4-layer architecture (Form → Meaning → Rules → Meta-Rules), 152 math symbols, 15K words, 1K grammar rules, 500 meta-rules. Symlink pattern achieves 666× compression. Integrates with TRM ternary logic (intelligent sparsity, 16× mask compression) and Vector Dot Maps (quantum field procedural glyphs, multi-modal cross-resonance). Supports pedagogy, eloquence, self-reflection, storytelling. See [FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md](vocabulary/FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md) and [KNOWLEDGE_INGESTION_PLAN_V5_CODEX_READY.md](../TEMP/KNOWLEDGE_INGESTION_PLAN_V5_CODEX_READY.md). |
 
 **Exit criteria:** daily cycles run end-to-end without manual intervention; the model promotes/demotes knowledge and tools based on performance.
 
-## Phase D — Collaborative Habitat & External Interfaces _(Status: Planned)_
+## Phase E — Collaborative Habitat & External Interfaces _(Status: Planned)_
 
 **Objective:** extend the AGI MVP into a shared environment where multiple humans and agents collaborate.
 
