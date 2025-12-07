@@ -2,6 +2,14 @@
 Sovereign ternary audio codec using GPU-only MDCT/IMDCT + ternary quantisation.
 
 No numpy, no CPU fallbacks. Uses TernaryVector and GPU-only ops.
+
+Architecture References:
+- docs/vocabulary/UNIFIED_SIGNAL_SPECIFICATION.md — Audio as frequency-time signal
+- docs/vocabulary/PROCEDURAL_VISUAL_SPECIFICATION.md — Spectrogram as VectorDotMap
+
+Audio = Frequency components over time (STFT/MDCT).
+Spectrograms share VectorDotMap codec with images for unified representation.
+Bidirectional: Audio ↔ Image via spectrogram/sonification.
 """
 
 from __future__ import annotations
