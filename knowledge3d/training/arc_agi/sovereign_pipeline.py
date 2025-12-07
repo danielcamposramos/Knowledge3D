@@ -25,6 +25,7 @@ from knowledge3d.training.arc_agi.program_composer import ProgramComposer
 from knowledge3d.training.arc_agi.dual_shadow_copy import DualShadowCopy
 from knowledge3d.training.arc_agi.embedders import MultiModalGridEmbedder
 from knowledge3d.cranium.bridges.cosine_similarity_bridge import CosineSimilarityBridge
+from knowledge3d.cranium.math_galaxy import get_math_galaxy
 
 
 def compute_ternary_reward(score: float) -> int:
@@ -255,6 +256,7 @@ class SovereignAIPipeline:
     ) -> None:
         self.drawing = DrawingGalaxy()
         self.grammar = GrammarGalaxy()
+        self.math_galaxy = get_math_galaxy()
         self.shadow = DualShadowCopy(self.drawing, self.grammar, staged=staged_shadow)
         self.router = SovereignTRMRouter(self.drawing, self.grammar, shadow_copy=self.shadow, matryoshka_dim=matryoshka_dim)
         self.composer = ProgramComposer()
@@ -268,6 +270,8 @@ class SovereignAIPipeline:
         self._grammar_token_version = 0
         self._shape_token_index: Dict[str, set[str]] = {}
         self._shape_token_version = 0
+
+        print(f"  [MATH] Loaded {len(self.math_galaxy.symbols)} canonical math symbols")
 
     def process_task(
         self,
