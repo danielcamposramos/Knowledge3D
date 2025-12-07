@@ -56,7 +56,9 @@ Key architecture and protocol specs live under `docs/vocabulary/`:
 - `docs/vocabulary/SLEEPTIME_PROTOCOL_SPECIFICATION.md` — SleepTime memory consolidation protocol (Galaxy → House)
 - `docs/vocabulary/FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md` — 4-layer always-loaded base knowledge (Form → Meaning → Rules → Meta-Rules), 74 PDFs (5,988 pages), symlink architecture (666× compression), TRM ternary integration, Vector Dot Maps multi-modal design, sleeptime consolidation
 - `docs/vocabulary/SOVEREIGN_NSI_SPECIFICATION.md` — Sovereign neurosymbolic integration via spatial bridge
-- `docs/vocabulary/UNIVERSAL_ACCESSIBILITY_SPECIFICATION.md` — Multi-modal accessibility (text, Braille, sign, audio, haptics)
+- `docs/vocabulary/UNIVERSAL_ACCESSIBILITY_SPECIFICATION.md` — Multi-modal accessibility (text, Braille Galaxy, Sign Language Galaxy, audio, haptics)
+- `docs/vocabulary/PROCEDURAL_VISUAL_SPECIFICATION.md` — 8-layer Drawing Galaxy + VectorDotMap procedural image codec (~2KB/image, infinite LOD)
+- `docs/vocabulary/UNIFIED_SIGNAL_SPECIFICATION.md` — Frequency-time architecture (audio, SDR, video as same math; spectrogram as VectorDotMap; binaural HRTF)
 
 ---
 
@@ -381,9 +383,11 @@ Grid → Video Codec (DCT8X8) → Audio Codec (Harmonic) → Ternary Quantizatio
 - **Fuzzy Threshold Tuning**: 0.70 for tiny grids (≤3×3)
 - **Tesla Task Selection**: 36 easy + 36 medium + 36 hard (perfect thirds)
 
-**Expected Results**:
-- Run 029: 55-60% accuracy (10-15% gain from size fixes)
-- Full training: 400 tasks × 81 epochs (3⁴) for 60-70%+ accuracy
+**Current Status** (December 2025):
+- **Math Galaxy Live**: 176 canonical symbols stored as procedural RPN (not weights!)
+- **Hybrid TRM Training**: 108 tasks × 162 epochs with deep refinement gating
+- **Sustained 42-51% accuracy** on harder task set with Math Galaxy integration
+- **Next**: Drawing Galaxy (8-layer VectorDotMap) + Foundational Knowledge Ingestion
 
 **Target**: **#1 position on ARC-AGI leaderboard with sovereign procedural AI**
 
