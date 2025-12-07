@@ -4,6 +4,14 @@ Sovereign ternary video codec (construction phase).
 No numpy, no CPU fallbacks. Uses TernaryVector/TernaryGalaxy and GPU-only ops.
 Pending PTX kernels for DCT/IDCT and block operations; encode/decode currently
 raise NotImplementedError to avoid silent CPU paths.
+
+Architecture References:
+- docs/vocabulary/UNIFIED_SIGNAL_SPECIFICATION.md — Video as temporal signal
+- docs/vocabulary/PROCEDURAL_VISUAL_SPECIFICATION.md — VectorDotMap integration
+
+Video = Procedural images over time with synchronized audio.
+Each frame encodes as VectorDotMap field coefficients (~2KB).
+Temporal spectrum analysis for motion-based compression.
 """
 
 from __future__ import annotations
