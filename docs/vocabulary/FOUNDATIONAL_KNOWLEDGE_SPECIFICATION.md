@@ -49,7 +49,7 @@ Layer 1: FORM (Characters/Glyphs)
 **Implementation**: `knowledge3d/cranium/character_galaxy.py` + Math Symbol Galaxy
 
 **Content**:
-- **152 Math Symbols** (trained via `scripts/train_math_symbols_batch.py`):
+- **152 Math Symbols** (stored as procedural RPN in Math Galaxy via `scripts/extract_math_symbol_glyphs.py`):
   - High priority (17): ∑ ∫ ∂ ∇ ∆ ∏ √ ∞ ± α β γ δ ε θ λ μ π σ ω
   - Medium priority (14): ∈ ∉ ⊂ ⊃ ⊆ ⊇ ∪ ∩ ∅ ∀ ∃ ∧ ∨ ¬ ⇒ ⇔
   - Low priority: arrows, relations, operators, geometry
@@ -59,24 +59,25 @@ Layer 1: FORM (Characters/Glyphs)
 
 **Storage Format**: Procedural Bézier curves → segments (ProceduralCompiler)
 
-**RPN Representation**:
+**RPN Representation** (using actual RPN engine opcodes):
 ```rpn
-# Character '∑' (U+2211)
+# Character '∑' (U+2211) - Summation Symbol
+# Uses actual RPN opcodes: MOVE (0x64), LINE (0x65), CLOSE (0x69), STROKE (0x6A)
 "char_2211" =>
-    64 64 CANVAS_CREATE        # 64x64 canvas
-    32 8 MOVE_TO               # Starting point
-    32 56 LINE_TO              # Top serif
-    8 32 LINE_TO               # Left descender
-    32 8 LINE_TO               # Bottom serif
-    56 32 LINE_TO              # Right side
-    32 56 LINE_TO              # Complete
-    STROKE_PATH
+    32 8 MOVE              # Starting point (top-right)
+    8 32 LINE              # Left diagonal to middle
+    32 56 LINE             # Left diagonal to bottom-left
+    56 56 LINE             # Bottom horizontal
+    32 32 MOVE             # Middle serif start
+    8 32 LINE              # Top horizontal
+    32 8 LINE              # Back to start
+    STROKE                 # Render the path
 ```
 
 **References**:
 - `knowledge3d/cranium/math_symbols_registry.py` (~152 symbols)
-- `knowledge3d/cranium/math_galaxy.py` (storage/retrieval)
-- `scripts/train_atomic_character.py` (training infrastructure)
+- `knowledge3d/cranium/math_galaxy.py` (canonical storage/retrieval)
+- `scripts/extract_math_symbol_glyphs.py` (Bézier extraction → RPN conversion)
 
 ### 1.3 Layer 2: MEANING (Word Galaxy)
 
@@ -267,7 +268,7 @@ rule2 = {"pattern": "∫ g(x)", "symbol_refs": [8747]}  # 4 bytes
 ```
 
 **Practical Impact**:
-- 152 symbols trained once → referenced 1,000+ times across grammar rules
+- 152 symbols stored once → referenced 1,000+ times across grammar rules
 - Each reference: 4 bytes (symbol ID) vs 5 KB (visual data)
 - Real-world compression: **666x for repeated symbols**, **69-80:1 for procedural representation** via ProceduralGalaxy
 
@@ -714,11 +715,11 @@ When multiple domains reference the same Layer 1 symbol (e.g., ∑), the system 
 
 ### 4.1 Six-Week Roadmap
 
-**Phase 1: Train Layer 1 Symbols (Week 1)**
-- Run `scripts/train_math_symbols_batch.py --priority=all`
-- Train 152 math symbols + 12 Portuguese diacritics
+**Phase 1: Extract/Store Layer 1 Symbols (Week 1)**
+- Run `scripts/extract_math_symbol_glyphs.py --priority=all`
+- Extract 152 math symbols + 12 Portuguese diacritics from fonts (Bézier → RPN)
 - Store in Math Galaxy (`/K3D/Knowledge3D.local/procedural_galaxy/math/symbols/`)
-- Validation: All 164 symbols achieve >90% recognition accuracy
+- Validation: All 164 symbols stored as valid RPN programs and render correctly
 
 **Phase 2: Extend Grammar Galaxy with Symlinks (Week 2)**
 - Enhance `grammar_galaxy.py` with `symbol_refs`, `word_refs` fields
@@ -758,8 +759,8 @@ When multiple domains reference the same Layer 1 symbol (e.g., ∑), the system 
 ### 4.2 Success Criteria
 
 **Layer 1 (Form)**:
-- ✓ 164 symbols trained (152 math + 12 Portuguese) with >90% accuracy
-- ✓ All symbols stored in Math Galaxy with 69-80:1 compression
+- ✓ 164 symbols extracted and stored (152 math + 12 Portuguese) as procedural RPN
+- ✓ All symbols stored in Math Galaxy with 69-80:1 compression via ProceduralGalaxy
 
 **Layer 2 (Meaning)**:
 - ✓ 15,000+ words extracted from PDFs
@@ -927,14 +928,14 @@ Ternary masks guide consolidation — during sleep, Layer 4 self-reflection meta
 **Existing**: `knowledge3d/cranium/math_symbols_registry.py` (~152 symbols registered)
 
 **Integration**:
-- Layer 1 symbols trained via `train_math_symbols_batch.py`
-- Stored in Math Galaxy (`math_galaxy.py`) using ProceduralGalaxy infrastructure
-- Layer 3 grammar rules reference symbols via `symbol_refs: List[int]`
+- Layer 1 symbols extracted from fonts via `extract_math_symbol_glyphs.py` (Bézier → RPN)
+- Stored in Math Galaxy (`math_galaxy.py`) as canonical procedural knowledge
+- Layer 3 grammar rules reference symbols via `symbol_refs: List[int]` (symlink pattern)
 
 **Example**:
 ```python
-# Layer 1: Symbol trained and stored
-math_galaxy.store_symbol('∑', embedding)
+# Layer 1: Symbol extracted and stored as canonical procedural RPN
+math_galaxy.store_symbol('∑', rpn_program)  # No embedding - pure geometry
 
 # Layer 3: Grammar rule references symbol
 GrammarRule(
@@ -1242,8 +1243,7 @@ user_galaxy.add_rule(GrammarRule(
 - `knowledge3d/cranium/math_galaxy.py` — Math Symbol Galaxy storage/retrieval
 - `knowledge3d/training/arc_agi/grammar_galaxy.py` — Grammar rules (needs enhancement)
 - `knowledge3d/cranium/sleeptime_consolidator.py` — Experience replay infrastructure
-- `scripts/train_math_symbols_batch.py` — Batch training script for Layer 1 symbols
-- `scripts/train_atomic_character.py` — Character training infrastructure
+- `scripts/extract_math_symbol_glyphs.py` — Bézier extraction → RPN conversion for Layer 1 symbols
 
 ### 8.2 Architecture Documents
 
