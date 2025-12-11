@@ -4,9 +4,28 @@ from __future__ import annotations
 
 from typing import List, Sequence
 
+import cupy as cp
+
 from knowledge3d.cranium.bridges.drawing_bridge import DrawingBridge
 from knowledge3d.cranium.ptx_runtime.math_core_pool import MathCorePool, get_global_math_core_pool
 from knowledge3d.cranium.sovereign import loader
+
+try:
+    from knowledge3d.cranium.ptx_runtime.drawing_transform_kernels import (
+        flip_h,
+        flip_v,
+        overlay,
+        recolor,
+        rot90_ccw,
+        rot90_cw,
+        scale_2x,
+        tile_2x2,
+        transpose,
+    )
+
+    _HAS_DRAWING_KERNELS = True
+except Exception:
+    _HAS_DRAWING_KERNELS = False
 
 
 class ARCRPNExecutor:
@@ -55,6 +74,13 @@ class ARCRPNExecutor:
         Returns:
             Transformed grid as List[List[int]].
         """
+        # Fast path: direct drawing transformation tokens using CuPy kernels.
+        if _HAS_DRAWING_KERNELS:
+            direct = self._execute_transformation(rpn_program, grid)
+            if direct is not None:
+                self.ptx_success_count += 1
+                return direct
+
         height = len(grid)
         width = len(grid[0]) if height > 0 else 0
 
@@ -156,6 +182,54 @@ class ARCRPNExecutor:
             return self.OP_RECOLOR, src, dst, width, height
 
         raise ValueError(f"Unsupported ARC RPN program: {rpn_program}")
+
+    def _execute_transformation(self, rpn_program: str, grid: Sequence[Sequence[int]]) -> List[List[int]] | None:
+        """
+        Execute drawing transformation tokens using GPU kernels.
+
+        Supported tokens (uppercase or lowercase):
+          ROT90_CW / ROT90, ROT90_CCW, ROT180, FLIP_H, FLIP_V, FLIP_DIAG / TRANSPOSE,
+          SCALE_2X, TILE_2X2, RECOLOR old new
+        """
+        tokens = rpn_program.strip().split()
+        if not tokens:
+            return None
+        op = tokens[-1].upper()
+        try:
+            grid_cp = cp.asarray(grid, dtype=cp.int32)
+        except Exception:
+            return None
+
+        out: cp.ndarray | None = None
+        if op in {"ROT90_CW", "ROT90"}:
+            out = rot90_cw(grid_cp)
+        elif op == "ROT90_CCW":
+            out = rot90_ccw(grid_cp)
+        elif op == "ROT180":
+            out = rot90_cw(rot90_cw(grid_cp))
+        elif op == "FLIP_H":
+            out = flip_h(grid_cp)
+        elif op == "FLIP_V":
+            out = flip_v(grid_cp)
+        elif op in {"TRANSPOSE", "FLIP_DIAG"}:
+            out = transpose(grid_cp)
+        elif op == "SCALE_2X":
+            out = scale_2x(grid_cp)
+        elif op == "TILE_2X2":
+            out = tile_2x2(grid_cp)
+        elif op == "RECOLOR" and len(tokens) >= 3:
+            try:
+                old_color = int(float(tokens[-3]))
+                new_color = int(float(tokens[-2]))
+            except Exception:
+                old_color = new_color = None  # type: ignore[assignment]
+            if old_color is not None and new_color is not None:
+                out = recolor(grid_cp, old_color, new_color)
+        # Overlay requires two grids; unsupported in single-grid executor.
+
+        if out is None:
+            return None
+        return out.tolist()
 
     def __del__(self) -> None:
         try:
