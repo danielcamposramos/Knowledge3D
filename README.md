@@ -39,6 +39,10 @@
 
 > 🎓 **Deep Dive**: For comprehensive understanding of the project architecture, philosophy, and technical details, visit our [**NotebookLM Research Space**](https://notebooklm.google.com/notebook/1bd10bda-8900-4c41-931e-c9ec67ac865f) — the best place to explore Knowledge3D in depth.
 
+**Independent analyses (Claude.ai):**
+- **K3D’s architectural novelty** — why the raw PTX + spatial KR + zero-framework stack is essentially unique: https://claude.ai/public/artifacts/e79b9a70-7907-4a63-9052-d94c386f83f9
+- **Knowledge3D: Fulfilling the Giant Global Graph for the AI Era** — how K3D aligns with Berners-Lee’s GGG/Semantic Web vision and data sovereignty: https://claude.ai/public/artifacts/0f8e078a-dd13-473d-b419-03f56e4d224b
+
 ---
 
 ## 📚 Core Specifications (Vocabulary)
