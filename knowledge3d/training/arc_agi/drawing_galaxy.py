@@ -65,6 +65,37 @@ SCALE_INVARIANT_PRIMITIVES = {
 }
 
 
+TRANSFORMATION_RULES = {
+    # Rotations
+    "ROT90_CW": "GRID_H GRID_W SWAP GRID_NEW 0 ROT90_KERNEL APPLY",
+    "ROT90_CCW": "GRID_H GRID_W SWAP GRID_NEW 3 ROT90_KERNEL APPLY",
+    "ROT180": "ROT90_CW ROT90_CW",
+    # Flips
+    "FLIP_H": "GRID_W 1 SUB RANGE REVERSE_COLS APPLY",
+    "FLIP_V": "GRID_H 1 SUB RANGE REVERSE_ROWS APPLY",
+    "FLIP_DIAG": "TRANSPOSE",
+    # Scaling
+    "SCALE_2X": "GRID_H 2 MUL GRID_W 2 MUL GRID_NEW UPSAMPLE_NN",
+    "SCALE_HALF": "GRID_H 2 DIV GRID_W 2 DIV GRID_NEW DOWNSAMPLE_MAX",
+    # Tiling
+    "TILE_2X2": "DUP HSTACK DUP VSTACK",
+    "TILE_3X3": "DUP DUP HSTACK HSTACK DUP DUP VSTACK VSTACK",
+    # Color operations
+    "RECOLOR": "COLOR_OLD COLOR_NEW GRID_MAP_COLOR",
+    "INVERT": "MAX_COLOR SWAP SUB",
+    "MASK_COLOR": "COLOR GRID_EQ GRID_MUL",
+    # Pattern detection (semantic discovery, not direct execution)
+    "FIND_OBJECTS": "CONNECTED_COMPONENTS",
+    "FIND_SYMMETRY": "SELF FLIP_H EQ SELF FLIP_V EQ OR",
+    "FIND_REPETITION": "FFT_2D PEAK_DETECT",
+    # Composition
+    "OVERLAY": "GRID_A GRID_B GRID_WHERE_NONZERO",
+    "SUBTRACT": "GRID_A GRID_B SUB ABS",
+    "INTERSECT": "GRID_A GRID_B MIN",
+    "UNION": "GRID_A GRID_B MAX",
+}
+
+
 class DrawingGalaxy:
     """In-memory registry for drawing primitives and derived items."""
 
@@ -76,6 +107,7 @@ class DrawingGalaxy:
         self.collections: Dict[str, DrawingItem] = {}
         self.rel_shapes: List[str] = []
         self.prop_shapes: List[str] = []
+        self.transformations: Dict[str, str] = {}
         self._bootstrap_defaults()
 
     # ------------------------------------------------------------------ #
@@ -100,6 +132,7 @@ class DrawingGalaxy:
             self.collections[col["id"]] = DrawingItem(col["id"], "collection", col)
         # Always register scale-invariant primitives so bootstrap uses procedural definitions
         self.add_scale_invariant_primitives()
+        self.register_transformation_rules()
         self._rebuild_shape_indices()
 
     # ------------------------------------------------------------------ #
@@ -132,6 +165,16 @@ class DrawingGalaxy:
             self.shapes[prim_id] = DrawingItem(prim_id, payload["type"], payload)
             print(f"[DRAWING GALAXY] Registered scale-invariant primitive: {prim_id}")
         self._rebuild_shape_indices()
+
+    def register_transformation_rules(self) -> None:
+        """Register core visual transformation RPN programs."""
+        for rule_id, rpn_program in TRANSFORMATION_RULES.items():
+            if rule_id in self.transformations:
+                continue
+            self.transformations[rule_id] = rpn_program
+
+    def list_transformations(self) -> Dict[str, str]:
+        return dict(self.transformations)
 
     # ------------------------------------------------------------------ #
     # Introspection
@@ -203,4 +246,4 @@ class DrawingGalaxy:
         self.prop_shapes = [sid for sid in self.shapes.keys() if "PROP_" in sid]
 
 
-__all__ = ["DrawingGalaxy", "DrawingItem"]
+__all__ = ["DrawingGalaxy", "DrawingItem", "TRANSFORMATION_RULES"]

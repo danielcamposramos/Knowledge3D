@@ -25,7 +25,11 @@ from knowledge3d.training.arc_agi.program_composer import ProgramComposer
 from knowledge3d.training.arc_agi.dual_shadow_copy import DualShadowCopy
 from knowledge3d.training.arc_agi.embedders import MultiModalGridEmbedder
 from knowledge3d.cranium.bridges.cosine_similarity_bridge import CosineSimilarityBridge
+from knowledge3d.cranium.embodied_agent import EmbodiedSovereignAgent
+from knowledge3d.cranium.adaptive_thresholds import AdaptiveThresholds
 from knowledge3d.cranium.math_galaxy import get_math_galaxy
+from knowledge3d.cranium.word_galaxy import get_word_galaxy
+from knowledge3d.cranium.eloquence_galaxy import get_eloquence_galaxy
 
 
 def compute_ternary_reward(score: float) -> int:
@@ -253,10 +257,15 @@ class SovereignAIPipeline:
         embedding_galaxy=None,
         cosine_bridge=None,
         hybrid_mode: bool = False,
+        embodied_agent: EmbodiedSovereignAgent | None = None,
     ) -> None:
-        self.drawing = DrawingGalaxy()
-        self.grammar = GrammarGalaxy()
-        self.math_galaxy = get_math_galaxy()
+        self.agent = embodied_agent or EmbodiedSovereignAgent()
+        self.drawing = self.agent.drawing_galaxy if self.agent else DrawingGalaxy()
+        self.grammar = self.agent.grammar_galaxy if self.agent else GrammarGalaxy()
+        self.math_galaxy = getattr(self.agent, "math_galaxy", None) or get_math_galaxy()
+        self.word_galaxy = getattr(self.agent, "word_galaxy", None) or get_word_galaxy()
+        self.eloquence_galaxy = getattr(self.agent, "eloquence_galaxy", None) or get_eloquence_galaxy()
+        self.thresholds = AdaptiveThresholds(self.grammar)
         self.shadow = DualShadowCopy(self.drawing, self.grammar, staged=staged_shadow)
         self.router = SovereignTRMRouter(self.drawing, self.grammar, shadow_copy=self.shadow, matryoshka_dim=matryoshka_dim)
         self.composer = ProgramComposer()
@@ -271,7 +280,14 @@ class SovereignAIPipeline:
         self._shape_token_index: Dict[str, set[str]] = {}
         self._shape_token_version = 0
 
-        print(f"  [MATH] Loaded {len(self.math_galaxy.symbols)} canonical math symbols")
+        try:
+            print(f"  [MATH] Loaded {len(self.math_galaxy.symbols)} canonical math symbols")
+            print(f"  [WORD] Loaded {self.word_galaxy.stats()['total_words']} words")
+            print(f"  [GRAMMAR] Loaded {len(self.grammar.rules)} rules")
+            print(f"  [ELOQUENCE] Loaded {self.eloquence_galaxy.stats()['total_meta_rules']} meta-rules")
+        except Exception:
+            # Keep init resilient if stats/count are not available
+            pass
 
     def process_task(
         self,
@@ -280,13 +296,19 @@ class SovereignAIPipeline:
         *,
         train_examples: Optional[List[Dict]] = None,
         expected_output: Optional[Sequence[Sequence[int]]] = None,
-        top_k: int = 69,  # SOVEREIGN: Tesla 3-6-9 (increased from 12)
+        top_k: Optional[int] = None,  # Tesla 3-6-9 default via AdaptiveThresholds
     ) -> TaskResult:
         """Process task merging procedural baseline + sovereign routing."""
 
         # 1) Procedural baseline candidates (train example analysis).
         from knowledge3d.training.arc_agi import CandidateGenerator
         from knowledge3d.training.arc_agi.rpn_executor import ARCRPNExecutor
+
+        if getattr(self, "agent", None) is not None:
+            try:
+                self.agent.work_on_task(task_id, test_input)
+            except Exception as exc:
+                print(f"  [EMBODIED] Working memory update failed: {exc}")
 
         executor = ARCRPNExecutor()
         procedural_candidates: List[Dict] = []
@@ -313,6 +335,8 @@ class SovereignAIPipeline:
                     print(f"  [SEMANTIC HINTS] No hints extracted from {len(matches)} contexts")
             except Exception as e:
                 print(f"  [PIPELINE] Warning: Could not extract semantic hints: {e}")
+
+        resolved_top_k = top_k or self.thresholds.candidate_top_k
 
         if train_examples:
             from knowledge3d.training.arc_agi.parallel_generator import ParallelCandidateGenerator
@@ -356,9 +380,21 @@ class SovereignAIPipeline:
                     expected_output=expected_output,
                 )
                 print(f"  [CANDIDATES] Parallel generated {len(procedural_candidates)} candidates (Tesla 3-6-9)")
+        else:
+            gen = CandidateGenerator(
+                matryoshka_dim=self.router.matryoshka_dim,
+                max_candidates=resolved_top_k,
+                shadow_copy=self.shadow,
+                drawing_galaxy=self.drawing,
+                codec_embedder=self.codec_embedder,
+                embedding_galaxy=self.embedding_galaxy,
+                cosine_bridge=self.cosine_bridge,
+            )
+            procedural_candidates = gen.generate_candidates(test_input)
+            print(f"  [CANDIDATES] Baseline generated {len(procedural_candidates)} candidates")
 
         # 2) TRM router candidates.
-        trm_candidates = self.router.route(test_input, top_k=top_k)
+        trm_candidates = self.router.route(test_input, top_k=resolved_top_k)
 
         # 3) Merge candidate programs.
         merged: List[Dict] = []
@@ -616,6 +652,13 @@ class SovereignAIPipeline:
             fuzzy_score=chosen_fuzzy if expected_list is not None else 0.0,
         )
         self.results.append(result)
+
+        if getattr(self, "agent", None) is not None and self.agent.should_consolidate():
+            try:
+                self.agent.consolidate()
+            except Exception as exc:
+                print(f"  [EMBODIED] Consolidation failed: {exc}")
+
         return result
 
     def summary(self) -> Dict[str, int]:

@@ -373,8 +373,14 @@ class GrammarGalaxy:
         rules: Optional[List[GrammarRule]] = None,
         users: Optional[Dict[str, Dict]] = None,
         variants: Optional[Dict[str, Dict[str, str]]] = None,
+        storage_path: Optional[Path] = None,
     ):
+        self.storage_path = Path(storage_path) if storage_path else Path("/K3D/Knowledge3D.local/galaxies/grammar")
+        self.storage_path.mkdir(parents=True, exist_ok=True)
         self.rules: Dict[str, GrammarRule] = {r.rule_id: r for r in (rules or default_grammar_rules())}
+        # Load persisted state only when bootstrap rules are used
+        if rules is None and self._rules_file().exists():
+            self.load(self._rules_file())
         self.users = users or default_user_profiles()
         self.variants = variants or default_variants()
 
@@ -401,6 +407,28 @@ class GrammarGalaxy:
     def has_rule(self, rule_id: str) -> bool:
         return rule_id in self.rules
 
+    def _rules_file(self) -> Path:
+        return self.storage_path / "grammar_galaxy.json"
+
+    def add_rule(self, rule: GrammarRule, persist: bool = True) -> bool:
+        """
+        Add a grammar rule after validating symlink integrity.
+
+        Returns False when the rule_id already exists to avoid duplication.
+        """
+        if not rule.validate_symbol_refs():
+            raise ValueError(f"Invalid symbol_refs for rule {rule.rule_id}")
+        if rule.rule_id in self.rules:
+            return False
+
+        self.rules[rule.rule_id] = rule
+        if persist:
+            try:
+                self.save(self._rules_file())
+            except Exception as exc:  # Persistence failures should surface for debugging
+                print(f"[GrammarGalaxy] Failed to persist {rule.rule_id}: {exc}")
+        return True
+
     # ------------------------------------------------------------------ #
     # Persistence
     # ------------------------------------------------------------------ #
@@ -419,9 +447,12 @@ class GrammarGalaxy:
                     "semantics": getattr(rule, "semantics", {}),
                     "usage_conditions": getattr(rule, "usage_conditions", []),
                     "is_canonical": getattr(rule, "is_canonical", False),
+                    "symbol_refs": getattr(rule, "symbol_refs", []),
+                    "word_refs": getattr(rule, "word_refs", []),
                 }
             )
-        state = {"rules": rules_data, "total_count": len(rules_data)}
+        parameters = getattr(self, "_parameters", {})
+        state = {"rules": rules_data, "total_count": len(rules_data), "parameters": parameters}
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("w", encoding="utf-8") as f:
             json.dump(state, f, indent=2)
@@ -442,6 +473,8 @@ class GrammarGalaxy:
                 pattern=rd.get("pattern", "unknown"),
                 rpn_program=rd["rpn_program"],
                 domain=rd.get("domain", "general"),
+                symbol_refs=rd.get("symbol_refs", []),
+                word_refs=rd.get("word_refs", []),
                 examples=rd.get("examples", []),
                 description=rd.get("description"),
                 semantics=rd.get("semantics", {}),
@@ -453,6 +486,10 @@ class GrammarGalaxy:
         if loaded_rules:
             self.rules = loaded_rules
             print(f"[GrammarGalaxy] Loaded {len(self.rules)} rules from {path}")
+
+        parameters = state.get("parameters", {})
+        if parameters:
+            setattr(self, "_parameters", parameters)
 
     # ------------------------------------------------------------------ #
     # Introspection helpers
