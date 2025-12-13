@@ -157,4 +157,69 @@ __global__ void overlay_kernel(
     output[idx] = (val_a != 0) ? val_a : grid_b[idx];
 }
 
+// Crop/extract sub-region
+__global__ void crop_kernel(
+    const int* input,
+    int* output,
+    int in_height, int in_width,
+    int crop_y, int crop_x,
+    int crop_h, int crop_w
+) {
+    int out_x = blockIdx.x * blockDim.x + threadIdx.x;
+    int out_y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (out_x >= crop_w || out_y >= crop_h) return;
+
+    int in_x = crop_x + out_x;
+    int in_y = crop_y + out_y;
+
+    if (in_x < in_width && in_y < in_height) {
+        output[out_y * crop_w + out_x] = input[in_y * in_width + in_x];
+    }
+}
+
+// Find bounding box of non-zero (or target color) cells
+// bbox output layout: [min_y, min_x, max_y, max_x]
+__global__ void find_bbox_kernel(
+    const int* grid,
+    int* bbox,
+    int height, int width,
+    int target_color
+) {
+    __shared__ int s_min_y;
+    __shared__ int s_min_x;
+    __shared__ int s_max_y;
+    __shared__ int s_max_x;
+
+    if (threadIdx.x == 0 && threadIdx.y == 0) {
+        s_min_y = height;
+        s_min_x = width;
+        s_max_y = -1;
+        s_max_x = -1;
+    }
+    __syncthreads();
+
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (x < width && y < height) {
+        int val = grid[y * width + x];
+        bool match = (target_color == 0) ? (val != 0) : (val == target_color);
+        if (match) {
+            atomicMin(&s_min_y, y);
+            atomicMin(&s_min_x, x);
+            atomicMax(&s_max_y, y);
+            atomicMax(&s_max_x, x);
+        }
+    }
+    __syncthreads();
+
+    if (threadIdx.x == 0 && threadIdx.y == 0) {
+        atomicMin(&bbox[0], s_min_y);
+        atomicMin(&bbox[1], s_min_x);
+        atomicMax(&bbox[2], s_max_y);
+        atomicMax(&bbox[3], s_max_x);
+    }
+}
+
 }  // extern "C"

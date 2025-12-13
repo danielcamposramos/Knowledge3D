@@ -71,6 +71,73 @@ class CandidateGenerator:
         except Exception:
             return None
 
+    def _detect_size_pattern(self, train_examples: List[Dict]) -> str:
+        """Detect whether outputs shrink/expand relative to inputs."""
+        ratios: List[Tuple[float, float]] = []
+        for ex in train_examples:
+            inp = ex.get("input", [])
+            out = ex.get("output", [])
+            if not inp or not out or not inp[0] or not out[0]:
+                continue
+            h_ratio = len(out) / max(1, len(inp))
+            w_ratio = len(out[0]) / max(1, len(inp[0]))
+            ratios.append((h_ratio, w_ratio))
+        if not ratios:
+            return "same"
+        avg_h = sum(r[0] for r in ratios) / len(ratios)
+        avg_w = sum(r[1] for r in ratios) / len(ratios)
+        if avg_h < 0.6 and avg_w < 0.6:
+            return "extract"
+        if avg_h > 1.5 and avg_w > 1.5:
+            return "expand"
+        return "same"
+
+    def _bbox_nonzero(self, grid: Sequence[Sequence[int]]) -> Tuple[int, int, int, int]:
+        """Compute bbox of non-zero cells (inclusive)."""
+        min_y = len(grid)
+        min_x = len(grid[0]) if grid and grid[0] else 0
+        max_y = -1
+        max_x = -1
+        for y, row in enumerate(grid):
+            for x, val in enumerate(row):
+                if val != 0:
+                    if y < min_y:
+                        min_y = y
+                    if x < min_x:
+                        min_x = x
+                    if y > max_y:
+                        max_y = y
+                    if x > max_x:
+                        max_x = x
+        if max_y < 0:
+            return 0, 0, 0, 0
+        return min_y, min_x, max_y, max_x
+
+    def _generate_extraction_candidates(self, input_grid: Sequence[Sequence[int]]) -> List[Candidate]:
+        """Generate candidates focused on cropping/extraction."""
+        candidates: List[Candidate] = []
+        min_y, min_x, max_y, max_x = self._bbox_nonzero(input_grid)
+        if max_y >= min_y and max_x >= min_x:
+            h = max_y - min_y + 1
+            w = max_x - min_x + 1
+            rpn = f"{min_y} {min_x} {h} {w} CROP"
+            out = self._exec_rpn(input_grid, rpn)
+            if out:
+                candidates.append((out, "crop_nonzero", rpn))
+        # Dominant non-zero color bbox
+        color_counts = {}
+        for row in input_grid:
+            for val in row:
+                if val != 0:
+                    color_counts[val] = color_counts.get(val, 0) + 1
+        if color_counts:
+            color = max(color_counts, key=color_counts.get)
+            rpn = f"{color} EXTRACT_BBOX"
+            out = self._exec_rpn(input_grid, rpn)
+            if out:
+                candidates.append((out, "extract_bbox", rpn))
+        return candidates
+
     def generate_candidates(
         self,
         input_grid: Sequence[Sequence[int]],
@@ -98,6 +165,14 @@ class CandidateGenerator:
             inferred = self._infer_from_example(example, input_grid)
             if inferred:
                 candidates.append(inferred)
+
+        # Size-aware extraction/expansion heuristics.
+        size_pattern = self._detect_size_pattern(train_examples)
+        if size_pattern == "extract":
+            extraction = self._generate_extraction_candidates(input_grid)
+            if extraction:
+                print(f"  [EXTRACT GEN] Generated {len(extraction)} extraction candidates")
+            candidates.extend(extraction)
 
         # 2) Semantic-guided candidates: use word hints to expand search space.
         # SOVEREIGN: Closes the semantic layer → generation feedback loop.

@@ -16,12 +16,17 @@ __all__ = [
     "SovereignAIPipeline",
     "TaskResult",
     "HybridCandidateGenerator",
+    "StandardOutputAdapter",
+    "ARCEvaluationBridge",
+    "UnifiedDatasetLoader",
+    "UnifiedDatasetLoaderV2",
+    "SessionReporter",
 ]
 
 _LAZY_IMPORTS: dict[str, Tuple[str, str]] = {
     "ARCGridProcessor": ("knowledge3d.training.arc_agi.grid_processor", "ARCGridProcessor"),
     "CandidateGenerator": ("knowledge3d.training.arc_agi.candidate_generator", "CandidateGenerator"),
-    "ParallelCandidateGenerator": ("knowledge3d.training.arc_agi.parallel_generator", "ParallelCandidateGenerator"),
+    "ParallelCandidateGenerator": ("knowledge3d.training.arc_agi.parallel_candidate_generator", "ParallelCandidateGenerator"),
     "CompositionalCandidateGenerator": ("knowledge3d.training.arc_agi.compositional_generator", "CompositionalCandidateGenerator"),
     "DrawingGalaxy": ("knowledge3d.training.arc_agi.drawing_galaxy", "DrawingGalaxy"),
     "SovereignTRMRouter": ("knowledge3d.training.arc_agi.sovereign_trm_router", "SovereignTRMRouter"),
@@ -31,6 +36,11 @@ _LAZY_IMPORTS: dict[str, Tuple[str, str]] = {
     "SovereignAIPipeline": ("knowledge3d.training.arc_agi.sovereign_pipeline", "SovereignAIPipeline"),
     "TaskResult": ("knowledge3d.training.arc_agi.sovereign_pipeline", "TaskResult"),
     "HybridCandidateGenerator": ("knowledge3d.training.arc_agi.hybrid_generator", "HybridCandidateGenerator"),
+    "StandardOutputAdapter": ("knowledge3d.training.arc_agi.standard_output_adapter", "StandardOutputAdapter"),
+    "ARCEvaluationBridge": ("knowledge3d.training.arc_agi.standard_output_adapter", "ARCEvaluationBridge"),
+    "UnifiedDatasetLoader": ("knowledge3d.training.arc_agi.unified_dataset_loader", "UnifiedDatasetLoader"),
+    "UnifiedDatasetLoaderV2": ("knowledge3d.training.arc_agi.unified_dataset_loader", "UnifiedDatasetLoaderV2"),
+    "SessionReporter": ("knowledge3d.training.arc_agi.session_reporter", "SessionReporter"),
 }
 
 

@@ -149,6 +149,13 @@ OP_VAR_Z = 0xE2
 OP_VAR_W = 0xE3
 OP_CONST = 0xE4
 
+# Grammar evolution opcodes (cross-modality discovery → promotion)
+OP_GRAMMAR_OBSERVE = 0xE5      # visual_emb text_emb → correlation score
+OP_GRAMMAR_PROPOSE = 0xE6      # rpn_program context → rule_id (tentative)
+OP_GRAMMAR_VALIDATE = 0xE7     # rule_id success → updated quality_score
+OP_GRAMMAR_PROMOTE = 0xE8      # rule_id → move to shared if quality ≥ threshold
+OP_GRAMMAR_QUERY = 0xE9        # embedding k → top-k matching rules
+
 # Temporal reasoning opcodes (Phase 1C)
 OP_TEMPORAL_COHERENCE = 0xF0
 OP_TEMPORAL_MASK = 0xF1
@@ -172,6 +179,21 @@ OP_DRAW_SET_STROKE_COLOR = 0x75
 OP_DRAW_SET_FILL_COLOR = 0x76
 OP_DRAW_SET_LINE_WIDTH = 0x77
 OP_DRAW_SET_TERNARY_HINT = 0x78
+
+# Drawing Galaxy Layers 4-7 (gradients, filters, lighting, scenes)
+OP_GRADIENT_LINEAR = 0xF3     # x1 y1 x2 y2 GRADIENT_LINEAR
+OP_GRADIENT_RADIAL = 0xF4     # cx cy r GRADIENT_RADIAL
+OP_GRADIENT_CONIC = 0xF5      # cx cy angle GRADIENT_CONIC
+OP_GRADIENT_STOP = 0xF6       # pos r g b a GRADIENT_STOP
+OP_FILTER_BLUR = 0xF7         # radius FILTER_BLUR
+OP_FILTER_SHARPEN = 0xF8      # amount FILTER_SHARPEN
+OP_FILTER_EDGE = 0xF9         # FILTER_EDGE (Sobel)
+OP_FILTER_INVERT = 0xFA       # FILTER_INVERT
+OP_LIGHT_AMBIENT = 0xFB       # r g b intensity LIGHT_AMBIENT
+OP_LIGHT_DIRECTIONAL = 0xFC   # dx dy dz r g b LIGHT_DIRECTIONAL
+OP_LAYER_PUSH = 0xFD          # layer_id LAYER_PUSH
+OP_LAYER_POP = 0xFE           # LAYER_POP
+OP_BLEND_MODE = 0xFF          # mode BLEND_MODE
 
 __all__ = [
     # Literals
@@ -310,6 +332,12 @@ __all__ = [
     "OP_VAR_Z",
     "OP_VAR_W",
     "OP_CONST",
+    # Grammar evolution
+    "OP_GRAMMAR_OBSERVE",
+    "OP_GRAMMAR_PROPOSE",
+    "OP_GRAMMAR_VALIDATE",
+    "OP_GRAMMAR_PROMOTE",
+    "OP_GRAMMAR_QUERY",
     # Temporal reasoning
     "OP_TEMPORAL_COHERENCE",
     "OP_TEMPORAL_MASK",
@@ -332,4 +360,17 @@ __all__ = [
     "OP_DRAW_SET_FILL_COLOR",
     "OP_DRAW_SET_LINE_WIDTH",
     "OP_DRAW_SET_TERNARY_HINT",
+    "OP_GRADIENT_LINEAR",
+    "OP_GRADIENT_RADIAL",
+    "OP_GRADIENT_CONIC",
+    "OP_GRADIENT_STOP",
+    "OP_FILTER_BLUR",
+    "OP_FILTER_SHARPEN",
+    "OP_FILTER_EDGE",
+    "OP_FILTER_INVERT",
+    "OP_LIGHT_AMBIENT",
+    "OP_LIGHT_DIRECTIONAL",
+    "OP_LAYER_PUSH",
+    "OP_LAYER_POP",
+    "OP_BLEND_MODE",
 ]

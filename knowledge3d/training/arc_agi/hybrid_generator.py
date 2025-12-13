@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
 from knowledge3d.training.arc_agi.candidate_generator import Candidate
-from knowledge3d.training.arc_agi.parallel_generator import ParallelCandidateGenerator
+from knowledge3d.training.arc_agi.parallel_candidate_generator import ParallelCandidateGenerator
 from knowledge3d.training.arc_agi.sequential_refiner import k3d_sequential_refine, k3d_sequential_refine_adaptive, _ternary_sign
 from knowledge3d.training.arc_agi.dual_shadow_copy import DualShadowCopy
 from knowledge3d.training.arc_agi.drawing_galaxy import DrawingGalaxy
