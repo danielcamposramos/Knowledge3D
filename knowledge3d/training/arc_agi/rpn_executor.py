@@ -21,6 +21,9 @@ try:
         scale_2x,
         tile_2x2,
         transpose,
+        crop_gpu,
+        extract_bbox_gpu,
+        find_bbox_gpu,
     )
 
     _HAS_DRAWING_KERNELS = True
@@ -200,6 +203,30 @@ class ARCRPNExecutor:
         except Exception:
             return None
 
+        # Iteration wrappers: REPEAT_N OP or UNTIL_STABLE OP
+        if tokens[0].upper().startswith("REPEAT_") and len(tokens) >= 2:
+            try:
+                n = int(tokens[0].split("_")[1])
+            except Exception:
+                n = 1
+            op_tok = tokens[-1]
+            out_grid = grid_cp
+            for _ in range(max(1, n)):
+                transformed = self._execute_transformation(" ".join([op_tok]), out_grid.tolist())
+                out_grid = cp.asarray(transformed, dtype=cp.int32)
+            return out_grid.tolist()
+
+        if tokens[0].upper() == "UNTIL_STABLE" and len(tokens) >= 2:
+            op_tok = tokens[-1]
+            out_grid = grid_cp
+            for _ in range(10):
+                prev = out_grid.copy()
+                transformed = self._execute_transformation(" ".join([op_tok]), out_grid.tolist())
+                out_grid = cp.asarray(transformed, dtype=cp.int32)
+                if cp.all(prev == out_grid):
+                    break
+            return out_grid.tolist()
+
         out: cp.ndarray | None = None
         if op in {"ROT90_CW", "ROT90"}:
             out = rot90_cw(grid_cp)
@@ -217,6 +244,29 @@ class ARCRPNExecutor:
             out = scale_2x(grid_cp)
         elif op == "TILE_2X2":
             out = tile_2x2(grid_cp)
+        elif op == "CROP" and len(tokens) >= 5:
+            try:
+                y = int(float(tokens[-4])); x = int(float(tokens[-3])); h = int(float(tokens[-2])); w = int(float(tokens[-1]))
+                out = crop_gpu(grid_cp, y, x, h, w)
+            except Exception:
+                out = None
+        elif op == "EXTRACT_BBOX":
+            color = 0
+            if len(tokens) >= 2:
+                try:
+                    color = int(float(tokens[-2]))
+                except Exception:
+                    color = 0
+            out = extract_bbox_gpu(grid_cp, color)
+        elif op == "FIND_BBOX":
+            color = 0
+            if len(tokens) >= 2:
+                try:
+                    color = int(float(tokens[-2]))
+                except Exception:
+                    color = 0
+            bbox = find_bbox_gpu(grid_cp, color)
+            return [[bbox[0], bbox[1], bbox[2], bbox[3]]]
         elif op == "RECOLOR" and len(tokens) >= 3:
             try:
                 old_color = int(float(tokens[-3]))

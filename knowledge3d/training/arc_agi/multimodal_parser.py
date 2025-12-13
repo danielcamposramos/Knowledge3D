@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Dict, Optional
 
-from knowledge3d.training.arc_agi.grammar_galaxy import GrammarGalaxy
+from knowledge3d.training.arc_agi.grammar_galaxy import GrammarGalaxy, get_grammar_galaxy
 from knowledge3d.training.arc_agi.grammar_normalizer import GrammarNormalizer
 from knowledge3d.training.arc_agi.semantic_parser import SemanticParser
 
@@ -22,7 +22,7 @@ class MultimodalSemanticParser:
     """
 
     def __init__(self):
-        self.galaxy = GrammarGalaxy()
+        self.galaxy = get_grammar_galaxy()
         self.normalizer = GrammarNormalizer(self.galaxy)
         self.spatial_parser = SemanticParser()
 

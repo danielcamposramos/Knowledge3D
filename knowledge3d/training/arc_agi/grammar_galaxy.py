@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 import json
 
+from knowledge3d.cranium.bridges.cosine_similarity_bridge import CosineSimilarityBridge
 from knowledge3d.cranium.math_galaxy import get_math_galaxy
 
 
@@ -374,15 +375,25 @@ class GrammarGalaxy:
         users: Optional[Dict[str, Dict]] = None,
         variants: Optional[Dict[str, Dict[str, str]]] = None,
         storage_path: Optional[Path] = None,
+        snapshot: Optional[bytes] = None,
     ):
         self.storage_path = Path(storage_path) if storage_path else Path("/K3D/Knowledge3D.local/galaxies/grammar")
         self.storage_path.mkdir(parents=True, exist_ok=True)
         self.rules: Dict[str, GrammarRule] = {r.rule_id: r for r in (rules or default_grammar_rules())}
-        # Load persisted state only when bootstrap rules are used
-        if rules is None and self._rules_file().exists():
+        # Load persisted state only when bootstrap rules are used and no snapshot was provided
+        if snapshot is None and rules is None and self._rules_file().exists():
             self.load(self._rules_file())
+        # Snapshot overrides persisted state (no file I/O)
+        if snapshot is not None:
+            self._load_from_snapshot(snapshot)
         self.users = users or default_user_profiles()
         self.variants = variants or default_variants()
+        self.cosine_bridge = CosineSimilarityBridge()
+        self._local_discoveries: Dict[str, Dict] = {}
+        self._discovery_threshold = 0.6
+        self._promotion_threshold = 0.7
+        self._min_usage_for_promotion = 3
+        self._current_epoch = 0
 
     def get_rule(self, rule_id: str) -> GrammarRule:
         if rule_id not in self.rules:
@@ -430,8 +441,196 @@ class GrammarGalaxy:
         return True
 
     # ------------------------------------------------------------------ #
+    # Cross-modality discovery + promotion
+    # ------------------------------------------------------------------ #
+    def observe_pattern(
+        self,
+        visual_embedding: List[float],
+        text_embedding: List[float],
+        context: str,
+    ) -> Optional[str]:
+        """
+        Observe cross-modal correlation. If strong, synthesize and propose a tentative rule.
+        """
+        if not visual_embedding or not text_embedding:
+            return None
+
+        scores = self.cosine_bridge.compute_similarities([visual_embedding], text_embedding)
+        correlation = scores[0] if scores else 0.0
+
+        if correlation >= self._discovery_threshold:
+            rule_rpn = self._synthesize_rule_rpn(visual_embedding, text_embedding)
+            return self.propose_rule(rule_rpn, context, correlation)
+        return None
+
+    def _synthesize_rule_rpn(
+        self,
+        visual_emb: List[float],
+        text_emb: List[float],
+    ) -> str:
+        """Synthesize an RPN description of a cross-modal mapping."""
+        vis_top = sorted(enumerate(visual_emb), key=lambda x: abs(x[1]), reverse=True)[:8]
+        txt_top = sorted(enumerate(text_emb), key=lambda x: abs(x[1]), reverse=True)[:8]
+
+        parts: List[str] = []
+        for (vi, vv), (ti, tv) in zip(vis_top, txt_top):
+            denom = vv if abs(vv) > 1e-6 else 1e-6
+            weight = tv / denom
+            parts.append(f"DIM_{vi} {weight:.4f} MUL DIM_{ti} STORE")
+
+        return " ".join(parts) + " CROSS_MODAL_RULE"
+
+    def propose_rule(self, rpn_program: str, context: str, confidence: float = 0.0) -> str:
+        """
+        Add tentative rule to local discovery space.
+        """
+        rule_id = f"DISC_{hash(rpn_program) & 0xFFFFFF:06x}"
+        if rule_id in self.rules:
+            return rule_id
+
+        rule_embedding = self._compile_rule_to_embedding(rpn_program)
+
+        self._local_discoveries[rule_id] = {
+            "rpn_program": rpn_program,
+            "embedding": rule_embedding,
+            "context": context,
+            "usage_count": 0,
+            "success_count": 0,
+            "quality_score": confidence,
+            "created_epoch": getattr(self, "_current_epoch", 0),
+        }
+        return rule_id
+
+    def validate_usage(self, rule_id: str, success: bool) -> float:
+        """
+        Update quality score for a rule (local discovery or canonical).
+        """
+        if rule_id not in self._local_discoveries:
+            if rule_id in self.rules:
+                return 1.0
+            return 0.0
+
+        rule = self._local_discoveries[rule_id]
+        rule["usage_count"] += 1
+        if success:
+            rule["success_count"] += 1
+
+        if rule["usage_count"] > 0:
+            rule["quality_score"] = rule["success_count"] / rule["usage_count"]
+
+        self._try_promote(rule_id)
+        return rule["quality_score"]
+
+    def _try_promote(self, rule_id: str) -> bool:
+        """
+        Promote a discovery to shared rules if thresholds are met.
+        """
+        if rule_id not in self._local_discoveries:
+            return False
+
+        rule = self._local_discoveries[rule_id]
+        if rule["quality_score"] >= self._promotion_threshold and rule["usage_count"] >= self._min_usage_for_promotion:
+            new_rule = GrammarRule(
+                rule_id=rule_id,
+                language="discovered",
+                pattern="cross_modal",
+                rpn_program=rule["rpn_program"],
+                domain="discovered",
+                description=f"Discovered from: {rule['context']}",
+                is_canonical=False,
+            )
+            self.rules[rule_id] = new_rule
+            del self._local_discoveries[rule_id]
+            print(
+                f"[GRAMMAR PROMOTE] {rule_id} promoted "
+                f"(quality={rule['quality_score']:.2f}, usage={rule['usage_count']})"
+            )
+            return True
+        return False
+
+    def query_similar(self, embedding: List[float], k: int = 5) -> List[Tuple[str, float]]:
+        """
+        Find top-k rules similar to a provided embedding (canonical + discoveries).
+        """
+        scores: List[Tuple[str, float]] = []
+        for rule_id, rule in self.rules.items():
+            rule_emb = self._get_rule_embedding(rule)
+            if not rule_emb:
+                continue
+            sim = self.cosine_bridge.compute_similarities([embedding], rule_emb)[0]
+            scores.append((rule_id, sim))
+
+        for rule_id, rule_data in self._local_discoveries.items():
+            sim = self.cosine_bridge.compute_similarities([embedding], rule_data["embedding"])[0]
+            scores.append((rule_id, sim))
+
+        scores.sort(key=lambda x: -x[1])
+        return scores[:k]
+
+    def _compile_rule_to_embedding(self, rpn_program: str) -> List[float]:
+        """Compile an RPN program into a lightweight embedding (hash-based)."""
+        tokens = rpn_program.split()
+        embedding = [0.0] * 128
+        for i, token in enumerate(tokens):
+            idx = hash(token) % 128
+            embedding[idx] += 1.0 / (i + 1)
+
+        norm = sum(x * x for x in embedding) ** 0.5
+        if norm > 0:
+            embedding = [x / norm for x in embedding]
+        return embedding
+
+    def _get_rule_embedding(self, rule: GrammarRule) -> Optional[List[float]]:
+        cache_key = f"_emb_{rule.rule_id}"
+        if hasattr(rule, cache_key):
+            return getattr(rule, cache_key)
+        emb = self._compile_rule_to_embedding(rule.rpn_program)
+        setattr(rule, cache_key, emb)
+        return emb
+
+    # ------------------------------------------------------------------ #
     # Persistence
     # ------------------------------------------------------------------ #
+    def to_snapshot(self) -> bytes:
+        """
+        Serialize current rule set for worker transfer (memory-only).
+        """
+        data = {
+            "rules": {
+                rule_id: {
+                    "rule_id": rule.rule_id,
+                    "rpn_program": rule.rpn_program,
+                    "pattern": rule.pattern,
+                    "language": rule.language,
+                    "domain": getattr(rule, "domain", "general"),
+                }
+                for rule_id, rule in self.rules.items()
+            },
+            "promoted_count": len([r for r in self.rules.values() if not getattr(r, "is_canonical", True)]),
+        }
+        return json.dumps(data).encode("utf-8")
+
+    def _load_from_snapshot(self, snapshot: bytes) -> None:
+        """
+        Load grammar state from snapshot bytes (no disk I/O).
+        """
+        try:
+            data = json.loads(snapshot.decode("utf-8"))
+        except Exception as exc:
+            print(f"[GrammarGalaxy] Failed to load snapshot: {exc}")
+            return
+
+        for rule_id, rule_data in data.get("rules", {}).items():
+            if rule_id in self.rules:
+                continue
+            self.rules[rule_id] = GrammarRule(
+                rule_id=rule_data["rule_id"],
+                rpn_program=rule_data["rpn_program"],
+                pattern=rule_data.get("pattern", "unknown"),
+                language=rule_data.get("language", "en"),
+                domain=rule_data.get("domain", "general"),
+            )
+
     def save(self, path: Path) -> None:
         rules_data = []
         for rule in self.rules.values():
@@ -491,6 +690,24 @@ class GrammarGalaxy:
         if parameters:
             setattr(self, "_parameters", parameters)
 
+    def merge_discoveries(self, other_discoveries: Dict[str, Dict]) -> int:
+        """
+        Merge discoveries from a worker back into the main galaxy.
+        """
+        merged = 0
+        for rule_id, rule_data in other_discoveries.items():
+            if rule_id in self._local_discoveries:
+                existing = self._local_discoveries[rule_id]
+                existing["usage_count"] += rule_data.get("usage_count", 0)
+                existing["success_count"] += rule_data.get("success_count", 0)
+                if existing["usage_count"] > 0:
+                    existing["quality_score"] = existing["success_count"] / existing["usage_count"]
+            else:
+                self._local_discoveries[rule_id] = rule_data
+            merged += 1
+            self._try_promote(rule_id)
+        return merged
+
     # ------------------------------------------------------------------ #
     # Introspection helpers
     # ------------------------------------------------------------------ #
@@ -517,7 +734,18 @@ class GrammarGalaxy:
 __all__ = [
     "GrammarRule",
     "GrammarGalaxy",
+    "get_grammar_galaxy",
     "default_grammar_rules",
     "default_user_profiles",
     "default_variants",
 ]
+
+# Singleton accessor to avoid repeated disk loads across workers.
+_grammar_galaxy: GrammarGalaxy | None = None
+
+
+def get_grammar_galaxy() -> GrammarGalaxy:
+    global _grammar_galaxy
+    if _grammar_galaxy is None:
+        _grammar_galaxy = GrammarGalaxy()
+    return _grammar_galaxy
