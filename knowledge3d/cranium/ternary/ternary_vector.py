@@ -21,16 +21,34 @@ class TernaryVector:
     """GPU-resident ternary vector with packed 2-bit storage."""
 
     def __init__(self, values: Sequence[int]):
-        for v in values:
-            if v not in (-1, 0, 1):
-                raise ValueError(f"Ternary values must be -1, 0, or +1, got {v}")
-        self.length = len(values)
-        self.packed_host = self._pack_host(values)
+        # Accept strict ternary inputs and gracefully quantize other numeric values
+        # (e.g., 0-255 pixel intensities) into {-1, 0, +1}. This keeps downstream
+        # GPU logic operating on ternary data while allowing higher-range inputs.
+        quantized = [self._normalize_value(v) for v in values]
+        self.length = len(quantized)
+        self.packed_host = self._pack_host(quantized)
         self.device_ptr = self._upload(self.packed_host)
 
     # ------------------------------------------------------------------ #
     # Packing / unpacking
     # ------------------------------------------------------------------ #
+    @staticmethod
+    def _normalize_value(v: int) -> int:
+        """Map arbitrary numeric input to {-1,0,+1}."""
+        if v in (-1, 0, 1):
+            return int(v)
+        # Small floats in [-1,1] get rounded to nearest ternary value
+        if -1.0 <= float(v) <= 1.0:
+            rounded = int(round(float(v)))
+            return max(-1, min(1, rounded))
+        # For byte-like ranges (e.g., 0-255), use 3-level quantization
+        fv = float(v)
+        if fv < 85.0:
+            return 0
+        if fv > 170.0:
+            return 1
+        return -1
+
     @staticmethod
     def _encode_value(v: int) -> int:
         if v == -1:

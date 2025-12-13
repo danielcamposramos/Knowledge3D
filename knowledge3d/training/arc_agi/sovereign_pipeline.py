@@ -13,7 +13,8 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from dataclasses import dataclass
-from typing import Dict, List, Sequence, Optional, Tuple
+from pathlib import Path
+from typing import Any, Dict, List, Sequence, Optional, Tuple
 
 # SOVEREIGN: No numpy in hot path! Use plain lists for grids.
 
@@ -24,10 +25,14 @@ from knowledge3d.training.arc_agi.hybrid_generator import HybridCandidateGenerat
 from knowledge3d.training.arc_agi.program_composer import ProgramComposer
 from knowledge3d.training.arc_agi.dual_shadow_copy import DualShadowCopy
 from knowledge3d.training.arc_agi.embedders import MultiModalGridEmbedder
+from knowledge3d.training.arc_agi.progressive_scorer import DiscoveryPreserver
+from knowledge3d.training.arc_agi.size_pattern_encoder import SizePatternEncoder
+from knowledge3d.training.arc_agi.standard_output_adapter import StandardOutputAdapter, ARCEvaluationBridge
 from knowledge3d.cranium.bridges.cosine_similarity_bridge import CosineSimilarityBridge
 from knowledge3d.cranium.embodied_agent import EmbodiedSovereignAgent
 from knowledge3d.cranium.adaptive_thresholds import AdaptiveThresholds
 from knowledge3d.cranium.math_galaxy import get_math_galaxy
+from knowledge3d.cranium.ternary import TernaryVector
 from knowledge3d.cranium.word_galaxy import get_word_galaxy
 from knowledge3d.cranium.eloquence_galaxy import get_eloquence_galaxy
 
@@ -273,6 +278,10 @@ class SovereignAIPipeline:
         self.codec_embedder = MultiModalGridEmbedder(matryoshka_dim=matryoshka_dim)
         self.embedding_galaxy = embedding_galaxy
         self.cosine_bridge = cosine_bridge or CosineSimilarityBridge()
+        self.size_encoder = SizePatternEncoder()
+        self.preserver = DiscoveryPreserver()
+        self.output_adapter = StandardOutputAdapter(max_attempts=2)
+        self.evaluation_bridge = ARCEvaluationBridge()
         self.hybrid_mode = hybrid_mode
         self.results: List[TaskResult] = []
         self._grammar_token_index: Dict[str, set[str]] = {}
@@ -297,6 +306,7 @@ class SovereignAIPipeline:
         train_examples: Optional[List[Dict]] = None,
         expected_output: Optional[Sequence[Sequence[int]]] = None,
         top_k: Optional[int] = None,  # Tesla 3-6-9 default via AdaptiveThresholds
+        record_submission: bool = False,
     ) -> TaskResult:
         """Process task merging procedural baseline + sovereign routing."""
 
@@ -339,7 +349,7 @@ class SovereignAIPipeline:
         resolved_top_k = top_k or self.thresholds.candidate_top_k
 
         if train_examples:
-            from knowledge3d.training.arc_agi.parallel_generator import ParallelCandidateGenerator
+            from knowledge3d.training.arc_agi.parallel_candidate_generator import ParallelCandidateGenerator
 
             par_gen = ParallelCandidateGenerator(
                 num_workers=9,
@@ -480,6 +490,8 @@ class SovereignAIPipeline:
         exact_proc_best = None
         merged = self._deduplicate_candidates(merged)
 
+        size_pattern_embedding = self.size_encoder.encode_task_pattern(train_examples or [])
+
         for cand_idx, cand in enumerate(merged):
             if cand["output"] is None:
                 try:
@@ -502,12 +514,22 @@ class SovereignAIPipeline:
                     ratio_h = max(pred_h / exp_h, exp_h / pred_h) if pred_h and exp_h else 10.0
                     ratio_w = max(pred_w / exp_w, exp_w / pred_w) if pred_w and exp_w else 10.0
                     downscale_factor = max(ratio_h, ratio_w)
-                    # Hard drop when > 2.5x in either dimension.
-                    if ratio_h >= 2.5 or ratio_w >= 2.5:
-                        print(f"  [DROP SIZE] Task {task_id}: {pred_h}x{pred_w} vs {exp_h}x{exp_w} (ratio_h={ratio_h:.2f}, ratio_w={ratio_w:.2f})")
+                    should_eval, size_conf = self._should_evaluate_candidate(
+                        cand_output,
+                        expected_list,
+                        size_pattern_embedding,
+                    )
+                    if not should_eval:
+                        print(
+                            f"  [DROP SIZE] Task {task_id}: {pred_h}x{pred_w} vs {exp_h}x{exp_w} "
+                            f"(ratio_h={ratio_h:.2f}, ratio_w={ratio_w:.2f}, size_conf={size_conf:.2f})"
+                        )
                         drop_candidate = True
                     else:
-                        print(f"  [RESIZE] Task {task_id}: {pred_h}x{pred_w} -> {exp_h}x{exp_w}")
+                        print(
+                            f"  [RESIZE] Task {task_id}: {pred_h}x{pred_w} -> {exp_h}x{exp_w} "
+                            f"(size_conf={size_conf:.2f})"
+                        )
                         cand_output = _procedural_resize(cand_output, exp_h, exp_w)
                         cand["output"] = cand_output
                         pred_h, pred_w = exp_h, exp_w
@@ -555,6 +577,14 @@ class SovereignAIPipeline:
                     expected_shape,
                 )
                 cand["calibrated_confidence"] = calibrated
+                preservation = self.evaluate_candidate(
+                    f"{task_id}_cand{cand_idx}",
+                    cand.get("program", ""),
+                    cand_output,
+                    expected_list,
+                    cand.get("source", "unknown"),
+                )
+                cand["preservation"] = preservation
             # Diagnostic logging for early candidates to expose padding/alignment issues.
             if expected_list is not None and cand_idx < 3:
                 exp_h = len(expected_list)
@@ -653,6 +683,9 @@ class SovereignAIPipeline:
         )
         self.results.append(result)
 
+        if record_submission and result.output_grid is not None:
+            self.output_adapter.record_attempt(task_id, 1, result.output_grid)
+
         if getattr(self, "agent", None) is not None and self.agent.should_consolidate():
             try:
                 self.agent.consolidate()
@@ -668,6 +701,56 @@ class SovereignAIPipeline:
             "drawing_shapes": len(self.drawing.shapes),
             "grammar_rules": len(self.grammar.rules),
         }
+
+    def generate_submission(self, session_id: Optional[str] = None) -> str:
+        """Generate submission file for ARC evaluation."""
+        return self.output_adapter.save_submission(session_id=session_id)
+
+    def evaluate_against_ground_truth(self, submission_path: Path, ground_truth_path: Path) -> Dict[str, Any]:
+        """Evaluate a submission using ARC-compatible ground truth."""
+        return self.evaluation_bridge.evaluate_submission(submission_path, ground_truth_path)
+
+    def evaluate_candidate(
+        self,
+        candidate_id: str,
+        rpn_program: str,
+        candidate_output: List[List[int]],
+        expected_output: List[List[int]],
+        context: str,
+    ) -> Dict:
+        """
+        Evaluate with progressive scoring and preservation.
+        """
+        score, fate, preserved = self.preserver.evaluate_and_preserve(
+            candidate_id,
+            rpn_program,
+            candidate_output,
+            expected_output,
+            context,
+        )
+        return {
+            "score": score,
+            "fate": fate,
+            "preserved": preserved,
+            "exact_match": score >= 1.0,
+            "near_miss": 0.85 <= score < 1.0,
+            "high_confidence": score >= 0.95,
+        }
+
+    def end_of_epoch_refinement(self) -> None:
+        """
+        Attempt refinement on preserved discoveries and adapt thresholds.
+        """
+        self.preserver.scorer.adapt_thresholds()
+        candidates = self.preserver.get_refinement_candidates(k=20)
+        print(f"[REFINEMENT] Attempting refinement on {len(candidates)} discoveries")
+        stats = self.preserver.get_preservation_stats()
+        print(
+            f"[PRESERVATION] Total: {stats['total']}, "
+            f"Preserve: {stats['by_fate']['preserve']}, "
+            f"Promote: {stats['by_fate']['promote']}, "
+            f"Canonical: {stats['by_fate']['canonical']}"
+        )
 
     def _log_vocabulary_quality(self, epoch: int) -> None:
         if not hasattr(self, "shadow") or not self.shadow.library:
@@ -963,6 +1046,15 @@ class SovereignAIPipeline:
                 base *= 1.05
         return min(0.90, max(0.60, base))
 
+    def _should_evaluate_candidate(
+        self,
+        candidate_output: Sequence[Sequence[int]],
+        expected_output: Sequence[Sequence[int]],
+        size_pattern: TernaryVector,
+    ) -> Tuple[bool, float]:
+        """Model-based size evaluation gate using learned embeddings."""
+        return self.size_encoder.should_evaluate(candidate_output, expected_output, size_pattern)
+
     def _hash_grid(self, grid: Sequence[Sequence[int]]) -> int:
         """Deterministic hash of a grid (SOVEREIGN: pure Python)."""
         h = 0
@@ -1045,3 +1137,6 @@ class SovereignAIPipeline:
 
 
 __all__ = ["SovereignAIPipeline", "TaskResult"]
+
+# Alias for compatibility
+SovereignPipeline = SovereignAIPipeline

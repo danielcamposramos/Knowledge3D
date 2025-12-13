@@ -7,7 +7,7 @@ from __future__ import annotations
 from typing import List, Sequence, Dict, Optional
 
 from knowledge3d.training.arc_agi.drawing_galaxy import DrawingGalaxy
-from knowledge3d.training.arc_agi.grammar_galaxy import GrammarGalaxy
+from knowledge3d.training.arc_agi.grammar_galaxy import GrammarGalaxy, get_grammar_galaxy
 from knowledge3d.cranium.word_galaxy import get_word_galaxy, WordGalaxy
 from knowledge3d.cranium.eloquence_galaxy import get_eloquence_galaxy, EloquenceGalaxy
 from knowledge3d.cranium.math_galaxy import get_math_galaxy
@@ -24,7 +24,7 @@ class EmbodiedSovereignAgent:
 
     def __init__(self, *, working_capacity: int = 4096) -> None:
         self.drawing_galaxy = DrawingGalaxy()
-        self.grammar_galaxy = GrammarGalaxy()
+        self.grammar_galaxy = get_grammar_galaxy()
         self.word_galaxy: WordGalaxy = get_word_galaxy()
         self.eloquence_galaxy: EloquenceGalaxy = get_eloquence_galaxy()
         self.math_galaxy = get_math_galaxy()
