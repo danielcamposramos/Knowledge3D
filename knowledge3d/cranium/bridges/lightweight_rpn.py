@@ -55,26 +55,25 @@ class LightweightRPNEngine:
         self._cached_vectors_obj: Optional[bytes] = None
 
         ptx_path = Path(__file__).parent.parent / "ptx" / "modular_rpn_kernel_lite.ptx"
-        if ptx_path.exists():
-            try:
-                if os.environ.get("K3D_RPN_DEBUG"):
-                    print(f"[LightweightRPN] CUDA_VISIBLE_DEVICES={os.environ.get('CUDA_VISIBLE_DEVICES')}")
-                self._kernel = loader.load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-                if os.environ.get("K3D_RPN_DEBUG"):
-                    print("[LightweightRPN] Loaded PTX")
-                self._device_state = loader.gpu_malloc(self.MAX_INSTANCES * self.INSTANCE_STRIDE)
-                if os.environ.get("K3D_RPN_DEBUG"):
-                    print("[LightweightRPN] Allocated device state")
-                zeros = (ctypes.c_uint8 * (self.MAX_INSTANCES * self.INSTANCE_STRIDE))()
-                loader.memcpy_htod(self._device_state, ctypes.cast(zeros, ctypes.c_void_p), ctypes.sizeof(zeros))
-                if os.environ.get("K3D_RPN_DEBUG"):
-                    print("[LightweightRPN] GPU path enabled")
-            except RuntimeError as exc:
-                # GPU unavailable – fall back to CPU interpreter.
-                self._kernel = None
-                self._device_state = None
-                if os.environ.get("K3D_RPN_DEBUG"):
-                    print(f"[LightweightRPN] GPU path disabled (RuntimeError): {exc}")
+        if not ptx_path.exists():
+            raise FileNotFoundError(f"[LightweightRPN] PTX kernel missing: {ptx_path}")
+        try:
+            if os.environ.get("K3D_RPN_DEBUG"):
+                print(f"[LightweightRPN] CUDA_VISIBLE_DEVICES={os.environ.get('CUDA_VISIBLE_DEVICES')}")
+            self._kernel = loader.load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
+            if os.environ.get("K3D_RPN_DEBUG"):
+                print("[LightweightRPN] Loaded PTX")
+            self._device_state = loader.gpu_malloc(self.MAX_INSTANCES * self.INSTANCE_STRIDE)
+            if os.environ.get("K3D_RPN_DEBUG"):
+                print("[LightweightRPN] Allocated device state")
+            zeros = (ctypes.c_uint8 * (self.MAX_INSTANCES * self.INSTANCE_STRIDE))()
+            loader.memcpy_htod(self._device_state, ctypes.cast(zeros, ctypes.c_void_p), ctypes.sizeof(zeros))
+            if os.environ.get("K3D_RPN_DEBUG"):
+                print("[LightweightRPN] GPU path enabled")
+            self._gpu_enabled = True
+        except Exception as exc:
+            # Hard fail: no CPU fallback. Sovereign path must run on GPU.
+            raise RuntimeError(f"[LightweightRPN] GPU path failed: {exc}") from exc
 
     def __del__(self) -> None:
         try:
@@ -139,7 +138,7 @@ class LightweightRPNEngine:
 
         cached = (
             self._cached_result is not None
-            and self._cached_codes_bytes == bytes(self._encode_uint16(op_codes_list))
+            and self._cached_codes_bytes == self._encode_opcodes_bytes(op_codes_list)
             and self._cached_scalars_bytes == self._encode_f32(scalars_list)
             and self._cached_vectors_bytes == self._encode_f32_flat(vectors_list)
         )
@@ -177,7 +176,10 @@ class LightweightRPNEngine:
         scalars: list[float],
         vectors: list[list[float]],
     ) -> float:
-        codes_bytes = bytes(self._encode_uint16(op_codes))
+        # Encode opcodes as uint16 array (PTX expects u16 loads)
+        OpArray = ctypes.c_uint16 * len(op_codes)
+        op_arr = OpArray(*op_codes)
+        codes_bytes = memoryview(op_arr).tobytes(order="C")
         scalars_bytes = self._encode_f32(scalars)
         vectors_bytes = self._encode_f32_flat(vectors)
 
@@ -185,9 +187,21 @@ class LightweightRPNEngine:
         d_scalars = self._ensure_scratch_buffer("scalars", len(scalars_bytes))
         d_vectors = self._ensure_scratch_buffer("vectors", len(vectors_bytes))
 
-        loader.memcpy_htod(d_codes, ctypes.c_void_p(ctypes.addressof(ctypes.create_string_buffer(codes_bytes))), len(codes_bytes))
-        loader.memcpy_htod(d_scalars, ctypes.c_void_p(ctypes.addressof(ctypes.create_string_buffer(scalars_bytes))), len(scalars_bytes))
-        loader.memcpy_htod(d_vectors, ctypes.c_void_p(ctypes.addressof(ctypes.create_string_buffer(vectors_bytes))), len(vectors_bytes))
+        loader.memcpy_htod(
+            d_codes,
+            ctypes.c_void_p(ctypes.addressof(ctypes.create_string_buffer(codes_bytes))),
+            len(codes_bytes),
+        )
+        loader.memcpy_htod(
+            d_scalars,
+            ctypes.c_void_p(ctypes.addressof(ctypes.create_string_buffer(scalars_bytes))),
+            len(scalars_bytes),
+        )
+        loader.memcpy_htod(
+            d_vectors,
+            ctypes.c_void_p(ctypes.addressof(ctypes.create_string_buffer(vectors_bytes))),
+            len(vectors_bytes),
+        )
 
         loader.launch(
             self._kernel,
@@ -243,8 +257,8 @@ class LightweightRPNEngine:
         offset = instance_id * self.INSTANCE_STRIDE
         loader.memcpy_htod(
             loader.CUdeviceptr(int(self._device_state.value + offset)),
-            header_zero.ctypes.data_as(ctypes.c_void_p),
-            header_zero.nbytes,
+            ctypes.cast(header_zero, ctypes.c_void_p),
+            ctypes.sizeof(header_zero),
         )
 
     # ------------------------------------------------------------------ #
@@ -343,11 +357,10 @@ class LightweightRPNEngine:
     # Encoding helpers
     # ------------------------------------------------------------------ #
     @staticmethod
-    def _encode_uint16(values: Iterable[int]) -> list[int]:
-        out: list[int] = []
-        for v in values:
-            out.append(int(v) & 0xFFFF)
-        return out
+    def _encode_opcodes_bytes(values: Iterable[int]) -> bytes:
+        vals = [int(v) & 0xFFFF for v in values]
+        OpArray = ctypes.c_uint16 * len(vals)
+        return memoryview(OpArray(*vals)).tobytes(order="C")
 
     @staticmethod
     def _encode_f32(values: Iterable[float]) -> bytes:

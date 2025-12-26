@@ -5,7 +5,31 @@ Evaluate sovereign math reasoning against benchmarks.
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
+
+
+def _safe_float(s: Any) -> Optional[float]:
+    """Safely convert string to float, handling malformed numbers like '2.7.' or '2...'."""
+    import math
+    try:
+        text = str(s).replace(",", "").strip()
+        # Remove trailing dots
+        while text.endswith("."):
+            text = text[:-1]
+        # Remove multiple consecutive dots
+        while ".." in text:
+            text = text.replace("..", ".")
+        # Remove leading dots (except "0.X" patterns)
+        if text.startswith("."):
+            text = "0" + text
+        if not text:
+            return None
+        val = float(text)
+        if math.isinf(val) or math.isnan(val):
+            return None
+        return val
+    except (ValueError, TypeError, OverflowError):
+        return None
 
 
 class MathBenchmarkEvaluator:
@@ -44,18 +68,30 @@ class MathBenchmarkEvaluator:
         return result
 
     def _evaluate_gsm8k(self, predicted: Any, truth: Any):
-        try:
-            pred_num = float(str(predicted).replace(",", ""))
-            truth_num = float(str(truth).replace(",", ""))
-            if abs(pred_num - truth_num) < self._tolerance:
-                return True, "exact"
-            if truth_num != 0:
-                rel_diff = abs(pred_num - truth_num) / abs(truth_num)
-                if rel_diff < 1e-4:
-                    return True, "numerical"
-            return False, "none"
-        except (ValueError, TypeError):
+        pred_num = _safe_float(predicted)
+        # GSM8K answers are solution text with "#### number" at the end
+        truth_str = str(truth)
+        truth_num = None
+        # Try to extract #### answer
+        hash_match = re.search(r"####\s*([-+]?\d[\d,]*\.?\d*)", truth_str)
+        if hash_match:
+            truth_num = _safe_float(hash_match.group(1))
+        else:
+            # Fallback: try last number in text
+            numbers = re.findall(r"[-+]?\d[\d,]*\.?\d*", truth_str)
+            if numbers:
+                truth_num = _safe_float(numbers[-1])
+            else:
+                truth_num = _safe_float(truth_str)
+        if pred_num is None or truth_num is None:
             return str(predicted) == str(truth), "string"
+        if abs(pred_num - truth_num) < self._tolerance:
+            return True, "exact"
+        if truth_num != 0:
+            rel_diff = abs(pred_num - truth_num) / abs(truth_num)
+            if rel_diff < 1e-4:
+                return True, "numerical"
+        return False, "none"
 
     def _evaluate_math(self, predicted: Any, truth: Any):
         pred_str = str(predicted)
@@ -66,13 +102,11 @@ class MathBenchmarkEvaluator:
         truth_norm = self._normalize_latex(truth_str)
         if pred_norm == truth_norm:
             return True, "exact"
-        try:
-            pred_num = float(pred_norm)
-            truth_num = float(truth_norm)
+        pred_num = _safe_float(pred_norm)
+        truth_num = _safe_float(truth_norm)
+        if pred_num is not None and truth_num is not None:
             if abs(pred_num - truth_num) < self._tolerance:
                 return True, "numerical"
-        except ValueError:
-            pass
         return False, "none"
 
     def _strip_box(self, s: str) -> str:
@@ -93,25 +127,27 @@ class MathBenchmarkEvaluator:
         return False, "none"
 
     def _evaluate_omni(self, predicted: Any, truth: Any):
-        try:
-            pred_num = float(str(predicted))
-            truth_num = float(str(truth))
+        pred_num = _safe_float(predicted)
+        truth_num = _safe_float(truth)
+        if pred_num is not None and truth_num is not None:
             if abs(pred_num - truth_num) < self._tolerance:
                 return True, "numerical"
-        except ValueError:
-            pass
         if str(predicted).strip() == str(truth).strip():
             return True, "exact"
         return False, "none"
 
     def _evaluate_amc(self, predicted: Any, truth: Any):
+        pred_f = _safe_float(predicted)
+        truth_f = _safe_float(truth)
+        if pred_f is None or truth_f is None:
+            return False, "none"
         try:
-            pred_int = int(float(str(predicted)))
-            truth_int = int(float(str(truth)))
+            pred_int = int(pred_f)
+            truth_int = int(truth_f)
             if pred_int % 1000 == truth_int % 1000:
                 return True, "exact"
             return False, "none"
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, OverflowError):
             return False, "none"
 
     def get_metrics(self) -> Dict[str, Any]:

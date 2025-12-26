@@ -13,10 +13,13 @@ import time
 import random
 from unittest import mock
 
-try:
-    import pytest
-except ImportError:
-    pytest = None
+import pytest
+
+# This module is a benchmark suite and requires the optional `pytest-benchmark`
+# plugin. Import-time skipping prevents collection-time fixture errors when the
+# plugin isn't installed (e.g., minimal CI / CPU-only envs).
+pytest.importorskip("pytest_benchmark")
+pytestmark = pytest.mark.benchmark
 
 try:
     from memory_profiler import memory_usage
@@ -190,7 +193,4 @@ def test_action_buffer_contention():
 
 
 if __name__ == '__main__':
-    if pytest:
-        pytest.main([__file__, '--benchmark-only'])
-    else:
-        print("pytest-benchmark not available")
+    pytest.main([__file__, '--benchmark-only'])

@@ -4,7 +4,13 @@ from __future__ import annotations
 
 from typing import List, Sequence
 
-import cupy as cp
+try:
+    import cupy as cp
+
+    _HAS_CUPY = True
+except Exception:  # pragma: no cover - CuPy optional in sovereign path
+    cp = None  # type: ignore
+    _HAS_CUPY = False
 
 from knowledge3d.cranium.bridges.drawing_bridge import DrawingBridge
 from knowledge3d.cranium.ptx_runtime.math_core_pool import MathCorePool, get_global_math_core_pool
@@ -194,6 +200,8 @@ class ARCRPNExecutor:
           ROT90_CW / ROT90, ROT90_CCW, ROT180, FLIP_H, FLIP_V, FLIP_DIAG / TRANSPOSE,
           SCALE_2X, TILE_2X2, RECOLOR old new
         """
+        if not _HAS_CUPY:
+            return None
         tokens = rpn_program.strip().split()
         if not tokens:
             return None

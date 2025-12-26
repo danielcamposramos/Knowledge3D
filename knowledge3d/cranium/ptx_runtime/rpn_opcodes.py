@@ -50,6 +50,7 @@ OP_DROP = 0x34
 OP_MOD = 0x38
 OP_LOG2 = 0x39
 OP_LOG10 = 0x3A
+OP_GTE = 0xDC
 OP_COMPLEX_REAL = 0x3B
 OP_COMPLEX_IMAG = 0x3C
 OP_COMPLEX_CONJ = 0x3D
@@ -99,6 +100,8 @@ OP_GAMMA = 0xAB
 OP_FACTORIAL = 0xAC
 OP_BINOMIAL = 0xAD
 OP_BETA = 0xAE
+OP_GCD = 0xD8
+OP_NEG = 0xDB
 
 # Programmability opcodes (Step 13-E foundations)
 OP_BRANCH = 0xB0
@@ -239,6 +242,7 @@ __all__ = [
     "OP_MOD",
     "OP_LOG2",
     "OP_LOG10",
+    "OP_GTE",
     # Phase 4: Complex helpers
     "OP_COMPLEX_REAL",
     "OP_COMPLEX_IMAG",
@@ -285,6 +289,8 @@ __all__ = [
     "OP_FACTORIAL",
     "OP_BINOMIAL",
     "OP_BETA",
+    "OP_GCD",
+    "OP_NEG",
     # Programmability
     "OP_BRANCH",
     "OP_LOOP",

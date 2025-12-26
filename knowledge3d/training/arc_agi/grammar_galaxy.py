@@ -388,12 +388,19 @@ class GrammarGalaxy:
             self._load_from_snapshot(snapshot)
         self.users = users or default_user_profiles()
         self.variants = variants or default_variants()
-        self.cosine_bridge = CosineSimilarityBridge()
+        # Lazy-init GPU bridge: many call sites (tests, CPU tooling) only need the
+        # word-sequence matcher and should not require CUDA availability.
+        self.cosine_bridge: Optional[CosineSimilarityBridge] = None
         self._local_discoveries: Dict[str, Dict] = {}
         self._discovery_threshold = 0.6
         self._promotion_threshold = 0.7
         self._min_usage_for_promotion = 3
         self._current_epoch = 0
+
+    def _get_cosine_bridge(self) -> CosineSimilarityBridge:
+        if self.cosine_bridge is None:
+            self.cosine_bridge = CosineSimilarityBridge()
+        return self.cosine_bridge
 
     def get_rule(self, rule_id: str) -> GrammarRule:
         if rule_id not in self.rules:
@@ -455,7 +462,7 @@ class GrammarGalaxy:
         if not visual_embedding or not text_embedding:
             return None
 
-        scores = self.cosine_bridge.compute_similarities([visual_embedding], text_embedding)
+        scores = self._get_cosine_bridge().compute_similarities([visual_embedding], text_embedding)
         correlation = scores[0] if scores else 0.0
 
         if correlation >= self._discovery_threshold:
@@ -557,11 +564,11 @@ class GrammarGalaxy:
             rule_emb = self._get_rule_embedding(rule)
             if not rule_emb:
                 continue
-            sim = self.cosine_bridge.compute_similarities([embedding], rule_emb)[0]
+            sim = self._get_cosine_bridge().compute_similarities([embedding], rule_emb)[0]
             scores.append((rule_id, sim))
 
         for rule_id, rule_data in self._local_discoveries.items():
-            sim = self.cosine_bridge.compute_similarities([embedding], rule_data["embedding"])[0]
+            sim = self._get_cosine_bridge().compute_similarities([embedding], rule_data["embedding"])[0]
             scores.append((rule_id, sim))
 
         scores.sort(key=lambda x: -x[1])
@@ -707,6 +714,217 @@ class GrammarGalaxy:
             merged += 1
             self._try_promote(rule_id)
         return merged
+
+    # ------------------------------------------------------------------ #
+    # Galaxy-based word-sequence matching ("reading")
+    # ------------------------------------------------------------------ #
+    def match_word_sequence(self, word_entries: List[object], *, extra_rules: Optional[List[GrammarRule]] = None) -> List[Dict]:
+        """
+        Match grammar rules against a sequence of WordEntry-like objects.
+
+        This supports Galaxy-aligned reading rules which store a "word_sequence"
+        pattern inside `rule.semantics`:
+
+        - semantics["pattern_type"] == "word_sequence"
+        - semantics["word_pattern"] == List[Dict] describing token constraints
+        """
+        rules = list(self.rules.values())
+        if extra_rules:
+            rules.extend(extra_rules)
+
+        matches: List[Dict] = []
+        for rule in rules:
+            semantics = getattr(rule, "semantics", {}) or {}
+            if semantics.get("pattern_type") != "word_sequence":
+                continue
+            pattern = semantics.get("word_pattern")
+            if not isinstance(pattern, list) or not pattern:
+                continue
+            captures = semantics.get("captures", {})
+            match_mode = semantics.get("match_mode", "window")
+            if match_mode == "subsequence":
+                max_skip = int(semantics.get("max_skip", 2))
+                skip_categories = semantics.get("skip_categories", ["stopword", "symbol"])
+                found = _match_word_pattern_subsequence(
+                    word_entries,
+                    pattern,
+                    max_skip=max(0, max_skip),
+                    skip_categories={str(c).lower() for c in (skip_categories or [])},
+                )
+            else:
+                found = _match_word_pattern(word_entries, pattern)
+
+            for m in found:
+                score = float(len(pattern))
+                matches.append(
+                    {
+                        "rule": rule,
+                        "captures": m.get("captures", {}),
+                        "start": m.get("start"),
+                        "end": m.get("end"),
+                        "score": score,
+                        "pattern": pattern,
+                        "capture_schema": captures,
+                    }
+                )
+        matches.sort(key=lambda x: x.get("score", 0.0), reverse=True)
+        return matches
+
+
+def _match_word_pattern(word_entries: List[object], word_pattern: List[Dict]) -> List[Dict[str, object]]:
+    """
+    Sliding-window matcher for a word_pattern over WordEntry-like tokens.
+
+    Each WordEntry is expected to expose `.normalized` (lowercase token),
+    `.category`, and optionally `.value` and `.rpn_literal`.
+    """
+    results: List[Dict[str, object]] = []
+    n = len(word_entries)
+    m = len(word_pattern)
+    if m == 0 or n == 0 or m > n:
+        return results
+
+    for start in range(0, n - m + 1):
+        captures: Dict[str, object] = {}
+        ok = True
+        for offset, constraint in enumerate(word_pattern):
+            entry = word_entries[start + offset]
+            normalized = getattr(entry, "normalized", "").lower()
+            category = getattr(entry, "category", "")
+
+            word_eq = constraint.get("word")
+            if isinstance(word_eq, str) and normalized != word_eq.lower():
+                ok = False
+                break
+
+            word_in = constraint.get("word_in")
+            if isinstance(word_in, list) and normalized not in {str(w).lower() for w in word_in}:
+                ok = False
+                break
+
+            cat = constraint.get("category")
+            if isinstance(cat, str) and category != cat:
+                ok = False
+                break
+            cat_in = constraint.get("category_in")
+            if isinstance(cat_in, list) and category not in {str(c).lower() for c in cat_in}:
+                ok = False
+                break
+
+            capture = constraint.get("capture")
+            if isinstance(capture, str) and capture:
+                value = getattr(entry, "value", None)
+                rpn_literal = getattr(entry, "rpn_literal", None)
+                captures[capture] = {
+                    "token": getattr(entry, "token", ""),
+                    "normalized": normalized,
+                    "category": category,
+                    "value": value,
+                    "rpn_literal": rpn_literal,
+                }
+
+        if ok:
+            results.append({"captures": captures, "start": start, "end": start + m})
+
+    return results
+
+
+def _match_word_pattern_subsequence(
+    word_entries: List[object],
+    word_pattern: List[Dict],
+    *,
+    max_skip: int,
+    skip_categories: set[str],
+) -> List[Dict[str, object]]:
+    """
+    Match `word_pattern` as an in-order subsequence within a limited skip budget.
+
+    This improves robustness for patterns like "gave 3 apples to" where a noun
+    may appear between the amount and the preposition.
+    """
+    results: List[Dict[str, object]] = []
+    seen: set[tuple] = set()
+    n = len(word_entries)
+    m = len(word_pattern)
+    if m == 0 or n == 0:
+        return results
+
+    for start in range(n):
+        captures: Dict[str, object] = {}
+        idx = start
+        consumed_start: Optional[int] = None
+        consumed_end: Optional[int] = None
+        ok = True
+
+        for constraint in word_pattern:
+            skips = 0
+            matched = False
+            while idx < n:
+                entry = word_entries[idx]
+                normalized = getattr(entry, "normalized", "").lower()
+                category = str(getattr(entry, "category", "")).lower()
+
+                # Try to match constraint at this position.
+                word_eq = constraint.get("word")
+                word_in = constraint.get("word_in")
+                cat = constraint.get("category")
+                cat_in = constraint.get("category_in")
+
+                word_ok = True
+                if isinstance(word_eq, str):
+                    word_ok = normalized == word_eq.lower()
+                if isinstance(word_in, list):
+                    word_ok = normalized in {str(w).lower() for w in word_in}
+
+                cat_ok = True
+                if isinstance(cat, str):
+                    cat_ok = category == cat.lower()
+                if isinstance(cat_in, list):
+                    cat_ok = category in {str(c).lower() for c in cat_in}
+
+                if word_ok and cat_ok:
+                    capture = constraint.get("capture")
+                    if isinstance(capture, str) and capture:
+                        value = getattr(entry, "value", None)
+                        rpn_literal = getattr(entry, "rpn_literal", None)
+                        captures[capture] = {
+                            "token": getattr(entry, "token", ""),
+                            "normalized": normalized,
+                            "category": category,
+                            "value": value,
+                            "rpn_literal": rpn_literal,
+                        }
+                    matched = True
+                    if consumed_start is None:
+                        consumed_start = idx
+                    consumed_end = idx + 1
+                    idx += 1
+                    break
+
+                # Not matched: decide whether we can skip this token.
+                if category in skip_categories and skips < max_skip:
+                    skips += 1
+                    idx += 1
+                    continue
+
+                # Cannot skip further: fail this start.
+                ok = False
+                break
+
+            if not ok or not matched:
+                ok = False
+                break
+
+        if ok and consumed_start is not None and consumed_end is not None:
+            # Deduplicate identical matches that can be found from multiple start offsets.
+            cap_key = tuple(sorted((k, str(v.get("normalized", "")), str(v.get("value", ""))) for k, v in captures.items()))
+            key = (consumed_start, consumed_end, cap_key)
+            if key in seen:
+                continue
+            seen.add(key)
+            results.append({"captures": captures, "start": consumed_start, "end": consumed_end})
+
+    return results
 
     # ------------------------------------------------------------------ #
     # Introspection helpers

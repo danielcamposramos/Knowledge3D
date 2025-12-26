@@ -10,6 +10,7 @@ import json
 import re
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
+import re
 
 MATH_DATASETS = {
     "gsm8k": Path("/K3D/K3D_llama_cpp/datasets/GSM8K/grade_school_math/data"),
@@ -45,11 +46,20 @@ class MathProceduralizer:
         """
         text = problem.get("question", problem.get("problem", ""))
         solution = problem.get("answer", problem.get("solution", ""))
+        source = problem.get("source", "unknown")
 
         quantities = self._extract_quantities(text)
         operations = self._extract_operations(text)
 
         problem_rpn = self._build_problem_rpn(quantities, operations)
+
+        # Executable RPN extracted from solution when present (source-specific)
+        solution_rpn_str = ""
+        if source == "gsm8k" or ("<<" in str(solution) and ">>" in str(solution)):
+            solution_rpn_str = self._parse_gsm8k_solution(str(solution))
+        elif source in ("math", "omni_math") or "\\boxed" in str(solution):
+            solution_rpn_str = self._parse_math_solution(str(solution))
+
         solution_rpn = self._parse_solution(solution) if solution else []
         answer = self._extract_answer(solution)
 
@@ -58,11 +68,12 @@ class MathProceduralizer:
             "source": problem.get("source", "unknown"),
             "difficulty": problem.get("level", problem.get("difficulty", 5)),
             "problem_rpn": problem_rpn,
-            "solution_rpn": solution_rpn,
+            "solution_rpn": solution_rpn_str,
             "answer": answer,
             "metadata": {
                 "original_text": text,
                 "original_solution": solution,
+                "solution_rpn": solution_rpn_str,
                 "quantities_found": quantities,
                 "operations_implied": operations,
             },
@@ -135,6 +146,147 @@ class MathProceduralizer:
             except ValueError:
                 return numbers[-1]
         return None
+
+    def _parse_gsm8k_solution(self, solution: str) -> str:
+        """
+        Enhanced GSM8K parser with better multi-step coverage.
+        """
+        calc_pattern = r"<<([^=]+)=([^>]+)>>"
+        calculations = re.findall(calc_pattern, solution)
+
+        rpn_steps: List[str] = []
+        for expr, _ in calculations:
+            expr = expr.strip()
+            if "%" in expr:
+                expr = self._handle_percentage(expr)
+            rpn = self._infix_to_rpn(expr)
+            if rpn:
+                rpn_steps.append(rpn)
+
+        # Inline calculations without markers (fallback)
+        if not rpn_steps:
+            inline_pattern = r"(\d+(?:\.\d+)?)\s*([+\-*/×÷])\s*(\d+(?:\.\d+)?)\s*=\s*(\d+(?:\.\d+)?)"
+            inline_calcs = re.findall(inline_pattern, solution)
+            for a, op, b, _ in inline_calcs:
+                op_map = {"+": "+", "-": "-", "*": "*", "/": "/", "×": "*", "÷": "/"}
+                rpn_steps.append(f"{a} {b} {op_map.get(op, '+')}")
+
+        return " ".join(rpn_steps)
+
+    def _handle_percentage(self, expr: str) -> str:
+        """Convert percentage expressions."""
+        pct_of = re.match(r"(\d+(?:\.\d+)?)\s*%\s*(?:of)?\s*(\d+(?:\.\d+)?)", expr)
+        if pct_of:
+            pct, base = pct_of.groups()
+            return f"{base} {pct} * 100 /"
+        return expr
+
+    def _parse_math_solution(self, solution: str) -> str:
+        """
+        Parse MATH/Omni-MATH LaTeX solutions into executable RPN.
+        """
+        math_pattern = r"\$+([^$]+)\$+"
+        math_exprs = re.findall(math_pattern, solution)
+
+        rpn_parts: List[str] = []
+        for expr in math_exprs:
+            rpn = self._latex_to_rpn(expr)
+            if rpn:
+                rpn_parts.append(rpn)
+
+        return " ".join(rpn_parts) if rpn_parts else ""
+
+    def _latex_to_rpn(self, latex: str) -> str:
+        """
+        Convert LaTeX math expression to RPN.
+
+        Handles +,-,*,/, fractions, powers, roots, boxed answers.
+        """
+        latex = latex.strip()
+
+        boxed = re.search(r"\\\\boxed\\{([^}]+)\\}", latex)
+        if boxed:
+            latex = boxed.group(1)
+
+        while "\\\\binom" in latex:
+            latex = re.sub(r"\\\\binom\\{([^}]+)\\}\\{([^}]+)\\}", r"((\\1)! (\\2)! (\\1-\\2)! / )", latex, count=1)
+
+        while "\\\\frac" in latex:
+            latex = re.sub(r"\\\\frac\\{([^}]+)\\}\\{([^}]+)\\}", r"((\\1)/(\\2))", latex, count=1)
+
+        latex = re.sub(r"\\sqrt\[([^\]]+)\]\{([^}]+)\}", r"((\\2) 1 \\1 / ^)", latex)
+        latex = re.sub(r"\\sqrt\{([^}]+)\}", r"((\\1) sqrt)", latex)
+        latex = re.sub(r"(\\d+)\\^\\{([^}]+)\\}", r"(\\1 \\2 ^)", latex)
+        latex = re.sub(r"(\\d+)\\^(\\d+)", r"(\\1 \\2 ^)", latex)
+
+        latex = latex.replace("!", " ! ")
+        latex = latex.replace("\\\\sin", "sin").replace("\\\\cos", "cos").replace("\\\\tan", "tan")
+        latex = latex.replace("\\\\log", "log").replace("\\\\ln", "ln")
+        latex = latex.replace("\\\\mod", "mod").replace("\\\\bmod", "mod")
+
+        latex = re.sub(r"\\\\[a-zA-Z]+", "", latex)
+        return self._infix_to_rpn(latex)
+
+    def _infix_to_rpn(self, expr: str) -> str:
+        """
+        Convert infix expression to RPN with proper precedence.
+
+        Handles:
+            - Single ops: "48/2" -> "48 2 /"
+            - Chains: "100-50-30-15" -> "100 50 - 30 - 15 -"
+            - Mixed: "12/60*50" -> "12 60 / 50 *"
+            - Parentheses: "(2+3)*4" -> "2 3 + 4 *"
+        """
+        expr = expr.replace("x", "*").replace("×", "*").replace("÷", "/")
+
+        token_pattern = r"(\d+\.?\d*|sin|cos|tan|log|ln|sqrt|abs|mod|[+\-*/()^!])"
+        tokens = re.findall(token_pattern, expr)
+        if not tokens:
+            return ""
+
+        output: List[str] = []
+        op_stack: List[str] = []
+        precedence = {"+": 1, "-": 1, "*": 2, "/": 2, "^": 3, "!": 4}
+        right_assoc = {"^"}
+        functions = {"sin", "cos", "tan", "log", "ln", "sqrt", "abs", "mod"}
+
+        num_pattern = re.compile(r"\d+\.?\d*")
+
+        for token in tokens:
+            if num_pattern.match(token):
+                output.append(token)
+            elif token in functions:
+                op_stack.append(token)
+            elif token in precedence:
+                while (
+                    op_stack
+                    and op_stack[-1] != "("
+                    and (op_stack[-1] in precedence or op_stack[-1] in functions)
+                    and (
+                        (op_stack[-1] in precedence and precedence[op_stack[-1]] > precedence[token])
+                        or (
+                            op_stack[-1] in precedence
+                            and precedence[op_stack[-1]] == precedence[token]
+                            and token not in right_assoc
+                        )
+                    )
+                ):
+                    output.append(op_stack.pop())
+                op_stack.append(token)
+            elif token == "(":
+                op_stack.append(token)
+            elif token == ")":
+                while op_stack and op_stack[-1] != "(":
+                    output.append(op_stack.pop())
+                if op_stack and op_stack[-1] == "(":
+                    op_stack.pop()
+                if op_stack and op_stack[-1] in functions:
+                    output.append(op_stack.pop())
+
+        while op_stack:
+            output.append(op_stack.pop())
+
+        return " ".join(output)
 
 
 class MathDatasetLoader:

@@ -21,10 +21,11 @@ class ContentDeduplicator:
         self.usage_metadata: Dict[str, List[Dict]] = {}
 
     @staticmethod
-    def compute_hash(program: str) -> str:
-        """Compute SHA256 hash of normalized RPN program."""
+    def compute_hash(program: str, *, dedupe_key: str = "") -> str:
+        """Compute SHA256 hash of normalized RPN program, optionally salted by a dedupe key."""
         normalized = " ".join(program.split())
-        return hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:16]
+        payload = normalized if not dedupe_key else f"{normalized}||{dedupe_key}"
+        return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
 
     def add_or_reference(
         self,
@@ -33,6 +34,7 @@ class ContentDeduplicator:
         program_type: str,
         score: float,
         context: Optional[Dict] = None,
+        dedupe_key: str = "",
     ) -> Tuple[str, bool]:
         """
         Add a program to the canonical set or reference an existing one.
@@ -42,7 +44,7 @@ class ContentDeduplicator:
         Returns:
             (canonical_hash, is_new)
         """
-        prog_hash = self.compute_hash(program)
+        prog_hash = self.compute_hash(program, dedupe_key=dedupe_key)
 
         if prog_hash in self.canonical_programs:
             # SOVEREIGN FIX: Aggregate stats instead of storing every reference!
