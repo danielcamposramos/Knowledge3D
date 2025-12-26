@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 from typing import Any, Dict
+import math
 
 
 class MathOutputAdapter:
@@ -28,6 +29,8 @@ class MathOutputAdapter:
     def _format_for_benchmark(self, answer: Any, source: str) -> str:
         if answer is None:
             return ""
+        if isinstance(answer, float) and (math.isinf(answer) or math.isnan(answer)):
+            return ""
         if source == "gsm8k":
             return str(self._to_number(answer))
         if source == "math":
@@ -45,10 +48,16 @@ class MathOutputAdapter:
 
     def _to_number(self, value: Any):
         if isinstance(value, (int, float)):
-            return float(value)
+            f = float(value)
+            if math.isinf(f) or math.isnan(f):
+                return None
+            return f
         if isinstance(value, str):
             try:
-                return float(value.replace(",", ""))
+                f = float(value.replace(",", ""))
+                if math.isinf(f) or math.isnan(f):
+                    return None
+                return f
             except ValueError:
                 return None
         return None

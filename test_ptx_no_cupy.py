@@ -1,79 +1,87 @@
 #!/usr/bin/env python3
 """Test PTX loading without CuPy interference"""
 
-import os
-import ctypes
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+def main() -> int:
+    import os
+    import ctypes
 
-from knowledge3d.cranium.codecs.ptx_bindings.ternary_mdct_binding import _load_cuda, MDCT_KERNEL_SRC
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
-cuda, nvrtc = _load_cuda()
+    from knowledge3d.cranium.codecs.ptx_bindings.ternary_mdct_binding import (
+        MDCT_KERNEL_SRC,
+        _load_cuda,
+    )
 
-print("Step 1: cuInit")
-err, = cuda.cuInit(0)
-print(f"  cuInit: {err}")
+    cuda, nvrtc = _load_cuda()
 
-print("\nStep 2: Get device")
-err, dev = cuda.cuDeviceGet(0)
-print(f"  cuDeviceGet: {err}, dev={dev}")
+    print("Step 1: cuInit")
+    (err,) = cuda.cuInit(0)
+    print(f"  cuInit: {err}")
 
-print("\nStep 3: Create context (using cuCtxCreate, not cuDevicePrimaryCtxRetain)")
-err, ctx = cuda.cuCtxCreate(0, dev)
-print(f"  cuCtxCreate: {err}, ctx={ctx}")
+    print("\nStep 2: Get device")
+    err, dev = cuda.cuDeviceGet(0)
+    print(f"  cuDeviceGet: {err}, dev={dev}")
 
-if err != cuda.CUresult.CUDA_SUCCESS:
-    print("  Failed! Trying cuDevicePrimaryCtxRetain...")
-    err, ctx = cuda.cuDevicePrimaryCtxRetain(dev)
-    print(f"  cuDevicePrimaryCtxRetain: {err}, ctx={ctx}")
+    print("\nStep 3: Create context (using cuCtxCreate, not cuDevicePrimaryCtxRetain)")
+    err, ctx = cuda.cuCtxCreate(0, dev)
+    print(f"  cuCtxCreate: {err}, ctx={ctx}")
 
-    err, = cuda.cuCtxSetCurrent(ctx)
-    print(f"  cuCtxSetCurrent: {err}")
+    if err != cuda.CUresult.CUDA_SUCCESS:
+        print("  Failed! Trying cuDevicePrimaryCtxRetain...")
+        err, ctx = cuda.cuDevicePrimaryCtxRetain(dev)
+        print(f"  cuDevicePrimaryCtxRetain: {err}, ctx={ctx}")
 
-print("\nStep 4: Get compute capability")
-maj_attr = cuda.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR
-min_attr = cuda.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR
-err, maj = cuda.cuDeviceGetAttribute(maj_attr, dev)
-err2, minu = cuda.cuDeviceGetAttribute(min_attr, dev)
-print(f"  Compute capability: {maj}.{minu}")
+        (err,) = cuda.cuCtxSetCurrent(ctx)
+        print(f"  cuCtxSetCurrent: {err}")
 
-print("\nStep 5: Compile PTX")
-res, prog = nvrtc.nvrtcCreateProgram(MDCT_KERNEL_SRC.encode("utf-8"), b"mdct.cu", 0, [], [])
-print(f"  nvrtcCreateProgram: {res}")
+    print("\nStep 4: Get compute capability")
+    maj_attr = cuda.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR
+    min_attr = cuda.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR
+    err, maj = cuda.cuDeviceGetAttribute(maj_attr, dev)
+    err2, minu = cuda.cuDeviceGetAttribute(min_attr, dev)
+    print(f"  Compute capability: {maj}.{minu}")
 
-arch = f"--gpu-architecture=compute_{maj}{minu}".encode("utf-8")
-opts = [arch, b"--fmad=false"]
-print(f"  Compile options: {[o.decode() for o in opts]}")
+    print("\nStep 5: Compile PTX")
+    res, prog = nvrtc.nvrtcCreateProgram(
+        MDCT_KERNEL_SRC.encode("utf-8"), b"mdct.cu", 0, [], []
+    )
+    print(f"  nvrtcCreateProgram: {res}")
 
-res, = nvrtc.nvrtcCompileProgram(prog, len(opts), opts)
-print(f"  nvrtcCompileProgram: {res}")
+    arch = f"--gpu-architecture=compute_{maj}{minu}".encode("utf-8")
+    opts = [arch, b"--fmad=false"]
+    print(f"  Compile options: {[o.decode() for o in opts]}")
 
-if res != nvrtc.nvrtcResult.NVRTC_SUCCESS:
-    log_size_res, log_size = nvrtc.nvrtcGetProgramLogSize(prog)
-    if log_size_res == nvrtc.nvrtcResult.NVRTC_SUCCESS and log_size > 1:
-        buf = bytearray(log_size)
-        nvrtc.nvrtcGetProgramLog(prog, buf)
-        print(f"  Compilation log:\n{buf.decode('utf-8', errors='replace')}")
-    raise RuntimeError("Compilation failed")
+    (res,) = nvrtc.nvrtcCompileProgram(prog, len(opts), opts)
+    print(f"  nvrtcCompileProgram: {res}")
 
-res, ptx_size = nvrtc.nvrtcGetPTXSize(prog)
-print(f"  PTX size: {ptx_size} bytes")
+    if res != nvrtc.nvrtcResult.NVRTC_SUCCESS:
+        log_size_res, log_size = nvrtc.nvrtcGetProgramLogSize(prog)
+        if log_size_res == nvrtc.nvrtcResult.NVRTC_SUCCESS and log_size > 1:
+            buf = bytearray(log_size)
+            nvrtc.nvrtcGetProgramLog(prog, buf)
+            print(f"  Compilation log:\n{buf.decode('utf-8', errors='replace')}")
+        raise RuntimeError("Compilation failed")
 
-buf = bytearray(ptx_size)
-res, = nvrtc.nvrtcGetPTX(prog, buf)
-nvrtc.nvrtcDestroyProgram(prog)
+    res, ptx_size = nvrtc.nvrtcGetPTXSize(prog)
+    print(f"  PTX size: {ptx_size} bytes")
 
-print("\nStep 6: Load PTX into module")
-err, module = cuda.cuModuleLoadData(bytes(buf))
-print(f"  cuModuleLoadData: error={err}")
+    buf = bytearray(ptx_size)
+    (res,) = nvrtc.nvrtcGetPTX(prog, buf)
+    nvrtc.nvrtcDestroyProgram(prog)
 
-if err != cuda.CUresult.CUDA_SUCCESS:
-    # Get error name
-    err_str = ctypes.c_char_p()
-    if cuda.cuGetErrorString(err, ctypes.byref(err_str)) == 0:
-        print(f"  Error string: {err_str.value.decode()}")
-    else:
-        print(f"  Error code: {err}")
-else:
+    print("\nStep 6: Load PTX into module")
+    err, module = cuda.cuModuleLoadData(bytes(buf))
+    print(f"  cuModuleLoadData: error={err}")
+
+    if err != cuda.CUresult.CUDA_SUCCESS:
+        # Get error name
+        err_str = ctypes.c_char_p()
+        if cuda.cuGetErrorString(err, ctypes.byref(err_str)) == 0:
+            print(f"  Error string: {err_str.value.decode()}")
+        else:
+            print(f"  Error code: {err}")
+        return 1
+
     print("  ✓ PTX loaded successfully!")
 
     print("\nStep 7: Get function")
@@ -81,3 +89,10 @@ else:
     print(f"  cuModuleGetFunction: error={err}")
     if err == cuda.CUresult.CUDA_SUCCESS:
         print(f"  ✓ Function retrieved: {func}")
+        return 0
+
+    return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

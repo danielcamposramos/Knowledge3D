@@ -11,19 +11,93 @@ import random
 import os
 import sys
 from unittest import mock
+from importlib.util import find_spec
 
-try:
-    import cupy as _cp
+def _module_available(module_name: str) -> bool:
+    return find_spec(module_name) is not None
 
-    def _cuda_context_available() -> bool:
+
+_HAS_CUPY = _module_available("cupy")
+
+# Avoid importing CuPy / touching CUDA at import-time, which can trigger GPU
+# allocations, driver init, or segfaults in constrained environments.
+# Enable explicitly when needed:
+#   K3D_PYTEST_PROBE_CUDA=1 pytest -q
+if os.environ.get("K3D_PYTEST_PROBE_CUDA") == "1" and _HAS_CUPY:
+    try:
+        import cupy as _cp
+
         try:
             _cp.cuda.Device(0).compute_capability
-            return True
+            _HAS_CUDA = True
         except Exception:
-            return False
-except Exception:
-    def _cuda_context_available() -> bool:
+            _HAS_CUDA = False
+    except Exception:
+        _HAS_CUDA = False
+else:
+    _HAS_CUDA = False
+
+_HAS_CV2 = _module_available("cv2")
+_HAS_SOUNDFILE = _module_available("soundfile")
+_HAS_WIKIPEDIAAPI = _module_available("wikipediaapi")
+
+
+def _cuda_context_available() -> bool:
+    """
+    Return True if a CUDA context can be created in this pytest process.
+
+    Defaults to False unless the test harness explicitly enables probing via
+    `K3D_PYTEST_PROBE_CUDA=1`, to avoid import-time driver initialization.
+    """
+    if not (_HAS_CUPY and _HAS_CUDA):
         return False
+    try:
+        import cupy as _cp
+
+        _cp.cuda.Device(0).compute_capability
+        return True
+    except Exception:
+        return False
+
+
+def pytest_ignore_collect(collection_path, config):  # type: ignore[override]
+    """
+    Skip optional-dependency test modules when the dependency isn't available.
+
+    This keeps `pytest -q` runnable in CPU-only / minimal environments while
+    still allowing the full suite inside the canonical k3d GPU env.
+    """
+    path_str = str(collection_path)
+
+    # GPU / CuPy-only tests.
+    if not (_HAS_CUPY and _HAS_CUDA):
+        cupy_required = (
+            "knowledge3d/cranium/tests/test_gpu_kernels.py",
+            "knowledge3d/cranium/tests/test_latency_guard.py",
+            "knowledge3d/cranium/tests/test_trm_core.py",
+            "knowledge3d/cranium/tests/test_trm_engine.py",
+            "tests/test_adaptive_convergence.py",
+            "tests/test_alpha_optimizers.py",
+            "tests/test_bridge_threshold.py",
+            "tests/test_led_warp_regression.py",
+            "tests/test_multi_modal_confidence.py",
+            "tests/test_phase3_complete.py",
+            "tests/test_phase3_domain_splitting.py",
+            "tests/test_ptx_modality_ops.py",
+            "tests/test_sleep_time_compute_compat.py",
+        )
+        if any(p in path_str for p in cupy_required):
+            return True
+
+    # Optional deps: audio / vision / wikipedia ingestion.
+    if not _HAS_SOUNDFILE and "tests/test_step15_audio_sovereign.py" in path_str:
+        return True
+    if not _HAS_CV2 and "tests/test_step15_visual_sovereign.py" in path_str:
+        return True
+    if not _HAS_WIKIPEDIAAPI and "tests/test_step15_wikipedia_benchmark.py" in path_str:
+        return True
+
+    return False
 
 # Add project root to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))

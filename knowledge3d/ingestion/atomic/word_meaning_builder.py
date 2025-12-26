@@ -104,6 +104,17 @@ def build_word_stars(words_jsonl: Path) -> List[Dict]:
                     "position": idx,
                 }
             )
+        # Ensure at least one letter ref for basic indexing/debugging even when
+        # morpheme/syllable coverage spans the entire word.
+        if not letter_refs and spelling:
+            ch = spelling[0]
+            letter_refs.append(
+                {
+                    "letter_concept": _letter_concept(ch),
+                    "case": _case_for_position(0, spelling, lang, is_proper),
+                    "position": 0,
+                }
+            )
         procedural_programs = {
             "meaning_rpn": star.get("meaning_program"),
             "morphological_rpn": star.get("morph_rpn"),

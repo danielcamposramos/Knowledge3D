@@ -2511,6 +2511,126 @@ extern "C" __global__ void modular_rpn_kernel_extended(
                 push_tensor(stack, stack_size, assignments, n_vectors_i, 1, error_code);
                 break;
             }
+            // ====================================================================
+            // EXTENDED MATH OPS: gamma, factorial, binomial, beta
+            // ====================================================================
+            case 0xAB: {  // gamma - Gamma function Γ(x)
+                float x = 0.0f;
+                if (!pop_scalar(stack, stack_size, x, error_code)) break;
+                if (x <= 0.0f) {
+                    error_code = kErrorInvalidArgument;
+                    break;
+                }
+                // Lanczos approximation (g=7, n=9)
+                const float g = 7.0f;
+                const float c[9] = {
+                    0.99999999999980993f,
+                    676.5203681218851f,
+                    -1259.1392167224028f,
+                    771.32342877765313f,
+                    -176.61502916214059f,
+                    12.507343278686905f,
+                    -0.13857109526572012f,
+                    9.9843695780195716e-6f,
+                    1.5056327351493116e-7f};
+                float z = x - 1.0f;
+                float sum = c[0];
+                #pragma unroll
+                for (int i = 1; i < 9; ++i) {
+                    sum += c[i] / (z + (float)i);
+                }
+                float t = z + g + 0.5f;
+                float result = sqrtf(2.0f * 3.14159265358979323846f) * powf(t, z + 0.5f) * expf(-t) * sum;
+                push_scalar(stack, stack_size, result, error_code);
+                break;
+            }
+            case 0xAC: {  // factorial - n!
+                float n_f = 0.0f;
+                if (!pop_scalar(stack, stack_size, n_f, error_code)) break;
+                int n = (int)n_f;
+                if (n < 0) {
+                    error_code = kErrorInvalidArgument;
+                    break;
+                }
+                float result = 1.0f;
+                if (n <= 12) {
+                    for (int i = 2; i <= n; ++i) {
+                        result *= (float)i;
+                    }
+                } else {
+                    float nf = (float)n;
+                    result = sqrtf(2.0f * 3.14159265358979323846f * nf) * powf(nf / 2.718281828459045f, nf);
+                }
+                push_scalar(stack, stack_size, result, error_code);
+                break;
+            }
+            case 0xAD: {  // binomial - (n choose k)
+                float k_f = 0.0f;
+                float n_f = 0.0f;
+                if (!pop_scalar(stack, stack_size, k_f, error_code)) break;
+                if (!pop_scalar(stack, stack_size, n_f, error_code)) break;
+                int n = (int)n_f;
+                int k = (int)k_f;
+                if (n < 0 || k < 0) {
+                    error_code = kErrorInvalidArgument;
+                    break;
+                }
+                if (k > n) {
+                    push_scalar(stack, stack_size, 0.0f, error_code);
+                    break;
+                }
+                if (k > n - k) {
+                    k = n - k;
+                }
+                float result = 1.0f;
+                for (int i = 0; i < k; ++i) {
+                    result = result * (float)(n - i) / (float)(i + 1);
+                }
+                push_scalar(stack, stack_size, result, error_code);
+                break;
+            }
+            case 0xAE: {  // beta - B(a,b) = Γ(a)Γ(b)/Γ(a+b)
+                float b = 0.0f;
+                float a = 0.0f;
+                if (!pop_scalar(stack, stack_size, b, error_code)) break;
+                if (!pop_scalar(stack, stack_size, a, error_code)) break;
+                if (a <= 0.0f || b <= 0.0f) {
+                    error_code = kErrorInvalidArgument;
+                    break;
+                }
+                float result = expf(lgammaf(a) + lgammaf(b) - lgammaf(a + b));
+                push_scalar(stack, stack_size, result, error_code);
+                break;
+            }
+            case 0xD8: {  // GCD - Euclidean algorithm
+                float b_f = 0.0f;
+                float a_f = 0.0f;
+                if (!pop_scalar(stack, stack_size, b_f, error_code)) break;
+                if (!pop_scalar(stack, stack_size, a_f, error_code)) break;
+                int a = (int)fabsf(a_f);
+                int b = (int)fabsf(b_f);
+                while (b != 0) {
+                    int t = b;
+                    b = a % b;
+                    a = t;
+                }
+                push_scalar(stack, stack_size, (float)a, error_code);
+                break;
+            }
+            case 0xDB: {  // NEG - negate
+                float x = 0.0f;
+                if (!pop_scalar(stack, stack_size, x, error_code)) break;
+                push_scalar(stack, stack_size, -x, error_code);
+                break;
+            }
+            case 0xDC: {  // GTE - greater than or equal
+                float rhs = 0.0f;
+                float lhs = 0.0f;
+                if (!pop_scalar(stack, stack_size, rhs, error_code)) break;
+                if (!pop_scalar(stack, stack_size, lhs, error_code)) break;
+                push_scalar(stack, stack_size, lhs >= rhs ? 1.0f : 0.0f, error_code);
+                break;
+            }
             default:
                 error_code = kErrorUnknownOpcode;
                 break;
