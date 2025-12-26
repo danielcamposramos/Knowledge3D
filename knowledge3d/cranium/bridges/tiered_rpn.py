@@ -57,6 +57,7 @@ class TieredRPNEngine:
         self._tier1_cache_key: Optional[tuple[int, int, int]] = None
         self._tier1_cache_value: Optional[float] = None
         self._tier_counts = {1: 0, 2: 0, 3: 0}
+        self._tier1_fallback_count = 0  # Count of Tier-1 -> Tier-2 fallbacks due to empty stack
         self._codec_ops: Optional[TernaryCodecOps] = None
         self._ternary_kernels: Optional[dict] = None
 
@@ -91,10 +92,23 @@ class TieredRPNEngine:
             elif previous == 3:
                 self._tier3.reset_instance(instance_id)
         if tier == 1:
-            result = self._tier1.execute_single(instance_id, op_codes, scalars, vectors)
-            self._tier_counts[1] += 1
-            self._last_tier[instance_id] = tier
-            return float(result)
+            try:
+                result = self._tier1.execute_single(instance_id, op_codes, scalars, vectors)
+                self._tier_counts[1] += 1
+                self._last_tier[instance_id] = tier
+                return float(result)
+            except RuntimeError as e:
+                if "empty stack" in str(e).lower():
+                    # Tier-1 failed with empty stack - retry on Tier-2
+                    self._tier1.reset_instance(instance_id)
+                    result = self._tier2.execute_single(
+                        instance_id, list(op_codes), list(scalars), list(vectors)
+                    )
+                    self._last_tier[instance_id] = 2
+                    self._tier_counts[2] += 1
+                    self._tier1_fallback_count += 1
+                    return float(result)
+                raise
         elif tier == 2:
             result = self._tier2.execute_single(instance_id, list(op_codes), list(scalars), list(vectors))
         else:
@@ -141,12 +155,25 @@ class TieredRPNEngine:
                 self._last_tier[instance_id] = 1
                 self._tier_counts[1] += 1
                 return float(self._tier1_cache_value)
-            result = self._tier1.execute_single(instance_id, op_codes, scalars, vectors)
-            self._tier1_cache_key = key
-            self._tier1_cache_value = float(result)
-            self._last_tier[instance_id] = 1
-            self._tier_counts[1] += 1
-            return float(result)
+            try:
+                result = self._tier1.execute_single(instance_id, op_codes, scalars, vectors)
+                self._tier1_cache_key = key
+                self._tier1_cache_value = float(result)
+                self._last_tier[instance_id] = 1
+                self._tier_counts[1] += 1
+                return float(result)
+            except RuntimeError as e:
+                if "empty stack" in str(e).lower():
+                    # Tier-1 failed with empty stack - retry on Tier-2
+                    self._tier1.reset_instance(instance_id)
+                    scalars_seq = list(scalars)
+                    vectors_seq = list(vectors)
+                    result = self._tier2.execute_single(instance_id, list(op_codes), scalars_seq, vectors_seq)
+                    self._last_tier[instance_id] = 2
+                    self._tier_counts[2] += 1
+                    self._tier1_fallback_count += 1
+                    return float(result)
+                raise
         elif tier == 2:
             scalars_seq = list(scalars) if scalars is not None else [0.0] * len(op_codes)
             vectors_seq = list(vectors) if vectors is not None else [[0.0, 0.0, 0.0] for _ in op_codes]
@@ -356,6 +383,15 @@ class TieredRPNEngine:
     # ------------------------------------------------------------------ #
     # Dispatch heuristics
     # ------------------------------------------------------------------ #
+    def _reset_tier(self, tier: int, instance_id: int) -> None:
+        """Reset a specific tier instance."""
+        if tier == 1:
+            self._tier1.reset_instance(instance_id)
+        elif tier == 2:
+            self._tier2.reset_instance(instance_id)
+        elif tier == 3:
+            self._tier3.reset_instance(instance_id)
+
     def _determine_tier(self, op_codes: Sequence[int]) -> int:
         """Return tier index (1-3) for given op-code sequence."""
         iterable = [int(op) for op in op_codes]
@@ -372,12 +408,75 @@ class TieredRPNEngine:
         if has_tier3:
             tier = 3
         else:
+            # Tier-1 for simple programs, Tier-2 for stack-heavy programs.
+            # Tier-1 has a known bug with empty stack - fallback to Tier-2 is automatic.
+            stack_ops = {50, 51, 52, 53, 54, 55}  # DUP, SWAP, DROP, OVER, ROT, NIP
             op_set = set(iterable)
-            tier = 1 if op_set.issubset(self._tier1.SUPPORTED_OPS) else 2
+            tier1_supported = getattr(self._tier1, "SUPPORTED_OPS", set())
+            needs_tier2 = any(
+                (op not in tier1_supported) and (op not in ternary_ops) and (op < self.MATRIX_OPCODE_THRESHOLD)
+                for op in iterable
+            )
+            if needs_tier2 or (op_set & stack_ops):
+                tier = 2  # Route stack-heavy to Tier-2 for stability
+            else:
+                tier = 1  # Simple arithmetic tries Tier-1 (with fallback)
 
         self._tier_cache_key = key
         self._tier_cache_value = tier
         return tier
+
+    def _execute_on_tier(
+        self,
+        tier: int,
+        instance_id: int,
+        op_codes: Sequence[int],
+        scalars: Sequence[float],
+        vectors: Sequence[Sequence[float]],
+        matrices: Sequence[float] | None,
+    ) -> float:
+        if tier == 1:
+            return float(self._tier1.execute_single(instance_id, op_codes, scalars, vectors))
+        if tier == 2:
+            return float(self._tier2.execute_single(instance_id, list(op_codes), list(scalars), list(vectors)))
+        remapped = [0x005E if op == 0x0064 else int(op) for op in op_codes]
+        matrices_seq = list(matrices) if matrices is not None else []
+        return float(self._tier3.execute_scalar(instance_id, remapped, list(scalars), vectors, matrices_seq))
+
+    def execute_single(
+        self,
+        instance_id: int,
+        op_codes: Sequence[int],
+        scalars: Sequence[float],
+        vectors: Sequence[Sequence[float]],
+        *,
+        matrices: Sequence[float] | None = None,
+    ) -> float:
+        """Execute with automatic Tier-1 retry fallback to Tier-2 on empty-stack."""
+        if not (0 <= instance_id < self.MAX_INSTANCES):
+            raise ValueError(f"Invalid instance_id {instance_id} (expected 0-{self.MAX_INSTANCES - 1})")
+
+        tier = self._determine_tier(op_codes)
+        previous = self._last_tier[instance_id]
+        if previous != tier:
+            self._reset_tier(previous, instance_id)
+
+        try:
+            result = self._execute_on_tier(tier, instance_id, op_codes, scalars, vectors, matrices)
+            self._last_tier[instance_id] = tier
+            self._tier_counts[tier] += 1
+            return result
+        except RuntimeError as exc:
+            msg = str(exc)
+            if "empty stack" in msg and tier == 1:
+                # Retry on Tier-2 for robustness while Tier-1 is unstable.
+                self._tier1.reset_instance(instance_id)
+                result = self._execute_on_tier(2, instance_id, op_codes, scalars, vectors, matrices)
+                self._last_tier[instance_id] = 2
+                self._tier_counts[2] += 1
+                self._tier1_fallback_count = getattr(self, "_tier1_fallback_count", 0) + 1
+                return result
+            raise
 
     # ------------------------------------------------------------------ #
     # Helpers for codec-aware execution
@@ -544,4 +643,6 @@ class TieredRPNEngine:
 
     def get_stats(self) -> dict:
         """Expose tier dispatch statistics."""
-        return dict(self._tier_counts)
+        stats = dict(self._tier_counts)
+        stats["tier1_fallbacks"] = self._tier1_fallback_count
+        return stats

@@ -1,56 +1,112 @@
 # Knowledge3D Project Briefing
 
-**Last Updated:** November 25, 2025
-**Version:** 3.3 (Phase 3 ARC-AGI + Dual Client Reality Documentation)
+**Last Updated:** December 14, 2025
+**Version:** 4.0 (Galaxy Universe + TRM Navigation Paradigm)
 **For:** New AI agents, contributors, and project overview
 
 ---
 
 ## Executive Summary
 
-Knowledge3D (K3D) is a sovereign GPU-native spatial AI architecture. Reasoning happens through PTX + RPN; memories live as 3D worlds (glTF/GLB) with symlinked composition. We stand on proven patterns: game LOD, demoscene compression, Unix symlinks, HP RPN, Matryoshka embeddings.
+Knowledge3D (K3D) is a sovereign GPU-native spatial AI architecture implementing a fundamentally new paradigm: **Galaxy Universe** (unified VRAM workspace for all knowledge) + **TRM** (Tiny Recursive Model that learns navigation logic).
 
-**Current Status**
-- ✅ **Sovereignty Complete (Nov 24, 2025)**: ALL reality physics RPN now executes on PTX kernels
-  - Reality hot path: `step_system()` → GPU RPN engine (zero CPU math)
-  - Performance: **82.5ms for 1000 steps** (harmonic oscillator, sub-second target met)
-  - Tests: **51/51 passing** (physics tiers, chemistry, biology, materials, galaxy, integration)
-  - NumPy/CuPy: Zero presence in hot path (sovereignty tests validate)
-- Phase 4C complete: 26 systems across 4 domains (13 physics + 6 chemistry + 4 biology + 3 materials)
-- Phase 5 validated: Dynamic Math Core spawning operational — 26 systems → 26 unique cores automatically. Scales to GPU hardware limits (460+ cores on RTX 3070, 1280+ on RTX 4090, 2640+ on H100).
-- Capacity benchmark artifacts: `output/benchmarks/benchmark_scaling.csv/.png` (throughput ~71k–118k steps/sec; GPU mem ~372 MB flat) and 26 GLBs in `output/gltf/`.
-- Multi-agent partnership: Claude (architecture, specs) + Codex + GPT-5.1 (implementation, tests) delivering in lockstep.
-- Sovereignty enforced: hot path is PTX+RPN only; ingestion can use any external tool.
+**The Paradigm Shift:**
+- **Traditional AI**: Model parameters = knowledge + logic (entangled, opaque)
+- **K3D**: Galaxy Universe = knowledge (procedural programs), TRM = navigation logic (learned)
 
-**Not:** A retrieval wrapper. **Is:** A sovereign cognitive stack with spatial memory and embodied reasoning.
+**Architecture:**
+- **Cranium**: PTX kernels + RPN execution (reasoning happens here)
+- **Galaxy Universe**: Unified VRAM workspace (ALL default galaxies always loaded)
+  - Drawing, Character, Word, Grammar, Math, Reality, Audio galaxies
+  - Multi-modal (text, visual, audio, physics unified in 3D space)
+  - Read-Write (TRM queries AND creates new entries)
+  - Temporary memory + context + chat + knowledge ALL in one workspace
+- **TRM**: ~7M parameter model that learns to navigate, combine, create in Galaxy
+  - Base model + specialist adapters (math, visual, physics)
+  - Shadow copy auto-enhancement (continuous learning from success)
+  - NOT knowledge storage — learns HOW to use Galaxy knowledge
+- **House**: Persistent memory (glTF/GLB on disk)
+
+**Current Status (Dec 14, 2025)**
+- ✅ **Sovereignty Complete**: Hot path = PTX + Galaxy ONLY (zero numpy/cupy)
+- ✅ **Reality Galaxy**: 26 systems across 4 domains (physics, chemistry, biology, materials)
+- ✅ **Multi-Curriculum Training**: ARC-AGI 2, Math Benchmarks, Physics Sims sharing Galaxy Universe
+- 🔄 **Math Benchmarks**: Implementing Galaxy Universe population (Math Symbol Galaxy, Grammar rules)
+  - Current: Removing external preprocessing, enabling TRM navigation
+  - Target: GSM8K 30-50% (from 1.39%), MATH 15-25% (from 1.13%) via real solving
+- Multi-agent partnership: Claude (architecture) + Codex (implementation) in clear roles
+- Environment: Debian (not Ubuntu), tmux, conda env at `/K3D/Knowledge3D.local/envs/k3d-cranium`
+
+**What K3D Is:**
+- Sovereign cognitive stack with spatial memory
+- Multi-modal unified workspace (Galaxy Universe)
+- TRM learns to navigate/create (not just retrieve)
+
+**What K3D Is NOT:**
+- Retrieval wrapper (TRM creates, not just queries)
+- Traditional transformer (knowledge separated from model)
+- Single-modality system (all modalities unified)
 
 ---
 
 ## Quick Start for AI Agents
 
-1. Read this briefing end-to-end.
-2. Know your role:
-   - Claude-style: architecture, physics design, documentation.
-   - Codex-style: implementation lead, Reality Galaxy, tests.
-3. Check phase: docs/ROADMAP.md.
-4. Check backlog: CODEX.md (implementation), CLAUDE.md (architecture scope).
-5. Respect sovereignty: PTX/RPN for hot path; anything goes for ingestion.
+**CRITICAL: Understand the Paradigm First**
 
-**Permissions (per Daniel’s trust model)**
-- ✅ Internet access, package installs, external ingestion plugins.
-- ✅ Code execution, tests, commits.
-- ⚠️ Hot path must remain sovereign (no ML frameworks, no opaque runtimes).
+1. **Read this briefing COMPLETELY** (not just summaries)
+2. **Understand Galaxy Universe:**
+   - NOT "a knowledge base" — unified VRAM workspace (always loaded, multi-modal, read-write)
+   - ALL default galaxies present simultaneously (Drawing, Character, Word, Grammar, Math, Reality, Audio)
+   - Temporary memory + context + chat + knowledge ALL in one 3D space
+3. **Understand TRM:**
+   - Learns to NAVIGATE Galaxy Universe (not store knowledge)
+   - Learns to COMBINE from Galaxy (composition strategies)
+   - Learns to CREATE new Galaxy entries (synthesis)
+   - Shadow copy enhancement (continuous learning)
+4. **Know your role:**
+   - **Claude**: Architecture, physics design, documentation (write specs, NOT code)
+   - **Codex**: Implementation, tests, benchmarks (code per Claude's specs)
+5. **Check current work:**
+   - docs/ROADMAP.md (current phase)
+   - TEMP/*.md (latest dated specs from Claude)
+   - CODEX.md (implementation backlog)
+6. **Respect sovereignty:**
+   - Hot path (inference): PTX + Galaxy ONLY (no numpy/cupy/scipy)
+   - Ingestion: Flexible (any tools OK, result must be Galaxy entries)
+
+**Permissions (per Daniel's trust model)**
+- ✅ Internet access, package installs, external ingestion plugins
+- ✅ Code execution, tests, commits
+- ⚠️ Hot path MUST remain sovereign (no numpy/cupy/scipy/sympy in inference loops)
+- ⚠️ Understand multi-curriculum context (your work helps ALL curricula)
 
 ---
 
-## Core Architecture (Phase 4A)
+## Core Architecture (v4.0 Paradigm)
 
-### Three-Brain System
+### Three-Brain System + Galaxy Universe
+
 | Component | Analogy | Tech | Purpose | Status |
 |-----------|---------|------|---------|--------|
-| Cranium | Prefrontal Cortex | PTX kernels, RPN, TRM | Active reasoning | ✅ |
-| Galaxy | Hippocampus | VRAM embeddings | Short-term memory | ✅ |
-| House | Neocortex | glTF/GLB on disk | Long-term memory | ✅ |
+| **Cranium** | Prefrontal Cortex | PTX kernels + RPN + TRM (~7M params) | Reasoning + Learning Navigation | ✅ |
+| **Galaxy Universe** | Hippocampus | VRAM workspace (ALL default galaxies) | Unified multi-modal workspace | ✅ |
+| **House** | Neocortex | glTF/GLB on disk | Long-term persistent memory | ✅ |
+
+**Galaxy Universe = Unified VRAM Workspace (Critical Understanding):**
+- **Always loaded**: ALL default galaxies present simultaneously (no loading/unloading)
+- **Multi-modal**: Drawing + Character + Word + Grammar + Math + Reality + Audio + ...
+- **Multi-purpose**: Temporary memory + context + chat + knowledge ALL in one 3D space
+- **Read-Write**: TRM queries AND creates new entries (not read-only)
+- **Procedural**: Everything is RPN programs + metadata (form + meaning)
+- **Symlinked**: Compositions reference symbols (no duplication - save information principle)
+
+**TRM (Tiny Recursive Model) = Learned Navigation Logic:**
+- **~7M parameters**: Base model + specialist adapters (math, visual, physics)
+- **Learns to navigate**: Which symbols to query in Galaxy Universe
+- **Learns to combine**: Composition strategies from Galaxy symbols
+- **Learns to create**: When/how to synthesize new Galaxy entries
+- **Shadow copy enhancement**: Continuous learning from successful decisions
+- **NOT knowledge storage**: Learns HOW to use Galaxy, doesn't store knowledge itself
 
 ### 3-Tier Math Core (worker-worker → worker → master)
 | Tier | Engine | Instances | Matryoshka | Purpose | Status |

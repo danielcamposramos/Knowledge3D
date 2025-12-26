@@ -12,6 +12,7 @@ import ctypes
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Sequence
+import numpy as np
 
 from knowledge3d.cranium.sovereign import loader
 from .rpn_config import RPN_GRID_DIM, TIER3_BLOCK_DIM
@@ -102,7 +103,7 @@ class AdvancedRPNEngine:
                     ctypes.c_uint64(self._device_ptr(d_vectors)),
                     ctypes.c_uint64(self._device_ptr(d_matrices)),
                     ctypes.c_uint64(self._state.value),
-                    ctypes.c_uint32(len(op_codes_np)),
+                    ctypes.c_uint32(len(op_codes_seq)),
                 ],
             )
             loader.synchronize()

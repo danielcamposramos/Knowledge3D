@@ -25,6 +25,8 @@ from .rpn_opcodes import (
     OP_SMAV,
     OP_SPARSE_LOAD,
     OP_POINTER_LITERAL,
+    OP_RECALL,
+    OP_STORE,
     OP_TRM_MATVEC_1024x512,
     OP_TRM_MATVEC_512x1024,
     OP_TRM_SWIGLU_1024,
@@ -79,9 +81,22 @@ class ModularRPNEngine:
         "sqrt": 20,
         "exp": 21,
         "log": 22,
+        # Aliases used by ingestion/parsers (keep hot path sovereign: no string normalization,
+        # just stable meaning-preserving opcode synonyms).
+        "ln": 22,
         "sin": 24,
         "cos": 25,
         "tan": 26,
+        "asin": 0x1B,
+        "acos": 0x1C,
+        "atan": 0x1D,
+        "arcsin": 0x1B,
+        "arccos": 0x1C,
+        "arctan": 0x1D,
+        "atan2": 0x1E,
+        "sinh": 0x1F,
+        "cosh": 0x25,
+        "tanh": 0x26,
         "gt": 40,
         "lt": 42,
         "eq": 44,
@@ -101,8 +116,26 @@ class ModularRPNEngine:
         "scale": 71,
         "translate": 72,
         "ifelse": 80,
-        # Extended scalar ops used by physics:
+        # Extended scalar ops:
         "abs": 0x27,
+        "floor": 0x2B,
+        "ceil": 0x29,
+        "round": 0x2D,
+        "mod": 0x38,
+        "%": 0x38,
+        "log2": 0x39,
+        "log10": 0x3A,
+        "gamma": 0xAB,
+        "factorial": 0xAC,
+        "!": 0xAC,
+        "binomial": 0xAD,
+        "binom": 0xAD,
+        "beta": 0xAE,
+        "gcd": 0xD8,
+        "neg": 0xDB,
+        "gte": 0xDC,
+        "store": OP_STORE,
+        "recall": OP_RECALL,
         # Procedural drawing opcodes (host parser may also consume)
         "MOVE": 0x64,
         "LINE": 0x65,
@@ -242,7 +275,52 @@ class ModularRPNEngine:
             else:
                 expanded.append(token)
 
-        return expanded
+        return self._expand_store_recall_tokens(expanded)
+
+    @staticmethod
+    def _slot_id(slot: str) -> int:
+        """
+        Map a STORE_/RECALL_ suffix to a small integer slot id.
+
+        The programmable RPN surface uses 8 slots (0-7). We accept:
+        - letters A..H (case-insensitive) -> 0..7
+        - digits 0..7 -> 0..7
+        - names like DISC/ACC -> first letter mapping
+        """
+        s = (slot or "").strip()
+        if not s:
+            return 0
+        if s.isdigit():
+            return max(0, min(7, int(s)))
+        ch = s[0].upper()
+        if "A" <= ch <= "H":
+            return ord(ch) - ord("A")
+        return 0
+
+    def _expand_store_recall_tokens(self, tokens: List[str]) -> List[str]:
+        """
+        Expand friendly STORE_X / RECALL_X into the programmable opcode surface.
+
+        Kernel encoding for store:
+          <value> <slot_id> store
+        Kernel encoding for recall:
+          <slot_id> recall
+        """
+        out: List[str] = []
+        for token in tokens:
+            upper = token.upper()
+            if upper.startswith("STORE_"):
+                slot = token.split("_", 1)[1]
+                out.append(str(float(self._slot_id(slot))))
+                out.append("store")
+                continue
+            if upper.startswith("RECALL_"):
+                slot = token.split("_", 1)[1]
+                out.append(str(float(self._slot_id(slot))))
+                out.append("recall")
+                continue
+            out.append(token)
+        return out
 
     def compile_tokens(
         self,
@@ -275,9 +353,9 @@ class ModularRPNEngine:
                 op_codes.append(self.OP_LITERAL_VEC)
                 vector_literals.append((components[0], components[1], components[2]))
 
-            # Check if it's an operator
-            elif token in self.OPCODES:
-                op_codes.append(self.OPCODES[token])
+            # Check if it's an operator (case-insensitive)
+            elif token.lower() in self.OPCODES:
+                op_codes.append(self.OPCODES[token.lower()])
 
             # Otherwise, treat as scalar literal
             else:

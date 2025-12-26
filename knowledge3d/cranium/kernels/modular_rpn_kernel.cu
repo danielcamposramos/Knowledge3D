@@ -16,6 +16,7 @@ constexpr uint32_t kErrorStackUnderflow = 9002;
 constexpr uint32_t kErrorStackOverflow = 9003;
 constexpr uint32_t kErrorTypeMismatch = 9004;
 constexpr uint32_t kErrorVerificationFailed = 9005;
+constexpr uint32_t kErrorInvalidArgument = 9006;
 
 struct alignas(16) StackValue {
     float x;
@@ -263,7 +264,13 @@ extern "C" __global__ void modular_rpn_geometric_kernel(
                 case 0x16:  // log
                 case 0x18:  // sin
                 case 0x19:  // cos
-                case 0x1A: {  // tan
+                case 0x1A:  // tan
+                case 0x27:  // abs
+                case 0x29:  // ceil
+                case 0x2B:  // floor
+                case 0x2D:  // round
+                case 0x39:  // log2
+                case 0x3A: {  // log10
                     float value = 0.0f;
                     if (!pop_scalar(stack, stack_size, value, error_code)) break;
                     float result = 0.0f;
@@ -272,8 +279,126 @@ extern "C" __global__ void modular_rpn_geometric_kernel(
                     else if (opcode == 0x16) result = logf(value);
                     else if (opcode == 0x18) result = sinf(value);
                     else if (opcode == 0x19) result = cosf(value);
-                    else result = tanf(value);
+                    else if (opcode == 0x1A) result = tanf(value);
+                    else if (opcode == 0x27) result = fabsf(value);
+                    else if (opcode == 0x29) result = ceilf(value);
+                    else if (opcode == 0x2B) result = floorf(value);
+                    else if (opcode == 0x2D) result = roundf(value);
+                    else if (opcode == 0x39) {
+                        if (value <= 0.0f) { error_code = kErrorInvalidArgument; break; }
+                        result = log2f(value);
+                    } else if (opcode == 0x3A) {
+                        if (value <= 0.0f) { error_code = kErrorInvalidArgument; break; }
+                        result = log10f(value);
+                    } else result = value;
                     push(stack, stack_size, make_scalar(result), error_code);
+                    break;
+                }
+                case 0x38: {  // mod
+                    float divisor = 0.0f;
+                    float dividend = 0.0f;
+                    if (!pop_scalar(stack, stack_size, divisor, error_code)) break;
+                    if (!pop_scalar(stack, stack_size, dividend, error_code)) break;
+                    if (divisor == 0.0f) { error_code = kErrorInvalidArgument; break; }
+                    float result = fmodf(dividend, divisor);
+                    push(stack, stack_size, make_scalar(result), error_code);
+                    break;
+                }
+                case 0xAB: {  // gamma
+                    float x = 0.0f;
+                    if (!pop_scalar(stack, stack_size, x, error_code)) break;
+                    if (x <= 0.0f) { error_code = kErrorInvalidArgument; break; }
+                    const float g = 7.0f;
+                    const float c[9] = {
+                        0.99999999999980993f,
+                        676.5203681218851f,
+                        -1259.1392167224028f,
+                        771.32342877765313f,
+                        -176.61502916214059f,
+                        12.507343278686905f,
+                        -0.13857109526572012f,
+                        9.9843695780195716e-6f,
+                        1.5056327351493116e-7f};
+                    float z = x - 1.0f;
+                    float sum = c[0];
+                    #pragma unroll
+                    for (int i = 1; i < 9; ++i) {
+                        sum += c[i] / (z + (float)i);
+                    }
+                    float t = z + g + 0.5f;
+                    float result = sqrtf(2.0f * 3.14159265358979323846f) * powf(t, z + 0.5f) * expf(-t) * sum;
+                    push(stack, stack_size, make_scalar(result), error_code);
+                    break;
+                }
+                case 0xAC: {  // factorial
+                    float n_f = 0.0f;
+                    if (!pop_scalar(stack, stack_size, n_f, error_code)) break;
+                    int n = (int)n_f;
+                    if (n < 0) { error_code = kErrorInvalidArgument; break; }
+                    float result = 1.0f;
+                    if (n <= 12) {
+                        for (int i = 2; i <= n; ++i) result *= (float)i;
+                    } else {
+                        float nf = (float)n;
+                        result = sqrtf(2.0f * 3.14159265358979323846f * nf) * powf(nf / 2.718281828459045f, nf);
+                    }
+                    push(stack, stack_size, make_scalar(result), error_code);
+                    break;
+                }
+                case 0xAD: {  // binomial
+                    float k_f = 0.0f;
+                    float n_f = 0.0f;
+                    if (!pop_scalar(stack, stack_size, k_f, error_code)) break;
+                    if (!pop_scalar(stack, stack_size, n_f, error_code)) break;
+                    int n = (int)n_f;
+                    int k = (int)k_f;
+                    if (n < 0 || k < 0) { error_code = kErrorInvalidArgument; break; }
+                    if (k > n) { push(stack, stack_size, make_scalar(0.0f), error_code); break; }
+                    if (k > n - k) k = n - k;
+                    float result = 1.0f;
+                    for (int i = 0; i < k; ++i) {
+                        result = result * (float)(n - i) / (float)(i + 1);
+                    }
+                    push(stack, stack_size, make_scalar(result), error_code);
+                    break;
+                }
+                case 0xAE: {  // beta
+                    float b = 0.0f;
+                    float a = 0.0f;
+                    if (!pop_scalar(stack, stack_size, b, error_code)) break;
+                    if (!pop_scalar(stack, stack_size, a, error_code)) break;
+                    if (a <= 0.0f || b <= 0.0f) { error_code = kErrorInvalidArgument; break; }
+                    float result = expf(lgammaf(a) + lgammaf(b) - lgammaf(a + b));
+                    push(stack, stack_size, make_scalar(result), error_code);
+                    break;
+                }
+                case 0xD8: {  // gcd
+                    float b_f = 0.0f;
+                    float a_f = 0.0f;
+                    if (!pop_scalar(stack, stack_size, b_f, error_code)) break;
+                    if (!pop_scalar(stack, stack_size, a_f, error_code)) break;
+                    int a = (int)fabsf(a_f);
+                    int b = (int)fabsf(b_f);
+                    while (b != 0) {
+                        int t = b;
+                        b = a % b;
+                        a = t;
+                    }
+                    push(stack, stack_size, make_scalar((float)a), error_code);
+                    break;
+                }
+                case 0xDB: {  // neg (alias)
+                    float x = 0.0f;
+                    if (!pop_scalar(stack, stack_size, x, error_code)) break;
+                    push(stack, stack_size, make_scalar(-x), error_code);
+                    break;
+                }
+                case 0xDC: {  // gte
+                    float rhs = 0.0f;
+                    float lhs = 0.0f;
+                    if (!pop_scalar(stack, stack_size, rhs, error_code)) break;
+                    if (!pop_scalar(stack, stack_size, lhs, error_code)) break;
+                    push(stack, stack_size, make_scalar(lhs >= rhs ? 1.0f : 0.0f), error_code);
                     break;
                 }
                 case 0x28:  // gt

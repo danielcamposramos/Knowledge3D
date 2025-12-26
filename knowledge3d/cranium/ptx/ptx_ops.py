@@ -14,7 +14,7 @@ except Exception:  # pragma: no cover
     cp = None  # type: ignore
     _HAS_CUPY = False
 
-from knowledge3d.cranium.ptx_runtime import ModularRPNEngine, TextTo3DGenerator
+from knowledge3d.cranium.ptx_runtime import ModularRPNEngine
 from knowledge3d.cranium.ptx.galaxy_buffer import GalaxyGPUMemory
 from knowledge3d.cranium.ptx.geometry_ops import PTXGeometrySession
 from knowledge3d.cranium.ptx.modality_ops import PTXModalityOps
@@ -174,6 +174,10 @@ class PTXOps:
         """Generate a GLB path for a prompt-driven shape using the PTX geometry kernel."""
         # The TextTo3DGenerator internally hashes the prompt to determine shape semantics.
         if self._shape_generator is None:
+            # Import lazily to avoid pulling heavy optional runtime dependencies during import
+            # (and to keep `pytest` collection resilient when dual-code modules are absent).
+            from knowledge3d.cranium.ptx_runtime import TextTo3DGenerator
+
             self._shape_generator = TextTo3DGenerator()
         shape_path = self._shape_generator.generate_3d_from_text(prompt)
         return shape_path

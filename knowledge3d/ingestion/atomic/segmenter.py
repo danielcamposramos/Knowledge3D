@@ -14,6 +14,42 @@ from __future__ import annotations
 from typing import List, Dict
 
 
+def _detect_script(ch: str) -> str:
+    """
+    Tiny script detector used for cheap fallbacks in segmenters.
+
+    This keeps the ingestion pipeline dependency-light while still allowing
+    reasonable defaults for Arabic and CJK text.
+    """
+    if not ch:
+        return "Unknown"
+    c = ord(ch[0])
+    # Arabic
+    if (
+        0x0600 <= c <= 0x06FF
+        or 0x0750 <= c <= 0x077F
+        or 0x08A0 <= c <= 0x08FF
+        or 0xFB50 <= c <= 0xFDFF
+        or 0xFE70 <= c <= 0xFEFF
+    ):
+        return "Arabic"
+    # CJK Unified / Extensions
+    if (
+        0x3400 <= c <= 0x4DBF
+        or 0x4E00 <= c <= 0x9FFF
+        or 0x20000 <= c <= 0x2A6DF
+        or 0x2A700 <= c <= 0x2B73F
+        or 0x2B740 <= c <= 0x2B81F
+        or 0x2B820 <= c <= 0x2CEAF
+        or 0x2CEB0 <= c <= 0x2EBEF
+    ):
+        return "CJK"
+    # Hiragana, Katakana, Hangul
+    if (0x3040 <= c <= 0x30FF) or (0xAC00 <= c <= 0xD7AF):
+        return "CJK"
+    return "Latin"
+
+
 VOWELS_PT = set("aeiouáéíóúâêôãõàüAEIOUÁÉÍÓÚÂÊÔÃÕÀÜ")
 VOWELS_ES = set("aeiouáéíóúüAEIOUÁÉÍÓÚÜ")
 VOWELS_EN = set("aeiouAEIOU")
@@ -27,7 +63,7 @@ PREFIXES = {
     "es": ["re", "des", "in", "im", "ir", "inter", "anti", "sub", "super", "pre", "pos", "co", "contra"],
     "en": ["re", "un", "im", "in", "il", "ir", "non", "pre", "post", "anti", "sub", "super", "inter", "trans"],
     "fr": ["re", "in", "im", "ir", "il", "dé", "des", "pré", "post", "anti", "inter", "trans"],
-    "it": ["ri", "in", "im", "ir", "il", "pre", "post", "anti", "inter", "trans"],
+    "it": ["re", "ri", "in", "im", "ir", "il", "pre", "post", "anti", "inter", "trans"],
     "de": ["be", "ver", "zer", "ent", "er", "ge", "miss", "un", "ur"],
 }
 
