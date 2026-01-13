@@ -1032,15 +1032,18 @@ The `Old_Attempts/` directory documents our learning journey. We keep these arti
 | `Knowledge3D.local/` | Runtime workspace with Houses, tablet logs, datasets, galaxy/house GLBs |
 | `Old_Attempts/Legacy_Fancy_RAG/` | **DEPRECATED**: Original RAG scaffolding (worked, but not our goal) |
 | `Old_Attempts/fsm_scaffolding/` | **DEPRECATED** (Step 12): Fused Head FSM (consolidated into ThinkingTagBridge) |
+| `Old_Attempts/curriculum_specific_training/` | **ARCHIVED**: Curriculum-specific training code (multimodal, reasoning) |
 | `Large_Assets_Kitchen/` | Recipes for regenerating >99MB assets inside `.local` |
 
 All contributors must keep heavy outputs in `.local` and document how to rebuild them in `Large_Assets_Kitchen/README.md`.
 
-### Why Two `Old_Attempts/` Directories?
+### Why Multiple `Old_Attempts/` Directories?
 
 1. **`Legacy_Fancy_RAG/`** — Our first attempt: A working spatial RAG system with 3D indexing. **Why deprecated**: It was still fundamentally RAG (retrieve → feed to LLM → generate). We needed true multi-modal fusion, not retrieval augmentation.
 
 2. **`fsm_scaffolding/`** (Step 12) — Second attempt: A CuPy-based Fused Head FSM with 5-state dispatch. **Why deprecated**: Duplicated functionality with our sovereign ThinkingTagBridge but added CuPy dependency. We harvested its best patterns (5-state observability, ActionBuffer, dynamic LOD) into the sovereign architecture and retired the scaffolding.
+
+3. **`curriculum_specific_training/`** — Archived curriculum-specific training modules (multimodal, reasoning). **Why archived**: They fragment the "one model to process them all" principle. Preserve for reference, but unify new work under shared training paths.
 
 See the deprecation READMEs in each directory for full migration guides and architectural rationale.
 
@@ -1351,7 +1354,8 @@ Knowledge3D/
 ├─ Large_Assets_Kitchen/            # Regeneration recipes for heavy assets
 ├─ Old_Attempts/
 │  ├─ Legacy_Fancy_RAG/             # DEPRECATED: Original RAG scaffolding
-│  └─ fsm_scaffolding/              # DEPRECATED (Step 12): Fused Head FSM
+│  ├─ fsm_scaffolding/              # DEPRECATED (Step 12): Fused Head FSM
+│  └─ curriculum_specific_training/ # ARCHIVED: curriculum-specific training modules
 ├─ docs/                            # Specs, briefs, roadmap, playbooks
 ├─ TEMP/                            # Step plans and completion reports
 ├─ scripts/                         # Shell helpers (training, ingestion, CI)
@@ -1369,7 +1373,7 @@ Knowledge3D/
 3. **Keep heavy artifacts local**: document regeneration steps instead of committing binaries.
 4. **Follow agent guidelines** when using AI automation (`AGENTS.md`).
 5. **Test before PR**: Run `pytest -q` (and viewer tests when applicable).
-6. **Check deprecations**: Don't import from `Old_Attempts/` in new code.
+6. **Check deprecations**: Don't import from `Old_Attempts/` in new code. If something is still useful, move it into the unified training path with tests.
 
 Security, ethics, and embodiment commitments are detailed in [`docs/COVENANT.md`](docs/COVENANT.md) and [`docs/CARE_PROTOCOL.md`](docs/CARE_PROTOCOL.md).
 

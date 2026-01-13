@@ -34,6 +34,7 @@ class SymbolBinding:
     symbol: str
     meaning: str = "unknown"
     domain: str = "unknown"
+    domain_hint: Optional[str] = None
     constraints: List[str] = field(default_factory=list)
 
 
@@ -78,7 +79,8 @@ class RoleExtractionConfig:
     """
 
     enabled: bool = False
-    model: str = "qwen3:8b"
+    model: str = "granite4:tiny-h"
+    fallback_model: Optional[str] = "qwen2.5:14b"
     timeout_s: float = 30.0
     max_context_chars: int = 1200
     cache_path: Optional[str] = None  # JSONL cache
@@ -86,6 +88,368 @@ class RoleExtractionConfig:
     # Prefer HTTP API when available; fall back to `ollama run`.
     prefer_http: bool = True
     http_url: str = "http://127.0.0.1:11434/api/generate"
+    fallback_on_unknown: bool = True
+
+
+# Tier 1A: Geometry & Spatial Measurement
+GEOMETRY_ROLES: List[str] = [
+    "radius",
+    "diameter",
+    "chord",
+    "arc_length",
+    "height",
+    "width",
+    "length",
+    "depth",
+    "thickness",
+    "distance",
+    "perimeter",
+    "circumference",
+    "leg",
+    "hypotenuse",
+    "base",
+    "altitude",
+    "median",
+    "side",
+    "angle",
+    "central_angle",
+    "inscribed_angle",
+    "radian",
+    "area",
+    "surface_area",
+    "volume",
+    "cross_section",
+    "slope",
+    "intercept",
+    "coordinate",
+]
+
+# Tier 1B: Linear Algebra & Vector Spaces
+LINEAR_ALGEBRA_ROLES: List[str] = [
+    "vector",
+    "component",
+    "magnitude",
+    "direction",
+    "dot_product",
+    "cross_product",
+    "projection",
+    "matrix",
+    "element",
+    "row",
+    "column",
+    "determinant",
+    "trace",
+    "rank",
+    "eigenvalue",
+    "eigenvector",
+    "characteristic_polynomial",
+    "dimension",
+    "basis",
+    "span",
+    "kernel",
+    "image",
+    "linear_combination",
+    "transformation",
+]
+
+# Tier 1C: Calculus & Analysis
+CALCULUS_ROLES: List[str] = [
+    "derivative",
+    "differential",
+    "rate_of_change",
+    "gradient",
+    "partial_derivative",
+    "directional_derivative",
+    "slope",
+    "tangent",
+    "secant",
+    "integral",
+    "antiderivative",
+    "accumulation",
+    "area_under_curve",
+    "definite_integral",
+    "indefinite_integral",
+    "limit",
+    "epsilon",
+    "delta",
+    "bound",
+    "supremum",
+    "infimum",
+    "sequence",
+    "series",
+    "term",
+    "sum",
+    "convergence",
+]
+
+# Tier 1D: Physics & Applied Math
+PHYSICS_ROLES: List[str] = [
+    "position",
+    "velocity",
+    "acceleration",
+    "force",
+    "mass",
+    "momentum",
+    "energy",
+    "work",
+    "power",
+    "torque",
+    "angular_velocity",
+    "angular_acceleration",
+    "frequency",
+    "wavelength",
+    "amplitude",
+    "period",
+    "phase",
+    "temperature",
+    "pressure",
+    "volume",
+    "entropy",
+    "heat_capacity",
+    "internal_energy",
+    "charge",
+    "current",
+    "voltage",
+    "resistance",
+    "electric_field",
+    "magnetic_field",
+    "flux",
+]
+
+# Tier 1E: Number Theory & Algebra
+NUMBER_THEORY_ROLES: List[str] = [
+    "prime",
+    "composite",
+    "factor",
+    "divisor",
+    "multiple",
+    "greatest_common_divisor",
+    "least_common_multiple",
+    "modulus",
+    "remainder",
+    "quotient",
+    "congruence",
+    "group_element",
+    "ring_element",
+    "field_element",
+    "order",
+    "generator",
+    "identity",
+]
+
+# Tier 1F: Probability & Statistics
+STATISTICS_ROLES: List[str] = [
+    "mean",
+    "median",
+    "mode",
+    "variance",
+    "standard_deviation",
+    "percentile",
+    "quartile",
+    "range",
+    "probability",
+    "event",
+    "sample_space",
+    "outcome",
+    "expected_value",
+    "distribution",
+    "density",
+    "parameter",
+    "statistic",
+    "estimate",
+    "confidence_interval",
+    "p_value",
+    "significance_level",
+]
+
+# Tier 2: Formula components
+FORMULA_ROLES: List[str] = [
+    "exponent",
+    "base",
+    "coefficient",
+    "constant_factor",
+    "numerator",
+    "denominator",
+    "radicand",
+    "index",
+    "argument",
+    "parameter",
+]
+
+# Tier 3: Generic fallbacks
+GENERIC_ROLES: List[str] = [
+    "constant",
+    "variable",
+    "placeholder",
+    "unknown",
+]
+
+DOMAIN_ROLE_MAP: Dict[str, List[str]] = {
+    "geometry": GEOMETRY_ROLES,
+    "linear_algebra": LINEAR_ALGEBRA_ROLES,
+    "calculus": CALCULUS_ROLES,
+    "physics": PHYSICS_ROLES,
+    "number_theory": NUMBER_THEORY_ROLES,
+    "statistics": STATISTICS_ROLES,
+}
+
+DOMAIN_ORDER: List[str] = [
+    "geometry",
+    "linear_algebra",
+    "calculus",
+    "physics",
+    "number_theory",
+    "statistics",
+]
+
+ROLE_ALIASES: Dict[str, str] = {
+    "norm": "magnitude",
+    "component_1": "component",
+    "component_2": "component",
+    "component_3": "component",
+    "component_i": "component",
+    "component_j": "component",
+    "component_k": "component",
+    "avg": "mean",
+    "average": "mean",
+    "stddev": "standard_deviation",
+    "stdev": "standard_deviation",
+    "prob": "probability",
+    "mod": "modulus",
+    "speed": "velocity",
+}
+
+_DOMAIN_BY_ROLE: Dict[str, str] = {}
+for _domain, _roles in DOMAIN_ROLE_MAP.items():
+    for _role in _roles:
+        if _role not in _DOMAIN_BY_ROLE:
+            _DOMAIN_BY_ROLE[_role] = _domain
+for _role in FORMULA_ROLES:
+    _DOMAIN_BY_ROLE[_role] = "formula"
+for _role in GENERIC_ROLES:
+    _DOMAIN_BY_ROLE[_role] = "generic"
+
+_DOMAIN_CONTEXT_KEYWORDS: Dict[str, Tuple[str, ...]] = {
+    "geometry": (
+        "circle",
+        "triangle",
+        "rectangle",
+        "sphere",
+        "cylinder",
+        "cone",
+        "polygon",
+        "angle",
+        "perpendicular",
+        "parallel",
+        "tangent",
+        "area",
+        "volume",
+        "perimeter",
+        "circumference",
+    ),
+    "linear_algebra": (
+        "matrix",
+        "vector",
+        "determinant",
+        "eigenvalue",
+        "eigenvector",
+        "linear",
+        "subspace",
+        "basis",
+        "span",
+        "dimension",
+        "rank",
+        "orthogonal",
+        "projection",
+    ),
+    "calculus": (
+        "derivative",
+        "integral",
+        "limit",
+        "differential",
+        "gradient",
+        "rate of change",
+        "tangent line",
+        "area under",
+        "accumulation",
+        "converge",
+    ),
+    "physics": (
+        "velocity",
+        "acceleration",
+        "force",
+        "energy",
+        "momentum",
+        "electric",
+        "magnetic",
+        "wave",
+        "frequency",
+        "mass",
+        "pressure",
+        "temperature",
+    ),
+    "number_theory": (
+        "prime",
+        "divisor",
+        "factor",
+        "gcd",
+        "lcm",
+        "modulo",
+        "congruence",
+        "integer",
+        "rational",
+        "irrational",
+    ),
+    "statistics": (
+        "probability",
+        "random",
+        "distribution",
+        "mean",
+        "variance",
+        "standard deviation",
+        "expected value",
+        "sample",
+        "population",
+    ),
+}
+
+_DOMAIN_EQUATION_PATTERNS: Dict[str, Tuple[re.Pattern[str], ...]] = {
+    "geometry": (
+        re.compile(r"\bpi\b"),
+        re.compile("π"),
+    ),
+    "linear_algebra": (
+        re.compile(r"\bdet\b"),
+        re.compile(r"\btrace\b"),
+        re.compile(r"\brank\b"),
+        re.compile(r"\|\|"),
+        re.compile("∥"),
+    ),
+    "calculus": (
+        re.compile(r"\bd/d\b"),
+        re.compile("∂"),
+        re.compile("∫"),
+        re.compile(r"\blim\b"),
+    ),
+    "physics": (
+        re.compile(r"\bF\s*=\s*m\s*a\b"),
+    ),
+    "number_theory": (
+        re.compile(r"\bmod\b"),
+        re.compile("≡"),
+        re.compile(r"\bgcd\b"),
+        re.compile(r"\blcm\b"),
+    ),
+    "statistics": (
+        re.compile(r"\bp\s*\("),
+        re.compile(r"\be\s*\["),
+        re.compile(r"\be\s*\("),
+        re.compile(r"\bvar\s*\("),
+        re.compile(r"\bvar\s*\["),
+        re.compile("σ"),
+        re.compile("μ"),
+    ),
+}
 
 
 class OllamaRoleExtractor:
@@ -99,7 +463,7 @@ class OllamaRoleExtractor:
 
     def __init__(self, *, config: RoleExtractionConfig) -> None:
         self._cfg = config
-        self._cache: Dict[str, Tuple[str, str]] = {}
+        self._cache: Dict[str, Tuple[str, str, Optional[str]]] = {}
         if self._cfg.cache_path:
             self._load_cache(self._cfg.cache_path)
 
@@ -124,26 +488,46 @@ class OllamaRoleExtractor:
                     key = str(obj.get("key") or "")
                     role = str(obj.get("role") or "")
                     domain = str(obj.get("domain") or "")
+                    domain_hint = str(obj.get("domain_hint") or "") or None
                     if key and role:
-                        self._cache[key] = (role, domain or "real")
+                        self._cache[key] = (role, domain or "real", domain_hint)
         except Exception:
             # Cache is best-effort; never fail ingestion because of it.
             return
 
-    def _append_cache(self, path: str, *, key: str, role: str, domain: str) -> None:
+    def _append_cache(self, path: str, *, key: str, role: str, domain: str, domain_hint: Optional[str]) -> None:
         try:
             with open(path, "a", encoding="utf-8") as f:
-                f.write(json.dumps({"key": key, "role": role, "domain": domain}, ensure_ascii=False) + "\n")
+                f.write(
+                    json.dumps(
+                        {"key": key, "role": role, "domain": domain, "domain_hint": domain_hint or ""},
+                        ensure_ascii=False,
+                    )
+                    + "\n"
+                )
         except Exception:
             return
 
-    def _cache_key(self, *, var: str, context: str, equation: str) -> str:
+    def _cache_key(
+        self,
+        *,
+        var: str,
+        context: str,
+        equation: str,
+        model: str,
+        book_domain_hint: Optional[str] = None,
+    ) -> str:
         h = hashlib.sha256()
+        h.update(str(model).encode("utf-8", errors="replace"))
+        h.update(b"\n")
         h.update(str(var).encode("utf-8", errors="replace"))
         h.update(b"\n")
         h.update(str(context).encode("utf-8", errors="replace"))
         h.update(b"\n")
         h.update(str(equation).encode("utf-8", errors="replace"))
+        if book_domain_hint:
+            h.update(b"\n")
+            h.update(str(book_domain_hint).encode("utf-8", errors="replace"))
         return h.hexdigest()
 
     def _restart_ollama(self) -> None:
@@ -155,66 +539,287 @@ class OllamaRoleExtractor:
         except Exception:
             return
 
+    def _count_context_hits(self, text: str, keywords: Sequence[str]) -> int:
+        count = 0
+        for kw in keywords:
+            token = str(kw or "").strip().lower()
+            if not token:
+                continue
+            if " " in token:
+                if token in text:
+                    count += 1
+            else:
+                if re.search(rf"\b{re.escape(token)}\b", text):
+                    count += 1
+        return count
+
+    def _normalize_domain_hint(self, hint: Optional[str]) -> Optional[str]:
+        if not hint:
+            return None
+        token = str(hint).strip().lower()
+        token = token.replace("-", "_").replace(" ", "_")
+        alias_map = {
+            "linalg": "linear_algebra",
+            "lin_alg": "linear_algebra",
+            "linear": "linear_algebra",
+            "stats": "statistics",
+            "probability": "statistics",
+            "stat": "statistics",
+            "calc": "calculus",
+            "geom": "geometry",
+            "num_theory": "number_theory",
+            "numbertheory": "number_theory",
+        }
+        token = alias_map.get(token, token)
+        return token if token in DOMAIN_ROLE_MAP else None
+
+    def _detect_domains(
+        self,
+        context: str,
+        equation: str,
+        *,
+        book_domain_hint: Optional[str] = None,
+    ) -> Tuple[List[str], Dict[str, int], Dict[str, int], Dict[str, int]]:
+        ctx = str(context or "").lower()
+        eq = str(equation or "").lower()
+        ctx_scores: Dict[str, int] = {}
+        eq_scores: Dict[str, int] = {}
+        book_scores: Dict[str, int] = {}
+        total_scores: Dict[str, int] = {}
+
+        for domain in DOMAIN_ORDER:
+            ctx_hits = self._count_context_hits(ctx, _DOMAIN_CONTEXT_KEYWORDS.get(domain, ()))
+            eq_hits = 0
+            for pat in _DOMAIN_EQUATION_PATTERNS.get(domain, ()):
+                if pat.search(eq):
+                    eq_hits += 1
+            ctx_scores[domain] = ctx_hits
+            eq_scores[domain] = eq_hits
+
+        normalized_hint = self._normalize_domain_hint(book_domain_hint)
+        if normalized_hint:
+            book_scores[normalized_hint] = 1
+
+        for domain in DOMAIN_ORDER:
+            hint_weight = 10 if book_scores.get(domain) else 0
+            total_scores[domain] = ctx_scores.get(domain, 0) + (2 * eq_scores.get(domain, 0)) + hint_weight
+
+        sorted_domains = [
+            domain
+            for domain in DOMAIN_ORDER
+            if total_scores.get(domain, 0) > 0
+        ]
+        sorted_domains.sort(
+            key=lambda d: (-total_scores.get(d, 0), -eq_scores.get(d, 0), DOMAIN_ORDER.index(d))
+        )
+        return sorted_domains, total_scores, eq_scores, book_scores
+
+    def _get_role_choices_multidomain(self, detected_domains: Sequence[str]) -> List[str]:
+        role_choices: List[str] = []
+        for domain in detected_domains:
+            role_choices.extend(DOMAIN_ROLE_MAP.get(domain, []))
+
+        all_tier1: List[str] = []
+        for domain in DOMAIN_ORDER:
+            all_tier1.extend(DOMAIN_ROLE_MAP.get(domain, []))
+        for role in all_tier1:
+            if role not in role_choices:
+                role_choices.append(role)
+
+        role_choices.extend(FORMULA_ROLES)
+        role_choices.extend(GENERIC_ROLES)
+
+        seen: set[str] = set()
+        deduped: List[str] = []
+        for role in role_choices:
+            if role in seen:
+                continue
+            seen.add(role)
+            deduped.append(role)
+        return deduped
+
     def infer_role(
         self,
         *,
         var: str,
         context: str,
         equation: str,
-        role_choices: Sequence[str],
-    ) -> Tuple[str, str]:
+        book_domain_hint: Optional[str] = None,
+        role_choices: Optional[Sequence[str]] = None,
+    ) -> Tuple[str, str, Optional[str]]:
         """
-        Returns (meaning, domain). Meaning is one of role_choices or "unknown".
+        Returns (meaning, domain, domain_hint).
+
+        Meaning is one of the role choices or "unknown". Domain is the numeric
+        domain (best-effort), and domain_hint is the detected semantic domain.
         """
         v = str(var or "").strip()
         if not v:
-            return ("unknown", "real")
+            return ("unknown", "real", None)
 
         ctx = str(context or "")
         if len(ctx) > int(self._cfg.max_context_chars):
             ctx = ctx[: int(self._cfg.max_context_chars)]
 
         eq = str(equation or "").strip()
+        normalized_hint = self._normalize_domain_hint(book_domain_hint)
+        detected_domains, domain_scores, eq_scores, book_scores = self._detect_domains(
+            ctx, eq, book_domain_hint=normalized_hint
+        )
+        domain_hint = detected_domains[0] if detected_domains else None
+        if role_choices is None:
+            role_choices = self._get_role_choices_multidomain(detected_domains)
 
-        key = self._cache_key(var=v, context=ctx, equation=eq)
+        key = self._cache_key(
+            var=v,
+            context=ctx,
+            equation=eq,
+            model=self._cfg.model,
+            book_domain_hint=normalized_hint,
+        )
         cached = self._cache.get(key)
         if cached is not None:
             return cached
 
         self._restart_ollama()
 
-        prompt = self._build_prompt(var=v, context=ctx, equation=eq, role_choices=role_choices)
-        role = "unknown"
-        try:
-            if self._cfg.prefer_http:
-                role = self._ollama_http(prompt)
-            else:
-                role = self._ollama_cli(prompt)
-        except Exception:
-            role = "unknown"
+        prompt = self._build_prompt(
+            var=v,
+            context=ctx,
+            equation=eq,
+            role_choices=role_choices,
+            detected_domains=detected_domains,
+            domain_scores=domain_scores,
+            eq_scores=eq_scores,
+            book_domain_hint=normalized_hint,
+            book_scores=book_scores,
+        )
+        role = self._run_model(prompt, model=self._cfg.model, role_choices=role_choices)
+
+        if (
+            role == "unknown"
+            and self._cfg.fallback_model
+            and self._cfg.fallback_on_unknown
+        ):
+            self._restart_ollama()
+            role = self._run_model(prompt, model=self._cfg.fallback_model, role_choices=role_choices)
+            if role != "unknown":
+                key = self._cache_key(
+                    var=v,
+                    context=ctx,
+                    equation=eq,
+                    model=self._cfg.fallback_model,
+                    book_domain_hint=normalized_hint,
+                )
 
         role = self._sanitize_role(role, role_choices=role_choices)
         domain = self._domain_for_role(role)
 
-        self._cache[key] = (role, domain)
+        self._cache[key] = (role, domain, domain_hint)
         if self._cfg.cache_path:
-            self._append_cache(self._cfg.cache_path, key=key, role=role, domain=domain)
-        return (role, domain)
+            self._append_cache(self._cfg.cache_path, key=key, role=role, domain=domain, domain_hint=domain_hint)
+        return (role, domain, domain_hint)
 
-    def _build_prompt(self, *, var: str, context: str, equation: str, role_choices: Sequence[str]) -> str:
-        choices = ", ".join(sorted(set(str(x).strip() for x in role_choices if str(x).strip())))
+    def _build_prompt(
+        self,
+        *,
+        var: str,
+        context: str,
+        equation: str,
+        role_choices: Sequence[str],
+        detected_domains: Sequence[str],
+        domain_scores: Dict[str, int],
+        eq_scores: Dict[str, int],
+        book_domain_hint: Optional[str],
+        book_scores: Dict[str, int],
+    ) -> str:
+        ordered: List[str] = []
+        seen: set[str] = set()
+        for item in role_choices:
+            token = str(item).strip()
+            if not token or token in seen:
+                continue
+            seen.add(token)
+            ordered.append(token)
+        if detected_domains:
+            domain_lines = []
+            for domain in detected_domains[:3]:
+                total = domain_scores.get(domain, 0)
+                eq = eq_scores.get(domain, 0)
+                book = book_scores.get(domain, 0)
+                book_label = "hint" if book else "nohint"
+                domain_lines.append(f"{domain} (score={total}, eq={eq}, book={book_label})")
+            domain_hint = "\n  - ".join(domain_lines)
+        else:
+            domain_hint = "none (use general math roles)"
+
+        avoid_examples: List[str] = []
+        if detected_domains:
+            avoid_map = {
+                "geometry": ["radius", "area"],
+                "linear_algebra": ["determinant", "eigenvalue"],
+                "calculus": ["derivative", "integral"],
+                "physics": ["force", "energy"],
+                "number_theory": ["prime", "modulus"],
+                "statistics": ["probability", "variance"],
+            }
+            for domain in DOMAIN_ORDER:
+                if domain in detected_domains:
+                    continue
+                avoid_examples.extend(avoid_map.get(domain, []))
+        avoid_line = ", ".join(avoid_examples[:8]) if avoid_examples else "n/a"
+
+        top_roles = ordered[:15]
+        remaining = max(0, len(ordered) - len(top_roles))
         return (
             "You extract semantic roles of mathematical variables from textbook context.\n"
             "Return ONLY one role token from the allowed list.\n\n"
-            f"ALLOWED ROLES: {choices}\n\n"
+            f"BOOK DOMAIN HINT: {book_domain_hint or 'none'}\n\n"
+            "DETECTED DOMAINS (ranked):\n"
+            f"  - {domain_hint}\n\n"
+            f"ALLOWED ROLES (top priority {len(top_roles)}/{len(ordered)}):\n"
+            f"  {', '.join(top_roles)}\n"
+            f"... plus {remaining} more roles.\n\n"
+            "PRIORITY:\n"
+            "1) Use a domain-specific role that matches the context.\n"
+            "2) If no domain-specific role fits, use a formula component.\n"
+            "3) Use 'constant' only for known constants (pi, e, g, c).\n"
+            "4) Use 'variable' or 'unknown' only as a last resort.\n"
+            f"5) Avoid unrelated domains unless explicitly mentioned (e.g., {avoid_line}).\n\n"
+            "Think step-by-step internally but output ONLY the final role token.\n\n"
+            "FEW-SHOT EXAMPLES:\n"
+            "Context: right triangle with legs a and b; a^2 + b^2 = c^2\n"
+            "Equation: a^2 + b^2 = c^2\n"
+            "Variable: c\n"
+            "Role: hypotenuse\n\n"
+            "Context: velocity magnitude v = sqrt(v_x^2 + v_y^2)\n"
+            "Equation: v = sqrt(v_x^2 + v_y^2)\n"
+            "Variable: v_x\n"
+            "Role: component\n\n"
+            "Context: Euclidean norm of vector x is ||x|| = sqrt(x1^2 + x2^2)\n"
+            "Equation: ||x|| = sqrt(x1^2 + x2^2)\n"
+            "Variable: x1\n"
+            "Role: component\n\n"
+            "Context: slope is m = dy/dx in differential calculus\n"
+            "Equation: m = dy/dx\n"
+            "Variable: m\n"
+            "Role: derivative\n\n"
+            "Context: modular arithmetic a ≡ b (mod n)\n"
+            "Equation: a ≡ b (mod n)\n"
+            "Variable: n\n"
+            "Role: modulus\n\n"
+            "Context: probability of event A is p = P(A)\n"
+            "Equation: p = P(A)\n"
+            "Variable: p\n"
+            "Role: probability\n\n"
             f"CONTEXT:\n{context}\n\n"
             f"EQUATION/FORMULA:\n{equation}\n\n"
             f"VARIABLE: {var}\n\n"
             "ROLE:"
         )
 
-    def _ollama_http(self, prompt: str) -> str:
-        payload = json.dumps({"model": self._cfg.model, "prompt": prompt, "stream": False}).encode("utf-8")
+    def _ollama_http(self, prompt: str, *, model: str) -> str:
+        payload = json.dumps({"model": model, "prompt": prompt, "stream": False}).encode("utf-8")
         req = urllib.request.Request(self._cfg.http_url, data=payload, headers={"Content-Type": "application/json"})
         try:
             with urllib.request.urlopen(req, timeout=float(self._cfg.timeout_s)) as resp:
@@ -224,10 +829,10 @@ class OllamaRoleExtractor:
         obj = json.loads(raw)
         return str(obj.get("response") or "").strip()
 
-    def _ollama_cli(self, prompt: str) -> str:
+    def _ollama_cli(self, prompt: str, *, model: str) -> str:
         # Avoid huge argv: pass prompt via stdin.
         proc = subprocess.run(
-            ["ollama", "run", self._cfg.model],
+            ["ollama", "run", model],
             input=str(prompt),
             text=True,
             capture_output=True,
@@ -238,25 +843,58 @@ class OllamaRoleExtractor:
             raise RuntimeError((proc.stderr or proc.stdout or "").strip()[:200])
         return str(proc.stdout or "").strip()
 
+    def _run_model(self, prompt: str, *, model: str, role_choices: Sequence[str]) -> str:
+        try:
+            if self._cfg.prefer_http:
+                role = self._ollama_http(prompt, model=model)
+            else:
+                role = self._ollama_cli(prompt, model=model)
+        except Exception:
+            return "unknown"
+        return self._sanitize_role(role, role_choices=role_choices)
+
     def _sanitize_role(self, role: str, *, role_choices: Sequence[str]) -> str:
         low = str(role or "").strip().lower()
-        low = re.sub(r"[^a-z_]+", "", low)
+        low = re.sub(r"[^a-z0-9_]+", "", low)
+        low = ROLE_ALIASES.get(low, low)
         allowed = {str(x).strip().lower() for x in role_choices}
         if low in allowed:
             return low
         # Sometimes models answer with extra text; pick first token-like substring.
-        for t in re.findall(r"[a-z_]{3,}", str(role or "").lower()):
+        for t in re.findall(r"[a-z0-9_]{3,}", str(role or "").lower()):
+            t = ROLE_ALIASES.get(t, t)
             if t in allowed:
                 return t
         return "unknown"
 
     def _domain_for_role(self, role: str) -> str:
-        if role in {"radius", "diameter", "height", "width", "length", "base", "side", "leg", "hypotenuse"}:
+        if role in {
+            "radius",
+            "diameter",
+            "chord",
+            "arc_length",
+            "height",
+            "width",
+            "length",
+            "depth",
+            "thickness",
+            "distance",
+            "perimeter",
+            "circumference",
+            "leg",
+            "hypotenuse",
+            "base",
+            "altitude",
+            "median",
+            "side",
+        }:
             return "positive_real"
-        if role in {"area", "volume"}:
+        if role in {"area", "surface_area", "volume", "cross_section", "variance", "standard_deviation"}:
             return "nonnegative_real"
-        if role in {"angle"}:
+        if role in {"angle", "central_angle", "inscribed_angle", "radian"}:
             return "angle"
+        if role in {"probability", "p_value", "significance_level"}:
+            return "probability"
         return "real"
 
 
@@ -565,6 +1203,7 @@ class SovereignKnowledgeArticulator:
                     lhs_rpn=lhs_rpn,
                     rhs_rpn=rhs_rpn,
                     var_mapping=var_map,
+                    book_domain_hint=domain,
                 )
 
                 artifacts.append(
@@ -852,6 +1491,7 @@ class SovereignKnowledgeArticulator:
         lhs_rpn: Optional[str],
         rhs_rpn: Optional[str],
         var_mapping: Dict[str, str],
+        book_domain_hint: Optional[str],
     ) -> Dict[str, SymbolBinding]:
         # Work with the normalized placeholder variables from RPN.
         placeholders: set[str] = set()
@@ -862,13 +1502,21 @@ class SovereignKnowledgeArticulator:
         raw = _strip_latex_noise(" ".join(block_lines))
         raw_low = raw.lower()
 
-        def _set(ph: str, *, meaning: str, domain: str) -> None:
+        def _set(ph: str, *, meaning: str, domain: str, domain_hint: Optional[str] = None) -> None:
             if ph not in bindings:
                 return
             constraints = []
             if domain == "positive_real":
                 constraints = [f"{ph} > 0"]
-            bindings[ph] = SymbolBinding(symbol=ph, meaning=meaning, domain=domain, constraints=constraints)
+            if domain_hint is None:
+                domain_hint = _DOMAIN_BY_ROLE.get(meaning)
+            bindings[ph] = SymbolBinding(
+                symbol=ph,
+                meaning=meaning,
+                domain=domain,
+                domain_hint=domain_hint,
+                constraints=constraints,
+            )
 
         # -----------------------
         # Heuristic role inference
@@ -956,51 +1604,6 @@ class SovereignKnowledgeArticulator:
         # Optional LLM augmentation
         # -----------------------
         if self._role_extractor is not None and self._role_extractor.enabled:
-            # Prefer geometry-centric roles when the local context suggests they apply.
-            # This avoids the model defaulting to generic categories ("coefficient",
-            # "constant") for symbols that are clearly geometric in intent.
-            geo_cues = any(
-                k in raw_low
-                for k in (
-                    "triangle",
-                    "right triangle",
-                    "hypotenuse",
-                    "leg",
-                    "circle",
-                    "circumference",
-                    "radius",
-                    "diameter",
-                    "sphere",
-                    "cylinder",
-                    "cone",
-                    "area",
-                    "volume",
-                    "surface area",
-                )
-            )
-            if geo_cues:
-                role_choices = [
-                    "radius",
-                    "diameter",
-                    "height",
-                    "width",
-                    "length",
-                    "base",
-                    "side",
-                    "leg",
-                    "hypotenuse",
-                    "area",
-                    "volume",
-                    "angle",
-                    "unknown",
-                ]
-            else:
-                role_choices = [
-                    "angle",
-                    "coefficient",
-                    "constant",
-                    "unknown",
-                ]
             eq_text = f"{lhs} = {rhs}"
             # `bindings` are keyed by normalized placeholder vars (single letters),
             # while the book context/equation usually mentions the *original* names.
@@ -1025,14 +1628,14 @@ class SovereignKnowledgeArticulator:
                 if ph in {"π", "pi", "e"}:
                     continue
                 query_var = inv_map.get(ph) or ph
-                role, dom = self._role_extractor.infer_role(
+                role, dom, domain_hint = self._role_extractor.infer_role(
                     var=query_var,
                     context=raw,
                     equation=eq_text,
-                    role_choices=role_choices,
+                    book_domain_hint=book_domain_hint,
                 )
                 if role and role != "unknown":
-                    _set(ph, meaning=role, domain=dom or "real")
+                    _set(ph, meaning=role, domain=dom or "real", domain_hint=domain_hint)
 
         return bindings
 
@@ -1049,8 +1652,9 @@ class SovereignKnowledgeArticulator:
         out: List[KnowledgeArtifact] = []
         # Keep this tight: only emit formulas with strong structural cues.
         # (This is "artifacts.jsonl", not "templates.jsonl".)
+        relaxed = str(os.getenv("K3D_ARTIFACT_RELAXED", "0")).strip().lower() in {"1", "true", "yes"}
         high_signal = re.compile(
-            r"(?i)(π|\bpi\b|sqrt\b|\bsin\b|\bcos\b|\btan\b|\barcsin\b|\barccos\b|\barctan\b|\bdet\b|determinant|\bln\b|\blog\b|\bexp\b)"
+            r"(?i)(π|\bpi\b|sqrt\b|\bsin\b|\bcos\b|\btan\b|\barcsin\b|\barccos\b|\barctan\b|\bdet\b|determinant|\bln\b|\blog\b|\bexp\b|\blim\b|∫|∂|≡|\bmod\b|\bgcd\b|\blcm\b|\bmean\b|\bvariance\b)"
         )
         for ln in lines:
             m = _EQ_LINE_RE.search(ln)
@@ -1061,7 +1665,7 @@ class SovereignKnowledgeArticulator:
             if not lhs or not rhs:
                 continue
             # Skip low-signal equations (to avoid pollution from incidental examples).
-            if not high_signal.search(ln):
+            if not relaxed and not high_signal.search(ln):
                 continue
             if exclude_pairs is not None and (lhs, rhs) in exclude_pairs:
                 continue
@@ -1079,6 +1683,7 @@ class SovereignKnowledgeArticulator:
                 lhs_rpn=None,
                 rhs_rpn=norm_rpn,
                 var_mapping=var_map,
+                book_domain_hint=domain,
             )
             artifact_id = f"{book_id}_p{int(page_number)}_formula_{len(out)}"
             out.append(

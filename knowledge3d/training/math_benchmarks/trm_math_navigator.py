@@ -81,6 +81,7 @@ class TRMMathNavigator:
         shadow_copy: Optional[Any] = None,
         galaxy_reader: Optional[Any] = None,
         record_on_confidence: bool = True,
+        router_confidence_threshold: float = 0.6,
     ) -> None:
         self.rule_bank = list(rule_bank)
         self.math_galaxy = math_galaxy
@@ -89,6 +90,7 @@ class TRMMathNavigator:
         self.shadow = shadow_copy
         self.galaxy_reader = galaxy_reader
         self.record_on_confidence = bool(record_on_confidence)
+        self.router_confidence_threshold = float(router_confidence_threshold)
 
     def query_matches(self, problem_text: str) -> List[RuleMatch]:
         matches: List[RuleMatch] = []
@@ -119,22 +121,33 @@ class TRMMathNavigator:
                 if result is not None:
                     rpn_program = str(meta.get("rpn_program") or "")
                     confidence = self.trm.validate_result(result, problem_text)
-                    return (
-                        result,
-                        {
-                            "rule_used": "galaxy_read",
-                            "rpn_program": rpn_program,
-                            "confidence": confidence,
-                            "read_trace": meta.get("read_trace", {}),
-                            "read_understanding": meta.get("read_understanding", {}),
-                            "read_composition": meta.get("read_composition", {}),
-                            "attempts": meta.get("attempts", []),
-                            "template_used": meta.get("template_used", ""),
-                            "subgoals": meta.get("subgoals", []),
-                            "exploration": meta.get("exploration", {}),
-                            "test_time": meta.get("test_time", {}),
-                        },
-                    )
+                    router_confidence = self._router_confidence(meta)
+                    if (
+                        meta.get("template_used") == "theorem_router"
+                        and router_confidence < self.router_confidence_threshold
+                    ):
+                        print(
+                            f"[TRM] Low router confidence ({router_confidence:.2f}). "
+                            "Fallback to generic candidates."
+                        )
+                    else:
+                        return (
+                            result,
+                            {
+                                "rule_used": "galaxy_read",
+                                "rpn_program": rpn_program,
+                                "confidence": confidence,
+                                "router_confidence": router_confidence,
+                                "read_trace": meta.get("read_trace", {}),
+                                "read_understanding": meta.get("read_understanding", {}),
+                                "read_composition": meta.get("read_composition", {}),
+                                "attempts": meta.get("attempts", []),
+                                "template_used": meta.get("template_used", ""),
+                                "subgoals": meta.get("subgoals", []),
+                                "exploration": meta.get("exploration", {}),
+                                "test_time": meta.get("test_time", {}),
+                            },
+                        )
             except Exception:
                 pass
 
@@ -287,6 +300,23 @@ class TRMMathNavigator:
                 "error": error,
             },
         )
+
+    def _router_confidence(self, meta: Dict[str, Any]) -> float:
+        if not isinstance(meta, dict):
+            return 1.0
+        if meta.get("template_used") != "theorem_router":
+            return 1.0
+        attempts = meta.get("theorem_attempts", [])
+        best = 0.0
+        if isinstance(attempts, list):
+            for attempt in attempts:
+                weights = attempt.get("router_weights", {})
+                if isinstance(weights, dict) and weights:
+                    try:
+                        best = max(best, max(float(v) for v in weights.values()))
+                    except Exception:
+                        continue
+        return best
 
 
 __all__ = ["TRMMathNavigator", "HeuristicTRMMathEngine", "RuleMatch"]
