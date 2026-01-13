@@ -1,0 +1,212 @@
+[DRAWING GALAXY] Registered scale-invariant primitive: REL_LINE
+[DRAWING GALAXY] Registered scale-invariant primitive: REL_RECT
+[DRAWING GALAXY] Registered scale-invariant primitive: PROPORTIONAL_GRID
+[DRAWING GALAXY] Registered scale-invariant primitive: FLOOD_FILL_REL
+[GrammarGalaxy] Loaded 747 rules from /K3D/Knowledge3D.local/galaxies/grammar/grammar_galaxy.json
+=== GALAXY LOADER STATUS ===
+  math_symbols: 197 entries
+  generic_equations: 7 entries
+  drawing: loaded
+  reality: loaded
+  word_galaxy: loaded
+  grammar: loaded
+  word_rules: 21 entries
+  algebra_rules: 2 entries
+  gsm8k_templates: 10 entries
+  competition_rules: 28 entries
+  calculus_rules: 8 entries
+  linear_algebra_rules: 2 entries
+  set_rules: 3 entries
+  logic_rules: 3 entries
+  statistics_rules: 2 entries
+  finance_rules: 6 entries
+  symbolic_rules: 15 entries
+  sovereign_rules: 15 entries
+Symbol Registry: 210 symbols, 1 cross-domain, 1.0x compression
+Loaded Knowledge: 2581 formulas, 0 rules, 2 RPN patterns, 2581 valid grammar rules (filtered from 2581, dropped 0 invalid), 0 symbols added to Math Galaxy
+
+[Microbench] Loading problems from data/calculus_microbench.jsonl
+
+Running microbench: 12 problems
+[RecursiveSolver] Function: (3*x - 4)/(2*x + 3), Point: x=1.0
+--- TRACE START ---
+[Decompose] Quotient Rule: 3*x - 4 / 2*x + 3
+  [Decompose] Sum Rule: 3*x - 4
+    [Base] Constant -4 -> derivative is 0
+    [Decompose] Product/Const Rule: 3*x
+      u = 3
+      v = x
+      [Base] Constant 3 -> derivative is 0
+      [Base] Variable x -> derivative is 1
+    [Result] Product -> 0.0*1.0 + 3.0*1.0 = 3.0
+  [Result] Sum -> 3.0
+  [Decompose] Sum Rule: 2*x + 3
+    [Base] Constant 3 -> derivative is 0
+    [Decompose] Product/Const Rule: 2*x
+      u = 2
+      v = x
+      [Base] Constant 2 -> derivative is 0
+      [Base] Variable x -> derivative is 1
+    [Result] Product -> 0.0*1.0 + 2.0*1.0 = 2.0
+  [Result] Sum -> 2.0
+[Result] Quotient -> 0.68
+--- TRACE END ---
+[SUCCESS] ds=microbench solver=recursive rule=compositional_solver template=None expected=0.68 got=0.68 patterns=None text=Find f'(1) where f(x) = (3x-4)/(2x+3)
+[RecursiveSolver] Function: x**3 - 3*x**2 + 2*x - 5, Point: x=2.0
+--- TRACE START ---
+[Decompose] Sum Rule: x**3 - 3*x**2 + 2*x - 5
+  [Base] Constant -5 -> derivative is 0
+  [Decompose] Power Rule: x**3
+    [Base] Variable x -> derivative is 1
+  [Result] Power -> 3.0 * 2.0^(2.0) * 1.0 = 12.0
+  [Decompose] Product/Const Rule: -3*x**2
+    u = -3
+    v = x**2
+    [Base] Constant -3 -> derivative is 0
+    [Decompose] Power Rule: x**2
+      [Base] Variable x -> derivative is 1
+    [Result] Power -> 2.0 * 2.0^(1.0) * 1.0 = 4.0
+  [Result] Product -> 0.0*4.0 + -3.0*4.0 = -12.0
+  [Decompose] Product/Const Rule: 2*x
+    u = 2
+    v = x
+    [Base] Constant 2 -> derivative is 0
+    [Base] Variable x -> derivative is 1
+  [Result] Product -> 0.0*2.0 + 2.0*1.0 = 2.0
+[Result] Sum -> 2.0
+--- TRACE END ---
+[SUCCESS] ds=microbench solver=recursive rule=compositional_solver template=None expected=2.0 got=2.0 patterns=None text=Find the derivative of x^3 - 3x^2 + 2x - 5 at x=2
+[RecursiveSolver] Function: (6*x - 4)**(1/3), Point: x=2.0
+--- TRACE START ---
+[Decompose] Power Rule: (6*x - 4)**(1/3)
+  [Decompose] Sum Rule: 6*x - 4
+    [Base] Constant -4 -> derivative is 0
+    [Decompose] Product/Const Rule: 6*x
+      u = 6
+      v = x
+      [Base] Constant 6 -> derivative is 0
+      [Base] Variable x -> derivative is 1
+    [Result] Product -> 0.0*2.0 + 6.0*1.0 = 6.0
+  [Result] Sum -> 6.0
+[Result] Power -> 0.3333333333333333 * 8.0^(-0.6666666666666667) * 6.0 = 0.4999999999999999
+--- TRACE END ---
+[SUCCESS] ds=microbench solver=recursive rule=compositional_solver template=None expected=0.5 got=0.4999999999999999 patterns=None text=Evaluate f'(2) where f(x) = (6x-4)^(1/3)
+[RecursiveSolver] Function: x**2 + 4*x, Point: x=3.0
+--- TRACE START ---
+[Decompose] Sum Rule: x**2 + 4*x
+  [Decompose] Power Rule: x**2
+    [Base] Variable x -> derivative is 1
+  [Result] Power -> 2.0 * 3.0^(1.0) * 1.0 = 6.0
+  [Decompose] Product/Const Rule: 4*x
+    u = 4
+    v = x
+    [Base] Constant 4 -> derivative is 0
+    [Base] Variable x -> derivative is 1
+  [Result] Product -> 0.0*3.0 + 4.0*1.0 = 4.0
+[Result] Sum -> 10.0
+--- TRACE END ---
+[SUCCESS] ds=microbench solver=recursive rule=compositional_solver template=None expected=10.0 got=10.0 patterns=None text=Find derivative of x^2 + 4x at x=3
+[RecursiveSolver] Function: x**2*(x + 1), Point: x=1.0
+--- TRACE START ---
+[Decompose] Product/Const Rule: x**2*(x + 1)
+  u = x**2
+  v = x + 1
+  [Decompose] Power Rule: x**2
+    [Base] Variable x -> derivative is 1
+  [Result] Power -> 2.0 * 1.0^(1.0) * 1.0 = 2.0
+  [Decompose] Sum Rule: x + 1
+    [Base] Constant 1 -> derivative is 0
+    [Base] Variable x -> derivative is 1
+  [Result] Sum -> 1.0
+[Result] Product -> 2.0*2.0 + 1.0*1.0 = 5.0
+--- TRACE END ---
+[SUCCESS] ds=microbench solver=recursive rule=compositional_solver template=None expected=5.0 got=5.0 patterns=None text=Evaluate f'(1) where f(x) = x^2 * (x+1)
+[RecursiveSolver] Function: (2*x + 1)**2, Point: x=0.0
+--- TRACE START ---
+[Decompose] Power Rule: (2*x + 1)**2
+  [Decompose] Sum Rule: 2*x + 1
+    [Base] Constant 1 -> derivative is 0
+    [Decompose] Product/Const Rule: 2*x
+      u = 2
+      v = x
+      [Base] Constant 2 -> derivative is 0
+      [Base] Variable x -> derivative is 1
+    [Result] Product -> 0.0*0.0 + 2.0*1.0 = 2.0
+  [Result] Sum -> 2.0
+[Result] Power -> 2.0 * 1.0^(1.0) * 2.0 = 4.0
+--- TRACE END ---
+[SUCCESS] ds=microbench solver=recursive rule=compositional_solver template=None expected=4.0 got=4.0 patterns=None text=Find derivative of (2x+1)^2 at x=0
+[RecursiveSolver] Function: 5*x**3, Point: x=2.0
+--- TRACE START ---
+[Decompose] Product/Const Rule: 5*x**3
+  u = 5
+  v = x**3
+  [Base] Constant 5 -> derivative is 0
+  [Decompose] Power Rule: x**3
+    [Base] Variable x -> derivative is 1
+  [Result] Power -> 3.0 * 2.0^(2.0) * 1.0 = 12.0
+[Result] Product -> 0.0*8.0 + 5.0*12.0 = 60.0
+--- TRACE END ---
+[SUCCESS] ds=microbench solver=recursive rule=compositional_solver template=None expected=60.0 got=60.0 patterns=None text=Evaluate derivative of 5x^3 at x=2
+[RecursiveSolver] Function: sin(x), Point: x=0.0
+--- TRACE START ---
+[Decompose] Sin Chain Rule: sin(x)
+  [Base] Variable x -> derivative is 1
+[Result] Sin -> cos(0.0) * 1.0 = 1.0
+--- TRACE END ---
+[SUCCESS] ds=microbench solver=recursive rule=compositional_solver template=None expected=1.0 got=1.0 patterns=None text=Find f'(0) where f(x) = sin(x)
+[RecursiveSolver] Function: cos(x), Point: x=0.0
+--- TRACE START ---
+[Decompose] Cos Chain Rule: cos(x)
+  [Base] Variable x -> derivative is 1
+[Result] Cos -> -sin(0.0) * 1.0 = -0.0
+--- TRACE END ---
+[SUCCESS] ds=microbench solver=recursive rule=compositional_solver template=None expected=0.0 got=-0.0 patterns=None text=Evaluate derivative of cos(x) at x=0
+[RecursiveSolver] Function: exp(x), Point: x=1.0
+--- TRACE START ---
+[Decompose] Exp Chain Rule: exp(x)
+  [Base] Variable x -> derivative is 1
+[Result] Exp -> exp(1.0) * 1.0 = 2.718281828459045
+--- TRACE END ---
+[SUCCESS] ds=microbench solver=recursive rule=compositional_solver template=None expected=2.718281828 got=2.718281828459045 patterns=None text=Find f'(1) where f(x) = e^x
+[RecursiveSolver] Function: x**2 + 1/x, Point: x=1.0
+--- TRACE START ---
+[Decompose] Sum Rule: x**2 + 1/x
+  [Decompose] Power Rule: 1/x
+    [Base] Variable x -> derivative is 1
+  [Result] Power -> -1.0 * 1.0^(-2.0) * 1.0 = -1.0
+  [Decompose] Power Rule: x**2
+    [Base] Variable x -> derivative is 1
+  [Result] Power -> 2.0 * 1.0^(1.0) * 1.0 = 2.0
+[Result] Sum -> 1.0
+--- TRACE END ---
+[SUCCESS] ds=microbench solver=recursive rule=compositional_solver template=None expected=1.0 got=1.0 patterns=None text=Find derivative of x^2 + 1/x at x=1
+[RecursiveSolver] Function: (x - 1)/(x + 1), Point: x=2.0
+--- TRACE START ---
+[Decompose] Quotient Rule: x - 1 / x + 1
+  [Decompose] Sum Rule: x - 1
+    [Base] Constant -1 -> derivative is 0
+    [Base] Variable x -> derivative is 1
+  [Result] Sum -> 1.0
+  [Decompose] Sum Rule: x + 1
+    [Base] Constant 1 -> derivative is 0
+    [Base] Variable x -> derivative is 1
+  [Result] Sum -> 1.0
+[Result] Quotient -> 0.2222222222222222
+--- TRACE END ---
+[SUCCESS] ds=microbench solver=recursive rule=compositional_solver template=None expected=0.2222222222 got=0.2222222222222222 patterns=None text=Evaluate f'(2) where f(x) = (x-1)/(x+1)
+Dataset: microbench
+  Total: 12
+  Correct: 12 (100.00%)
+  Accuracy: 12/12 = 100.00%
+  By solver:
+    - trm: 0
+    - template: 0
+    - composer: 0
+    - word: 0
+    - grammar: 0
+    - knowledge: 0
+    - fail: 0
+  Rule selection entropy: 0.000 (max 0.000)
+  Top rules: [('compositional_solver', 12)]
+[Microbench] Wrote Log Galaxy to /tmp/log_galaxy_microbench.jsonl
