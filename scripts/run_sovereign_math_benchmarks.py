@@ -20,7 +20,7 @@ import re
 import sys
 import math
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 # Allow running as a script without requiring `PYTHONPATH=.`.
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -47,6 +47,70 @@ from knowledge3d.training.math_benchmarks.math_output_adapter import MathOutputA
 from knowledge3d.training.math_benchmarks.math_templates import get_all_templates
 from knowledge3d.cranium.ptx_runtime.modular_rpn_engine import ModularRPNEngine
 from knowledge3d.training.math_benchmarks.rpn_validator import is_valid_rpn
+from knowledge3d.cranium.math_galaxy_population import (
+    populate_role_patterns,
+    populate_theorem_patterns,
+)
+from knowledge3d.training.arc_agi.grammar_galaxy import GrammarRule
+from knowledge3d.training.math_benchmarks.calculus_grammar_rules import get_calculus_rules
+from knowledge3d.training.math_benchmarks.theorem_router import TheoremRouter
+from knowledge3d.training.math_benchmarks.latex_normalizer import normalize_latex_to_natural
+from knowledge3d.training.math_benchmarks.recursive_solver import RecursiveSolver
+
+
+def _build_theorem_rules(
+    theorem_patterns: List[Dict[str, Any]],
+) -> Tuple[List[GrammarRule], Dict[str, Dict[str, Any]]]:
+    rules: List[GrammarRule] = []
+    meta: Dict[str, Dict[str, Any]] = {}
+    for pattern in theorem_patterns:
+        precond = pattern.get("precondition", {}) or {}
+        cues = []
+        for cue in precond.get("context_cues", []) or []:
+            token = str(cue or "").strip().lower()
+            if len(token) >= 2:
+                cues.append(token)
+        for tag in pattern.get("semantic_tags", []) or []:
+            token = str(tag or "").strip().lower()
+            if len(token) >= 2:
+                cues.append(token)
+        deduped: List[str] = []
+        seen: set[str] = set()
+        for token in cues:
+            if token in seen:
+                continue
+            seen.add(token)
+            deduped.append(token)
+        deduped = deduped[:8]
+        if not deduped:
+            continue
+        regex = "|".join(re.escape(token) for token in deduped)
+        pattern_text = rf"(?i)\b({regex})\b" if regex else str(pattern.get("pattern_id") or "")
+        rpn_program = " ".join(str(tok) for tok in pattern.get("transformation", {}).get("rpn_program", []))
+        rule_id = f"theorem:{pattern.get('pattern_id')}"
+        domain = f"theorem_{pattern.get('domain') or 'math'}"
+        semantics = {
+            "pattern_type": "word_sequence",
+            "word_pattern": [{"word_in": list(deduped)}],
+            "match_mode": "subsequence",
+            "max_skip": 6,
+        }
+        rule = GrammarRule(
+            rule_id=rule_id,
+            language="math",
+            pattern=pattern_text,
+            rpn_program=rpn_program,
+            domain=domain,
+            semantics=semantics,
+            description="theorem_pattern",
+        )
+        rules.append(rule)
+        meta[rule_id] = {
+            "pattern_id": pattern.get("pattern_id"),
+            "grammar_rule": pattern.get("grammar_rule"),
+            "semantic_tags": list(pattern.get("semantic_tags") or []),
+        }
+    return rules, meta
 
 
 class SovereignBenchmarkRunner:
@@ -65,6 +129,7 @@ class SovereignBenchmarkRunner:
         book_top_k: int = 5,
         thinking_budget: int = 0,
         verbose: bool = False,
+        router_weights: Optional[str] = None,
     ):
         print(UNIFIED_GALAXY.report())
         populate_registry_from_galaxy()
@@ -117,11 +182,53 @@ class SovereignBenchmarkRunner:
         self._book_top_k = int(max(0, book_top_k))
         self._thinking_budget = int(max(0, thinking_budget))
         self._verbose = bool(verbose)
+        self._router_weights = str(router_weights) if router_weights else None
+        self._role_patterns: List[Dict[str, Any]] = []
+        self._theorem_patterns: List[Dict[str, Any]] = []
+        self._theorem_rules: List[GrammarRule] = []
+        self._theorem_rule_meta: Dict[str, Dict[str, Any]] = {}
+        self._theorem_grammar_rules: Dict[str, GrammarRule] = {}
+        self._theorem_router: Optional[TheoremRouter] = None
         self._trm_navigator = None
+        self._recursive_solver = RecursiveSolver(verbose=self._verbose)
+        self._log_galaxy = None
         self._ttc_best_source_counts: Dict[str, Dict[str, int]] = {}
         self._ttc_usage_stats: Dict[str, Dict[str, int]] = {}
         self._shadow_copy = None
         self._galaxy_reader = None
+        if self._load_all_galaxies:
+            artifact_dirs = ["/K3D/Knowledge3D.local/galaxies/books_v5_clean2"]
+            role_patterns = populate_role_patterns(
+                artifact_dirs=artifact_dirs,
+                min_examples=3,
+            )
+            print(f"Loaded {len(role_patterns)} role patterns from books_v5_clean2")
+            theorem_patterns = populate_theorem_patterns(
+                artifact_dirs=artifact_dirs,
+                min_examples=2,
+            )
+            print(f"Loaded {len(theorem_patterns)} theorem patterns from books_v5_clean2")
+            print(f"Theorem patterns: {[p['pattern_id'] for p in theorem_patterns]}")
+            self._role_patterns = role_patterns
+            self._theorem_patterns = theorem_patterns
+            self._theorem_rules, self._theorem_rule_meta = _build_theorem_rules(theorem_patterns)
+            if self._theorem_rules:
+                print(f"Built {len(self._theorem_rules)} theorem grammar rules")
+            calculus_rules = get_calculus_rules()
+            self._theorem_grammar_rules = {r.rule_id: r for r in calculus_rules}
+            if self._theorem_grammar_rules:
+                print(f"Loaded {len(self._theorem_grammar_rules)} calculus grammar rules")
+            router_strategy = "learned" if self._router_weights else "heuristic"
+            self._theorem_router = TheoremRouter(
+                self._theorem_grammar_rules.keys(),
+                strategy=router_strategy,
+                learned_weights_path=self._router_weights,
+            )
+            if self._router_weights:
+                print(f"Loaded theorem router weights from {self._router_weights}")
+
+    def set_log_galaxy(self, log_galaxy) -> None:
+        self._log_galaxy = log_galaxy
         if self._use_trm_navigator:
             from knowledge3d.training.arc_agi.dual_shadow_copy import DualShadowCopy
             from knowledge3d.training.math_benchmarks.trm_math_navigator import TRMMathNavigator
@@ -145,7 +252,7 @@ class SovereignBenchmarkRunner:
                     grammar_galaxy=UNIFIED_GALAXY.galaxies.get("grammar"),
                     math_galaxy=UNIFIED_GALAXY.galaxies.get("math_symbols"),
                     generic_equations_galaxy=UNIFIED_GALAXY.galaxies.get("generic_equations"),
-                    rule_bank=GALAXY_AWARE_RULES,
+                    rule_bank=list(GALAXY_AWARE_RULES) + list(self._theorem_rules),
                     shadow_copy=self._shadow_copy,
                     use_retrieval=not self._disable_retrieval,
                     reality_galaxy=UNIFIED_GALAXY.galaxies.get("reality"),
@@ -156,6 +263,10 @@ class SovereignBenchmarkRunner:
                     book_max_books=self._book_max_books,
                     book_top_k=self._book_top_k,
                     thinking_budget=self._thinking_budget,
+                    verbose=self._verbose,
+                    theorem_router=self._theorem_router,
+                    theorem_rule_meta=self._theorem_rule_meta,
+                    theorem_grammar_rules=self._theorem_grammar_rules,
                 )
             except Exception:
                 galaxy_reader = None
@@ -604,6 +715,9 @@ class SovereignBenchmarkRunner:
                     for line in f:
                         p = json.loads(line)
                         p["source"] = "math"
+                        text = p.get("problem", p.get("question", ""))
+                        if isinstance(text, str) and text:
+                            p["normalized_problem"] = normalize_latex_to_natural(text)
                         problems.append(p)
             return problems
 
@@ -650,7 +764,9 @@ class SovereignBenchmarkRunner:
 
     def solve_problem_with_meta(self, problem: Dict[str, Any]) -> Tuple[Any, str, Dict[str, Any]]:
         """Solve a problem and return (result, solver_name, trace)."""
-        text = problem.get("problem", problem.get("question", ""))
+        text = problem.get("normalized_problem", problem.get("normalized_question"))
+        if not text:
+            text = problem.get("problem", problem.get("question", ""))
         source = problem.get("source", "")
         solution = problem.get("answer", problem.get("solution", ""))
 
@@ -675,6 +791,14 @@ class SovereignBenchmarkRunner:
                     return result, "trm", trace
             except Exception:
                 pass
+
+        # Try -0.5: Recursive Solver (Compositional Decomposition)
+        # This handles complex calculus forms that single regexes miss ((3x-4)/(2x+3)).
+        if self._recursive_solver:
+            rec_result = self._recursive_solver.solve(text)
+            if rec_result is not None:
+                if self._validate_answer(rec_result, text, source):
+                    return rec_result, "recursive", {"rule_used": "compositional_solver"}
 
         # Try 0: Curated parametric templates (fast, high-quality)
         for rule in self.template_rules:
@@ -1106,6 +1230,7 @@ class SovereignBenchmarkRunner:
         print(f"\nRunning {label}: {len(problems)} problems")
 
         by_solver: Dict[str, int] = {k: 0 for k in ("trm", "template", "composer", "word", "grammar", "knowledge", "fail")}
+        rule_hist: Dict[str, int] = {}
         correct = 0
         total = 0
 
@@ -1118,6 +1243,21 @@ class SovereignBenchmarkRunner:
             by_solver[solver] = by_solver.get(solver, 0) + 1
             if solver in self.solve_stats:
                 self.solve_stats[solver] += 1
+            rule_key = None
+            rule_used = trace.get("rule_used")
+            meta = trace.get("meta", {}) if isinstance(trace.get("meta", {}), dict) else {}
+            if solver == "trm":
+                template_used = meta.get("template_used")
+                if template_used == "theorem_router":
+                    attempts = meta.get("theorem_attempts", [])
+                    if isinstance(attempts, list) and attempts:
+                        rule_key = attempts[0].get("rule_id") or rule_used
+                if rule_key is None:
+                    rule_key = rule_used or template_used
+            else:
+                rule_key = rule_used or trace.get("template_used")
+            if isinstance(rule_key, str) and rule_key:
+                rule_hist[rule_key] = int(rule_hist.get(rule_key, 0)) + 1
             ground_truth = problem.get("answer", problem.get("solution", ""))
 
             result = self.evaluator.evaluate(
@@ -1211,6 +1351,20 @@ class SovereignBenchmarkRunner:
                         f" text={text[:120].replace(chr(10), ' ')}"
                     )
                 self._record_correct_solve(problem, predicted, solver, trace, dataset_name)
+                if solver == "recursive" and self._log_galaxy is not None and self._recursive_solver is not None:
+                    trace_info = self._recursive_solver.get_last_trace()
+                    self._log_galaxy.add_trace(
+                        problem_text=text,
+                        step_sequence=trace_info.get("step_sequence", []),
+                        result=float(predicted) if predicted is not None else None,
+                        success=True,
+                        trace_lines=trace_info.get("trace_lines", []),
+                        metadata={
+                            "dataset": dataset_name,
+                            "expression": trace_info.get("expression"),
+                            "point": trace_info.get("point"),
+                        },
+                    )
             else:
                 expected_num = None
                 got_num = None
@@ -1326,6 +1480,18 @@ class SovereignBenchmarkRunner:
             stats = dict(self._ttc_usage_stats.get(dataset_name, {}))
             if stats:
                 print(f"  TTC usage: {stats}")
+        if rule_hist:
+            total_rules = sum(rule_hist.values())
+            entropy = 0.0
+            for count in rule_hist.values():
+                if count <= 0:
+                    continue
+                p = float(count) / float(total_rules)
+                entropy -= p * math.log2(p)
+            max_entropy = math.log2(len(rule_hist)) if len(rule_hist) > 1 else 0.0
+            top_rules = sorted(rule_hist.items(), key=lambda kv: kv[1], reverse=True)[:5]
+            print(f"  Rule selection entropy: {entropy:.3f} (max {max_entropy:.3f})")
+            print(f"  Top rules: {top_rules}")
         if self._retrieval_events:
             total_r = len(self._retrieval_events)
             ok_r = sum(1 for e in self._retrieval_events if e.get("correct"))
@@ -1847,9 +2013,27 @@ def main() -> None:
         help="Test-time compute budget for Galaxy reader (0 disables).",
     )
     parser.add_argument(
+        "--router-weights",
+        type=str,
+        default=None,
+        help="Path to learned theorem router weights (JSON mapping).",
+    )
+    parser.add_argument(
         "--verbose",
         action="store_true",
         help="Print extra diagnostics and a wrong-computation summary for the current run.",
+    )
+    parser.add_argument(
+        "--calc-microbench",
+        type=str,
+        default=None,
+        help="Path to a JSONL file for calculus micro-benchmarking (e.g. data/calculus_microbench.jsonl).",
+    )
+    parser.add_argument(
+        "--log-galaxy-out",
+        type=str,
+        default=None,
+        help="Write Log Galaxy traces to this JSONL path (microbench preferred).",
     )
     args = parser.parse_args()
 
@@ -1864,9 +2048,40 @@ def main() -> None:
         book_top_k=int(args.book_top_k),
         thinking_budget=int(args.thinking_budget or 0),
         verbose=bool(args.verbose),
+        router_weights=args.router_weights,
     )
+    if args.log_galaxy_out:
+        from knowledge3d.training.math_benchmarks.log_galaxy import LogGalaxy
+
+        runner.set_log_galaxy(LogGalaxy())
 
     max_problems = args.max_problems if args.max_problems is not None else args.limit
+
+    if args.calc_microbench:
+        # Microbench Mode: Run specific file, force recursive solver usage
+        print(f"\n[Microbench] Loading problems from {args.calc_microbench}")
+        path = Path(args.calc_microbench)
+        if not path.exists():
+            print(f"Error: File {path} not found.")
+            return
+
+        problems = []
+        with open(path) as f:
+            for line in f:
+                if line.strip():
+                    p = json.loads(line)
+                    p["source"] = "microbench"
+                    problems.append(p)
+        
+        # Override load_dataset to return just these problems
+        runner.load_dataset = lambda name: problems if name == "microbench" else []
+        
+        # Run
+        runner.run_benchmark("microbench")
+        if args.log_galaxy_out and runner._log_galaxy is not None:
+            runner._log_galaxy.to_jsonl(args.log_galaxy_out)
+            print(f"[Microbench] Wrote Log Galaxy to {args.log_galaxy_out}")
+        return
 
     if args.dataset:
         runner.run_benchmark(
@@ -1876,6 +2091,9 @@ def main() -> None:
             shuffle=bool(args.shuffle),
             shuffle_seed=int(args.shuffle_seed or 0),
         )
+        if args.log_galaxy_out and runner._log_galaxy is not None:
+            runner._log_galaxy.to_jsonl(args.log_galaxy_out)
+            print(f"[Benchmark] Wrote Log Galaxy to {args.log_galaxy_out}")
         runner._finalize_shadow_copy()
         return
 
@@ -1889,6 +2107,9 @@ def main() -> None:
                 shuffle=bool(args.shuffle),
                 shuffle_seed=int(args.shuffle_seed or 0),
             )
+        if args.log_galaxy_out and runner._log_galaxy is not None:
+            runner._log_galaxy.to_jsonl(args.log_galaxy_out)
+            print(f"[Benchmark] Wrote Log Galaxy to {args.log_galaxy_out}")
         print(f"\nShadow Copy: {len(runner._shadow_copy.library) if runner._shadow_copy is not None else 0} discoveries recorded")
         failure_report = runner._analyze_failures()
         if failure_report.get("total_failures"):

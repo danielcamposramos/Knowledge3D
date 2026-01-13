@@ -49,6 +49,8 @@ class MathBenchmarkEvaluator:
             correct, match_type = self._evaluate_gsm8k(predicted, ground_truth)
         elif source == "math":
             correct, match_type = self._evaluate_math(predicted, ground_truth)
+        elif source == "microbench":
+            correct, match_type = self._evaluate_microbench(predicted, ground_truth)
         elif source == "mmlu":
             correct, match_type = self._evaluate_mmlu(predicted, ground_truth)
         elif source == "omni_math":
@@ -127,6 +129,16 @@ class MathBenchmarkEvaluator:
         return False, "none"
 
     def _evaluate_omni(self, predicted: Any, truth: Any):
+        pred_num = _safe_float(predicted)
+        truth_num = _safe_float(truth)
+        if pred_num is not None and truth_num is not None:
+            if abs(pred_num - truth_num) < self._tolerance:
+                return True, "numerical"
+        if str(predicted).strip() == str(truth).strip():
+            return True, "exact"
+        return False, "none"
+
+    def _evaluate_microbench(self, predicted: Any, truth: Any):
         pred_num = _safe_float(predicted)
         truth_num = _safe_float(truth)
         if pred_num is not None and truth_num is not None:

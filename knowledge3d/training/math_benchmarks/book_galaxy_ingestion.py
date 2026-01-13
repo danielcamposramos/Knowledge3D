@@ -496,12 +496,19 @@ class BookGalaxyIngester:
                     cache_path = str(output_dir / "role_llm_cache.jsonl")
                 cfg = RoleExtractionConfig(
                     enabled=True,
-                    model=_env_first("K3D_BOOK_ROLE_LLM_MODEL", "K3D_ROLE_LLM_MODEL") or "qwen3:8b",
+                    model=_env_first("K3D_BOOK_ROLE_LLM_MODEL", "K3D_ROLE_LLM_MODEL") or "granite4:tiny-h",
+                    fallback_model=_env_first(
+                        "K3D_BOOK_ROLE_LLM_FALLBACK_MODEL", "K3D_ROLE_LLM_FALLBACK_MODEL"
+                    ) or "qwen2.5:14b",
                     timeout_s=_env_float("K3D_BOOK_ROLE_LLM_TIMEOUT_S", _env_float("K3D_ROLE_LLM_TIMEOUT_S", 30.0)),
                     max_context_chars=_env_int("K3D_BOOK_ROLE_LLM_MAX_CONTEXT_CHARS", _env_int("K3D_ROLE_LLM_MAX_CONTEXT_CHARS", 1200)),
                     cache_path=cache_path,
                     restart_between_calls=_env_flag("K3D_BOOK_ROLE_LLM_RESTART", _env_flag("K3D_ROLE_LLM_RESTART", False)),
                     prefer_http=_env_flag("K3D_BOOK_ROLE_LLM_PREFER_HTTP", _env_flag("K3D_ROLE_LLM_PREFER_HTTP", True)),
+                    fallback_on_unknown=_env_flag(
+                        "K3D_BOOK_ROLE_LLM_FALLBACK_ON_UNKNOWN",
+                        _env_flag("K3D_ROLE_LLM_FALLBACK_ON_UNKNOWN", True),
+                    ),
                     http_url=_env_first("K3D_BOOK_ROLE_LLM_HTTP_URL", "K3D_ROLE_LLM_HTTP_URL")
                     or "http://127.0.0.1:11434/api/generate",
                 )
