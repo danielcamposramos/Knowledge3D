@@ -1,2 +1,3 @@
 # Additional Python dependencies for runtime image (none required currently).
 fonttools>=4.40.0
+sympy

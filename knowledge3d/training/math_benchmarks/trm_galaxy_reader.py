@@ -107,6 +107,10 @@ class TRMGalaxyReader:
         book_top_k: int = 5,
         thinking_budget: int = 0,
         max_parallel_candidates: int = 27,
+        verbose: bool = False,
+        theorem_router: Optional[Any] = None,
+        theorem_rule_meta: Optional[Dict[str, Any]] = None,
+        theorem_grammar_rules: Optional[Dict[str, Any]] = None,
     ) -> None:
         self.word_galaxy = word_galaxy
         self.grammar_galaxy = grammar_galaxy
@@ -124,6 +128,10 @@ class TRMGalaxyReader:
         self.book_top_k = int(max(0, book_top_k))
         self.thinking_budget = int(max(0, thinking_budget))
         self.max_parallel_candidates = int(max(1, max_parallel_candidates))
+        self._verbose = bool(verbose)
+        self.theorem_router = theorem_router
+        self.theorem_rule_meta = theorem_rule_meta or {}
+        self.theorem_grammar_rules = theorem_grammar_rules or {}
         self._last_composition: Dict[str, Any] = {}
         self._last_selection_meta: Dict[str, Any] = {}
         self._stats: Dict[str, Any] = {
@@ -301,6 +309,56 @@ class TRMGalaxyReader:
             pass
 
         return nums
+
+    def _execute_grammar_rule(
+        self,
+        rule: Any,
+        *,
+        problem_text: str,
+        rpn_engine: Any,
+    ) -> Tuple[Any, Dict[str, Any]]:
+        if rule is None:
+            return None, {"status": "no_rule"}
+        try:
+            import re as _re
+
+            match = _re.search(rule.pattern, problem_text or "", _re.IGNORECASE | _re.DOTALL)
+            if not match:
+                return None, {"status": "no_match", "rule_id": getattr(rule, "rule_id", None)}
+            rpn_program = rule.rpn_program
+            if callable(rpn_program):
+                rpn_program = rpn_program(match)
+            else:
+                groups = [g.replace(",", "") if isinstance(g, str) else g for g in match.groups()]
+                for idx, group in enumerate(groups):
+                    rpn_program = str(rpn_program).replace(f"{{g{idx}}}", str(group))
+                    rpn_program = str(rpn_program).replace(f"{{{idx}}}", str(group))
+            rule_id = getattr(rule, "rule_id", None)
+            if self._verbose:
+                print(f"[TRM] Executing grammar rule: {rule_id}")
+            result = rpn_engine.evaluate(str(rpn_program))
+            if self._verbose:
+                print(f"[RPN Engine] Result: {result}")
+            verification = self.verify_reasonableness(problem_text, result)
+            return (
+                result,
+                {
+                    "status": "executed",
+                    "rule_id": rule_id,
+                    "rpn_program": str(rpn_program),
+                    "result": result,
+                    "plausible": bool(verification.get("plausible")),
+                    "verification": verification,
+                },
+            )
+        except Exception as exc:  # noqa: BLE001
+            if self._verbose:
+                print(f"[RPN Engine] Execution error: {exc}")
+            return None, {
+                "status": "exec_error",
+                "rule_id": getattr(rule, "rule_id", None),
+                "error": str(exc),
+            }
 
     def classify_question(self, problem_text: str) -> str:
         text = (problem_text or "").lower()
@@ -1817,7 +1875,15 @@ class TRMGalaxyReader:
             domain = getattr(rule, "domain", "")
             pos = item.get("start")
             end = item.get("end")
-            trace["patterns"].append({"rule_id": rule_id, "domain": domain, "captures": captures, "pos": pos})
+            trace["patterns"].append(
+                {
+                    "rule_id": rule_id,
+                    "domain": domain,
+                    "captures": captures,
+                    "pos": pos,
+                    "rpn_program": getattr(rule, "rpn_program", ""),
+                }
+            )
 
             def _cap_num(key: str) -> Optional[float]:
                 if key not in captures:
@@ -4521,6 +4587,62 @@ class TRMGalaxyReader:
                 pass
 
         matched_patterns = trace.get("patterns", []) if isinstance(trace, dict) else []
+        theorem_attempts: List[Dict[str, Any]] = []
+        theorem_matches = [
+            p for p in matched_patterns if str(p.get("rule_id") or "").startswith("theorem:")
+        ]
+        if theorem_matches and self._verbose:
+            print(f"[TRM] matched theorem patterns: {[p.get('rule_id') for p in theorem_matches]}")
+
+        if theorem_matches and self.theorem_router and self.theorem_grammar_rules:
+            semantic_tags: List[str] = []
+            target_labels: List[str] = []
+            for pat in theorem_matches:
+                rule_id = str(pat.get("rule_id") or "")
+                meta = self.theorem_rule_meta.get(rule_id, {})
+                semantic_tags.extend(meta.get("semantic_tags", []) or [])
+                label = str(meta.get("grammar_rule") or "").strip()
+                if label:
+                    target_labels.append(label)
+
+            weights = self.theorem_router.route(semantic_tags)
+            if weights and self._verbose:
+                top_sorted = sorted(weights.items(), key=lambda kv: kv[1], reverse=True)[:5]
+                print(f"[TRM] theorem router weights: {top_sorted}")
+
+            selected_rule = None
+            if weights:
+                for rule_id, _ in sorted(weights.items(), key=lambda kv: kv[1], reverse=True):
+                    if rule_id in self.theorem_grammar_rules:
+                        selected_rule = rule_id
+                        break
+
+            if selected_rule:
+                if self._verbose:
+                    print(f"[TRM] theorem router selected rule: {selected_rule}")
+                rule = self.theorem_grammar_rules.get(selected_rule)
+                result, exec_meta = self._execute_grammar_rule(rule, problem_text=problem_text, rpn_engine=rpn_engine)
+                theorem_attempts.append(
+                    {
+                        "rule_id": selected_rule,
+                        "router_weights": weights,
+                        "target_labels": list(sorted(set(target_labels))),
+                        "execution": exec_meta,
+                    }
+                )
+                if exec_meta.get("plausible"):
+                    meta = {
+                        "rpn_program": exec_meta.get("rpn_program", ""),
+                        "template_used": "theorem_router",
+                        "attempts": theorem_attempts,
+                        "subgoals": [],
+                        "read_trace": trace,
+                        "read_understanding": understanding.to_dict(),
+                        "read_composition": {},
+                        "exploration": {},
+                        "theorem_attempts": list(theorem_attempts),
+                    }
+                    return result, meta
         heuristic = self._heuristic_template(
             problem_text=problem_text,
             matched_patterns=matched_patterns,
@@ -4590,7 +4712,7 @@ class TRMGalaxyReader:
         if getattr(understanding, "operations", None) and "distribute_and_sum" in templates:
             templates = [t for t in templates if t != "distribute_and_sum"] + ["distribute_and_sum"]
 
-        attempts: List[Dict[str, Any]] = []
+        attempts: List[Dict[str, Any]] = list(theorem_attempts)
         # Attempt 1: use compose_rpn() without override so retrieval/heuristic selection is observable.
         exec_attempts = 0
         try:
@@ -4628,6 +4750,7 @@ class TRMGalaxyReader:
                     "read_understanding": understanding.to_dict(),
                     "read_composition": self.get_last_composition_meta(),
                     "exploration": exploration,
+                    "theorem_attempts": list(theorem_attempts),
                 }
                 if self.shadow is not None:
                     try:
@@ -4678,6 +4801,7 @@ class TRMGalaxyReader:
                         "read_understanding": understanding.to_dict(),
                         "read_composition": self.get_last_composition_meta(),
                         "exploration": exploration,
+                        "theorem_attempts": list(theorem_attempts),
                     }
                     return result, meta
 
