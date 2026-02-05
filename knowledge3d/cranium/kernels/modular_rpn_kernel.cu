@@ -265,6 +265,7 @@ extern "C" __global__ void modular_rpn_geometric_kernel(
                 case 0x18:  // sin
                 case 0x19:  // cos
                 case 0x1A:  // tan
+                case 0x26:  // tanh
                 case 0x27:  // abs
                 case 0x29:  // ceil
                 case 0x2B:  // floor
@@ -280,6 +281,7 @@ extern "C" __global__ void modular_rpn_geometric_kernel(
                     else if (opcode == 0x18) result = sinf(value);
                     else if (opcode == 0x19) result = cosf(value);
                     else if (opcode == 0x1A) result = tanf(value);
+                    else if (opcode == 0x26) result = tanhf(value);
                     else if (opcode == 0x27) result = fabsf(value);
                     else if (opcode == 0x29) result = ceilf(value);
                     else if (opcode == 0x2B) result = floorf(value);

@@ -1,0 +1,24 @@
+{"text": "Find f'(0) where f(x) = sin(x)", "label": 1, "source": "calculus"}
+{"text": "An elevator is on the 9th floor. It goes down 7 floors, then up 3  floors, then up 8 floors. If the elevator is on the top floor, how many floors are there in the building?", "label": 0, "source": "gsm8k"}
+{"text": "Find f'(1) where f(x) = e^x", "label": 1, "source": "calculus"}
+{"text": "Luna's monthly food budget is equal to 60% of her house rental budget while her phone bill budget is 10% of her food budget. If the total budget of house rental and food budget is $240, how much is Luna's total monthly budget to pay all those expenses?", "label": 0, "source": "gsm8k"}
+{"text": "Horatio is a poet composing sonnets for his lady fair. He believes it will take many of his sonnets to win her over. Each sonnet is fourteen lines long. His lady fair tells him to leave her alone after he reads her only seven sonnets, and Horatio is heartbroken over the 70 romantic lines he wrote that she never heard. How many sonnets did Horatio write in all?", "label": 0, "source": "gsm8k"}
+{"text": "Find the derivative of x^3 - 3x^2 + 2x - 5 at x=2", "label": 1, "source": "calculus"}
+{"text": "Grace started her own landscaping business. She charges $6 an hour for mowing lawns, $11 for pulling weeds and $9 for putting down mulch. In September she mowed lawns for 63 hours, pulled weeds for 9 hours and put down mulch for 10 hours. How much money did she earn in September?", "label": 0, "source": "gsm8k"}
+{"text": "There are 248 pages in a book. Joanna can read 16 pages per hour. On Monday, she reads for 3 hours. On Tuesday, she reads for 6.5 hours. How many more hours does she need to read to finish the book?", "label": 0, "source": "gsm8k"}
+{"text": "Evaluate derivative of cos(x) at x=0", "label": 1, "source": "calculus"}
+{"text": "Find derivative of x^2 + 4x at x=3", "label": 1, "source": "calculus"}
+{"text": "A single train car can carry 60 passengers. A 747 airplane can carry 366 passengers. How many more passengers can a train with 16 cars carry than 2 airplanes?", "label": 0, "source": "gsm8k"}
+{"text": "Evaluate derivative of 5x^3 at x=2", "label": 1, "source": "calculus"}
+{"text": "Mia has $20 more than twice as much money Darwin has. If Darwin has $45, how much money does Mia have?", "label": 0, "source": "gsm8k"}
+{"text": "Mark goes into the store to buy some groceries.  He buys 6 2$ cans of soup, 2 $5 loaves of bread, 2 3$ boxes of cereal, and 2 $4 gallons of milk.  When he gets to the register, he opens his wallet to pay and realizes he only has $10 bills in there.  How many $10 bills does he need to use to pay?", "label": 0, "source": "gsm8k"}
+{"text": "Dorothy is 15 years old and wants to go to a museum with her family. Her family consists of her, her younger brother, her parents, and her grandfather. The regular ticket cost is $10. People 18 years old or younger have a discount of 30%. How much money will Dorothy have after this trip, when she currently has $70?", "label": 0, "source": "gsm8k"}
+{"text": "Diana gets 30 minutes of video game time for every hour she reads. Her dad decided to raise her reward by 20%. Diana read for 12 hours this week. How many more minutes of video game time will she get as a result of her raise?", "label": 0, "source": "gsm8k"}
+{"text": "Carly collected 7 starfish with 5 arms each and one seastar with 14 arms. How many arms do the animals she collected have in total?", "label": 0, "source": "gsm8k"}
+{"text": "Evaluate f'(2) where f(x) = (6x-4)^(1/3)", "label": 1, "source": "calculus"}
+{"text": "Evaluate f'(1) where f(x) = x^2 * (x+1)", "label": 1, "source": "calculus"}
+{"text": "Evaluate f'(2) where f(x) = (x-1)/(x+1)", "label": 1, "source": "calculus"}
+{"text": "Madeline has $48 and her brother has half as much. How much do they have together?", "label": 0, "source": "gsm8k"}
+{"text": "Find derivative of (2x+1)^2 at x=0", "label": 1, "source": "calculus"}
+{"text": "Find f'(1) where f(x) = (3x-4)/(2x+3)", "label": 1, "source": "calculus"}
+{"text": "Find derivative of x^2 + 1/x at x=1", "label": 1, "source": "calculus"}

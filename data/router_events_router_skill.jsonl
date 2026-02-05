@@ -1,0 +1,12 @@
+{"problem_id": "0", "dataset": "microbench", "router_logit": 4.003188610076904, "router_use_specialist": true, "router_threshold": 0.0, "solver": "recursive", "correct": true, "label": 1}
+{"problem_id": "1", "dataset": "microbench", "router_logit": 4.006103992462158, "router_use_specialist": true, "router_threshold": 0.0, "solver": "recursive", "correct": true, "label": 1}
+{"problem_id": "2", "dataset": "microbench", "router_logit": 4.227907180786133, "router_use_specialist": true, "router_threshold": 0.0, "solver": "recursive", "correct": true, "label": 1}
+{"problem_id": "3", "dataset": "microbench", "router_logit": 4.143768787384033, "router_use_specialist": true, "router_threshold": 0.0, "solver": "recursive", "correct": true, "label": 1}
+{"problem_id": "4", "dataset": "microbench", "router_logit": 4.171761512756348, "router_use_specialist": true, "router_threshold": 0.0, "solver": "recursive", "correct": true, "label": 1}
+{"problem_id": "5", "dataset": "microbench", "router_logit": 4.082088947296143, "router_use_specialist": true, "router_threshold": 0.0, "solver": "recursive", "correct": true, "label": 1}
+{"problem_id": "6", "dataset": "microbench", "router_logit": 4.370574951171875, "router_use_specialist": true, "router_threshold": 0.0, "solver": "recursive", "correct": true, "label": 1}
+{"problem_id": "7", "dataset": "microbench", "router_logit": 3.731231212615967, "router_use_specialist": true, "router_threshold": 0.0, "solver": "recursive", "correct": true, "label": 1}
+{"problem_id": "8", "dataset": "microbench", "router_logit": 4.554234504699707, "router_use_specialist": true, "router_threshold": 0.0, "solver": "recursive", "correct": true, "label": 1}
+{"problem_id": "9", "dataset": "microbench", "router_logit": 3.991942882537842, "router_use_specialist": true, "router_threshold": 0.0, "solver": "recursive", "correct": true, "label": 1}
+{"problem_id": "10", "dataset": "microbench", "router_logit": 4.089879035949707, "router_use_specialist": true, "router_threshold": 0.0, "solver": "recursive", "correct": true, "label": 1}
+{"problem_id": "11", "dataset": "microbench", "router_logit": 3.9843099117279053, "router_use_specialist": true, "router_threshold": 0.0, "solver": "recursive", "correct": true, "label": 1}

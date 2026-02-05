@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "endian": "little",
+  "magic": "K3DLOG1\u0000",
+  "counts": {
+    "traces": 12,
+    "steps": 68,
+    "embedding_dim": 512
+  },
+  "offsets": {
+    "trace_offsets": 8,
+    "step_rule_ids": 60,
+    "step_kind": 196,
+    "problem_embeddings": 264,
+    "trace_result": 24840,
+    "trace_success": 24888
+  },
+  "lengths": {
+    "trace_offsets": 13,
+    "step_rule_ids": 68,
+    "step_kind": 68,
+    "problem_embeddings": 6144,
+    "trace_result": 12,
+    "trace_success": 12
+  },
+  "dtypes": {
+    "trace_offsets": "uint32",
+    "step_rule_ids": "uint16",
+    "step_kind": "uint8",
+    "problem_embeddings": "float32",
+    "trace_result": "float32",
+    "trace_success": "uint8"
+  },
+  "rule_registry": [
+    "quotient_rule",
+    "sum_rule",
+    "Constant -4",
+    "product_rule",
+    "Constant 3",
+    "Variable x",
+    "Constant 2",
+    "Constant -5",
+    "power_rule",
+    "Constant -3",
+    "Constant 6",
+    "Constant 4",
+    "Constant 1",
+    "Constant 5",
+    "sin_rule",
+    "cos_rule",
+    "exp_rule",
+    "Constant -1"
+  ],
+  "trace_ids": [
+    "529b2b84fb04be2c",
+    "adf6da994aefc0a1",
+    "ea4c4ca6f45f3a68",
+    "c8fdee747673abf5",
+    "b56450ca17f3dd07",
+    "4421e54862757ac2",
+    "300f19896bea0a82",
+    "36196ce37f60dbd7",
+    "1399e12c86e3847a",
+    "99187bf36a79b408",
+    "8f5ef2f3a17a4ba4",
+    "4d64873766a1dba7"
+  ],
+  "step_kind_enum": {
+    "decompose": 1,
+    "base": 2,
+    "result": 3
+  },
+  "source_jsonl": "data/log_galaxy_neural_v1.jsonl"
+}
