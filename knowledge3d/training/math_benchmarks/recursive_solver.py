@@ -29,6 +29,8 @@ except ImportError:
     sympy = None
 
 from knowledge3d.training.math_benchmarks.latex_normalizer import normalize_latex_to_natural
+from knowledge3d.training.math_benchmarks.router_embedder import embed_text
+from knowledge3d.cranium.sovereign_trm import PAD_ID, BOS_ID, RULE_OFFSET
 
 
 class RecursiveSolver:
@@ -36,12 +38,24 @@ class RecursiveSolver:
     Solves numeric derivative problems by decomposing expressions.
     """
 
-    def __init__(self, verbose: bool = False):
+    def __init__(
+        self,
+        verbose: bool = False,
+        policy_model: Optional[Any] = None,
+        policy_registry: Optional[List[str]] = None,
+    ):
         self.verbose = verbose
+        self._policy_model = policy_model
+        self._policy_registry = list(policy_registry or [])
+        self._policy_sequence: List[str] = []
+        self._policy_index = 0
         self._last_trace_lines: List[str] = []
         self._last_steps: List[Dict[str, Any]] = []
         self._last_expression: Optional[str] = None
         self._last_point: Optional[float] = None
+        self._neural_steps = 0
+        self._heuristic_steps = 0
+        self._policy_mismatches = 0
         if not sympy:
             print("Warning: SymPy not found. RecursiveSolver disabled.")
 
@@ -52,6 +66,10 @@ class RecursiveSolver:
         if not sympy:
             return None
         normalized_text = normalize_latex_to_natural(problem_text)
+        self._init_policy_sequence(normalized_text)
+        self._neural_steps = 0
+        self._heuristic_steps = 0
+        self._policy_mismatches = 0
 
         # 1. Extract evaluation point "at x=..." or "f'(...)"
         point, var_char = self._extract_point(normalized_text)
@@ -75,6 +93,12 @@ class RecursiveSolver:
             self._last_steps = list(steps)
             self._last_expression = str(func_expr)
             self._last_point = float(point)
+
+            if self._policy_sequence and self._heuristic_steps > 0:
+                print("[Neural] Autonomy fallback detected")
+                print(f"[Neural] Problem: {problem_text}")
+                print(f"[Neural] Policy sequence: {self._policy_sequence}")
+                print(f"[Neural] Mismatches: {self._policy_mismatches}")
             
             if self.verbose:
                 print("--- TRACE START ---")
@@ -89,11 +113,27 @@ class RecursiveSolver:
             return None
 
     def get_last_trace(self) -> Dict[str, Any]:
+        mode = "heuristic"
+        if self._neural_steps > 0:
+            if self._heuristic_steps == 0:
+                mode = "neural"
+            else:
+                mode = "mixed"
+        
+        # Resonance Diagnostic: Report non-neural thoughts
+        if mode != "neural":
+            print(f"[RecursiveSolver] Drift Detected ({mode}): {self._last_expression}")
+            print(f"  Neural/Heuristic Steps: {self._neural_steps}/{self._heuristic_steps}")
+            print(f"  Crystal Emanations: {self._policy_sequence}")
+
         return {
             "trace_lines": list(self._last_trace_lines),
             "step_sequence": list(self._last_steps),
             "expression": self._last_expression,
             "point": self._last_point,
+            "policy_mode": mode,
+            "policy_steps": self._neural_steps,
+            "policy_mismatches": self._policy_mismatches,
         }
 
     def _extract_point(self, text: str) -> Tuple[Optional[float], str]:
@@ -114,6 +154,50 @@ class RecursiveSolver:
             return float(m.group(1)), 'x'
 
         return None, 'x'
+
+    def _init_policy_sequence(self, text: str) -> None:
+        self._policy_sequence = []
+        self._policy_index = 0
+        if self._policy_model is None or not self._policy_registry:
+            return
+        try:
+            import torch  # type: ignore
+        except Exception:
+            return
+        dim = getattr(self._policy_model.encoder, "in_features", 256)
+        embedding = embed_text(text, dim=dim)
+        device = next(self._policy_model.parameters()).device
+        emb = torch.tensor(embedding, dtype=torch.float32, device=device).unsqueeze(0)
+        max_len = 64
+        tokens = torch.full((1, max_len), PAD_ID, dtype=torch.long, device=device)
+        tokens[0, 0] = BOS_ID
+        for step in range(1, max_len):
+            logits = self._policy_model(emb, tokens[:, :step])
+            next_id = int(torch.argmax(logits[0, -1]).item())
+            if next_id == PAD_ID:
+                break
+            tokens[0, step] = next_id
+        predicted_ids: List[int] = []
+        for tok in tokens[0].tolist():
+            if tok >= RULE_OFFSET:
+                predicted_ids.append(int(tok) - RULE_OFFSET)
+        self._policy_sequence = [
+            self._policy_registry[i] if 0 <= i < len(self._policy_registry) else f"unknown_{i}"
+            for i in predicted_ids
+        ]
+
+    def _peek_policy_rule(self) -> Optional[str]:
+        if self._policy_index < len(self._policy_sequence):
+            return self._policy_sequence[self._policy_index]
+        return None
+
+    def _consume_policy_rule(self) -> Optional[str]:
+        rule = self._peek_policy_rule()
+        if rule is None:
+            return None
+        self._policy_index += 1
+        print(f"[Neural] Selected rule: {rule}")
+        return rule
 
     def _extract_function(self, text: str, var_char: str) -> Optional[Any]:
         """
@@ -193,27 +277,32 @@ class RecursiveSolver:
         }
         for line in trace_lines:
             if "[Decompose]" in line:
-                match = re.search(r"\[Decompose\]\s+([^:]+):\s*(.+)", line)
+                # Match optional <status> tag: [Decompose] <honest> Sum Rule: ...
+                match = re.search(r"\[Decompose\](?:\s+<([^>]+)>)?\s+([^:]+):\s*(.+)", line)
                 if not match:
                     continue
-                label = match.group(1).strip()
-                expr = match.group(2).strip()
+                status = match.group(1) or "heuristic"
+                label = match.group(2).strip()
+                expr = match.group(3).strip()
                 key = label.lower()
                 steps.append(
                     {
                         "kind": "decompose",
                         "rule": rule_map.get(key, key.replace(" ", "_")),
+                        "status": status,
                         "label": label,
                         "expr": expr,
                     }
                 )
             elif "[Base]" in line:
-                match = re.search(r"\[Base\]\s+(.+?)\s+->", line)
+                match = re.search(r"\[Base\](?:\s+<([^>]+)>)?\s+(.+?)\s+->", line)
                 if not match:
                     continue
+                status = match.group(1) or "heuristic"
                 steps.append(
                     {
                         "kind": "base",
+                        "status": status,
                         "label": match.group(1).strip(),
                     }
                 )
@@ -230,24 +319,93 @@ class RecursiveSolver:
         """
         trace = []
         indent = "  " * depth
+
+        forced_rule: Optional[str] = None
+        step_status = "heuristic"
+        policy_rule = self._peek_policy_rule()
+        if policy_rule:
+            pr_lower = policy_rule.lower()
+            pr_norm = re.sub(r"[^a-z0-9]+", "_", pr_lower).strip("_")
+            if pr_norm.startswith("constant") and (isinstance(expr, (int, float)) or expr.is_Number):
+                self._consume_policy_rule()
+                self._neural_steps += 1
+                forced_rule = "constant"
+                step_status = "honest"
+            elif pr_norm.startswith("variable") and isinstance(expr, Symbol):
+                self._consume_policy_rule()
+                self._neural_steps += 1
+                forced_rule = "variable"
+                step_status = "honest"
+            elif pr_norm == "sum_rule" and expr.is_Add:
+                forced_rule = "sum_rule"
+                self._consume_policy_rule()
+                self._neural_steps += 1
+                step_status = "honest"
+            elif pr_norm == "quotient_rule" and expr.is_Mul:
+                num, den = expr.as_numer_denom()
+                if den is not None and den != 1:
+                    forced_rule = "quotient_rule"
+                    self._consume_policy_rule()
+                    self._neural_steps += 1
+                    step_status = "honest"
+            elif pr_norm == "product_rule" and expr.is_Mul:
+                forced_rule = "product_rule"
+                self._consume_policy_rule()
+                self._neural_steps += 1
+                step_status = "honest"
+            elif pr_norm == "power_rule" and expr.is_Pow:
+                forced_rule = "power_rule"
+                self._consume_policy_rule()
+                self._neural_steps += 1
+                step_status = "honest"
+            elif pr_norm == "power_const_base" and expr.is_Pow:
+                base, exp = expr.args
+                if exp.has(var) and not base.has(var):
+                    forced_rule = "power_const_base"
+                    self._consume_policy_rule()
+                    self._neural_steps += 1
+                    step_status = "honest"
+            elif pr_norm == "sin_rule" and expr.func == sympy.sin:
+                forced_rule = "sin_rule"
+                self._consume_policy_rule()
+                self._neural_steps += 1
+                step_status = "honest"
+            elif pr_norm == "cos_rule" and expr.func == sympy.cos:
+                forced_rule = "cos_rule"
+                self._consume_policy_rule()
+                self._neural_steps += 1
+                step_status = "honest"
+            elif pr_norm == "exp_rule" and expr.func == sympy.exp:
+                forced_rule = "exp_rule"
+                self._consume_policy_rule()
+                self._neural_steps += 1
+                step_status = "honest"
+            else:
+                self._policy_mismatches += 1
+                step_status = "hallucination"
+                if self.verbose:
+                    print(f"[Neural] Mismatch: predicted {policy_rule} for expr {expr}")
+        
+        if forced_rule is None:
+            self._heuristic_steps += 1
         
         # Base Cases
         if isinstance(expr, (int, float)) or expr.is_Number:
-            trace.append(f"{indent}[Base] Constant {expr} -> derivative is 0")
+            trace.append(f"{indent}[Base] <{step_status}> Constant {expr} -> derivative is 0")
             return 0.0, trace
         
         if isinstance(expr, Symbol):
             if expr == var:
-                trace.append(f"{indent}[Base] Variable {expr} -> derivative is 1")
+                trace.append(f"{indent}[Base] <{step_status}> Variable {expr} -> derivative is 1")
                 return 1.0, trace
-            trace.append(f"{indent}[Base] Other symbol {expr} -> derivative is 0")
+            trace.append(f"{indent}[Base] <{step_status}> Other symbol {expr} -> derivative is 0")
             return 0.0, trace # Treat other symbols as constants for now
 
         # Recursive Cases
         
         # Sum Rule: (u + v)' = u' + v'
-        if expr.is_Add:
-            trace.append(f"{indent}[Decompose] Sum Rule: {expr}")
+        if expr.is_Add and (forced_rule is None or forced_rule == "sum_rule"):
+            trace.append(f"{indent}[Decompose] <{step_status}> Sum Rule: {expr}")
             total = 0.0
             for arg in expr.args:
                 res, sub_trace = self._differentiate_eval(arg, var, val, depth + 1)
@@ -260,11 +418,11 @@ class RecursiveSolver:
         # SymPy represents division as Mul(u, Pow(v, -1)) usually, but let's check explicit structure if possible.
         # Often better to handle as product rule with negative power if standard Mul.
         # But let's check for explicit fraction structure via as_numer_denom
-        if expr.is_Mul:
+        if expr.is_Mul and (forced_rule is None or forced_rule == "quotient_rule"):
             num, den = expr.as_numer_denom()
             if den is not None and den != 1:
                 # It is a fraction
-                trace.append(f"{indent}[Decompose] Quotient Rule: {num} / {den}")
+                trace.append(f"{indent}[Decompose] <{step_status}> Quotient Rule: {num} / {den}")
                 
                 num_prime, num_trace = self._differentiate_eval(num, var, val, depth + 1)
                 den_prime, den_trace = self._differentiate_eval(den, var, val, depth + 1)
@@ -283,8 +441,8 @@ class RecursiveSolver:
                 return result, trace
 
         # Constant Multiple / Product Rule: (uv)' = u'v + uv'
-        if expr.is_Mul:
-            trace.append(f"{indent}[Decompose] Product/Const Rule: {expr}")
+        if expr.is_Mul and (forced_rule is None or forced_rule == "product_rule"):
+            trace.append(f"{indent}[Decompose] <{step_status}> Product/Const Rule: {expr}")
             # SymPy flattens multiplications: a*b*c. Treat as a * (b*c...)
             args = expr.args
             u = args[0]
@@ -308,7 +466,7 @@ class RecursiveSolver:
             return result, trace
 
         # Power Rule / Chain Rule: (u^n)' = n * u^(n-1) * u'
-        if expr.is_Pow:
+        if expr.is_Pow and (forced_rule is None or forced_rule in ("power_rule", "power_const_base")):
             base, exp = expr.args
             
             if exp.has(var):
@@ -318,7 +476,7 @@ class RecursiveSolver:
                     if base_val <= 0:
                         trace.append(f"{indent}[Warning] Non-positive base in power: {expr}")
                         return 0.0, trace
-                    trace.append(f"{indent}[Decompose] Power (const base): {expr}")
+                    trace.append(f"{indent}[Decompose] <{step_status}> Power (const base): {expr}")
                     exp_val = self._evaluate_func(exp, var, val)
                     exp_prime, exp_trace = self._differentiate_eval(exp, var, val, depth + 1)
                     trace.extend(exp_trace)
@@ -331,7 +489,7 @@ class RecursiveSolver:
                 trace.append(f"{indent}[Warning] Variable exponent not supported in Phase 1: {expr}")
                 return 0.0, trace
             
-            trace.append(f"{indent}[Decompose] Power Rule: {expr}")
+            trace.append(f"{indent}[Decompose] <{step_status}> Power Rule: {expr}")
             n = float(exp)
             
             base_val = self._evaluate_func(base, var, val)
@@ -346,8 +504,8 @@ class RecursiveSolver:
 
         # Standard Functions (Chain Rule applied: f(g(x))' = f'(g(x)) * g'(x))
         # Sin
-        if expr.func == sympy.sin:
-            trace.append(f"{indent}[Decompose] Sin Chain Rule: {expr}")
+        if expr.func == sympy.sin and (forced_rule is None or forced_rule == "sin_rule"):
+            trace.append(f"{indent}[Decompose] <{step_status}> Sin Chain Rule: {expr}")
             arg = expr.args[0]
             
             arg_val = self._evaluate_func(arg, var, val)
@@ -360,8 +518,8 @@ class RecursiveSolver:
             return result, trace
             
         # Cos
-        if expr.func == sympy.cos:
-            trace.append(f"{indent}[Decompose] Cos Chain Rule: {expr}")
+        if expr.func == sympy.cos and (forced_rule is None or forced_rule == "cos_rule"):
+            trace.append(f"{indent}[Decompose] <{step_status}> Cos Chain Rule: {expr}")
             arg = expr.args[0]
             
             arg_val = self._evaluate_func(arg, var, val)
@@ -374,8 +532,8 @@ class RecursiveSolver:
             return result, trace
             
         # Exp
-        if expr.func == sympy.exp:
-            trace.append(f"{indent}[Decompose] Exp Chain Rule: {expr}")
+        if expr.func == sympy.exp and (forced_rule is None or forced_rule == "exp_rule"):
+            trace.append(f"{indent}[Decompose] <{step_status}> Exp Chain Rule: {expr}")
             arg = expr.args[0]
             
             arg_val = self._evaluate_func(arg, var, val)

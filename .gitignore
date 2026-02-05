@@ -15,6 +15,12 @@ viewer/dist/
 
 # Large datasets
 data/ai_compendium_80k_vectors.csv
+data/*.pt
+data/*.bin
+data/*_dirty.jsonl
+
+# Model checkpoints (generated, not source)
+checkpoints/
 
 # Virtual environments / dotenvs
 .venv*/

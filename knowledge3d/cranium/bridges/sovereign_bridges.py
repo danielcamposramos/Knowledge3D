@@ -1289,6 +1289,7 @@ class ModularRPNEngine:
         # Process sequentially per instance slot (reusing instance 0..MAX_INSTANCES-1)
         for i, program in enumerate(programs):
             instance_id = i % self.MAX_INSTANCES
+            self.reset_instance(instance_id)
             op_list = [int(o) for o in program["op_codes"]]
             OpArray = ctypes.c_uint16 * len(op_list)
             op_arr = OpArray(*op_list)
@@ -1322,7 +1323,7 @@ class ModularRPNEngine:
                         ctypes.c_uint64(d_scalars.value if d_scalars is not None else 0),
                         ctypes.c_uint64(d_vectors.value if d_vectors is not None else 0),
                         ctypes.c_uint64(self.d_state.value),
-                        ctypes.c_uint32(len(op_codes)),
+                        ctypes.c_uint32(len(op_list)),
                     ],
                 )
                 launch(

@@ -1,0 +1,41 @@
+{
+  "total": 120,
+  "verified": 86,
+  "failed": 34,
+  "per_source": {
+    "calculus": {
+      "verified": 59.0,
+      "failed": 1.0,
+      "total": 60.0,
+      "verified_rate": 0.9833333333333333,
+      "failed_rate": 0.016666666666666666,
+      "average_complexity_score": 2.1,
+      "higher_order_rate": 0.48333333333333334
+    },
+    "gsm8k": {
+      "verified": 27.0,
+      "failed": 33.0,
+      "total": 60.0,
+      "verified_rate": 0.45,
+      "failed_rate": 0.55,
+      "average_complexity_score": 35.05,
+      "higher_order_rate": 0.9333333333333333
+    }
+  },
+  "global_averages": {
+    "verified": 43.0,
+    "failed": 17.0,
+    "total": 60.0,
+    "verified_rate": 0.7166666666666667,
+    "failed_rate": 0.2833333333333334,
+    "average_complexity_score": 18.575,
+    "higher_order_rate": 0.7083333333333334
+  },
+  "average_complexity_score": 18.575,
+  "higher_order_rate": 0.7083333333333334,
+  "notes": {
+    "gsm8k_complexity_baseline": "fixed",
+    "gsm8k_base_complexity_len": 1,
+    "gsm8k_baseline_reason": "WordProblemSolver yields near-zero step counts on original GSM8K prompts; fixed baseline emphasizes Oracle-added steps."
+  }
+}

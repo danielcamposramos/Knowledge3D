@@ -19,6 +19,8 @@ import random
 import re
 import sys
 import math
+import base64
+import io
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -56,6 +58,13 @@ from knowledge3d.training.math_benchmarks.calculus_grammar_rules import get_calc
 from knowledge3d.training.math_benchmarks.theorem_router import TheoremRouter
 from knowledge3d.training.math_benchmarks.latex_normalizer import normalize_latex_to_natural
 from knowledge3d.training.math_benchmarks.recursive_solver import RecursiveSolver
+from knowledge3d.training.math_benchmarks.log_galaxy import LogGalaxy
+from knowledge3d.training.math_benchmarks.router_galaxy import RouterGalaxy
+from knowledge3d.training.math_benchmarks.log_galaxy_serializer import serialize_log_galaxy
+# NavigationSeqModel imported lazily when loading skill galaxy entries (requires PyTorch)
+from knowledge3d.training.math_benchmarks.router_embedder import embed_text
+from knowledge3d.training.math_benchmarks.reflective_inference import ReflectiveSolver
+from knowledge3d.cranium.sovereign import loader as sovereign_loader
 
 
 def _build_theorem_rules(
@@ -113,6 +122,133 @@ def _build_theorem_rules(
     return rules, meta
 
 
+def _load_skill_galaxy_entry(path: str) -> Dict[str, Any]:
+    skill_path = Path(path)
+    if not skill_path.exists():
+        raise FileNotFoundError(f"Skill Galaxy JSONL not found: {skill_path}")
+
+    entry: Optional[Dict[str, Any]] = None
+    with skill_path.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            entry = json.loads(line)
+            break
+
+    if not entry:
+        raise ValueError("Skill Galaxy JSONL is empty.")
+
+    skill_id = entry.get("skill_id") or "unknown_skill"
+    metadata = entry.get("metadata") or {}
+    description = metadata.get("description") or ""
+    payload_b64 = entry.get("payload_b64")
+    if not payload_b64:
+        raise ValueError("Skill Galaxy entry missing payload_b64.")
+
+    payload = base64.b64decode(payload_b64.encode("ascii"))
+    try:
+        import torch  # type: ignore
+    except Exception as exc:  # noqa: BLE001
+        raise RuntimeError("PyTorch is required to load navigation skills.") from exc
+
+    state_dict = torch.load(io.BytesIO(payload), map_location="cpu")
+
+    # Resolve model config from metadata or checkpoint payload.
+    embedding_dim = int(metadata.get("embedding_dim") or state_dict.get("embedding_dim") or 0)
+    hidden_dim = int(metadata.get("hidden_dim") or state_dict.get("hidden_dim") or 0)
+    vocab_size = int(metadata.get("vocab_size") or state_dict.get("vocab_size") or 0)
+    rule_registry = metadata.get("rule_registry") or state_dict.get("rule_registry") or []
+
+    if not embedding_dim or not hidden_dim or not vocab_size:
+        raise ValueError("Skill Galaxy entry missing model dimensions.")
+
+    # Lazy import to avoid PyTorch CUDA context conflict
+    from knowledge3d.training.math_benchmarks.navigation_model import NavigationSeqModel
+
+    model = NavigationSeqModel(
+        embedding_dim=embedding_dim,
+        vocab_size=vocab_size,
+        hidden_dim=hidden_dim,
+    )
+
+    # Handle both raw state_dict and training checkpoint dict (Shadow Copy consolidation).
+    if isinstance(state_dict, dict) and "model_state" in state_dict:
+        model.load_state_dict(state_dict["model_state"])
+    else:
+        model.load_state_dict(state_dict)
+    model.eval()
+
+    print(f"[System] Equipped Skill: {skill_id} ({description})")
+    return {
+        "skill_id": skill_id,
+        "description": description,
+        "model": model,
+        "rule_registry": rule_registry,
+    }
+
+
+def _load_router_skill(path: str, *, skill_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    skill_path = Path(path)
+    if not skill_path.exists():
+        print(f"[RouterSkill] Missing {skill_path}")
+        return None
+
+    entry: Optional[Dict[str, Any]] = None
+    with skill_path.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                candidate = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if skill_id is None or candidate.get("skill_id") == skill_id:
+                entry = candidate
+                break
+
+    if not entry:
+        print("[RouterSkill] No matching entry found.")
+        return None
+
+    payload_b64 = entry.get("payload_b64")
+    if not payload_b64:
+        print("[RouterSkill] Missing payload_b64 in entry.")
+        return None
+
+    try:
+        import torch  # type: ignore
+        import torch.nn as nn
+        payload = base64.b64decode(payload_b64.encode("ascii"))
+        state = torch.load(io.BytesIO(payload), map_location="cpu")
+        state_dict = state.get("state_dict") or state.get("model_state") or state.get("model_state_dict")
+        if state_dict is None:
+            raise ValueError("Router skill missing state_dict")
+        embedding_dim = int(state.get("embedding_dim", 384))
+        hidden_dim = int(state.get("hidden_dim", 128))
+        model = nn.Sequential(
+            nn.Linear(embedding_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, 1),
+        )
+        model.load_state_dict(state_dict)
+        model.eval()
+    except Exception as exc:  # noqa: BLE001
+        print(f"[RouterSkill] Failed to load router skill: {exc}")
+        return None
+
+    metadata = entry.get("metadata") or {}
+    description = metadata.get("description") or entry.get("skill_id") or "router_skill"
+    print(f"[RouterSkill] Equipped Skill: {entry.get('skill_id')} ({description})")
+    return {
+        "model": model,
+        "embedding_dim": embedding_dim,
+        "hidden_dim": hidden_dim,
+        "metadata": metadata,
+    }
+
+
 class SovereignBenchmarkRunner:
     """Run math benchmarks using sovereign components only."""
 
@@ -130,7 +266,26 @@ class SovereignBenchmarkRunner:
         thinking_budget: int = 0,
         verbose: bool = False,
         router_weights: Optional[str] = None,
+        log_galaxy: Optional[LogGalaxy] = None,
+        router_model_path: Optional[str] = None,
+        equip_skill_path: Optional[str] = None,
+        router_skill_path: Optional[str] = None,
+        router_skill_id: Optional[str] = None,
+        router_log_out: Optional[str] = None,
+        router_threshold: Optional[float] = None,
+        router_galaxy: Optional[RouterGalaxy] = None,
+        router_galaxy_threshold: Optional[float] = None,
+        log_galaxy_failures: bool = False,
+        microbench_strict: bool = False,
+        microbench_tol: float = 1e-6,
+        use_reflection: bool = False,
+        reflection_checkpoint: Optional[str] = None,
+        reflection_confident_threshold: float = 0.9,
+        reflection_verify_threshold: float = 0.5,
+        reflection_max_steps: int = 64,
+        reflection_quiet: bool = False,
     ):
+        sovereign_loader.ensure_init()
         print(UNIFIED_GALAXY.report())
         populate_registry_from_galaxy()
         stats = SYMBOL_REGISTRY.compression_stats()
@@ -183,6 +338,7 @@ class SovereignBenchmarkRunner:
         self._thinking_budget = int(max(0, thinking_budget))
         self._verbose = bool(verbose)
         self._router_weights = str(router_weights) if router_weights else None
+        self._router_model = None
         self._role_patterns: List[Dict[str, Any]] = []
         self._theorem_patterns: List[Dict[str, Any]] = []
         self._theorem_rules: List[GrammarRule] = []
@@ -190,8 +346,42 @@ class SovereignBenchmarkRunner:
         self._theorem_grammar_rules: Dict[str, GrammarRule] = {}
         self._theorem_router: Optional[TheoremRouter] = None
         self._trm_navigator = None
-        self._recursive_solver = RecursiveSolver(verbose=self._verbose)
-        self._log_galaxy = None
+        self._log_galaxy = log_galaxy
+        self._log_galaxy_failures = bool(log_galaxy_failures)
+        self._microbench_strict = bool(microbench_strict)
+        self._microbench_tol = float(microbench_tol)
+        self._router_dim = 384
+        if router_model_path:
+            self._load_router(router_model_path)
+        if router_skill_path:
+            skill = _load_router_skill(router_skill_path, skill_id=router_skill_id)
+            if skill:
+                self._router_model = skill.get("model")
+                self._router_dim = int(skill.get("embedding_dim") or self._router_dim)
+
+        self._equipped_skill: Optional[Dict[str, Any]] = None
+        if equip_skill_path:
+            self._equipped_skill = _load_skill_galaxy_entry(equip_skill_path)
+        policy_model = None
+        policy_registry = None
+        if self._equipped_skill:
+            policy_model = self._equipped_skill.get("model")
+            policy_registry = self._equipped_skill.get("rule_registry")
+        self._recursive_solver = RecursiveSolver(
+            verbose=self._verbose,
+            policy_model=policy_model,
+            policy_registry=policy_registry,
+        )
+        self._reflective_solver = None
+        if use_reflection and reflection_checkpoint:
+            self._reflective_solver = ReflectiveSolver(
+                reflection_checkpoint,
+                recursive_solver=self._recursive_solver,
+                max_steps=int(reflection_max_steps),
+                confident_threshold=float(reflection_confident_threshold),
+                verify_threshold=float(reflection_verify_threshold),
+                quiet=bool(reflection_quiet),
+            )
         self._ttc_best_source_counts: Dict[str, Dict[str, int]] = {}
         self._ttc_usage_stats: Dict[str, Dict[str, int]] = {}
         self._shadow_copy = None
@@ -226,9 +416,6 @@ class SovereignBenchmarkRunner:
             )
             if self._router_weights:
                 print(f"Loaded theorem router weights from {self._router_weights}")
-
-    def set_log_galaxy(self, log_galaxy) -> None:
-        self._log_galaxy = log_galaxy
         if self._use_trm_navigator:
             from knowledge3d.training.arc_agi.dual_shadow_copy import DualShadowCopy
             from knowledge3d.training.math_benchmarks.trm_math_navigator import TRMMathNavigator
@@ -297,11 +484,40 @@ class SovereignBenchmarkRunner:
         self._failure_details: List[Dict[str, Any]] = []
         self._failure_rule_counts: Dict[str, int] = {}
         self._retrieval_events: List[Dict[str, Any]] = []
+        self._router_events: List[Dict[str, Any]] = []
+        self._router_log_out = router_log_out
+        self._router_threshold = float(router_threshold) if router_threshold is not None else 0.0
+        self._router_galaxy = router_galaxy
+        self._router_galaxy_threshold = (
+            float(router_galaxy_threshold) if router_galaxy_threshold is not None else 1.0
+        )
         # Phase 5 (analysis): bounded stdout logs for grep-driven triage.
         if self._verbose:
             self._analysis_log_limits = {"success": 200, "no_rule_match": 200, "exploration": 200}
         else:
             self._analysis_log_limits = {"success": 50, "no_rule_match": 50, "exploration": 50}
+
+    def _load_router(self, path: str) -> None:
+        """Load the learned binary router (Calculus vs General)."""
+        print(f"[Router] Loading learned router from {path}...")
+        try:
+            import torch
+            import torch.nn as nn
+            ckpt = torch.load(path, map_location="cpu")
+            self._router_dim = int(ckpt.get("embedding_dim", 384))
+            hidden_dim = int(ckpt.get("hidden_dim", 128))
+            
+            # Reconstruct the simple MLP used in training
+            self._router_model = nn.Sequential(
+                nn.Linear(self._router_dim, hidden_dim),
+                nn.ReLU(),
+                nn.Linear(hidden_dim, 1)
+            )
+            self._router_model.load_state_dict(ckpt["state_dict"])
+            self._router_model.eval()
+        except Exception as e:
+            print(f"[Router] Failed to load model: {e}")
+            self._router_model = None
 
     def _extract_expected_num(self, expected: Any) -> Optional[float]:
         if isinstance(expected, dict) and "expected_num" in expected:
@@ -721,6 +937,25 @@ class SovereignBenchmarkRunner:
                         problems.append(p)
             return problems
 
+        if name == "calculus":
+            # Prefer standard microbench, fallback to stress if needed
+            paths = [
+                Path("data/calculus_microbench.jsonl"),
+                Path("data/calculus_microbench_stress.jsonl")
+            ]
+            for path in paths:
+                if path.exists():
+                    with open(path) as f:
+                        for line in f:
+                            if line.strip():
+                                p = json.loads(line)
+                                p["source"] = "calculus"
+                                problems.append(p)
+                    # Use the first one found
+                    if problems:
+                        break
+            return problems
+
         if name == "omni_math":
             path = self.base / "Omni-MATH/Omni-Math.jsonl"
             if path.exists():
@@ -770,10 +1005,42 @@ class SovereignBenchmarkRunner:
         source = problem.get("source", "")
         solution = problem.get("answer", problem.get("solution", ""))
 
+        router_logit: Optional[float] = None
+        router_use_specialist: Optional[bool] = None
+        if self._router_model is not None:
+            try:
+                import torch
+
+                emb = embed_text(text, dim=self._router_dim)
+                t_emb = torch.tensor(emb, dtype=torch.float32).unsqueeze(0)
+                with torch.no_grad():
+                    logit = self._router_model(t_emb).item()
+                router_logit = float(logit)
+                router_use_specialist = logit >= self._router_threshold
+            except Exception:
+                router_use_specialist = None
+
+        if self._verbose and router_logit is not None:
+            print(
+                f"[Router] logit={router_logit} threshold={self._router_threshold} "
+                f"use_specialist={router_use_specialist}"
+            )
+
+        def _attach_router_meta(trace: Dict[str, Any]) -> Dict[str, Any]:
+            if router_logit is None:
+                return trace
+            meta = trace.get("meta", {}) if isinstance(trace.get("meta", {}), dict) else {}
+            meta["router_logit"] = router_logit
+            meta["router_use_specialist"] = router_use_specialist
+            meta["router_threshold"] = self._router_threshold
+            trace["meta"] = meta
+            return trace
+
         # MMLU: multiple-choice → return A/B/C/D
         if source == "mmlu":
             result = self._solve_mmlu(problem)
-            return result, "mmlu", {"rule_used": None, "rpn_program": "", "source": source}
+            trace = {"rule_used": None, "rpn_program": "", "source": source}
+            return result, "mmlu", _attach_router_meta(trace)
 
         # Try -1: TRM navigator (rule routing + execution)
         if self._trm_navigator is not None:
@@ -788,45 +1055,113 @@ class SovereignBenchmarkRunner:
                     if len(nums) > 2 and len(alpha_words) > 8:
                         result = None
                 if result is not None and self._validate_answer(result, text, source):
-                    return result, "trm", trace
+                    return result, "trm", _attach_router_meta(trace)
             except Exception:
                 pass
 
         # Try -0.5: Recursive Solver (Compositional Decomposition)
         # This handles complex calculus forms that single regexes miss ((3x-4)/(2x+3)).
         if self._recursive_solver:
-            rec_result = self._recursive_solver.solve(text)
+            use_specialist = True if router_use_specialist is None else bool(router_use_specialist)
+            rec_result = None
+            last_trace = None
+            reflection_meta = None
+            if use_specialist:
+                if self._reflective_solver is not None:
+                    rec_result, last_trace, reflection_meta = self._reflective_solver.solve(text)
+                else:
+                    rec_result = self._recursive_solver.solve(text)
             if rec_result is not None:
-                if self._validate_answer(rec_result, text, source):
-                    return rec_result, "recursive", {"rule_used": "compositional_solver"}
+                valid = self._validate_answer(rec_result, text, source)
+                if valid and self._microbench_strict and source == "microbench":
+                    valid = self._microbench_matches(rec_result, solution)
+                if valid:
+                    trace_meta = {
+                        "rule_used": "compositional_solver",
+                        "router_use_specialist": use_specialist,
+                        "reflection_used": self._reflective_solver is not None,
+                    }
+                    # Capture trace for Log Galaxy if enabled
+                    if self._log_galaxy is not None:
+                        if last_trace is None:
+                            last_trace = self._recursive_solver.get_last_trace()
+                        if last_trace:
+                            # Capture neural policy metadata if available
+                            meta = {}
+                            if "policy_mode" in last_trace:
+                                meta["policy_mode"] = last_trace["policy_mode"]
+                            if "policy_steps" in last_trace:
+                                meta["policy_steps"] = last_trace["policy_steps"]
+                            if "policy_mismatches" in last_trace:
+                                meta["policy_mismatches"] = last_trace["policy_mismatches"]
+                            meta["router_use_specialist"] = use_specialist
+                            if router_logit is not None:
+                                meta["router_logit"] = router_logit
+                            meta["router_threshold"] = self._router_threshold
+                            if reflection_meta:
+                                meta["reflection"] = reflection_meta
+
+                            self._log_galaxy.add_trace(
+                                problem_text=text,
+                                step_sequence=last_trace.get("step_sequence", []),
+                                result=rec_result,
+                                success=True,
+                                metadata=meta
+                            )
+                    return rec_result, "recursive", _attach_router_meta(trace_meta)
+                if self._log_galaxy is not None and self._log_galaxy_failures:
+                    if last_trace is None:
+                        last_trace = self._recursive_solver.get_last_trace()
+                    if last_trace:
+                        meta = {
+                            "failure_reason": "validation_failed",
+                            "policy_mode": last_trace.get("policy_mode"),
+                            "policy_steps": last_trace.get("policy_steps"),
+                            "policy_mismatches": last_trace.get("policy_mismatches"),
+                            "router_use_specialist": use_specialist,
+                            "reflection_used": self._reflective_solver is not None,
+                        }
+                        if router_logit is not None:
+                            meta["router_logit"] = router_logit
+                        meta["router_threshold"] = self._router_threshold
+                        meta["expected_answer"] = solution
+                        if reflection_meta:
+                            meta["reflection"] = reflection_meta
+                        self._log_galaxy.add_trace(
+                            problem_text=text,
+                            step_sequence=last_trace.get("step_sequence", []),
+                            result=rec_result,
+                            success=False,
+                            metadata=meta,
+                        )
 
         # Try 0: Curated parametric templates (fast, high-quality)
         for rule in self.template_rules:
             result, template_trace = self._apply_template_with_trace(rule, text)
             if result is not None and template_trace is not None:
                 if self._validate_answer(result, text, source):
-                    return result, "template", template_trace
+                    return result, "template", _attach_router_meta(template_trace)
 
         # Try 1: Composite matcher (contextual extraction + multi-match composition)
         composite_result = self._try_composite_match(text, source)
         if composite_result is not None:
             value, trace = composite_result
             if self._validate_answer(value, text, source):
-                return value, "word", trace
+                return value, "word", _attach_router_meta(trace)
 
         # Try 1b: Core grammar galaxy rules (word/competition/calculus/etc.)
         grammar_attempt = self._try_grammar_rules(text, source)
         if grammar_attempt is not None:
             value, trace = grammar_attempt
             if self._validate_answer(value, text, source):
-                return value, "grammar", trace
+                return value, "grammar", _attach_router_meta(trace)
 
         # Try 2: Knowledge-derived grammar rules (scored, top-N, domain-filtered)
         knowledge_attempt = self._try_knowledge_rules(text, source)
         if knowledge_attempt is not None:
             value, trace = knowledge_attempt
             if self._validate_answer(value, text, source):
-                return value, "knowledge", trace
+                return value, "knowledge", _attach_router_meta(trace)
 
         # Try 1.5: Galaxy composer (safe-gated for GSM8K)
         if self._looks_like_expression(text, source):
@@ -835,7 +1170,8 @@ class SovereignBenchmarkRunner:
                 try:
                     result = self.engine.evaluate(rpn_str)
                     if result is not None and self._validate_answer(result, text, source):
-                        return result, "composer", {"rule_used": "composer", "rpn_program": rpn_str}
+                        trace = {"rule_used": "composer", "rpn_program": rpn_str}
+                        return result, "composer", _attach_router_meta(trace)
                 except Exception:
                     pass
 
@@ -847,15 +1183,16 @@ class SovereignBenchmarkRunner:
                 try:
                     result = self.engine.evaluate(rpn_program)
                     if result is not None and self._validate_answer(result, text, source):
-                        return (
-                            result,
-                            "word",
-                            {"rule_used": "word_solver", "rpn_program": rpn_program, "matched_rules": word_result.get("matched_rules", [])},
-                        )
+                        trace = {
+                            "rule_used": "word_solver",
+                            "rpn_program": rpn_program,
+                            "matched_rules": word_result.get("matched_rules", []),
+                        }
+                        return (result, "word", _attach_router_meta(trace))
                 except Exception:
                     pass
 
-        return None, "fail", {"rule_used": None, "rpn_program": ""}
+        return None, "fail", _attach_router_meta({"rule_used": None, "rpn_program": ""})
 
     def _try_grammar_rules(self, text: str, source: str) -> Optional[Tuple[float, Dict[str, Any]]]:
         grammar_matches = []
@@ -1233,6 +1570,7 @@ class SovereignBenchmarkRunner:
         rule_hist: Dict[str, int] = {}
         correct = 0
         total = 0
+        router_start = len(self._router_events)
 
         for i, problem in enumerate(problems):
             if (i + 1) % 500 == 0:
@@ -1266,6 +1604,56 @@ class SovereignBenchmarkRunner:
                 ground_truth=ground_truth,
                 source=dataset_name,
             )
+
+            # Router analytics: capture router decision for every problem (ghost logging).
+            router_logit = meta.get("router_logit") if isinstance(meta, dict) else None
+            router_use = meta.get("router_use_specialist") if isinstance(meta, dict) else None
+            if router_logit is not None and self._router_log_out:
+                label = None
+                dataset_lower = str(dataset_name).lower()
+                if "microbench" in dataset_lower or "calculus" in dataset_lower:
+                    label = 1
+                elif dataset_lower == "gsm8k":
+                    label = 0
+                self._router_events.append(
+                    {
+                        "problem_id": str(i),
+                        "dataset": dataset_name,
+                        "router_logit": router_logit,
+                        "router_use_specialist": router_use,
+                        "router_threshold": meta.get("router_threshold"),
+                        "solver": solver,
+                        "correct": bool(result.get("correct")),
+                        "label": label,
+                    }
+                )
+
+            # Router Galaxy: store high-confidence correct solves.
+            if (
+                self._router_galaxy is not None
+                and router_logit is not None
+                and bool(result.get("correct"))
+                and abs(float(router_logit)) >= self._router_galaxy_threshold
+            ):
+                label = None
+                dataset_lower = str(dataset_name).lower()
+                if "microbench" in dataset_lower or "calculus" in dataset_lower:
+                    label = 1
+                elif dataset_lower == "gsm8k":
+                    label = 0
+                self._router_galaxy.add_event(
+                    problem_text=text,
+                    router_logit=float(router_logit),
+                    router_use_specialist=bool(router_use) if router_use is not None else False,
+                    solver=str(solver),
+                    correct=bool(result.get("correct")),
+                    dataset=str(dataset_name),
+                    label=label,
+                    metadata={
+                        "router_threshold": meta.get("router_threshold"),
+                        "router_galaxy_threshold": self._router_galaxy_threshold,
+                    },
+                )
 
             # Test-time compute attribution (Phase 7): track whether TTC solutions
             # came from book-seeded programs or generic candidate families.
@@ -1351,20 +1739,6 @@ class SovereignBenchmarkRunner:
                         f" text={text[:120].replace(chr(10), ' ')}"
                     )
                 self._record_correct_solve(problem, predicted, solver, trace, dataset_name)
-                if solver == "recursive" and self._log_galaxy is not None and self._recursive_solver is not None:
-                    trace_info = self._recursive_solver.get_last_trace()
-                    self._log_galaxy.add_trace(
-                        problem_text=text,
-                        step_sequence=trace_info.get("step_sequence", []),
-                        result=float(predicted) if predicted is not None else None,
-                        success=True,
-                        trace_lines=trace_info.get("trace_lines", []),
-                        metadata={
-                            "dataset": dataset_name,
-                            "expression": trace_info.get("expression"),
-                            "point": trace_info.get("point"),
-                        },
-                    )
             else:
                 expected_num = None
                 got_num = None
@@ -1530,6 +1904,18 @@ class SovereignBenchmarkRunner:
                 )
             except Exception as exc:  # noqa: BLE001
                 print(f"[verbose analysis] failed: {exc}")
+
+        if self._router_log_out and len(self._router_events) > router_start:
+            try:
+                out_path = Path(self._router_log_out)
+                out_path.parent.mkdir(parents=True, exist_ok=True)
+                mode = "a" if out_path.exists() else "w"
+                with out_path.open(mode, encoding="utf-8") as f:
+                    for event in self._router_events[router_start:]:
+                        f.write(json.dumps(event, ensure_ascii=True) + "\n")
+                print(f"[Router] Exported {len(self._router_events) - router_start} events to {out_path}")
+            except Exception as exc:
+                print(f"[Router] Failed to export router events: {exc}")
 
         return {"correct": correct, "total": total, "accuracy": accuracy}
 
@@ -1799,6 +2185,14 @@ class SovereignBenchmarkRunner:
                 return False
         return True
 
+    def _microbench_matches(self, result: Any, expected: Any) -> bool:
+        try:
+            val = float(result)
+            gold = float(expected)
+        except Exception:
+            return False
+        return abs(val - gold) <= self._microbench_tol
+
     def _looks_like_expression(self, text: str, source: str) -> bool:
         """
         Heuristic gate for invoking the Galaxy composer.
@@ -1950,6 +2344,9 @@ class SovereignBenchmarkRunner:
 
 
 def main() -> None:
+    # Force Sovereign Loader to use Primary Context to avoid conflict with PyTorch
+    os.environ["K3D_USE_PRIMARY_CTX"] = "1"
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--limit", type=int, default=None, help="(Legacy) Limit problems per dataset")
     parser.add_argument("--dataset", type=str, default=None, help="(Legacy) Run single dataset")
@@ -2019,6 +2416,48 @@ def main() -> None:
         help="Path to learned theorem router weights (JSON mapping).",
     )
     parser.add_argument(
+        "--router-model",
+        type=str,
+        default=None,
+        help="Path to learned router checkpoint (.pt) for specialist gating.",
+    )
+    parser.add_argument(
+        "--router-skill",
+        type=str,
+        default=None,
+        help="Path to router Skill Galaxy JSONL.",
+    )
+    parser.add_argument(
+        "--router-skill-id",
+        type=str,
+        default=None,
+        help="Optional router skill_id to load from --router-skill.",
+    )
+    parser.add_argument(
+        "--router-threshold",
+        type=float,
+        default=0.0,
+        help="Router logit threshold for specialist gating (default: 0.0).",
+    )
+    parser.add_argument(
+        "--router-log-out",
+        type=str,
+        default=None,
+        help="Path to export router decision JSONL for analytics.",
+    )
+    parser.add_argument(
+        "--router-galaxy-out",
+        type=str,
+        default=None,
+        help="Path to export Router Galaxy JSONL for continual learning.",
+    )
+    parser.add_argument(
+        "--router-galaxy-threshold",
+        type=float,
+        default=1.0,
+        help="Minimum |logit| to store Router Galaxy entry (default: 1.0).",
+    )
+    parser.add_argument(
         "--verbose",
         action="store_true",
         help="Print extra diagnostics and a wrong-computation summary for the current run.",
@@ -2033,9 +2472,78 @@ def main() -> None:
         "--log-galaxy-out",
         type=str,
         default=None,
-        help="Write Log Galaxy traces to this JSONL path (microbench preferred).",
+        help="Path to export Log Galaxy JSONL (e.g. data/log_galaxy.jsonl).",
+    )
+    parser.add_argument(
+        "--log-galaxy-failures",
+        action="store_true",
+        help="Log recursive-solver failures into Log Galaxy for negative memory.",
+    )
+    parser.add_argument(
+        "--microbench-strict",
+        action="store_true",
+        help="Require microbench answers to match ground truth before accepting.",
+    )
+    parser.add_argument(
+        "--microbench-tol",
+        type=float,
+        default=1e-6,
+        help="Tolerance for strict microbench matching (default 1e-6).",
+    )
+    parser.add_argument(
+        "--serialize-logs",
+        action="store_true",
+        help="Immediately serialize the Log Galaxy JSONL to binary format after running.",
+    )
+    parser.add_argument(
+        "--equip-skill",
+        type=str,
+        default=None,
+        help="Path to a Skill Galaxy JSONL to equip (loads weights into memory).",
+    )
+    parser.add_argument(
+        "--use-reflection",
+        action="store_true",
+        help="Enable reflective inference with confidence head for calculus.",
+    )
+    parser.add_argument(
+        "--reflection-checkpoint",
+        type=str,
+        default="/K3D/Knowledge3D.local/checkpoints/v7_sovereign",
+        help="Converted checkpoint directory for reflective confidence model.",
+    )
+    parser.add_argument(
+        "--reflection-confident-threshold",
+        type=float,
+        default=0.9,
+        help="Confidence threshold for <CONFIDENT> tags.",
+    )
+    parser.add_argument(
+        "--reflection-verify-threshold",
+        type=float,
+        default=0.5,
+        help="Confidence threshold for <VERIFY> tags.",
+    )
+    parser.add_argument(
+        "--reflection-max-steps",
+        type=int,
+        default=64,
+        help="Max decoding steps for reflective rule prediction.",
+    )
+    parser.add_argument(
+        "--reflection-quiet",
+        action="store_true",
+        help="Silence reflective solver logs.",
     )
     args = parser.parse_args()
+
+    log_galaxy = None
+    router_galaxy = None
+    if args.log_galaxy_out:
+        # Initialize Log Galaxy container
+        log_galaxy = LogGalaxy(embedding_dim=512)  # Match router/matryoshka dim
+    if args.router_galaxy_out:
+        router_galaxy = RouterGalaxy(embedding_dim=512)
 
     runner = SovereignBenchmarkRunner(
         use_trm_navigator=bool(args.use_trm_navigator),
@@ -2049,11 +2557,25 @@ def main() -> None:
         thinking_budget=int(args.thinking_budget or 0),
         verbose=bool(args.verbose),
         router_weights=args.router_weights,
+        router_model_path=args.router_model,
+        router_skill_path=args.router_skill,
+        router_skill_id=args.router_skill_id,
+        log_galaxy=log_galaxy,
+        equip_skill_path=args.equip_skill,
+        router_log_out=args.router_log_out,
+        router_threshold=float(args.router_threshold),
+        router_galaxy=router_galaxy,
+        router_galaxy_threshold=float(args.router_galaxy_threshold),
+        log_galaxy_failures=bool(args.log_galaxy_failures),
+        microbench_strict=bool(args.microbench_strict),
+        microbench_tol=float(args.microbench_tol),
+        use_reflection=bool(args.use_reflection),
+        reflection_checkpoint=str(args.reflection_checkpoint) if args.reflection_checkpoint else None,
+        reflection_confident_threshold=float(args.reflection_confident_threshold),
+        reflection_verify_threshold=float(args.reflection_verify_threshold),
+        reflection_max_steps=int(args.reflection_max_steps),
+        reflection_quiet=bool(args.reflection_quiet),
     )
-    if args.log_galaxy_out:
-        from knowledge3d.training.math_benchmarks.log_galaxy import LogGalaxy
-
-        runner.set_log_galaxy(LogGalaxy())
 
     max_problems = args.max_problems if args.max_problems is not None else args.limit
 
@@ -2078,9 +2600,15 @@ def main() -> None:
         
         # Run
         runner.run_benchmark("microbench")
-        if args.log_galaxy_out and runner._log_galaxy is not None:
-            runner._log_galaxy.to_jsonl(args.log_galaxy_out)
-            print(f"[Microbench] Wrote Log Galaxy to {args.log_galaxy_out}")
+
+        if args.log_galaxy_out and log_galaxy:
+            print(f"\n[LogGalaxy] Exporting {len(log_galaxy.entries)} traces to {args.log_galaxy_out}")
+            log_galaxy.to_jsonl(args.log_galaxy_out)
+            if args.serialize_logs:
+                serialize_log_galaxy(jsonl_path=args.log_galaxy_out, output_prefix=args.log_galaxy_out.replace(".jsonl", ""))
+        if args.router_galaxy_out and router_galaxy:
+            print(f"\n[RouterGalaxy] Exporting {len(router_galaxy.entries)} entries to {args.router_galaxy_out}")
+            router_galaxy.to_jsonl(args.router_galaxy_out)
         return
 
     if args.dataset:
@@ -2091,9 +2619,12 @@ def main() -> None:
             shuffle=bool(args.shuffle),
             shuffle_seed=int(args.shuffle_seed or 0),
         )
-        if args.log_galaxy_out and runner._log_galaxy is not None:
-            runner._log_galaxy.to_jsonl(args.log_galaxy_out)
-            print(f"[Benchmark] Wrote Log Galaxy to {args.log_galaxy_out}")
+        if args.log_galaxy_out and log_galaxy:
+            log_galaxy.to_jsonl(args.log_galaxy_out)
+            if args.serialize_logs:
+                serialize_log_galaxy(jsonl_path=args.log_galaxy_out, output_prefix=args.log_galaxy_out.replace(".jsonl", ""))
+        if args.router_galaxy_out and router_galaxy:
+            router_galaxy.to_jsonl(args.router_galaxy_out)
         runner._finalize_shadow_copy()
         return
 
@@ -2107,9 +2638,6 @@ def main() -> None:
                 shuffle=bool(args.shuffle),
                 shuffle_seed=int(args.shuffle_seed or 0),
             )
-        if args.log_galaxy_out and runner._log_galaxy is not None:
-            runner._log_galaxy.to_jsonl(args.log_galaxy_out)
-            print(f"[Benchmark] Wrote Log Galaxy to {args.log_galaxy_out}")
         print(f"\nShadow Copy: {len(runner._shadow_copy.library) if runner._shadow_copy is not None else 0} discoveries recorded")
         failure_report = runner._analyze_failures()
         if failure_report.get("total_failures"):
@@ -2117,6 +2645,12 @@ def main() -> None:
             print(f"  Total failures: {failure_report['total_failures']}")
             print(f"  Categories: {failure_report['categories']}")
         runner._print_top_failing_rules()
+        if args.log_galaxy_out and log_galaxy:
+            log_galaxy.to_jsonl(args.log_galaxy_out)
+            if args.serialize_logs:
+                serialize_log_galaxy(jsonl_path=args.log_galaxy_out, output_prefix=args.log_galaxy_out.replace(".jsonl", ""))
+        if args.router_galaxy_out and router_galaxy:
+            router_galaxy.to_jsonl(args.router_galaxy_out)
         runner._finalize_shadow_copy()
         return
 
