@@ -84,6 +84,7 @@ class ModularRPNEngine:
         # Aliases used by ingestion/parsers (keep hot path sovereign: no string normalization,
         # just stable meaning-preserving opcode synonyms).
         "ln": 22,
+        "sigmoid": OP_SIGMOID_APPROX,
         "sin": 24,
         "cos": 25,
         "tan": 26,
@@ -245,7 +246,7 @@ class ModularRPNEngine:
         self.pool = pool or get_global_math_core_pool()
         self.instance_id: Optional[int] = instance_id
         self._owned = instance_id is None
-        # Lazy import keeps module importable in environments without CUDA bindings
+        # Lazy import keeps module importable in environments without CUDA bindings.
         from knowledge3d.cranium.bridges.tiered_rpn import (
             TieredRPNEngine as SovereignRPNEngine,
         )
@@ -513,6 +514,7 @@ class ModularRPNEngine:
         else:
             self.pool.touch(self.instance_id)
         return self.instance_id
+
 
 
 # Convenience API for quick calculations

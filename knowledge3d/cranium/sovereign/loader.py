@@ -46,9 +46,16 @@ except AttributeError:  # pragma: no cover - legacy drivers
     _cuMemsetD32 = getattr(nvcuda, "cuMemsetD32")
 
 try:
-    _cuMemcpyDtoD = getattr(nvcuda, "cuMemcpyDtoD_v2")
+    _cuMemcpyDtoD_v2 = getattr(nvcuda, "cuMemcpyDtoD_v2")
 except AttributeError:
-    _cuMemcpyDtoD = getattr(nvcuda, "cuMemcpyDtoD")
+    _cuMemcpyDtoD_v2 = None
+
+try:
+    _cuMemcpyDtoD_v1 = getattr(nvcuda, "cuMemcpyDtoD")
+except AttributeError:
+    _cuMemcpyDtoD_v1 = None
+
+_cuMemcpyDtoD = _cuMemcpyDtoD_v2 or _cuMemcpyDtoD_v1
 
 if _cuMemGetInfo is not None:
     _cuMemGetInfo.restype = ctypes.c_int
@@ -59,8 +66,15 @@ if _cuMemGetInfo is not None:
 
 _cuMemsetD32.restype = ctypes.c_int
 _cuMemsetD32.argtypes = [ctypes.c_uint64, ctypes.c_uint, ctypes.c_size_t]
-_cuMemcpyDtoD.restype = ctypes.c_int
-_cuMemcpyDtoD.argtypes = [ctypes.c_uint64, ctypes.c_uint64, ctypes.c_size_t]
+if _cuMemcpyDtoD is not None:
+    _cuMemcpyDtoD.restype = ctypes.c_int
+    _cuMemcpyDtoD.argtypes = [ctypes.c_uint64, ctypes.c_uint64, ctypes.c_size_t]
+if _cuMemcpyDtoD_v1 is not None:
+    _cuMemcpyDtoD_v1.restype = ctypes.c_int
+    _cuMemcpyDtoD_v1.argtypes = [ctypes.c_uint64, ctypes.c_uint64, ctypes.c_size_t]
+if _cuMemcpyDtoD_v2 is not None:
+    _cuMemcpyDtoD_v2.restype = ctypes.c_int
+    _cuMemcpyDtoD_v2.argtypes = [ctypes.c_uint64, ctypes.c_uint64, ctypes.c_size_t]
 
 CUDA_MEMCPY_HOST_TO_DEVICE = 1
 CUDA_MEMCPY_DEVICE_TO_HOST = 2
@@ -141,9 +155,13 @@ def _ensure_init():
         _device = device
 
         ctx = CUcontext()
-        res = nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device)
+        
+        # Check if we should force Primary Context (to share with PyTorch)
+        use_primary = os.environ.get("K3D_USE_PRIMARY_CTX", "0") == "1"
+        res = 201 if use_primary else nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device)
+        
         if res != 0:
-            if os.environ.get("K3D_RPN_DEBUG"):
+            if os.environ.get("K3D_RPN_DEBUG") and not use_primary:
                 print(f"[loader] cuCtxCreate failed with code {res}")
             if res in (2, 201):  # out of memory or invalid context -> fall back to primary ctx
                 set_flags_res = nvcuda.cuDevicePrimaryCtxSetFlags(device, 0)
@@ -442,7 +460,18 @@ def memcpy_dtoh(dst_host: ctypes.c_void_p, src_device: CUdeviceptr, size_bytes: 
 def memcpy_dtod(dst_device: CUdeviceptr, src_device: CUdeviceptr, size_bytes: int) -> None:
     """Copy from device to device."""
     _ensure_current_context()
+    if _cuMemcpyDtoD is None:
+        raise RuntimeError("cuMemcpyDtoD not available in CUDA driver.")
     res = _cuMemcpyDtoD(dst_device.value, src_device.value, size_bytes)
+    if (
+        res == 201
+        and _cuMemcpyDtoD_v2 is not None
+        and _cuMemcpyDtoD_v1 is not None
+        and _cuMemcpyDtoD is _cuMemcpyDtoD_v2
+    ):
+        if os.environ.get("K3D_RPN_DEBUG"):
+            print("[loader] cuMemcpyDtoD_v2 invalid context, retrying v1")
+        res = _cuMemcpyDtoD_v1(dst_device.value, src_device.value, size_bytes)
     if os.environ.get("K3D_RPN_DEBUG"):
         print(f"[loader] cuMemcpyDtoD -> {res}")
     ck(res)
@@ -572,6 +601,11 @@ def get_vram_usage() -> tuple[int, int]:
     used = total.value - free.value
     return used, total.value
 
+
+def ensure_init() -> None:
+    """Public entry point to initialize the CUDA context via the sovereign loader."""
+    _ensure_init()
+
 # ==========================================
 # Cleanup
 # ==========================================
@@ -586,7 +620,57 @@ def cleanup():
 import atexit
 atexit.register(cleanup)
 
+def cpu_to_gpu(dst: CUdeviceptr, array: Any) -> None:
+    """Upload a CPU buffer (NumPy array or bytes-like) to GPU memory."""
+    if array is None:
+        raise ValueError("cpu_to_gpu requires a valid array")
+    if hasattr(array, "ctypes") and hasattr(array, "dtype"):
+        try:
+            import numpy as np  # type: ignore
+        except Exception as exc:  # pragma: no cover - numpy required for array path
+            raise RuntimeError("NumPy is required for cpu_to_gpu array uploads") from exc
+        arr = np.ascontiguousarray(array, dtype=np.float32)
+        memcpy_htod(dst, ctypes.c_void_p(arr.ctypes.data), arr.nbytes)
+        return
+    if isinstance(array, (bytes, bytearray)):
+        buf = (ctypes.c_char * len(array)).from_buffer_copy(array)
+        memcpy_htod(dst, ctypes.cast(buf, ctypes.c_void_p), len(array))
+        return
+    buf = memoryview(array)
+    if not buf.c_contiguous:
+        buf = memoryview(buf.tobytes())
+    memcpy_htod(dst, ctypes.c_void_p(ctypes.addressof(ctypes.c_char.from_buffer(buf))), buf.nbytes)
+
+
+def gpu_to_cpu_scalar(src: CUdeviceptr) -> float:
+    """Download a single float32 scalar from GPU memory."""
+    value = ctypes.c_float()
+    memcpy_dtoh(ctypes.byref(value), src, ctypes.sizeof(value))
+    return float(value.value)
+
+
+def gpu_to_cpu_array(src: CUdeviceptr, shape: Any, dtype: Any = None) -> "Any":
+    """Download a float array from GPU memory into a NumPy array."""
+    try:
+        import numpy as np  # type: ignore
+    except Exception as exc:  # pragma: no cover - numpy required for array path
+        raise RuntimeError("NumPy is required for gpu_to_cpu_array downloads") from exc
+    dtype = np.float32 if dtype is None else dtype
+    if isinstance(shape, int):
+        shape = (shape,)
+    arr = np.empty(tuple(shape), dtype=dtype)
+    memcpy_dtoh(ctypes.c_void_p(arr.ctypes.data), src, arr.nbytes)
+    return arr
+
+
+def gpu_to_gpu_copy(dst: CUdeviceptr, src: CUdeviceptr, offset: int, size: int) -> None:
+    """Copy a slice of GPU memory from src(+offset) into dst."""
+    src_addr = int(src.value if hasattr(src, "value") else src)
+    dst_addr = int(dst.value if hasattr(dst, "value") else dst)
+    memcpy_dtod(CUdeviceptr(dst_addr), CUdeviceptr(src_addr + int(offset)), int(size))
+
 __all__ = [
+    "ensure_init",
     "load_ptx",
     "load_ptx_file",
     "load_module",
@@ -601,4 +685,8 @@ __all__ = [
     "launch",
     "synchronize",
     "get_vram_usage",
+    "cpu_to_gpu",
+    "gpu_to_cpu_scalar",
+    "gpu_to_cpu_array",
+    "gpu_to_gpu_copy",
 ]

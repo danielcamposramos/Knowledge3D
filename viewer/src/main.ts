@@ -269,7 +269,9 @@ async function loadHouse(k3dUrl: string) {
             }
             const eg = new THREE.BufferGeometry();
             eg.setAttribute('position', new THREE.BufferAttribute(edgePos, 3));
-            const emat = new THREE.LineBasicMaterial({ color: 0x66cc66, transparent: true, opacity: 0.25 });
+            const edgeColor = loaded.info?.edgeColor;
+            const edgeCol = edgeColor ? new THREE.Color(edgeColor[0], edgeColor[1], edgeColor[2]) : new THREE.Color(0x66cc66);
+            const emat = new THREE.LineBasicMaterial({ color: edgeCol, transparent: true, opacity: 0.25 });
             const lines = new THREE.LineSegments(eg, emat);
             // draw slightly behind points to reduce overdraw
             (lines.material as THREE.LineBasicMaterial).depthWrite = false;
@@ -280,6 +282,32 @@ async function loadHouse(k3dUrl: string) {
                 const eIdx: Array<[number, number]> = E.slice(0, Math.min(E.length, 5000)).map(([a,b]) => [idToIndex.get(a)!, idToIndex.get(b)!]);
                 gardenInstanced = buildInstancedBranches(positions, eIdx, scene, 5000);
             } catch {}
+        }
+
+        if (loaded.teacherEdges && loaded.teacherEdges.length > 0) {
+            const idToIndex = new Map<string, number>();
+            k3dData.forEach((r, i) => idToIndex.set(r.id, i));
+            const E = loaded.teacherEdges.filter(([a,b]) => idToIndex.has(a) && idToIndex.has(b));
+            if (E.length > 0) {
+                const edgePos = new Float32Array(E.length * 2 * 3);
+                let ptr = 0;
+                for (const [a, b] of E) {
+                    const ia = idToIndex.get(a)!;
+                    const ib = idToIndex.get(b)!;
+                    const ax = positions[ia*3+0], ay = positions[ia*3+1], az = positions[ia*3+2];
+                    const bx = positions[ib*3+0], by = positions[ib*3+1], bz = positions[ib*3+2];
+                    edgePos[ptr++] = ax; edgePos[ptr++] = ay; edgePos[ptr++] = az;
+                    edgePos[ptr++] = bx; edgePos[ptr++] = by; edgePos[ptr++] = bz;
+                }
+                const eg = new THREE.BufferGeometry();
+                eg.setAttribute('position', new THREE.BufferAttribute(edgePos, 3));
+                const edgeColor = loaded.info?.teacherEdgeColor;
+                const edgeCol = edgeColor ? new THREE.Color(edgeColor[0], edgeColor[1], edgeColor[2]) : new THREE.Color(0x00ffff);
+                const emat = new THREE.LineBasicMaterial({ color: edgeCol, transparent: true, opacity: 0.35 });
+                const lines = new THREE.LineSegments(eg, emat);
+                (lines.material as THREE.LineBasicMaterial).depthWrite = false;
+                scene.add(lines);
+            }
         }
 
         // Setup tablet (3D object) if not present

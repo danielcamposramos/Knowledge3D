@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "endian": "little",
+  "magic": "K3DLOG1\u0000",
+  "counts": {
+    "traces": 16,
+    "steps": 80,
+    "embedding_dim": 512
+  },
+  "offsets": {
+    "trace_offsets": 8,
+    "step_rule_ids": 76,
+    "step_kind": 236,
+    "problem_embeddings": 316,
+    "trace_result": 33084,
+    "trace_success": 33148
+  },
+  "lengths": {
+    "trace_offsets": 17,
+    "step_rule_ids": 80,
+    "step_kind": 80,
+    "problem_embeddings": 8192,
+    "trace_result": 16,
+    "trace_success": 16
+  },
+  "dtypes": {
+    "trace_offsets": "uint32",
+    "step_rule_ids": "uint16",
+    "step_kind": "uint8",
+    "problem_embeddings": "float32",
+    "trace_result": "float32",
+    "trace_success": "uint8"
+  },
+  "rule_registry": [
+    "quotient_rule",
+    "sum_rule",
+    "honest",
+    "product_rule",
+    "power_rule",
+    "hallucination",
+    "sin_rule",
+    "cos_rule",
+    "exp_rule"
+  ],
+  "trace_ids": [
+    "225a68be3ae7be45",
+    "6bad20254bcdf36f",
+    "3557af51b6cf4715",
+    "f6f871b6f1285fc9",
+    "ee0158179fbfc99d",
+    "878b2e19a8c93e7f",
+    "1c524c2e381b0fe6",
+    "d52a2e4fdf196ccb",
+    "1c9ecd49b9e293f5",
+    "7bbd47a984445d49",
+    "00c52bb834e8e31b",
+    "8bf7344f9870924a",
+    "f6f871b6f1285fc9",
+    "d52a2e4fdf196ccb",
+    "1c9ecd49b9e293f5",
+    "7bbd47a984445d49"
+  ],
+  "step_kind_enum": {
+    "decompose": 1,
+    "base": 2,
+    "result": 3
+  },
+  "source_jsonl": "data/wake_positive_v1.jsonl"
+}

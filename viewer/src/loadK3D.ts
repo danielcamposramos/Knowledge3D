@@ -30,6 +30,8 @@ export interface K3DInfo {
   count: number;
   byteLengthVectors?: number;
   byteLengthEmbeddings?: number;
+  edgeColor?: [number, number, number];
+  teacherEdgeColor?: [number, number, number];
   temporal?: {
     alpha?: number;
     alphaMask?: number[];
@@ -51,6 +53,7 @@ export interface LoadedK3D {
   data: K3DRecord[];
   info: K3DInfo;
   edges?: [string, string][];
+  teacherEdges?: [string, string][];
 }
 
 function composeRecordsFromEmbedded(
@@ -127,6 +130,9 @@ export async function loadK3DFromGLTF(url: string): Promise<LoadedK3D> {
   const precGlobal: string = embedded.embeddingPrecision || 'f32';
   const dimsGlobal: number = embedded.embeddingDims || (embedded.embeddings?.[0]?.length ?? 0);
   const temporal: any = embedded.temporal || {};
+  const edgeColor: any = embedded.edgesColor || undefined;
+  const teacherEdgeColor: any = embedded.teacherEdgesColor || undefined;
+  const teacherEdges: [string, string][] | undefined = embedded.teacherEdges || undefined;
 
   // AI-native extras on primitive
   const aiProtocol: string | undefined = embedded.ai_interaction_protocol;
@@ -190,6 +196,12 @@ export async function loadK3DFromGLTF(url: string): Promise<LoadedK3D> {
     count: ids.length,
     byteLengthVectors: embedded.vectorsView !== undefined ? (json.bufferViews?.[embedded.vectorsView]?.byteLength ?? undefined) : undefined,
     byteLengthEmbeddings: embedded.embeddingsView !== undefined ? (json.bufferViews?.[embedded.embeddingsView]?.byteLength ?? undefined) : undefined,
+    edgeColor: Array.isArray(edgeColor) && edgeColor.length >= 3
+      ? [Number(edgeColor[0]), Number(edgeColor[1]), Number(edgeColor[2])]
+      : undefined,
+    teacherEdgeColor: Array.isArray(teacherEdgeColor) && teacherEdgeColor.length >= 3
+      ? [Number(teacherEdgeColor[0]), Number(teacherEdgeColor[1]), Number(teacherEdgeColor[2])]
+      : undefined,
     temporal: {
       alpha: typeof temporal.alpha === 'number' ? Math.max(0, Math.min(1, temporal.alpha)) : undefined,
       alphaMask: Array.isArray(temporal.alphaMask) ? temporal.alphaMask.map((x: any) => Math.max(0, Math.min(1, Number(x)))) : undefined,
@@ -201,7 +213,7 @@ export async function loadK3DFromGLTF(url: string): Promise<LoadedK3D> {
     },
   };
 
-  return { data: composeRecordsFromEmbedded(ids, vectors, embeddings, metadata, neighbors), info, edges };
+  return { data: composeRecordsFromEmbedded(ids, vectors, embeddings, metadata, neighbors), info, edges, teacherEdges };
 }
 
 // IEEE754 half to float32
