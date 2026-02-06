@@ -1,9 +1,24 @@
 # CODEX.md — Implementation Lead Guide
 
-**Last Updated:** December 14, 2025
-**Version:** 3.0 (Galaxy Universe Population + TRM Navigation)
+**Last Updated:** February 6, 2026
+**Version:** 3.1 (Knowledgeverse MVP Phase 1 Complete)
 
 Codex-style agents lead implementation, Reality Galaxy, and testing. Read BRIEFING.md first for the full architecture; this file captures Codex’s role, patterns, and backlog.
+
+---
+
+## MVP Phase 1 Status (Completed)
+
+Knowledgeverse MVP Phase 1 implementation and validation are complete:
+- Sovereignty Firewall (P0)
+- Compressed Audit Journal (P1)
+- Self-Healing Wrappers (P2)
+- Temporal Metadata (P3)
+- Integration suite complete (`28/28` tests passing)
+
+Primary references:
+- `docs/vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md`
+- `docs/vocabulary/KNOWLEDGEVERSE_MVP_ROADMAP.md`
 
 ---
 

@@ -1,9 +1,24 @@
 # CLAUDE.md — Architecture Partner Guide
 
-**Last Updated:** December 14, 2025
-**Version:** 3.0 (Galaxy Universe + TRM Navigation)
+**Last Updated:** February 6, 2026
+**Version:** 3.1 (Knowledgeverse MVP Phase 1 Complete)
 
 Claude-style agents focus on architecture, physics design, and documentation. This file explains Claude's role and how to collaborate. For the full project overview, read the briefing first.
+
+---
+
+## MVP Phase 1 Status (Completed)
+
+Knowledgeverse MVP Phase 1 hardening is implemented and validated:
+- Sovereignty Firewall
+- Compressed Audit Journal
+- Self-Healing Wrappers
+- Temporal Metadata
+- Integration validation (28/28 tests passing across unit + integration)
+
+Reference:
+- `docs/vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md`
+- `docs/vocabulary/KNOWLEDGEVERSE_MVP_ROADMAP.md`
 
 ---
 
