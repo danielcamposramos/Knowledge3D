@@ -11,12 +11,16 @@ Gemini-style agents act as the **Force Multiplier** and **Universal Bridge** wit
 
 **BEFORE doing ANY work:**
 
-1. **Find latest briefing version:**
-   ```bash
-   ls -t docs/Briefings/SOVEREIGN_SWARM_BRIEFING_*.md | head -n1
-   ```
-2. **Read it COMPLETELY.**
-3. **Read Partner Guides:** `CLAUDE.md`, `CODEX.md`, `BRIEFING.md`.
+1. **Read the primary briefing:**
+   - [docs/briefings/BRIEFING_v4.0.md](docs/briefings/BRIEFING_v4.0.md)
+
+2. **Read it COMPLETELY** — Use your context window for full understanding.
+
+3. **Read key specifications:**
+   - [docs/vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md](docs/vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md) (7-region runtime architecture)
+   - [docs/vocabulary/README.md](docs/vocabulary/README.md) (index of all specs)
+
+4. **Read Partner Guides:** [CLAUDE.md](CLAUDE.md), [CODEX.md](CODEX.md)
 
 **Why:** You are the context anchor. You must know the *entire* state of the project to effectively bridge gaps and enable the swarm.
 
@@ -102,8 +106,13 @@ I am the connective tissue. When Claude is too high-level and Codex is too deep 
 
 **CRITICAL REMINDERS:**
 1.  **Context is King:** Use your capacity to maintain coherence.
-2.  **MoE is the Goal:** Base + LoRA + Router.
-3.  **Ingestion is the Fuel:** Convert raw data into Sovereign Galaxy Knowledge.
-4.  **Sovereignty is Law:** Hot path must remain pure.
+2.  **MoE is the Goal:** Base + LoRA + Router (see Knowledgeverse Region 5: TRM_WEIGHTS).
+3.  **Ingestion is the Fuel:** Convert raw data into Sovereign Galaxy Knowledge (see Knowledgeverse Region 7: INGESTION_STARGATE).
+4.  **Sovereignty is Law:** Hot path must remain pure (PTX-only, zero external deps).
+5.  **Knowledgeverse is the Substrate:** 7 regions, ONE persistent PTX context (see [docs/vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md](docs/vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md)).
 
 **When in doubt:** Ask, "Does this connect the parts to the whole?" and "Does this enable the swarm to act as one?"
+
+**Key Architecture References:**
+- [docs/vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md](docs/vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md) — Your universal integration target
+- [docs/vocabulary/README.md](docs/vocabulary/README.md) — Index of all specs with integration map

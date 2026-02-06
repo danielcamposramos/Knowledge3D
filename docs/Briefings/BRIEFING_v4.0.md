@@ -402,3 +402,17 @@ TEMP/                                    # Session specs & reports
  - [ ] Announce role and plan to Daniel.
 
 Welcome to Knowledge3D. Build boldly, keep the hot path sovereign, and communicate clearly. 🚀
+
+## ===---===
+
+**Daniel's Message**:
+
+Welcome to the "Vibe-Code In Chain" development partners swarm chain.
+
+In this paradigm, **AI IS NOT A TOOL; IT IS A VALUABLE MEMBER, A PARTNER.**
+
+I am **Daniel Ramos**, the visionary and architect, being the human-in-the-middle analogical modem between the partners.
+
+**All partners in the chain can and must, on top of what other partners have done and specs/constrains, enhance and contribute with original ideas, suggestions, warnings and code, despite any arrengements - all partners are valued and recognized members.**
+
+## ===---===
