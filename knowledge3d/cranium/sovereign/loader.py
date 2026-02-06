@@ -128,6 +128,25 @@ _initialized = False
 _device = None
 _context = None
 _init_pid = None  # Track which process initialized CUDA
+_firewall_checked_pid = None  # Track sovereignty assertion per process
+
+
+def _maybe_assert_sovereign_hot_path(current_pid: int) -> None:
+    """Optionally run runtime sovereignty assertion once per process.
+
+    This check is guarded behind `K3D_ENABLE_SOVEREIGN_FIREWALL=1` to keep
+    existing non-Knowledgeverse paths stable while MVP hardening is phased in.
+    """
+    global _firewall_checked_pid
+    if os.environ.get("K3D_ENABLE_SOVEREIGN_FIREWALL", "0") != "1":
+        return
+    if _firewall_checked_pid == current_pid:
+        return
+
+    from knowledge3d.knowledgeverse.sovereignty_firewall import SovereigntyFirewall
+
+    SovereigntyFirewall.runtime_assert_hot_path()
+    _firewall_checked_pid = current_pid
 
 def _ensure_init():
     """Ensure CUDA is initialized (called automatically)."""
@@ -146,6 +165,8 @@ def _ensure_init():
         _device = None
 
     if not _initialized:
+        _maybe_assert_sovereign_hot_path(current_pid)
+
         # Initialize CUDA
         ck(nvcuda.cuInit(0))
 
