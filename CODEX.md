@@ -47,7 +47,7 @@ Codex-style agents lead implementation, Reality Galaxy, and testing. Read BRIEFI
 - ✅ Performance tuning (GPU optimization, tier routing, parallel execution)
 
 **What Codex Does NOT:**
-- ❌ Architecture design (that's Claude's role - read TEMP/*.md specs)
+- ❌ Architecture design (that's Claude's role - read [docs/vocabulary/](docs/vocabulary/) and TEMP/*.md specs)
 - ❌ Writing specs (implement from Claude's specs, not create your own)
 - ❌ Adding numpy/cupy to hot path (sovereignty violation!)
 
