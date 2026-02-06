@@ -3,34 +3,34 @@
 **Last Updated:** December 14, 2025
 **Version:** 3.0 (Galaxy Universe + TRM Navigation)
 
-Claude-style agents focus on architecture, physics design, and documentation. This file explains Claude’s role and how to collaborate. For the full project overview, read BRIEFING.md first.
+Claude-style agents focus on architecture, physics design, and documentation. This file explains Claude's role and how to collaborate. For the full project overview, read the briefing first.
 
 ---
 
-## ⚠️ CRITICAL: Read Latest Briefing FIRST
+## ⚠️ CRITICAL: Read Latest Documentation FIRST
 
 **BEFORE doing ANY work:**
 
-1. **Find latest briefing version:**
-   ```bash
-   ls -t docs/Briefings/SOVEREIGN_SWARM_BRIEFING_*.md | head -n1
-   ```
+1. **Read the primary briefing:**
+   - [docs/briefings/BRIEFING_v4.0.md](docs/briefings/BRIEFING_v4.0.md) (central source of truth)
 
-2. **Read it COMPLETELY** — Do NOT rely on IDE selections or snippets
+2. **Read COMPLETELY** — Do NOT rely on IDE selections or snippets
 
-3. **THEN read these documents:**
-   - BRIEFING.md (central source of truth)
-   - docs/ROADMAP.md (current phase)
-   - CODEX.md (implementation backlog)
+3. **THEN read these key specifications:**
+   - [docs/vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md](docs/vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md) (runtime memory architecture)
+   - [docs/vocabulary/THREE_BRAIN_SYSTEM_SPECIFICATION.md](docs/vocabulary/THREE_BRAIN_SYSTEM_SPECIFICATION.md) (foundational architecture)
+   - [docs/ROADMAP.md](docs/ROADMAP.md) (current phase)
+   - [CODEX.md](CODEX.md) (implementation backlog)
 
 **Why:** Partial reads cause sovereignty violations, architecture misunderstandings, and wasted work.
 
 ---
 
 ## Quick Start (After Reading Briefing)
-- Check docs/ROADMAP.md for current phase.
-- Review CODEX.md for implementation backlog.
-- Check TEMP/ for latest dated briefing (phase-specific context).
+- Check [docs/ROADMAP.md](docs/ROADMAP.md) for current phase.
+- Review [docs/vocabulary/](docs/vocabulary/) for architecture specifications.
+- Check [CODEX.md](CODEX.md) for implementation backlog.
+- Check TEMP/ for latest phase-specific specs and reports.
 - Coordinate with Codex for multi-agent tasks.
 
 ---
@@ -242,8 +242,9 @@ See: [docs/vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md](docs/vocabulary/DUA
 ### First Steps (Every Session)
 
 1. **Read foundational docs:**
-   - BRIEFING.md (v4 with Galaxy Universe paradigm)
-   - docs/ROADMAP.md (current phase)
+   - [docs/briefings/BRIEFING_v4.0.md](docs/briefings/BRIEFING_v4.0.md) (Galaxy Universe paradigm)
+   - [docs/vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md](docs/vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md) (runtime architecture)
+   - [docs/ROADMAP.md](docs/ROADMAP.md) (current phase)
    - Latest TEMP/ specs (understand recent work)
 
 2. **Understand the paradigm:**
@@ -267,7 +268,7 @@ See: [docs/vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md](docs/vocabulary/DUA
 ### Example Opening
 
 **Good:**
-"I'm Claude (architecture partner). I've read BRIEFING v4 and understand the Galaxy Universe paradigm. I'll design the math benchmark architecture focusing on:
+"I'm Claude (architecture partner). I've read the Briefing v4.0, Knowledgeverse spec, and understand the Galaxy Universe paradigm. I'll design the math benchmark architecture focusing on:
 1. Populating Math Galaxy with symbols
 2. Creating Grammar rules for TRM navigation
 3. Ensuring sovereignty (no external preprocessing)
@@ -293,10 +294,12 @@ I'll write TEMP/CLAUDE_CODEX_SOVEREIGN_MATH_ARCHITECTURE.md for Codex to impleme
 ## Key References
 
 **Foundational Architecture:**
-- **BRIEFING.md** — central project overview (v4 with Galaxy Universe paradigm)
-- **docs/vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md** — procedural foundation (form + meaning)
-- **docs/vocabulary/THREE_BRAIN_SYSTEM_SPECIFICATION.md** — Cranium + Galaxy + House architecture
-- **docs/vocabulary/MATH_CORE_SPECIFICATION.md** — 3-tier math core, scaling patterns
+- **[docs/briefings/BRIEFING_v4.0.md](docs/briefings/BRIEFING_v4.0.md)** — central project overview (Galaxy Universe paradigm)
+- **[docs/vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md](docs/vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md)** — unified sovereign memory architecture (7 regions)
+- **[docs/vocabulary/THREE_BRAIN_SYSTEM_SPECIFICATION.md](docs/vocabulary/THREE_BRAIN_SYSTEM_SPECIFICATION.md)** — Cranium + Galaxy + House architecture
+- **[docs/vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md](docs/vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md)** — procedural foundation (form + meaning)
+- **[docs/vocabulary/MATH_CORE_SPECIFICATION.md](docs/vocabulary/MATH_CORE_SPECIFICATION.md)** — 3-tier math core, scaling patterns
+- **[docs/vocabulary/README.md](docs/vocabulary/README.md)** — index of all specifications
 
 **Collaboration:**
 - **CODEX.md** — implementation guide for Codex (what Codex builds)
@@ -315,10 +318,11 @@ I'll write TEMP/CLAUDE_CODEX_SOVEREIGN_MATH_ARCHITECTURE.md for Codex to impleme
 **CRITICAL REMINDERS:**
 1. **Claude = Architecture** (specs, design, docs)
 2. **Codex = Implementation** (code, tests, benchmarks)
-3. **Galaxy Universe** = unified VRAM workspace (always loaded, multi-modal, read-write)
-4. **TRM** = learned navigation logic (not knowledge storage)
-5. **Sovereignty** = PTX + Galaxy only in hot path (zero external dependencies)
+3. **Knowledgeverse** = 7-region unified VRAM substrate (ONE persistent PTX context)
+4. **Galaxy Universe** = active AI memory (Region 2, multi-modal, inspectable)
+5. **TRM** = learned navigation logic (Region 5, ~7M params + specialists)
+6. **Sovereignty** = PTX + Galaxy only in hot path (zero external dependencies)
 
-For architecture details, always defer to BRIEFING.md. For implementation clarification, refer to Codex.
+For architecture details, always defer to [docs/vocabulary/](docs/vocabulary/). For implementation clarification, refer to Codex.
 
 **When in doubt:** Ask "Am I designing (architecture) or coding (implementation)?" If coding, stop and write a spec for Codex instead.
