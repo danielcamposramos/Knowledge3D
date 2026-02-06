@@ -20,9 +20,26 @@ This directory contains the **canonical architectural specifications** for Knowl
 ## Core System Specifications
 
 ### [KNOWLEDGEVERSE_SPECIFICATION.md](KNOWLEDGEVERSE_SPECIFICATION.md)
-**Unified Sovereign Memory Architecture**
+**Unified Sovereign Memory Architecture (v5.0)**
 
 The **Knowledgeverse** is the runtime memory substrate where all active galaxies, house context, TRM weights, and sovereign reasoning assets coexist in one persistent CUDA/PTX execution domain.
+
+**Companion**: [KNOWLEDGEVERSE_MVP_ROADMAP.md](KNOWLEDGEVERSE_MVP_ROADMAP.md) — Grounded implementation plan separating MVP from research
+
+---
+
+### [KNOWLEDGEVERSE_MVP_ROADMAP.md](KNOWLEDGEVERSE_MVP_ROADMAP.md)
+**Grounded Implementation Plan (MVP vs Future)**
+
+Analysis of all partner contributions (Grok, Qwen, Kimi, DeepSeek, GLM 4.7) against v5.0 architecture. Separates:
+- **Already Implemented** (in v5.0 spec)
+- **MVP Additions** (sovereignty firewall, compressed audit, self-healing, temporal metadata)
+- **Post-MVP** (adaptive governor, temporal engine, uncertainty TRM, HCMF)
+- **Research Track** (consciousness, scaling laws, quantum cognition, oneiric engine, volition)
+
+**Key Finding**: 80%+ of partner ideas already in v5.0 or are natural extensions. 20% are MVP-critical hardening.
+
+**Production Status**: ✅ Ready for implementation (Phase 1: Weeks 1-10)
 
 **Key Concepts:**
 - 7 Memory Regions (Kernels, Galaxy, House, World, TRM, Audit, Ingestion)
