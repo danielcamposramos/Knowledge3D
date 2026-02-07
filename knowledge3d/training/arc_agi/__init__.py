@@ -8,6 +8,7 @@ via wrapper modules in this package.
 
 from __future__ import annotations
 
+import importlib
 from pathlib import Path
 import sys
 
@@ -24,3 +25,25 @@ if _ARC_ROOT.is_dir():
         sys.path.insert(0, arc_path)
     if arc_path not in __path__:
         __path__.append(arc_path)
+
+
+_LEGACY_EXPORTS = {
+    "CandidateGenerator": "candidate_generator",
+    "HybridCandidateGenerator": "hybrid_generator",
+    "ProgramComposer": "program_composer",
+    "DualShadowCopy": "dual_shadow_copy",
+    "SovereignAIPipeline": "sovereign_pipeline",
+}
+
+
+def __getattr__(name: str):
+    module_name = _LEGACY_EXPORTS.get(name)
+    if module_name is None:
+        raise AttributeError(name)
+    module = importlib.import_module(f".{module_name}", __name__)
+    value = getattr(module, name)
+    globals()[name] = value
+    return value
+
+
+__all__ = sorted(_LEGACY_EXPORTS.keys())

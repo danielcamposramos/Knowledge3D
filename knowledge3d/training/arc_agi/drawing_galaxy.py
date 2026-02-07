@@ -8,5 +8,6 @@ import importlib
 _module = importlib.import_module("drawing_galaxy")
 
 DrawingGalaxy = _module.DrawingGalaxy
+DrawingItem = _module.DrawingItem
 
-__all__ = ["DrawingGalaxy"]
+__all__ = ["DrawingGalaxy", "DrawingItem"]

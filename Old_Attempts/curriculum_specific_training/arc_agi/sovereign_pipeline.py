@@ -263,10 +263,16 @@ class SovereignAIPipeline:
         cosine_bridge=None,
         hybrid_mode: bool = False,
         embodied_agent: EmbodiedSovereignAgent | None = None,
+        knowledgeverse=None,
     ) -> None:
+        self.knowledgeverse = knowledgeverse
         self.agent = embodied_agent or EmbodiedSovereignAgent()
-        self.drawing = self.agent.drawing_galaxy if self.agent else DrawingGalaxy()
-        self.grammar = self.agent.grammar_galaxy if self.agent else GrammarGalaxy()
+        if self.knowledgeverse is not None:
+            self.drawing = self.knowledgeverse.galaxy_manager.get_galaxy("Drawing")
+            self.grammar = self.knowledgeverse.galaxy_manager.get_galaxy("Grammar")
+        else:
+            self.drawing = self.agent.drawing_galaxy if self.agent else DrawingGalaxy()
+            self.grammar = self.agent.grammar_galaxy if self.agent else GrammarGalaxy()
         self.math_galaxy = getattr(self.agent, "math_galaxy", None) or get_math_galaxy()
         self.word_galaxy = getattr(self.agent, "word_galaxy", None) or get_word_galaxy()
         self.eloquence_galaxy = getattr(self.agent, "eloquence_galaxy", None) or get_eloquence_galaxy()
@@ -276,7 +282,7 @@ class SovereignAIPipeline:
         self.composer = ProgramComposer()
         # Shared codec embedder (singleton) to avoid repeated PTX loads across workers.
         self.codec_embedder = MultiModalGridEmbedder(matryoshka_dim=matryoshka_dim)
-        self.embedding_galaxy = embedding_galaxy
+        self.embedding_galaxy = embedding_galaxy if embedding_galaxy is not None else {}
         self.cosine_bridge = cosine_bridge or CosineSimilarityBridge()
         self.size_encoder = SizePatternEncoder()
         self.preserver = DiscoveryPreserver()
@@ -352,15 +358,17 @@ class SovereignAIPipeline:
             from knowledge3d.training.arc_agi.parallel_candidate_generator import ParallelCandidateGenerator
 
             par_gen = ParallelCandidateGenerator(
+                matryoshka_dim=self.router.matryoshka_dim,
                 num_workers=9,
                 candidates_per_worker=6,
                 top_k=3,
-                matryoshka_dim=self.router.matryoshka_dim,
                 shadow_copy=self.shadow,
                 drawing_galaxy=self.drawing,
                 codec_embedder=self.codec_embedder,
                 embedding_galaxy=self.embedding_galaxy,
                 cosine_bridge=self.cosine_bridge,
+                knowledgeverse=self.knowledgeverse,
+                use_process_workers=False if self.knowledgeverse is not None else None,
             )
             if getattr(self, "hybrid_mode", False):
                 hybrid_gen = HybridCandidateGenerator(
@@ -368,7 +376,7 @@ class SovereignAIPipeline:
                     shadow_copy=self.shadow,
                     drawing_galaxy=self.drawing,
                     grammar_galaxy=self.grammar,
-                    core_pool=par_gen.core_pool,
+                    core_pool=getattr(par_gen, "core_pool", None),
                     quick_solve_threshold=0.95,
                     embedding_galaxy=self.embedding_galaxy,
                     cosine_bridge=self.cosine_bridge,

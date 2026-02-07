@@ -24,7 +24,12 @@ class GalaxyManager:
     def __init__(self, storage_root: str | Path = "../Knowledge3D.local/galaxies"):
         self.storage_root = Path(storage_root)
         self.storage_root.mkdir(parents=True, exist_ok=True)
-        self._galaxies: dict[str, Galaxy] = {}
+        self._galaxies: dict[str, Any] = {}
+        self._knowledgeverse: Any | None = None
+
+    def set_knowledgeverse(self, knowledgeverse: Any) -> None:
+        """Attach parent Knowledgeverse reference for specialized galaxy classes."""
+        self._knowledgeverse = knowledgeverse
 
     @SelfHealingWrapper.with_retry(max_attempts=3, backoff_base=0.1)
     def query(self, query_text: str, specialist: str = "math", top_k: int = 10) -> Any:
@@ -49,11 +54,41 @@ class GalaxyManager:
             for score, entry, name in scored[: max(1, top_k)]
         ]
 
-    def get_galaxy(self, name: str) -> Galaxy:
+    def get_galaxy(self, name: str) -> Any:
         galaxy = self._galaxies.get(name)
         if galaxy is not None:
             return galaxy
 
+        if name == "Drawing":
+            from .drawing_galaxy import DrawingGalaxy
+
+            galaxy = DrawingGalaxy(knowledgeverse=self._knowledgeverse)
+            self._hydrate_specialized_galaxy(name, galaxy)
+            self._galaxies[name] = galaxy
+            return galaxy
+
+        if name == "Grammar":
+            from .grammar_galaxy import GrammarGalaxy
+
+            galaxy = GrammarGalaxy(knowledgeverse=self._knowledgeverse)
+            self._hydrate_specialized_galaxy(name, galaxy)
+            self._galaxies[name] = galaxy
+            return galaxy
+
+        entries = self._read_entries_from_disk(name)
+        galaxy = Galaxy(name=name, entries=entries)
+        self._galaxies[name] = galaxy
+        return galaxy
+
+    def add_entry(self, galaxy_name: str, entry: dict[str, Any]) -> None:
+        galaxy = self.get_galaxy(galaxy_name)
+        if hasattr(galaxy, "add_entry"):
+            galaxy.add_entry(entry, record_event=True)
+        else:
+            galaxy.entries.append(entry)
+        self._append_entry_to_disk(galaxy_name, entry)
+
+    def _read_entries_from_disk(self, name: str) -> list[dict[str, Any]]:
         path = self._galaxy_path(name)
         entries: list[dict[str, Any]] = []
         if path.exists():
@@ -64,14 +99,15 @@ class GalaxyManager:
                     entries.append(json.loads(line))
                 except json.JSONDecodeError:
                     continue
-        galaxy = Galaxy(name=name, entries=entries)
-        self._galaxies[name] = galaxy
-        return galaxy
+        return entries
 
-    def add_entry(self, galaxy_name: str, entry: dict[str, Any]) -> None:
-        galaxy = self.get_galaxy(galaxy_name)
-        galaxy.entries.append(entry)
-        self._append_entry_to_disk(galaxy_name, entry)
+    def _hydrate_specialized_galaxy(self, galaxy_name: str, galaxy: Any) -> None:
+        """Apply persisted entries to specialized galaxies on first load."""
+        for entry in self._read_entries_from_disk(galaxy_name):
+            try:
+                galaxy.add_entry(entry, record_event=False)
+            except Exception:
+                continue
 
     def _galaxy_path(self, name: str) -> Path:
         safe = name.replace("/", "_").replace(" ", "_")

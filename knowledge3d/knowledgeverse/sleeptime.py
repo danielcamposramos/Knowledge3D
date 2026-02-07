@@ -91,7 +91,23 @@ class SleepTimeConsolidation:
         return {"success": True, "stage": "knowledge"}
 
     def _stage_b_logic(self) -> dict[str, Any]:
-        return {"success": True, "stage": "logic"}
+        if self.kv is None:
+            return {"success": True, "stage": "logic", "updated_specialists": []}
+
+        trm = getattr(self.kv, "trm_navigator", None)
+        shadow_copy = getattr(self.kv, "shadow_copy", None)
+        if trm is None or shadow_copy is None:
+            return {"success": True, "stage": "logic", "updated_specialists": []}
+
+        events = list(getattr(shadow_copy, "event_buffer", []))
+        summary = trm.consolidate_weights_from_events(events)
+        return {
+            "success": True,
+            "stage": "logic",
+            "updated_specialists": summary.get("updated_specialists", []),
+            "updated_count": int(summary.get("updated_count", 0)),
+            "weights_path": summary.get("weights_path", ""),
+        }
 
     def _commit_transaction(self, payload: dict[str, Any]) -> None:
         self._append_journal({"event": "commit", **payload})

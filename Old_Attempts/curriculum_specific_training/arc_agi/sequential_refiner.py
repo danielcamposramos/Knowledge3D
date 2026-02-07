@@ -241,6 +241,7 @@ def k3d_sequential_refine_adaptive(
 
             # Tier-2 if not improved
             if not cycle_improved:
+                refined = None
                 for pat in categorized.get("tier2", [])[: max(1, n // 3)]:
                     prog = pat.get("program", "")
                     if not prog:
@@ -249,16 +250,19 @@ def k3d_sequential_refine_adaptive(
                         refined = _exec(tier2, current_candidate, prog)
                     except Exception:
                         continue
-                if refined and _is_improvement(refined, current_candidate):
-                    current_candidate = refined
-                    applied_patterns.append(prog)
-                    cycle_improved = True
-                    confidence_chain.append(_ternary_sign(_score_entry(pat) - 0.70))
-                    print(f"    [REFINER] Applied pattern from shadow (tier2) (confidence={_score_entry(pat):.2f})")
-                    break
+                    if refined and _is_improvement(refined, current_candidate):
+                        current_candidate = refined
+                        applied_patterns.append(prog)
+                        cycle_improved = True
+                        confidence_chain.append(_ternary_sign(_score_entry(pat) - 0.70))
+                        print(
+                            f"    [REFINER] Applied pattern from shadow (tier2) (confidence={_score_entry(pat):.2f})"
+                        )
+                        break
 
             # Tier-3 only if still not improved
             if not cycle_improved:
+                refined = None
                 for pat in categorized.get("tier3", [])[: max(1, n // 3)]:
                     prog = pat.get("program", "")
                     if not prog:
@@ -267,13 +271,15 @@ def k3d_sequential_refine_adaptive(
                         refined = _exec(tier3, current_candidate, prog)
                     except Exception:
                         continue
-                if refined and _is_improvement(refined, current_candidate):
-                    current_candidate = refined
-                    applied_patterns.append(prog)
-                    cycle_improved = True
-                    confidence_chain.append(_ternary_sign(_score_entry(pat) - 0.70))
-                    print(f"    [REFINER] Applied pattern from shadow (tier3) (confidence={_score_entry(pat):.2f})")
-                    break
+                    if refined and _is_improvement(refined, current_candidate):
+                        current_candidate = refined
+                        applied_patterns.append(prog)
+                        cycle_improved = True
+                        confidence_chain.append(_ternary_sign(_score_entry(pat) - 0.70))
+                        print(
+                            f"    [REFINER] Applied pattern from shadow (tier3) (confidence={_score_entry(pat):.2f})"
+                        )
+                        break
 
             # Interleave Drawing/Grammar even if shadow patterns are absent
             if not cycle_improved:
