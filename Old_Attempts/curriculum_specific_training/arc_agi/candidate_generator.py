@@ -8,6 +8,7 @@ up to ~20 unique candidates that downstream TRM ranking can score.
 
 from __future__ import annotations
 
+import os
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from knowledge3d.training.arc_agi.grid_processor import ARCGridProcessor
@@ -61,6 +62,11 @@ class CandidateGenerator:
         self.max_candidates = max_candidates  # SOVEREIGN: Tesla 3-6-9 (increased from 69)
         self.shadow_copy = shadow_copy  # Optional access to discovered programs for compositions
         self.embedding_galaxy = embedding_galaxy
+        # Sovereign embedding policy:
+        # - compute: legacy behavior (compute missing embeddings on demand)
+        # - skip: do not compute during hot path; skip embedding-based rerank if missing
+        # - fail: fail-fast when missing embeddings are detected
+        self.embedding_lazy_mode = os.getenv("K3D_ARC_EMBEDDING_LAZY_MODE", "compute").strip().lower()
         self.cosine_bridge = cosine_bridge or CosineSimilarityBridge()
         self.drawing_galaxy = drawing_galaxy
 
@@ -238,11 +244,26 @@ class CandidateGenerator:
                 missing_grids.append(grid)
                 missing_hashes.append(h)
 
-        if missing_grids:
-            print(f"  [GALAXY LAZY] Computing {len(missing_grids)} missing embeddings (batch GPU)")
-            batch_embeddings = self.processor._grid_to_spatial_embedding_batch(missing_grids)
-            for h, emb in zip(missing_hashes, batch_embeddings):
-                self.embedding_galaxy[h] = emb
+        missing_embedding_count = len(missing_grids)
+        if missing_embedding_count:
+            if self.embedding_lazy_mode == "compute":
+                print(f"  [GALAXY LAZY] Computing {missing_embedding_count} missing embeddings (batch GPU)")
+                batch_embeddings = self.processor._grid_to_spatial_embedding_batch(missing_grids)
+                for h, emb in zip(missing_hashes, batch_embeddings):
+                    self.embedding_galaxy[h] = emb
+            elif self.embedding_lazy_mode == "fail":
+                raise RuntimeError(
+                    "SOVEREIGNTY VIOLATION: missing embeddings during ARC hot path "
+                    f"(count={missing_embedding_count}). Precompute embeddings before benchmark execution."
+                )
+            elif self.embedding_lazy_mode == "skip":
+                # Explicitly avoid lazy embedding computation in benchmark runtime.
+                expected_output = None
+            else:
+                raise RuntimeError(
+                    f"Invalid K3D_ARC_EMBEDDING_LAZY_MODE={self.embedding_lazy_mode!r}; "
+                    "expected one of: compute|skip|fail"
+                )
 
         # Deduplicate by output grid content.
         deduped = self._deduplicate_candidates(candidates)

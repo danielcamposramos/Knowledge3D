@@ -21,10 +21,22 @@ class ARCAGI2Benchmark:
         max_tasks: int | None = None,
         dataset_version: str = "arc_agi_2",
         strict_legacy: bool = False,
+        enable_contrastive_learning: bool = False,
+        enable_validity_gates: bool = False,
+        enable_fuzzy_oracle: bool = False,
+        fuzzy_oracle_threshold: float = 0.95,
+        enable_ptx_ranking: bool = False,
+        runtime_seed_knowledge: bool = False,
     ):
         self.kv = knowledgeverse or Knowledgeverse()
         self.dataset_version = dataset_version
         self.strict_legacy = strict_legacy
+        self.enable_contrastive_learning = bool(enable_contrastive_learning)
+        self.enable_validity_gates = bool(enable_validity_gates)
+        self.enable_fuzzy_oracle = bool(enable_fuzzy_oracle)
+        self.fuzzy_oracle_threshold = float(fuzzy_oracle_threshold)
+        self.enable_ptx_ranking = bool(enable_ptx_ranking)
+        self.runtime_seed_knowledge = bool(runtime_seed_knowledge)
         self.dataset_path = self._resolve_dataset_path(dataset_path, dataset_version)
         self.max_tasks = max_tasks
         self.tasks = self._load_tasks()
@@ -107,18 +119,31 @@ class ARCAGI2Benchmark:
     def run_benchmark(self, use_enriched: bool = True) -> dict[str, Any]:
         self.results = []
         correct = 0
+        generated_patterns_total = 0
+        tasks_with_generated_patterns = 0
         self.adapter = ArcAgi2Adapter(
             use_enriched=use_enriched,
             strict_legacy=self.strict_legacy,
             knowledgeverse=self.kv,
+            enable_contrastive_learning=self.enable_contrastive_learning,
+            enable_validity_gates=self.enable_validity_gates,
+            enable_fuzzy_oracle=self.enable_fuzzy_oracle,
+            fuzzy_oracle_threshold=self.fuzzy_oracle_threshold,
+            enable_ptx_ranking=self.enable_ptx_ranking,
         )
         for task in self.tasks:
             result = self._solve_task(task=task, use_enriched=use_enriched)
             self.results.append(result)
             if result["correct"]:
                 correct += 1
+            generated_count = int(result.get("generated_pattern_count", len(result.get("generated_patterns", []))))
+            generated_patterns_total += generated_count
+            if generated_count > 0:
+                tasks_with_generated_patterns += 1
         total = len(self.tasks)
         accuracy = (correct / total) if total else 0.0
+        source_accuracy = self._compute_pattern_source_accuracy(self.results)
+        oracle_diagnostics = self._compute_oracle_diagnostics(self.results)
         return {
             "benchmark": "ARC-AGI 2/3",
             "dataset_path": str(self.dataset_path) if self.dataset_path else "synthetic",
@@ -127,6 +152,10 @@ class ARCAGI2Benchmark:
             "total_tasks": total,
             "correct": correct,
             "accuracy": accuracy,
+            "generated_pattern_total": generated_patterns_total,
+            "tasks_with_generated_patterns": tasks_with_generated_patterns,
+            "pattern_source_accuracy": source_accuracy,
+            "oracle_diagnostics": oracle_diagnostics,
             "results": self.results,
         }
 
@@ -136,7 +165,7 @@ class ARCAGI2Benchmark:
         task: dict[str, Any],
         use_enriched: bool,
     ) -> dict[str, Any]:
-        if use_enriched:
+        if use_enriched and self.runtime_seed_knowledge:
             self._seed_visual_knowledge(task)
         assert self.adapter is not None
         result = self.adapter.solve_task(task, fallback_solver=self._solve_task_fallback)
@@ -220,6 +249,78 @@ class ARCAGI2Benchmark:
             if list(pred_row) != list(exp_row):
                 return False
         return True
+
+    def _compute_pattern_source_accuracy(self, rows: list[dict[str, Any]]) -> dict[str, Any]:
+        stats: dict[str, dict[str, float]] = {}
+        for row in rows:
+            source = str(row.get("pattern_source", "unknown"))
+            bucket = stats.setdefault(source, {"correct": 0.0, "total": 0.0, "accuracy": 0.0})
+            bucket["total"] += 1.0
+            if bool(row.get("correct", False)):
+                bucket["correct"] += 1.0
+        for bucket in stats.values():
+            total = bucket["total"]
+            bucket["accuracy"] = (bucket["correct"] / total) if total else 0.0
+        return stats
+
+    def _compute_oracle_diagnostics(self, rows: list[dict[str, Any]]) -> dict[str, Any]:
+        total = len(rows)
+        if total == 0:
+            return {
+                "top_1_accuracy": 0.0,
+                "oracle_at_3": 0.0,
+                "oracle_at_10": 0.0,
+                "oracle_at_all": 0.0,
+                "avg_correct_rank": None,
+                "generation_failure_rate": 0.0,
+                "ranking_failure_rate": 0.0,
+                "ranking_change_rate": 0.0,
+            }
+
+        top_1 = sum(1 for row in rows if bool(row.get("correct", False)))
+        oracle_3 = sum(1 for row in rows if bool(row.get("oracle_at_3", False)))
+        oracle_10 = sum(1 for row in rows if bool(row.get("oracle_at_10", False)))
+        oracle_all = sum(1 for row in rows if bool(row.get("oracle_at_all", False)))
+        generation_failures = sum(1 for row in rows if not bool(row.get("oracle_at_all", False)))
+        ranking_failures = sum(
+            1 for row in rows if bool(row.get("oracle_at_all", False)) and not bool(row.get("correct", False))
+        )
+        ranking_changes = sum(1 for row in rows if bool(row.get("ranking_changed_top1", False)))
+        ptx_enabled = sum(1 for row in rows if bool(row.get("ptx_ranking_enabled", False)))
+        ptx_used = sum(1 for row in rows if bool(row.get("ptx_ranking_used", False)))
+        ptx_errors = sum(1 for row in rows if bool(row.get("ptx_ranking_error")))
+        fuzzy_oracle_all = sum(1 for row in rows if bool(row.get("fuzzy_oracle_at_all", False)))
+        fuzzy_oracle_080 = sum(1 for row in rows if bool(row.get("oracle_fuzzy_0_80", False)))
+        fuzzy_oracle_085 = sum(1 for row in rows if bool(row.get("oracle_fuzzy_0_85", False)))
+        fuzzy_oracle_090 = sum(1 for row in rows if bool(row.get("oracle_fuzzy_0_90", False)))
+        fuzzy_oracle_095 = sum(1 for row in rows if bool(row.get("oracle_fuzzy_0_95", False)))
+        fuzzy_scores = [float(row.get("fuzzy_best_score", 0.0)) for row in rows]
+        gate_reject_rates = [float(row.get("validity_reject_rate", 0.0)) for row in rows]
+        family_rejects = [int(row.get("validity_family_rejects", 0)) for row in rows]
+
+        ranks = [int(row["correct_rank"]) for row in rows if row.get("correct_rank") is not None]
+        avg_rank = (sum(ranks) / len(ranks)) if ranks else None
+        return {
+            "top_1_accuracy": top_1 / total,
+            "oracle_at_3": oracle_3 / total,
+            "oracle_at_10": oracle_10 / total,
+            "oracle_at_all": oracle_all / total,
+            "avg_correct_rank": avg_rank,
+            "generation_failure_rate": generation_failures / total,
+            "ranking_failure_rate": ranking_failures / total,
+            "ranking_change_rate": ranking_changes / total,
+            "fuzzy_oracle_at_all": fuzzy_oracle_all / total,
+            "oracle_fuzzy_0_80": fuzzy_oracle_080 / total,
+            "oracle_fuzzy_0_85": fuzzy_oracle_085 / total,
+            "oracle_fuzzy_0_90": fuzzy_oracle_090 / total,
+            "oracle_fuzzy_0_95": fuzzy_oracle_095 / total,
+            "fuzzy_best_score_mean": (sum(fuzzy_scores) / total) if fuzzy_scores else 0.0,
+            "validity_reject_rate_mean": (sum(gate_reject_rates) / total) if gate_reject_rates else 0.0,
+            "family_rejects_mean": (sum(family_rejects) / total) if family_rejects else 0.0,
+            "ptx_ranking_enabled_rate": ptx_enabled / total,
+            "ptx_ranking_used_rate": ptx_used / total,
+            "ptx_ranking_error_rate": ptx_errors / total,
+        }
 
     def save_results(self, output_path: str | Path) -> None:
         path = Path(output_path)

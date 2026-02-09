@@ -1,6 +1,7 @@
 """PTX utilities package."""
 
 from .ptx_ops import PTX_OPS, PTXOps  # noqa: F401
+from .arc_ops import ARC_PTX_OPS, ARCPTXOps  # noqa: F401
 from .galaxy_buffer import (  # noqa: F401
     GalaxyGPUMemory,
     MeshRecord,
