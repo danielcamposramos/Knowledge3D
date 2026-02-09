@@ -18,10 +18,12 @@ class LastHumanityExamBenchmark:
         knowledgeverse: Knowledgeverse | None = None,
         dataset_path: str | Path | None = None,
         max_questions: int | None = None,
+        runtime_seed_knowledge: bool = False,
     ):
         self.kv = knowledgeverse or Knowledgeverse()
         self.dataset_path = self._resolve_dataset_path(dataset_path)
         self.max_questions = max_questions
+        self.runtime_seed_knowledge = bool(runtime_seed_knowledge)
         self.questions = self._load_questions()
         self.results: list[dict[str, Any]] = []
 
@@ -188,7 +190,7 @@ class LastHumanityExamBenchmark:
             domain_hint=domain,
         )
         specialist = route["specialist"]
-        if use_enriched:
+        if use_enriched and self.runtime_seed_knowledge:
             self._seed_domain_knowledge(question, route=route)
         patterns = navigator.query(
             query=question["question_text"],

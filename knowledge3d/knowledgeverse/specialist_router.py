@@ -31,9 +31,9 @@ class SpecialistRouter:
     _SPECIALIST_GALAXIES: dict[str, list[str]] = {
         "visual": ["Drawing", "Grammar"],
         "math": ["Math", "Grammar"],
-        "physics": ["Reality", "Math", "Grammar"],
+        "physics": ["Reality", "3DObjects", "Math", "Grammar"],
         "grammar": ["Grammar"],
-        "cartographer": ["Math", "Reality", "Grammar", "Drawing"],
+        "cartographer": ["Math", "Reality", "3DObjects", "Grammar", "Drawing"],
         "any": [],
     }
 
@@ -60,6 +60,10 @@ class SpecialistRouter:
         "pixel",
         "arc",
         "visual",
+        "mesh",
+        "voxel",
+        "ray",
+        "3d",
     }
     _MATH_HINTS = {
         "derivative",
@@ -86,6 +90,10 @@ class SpecialistRouter:
         "newton",
         "physics",
         "gravity",
+        "collision",
+        "thermo",
+        "electromagnetism",
+        "field",
     }
     _LOGIC_HINTS = {
         "proof",

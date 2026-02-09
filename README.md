@@ -43,6 +43,16 @@
 - **K3D’s architectural novelty** — why the raw PTX + spatial KR + zero-framework stack is essentially unique: https://claude.ai/public/artifacts/e79b9a70-7907-4a63-9052-d94c386f83f9
 - **Knowledge3D: Fulfilling the Giant Global Graph for the AI Era** — how K3D aligns with Berners-Lee’s GGG/Semantic Web vision and data sovereignty: https://claude.ai/public/artifacts/0f8e078a-dd13-473d-b419-03f56e4d224b
 
+## Week 19.6 Snapshot
+- `NavigatorSpecialist` now supports `forward + backward + fusion + auto` route planning.
+- Autonomous procedural generation (`TRMNavigator.generate_from_procedural`) is active with lineage metadata and Shadow Copy logging.
+- Reality + 3D bootstrap is additive/idempotent and persists in the same evolving world.
+- Latest full benchmark run (100 ARC / 100 Math / 50 LHE) summary:
+  - ARC-AGI 2: `32.00% -> 28.00%`
+  - Math: `0.00% -> 33.33%`
+  - LHE: `50.00% -> 100.00%`
+  - Report path: `../Knowledge3D.local/results/week19_6_full_benchmark/week14_benchmark_summary.json`
+
 ---
 
 ## 📚 Core Specifications (Vocabulary)
@@ -1559,6 +1569,20 @@ K3D stands on the shoulders of giants. **Full attributions**: [ATTRIBUTIONS.md](
 - **Step 12** (Oct 2025): FSM consolidation — harvested 5-state observability, ActionBuffer integration, and dynamic LOD into sovereign ThinkingTagBridge
 - **Step 11** (Oct 2025): Multi-modal text-to-3D generation with shape cache and confidence propagation
 - **Step 10** (Sep 2025): ThinkingTagBridge sovereign runtime with <35µs latency target
+
+### Week 19.6 Snapshot (Feb 2026)
+
+- Added benchmark universe downloader: `scripts/download_all_benchmarks.py`
+  - Supports tiered benchmark manifest (`prize`, `standard`, `specialized`)
+  - Supports `git`, file/archive, and manual-required entries
+  - Writes reproducible manifest to `../Knowledge3D.local/datasets/global_benchmarks/download_manifest.json`
+- Added unified global runner: `scripts/run_all_global_benchmarks.py`
+  - Runs integrated K3D benchmarks (ARC/Math/LHE) with empty-vs-enriched isolation
+  - Inventories all downloaded benchmark assets
+  - Optional proxy runs for MMLU/GSM8K (`--run-proxy`)
+- Wired ARC autonomous generation telemetry in `benchmarks/arc_agi_2_adapter.py`
+  - Tracks generated pattern count and confidence mean per task
+  - Aggregates generation totals at benchmark level in `benchmarks/arc_agi_2.py`
 
 If you are interested in partnering, reach out via the contact information in `docs/Jules_K3D_Whitepaper.md`.
 

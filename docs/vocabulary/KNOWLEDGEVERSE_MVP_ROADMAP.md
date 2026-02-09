@@ -1,10 +1,12 @@
 # Knowledgeverse MVP Roadmap — Grounded Implementation Plan
 
-**Version**: 1.1
-**Date**: February 6, 2026
+**Version**: 1.2
+**Date**: February 9, 2026
 **Author**: Claude (Architecture Partner)
 **Purpose**: Ground partner contributions against v5.0 architecture, separate MVP from future research
-**Implementation Status**: ✅ **MVP Phase 1 Complete (Weeks 1-10 delivered on February 6, 2026)**
+**Implementation Status**:
+- ✅ **MVP Phase 1 Complete** (Weeks 1-10 delivered on February 6, 2026)
+- 🚧 **Week 21: PTX Sovereignty Restoration** (February 8-9, 2026 - In Progress)
 
 ---
 
@@ -30,6 +32,37 @@ This document analyzes all partner contributions (Grok, Qwen, Kimi, DeepSeek, GL
 | Integration | End-to-end Knowledgeverse flows | 5 tests passing |
 
 **Total verification**: 28/28 tests passing.
+
+### Week 21 Progress (February 8-9, 2026) — PTX Sovereignty & Progressive Curriculum
+
+**Context**: After Week 17-20 foundation (vision-enhanced multi-curriculum, benchmark universe expansion), Week 21 focused on progressive curriculum training and PTX sovereignty restoration.
+
+| Phase | Focus | Status | Key Findings |
+|-------|-------|--------|--------------|
+| 21.1 | RLWHF + Ternary Quality Memory | ✅ Complete | Teacher/student bridge (81 pools), ternary quality memory (27 pools) implemented and validated |
+| 21.2 | Contrastive Learning | ✅ Complete | **Breakthrough**: generated_pattern_total 0 → 686 (generation unlocked!) |
+| 21.3 | Oracle Unlock Attempts | ⚠️ Partial | Oracle still blocked (0.0), but architecture violations discovered |
+| 21.4 | PTX Sovereignty Audit | 🚧 In Progress | **Critical finding**: Benchmarks using Python fallbacks, not PTX kernels (0% GPU usage) |
+
+**Critical Discovery (User-Identified)**:
+- Benchmarks running on 1 CPU core at 100%, 0% GPU usage
+- PTX kernels exist but not called (Python fallbacks everywhere)
+- `ptx_ranking_enabled_rate`: 1.0, but `ptx_ranking_used_rate`: 0.0 (CUDA_ERROR_INVALID_PTX)
+- 214 "GALAXY LAZY" events (candidate-level lazy embeddings = sovereignty leak)
+
+**Week 21 Deliverables**:
+- ✅ Ternary Contrastive Learning specification ([TERNARY_CONTRASTIVE_LEARNING_SPECIFICATION.md](TERNARY_CONTRASTIVE_LEARNING_SPECIFICATION.md))
+- ✅ Deterministic foundation curriculum (500 tasks, 4-stage progression)
+- ✅ Benchmark architecture fixes (layer separation, continuity)
+- ✅ Comprehensive sovereignty audit (identified Python fallbacks)
+- 🚧 **In Progress**: Full PTX sovereignty implementation (ARCPTXOps, JIT compilation, lazy embedding removal)
+
+**Expected Impact (When PTX Complete)**:
+- Runtime: 1 hour → 5-10 minutes (100x speedup)
+- GPU usage: 0% → 80-99%
+- ARC accuracy: 0.28 → 0.40-0.55 (+12-27%)
+- oracle_at_all: 0.0 → 0.30-0.50
+- Enriched > empty mind (paradox resolved)
 
 ---
 

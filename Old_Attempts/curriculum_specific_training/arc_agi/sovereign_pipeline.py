@@ -11,6 +11,7 @@ This is a thin orchestrator that wires:
 
 from __future__ import annotations
 
+import json
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -188,6 +189,41 @@ def _task_complexity(grid: Sequence[Sequence[int]]) -> float:
     return min(1.0, area / 900.0)
 
 
+def _load_embedding_galaxy_checkpoint(path: Path) -> Dict[int, List[float]]:
+    """Load ARC embedding galaxy cache from disk."""
+    if not path.exists():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    if not isinstance(payload, dict):
+        return {}
+
+    out: Dict[int, List[float]] = {}
+    for key, value in payload.items():
+        try:
+            h = int(key)
+        except Exception:
+            continue
+        if not isinstance(value, list):
+            continue
+        try:
+            out[h] = [float(v) for v in value]
+        except Exception:
+            continue
+    return out
+
+
+def _save_embedding_galaxy_checkpoint(path: Path, cache: Dict[int, List[float]]) -> None:
+    """Persist ARC embedding galaxy cache to disk."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {str(k): v for k, v in cache.items()}
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
+    tmp_path.write_text(json.dumps(payload, separators=(",", ":")), encoding="utf-8")
+    tmp_path.replace(path)
+
+
 def _procedural_resize(
     grid: Sequence[Sequence[int]],
     target_h: int,
@@ -282,7 +318,22 @@ class SovereignAIPipeline:
         self.composer = ProgramComposer()
         # Shared codec embedder (singleton) to avoid repeated PTX loads across workers.
         self.codec_embedder = MultiModalGridEmbedder(matryoshka_dim=matryoshka_dim)
-        self.embedding_galaxy = embedding_galaxy if embedding_galaxy is not None else {}
+        self._embedding_galaxy_checkpoint: Optional[Path] = None
+        if embedding_galaxy is not None:
+            self.embedding_galaxy = embedding_galaxy
+        elif self.knowledgeverse is not None:
+            checkpoint = Path(getattr(self.knowledgeverse, "storage_root")) / "checkpoints" / f"arc_embedding_galaxy_d{matryoshka_dim}.json"
+            self._embedding_galaxy_checkpoint = checkpoint
+            shared_cache = getattr(self.knowledgeverse, "_arc_embedding_galaxy_cache", None)
+            if isinstance(shared_cache, dict):
+                self.embedding_galaxy = shared_cache
+            else:
+                loaded = _load_embedding_galaxy_checkpoint(checkpoint)
+                self.embedding_galaxy = loaded
+                setattr(self.knowledgeverse, "_arc_embedding_galaxy_cache", self.embedding_galaxy)
+        else:
+            self.embedding_galaxy = {}
+        self._embedding_galaxy_last_saved = len(self.embedding_galaxy)
         self.cosine_bridge = cosine_bridge or CosineSimilarityBridge()
         self.size_encoder = SizePatternEncoder()
         self.preserver = DiscoveryPreserver()
@@ -302,6 +353,24 @@ class SovereignAIPipeline:
             print(f"  [ELOQUENCE] Loaded {self.eloquence_galaxy.stats()['total_meta_rules']} meta-rules")
         except Exception:
             # Keep init resilient if stats/count are not available
+            pass
+
+    def _persist_embedding_galaxy_if_needed(self, *, force: bool = False) -> None:
+        """Persist lazy-generated ARC embeddings for cross-run continuity."""
+        if self._embedding_galaxy_checkpoint is None:
+            return
+        current_size = len(self.embedding_galaxy)
+        if not force:
+            if current_size <= self._embedding_galaxy_last_saved:
+                return
+            # Save in chunks to reduce IO overhead.
+            if (current_size - self._embedding_galaxy_last_saved) < 32:
+                return
+        try:
+            _save_embedding_galaxy_checkpoint(self._embedding_galaxy_checkpoint, self.embedding_galaxy)
+            self._embedding_galaxy_last_saved = current_size
+        except Exception:
+            # Cache persistence is best-effort and must not break hot execution.
             pass
 
     def process_task(
@@ -622,6 +691,7 @@ class SovereignAIPipeline:
         chosen = exact_proc_best or best
         if chosen is None:
             # No viable candidates survived filtering; return a neutral result.
+            self._persist_embedding_galaxy_if_needed()
             return TaskResult(
                 task_id=task_id,
                 best_program="",
@@ -700,6 +770,7 @@ class SovereignAIPipeline:
             except Exception as exc:
                 print(f"  [EMBODIED] Consolidation failed: {exc}")
 
+        self._persist_embedding_galaxy_if_needed()
         return result
 
     def summary(self) -> Dict[str, int]:
