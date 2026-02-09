@@ -18,10 +18,12 @@ class MathCompetitionBenchmark:
         knowledgeverse: Knowledgeverse | None = None,
         dataset_path: str | Path | None = None,
         max_problems: int | None = None,
+        runtime_seed_knowledge: bool = False,
     ):
         self.kv = knowledgeverse or Knowledgeverse()
         self.dataset_path = self._resolve_dataset_path(dataset_path)
         self.max_problems = max_problems
+        self.runtime_seed_knowledge = bool(runtime_seed_knowledge)
         self.problems = self._load_problems()
         self.results: list[dict[str, Any]] = []
 
@@ -182,8 +184,16 @@ class MathCompetitionBenchmark:
         problem: dict[str, Any],
         use_enriched: bool,
     ) -> dict[str, Any]:
-        if use_enriched:
+        generated_entry: dict[str, Any] | None = None
+        if use_enriched and self.runtime_seed_knowledge:
             self._seed_math_knowledge(problem)
+            if self._should_attempt_autonomous_generation(str(problem["problem_text"])):
+                generated_entry = navigator.generate_from_procedural(
+                    query=str(problem["problem_text"]),
+                    source_galaxy="Reality",
+                    target_galaxy="Math",
+                    store_result=True,
+                )
         composed = navigator.navigate_and_compose(
             query=str(problem["problem_text"]),
             specialist="auto",
@@ -228,6 +238,14 @@ class MathCompetitionBenchmark:
             "reasoning_trace": navigator.get_reasoning_trace(),
             "route": route,
             "meta_specialist": composed.get("meta_specialist"),
+            "method": (
+                "autonomous_generation+navigation"
+                if generated_entry and "error" not in generated_entry
+                else "navigation"
+            ),
+            "generated_id": (
+                str(generated_entry.get("id", "")) if generated_entry and "error" not in generated_entry else None
+            ),
         }
 
     def _seed_math_knowledge(self, problem: dict[str, Any]) -> None:
@@ -261,6 +279,22 @@ class MathCompetitionBenchmark:
             return float(value)
         except Exception:
             return None
+
+    def _should_attempt_autonomous_generation(self, text: str) -> bool:
+        lowered = text.lower()
+        triggers = (
+            "differential",
+            "rate of change",
+            "decay",
+            "growth",
+            "velocity",
+            "acceleration",
+            "projectile",
+            "pendulum",
+            "field",
+            "thermo",
+        )
+        return any(token in lowered for token in triggers)
 
     def save_results(self, output_path: str | Path) -> None:
         path = Path(output_path)

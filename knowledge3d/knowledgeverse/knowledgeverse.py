@@ -23,6 +23,17 @@ class KnowledgeverseMetrics:
 class Knowledgeverse:
     """Minimal runtime assembly for current Knowledgeverse MVP flows."""
 
+    DEFAULT_GALAXIES: tuple[str, ...] = (
+        "Drawing",
+        "Character",
+        "Word",
+        "Grammar",
+        "Math",
+        "Reality",
+        "Audio",
+        "3DObjects",
+    )
+
     def __init__(
         self,
         *,
@@ -32,6 +43,7 @@ class Knowledgeverse:
         audit_index_path: str | Path | None = None,
         sleeptime_journal_path: str | Path | None = None,
         stargate_storage_root: str | Path | None = None,
+        eager_load_default_galaxies: bool = True,
     ):
         self.manifest_version = manifest_version
         self.storage_root = Path(storage_root)
@@ -81,6 +93,26 @@ class Knowledgeverse:
             knowledgeverse=self,
             journal_path=sleeptime_journal,
         )
+        self._default_galaxies_loaded = False
+        if eager_load_default_galaxies:
+            self.ensure_default_galaxies_loaded()
+
+    def ensure_default_galaxies_loaded(self, *, force: bool = False) -> dict[str, int]:
+        """
+        Ensure all default galaxies are present in the active universe.
+
+        This enforces the single-world contract for training/benchmark runs:
+        all default galaxies are loaded and queryable in every session.
+        """
+        if self._default_galaxies_loaded and not force:
+            return {name: len(self.galaxy_manager.get_galaxy(name).entries) for name in self.DEFAULT_GALAXIES}
+
+        counts: dict[str, int] = {}
+        for galaxy_name in self.DEFAULT_GALAXIES:
+            galaxy = self.galaxy_manager.get_galaxy(galaxy_name)
+            counts[galaxy_name] = len(getattr(galaxy, "entries", []))
+        self._default_galaxies_loaded = True
+        return counts
 
     def log_event(
         self,
@@ -105,6 +137,8 @@ class Knowledgeverse:
                 query=query,
                 specialist=specialist,
                 success=success,
+                confidence=float(event_data.get("confidence", 0.0) or 0.0),
+                domain_hint=str(event_data.get("domain_hint") or event_data.get("domain") or ""),
             )
             self.trm_navigator.save_weights()
         except Exception:

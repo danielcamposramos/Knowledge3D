@@ -3,20 +3,35 @@
 from __future__ import annotations
 
 import ast
+import datetime
+import json
 import math
+from pathlib import Path
 import re
 from typing import Any, Sequence
 
 from .galaxy_manager import GalaxyManager
 from .navigator_specialist import NavigatorSpecialist
 from .resilience import SelfHealingWrapper
+from .specialist_base import SpecialistBase
 from .specialist_router import SpecialistRouter
+from .specialist_spawner import SpecialistSpawner
 
 
-class TRMNavigator:
+class TRMNavigator(SpecialistBase):
     """Deterministic navigator surface used by benchmark/integration flows."""
 
     def __init__(self, knowledgeverse: Any | None = None, galaxy_manager: GalaxyManager | None = None):
+        storage_dir: Path | None = None
+        if knowledgeverse is not None and hasattr(knowledgeverse, "storage_root"):
+            storage_dir = Path(getattr(knowledgeverse, "storage_root")) / "checkpoints"
+        super().__init__(
+            name="NavigatorSpecialist",
+            domain="navigator",
+            level=0,
+            parent=None,
+            storage_dir=storage_dir,
+        )
         self.knowledgeverse = knowledgeverse
         self.galaxy_manager = galaxy_manager or getattr(knowledgeverse, "galaxy_manager", None) or GalaxyManager()
         self.specialist_router = SpecialistRouter()
@@ -24,7 +39,119 @@ class TRMNavigator:
             knowledgeverse=knowledgeverse,
             router=self.specialist_router,
         )
+        self._specialist_tree_path = (
+            (storage_dir / "trm_specialist_tree.json")
+            if storage_dir is not None
+            else Path("../Knowledge3D.local/checkpoints/trm_specialist_tree.json")
+        )
+        self._specialist_tree_path.parent.mkdir(parents=True, exist_ok=True)
+        self._bootstrap_matryoshka_specialists()
+        self._load_specialist_tree()
+        self.specialist_spawner = SpecialistSpawner(
+            root=self,
+            storage_path=self._specialist_tree_path.parent / "trm_specialist_spawner.json",
+            frequency_threshold=100,
+            low_confidence_threshold=0.6,
+            low_confidence_min_samples=20,
+            max_children_per_parent=16,
+        )
         self._trace: list[str] = []
+
+    def _bootstrap_matryoshka_specialists(self) -> None:
+        """
+        Bootstrap default master/worker hierarchy.
+
+        Layout:
+        - MathSpecialist -> BasicMathSpecialist, PhDMathSpecialist
+        - VisualSpecialist -> ArcVisualSpecialist, SpatialVisualSpecialist
+        - PhysicsSpecialist -> MechanicsSpecialist, ProceduralRealitySpecialist
+        - GrammarSpecialist -> SyntaxSpecialist, SemanticsSpecialist
+        """
+        self.children.clear()
+        self.routing_bias.clear()
+
+        math_master = self.spawn_child(name="MathSpecialist", domain="math")
+        visual_master = self.spawn_child(name="VisualSpecialist", domain="visual")
+        physics_master = self.spawn_child(name="PhysicsSpecialist", domain="physics")
+        grammar_master = self.spawn_child(name="GrammarSpecialist", domain="language")
+
+        math_master.spawn_child(name="BasicMathSpecialist", domain="basic_math")
+        math_master.spawn_child(name="PhDMathSpecialist", domain="phd_math")
+
+        visual_master.spawn_child(name="ArcVisualSpecialist", domain="arc_visual")
+        visual_master.spawn_child(name="SpatialVisualSpecialist", domain="spatial_reasoning")
+
+        physics_master.spawn_child(name="MechanicsSpecialist", domain="mechanics")
+        physics_master.spawn_child(name="ProceduralRealitySpecialist", domain="procedural_systems")
+
+        grammar_master.spawn_child(name="SyntaxSpecialist", domain="syntax")
+        grammar_master.spawn_child(name="SemanticsSpecialist", domain="semantics")
+
+    def _load_specialist_tree(self) -> None:
+        if not self._specialist_tree_path.exists():
+            return
+        try:
+            payload = json.loads(self._specialist_tree_path.read_text(encoding="utf-8"))
+        except Exception:
+            return
+        if not isinstance(payload, dict):
+            return
+        try:
+            loaded = SpecialistBase.from_dict(payload, storage_dir=self.storage_dir)
+        except Exception:
+            return
+        self.children = loaded.children
+        for child in self.children.values():
+            child.parent = self
+        self.routing_bias = dict(loaded.routing_bias)
+        self.query_count = int(loaded.query_count)
+        self.success_count = int(loaded.success_count)
+        self.failure_count = int(loaded.failure_count)
+
+    def _save_specialist_tree(self) -> None:
+        self._specialist_tree_path.parent.mkdir(parents=True, exist_ok=True)
+        self._specialist_tree_path.write_text(
+            json.dumps(self.to_dict(), separators=(",", ":"), sort_keys=True),
+            encoding="utf-8",
+        )
+
+    def list_specialists(self) -> list[str]:
+        return [node.name for node in self.iter_tree()]
+
+    def count_specialists(self, *, include_root: bool = False) -> int:
+        count = len(self.iter_tree())
+        return count if include_root else max(0, count - 1)
+
+    def find_specialist(self, name: str) -> SpecialistBase | None:
+        return self.find(name)
+
+    def _master_for_specialist(self, specialist: str) -> SpecialistBase:
+        mapping = {
+            "math": "MathSpecialist",
+            "visual": "VisualSpecialist",
+            "physics": "PhysicsSpecialist",
+            "grammar": "GrammarSpecialist",
+            "logic": "GrammarSpecialist",
+            "language": "GrammarSpecialist",
+            "cartographer": "VisualSpecialist",
+        }
+        target = mapping.get(str(specialist).lower(), "GrammarSpecialist")
+        return self.find_specialist(target) or self
+
+    def _resolve_specialist_node(
+        self,
+        *,
+        specialist: str,
+        query: str,
+        domain_hint: str | None = None,
+    ) -> SpecialistBase:
+        master = self._master_for_specialist(specialist)
+        if master is self:
+            return self
+        routed = master.route(query=query, domain_hint=domain_hint)
+        if routed is master:
+            return master
+        return routed
 
     @SelfHealingWrapper.circuit_breaker(failure_threshold=5, timeout=60.0)
     def navigate_and_compose(
@@ -33,12 +160,14 @@ class TRMNavigator:
         specialist: str = "auto",
         domain_hint: str | None = None,
         use_enriched: bool = True,
+        use_forward_backward: bool = True,
     ) -> dict[str, Any]:
         if specialist == "auto":
             composed = self.navigator_specialist.navigate_and_compose(
                 trm_navigator=self,
                 query=query,
                 use_enriched=use_enriched,
+                use_forward_backward=use_forward_backward,
                 specialist=specialist,
                 domain_hint=domain_hint,
             )
@@ -62,6 +191,82 @@ class TRMNavigator:
             composed["route"] = route
         return composed
 
+    def generate_from_procedural(
+        self,
+        query: str,
+        source_galaxy: str,
+        target_galaxy: str | None = None,
+        store_result: bool = True,
+    ) -> dict[str, Any]:
+        """
+        Generate new knowledge from procedural primitives and optionally persist it.
+
+        The method intentionally stays in Knowledgeverse orchestration space
+        (ingestion/reasoning path), while preserving sovereign hot-path constraints.
+        """
+        source_name = str(source_galaxy).strip()
+        if not source_name:
+            return {"error": "source_galaxy is required", "query": query}
+
+        specialist = self._specialist_for_galaxy(source_name)
+        candidates = self.query(
+            query=f"{query} procedural generation",
+            galaxy_names=[source_name],
+            top_k=20,
+            specialist="any",
+            domain_hint=source_name.lower(),
+        )
+        if not candidates:
+            return {"error": "No procedural primitives found", "query": query}
+
+        composed = self._compose_procedural_program(query=query, candidates=candidates)
+        rpn_program = str(composed.get("rpn_program", "")).strip()
+        if not rpn_program:
+            return {"error": "Failed to compose procedural program", "query": query}
+
+        target_name = str(target_galaxy or self._default_generation_target(source_name))
+        now = datetime.datetime.now(datetime.timezone.utc)
+        generated_id = f"generated_{source_name.lower()}_{now.strftime('%Y%m%d_%H%M%S_%f')}"
+        generated_entry = {
+            "id": generated_id,
+            "name": f"{query} (Generated)",
+            "domain": target_name.lower(),
+            "category": "generated_pattern",
+            "rpn_program": rpn_program,
+            "metadata": {
+                "generated": True,
+                "source_primitives": composed.get("source_primitives", []),
+                "source_galaxy": source_name,
+                "composition_depth": int(composed.get("depth", 1)),
+                "lineage": (
+                    f"{source_name}.{composed.get('category', 'unknown')} -> "
+                    f"{target_name}.generated_pattern"
+                ),
+                "confidence": float(composed.get("confidence", 0.7)),
+                "timestamp": now.isoformat(),
+                "query": query,
+            },
+        }
+
+        if store_result and self.knowledgeverse is not None:
+            self.knowledgeverse.galaxy_manager.add_entry(target_name, generated_entry)
+            self.knowledgeverse.log_event(
+                event_type="autonomous_generation",
+                event_data={
+                    "query": query,
+                    "source_galaxy": source_name,
+                    "target_galaxy": target_name,
+                    "generated_id": generated_id,
+                    "composition_depth": int(composed.get("depth", 1)),
+                    "confidence": float(composed.get("confidence", 0.7)),
+                    "specialist": specialist,
+                    "galaxy": target_name,
+                    "verification": "procedural_generation",
+                },
+            )
+
+        return generated_entry
+
     def route(
         self,
         query: str,
@@ -76,6 +281,14 @@ class TRMNavigator:
             domain_hint=domain_hint,
             galaxy_names=galaxy_names,
         )
+        selected_node = self._resolve_specialist_node(
+            specialist=str(resolved.get("specialist", specialist)),
+            query=query,
+            domain_hint=domain_hint or str(resolved.get("domain", "")),
+        )
+        resolved["matryoshka_specialist"] = selected_node.name
+        resolved["matryoshka_domain"] = selected_node.domain
+        resolved["matryoshka_level"] = selected_node.level
         self._trace.append(
             "route specialist="
             f"{resolved['specialist']} domain={resolved['domain']} reason={resolved['reason']}"
@@ -166,6 +379,91 @@ class TRMNavigator:
 
         raise ValueError(f"Unsupported program type: {program_type}")
 
+    def _compose_procedural_program(
+        self,
+        *,
+        query: str,
+        candidates: Sequence[dict[str, Any]],
+    ) -> dict[str, Any]:
+        """Compose top procedural candidates into a new RPN program."""
+        selected: list[dict[str, Any]] = []
+        for candidate in candidates[:8]:
+            entry = candidate.get("entry", {})
+            if not isinstance(entry, dict):
+                continue
+            rpn = str(entry.get("rpn_program", "")).strip()
+            if not rpn:
+                continue
+            selected.append(
+                {
+                    "id": str(entry.get("id", "")),
+                    "category": str(entry.get("category", "unknown")),
+                    "rpn_program": rpn,
+                    "score": float(candidate.get("score", 1.0)),
+                    "confidence": self._candidate_confidence(entry, candidate),
+                }
+            )
+            if len(selected) >= 3:
+                break
+
+        if not selected:
+            return {}
+
+        composed_rpn = "  ".join(item["rpn_program"] for item in selected)
+        categories = [item["category"] for item in selected if item["category"]]
+        category = max(set(categories), key=categories.count) if categories else "unknown"
+        avg_conf = sum(item["confidence"] for item in selected) / len(selected)
+        depth = len(selected)
+        source_primitives = [item["id"] for item in selected if item["id"]]
+
+        self._trace.append(
+            "autogen compose "
+            f"query='{query[:48]}' depth={depth} category={category} confidence={avg_conf:.3f}"
+        )
+
+        return {
+            "rpn_program": composed_rpn,
+            "depth": depth,
+            "category": category,
+            "confidence": max(0.05, min(avg_conf, 0.99)),
+            "source_primitives": source_primitives,
+        }
+
+    def _candidate_confidence(self, entry: dict[str, Any], candidate: dict[str, Any]) -> float:
+        meta = entry.get("metadata", {}) if isinstance(entry.get("metadata", {}), dict) else {}
+        for container in (entry, meta, candidate):
+            raw = container.get("confidence")
+            if raw is None:
+                continue
+            try:
+                return max(0.0, min(float(raw), 1.0))
+            except Exception:
+                continue
+        try:
+            score = float(candidate.get("score", 1.0))
+        except Exception:
+            score = 1.0
+        return max(0.05, min(score / 10.0, 0.95))
+
+    def _specialist_for_galaxy(self, galaxy_name: str) -> str:
+        lowered = galaxy_name.strip().lower()
+        mapping = {
+            "reality": "physics",
+            "3dobjects": "cartographer",
+            "3d_objects": "cartographer",
+            "drawing": "visual",
+            "math": "math",
+            "grammar": "grammar",
+            "audio": "any",
+        }
+        return mapping.get(lowered, "any")
+
+    def _default_generation_target(self, source_galaxy: str) -> str:
+        lowered = source_galaxy.strip().lower()
+        if lowered in {"reality", "3dobjects", "3d_objects"}:
+            return "Grammar"
+        return source_galaxy
+
     def select_answer(self, reasoning: Any, options: Sequence[str]) -> str:
         self._trace.append("select_answer")
         if not options:
@@ -191,13 +489,43 @@ class TRMNavigator:
     def clear_trace(self) -> None:
         self._trace.clear()
 
-    def learn_from_feedback(self, *, query: str, specialist: str, success: bool) -> None:
+    def learn_from_feedback(
+        self,
+        *,
+        query: str,
+        specialist: str,
+        success: bool,
+        confidence: float | None = None,
+        domain_hint: str | None = None,
+    ) -> None:
         """Update persistent routing weights from observed outcomes."""
         self.navigator_specialist.learn_routing_topology(
             query=query,
             specialist=specialist,
             success=success,
         )
+        node = self._resolve_specialist_node(
+            specialist=specialist,
+            query=query,
+            domain_hint=domain_hint,
+        )
+        node.mark_query(success=success)
+        if node.parent is not None:
+            node.parent.update_routing_bias(node.name, success)
+        observed_confidence = 0.5 if confidence is None else float(confidence)
+        spawn_parent = node if node.children else (node.parent or self)
+        decision = self.specialist_spawner.observe(
+            parent=spawn_parent,
+            query=query,
+            confidence=observed_confidence,
+            success=success,
+            domain_hint=domain_hint,
+        )
+        if decision is not None:
+            self._trace.append(
+                "matryoshka_spawn "
+                f"parent={decision.parent} child={decision.child} reason={decision.reason}"
+            )
 
     def consolidate_weights_from_events(self, events: Sequence[dict[str, Any]]) -> dict[str, Any]:
         """
@@ -216,10 +544,17 @@ class TRMNavigator:
                 data = {}
             specialist = str(event.get("specialist") or data.get("specialist") or "grammar")
             query = str(data.get("query") or data.get("prompt") or event_type or specialist)
+            confidence = float(event.get("confidence", data.get("confidence", 0.0)) or 0.0)
             success = ("success" in event_type) or (
-                "fail" not in event_type and float(event.get("confidence", 0.0)) >= 0.65
+                "fail" not in event_type and confidence >= 0.65
             )
-            self.learn_from_feedback(query=query, specialist=specialist, success=success)
+            self.learn_from_feedback(
+                query=query,
+                specialist=specialist,
+                success=success,
+                confidence=confidence,
+                domain_hint=str(data.get("domain_hint") or data.get("domain") or ""),
+            )
             updated += 1
             specialists.add(specialist)
         self.navigator_specialist.save_state()
@@ -231,6 +566,8 @@ class TRMNavigator:
 
     def save_weights(self) -> None:
         self.navigator_specialist.save_state()
+        self.specialist_spawner.persist()
+        self._save_specialist_tree()
 
     def _infer_arc_transform(
         self,

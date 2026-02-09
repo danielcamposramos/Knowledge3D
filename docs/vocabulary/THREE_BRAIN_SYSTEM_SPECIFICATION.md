@@ -103,6 +103,11 @@ Human cognition separates:
    - Self-updating via **Shadow Copy** (pattern discovery during use)
    - Lightweight adapters (similar to LoRA architecture)
    - Learn reasoning patterns from successful executions
+   - **NEW (Week 20):** Matryoshka Specialist Hierarchy (fractal self-similar specialists)
+     - Specialists can spawn sub-specialists autonomously
+     - LoRA-style delta weights (~100KB-1MB per specialist)
+     - Hierarchical routing (Navigator → Master → Worker → Sub-worker)
+     - See: TRM_SPECIALIST_MATRYOSHKA_ARCHITECTURE.md for full specification
 
 **Key Distinction**: Knowledge lives in Galaxy/House (embeddings + procedural programs), Cranium learns *how to transform*, not *what to retrieve*.
 
