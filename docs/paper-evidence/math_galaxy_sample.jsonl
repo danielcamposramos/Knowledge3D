@@ -1,0 +1,50 @@
+{"domain":"math","id":"k3d_7903e3395cd612e1","metadata":{"galaxy":"Math","source":"pattern"},"name":"derivative_pattern","rpn_program":"noop exec"}
+{"domain":"math","id":"k3d_d152cebdf3cf6b52","metadata":{"galaxy":"Math","source":"pattern"},"name":"integral_pattern","rpn_program":"noop exec"}
+{"domain":"math","id":"k3d_7903e3395cd612e1","metadata":{"galaxy":"Math","source":"pattern"},"name":"derivative_pattern","rpn_program":"noop exec"}
+{"domain":"math","id":"k3d_d152cebdf3cf6b52","metadata":{"galaxy":"Math","source":"pattern"},"name":"integral_pattern","rpn_program":"noop exec"}
+{"domain":"logic","id":"k3d_f33d315ae9b25f23","metadata":{"galaxy":"Math","source":"pattern"},"name":"implication_pattern","rpn_program":"noop exec"}
+{"domain":"visual","id":"k3d_c6128a5ce96646f1","metadata":{"galaxy":"Math","source":"pattern"},"name":"rotation_pattern","rpn_program":"noop exec"}
+{"domain":"math","id":"k3d_7903e3395cd612e1","metadata":{"galaxy":"Math","source":"pattern"},"name":"derivative_pattern","rpn_program":"noop exec"}
+{"domain":"math","id":"k3d_d152cebdf3cf6b52","metadata":{"galaxy":"Math","source":"pattern"},"name":"integral_pattern","rpn_program":"noop exec"}
+{"domain":"logic","id":"k3d_f33d315ae9b25f23","metadata":{"galaxy":"Math","source":"pattern"},"name":"implication_pattern","rpn_program":"noop exec"}
+{"domain":"visual","id":"k3d_c6128a5ce96646f1","metadata":{"galaxy":"Math","source":"pattern"},"name":"rotation_pattern","rpn_program":"noop exec"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_0"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_1"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_2"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_3"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_4"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_5"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_6"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_7"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_8"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_9"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_10"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_11"}
+{"domain":"math","kind":"benchmark_knowledge","question_id":"lhe_math_1"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_0"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_1"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_2"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_3"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_4"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_5"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_6"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_7"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_8"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_9"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_10"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_11"}
+{"domain":"math","kind":"benchmark_knowledge","question_id":"lhe_math_1"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_0"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_1"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_2"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_3"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_4"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_5"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_6"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_7"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_8"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_9"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_10"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_11"}
+{"domain":"math","kind":"benchmark_knowledge","question_id":"lhe_math_1"}
+{"competition":"AMC","domain":"math","kind":"symbolic_pattern","problem_id":"calculus_0"}

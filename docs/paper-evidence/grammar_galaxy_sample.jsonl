@@ -1,0 +1,100 @@
+{"domain":"math","id":"k3d_727ddbe4919e63e0","metadata":{"galaxy":"Grammar","source":"pattern"},"name":"derivative_pattern","rpn_program":"noop exec"}
+{"domain":"math","id":"k3d_8cf9c387caf00b05","metadata":{"galaxy":"Grammar","source":"pattern"},"name":"integral_pattern","rpn_program":"noop exec"}
+{"domain":"math","id":"k3d_727ddbe4919e63e0","metadata":{"galaxy":"Grammar","source":"pattern"},"name":"derivative_pattern","rpn_program":"noop exec"}
+{"domain":"math","id":"k3d_8cf9c387caf00b05","metadata":{"galaxy":"Grammar","source":"pattern"},"name":"integral_pattern","rpn_program":"noop exec"}
+{"domain":"logic","id":"k3d_bf2c8eeb6fd48f89","metadata":{"galaxy":"Grammar","source":"pattern"},"name":"implication_pattern","rpn_program":"noop exec"}
+{"domain":"logic","id":"k3d_bf2c8eeb6fd48f89","metadata":{"galaxy":"Grammar","source":"pattern"},"name":"implication_pattern","rpn_program":"noop exec"}
+{"domain":"math","id":"k3d_727ddbe4919e63e0","metadata":{"galaxy":"Grammar","source":"pattern"},"name":"derivative_pattern","rpn_program":"noop exec"}
+{"domain":"math","id":"k3d_8cf9c387caf00b05","metadata":{"galaxy":"Grammar","source":"pattern"},"name":"integral_pattern","rpn_program":"noop exec"}
+{"domain":"logic","id":"k3d_bf2c8eeb6fd48f89","metadata":{"galaxy":"Grammar","source":"pattern"},"name":"implication_pattern","rpn_program":"noop exec"}
+{"domain":"logic","id":"k3d_bf2c8eeb6fd48f89","metadata":{"galaxy":"Grammar","source":"pattern"},"name":"implication_pattern","rpn_program":"noop exec"}
+{"domain":"visual","kind":"transform_rule","task_id":"00576224"}
+{"domain":"visual","kind":"transform_rule","task_id":"009d5c81"}
+{"domain":"visual","kind":"transform_rule","task_id":"00dbd492"}
+{"domain":"visual","kind":"transform_rule","task_id":"03560426"}
+{"domain":"visual","kind":"transform_rule","task_id":"05a7bcf2"}
+{"domain":"visual","kind":"transform_rule","task_id":"0607ce86"}
+{"domain":"visual","kind":"transform_rule","task_id":"0692e18c"}
+{"domain":"visual","kind":"transform_rule","task_id":"070dd51e"}
+{"domain":"visual","kind":"transform_rule","task_id":"08573cc6"}
+{"domain":"visual","kind":"transform_rule","task_id":"0934a4d8"}
+{"domain":"visual","kind":"transform_rule","task_id":"09c534e7"}
+{"domain":"visual","kind":"transform_rule","task_id":"0a1d4ef5"}
+{"domain":"visual","kind":"transform_rule","task_id":"0a2355a6"}
+{"domain":"visual","kind":"transform_rule","task_id":"0b17323b"}
+{"domain":"visual","kind":"transform_rule","task_id":"0bb8deee"}
+{"domain":"visual","kind":"transform_rule","task_id":"0becf7df"}
+{"domain":"visual","kind":"transform_rule","task_id":"0c786b71"}
+{"domain":"visual","kind":"transform_rule","task_id":"0c9aba6e"}
+{"domain":"visual","kind":"transform_rule","task_id":"0d87d2a6"}
+{"domain":"visual","kind":"transform_rule","task_id":"0e671a1a"}
+{"domain":"visual","kind":"transform_rule","task_id":"0f63c0b9"}
+{"domain":"visual","kind":"transform_rule","task_id":"103eff5b"}
+{"domain":"visual","kind":"transform_rule","task_id":"11e1fe23"}
+{"domain":"visual","kind":"transform_rule","task_id":"12422b43"}
+{"domain":"visual","kind":"transform_rule","task_id":"12997ef3"}
+{"domain":"visual","kind":"transform_rule","task_id":"12eac192"}
+{"domain":"visual","kind":"transform_rule","task_id":"136b0064"}
+{"domain":"visual","kind":"transform_rule","task_id":"13713586"}
+{"domain":"visual","kind":"transform_rule","task_id":"137f0df0"}
+{"domain":"visual","kind":"transform_rule","task_id":"140c817e"}
+{"domain":"visual","kind":"transform_rule","task_id":"14754a24"}
+{"domain":"visual","kind":"transform_rule","task_id":"15113be4"}
+{"domain":"visual","kind":"transform_rule","task_id":"15663ba9"}
+{"domain":"visual","kind":"transform_rule","task_id":"15696249"}
+{"domain":"visual","kind":"transform_rule","task_id":"16b78196"}
+{"domain":"visual","kind":"transform_rule","task_id":"17b80ad2"}
+{"domain":"visual","kind":"transform_rule","task_id":"17cae0c1"}
+{"domain":"visual","kind":"transform_rule","task_id":"18419cfa"}
+{"domain":"visual","kind":"transform_rule","task_id":"184a9768"}
+{"domain":"visual","kind":"transform_rule","task_id":"195ba7dc"}
+{"domain":"math","kind":"derivation_rule","problem_id":"calculus_0"}
+{"domain":"math","kind":"derivation_rule","problem_id":"calculus_1"}
+{"domain":"math","kind":"derivation_rule","problem_id":"calculus_2"}
+{"domain":"math","kind":"derivation_rule","problem_id":"calculus_3"}
+{"domain":"math","kind":"derivation_rule","problem_id":"calculus_4"}
+{"domain":"math","kind":"derivation_rule","problem_id":"calculus_5"}
+{"domain":"math","kind":"derivation_rule","problem_id":"calculus_6"}
+{"domain":"math","kind":"derivation_rule","problem_id":"calculus_7"}
+{"domain":"math","kind":"derivation_rule","problem_id":"calculus_8"}
+{"domain":"math","kind":"derivation_rule","problem_id":"calculus_9"}
+{"domain":"math","kind":"derivation_rule","problem_id":"calculus_10"}
+{"domain":"math","kind":"derivation_rule","problem_id":"calculus_11"}
+{"domain":"logic","kind":"benchmark_knowledge","question_id":"lhe_logic_1"}
+{"domain":"multi","kind":"benchmark_knowledge","question_id":"lhe_multi_1"}
+{"domain":"visual","kind":"transform_rule","task_id":"00576224"}
+{"domain":"visual","kind":"transform_rule","task_id":"009d5c81"}
+{"domain":"visual","kind":"transform_rule","task_id":"00dbd492"}
+{"domain":"visual","kind":"transform_rule","task_id":"03560426"}
+{"domain":"visual","kind":"transform_rule","task_id":"05a7bcf2"}
+{"domain":"visual","kind":"transform_rule","task_id":"0607ce86"}
+{"domain":"visual","kind":"transform_rule","task_id":"0692e18c"}
+{"domain":"visual","kind":"transform_rule","task_id":"070dd51e"}
+{"domain":"visual","kind":"transform_rule","task_id":"08573cc6"}
+{"domain":"visual","kind":"transform_rule","task_id":"0934a4d8"}
+{"domain":"visual","kind":"transform_rule","task_id":"09c534e7"}
+{"domain":"visual","kind":"transform_rule","task_id":"0a1d4ef5"}
+{"domain":"visual","kind":"transform_rule","task_id":"0a2355a6"}
+{"domain":"visual","kind":"transform_rule","task_id":"0b17323b"}
+{"domain":"visual","kind":"transform_rule","task_id":"0bb8deee"}
+{"domain":"visual","kind":"transform_rule","task_id":"0becf7df"}
+{"domain":"visual","kind":"transform_rule","task_id":"0c786b71"}
+{"domain":"visual","kind":"transform_rule","task_id":"0c9aba6e"}
+{"domain":"visual","kind":"transform_rule","task_id":"0d87d2a6"}
+{"domain":"visual","kind":"transform_rule","task_id":"0e671a1a"}
+{"domain":"visual","kind":"transform_rule","task_id":"0f63c0b9"}
+{"domain":"visual","kind":"transform_rule","task_id":"103eff5b"}
+{"domain":"visual","kind":"transform_rule","task_id":"11e1fe23"}
+{"domain":"visual","kind":"transform_rule","task_id":"12422b43"}
+{"domain":"visual","kind":"transform_rule","task_id":"12997ef3"}
+{"domain":"visual","kind":"transform_rule","task_id":"12eac192"}
+{"domain":"visual","kind":"transform_rule","task_id":"136b0064"}
+{"domain":"visual","kind":"transform_rule","task_id":"13713586"}
+{"domain":"visual","kind":"transform_rule","task_id":"137f0df0"}
+{"domain":"visual","kind":"transform_rule","task_id":"140c817e"}
+{"domain":"visual","kind":"transform_rule","task_id":"14754a24"}
+{"domain":"visual","kind":"transform_rule","task_id":"15113be4"}
+{"domain":"visual","kind":"transform_rule","task_id":"15663ba9"}
+{"domain":"visual","kind":"transform_rule","task_id":"15696249"}
+{"domain":"visual","kind":"transform_rule","task_id":"16b78196"}
+{"domain":"visual","kind":"transform_rule","task_id":"17b80ad2"}
