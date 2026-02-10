@@ -1,0 +1,162 @@
+[
+  {
+    "file": "knowledge3d/cranium/bridges/cosine_similarity_bridge.py",
+    "kernel": "compute_norm"
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/cosine_similarity_bridge.py",
+    "kernel": "cosine_similarity_batch"
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/tiered_rpn.py",
+    "kernel": "ternary_add_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/tiered_rpn.py",
+    "kernel": "ternary_mul_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/codecs/ptx_bindings/audio_harmonic_binding.py",
+    "kernel": "harmonic_synthesize"
+  },
+  {
+    "file": "knowledge3d/cranium/codecs/ptx_bindings/audio_harmonic_binding.py",
+    "kernel": "harmonic_topk"
+  },
+  {
+    "file": "knowledge3d/cranium/codecs/ptx_bindings/audio_harmonic_binding.py",
+    "kernel": "subtract_residual"
+  },
+  {
+    "file": "knowledge3d/cranium/codecs/ptx_bindings/ternary_dct8x8_binding.py",
+    "kernel": "dct8x8_forward"
+  },
+  {
+    "file": "knowledge3d/cranium/codecs/ptx_bindings/ternary_dct8x8_binding.py",
+    "kernel": "dct8x8_inverse"
+  },
+  {
+    "file": "knowledge3d/cranium/codecs/ptx_bindings/ternary_mdct_binding.py",
+    "kernel": "ternary_mdct_forward"
+  },
+  {
+    "file": "knowledge3d/cranium/codecs/ptx_bindings/ternary_mdct_binding.py",
+    "kernel": "ternary_mdct_inverse"
+  },
+  {
+    "file": "knowledge3d/cranium/codecs/ptx_bindings/ternary_quant_binding.py",
+    "kernel": "max_abs_reduce"
+  },
+  {
+    "file": "knowledge3d/cranium/codecs/ptx_bindings/ternary_quant_binding.py",
+    "kernel": "ternary_dequantize"
+  },
+  {
+    "file": "knowledge3d/cranium/codecs/ptx_bindings/ternary_quant_binding.py",
+    "kernel": "ternary_quantize"
+  },
+  {
+    "file": "knowledge3d/cranium/codecs/sovereign_ternary_image_codec.py",
+    "kernel": "field_coefficient_expand"
+  },
+  {
+    "file": "knowledge3d/cranium/codecs/sovereign_ternary_image_codec.py",
+    "kernel": "field_coefficient_fit"
+  },
+  {
+    "file": "knowledge3d/cranium/codecs/ternary_codec_ops.py",
+    "kernel": "dct8x8_forward_blocks"
+  },
+  {
+    "file": "knowledge3d/cranium/codecs/ternary_codec_ops.py",
+    "kernel": "dct8x8_inverse_blocks"
+  },
+  {
+    "file": "knowledge3d/cranium/codecs/ternary_codec_ops.py",
+    "kernel": "imdct_inverse_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/codecs/ternary_codec_ops.py",
+    "kernel": "mdct_forward_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/codecs/ternary_codec_ops.py",
+    "kernel": "ternary_dequant_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/codecs/ternary_codec_ops.py",
+    "kernel": "ternary_quant_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/color_galaxy.py",
+    "kernel": "delta_e_batch"
+  },
+  {
+    "file": "knowledge3d/cranium/color_galaxy.py",
+    "kernel": "lab_to_rgb_batch"
+  },
+  {
+    "file": "knowledge3d/cranium/color_galaxy.py",
+    "kernel": "rgb_to_cmyk_batch"
+  },
+  {
+    "file": "knowledge3d/cranium/color_galaxy.py",
+    "kernel": "rgb_to_hsv_batch"
+  },
+  {
+    "file": "knowledge3d/cranium/color_galaxy.py",
+    "kernel": "rgb_to_lab_batch"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/modality_ops.py",
+    "kernel": "encode_audio"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/modality_ops.py",
+    "kernel": "encode_image"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/modality_ops.py",
+    "kernel": "encode_text"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/modality_ops.py",
+    "kernel": "encode_video"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx_runtime/drawing_effects.py",
+    "kernel": "blur_horizontal_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx_runtime/drawing_effects.py",
+    "kernel": "blur_vertical_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx_runtime/drawing_effects.py",
+    "kernel": "gradient_conic_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx_runtime/drawing_effects.py",
+    "kernel": "gradient_linear_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx_runtime/drawing_effects.py",
+    "kernel": "gradient_radial_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx_runtime/drawing_effects.py",
+    "kernel": "sharpen_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx_runtime/drawing_effects.py",
+    "kernel": "sobel_edge_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx_runtime/nvrtc_ptx_loader.py",
+    "kernel": "generate_shape_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/spatial_sovereign/frustum.py",
+    "kernel": "warp_frustum_cull_simd"
+  }
+]

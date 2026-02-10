@@ -45,9 +45,9 @@ class LastHumanityExamBenchmark:
         if self.dataset_path and self.dataset_path.exists():
             loaded = self._load_from_known_files(self.dataset_path)
             if loaded:
-                return loaded[: self.max_questions] if self.max_questions else loaded
+                return loaded[: self.max_questions] if self.max_questions is not None else loaded
         fallback = self._synthetic_questions()
-        return fallback[: self.max_questions] if self.max_questions else fallback
+        return fallback[: self.max_questions] if self.max_questions is not None else fallback
 
     def _load_from_known_files(self, root: Path) -> list[dict[str, Any]]:
         candidates = [

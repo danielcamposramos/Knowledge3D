@@ -1,0 +1,638 @@
+[
+  {
+    "file": "knowledge3d/cranium/codecs/kernels/procedural_synthesis.cu",
+    "kernel": "additive_synthesis"
+  },
+  {
+    "file": "knowledge3d/cranium/codecs/kernels/procedural_texture.cu",
+    "kernel": "checker_texture"
+  },
+  {
+    "file": "knowledge3d/cranium/codecs/kernels/ternary_dct_2d.cu",
+    "kernel": "ternary_dct2_quantize"
+  },
+  {
+    "file": "knowledge3d/cranium/codecs/kernels/ternary_mdct.cu",
+    "kernel": "ternary_mdct_quantize"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/arc_grid_ops.cu",
+    "kernel": "arc_grid_op"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/codec_ops.cu",
+    "kernel": "dct8x8_forward_blocks"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/codec_ops.cu",
+    "kernel": "dct8x8_inverse_blocks"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/codec_ops.cu",
+    "kernel": "imdct_frame_identity"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/codec_ops.cu",
+    "kernel": "imdct_inverse_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/codec_ops.cu",
+    "kernel": "mdct_forward_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/codec_ops.cu",
+    "kernel": "mdct_frame_identity"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/codec_ops.cu",
+    "kernel": "ternary_dequant_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/codec_ops.cu",
+    "kernel": "ternary_quant_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/color_convert.cu",
+    "kernel": "delta_e_batch"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/color_convert.cu",
+    "kernel": "lab_to_rgb_batch"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/color_convert.cu",
+    "kernel": "rgb_to_cmyk_batch"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/color_convert.cu",
+    "kernel": "rgb_to_hsv_batch"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/color_convert.cu",
+    "kernel": "rgb_to_lab_batch"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/cosine_similarity.cu",
+    "kernel": "compute_norm"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/cosine_similarity.cu",
+    "kernel": "cosine_similarity_batch"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/drawing_transform_ops.cu",
+    "kernel": "crop_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/drawing_transform_ops.cu",
+    "kernel": "find_bbox_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/drawing_transform_ops.cu",
+    "kernel": "flip_h_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/drawing_transform_ops.cu",
+    "kernel": "flip_v_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/drawing_transform_ops.cu",
+    "kernel": "overlay_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/drawing_transform_ops.cu",
+    "kernel": "recolor_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/drawing_transform_ops.cu",
+    "kernel": "rot90_ccw_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/drawing_transform_ops.cu",
+    "kernel": "rot90_cw_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/drawing_transform_ops.cu",
+    "kernel": "scale_2x_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/drawing_transform_ops.cu",
+    "kernel": "tile_2x2_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/drawing_transform_ops.cu",
+    "kernel": "transpose_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/filter_convolution.cu",
+    "kernel": "blur_horizontal_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/filter_convolution.cu",
+    "kernel": "blur_vertical_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/filter_convolution.cu",
+    "kernel": "sharpen_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/filter_convolution.cu",
+    "kernel": "sobel_edge_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/galaxy_memory_updater.cu",
+    "kernel": "update_star_embedding_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/galaxy_resonance_engine.cu",
+    "kernel": "galaxy_resonance_engine"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/galaxy_resonance_engine.cu",
+    "kernel": "galaxy_resonance_hierarchical"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/glyph_resonator.cu",
+    "kernel": "glyph_resonator_matryoshka"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/gradient_rasterizer.cu",
+    "kernel": "gradient_conic_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/gradient_rasterizer.cu",
+    "kernel": "gradient_linear_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/gradient_rasterizer.cu",
+    "kernel": "gradient_radial_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/gre_atomic_fission_fusion.cu",
+    "kernel": "gre_atomic_fission_fusion"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/gre_fractal_emitter.cu",
+    "kernel": "gre_fractal_emitter"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/gre_geometry_router.cu",
+    "kernel": "gre_geometry_router"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/gre_graph_crystallizer.cu",
+    "kernel": "gre_graph_crystallizer"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/gre_multimodal_halting_gate.cu",
+    "kernel": "gre_multimodal_halting_gate"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/gre_oom_spill.cu",
+    "kernel": "gre_oom_spill"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/gre_resonance_field.cu",
+    "kernel": "gre_resonance_field"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/gre_temporal_reasoning.cu",
+    "kernel": "gre_temporal_reasoning"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/gre_vector_resonator.cu",
+    "kernel": "gre_vector_resonator"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/gre_world_model.cu",
+    "kernel": "compute_temporal_coherence"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/gre_world_model.cu",
+    "kernel": "enhance_galaxy_resonance"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/gre_world_model.cu",
+    "kernel": "fuse_multimodal_features"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/gre_world_model.cu",
+    "kernel": "generate_dynamic_mesh"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/gre_world_model.cu",
+    "kernel": "predict_world_state"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/layout_graph_optimizer.cu",
+    "kernel": "layout_graph_optimizer"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/lora_gpu.cu",
+    "kernel": "matrix_axpy"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/lora_gpu.cu",
+    "kernel": "matvec_batch"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/lora_gpu.cu",
+    "kernel": "matvec_general"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/lora_gpu.cu",
+    "kernel": "matvec_transpose"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/lora_gpu.cu",
+    "kernel": "matvec_transpose_batch"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/lora_gpu.cu",
+    "kernel": "outer_product_accumulate_batch"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/lora_gpu.cu",
+    "kernel": "outer_product_scale"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/lora_gpu.cu",
+    "kernel": "vec_add_scaled"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/lora_gpu.cu",
+    "kernel": "vec_add_scaled_batch"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/lora_gpu.cu",
+    "kernel": "vec_sub_square"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/lora_gpu.cu",
+    "kernel": "vec_sub_square_batch"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/modular_rpn_kernel.cu",
+    "kernel": "modular_rpn_extract_top"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/modular_rpn_kernel.cu",
+    "kernel": "modular_rpn_geometric_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/modular_rpn_kernel_extended.cu",
+    "kernel": "modular_rpn_kernel_extended"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/modular_rpn_kernel_lite.cu",
+    "kernel": "modular_rpn_geometric_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/nine_chain_specialized.cu",
+    "kernel": "chain_fuse_a_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/nine_chain_specialized.cu",
+    "kernel": "chain_fuse_b_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/nine_chain_specialized.cu",
+    "kernel": "chain_ingest_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/nine_chain_specialized.cu",
+    "kernel": "chain_reason_creative_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/nine_chain_specialized.cu",
+    "kernel": "chain_reason_reductionist_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/nine_chain_specialized.cu",
+    "kernel": "chain_spatial_a_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/nine_chain_specialized.cu",
+    "kernel": "chain_spatial_b_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/nine_chain_specialized.cu",
+    "kernel": "chain_spatial_c_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/nine_chain_specialized.cu",
+    "kernel": "chain_synthesis_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/nine_chain_specialized.cu",
+    "kernel": "compute_resonance_optimized"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/nine_chain_specialized.cu",
+    "kernel": "swarm_iteration_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/nine_chain_swarm_kernel.cu",
+    "kernel": "nine_chain_swarm_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/pdf_primitive_parser.cu",
+    "kernel": "pdf_primitive_parser"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/procedural_glyph_rasterizer.cu",
+    "kernel": "procedural_glyph_rasterizer"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/rpn_executor.cu",
+    "kernel": "execute_rpn_bytecode"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/ternary_attention_mask.cu",
+    "kernel": "compute_adaptive_thresholds"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/ternary_attention_mask.cu",
+    "kernel": "ternary_attention_mask"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/ternary_depth_field.cu",
+    "kernel": "ternary_depth_field"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/ternary_ops.cu",
+    "kernel": "ternary_add_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/ternary_ops.cu",
+    "kernel": "ternary_mul_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/ternary_prune_decision.cu",
+    "kernel": "ternary_prune_decision"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/trit_inspector.cu",
+    "kernel": "trit_inspector"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/trit_overlay_generator.cu",
+    "kernel": "trit_overlay_generator"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/vectordotmap_encoder.cu",
+    "kernel": "field_coefficient_expand"
+  },
+  {
+    "file": "knowledge3d/cranium/kernels/vectordotmap_encoder.cu",
+    "kernel": "field_coefficient_fit"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/batchnorm.cu",
+    "kernel": "batchnorm_compute_stats"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/batchnorm.cu",
+    "kernel": "batchnorm_forward"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/batchnorm.cu",
+    "kernel": "batchnorm_forward_training"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/batchnorm.cu",
+    "kernel": "batchnorm_fused"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/batchnorm.cu",
+    "kernel": "layernorm_forward"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/batchnorm_backward.cu",
+    "kernel": "batchnorm_backward"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/batchnorm_backward_training.cu",
+    "kernel": "batchnorm_backward_training"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/classification_loss.cu",
+    "kernel": "cross_entropy_forward"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/classification_loss.cu",
+    "kernel": "cross_entropy_softmax_backward"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/classification_loss.cu",
+    "kernel": "fc_backward"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/classification_loss.cu",
+    "kernel": "fc_forward"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/classification_loss.cu",
+    "kernel": "global_avgpool_backward"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/classification_loss.cu",
+    "kernel": "global_avgpool_forward"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/classification_loss.cu",
+    "kernel": "softmax_forward"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/conv2d_3x3.cu",
+    "kernel": "conv2d_3x3_fused"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/conv2d_3x3.cu",
+    "kernel": "conv2d_3x3_no_relu"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/conv2d_3x3_backward.cu",
+    "kernel": "conv2d_backward_input"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/conv2d_3x3_backward.cu",
+    "kernel": "conv2d_backward_weight"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/conv2d_3x3_backward.cu",
+    "kernel": "relu_backward"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/conv2d_3x3_v2.cu",
+    "kernel": "conv2d_3x3_v2_fused"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/conv2d_3x3_v2.cu",
+    "kernel": "conv2d_3x3_v2_no_relu"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/glyph_match.cu",
+    "kernel": "glyph_match_ncc"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/glyph_match.cu",
+    "kernel": "glyph_match_top_k"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/kernels.cu",
+    "kernel": "apply_transform"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/kernels.cu",
+    "kernel": "blend_embeddings"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/kernels.cu",
+    "kernel": "cosine_similarity"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/kernels.cu",
+    "kernel": "normalize_embedding"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/kernels.cu",
+    "kernel": "offset_vertices"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/kernels.cu",
+    "kernel": "recalc_normals"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/kernels.cu",
+    "kernel": "scale_vertices"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/l2_dist_warp.cu",
+    "kernel": "batch_l2_dist"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/l2_dist_warp.cu",
+    "kernel": "warp_l2_dist"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/led_astar.cu",
+    "kernel": "extract_dependency_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/led_astar.cu",
+    "kernel": "led_astar_navigate"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/matryoshka_project.cu",
+    "kernel": "matryoshka_project"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/maxpool_2x2.cu",
+    "kernel": "avgpool_2x2"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/maxpool_2x2.cu",
+    "kernel": "maxpool_2x2"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/maxpool_2x2.cu",
+    "kernel": "maxpool_2x2_indices"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/maxpool_2x2_backward.cu",
+    "kernel": "maxpool_2x2_backward"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/modality_kernels.cu",
+    "kernel": "encode_audio"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/modality_kernels.cu",
+    "kernel": "encode_image"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/modality_kernels.cu",
+    "kernel": "encode_text"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/modality_kernels.cu",
+    "kernel": "encode_video"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/morton_octree.cu",
+    "kernel": "compute_morton_codes"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/morton_octree.cu",
+    "kernel": "octree_query_morton"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/morton_octree.cu",
+    "kernel": "refine_query_euclidean"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/sgd_optimizer.cu",
+    "kernel": "adam_update"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/sgd_optimizer.cu",
+    "kernel": "clip_grad_norm"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/sgd_optimizer.cu",
+    "kernel": "sgd_momentum_update"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/sgd_optimizer.cu",
+    "kernel": "sgd_update"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/sgd_optimizer.cu",
+    "kernel": "zero_grad"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/spatial_pool.cu",
+    "kernel": "spatial_mean_pool"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/trigram_embed.cu",
+    "kernel": "l2_normalize_embedding"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/trigram_embed.cu",
+    "kernel": "trigram_lookup_average"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/trm_extensions.cu",
+    "kernel": "matvec_1024x512"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/trm_extensions.cu",
+    "kernel": "matvec_512x1024"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/trm_extensions.cu",
+    "kernel": "mlp_swiglu_512_1024_512"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/trm_extensions.cu",
+    "kernel": "swiglu_vec_1024"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/trm_extensions.cu",
+    "kernel": "swiglu_vec_512"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/trm_extensions.cu",
+    "kernel": "vec_add3_512"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/trm_extensions.cu",
+    "kernel": "vec_add_512"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/trm_step_fused.cu",
+    "kernel": "trm_step_fused"
+  }
+]

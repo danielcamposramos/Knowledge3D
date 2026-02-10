@@ -179,6 +179,41 @@ TRM → semantic-aware routing using all galaxies
 
 ---
 
+### 1.7 Positive/Negative Form Duality (Ternary-Consistent)
+
+K3D form representation is polarity-aware and maps directly to ternary semantics:
+
+- **Positive form (`+1`)**: raised/projected/foreground presence.
+- **Neutral (`0`)**: untouched background/empty support.
+- **Negative form (`-1`)**: carved/recessed/background-as-structure.
+
+This duality is required by "form with meaning": meaning is not only what is present, but also what is intentionally absent (holes, cavities, carved contours, figure-ground inversion).
+
+#### Zero-Cost Derivation Rule
+
+Negative form is derived procedurally from positive form, not duplicated in storage:
+
+```
+negative_mask = canvas - positive_mask
+```
+
+Therefore:
+
+- Canonical storage stays compact (single positive procedural source + metadata).
+- Negative representation is computed on demand in hot path.
+- Character/word systems can reference Drawing primitives via symlink-style metadata while supporting both polarities.
+
+#### Cross-Galaxy Implications
+
+- **Drawing/Character**: glyph stroke vs carved glyph cavity.
+- **3D Objects**: solid mesh vs mold/cavity interpretation.
+- **ARC visual tasks**: figure-ground reversal becomes a first-class transformation mode.
+- **Ternary learning**: aligns with contrastive signaling (`+1`, `0`, `-1`) used in ranking and feedback.
+
+This section extends, but does not replace, section 1.6: both clients still consume the same procedural source of truth.
+
+---
+
 ## 2. Contract Overview
 
 ### 2.1 Core Guarantee

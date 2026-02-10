@@ -1,0 +1,893 @@
+{
+  "kernel_defs": {
+    "swiglu_vec_512": [
+      "knowledge3d/cranium/ptx/trm_extensions.cu"
+    ],
+    "swiglu_vec_1024": [
+      "knowledge3d/cranium/ptx/trm_extensions.cu"
+    ],
+    "vec_add_512": [
+      "knowledge3d/cranium/ptx/trm_extensions.cu"
+    ],
+    "vec_add3_512": [
+      "knowledge3d/cranium/ptx/trm_extensions.cu"
+    ],
+    "matvec_512x1024": [
+      "knowledge3d/cranium/ptx/trm_extensions.cu"
+    ],
+    "matvec_1024x512": [
+      "knowledge3d/cranium/ptx/trm_extensions.cu"
+    ],
+    "mlp_swiglu_512_1024_512": [
+      "knowledge3d/cranium/ptx/trm_extensions.cu"
+    ],
+    "sgd_update": [
+      "knowledge3d/cranium/ptx/sgd_optimizer.cu"
+    ],
+    "sgd_momentum_update": [
+      "knowledge3d/cranium/ptx/sgd_optimizer.cu"
+    ],
+    "adam_update": [
+      "knowledge3d/cranium/ptx/sgd_optimizer.cu"
+    ],
+    "clip_grad_norm": [
+      "knowledge3d/cranium/ptx/sgd_optimizer.cu"
+    ],
+    "zero_grad": [
+      "knowledge3d/cranium/ptx/sgd_optimizer.cu"
+    ],
+    "maxpool_2x2_backward": [
+      "knowledge3d/cranium/ptx/maxpool_2x2_backward.cu"
+    ],
+    "led_astar_navigate": [
+      "knowledge3d/cranium/ptx/led_astar.cu"
+    ],
+    "extract_dependency_kernel": [
+      "knowledge3d/cranium/ptx/led_astar.cu"
+    ],
+    "trm_step_fused": [
+      "knowledge3d/cranium/ptx/trm_step_fused.cu"
+    ],
+    "conv2d_3x3_fused": [
+      "knowledge3d/cranium/ptx/conv2d_3x3.cu"
+    ],
+    "conv2d_3x3_no_relu": [
+      "knowledge3d/cranium/ptx/conv2d_3x3.cu"
+    ],
+    "glyph_match_ncc": [
+      "knowledge3d/cranium/ptx/glyph_match.cu"
+    ],
+    "glyph_match_top_k": [
+      "knowledge3d/cranium/ptx/glyph_match.cu"
+    ],
+    "spatial_mean_pool": [
+      "knowledge3d/cranium/ptx/spatial_pool.cu"
+    ],
+    "maxpool_2x2": [
+      "knowledge3d/cranium/ptx/maxpool_2x2.cu"
+    ],
+    "maxpool_2x2_indices": [
+      "knowledge3d/cranium/ptx/maxpool_2x2.cu"
+    ],
+    "avgpool_2x2": [
+      "knowledge3d/cranium/ptx/maxpool_2x2.cu"
+    ],
+    "conv2d_backward_weight": [
+      "knowledge3d/cranium/ptx/conv2d_3x3_backward.cu"
+    ],
+    "conv2d_backward_input": [
+      "knowledge3d/cranium/ptx/conv2d_3x3_backward.cu"
+    ],
+    "relu_backward": [
+      "knowledge3d/cranium/ptx/conv2d_3x3_backward.cu"
+    ],
+    "batchnorm_backward": [
+      "knowledge3d/cranium/ptx/batchnorm_backward.cu"
+    ],
+    "warp_l2_dist": [
+      "knowledge3d/cranium/ptx/l2_dist_warp.cu"
+    ],
+    "batch_l2_dist": [
+      "knowledge3d/cranium/ptx/l2_dist_warp.cu"
+    ],
+    "conv2d_3x3_v2_fused": [
+      "knowledge3d/cranium/ptx/conv2d_3x3_v2.cu"
+    ],
+    "conv2d_3x3_v2_no_relu": [
+      "knowledge3d/cranium/ptx/conv2d_3x3_v2.cu"
+    ],
+    "matryoshka_project": [
+      "knowledge3d/cranium/ptx/matryoshka_project.cu"
+    ],
+    "encode_text": [
+      "knowledge3d/cranium/ptx/modality_kernels.cu"
+    ],
+    "encode_audio": [
+      "knowledge3d/cranium/ptx/modality_kernels.cu"
+    ],
+    "encode_image": [
+      "knowledge3d/cranium/ptx/modality_kernels.cu"
+    ],
+    "encode_video": [
+      "knowledge3d/cranium/ptx/modality_kernels.cu"
+    ],
+    "apply_transform": [
+      "knowledge3d/cranium/ptx/kernels.cu"
+    ],
+    "recalc_normals": [
+      "knowledge3d/cranium/ptx/kernels.cu"
+    ],
+    "blend_embeddings": [
+      "knowledge3d/cranium/ptx/kernels.cu"
+    ],
+    "scale_vertices": [
+      "knowledge3d/cranium/ptx/kernels.cu"
+    ],
+    "offset_vertices": [
+      "knowledge3d/cranium/ptx/kernels.cu"
+    ],
+    "normalize_embedding": [
+      "knowledge3d/cranium/ptx/kernels.cu"
+    ],
+    "cosine_similarity": [
+      "knowledge3d/cranium/ptx/kernels.cu"
+    ],
+    "trigram_lookup_average": [
+      "knowledge3d/cranium/ptx/trigram_embed.cu"
+    ],
+    "l2_normalize_embedding": [
+      "knowledge3d/cranium/ptx/trigram_embed.cu"
+    ],
+    "batchnorm_forward": [
+      "knowledge3d/cranium/ptx/batchnorm.cu"
+    ],
+    "batchnorm_compute_stats": [
+      "knowledge3d/cranium/ptx/batchnorm.cu"
+    ],
+    "batchnorm_fused": [
+      "knowledge3d/cranium/ptx/batchnorm.cu"
+    ],
+    "batchnorm_forward_training": [
+      "knowledge3d/cranium/ptx/batchnorm.cu"
+    ],
+    "layernorm_forward": [
+      "knowledge3d/cranium/ptx/batchnorm.cu"
+    ],
+    "softmax_forward": [
+      "knowledge3d/cranium/ptx/classification_loss.cu"
+    ],
+    "cross_entropy_forward": [
+      "knowledge3d/cranium/ptx/classification_loss.cu"
+    ],
+    "cross_entropy_softmax_backward": [
+      "knowledge3d/cranium/ptx/classification_loss.cu"
+    ],
+    "global_avgpool_forward": [
+      "knowledge3d/cranium/ptx/classification_loss.cu"
+    ],
+    "global_avgpool_backward": [
+      "knowledge3d/cranium/ptx/classification_loss.cu"
+    ],
+    "fc_forward": [
+      "knowledge3d/cranium/ptx/classification_loss.cu"
+    ],
+    "fc_backward": [
+      "knowledge3d/cranium/ptx/classification_loss.cu"
+    ],
+    "batchnorm_backward_training": [
+      "knowledge3d/cranium/ptx/batchnorm_backward_training.cu"
+    ],
+    "compute_morton_codes": [
+      "knowledge3d/cranium/ptx/morton_octree.cu"
+    ],
+    "octree_query_morton": [
+      "knowledge3d/cranium/ptx/morton_octree.cu"
+    ],
+    "refine_query_euclidean": [
+      "knowledge3d/cranium/ptx/morton_octree.cu"
+    ],
+    "gre_oom_spill": [
+      "knowledge3d/cranium/kernels/gre_oom_spill.cu"
+    ],
+    "rgb_to_lab_batch": [
+      "knowledge3d/cranium/kernels/color_convert.cu"
+    ],
+    "lab_to_rgb_batch": [
+      "knowledge3d/cranium/kernels/color_convert.cu"
+    ],
+    "rgb_to_cmyk_batch": [
+      "knowledge3d/cranium/kernels/color_convert.cu"
+    ],
+    "rgb_to_hsv_batch": [
+      "knowledge3d/cranium/kernels/color_convert.cu"
+    ],
+    "delta_e_batch": [
+      "knowledge3d/cranium/kernels/color_convert.cu"
+    ],
+    "ternary_quant_kernel": [
+      "knowledge3d/cranium/kernels/codec_ops.cu"
+    ],
+    "ternary_dequant_kernel": [
+      "knowledge3d/cranium/kernels/codec_ops.cu"
+    ],
+    "dct8x8_forward_blocks": [
+      "knowledge3d/cranium/kernels/codec_ops.cu"
+    ],
+    "dct8x8_inverse_blocks": [
+      "knowledge3d/cranium/kernels/codec_ops.cu"
+    ],
+    "mdct_frame_identity": [
+      "knowledge3d/cranium/kernels/codec_ops.cu"
+    ],
+    "imdct_frame_identity": [
+      "knowledge3d/cranium/kernels/codec_ops.cu"
+    ],
+    "mdct_forward_kernel": [
+      "knowledge3d/cranium/kernels/codec_ops.cu"
+    ],
+    "imdct_inverse_kernel": [
+      "knowledge3d/cranium/kernels/codec_ops.cu"
+    ],
+    "gre_atomic_fission_fusion": [
+      "knowledge3d/cranium/kernels/gre_atomic_fission_fusion.cu"
+    ],
+    "ternary_prune_decision": [
+      "knowledge3d/cranium/kernels/ternary_prune_decision.cu"
+    ],
+    "trit_inspector": [
+      "knowledge3d/cranium/kernels/trit_inspector.cu"
+    ],
+    "gre_fractal_emitter": [
+      "knowledge3d/cranium/kernels/gre_fractal_emitter.cu"
+    ],
+    "arc_grid_op": [
+      "knowledge3d/cranium/kernels/arc_grid_ops.cu"
+    ],
+    "gre_multimodal_halting_gate": [
+      "knowledge3d/cranium/kernels/gre_multimodal_halting_gate.cu"
+    ],
+    "gre_graph_crystallizer": [
+      "knowledge3d/cranium/kernels/gre_graph_crystallizer.cu"
+    ],
+    "gre_resonance_field": [
+      "knowledge3d/cranium/kernels/gre_resonance_field.cu"
+    ],
+    "modular_rpn_geometric_kernel": [
+      "knowledge3d/cranium/kernels/modular_rpn_kernel.cu",
+      "knowledge3d/cranium/kernels/modular_rpn_kernel_lite.cu"
+    ],
+    "modular_rpn_extract_top": [
+      "knowledge3d/cranium/kernels/modular_rpn_kernel.cu"
+    ],
+    "nine_chain_swarm_kernel": [
+      "knowledge3d/cranium/kernels/nine_chain_swarm_kernel.cu"
+    ],
+    "pdf_primitive_parser": [
+      "knowledge3d/cranium/kernels/pdf_primitive_parser.cu"
+    ],
+    "modular_rpn_kernel_extended": [
+      "knowledge3d/cranium/kernels/modular_rpn_kernel_extended.cu"
+    ],
+    "ternary_depth_field": [
+      "knowledge3d/cranium/kernels/ternary_depth_field.cu"
+    ],
+    "gradient_linear_kernel": [
+      "knowledge3d/cranium/kernels/gradient_rasterizer.cu"
+    ],
+    "gradient_radial_kernel": [
+      "knowledge3d/cranium/kernels/gradient_rasterizer.cu"
+    ],
+    "gradient_conic_kernel": [
+      "knowledge3d/cranium/kernels/gradient_rasterizer.cu"
+    ],
+    "gre_temporal_reasoning": [
+      "knowledge3d/cranium/kernels/gre_temporal_reasoning.cu"
+    ],
+    "execute_rpn_bytecode": [
+      "knowledge3d/cranium/kernels/rpn_executor.cu"
+    ],
+    "update_star_embedding_kernel": [
+      "knowledge3d/cranium/kernels/galaxy_memory_updater.cu"
+    ],
+    "gre_vector_resonator": [
+      "knowledge3d/cranium/kernels/gre_vector_resonator.cu"
+    ],
+    "trit_overlay_generator": [
+      "knowledge3d/cranium/kernels/trit_overlay_generator.cu"
+    ],
+    "compute_temporal_coherence": [
+      "knowledge3d/cranium/kernels/gre_world_model.cu"
+    ],
+    "fuse_multimodal_features": [
+      "knowledge3d/cranium/kernels/gre_world_model.cu"
+    ],
+    "predict_world_state": [
+      "knowledge3d/cranium/kernels/gre_world_model.cu"
+    ],
+    "generate_dynamic_mesh": [
+      "knowledge3d/cranium/kernels/gre_world_model.cu"
+    ],
+    "enhance_galaxy_resonance": [
+      "knowledge3d/cranium/kernels/gre_world_model.cu"
+    ],
+    "glyph_resonator_matryoshka": [
+      "knowledge3d/cranium/kernels/glyph_resonator.cu"
+    ],
+    "ternary_attention_mask": [
+      "knowledge3d/cranium/kernels/ternary_attention_mask.cu"
+    ],
+    "compute_adaptive_thresholds": [
+      "knowledge3d/cranium/kernels/ternary_attention_mask.cu"
+    ],
+    "galaxy_resonance_engine": [
+      "knowledge3d/cranium/kernels/galaxy_resonance_engine.cu"
+    ],
+    "galaxy_resonance_hierarchical": [
+      "knowledge3d/cranium/kernels/galaxy_resonance_engine.cu"
+    ],
+    "layout_graph_optimizer": [
+      "knowledge3d/cranium/kernels/layout_graph_optimizer.cu"
+    ],
+    "chain_ingest_kernel": [
+      "knowledge3d/cranium/kernels/nine_chain_specialized.cu"
+    ],
+    "chain_fuse_a_kernel": [
+      "knowledge3d/cranium/kernels/nine_chain_specialized.cu"
+    ],
+    "chain_fuse_b_kernel": [
+      "knowledge3d/cranium/kernels/nine_chain_specialized.cu"
+    ],
+    "chain_spatial_a_kernel": [
+      "knowledge3d/cranium/kernels/nine_chain_specialized.cu"
+    ],
+    "chain_spatial_b_kernel": [
+      "knowledge3d/cranium/kernels/nine_chain_specialized.cu"
+    ],
+    "chain_spatial_c_kernel": [
+      "knowledge3d/cranium/kernels/nine_chain_specialized.cu"
+    ],
+    "chain_reason_reductionist_kernel": [
+      "knowledge3d/cranium/kernels/nine_chain_specialized.cu"
+    ],
+    "chain_reason_creative_kernel": [
+      "knowledge3d/cranium/kernels/nine_chain_specialized.cu"
+    ],
+    "compute_resonance_optimized": [
+      "knowledge3d/cranium/kernels/nine_chain_specialized.cu"
+    ],
+    "chain_synthesis_kernel": [
+      "knowledge3d/cranium/kernels/nine_chain_specialized.cu"
+    ],
+    "swarm_iteration_kernel": [
+      "knowledge3d/cranium/kernels/nine_chain_specialized.cu"
+    ],
+    "rot90_cw_kernel": [
+      "knowledge3d/cranium/kernels/drawing_transform_ops.cu"
+    ],
+    "rot90_ccw_kernel": [
+      "knowledge3d/cranium/kernels/drawing_transform_ops.cu"
+    ],
+    "flip_h_kernel": [
+      "knowledge3d/cranium/kernels/drawing_transform_ops.cu"
+    ],
+    "flip_v_kernel": [
+      "knowledge3d/cranium/kernels/drawing_transform_ops.cu"
+    ],
+    "transpose_kernel": [
+      "knowledge3d/cranium/kernels/drawing_transform_ops.cu"
+    ],
+    "scale_2x_kernel": [
+      "knowledge3d/cranium/kernels/drawing_transform_ops.cu"
+    ],
+    "recolor_kernel": [
+      "knowledge3d/cranium/kernels/drawing_transform_ops.cu"
+    ],
+    "tile_2x2_kernel": [
+      "knowledge3d/cranium/kernels/drawing_transform_ops.cu"
+    ],
+    "overlay_kernel": [
+      "knowledge3d/cranium/kernels/drawing_transform_ops.cu"
+    ],
+    "crop_kernel": [
+      "knowledge3d/cranium/kernels/drawing_transform_ops.cu"
+    ],
+    "find_bbox_kernel": [
+      "knowledge3d/cranium/kernels/drawing_transform_ops.cu"
+    ],
+    "ternary_add_kernel": [
+      "knowledge3d/cranium/kernels/ternary_ops.cu"
+    ],
+    "ternary_mul_kernel": [
+      "knowledge3d/cranium/kernels/ternary_ops.cu"
+    ],
+    "gre_geometry_router": [
+      "knowledge3d/cranium/kernels/gre_geometry_router.cu"
+    ],
+    "cosine_similarity_batch": [
+      "knowledge3d/cranium/kernels/cosine_similarity.cu"
+    ],
+    "compute_norm": [
+      "knowledge3d/cranium/kernels/cosine_similarity.cu"
+    ],
+    "matvec_general": [
+      "knowledge3d/cranium/kernels/lora_gpu.cu"
+    ],
+    "matvec_transpose": [
+      "knowledge3d/cranium/kernels/lora_gpu.cu"
+    ],
+    "vec_add_scaled": [
+      "knowledge3d/cranium/kernels/lora_gpu.cu"
+    ],
+    "vec_sub_square": [
+      "knowledge3d/cranium/kernels/lora_gpu.cu"
+    ],
+    "outer_product_scale": [
+      "knowledge3d/cranium/kernels/lora_gpu.cu"
+    ],
+    "matrix_axpy": [
+      "knowledge3d/cranium/kernels/lora_gpu.cu"
+    ],
+    "matvec_batch": [
+      "knowledge3d/cranium/kernels/lora_gpu.cu"
+    ],
+    "matvec_transpose_batch": [
+      "knowledge3d/cranium/kernels/lora_gpu.cu"
+    ],
+    "vec_add_scaled_batch": [
+      "knowledge3d/cranium/kernels/lora_gpu.cu"
+    ],
+    "vec_sub_square_batch": [
+      "knowledge3d/cranium/kernels/lora_gpu.cu"
+    ],
+    "outer_product_accumulate_batch": [
+      "knowledge3d/cranium/kernels/lora_gpu.cu"
+    ],
+    "blur_horizontal_kernel": [
+      "knowledge3d/cranium/kernels/filter_convolution.cu"
+    ],
+    "blur_vertical_kernel": [
+      "knowledge3d/cranium/kernels/filter_convolution.cu"
+    ],
+    "sobel_edge_kernel": [
+      "knowledge3d/cranium/kernels/filter_convolution.cu"
+    ],
+    "sharpen_kernel": [
+      "knowledge3d/cranium/kernels/filter_convolution.cu"
+    ],
+    "field_coefficient_fit": [
+      "knowledge3d/cranium/kernels/vectordotmap_encoder.cu"
+    ],
+    "field_coefficient_expand": [
+      "knowledge3d/cranium/kernels/vectordotmap_encoder.cu"
+    ],
+    "procedural_glyph_rasterizer": [
+      "knowledge3d/cranium/kernels/procedural_glyph_rasterizer.cu"
+    ],
+    "ternary_dct2_quantize": [
+      "knowledge3d/cranium/codecs/kernels/ternary_dct_2d.cu"
+    ],
+    "additive_synthesis": [
+      "knowledge3d/cranium/codecs/kernels/procedural_synthesis.cu"
+    ],
+    "ternary_mdct_quantize": [
+      "knowledge3d/cranium/codecs/kernels/ternary_mdct.cu"
+    ],
+    "checker_texture": [
+      "knowledge3d/cranium/codecs/kernels/procedural_texture.cu"
+    ]
+  },
+  "calls_by_kernel": {
+    "modular_rpn_geometric_kernel": [
+      "Old_Attempts/tests/test_sovereign_loader.py",
+      "knowledge3d/cranium/bridges/lightweight_rpn.py",
+      "knowledge3d/cranium/bridges/sovereign_bridges.py",
+      "knowledge3d/cranium/rpn_executor.py",
+      "knowledge3d/cranium/sovereign_rpn_executor.py",
+      "test_original_kernel.py"
+    ],
+    "ternary_mdct_forward": [
+      "knowledge3d/cranium/codecs/ptx_bindings/ternary_mdct_binding.py",
+      "test_ptx_no_cupy.py"
+    ],
+    "execute_drawing_rpn": [
+      "debug_kernel_exec.py",
+      "knowledge3d/cranium/bridges/procedural_drawing_bridge.py"
+    ],
+    "decode_actions_kernel": [
+      "Old_Attempts/fsm_scaffolding/python/unified_fsm.py",
+      "tests/test_decode_actions_kernel.py"
+    ],
+    "fused_head_fsm_dispatch": [
+      "Old_Attempts/fsm_scaffolding/python/unified_fsm.py",
+      "tests/test_unified_fsm.py"
+    ],
+    "ptxfuse_attention": [
+      "Old_Attempts/fsm_scaffolding/python/unified_fsm.py",
+      "tests/test_unified_fsm.py"
+    ],
+    "rpn_reason_dispatch": [
+      "Old_Attempts/fsm_scaffolding/python/unified_fsm.py",
+      "tests/test_unified_fsm.py"
+    ],
+    "test_minimal": [
+      "scripts/test_conv2d_minimal.py"
+    ],
+    "dynamic_lod_tune": [
+      "Old_Attempts/fsm_scaffolding/python/unified_fsm.py",
+      "knowledge3d/cranium/dynamic_lod.py"
+    ],
+    "rgb_to_lab_batch": [
+      "knowledge3d/cranium/color_galaxy.py"
+    ],
+    "lab_to_rgb_batch": [
+      "knowledge3d/cranium/color_galaxy.py"
+    ],
+    "rgb_to_cmyk_batch": [
+      "knowledge3d/cranium/color_galaxy.py"
+    ],
+    "rgb_to_hsv_batch": [
+      "knowledge3d/cranium/color_galaxy.py"
+    ],
+    "delta_e_batch": [
+      "knowledge3d/cranium/color_galaxy.py"
+    ],
+    "tablet_guard_kernel": [
+      "knowledge3d/cranium/output_router.py"
+    ],
+    "conv2d_3x3_fused": [
+      "knowledge3d/cranium/ocr/conv2d_bridge.py"
+    ],
+    "conv2d_3x3_no_relu": [
+      "knowledge3d/cranium/ocr/conv2d_bridge.py"
+    ],
+    "ternary_quant_kernel": [
+      "knowledge3d/cranium/codecs/ternary_codec_ops.py"
+    ],
+    "ternary_dequant_kernel": [
+      "knowledge3d/cranium/codecs/ternary_codec_ops.py"
+    ],
+    "dct8x8_forward_blocks": [
+      "knowledge3d/cranium/codecs/ternary_codec_ops.py"
+    ],
+    "dct8x8_inverse_blocks": [
+      "knowledge3d/cranium/codecs/ternary_codec_ops.py"
+    ],
+    "mdct_forward_kernel": [
+      "knowledge3d/cranium/codecs/ternary_codec_ops.py"
+    ],
+    "imdct_inverse_kernel": [
+      "knowledge3d/cranium/codecs/ternary_codec_ops.py"
+    ],
+    "field_coefficient_fit": [
+      "knowledge3d/cranium/codecs/sovereign_ternary_image_codec.py"
+    ],
+    "field_coefficient_expand": [
+      "knowledge3d/cranium/codecs/sovereign_ternary_image_codec.py"
+    ],
+    "adaptive_convergence_kernel": [
+      "knowledge3d/cranium/actions/adaptive_convergence_analyzer.py"
+    ],
+    "matvec_general": [
+      "knowledge3d/cranium/sovereign/lora_gpu_trainer.py"
+    ],
+    "matvec_transpose": [
+      "knowledge3d/cranium/sovereign/lora_gpu_trainer.py"
+    ],
+    "vec_add_scaled": [
+      "knowledge3d/cranium/sovereign/lora_gpu_trainer.py"
+    ],
+    "vec_sub_square": [
+      "knowledge3d/cranium/sovereign/lora_gpu_trainer.py"
+    ],
+    "outer_product_scale": [
+      "knowledge3d/cranium/sovereign/lora_gpu_trainer.py"
+    ],
+    "matrix_axpy": [
+      "knowledge3d/cranium/sovereign/lora_gpu_trainer.py"
+    ],
+    "matvec_batch": [
+      "knowledge3d/cranium/sovereign/lora_gpu_trainer.py"
+    ],
+    "matvec_transpose_batch": [
+      "knowledge3d/cranium/sovereign/lora_gpu_trainer.py"
+    ],
+    "vec_add_scaled_batch": [
+      "knowledge3d/cranium/sovereign/lora_gpu_trainer.py"
+    ],
+    "vec_sub_square_batch": [
+      "knowledge3d/cranium/sovereign/lora_gpu_trainer.py"
+    ],
+    "outer_product_accumulate_batch": [
+      "knowledge3d/cranium/sovereign/lora_gpu_trainer.py"
+    ],
+    "trm_step_fused": [
+      "knowledge3d/cranium/sovereign/trm_launcher.py"
+    ],
+    "generate_shape_kernel": [
+      "knowledge3d/cranium/ptx_runtime/nvrtc_ptx_loader.py"
+    ],
+    "gradient_linear_kernel": [
+      "knowledge3d/cranium/ptx_runtime/drawing_effects.py"
+    ],
+    "gradient_radial_kernel": [
+      "knowledge3d/cranium/ptx_runtime/drawing_effects.py"
+    ],
+    "gradient_conic_kernel": [
+      "knowledge3d/cranium/ptx_runtime/drawing_effects.py"
+    ],
+    "blur_horizontal_kernel": [
+      "knowledge3d/cranium/ptx_runtime/drawing_effects.py"
+    ],
+    "blur_vertical_kernel": [
+      "knowledge3d/cranium/ptx_runtime/drawing_effects.py"
+    ],
+    "sobel_edge_kernel": [
+      "knowledge3d/cranium/ptx_runtime/drawing_effects.py"
+    ],
+    "sharpen_kernel": [
+      "knowledge3d/cranium/ptx_runtime/drawing_effects.py"
+    ],
+    "rot90_cw_kernel": [
+      "knowledge3d/cranium/ptx_runtime/drawing_transform_kernels.py"
+    ],
+    "rot90_ccw_kernel": [
+      "knowledge3d/cranium/ptx_runtime/drawing_transform_kernels.py"
+    ],
+    "flip_h_kernel": [
+      "knowledge3d/cranium/ptx_runtime/drawing_transform_kernels.py"
+    ],
+    "flip_v_kernel": [
+      "knowledge3d/cranium/ptx_runtime/drawing_transform_kernels.py"
+    ],
+    "transpose_kernel": [
+      "knowledge3d/cranium/ptx_runtime/drawing_transform_kernels.py"
+    ],
+    "scale_2x_kernel": [
+      "knowledge3d/cranium/ptx_runtime/drawing_transform_kernels.py"
+    ],
+    "recolor_kernel": [
+      "knowledge3d/cranium/ptx_runtime/drawing_transform_kernels.py"
+    ],
+    "tile_2x2_kernel": [
+      "knowledge3d/cranium/ptx_runtime/drawing_transform_kernels.py"
+    ],
+    "overlay_kernel": [
+      "knowledge3d/cranium/ptx_runtime/drawing_transform_kernels.py"
+    ],
+    "crop_kernel": [
+      "knowledge3d/cranium/ptx_runtime/drawing_transform_kernels.py"
+    ],
+    "find_bbox_kernel": [
+      "knowledge3d/cranium/ptx_runtime/drawing_transform_kernels.py"
+    ],
+    "dialogue_sampler_kernel": [
+      "knowledge3d/cranium/ptx/ptx_ops.py"
+    ],
+    "weighted_score_kernel": [
+      "knowledge3d/cranium/ptx/arc_ops.py"
+    ],
+    "argmax_kernel": [
+      "knowledge3d/cranium/ptx/arc_ops.py"
+    ],
+    "discovery_score_kernel": [
+      "knowledge3d/cranium/ptx/arc_ops.py"
+    ],
+    "validity_score_kernel": [
+      "knowledge3d/cranium/ptx/arc_ops.py"
+    ],
+    "extract_pattern_features_kernel": [
+      "knowledge3d/cranium/ptx/arc_ops.py"
+    ],
+    "filter_by_threshold_kernel": [
+      "knowledge3d/cranium/ptx/arc_ops.py"
+    ],
+    "check_grid_validity_kernel": [
+      "knowledge3d/cranium/ptx/arc_ops.py"
+    ],
+    "compare_grids_kernel": [
+      "knowledge3d/cranium/ptx/arc_ops.py"
+    ],
+    "encode_text": [
+      "knowledge3d/cranium/ptx/modality_ops.py"
+    ],
+    "encode_audio": [
+      "knowledge3d/cranium/ptx/modality_ops.py"
+    ],
+    "encode_image": [
+      "knowledge3d/cranium/ptx/modality_ops.py"
+    ],
+    "encode_video": [
+      "knowledge3d/cranium/ptx/modality_ops.py"
+    ],
+    "cosine_similarity_batch": [
+      "knowledge3d/cranium/bridges/cosine_similarity_bridge.py"
+    ],
+    "compute_norm": [
+      "knowledge3d/cranium/bridges/cosine_similarity_bridge.py"
+    ],
+    "matryoshka_project": [
+      "knowledge3d/cranium/bridges/matryoshka_bridge.py"
+    ],
+    "trigram_lookup_average": [
+      "knowledge3d/cranium/bridges/trigram_embed_bridge.py"
+    ],
+    "l2_normalize_embedding": [
+      "knowledge3d/cranium/bridges/trigram_embed_bridge.py"
+    ],
+    "ternary_add_kernel": [
+      "knowledge3d/cranium/bridges/tiered_rpn.py"
+    ],
+    "ternary_mul_kernel": [
+      "knowledge3d/cranium/bridges/tiered_rpn.py"
+    ],
+    "modular_rpn_kernel_extended": [
+      "knowledge3d/cranium/bridges/advanced_rpn.py"
+    ],
+    "spatial_mean_pool": [
+      "knowledge3d/cranium/bridges/spatial_pool_bridge.py"
+    ],
+    "gre_sub100micro_gate": [
+      "Old_Attempts/bridges/guard.py",
+      "knowledge3d/cranium/bridges/sovereign_bridges.py"
+    ],
+    "gre_arc_reasoner": [
+      "Old_Attempts/bridges/arc.py",
+      "knowledge3d/cranium/bridges/sovereign_bridges.py"
+    ],
+    "gre_oom_spill": [
+      "Old_Attempts/bridges/spill.py",
+      "knowledge3d/cranium/bridges/sovereign_bridges.py"
+    ],
+    "galaxy_resonance_engine": [
+      "Old_Attempts/bridges/resonance.py",
+      "knowledge3d/cranium/bridges/sovereign_bridges.py"
+    ],
+    "gre_geometry_router": [
+      "Old_Attempts/bridges/router.py",
+      "knowledge3d/cranium/bridges/sovereign_bridges.py"
+    ],
+    "gre_fractal_emitter": [
+      "Old_Attempts/bridges/fractal.py",
+      "knowledge3d/cranium/bridges/sovereign_bridges.py"
+    ],
+    "gre_resonance_field": [
+      "Old_Attempts/bridges/resonance.py",
+      "knowledge3d/cranium/bridges/sovereign_bridges.py"
+    ],
+    "gre_atomic_fission_fusion": [
+      "Old_Attempts/bridges/atomic_evolution.py",
+      "knowledge3d/cranium/bridges/sovereign_bridges.py"
+    ],
+    "gre_temporal_reasoning": [
+      "Old_Attempts/bridges/temporal_reasoning.py",
+      "knowledge3d/cranium/bridges/sovereign_bridges.py"
+    ],
+    "gre_vector_resonator": [
+      "Old_Attempts/bridges/resonance.py",
+      "knowledge3d/cranium/bridges/sovereign_bridges.py"
+    ],
+    "gre_graph_crystallizer": [
+      "Old_Attempts/bridges/graph_crystallizer.py",
+      "knowledge3d/cranium/bridges/sovereign_bridges.py"
+    ],
+    "gre_multimodal_halting_gate": [
+      "Old_Attempts/bridges/halting.py",
+      "knowledge3d/cranium/bridges/sovereign_bridges.py"
+    ],
+    "modular_rpn_extract_top": [
+      "knowledge3d/cranium/bridges/sovereign_bridges.py"
+    ],
+    "update_star_embedding_kernel": [
+      "knowledge3d/cranium/bridges/sovereign_bridges.py"
+    ],
+    "trit_overlay_generator": [
+      "knowledge3d/cranium/bridges/sovereign_bridges.py"
+    ],
+    "trit_inspector": [
+      "knowledge3d/cranium/bridges/sovereign_bridges.py"
+    ],
+    "ternary_depth_field": [
+      "knowledge3d/cranium/bridges/sovereign_bridges.py"
+    ],
+    "ternary_prune_decision": [
+      "knowledge3d/cranium/bridges/sovereign_bridges.py"
+    ],
+    "ternary_attention_mask": [
+      "knowledge3d/cranium/bridges/sovereign_bridges.py"
+    ],
+    "compute_adaptive_thresholds": [
+      "knowledge3d/cranium/bridges/sovereign_bridges.py"
+    ],
+    "nine_chain_swarm_kernel": [
+      "knowledge3d/cranium/bridges/nine_chain_swarm_bridge.py"
+    ],
+    "procedural_glyph_rasterizer": [
+      "knowledge3d/cranium/bridges/procedural_glyph_bridge.py"
+    ],
+    "arc_grid_op": [
+      "knowledge3d/cranium/bridges/drawing_bridge.py"
+    ],
+    "execute_rpn_bytecode": [
+      "knowledge3d/cranium/bridges/procedural_drawing_bridge.py"
+    ],
+    "compute_morton_codes": [
+      "knowledge3d/cranium/spatial_sovereign/morton_octree.py"
+    ],
+    "led_astar_navigate": [
+      "knowledge3d/cranium/spatial_sovereign/led_pathfinder.py"
+    ],
+    "warp_l2_dist": [
+      "knowledge3d/cranium/spatial_sovereign/led_pathfinder.py"
+    ],
+    "warp_frustum_cull_simd": [
+      "Old_Attempts/fsm_scaffolding/python/unified_fsm.py",
+      "knowledge3d/cranium/spatial_sovereign/frustum.py"
+    ],
+    "harmonic_topk": [
+      "knowledge3d/cranium/codecs/ptx_bindings/audio_harmonic_binding.py"
+    ],
+    "harmonic_synthesize": [
+      "knowledge3d/cranium/codecs/ptx_bindings/audio_harmonic_binding.py"
+    ],
+    "subtract_residual": [
+      "knowledge3d/cranium/codecs/ptx_bindings/audio_harmonic_binding.py"
+    ],
+    "ternary_quantize": [
+      "knowledge3d/cranium/codecs/ptx_bindings/ternary_quant_binding.py"
+    ],
+    "ternary_dequantize": [
+      "knowledge3d/cranium/codecs/ptx_bindings/ternary_quant_binding.py"
+    ],
+    "max_abs_reduce": [
+      "knowledge3d/cranium/codecs/ptx_bindings/ternary_quant_binding.py"
+    ],
+    "dct8x8_forward": [
+      "knowledge3d/cranium/codecs/ptx_bindings/ternary_dct8x8_binding.py"
+    ],
+    "dct8x8_inverse": [
+      "knowledge3d/cranium/codecs/ptx_bindings/ternary_dct8x8_binding.py"
+    ],
+    "ternary_mdct_inverse": [
+      "knowledge3d/cranium/codecs/ptx_bindings/ternary_mdct_binding.py"
+    ],
+    "swiglu_vec_512": [
+      "Old_Attempts/tests/test_trm_extensions.py"
+    ],
+    "vec_add3_512": [
+      "Old_Attempts/tests/test_trm_extensions.py"
+    ],
+    "matvec_512x1024": [
+      "Old_Attempts/tests/test_trm_extensions.py"
+    ],
+    "gre_cognitive_executive": [
+      "Old_Attempts/bridges/cognitive_executive.py"
+    ],
+    "gre_trm_core": [
+      "Old_Attempts/bridges/trm_core.py"
+    ],
+    "warp_modality_fuse": [
+      "Old_Attempts/fsm_scaffolding/python/fused_head.py",
+      "Old_Attempts/fsm_scaffolding/python/unified_fsm.py"
+    ],
+    "fused_head_fsm": [
+      "Old_Attempts/fsm_scaffolding/python/fused_head.py"
+    ]
+  },
+  "stats": {
+    "kernel_defs": 158,
+    "kernel_occurrences": 159,
+    "kernels_with_callsite": 87,
+    "kernels_without_callsite": 71,
+    "families": {
+      "other": 64,
+      "training/cnn": 27,
+      "spatial/nav": 9,
+      "drawing/glyph": 23,
+      "modality": 5,
+      "gre_": 9,
+      "ternary/trit": 11,
+      "codec": 6,
+      "rpn": 4
+    }
+  }
+}

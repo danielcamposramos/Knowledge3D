@@ -44,12 +44,12 @@ class MathCompetitionBenchmark:
         if self.dataset_path and self.dataset_path.exists():
             staged = self._load_from_competition_files(self.dataset_path)
             if staged:
-                return staged[: self.max_problems] if self.max_problems else staged
+                return staged[: self.max_problems] if self.max_problems is not None else staged
         fallback = self._load_from_calculus_microbench()
         if fallback:
-            return fallback[: self.max_problems] if self.max_problems else fallback
+            return fallback[: self.max_problems] if self.max_problems is not None else fallback
         synthetic = self._synthetic_problems()
-        return synthetic[: self.max_problems] if self.max_problems else synthetic
+        return synthetic[: self.max_problems] if self.max_problems is not None else synthetic
 
     def _load_from_competition_files(self, root: Path) -> list[dict[str, Any]]:
         out: list[dict[str, Any]] = []
