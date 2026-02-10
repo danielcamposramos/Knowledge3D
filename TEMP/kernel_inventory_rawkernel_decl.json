@@ -1,0 +1,46 @@
+[
+  {
+    "file": "knowledge3d/cranium/ptx/arc_ops.py",
+    "kernel": "argmax_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/arc_ops.py",
+    "kernel": "check_grid_validity_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/arc_ops.py",
+    "kernel": "compare_grids_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/arc_ops.py",
+    "kernel": "discovery_score_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/arc_ops.py",
+    "kernel": "extract_pattern_features_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/arc_ops.py",
+    "kernel": "filter_by_threshold_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/arc_ops.py",
+    "kernel": "validity_score_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx/arc_ops.py",
+    "kernel": "weighted_score_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx_runtime/trm_engine.py",
+    "kernel": "trm_answer_refine"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx_runtime/trm_engine.py",
+    "kernel": "trm_recursive_update"
+  },
+  {
+    "file": "knowledge3d/cranium/tests/test_latency_guard.py",
+    "kernel": "busy_wait"
+  }
+]
