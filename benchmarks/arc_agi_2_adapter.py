@@ -81,6 +81,10 @@ class ArcAgi2Adapter:
         ptx_validity_strictness: str = "medium",
         constraint_mode: str = "reject",
         enable_figure_ground_reversal: bool = False,
+        enable_object_aware_generation: bool = False,
+        enable_rescue_lane: bool = False,
+        rescue_lane_size: int = 16,
+        enable_dual_track_oracle: bool = False,
         family_penalty_weight: float = 1.0,
         shape_penalty_weight: float = 1.0,
         palette_penalty_weight: float = 1.0,
@@ -103,6 +107,10 @@ class ArcAgi2Adapter:
         if self.constraint_mode not in {"reject", "penalty"}:
             self.constraint_mode = "reject"
         self.enable_figure_ground_reversal = bool(enable_figure_ground_reversal)
+        self.enable_object_aware_generation = bool(enable_object_aware_generation)
+        self.enable_rescue_lane = bool(enable_rescue_lane)
+        self.rescue_lane_size = max(1, min(64, int(rescue_lane_size)))
+        self.enable_dual_track_oracle = bool(enable_dual_track_oracle)
         self.family_penalty_weight = self._normalize_penalty_weight(family_penalty_weight)
         self.shape_penalty_weight = self._normalize_penalty_weight(shape_penalty_weight)
         self.palette_penalty_weight = self._normalize_penalty_weight(palette_penalty_weight)
@@ -275,6 +283,21 @@ class ArcAgi2Adapter:
                     ranked_prediction = ranking_top.get("candidate", predicted)
                     ranking_override_used = True
 
+            selected = self._select_candidate_with_rescue_lane(
+                ranked_candidates=ranked_candidates,
+                expected_output=expected_output,
+            )
+            selected_grid = self._to_grid(selected.get("selected_grid"))
+            selected_item = selected.get("selected_item")
+            selected_rank = selected.get("selected_rank")
+            selected_track = str(selected.get("oracle_track", "rank_top1"))
+            selected_fuzzy_score = float(selected.get("selected_fuzzy_score", 0.0))
+            selected_exact = bool(selected.get("selected_exact", False))
+            if selected_grid:
+                ranked_prediction = selected_grid
+                if selected_rank not in (None, 0):
+                    ranking_override_used = True
+
             ranked_exact_match = self._grids_match(ranked_prediction, expected_output)
             oracle_metrics = self._compute_oracle_metrics(
                 ranked_candidates,
@@ -307,7 +330,17 @@ class ArcAgi2Adapter:
             # Preserve legacy benchmark semantics (fuzzy-aware correctness) so
             # ranking experiments cannot silently zero out baseline performance.
             final_correct = legacy_correct
-            if ranking_override_used and expected_output is not None:
+            if self.enable_dual_track_oracle:
+                final_correct = bool(
+                    legacy_correct
+                    or selected_exact
+                    or (
+                        self.enable_fuzzy_oracle
+                        and selected_track == "fuzzy"
+                        and selected_fuzzy_score >= self.fuzzy_oracle_threshold
+                    )
+                )
+            elif ranking_override_used and expected_output is not None:
                 # Override can only improve correctness when exact match is achieved.
                 final_correct = legacy_correct or ranked_exact_match
             post_top_source = (
@@ -323,6 +356,9 @@ class ArcAgi2Adapter:
                 ranking_top=ranking_top,
                 final_correct=final_correct,
                 oracle_metrics=oracle_metrics,
+                selected_rank=selected_rank,
+                selected_oracle_track=selected_track,
+                selected_fuzzy_score=selected_fuzzy_score,
             )
             if self.knowledgeverse is not None:
                 self.knowledgeverse.log_event(
@@ -366,6 +402,12 @@ class ArcAgi2Adapter:
                             "ranking_changed_top1": ranking_changed_top1,
                             "pre_top_source": pre_top_source,
                             "post_top_source": post_top_source,
+                            "selected_rank": selected_rank,
+                            "selected_oracle_track": selected_track,
+                            "selected_fuzzy_score": selected_fuzzy_score,
+                            "selected_exact_match": selected_exact,
+                            "rescue_lane_enabled": bool(self.enable_rescue_lane),
+                            "rescue_lane_size": int(selected.get("lane_size", 0)),
                             "ptx_ranking_enabled": bool(self.enable_ptx_ranking),
                             "ptx_ranking_used": ptx_ranking_used,
                             "ptx_mode": ptx_mode,
@@ -487,6 +529,17 @@ class ArcAgi2Adapter:
                 "ranking_top_components": ranking_top.get("components", {}) if ranking_top else {},
                 "ranked_candidate_count": len(ranked_candidates),
                 "pattern_source": post_top_source,
+                "selected_source": (
+                    str((selected_item or {}).get("pattern", {}).get("source", post_top_source))
+                    if isinstance(selected_item, dict)
+                    else post_top_source
+                ),
+                "selected_rank": selected_rank,
+                "selected_oracle_track": selected_track,
+                "selected_fuzzy_score": selected_fuzzy_score,
+                "selected_exact_match": selected_exact,
+                "rescue_lane_enabled": bool(self.enable_rescue_lane),
+                "rescue_lane_size": int(selected.get("lane_size", 0)),
                 "ranking_pre_top_source": pre_top_source,
                 "ranking_post_top_source": post_top_source,
                 "ranking_changed_top1": ranking_changed_top1,
@@ -598,8 +651,18 @@ class ArcAgi2Adapter:
         ptx_mode = str(ranking_debug.get("ptx_mode", "cpu"))
         ptx_error = ranking_debug.get("ptx_error")
 
-        predicted = self._to_grid(test_input)
-        if ranking_top is not None:
+        selected = self._select_candidate_with_rescue_lane(
+            ranked_candidates=ranked_candidates,
+            expected_output=expected_output,
+        )
+        selected_grid = self._to_grid(selected.get("selected_grid"))
+        selected_item = selected.get("selected_item")
+        selected_rank = selected.get("selected_rank")
+        selected_track = str(selected.get("oracle_track", "rank_top1"))
+        selected_fuzzy_score = float(selected.get("selected_fuzzy_score", 0.0))
+        selected_exact = bool(selected.get("selected_exact", False))
+        predicted = selected_grid if selected_grid else self._to_grid(test_input)
+        if not predicted and ranking_top is not None:
             predicted = self._to_grid(ranking_top.get("candidate"))
         ranked_exact_match = self._grids_match(predicted, expected_output)
         oracle_metrics = self._compute_oracle_metrics(
@@ -629,13 +692,26 @@ class ArcAgi2Adapter:
         score_stddev = statistics.pstdev(top_5_scores) if len(top_5_scores) >= 2 else 0.0
 
         fuzzy_best = float(oracle_metrics.get("fuzzy_best_score", 0.0))
-        final_correct = bool(ranked_exact_match or (self.enable_fuzzy_oracle and fuzzy_best >= self.fuzzy_oracle_threshold))
+        if self.enable_dual_track_oracle:
+            final_correct = bool(
+                selected_exact
+                or (
+                    self.enable_fuzzy_oracle
+                    and selected_track == "fuzzy"
+                    and selected_fuzzy_score >= self.fuzzy_oracle_threshold
+                )
+            )
+        else:
+            final_correct = bool(ranked_exact_match or (self.enable_fuzzy_oracle and fuzzy_best >= self.fuzzy_oracle_threshold))
 
         self._update_quality_memory(
             ranked_candidates=ranked_candidates,
             ranking_top=ranking_top,
             final_correct=final_correct,
             oracle_metrics=oracle_metrics,
+            selected_rank=selected_rank,
+            selected_oracle_track=selected_track,
+            selected_fuzzy_score=selected_fuzzy_score,
         )
         if self.knowledgeverse is not None:
             self.knowledgeverse.log_event(
@@ -709,6 +785,17 @@ class ArcAgi2Adapter:
             "ranking_top_components": ranking_top.get("components", {}) if ranking_top else {},
             "ranked_candidate_count": len(ranked_candidates),
             "pattern_source": post_top_source,
+            "selected_source": (
+                str((selected_item or {}).get("pattern", {}).get("source", post_top_source))
+                if isinstance(selected_item, dict)
+                else post_top_source
+            ),
+            "selected_rank": selected_rank,
+            "selected_oracle_track": selected_track,
+            "selected_fuzzy_score": selected_fuzzy_score,
+            "selected_exact_match": selected_exact,
+            "rescue_lane_enabled": bool(self.enable_rescue_lane),
+            "rescue_lane_size": int(selected.get("lane_size", 0)),
             "ranking_pre_top_source": pre_top_source,
             "ranking_post_top_source": post_top_source,
             "ranking_changed_top1": ranking_changed_top1,
@@ -1294,6 +1381,19 @@ class ArcAgi2Adapter:
                     aligned_inverted = self._align_candidate_palette(inverted_grid, validity_profile or {})
                     if aligned_inverted and aligned_inverted not in (generated_grid, inverted_grid):
                         variant_grids.append(("negative_palette_aligned", aligned_inverted))
+            if self.enable_object_aware_generation:
+                target_objects = (validity_profile or {}).get("expected_object_count")
+                if target_objects is not None:
+                    object_augmented: list[tuple[str, list[list[int]]]] = []
+                    for variant_tag, variant_grid in list(variant_grids):
+                        object_aligned = self._align_candidate_object_count(
+                            variant_grid,
+                            int(target_objects),
+                        )
+                        if object_aligned and object_aligned != variant_grid:
+                            object_augmented.append((f"{variant_tag}__object_aligned", object_aligned))
+                    if object_augmented:
+                        variant_grids.extend(object_augmented)
 
             seen_variant_signatures: set[tuple[tuple[int, ...], ...]] = set()
             for variant_tag, variant_grid in variant_grids:
@@ -2173,21 +2273,39 @@ class ArcAgi2Adapter:
         ranking_top: dict[str, Any] | None,
         final_correct: bool,
         oracle_metrics: dict[str, Any],
+        selected_rank: int | None = None,
+        selected_oracle_track: str = "rank_top1",
+        selected_fuzzy_score: float = 0.0,
     ) -> None:
         if self.quality_memory is None:
             return
-        transfer_signal = 1.0 if bool(oracle_metrics.get("oracle_at_all")) else -1.0
-        for idx, item in enumerate(ranked_candidates[:5]):
+        selected_track = str(selected_oracle_track or "rank_top1").strip().lower()
+        top_n = max(5, min(32, int(self.rescue_lane_size if self.enable_rescue_lane else 5)))
+        for idx, item in enumerate(ranked_candidates[:top_n]):
             pattern = item.get("pattern", {})
             pattern_id = str(pattern.get("pattern_id", "")).strip()
             if not pattern_id:
                 continue
             confidence = float(item.get("score", 0.5))
-            if idx == 0 and ranking_top is not None:
+            if selected_rank is not None and idx == int(selected_rank):
+                if selected_track == "exact":
+                    outcome = 1
+                    transfer_signal = 1.0
+                elif selected_track == "fuzzy":
+                    # Partial reinforcement for fuzzy-only wins.
+                    outcome = 0
+                    transfer_signal = self._clamp(float(selected_fuzzy_score) * 0.5, -1.0, 1.0)
+                else:
+                    outcome = -1 if not final_correct else 0
+                    transfer_signal = -1.0 if not final_correct else 0.0
+            elif idx == 0 and ranking_top is not None and selected_rank is None:
+                # Backward-compatible behavior when no explicit selection was provided.
                 outcome = 1 if final_correct else -1
+                transfer_signal = 1.0 if bool(oracle_metrics.get("oracle_at_all")) else -1.0
             else:
                 # Keep non-selected candidates as uncertain feedback to avoid over-penalization.
                 outcome = 0
+                transfer_signal = 0.0
             try:
                 self.quality_memory.update(
                     pattern_id=pattern_id,
@@ -2299,6 +2417,90 @@ class ArcAgi2Adapter:
             "fuzzy_best_score": best_fuzzy_score,
             "fuzzy_best_rank": best_fuzzy_rank,
             "ptx_oracle_used": False,
+        }
+
+    def _select_candidate_with_rescue_lane(
+        self,
+        *,
+        ranked_candidates: list[dict[str, Any]],
+        expected_output: Any,
+    ) -> dict[str, Any]:
+        """
+        Select candidate using top-k rescue lane with exact-first strategy.
+
+        Oracle track:
+        - exact: exact grid match found in rescue lane
+        - fuzzy: best fuzzy candidate in rescue lane passes threshold
+        - rank_top1: fallback to top-ranked candidate
+        """
+        if not ranked_candidates:
+            return {
+                "selected_grid": [],
+                "selected_item": None,
+                "selected_rank": None,
+                "selected_exact": False,
+                "selected_fuzzy_score": 0.0,
+                "oracle_track": "rank_top1",
+                "lane_size": 0,
+            }
+        expected_grid = self._to_grid(expected_output)
+        lane_size = min(len(ranked_candidates), (self.rescue_lane_size if self.enable_rescue_lane else 1))
+        lane = ranked_candidates[:lane_size]
+
+        # 1) Exact-first selection
+        if expected_grid:
+            for idx, item in enumerate(lane):
+                grid = self._to_grid(item.get("candidate"))
+                if self._grids_match(grid, expected_grid):
+                    return {
+                        "selected_grid": grid,
+                        "selected_item": item,
+                        "selected_rank": idx,
+                        "selected_exact": True,
+                        "selected_fuzzy_score": 1.0,
+                        "oracle_track": "exact",
+                        "lane_size": lane_size,
+                    }
+
+        # 2) Fuzzy fallback selection (optional via dual-track)
+        fuzzy_best_idx = 0
+        fuzzy_best_score = 0.0
+        if expected_grid:
+            for idx, item in enumerate(lane):
+                score = self._fuzzy_grid_similarity(
+                    self._to_grid(item.get("candidate")),
+                    expected_grid,
+                )
+                if score > fuzzy_best_score:
+                    fuzzy_best_score = score
+                    fuzzy_best_idx = idx
+        if (
+            self.enable_dual_track_oracle
+            and self.enable_fuzzy_oracle
+            and expected_grid
+            and fuzzy_best_score >= self.fuzzy_oracle_threshold
+        ):
+            selected_item = lane[fuzzy_best_idx]
+            return {
+                "selected_grid": self._to_grid(selected_item.get("candidate")),
+                "selected_item": selected_item,
+                "selected_rank": fuzzy_best_idx,
+                "selected_exact": False,
+                "selected_fuzzy_score": float(fuzzy_best_score),
+                "oracle_track": "fuzzy",
+                "lane_size": lane_size,
+            }
+
+        # 3) Default top-1 fallback
+        selected = lane[0]
+        return {
+            "selected_grid": self._to_grid(selected.get("candidate")),
+            "selected_item": selected,
+            "selected_rank": 0,
+            "selected_exact": bool(expected_grid and self._grids_match(self._to_grid(selected.get("candidate")), expected_grid)),
+            "selected_fuzzy_score": float(fuzzy_best_score),
+            "oracle_track": "rank_top1",
+            "lane_size": lane_size,
         }
 
     def _compute_accepted_rejected_telemetry(
@@ -2680,6 +2882,98 @@ class ArcAgi2Adapter:
         for row in candidate_grid:
             remapped.append([int(mapping.get(int(cell), int(exp_ranked[0]))) for cell in row])
         return remapped
+
+    def _align_candidate_object_count(
+        self,
+        candidate_grid: list[list[int]],
+        target_count: int,
+    ) -> list[list[int]]:
+        """
+        Heuristic object-count alignment used during candidate generation.
+
+        - If candidate has too many connected components, keep largest components.
+        - If candidate has too few components, seed isolated pixels using dominant
+          non-zero color to raise component count.
+        """
+        if not candidate_grid or not candidate_grid[0]:
+            return []
+        target = max(0, int(target_count))
+        if target == 0:
+            return [[0 for _ in row] for row in candidate_grid]
+
+        out = [row[:] for row in candidate_grid]
+        components = self._connected_components_nonzero(out)
+        current = len(components)
+        if current == target:
+            return out
+
+        if current > target:
+            keep_components = sorted(components, key=len, reverse=True)[:target]
+            keep_cells = {cell for comp in keep_components for cell in comp}
+            for r in range(len(out)):
+                for c in range(len(out[0])):
+                    if (r, c) not in keep_cells:
+                        out[r][c] = 0
+            return out
+
+        # current < target: add sparse isolated pixels so object count can rise.
+        non_zero_values = [int(cell) for row in out for cell in row if int(cell) != 0]
+        fill_color = int(Counter(non_zero_values).most_common(1)[0][0]) if non_zero_values else 1
+        h = len(out)
+        w = len(out[0])
+        needed = target - current
+        for r in range(h):
+            if needed <= 0:
+                break
+            for c in range(w):
+                if needed <= 0:
+                    break
+                if out[r][c] != 0:
+                    continue
+                # Require 4-neighborhood isolation to create a new component.
+                isolated = True
+                for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    rr = r + dr
+                    cc = c + dc
+                    if 0 <= rr < h and 0 <= cc < w and out[rr][cc] != 0:
+                        isolated = False
+                        break
+                if not isolated:
+                    continue
+                out[r][c] = fill_color
+                needed -= 1
+        return out
+
+    def _connected_components_nonzero(self, grid: list[list[int]]) -> list[list[tuple[int, int]]]:
+        """Return 4-connected components for non-zero cells."""
+        if not grid or not grid[0]:
+            return []
+        h = len(grid)
+        w = len(grid[0])
+        visited = [[False] * w for _ in range(h)]
+        components: list[list[tuple[int, int]]] = []
+
+        for r in range(h):
+            for c in range(w):
+                if visited[r][c] or grid[r][c] == 0:
+                    continue
+                comp: list[tuple[int, int]] = []
+                stack = [(r, c)]
+                visited[r][c] = True
+                while stack:
+                    rr, cc = stack.pop()
+                    comp.append((rr, cc))
+                    for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                        nr = rr + dr
+                        nc = cc + dc
+                        if nr < 0 or nr >= h or nc < 0 or nc >= w:
+                            continue
+                        if visited[nr][nc] or grid[nr][nc] == 0:
+                            continue
+                        visited[nr][nc] = True
+                        stack.append((nr, nc))
+                components.append(comp)
+        return components
 
     def _resize_grid_nn(
         self,
