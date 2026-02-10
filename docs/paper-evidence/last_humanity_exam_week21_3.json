@@ -1,0 +1,164 @@
+{
+  "benchmark": "Last Humanity Exam",
+  "dataset_path": "/K3D/Knowledge3D.local/datasets/exams/hle-src",
+  "use_enriched": true,
+  "total_questions": 4,
+  "correct": 4,
+  "accuracy": 1.0,
+  "results": [
+    {
+      "question_id": "lhe_math_1",
+      "domain": "math",
+      "correct": 1,
+      "predicted_answer": "35",
+      "correct_answer": "35",
+      "knowledge_used": 40,
+      "reasoning_trace": [
+        "route specialist=math domain=math reason=domain_hint",
+        "route specialist=math domain=math reason=explicit_specialist",
+        "query specialist=math top_k=40",
+        "select_answer"
+      ],
+      "route": {
+        "specialist": "math",
+        "domain": "math",
+        "galaxy_names": [
+          "Math",
+          "Grammar"
+        ],
+        "reason": "domain_hint",
+        "matryoshka_specialist": "BasicMathSpecialist",
+        "matryoshka_domain": "basic_math",
+        "matryoshka_level": 2
+      }
+    },
+    {
+      "question_id": "lhe_logic_1",
+      "domain": "logic",
+      "correct": 1,
+      "predicted_answer": "All A are C",
+      "correct_answer": "All A are C",
+      "knowledge_used": 40,
+      "reasoning_trace": [
+        "route specialist=math domain=math reason=domain_hint",
+        "route specialist=math domain=math reason=explicit_specialist",
+        "query specialist=math top_k=40",
+        "select_answer",
+        "route specialist=grammar domain=logic reason=domain_hint",
+        "route specialist=grammar domain=logic reason=explicit_specialist",
+        "query specialist=grammar top_k=40",
+        "select_answer"
+      ],
+      "route": {
+        "specialist": "grammar",
+        "domain": "logic",
+        "galaxy_names": [
+          "Grammar"
+        ],
+        "reason": "domain_hint",
+        "matryoshka_specialist": "SyntaxSpecialist",
+        "matryoshka_domain": "syntax",
+        "matryoshka_level": 2
+      }
+    },
+    {
+      "question_id": "lhe_physics_1",
+      "domain": "physics",
+      "correct": 1,
+      "predicted_answer": "Force",
+      "correct_answer": "Force",
+      "knowledge_used": 40,
+      "reasoning_trace": [
+        "route specialist=math domain=math reason=domain_hint",
+        "route specialist=math domain=math reason=explicit_specialist",
+        "query specialist=math top_k=40",
+        "select_answer",
+        "route specialist=grammar domain=logic reason=domain_hint",
+        "route specialist=grammar domain=logic reason=explicit_specialist",
+        "query specialist=grammar top_k=40",
+        "select_answer",
+        "route specialist=physics domain=physics reason=domain_hint",
+        "route specialist=physics domain=physics reason=explicit_specialist",
+        "query specialist=physics top_k=40",
+        "select_answer"
+      ],
+      "route": {
+        "specialist": "physics",
+        "domain": "physics",
+        "galaxy_names": [
+          "Reality",
+          "3DObjects",
+          "Math",
+          "Grammar"
+        ],
+        "reason": "domain_hint",
+        "matryoshka_specialist": "MechanicsSpecialist",
+        "matryoshka_domain": "mechanics",
+        "matryoshka_level": 2
+      }
+    },
+    {
+      "question_id": "lhe_multi_1",
+      "domain": "multi",
+      "correct": 1,
+      "predicted_answer": "Request verification and reduce search space",
+      "correct_answer": "Request verification and reduce search space",
+      "knowledge_used": 40,
+      "reasoning_trace": [
+        "route specialist=math domain=math reason=domain_hint",
+        "route specialist=math domain=math reason=explicit_specialist",
+        "query specialist=math top_k=40",
+        "select_answer",
+        "route specialist=grammar domain=logic reason=domain_hint",
+        "route specialist=grammar domain=logic reason=explicit_specialist",
+        "query specialist=grammar top_k=40",
+        "select_answer",
+        "route specialist=physics domain=physics reason=domain_hint",
+        "route specialist=physics domain=physics reason=explicit_specialist",
+        "query specialist=physics top_k=40",
+        "select_answer",
+        "route specialist=cartographer domain=multi reason=domain_hint",
+        "route specialist=cartographer domain=multi reason=explicit_specialist",
+        "query specialist=cartographer top_k=40",
+        "select_answer"
+      ],
+      "route": {
+        "specialist": "cartographer",
+        "domain": "multi",
+        "galaxy_names": [
+          "Math",
+          "Reality",
+          "3DObjects",
+          "Grammar",
+          "Drawing"
+        ],
+        "reason": "domain_hint",
+        "matryoshka_specialist": "ArcVisualSpecialist",
+        "matryoshka_domain": "arc_visual",
+        "matryoshka_level": 2
+      }
+    }
+  ],
+  "results_by_domain": {
+    "math": {
+      "total": 1,
+      "correct": 1,
+      "accuracy": 1.0
+    },
+    "logic": {
+      "total": 1,
+      "correct": 1,
+      "accuracy": 1.0
+    },
+    "physics": {
+      "total": 1,
+      "correct": 1,
+      "accuracy": 1.0
+    },
+    "multi": {
+      "total": 1,
+      "correct": 1,
+      "accuracy": 1.0
+    }
+  }
+}
