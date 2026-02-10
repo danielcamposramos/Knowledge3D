@@ -388,6 +388,27 @@ def main() -> None:
         help="Alias for --arc-enable-figure-ground-reversal (positive/negative form duality).",
     )
     parser.add_argument(
+        "--arc-enable-object-aware-generation",
+        action="store_true",
+        help="Enable object-count-aware ARC candidate generation variants before ranking.",
+    )
+    parser.add_argument(
+        "--arc-enable-rescue-lane",
+        action="store_true",
+        help="Enable top-k rescue lane selection (exact-first, fuzzy fallback).",
+    )
+    parser.add_argument(
+        "--arc-rescue-lane-size",
+        type=int,
+        default=16,
+        help="Top-k size for rescue lane selection when enabled.",
+    )
+    parser.add_argument(
+        "--arc-enable-dual-track-oracle",
+        action="store_true",
+        help="Use dual-track oracle weighting (exact=full reinforcement, fuzzy=partial).",
+    )
+    parser.add_argument(
         "--arc-family-penalty-weight",
         type=float,
         default=1.0,
@@ -544,6 +565,10 @@ def main() -> None:
                 ptx_validity_strictness=args.arc_ptx_validity_strictness,
                 constraint_mode=args.arc_constraint_mode,
                 enable_figure_ground_reversal=arc_enable_negative_forms,
+                enable_object_aware_generation=args.arc_enable_object_aware_generation,
+                enable_rescue_lane=args.arc_enable_rescue_lane,
+                rescue_lane_size=args.arc_rescue_lane_size,
+                enable_dual_track_oracle=args.arc_enable_dual_track_oracle,
                 family_penalty_weight=args.arc_family_penalty_weight,
                 shape_penalty_weight=args.arc_shape_penalty_weight,
                 palette_penalty_weight=args.arc_palette_penalty_weight,
@@ -587,6 +612,10 @@ def main() -> None:
                 ptx_validity_strictness=args.arc_ptx_validity_strictness,
                 constraint_mode=args.arc_constraint_mode,
                 enable_figure_ground_reversal=arc_enable_negative_forms,
+                enable_object_aware_generation=args.arc_enable_object_aware_generation,
+                enable_rescue_lane=args.arc_enable_rescue_lane,
+                rescue_lane_size=args.arc_rescue_lane_size,
+                enable_dual_track_oracle=args.arc_enable_dual_track_oracle,
                 family_penalty_weight=args.arc_family_penalty_weight,
                 shape_penalty_weight=args.arc_shape_penalty_weight,
                 palette_penalty_weight=args.arc_palette_penalty_weight,
@@ -642,6 +671,10 @@ def main() -> None:
                 ptx_validity_strictness=args.arc_ptx_validity_strictness,
                 constraint_mode=args.arc_constraint_mode,
                 enable_figure_ground_reversal=arc_enable_negative_forms,
+                enable_object_aware_generation=args.arc_enable_object_aware_generation,
+                enable_rescue_lane=args.arc_enable_rescue_lane,
+                rescue_lane_size=args.arc_rescue_lane_size,
+                enable_dual_track_oracle=args.arc_enable_dual_track_oracle,
                 family_penalty_weight=args.arc_family_penalty_weight,
                 shape_penalty_weight=args.arc_shape_penalty_weight,
                 palette_penalty_weight=args.arc_palette_penalty_weight,
@@ -689,6 +722,10 @@ def main() -> None:
                 ptx_validity_strictness=args.arc_ptx_validity_strictness,
                 constraint_mode=args.arc_constraint_mode,
                 enable_figure_ground_reversal=arc_enable_negative_forms,
+                enable_object_aware_generation=args.arc_enable_object_aware_generation,
+                enable_rescue_lane=args.arc_enable_rescue_lane,
+                rescue_lane_size=args.arc_rescue_lane_size,
+                enable_dual_track_oracle=args.arc_enable_dual_track_oracle,
                 family_penalty_weight=args.arc_family_penalty_weight,
                 shape_penalty_weight=args.arc_shape_penalty_weight,
                 palette_penalty_weight=args.arc_palette_penalty_weight,
@@ -763,6 +800,10 @@ def main() -> None:
             "arc_ptx_validity_strictness": str(args.arc_ptx_validity_strictness),
             "arc_constraint_mode": str(args.arc_constraint_mode),
             "arc_enable_figure_ground_reversal": bool(arc_enable_negative_forms),
+            "arc_enable_object_aware_generation": bool(args.arc_enable_object_aware_generation),
+            "arc_enable_rescue_lane": bool(args.arc_enable_rescue_lane),
+            "arc_rescue_lane_size": int(args.arc_rescue_lane_size),
+            "arc_enable_dual_track_oracle": bool(args.arc_enable_dual_track_oracle),
             "arc_family_penalty_weight": float(args.arc_family_penalty_weight),
             "arc_shape_penalty_weight": float(args.arc_shape_penalty_weight),
             "arc_palette_penalty_weight": float(args.arc_palette_penalty_weight),
@@ -924,6 +965,13 @@ def main() -> None:
     print(f"  ARC PTX validity strictness: {args.arc_ptx_validity_strictness}")
     print(f"  ARC constraint mode: {args.arc_constraint_mode}")
     print(f"  ARC figure-ground reversal: {bool(arc_enable_negative_forms)}")
+    print(f"  ARC object-aware generation: {bool(args.arc_enable_object_aware_generation)}")
+    print(
+        "  ARC rescue lane: "
+        f"enabled={bool(args.arc_enable_rescue_lane)} "
+        f"size={int(args.arc_rescue_lane_size)}"
+    )
+    print(f"  ARC dual-track oracle: {bool(args.arc_enable_dual_track_oracle)}")
     print(
         "  ARC penalty weights:"
         f" family={float(args.arc_family_penalty_weight):.2f}"

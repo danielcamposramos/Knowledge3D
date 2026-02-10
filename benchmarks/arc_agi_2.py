@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -30,6 +31,10 @@ class ARCAGI2Benchmark:
         ptx_validity_strictness: str = "medium",
         constraint_mode: str = "reject",
         enable_figure_ground_reversal: bool = False,
+        enable_object_aware_generation: bool = False,
+        enable_rescue_lane: bool = False,
+        rescue_lane_size: int = 16,
+        enable_dual_track_oracle: bool = False,
         family_penalty_weight: float = 1.0,
         shape_penalty_weight: float = 1.0,
         palette_penalty_weight: float = 1.0,
@@ -50,6 +55,10 @@ class ARCAGI2Benchmark:
         if self.constraint_mode not in {"reject", "penalty"}:
             self.constraint_mode = "reject"
         self.enable_figure_ground_reversal = bool(enable_figure_ground_reversal)
+        self.enable_object_aware_generation = bool(enable_object_aware_generation)
+        self.enable_rescue_lane = bool(enable_rescue_lane)
+        self.rescue_lane_size = int(rescue_lane_size)
+        self.enable_dual_track_oracle = bool(enable_dual_track_oracle)
         self.family_penalty_weight = float(family_penalty_weight)
         self.shape_penalty_weight = float(shape_penalty_weight)
         self.palette_penalty_weight = float(palette_penalty_weight)
@@ -152,6 +161,10 @@ class ARCAGI2Benchmark:
             ptx_validity_strictness=self.ptx_validity_strictness,
             constraint_mode=self.constraint_mode,
             enable_figure_ground_reversal=self.enable_figure_ground_reversal,
+            enable_object_aware_generation=self.enable_object_aware_generation,
+            enable_rescue_lane=self.enable_rescue_lane,
+            rescue_lane_size=self.rescue_lane_size,
+            enable_dual_track_oracle=self.enable_dual_track_oracle,
             family_penalty_weight=self.family_penalty_weight,
             shape_penalty_weight=self.shape_penalty_weight,
             palette_penalty_weight=self.palette_penalty_weight,
@@ -356,6 +369,9 @@ class ARCAGI2Benchmark:
         generation_accept_rates = [float(row.get("generation_filter_accept_rate", 0.0)) for row in rows]
         generation_reject_rates = [float(row.get("generation_filter_reject_rate", 0.0)) for row in rows]
         generation_totals = [int(row.get("generation_filter_generated_total", 0)) for row in rows]
+        rescue_enabled = sum(1 for row in rows if bool(row.get("rescue_lane_enabled", False)))
+        selected_exact = sum(1 for row in rows if bool(row.get("selected_exact_match", False)))
+        selected_tracks = Counter(str(row.get("selected_oracle_track", "rank_top1")) for row in rows)
         failure_modes = {"family": 0, "shape": 0, "palette": 0, "object_count": 0, "generation_gap": 0, "near_miss": 0}
         for row in rows:
             details = row.get("oracle_failure_modes", {})
@@ -412,6 +428,9 @@ class ARCAGI2Benchmark:
                 (sum(generation_reject_rates) / total) if generation_reject_rates else 0.0
             ),
             "generation_filter_generated_total": int(sum(generation_totals)),
+            "rescue_lane_enabled_rate": rescue_enabled / total,
+            "selected_exact_rate": selected_exact / total,
+            "selected_oracle_track_counts": dict(selected_tracks),
             "ptx_ranking_enabled_rate": ptx_enabled / total,
             "ptx_ranking_used_rate": ptx_used / total,
             "ptx_ranking_error_rate": ptx_errors / total,
