@@ -43,6 +43,7 @@ def _run_iteration(
     run_proxy: bool,
     max_proxy_questions: int,
     python_exe: str,
+    unified_storage_root: Path | None,
 ) -> dict[str, Any]:
     print("\n" + "=" * 80)
     print(f"ITERATION {iteration_num} @ {datetime.now(tz=timezone.utc).isoformat()}")
@@ -66,7 +67,11 @@ def _run_iteration(
         str(max_math_problems),
         "--max-lhe-questions",
         str(max_lhe_questions),
+        "--model-persistence-mode",
+        "unified",
     ]
+    if unified_storage_root is not None:
+        cmd.extend(["--unified-storage-root", str(unified_storage_root)])
     if run_proxy:
         cmd.extend(["--run-proxy", "--max-proxy-questions", str(max_proxy_questions)])
 
@@ -94,7 +99,7 @@ def _run_iteration(
 
 
 def _monitor_galaxy_growth(storage_root: Path) -> dict[str, Any]:
-    kv = Knowledgeverse(storage_root=storage_root / "galaxies_enriched")
+    kv = Knowledgeverse(storage_root=storage_root)
     report: dict[str, Any] = {}
     for galaxy_name in ("Drawing", "Grammar", "Math", "Reality", "3DObjects", "Audio"):
         galaxy = kv.galaxy_manager.get_galaxy(galaxy_name)
@@ -113,7 +118,7 @@ def _monitor_galaxy_growth(storage_root: Path) -> dict[str, Any]:
 
 
 def _monitor_specialist_tree(storage_root: Path) -> dict[str, Any]:
-    tree_path = storage_root / "galaxies_enriched" / "checkpoints" / "trm_specialist_tree.json"
+    tree_path = storage_root / "checkpoints" / "trm_specialist_tree.json"
     if not tree_path.exists():
         return {"specialist_count": 0, "tree_path": str(tree_path), "present": False}
     payload = json.loads(tree_path.read_text(encoding="utf-8"))
@@ -185,9 +190,17 @@ def main() -> None:
     parser.add_argument("--max-proxy-questions", type=int, default=20)
     parser.add_argument("--pause-seconds", type=float, default=5.0)
     parser.add_argument("--python-exe", default=sys.executable)
+    parser.add_argument(
+        "--unified-storage-root",
+        type=Path,
+        default=None,
+        help="Optional shared world path for unified persistence mode (defaults to storage_root/galaxies_enriched).",
+    )
     args = parser.parse_args()
 
     args.output_root.mkdir(parents=True, exist_ok=True)
+
+    shared_world = args.unified_storage_root or (args.storage_root / "galaxies_enriched")
 
     iteration_results: list[dict[str, Any]] = []
     galaxy_growth_history: list[dict[str, Any]] = []
@@ -205,10 +218,11 @@ def main() -> None:
             run_proxy=args.run_proxy,
             max_proxy_questions=args.max_proxy_questions,
             python_exe=args.python_exe,
+            unified_storage_root=shared_world,
         )
         iteration_results.append(summary)
-        galaxy_growth = _monitor_galaxy_growth(args.storage_root)
-        specialist_tree = _monitor_specialist_tree(args.storage_root)
+        galaxy_growth = _monitor_galaxy_growth(shared_world)
+        specialist_tree = _monitor_specialist_tree(shared_world)
         galaxy_growth_history.append(galaxy_growth)
         specialist_tree_history.append(specialist_tree)
 
@@ -233,6 +247,7 @@ def main() -> None:
             "run_proxy": args.run_proxy,
             "max_proxy_questions": args.max_proxy_questions,
             "storage_root": str(args.storage_root),
+            "shared_world_root": str(shared_world),
             "dataset_root": str(args.dataset_root),
         },
         "iteration_results": iteration_results,

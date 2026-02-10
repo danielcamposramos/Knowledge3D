@@ -455,79 +455,182 @@ def _run_integrated_suite(
     arc_enable_fuzzy_oracle: bool = False,
     arc_fuzzy_oracle_threshold: float = 0.95,
     arc_enable_ptx_ranking: bool = False,
+    arc_enable_full_ptx: bool = False,
+    arc_ptx_validity_strictness: str = "medium",
     benchmark_runtime_seeding: bool = False,
+    model_persistence_mode: str = "unified",
+    unified_storage_root: Path | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any], Knowledgeverse, Knowledgeverse]:
     empty_root = storage_root / "galaxies_empty_mind"
     enriched_root = storage_root / "galaxies_enriched"
+    shared_root = unified_storage_root or enriched_root
     empty_root.mkdir(parents=True, exist_ok=True)
     enriched_root.mkdir(parents=True, exist_ok=True)
+    shared_root.mkdir(parents=True, exist_ok=True)
 
-    empty_kv = Knowledgeverse(storage_root=empty_root)
-    enriched_kv = Knowledgeverse(storage_root=enriched_root)
+    continuity: dict[str, Any] = {
+        "mode": str(model_persistence_mode),
+        "shared_instance": False,
+        "instance_ids": {},
+    }
 
-    empty_galaxy_counts_start = _collect_default_galaxy_counts(empty_kv)
-    arc_empty, arc_empty_metrics = _run_with_metrics(
-        "global_arc_empty_mind",
-        lambda: ARCAGI2Benchmark(
-            knowledgeverse=empty_kv,
-            max_tasks=max_arc_tasks,
-            enable_contrastive_learning=arc_enable_contrastive_learning,
-            enable_validity_gates=arc_enable_validity_gates,
-            enable_fuzzy_oracle=arc_enable_fuzzy_oracle,
-            fuzzy_oracle_threshold=arc_fuzzy_oracle_threshold,
-            enable_ptx_ranking=arc_enable_ptx_ranking,
-            runtime_seed_knowledge=benchmark_runtime_seeding,
-        ).run_benchmark(use_enriched=False),
-    )
-    math_empty, math_empty_metrics = _run_with_metrics(
-        "global_math_empty_mind",
-        lambda: MathCompetitionBenchmark(
-            knowledgeverse=empty_kv,
-            max_problems=max_math_problems,
-            runtime_seed_knowledge=benchmark_runtime_seeding,
-        ).run_benchmark(use_enriched=False),
-    )
-    lhe_empty, lhe_empty_metrics = _run_with_metrics(
-        "global_lhe_empty_mind",
-        lambda: LastHumanityExamBenchmark(
-            knowledgeverse=empty_kv,
-            max_questions=max_lhe_questions,
-            runtime_seed_knowledge=benchmark_runtime_seeding,
-        ).run_benchmark(use_enriched=False),
-    )
-    empty_galaxy_counts_end = _collect_default_galaxy_counts(empty_kv)
+    if str(model_persistence_mode) == "unified":
+        shared_kv = Knowledgeverse(storage_root=shared_root)
+        continuity["shared_instance"] = True
+        continuity["instance_ids"] = {
+            "empty_mind": int(id(shared_kv)),
+            "enriched": int(id(shared_kv)),
+        }
 
-    enriched_galaxy_counts_start = _collect_default_galaxy_counts(enriched_kv)
-    arc_enriched, arc_enriched_metrics = _run_with_metrics(
-        "global_arc_enriched",
-        lambda: ARCAGI2Benchmark(
-            knowledgeverse=enriched_kv,
-            max_tasks=max_arc_tasks,
-            enable_contrastive_learning=arc_enable_contrastive_learning,
-            enable_validity_gates=arc_enable_validity_gates,
-            enable_fuzzy_oracle=arc_enable_fuzzy_oracle,
-            fuzzy_oracle_threshold=arc_fuzzy_oracle_threshold,
-            enable_ptx_ranking=arc_enable_ptx_ranking,
-            runtime_seed_knowledge=benchmark_runtime_seeding,
-        ).run_benchmark(use_enriched=True),
-    )
-    math_enriched, math_enriched_metrics = _run_with_metrics(
-        "global_math_enriched",
-        lambda: MathCompetitionBenchmark(
-            knowledgeverse=enriched_kv,
-            max_problems=max_math_problems,
-            runtime_seed_knowledge=benchmark_runtime_seeding,
-        ).run_benchmark(use_enriched=True),
-    )
-    lhe_enriched, lhe_enriched_metrics = _run_with_metrics(
-        "global_lhe_enriched",
-        lambda: LastHumanityExamBenchmark(
-            knowledgeverse=enriched_kv,
-            max_questions=max_lhe_questions,
-            runtime_seed_knowledge=benchmark_runtime_seeding,
-        ).run_benchmark(use_enriched=True),
-    )
-    enriched_galaxy_counts_end = _collect_default_galaxy_counts(enriched_kv)
+        shared_start = _collect_default_galaxy_counts(shared_kv)
+        arc_empty, arc_empty_metrics = _run_with_metrics(
+            "global_arc_empty_mind",
+            lambda: ARCAGI2Benchmark(
+                knowledgeverse=shared_kv,
+                max_tasks=max_arc_tasks,
+                enable_contrastive_learning=arc_enable_contrastive_learning,
+                enable_validity_gates=arc_enable_validity_gates,
+                enable_fuzzy_oracle=arc_enable_fuzzy_oracle,
+                fuzzy_oracle_threshold=arc_fuzzy_oracle_threshold,
+                enable_ptx_ranking=arc_enable_ptx_ranking,
+                enable_full_ptx=arc_enable_full_ptx,
+                ptx_validity_strictness=arc_ptx_validity_strictness,
+                runtime_seed_knowledge=benchmark_runtime_seeding,
+            ).run_benchmark(use_enriched=False),
+        )
+        math_empty, math_empty_metrics = _run_with_metrics(
+            "global_math_empty_mind",
+            lambda: MathCompetitionBenchmark(
+                knowledgeverse=shared_kv,
+                max_problems=max_math_problems,
+                runtime_seed_knowledge=benchmark_runtime_seeding,
+            ).run_benchmark(use_enriched=False),
+        )
+        lhe_empty, lhe_empty_metrics = _run_with_metrics(
+            "global_lhe_empty_mind",
+            lambda: LastHumanityExamBenchmark(
+                knowledgeverse=shared_kv,
+                max_questions=max_lhe_questions,
+                runtime_seed_knowledge=benchmark_runtime_seeding,
+            ).run_benchmark(use_enriched=False),
+        )
+        shared_after_empty = _collect_default_galaxy_counts(shared_kv)
+
+        arc_enriched, arc_enriched_metrics = _run_with_metrics(
+            "global_arc_enriched",
+            lambda: ARCAGI2Benchmark(
+                knowledgeverse=shared_kv,
+                max_tasks=max_arc_tasks,
+                enable_contrastive_learning=arc_enable_contrastive_learning,
+                enable_validity_gates=arc_enable_validity_gates,
+                enable_fuzzy_oracle=arc_enable_fuzzy_oracle,
+                fuzzy_oracle_threshold=arc_fuzzy_oracle_threshold,
+                enable_ptx_ranking=arc_enable_ptx_ranking,
+                enable_full_ptx=arc_enable_full_ptx,
+                ptx_validity_strictness=arc_ptx_validity_strictness,
+                runtime_seed_knowledge=benchmark_runtime_seeding,
+            ).run_benchmark(use_enriched=True),
+        )
+        math_enriched, math_enriched_metrics = _run_with_metrics(
+            "global_math_enriched",
+            lambda: MathCompetitionBenchmark(
+                knowledgeverse=shared_kv,
+                max_problems=max_math_problems,
+                runtime_seed_knowledge=benchmark_runtime_seeding,
+            ).run_benchmark(use_enriched=True),
+        )
+        lhe_enriched, lhe_enriched_metrics = _run_with_metrics(
+            "global_lhe_enriched",
+            lambda: LastHumanityExamBenchmark(
+                knowledgeverse=shared_kv,
+                max_questions=max_lhe_questions,
+                runtime_seed_knowledge=benchmark_runtime_seeding,
+            ).run_benchmark(use_enriched=True),
+        )
+        shared_after_enriched = _collect_default_galaxy_counts(shared_kv)
+
+        empty_kv = shared_kv
+        enriched_kv = shared_kv
+        empty_galaxy_counts_start = shared_start
+        empty_galaxy_counts_end = shared_after_empty
+        enriched_galaxy_counts_start = shared_after_empty
+        enriched_galaxy_counts_end = shared_after_enriched
+    else:
+        empty_kv = Knowledgeverse(storage_root=empty_root)
+        enriched_kv = Knowledgeverse(storage_root=enriched_root)
+        continuity["instance_ids"] = {
+            "empty_mind": int(id(empty_kv)),
+            "enriched": int(id(enriched_kv)),
+        }
+        continuity["shared_instance"] = continuity["instance_ids"]["empty_mind"] == continuity["instance_ids"]["enriched"]
+
+        empty_galaxy_counts_start = _collect_default_galaxy_counts(empty_kv)
+        arc_empty, arc_empty_metrics = _run_with_metrics(
+            "global_arc_empty_mind",
+            lambda: ARCAGI2Benchmark(
+                knowledgeverse=empty_kv,
+                max_tasks=max_arc_tasks,
+                enable_contrastive_learning=arc_enable_contrastive_learning,
+                enable_validity_gates=arc_enable_validity_gates,
+                enable_fuzzy_oracle=arc_enable_fuzzy_oracle,
+                fuzzy_oracle_threshold=arc_fuzzy_oracle_threshold,
+                enable_ptx_ranking=arc_enable_ptx_ranking,
+                enable_full_ptx=arc_enable_full_ptx,
+                ptx_validity_strictness=arc_ptx_validity_strictness,
+                runtime_seed_knowledge=benchmark_runtime_seeding,
+            ).run_benchmark(use_enriched=False),
+        )
+        math_empty, math_empty_metrics = _run_with_metrics(
+            "global_math_empty_mind",
+            lambda: MathCompetitionBenchmark(
+                knowledgeverse=empty_kv,
+                max_problems=max_math_problems,
+                runtime_seed_knowledge=benchmark_runtime_seeding,
+            ).run_benchmark(use_enriched=False),
+        )
+        lhe_empty, lhe_empty_metrics = _run_with_metrics(
+            "global_lhe_empty_mind",
+            lambda: LastHumanityExamBenchmark(
+                knowledgeverse=empty_kv,
+                max_questions=max_lhe_questions,
+                runtime_seed_knowledge=benchmark_runtime_seeding,
+            ).run_benchmark(use_enriched=False),
+        )
+        empty_galaxy_counts_end = _collect_default_galaxy_counts(empty_kv)
+
+        enriched_galaxy_counts_start = _collect_default_galaxy_counts(enriched_kv)
+        arc_enriched, arc_enriched_metrics = _run_with_metrics(
+            "global_arc_enriched",
+            lambda: ARCAGI2Benchmark(
+                knowledgeverse=enriched_kv,
+                max_tasks=max_arc_tasks,
+                enable_contrastive_learning=arc_enable_contrastive_learning,
+                enable_validity_gates=arc_enable_validity_gates,
+                enable_fuzzy_oracle=arc_enable_fuzzy_oracle,
+                fuzzy_oracle_threshold=arc_fuzzy_oracle_threshold,
+                enable_ptx_ranking=arc_enable_ptx_ranking,
+                enable_full_ptx=arc_enable_full_ptx,
+                ptx_validity_strictness=arc_ptx_validity_strictness,
+                runtime_seed_knowledge=benchmark_runtime_seeding,
+            ).run_benchmark(use_enriched=True),
+        )
+        math_enriched, math_enriched_metrics = _run_with_metrics(
+            "global_math_enriched",
+            lambda: MathCompetitionBenchmark(
+                knowledgeverse=enriched_kv,
+                max_problems=max_math_problems,
+                runtime_seed_knowledge=benchmark_runtime_seeding,
+            ).run_benchmark(use_enriched=True),
+        )
+        lhe_enriched, lhe_enriched_metrics = _run_with_metrics(
+            "global_lhe_enriched",
+            lambda: LastHumanityExamBenchmark(
+                knowledgeverse=enriched_kv,
+                max_questions=max_lhe_questions,
+                runtime_seed_knowledge=benchmark_runtime_seeding,
+            ).run_benchmark(use_enriched=True),
+        )
+        enriched_galaxy_counts_end = _collect_default_galaxy_counts(enriched_kv)
 
     integrated = {
         "arc_agi_2": {
@@ -555,8 +658,12 @@ def _run_integrated_suite(
     (output_dir / "integrated_lhe_enriched.json").write_text(json.dumps(lhe_enriched, indent=2), encoding="utf-8")
 
     runtime_usage = {
+        "model_persistence_mode": str(model_persistence_mode),
+        "persistence": continuity,
         "runtime_seed_knowledge": bool(benchmark_runtime_seeding),
         "arc_enable_ptx_ranking": bool(arc_enable_ptx_ranking),
+        "arc_enable_full_ptx": bool(arc_enable_full_ptx),
+        "arc_ptx_validity_strictness": str(arc_ptx_validity_strictness),
         "runs": [
             arc_empty_metrics,
             math_empty_metrics,
@@ -589,6 +696,22 @@ def main() -> None:
         type=Path,
         default=Path("../Knowledge3D.local"),
         help="Knowledgeverse storage root.",
+    )
+    parser.add_argument(
+        "--model-persistence-mode",
+        default="unified",
+        choices=["unified", "dual"],
+        help=(
+            "Persistence strategy. "
+            "'unified' reuses one evolving Knowledgeverse instance across the full run; "
+            "'dual' keeps separate empty/enriched worlds for diagnostics."
+        ),
+    )
+    parser.add_argument(
+        "--unified-storage-root",
+        type=Path,
+        default=None,
+        help="Optional explicit storage root for unified mode (defaults to galaxies_enriched).",
     )
     parser.add_argument(
         "--dataset-root",
@@ -626,6 +749,26 @@ def main() -> None:
         help="Enable PTX/GPU-backed ARC candidate scoring and top-1 selection.",
     )
     parser.add_argument(
+        "--arc-enable-full-ptx",
+        action="store_true",
+        help="Enable full PTX path for ARC discovery/validity/oracle (not only ranking).",
+    )
+    parser.add_argument(
+        "--arc-ptx-validity-strictness",
+        default="medium",
+        choices=["strict", "medium", "relaxed"],
+        help="Strictness profile for PTX validity gates when full PTX is enabled.",
+    )
+    parser.add_argument(
+        "--arc-embedding-lazy-mode",
+        default="skip",
+        choices=["compute", "skip", "fail"],
+        help=(
+            "Policy for missing ARC embeddings in hot path: "
+            "'skip' (default, no lazy compute), 'fail' (strict fail-fast), 'compute' (legacy)."
+        ),
+    )
+    parser.add_argument(
         "--run-proxy",
         action="store_true",
         help="Run lightweight proxy evaluations for MMLU/GSM8K when datasets exist.",
@@ -637,6 +780,12 @@ def main() -> None:
     )
     parser.add_argument("--max-proxy-questions", type=int, default=50)
     args = parser.parse_args()
+    if args.arc_enable_full_ptx and not args.arc_enable_ptx_ranking:
+        args.arc_enable_ptx_ranking = True
+    os.environ["K3D_ARC_EMBEDDING_LAZY_MODE"] = str(args.arc_embedding_lazy_mode)
+    os.environ.setdefault("K3D_REQUIRE_PTX_ARC_PIPELINE", "true")
+    if args.arc_enable_full_ptx:
+        os.environ.setdefault("K3D_ALLOW_LEGACY_ARC_PIPELINE", "false")
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     inventory = _dataset_inventory(args.dataset_root)
@@ -651,7 +800,11 @@ def main() -> None:
         arc_enable_fuzzy_oracle=args.arc_enable_fuzzy_oracle,
         arc_fuzzy_oracle_threshold=args.arc_fuzzy_oracle_threshold,
         arc_enable_ptx_ranking=args.arc_enable_ptx_ranking,
+        arc_enable_full_ptx=args.arc_enable_full_ptx,
+        arc_ptx_validity_strictness=args.arc_ptx_validity_strictness,
         benchmark_runtime_seeding=args.benchmark_runtime_seeding,
+        model_persistence_mode=args.model_persistence_mode,
+        unified_storage_root=args.unified_storage_root,
     )
 
     proxy_results: dict[str, Any] = {}
@@ -678,6 +831,7 @@ def main() -> None:
 
     runtime_usage["proxy_runs"] = proxy_metrics
     runtime_usage["proxy_reuses_enriched_world"] = bool(args.run_proxy)
+    runtime_usage["arc_embedding_lazy_mode"] = str(args.arc_embedding_lazy_mode)
 
     history_path = args.storage_root / "benchmarks" / "run_all_global_benchmarks_history.jsonl"
     usage_log_path = args.storage_root / "logs" / "global_benchmark_usage_metrics.jsonl"
@@ -721,6 +875,12 @@ def main() -> None:
     math = integrated["math_competitions"]
     lhe = integrated["last_humanity_exam"]
     print("Knowledge3D global benchmark suite")
+    print(
+        "  Persistence mode: "
+        f"{runtime_usage.get('model_persistence_mode')} "
+        f"(shared_instance={runtime_usage.get('persistence', {}).get('shared_instance')})"
+    )
+    print(f"  ARC embedding lazy mode: {args.arc_embedding_lazy_mode}")
     if historical_comparison:
         print("  Previous -> Current enriched/proxy comparison")
         for benchmark_name, cfg in GLOBAL_BENCHMARK_CONFIG.items():

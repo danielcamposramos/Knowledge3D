@@ -100,6 +100,21 @@ def test_discover_patterns_includes_all_sources():
     assert "multi_galaxy_composition" in sources
 
 
+def test_prepare_discovery_examples_adds_negative_form_pairs():
+    adapter = ArcAgi2Adapter(
+        use_enriched=True,
+        strict_legacy=False,
+        enable_figure_ground_reversal=True,
+    )
+    train = [{"input": [[1, 0], [2, 3]], "output": [[0, 1], [3, 2]]}]
+    prepared = adapter._prepare_discovery_examples(train)
+    assert len(prepared) >= 2
+    assert any(
+        (row.get("metadata", {}) or {}).get("form_polarity") == "negative"
+        for row in prepared
+    )
+
+
 def test_discover_patterns_contrastive_adds_anti_patterns():
     kv = _FakeKV()
     adapter = ArcAgi2Adapter(
@@ -142,6 +157,48 @@ def test_rank_candidates_prefers_autonomous_and_cross_modal_signals():
     assert ranked
     assert ranked[0]["pattern"]["pattern_id"] == "autonomous_high"
     assert ranked[0]["score"] > ranked[1]["score"]
+
+
+def test_palette_distribution_score_discriminates_candidates():
+    adapter = ArcAgi2Adapter(use_enriched=True, strict_legacy=False)
+    profile = {
+        "inferred_family": "spatial_or_recolor",
+        "output_palette": [1, 2],
+        "output_palette_distribution": {1: 0.75, 2: 0.25},
+        "stable_output_palette_size": 2,
+    }
+    input_grid = [[1, 2], [1, 2]]
+    good = [[1, 1], [1, 2]]
+    bad = [[1, 2], [1, 2]]
+    good_score = adapter._compute_generation_constraint_scores(
+        candidate_grid=good,
+        input_grid=input_grid,
+        profile=profile,
+    )["palette_score"]
+    bad_score = adapter._compute_generation_constraint_scores(
+        candidate_grid=bad,
+        input_grid=input_grid,
+        profile=profile,
+    )["palette_score"]
+    assert float(good_score) > float(bad_score)
+
+
+def test_palette_penalty_weight_increases_penalty_strength():
+    components = {
+        "family_score": 1.0,
+        "shape_score": 1.0,
+        "palette_score": 0.4,
+        "object_score": 1.0,
+    }
+    baseline = ArcAgi2Adapter(use_enriched=True, strict_legacy=False)
+    palette_heavy = ArcAgi2Adapter(
+        use_enriched=True,
+        strict_legacy=False,
+        palette_penalty_weight=2.0,
+    )
+    baseline_score = baseline._apply_constraint_penalty(base_score=1.0, components=components)
+    palette_heavy_score = palette_heavy._apply_constraint_penalty(base_score=1.0, components=components)
+    assert palette_heavy_score < baseline_score
 
 
 class _FakePipelineResult:
@@ -224,3 +281,81 @@ def test_oracle_metrics_include_stratified_fuzzy_keys():
     assert "oracle_fuzzy_0_90" in metrics
     assert "oracle_fuzzy_0_95" in metrics
     assert "oracle_exact" in metrics
+
+
+def test_full_ptx_validity_path_is_used(monkeypatch):
+    adapter = ArcAgi2Adapter(
+        use_enriched=False,
+        strict_legacy=False,
+        enable_full_ptx=True,
+        ptx_validity_strictness="relaxed",
+    )
+    adapter._full_ptx_available = True
+
+    class _StubPTX:
+        def apply_validity_gates_relaxed_ptx(self, *, ranked_candidates, validity_profile, strictness):
+            assert strictness == "relaxed"
+            return ranked_candidates[:1], {
+                "enabled": True,
+                "mode": "ptx_validity",
+                "strictness": strictness,
+                "pre_count": len(ranked_candidates),
+                "post_count": 1,
+                "filtered_count": max(0, len(ranked_candidates) - 1),
+                "fallback_to_ungated": False,
+                "family_rejects": 0,
+                "shape_rejects": 0,
+                "palette_rejects": 0,
+                "object_rejects": 0,
+                "validity_reject_rate": 0.5,
+            }
+
+    monkeypatch.setattr("benchmarks.arc_agi_2_adapter.ARC_PTX_OPS", _StubPTX())
+    filtered, report = adapter._apply_validity_gates(
+        ranked_candidates=[
+            {"candidate": [[1, 0], [0, 1]], "pattern": {"pattern_id": "a"}},
+            {"candidate": [[0, 1], [1, 0]], "pattern": {"pattern_id": "b"}},
+        ],
+        validity_profile={"inferred_family": "spatial"},
+    )
+    assert len(filtered) == 1
+    assert report["mode"] == "ptx_validity"
+    assert report["strictness"] == "relaxed"
+
+
+def test_full_ptx_oracle_path_is_used(monkeypatch):
+    adapter = ArcAgi2Adapter(
+        use_enriched=False,
+        strict_legacy=False,
+        enable_full_ptx=True,
+    )
+    adapter._full_ptx_available = True
+
+    class _StubPTX:
+        def check_oracle_fuzzy_ptx(self, **_kwargs):
+            return {
+                "oracle_at_3": False,
+                "oracle_at_10": True,
+                "oracle_at_all": True,
+                "correct_rank": 4,
+                "oracle_fuzzy_0_80": True,
+                "oracle_fuzzy_0_85": True,
+                "oracle_fuzzy_0_90": False,
+                "oracle_fuzzy_0_95": False,
+                "oracle_exact": True,
+                "fuzzy_oracle_at_3": False,
+                "fuzzy_oracle_at_10": True,
+                "fuzzy_oracle_at_all": True,
+                "fuzzy_best_score": 0.91,
+                "fuzzy_best_rank": 4,
+            }
+
+    monkeypatch.setattr("benchmarks.arc_agi_2_adapter.ARC_PTX_OPS", _StubPTX())
+    metrics = adapter._compute_oracle_metrics(
+        ranked_candidates=[{"candidate": [[1, 0], [0, 1]]}],
+        expected_output=[[1, 0], [0, 1]],
+        fuzzy_threshold=0.95,
+    )
+    assert metrics["oracle_at_all"] is True
+    assert metrics["oracle_at_10"] is True
+    assert metrics["ptx_oracle_used"] is True

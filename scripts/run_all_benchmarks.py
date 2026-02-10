@@ -116,6 +116,19 @@ def _append_usage_metrics(log_path: Path, payload: dict[str, Any]) -> None:
         handle.write(json.dumps(payload, separators=(",", ":"), sort_keys=True) + "\n")
 
 
+def _assert_arc_solver_contract(arc_result: dict[str, Any], *, required_solver: str) -> None:
+    results = arc_result.get("results", [])
+    if not isinstance(results, list):
+        raise RuntimeError("ARC result payload missing per-task results for solver contract check.")
+    bad = [row.get("task_id") for row in results if str(row.get("solver")) != required_solver]
+    if bad:
+        sample = ", ".join(str(tid) for tid in bad[:5])
+        raise RuntimeError(
+            f"ARC solver contract violated: expected '{required_solver}' for all tasks; "
+            f"found {len(bad)} mismatches (sample: {sample})."
+        )
+
+
 def _extract_enriched_score(summary: dict[str, Any], benchmark_name: str) -> float:
     bench = summary.get("benchmarks", {}).get(benchmark_name, {})
     enriched = bench.get("enriched", {})
@@ -258,6 +271,63 @@ def _persist_benchmark_memory(
         knowledgeverse.galaxy_manager.add_entry("Grammar", grammar_entry)
 
 
+def _compute_arc_stage_gate(summary: dict[str, Any]) -> dict[str, Any]:
+    """
+    Hard gate for ARC stage progression (quality-aware, not accuracy-only).
+    """
+    diagnostics = (
+        summary.get("benchmarks", {})
+        .get("arc_agi_2", {})
+        .get("diagnostics", {})
+        .get("enriched", {})
+    )
+    enriched = summary.get("benchmarks", {}).get("arc_agi_2", {}).get("enriched", {})
+    thresholds = {
+        "accuracy_min": 0.10,
+        "oracle_at_all_min": 0.10,
+        "fuzzy_oracle_at_all_min": 0.20,
+        "generation_failure_rate_max": 0.50,
+    }
+    actuals = {
+        "accuracy": float(enriched.get("accuracy", 0.0)),
+        "oracle_at_all": float(diagnostics.get("oracle_at_all", 0.0)),
+        "fuzzy_oracle_at_all": float(diagnostics.get("fuzzy_oracle_at_all", 0.0)),
+        "generation_failure_rate": float(diagnostics.get("generation_failure_rate", 1.0)),
+    }
+    checks = {
+        "accuracy": actuals["accuracy"] >= thresholds["accuracy_min"],
+        "oracle_at_all": actuals["oracle_at_all"] >= thresholds["oracle_at_all_min"],
+        "fuzzy_oracle_at_all": actuals["fuzzy_oracle_at_all"] >= thresholds["fuzzy_oracle_at_all_min"],
+        "generation_failure_rate": actuals["generation_failure_rate"] <= thresholds["generation_failure_rate_max"],
+    }
+    reasons: list[str] = []
+    if not checks["accuracy"]:
+        reasons.append(
+            f"accuracy {actuals['accuracy']:.3f} < {thresholds['accuracy_min']:.3f}"
+        )
+    if not checks["oracle_at_all"]:
+        reasons.append(
+            f"oracle_at_all {actuals['oracle_at_all']:.3f} < {thresholds['oracle_at_all_min']:.3f}"
+        )
+    if not checks["fuzzy_oracle_at_all"]:
+        reasons.append(
+            f"fuzzy_oracle_at_all {actuals['fuzzy_oracle_at_all']:.3f} < {thresholds['fuzzy_oracle_at_all_min']:.3f}"
+        )
+    if not checks["generation_failure_rate"]:
+        reasons.append(
+            "generation_failure_rate "
+            f"{actuals['generation_failure_rate']:.3f} > {thresholds['generation_failure_rate_max']:.3f}"
+        )
+    passed = all(checks.values())
+    return {
+        "passed": passed,
+        "thresholds": thresholds,
+        "actuals": actuals,
+        "checks": checks,
+        "reason": "Stage promotion approved" if passed else "; ".join(reasons),
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--arc-dataset-path", default=None, help="ARC dataset directory")
@@ -291,6 +361,57 @@ def main() -> None:
         help="Enable PTX/GPU-backed ARC candidate scoring and top-1 selection.",
     )
     parser.add_argument(
+        "--arc-enable-full-ptx",
+        action="store_true",
+        help="Enable full PTX path for ARC discovery/validity/oracle (not only ranking).",
+    )
+    parser.add_argument(
+        "--arc-ptx-validity-strictness",
+        default="medium",
+        choices=["strict", "medium", "relaxed"],
+        help="Strictness profile for PTX validity gates when full PTX is enabled.",
+    )
+    parser.add_argument(
+        "--arc-constraint-mode",
+        default="reject",
+        choices=["reject", "penalty"],
+        help="ARC constraint handling mode: hard reject or score penalty.",
+    )
+    parser.add_argument(
+        "--arc-enable-figure-ground-reversal",
+        action="store_true",
+        help="Augment ARC discovery with positive/negative (figure-ground) train-pair reversals.",
+    )
+    parser.add_argument(
+        "--arc-enable-negative-forms",
+        action="store_true",
+        help="Alias for --arc-enable-figure-ground-reversal (positive/negative form duality).",
+    )
+    parser.add_argument(
+        "--arc-family-penalty-weight",
+        type=float,
+        default=1.0,
+        help="Exponent weight for family consistency in ARC penalty scoring.",
+    )
+    parser.add_argument(
+        "--arc-shape-penalty-weight",
+        type=float,
+        default=1.0,
+        help="Exponent weight for shape consistency in ARC penalty scoring.",
+    )
+    parser.add_argument(
+        "--arc-palette-penalty-weight",
+        type=float,
+        default=2.0,
+        help="Exponent weight for palette consistency in ARC penalty scoring.",
+    )
+    parser.add_argument(
+        "--arc-object-penalty-weight",
+        type=float,
+        default=1.0,
+        help="Exponent weight for object-count consistency in ARC penalty scoring.",
+    )
+    parser.add_argument(
         "--arc-embedding-lazy-mode",
         default="skip",
         choices=["compute", "skip", "fail"],
@@ -313,6 +434,20 @@ def main() -> None:
         help="Allow benchmark classes to inject seed entries during task loops (disabled by default).",
     )
     parser.add_argument(
+        "--track-curriculum-coverage",
+        action="store_true",
+        help="Emit curriculum coverage telemetry (galaxies touched, route depth, ternary deltas).",
+    )
+    parser.add_argument(
+        "--require-min-galaxies-per-block",
+        type=int,
+        default=0,
+        help=(
+            "Soft gate target for minimum unique galaxies touched per evaluation block. "
+            "Currently logs pass/fail in summary without aborting."
+        ),
+    )
+    parser.add_argument(
         "--output-dir",
         default="../Knowledge3D.local/results/week14",
         help="Directory for benchmark outputs",
@@ -320,7 +455,17 @@ def main() -> None:
     parser.add_argument(
         "--storage-root",
         default="../Knowledge3D.local",
-        help="Base storage root used to derive isolated benchmark roots",
+        help="Base storage root used to derive benchmark roots",
+    )
+    parser.add_argument(
+        "--model-persistence-mode",
+        default="unified",
+        choices=["unified", "dual"],
+        help=(
+            "Persistence strategy. "
+            "'unified' reuses one evolving Knowledgeverse instance across the full run; "
+            "'dual' keeps separate empty/enriched worlds for diagnostic comparisons."
+        ),
     )
     parser.add_argument(
         "--empty-storage-root",
@@ -332,8 +477,24 @@ def main() -> None:
         default=None,
         help="Optional explicit storage root for enriched runs",
     )
+    parser.add_argument(
+        "--unified-storage-root",
+        default=None,
+        help="Optional explicit storage root for unified mode (defaults to enriched root).",
+    )
     args = parser.parse_args()
+    arc_enable_negative_forms = bool(
+        args.arc_enable_figure_ground_reversal or args.arc_enable_negative_forms
+    )
+    if args.arc_enable_full_ptx and not args.arc_enable_ptx_ranking:
+        # Full PTX mode implies PTX ranking. Keep CLI ergonomic and avoid
+        # accidental CPU fallback when users only pass --arc-enable-full-ptx.
+        args.arc_enable_ptx_ranking = True
     os.environ["K3D_ARC_EMBEDDING_LAZY_MODE"] = str(args.arc_embedding_lazy_mode)
+    # Enforce PTX-only ARC path by default for Week 21+ architecture.
+    os.environ.setdefault("K3D_REQUIRE_PTX_ARC_PIPELINE", "true")
+    if args.arc_enable_full_ptx:
+        os.environ.setdefault("K3D_ALLOW_LEGACY_ARC_PIPELINE", "false")
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -344,91 +505,228 @@ def main() -> None:
     enriched_storage_root = (
         Path(args.enriched_storage_root) if args.enriched_storage_root else (base_storage_root / "galaxies_enriched")
     )
+    unified_storage_root = (
+        Path(args.unified_storage_root) if args.unified_storage_root else enriched_storage_root
+    )
     empty_storage_root.mkdir(parents=True, exist_ok=True)
     enriched_storage_root.mkdir(parents=True, exist_ok=True)
+    unified_storage_root.mkdir(parents=True, exist_ok=True)
     usage_log_path = base_storage_root / "logs" / "benchmark_usage_metrics.jsonl"
+    persistence_mode = str(args.model_persistence_mode)
+    continuity: dict[str, Any] = {
+        "mode": persistence_mode,
+        "shared_instance": False,
+        "instance_ids": {},
+    }
 
-    # Empty mind runs
-    empty_kv = Knowledgeverse(storage_root=empty_storage_root)
-    empty_galaxy_counts_start = _collect_default_galaxy_counts(empty_kv)
-    arc_empty, arc_empty_metrics = _run_with_metrics(
-        "arc_empty_mind",
-        lambda: ARCAGI2Benchmark(
-            knowledgeverse=empty_kv,
-            dataset_path=args.arc_dataset_path,
-            max_tasks=args.max_arc_tasks,
-            dataset_version=args.arc_dataset_version,
-            enable_contrastive_learning=args.arc_enable_contrastive_learning,
-            enable_validity_gates=args.arc_enable_validity_gates,
-            enable_fuzzy_oracle=args.arc_enable_fuzzy_oracle,
-            fuzzy_oracle_threshold=args.arc_fuzzy_oracle_threshold,
-            enable_ptx_ranking=args.arc_enable_ptx_ranking,
-            runtime_seed_knowledge=args.benchmark_runtime_seeding,
-        ).run_benchmark(use_enriched=False),
-    )
-    math_empty, math_empty_metrics = _run_with_metrics(
-        "math_empty_mind",
-        lambda: MathCompetitionBenchmark(
-            knowledgeverse=empty_kv,
-            dataset_path=args.math_dataset_path,
-            max_problems=args.max_math_problems,
-            runtime_seed_knowledge=args.benchmark_runtime_seeding,
-        ).run_benchmark(use_enriched=False),
-    )
-    lhe_empty, lhe_empty_metrics = _run_with_metrics(
-        "lhe_empty_mind",
-        lambda: LastHumanityExamBenchmark(
-            knowledgeverse=empty_kv,
-            dataset_path=args.lhe_dataset_path,
-            max_questions=args.max_lhe_questions,
-            runtime_seed_knowledge=args.benchmark_runtime_seeding,
-        ).run_benchmark(use_enriched=False),
-    )
-    empty_galaxy_counts_end = _collect_default_galaxy_counts(empty_kv)
+    if persistence_mode == "unified":
+        shared_kv = Knowledgeverse(storage_root=unified_storage_root)
+        continuity["shared_instance"] = True
+        continuity["instance_ids"] = {
+            "empty_mind": int(id(shared_kv)),
+            "enriched": int(id(shared_kv)),
+        }
 
-    # Enriched runs
-    enriched_kv = Knowledgeverse(storage_root=enriched_storage_root)
-    enriched_galaxy_counts_start = _collect_default_galaxy_counts(enriched_kv)
-    arc_enriched, arc_enriched_metrics = _run_with_metrics(
-        "arc_enriched",
-        lambda: ARCAGI2Benchmark(
-            knowledgeverse=enriched_kv,
-            dataset_path=args.arc_dataset_path,
-            max_tasks=args.max_arc_tasks,
-            dataset_version=args.arc_dataset_version,
-            enable_contrastive_learning=args.arc_enable_contrastive_learning,
-            enable_validity_gates=args.arc_enable_validity_gates,
-            enable_fuzzy_oracle=args.arc_enable_fuzzy_oracle,
-            fuzzy_oracle_threshold=args.arc_fuzzy_oracle_threshold,
-            enable_ptx_ranking=args.arc_enable_ptx_ranking,
-            runtime_seed_knowledge=args.benchmark_runtime_seeding,
-        ).run_benchmark(use_enriched=True),
-    )
-    math_enriched, math_enriched_metrics = _run_with_metrics(
-        "math_enriched",
-        lambda: MathCompetitionBenchmark(
-            knowledgeverse=enriched_kv,
-            dataset_path=args.math_dataset_path,
-            max_problems=args.max_math_problems,
-            runtime_seed_knowledge=args.benchmark_runtime_seeding,
-        ).run_benchmark(use_enriched=True),
-    )
-    lhe_enriched, lhe_enriched_metrics = _run_with_metrics(
-        "lhe_enriched",
-        lambda: LastHumanityExamBenchmark(
-            knowledgeverse=enriched_kv,
-            dataset_path=args.lhe_dataset_path,
-            max_questions=args.max_lhe_questions,
-            runtime_seed_knowledge=args.benchmark_runtime_seeding,
-        ).run_benchmark(use_enriched=True),
-    )
-    enriched_galaxy_counts_end = _collect_default_galaxy_counts(enriched_kv)
+        shared_galaxy_counts_start = _collect_default_galaxy_counts(shared_kv)
+        arc_empty, arc_empty_metrics = _run_with_metrics(
+            "arc_empty_mind",
+            lambda: ARCAGI2Benchmark(
+                knowledgeverse=shared_kv,
+                dataset_path=args.arc_dataset_path,
+                max_tasks=args.max_arc_tasks,
+                dataset_version=args.arc_dataset_version,
+                enable_contrastive_learning=args.arc_enable_contrastive_learning,
+                enable_validity_gates=args.arc_enable_validity_gates,
+                enable_fuzzy_oracle=args.arc_enable_fuzzy_oracle,
+                fuzzy_oracle_threshold=args.arc_fuzzy_oracle_threshold,
+                enable_ptx_ranking=args.arc_enable_ptx_ranking,
+                enable_full_ptx=args.arc_enable_full_ptx,
+                ptx_validity_strictness=args.arc_ptx_validity_strictness,
+                constraint_mode=args.arc_constraint_mode,
+                enable_figure_ground_reversal=arc_enable_negative_forms,
+                family_penalty_weight=args.arc_family_penalty_weight,
+                shape_penalty_weight=args.arc_shape_penalty_weight,
+                palette_penalty_weight=args.arc_palette_penalty_weight,
+                object_penalty_weight=args.arc_object_penalty_weight,
+                runtime_seed_knowledge=args.benchmark_runtime_seeding,
+            ).run_benchmark(use_enriched=False),
+        )
+        math_empty, math_empty_metrics = _run_with_metrics(
+            "math_empty_mind",
+            lambda: MathCompetitionBenchmark(
+                knowledgeverse=shared_kv,
+                dataset_path=args.math_dataset_path,
+                max_problems=args.max_math_problems,
+                runtime_seed_knowledge=args.benchmark_runtime_seeding,
+            ).run_benchmark(use_enriched=False),
+        )
+        lhe_empty, lhe_empty_metrics = _run_with_metrics(
+            "lhe_empty_mind",
+            lambda: LastHumanityExamBenchmark(
+                knowledgeverse=shared_kv,
+                dataset_path=args.lhe_dataset_path,
+                max_questions=args.max_lhe_questions,
+                runtime_seed_knowledge=args.benchmark_runtime_seeding,
+            ).run_benchmark(use_enriched=False),
+        )
+        shared_after_empty = _collect_default_galaxy_counts(shared_kv)
+
+        arc_enriched, arc_enriched_metrics = _run_with_metrics(
+            "arc_enriched",
+            lambda: ARCAGI2Benchmark(
+                knowledgeverse=shared_kv,
+                dataset_path=args.arc_dataset_path,
+                max_tasks=args.max_arc_tasks,
+                dataset_version=args.arc_dataset_version,
+                enable_contrastive_learning=args.arc_enable_contrastive_learning,
+                enable_validity_gates=args.arc_enable_validity_gates,
+                enable_fuzzy_oracle=args.arc_enable_fuzzy_oracle,
+                fuzzy_oracle_threshold=args.arc_fuzzy_oracle_threshold,
+                enable_ptx_ranking=args.arc_enable_ptx_ranking,
+                enable_full_ptx=args.arc_enable_full_ptx,
+                ptx_validity_strictness=args.arc_ptx_validity_strictness,
+                constraint_mode=args.arc_constraint_mode,
+                enable_figure_ground_reversal=arc_enable_negative_forms,
+                family_penalty_weight=args.arc_family_penalty_weight,
+                shape_penalty_weight=args.arc_shape_penalty_weight,
+                palette_penalty_weight=args.arc_palette_penalty_weight,
+                object_penalty_weight=args.arc_object_penalty_weight,
+                runtime_seed_knowledge=args.benchmark_runtime_seeding,
+            ).run_benchmark(use_enriched=True),
+        )
+        math_enriched, math_enriched_metrics = _run_with_metrics(
+            "math_enriched",
+            lambda: MathCompetitionBenchmark(
+                knowledgeverse=shared_kv,
+                dataset_path=args.math_dataset_path,
+                max_problems=args.max_math_problems,
+                runtime_seed_knowledge=args.benchmark_runtime_seeding,
+            ).run_benchmark(use_enriched=True),
+        )
+        lhe_enriched, lhe_enriched_metrics = _run_with_metrics(
+            "lhe_enriched",
+            lambda: LastHumanityExamBenchmark(
+                knowledgeverse=shared_kv,
+                dataset_path=args.lhe_dataset_path,
+                max_questions=args.max_lhe_questions,
+                runtime_seed_knowledge=args.benchmark_runtime_seeding,
+            ).run_benchmark(use_enriched=True),
+        )
+        shared_after_enriched = _collect_default_galaxy_counts(shared_kv)
+
+        empty_kv = shared_kv
+        enriched_kv = shared_kv
+        empty_storage_root = unified_storage_root
+        enriched_storage_root = unified_storage_root
+        empty_galaxy_counts_start = shared_galaxy_counts_start
+        empty_galaxy_counts_end = shared_after_empty
+        enriched_galaxy_counts_start = shared_after_empty
+        enriched_galaxy_counts_end = shared_after_enriched
+    else:
+        empty_kv = Knowledgeverse(storage_root=empty_storage_root)
+        continuity["instance_ids"]["empty_mind"] = int(id(empty_kv))
+        empty_galaxy_counts_start = _collect_default_galaxy_counts(empty_kv)
+        arc_empty, arc_empty_metrics = _run_with_metrics(
+            "arc_empty_mind",
+            lambda: ARCAGI2Benchmark(
+                knowledgeverse=empty_kv,
+                dataset_path=args.arc_dataset_path,
+                max_tasks=args.max_arc_tasks,
+                dataset_version=args.arc_dataset_version,
+                enable_contrastive_learning=args.arc_enable_contrastive_learning,
+                enable_validity_gates=args.arc_enable_validity_gates,
+                enable_fuzzy_oracle=args.arc_enable_fuzzy_oracle,
+                fuzzy_oracle_threshold=args.arc_fuzzy_oracle_threshold,
+                enable_ptx_ranking=args.arc_enable_ptx_ranking,
+                enable_full_ptx=args.arc_enable_full_ptx,
+                ptx_validity_strictness=args.arc_ptx_validity_strictness,
+                constraint_mode=args.arc_constraint_mode,
+                enable_figure_ground_reversal=arc_enable_negative_forms,
+                family_penalty_weight=args.arc_family_penalty_weight,
+                shape_penalty_weight=args.arc_shape_penalty_weight,
+                palette_penalty_weight=args.arc_palette_penalty_weight,
+                object_penalty_weight=args.arc_object_penalty_weight,
+                runtime_seed_knowledge=args.benchmark_runtime_seeding,
+            ).run_benchmark(use_enriched=False),
+        )
+        math_empty, math_empty_metrics = _run_with_metrics(
+            "math_empty_mind",
+            lambda: MathCompetitionBenchmark(
+                knowledgeverse=empty_kv,
+                dataset_path=args.math_dataset_path,
+                max_problems=args.max_math_problems,
+                runtime_seed_knowledge=args.benchmark_runtime_seeding,
+            ).run_benchmark(use_enriched=False),
+        )
+        lhe_empty, lhe_empty_metrics = _run_with_metrics(
+            "lhe_empty_mind",
+            lambda: LastHumanityExamBenchmark(
+                knowledgeverse=empty_kv,
+                dataset_path=args.lhe_dataset_path,
+                max_questions=args.max_lhe_questions,
+                runtime_seed_knowledge=args.benchmark_runtime_seeding,
+            ).run_benchmark(use_enriched=False),
+        )
+        empty_galaxy_counts_end = _collect_default_galaxy_counts(empty_kv)
+
+        enriched_kv = Knowledgeverse(storage_root=enriched_storage_root)
+        continuity["instance_ids"]["enriched"] = int(id(enriched_kv))
+        continuity["shared_instance"] = continuity["instance_ids"]["empty_mind"] == continuity["instance_ids"]["enriched"]
+        enriched_galaxy_counts_start = _collect_default_galaxy_counts(enriched_kv)
+        arc_enriched, arc_enriched_metrics = _run_with_metrics(
+            "arc_enriched",
+            lambda: ARCAGI2Benchmark(
+                knowledgeverse=enriched_kv,
+                dataset_path=args.arc_dataset_path,
+                max_tasks=args.max_arc_tasks,
+                dataset_version=args.arc_dataset_version,
+                enable_contrastive_learning=args.arc_enable_contrastive_learning,
+                enable_validity_gates=args.arc_enable_validity_gates,
+                enable_fuzzy_oracle=args.arc_enable_fuzzy_oracle,
+                fuzzy_oracle_threshold=args.arc_fuzzy_oracle_threshold,
+                enable_ptx_ranking=args.arc_enable_ptx_ranking,
+                enable_full_ptx=args.arc_enable_full_ptx,
+                ptx_validity_strictness=args.arc_ptx_validity_strictness,
+                constraint_mode=args.arc_constraint_mode,
+                enable_figure_ground_reversal=arc_enable_negative_forms,
+                family_penalty_weight=args.arc_family_penalty_weight,
+                shape_penalty_weight=args.arc_shape_penalty_weight,
+                palette_penalty_weight=args.arc_palette_penalty_weight,
+                object_penalty_weight=args.arc_object_penalty_weight,
+                runtime_seed_knowledge=args.benchmark_runtime_seeding,
+            ).run_benchmark(use_enriched=True),
+        )
+        math_enriched, math_enriched_metrics = _run_with_metrics(
+            "math_enriched",
+            lambda: MathCompetitionBenchmark(
+                knowledgeverse=enriched_kv,
+                dataset_path=args.math_dataset_path,
+                max_problems=args.max_math_problems,
+                runtime_seed_knowledge=args.benchmark_runtime_seeding,
+            ).run_benchmark(use_enriched=True),
+        )
+        lhe_enriched, lhe_enriched_metrics = _run_with_metrics(
+            "lhe_enriched",
+            lambda: LastHumanityExamBenchmark(
+                knowledgeverse=enriched_kv,
+                dataset_path=args.lhe_dataset_path,
+                max_questions=args.max_lhe_questions,
+                runtime_seed_knowledge=args.benchmark_runtime_seeding,
+            ).run_benchmark(use_enriched=True),
+        )
+        enriched_galaxy_counts_end = _collect_default_galaxy_counts(enriched_kv)
+
+    if args.arc_enable_full_ptx:
+        _assert_arc_solver_contract(arc_empty, required_solver="arc_ptx_ops")
+        _assert_arc_solver_contract(arc_enriched, required_solver="arc_ptx_ops")
 
     summary = {
         "timestamp": datetime.now(tz=timezone.utc).isoformat(),
         "storage_roots": {
+            "mode": persistence_mode,
             "empty_mind": str(empty_storage_root),
             "enriched": str(enriched_storage_root),
+            "unified": str(unified_storage_root) if persistence_mode == "unified" else None,
         },
         "benchmarks": {
             "arc_agi_2": {
@@ -461,7 +759,16 @@ def main() -> None:
         "runtime_usage": {
             "runtime_seed_knowledge": bool(args.benchmark_runtime_seeding),
             "arc_enable_ptx_ranking": bool(args.arc_enable_ptx_ranking),
+            "arc_enable_full_ptx": bool(args.arc_enable_full_ptx),
+            "arc_ptx_validity_strictness": str(args.arc_ptx_validity_strictness),
+            "arc_constraint_mode": str(args.arc_constraint_mode),
+            "arc_enable_figure_ground_reversal": bool(arc_enable_negative_forms),
+            "arc_family_penalty_weight": float(args.arc_family_penalty_weight),
+            "arc_shape_penalty_weight": float(args.arc_shape_penalty_weight),
+            "arc_palette_penalty_weight": float(args.arc_palette_penalty_weight),
+            "arc_object_penalty_weight": float(args.arc_object_penalty_weight),
             "arc_embedding_lazy_mode": str(args.arc_embedding_lazy_mode),
+            "persistence": continuity,
             "runs": [
                 arc_empty_metrics,
                 math_empty_metrics,
@@ -478,6 +785,59 @@ def main() -> None:
             },
         },
     }
+
+    if args.track_curriculum_coverage:
+        def _touched(start: dict[str, int], end: dict[str, int]) -> list[str]:
+            keys = sorted(set(start.keys()) | set(end.keys()))
+            touched: list[str] = []
+            for key in keys:
+                if int(start.get(key, 0)) != int(end.get(key, 0)):
+                    touched.append(key)
+            return touched
+
+        empty_touched = _touched(empty_galaxy_counts_start, empty_galaxy_counts_end)
+        enriched_touched = _touched(enriched_galaxy_counts_start, enriched_galaxy_counts_end)
+        union_touched = sorted(set(empty_touched) | set(enriched_touched))
+
+        deltas = {
+            bench_name: float(summary["benchmarks"][bench_name]["improvement"])
+            for bench_name in BENCHMARK_CONFIG
+        }
+        ternary_quality_delta = {
+            "positive": sum(1 for d in deltas.values() if d > 0.0),
+            "neutral": sum(1 for d in deltas.values() if d == 0.0),
+            "negative": sum(1 for d in deltas.values() if d < 0.0),
+        }
+        specialist_routes = {
+            bench_name: {
+                "specialist": cfg["specialist"],
+                "depth": 1,
+                "primary_galaxy": cfg["galaxy"],
+            }
+            for bench_name, cfg in BENCHMARK_CONFIG.items()
+        }
+
+        min_required = max(0, int(args.require_min_galaxies_per_block))
+        gate = {
+            "min_required": min_required,
+            "empty_block_count": len(empty_touched),
+            "enriched_block_count": len(enriched_touched),
+            "empty_block_passed": (len(empty_touched) >= min_required) if min_required else True,
+            "enriched_block_passed": (len(enriched_touched) >= min_required) if min_required else True,
+            "soft_gate_only": True,
+        }
+
+        summary["runtime_usage"]["curriculum_coverage"] = {
+            "galaxies_touched": {
+                "empty_block": empty_touched,
+                "enriched_block": enriched_touched,
+                "union": union_touched,
+            },
+            "specialist_routes": specialist_routes,
+            "ternary_quality_delta": ternary_quality_delta,
+            "coverage_gate": gate,
+        }
+    summary["runtime_usage"]["arc_stage_gate"] = _compute_arc_stage_gate(summary)
     history_path = base_storage_root / "benchmarks" / "run_all_benchmarks_history.jsonl"
     previous_entry = _load_previous_history_entry(history_path)
     historical_comparison = _build_historical_comparison(previous_entry, summary)
@@ -531,6 +891,7 @@ def main() -> None:
     )
 
     print("Knowledge3D Week 14 benchmark suite")
+    print(f"  Persistence mode: {persistence_mode} (shared_instance={continuity.get('shared_instance')})")
     if historical_comparison:
         print("  Previous -> Current enriched comparison")
         for bench_name, cfg in BENCHMARK_CONFIG.items():
@@ -559,7 +920,35 @@ def main() -> None:
     )
     print(f"  Empty storage root:    {empty_storage_root}")
     print(f"  Enriched storage root: {enriched_storage_root}")
+    print(f"  ARC full PTX enabled: {bool(args.arc_enable_full_ptx)}")
+    print(f"  ARC PTX validity strictness: {args.arc_ptx_validity_strictness}")
+    print(f"  ARC constraint mode: {args.arc_constraint_mode}")
+    print(f"  ARC figure-ground reversal: {bool(arc_enable_negative_forms)}")
+    print(
+        "  ARC penalty weights:"
+        f" family={float(args.arc_family_penalty_weight):.2f}"
+        f" shape={float(args.arc_shape_penalty_weight):.2f}"
+        f" palette={float(args.arc_palette_penalty_weight):.2f}"
+        f" object={float(args.arc_object_penalty_weight):.2f}"
+    )
     print(f"  ARC embedding lazy mode: {args.arc_embedding_lazy_mode}")
+    arc_stage_gate = summary["runtime_usage"].get("arc_stage_gate", {})
+    print(
+        "  ARC stage gate: "
+        f"passed={bool(arc_stage_gate.get('passed', False))} "
+        f"reason={arc_stage_gate.get('reason', 'n/a')}"
+    )
+    if args.track_curriculum_coverage:
+        coverage = summary["runtime_usage"].get("curriculum_coverage", {})
+        gate = coverage.get("coverage_gate", {})
+        print(
+            "  Curriculum coverage gate (soft): "
+            f"empty={gate.get('empty_block_count', 0)} "
+            f"enriched={gate.get('enriched_block_count', 0)} "
+            f"min={gate.get('min_required', 0)} "
+            f"pass_empty={gate.get('empty_block_passed', True)} "
+            f"pass_enriched={gate.get('enriched_block_passed', True)}"
+        )
     print(f"  Usage metrics log: {usage_log_path}")
     print(f"  History log: {history_path}")
     print(f"  Summary written to: {summary_path}")

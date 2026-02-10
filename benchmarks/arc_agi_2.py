@@ -26,6 +26,14 @@ class ARCAGI2Benchmark:
         enable_fuzzy_oracle: bool = False,
         fuzzy_oracle_threshold: float = 0.95,
         enable_ptx_ranking: bool = False,
+        enable_full_ptx: bool = False,
+        ptx_validity_strictness: str = "medium",
+        constraint_mode: str = "reject",
+        enable_figure_ground_reversal: bool = False,
+        family_penalty_weight: float = 1.0,
+        shape_penalty_weight: float = 1.0,
+        palette_penalty_weight: float = 1.0,
+        object_penalty_weight: float = 1.0,
         runtime_seed_knowledge: bool = False,
     ):
         self.kv = knowledgeverse or Knowledgeverse()
@@ -36,6 +44,16 @@ class ARCAGI2Benchmark:
         self.enable_fuzzy_oracle = bool(enable_fuzzy_oracle)
         self.fuzzy_oracle_threshold = float(fuzzy_oracle_threshold)
         self.enable_ptx_ranking = bool(enable_ptx_ranking)
+        self.enable_full_ptx = bool(enable_full_ptx)
+        self.ptx_validity_strictness = str(ptx_validity_strictness or "medium")
+        self.constraint_mode = str(constraint_mode or "reject").strip().lower()
+        if self.constraint_mode not in {"reject", "penalty"}:
+            self.constraint_mode = "reject"
+        self.enable_figure_ground_reversal = bool(enable_figure_ground_reversal)
+        self.family_penalty_weight = float(family_penalty_weight)
+        self.shape_penalty_weight = float(shape_penalty_weight)
+        self.palette_penalty_weight = float(palette_penalty_weight)
+        self.object_penalty_weight = float(object_penalty_weight)
         self.runtime_seed_knowledge = bool(runtime_seed_knowledge)
         self.dataset_path = self._resolve_dataset_path(dataset_path, dataset_version)
         self.max_tasks = max_tasks
@@ -123,16 +141,29 @@ class ARCAGI2Benchmark:
         tasks_with_generated_patterns = 0
         self.adapter = ArcAgi2Adapter(
             use_enriched=use_enriched,
-            strict_legacy=self.strict_legacy,
+            strict_legacy=(self.strict_legacy or self.enable_full_ptx),
             knowledgeverse=self.kv,
             enable_contrastive_learning=self.enable_contrastive_learning,
             enable_validity_gates=self.enable_validity_gates,
             enable_fuzzy_oracle=self.enable_fuzzy_oracle,
             fuzzy_oracle_threshold=self.fuzzy_oracle_threshold,
             enable_ptx_ranking=self.enable_ptx_ranking,
+            enable_full_ptx=self.enable_full_ptx,
+            ptx_validity_strictness=self.ptx_validity_strictness,
+            constraint_mode=self.constraint_mode,
+            enable_figure_ground_reversal=self.enable_figure_ground_reversal,
+            family_penalty_weight=self.family_penalty_weight,
+            shape_penalty_weight=self.shape_penalty_weight,
+            palette_penalty_weight=self.palette_penalty_weight,
+            object_penalty_weight=self.object_penalty_weight,
         )
         for task in self.tasks:
             result = self._solve_task(task=task, use_enriched=use_enriched)
+            if self.enable_full_ptx and str(result.get("solver")) != "arc_ptx_ops":
+                raise RuntimeError(
+                    "PTX ARC solver contract violated: expected solver='arc_ptx_ops' "
+                    f"but got '{result.get('solver')}'."
+                )
             self.results.append(result)
             if result["correct"]:
                 correct += 1
@@ -180,7 +211,7 @@ class ARCAGI2Benchmark:
                 "task_id": task["id"],
                 "confidence": 0.9 if correct else 0.4,
                 "galaxy": route_galaxies[0],
-                "verification": "legacy_pipeline",
+                "verification": str(result.get("solver", "arc_solver")),
             },
         )
         return result
@@ -289,6 +320,9 @@ class ARCAGI2Benchmark:
         ptx_enabled = sum(1 for row in rows if bool(row.get("ptx_ranking_enabled", False)))
         ptx_used = sum(1 for row in rows if bool(row.get("ptx_ranking_used", False)))
         ptx_errors = sum(1 for row in rows if bool(row.get("ptx_ranking_error")))
+        ptx_full_enabled = sum(1 for row in rows if bool(row.get("ptx_full_enabled", False)))
+        ptx_full_used = sum(1 for row in rows if bool(row.get("ptx_full_used", False)))
+        ptx_oracle_used = sum(1 for row in rows if bool(row.get("ptx_oracle_used", False)))
         fuzzy_oracle_all = sum(1 for row in rows if bool(row.get("fuzzy_oracle_at_all", False)))
         fuzzy_oracle_080 = sum(1 for row in rows if bool(row.get("oracle_fuzzy_0_80", False)))
         fuzzy_oracle_085 = sum(1 for row in rows if bool(row.get("oracle_fuzzy_0_85", False)))
@@ -297,6 +331,49 @@ class ARCAGI2Benchmark:
         fuzzy_scores = [float(row.get("fuzzy_best_score", 0.0)) for row in rows]
         gate_reject_rates = [float(row.get("validity_reject_rate", 0.0)) for row in rows]
         family_rejects = [int(row.get("validity_family_rejects", 0)) for row in rows]
+        rejected_was_better_count = sum(1 for row in rows if bool(row.get("rejected_was_better", False)))
+        fuzzy_delta_positive = [
+            float(row.get("fuzzy_delta", 0.0))
+            for row in rows
+            if bool(row.get("rejected_was_better", False))
+        ]
+        family_scores = [
+            float((row.get("ranking_top_components", {}) or {}).get("family_score", 0.0))
+            for row in rows
+        ]
+        shape_scores = [
+            float((row.get("ranking_top_components", {}) or {}).get("shape_score", 0.0))
+            for row in rows
+        ]
+        palette_scores = [
+            float((row.get("ranking_top_components", {}) or {}).get("palette_score", 0.0))
+            for row in rows
+        ]
+        object_scores = [
+            float((row.get("ranking_top_components", {}) or {}).get("object_score", 0.0))
+            for row in rows
+        ]
+        generation_accept_rates = [float(row.get("generation_filter_accept_rate", 0.0)) for row in rows]
+        generation_reject_rates = [float(row.get("generation_filter_reject_rate", 0.0)) for row in rows]
+        generation_totals = [int(row.get("generation_filter_generated_total", 0)) for row in rows]
+        failure_modes = {"family": 0, "shape": 0, "palette": 0, "object_count": 0, "generation_gap": 0, "near_miss": 0}
+        for row in rows:
+            details = row.get("oracle_failure_modes", {})
+            if not isinstance(details, dict):
+                continue
+            if bool(details.get("family_mismatch", False)):
+                failure_modes["family"] += 1
+            if bool(details.get("shape_mismatch", False)):
+                failure_modes["shape"] += 1
+            if bool(details.get("palette_mismatch", False)):
+                failure_modes["palette"] += 1
+            if bool(details.get("object_count_mismatch", False)):
+                failure_modes["object_count"] += 1
+            root = str(details.get("root_cause", "")).lower()
+            if root == "generation_gap":
+                failure_modes["generation_gap"] += 1
+            if root == "near_miss_generation":
+                failure_modes["near_miss"] += 1
 
         ranks = [int(row["correct_rank"]) for row in rows if row.get("correct_rank") is not None]
         avg_rank = (sum(ranks) / len(ranks)) if ranks else None
@@ -315,11 +392,33 @@ class ARCAGI2Benchmark:
             "oracle_fuzzy_0_90": fuzzy_oracle_090 / total,
             "oracle_fuzzy_0_95": fuzzy_oracle_095 / total,
             "fuzzy_best_score_mean": (sum(fuzzy_scores) / total) if fuzzy_scores else 0.0,
+            "rejected_was_better_count": int(rejected_was_better_count),
+            "rejected_was_better_rate": (rejected_was_better_count / total),
+            "rejected_fuzzy_delta_mean": (
+                (sum(fuzzy_delta_positive) / len(fuzzy_delta_positive))
+                if fuzzy_delta_positive
+                else 0.0
+            ),
             "validity_reject_rate_mean": (sum(gate_reject_rates) / total) if gate_reject_rates else 0.0,
             "family_rejects_mean": (sum(family_rejects) / total) if family_rejects else 0.0,
+            "ranking_family_score_mean": (sum(family_scores) / total) if family_scores else 0.0,
+            "ranking_shape_score_mean": (sum(shape_scores) / total) if shape_scores else 0.0,
+            "ranking_palette_score_mean": (sum(palette_scores) / total) if palette_scores else 0.0,
+            "ranking_object_score_mean": (sum(object_scores) / total) if object_scores else 0.0,
+            "generation_filter_accept_rate_mean": (
+                (sum(generation_accept_rates) / total) if generation_accept_rates else 0.0
+            ),
+            "generation_filter_reject_rate_mean": (
+                (sum(generation_reject_rates) / total) if generation_reject_rates else 0.0
+            ),
+            "generation_filter_generated_total": int(sum(generation_totals)),
             "ptx_ranking_enabled_rate": ptx_enabled / total,
             "ptx_ranking_used_rate": ptx_used / total,
             "ptx_ranking_error_rate": ptx_errors / total,
+            "ptx_full_enabled_rate": ptx_full_enabled / total,
+            "ptx_full_used_rate": ptx_full_used / total,
+            "ptx_oracle_used_rate": ptx_oracle_used / total,
+            "oracle_failure_mode_counts": failure_modes,
         }
 
     def save_results(self, output_path: str | Path) -> None:

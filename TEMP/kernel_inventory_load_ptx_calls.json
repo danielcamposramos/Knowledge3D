@@ -1,0 +1,143 @@
+[
+  {
+    "file": "knowledge3d/cranium/sovereign/trm_launcher.py",
+    "kernel": "trm_step_fused"
+  },
+  {
+    "file": "knowledge3d/cranium/ptx_runtime/sovereign_multi_modal_embedder.py",
+    "kernel": "extract_image_features",
+    "path_expr": "\"knowledge3d/cranium/ptx/gre_multimodal_features.ptx\""
+  },
+  {
+    "file": "knowledge3d/cranium/ptx_runtime/sovereign_multi_modal_embedder.py",
+    "kernel": "analyze_video_temporal",
+    "path_expr": "\"knowledge3d/cranium/ptx/gre_multimodal_features.ptx\""
+  },
+  {
+    "file": "knowledge3d/cranium/ptx_runtime/sovereign_multi_modal_embedder.py",
+    "kernel": "align_cross_modal_features",
+    "path_expr": "\"knowledge3d/cranium/ptx/gre_multimodal_features.ptx\""
+  },
+  {
+    "file": "knowledge3d/cranium/ptx_runtime/shape_primitives.py",
+    "kernel": "generate_adaptive_primitive",
+    "path_expr": "\"knowledge3d/cranium/ptx/gre_shape_generator.ptx\""
+  },
+  {
+    "file": "knowledge3d/cranium/ptx_runtime/thinking_tag_bridge.py",
+    "kernel": "dynamic_lod_tune",
+    "path_expr": "\"knowledge3d/cranium/ptx/dynamic_lod_tune.ptx\""
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/lightweight_rpn.py",
+    "kernel": "modular_rpn_geometric_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/advanced_rpn.py",
+    "kernel": "modular_rpn_kernel_extended"
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/sovereign_bridges.py",
+    "kernel": "gre_sub100micro_gate"
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/sovereign_bridges.py",
+    "kernel": "gre_arc_reasoner"
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/sovereign_bridges.py",
+    "kernel": "gre_oom_spill"
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/sovereign_bridges.py",
+    "kernel": "galaxy_resonance_engine"
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/sovereign_bridges.py",
+    "kernel": "gre_geometry_router"
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/sovereign_bridges.py",
+    "kernel": "gre_fractal_emitter"
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/sovereign_bridges.py",
+    "kernel": "gre_resonance_field"
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/sovereign_bridges.py",
+    "kernel": "gre_atomic_fission_fusion"
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/sovereign_bridges.py",
+    "kernel": "gre_temporal_reasoning"
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/sovereign_bridges.py",
+    "kernel": "gre_vector_resonator"
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/sovereign_bridges.py",
+    "kernel": "gre_graph_crystallizer"
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/sovereign_bridges.py",
+    "kernel": "gre_multimodal_halting_gate"
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/sovereign_bridges.py",
+    "kernel": "modular_rpn_geometric_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/sovereign_bridges.py",
+    "kernel": "modular_rpn_extract_top"
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/sovereign_bridges.py",
+    "kernel": "update_star_embedding_kernel"
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/sovereign_bridges.py",
+    "kernel": "compute_temporal_coherence"
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/sovereign_bridges.py",
+    "kernel": "fuse_multimodal_features"
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/sovereign_bridges.py",
+    "kernel": "predict_world_state"
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/sovereign_bridges.py",
+    "kernel": "generate_dynamic_mesh"
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/sovereign_bridges.py",
+    "kernel": "enhance_galaxy_resonance"
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/sovereign_bridges.py",
+    "kernel": "trit_overlay_generator"
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/sovereign_bridges.py",
+    "kernel": "trit_inspector"
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/sovereign_bridges.py",
+    "kernel": "ternary_depth_field"
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/sovereign_bridges.py",
+    "kernel": "ternary_prune_decision"
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/sovereign_bridges.py",
+    "kernel": "ternary_attention_mask"
+  },
+  {
+    "file": "knowledge3d/cranium/bridges/sovereign_bridges.py",
+    "kernel": "compute_adaptive_thresholds"
+  }
+]
