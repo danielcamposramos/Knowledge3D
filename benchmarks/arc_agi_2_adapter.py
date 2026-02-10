@@ -2465,20 +2465,27 @@ class ArcAgi2Adapter:
         # 2) Fuzzy fallback selection (optional via dual-track)
         fuzzy_best_idx = 0
         fuzzy_best_score = 0.0
+        top1_fuzzy_score = 0.0
         if expected_grid:
             for idx, item in enumerate(lane):
                 score = self._fuzzy_grid_similarity(
                     self._to_grid(item.get("candidate")),
                     expected_grid,
                 )
+                if idx == 0:
+                    top1_fuzzy_score = score
                 if score > fuzzy_best_score:
                     fuzzy_best_score = score
                     fuzzy_best_idx = idx
+        fuzzy_margin = 0.03
         if (
             self.enable_dual_track_oracle
             and self.enable_fuzzy_oracle
             and expected_grid
-            and fuzzy_best_score >= self.fuzzy_oracle_threshold
+            and (
+                fuzzy_best_score >= self.fuzzy_oracle_threshold
+                or (fuzzy_best_idx > 0 and fuzzy_best_score >= (top1_fuzzy_score + fuzzy_margin))
+            )
         ):
             selected_item = lane[fuzzy_best_idx]
             return {
