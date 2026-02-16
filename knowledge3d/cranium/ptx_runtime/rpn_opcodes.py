@@ -10,6 +10,16 @@ OP_ADD = 0x0A
 OP_SUB = 0x0B
 OP_MUL = 0x0C
 OP_DIV = 0x0D
+OP_POWER = 0x0E
+OP_NEGATE = 0xDB
+
+# Primitive alias names (calculator surface, same opcode values)
+OP_PRIMITIVE_ADD = OP_ADD
+OP_PRIMITIVE_SUBTRACT = OP_SUB
+OP_PRIMITIVE_MULTIPLY = OP_MUL
+OP_PRIMITIVE_DIVIDE = OP_DIV
+OP_PRIMITIVE_POWER = OP_POWER
+OP_PRIMITIVE_NEGATE = OP_NEGATE
 
 # Math functions (Tier-1)
 OP_SQRT = 0x14
@@ -208,6 +218,14 @@ __all__ = [
     "OP_SUB",
     "OP_MUL",
     "OP_DIV",
+    "OP_POWER",
+    "OP_NEGATE",
+    "OP_PRIMITIVE_ADD",
+    "OP_PRIMITIVE_SUBTRACT",
+    "OP_PRIMITIVE_MULTIPLY",
+    "OP_PRIMITIVE_DIVIDE",
+    "OP_PRIMITIVE_POWER",
+    "OP_PRIMITIVE_NEGATE",
     # Math functions
     "OP_SQRT",
     "OP_EXP",

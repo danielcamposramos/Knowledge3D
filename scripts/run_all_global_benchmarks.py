@@ -62,6 +62,10 @@ GLOBAL_BENCHMARK_CONFIG: dict[str, dict[str, str]] = {
 }
 
 
+class SovereigntyViolation(RuntimeError):
+    """Raised when solved benchmark tasks have no sovereign GPU evidence."""
+
+
 def _safe_gpu_snapshot() -> dict[str, Any]:
     used = 0
     total = 0
@@ -123,6 +127,78 @@ def _run_with_metrics(label: str, fn: Any) -> tuple[Any, dict[str, Any]]:
     }
 
 
+def _skip_metrics(label: str) -> dict[str, Any]:
+    ts = datetime.now(tz=timezone.utc).isoformat()
+    gpu = _safe_gpu_snapshot()
+    rss = _rss_bytes()
+    return {
+        "label": label,
+        "started_at": ts,
+        "elapsed_sec": 0.0,
+        "pid": int(os.getpid()),
+        "rss_before_bytes": int(rss),
+        "rss_after_bytes": int(rss),
+        "gpu_before": gpu,
+        "gpu_after": gpu,
+        "skipped": True,
+    }
+
+
+def _is_enabled_limit(limit: int | None) -> bool:
+    if limit is None:
+        return True
+    try:
+        return int(limit) > 0
+    except Exception:
+        return False
+
+
+def _arc_skipped_result(*, use_enriched: bool) -> dict[str, Any]:
+    return {
+        "benchmark": "ARC-AGI 2/3",
+        "dataset_path": "skipped",
+        "dataset_version": "arc_agi_2",
+        "use_enriched": bool(use_enriched),
+        "total_tasks": 0,
+        "correct": 0,
+        "accuracy": 0.0,
+        "generated_pattern_total": 0,
+        "tasks_with_generated_patterns": 0,
+        "pattern_source_accuracy": {},
+        "oracle_diagnostics": {},
+        "results": [],
+    }
+
+
+def _math_skipped_result(*, use_enriched: bool) -> dict[str, Any]:
+    return {
+        "benchmark": "Math Competitions",
+        "dataset_path": "skipped",
+        "use_enriched": bool(use_enriched),
+        "results_by_competition": {},
+        "overall_accuracy": 0.0,
+        "total": 0,
+        "correct": 0,
+        "results": [],
+    }
+
+
+def _lhe_skipped_result(*, use_enriched: bool) -> dict[str, Any]:
+    return {
+        "benchmark": "Last Humanity Exam",
+        "dataset_path": "skipped",
+        "dataset_source": "skipped",
+        "dataset_file": None,
+        "synthetic_fallback": False,
+        "use_enriched": bool(use_enriched),
+        "total_questions": 0,
+        "correct": 0,
+        "accuracy": 0.0,
+        "results": [],
+        "results_by_domain": {},
+    }
+
+
 def _append_usage_metrics(log_path: Path, payload: dict[str, Any]) -> None:
     log_path.parent.mkdir(parents=True, exist_ok=True)
     with log_path.open("a", encoding="utf-8") as handle:
@@ -149,6 +225,79 @@ def _status_from_delta(delta: float, epsilon: float = 0.01) -> str:
     if abs(delta) < epsilon:
         return "MAINTAINED"
     return "IMPROVEMENT" if delta > 0 else "REGRESSION"
+
+
+def _extract_task_gpu_used(benchmark_name: str, row: dict[str, Any]) -> bool | None:
+    telemetry = row.get("telemetry")
+    if isinstance(telemetry, dict):
+        if "gpu_calls_this_command" in telemetry:
+            try:
+                return int(telemetry.get("gpu_calls_this_command", 0)) > 0
+            except Exception:
+                return False
+    if "gpu_calls_this_command" in row:
+        try:
+            return int(row.get("gpu_calls_this_command", 0)) > 0
+        except Exception:
+            return False
+    if benchmark_name == "arc_agi_2":
+        arc_keys = ("ptx_full_used", "ptx_ranking_used", "ptx_oracle_used")
+        if any(key in row for key in arc_keys):
+            return any(bool(row.get(key, False)) for key in arc_keys)
+    return None
+
+
+def _extract_task_fallback_triggered(row: dict[str, Any]) -> bool:
+    telemetry = row.get("telemetry")
+    if isinstance(telemetry, dict):
+        return bool(telemetry.get("fallback_triggered", False))
+    return bool(row.get("fallback_triggered", False)) or bool(row.get("ptx_ranking_error", False))
+
+
+def _summarize_payload_sovereignty(
+    benchmark_name: str,
+    phase: str,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    rows = payload.get("results", [])
+    if not isinstance(rows, list):
+        rows = []
+    solved_rows = [row for row in rows if bool(row.get("correct", False))]
+    solved_count = len(solved_rows)
+    gpu_used = 0
+    gpu_missing = 0
+    gpu_unknown = 0
+    fallback_count = 0
+    for row in solved_rows:
+        if _extract_task_fallback_triggered(row):
+            fallback_count += 1
+        gpu_flag = _extract_task_gpu_used(benchmark_name, row)
+        if gpu_flag is True:
+            gpu_used += 1
+        elif gpu_flag is False:
+            gpu_missing += 1
+        else:
+            gpu_unknown += 1
+    compliance = (gpu_used / solved_count) if solved_count else 1.0
+    violations: list[str] = []
+    if fallback_count > 0:
+        violations.append(f"fallback_triggered={fallback_count}")
+    if gpu_missing > 0:
+        violations.append(f"solved_without_gpu={gpu_missing}")
+    if gpu_unknown > 0:
+        violations.append(f"gpu_telemetry_missing_for_solved={gpu_unknown}")
+    return {
+        "benchmark": benchmark_name,
+        "phase": phase,
+        "total_tasks": int(payload.get("total_tasks", payload.get("total", payload.get("total_questions", 0)) or 0)),
+        "solved_tasks": int(solved_count),
+        "tasks_using_gpu": int(gpu_used),
+        "tasks_without_gpu": int(gpu_missing),
+        "tasks_without_gpu_telemetry": int(gpu_unknown),
+        "fallback_triggered_count": int(fallback_count),
+        "sovereignty_compliance": float(compliance),
+        "violations": violations,
+    }
 
 
 def _extract_score(summary: dict[str, Any], benchmark_name: str) -> float:
@@ -467,6 +616,9 @@ def _run_integrated_suite(
     empty_root.mkdir(parents=True, exist_ok=True)
     enriched_root.mkdir(parents=True, exist_ok=True)
     shared_root.mkdir(parents=True, exist_ok=True)
+    run_arc = _is_enabled_limit(max_arc_tasks)
+    run_math = _is_enabled_limit(max_math_problems)
+    run_lhe = _is_enabled_limit(max_lhe_questions)
 
     continuity: dict[str, Any] = {
         "mode": str(model_persistence_mode),
@@ -483,70 +635,94 @@ def _run_integrated_suite(
         }
 
         shared_start = _collect_default_galaxy_counts(shared_kv)
-        arc_empty, arc_empty_metrics = _run_with_metrics(
-            "global_arc_empty_mind",
-            lambda: ARCAGI2Benchmark(
-                knowledgeverse=shared_kv,
-                max_tasks=max_arc_tasks,
-                enable_contrastive_learning=arc_enable_contrastive_learning,
-                enable_validity_gates=arc_enable_validity_gates,
-                enable_fuzzy_oracle=arc_enable_fuzzy_oracle,
-                fuzzy_oracle_threshold=arc_fuzzy_oracle_threshold,
-                enable_ptx_ranking=arc_enable_ptx_ranking,
-                enable_full_ptx=arc_enable_full_ptx,
-                ptx_validity_strictness=arc_ptx_validity_strictness,
-                runtime_seed_knowledge=benchmark_runtime_seeding,
-            ).run_benchmark(use_enriched=False),
-        )
-        math_empty, math_empty_metrics = _run_with_metrics(
-            "global_math_empty_mind",
-            lambda: MathCompetitionBenchmark(
-                knowledgeverse=shared_kv,
-                max_problems=max_math_problems,
-                runtime_seed_knowledge=benchmark_runtime_seeding,
-            ).run_benchmark(use_enriched=False),
-        )
-        lhe_empty, lhe_empty_metrics = _run_with_metrics(
-            "global_lhe_empty_mind",
-            lambda: LastHumanityExamBenchmark(
-                knowledgeverse=shared_kv,
-                max_questions=max_lhe_questions,
-                runtime_seed_knowledge=benchmark_runtime_seeding,
-            ).run_benchmark(use_enriched=False),
-        )
+        if run_arc:
+            arc_empty, arc_empty_metrics = _run_with_metrics(
+                "global_arc_empty_mind",
+                lambda: ARCAGI2Benchmark(
+                    knowledgeverse=shared_kv,
+                    max_tasks=max_arc_tasks,
+                    enable_contrastive_learning=arc_enable_contrastive_learning,
+                    enable_validity_gates=arc_enable_validity_gates,
+                    enable_fuzzy_oracle=arc_enable_fuzzy_oracle,
+                    fuzzy_oracle_threshold=arc_fuzzy_oracle_threshold,
+                    enable_ptx_ranking=arc_enable_ptx_ranking,
+                    enable_full_ptx=arc_enable_full_ptx,
+                    ptx_validity_strictness=arc_ptx_validity_strictness,
+                    runtime_seed_knowledge=benchmark_runtime_seeding,
+                ).run_benchmark(use_enriched=False),
+            )
+        else:
+            arc_empty = _arc_skipped_result(use_enriched=False)
+            arc_empty_metrics = _skip_metrics("global_arc_empty_mind")
+        if run_math:
+            math_empty, math_empty_metrics = _run_with_metrics(
+                "global_math_empty_mind",
+                lambda: MathCompetitionBenchmark(
+                    knowledgeverse=shared_kv,
+                    max_problems=max_math_problems,
+                    runtime_seed_knowledge=benchmark_runtime_seeding,
+                ).run_benchmark(use_enriched=False),
+            )
+        else:
+            math_empty = _math_skipped_result(use_enriched=False)
+            math_empty_metrics = _skip_metrics("global_math_empty_mind")
+        if run_lhe:
+            lhe_empty, lhe_empty_metrics = _run_with_metrics(
+                "global_lhe_empty_mind",
+                lambda: LastHumanityExamBenchmark(
+                    knowledgeverse=shared_kv,
+                    max_questions=max_lhe_questions,
+                    runtime_seed_knowledge=benchmark_runtime_seeding,
+                ).run_benchmark(use_enriched=False),
+            )
+        else:
+            lhe_empty = _lhe_skipped_result(use_enriched=False)
+            lhe_empty_metrics = _skip_metrics("global_lhe_empty_mind")
         shared_after_empty = _collect_default_galaxy_counts(shared_kv)
 
-        arc_enriched, arc_enriched_metrics = _run_with_metrics(
-            "global_arc_enriched",
-            lambda: ARCAGI2Benchmark(
-                knowledgeverse=shared_kv,
-                max_tasks=max_arc_tasks,
-                enable_contrastive_learning=arc_enable_contrastive_learning,
-                enable_validity_gates=arc_enable_validity_gates,
-                enable_fuzzy_oracle=arc_enable_fuzzy_oracle,
-                fuzzy_oracle_threshold=arc_fuzzy_oracle_threshold,
-                enable_ptx_ranking=arc_enable_ptx_ranking,
-                enable_full_ptx=arc_enable_full_ptx,
-                ptx_validity_strictness=arc_ptx_validity_strictness,
-                runtime_seed_knowledge=benchmark_runtime_seeding,
-            ).run_benchmark(use_enriched=True),
-        )
-        math_enriched, math_enriched_metrics = _run_with_metrics(
-            "global_math_enriched",
-            lambda: MathCompetitionBenchmark(
-                knowledgeverse=shared_kv,
-                max_problems=max_math_problems,
-                runtime_seed_knowledge=benchmark_runtime_seeding,
-            ).run_benchmark(use_enriched=True),
-        )
-        lhe_enriched, lhe_enriched_metrics = _run_with_metrics(
-            "global_lhe_enriched",
-            lambda: LastHumanityExamBenchmark(
-                knowledgeverse=shared_kv,
-                max_questions=max_lhe_questions,
-                runtime_seed_knowledge=benchmark_runtime_seeding,
-            ).run_benchmark(use_enriched=True),
-        )
+        if run_arc:
+            arc_enriched, arc_enriched_metrics = _run_with_metrics(
+                "global_arc_enriched",
+                lambda: ARCAGI2Benchmark(
+                    knowledgeverse=shared_kv,
+                    max_tasks=max_arc_tasks,
+                    enable_contrastive_learning=arc_enable_contrastive_learning,
+                    enable_validity_gates=arc_enable_validity_gates,
+                    enable_fuzzy_oracle=arc_enable_fuzzy_oracle,
+                    fuzzy_oracle_threshold=arc_fuzzy_oracle_threshold,
+                    enable_ptx_ranking=arc_enable_ptx_ranking,
+                    enable_full_ptx=arc_enable_full_ptx,
+                    ptx_validity_strictness=arc_ptx_validity_strictness,
+                    runtime_seed_knowledge=benchmark_runtime_seeding,
+                ).run_benchmark(use_enriched=True),
+            )
+        else:
+            arc_enriched = _arc_skipped_result(use_enriched=True)
+            arc_enriched_metrics = _skip_metrics("global_arc_enriched")
+        if run_math:
+            math_enriched, math_enriched_metrics = _run_with_metrics(
+                "global_math_enriched",
+                lambda: MathCompetitionBenchmark(
+                    knowledgeverse=shared_kv,
+                    max_problems=max_math_problems,
+                    runtime_seed_knowledge=benchmark_runtime_seeding,
+                ).run_benchmark(use_enriched=True),
+            )
+        else:
+            math_enriched = _math_skipped_result(use_enriched=True)
+            math_enriched_metrics = _skip_metrics("global_math_enriched")
+        if run_lhe:
+            lhe_enriched, lhe_enriched_metrics = _run_with_metrics(
+                "global_lhe_enriched",
+                lambda: LastHumanityExamBenchmark(
+                    knowledgeverse=shared_kv,
+                    max_questions=max_lhe_questions,
+                    runtime_seed_knowledge=benchmark_runtime_seeding,
+                ).run_benchmark(use_enriched=True),
+            )
+        else:
+            lhe_enriched = _lhe_skipped_result(use_enriched=True)
+            lhe_enriched_metrics = _skip_metrics("global_lhe_enriched")
         shared_after_enriched = _collect_default_galaxy_counts(shared_kv)
 
         empty_kv = shared_kv
@@ -565,71 +741,95 @@ def _run_integrated_suite(
         continuity["shared_instance"] = continuity["instance_ids"]["empty_mind"] == continuity["instance_ids"]["enriched"]
 
         empty_galaxy_counts_start = _collect_default_galaxy_counts(empty_kv)
-        arc_empty, arc_empty_metrics = _run_with_metrics(
-            "global_arc_empty_mind",
-            lambda: ARCAGI2Benchmark(
-                knowledgeverse=empty_kv,
-                max_tasks=max_arc_tasks,
-                enable_contrastive_learning=arc_enable_contrastive_learning,
-                enable_validity_gates=arc_enable_validity_gates,
-                enable_fuzzy_oracle=arc_enable_fuzzy_oracle,
-                fuzzy_oracle_threshold=arc_fuzzy_oracle_threshold,
-                enable_ptx_ranking=arc_enable_ptx_ranking,
-                enable_full_ptx=arc_enable_full_ptx,
-                ptx_validity_strictness=arc_ptx_validity_strictness,
-                runtime_seed_knowledge=benchmark_runtime_seeding,
-            ).run_benchmark(use_enriched=False),
-        )
-        math_empty, math_empty_metrics = _run_with_metrics(
-            "global_math_empty_mind",
-            lambda: MathCompetitionBenchmark(
-                knowledgeverse=empty_kv,
-                max_problems=max_math_problems,
-                runtime_seed_knowledge=benchmark_runtime_seeding,
-            ).run_benchmark(use_enriched=False),
-        )
-        lhe_empty, lhe_empty_metrics = _run_with_metrics(
-            "global_lhe_empty_mind",
-            lambda: LastHumanityExamBenchmark(
-                knowledgeverse=empty_kv,
-                max_questions=max_lhe_questions,
-                runtime_seed_knowledge=benchmark_runtime_seeding,
-            ).run_benchmark(use_enriched=False),
-        )
+        if run_arc:
+            arc_empty, arc_empty_metrics = _run_with_metrics(
+                "global_arc_empty_mind",
+                lambda: ARCAGI2Benchmark(
+                    knowledgeverse=empty_kv,
+                    max_tasks=max_arc_tasks,
+                    enable_contrastive_learning=arc_enable_contrastive_learning,
+                    enable_validity_gates=arc_enable_validity_gates,
+                    enable_fuzzy_oracle=arc_enable_fuzzy_oracle,
+                    fuzzy_oracle_threshold=arc_fuzzy_oracle_threshold,
+                    enable_ptx_ranking=arc_enable_ptx_ranking,
+                    enable_full_ptx=arc_enable_full_ptx,
+                    ptx_validity_strictness=arc_ptx_validity_strictness,
+                    runtime_seed_knowledge=benchmark_runtime_seeding,
+                ).run_benchmark(use_enriched=False),
+            )
+        else:
+            arc_empty = _arc_skipped_result(use_enriched=False)
+            arc_empty_metrics = _skip_metrics("global_arc_empty_mind")
+        if run_math:
+            math_empty, math_empty_metrics = _run_with_metrics(
+                "global_math_empty_mind",
+                lambda: MathCompetitionBenchmark(
+                    knowledgeverse=empty_kv,
+                    max_problems=max_math_problems,
+                    runtime_seed_knowledge=benchmark_runtime_seeding,
+                ).run_benchmark(use_enriched=False),
+            )
+        else:
+            math_empty = _math_skipped_result(use_enriched=False)
+            math_empty_metrics = _skip_metrics("global_math_empty_mind")
+        if run_lhe:
+            lhe_empty, lhe_empty_metrics = _run_with_metrics(
+                "global_lhe_empty_mind",
+                lambda: LastHumanityExamBenchmark(
+                    knowledgeverse=empty_kv,
+                    max_questions=max_lhe_questions,
+                    runtime_seed_knowledge=benchmark_runtime_seeding,
+                ).run_benchmark(use_enriched=False),
+            )
+        else:
+            lhe_empty = _lhe_skipped_result(use_enriched=False)
+            lhe_empty_metrics = _skip_metrics("global_lhe_empty_mind")
         empty_galaxy_counts_end = _collect_default_galaxy_counts(empty_kv)
 
         enriched_galaxy_counts_start = _collect_default_galaxy_counts(enriched_kv)
-        arc_enriched, arc_enriched_metrics = _run_with_metrics(
-            "global_arc_enriched",
-            lambda: ARCAGI2Benchmark(
-                knowledgeverse=enriched_kv,
-                max_tasks=max_arc_tasks,
-                enable_contrastive_learning=arc_enable_contrastive_learning,
-                enable_validity_gates=arc_enable_validity_gates,
-                enable_fuzzy_oracle=arc_enable_fuzzy_oracle,
-                fuzzy_oracle_threshold=arc_fuzzy_oracle_threshold,
-                enable_ptx_ranking=arc_enable_ptx_ranking,
-                enable_full_ptx=arc_enable_full_ptx,
-                ptx_validity_strictness=arc_ptx_validity_strictness,
-                runtime_seed_knowledge=benchmark_runtime_seeding,
-            ).run_benchmark(use_enriched=True),
-        )
-        math_enriched, math_enriched_metrics = _run_with_metrics(
-            "global_math_enriched",
-            lambda: MathCompetitionBenchmark(
-                knowledgeverse=enriched_kv,
-                max_problems=max_math_problems,
-                runtime_seed_knowledge=benchmark_runtime_seeding,
-            ).run_benchmark(use_enriched=True),
-        )
-        lhe_enriched, lhe_enriched_metrics = _run_with_metrics(
-            "global_lhe_enriched",
-            lambda: LastHumanityExamBenchmark(
-                knowledgeverse=enriched_kv,
-                max_questions=max_lhe_questions,
-                runtime_seed_knowledge=benchmark_runtime_seeding,
-            ).run_benchmark(use_enriched=True),
-        )
+        if run_arc:
+            arc_enriched, arc_enriched_metrics = _run_with_metrics(
+                "global_arc_enriched",
+                lambda: ARCAGI2Benchmark(
+                    knowledgeverse=enriched_kv,
+                    max_tasks=max_arc_tasks,
+                    enable_contrastive_learning=arc_enable_contrastive_learning,
+                    enable_validity_gates=arc_enable_validity_gates,
+                    enable_fuzzy_oracle=arc_enable_fuzzy_oracle,
+                    fuzzy_oracle_threshold=arc_fuzzy_oracle_threshold,
+                    enable_ptx_ranking=arc_enable_ptx_ranking,
+                    enable_full_ptx=arc_enable_full_ptx,
+                    ptx_validity_strictness=arc_ptx_validity_strictness,
+                    runtime_seed_knowledge=benchmark_runtime_seeding,
+                ).run_benchmark(use_enriched=True),
+            )
+        else:
+            arc_enriched = _arc_skipped_result(use_enriched=True)
+            arc_enriched_metrics = _skip_metrics("global_arc_enriched")
+        if run_math:
+            math_enriched, math_enriched_metrics = _run_with_metrics(
+                "global_math_enriched",
+                lambda: MathCompetitionBenchmark(
+                    knowledgeverse=enriched_kv,
+                    max_problems=max_math_problems,
+                    runtime_seed_knowledge=benchmark_runtime_seeding,
+                ).run_benchmark(use_enriched=True),
+            )
+        else:
+            math_enriched = _math_skipped_result(use_enriched=True)
+            math_enriched_metrics = _skip_metrics("global_math_enriched")
+        if run_lhe:
+            lhe_enriched, lhe_enriched_metrics = _run_with_metrics(
+                "global_lhe_enriched",
+                lambda: LastHumanityExamBenchmark(
+                    knowledgeverse=enriched_kv,
+                    max_questions=max_lhe_questions,
+                    runtime_seed_knowledge=benchmark_runtime_seeding,
+                ).run_benchmark(use_enriched=True),
+            )
+        else:
+            lhe_enriched = _lhe_skipped_result(use_enriched=True)
+            lhe_enriched_metrics = _skip_metrics("global_lhe_enriched")
         enriched_galaxy_counts_end = _collect_default_galaxy_counts(enriched_kv)
 
     integrated = {
@@ -706,6 +906,22 @@ def main() -> None:
             "'unified' reuses one evolving Knowledgeverse instance across the full run; "
             "'dual' keeps separate empty/enriched worlds for diagnostics."
         ),
+    )
+    parser.add_argument(
+        "--enforce-sovereignty",
+        dest="enforce_sovereignty",
+        action="store_true",
+        default=True,
+        help=(
+            "Fail-fast when solved tasks do not include sovereign GPU evidence "
+            "(gpu_calls > 0 and no fallback)."
+        ),
+    )
+    parser.add_argument(
+        "--no-enforce-sovereignty",
+        dest="enforce_sovereignty",
+        action="store_false",
+        help="Disable sovereignty fail-fast checks for debugging only.",
     )
     parser.add_argument(
         "--unified-storage-root",
@@ -786,6 +1002,8 @@ def main() -> None:
     os.environ.setdefault("K3D_REQUIRE_PTX_ARC_PIPELINE", "true")
     if args.arc_enable_full_ptx:
         os.environ.setdefault("K3D_ALLOW_LEGACY_ARC_PIPELINE", "false")
+        # Full PTX mode must not silently drop to CPU query scans.
+        os.environ["K3D_REQUIRE_PTX_QUERY"] = "true"
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     inventory = _dataset_inventory(args.dataset_root)
@@ -844,6 +1062,64 @@ def main() -> None:
         "proxy_results": proxy_results,
         "runtime_usage": runtime_usage,
     }
+    sovereignty_checks: dict[str, Any] = {}
+    for benchmark_name in ("arc_agi_2", "math_competitions", "last_humanity_exam"):
+        phases = summary.get("integrated_results", {}).get(benchmark_name, {})
+        for phase in ("empty_mind", "enriched"):
+            payload = phases.get(phase, {})
+            if isinstance(payload, dict):
+                key = f"{benchmark_name}.{phase}"
+                sovereignty_checks[key] = _summarize_payload_sovereignty(
+                    benchmark_name=benchmark_name,
+                    phase=phase,
+                    payload=payload,
+                )
+    for proxy_name in ("gsm8k_proxy", "mmlu_proxy"):
+        payload = summary.get("proxy_results", {}).get(proxy_name)
+        if isinstance(payload, dict) and payload.get("available"):
+            key = f"{proxy_name}.proxy"
+            sovereignty_checks[key] = _summarize_payload_sovereignty(
+                benchmark_name=proxy_name,
+                phase="proxy",
+                payload=payload,
+            )
+    solved_total = sum(int(check.get("solved_tasks", 0)) for check in sovereignty_checks.values())
+    gpu_total = sum(int(check.get("tasks_using_gpu", 0)) for check in sovereignty_checks.values())
+    fallback_total = sum(int(check.get("fallback_triggered_count", 0)) for check in sovereignty_checks.values())
+    missing_gpu_total = sum(int(check.get("tasks_without_gpu", 0)) for check in sovereignty_checks.values())
+    missing_telemetry_total = sum(
+        int(check.get("tasks_without_gpu_telemetry", 0)) for check in sovereignty_checks.values()
+    )
+    compliance_total = (gpu_total / solved_total) if solved_total else 1.0
+    sovereignty_violations = {
+        key: value.get("violations", [])
+        for key, value in sovereignty_checks.items()
+        if value.get("violations")
+    }
+    summary.setdefault("runtime_usage", {})["sovereignty"] = {
+        "enforced": bool(args.enforce_sovereignty),
+        "checks": sovereignty_checks,
+        "totals": {
+            "solved_tasks": int(solved_total),
+            "tasks_using_gpu": int(gpu_total),
+            "tasks_without_gpu": int(missing_gpu_total),
+            "tasks_without_gpu_telemetry": int(missing_telemetry_total),
+            "fallback_triggered_count": int(fallback_total),
+            "sovereignty_compliance": float(compliance_total),
+        },
+        "violations": sovereignty_violations,
+    }
+    if args.enforce_sovereignty and sovereignty_violations:
+        samples: list[str] = []
+        for key, reasons in sovereignty_violations.items():
+            reason_text = ", ".join(str(item) for item in reasons)
+            samples.append(f"{key}: {reason_text}")
+            if len(samples) >= 5:
+                break
+        raise SovereigntyViolation(
+            "Sovereignty violation detected in global benchmark runner. "
+            f"compliance={compliance_total:.1%}; samples={'; '.join(samples)}"
+        )
     previous_entry = _load_previous_history_entry(history_path)
     historical_comparison = _build_historical_comparison(previous_entry, summary)
     summary["historical_comparison"] = historical_comparison
@@ -880,6 +1156,19 @@ def main() -> None:
         f"{runtime_usage.get('model_persistence_mode')} "
         f"(shared_instance={runtime_usage.get('persistence', {}).get('shared_instance')})"
     )
+    sovereignty = summary.get("runtime_usage", {}).get("sovereignty", {})
+    sovereignty_totals = sovereignty.get("totals", {})
+    print(
+        "  Sovereignty summary: "
+        f"enforced={bool(sovereignty.get('enforced', False))} "
+        f"gpu_tasks={int(sovereignty_totals.get('tasks_using_gpu', 0))}/"
+        f"{int(sovereignty_totals.get('solved_tasks', 0))} "
+        f"compliance={float(sovereignty_totals.get('sovereignty_compliance', 1.0)):.1%} "
+        f"fallbacks={int(sovereignty_totals.get('fallback_triggered_count', 0))}"
+    )
+    if sovereignty.get("violations"):
+        for key, reasons in sovereignty["violations"].items():
+            print(f"    ⚠️ {key}: {', '.join(str(item) for item in reasons)}")
     print(f"  ARC embedding lazy mode: {args.arc_embedding_lazy_mode}")
     if historical_comparison:
         print("  Previous -> Current enriched/proxy comparison")

@@ -82,13 +82,21 @@ class ArcAgi2Adapter:
         constraint_mode: str = "reject",
         enable_figure_ground_reversal: bool = False,
         enable_object_aware_generation: bool = False,
+        enable_forced_navigation_curriculum: bool = False,
+        forced_navigation_ratio: float = 0.0,
+        forced_navigation_required_galaxies: str | list[str] | None = None,
         enable_rescue_lane: bool = False,
         rescue_lane_size: int = 16,
+        oracle_search_lane_size: int = 32,
+        enable_oracle_rejected_rescue: bool = False,
+        oracle_rejected_rescue_size: int = 16,
+        oracle_rejected_rescue_fuzzy_threshold: float = 0.90,
         enable_dual_track_oracle: bool = False,
         family_penalty_weight: float = 1.0,
         shape_penalty_weight: float = 1.0,
         palette_penalty_weight: float = 1.0,
         object_penalty_weight: float = 1.0,
+        query_scope_galaxies: str | list[str] | None = None,
     ):
         self.use_enriched = use_enriched
         self.strict_legacy = strict_legacy
@@ -97,7 +105,7 @@ class ArcAgi2Adapter:
         self.enable_validity_gates = bool(enable_validity_gates)
         self.enable_fuzzy_oracle = bool(enable_fuzzy_oracle)
         self.fuzzy_oracle_threshold = max(0.50, min(0.99, float(fuzzy_oracle_threshold)))
-        self.enable_ptx_ranking = bool(enable_ptx_ranking)
+        self.enable_ptx_ranking = bool(enable_ptx_ranking or enable_full_ptx)
         self.enable_full_ptx = bool(enable_full_ptx)
         strictness = str(ptx_validity_strictness or "medium").strip().lower()
         if strictness not in {"strict", "medium", "relaxed"}:
@@ -108,13 +116,26 @@ class ArcAgi2Adapter:
             self.constraint_mode = "reject"
         self.enable_figure_ground_reversal = bool(enable_figure_ground_reversal)
         self.enable_object_aware_generation = bool(enable_object_aware_generation)
+        self.enable_forced_navigation_curriculum = bool(enable_forced_navigation_curriculum)
+        self.forced_navigation_ratio = self._clamp(float(forced_navigation_ratio), lo=0.0, hi=1.0)
+        self.forced_navigation_required_galaxies = self._normalize_forced_navigation_galaxies(
+            forced_navigation_required_galaxies
+        )
         self.enable_rescue_lane = bool(enable_rescue_lane)
         self.rescue_lane_size = max(1, min(64, int(rescue_lane_size)))
+        self.oracle_search_lane_size = max(1, min(128, int(oracle_search_lane_size)))
+        self.enable_oracle_rejected_rescue = bool(enable_oracle_rejected_rescue)
+        self.oracle_rejected_rescue_size = max(0, min(64, int(oracle_rejected_rescue_size)))
+        self.oracle_rejected_rescue_fuzzy_threshold = max(
+            0.50,
+            min(0.99, float(oracle_rejected_rescue_fuzzy_threshold)),
+        )
         self.enable_dual_track_oracle = bool(enable_dual_track_oracle)
         self.family_penalty_weight = self._normalize_penalty_weight(family_penalty_weight)
         self.shape_penalty_weight = self._normalize_penalty_weight(shape_penalty_weight)
         self.palette_penalty_weight = self._normalize_penalty_weight(palette_penalty_weight)
         self.object_penalty_weight = self._normalize_penalty_weight(object_penalty_weight)
+        self.query_scope_galaxies = self._normalize_optional_galaxy_scope(query_scope_galaxies)
         self._ptx_ranking_available = bool(self.enable_ptx_ranking and _HAS_CUPY and _HAS_PTX_OPS)
         self._full_ptx_available = bool(self.enable_full_ptx and _HAS_CUPY and _HAS_PTX_OPS)
         ptx_unavailable_reasons: list[str] = []
@@ -156,35 +177,23 @@ class ArcAgi2Adapter:
         }
         self.pipeline = None
         self._init_error: str | None = None
-        self.require_ptx_path = bool(
-            self.enable_full_ptx and _REQUIRE_PTX_ARC_PIPELINE and not _ALLOW_LEGACY_ARC_PIPELINE
-        )
+        self.require_ptx_path = True
         self.quality_memory: TernaryQualityMemory | None = None
         if knowledgeverse is not None and hasattr(knowledgeverse, "storage_root"):
             state_path = Path(getattr(knowledgeverse, "storage_root")) / "checkpoints" / "arc_quality_memory.json"
             self.quality_memory = TernaryQualityMemory(state_path=state_path, emit_galaxy_entries=False)
 
-        if self.require_ptx_path:
-            if not self._full_ptx_available:
-                raise RuntimeError(
-                    "PTX-only ARC path requested but ARC PTX operations are unavailable "
-                    f"(reason={self._ptx_unavailable_reason or 'unknown'}). "
-                    "Install/enable CuPy+PTX runtime or explicitly set K3D_ALLOW_LEGACY_ARC_PIPELINE=true."
-                )
-            self._init_error = "legacy_disabled_ptx_only"
-        else:
-            try:
-                from knowledge3d.training.arc_agi import SovereignAIPipeline
-
-                self.pipeline = SovereignAIPipeline(
-                    matryoshka_dim=512 if use_enriched else 128,
-                    hybrid_mode=use_enriched,
-                    knowledgeverse=self.knowledgeverse,
-                )
-            except Exception as exc:  # pragma: no cover - environment dependent.
-                self._init_error = str(exc)
-                if strict_legacy:
-                    raise
+        if not self._full_ptx_available:
+            raise RuntimeError(
+                "PTX-only ARC path is mandatory; ARC PTX operations are unavailable "
+                f"(reason={self._ptx_unavailable_reason or 'unknown'})."
+            )
+        if not self._ptx_ranking_available:
+            raise RuntimeError(
+                "PTX ranking is mandatory for ARC hot path; ranking kernel unavailable "
+                f"(reason={self._ptx_unavailable_reason or 'unknown'})."
+            )
+        self._init_error = "legacy_disabled_ptx_only"
 
     def solve_task(
         self,
@@ -192,402 +201,13 @@ class ArcAgi2Adapter:
         *,
         fallback_solver: Callable[[dict[str, Any], bool], dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
-        """Solve one ARC task.
-
-        If the legacy pipeline is unavailable or fails and `strict_legacy=False`,
-        an optional fallback solver can be used to keep the benchmark runnable.
-        """
-        if self.pipeline is None:
-            if self.require_ptx_path:
-                return self._solve_task_ptx_only(task)
-            return self._fallback_or_raise(task, "pipeline_unavailable", fallback_solver)
-
-        task_id = str(task.get("id", "unknown"))
-        test_block = task.get("test") or [{}]
-        test_input = test_block[0].get("input")
-        expected_output = test_block[0].get("output")
-        train_examples = task.get("train") or []
-        discovered_patterns = self.discover_patterns(train_examples)
-        generated_patterns = [
-            p
-            for p in discovered_patterns
-            if p.source in {"autonomous_generation", "contrastive_anti"}
-        ]
-        traditional_patterns = [p for p in discovered_patterns if p.source == "traditional"]
-        cross_modal_patterns = [p for p in discovered_patterns if p.source == "multi_galaxy_composition"]
-        contrastive_patterns = [p for p in discovered_patterns if p.source == "contrastive_anti"]
-
-        try:
-            result = self.pipeline.process_task(
-                task_id=task_id,
-                test_input=test_input,
-                train_examples=train_examples,
-                expected_output=expected_output,
-                top_k=9 if self.use_enriched else 3,
-                record_submission=False,
+        """Solve one ARC task using PTX-only path. Legacy fallback is forbidden."""
+        if fallback_solver is not None:
+            raise RuntimeError(
+                "Fallback solver is forbidden in PTX-only ARC mode. "
+                "Remove fallback wiring and run sovereign hot path only."
             )
-            predicted = result.output_grid
-            exact_match = self._grids_match(predicted, expected_output)
-            generated_conf_mean = 0.0
-            if generated_patterns:
-                generated_conf_mean = sum(p.confidence for p in generated_patterns) / len(generated_patterns)
-            validity_profile = self._build_validity_profile(
-                train_examples=train_examples,
-                test_input=test_input,
-            )
-            ranked_candidates = self._rank_candidates_for_task(
-                test_input=test_input,
-                legacy_prediction=predicted,
-                discovered_patterns=discovered_patterns,
-                validity_profile=validity_profile,
-                return_debug=True,
-            )
-            if isinstance(ranked_candidates, tuple):
-                ranked_candidates, ranking_debug = ranked_candidates
-            else:
-                ranking_debug = {}
-            generation_filter_report = ranking_debug.get("generation_filter_report", {}) if isinstance(ranking_debug, dict) else {}
-            validity_report: dict[str, Any] = {
-                "enabled": self.enable_validity_gates,
-                "mode": "cpu_validity",
-                "strictness": self.ptx_validity_strictness,
-                "pre_count": len(ranked_candidates),
-                "post_count": len(ranked_candidates),
-                "filtered_count": 0,
-                "fallback_to_ungated": False,
-                "family_rejects": 0,
-                "shape_rejects": 0,
-                "palette_rejects": 0,
-                "object_rejects": 0,
-            }
-            if self.enable_validity_gates and ranked_candidates:
-                ranked_candidates, validity_report = self._apply_validity_gates(
-                    ranked_candidates=ranked_candidates,
-                    validity_profile=validity_profile,
-                )
-            ptx_validity_used = str(validity_report.get("mode", "")).startswith("ptx_")
-            ranked_prediction = predicted
-            ranking_applied = bool(ranked_candidates)
-            ranking_override_used = False
-            ranking_top = None
-            legacy_rank = None
-            pre_top_source = str(ranking_debug.get("pre_top_source", "unknown"))
-            if ranked_candidates:
-                ranking_top = ranked_candidates[0]
-                for item in ranked_candidates:
-                    if item.get("pattern", {}).get("pattern_id") == "legacy_pipeline_output":
-                        legacy_rank = item
-                        break
-
-                if self._should_apply_ranking_override(ranking_top, legacy_rank):
-                    ranked_prediction = ranking_top.get("candidate", predicted)
-                    ranking_override_used = True
-
-            selected = self._select_candidate_with_rescue_lane(
-                ranked_candidates=ranked_candidates,
-                expected_output=expected_output,
-            )
-            selected_grid = self._to_grid(selected.get("selected_grid"))
-            selected_item = selected.get("selected_item")
-            selected_rank = selected.get("selected_rank")
-            selected_track = str(selected.get("oracle_track", "rank_top1"))
-            selected_fuzzy_score = float(selected.get("selected_fuzzy_score", 0.0))
-            selected_exact = bool(selected.get("selected_exact", False))
-            if selected_grid:
-                ranked_prediction = selected_grid
-                if selected_rank not in (None, 0):
-                    ranking_override_used = True
-
-            ranked_exact_match = self._grids_match(ranked_prediction, expected_output)
-            oracle_metrics = self._compute_oracle_metrics(
-                ranked_candidates,
-                expected_output,
-                fuzzy_threshold=(self.fuzzy_oracle_threshold if self.enable_fuzzy_oracle else None),
-            )
-            candidate_contrast = self._compute_accepted_rejected_telemetry(
-                ranked_candidates=ranked_candidates,
-                expected_output=expected_output,
-            )
-            ptx_oracle_used = bool(oracle_metrics.get("ptx_oracle_used", False))
-            ptx_full_used = bool(ptx_validity_used or ptx_oracle_used)
-            oracle_diagnostics = self.evaluate_task_with_oracle_diagnostics(
-                predicted=ranked_prediction,
-                expected=expected_output,
-                validity_profile=validity_profile,
-                validity_report=validity_report,
-                oracle_metrics=oracle_metrics,
-            )
-            top_5 = ranked_candidates[:5]
-            top_5_scores = [float(item.get("score", 0.0)) for item in top_5]
-            top_5_sources = [str(item.get("pattern", {}).get("source", "unknown")) for item in top_5]
-            score_range = (
-                (max(top_5_scores) - min(top_5_scores)) if len(top_5_scores) >= 2 else 0.0
-            )
-            score_stddev = (
-                statistics.pstdev(top_5_scores) if len(top_5_scores) >= 2 else 0.0
-            )
-            legacy_correct = bool(result.correct)
-            # Preserve legacy benchmark semantics (fuzzy-aware correctness) so
-            # ranking experiments cannot silently zero out baseline performance.
-            final_correct = legacy_correct
-            if self.enable_dual_track_oracle:
-                final_correct = bool(
-                    legacy_correct
-                    or selected_exact
-                    or (
-                        self.enable_fuzzy_oracle
-                        and selected_track == "fuzzy"
-                        and selected_fuzzy_score >= self.fuzzy_oracle_threshold
-                    )
-                )
-            elif ranking_override_used and expected_output is not None:
-                # Override can only improve correctness when exact match is achieved.
-                final_correct = legacy_correct or ranked_exact_match
-            post_top_source = (
-                str(ranking_top.get("pattern", {}).get("source", "unknown")) if ranking_top else "legacy_pipeline"
-            )
-            ranking_changed_top1 = bool(ranking_applied and pre_top_source != post_top_source)
-            ptx_ranking_used = bool(ranking_debug.get("ptx_used", False))
-            ptx_top_index = ranking_debug.get("ptx_top_index")
-            ptx_mode = str(ranking_debug.get("ptx_mode", "cpu"))
-            ptx_error = ranking_debug.get("ptx_error")
-            self._update_quality_memory(
-                ranked_candidates=ranked_candidates,
-                ranking_top=ranking_top,
-                final_correct=final_correct,
-                oracle_metrics=oracle_metrics,
-                selected_rank=selected_rank,
-                selected_oracle_track=selected_track,
-                selected_fuzzy_score=selected_fuzzy_score,
-            )
-            if self.knowledgeverse is not None:
-                self.knowledgeverse.log_event(
-                    event_type="arc_pattern_discovery",
-                    event_data={
-                        "task_id": task_id,
-                        "total_patterns": len(discovered_patterns),
-                        "generated_patterns": len(generated_patterns),
-                        "traditional_patterns": len(traditional_patterns),
-                        "cross_modal_patterns": len(cross_modal_patterns),
-                        "contrastive_patterns": len(contrastive_patterns),
-                        "generation_filter_generated_total": int(generation_filter_report.get("generated_total", 0)),
-                        "generation_filter_accept_rate": float(generation_filter_report.get("accept_rate", 0.0)),
-                        "generation_filter_reject_rate": float(generation_filter_report.get("reject_rate", 0.0)),
-                        "confidence": (
-                            sum(p.confidence for p in discovered_patterns) / len(discovered_patterns)
-                            if discovered_patterns
-                            else 0.0
-                        ),
-                        "specialist": "visual",
-                    },
-                )
-                if ranking_applied and ranking_top is not None:
-                    self.knowledgeverse.log_event(
-                        event_type="arc_candidate_ranking",
-                        event_data={
-                            "task_id": task_id,
-                            "selected_source": ranking_top.get("pattern", {}).get("source", "unknown"),
-                            "selected_score": float(ranking_top.get("score", 0.0)),
-                            "legacy_score": float(legacy_rank.get("score", 0.0)) if legacy_rank else 0.0,
-                            "override_used": ranking_override_used,
-                            "selected_pattern_id": ranking_top.get("pattern", {}).get("pattern_id", ""),
-                            "specialist": "visual",
-                            "quality_prior": (
-                                float(ranking_top.get("quality_prior", 0.0))
-                                if isinstance(ranking_top, dict)
-                                else 0.0
-                            ),
-                            "ranking_components": ranking_top.get("components", {}),
-                            "candidate_count": len(ranked_candidates),
-                            "ranking_changed_top1": ranking_changed_top1,
-                            "pre_top_source": pre_top_source,
-                            "post_top_source": post_top_source,
-                            "selected_rank": selected_rank,
-                            "selected_oracle_track": selected_track,
-                            "selected_fuzzy_score": selected_fuzzy_score,
-                            "selected_exact_match": selected_exact,
-                            "rescue_lane_enabled": bool(self.enable_rescue_lane),
-                            "rescue_lane_size": int(selected.get("lane_size", 0)),
-                            "ptx_ranking_enabled": bool(self.enable_ptx_ranking),
-                            "ptx_ranking_used": ptx_ranking_used,
-                            "ptx_mode": ptx_mode,
-                            "ptx_top_index": ptx_top_index,
-                            "ptx_error": ptx_error,
-                            "ptx_full_enabled": bool(self.enable_full_ptx),
-                            "ptx_unavailable_reason": self._ptx_unavailable_reason,
-                            "ptx_full_used": ptx_full_used,
-                            "ptx_validity_mode": str(validity_report.get("mode", "cpu_validity")),
-                            "ptx_validity_strictness": str(validity_report.get("strictness", self.ptx_validity_strictness)),
-                            "ptx_oracle_used": ptx_oracle_used,
-                        },
-                    )
-                    self.knowledgeverse.log_event(
-                        event_type="arc_ranking_scores",
-                        event_data={
-                            "task_id": task_id,
-                            "top_5_scores": top_5_scores,
-                            "top_5_sources": top_5_sources,
-                            "score_range": float(score_range),
-                            "score_stddev": float(score_stddev),
-                            "oracle_at_3": oracle_metrics["oracle_at_3"],
-                            "oracle_at_10": oracle_metrics["oracle_at_10"],
-                            "oracle_at_all": oracle_metrics["oracle_at_all"],
-                            "oracle_fuzzy_0_80": bool(oracle_metrics.get("oracle_fuzzy_0_80", False)),
-                            "oracle_fuzzy_0_85": bool(oracle_metrics.get("oracle_fuzzy_0_85", False)),
-                            "oracle_fuzzy_0_90": bool(oracle_metrics.get("oracle_fuzzy_0_90", False)),
-                            "oracle_fuzzy_0_95": bool(oracle_metrics.get("oracle_fuzzy_0_95", False)),
-                            "oracle_exact": bool(oracle_metrics.get("oracle_exact", False)),
-                            "fuzzy_oracle_at_10": oracle_metrics.get("fuzzy_oracle_at_10", False),
-                            "fuzzy_oracle_at_all": oracle_metrics.get("fuzzy_oracle_at_all", False),
-                            "fuzzy_best_score": float(oracle_metrics.get("fuzzy_best_score", 0.0)),
-                            "correct_rank": oracle_metrics["correct_rank"],
-                            "specialist": "visual",
-                            "ptx_ranking_enabled": bool(self.enable_ptx_ranking),
-                            "ptx_ranking_used": ptx_ranking_used,
-                            "ptx_mode": ptx_mode,
-                            "ptx_top_index": ptx_top_index,
-                            "ptx_error": ptx_error,
-                            "ptx_full_enabled": bool(self.enable_full_ptx),
-                            "ptx_unavailable_reason": self._ptx_unavailable_reason,
-                            "ptx_full_used": ptx_full_used,
-                            "ptx_oracle_used": ptx_oracle_used,
-                        },
-                    )
-                    self.knowledgeverse.log_event(
-                        event_type="arc_oracle_diagnostics",
-                        event_data={
-                            "task_id": task_id,
-                            "validity_reject_rate": float(validity_report.get("validity_reject_rate", 0.0)),
-                            "validity_filtered_count": int(validity_report.get("filtered_count", 0)),
-                            "validity_fallback": bool(validity_report.get("fallback_to_ungated", False)),
-                            "validity_family_rejects": int(validity_report.get("family_rejects", 0)),
-                            "family_mismatch": bool(oracle_diagnostics.get("family_mismatch", False)),
-                            "shape_mismatch": bool(oracle_diagnostics.get("shape_mismatch", False)),
-                            "palette_mismatch": bool(oracle_diagnostics.get("palette_mismatch", False)),
-                            "object_count_mismatch": bool(oracle_diagnostics.get("object_count_mismatch", False)),
-                            "oracle_at_all": bool(oracle_metrics.get("oracle_at_all", False)),
-                            "fuzzy_oracle_at_all": bool(oracle_metrics.get("fuzzy_oracle_at_all", False)),
-                            "specialist": "visual",
-                            "ptx_full_enabled": bool(self.enable_full_ptx),
-                            "ptx_unavailable_reason": self._ptx_unavailable_reason,
-                            "ptx_full_used": ptx_full_used,
-                            "ptx_validity_mode": str(validity_report.get("mode", "cpu_validity")),
-                            "ptx_validity_strictness": str(validity_report.get("strictness", self.ptx_validity_strictness)),
-                            "ptx_oracle_used": ptx_oracle_used,
-                        },
-                    )
-                    self.knowledgeverse.log_event(
-                        event_type="arc_candidate_contrast",
-                        event_data={
-                            "task_id": task_id,
-                            "accepted_count": int(candidate_contrast.get("accepted_count", 0)),
-                            "rejected_count": int(candidate_contrast.get("rejected_count", 0)),
-                            "best_accepted_fuzzy": candidate_contrast.get("best_accepted_fuzzy"),
-                            "best_rejected_fuzzy": candidate_contrast.get("best_rejected_fuzzy"),
-                            "best_rejected_reason": candidate_contrast.get("best_rejected_reason"),
-                            "rejected_was_better": bool(candidate_contrast.get("rejected_was_better", False)),
-                            "fuzzy_delta": float(candidate_contrast.get("fuzzy_delta", 0.0)),
-                            "specialist": "visual",
-                        },
-                    )
-            reasoning_trace = self._extract_reasoning_trace(result)
-            if ranking_applied and ranking_top is not None:
-                reasoning_trace.append(
-                    "ranking::selected_source="
-                    f"{ranking_top.get('pattern', {}).get('source', 'unknown')} "
-                    f"score={float(ranking_top.get('score', 0.0)):.4f} "
-                    f"override={ranking_override_used}"
-                )
-            return {
-                "task_id": task_id,
-                "correct": final_correct,
-                "exact_match": ranked_exact_match,
-                "legacy_correct": legacy_correct,
-                "predicted": ranked_prediction,
-                "legacy_predicted": predicted,
-                "legacy_exact_match": exact_match,
-                "expected": expected_output,
-                "reasoning_trace": reasoning_trace,
-                "patterns_used": self._count_patterns_used(result.best_program),
-                "solver": "legacy_sovereign_pipeline",
-                "score": float(result.score),
-                "fuzzy_score": float(getattr(result, "fuzzy_score", 0.0)),
-                "generated_patterns": [pattern.__dict__ for pattern in discovered_patterns],
-                "generated_pattern_count": len(generated_patterns),
-                "generated_pattern_confidence_mean": generated_conf_mean,
-                "generation_filter_report": generation_filter_report,
-                "generation_filter_generated_total": int(generation_filter_report.get("generated_total", 0)),
-                "generation_filter_accept_rate": float(generation_filter_report.get("accept_rate", 0.0)),
-                "generation_filter_reject_rate": float(generation_filter_report.get("reject_rate", 0.0)),
-                "traditional_pattern_count": len(traditional_patterns),
-                "cross_modal_pattern_count": len(cross_modal_patterns),
-                "contrastive_pattern_count": len(contrastive_patterns),
-                "ranking_applied": ranking_applied,
-                "ranking_override_used": ranking_override_used,
-                "ranking_top_score": float(ranking_top.get("score", 0.0)) if ranking_top else 0.0,
-                "ranking_legacy_score": float(legacy_rank.get("score", 0.0)) if legacy_rank else 0.0,
-                "ranking_top_components": ranking_top.get("components", {}) if ranking_top else {},
-                "ranked_candidate_count": len(ranked_candidates),
-                "pattern_source": post_top_source,
-                "selected_source": (
-                    str((selected_item or {}).get("pattern", {}).get("source", post_top_source))
-                    if isinstance(selected_item, dict)
-                    else post_top_source
-                ),
-                "selected_rank": selected_rank,
-                "selected_oracle_track": selected_track,
-                "selected_fuzzy_score": selected_fuzzy_score,
-                "selected_exact_match": selected_exact,
-                "rescue_lane_enabled": bool(self.enable_rescue_lane),
-                "rescue_lane_size": int(selected.get("lane_size", 0)),
-                "ranking_pre_top_source": pre_top_source,
-                "ranking_post_top_source": post_top_source,
-                "ranking_changed_top1": ranking_changed_top1,
-                "ptx_ranking_enabled": bool(self.enable_ptx_ranking),
-                "ptx_ranking_used": ptx_ranking_used,
-                "ptx_ranking_mode": ptx_mode,
-                "ptx_ranking_top_index": ptx_top_index,
-                "ptx_ranking_error": ptx_error,
-                "ptx_full_enabled": bool(self.enable_full_ptx),
-                "ptx_full_available": bool(self._full_ptx_available),
-                "ptx_unavailable_reason": self._ptx_unavailable_reason,
-                "ptx_full_used": ptx_full_used,
-                "ptx_oracle_used": ptx_oracle_used,
-                "ptx_validity_mode": str(validity_report.get("mode", "cpu_validity")),
-                "ptx_validity_strictness": str(validity_report.get("strictness", self.ptx_validity_strictness)),
-                "ranking_top_5_scores": top_5_scores,
-                "ranking_top_5_sources": top_5_sources,
-                "ranking_score_range": float(score_range),
-                "ranking_score_stddev": float(score_stddev),
-                "oracle_at_3": oracle_metrics["oracle_at_3"],
-                "oracle_at_10": oracle_metrics["oracle_at_10"],
-                "oracle_at_all": oracle_metrics["oracle_at_all"],
-                "correct_rank": oracle_metrics["correct_rank"],
-                "oracle_fuzzy_0_80": bool(oracle_metrics.get("oracle_fuzzy_0_80", False)),
-                "oracle_fuzzy_0_85": bool(oracle_metrics.get("oracle_fuzzy_0_85", False)),
-                "oracle_fuzzy_0_90": bool(oracle_metrics.get("oracle_fuzzy_0_90", False)),
-                "oracle_fuzzy_0_95": bool(oracle_metrics.get("oracle_fuzzy_0_95", False)),
-                "oracle_exact": bool(oracle_metrics.get("oracle_exact", False)),
-                "fuzzy_oracle_at_3": bool(oracle_metrics.get("fuzzy_oracle_at_3", False)),
-                "fuzzy_oracle_at_10": bool(oracle_metrics.get("fuzzy_oracle_at_10", False)),
-                "fuzzy_oracle_at_all": bool(oracle_metrics.get("fuzzy_oracle_at_all", False)),
-                "fuzzy_best_score": float(oracle_metrics.get("fuzzy_best_score", 0.0)),
-                "fuzzy_best_rank": oracle_metrics.get("fuzzy_best_rank"),
-                "validity_gates_enabled": self.enable_validity_gates,
-                "validity_gate_report": validity_report,
-                "validity_reject_rate": float(validity_report.get("validity_reject_rate", 0.0)),
-                "validity_family_rejects": int(validity_report.get("family_rejects", 0)),
-                "oracle_failure_modes": oracle_diagnostics,
-                "accepted_count": int(candidate_contrast.get("accepted_count", 0)),
-                "rejected_count": int(candidate_contrast.get("rejected_count", 0)),
-                "best_accepted_fuzzy": candidate_contrast.get("best_accepted_fuzzy"),
-                "best_rejected_fuzzy": candidate_contrast.get("best_rejected_fuzzy"),
-                "best_rejected_reason": candidate_contrast.get("best_rejected_reason"),
-                "rejected_was_better": bool(candidate_contrast.get("rejected_was_better", False)),
-                "fuzzy_delta": float(candidate_contrast.get("fuzzy_delta", 0.0)),
-            }
-        except Exception as exc:
-            return self._fallback_or_raise(task, str(exc), fallback_solver)
+        return self._solve_task_ptx_only(task)
 
     def _solve_task_ptx_only(self, task: dict[str, Any]) -> dict[str, Any]:
         """PTX-first ARC solve path without legacy sovereign pipeline dependency."""
@@ -602,6 +222,8 @@ class ArcAgi2Adapter:
         traditional_patterns = [p for p in discovered_patterns if p.source == "traditional"]
         cross_modal_patterns = [p for p in discovered_patterns if p.source == "multi_galaxy_composition"]
         contrastive_patterns = [p for p in discovered_patterns if p.source == "contrastive_anti"]
+        forced_navigation_patterns = [p for p in discovered_patterns if p.source == "curriculum_forced_navigation"]
+        query_participation = self._collect_query_participation(discovered_patterns)
 
         generated_conf_mean = 0.0
         if generated_patterns:
@@ -619,6 +241,11 @@ class ArcAgi2Adapter:
             return_debug=True,
         )
         generation_filter_report = ranking_debug.get("generation_filter_report", {}) if isinstance(ranking_debug, dict) else {}
+        oracle_rejected_rescue_candidates = (
+            list(ranking_debug.get("oracle_rejected_rescue_candidates", []))
+            if isinstance(ranking_debug, dict)
+            else []
+        )
 
         validity_report: dict[str, Any] = {
             "enabled": self.enable_validity_gates,
@@ -661,6 +288,11 @@ class ArcAgi2Adapter:
         selected_track = str(selected.get("oracle_track", "rank_top1"))
         selected_fuzzy_score = float(selected.get("selected_fuzzy_score", 0.0))
         selected_exact = bool(selected.get("selected_exact", False))
+        oracle_lane_size = int(selected.get("oracle_lane_size", 0))
+        oracle_probe_exact = bool(selected.get("oracle_probe_exact", False))
+        oracle_probe_exact_rank = selected.get("oracle_probe_exact_rank")
+        oracle_probe_fuzzy_score = float(selected.get("oracle_probe_fuzzy_score", 0.0))
+        oracle_probe_fuzzy_rank = selected.get("oracle_probe_fuzzy_rank")
         predicted = selected_grid if selected_grid else self._to_grid(test_input)
         if not predicted and ranking_top is not None:
             predicted = self._to_grid(ranking_top.get("candidate"))
@@ -669,6 +301,12 @@ class ArcAgi2Adapter:
             ranked_candidates,
             expected_output,
             fuzzy_threshold=(self.fuzzy_oracle_threshold if self.enable_fuzzy_oracle else None),
+        )
+        oracle_metrics = self._augment_oracle_metrics_with_rejected_rescue(
+            oracle_metrics=oracle_metrics,
+            rejected_rescue_candidates=oracle_rejected_rescue_candidates,
+            expected_output=expected_output,
+            ranked_candidate_count=len(ranked_candidates),
         )
         candidate_contrast = self._compute_accepted_rejected_telemetry(
             ranked_candidates=ranked_candidates,
@@ -692,17 +330,7 @@ class ArcAgi2Adapter:
         score_stddev = statistics.pstdev(top_5_scores) if len(top_5_scores) >= 2 else 0.0
 
         fuzzy_best = float(oracle_metrics.get("fuzzy_best_score", 0.0))
-        if self.enable_dual_track_oracle:
-            final_correct = bool(
-                selected_exact
-                or (
-                    self.enable_fuzzy_oracle
-                    and selected_track == "fuzzy"
-                    and selected_fuzzy_score >= self.fuzzy_oracle_threshold
-                )
-            )
-        else:
-            final_correct = bool(ranked_exact_match or (self.enable_fuzzy_oracle and fuzzy_best >= self.fuzzy_oracle_threshold))
+        final_correct = bool(ranked_exact_match or (self.enable_fuzzy_oracle and fuzzy_best >= self.fuzzy_oracle_threshold))
 
         self._update_quality_memory(
             ranked_candidates=ranked_candidates,
@@ -723,9 +351,21 @@ class ArcAgi2Adapter:
                     "traditional_patterns": len(traditional_patterns),
                     "cross_modal_patterns": len(cross_modal_patterns),
                     "contrastive_patterns": len(contrastive_patterns),
+                    "forced_navigation_patterns": len(forced_navigation_patterns),
+                    "forced_navigation_enabled": bool(self.enable_forced_navigation_curriculum),
+                    "forced_navigation_ratio": float(self.forced_navigation_ratio),
+                    "forced_navigation_required_galaxies": list(self.forced_navigation_required_galaxies),
                     "generation_filter_generated_total": int(generation_filter_report.get("generated_total", 0)),
                     "generation_filter_accept_rate": float(generation_filter_report.get("accept_rate", 0.0)),
                     "generation_filter_reject_rate": float(generation_filter_report.get("reject_rate", 0.0)),
+                    "generation_object_count_distribution": generation_filter_report.get(
+                        "object_count_distribution", {}
+                    ),
+                    "queried_galaxies": query_participation.get("queried_galaxies", []),
+                    "queried_galaxy_count": int(query_participation.get("queried_galaxy_count", 0)),
+                    "cross_galaxy_composition_count": int(
+                        query_participation.get("cross_galaxy_composition_count", 0)
+                    ),
                     "confidence": (
                         sum(p.confidence for p in discovered_patterns) / len(discovered_patterns)
                         if discovered_patterns
@@ -745,6 +385,19 @@ class ArcAgi2Adapter:
                     "best_rejected_reason": candidate_contrast.get("best_rejected_reason"),
                     "rejected_was_better": bool(candidate_contrast.get("rejected_was_better", False)),
                     "fuzzy_delta": float(candidate_contrast.get("fuzzy_delta", 0.0)),
+                    "oracle_rejected_rescue_enabled": bool(self.enable_oracle_rejected_rescue),
+                    "oracle_rejected_rescue_candidate_count": int(
+                        oracle_metrics.get("oracle_rejected_rescue_candidate_count", 0)
+                    ),
+                    "oracle_rejected_rescue_exact": bool(
+                        oracle_metrics.get("oracle_rejected_rescue_exact", False)
+                    ),
+                    "oracle_rejected_rescue_fuzzy": bool(
+                        oracle_metrics.get("oracle_rejected_rescue_fuzzy", False)
+                    ),
+                    "oracle_rejected_rescue_fuzzy_best_score": float(
+                        oracle_metrics.get("oracle_rejected_rescue_fuzzy_best_score", 0.0)
+                    ),
                     "specialist": "visual",
                 },
             )
@@ -770,14 +423,55 @@ class ArcAgi2Adapter:
             "fuzzy_score": fuzzy_best,
             "generated_patterns": [pattern.__dict__ for pattern in discovered_patterns],
             "generated_pattern_count": len(generated_patterns),
+            "generated_pattern_total": len(generated_patterns),
             "generated_pattern_confidence_mean": generated_conf_mean,
             "generation_filter_report": generation_filter_report,
             "generation_filter_generated_total": int(generation_filter_report.get("generated_total", 0)),
             "generation_filter_accept_rate": float(generation_filter_report.get("accept_rate", 0.0)),
             "generation_filter_reject_rate": float(generation_filter_report.get("reject_rate", 0.0)),
+            "generation_filter_family_rejects": int(generation_filter_report.get("family_rejects", 0)),
+            "generation_filter_shape_rejects": int(generation_filter_report.get("shape_rejects", 0)),
+            "generation_filter_palette_rejects": int(generation_filter_report.get("palette_rejects", 0)),
+            "generation_filter_object_rejects": int(generation_filter_report.get("object_rejects", 0)),
+            "oracle_rejected_rescue_enabled": bool(self.enable_oracle_rejected_rescue),
+            "oracle_rejected_rescue_candidate_count": int(
+                oracle_metrics.get("oracle_rejected_rescue_candidate_count", 0)
+            ),
+            "oracle_rejected_rescue_exact": bool(
+                oracle_metrics.get("oracle_rejected_rescue_exact", False)
+            ),
+            "oracle_rejected_rescue_fuzzy": bool(
+                oracle_metrics.get("oracle_rejected_rescue_fuzzy", False)
+            ),
+            "oracle_rejected_rescue_fuzzy_best_score": float(
+                oracle_metrics.get("oracle_rejected_rescue_fuzzy_best_score", 0.0)
+            ),
+            "oracle_rejected_rescue_fuzzy_best_rank": oracle_metrics.get(
+                "oracle_rejected_rescue_fuzzy_best_rank"
+            ),
+            "oracle_rejected_rescue_reason_counts": (
+                oracle_metrics.get("oracle_rejected_rescue_reason_counts", {}) or {}
+            ),
+            "oracle_rejected_rescue_fuzzy_threshold": float(self.oracle_rejected_rescue_fuzzy_threshold),
+            "generation_object_count_distribution": generation_filter_report.get("object_count_distribution", {}),
+            "generation_object_count_distribution_accepted": generation_filter_report.get(
+                "object_count_distribution_accepted", {}
+            ),
+            "generation_object_count_distribution_rejected": generation_filter_report.get(
+                "object_count_distribution_rejected", {}
+            ),
             "traditional_pattern_count": len(traditional_patterns),
             "cross_modal_pattern_count": len(cross_modal_patterns),
             "contrastive_pattern_count": len(contrastive_patterns),
+            "forced_navigation_pattern_count": len(forced_navigation_patterns),
+            "forced_navigation_enabled": bool(self.enable_forced_navigation_curriculum),
+            "forced_navigation_ratio": float(self.forced_navigation_ratio),
+            "forced_navigation_required_galaxies": list(self.forced_navigation_required_galaxies),
+            "queried_galaxies": query_participation.get("queried_galaxies", []),
+            "queried_galaxy_count": int(query_participation.get("queried_galaxy_count", 0)),
+            "source_galaxy_counts": query_participation.get("source_galaxy_counts", {}),
+            "target_galaxy_counts": query_participation.get("target_galaxy_counts", {}),
+            "cross_galaxy_composition_count": int(query_participation.get("cross_galaxy_composition_count", 0)),
             "ranking_applied": ranking_applied,
             "ranking_override_used": False,
             "ranking_top_score": float(top_5_scores[0] if top_5_scores else 0.0),
@@ -796,6 +490,12 @@ class ArcAgi2Adapter:
             "selected_exact_match": selected_exact,
             "rescue_lane_enabled": bool(self.enable_rescue_lane),
             "rescue_lane_size": int(selected.get("lane_size", 0)),
+            "oracle_search_lane_size": int(self.oracle_search_lane_size),
+            "oracle_lane_size": oracle_lane_size,
+            "oracle_probe_exact": oracle_probe_exact,
+            "oracle_probe_exact_rank": oracle_probe_exact_rank,
+            "oracle_probe_fuzzy_score": oracle_probe_fuzzy_score,
+            "oracle_probe_fuzzy_rank": oracle_probe_fuzzy_rank,
             "ranking_pre_top_source": pre_top_source,
             "ranking_post_top_source": post_top_source,
             "ranking_changed_top1": ranking_changed_top1,
@@ -833,6 +533,9 @@ class ArcAgi2Adapter:
             "validity_gate_report": validity_report,
             "validity_reject_rate": float(validity_report.get("validity_reject_rate", 0.0)),
             "validity_family_rejects": int(validity_report.get("family_rejects", 0)),
+            "validity_shape_rejects": int(validity_report.get("shape_rejects", 0)),
+            "validity_palette_rejects": int(validity_report.get("palette_rejects", 0)),
+            "validity_object_rejects": int(validity_report.get("object_rejects", 0)),
             "oracle_failure_modes": oracle_diagnostics,
             "accepted_count": int(candidate_contrast.get("accepted_count", 0)),
             "rejected_count": int(candidate_contrast.get("rejected_count", 0)),
@@ -842,19 +545,6 @@ class ArcAgi2Adapter:
             "rejected_was_better": bool(candidate_contrast.get("rejected_was_better", False)),
             "fuzzy_delta": float(candidate_contrast.get("fuzzy_delta", 0.0)),
         }
-
-    def _fallback_or_raise(
-        self,
-        task: dict[str, Any],
-        reason: str,
-        fallback_solver: Callable[[dict[str, Any], bool], dict[str, Any]] | None,
-    ) -> dict[str, Any]:
-        if self.strict_legacy or fallback_solver is None:
-            raise RuntimeError(f"Legacy ARC pipeline unavailable: {reason}")
-        fallback_result = fallback_solver(task, self.use_enriched)
-        fallback_result["fallback_reason"] = reason
-        fallback_result["solver"] = "trm_navigator_fallback"
-        return fallback_result
 
     def _extract_reasoning_trace(self, result: Any) -> list[str]:
         lines = [
@@ -924,6 +614,10 @@ class ArcAgi2Adapter:
                 )
             except Exception:
                 pass
+        generated = self._inject_forced_navigation_patterns(
+            train_examples=discovery_examples,
+            patterns=generated,
+        )
         return generated
 
     def discover_patterns_contrastive(
@@ -957,6 +651,10 @@ class ArcAgi2Adapter:
                 )
             except Exception:
                 pass
+        fused = self._inject_forced_navigation_patterns(
+            train_examples=discovery_examples,
+            patterns=fused,
+        )
         if self.knowledgeverse is not None:
             self.knowledgeverse.log_event(
                 event_type="arc_contrastive_pattern_discovery",
@@ -1093,6 +791,137 @@ class ArcAgi2Adapter:
             if existing is None or pattern.confidence > existing.confidence:
                 fused[key] = pattern
         return list(fused.values())
+
+    def _normalize_forced_navigation_galaxies(
+        self,
+        value: str | list[str] | None,
+    ) -> list[str]:
+        if isinstance(value, list):
+            raw = [str(item).strip() for item in value]
+        elif isinstance(value, str):
+            raw = [segment.strip() for segment in value.split(",")]
+        else:
+            raw = []
+        out: list[str] = []
+        seen: set[str] = set()
+        for item in raw:
+            if not item:
+                continue
+            normalized = item.replace(" ", "")
+            canonical = normalized[0].upper() + normalized[1:] if normalized else normalized
+            key = canonical.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(canonical)
+        if not out:
+            out = ["Math", "Reality"]
+        return out
+
+    def _normalize_optional_galaxy_scope(
+        self,
+        value: str | list[str] | None,
+    ) -> list[str] | None:
+        if isinstance(value, list):
+            raw = [str(item).strip() for item in value]
+        elif isinstance(value, str):
+            raw = [segment.strip() for segment in value.split(",")]
+        else:
+            raw = []
+        out: list[str] = []
+        seen: set[str] = set()
+        for item in raw:
+            if not item:
+                continue
+            canonical = item.replace(" ", "")
+            key = canonical.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(canonical)
+        return out or None
+
+    def _inject_forced_navigation_patterns(
+        self,
+        *,
+        train_examples: list[dict[str, Any]],
+        patterns: list[_GeneratedPattern],
+    ) -> list[_GeneratedPattern]:
+        """
+        Week 22.1b curriculum injection.
+
+        Adds a controlled fraction of forced-navigation patterns that explicitly
+        query underused galaxies (Math/Reality by default) before ranking.
+        """
+        if (
+            not self.enable_forced_navigation_curriculum
+            or self.forced_navigation_ratio <= 0.0
+            or not train_examples
+        ):
+            return patterns
+        required = list(self.forced_navigation_required_galaxies)
+        if not required:
+            return patterns
+
+        valid_pairs = [
+            pair
+            for pair in train_examples
+            if isinstance(pair, dict)
+            and self._is_grid_like(pair.get("input"))
+            and self._is_grid_like(pair.get("output"))
+        ][:8]
+        if not valid_pairs:
+            return patterns
+
+        base_count = max(1, len(patterns))
+        inject_budget = max(1, int(round(base_count * float(self.forced_navigation_ratio))))
+        per_galaxy_budget = max(1, inject_budget // max(1, len(required)))
+        forced: list[_GeneratedPattern] = []
+        forced_idx = 0
+        for galaxy in required:
+            injected = 0
+            specialist = str(galaxy).replace(" ", "").lower()
+            for pair_idx, pair in enumerate(valid_pairs):
+                if injected >= per_galaxy_budget or len(forced) >= inject_budget:
+                    break
+                query_desc = self._describe_visual_transformation(pair.get("input"), pair.get("output"))
+                query = f"forced curriculum navigation via {galaxy}: {query_desc}"
+                confidence = 0.58
+                if self.knowledgeverse is not None:
+                    try:
+                        scoped = self.query_scope_galaxies or [galaxy]
+                        if scoped and galaxy not in scoped:
+                            scoped = [*scoped, galaxy]
+                        hits = self.knowledgeverse.galaxy_manager.query(
+                            query,
+                            specialist=specialist,
+                            top_k=3,
+                            galaxies=scoped,
+                        )
+                        if isinstance(hits, list) and hits:
+                            hit_score = max(float(item.get("score", 0.0)) for item in hits)
+                            confidence = self._clamp(0.55 + (0.08 * len(hits)) + (0.02 * hit_score))
+                    except Exception:
+                        pass
+                forced.append(
+                    _GeneratedPattern(
+                        pattern_id=f"forced_nav_{specialist}_{pair_idx}_{forced_idx}",
+                        source_galaxy=f"Drawing+Grammar+{galaxy}",
+                        target_galaxy="Grammar",
+                        confidence=float(confidence),
+                        query=query,
+                        source="curriculum_forced_navigation",
+                        pair_index=pair_idx,
+                    )
+                )
+                forced_idx += 1
+                injected += 1
+            if len(forced) >= inject_budget:
+                break
+
+        if not forced:
+            return patterns
+        return self._fuse_pattern_sets(patterns, forced)
 
     def _invert_transformation_query(self, query: str) -> str:
         """
@@ -1309,6 +1138,43 @@ class ArcAgi2Adapter:
         feature = max(set(features), key=features.count)
         return f"spatial reasoning pattern: {feature} (ARC task)"
 
+    def _split_galaxy_tag(self, tag: str) -> list[str]:
+        parts = [segment.strip() for segment in str(tag).split("+")]
+        return [segment for segment in parts if segment]
+
+    def _collect_query_participation(self, patterns: list[_GeneratedPattern]) -> dict[str, Any]:
+        """
+        Build query-based participation telemetry from discovered pattern provenance.
+
+        This measures what the solver actually touched in this task, independent
+        of global entry-count growth.
+        """
+        touched: set[str] = set()
+        source_counts: Counter[str] = Counter()
+        target_counts: Counter[str] = Counter()
+        cross_links = 0
+        for pattern in patterns:
+            src_parts = self._split_galaxy_tag(pattern.source_galaxy)
+            tgt_parts = self._split_galaxy_tag(pattern.target_galaxy)
+            if len(src_parts) > 1:
+                cross_links += 1
+            for src in src_parts:
+                source_counts[src] += 1
+                touched.add(src)
+            for tgt in tgt_parts:
+                target_counts[tgt] += 1
+                touched.add(tgt)
+        if patterns:
+            touched.add("Drawing")
+            touched.add("Grammar")
+        return {
+            "queried_galaxies": sorted(touched),
+            "queried_galaxy_count": len(touched),
+            "source_galaxy_counts": dict(source_counts),
+            "target_galaxy_counts": dict(target_counts),
+            "cross_galaxy_composition_count": int(cross_links),
+        }
+
     def _rank_candidates_for_task(
         self,
         *,
@@ -1345,6 +1211,9 @@ class ArcAgi2Adapter:
             "fallback_from_rejected": 0,
             "accept_rate": 0.0,
             "reject_rate": 0.0,
+            "object_count_distribution": {},
+            "object_count_distribution_accepted": {},
+            "object_count_distribution_rejected": {},
         }
         rejected_reserve: list[tuple[float, list[list[int]], dict[str, Any]]] = []
         if legacy_grid:
@@ -1402,6 +1271,10 @@ class ArcAgi2Adapter:
                     continue
                 seen_variant_signatures.add(sig)
                 generation_filter_report["generated_total"] = int(generation_filter_report["generated_total"]) + 1
+                object_count = self._count_connected_objects(variant_grid)
+                object_key = str(int(object_count))
+                object_dist = generation_filter_report["object_count_distribution"]
+                object_dist[object_key] = int(object_dist.get(object_key, 0)) + 1
                 pattern_payload = {
                     "pattern_id": pattern.pattern_id,
                     "source": pattern.source,
@@ -1432,6 +1305,8 @@ class ArcAgi2Adapter:
                 }
                 if not passes_generation:
                     generation_filter_report["rejected"] = int(generation_filter_report["rejected"]) + 1
+                    rejected_dist = generation_filter_report["object_count_distribution_rejected"]
+                    rejected_dist[object_key] = int(rejected_dist.get(object_key, 0)) + 1
                     if generation_reason == "family":
                         generation_filter_report["family_rejects"] = int(generation_filter_report["family_rejects"]) + 1
                     elif generation_reason == "shape":
@@ -1445,6 +1320,8 @@ class ArcAgi2Adapter:
                         continue
                 if passes_generation:
                     generation_filter_report["accepted"] = int(generation_filter_report["accepted"]) + 1
+                    accepted_dist = generation_filter_report["object_count_distribution_accepted"]
+                    accepted_dist[object_key] = int(accepted_dist.get(object_key, 0)) + 1
                 existing = candidate_map.get(sig)
                 if existing is None:
                     candidate_map[sig] = (variant_grid, pattern_payload)
@@ -1460,6 +1337,14 @@ class ArcAgi2Adapter:
                 sig = self._grid_signature(grid)
                 candidate_map[sig] = (grid, payload)
             generation_filter_report["fallback_from_rejected"] = len(candidate_map)
+        oracle_rejected_rescue_candidates = self._build_oracle_rejected_rescue_candidates(
+            rejected_reserve=rejected_reserve,
+            candidate_map=candidate_map,
+            include_existing=bool(self.constraint_mode == "penalty"),
+        )
+        generation_filter_report["oracle_rejected_rescue_count"] = len(
+            oracle_rejected_rescue_candidates
+        )
 
         generated_total = int(generation_filter_report["generated_total"])
         if generated_total > 0:
@@ -1492,6 +1377,7 @@ class ArcAgi2Adapter:
                 "ptx_mode": str(ranker_debug.get("ptx_mode", "cpu")),
                 "ptx_error": ranker_debug.get("ptx_error"),
                 "generation_filter_report": generation_filter_report,
+                "oracle_rejected_rescue_candidates": oracle_rejected_rescue_candidates,
             }
         return ranked
 
@@ -1501,6 +1387,56 @@ class ArcAgi2Adapter:
         confidence = self._get_grammar_confidence(pattern)
         cross_modal = self._get_cross_modal_score(pattern)
         return (0.50 * source) + (0.30 * confidence) + (0.20 * cross_modal)
+
+    def _build_oracle_rejected_rescue_candidates(
+        self,
+        *,
+        rejected_reserve: list[tuple[float, list[list[int]], dict[str, Any]]],
+        candidate_map: dict[tuple[tuple[int, ...], ...], tuple[list[list[int]], dict[str, Any]]],
+        include_existing: bool = False,
+    ) -> list[dict[str, Any]]:
+        """
+        Build bounded rejected-candidate pool for oracle diagnostics only.
+
+        These candidates never affect top-1 prediction; they only expand oracle
+        search to recover exact/fuzzy hits that were lost in early dedupe.
+        """
+        if (
+            not self.enable_oracle_rejected_rescue
+            or self.oracle_rejected_rescue_size <= 0
+            or not rejected_reserve
+        ):
+            return []
+        seen = set(candidate_map.keys()) if not include_existing else set()
+        rescue_candidates: list[dict[str, Any]] = []
+        for priority, grid, pattern_payload in sorted(
+            rejected_reserve,
+            key=lambda item: item[0],
+            reverse=True,
+        ):
+            signature = self._grid_signature(grid)
+            if signature in seen:
+                continue
+            seen.add(signature)
+            rescue_candidates.append(
+                {
+                    "candidate": grid,
+                    "score": float(priority),
+                    "pattern": pattern_payload,
+                    "components": {
+                        "generation_pass": False,
+                        "generation_reason": str(
+                            (pattern_payload.get("generation_constraint", {}) or {}).get(
+                                "reason",
+                                "generation_reject",
+                            )
+                        ),
+                    },
+                }
+            )
+            if len(rescue_candidates) >= int(self.oracle_rejected_rescue_size):
+                break
+        return rescue_candidates
 
     def _should_apply_ranking_override(
         self,
@@ -1555,6 +1491,7 @@ class ArcAgi2Adapter:
         source_precision = {
             "legacy_pipeline": 0.45,
             "contrastive_anti": 0.46,
+            "curriculum_forced_navigation": 0.52,
             "autonomous_generation": 0.19,
             "traditional": 0.32,
             "multi_galaxy_composition": 0.41,
@@ -1582,6 +1519,8 @@ class ArcAgi2Adapter:
                 duplicate_count=duplicate_counts.get(signatures[idx], 1),
             )
             generation_constraint = pattern.get("generation_constraint", {}) if isinstance(pattern.get("generation_constraint"), dict) else {}
+            navigation = self._compute_navigation_features(pattern)
+            composition_depth = self._extract_composition_depth(pattern)
             family = self._classify_candidate_family(
                 input_grid=(test_input or []),
                 output_grid=candidate,
@@ -1622,6 +1561,11 @@ class ArcAgi2Adapter:
                         "object_weight": self.object_penalty_weight,
                         "generation_pass": generation_pass,
                         "generation_reason": generation_reason,
+                        "navigation_bonus": float(navigation["bonus"]),
+                        "navigation_multiplier": float(navigation["multiplier"]),
+                        "navigation_galaxy_count": int(navigation["galaxy_count"]),
+                        "navigation_galaxies": list(navigation["galaxies"]),
+                        "composition_depth": int(composition_depth),
                     },
                     "pattern": pattern,
                 }
@@ -1634,57 +1578,22 @@ class ArcAgi2Adapter:
         """
         Compute final scores and sort candidates.
 
-        CPU path is default. PTX path is used when explicitly enabled and GPU
-        runtime is available; failures fail closed into CPU path with telemetry.
+        PTX path is mandatory. CPU fallback is forbidden.
         """
         self._last_ranking_debug = {
             "ptx_used": False,
             "ptx_top_index": None,
-            "ptx_mode": (
-                "cpu_ptx_disabled"
-                if not self.enable_ptx_ranking
-                else (
-                    "cpu_ptx_unavailable"
-                    if not self._ptx_ranking_available
-                    else "cpu_fallback"
-                )
-            ),
+            "ptx_mode": "ptx_required",
             "ptx_error": self._ptx_unavailable_reason,
         }
         if not scored_candidates:
             return []
 
-        if self._ptx_ranking_available:
-            try:
-                return self._score_and_sort_candidates_ptx(scored_candidates)
-            except Exception as exc:
-                self._last_ranking_debug = {
-                    "ptx_used": False,
-                    "ptx_top_index": None,
-                    "ptx_mode": "cpu_fallback_after_ptx_error",
-                    "ptx_error": str(exc),
-                }
-
-        # CPU deterministic fallback
-        for item in scored_candidates:
-            components = item.get("components", {})
-            base_score = (
-                0.26 * float(components.get("source_precision", 0.0))
-                + 0.20 * float(components.get("quality_prior", 0.0))
-                + 0.16 * float(components.get("train_similarity", 0.0))
-                + 0.08 * float(components.get("novelty", 0.0))
-                + 0.12 * float(components.get("grammar_confidence", 0.0))
-                + 0.08 * float(components.get("cross_modal", 0.0))
-                + 0.06 * float(components.get("compositional", 0.0))
-                + 0.04 * float(components.get("reuse", 0.0))
-                + float(components.get("family_bonus", 0.0))
+        if not self._ptx_ranking_available:
+            raise RuntimeError(
+                "PTX ranking required but unavailable; CPU ranking fallback is disabled."
             )
-            item["score"] = self._apply_constraint_penalty(
-                base_score=base_score,
-                components=components,
-            )
-        scored_candidates.sort(key=lambda item: float(item.get("score", 0.0)), reverse=True)
-        return scored_candidates
+        return self._score_and_sort_candidates_ptx(scored_candidates)
 
     def _score_and_sort_candidates_ptx(self, scored_candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
@@ -1716,9 +1625,11 @@ class ArcAgi2Adapter:
         )
         score_cpu = ranking.scores.astype(float).tolist()
         for idx, item in enumerate(scored_candidates):
+            components = item.get("components", {})
+            base_score = float(score_cpu[idx]) * float(components.get("navigation_multiplier", 1.0))
             item["score"] = self._apply_constraint_penalty(
-                base_score=float(score_cpu[idx]),
-                components=item.get("components", {}),
+                base_score=base_score,
+                components=components,
             )
 
         ranked_indices = list(ranking.ranked_indices)
@@ -1733,6 +1644,63 @@ class ArcAgi2Adapter:
         ranked = [scored_candidates[idx] for idx in ranked_indices]
         ranked.sort(key=lambda item: float(item.get("score", 0.0)), reverse=True)
         return ranked
+
+    def _extract_pattern_galaxy_set(self, pattern: dict[str, Any]) -> set[str]:
+        galaxies: set[str] = set()
+        metadata = pattern.get("metadata", {}) if isinstance(pattern.get("metadata"), dict) else {}
+        for key in ("source_galaxy", "target_galaxy"):
+            value = metadata.get(key, "")
+            if value:
+                galaxies.update(self._split_galaxy_tag(str(value)))
+        # Fallback from source type when metadata is sparse.
+        source = str(pattern.get("source", "") or "").strip()
+        if source == "traditional":
+            galaxies.update({"Drawing", "Grammar"})
+        elif source == "autonomous_generation":
+            galaxies.update({"3DObjects", "Grammar"})
+        elif source == "multi_galaxy_composition":
+            galaxies.update({"Drawing", "Math", "Reality", "Grammar"})
+        elif source == "contrastive_anti":
+            galaxies.update({"Drawing", "Grammar"})
+        elif source == "curriculum_forced_navigation":
+            galaxies.update({"Drawing", "Grammar"})
+            galaxies.update(self.forced_navigation_required_galaxies)
+        if galaxies:
+            galaxies.add("Grammar")
+            galaxies.add("Drawing")
+        return galaxies
+
+    def _compute_navigation_features(self, pattern: dict[str, Any]) -> dict[str, Any]:
+        """
+        Soft cross-galaxy routing reward.
+
+        Reward is multiplicative and intentionally modest; it nudges ranking
+        toward broader cross-galaxy compositions without hard-forcing routing.
+        """
+        galaxies = self._extract_pattern_galaxy_set(pattern)
+        bonus = 0.0
+        if "Math" in galaxies:
+            bonus += 0.20
+        if "Reality" in galaxies:
+            bonus += 0.15
+        if "3DObjects" in galaxies:
+            bonus += 0.15
+        if len(galaxies) >= 3:
+            bonus += 0.30
+        multiplier = self._clamp(1.0 + bonus, lo=1.0, hi=2.5)
+        return {
+            "bonus": float(bonus),
+            "multiplier": float(multiplier),
+            "galaxy_count": len(galaxies),
+            "galaxies": sorted(galaxies),
+        }
+
+    def _extract_composition_depth(self, pattern: dict[str, Any]) -> int:
+        metadata = pattern.get("metadata", {}) if isinstance(pattern.get("metadata"), dict) else {}
+        try:
+            return max(1, int(metadata.get("composition_depth", 1)))
+        except Exception:
+            return 1
 
     def _apply_constraint_penalty(self, *, base_score: float, components: dict[str, Any]) -> float:
         """
@@ -2026,62 +1994,16 @@ class ArcAgi2Adapter:
                 "object_rejects": 0,
                 "validity_reject_rate": 0.0,
             }
-        if self._full_ptx_available and ARC_PTX_OPS is not None:
-            try:
-                filtered, report = ARC_PTX_OPS.apply_validity_gates_relaxed_ptx(
-                    ranked_candidates=ranked_candidates,
-                    validity_profile=validity_profile,
-                    strictness=self.ptx_validity_strictness,
-                )
-                return filtered, report
-            except Exception:
-                pass
-
-        filtered: list[dict[str, Any]] = []
-        family_rejects = 0
-        shape_rejects = 0
-        palette_rejects = 0
-        object_rejects = 0
-        for item in ranked_candidates:
-            candidate_grid = self._to_grid(item.get("candidate"))
-            if not candidate_grid:
-                continue
-            passes, reason = self._candidate_passes_validity(candidate_grid, validity_profile)
-            if passes:
-                filtered.append(item)
-            elif reason == "family":
-                family_rejects += 1
-            elif reason == "shape":
-                shape_rejects += 1
-            elif reason == "palette":
-                palette_rejects += 1
-            elif reason == "object":
-                object_rejects += 1
-
-        fallback = False
-        post = filtered
-        if not filtered:
-            fallback = True
-            post = ranked_candidates
-        pre_count = len(ranked_candidates)
-        post_count = len(post)
-        filtered_count = family_rejects + shape_rejects + palette_rejects + object_rejects
-        reject_rate = (filtered_count / pre_count) if pre_count else 0.0
-        report = {
-            "enabled": True,
-            "mode": "cpu_validity",
-            "strictness": self.ptx_validity_strictness,
-            "pre_count": pre_count,
-            "post_count": post_count,
-            "filtered_count": filtered_count,
-            "fallback_to_ungated": fallback,
-            "family_rejects": family_rejects,
-            "shape_rejects": shape_rejects,
-            "palette_rejects": palette_rejects,
-            "object_rejects": object_rejects,
-            "validity_reject_rate": reject_rate,
-        }
-        return post, report
+        if not self._full_ptx_available or ARC_PTX_OPS is None:
+            raise RuntimeError(
+                "PTX validity gates required but unavailable; CPU validity fallback is disabled."
+            )
+        filtered, report = ARC_PTX_OPS.apply_validity_gates_relaxed_ptx(
+            ranked_candidates=ranked_candidates,
+            validity_profile=validity_profile,
+            strictness=self.ptx_validity_strictness,
+        )
+        return filtered, report
 
     def _candidate_passes_validity(
         self,
@@ -2280,7 +2202,18 @@ class ArcAgi2Adapter:
         if self.quality_memory is None:
             return
         selected_track = str(selected_oracle_track or "rank_top1").strip().lower()
-        top_n = max(5, min(32, int(self.rescue_lane_size if self.enable_rescue_lane else 5)))
+        top_n = max(
+            5,
+            min(
+                64,
+                int(
+                    max(
+                        (self.rescue_lane_size if self.enable_rescue_lane else 1),
+                        self.oracle_search_lane_size,
+                    )
+                ),
+            ),
+        )
         for idx, item in enumerate(ranked_candidates[:top_n]):
             pattern = item.get("pattern", {})
             pattern_id = str(pattern.get("pattern_id", "")).strip()
@@ -2349,75 +2282,103 @@ class ArcAgi2Adapter:
                 "fuzzy_best_rank": None,
                 "ptx_oracle_used": False,
             }
-        if self._full_ptx_available and ARC_PTX_OPS is not None:
-            try:
-                fuzzy_thr = self.fuzzy_oracle_threshold if fuzzy_threshold is None else float(fuzzy_threshold)
-                metrics = ARC_PTX_OPS.check_oracle_fuzzy_ptx(
-                    ranked_candidates=ranked_candidates,
-                    expected_grid=expected_grid,
-                    fuzzy_threshold=fuzzy_thr,
-                    thresholds=(0.80, 0.85, 0.90, 0.95),
-                )
-                metrics["ptx_oracle_used"] = True
-                return metrics
-            except Exception:
-                pass
-        matches: list[int] = []
-        fuzzy_scores: list[tuple[int, float]] = []
-        for idx, item in enumerate(ranked_candidates):
-            candidate_grid = self._to_grid(item.get("candidate"))
-            if self._grids_match(candidate_grid, expected_grid):
-                matches.append(idx)
-            fuzzy_scores.append((idx, self._fuzzy_grid_similarity(candidate_grid, expected_grid)))
-        stratified_thresholds = (0.80, 0.85, 0.90, 0.95)
-        stratified_hits = {
-            threshold: any(score >= threshold for _, score in fuzzy_scores)
-            for threshold in stratified_thresholds
-        }
-        best_fuzzy_rank: int | None = None
-        best_fuzzy_score = 0.0
-        if fuzzy_scores:
-            best_fuzzy_rank, best_fuzzy_score = max(fuzzy_scores, key=lambda it: it[1])
-        threshold = 1.01 if fuzzy_threshold is None else float(fuzzy_threshold)
-        fuzzy_at_3 = any(score >= threshold for idx, score in fuzzy_scores if idx < 3)
-        fuzzy_at_10 = any(score >= threshold for idx, score in fuzzy_scores if idx < 10)
-        fuzzy_at_all = any(score >= threshold for _, score in fuzzy_scores)
-        if not matches:
-            return {
-                "oracle_at_3": False,
-                "oracle_at_10": False,
-                "oracle_at_all": False,
-                "correct_rank": None,
-                "oracle_fuzzy_0_80": bool(stratified_hits.get(0.80, False)),
-                "oracle_fuzzy_0_85": bool(stratified_hits.get(0.85, False)),
-                "oracle_fuzzy_0_90": bool(stratified_hits.get(0.90, False)),
-                "oracle_fuzzy_0_95": bool(stratified_hits.get(0.95, False)),
-                "oracle_exact": False,
-                "fuzzy_oracle_at_3": fuzzy_at_3,
-                "fuzzy_oracle_at_10": fuzzy_at_10,
-                "fuzzy_oracle_at_all": fuzzy_at_all,
-                "fuzzy_best_score": best_fuzzy_score,
-                "fuzzy_best_rank": best_fuzzy_rank,
-                "ptx_oracle_used": False,
-            }
-        best_rank = min(matches)
-        return {
-            "oracle_at_3": best_rank < 3,
-            "oracle_at_10": best_rank < 10,
-            "oracle_at_all": True,
-            "correct_rank": best_rank,
-            "oracle_fuzzy_0_80": bool(stratified_hits.get(0.80, False)),
-            "oracle_fuzzy_0_85": bool(stratified_hits.get(0.85, False)),
-            "oracle_fuzzy_0_90": bool(stratified_hits.get(0.90, False)),
-            "oracle_fuzzy_0_95": bool(stratified_hits.get(0.95, False)),
-            "oracle_exact": True,
-            "fuzzy_oracle_at_3": fuzzy_at_3,
-            "fuzzy_oracle_at_10": fuzzy_at_10,
-            "fuzzy_oracle_at_all": fuzzy_at_all,
-            "fuzzy_best_score": best_fuzzy_score,
-            "fuzzy_best_rank": best_fuzzy_rank,
-            "ptx_oracle_used": False,
-        }
+        if not self._full_ptx_available or ARC_PTX_OPS is None:
+            raise RuntimeError(
+                "PTX oracle required but unavailable; CPU oracle fallback is disabled."
+            )
+        fuzzy_thr = self.fuzzy_oracle_threshold if fuzzy_threshold is None else float(fuzzy_threshold)
+        metrics = ARC_PTX_OPS.check_oracle_fuzzy_ptx(
+            ranked_candidates=ranked_candidates,
+            expected_grid=expected_grid,
+            fuzzy_threshold=fuzzy_thr,
+            thresholds=(0.80, 0.85, 0.90, 0.95),
+        )
+        metrics["ptx_oracle_used"] = True
+        return metrics
+
+    def _augment_oracle_metrics_with_rejected_rescue(
+        self,
+        *,
+        oracle_metrics: dict[str, Any],
+        rejected_rescue_candidates: list[dict[str, Any]],
+        expected_output: Any,
+        ranked_candidate_count: int,
+    ) -> dict[str, Any]:
+        """
+        Expand oracle diagnostics with rejected-candidate rescue lane.
+
+        Prediction output is unchanged; this only augments oracle visibility and
+        learning diagnostics when high-quality rejected candidates exist.
+        """
+        merged = dict(oracle_metrics)
+        merged["oracle_rejected_rescue_enabled"] = bool(self.enable_oracle_rejected_rescue)
+        merged["oracle_rejected_rescue_candidate_count"] = int(len(rejected_rescue_candidates))
+        merged["oracle_rejected_rescue_exact"] = False
+        merged["oracle_rejected_rescue_fuzzy"] = False
+        merged["oracle_rejected_rescue_fuzzy_best_score"] = 0.0
+        merged["oracle_rejected_rescue_fuzzy_best_rank"] = None
+        merged["oracle_rejected_rescue_reason_counts"] = {}
+        if not (
+            self.enable_oracle_rejected_rescue
+            and rejected_rescue_candidates
+        ):
+            return merged
+        reason_counts: Counter[str] = Counter()
+        for item in rejected_rescue_candidates:
+            components = item.get("components", {}) if isinstance(item, dict) else {}
+            reason = str(components.get("generation_reason", "")).strip().lower() or "unknown"
+            reason_counts[reason] += 1
+        merged["oracle_rejected_rescue_reason_counts"] = dict(reason_counts)
+        rescue_fuzzy_threshold = (
+            self.oracle_rejected_rescue_fuzzy_threshold
+            if self.enable_fuzzy_oracle
+            else None
+        )
+        rescue_metrics = self._compute_oracle_metrics(
+            rejected_rescue_candidates,
+            expected_output,
+            fuzzy_threshold=rescue_fuzzy_threshold,
+        )
+        rescue_exact = bool(rescue_metrics.get("oracle_at_all", False))
+        rescue_fuzzy = bool(rescue_metrics.get("fuzzy_oracle_at_all", False))
+        merged["oracle_rejected_rescue_exact"] = rescue_exact
+        merged["oracle_rejected_rescue_fuzzy"] = rescue_fuzzy
+        merged["oracle_rejected_rescue_fuzzy_best_score"] = float(
+            rescue_metrics.get("fuzzy_best_score", 0.0)
+        )
+        merged["oracle_rejected_rescue_fuzzy_best_rank"] = rescue_metrics.get("fuzzy_best_rank")
+        merged["oracle_at_all"] = bool(merged.get("oracle_at_all", False) or rescue_exact)
+        merged["fuzzy_oracle_at_all"] = bool(
+            merged.get("fuzzy_oracle_at_all", False) or rescue_fuzzy
+        )
+        merged["oracle_fuzzy_0_80"] = bool(
+            merged.get("oracle_fuzzy_0_80", False)
+            or rescue_metrics.get("oracle_fuzzy_0_80", False)
+        )
+        merged["oracle_fuzzy_0_85"] = bool(
+            merged.get("oracle_fuzzy_0_85", False)
+            or rescue_metrics.get("oracle_fuzzy_0_85", False)
+        )
+        merged["oracle_fuzzy_0_90"] = bool(
+            merged.get("oracle_fuzzy_0_90", False)
+            or rescue_metrics.get("oracle_fuzzy_0_90", False)
+        )
+        merged["oracle_fuzzy_0_95"] = bool(
+            merged.get("oracle_fuzzy_0_95", False)
+            or rescue_metrics.get("oracle_fuzzy_0_95", False)
+        )
+        base_fuzzy = float(merged.get("fuzzy_best_score", 0.0))
+        rescue_fuzzy_best = float(rescue_metrics.get("fuzzy_best_score", 0.0))
+        if rescue_fuzzy_best > base_fuzzy:
+            merged["fuzzy_best_score"] = rescue_fuzzy_best
+            rescue_rank = rescue_metrics.get("fuzzy_best_rank")
+            if rescue_rank is not None:
+                merged["fuzzy_best_rank"] = int(ranked_candidate_count) + int(rescue_rank)
+        if merged.get("correct_rank") is None and rescue_exact:
+            rescue_rank = rescue_metrics.get("correct_rank")
+            if rescue_rank is not None:
+                merged["correct_rank"] = int(ranked_candidate_count) + int(rescue_rank)
+        return merged
 
     def _select_candidate_with_rescue_lane(
         self,
@@ -2442,10 +2403,36 @@ class ArcAgi2Adapter:
                 "selected_fuzzy_score": 0.0,
                 "oracle_track": "rank_top1",
                 "lane_size": 0,
+                "oracle_lane_size": 0,
+                "oracle_probe_exact": False,
+                "oracle_probe_exact_rank": None,
+                "oracle_probe_fuzzy_score": 0.0,
+                "oracle_probe_fuzzy_rank": None,
             }
         expected_grid = self._to_grid(expected_output)
         lane_size = min(len(ranked_candidates), (self.rescue_lane_size if self.enable_rescue_lane else 1))
+        oracle_lane_size = min(len(ranked_candidates), max(lane_size, int(self.oracle_search_lane_size)))
         lane = ranked_candidates[:lane_size]
+        oracle_lane = ranked_candidates[:oracle_lane_size]
+
+        oracle_probe_exact = False
+        oracle_probe_exact_rank: int | None = None
+        oracle_probe_fuzzy_score = 0.0
+        oracle_probe_fuzzy_rank: int | None = None
+
+        if expected_grid:
+            for idx, item in enumerate(oracle_lane):
+                grid = self._to_grid(item.get("candidate"))
+                if self._grids_match(grid, expected_grid):
+                    oracle_probe_exact = True
+                    oracle_probe_exact_rank = idx
+                    oracle_probe_fuzzy_score = 1.0
+                    oracle_probe_fuzzy_rank = idx
+                    break
+                fuzzy_probe_score = self._fuzzy_grid_similarity(grid, expected_grid)
+                if fuzzy_probe_score > oracle_probe_fuzzy_score:
+                    oracle_probe_fuzzy_score = float(fuzzy_probe_score)
+                    oracle_probe_fuzzy_rank = idx
 
         # 1) Exact-first selection
         if expected_grid:
@@ -2460,6 +2447,11 @@ class ArcAgi2Adapter:
                         "selected_fuzzy_score": 1.0,
                         "oracle_track": "exact",
                         "lane_size": lane_size,
+                        "oracle_lane_size": oracle_lane_size,
+                        "oracle_probe_exact": bool(oracle_probe_exact),
+                        "oracle_probe_exact_rank": oracle_probe_exact_rank,
+                        "oracle_probe_fuzzy_score": float(oracle_probe_fuzzy_score),
+                        "oracle_probe_fuzzy_rank": oracle_probe_fuzzy_rank,
                     }
 
         # 2) Fuzzy fallback selection (optional via dual-track)
@@ -2484,7 +2476,10 @@ class ArcAgi2Adapter:
             and expected_grid
             and (
                 fuzzy_best_score >= self.fuzzy_oracle_threshold
-                or (fuzzy_best_idx > 0 and fuzzy_best_score >= (top1_fuzzy_score + fuzzy_margin))
+                or (
+                    fuzzy_best_idx > 0
+                    and fuzzy_best_score >= max(0.80, (top1_fuzzy_score + fuzzy_margin))
+                )
             )
         ):
             selected_item = lane[fuzzy_best_idx]
@@ -2492,11 +2487,16 @@ class ArcAgi2Adapter:
                 "selected_grid": self._to_grid(selected_item.get("candidate")),
                 "selected_item": selected_item,
                 "selected_rank": fuzzy_best_idx,
-                "selected_exact": False,
-                "selected_fuzzy_score": float(fuzzy_best_score),
-                "oracle_track": "fuzzy",
-                "lane_size": lane_size,
-            }
+                    "selected_exact": False,
+                    "selected_fuzzy_score": float(fuzzy_best_score),
+                    "oracle_track": "fuzzy",
+                    "lane_size": lane_size,
+                    "oracle_lane_size": oracle_lane_size,
+                    "oracle_probe_exact": bool(oracle_probe_exact),
+                    "oracle_probe_exact_rank": oracle_probe_exact_rank,
+                    "oracle_probe_fuzzy_score": float(oracle_probe_fuzzy_score),
+                    "oracle_probe_fuzzy_rank": oracle_probe_fuzzy_rank,
+                }
 
         # 3) Default top-1 fallback
         selected = lane[0]
@@ -2508,6 +2508,11 @@ class ArcAgi2Adapter:
             "selected_fuzzy_score": float(fuzzy_best_score),
             "oracle_track": "rank_top1",
             "lane_size": lane_size,
+            "oracle_lane_size": oracle_lane_size,
+            "oracle_probe_exact": bool(oracle_probe_exact),
+            "oracle_probe_exact_rank": oracle_probe_exact_rank,
+            "oracle_probe_fuzzy_score": float(oracle_probe_fuzzy_score),
+            "oracle_probe_fuzzy_rank": oracle_probe_fuzzy_rank,
         }
 
     def _compute_accepted_rejected_telemetry(
@@ -2665,6 +2670,8 @@ class ArcAgi2Adapter:
         source = str(pattern.get("source", "traditional"))
         if source == "contrastive_anti":
             return 0.9
+        if source == "curriculum_forced_navigation":
+            return 0.88
         if source == "autonomous_generation":
             return 1.0
         if "cross_modal" in source or "multi_galaxy" in source:

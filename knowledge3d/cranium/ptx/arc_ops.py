@@ -332,13 +332,12 @@ class ARCPTXOps:
         return cp.asarray(list(values), dtype=cp.float32)
 
     def _gpu_argsort_desc(self, values_gpu: Any) -> np.ndarray:
-        """Best-effort GPU argsort; falls back to NumPy if CuPy sort JIT fails."""
+        """GPU argsort. CPU fallback is disallowed."""
         assert cp is not None
         try:
             return cp.asnumpy(cp.argsort(values_gpu)[::-1]).astype(np.int32, copy=False)
         except Exception:
-            values_cpu = cp.asnumpy(values_gpu).astype(np.float32, copy=False)
-            return np.argsort(values_cpu)[::-1].astype(np.int32, copy=False)
+            raise RuntimeError("ptx_argsort_failed")
 
     def _source_id(self, source: str) -> int:
         s = str(source or "unknown")
@@ -471,7 +470,7 @@ class ARCPTXOps:
         if not patterns:
             return []
         if not self.available:
-            return patterns[:top_k]
+            raise RuntimeError("arc_ptx_unavailable")
         self._ensure_kernels()
         assert cp is not None
         top_k = max(1, int(top_k))
@@ -576,20 +575,7 @@ class ARCPTXOps:
                 "validity_reject_rate": 0.0,
             }
         if not self.available:
-            return ranked_candidates, {
-                "enabled": True,
-                "mode": "cpu_passthrough",
-                "strictness": strictness,
-                "pre_count": len(ranked_candidates),
-                "post_count": len(ranked_candidates),
-                "filtered_count": 0,
-                "fallback_to_ungated": False,
-                "family_rejects": 0,
-                "shape_rejects": 0,
-                "palette_rejects": 0,
-                "object_rejects": 0,
-                "validity_reject_rate": 0.0,
-            }
+            raise RuntimeError("arc_ptx_unavailable")
         self._ensure_kernels()
         assert cp is not None
         evt_total_start = cp.cuda.Event()
@@ -761,8 +747,8 @@ class ARCPTXOps:
 
         fallback = False
         if not filtered:
-            filtered = ranked_candidates
-            fallback = True
+            filtered = []
+            fallback = False
         pre_count = len(ranked_candidates)
         post_count = len(filtered)
         filtered_count = pre_count - post_count if not fallback else pre_count
@@ -811,13 +797,7 @@ class ARCPTXOps:
                 **{f"oracle_fuzzy_{self._threshold_key(t)}": False for t in thresholds},
             }
         if not self.available:
-            # CPU fallback; caller still receives deterministic metrics.
-            return self._check_oracle_fuzzy_cpu(
-                ranked_candidates=ranked_candidates,
-                expected_grid=expected_grid,
-                fuzzy_threshold=fuzzy_threshold,
-                thresholds=thresholds,
-            )
+            raise RuntimeError("arc_ptx_unavailable")
         self._ensure_kernels()
         assert cp is not None
         evt_total_start = cp.cuda.Event()
@@ -828,12 +808,19 @@ class ARCPTXOps:
         exp_h = len(expected_grid)
         exp_w = len(expected_grid[0]) if exp_h else 0
         if exp_h == 0 or exp_w == 0:
-            return self._check_oracle_fuzzy_cpu(
-                ranked_candidates=ranked_candidates,
-                expected_grid=expected_grid,
-                fuzzy_threshold=fuzzy_threshold,
-                thresholds=thresholds,
-            )
+            return {
+                "oracle_at_3": False,
+                "oracle_at_10": False,
+                "oracle_at_all": False,
+                "correct_rank": None,
+                "oracle_exact": False,
+                "fuzzy_oracle_at_3": False,
+                "fuzzy_oracle_at_10": False,
+                "fuzzy_oracle_at_all": False,
+                "fuzzy_best_score": 0.0,
+                "fuzzy_best_rank": None,
+                **{f"oracle_fuzzy_{self._threshold_key(t)}": False for t in thresholds},
+            }
 
         expected_flat = [int(cell) for row in expected_grid for cell in row]
         candidate_rows: list[list[int]] = []
