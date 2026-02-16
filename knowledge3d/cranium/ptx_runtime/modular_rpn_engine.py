@@ -72,13 +72,23 @@ class ModularRPNEngine:
 
     OPCODES: Dict[str, int] = {
         "+": 10,
+        "add": 10,
         "-": 11,
+        "sub": 11,
+        "subtract": 11,
         "*": 12,
+        "mul": 12,
+        "multiply": 12,
         "/": 13,
+        "div": 13,
+        "divide": 13,
         "^": 14,
         "pow": 14,
+        "power": 14,
         "neg": 15,
+        "negate": 0xDB,
         "sqrt": 20,
+        "square_root": 20,
         "exp": 21,
         "log": 22,
         # Aliases used by ingestion/parsers (keep hot path sovereign: no string normalization,
@@ -224,6 +234,7 @@ class ModularRPNEngine:
         "TERNARY_ADD",
         "TERNARY_MUL",
     }
+    _global_gpu_call_count: int = 0
 
     def __init__(
         self,
@@ -246,12 +257,36 @@ class ModularRPNEngine:
         self.pool = pool or get_global_math_core_pool()
         self.instance_id: Optional[int] = instance_id
         self._owned = instance_id is None
+        self.gpu_call_count: int = 0
         # Lazy import keeps module importable in environments without CUDA bindings.
         from knowledge3d.cranium.bridges.tiered_rpn import (
             TieredRPNEngine as SovereignRPNEngine,
         )
 
         self._sovereign_engine = SovereignRPNEngine()
+
+    @classmethod
+    def get_global_gpu_call_count(cls) -> int:
+        """Return total PTX launch count across all engine instances."""
+        return int(cls._global_gpu_call_count)
+
+    @classmethod
+    def reset_global_gpu_call_count(cls) -> None:
+        """Reset global PTX launch counter."""
+        cls._global_gpu_call_count = 0
+
+    def get_gpu_call_count(self) -> int:
+        """Return per-instance PTX launch count."""
+        return int(self.gpu_call_count)
+
+    def reset_gpu_call_count(self) -> None:
+        """Reset per-instance PTX launch counter."""
+        self.gpu_call_count = 0
+
+    def _record_gpu_call(self, count: int = 1) -> None:
+        c = int(max(0, count))
+        self.gpu_call_count += c
+        type(self)._global_gpu_call_count += c
 
     def tokenize_rpn(self, expression: str) -> List[str]:
         """Tokenize RPN expression into operators and operands.
@@ -399,6 +434,7 @@ class ModularRPNEngine:
         tokens = self.tokenize_rpn(expression)
         if any(token in self.CODEC_TOKENS for token in tokens):
             # Codec ops are orchestrated directly through TieredRPNEngine to GPU kernels
+            self._record_gpu_call(1)
             return self._sovereign_engine.execute_codec(tokens, data=data, return_vector=return_vector)
 
         core_id = self._ensure_core(tier=1, override_instance=instance_id)
@@ -409,6 +445,7 @@ class ModularRPNEngine:
         op_codes, scalars, vectors = self.compile_tokens(tokens, instance_id)
 
         # Execute on GPU via sovereign bridge
+        self._record_gpu_call(1)
         result = self._sovereign_engine.execute_single(
             instance_id=core_id,
             op_codes=op_codes,
@@ -455,6 +492,7 @@ class ModularRPNEngine:
             })
 
         # Execute batch via sovereign bridge
+        self._record_gpu_call(len(programs))
         results = self._sovereign_engine.execute_batch(programs, max_instances=max_parallel)
 
         return list(results)
@@ -473,6 +511,7 @@ class ModularRPNEngine:
                 "scalars": scalars,
                 "vectors": vectors,
             })
+        self._record_gpu_call(len(programs))
         return self._sovereign_engine.execute_batch_device(programs)
 
     def reset(self, instance_id: int = 0) -> None:

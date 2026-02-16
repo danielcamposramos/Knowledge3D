@@ -129,7 +129,7 @@ def train_deterministic_foundation(
     enable_transfer_gates: bool = False,
     transfer_probe_arc_tasks: int = 10,
     enable_ternary_quality: bool = False,
-    enable_ollama_augmentation: bool = False,
+    enable_ollama_augmentation: bool = True,
     ollama_vision_model: str = "llava",
     ollama_language_model: str = "llama3.2",
     ollama_multimodal_model: str = "llava",
@@ -143,6 +143,11 @@ def train_deterministic_foundation(
     kv = Knowledgeverse(storage_root=storage_root)
     bootstrap_summary = populate_foundational_operations(kv.galaxy_manager)
     teacher_bridge = RLWHFTeacherStudentBridge()
+    if not enable_ollama_augmentation:
+        print(
+            "[foundation] WARNING: Ollama augmentation disabled via explicit override. "
+            "This bypasses the standard enrichment path and should be used only for diagnostics."
+        )
     ollama_augmenter = OllamaAugmenter(
         enabled=enable_ollama_augmentation,
         vision_model=ollama_vision_model,
@@ -347,7 +352,19 @@ def main() -> None:
     parser.add_argument("--enable-transfer-gates", action="store_true")
     parser.add_argument("--transfer-probe-arc-tasks", type=int, default=10)
     parser.add_argument("--enable-ternary-quality", action="store_true")
-    parser.add_argument("--enable-ollama-augmentation", action="store_true")
+    parser.set_defaults(enable_ollama_augmentation=True)
+    parser.add_argument(
+        "--enable-ollama-augmentation",
+        dest="enable_ollama_augmentation",
+        action="store_true",
+        help="Enable Ollama augmentation (default: enabled).",
+    )
+    parser.add_argument(
+        "--disable-ollama-augmentation",
+        dest="enable_ollama_augmentation",
+        action="store_false",
+        help="EMERGENCY ONLY: disable Ollama augmentation for diagnostics.",
+    )
     parser.add_argument("--ollama-vision-model", default="llava")
     parser.add_argument("--ollama-language-model", default="llama3.2")
     parser.add_argument("--ollama-multimodal-model", default="llava")

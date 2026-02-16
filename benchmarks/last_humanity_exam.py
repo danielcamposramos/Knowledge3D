@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -18,12 +19,17 @@ class LastHumanityExamBenchmark:
         knowledgeverse: Knowledgeverse | None = None,
         dataset_path: str | Path | None = None,
         max_questions: int | None = None,
+        query_scope_galaxies: str | list[str] | None = None,
         runtime_seed_knowledge: bool = False,
     ):
         self.kv = knowledgeverse or Knowledgeverse()
         self.dataset_path = self._resolve_dataset_path(dataset_path)
         self.max_questions = max_questions
+        self.query_scope_galaxies = self._normalize_query_scope(query_scope_galaxies)
         self.runtime_seed_knowledge = bool(runtime_seed_knowledge)
+        self.dataset_source = "unknown"
+        self.dataset_file: str | None = None
+        self.synthetic_fallback = False
         self.questions = self._load_questions()
         self.results: list[dict[str, Any]] = []
 
@@ -45,7 +51,14 @@ class LastHumanityExamBenchmark:
         if self.dataset_path and self.dataset_path.exists():
             loaded = self._load_from_known_files(self.dataset_path)
             if loaded:
+                self.dataset_source = "file"
+                self.synthetic_fallback = False
                 return loaded[: self.max_questions] if self.max_questions is not None else loaded
+            self.dataset_source = "synthetic_fallback_no_supported_file"
+            self.synthetic_fallback = True
+        else:
+            self.dataset_source = "synthetic_fallback_missing_path"
+            self.synthetic_fallback = True
         fallback = self._synthetic_questions()
         return fallback[: self.max_questions] if self.max_questions is not None else fallback
 
@@ -67,6 +80,7 @@ class LastHumanityExamBenchmark:
                 continue
             parsed = self._normalize_question_records(records)
             if parsed:
+                self.dataset_file = str(candidate)
                 return parsed
 
         # Optional JSONL support.
@@ -86,6 +100,7 @@ class LastHumanityExamBenchmark:
                         records.append(payload)
             parsed = self._normalize_question_records(records)
             if parsed:
+                self.dataset_file = str(jsonl_path)
                 return parsed
         return []
 
@@ -95,15 +110,22 @@ class LastHumanityExamBenchmark:
             text = str(record.get("question_text") or record.get("question") or "").strip()
             options = record.get("options")
             answer = record.get("correct_answer") or record.get("answer")
-            if not text or not isinstance(options, list) or not options or answer is None:
+            if not text or answer is None:
                 continue
+            question_type = "open_ended"
+            parsed_options: list[str] = []
+            if isinstance(options, list) and options:
+                parsed_options = [str(option) for option in options]
+                question_type = "multiple_choice"
             out.append(
                 {
                     "id": str(record.get("id") or f"lhe_{idx}"),
                     "domain": str(record.get("domain") or "multi"),
                     "question_text": text,
-                    "options": [str(option) for option in options],
+                    "options": parsed_options,
                     "correct_answer": str(answer),
+                    "question_type": str(record.get("question_type") or question_type),
+                    "answer_type": str(record.get("answer_type") or ""),
                 }
             )
         return out
@@ -116,6 +138,7 @@ class LastHumanityExamBenchmark:
                 "question_text": "What is 7 * (3 + 2)?",
                 "options": ["35", "30", "42", "28"],
                 "correct_answer": "35",
+                "question_type": "multiple_choice",
             },
             {
                 "id": "lhe_logic_1",
@@ -128,6 +151,7 @@ class LastHumanityExamBenchmark:
                     "All C are A",
                 ],
                 "correct_answer": "All A are C",
+                "question_type": "multiple_choice",
             },
             {
                 "id": "lhe_physics_1",
@@ -135,6 +159,7 @@ class LastHumanityExamBenchmark:
                 "question_text": "An object at rest remains at rest unless acted on by which quantity?",
                 "options": ["Force", "Mass", "Time", "Temperature"],
                 "correct_answer": "Force",
+                "question_type": "multiple_choice",
             },
             {
                 "id": "lhe_multi_1",
@@ -147,6 +172,7 @@ class LastHumanityExamBenchmark:
                     "Delete all intermediate steps",
                 ],
                 "correct_answer": "Request verification and reduce search space",
+                "question_type": "multiple_choice",
             },
         ]
 
@@ -168,6 +194,9 @@ class LastHumanityExamBenchmark:
         return {
             "benchmark": "Last Humanity Exam",
             "dataset_path": str(self.dataset_path) if self.dataset_path else "synthetic",
+            "dataset_source": self.dataset_source,
+            "dataset_file": self.dataset_file,
+            "synthetic_fallback": bool(self.synthetic_fallback),
             "use_enriched": use_enriched,
             "total_questions": total,
             "correct": correct,
@@ -188,7 +217,9 @@ class LastHumanityExamBenchmark:
             query=question["question_text"],
             specialist="auto",
             domain_hint=domain,
+            galaxy_names=self.query_scope_galaxies,
         )
+        route = self._apply_query_scope(route)
         specialist = route["specialist"]
         if use_enriched and self.runtime_seed_knowledge:
             self._seed_domain_knowledge(question, route=route)
@@ -200,13 +231,28 @@ class LastHumanityExamBenchmark:
             domain_hint=route["domain"],
         )
 
-        if use_enriched:
-            reasoning = self._enriched_reasoning(question)
-        else:
-            reasoning = self._empty_mind_reasoning(question)
-        predicted = navigator.select_answer(reasoning=reasoning, options=question["options"])
+        question_type = str(question.get("question_type") or "multiple_choice").lower()
+        options = question.get("options") if isinstance(question.get("options"), list) else []
         expected = str(question["correct_answer"])
-        correct = predicted.strip() == expected.strip()
+
+        if question_type == "open_ended" or not options:
+            predicted, correct = self._answer_open_ended(
+                navigator=navigator,
+                question=question,
+                use_enriched=use_enriched,
+            )
+        else:
+            if use_enriched:
+                reasoning = self._enriched_reasoning(
+                    navigator=navigator,
+                    question=question,
+                    route=route,
+                    use_enriched=use_enriched,
+                )
+            else:
+                reasoning = self._empty_mind_reasoning(question)
+            predicted = navigator.select_answer(reasoning=reasoning, options=options)
+            correct = predicted.strip() == expected.strip()
 
         self.kv.log_event(
             "lhe_question_success" if correct else "lhe_question_failure",
@@ -225,20 +271,102 @@ class LastHumanityExamBenchmark:
             "knowledge_used": len(patterns),
             "reasoning_trace": navigator.get_reasoning_trace(),
             "route": route,
+            "question_type": question_type,
         }
 
-    def _enriched_reasoning(self, question: dict[str, Any]) -> Any:
+    def _normalize_query_scope(self, value: str | list[str] | None) -> list[str] | None:
+        if isinstance(value, list):
+            raw = [str(item).strip() for item in value]
+        elif isinstance(value, str):
+            raw = [segment.strip() for segment in value.split(",")]
+        else:
+            raw = []
+        out: list[str] = []
+        seen: set[str] = set()
+        for item in raw:
+            if not item:
+                continue
+            key = item.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(item)
+        return out or None
+
+    def _apply_query_scope(self, route: dict[str, Any]) -> dict[str, Any]:
+        if not self.query_scope_galaxies:
+            return route
+        route_names = [str(name) for name in route.get("galaxy_names") or [] if str(name).strip()]
+        if not route_names:
+            route["galaxy_names"] = list(self.query_scope_galaxies)
+            return route
+        scope_keys = {name.lower() for name in self.query_scope_galaxies}
+        filtered = [name for name in route_names if name.lower() in scope_keys]
+        route["galaxy_names"] = filtered if filtered else list(self.query_scope_galaxies)
+        return route
+
+    def _answer_open_ended(
+        self,
+        *,
+        navigator: TRMNavigator,
+        question: dict[str, Any],
+        use_enriched: bool,
+    ) -> tuple[str, bool]:
+        prompt = str(question.get("question_text", ""))
+        response = navigator.process_chat(
+            [{"role": "user", "content": prompt}],
+            use_enriched=use_enriched,
+        )
+        predicted = self._extract_open_ended_prediction(response)
+        expected = str(question.get("correct_answer", ""))
+        correct = self._open_ended_match(predicted, expected)
+        return predicted, correct
+
+    def _extract_open_ended_prediction(self, response: str) -> str:
+        text = str(response or "").strip()
+        if not text:
+            return ""
+        # Use first non-empty line as canonical short-form answer.
+        for line in text.splitlines():
+            line = line.strip()
+            if line:
+                return line
+        return text
+
+    def _open_ended_match(self, predicted: str, expected: str) -> bool:
+        p = self._normalize_answer_text(predicted)
+        e = self._normalize_answer_text(expected)
+        if not p or not e:
+            return False
+        if p == e:
+            return True
+        return (e in p) or (p in e)
+
+    def _normalize_answer_text(self, value: str) -> str:
+        text = str(value).strip().lower()
+        text = re.sub(r"\s+", " ", text)
+        text = re.sub(r"[^a-z0-9+#=,./:;() -]+", "", text)
+        return text.strip()
+
+    def _enriched_reasoning(
+        self,
+        *,
+        navigator: TRMNavigator,
+        question: dict[str, Any],
+        route: dict[str, Any],
+        use_enriched: bool,
+    ) -> Any:
         domain = str(question.get("domain", "multi"))
         text = str(question["question_text"]).lower()
         options = [str(opt) for opt in question["options"]]
         if domain == "math":
-            expr = text.replace("what is", "").replace("?", "").strip()
-            # Reuse numeric extraction quickly.
-            safe = "".join(ch for ch in expr if ch.isdigit() or ch in "+-*/() .")
-            try:
-                return float(eval(safe, {"__builtins__": {}}, {}))
-            except Exception:
-                return options[0]
+            composed = navigator.navigate_and_compose(
+                query=str(question.get("question_text", "")),
+                specialist=str(route.get("specialist", "math")),
+                domain_hint=str(route.get("domain", "math")),
+                use_enriched=use_enriched,
+            )
+            return navigator.execute(composed)
         if domain == "logic":
             for option in options:
                 if "all a are c" in option.lower():
@@ -288,6 +416,10 @@ class LastHumanityExamBenchmark:
         path.parent.mkdir(parents=True, exist_ok=True)
         payload = {
             "benchmark": "Last Humanity Exam",
+            "dataset_path": str(self.dataset_path) if self.dataset_path else "synthetic",
+            "dataset_source": self.dataset_source,
+            "dataset_file": self.dataset_file,
+            "synthetic_fallback": bool(self.synthetic_fallback),
             "total_questions": len(self.results),
             "correct": sum(int(row.get("correct", 0)) for row in self.results),
             "accuracy": (
