@@ -42,6 +42,15 @@ constexpr uint16_t kOpLoop = 0xB1;
 constexpr uint16_t kOpNext = 0xB2;
 constexpr uint16_t kOpStore = 0xB3;
 constexpr uint16_t kOpRecall = 0xB4;
+// Primitive scalar arithmetic aliases (calculator surface).
+constexpr uint16_t kOpAdd = 0x0A;
+constexpr uint16_t kOpSubtract = 0x0B;
+constexpr uint16_t kOpMultiply = 0x0C;
+constexpr uint16_t kOpDivide = 0x0D;
+constexpr uint16_t kOpPower = 0x0E;
+constexpr uint16_t kOpNegate = 0xDB;
+constexpr uint16_t kOpAbs = 0x27;
+constexpr uint16_t kOpSqrt = 0x14;
 constexpr uint16_t kOpVecL2Norm = 0xC0;
 constexpr uint16_t kOpVecNormalize = 0xC1;
 constexpr uint16_t kOpVecArgmax = 0xC2;
@@ -397,28 +406,32 @@ __device__ float evaluate_rpn_function(
         uint16_t opcode = static_cast<uint16_t>(program[i]);
 
         switch (opcode) {
-            case 0x01: {  // ADD
+            case 0x01:
+            case kOpAdd: {  // ADD
                 float b, a;
                 if (!pop_scalar(temp_stack, temp_size, b, error)) return 0.0f;
                 if (!pop_scalar(temp_stack, temp_size, a, error)) return 0.0f;
                 if (!push_scalar(temp_stack, temp_size, a + b, error)) return 0.0f;
                 break;
             }
-            case 0x02: {  // SUBTRACT
+            case 0x02:
+            case kOpSubtract: {  // SUBTRACT
                 float b, a;
                 if (!pop_scalar(temp_stack, temp_size, b, error)) return 0.0f;
                 if (!pop_scalar(temp_stack, temp_size, a, error)) return 0.0f;
                 if (!push_scalar(temp_stack, temp_size, a - b, error)) return 0.0f;
                 break;
             }
-            case 0x03: {  // MULTIPLY
+            case 0x03:
+            case kOpMultiply: {  // MULTIPLY
                 float b, a;
                 if (!pop_scalar(temp_stack, temp_size, b, error)) return 0.0f;
                 if (!pop_scalar(temp_stack, temp_size, a, error)) return 0.0f;
                 if (!push_scalar(temp_stack, temp_size, a * b, error)) return 0.0f;
                 break;
             }
-            case 0x04: {  // DIVIDE
+            case 0x04:
+            case kOpDivide: {  // DIVIDE
                 float b, a;
                 if (!pop_scalar(temp_stack, temp_size, b, error)) return 0.0f;
                 if (!pop_scalar(temp_stack, temp_size, a, error)) return 0.0f;
@@ -429,14 +442,15 @@ __device__ float evaluate_rpn_function(
                 if (!push_scalar(temp_stack, temp_size, a / b, error)) return 0.0f;
                 break;
             }
-            case 0x05: {  // POWER
+            case 0x05:
+            case kOpPower: {  // POWER
                 float b, a;
                 if (!pop_scalar(temp_stack, temp_size, b, error)) return 0.0f;
                 if (!pop_scalar(temp_stack, temp_size, a, error)) return 0.0f;
                 if (!push_scalar(temp_stack, temp_size, powf(a, b), error)) return 0.0f;
                 break;
             }
-            case 0x14: {  // SQUARE
+            case 0x14: {  // SQUARE (legacy helper op)
                 float a;
                 if (!pop_scalar(temp_stack, temp_size, a, error)) return 0.0f;
                 if (!push_scalar(temp_stack, temp_size, a * a, error)) return 0.0f;
@@ -450,6 +464,18 @@ __device__ float evaluate_rpn_function(
                     return 0.0f;
                 }
                 if (!push_scalar(temp_stack, temp_size, sqrtf(a), error)) return 0.0f;
+                break;
+            }
+            case kOpNegate: {  // NEGATE
+                float a;
+                if (!pop_scalar(temp_stack, temp_size, a, error)) return 0.0f;
+                if (!push_scalar(temp_stack, temp_size, -a, error)) return 0.0f;
+                break;
+            }
+            case kOpAbs: {  // ABS
+                float a;
+                if (!pop_scalar(temp_stack, temp_size, a, error)) return 0.0f;
+                if (!push_scalar(temp_stack, temp_size, fabsf(a), error)) return 0.0f;
                 break;
             }
             case 0x18: {  // SIN
@@ -1436,7 +1462,8 @@ extern "C" __global__ void modular_rpn_kernel_extended(
             case 0x0A:  // add
             case 0x0B:  // sub
             case 0x0C:  // mul
-            case 0x0D: {  // div
+            case 0x0D:  // div
+            case 0x0E: {  // pow
                 float rhs = 0.0f;
                 float lhs = 0.0f;
                 if (!pop_scalar(stack, stack_size, rhs, error_code)) break;
@@ -1448,8 +1475,10 @@ extern "C" __global__ void modular_rpn_kernel_extended(
                     result = lhs - rhs;
                 } else if (opcode == 0x0C) {
                     result = lhs * rhs;
-                } else {
+                } else if (opcode == 0x0D) {
                     result = lhs / rhs;
+                } else {
+                    result = powf(lhs, rhs);
                 }
                 push_scalar(stack, stack_size, result, error_code);
                 break;

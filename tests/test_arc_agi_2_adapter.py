@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from benchmarks.arc_agi_2_adapter import ArcAgi2Adapter
+from benchmarks.arc_agi_2_adapter import ArcAgi2Adapter, _GeneratedPattern
 
 
 def _sample_task() -> dict:
@@ -126,6 +126,53 @@ def test_discover_patterns_contrastive_adds_anti_patterns():
     patterns = adapter.discover_patterns(_sample_task()["train"])
     sources = {pattern.source for pattern in patterns}
     assert "contrastive_anti" in sources
+
+
+def test_forced_navigation_injection_adds_curriculum_patterns():
+    adapter = ArcAgi2Adapter(
+        use_enriched=True,
+        strict_legacy=False,
+        enable_forced_navigation_curriculum=True,
+        forced_navigation_ratio=1.0,
+        forced_navigation_required_galaxies="Math,Reality",
+    )
+    base = [
+        _GeneratedPattern(
+            pattern_id="base_0",
+            source_galaxy="Drawing",
+            target_galaxy="Grammar",
+            confidence=0.6,
+            query="traditional visual rule: reflect across vertical axis",
+            source="traditional",
+            pair_index=0,
+        )
+    ]
+    injected = adapter._inject_forced_navigation_patterns(
+        train_examples=_sample_task()["train"],
+        patterns=base,
+    )
+    assert len(injected) >= len(base)
+    assert any(pattern.source == "curriculum_forced_navigation" for pattern in injected)
+
+
+def test_forced_navigation_source_expands_galaxy_participation():
+    adapter = ArcAgi2Adapter(
+        use_enriched=False,
+        strict_legacy=False,
+        enable_forced_navigation_curriculum=True,
+        forced_navigation_ratio=0.5,
+        forced_navigation_required_galaxies="Math,Reality",
+    )
+    galaxies = adapter._extract_pattern_galaxy_set(
+        {
+            "source": "curriculum_forced_navigation",
+            "metadata": {},
+        }
+    )
+    assert "Drawing" in galaxies
+    assert "Grammar" in galaxies
+    assert "Math" in galaxies
+    assert "Reality" in galaxies
 
 
 def test_rank_candidates_prefers_autonomous_and_cross_modal_signals():
@@ -359,3 +406,69 @@ def test_full_ptx_oracle_path_is_used(monkeypatch):
     assert metrics["oracle_at_all"] is True
     assert metrics["oracle_at_10"] is True
     assert metrics["ptx_oracle_used"] is True
+
+
+def test_oracle_rejected_rescue_augments_oracle_metrics_exact():
+    adapter = ArcAgi2Adapter(
+        use_enriched=False,
+        strict_legacy=False,
+        enable_oracle_rejected_rescue=True,
+        oracle_rejected_rescue_size=4,
+        enable_fuzzy_oracle=True,
+        fuzzy_oracle_threshold=0.95,
+    )
+    base_metrics = {
+        "oracle_at_3": False,
+        "oracle_at_10": False,
+        "oracle_at_all": False,
+        "correct_rank": None,
+        "oracle_fuzzy_0_80": False,
+        "oracle_fuzzy_0_85": False,
+        "oracle_fuzzy_0_90": False,
+        "oracle_fuzzy_0_95": False,
+        "oracle_exact": False,
+        "fuzzy_oracle_at_3": False,
+        "fuzzy_oracle_at_10": False,
+        "fuzzy_oracle_at_all": False,
+        "fuzzy_best_score": 0.40,
+        "fuzzy_best_rank": 0,
+        "ptx_oracle_used": False,
+    }
+    rescue_candidates = [
+        {"candidate": [[1, 0], [0, 1]], "score": 0.1, "pattern": {}, "components": {"generation_pass": False}},
+    ]
+    merged = adapter._augment_oracle_metrics_with_rejected_rescue(
+        oracle_metrics=base_metrics,
+        rejected_rescue_candidates=rescue_candidates,
+        expected_output=[[1, 0], [0, 1]],
+        ranked_candidate_count=10,
+    )
+    assert merged["oracle_rejected_rescue_enabled"] is True
+    assert merged["oracle_rejected_rescue_candidate_count"] == 1
+    assert merged["oracle_rejected_rescue_exact"] is True
+    assert merged["oracle_at_all"] is True
+    assert merged["correct_rank"] == 10
+
+
+def test_build_oracle_rejected_rescue_candidates_skips_existing_signatures():
+    adapter = ArcAgi2Adapter(
+        use_enriched=False,
+        strict_legacy=False,
+        enable_oracle_rejected_rescue=True,
+        oracle_rejected_rescue_size=8,
+    )
+    existing_grid = [[1, 1], [0, 0]]
+    candidate_map = {
+        adapter._grid_signature(existing_grid): (existing_grid, {"pattern_id": "existing"}),
+    }
+    rejected_reserve = [
+        (0.9, existing_grid, {"pattern_id": "dup", "generation_constraint": {"reason": "shape"}}),
+        (0.8, [[1, 0], [0, 1]], {"pattern_id": "unique", "generation_constraint": {"reason": "palette"}}),
+    ]
+    rescue = adapter._build_oracle_rejected_rescue_candidates(
+        rejected_reserve=rejected_reserve,
+        candidate_map=candidate_map,
+    )
+    assert len(rescue) == 1
+    assert rescue[0]["pattern"]["pattern_id"] == "unique"
+    assert rescue[0]["components"]["generation_pass"] is False

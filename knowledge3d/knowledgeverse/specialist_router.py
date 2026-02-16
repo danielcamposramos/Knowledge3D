@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 from typing import Any, Sequence
 
@@ -171,7 +170,7 @@ class SpecialistRouter:
 
     def _infer_domain(self, query: str) -> str:
         lowered = query.lower()
-        tokens = {tok for tok in re.split(r"[^a-z0-9_]+", lowered) if tok}
+        tokens = self._tokenize_query(lowered)
 
         domain_scores = {
             "visual": float(len(tokens & self._VISUAL_HINTS)),
@@ -180,7 +179,7 @@ class SpecialistRouter:
             "logic": float(len(tokens & self._LOGIC_HINTS)),
         }
         # Numeric and symbolic cues provide extra evidence for math.
-        if re.search(r"[\d]+|[+\-*/=^]", lowered):
+        if self._has_math_symbol_cue(lowered):
             domain_scores["math"] += 1.0
 
         # Inject learned specialist bias into domain scoring.
@@ -200,6 +199,26 @@ class SpecialistRouter:
             if second_score >= max(1.0, top_score * 0.75):
                 return "multi"
         return positives[0][0]
+
+    def _tokenize_query(self, lowered_query: str) -> set[str]:
+        tokens: set[str] = set()
+        current: list[str] = []
+        for ch in lowered_query:
+            if ch.isalnum() or ch == "_":
+                current.append(ch)
+                continue
+            if current:
+                tokens.add("".join(current))
+                current = []
+        if current:
+            tokens.add("".join(current))
+        return tokens
+
+    def _has_math_symbol_cue(self, lowered_query: str) -> bool:
+        for ch in lowered_query:
+            if ch.isdigit() or ch in "+-*/=^":
+                return True
+        return False
 
     def set_specialist_bias(self, specialist: str, value: float) -> None:
         if specialist not in self._specialist_bias:
