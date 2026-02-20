@@ -30,6 +30,7 @@ import os
 import subprocess
 import sys
 from collections import Counter
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -236,6 +237,34 @@ def _rebuild_payload_from_stage(*, stage_root: Path, payload_output: Path) -> tu
     return by_galaxy, by_classification, per_pdf, total_rows
 
 
+def _skip_sources_output(payload_output: Path, explicit_skip_output: Path | None) -> Path:
+    if explicit_skip_output is not None:
+        return explicit_skip_output
+    return payload_output.parent / f"{payload_output.stem}_skipped_sources.jsonl"
+
+
+def _append_skipped_source(
+    *,
+    skip_output: Path,
+    pdf_path: Path,
+    phase: str,
+    error: Exception,
+    pages_total: int | None = None,
+) -> None:
+    entry: dict[str, Any] = {
+        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "pdf": str(pdf_path),
+        "phase": str(phase),
+        "error_type": error.__class__.__name__,
+        "error_message": str(error),
+    }
+    if pages_total is not None:
+        entry["pages_total"] = int(pages_total)
+    skip_output.parent.mkdir(parents=True, exist_ok=True)
+    with skip_output.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(entry, ensure_ascii=False, separators=(",", ":")) + "\n")
+
+
 def _ingest_payload(payload_path: Path, *, storage_root: Path, ingest_report: Path) -> int:
     cmd = [
         sys.executable,
@@ -298,6 +327,12 @@ def main() -> int:
         type=Path,
         default=Path("../Knowledge3D.local/datasets/external_payloads/pdf_intelligent_ingest_report.json"),
     )
+    parser.add_argument(
+        "--skip-sources-output",
+        type=Path,
+        default=None,
+        help="JSONL output file listing skipped PDFs (encrypted/corrupt/failed extraction).",
+    )
     args = parser.parse_args()
 
     pdf_paths = _iter_pdf_paths(pdf=args.pdf, pdf_dir=args.pdf_dir, pattern=args.pattern, limit=max(0, int(args.limit_pdfs)))
@@ -307,11 +342,13 @@ def main() -> int:
 
     stage_root = _stage_root(args.payload_output, args.stage_dir)
     stage_root.mkdir(parents=True, exist_ok=True)
+    skip_output = _skip_sources_output(args.payload_output, args.skip_sources_output)
     manifest = _load_stage_manifest(stage_root)
     manifest_pdfs = manifest.setdefault("pdfs", {})
     if not isinstance(manifest_pdfs, dict):
         manifest["pdfs"] = {}
         manifest_pdfs = manifest["pdfs"]
+    skipped_sources_count = 0
 
     with OllamaModelManager(default_timeout=float(args.ollama_timeout)) as ollama:
         classifier = PDFKnowledgeClassifier(
@@ -329,14 +366,33 @@ def main() -> int:
         checkpoint_interval = max(0, int(args.payload_checkpoint_interval_pdfs))
         processed_pdfs = 0
         for pdf_path in pdf_paths:
-            pages = _extract_pdf_pages(pdf_path, max_pages=max(0, int(args.max_pages_per_pdf)))
             pdf_sha = _pdf_sha(pdf_path)
+            try:
+                pages = _extract_pdf_pages(pdf_path, max_pages=max(0, int(args.max_pages_per_pdf)))
+            except Exception as exc:
+                _append_skipped_source(
+                    skip_output=skip_output,
+                    pdf_path=pdf_path,
+                    phase="extract_pages",
+                    error=exc,
+                )
+                manifest_pdfs[str(pdf_path)] = {
+                    "sha256": pdf_sha,
+                    "pages_total": 0,
+                    "resume_from_page": 1,
+                    "status": "skipped",
+                    "skip_reason": f"{exc.__class__.__name__}: {exc}",
+                }
+                _save_stage_manifest(stage_root, manifest)
+                skipped_sources_count += 1
+                continue
             pdf_stage = _pdf_stage_dir(stage_root, pdf_sha)
             if not pages:
                 manifest_pdfs[str(pdf_path)] = {
                     "sha256": pdf_sha,
                     "pages_total": 0,
                     "resume_from_page": 1,
+                    "status": "skipped_empty",
                 }
                 _save_stage_manifest(stage_root, manifest)
                 continue
@@ -431,6 +487,8 @@ def main() -> int:
     report = {
         "pdf_count": len(pdf_paths),
         "payload_rows": int(payload_rows),
+        "skipped_sources_count": int(skipped_sources_count),
+        "skipped_sources_output": str(skip_output),
         "pdfs": pdf_stats,
         "classification_counts": dict(sorted(by_classification.items())),
         "rows_by_galaxy": dict(sorted(by_galaxy.items())),
@@ -453,8 +511,9 @@ def main() -> int:
     args.report_output.parent.mkdir(parents=True, exist_ok=True)
     args.report_output.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
 
-    print(f"[pdf-ingest] pdfs={len(pdf_paths)} rows={len(all_rows)} payload={args.payload_output}")
+    print(f"[pdf-ingest] pdfs={len(pdf_paths)} rows={payload_rows} payload={args.payload_output}")
     print(f"[pdf-ingest] report={args.report_output}")
+    print(f"[pdf-ingest] skipped_sources={skipped_sources_count} file={skip_output}")
     for galaxy, count in sorted(by_galaxy.items()):
         print(f"[pdf-ingest] {galaxy}: {count}")
 
