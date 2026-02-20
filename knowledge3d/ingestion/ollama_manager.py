@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import subprocess
 from dataclasses import dataclass
 
@@ -57,9 +58,10 @@ class OllamaModelManager:
     ) -> OllamaQueryResult:
         """Run a non-conversational model call."""
         run_timeout = timeout if timeout is not None else self.default_timeout
+        safe_prompt = self._sanitize_prompt(prompt)
         try:
             proc = subprocess.run(
-                ["ollama", "run", model, prompt],
+                ["ollama", "run", model, safe_prompt],
                 check=False,
                 capture_output=True,
                 text=True,
@@ -78,6 +80,25 @@ class OllamaModelManager:
                 returncode=1,
                 stderr=str(exc),
             )
+
+    def _sanitize_prompt(self, prompt: str) -> str:
+        """
+        Remove null/control bytes that can break subprocess argv handling.
+
+        Keep tabs/newlines for prompt readability while normalizing unsafe
+        control characters to spaces.
+        """
+        text = str(prompt or "")
+        if "\x00" in text:
+            text = text.replace("\x00", "")
+        # Keep printable + newline/tab; replace remaining control chars.
+        text = "".join(ch if (ch >= " " or ch in "\n\t") else " " for ch in text)
+        # Collapse long whitespace runs but preserve line breaks.
+        text = re.sub(r"[ \t]+", " ", text)
+        text = re.sub(r"\n{3,}", "\n\n", text)
+        # Guard against ill-formed unicode sequences.
+        text = text.encode("utf-8", errors="ignore").decode("utf-8")
+        return text.strip()
 
     def __enter__(self) -> "OllamaModelManager":
         return self
