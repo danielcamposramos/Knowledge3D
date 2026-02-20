@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import ast
 import datetime
 import json
-import math
+import os
 from pathlib import Path
-import re
 from typing import Any, Sequence
 
 from .galaxy_manager import GalaxyManager
@@ -56,12 +54,22 @@ class TRMNavigator(SpecialistBase):
             max_children_per_parent=16,
         )
         self._trace: list[str] = []
+        self._math_debug = str(os.getenv("K3D_MATH_DEBUG", "")).strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+        self._last_math_missing_signal: dict[str, Any] | None = None
+        self._last_math_execution_error: str | None = None
 
     def _bootstrap_matryoshka_specialists(self) -> None:
         """
         Bootstrap default master/worker hierarchy.
 
         Layout:
+        - InputPrimerSpecialist (input normalization pre-routing)
+        - ChatSpecialist (conversational I/O compatibility layer)
         - MathSpecialist -> BasicMathSpecialist, PhDMathSpecialist
         - VisualSpecialist -> ArcVisualSpecialist, SpatialVisualSpecialist
         - PhysicsSpecialist -> MechanicsSpecialist, ProceduralRealitySpecialist
@@ -69,6 +77,10 @@ class TRMNavigator(SpecialistBase):
         """
         self.children.clear()
         self.routing_bias.clear()
+
+        # Input primer + chat specialist for standard LLM I/O compatibility.
+        self.spawn_child(name="InputPrimerSpecialist", domain="input_normalization")
+        chat_master = self.spawn_child(name="ChatSpecialist", domain="conversational")
 
         math_master = self.spawn_child(name="MathSpecialist", domain="math")
         visual_master = self.spawn_child(name="VisualSpecialist", domain="visual")
@@ -312,29 +324,12 @@ class TRMNavigator(SpecialistBase):
         resolved_specialist = str(route["specialist"])
         names = [str(name) for name in route["galaxy_names"]] if route["galaxy_names"] else None
         self._trace.append(f"query specialist={resolved_specialist} top_k={top_k}")
-
-        if not names:
-            return self.galaxy_manager.query(
-                query_text=query,
-                specialist=resolved_specialist,
-                top_k=top_k,
-            )
-
-        tokens = {tok for tok in re.split(r"[^A-Za-z0-9_]+", query.lower()) if tok}
-        scored: list[tuple[int, dict[str, Any], str]] = []
-        for name in names:
-            galaxy = self.galaxy_manager.get_galaxy(name)
-            for entry in galaxy.entries:
-                haystack = str(entry).lower()
-                score = sum(1 for tok in tokens if tok in haystack)
-                if score <= 0 and tokens:
-                    continue
-                scored.append((max(score, 1), entry, name))
-        scored.sort(key=lambda item: item[0], reverse=True)
-        return [
-            {"galaxy": name, "score": score, "entry": entry}
-            for score, entry, name in scored[: max(1, int(top_k))]
-        ]
+        return self.galaxy_manager.query(
+            query_text=query,
+            specialist=resolved_specialist,
+            top_k=top_k,
+            galaxies=names,
+        )
 
     def compose(
         self,
@@ -711,151 +706,344 @@ class TRMNavigator(SpecialistBase):
         return (matched / total) if total else 0.0
 
     def _solve_math(self, text: str, *, use_enriched: bool) -> float | None:
-        # Empty-mind baseline supports only direct arithmetic.
-        if not use_enriched:
-            expr = self._extract_arithmetic_expr(text)
-            return self._safe_eval(expr) if expr else None
-
-        derivative = self._solve_derivative_prompt(text)
-        if derivative is not None:
-            return derivative
-
-        expr = self._extract_arithmetic_expr(text)
-        if expr:
-            val = self._safe_eval(expr)
-            if val is not None:
-                return val
-        return None
-
-    def _solve_derivative_prompt(self, text: str) -> float | None:
-        lowered = text.lower()
-        x_value = self._extract_eval_x(text)
-        if "sin(x)" in lowered and x_value is not None:
-            return math.cos(x_value)
-        if "cos(x)" in lowered and x_value is not None:
-            return -math.sin(x_value)
-        if "e^x" in lowered and x_value is not None:
-            return math.exp(x_value)
-
-        quotient_match = re.search(
-            r"f\(x\)\s*=\s*\(([-+]?\d+)x([+-]\d+)\)\s*/\s*\(([-+]?\d+)x([+-]\d+)\)",
-            text.replace(" ", ""),
-        )
-        if quotient_match and x_value is not None:
-            a, b, c, d = [float(part) for part in quotient_match.groups()]
-            numerator = (a * c * x_value + a * d) - (a * c * x_value + b * c)
-            denominator = (c * x_value + d) ** 2
-            if denominator == 0:
+        if self._math_debug:
+            print(
+                f"[K3D_MATH_DEBUG] solve_start use_enriched={bool(use_enriched)} "
+                f"query={text[:200]!r}"
+            )
+        specialist = self.get_math_specialist()
+        solved = specialist.process({"question": text}, use_enriched=use_enriched)
+        if solved.get("status") == "success":
+            result = self._to_float(solved.get("result"))
+            if result is None:
+                self._record_math_missing_signal(
+                    reason="math_specialist_non_numeric_result",
+                    query=text,
+                    use_enriched=use_enriched,
+                    extra={"raw_result": solved.get("result")},
+                )
                 return None
-            return numerator / denominator
+            rpn_program = str(solved.get("rpn_program", "")).strip()
+            self._trace.append(f"math_solve_success rpn={rpn_program}")
+            self._last_math_missing_signal = None
+            if self._math_debug:
+                print(
+                    f"[K3D_MATH_DEBUG] solve_success result={result} rpn={rpn_program!r}"
+                )
+            return result
 
-        poly_match = re.search(r"derivative of ([^@]+?) at x\s*=\s*([-+]?\d*\.?\d+)", lowered)
-        if poly_match:
-            expr_raw = poly_match.group(1)
-            eval_x = float(poly_match.group(2))
-            return self._differentiate_polynomial(expr_raw, eval_x)
-
-        generic = re.search(r"f\(x\)\s*=\s*([^,]+?)\s+at x\s*=\s*([-+]?\d*\.?\d+)", lowered)
-        if generic:
-            expr_raw = generic.group(1)
-            eval_x = float(generic.group(2))
-            return self._differentiate_polynomial(expr_raw, eval_x)
-
-        return None
-
-    def _differentiate_polynomial(self, expr_raw: str, x_value: float) -> float | None:
-        expr = expr_raw.replace(" ", "")
-        if "/" in expr and "x" in expr:
-            return None
-        normalized = expr.replace("-", "+-")
-        terms = [term for term in normalized.split("+") if term]
-        result = 0.0
-        matched_any = False
-        for term in terms:
-            if "x^" in term:
-                coef_part, pow_part = term.split("x^", 1)
-                coef = self._parse_coef(coef_part)
-                power = self._to_float(pow_part)
-                if power is None:
-                    continue
-                matched_any = True
-                result += coef * power * (x_value ** (power - 1))
-                continue
-            if term.endswith("x"):
-                coef = self._parse_coef(term[:-1])
-                matched_any = True
-                result += coef
-                continue
-        if not matched_any:
-            return None
-        return result
-
-    def _parse_coef(self, raw: str) -> float:
-        if raw in ("", "+"):
-            return 1.0
-        if raw == "-":
-            return -1.0
-        val = self._to_float(raw)
-        return float(val) if val is not None else 0.0
-
-    def _extract_eval_x(self, text: str) -> float | None:
-        match = re.search(r"at x\s*=\s*([-+]?\d*\.?\d+)", text.lower())
-        if not match:
-            return None
-        return float(match.group(1))
-
-    def _extract_arithmetic_expr(self, text: str) -> str | None:
-        # First quoted/extracted expressions.
-        match = re.search(r"([\-+*/()0-9\.\s]{3,})", text)
-        if match:
-            expr = match.group(1).strip()
-            if any(ch.isdigit() for ch in expr) and any(op in expr for op in "+-*/"):
-                return expr
-        # Last fallback: collect tokens.
-        tokens = re.findall(r"[-+]?\d*\.?\d+|[()+\-*/]", text)
-        if len(tokens) >= 3 and any(tok in "+-*/" for tok in tokens):
-            return " ".join(tokens)
-        return None
-
-    def _safe_eval(self, expr: str) -> float | None:
-        try:
-            node = ast.parse(expr, mode="eval")
-        except SyntaxError:
-            return None
-        if not self._is_safe_math_ast(node):
-            return None
-        try:
-            value = eval(compile(node, "<math>", "eval"), {"__builtins__": {}}, {})
-        except Exception:
-            return None
-        return self._to_float(value)
-
-    def _is_safe_math_ast(self, node: ast.AST) -> bool:
-        allowed_nodes = (
-            ast.Expression,
-            ast.BinOp,
-            ast.UnaryOp,
-            ast.Add,
-            ast.Sub,
-            ast.Mult,
-            ast.Div,
-            ast.Pow,
-            ast.USub,
-            ast.UAdd,
-            ast.Constant,
-            ast.Load,
-            ast.Mod,
-            ast.FloorDiv,
+        reason = str(solved.get("reason", "math_specialist_failed")).strip() or "math_specialist_failed"
+        extra: dict[str, Any] = {}
+        for key in ("detail", "rpn_program", "pattern_type", "template_id", "pattern_id"):
+            if key in solved:
+                extra[key] = solved.get(key)
+        self._record_math_missing_signal(
+            reason=reason,
+            query=text,
+            use_enriched=use_enriched,
+            extra=extra or None,
         )
-        for child in ast.walk(node):
-            if not isinstance(child, allowed_nodes):
-                return False
-            if isinstance(child, ast.Constant) and not isinstance(child.value, (int, float)):
-                return False
-        return True
+        return None
+
+    def _record_math_missing_signal(
+        self,
+        *,
+        reason: str,
+        query: str,
+        use_enriched: bool,
+        extra: dict[str, Any] | None = None,
+    ) -> None:
+        payload = {
+            "reason": reason,
+            "query": query[:240],
+            "use_enriched": bool(use_enriched),
+        }
+        if extra:
+            payload.update(extra)
+        self._last_math_missing_signal = payload
+        self._trace.append(f"math_solve_missing reason={reason}")
+        if self._math_debug:
+            print(
+                f"[K3D_MATH_DEBUG] solve_missing {json.dumps(payload, ensure_ascii=True, sort_keys=True)}"
+            )
+        kv = getattr(self, "knowledgeverse", None)
+        if kv is not None and hasattr(kv, "log_event"):
+            try:
+                kv.log_event("math_solve_missing_signal", payload)
+            except Exception:
+                pass
+
+    def _select_math_rpn_template(
+        self,
+        grammar_candidates: Sequence[dict[str, Any]],
+        math_candidates: Sequence[dict[str, Any]],
+    ) -> str | None:
+        for pool in (grammar_candidates, math_candidates):
+            for candidate in pool:
+                entry = candidate.get("entry", {})
+                if not isinstance(entry, dict):
+                    continue
+                template = str(entry.get("rpn_program", "")).strip()
+                if not template:
+                    continue
+                lowered = template.lower()
+                if lowered in {"noop", "noop exec", "exec", "noop_exec"}:
+                    continue
+                return template
+        return None
+
+    def _extract_numeric_literals(self, text: str) -> list[float]:
+        values: list[float] = []
+        token: list[str] = []
+        for char in text:
+            if char.isdigit() or char in {".", "-"}:
+                token.append(char)
+                continue
+            if token:
+                val = self._to_float("".join(token))
+                if val is not None:
+                    values.append(val)
+                token = []
+        if token:
+            val = self._to_float("".join(token))
+            if val is not None:
+                values.append(val)
+        return values
+
+    def _render_math_rpn_template(self, template: str, numbers: Sequence[float]) -> str | None:
+        rendered = template
+        if not rendered:
+            return None
+        for idx, number in enumerate(numbers):
+            num = f"{number:.12g}"
+            rendered = rendered.replace(f"{{g{idx}}}", num)
+            rendered = rendered.replace(f"{{{idx}}}", num)
+        if "{" in rendered and "}" in rendered:
+            return None
+        return rendered
+
+    def _execute_math_rpn(self, rpn_program: str) -> float | None:
+        try:
+            from knowledge3d.cranium.ptx_runtime.modular_rpn_engine import ModularRPNEngine
+
+            engine = ModularRPNEngine()
+            try:
+                value = engine.evaluate(rpn_program)
+            finally:
+                engine.close()
+            self._last_math_execution_error = None
+            return self._to_float(value)
+        except Exception as exc:
+            self._last_math_execution_error = f"{type(exc).__name__}: {exc}"
+            return None
 
     def _to_float(self, value: Any) -> float | None:
         try:
             return float(value)
         except Exception:
             return None
+
+    def get_last_math_missing_signal(self) -> dict[str, Any] | None:
+        if self._last_math_missing_signal is None:
+            return None
+        return dict(self._last_math_missing_signal)
+
+    # ========== Chat Specialist Integration (Sovereign LLM-compatible I/O) ==========
+
+    def get_math_specialist(self):
+        """
+        Get or create Math Specialist instance.
+
+        This keeps math solving on the specialist composition path even when
+        benchmark runners use TRMNavigator directly.
+        """
+        if "MathSpecialist" not in self.children:
+            self._bootstrap_matryoshka_specialists()
+
+        math_child = self.children.get("MathSpecialist")
+        if math_child is None:
+            from knowledge3d.knowledgeverse.specialists.math_specialist import MathSpecialist
+
+            math_specialist = MathSpecialist(
+                knowledgeverse=self.knowledgeverse,
+                parent=self,
+            )
+            self.children["MathSpecialist"] = math_specialist
+            return math_specialist
+
+        from knowledge3d.knowledgeverse.specialists.math_specialist import MathSpecialist
+
+        if not isinstance(math_child, MathSpecialist):
+            math_specialist = MathSpecialist(
+                knowledgeverse=self.knowledgeverse,
+                parent=self,
+            )
+            math_specialist.query_count = math_child.query_count
+            math_specialist.success_count = math_child.success_count
+            math_specialist.failure_count = math_child.failure_count
+            self.children["MathSpecialist"] = math_specialist
+            return math_specialist
+
+        return math_child
+
+    def get_chat_specialist(self):
+        """
+        Get or create Chat Specialist instance.
+
+        Lazy initialization to avoid circular imports.
+        """
+        # Check if already initialized
+        if "ChatSpecialist" not in self.children:
+            # Re-bootstrap to ensure Chat Specialist exists
+            self._bootstrap_matryoshka_specialists()
+
+        chat_child = self.children.get("ChatSpecialist")
+        if chat_child is None:
+            # Fallback: create directly
+            from knowledge3d.knowledgeverse.chat_specialist import ChatSpecialist
+            chat_specialist = ChatSpecialist(
+                knowledgeverse=self.knowledgeverse,
+                parent=self
+            )
+            self.children["ChatSpecialist"] = chat_specialist
+            return chat_specialist
+
+        # Wrap base specialist with Chat Specialist functionality
+        from knowledge3d.knowledgeverse.chat_specialist import ChatSpecialist
+        if not isinstance(chat_child, ChatSpecialist):
+            # Convert base specialist to Chat Specialist
+            chat_specialist = ChatSpecialist(
+                knowledgeverse=self.knowledgeverse,
+                parent=self
+            )
+            chat_specialist.query_count = chat_child.query_count
+            chat_specialist.success_count = chat_child.success_count
+            chat_specialist.failure_count = chat_child.failure_count
+            self.children["ChatSpecialist"] = chat_specialist
+            return chat_specialist
+
+        return chat_child
+
+    def get_input_primer_specialist(self):
+        """
+        Get or create Input Primer specialist.
+
+        The primer is pre-routing only. It normalizes inbound text/MCQ payloads
+        before they are routed/solved by downstream specialists.
+        """
+        if "InputPrimerSpecialist" not in self.children:
+            self._bootstrap_matryoshka_specialists()
+
+        primer_child = self.children.get("InputPrimerSpecialist")
+        if primer_child is None:
+            from knowledge3d.knowledgeverse.input_primer_specialist import InputPrimerSpecialist
+
+            primer = InputPrimerSpecialist(parent=self)
+            self.children["InputPrimerSpecialist"] = primer
+            return primer
+
+        from knowledge3d.knowledgeverse.input_primer_specialist import InputPrimerSpecialist
+
+        if not isinstance(primer_child, InputPrimerSpecialist):
+            primer = InputPrimerSpecialist(parent=self)
+            primer.query_count = primer_child.query_count
+            primer.success_count = primer_child.success_count
+            primer.failure_count = primer_child.failure_count
+            self.children["InputPrimerSpecialist"] = primer
+            return primer
+
+        return primer_child
+
+    def process_chat(
+        self,
+        messages: list[dict[str, str]],
+        use_enriched: bool = True
+    ) -> str:
+        """
+        Process chat messages using Chat Specialist (sovereign).
+
+        Args:
+            messages: Standard LLM chat format [{"role": "user", "content": "..."}]
+            use_enriched: Whether to use enriched Galaxy content
+
+        Returns:
+            Standard LLM response string
+
+        Example:
+            >>> navigator = TRMNavigator(knowledgeverse)
+            >>> messages = [
+            ...     {"role": "user", "content": "What is the derivative of x^2?"}
+            ... ]
+            >>> response = navigator.process_chat(messages)
+            >>> print(response)
+            "Based on my mathematical knowledge: ..."
+        """
+        primer = self.get_input_primer_specialist()
+        prepared_messages = primer.normalize_chat_messages(messages)
+        chat_specialist = self.get_chat_specialist()
+        return chat_specialist.process_chat_message(prepared_messages, use_enriched)
+
+    def answer_multiple_choice(
+        self,
+        question_text: str,
+        options: list[str],
+        use_enriched: bool = True,
+        galaxy_scope: list[str] | None = None,
+    ) -> str:
+        """
+        Answer multiple-choice question using Chat Specialist.
+
+        Used by MMLU and other benchmarks. Routes to best matching option
+        using sovereign Galaxy navigation.
+
+        Args:
+            question_text: The question to answer
+            options: List of possible answers (e.g., ["A", "B", "C", "D"])
+            use_enriched: Whether to use enriched Galaxy content
+
+        Returns:
+            Best matching option from the list
+        """
+        primer = self.get_input_primer_specialist()
+        prepared = primer.prepare_multiple_choice(question_text, options)
+
+        chat_specialist = self.get_chat_specialist()
+        predicted = chat_specialist.answer_multiple_choice(
+            prepared["question_text"],
+            prepared["options"],
+            use_enriched,
+            galaxy_scope=galaxy_scope,
+        )
+        return self._map_mcq_prediction_to_original(
+            predicted=predicted,
+            normalized_options=list(prepared["options"]),
+            original_options=list(prepared["original_options"]),
+        )
+
+    def _map_mcq_prediction_to_original(
+        self,
+        *,
+        predicted: str,
+        normalized_options: list[str],
+        original_options: list[str],
+    ) -> str:
+        pred = str(predicted).strip()
+        if not pred:
+            return original_options[0] if original_options else ""
+
+        if pred in normalized_options:
+            idx = normalized_options.index(pred)
+            if 0 <= idx < len(original_options):
+                return original_options[idx]
+
+        if pred in original_options:
+            return pred
+
+        # Handle model returning option labels (A/B/C/D).
+        label = pred.upper()
+        if len(label) == 1 and "A" <= label <= "Z":
+            idx = ord(label) - ord("A")
+            if 0 <= idx < len(original_options):
+                return original_options[idx]
+
+        return original_options[0] if original_options else pred

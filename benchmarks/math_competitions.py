@@ -18,11 +18,13 @@ class MathCompetitionBenchmark:
         knowledgeverse: Knowledgeverse | None = None,
         dataset_path: str | Path | None = None,
         max_problems: int | None = None,
+        query_scope_galaxies: str | list[str] | None = None,
         runtime_seed_knowledge: bool = False,
     ):
         self.kv = knowledgeverse or Knowledgeverse()
         self.dataset_path = self._resolve_dataset_path(dataset_path)
         self.max_problems = max_problems
+        self.query_scope_galaxies = self._normalize_query_scope(query_scope_galaxies)
         self.runtime_seed_knowledge = bool(runtime_seed_knowledge)
         self.problems = self._load_problems()
         self.results: list[dict[str, Any]] = []
@@ -167,6 +169,17 @@ class MathCompetitionBenchmark:
             comp_data["accuracy"] = (comp_data["correct"] / total) if total else 0.0
         total_correct = sum(row["correct"] for row in self.results)
         total_count = len(self.results)
+        pred_none_count = sum(1 for row in self.results if row.get("predicted_answer") is None)
+        pred_numeric_count = sum(1 for row in self.results if self._to_float(row.get("predicted_answer")) is not None)
+        exp_numeric_count = sum(1 for row in self.results if self._to_float(row.get("expected_answer")) is not None)
+        route_specialists: dict[str, int] = {}
+        failure_reason_counts: dict[str, int] = {}
+        for row in self.results:
+            specialist = str(row.get("route", {}).get("specialist", "unknown"))
+            route_specialists[specialist] = int(route_specialists.get(specialist, 0)) + 1
+            if row.get("predicted_answer") is None:
+                reason = str(row.get("failure_reason", "") or "unknown")
+                failure_reason_counts[reason] = int(failure_reason_counts.get(reason, 0)) + 1
         return {
             "benchmark": "Math Competitions",
             "dataset_path": str(self.dataset_path) if self.dataset_path else "synthetic",
@@ -175,6 +188,14 @@ class MathCompetitionBenchmark:
             "overall_accuracy": (total_correct / total_count) if total_count else 0.0,
             "total": total_count,
             "correct": total_correct,
+            "diagnostics": {
+                "predicted_none_count": int(pred_none_count),
+                "predicted_none_rate": (pred_none_count / total_count) if total_count else 0.0,
+                "predicted_numeric_count": int(pred_numeric_count),
+                "expected_numeric_count": int(exp_numeric_count),
+                "route_specialist_counts": route_specialists,
+                "failure_reason_counts": failure_reason_counts,
+            },
         }
 
     def _solve_problem(
@@ -184,6 +205,7 @@ class MathCompetitionBenchmark:
         problem: dict[str, Any],
         use_enriched: bool,
     ) -> dict[str, Any]:
+        navigator.clear_trace()
         generated_entry: dict[str, Any] | None = None
         if use_enriched and self.runtime_seed_knowledge:
             self._seed_math_knowledge(problem)
@@ -207,9 +229,11 @@ class MathCompetitionBenchmark:
                     query=str(problem["problem_text"]),
                     specialist="auto",
                     domain_hint="math",
+                    galaxy_names=self.query_scope_galaxies,
                 ),
             )
         )
+        route = self._apply_query_scope(route)
         patterns = navigator.query(
             query=str(problem["problem_text"]),
             galaxy_names=route["galaxy_names"],
@@ -218,6 +242,13 @@ class MathCompetitionBenchmark:
             domain_hint=route["domain"],
         )
         predicted = navigator.execute(composed)
+        reasoning_trace = navigator.get_reasoning_trace()
+        missing_signal = None
+        if hasattr(navigator, "get_last_math_missing_signal"):
+            try:
+                missing_signal = navigator.get_last_math_missing_signal()
+            except Exception:
+                missing_signal = None
         expected = problem["answer"]
         correct = self._answers_match(predicted, expected)
         self.kv.log_event(
@@ -234,8 +265,14 @@ class MathCompetitionBenchmark:
             "correct": int(correct),
             "predicted_answer": predicted,
             "expected_answer": expected,
+            "failure_reason": (
+                str(missing_signal.get("reason", ""))
+                if isinstance(missing_signal, dict)
+                else self._extract_failure_reason(reasoning_trace)
+            ),
+            "failure_signal": (dict(missing_signal) if isinstance(missing_signal, dict) else None),
             "symbols_used": int(composed.get("patterns_used", len(patterns))),
-            "reasoning_trace": navigator.get_reasoning_trace(),
+            "reasoning_trace": reasoning_trace,
             "route": route,
             "meta_specialist": composed.get("meta_specialist"),
             "method": (
@@ -247,6 +284,46 @@ class MathCompetitionBenchmark:
                 str(generated_entry.get("id", "")) if generated_entry and "error" not in generated_entry else None
             ),
         }
+
+    def _extract_failure_reason(self, reasoning_trace: list[str]) -> str:
+        for item in reversed(reasoning_trace):
+            if not isinstance(item, str):
+                continue
+            marker = "math_solve_missing reason="
+            if marker in item:
+                return item.split(marker, 1)[1].strip() or "unknown"
+        return "unknown"
+
+    def _normalize_query_scope(self, value: str | list[str] | None) -> list[str] | None:
+        if isinstance(value, list):
+            raw = [str(item).strip() for item in value]
+        elif isinstance(value, str):
+            raw = [segment.strip() for segment in value.split(",")]
+        else:
+            raw = []
+        out: list[str] = []
+        seen: set[str] = set()
+        for item in raw:
+            if not item:
+                continue
+            key = item.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(item)
+        return out or None
+
+    def _apply_query_scope(self, route: dict[str, Any]) -> dict[str, Any]:
+        if not self.query_scope_galaxies:
+            return route
+        route_names = [str(name) for name in route.get("galaxy_names") or [] if str(name).strip()]
+        if not route_names:
+            route["galaxy_names"] = list(self.query_scope_galaxies)
+            return route
+        scope_keys = {name.lower() for name in self.query_scope_galaxies}
+        filtered = [name for name in route_names if name.lower() in scope_keys]
+        route["galaxy_names"] = filtered if filtered else list(self.query_scope_galaxies)
+        return route
 
     def _seed_math_knowledge(self, problem: dict[str, Any]) -> None:
         self.kv.galaxy_manager.add_entry(

@@ -32,13 +32,21 @@ class ARCAGI2Benchmark:
         constraint_mode: str = "reject",
         enable_figure_ground_reversal: bool = False,
         enable_object_aware_generation: bool = False,
+        enable_forced_navigation_curriculum: bool = False,
+        forced_navigation_ratio: float = 0.0,
+        forced_navigation_required_galaxies: str | list[str] | None = None,
         enable_rescue_lane: bool = False,
         rescue_lane_size: int = 16,
+        oracle_search_lane_size: int = 32,
+        enable_oracle_rejected_rescue: bool = False,
+        oracle_rejected_rescue_size: int = 16,
+        oracle_rejected_rescue_fuzzy_threshold: float = 0.90,
         enable_dual_track_oracle: bool = False,
         family_penalty_weight: float = 1.0,
         shape_penalty_weight: float = 1.0,
         palette_penalty_weight: float = 1.0,
         object_penalty_weight: float = 1.0,
+        query_scope_galaxies: str | list[str] | None = None,
         runtime_seed_knowledge: bool = False,
     ):
         self.kv = knowledgeverse or Knowledgeverse()
@@ -56,13 +64,21 @@ class ARCAGI2Benchmark:
             self.constraint_mode = "reject"
         self.enable_figure_ground_reversal = bool(enable_figure_ground_reversal)
         self.enable_object_aware_generation = bool(enable_object_aware_generation)
+        self.enable_forced_navigation_curriculum = bool(enable_forced_navigation_curriculum)
+        self.forced_navigation_ratio = float(forced_navigation_ratio)
+        self.forced_navigation_required_galaxies = forced_navigation_required_galaxies
         self.enable_rescue_lane = bool(enable_rescue_lane)
         self.rescue_lane_size = int(rescue_lane_size)
+        self.oracle_search_lane_size = int(oracle_search_lane_size)
+        self.enable_oracle_rejected_rescue = bool(enable_oracle_rejected_rescue)
+        self.oracle_rejected_rescue_size = int(oracle_rejected_rescue_size)
+        self.oracle_rejected_rescue_fuzzy_threshold = float(oracle_rejected_rescue_fuzzy_threshold)
         self.enable_dual_track_oracle = bool(enable_dual_track_oracle)
         self.family_penalty_weight = float(family_penalty_weight)
         self.shape_penalty_weight = float(shape_penalty_weight)
         self.palette_penalty_weight = float(palette_penalty_weight)
         self.object_penalty_weight = float(object_penalty_weight)
+        self.query_scope_galaxies = self._normalize_query_scope(query_scope_galaxies)
         self.runtime_seed_knowledge = bool(runtime_seed_knowledge)
         self.dataset_path = self._resolve_dataset_path(dataset_path, dataset_version)
         self.max_tasks = max_tasks
@@ -162,13 +178,21 @@ class ARCAGI2Benchmark:
             constraint_mode=self.constraint_mode,
             enable_figure_ground_reversal=self.enable_figure_ground_reversal,
             enable_object_aware_generation=self.enable_object_aware_generation,
+            enable_forced_navigation_curriculum=self.enable_forced_navigation_curriculum,
+            forced_navigation_ratio=self.forced_navigation_ratio,
+            forced_navigation_required_galaxies=self.forced_navigation_required_galaxies,
             enable_rescue_lane=self.enable_rescue_lane,
             rescue_lane_size=self.rescue_lane_size,
+            oracle_search_lane_size=self.oracle_search_lane_size,
+            enable_oracle_rejected_rescue=self.enable_oracle_rejected_rescue,
+            oracle_rejected_rescue_size=self.oracle_rejected_rescue_size,
+            oracle_rejected_rescue_fuzzy_threshold=self.oracle_rejected_rescue_fuzzy_threshold,
             enable_dual_track_oracle=self.enable_dual_track_oracle,
             family_penalty_weight=self.family_penalty_weight,
             shape_penalty_weight=self.shape_penalty_weight,
             palette_penalty_weight=self.palette_penalty_weight,
             object_penalty_weight=self.object_penalty_weight,
+            query_scope_galaxies=self.query_scope_galaxies,
         )
         for task in self.tasks:
             result = self._solve_task(task=task, use_enriched=use_enriched)
@@ -236,6 +260,7 @@ class ARCAGI2Benchmark:
             query="visual pattern transformation",
             specialist="auto",
             domain_hint="visual",
+            galaxy_names=self.query_scope_galaxies,
         )
         patterns = navigator.query(
             query="visual pattern transformation",
@@ -266,6 +291,25 @@ class ARCAGI2Benchmark:
             "score": 1.0 if self._grids_match(predicted, expected) else 0.0,
             "fuzzy_score": 1.0 if self._grids_match(predicted, expected) else 0.0,
         }
+
+    def _normalize_query_scope(self, value: str | list[str] | None) -> list[str] | None:
+        if isinstance(value, list):
+            raw = [str(item).strip() for item in value]
+        elif isinstance(value, str):
+            raw = [segment.strip() for segment in value.split(",")]
+        else:
+            raw = []
+        normalized: list[str] = []
+        seen: set[str] = set()
+        for item in raw:
+            if not item:
+                continue
+            key = item.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            normalized.append(item)
+        return normalized or None
 
     def _seed_visual_knowledge(self, task: dict[str, Any]) -> None:
         self.kv.galaxy_manager.add_entry(
@@ -344,6 +388,23 @@ class ARCAGI2Benchmark:
         fuzzy_scores = [float(row.get("fuzzy_best_score", 0.0)) for row in rows]
         gate_reject_rates = [float(row.get("validity_reject_rate", 0.0)) for row in rows]
         family_rejects = [int(row.get("validity_family_rejects", 0)) for row in rows]
+        shape_rejects = [int(row.get("validity_shape_rejects", 0)) for row in rows]
+        palette_rejects = [int(row.get("validity_palette_rejects", 0)) for row in rows]
+        object_rejects = [int(row.get("validity_object_rejects", 0)) for row in rows]
+        generation_family_rejects = [int(row.get("generation_filter_family_rejects", 0)) for row in rows]
+        generation_shape_rejects = [int(row.get("generation_filter_shape_rejects", 0)) for row in rows]
+        generation_palette_rejects = [int(row.get("generation_filter_palette_rejects", 0)) for row in rows]
+        generation_object_rejects = [int(row.get("generation_filter_object_rejects", 0)) for row in rows]
+        rescue_candidate_counts = [int(row.get("oracle_rejected_rescue_candidate_count", 0)) for row in rows]
+        rescue_exact_hits = sum(1 for row in rows if bool(row.get("oracle_rejected_rescue_exact", False)))
+        rescue_fuzzy_hits = sum(1 for row in rows if bool(row.get("oracle_rejected_rescue_fuzzy", False)))
+        rescue_reason_counts: Counter[str] = Counter()
+        for row in rows:
+            for key, value in (row.get("oracle_rejected_rescue_reason_counts", {}) or {}).items():
+                try:
+                    rescue_reason_counts[str(key)] += int(value)
+                except Exception:
+                    continue
         rejected_was_better_count = sum(1 for row in rows if bool(row.get("rejected_was_better", False)))
         fuzzy_delta_positive = [
             float(row.get("fuzzy_delta", 0.0))
@@ -369,27 +430,127 @@ class ARCAGI2Benchmark:
         generation_accept_rates = [float(row.get("generation_filter_accept_rate", 0.0)) for row in rows]
         generation_reject_rates = [float(row.get("generation_filter_reject_rate", 0.0)) for row in rows]
         generation_totals = [int(row.get("generation_filter_generated_total", 0)) for row in rows]
+        query_counts = [int(row.get("queried_galaxy_count", 0)) for row in rows]
+        cross_galaxy_navigation = sum(
+            1
+            for row in rows
+            if int(row.get("queried_galaxy_count", 0)) >= 3
+            or int(row.get("cross_galaxy_composition_count", 0)) > 0
+        )
+        queried_galaxy_task_counts: Counter[str] = Counter()
+        source_galaxy_task_counts: Counter[str] = Counter()
+        target_galaxy_task_counts: Counter[str] = Counter()
+        object_count_distribution: Counter[str] = Counter()
+        object_count_distribution_accepted: Counter[str] = Counter()
+        object_count_distribution_rejected: Counter[str] = Counter()
+        for row in rows:
+            queried = row.get("queried_galaxies", [])
+            if isinstance(queried, list):
+                for name in {str(item) for item in queried if str(item).strip()}:
+                    queried_galaxy_task_counts[name] += 1
+            for key, value in (row.get("source_galaxy_counts", {}) or {}).items():
+                try:
+                    source_galaxy_task_counts[str(key)] += int(value)
+                except Exception:
+                    continue
+            for key, value in (row.get("target_galaxy_counts", {}) or {}).items():
+                try:
+                    target_galaxy_task_counts[str(key)] += int(value)
+                except Exception:
+                    continue
+            for key, value in (row.get("generation_object_count_distribution", {}) or {}).items():
+                try:
+                    object_count_distribution[str(key)] += int(value)
+                except Exception:
+                    continue
+            for key, value in (row.get("generation_object_count_distribution_accepted", {}) or {}).items():
+                try:
+                    object_count_distribution_accepted[str(key)] += int(value)
+                except Exception:
+                    continue
+            for key, value in (row.get("generation_object_count_distribution_rejected", {}) or {}).items():
+                try:
+                    object_count_distribution_rejected[str(key)] += int(value)
+                except Exception:
+                    continue
         rescue_enabled = sum(1 for row in rows if bool(row.get("rescue_lane_enabled", False)))
         selected_exact = sum(1 for row in rows if bool(row.get("selected_exact_match", False)))
         selected_tracks = Counter(str(row.get("selected_oracle_track", "rank_top1")) for row in rows)
         failure_modes = {"family": 0, "shape": 0, "palette": 0, "object_count": 0, "generation_gap": 0, "near_miss": 0}
+        failure_mode_query_counts: dict[str, list[int]] = {
+            "family": [],
+            "shape": [],
+            "palette": [],
+            "object_count": [],
+            "generation_gap": [],
+            "near_miss": [],
+        }
+        failure_mode_galaxy_counts: dict[str, Counter[str]] = {
+            key: Counter() for key in failure_mode_query_counts
+        }
+        composition_depth_distribution: Counter[str] = Counter()
         for row in rows:
             details = row.get("oracle_failure_modes", {})
             if not isinstance(details, dict):
                 continue
+            query_list = row.get("queried_galaxies", [])
+            if not isinstance(query_list, list):
+                query_list = []
+            query_set = {str(item) for item in query_list if str(item).strip()}
+            query_count = len(query_set)
+            top_components = row.get("ranking_top_components", {})
+            if isinstance(top_components, dict):
+                try:
+                    depth = max(1, int(top_components.get("composition_depth", 1)))
+                    composition_depth_distribution[str(depth)] += 1
+                except Exception:
+                    composition_depth_distribution["1"] += 1
             if bool(details.get("family_mismatch", False)):
                 failure_modes["family"] += 1
+                failure_mode_query_counts["family"].append(query_count)
+                failure_mode_galaxy_counts["family"].update(query_set)
             if bool(details.get("shape_mismatch", False)):
                 failure_modes["shape"] += 1
+                failure_mode_query_counts["shape"].append(query_count)
+                failure_mode_galaxy_counts["shape"].update(query_set)
             if bool(details.get("palette_mismatch", False)):
                 failure_modes["palette"] += 1
+                failure_mode_query_counts["palette"].append(query_count)
+                failure_mode_galaxy_counts["palette"].update(query_set)
             if bool(details.get("object_count_mismatch", False)):
                 failure_modes["object_count"] += 1
+                failure_mode_query_counts["object_count"].append(query_count)
+                failure_mode_galaxy_counts["object_count"].update(query_set)
             root = str(details.get("root_cause", "")).lower()
             if root == "generation_gap":
                 failure_modes["generation_gap"] += 1
+                failure_mode_query_counts["generation_gap"].append(query_count)
+                failure_mode_galaxy_counts["generation_gap"].update(query_set)
             if root == "near_miss_generation":
                 failure_modes["near_miss"] += 1
+                failure_mode_query_counts["near_miss"].append(query_count)
+                failure_mode_galaxy_counts["near_miss"].update(query_set)
+
+        failure_mode_navigation: dict[str, Any] = {}
+        for mode, counts in failure_mode_query_counts.items():
+            mode_counter = failure_mode_galaxy_counts[mode]
+            failure_mode_navigation[mode] = {
+                "tasks": int(failure_modes.get(mode, 0)),
+                "avg_queried_galaxies": (sum(counts) / len(counts)) if counts else 0.0,
+                "queried_galaxy_task_counts": dict(mode_counter),
+                "unique_queried_galaxies": sorted(mode_counter.keys()),
+            }
+
+        composition_depth_total = sum(int(v) for v in composition_depth_distribution.values())
+        composition_depth_avg = 0.0
+        if composition_depth_total > 0:
+            weighted = 0
+            for depth_key, count in composition_depth_distribution.items():
+                try:
+                    weighted += int(depth_key) * int(count)
+                except Exception:
+                    continue
+            composition_depth_avg = weighted / composition_depth_total
 
         ranks = [int(row["correct_rank"]) for row in rows if row.get("correct_rank") is not None]
         avg_rank = (sum(ranks) / len(ranks)) if ranks else None
@@ -417,6 +578,21 @@ class ARCAGI2Benchmark:
             ),
             "validity_reject_rate_mean": (sum(gate_reject_rates) / total) if gate_reject_rates else 0.0,
             "family_rejects_mean": (sum(family_rejects) / total) if family_rejects else 0.0,
+            "shape_rejects_mean": (sum(shape_rejects) / total) if shape_rejects else 0.0,
+            "palette_rejects_mean": (sum(palette_rejects) / total) if palette_rejects else 0.0,
+            "object_rejects_mean": (sum(object_rejects) / total) if object_rejects else 0.0,
+            "generation_family_rejects_mean": (
+                (sum(generation_family_rejects) / total) if generation_family_rejects else 0.0
+            ),
+            "generation_shape_rejects_mean": (
+                (sum(generation_shape_rejects) / total) if generation_shape_rejects else 0.0
+            ),
+            "generation_palette_rejects_mean": (
+                (sum(generation_palette_rejects) / total) if generation_palette_rejects else 0.0
+            ),
+            "generation_object_rejects_mean": (
+                (sum(generation_object_rejects) / total) if generation_object_rejects else 0.0
+            ),
             "ranking_family_score_mean": (sum(family_scores) / total) if family_scores else 0.0,
             "ranking_shape_score_mean": (sum(shape_scores) / total) if shape_scores else 0.0,
             "ranking_palette_score_mean": (sum(palette_scores) / total) if palette_scores else 0.0,
@@ -428,7 +604,29 @@ class ARCAGI2Benchmark:
                 (sum(generation_reject_rates) / total) if generation_reject_rates else 0.0
             ),
             "generation_filter_generated_total": int(sum(generation_totals)),
+            "generation_object_count_distribution": dict(object_count_distribution),
+            "generation_object_count_distribution_accepted": dict(object_count_distribution_accepted),
+            "generation_object_count_distribution_rejected": dict(object_count_distribution_rejected),
+            "query_based_coverage": {
+                "avg_queried_galaxies_per_task": (sum(query_counts) / total) if query_counts else 0.0,
+                "unique_queried_galaxies": sorted(queried_galaxy_task_counts.keys()),
+                "queried_galaxy_task_counts": dict(queried_galaxy_task_counts),
+                "source_galaxy_query_counts": dict(source_galaxy_task_counts),
+                "target_galaxy_query_counts": dict(target_galaxy_task_counts),
+                "cross_galaxy_navigation_rate": (cross_galaxy_navigation / total),
+            },
+            "failure_mode_query_coverage": failure_mode_navigation,
+            "composition_depth": {
+                "avg": composition_depth_avg,
+                "distribution": dict(composition_depth_distribution),
+            },
             "rescue_lane_enabled_rate": rescue_enabled / total,
+            "oracle_rejected_rescue_candidate_count_mean": (
+                (sum(rescue_candidate_counts) / total) if rescue_candidate_counts else 0.0
+            ),
+            "oracle_rejected_rescue_exact_rate": (rescue_exact_hits / total),
+            "oracle_rejected_rescue_fuzzy_rate": (rescue_fuzzy_hits / total),
+            "oracle_rejected_rescue_reason_counts": dict(rescue_reason_counts),
             "selected_exact_rate": selected_exact / total,
             "selected_oracle_track_counts": dict(selected_tracks),
             "ptx_ranking_enabled_rate": ptx_enabled / total,
