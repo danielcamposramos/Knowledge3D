@@ -2,6 +2,10 @@
 
 Status: working notes for redoing ingestion and upsert wiring.
 
+## Operator Manuals
+- `docs/ingestion/CURRENT_STACK_COMMAND_MANUAL.md`
+- `docs/ingestion/CURRENT_STACK_COMMANDS_QUICKREF.md`
+
 ## Current Assets (local paths)
 - **Fonts/letters (procedural)**: `/K3D/Knowledge3D.local/datasets/atomic/fonts_*_procedural.jsonl` (~26 GB) — per script (Latin, Cyrillic, Arabic, CJK, Indic/SE Asian, Hangul/Kana, Braille). Multi-glyph procedural visual_rpn + font metadata; no packing applied.
 - **Words (UD-derived)**: `/K3D/Knowledge3D.local/datasets/word_stars_all.jsonl` (merged UD v2.14) — meaning_id/sense now explicit (`scripts/ingest_ud_word_stars.py`), `meaning_program`, `morph_rpn`. Lexique/DBnary/OMW staged but not merged.
