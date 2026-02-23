@@ -217,10 +217,17 @@ Knowledge3D stands on the shoulders of giants. We build upon foundational resear
 ### Procedural Memory Knowledge Representation (PM-KR) Community Group
 
 **Published**: February 20, 2026
-**Status**: 4/5 supporters (launching Monday with 5th supporter!)
+**Status**: ✅ OPEN for participation! World-class experts joining rapidly.
 **W3C Page**: https://www.w3.org/community/pm-kr/
+**Standards Repo**: https://github.com/w3c-cg/pm-kr ⭐ (official W3C specifications)
+**Reference Implementation**: https://github.com/danielcamposramos/Knowledge3D (this repo)
 
 **Mission**: Study and standardize procedural knowledge representation for AI systems, with K3D as reference implementation.
+
+**Repository Relationship**:
+- **w3c-cg/pm-kr** = Open standards, collaborative specifications, test suites (standards track)
+- **Knowledge3D** = Reference implementation, production system, living documentation (implementation track)
+- Think: WebKit/Chromium (browsers) vs. W3C HTML/CSS specs (standards)
 
 **Core Innovations**:
 1. **Procedural Memory** — Knowledge as executable RPN programs, not static embeddings
