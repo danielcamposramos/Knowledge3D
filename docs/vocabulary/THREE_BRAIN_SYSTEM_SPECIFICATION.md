@@ -15,6 +15,12 @@ The **Three-Brain System** is K3D's hierarchical memory architecture that mirror
 
 This architecture enables explainable AI through embodied spatial reasoning, substrate-agnostic portability, and production-validated performance while maintaining complete sovereignty (zero external dependencies).
 
+**Critical Architecture Paradigm**:
+- **Avatar is always embodied in the House** (primary spatial interface, where the avatar lives and works)
+- **Galaxy is always loaded in VRAM** (introspection mode for meta-cognition—AI "stepping into its own thoughts")
+- **House** = WHERE the avatar IS (spatial embodiment, rooms: Library, Knowledge Gardens, Workshop, Bathtub, Living Room, Museum)
+- **Galaxy** = HOW the AI THINKS ABOUT THINKING (introspection layer, always present in VRAM)
+
 ---
 
 ## 1. Introduction
@@ -264,12 +270,18 @@ Execution → Success Detection → Pattern Extraction → Specialist Update
 
 ### 4.1 Overview
 
-**Galaxy** is K3D's active working memory—a 3D spatial structure populated by "stars" (K3D Nodes) as 3D embeddings. It serves as the bidirectional bridge between symbolic (House) and neural (Cranium) processing.
+**Galaxy** is K3D's active working memory—a 3D spatial structure populated by "stars" (K3D Nodes) as 3D embeddings. **Always loaded in VRAM**, it enables **introspection mode**: the AI capability to "step into its own thoughts" for meta-cognition (embodied thinking about thinking).
 
 **Philosophy**: "The world is the memory."
 - Memory is NOT internal model parameters
 - Memory is the external 3D environment
 - AI navigates memory spatially (like humans navigate physical space)
+
+**Introspection Mode**:
+- **Always present** in VRAM (all default galaxies loaded: Drawing, Character, Word, Grammar, Math, Reality, Audio)
+- **Meta-cognition capability**: AI can observe and manipulate its own reasoning process
+- **Projected from avatar's head** in Bathtub room (visual representation for human clients)
+- **Dual-purpose**: Active reasoning buffer + introspection layer for self-reflection
 
 ### 4.2 Structure
 
@@ -409,12 +421,22 @@ This keeps House artifacts physically/chemically/biologically coherent while all
 
 ### 5.1 Overview
 
-**House** is K3D's long-term persistent memory—a collection of glTF scenes stored on disk that represent consolidated knowledge states. It serves as the "ground truth" for knowledge, from which Galaxy is populated.
+**House** is K3D's long-term persistent memory AND **primary spatial interface**—where the avatar is always embodied. It's a collection of glTF scenes stored on disk (SSD/HDD) representing consolidated knowledge states and specialized rooms for different cognitive functions.
+
+**Critical Paradigm**: **Avatar lives in House** (not in Galaxy). House is WHERE the avatar IS—the primary workspace for all interactions.
 
 **Philosophy**: "Knowledge must persist beyond runtime."
 - House outlives any single inference session
 - Knowledge bases are portable (copy GLB files between systems)
 - Human-inspectable (load in Blender, view 3D structure)
+
+**House Rooms** (Specialized Cognitive Spaces):
+- **Library**: Books, specifications, documentation (materialized papers/specs)
+- **Knowledge Gardens**: Ontology knowledge organized as virtual trees (fractal structures)
+- **Workshop**: Active creation and manipulation workspace
+- **Bathtub**: Sleep mode + Galaxy projection from avatar's head (introspection mode)
+- **Living Room**: 2D bridge interface (traditional UI fallback)
+- **Museum (Zone 8)**: Versioned artifacts, deprecated knowledge (cold storage)
 
 ### 5.2 Structure
 
