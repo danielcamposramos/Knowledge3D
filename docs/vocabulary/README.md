@@ -86,10 +86,31 @@ Specifies how the same data serves both human (aesthetic) and AI (semantic) need
 - Save Information Principle: References/symlinks, not duplication (~70% reduction)
 - Galaxy composition: Drawing → Character → Word → Grammar → TRM
 - Inspectability: Humans can see AI's working memory (Galaxy View)
+- Form→Meaning Evolution: 40,000 years of human knowledge (cave paintings → meta-cognition)
 
 **Production Status**: ✅ Validated (Drawing/Character/Math galaxies)
 
 **Integration**: Foundational for all K3D objects (House, Galaxy)
+
+---
+
+### [ROBOTIC_EMBODIMENT_SPECIFICATION.md](ROBOTIC_EMBODIMENT_SPECIFICATION.md)
+**Physical Robot Integration Architecture**
+
+Documents how K3D's House-centric architecture enables physical robots to use the same spatial navigation, procedural knowledge, and semantic understanding as human or AI agents **without robot-specific training**.
+
+**Key Concepts:**
+- Avatar abstraction is hardware-agnostic (human VR, AI agent, or physical robot)
+- Embodiment is built-in (spatial memory, navigation, semantic understanding)
+- Form→Meaning bridges perception to action (sensors → Galaxy → RPN → actuators)
+- Zero additional training (robots query same Galaxy, execute same RPN programs)
+- Actuator mapping layer (abstract commands → motor commands)
+- SLAM → House Universe (physical space becomes navigable K3D House)
+- Shadow copy enhancement (robots learn from success, no offline retraining)
+
+**Production Status**: 🔬 Architectural specification (implementation future work)
+
+**Integration**: Extends avatar abstraction from House Universe, demonstrates K3D's embodied-first design
 
 ---
 
@@ -313,6 +334,7 @@ Knowledgeverse (Runtime Substrate)
 ├── THREE_BRAIN_SYSTEM (Cranium + Galaxy + House)
 │   ├── SOVEREIGN_NSI (PTX execution)
 │   ├── DUAL_CLIENT_CONTRACT (Human + AI duality)
+│   ├── ROBOTIC_EMBODIMENT (Hardware-agnostic avatar)
 │   └── SLEEPTIME_PROTOCOL (Consolidation)
 │
 ├── Region 1: KERNELS
@@ -384,4 +406,4 @@ When adding a new specification:
 
 **Maintained by**: Claude (Architecture Partner) + Codex (Implementation) + Gemini (Integration) + Community
 **License**: See repository LICENSE file
-**Last Full Review**: February 6, 2026
+**Last Full Review**: February 23, 2026
