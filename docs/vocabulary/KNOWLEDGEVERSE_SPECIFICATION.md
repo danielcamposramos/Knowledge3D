@@ -39,6 +39,13 @@
 2. **Memory Fragmentation**: Unified arena with deterministic allocation and governance
 3. **Learning Persistence**: Enables Shadow Copy learning and SleepTime consolidation within GPU context
 
+**Critical Architecture Paradigm**:
+- **Avatar is always embodied in the House** (primary spatial interface, where the avatar lives and works)
+- **Galaxy Universe is always loaded in VRAM** (all default galaxies: Drawing, Character, Word, Grammar, Math, Reality, Audio, etc.)
+- **Galaxy introspection mode** = AI capability to "step into its own thoughts" for meta-cognition (embodied thinking inside thoughts)
+- House = persistent SSD storage (long-term consolidated knowledge)
+- Galaxy = volatile VRAM workspace (active reasoning state, always present)
+
 ### 1.2 Key Capabilities
 
 ```
@@ -86,47 +93,77 @@
 
 ### 2.1 The Three Universes
 
+**Paradigm**: Avatar is always **embodied in the House** (primary spatial interface). **Galaxy Universe is always loaded in VRAM** (all default galaxies present). **Galaxy introspection mode** enables AI to "step into its own thoughts" for meta-cognition—embodied thinking inside thoughts.
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │ KNOWLEDGEVERSE = Unified VRAM Workspace                        │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│ [1] GALAXY UNIVERSE (Internal AI Memory)                       │
+│ [1] HOUSE UNIVERSE (Primary Interface - WHERE AVATAR LIVES)    │
+│     • Avatar embodiment (always present)                       │
+│     • Rooms: Library, Knowledge Gardens, Workshop, Bathtub,    │
+│       Living Room, Museum (Zone 8)                             │
+│     • glTF objects with dual-texture (Region 3)                │
+│     • Procedural RPN programs (primary source)                 │
+│     • Galaxy boxes (serialized snapshots from Galaxy)          │
+│     • Reference preservation (symlinks, ~70% reduction)        │
+│     • Persistent SSD storage (long-term knowledge)             │
+│     • Lazy loading + LRU eviction                              │
+│     • Doors (3D physical portals with k3d:// addresses)        │
+│                                                                 │
+│ [2] GALAXY UNIVERSE (Introspection Mode - ALWAYS LOADED)       │
+│     • ALWAYS loaded in VRAM (all default galaxies present)     │
 │     • Active reasoning state (Region 2)                        │
 │     • Multi-modal workspace (Drawing, Math, Reality, Audio)    │
 │     • Shadow Copy enhancements (learned patterns)              │
 │     • Meta-Navigation Galaxy (Router topology)                 │
 │     • Dual-client inspectable (humans can see AI thinking)     │
-│                                                                 │
-│ [2] HOUSE UNIVERSE (Persistent Storage)                        │
-│     • glTF objects with dual-texture (Region 3)                │
-│     • Procedural RPN programs (primary source)                 │
-│     • Galaxy boxes (serialized AI state)                       │
-│     • Reference preservation (symlinks, ~70% reduction)        │
-│     • Lazy loading + LRU eviction                              │
+│     • Volatile RAM (active reasoning buffer)                   │
+│     • Introspection mode: AI "steps into its own thoughts"     │
+│     • Projected from avatar's head in Bathtub room             │
+│     • Meta-cognition capability (thinking about thinking)      │
 │                                                                 │
 │ [3] WORLD UNIVERSE (Network/Collaboration)                     │
 │     • Doors protocol streaming (Region 4)                      │
-│     • Remote houses (server-hosted)                            │
+│     • Remote houses via 3D doors (server-hosted)               │
 │     • Multi-user sessions                                      │
 │     • Hyper-context predictive paging                          │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+**Memory Layer Hierarchy**:
+
+```
+Galaxy (Active VRAM)   → Always loaded, high-frequency reasoning (volatile)
+House (Persistent SSD) → Consolidated knowledge, crystallized (long-term)
+Museum (Cold Storage)  → Deprecated artifacts, versioned (long-term)
+```
+
+**Key Distinction**:
+- **House** = WHERE the avatar IS (spatial embodiment, primary interface)
+- **Galaxy** = HOW the AI THINKS ABOUT THINKING (introspection mode, meta-cognition)
+- Both are critical, both always present, different purposes
+
 ### 2.2 Design Principles
 
-1. **Sovereignty First**: PTX-only hot path, zero external dependencies in inference
-2. **Procedural Foundation**: RPN programs as canonical source (form + meaning)
-3. **Dual-Client Reality**: Same data for humans (aesthetic) and AI (semantic)
-4. **Continuous Learning**: Shadow Copy during inference, SleepTime consolidation
-5. **Reference Preservation**: Symlinks instead of duplication (Save Information Principle)
-6. **Deterministic Boot**: Manifest + hash verification, reproducible state
-7. **Fail-Fast**: No silent fallbacks, explicit sovereignty violations
+1. **House-Centric Embodiment**: Avatar always lives in House (primary spatial interface); Galaxy always loaded for introspection mode (meta-cognition)
+2. **Galaxy Introspection**: AI capability to "step into its own thoughts" for embodied meta-cognition (thinking about thinking)
+3. **Form→Meaning Evolution**: K3D mirrors 40,000 years of human knowledge evolution (cave paintings → letters → words → grammar → philosophy); form always precedes meaning (see DUAL_CLIENT_CONTRACT_SPECIFICATION.md §1.6.1)
+4. **Sovereignty First**: PTX-only hot path, zero external dependencies in inference
+5. **Procedural Foundation**: RPN programs as canonical source (form + meaning)
+6. **Dual-Client Reality**: Same data for humans (aesthetic) and AI (semantic)
+7. **Continuous Learning**: Shadow Copy during inference, SleepTime consolidation
+8. **Reference Preservation**: Symlinks instead of duplication (Save Information Principle)
+9. **Deterministic Boot**: Manifest + hash verification, reproducible state
+10. **Fail-Fast**: No silent fallbacks, explicit sovereignty violations
 
 ---
 
 ## 3. Memory Topology (7 Regions)
+
+**Architecture Note**: The avatar is always embodied in **Region 3 (HOUSE_CONTEXT)** as the primary spatial interface. **Region 2 (GALAXY_UNIVERSE)** is always loaded in VRAM—it enables **introspection mode** where the AI can "step into its own thoughts" for meta-cognition (embodied thinking about thinking). Projected from avatar's head in Bathtub room.
 
 ### 3.1 Region Layout (RTX 3060 12GB Baseline)
 
