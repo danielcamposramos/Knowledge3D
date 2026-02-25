@@ -11,12 +11,6 @@ Emails to the PM-KR Community Group mailing list (public-pm-kr@w3.org):
 - Form → Meaning principle explanations
 - Joint introductions with co-chairs
 
-### `strategic/`
-Strategic communications with partners, media, and stakeholders:
-- Business proposals (Manu Sporny, Digital Bazaar)
-- Media pitches (CBC News)
-- Family explanations and personal communications
-
 ### `w3c/`
 General W3C communications:
 - Community Group announcements
