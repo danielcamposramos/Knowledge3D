@@ -159,7 +159,7 @@ Based on your work with persistent memory architectures and long-lived agent con
 
 Jonathan, your questions are **exactly** what PM-KR needs to address in Year 1. If you officially support the CG, you'd be joining:
 
-- **Milton Ponson** (PhD, Gödelian KR, domains of discourse)
+- **Milton Ponson** (Mathematician, Gödelian KR, domains of discourse)
 - **Manu Sporny** (JSON-LD co-creator, rdf-canon editor, "cheering from sidelines")
 - **Dave Raggett** (W3C HTML/HTTP/CogAI, adequacy framing)
 - **Me** (K3D architect, PTX sovereignty, procedural compression)

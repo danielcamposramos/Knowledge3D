@@ -276,7 +276,7 @@ Knowledge3D stands on the shoulders of giants. We build upon foundational resear
 
 **Founding Members (24+ as of Feb 2026):**
 - **Manu Sporny** (JSON-LD co-creator, RDF Canonicalization editor) — Cryptographic C14N guidance
-- **Milton Ponson** (PhD, Gödelian KR, domains of discourse) — Official supporter
+- **Milton Ponson** (Mathematician, Gödelian KR, domains of discourse) — Official supporter
 - **Adam Sobieski** (W3C veteran, 10+ years, founded 3 CGs) — STRIPS/PDDL planning metadata
 - **Jonathan DeRouchie** (Persistent memory AI systems) — Security boundaries + Developer UX (March-June commitment)
 - **Christoph Lange** (Interactive schemas, Linked Data) — Multi-schema evolution patterns
