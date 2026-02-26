@@ -229,14 +229,40 @@ Knowledge3D stands on the shoulders of giants. We build upon foundational resear
 - **Knowledge3D** = Reference implementation, production system, living documentation (implementation track)
 - Think: WebKit/Chromium (browsers) vs. W3C HTML/CSS specs (standards)
 
-**Core Innovations**:
+---
+
+### 🎯 PM-KR Strategic Steering (February 2026)
+
+**CRITICAL SHIFT:** PM-KR Community Group is actively steering K3D's development from standalone prototype to **foundational web standard reference implementation**.
+
+**The 6 Strategic Imperatives** (driven by founding members):
+
+1. **🔐 Access Control & Sovereignty** (Jonathan DeRouchie) — Formalize House-Galaxy boundaries with security metadata
+2. **🔏 Cryptographic Trust** (Manu Sporny) — Procedural C14N + W3C Verifiable Credentials integration
+3. **🤖 AI Planning** (Adam Sobieski) — STRIPS/PDDL metadata enabling TRM to plan workflows
+4. **🔄 Interoperability** (Community consensus) — RDF↔PM-KR converters, JSON-LD export, SPARQL endpoints
+5. **📚 Developer Familiarity** (Jonathan DeRouchie) — Map K3D concepts to familiar paradigms (file systems, OOP, graphs)
+6. **✅ Level C Conformance** (W3C standard) — External test suites, third-party audit, cryptographic provenance
+
+**Full Analysis**: [docs/W3C/PM_KR_STRATEGIC_STEERING.md](docs/W3C/PM_KR_STRATEGIC_STEERING.md) — How PM-KR shapes K3D's roadmap
+
+**Impact**: K3D is no longer just a cognitive OS — it's becoming a **secure, cryptographically verifiable, and highly interoperable web standard** that complements existing Semantic Web infrastructure.
+
+---
+
+### Core Innovations
+
 1. **Procedural Memory** — Knowledge as executable RPN programs, not static embeddings
 2. **Symlink-Style Compression** — 70% reduction via canonical procedural references (no duplication)
 3. **Dual-Client Reality** — Same procedural source for humans (visual) and AI (executable)
 4. **Sovereign Execution** — PTX-only hot path, zero external ML frameworks
 5. **Hyper-Modular Architecture** — 7 levels of modularity (new paradigm)
 
-**W3C Documentation Package**:
+---
+
+### W3C Documentation Package
+
+- [docs/W3C/PM_KR_STRATEGIC_STEERING.md](docs/W3C/PM_KR_STRATEGIC_STEERING.md) — **NEW!** How PM-KR Community shapes K3D development
 - [docs/W3C/PM_KR_PROBLEM_STATEMENT.md](docs/W3C/PM_KR_PROBLEM_STATEMENT.md) — Why PM-KR? (knowledge duplication crisis, 70%+ waste)
 - [docs/W3C/PM_KR_NORMATIVE_MODEL.md](docs/W3C/PM_KR_NORMATIVE_MODEL.md) — RFC 2119 compliant specification
 - [docs/W3C/PM_KR_CONFORMANCE_PROFILES.md](docs/W3C/PM_KR_CONFORMANCE_PROFILES.md) — Level A/B/C implementation requirements
@@ -244,12 +270,18 @@ Knowledge3D stands on the shoulders of giants. We build upon foundational resear
 - [docs/W3C/PM_KR_EVIDENCE_VALIDATION_MATRIX.md](docs/W3C/PM_KR_EVIDENCE_VALIDATION_MATRIX.md) — Empirical validation of all claims
 - [docs/W3C/README.md](docs/W3C/README.md) — Package overview
 
-**Expert Validation**:
-- **Manu Sporny** (JSON-LD co-creator, RDF Canonicalization editor) — CBOR-LD compression alignment
+---
+
+### Expert Validation & Active Contributors
+
+**Founding Members (24+ as of Feb 2026):**
+- **Manu Sporny** (JSON-LD co-creator, RDF Canonicalization editor) — Cryptographic C14N guidance
 - **Milton Ponson** (PhD, Gödelian KR, domains of discourse) — Official supporter
-- **Adam Sobieski** (W3C veteran, 10+ years, founded 3 CGs) — Official supporter
-- **Nitin Pasumarthy** (LinkedIn, GNNs at production scale, KDD Best Paper) — Official supporter
-- **Jonathan DeRouchie** (Persistent memory AI systems) — March-June contribution commitment
+- **Adam Sobieski** (W3C veteran, 10+ years, founded 3 CGs) — STRIPS/PDDL planning metadata
+- **Jonathan DeRouchie** (Persistent memory AI systems) — Security boundaries + Developer UX (March-June commitment)
+- **Christoph Lange** (Interactive schemas, Linked Data) — Multi-schema evolution patterns
+- **ixo.world** (Shaun Conway, W3C DIDs/Verifiable Claims) — Blockchain-backed provenance use cases
+- **Nitin Pasumarthy** (LinkedIn, GNNs at production scale, KDD Best Paper) — Production KG optimization
 
 ---
 
