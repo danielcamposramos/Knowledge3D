@@ -116,7 +116,7 @@ When humans and AI share the same spatial reality — when we can both point at 
 
 ## 🏗️ What Makes K3D Different
 
-Knowledge3D stands on the shoulders of giants. We build upon foundational research from DeepSeek, Qwen, NVIDIA, the game industry, and many others. **For complete attributions of all techniques we leverage**, see **[ATTRIBUTIONS.md](ATTRIBUTIONS.md)**.
+Knowledge3D stands on the shoulders of giants. We build upon foundational research from DeepSeek, Qwen, NVIDIA, the game industry, and many others. **For complete attributions of all techniques we leverage**, see **[ATTRIBUTIONS.md](ATTRIBUTIONS.md)**. **For the pop culture visions that inspired K3D's spatial UI** (Jurassic Park, Tron, Iron Man, Matrix, etc.), see **[POP_CULTURE_HERITAGE.md](POP_CULTURE_HERITAGE.md)**.
 
 **What K3D uniquely contributes:**
 
@@ -609,6 +609,7 @@ sha256sum ../Knowledge3D.local/results/reproduction_run/*.json > checksums.txt
 - **[ROADMAP.md](docs/ROADMAP.md)** — Current phase, milestones, upcoming features
 - **[RESULTS_HISTORICAL.md](docs/RESULTS_HISTORICAL.md)** — Historical benchmark results (Week 19.6, Week 17, Phase G, ARC-AGI leaderboard #2)
 - **[ATTRIBUTIONS.md](ATTRIBUTIONS.md)** — Complete attributions for all leveraged techniques (DeepSeek, Qwen, NVIDIA, game industry, etc.)
+- **[POP_CULTURE_HERITAGE.md](POP_CULTURE_HERITAGE.md)** — Science Fiction → Science Fact: How 40+ years of pop culture (Jurassic Park, Tron, Iron Man, Matrix, etc.) inspired K3D's spatial UI vision
 - **[PHILOSOPHY.md](docs/PHILOSOPHY.md)** — FMEAI (For Machines, Embodied AI) philosophy
 - **[CUDA_PTX_VERSION_COMPATIBILITY_GUIDE.md](docs/CUDA_PTX_VERSION_COMPATIBILITY_GUIDE.md)** — CUDA Error 222 troubleshooting
 - **[W3C Standardization Package](docs/W3C/README.md)** — PM-KR Community Group documentation
