@@ -1,8 +1,8 @@
 # PM-KR W3C Standardization Package
 
-**Package Version**: 1.2
-**Date**: February 20, 2026
-**Status**: Draft for W3C Community Group Discussion
+**Package Version**: 1.3
+**Date**: February 26, 2026
+**Status**: Active Community Steering (PM-KR CG formed Feb 20, 2026)
 **License**: CC-BY-4.0
 
 ---
@@ -27,6 +27,28 @@ This directory contains the **W3C standardization package** for **Procedural Mem
 ---
 
 ## Document Structure
+
+### 0. Strategic Steering (NEW - February 2026)
+**[PM_KR_STRATEGIC_STEERING.md](PM_KR_STRATEGIC_STEERING.md)**
+
+**Purpose**: How PM-KR Community Group actively shapes K3D development
+
+**Contents**:
+- 6 strategic imperatives from founding members (Manu Sporny, Adam Sobieski, Jonathan DeRouchie, Christoph Lange, ixo.world, Milton Ponson)
+- **Access Control & Sovereignty** (House-Galaxy firewall, security metadata)
+- **Cryptographic Trust** (Procedural C14N, W3C Verifiable Credentials)
+- **AI Planning** (STRIPS/PDDL metadata, TRM workflow generation)
+- **Interoperability Tooling** (RDF↔PM-KR converters, JSON-LD export)
+- **Developer Familiarity** (Analogies: file systems, OOP, graph databases)
+- **Level C Conformance** (External test suites, third-party audit)
+- Implementation phases (Q2-Q4 2026 roadmap)
+- Success metrics and expert influence mapping
+
+**Target Audience**: K3D contributors, PM-KR Community Group members, implementers planning PM-KR systems
+
+**Key Insight**: PM-KR transforms K3D from standalone prototype to **foundational web standard reference implementation** — like WebKit for HTML/CSS.
+
+---
 
 ### 1. Problem Statement
 **[PM_KR_PROBLEM_STATEMENT.md](PM_KR_PROBLEM_STATEMENT.md)**
@@ -118,21 +140,29 @@ This directory contains the **W3C standardization package** for **Procedural Mem
 
 ## Quick Start
 
+### For PM-KR Community Members (NEW)
+1. Read **Strategic Steering** (how PM-KR shapes K3D roadmap)
+2. Review **Evidence Matrix** (current validation status)
+3. Check **Conformance Profiles** (Level A/B/C requirements)
+
 ### For Readers (Understanding PM-KR)
 1. Start with **Problem Statement** (motivation and context)
 2. Read **Normative Model** (core specification)
 3. Review **Evidence Matrix** (validation results)
+4. Explore **Strategic Steering** (community-driven development)
 
 ### For Implementers (Building PM-KR Systems)
-1. Read **Normative Model** (technical requirements)
-2. Follow **Conformance Profiles** (implementation guidance)
-3. Use **Interoperability Guide** (if migrating from existing systems)
+1. Read **Strategic Steering** (roadmap and priorities)
+2. Read **Normative Model** (technical requirements)
+3. Follow **Conformance Profiles** (implementation guidance)
+4. Use **Interoperability Guide** (if migrating from existing systems)
 
 ### For Standards Bodies (Evaluating for Standardization)
 1. Review **Problem Statement** (broader impact)
 2. Read **Normative Model** (technical soundness)
 3. Examine **Evidence Matrix** (empirical validation)
 4. Check **Interoperability Guide** (adoption feasibility)
+5. Review **Strategic Steering** (community governance and expert validation)
 
 ---
 
@@ -205,27 +235,46 @@ PM-KR **complements** these standards by providing:
 
 ## Standardization Roadmap
 
+### Active Strategic Steering (February 2026)
+
+**PM-KR Community Group is now actively steering K3D development.** See [PM_KR_STRATEGIC_STEERING.md](PM_KR_STRATEGIC_STEERING.md) for full details.
+
+**6 Strategic Imperatives** (driven by founding members):
+1. 🔐 **Access Control & Sovereignty** (Jonathan DeRouchie) — Phase K (Q2 2026)
+2. 🔏 **Cryptographic Trust** (Manu Sporny) — Phase L (Q3 2026)
+3. 🤖 **AI Planning** (Adam Sobieski) — Phase M (Q3-Q4 2026)
+4. 🔄 **Interoperability Tooling** (Community) — Phase N (Q4 2026)
+5. 📚 **Developer Familiarity** (Jonathan DeRouchie) — Phase J (Q2 2026)
+6. ✅ **Level C Conformance** (W3C standard) — Phase O (Q4 2026)
+
+---
+
 ### Proposed Timeline
 
 **Q2 2026** (Apr-Jun):
-- W3C Community Group formation (PM-KR CG)
-- Public call for participation
-- Initial feedback period
+- ✅ W3C Community Group formation (PM-KR CG) — **COMPLETED** (Feb 20, 2026)
+- ✅ Public call for participation — **ACTIVE** (24+ members joining)
+- 🚧 Developer UX sprint (Phase J: analogies, tutorials, migration guides)
+- 🚧 Access Control implementation (Phase K: House-Galaxy firewall)
 
 **Q3 2026** (Jul-Sep):
-- Draft specification refinement
+- Draft specification refinement (incorporating expert feedback)
+- Cryptographic Trust layer (Phase L: Procedural C14N, Verifiable Credentials)
+- AI Planning metadata (Phase M: STRIPS/PDDL, TRM workflow generation)
 - Interoperability testing (RDF/OWL/JSON-LD bridges)
 - Third-party implementations solicited
 
 **Q4 2026** (Oct-Dec):
+- Interoperability tooling finalized (Phase N: rdf2pmkr, pmkr2jsonld CLI)
+- Level C Conformance (Phase O: external test suites, third-party audit)
 - Candidate Recommendation published
 - Conformance test suite finalized
 - Certification registry established
 
 **Q1 2027** (Jan-Mar):
-- Industry pilots (Neo4j, Hugging Face, WebXR platforms)
+- Industry pilots (Neo4j, Hugging Face, WebXR platforms, ixo.world blockchain provenance)
 - Performance benchmarks compared
-- Security audits conducted
+- Security audits conducted (cryptographic signatures, access control)
 
 **Q2 2027** (Apr-Jun):
 - W3C Recommendation (if consensus achieved)
@@ -318,6 +367,15 @@ Complete attributions: [../../ATTRIBUTIONS.md](../../ATTRIBUTIONS.md)
 
 ## Version History
 
+**1.3 (February 26, 2026)**: Strategic Steering from PM-KR Community
+- **NEW: PM_KR_STRATEGIC_STEERING.md** — How PM-KR Community Group shapes K3D development
+- **6 Strategic Imperatives** from founding members (Manu Sporny, Adam Sobieski, Jonathan DeRouchie, Christoph Lange, ixo.world, Milton Ponson)
+- **Implementation Roadmap**: Phases J-O (Q2-Q4 2026) with expert ownership
+- **Success Metrics**: Concrete validation criteria for each imperative
+- **Transformation Summary**: From prototype to foundational web standard reference implementation
+- Updated Quick Start section for PM-KR Community members
+- Updated Standardization Roadmap with active steering phases
+
 **1.2 (February 20, 2026)**: Verification and reproducibility enhancements
 - **Evidence Publication Plan** (Evidence Matrix §10): Exact artifacts, file naming conventions, minimal rerun commands for Level A/B/C
 - **Third-Party Verification Protocol** (Evidence Matrix §11, Conformance Profiles §6): Independent verifier workflow, pass/fail criteria, required logs/signatures
@@ -337,15 +395,15 @@ Complete attributions: [../../ATTRIBUTIONS.md](../../ATTRIBUTIONS.md)
 
 ---
 
-**Package Status**: Draft for W3C Community Group Discussion
-**Next Milestone**: Community Group formation (Q2 2026)
-**Conformance**: K3D evidence-backed provisional Level B+, with Level C audit pack pending
+**Package Status**: Active Community Steering (PM-KR CG formed Feb 20, 2026)
+**Next Milestone**: Phase J/K Implementation (Developer UX + Access Control, Q2 2026)
+**Conformance**: K3D evidence-backed provisional Level B+, Level C in progress (Phase O, Q4 2026)
 
 ---
 
-**Contact**: daniel@echosystems.ai
+**Contact**: daniel@echosystems.ai | public-pm-kr@w3.org (mailing list)
 **Repository**: https://github.com/danielcamposramos/Knowledge3D
-**W3C CG** (proposed): PM-KR Knowledge Representation Community Group (forming Q2 2026)
+**W3C PM-KR CG**: https://www.w3.org/community/pm-kr/ (✅ OPEN for participation, 24+ members)
 
 ---
 
