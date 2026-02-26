@@ -278,6 +278,28 @@ Defines the spatial UI for human interaction with K3D.
 
 ---
 
+### [MEMORY_TABLET_SPECIFICATION.md](MEMORY_TABLET_SPECIFICATION.md)
+**Primary Interface Object (Post-MVP)**
+
+Defines the Memory Tablet — K3D's primary interactive surface for humans and AI to navigate, manipulate, and create knowledge in spatial environments (House and Galaxy).
+
+**Key Concepts:**
+- **Physical 3D object** (not 2D overlay) — persistent canvas in spatial environment
+- **Dual-client perception** — humans see visual UI, AI sees semantic graph (same object)
+- **Procedural UI rendering** — all UI elements = Galaxy references (70% compression)
+- **Projection screens** — virtual monitors inside K3D (controlled via tablet)
+- **Game menu system** — entry sequence (House vs Galaxy selection)
+- **Simultaneous environments** — House + Galaxy run concurrently, tablet bridges both
+- **Multi-modal interaction** — visual, audio, Braille, haptic (native accessibility)
+- **Legacy content bridge** — file system access, VM output integration
+- **Collaborative workspace** — human and AI share same tablet (different perceptions)
+
+**Status**: 🔬 Architectural design (Phase P implementation, Q1 2027)
+
+**Integration**: Spatial UI layer (top of stack), Procedural Codecs (VectorDotMap, Procedural Fonts), Galaxy Universe (browse/query), House Universe (private workspace)
+
+---
+
 ### [UNIVERSAL_ACCESSIBILITY_SPECIFICATION.md](UNIVERSAL_ACCESSIBILITY_SPECIFICATION.md)
 **Multi-Sensory Accessibility**
 
