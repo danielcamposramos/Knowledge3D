@@ -53,7 +53,7 @@ export BUN_VERSION
 # Create local virtualenv if it doesn't exist
 if [ ! -d "$LOCAL_PYENV_ROOT" ]; then
     echo "Creating local virtualenv: $LOCAL_PYENV_ROOT"
-    python3 -m venv "$LOCAL_PYENV_ROOT"
+    python3 -m venv --copies "$LOCAL_PYENV_ROOT"
 else
     echo "Local virtualenv already exists: $LOCAL_PYENV_ROOT"
 fi

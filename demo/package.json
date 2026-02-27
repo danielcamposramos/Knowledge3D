@@ -4,9 +4,9 @@
     "private": true,
     "packageManager": "bun@1.2.5",
     "scripts": {
-        "ingest": "../.pyenv/bin/python ../scripts/build_drawing_grammar.py --output .k3d-data/galaxy_pending/drawing_grammar.jsonl && ../.pyenv/bin/python -c \"import json; lines=[]; f=open('.k3d-data/galaxy_pending/drawing_grammar.jsonl'); [lines.append(f'{json.loads(l).get(\\\"id\\\",\\\"\\\")}: {json.loads(l).get(\\\"visual_rpn\\\",\\\"\\\") or json.loads(l).get(\\\"type\\\",\\\"\\\")}') for l in f if l.strip()]; open('.k3d-data/drawing_grammar.txt','w').write('\\n'.join(lines))\" && ../.pyenv/bin/python -m k3dgen --text .k3d-data/drawing_grammar.txt --gltf ../viewer/public/galaxy.glb --k 3 --reducer pca",
+        "ingest": "../.pyenv/bin/python ingest_demo_data.py",
         "viewer": "bun run --cwd ../viewer dev",
         "bridge": "../.pyenv/bin/python -m knowledge3d.bridge.live_server",
-        "dev": "bun run ingest && bunx concurrently -n viewer,bridge -c blue,green \"bun run viewer\" \"bun run bridge\""
+        "dev": "bun run ingest && sleep 2 && bunx concurrently -k -n viewer,bridge -c blue,green \"bun run viewer\" \"bun run bridge\""
     }
 }
