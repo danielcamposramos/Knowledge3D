@@ -21,14 +21,15 @@ This document traces the pop culture influences that shaped K3D's design — fro
 ## Table of Contents
 
 1. [Jurassic Park (1993) — "It's a Unix System!"](#jurassic-park-1993)
-2. [Tron (1982) / Tron: Legacy (2010) — The Grid](#tron-1982)
-3. [Minority Report (2002) — Spatial Gestural Interface](#minority-report-2002)
-4. [Iron Man (2008+) — JARVIS Holographic Workspace](#iron-man-2008)
-5. [The Matrix (1999) — Code as Spatial Visualization](#the-matrix-1999)
-6. [Ready Player One (2018) — The OASIS](#ready-player-one-2018)
-7. [Ghost in the Shell (1995) — Network Diving](#ghost-in-the-shell-1995)
-8. [Why Now? (Technology Convergence)](#why-now)
-9. [What K3D Delivers](#what-k3d-delivers)
+2. [TerraVision (1994) — First Spatial Earth Navigator](#terravision-1994)
+3. [Tron (1982) / Tron: Legacy (2010) — The Grid](#tron-1982)
+4. [Minority Report (2002) — Spatial Gestural Interface](#minority-report-2002)
+5. [Iron Man (2008+) — JARVIS Holographic Workspace](#iron-man-2008)
+6. [The Matrix (1999) — Code as Spatial Visualization](#the-matrix-1999)
+7. [Ready Player One (2018) — The OASIS](#ready-player-one-2018)
+8. [Ghost in the Shell (1995) — Network Diving](#ghost-in-the-shell-1995)
+9. [Why Now? (Technology Convergence)](#why-now)
+10. [What K3D Delivers](#what-k3d-delivers)
 
 ---
 
@@ -96,8 +97,137 @@ K3D isn't "folders in 3D" — it's **semantic knowledge organized spatially**, w
 
 ---
 
+<a name="terravision-1994"></a>
+## 2. TerraVision (1994) — First Spatial Earth Navigator
+
+### The Real-World Pioneer
+
+**Company:** ART+COM (Berlin, Germany)
+**Technology:** TerraVision - networked virtual representation of Earth
+**Year:** 1994 (30+ years before Google Earth!)
+**Netflix Series:** "The Billion Dollar Code" (2021)
+
+**Reference:** Christoph Dorn (PM-KR Co-Chair), February 27, 2026
+> "The spatial memory discovery reminds me of 'The Billion Dollar Code' series."
+
+**Sources:**
+- [The Billion Dollar Code - Wikipedia](https://en.wikipedia.org/wiki/The_Billion_Dollar_Code)
+- [TerraVision - Wikipedia](https://en.wikipedia.org/wiki/Terravision_(computer_program))
+- [Netflix Series (2021)](https://www.netflix.com/title/81074012)
+- [Variety Interview with Creators](https://variety.com/2021/streaming/global/netflix-the-billion-dollar-code-google-earth-1235080101/)
+
+### What TerraVision Achieved (1994)
+
+**First System for Seamless Spatial Data Navigation:**
+- Virtual representation of Earth based on satellite images, aerial shots, altitude data
+- Multi-resolution pyramid of imagery (zoom from continents to street level)
+- Networked architecture (distributed data access)
+- Real-time 3D navigation (fly through Earth data)
+
+**Technical Innovation:**
+- **Seamless navigation** in large spatial data environment (unprecedented in 1994)
+- **Multi-resolution streaming** (only load detail level needed for current zoom)
+- **Spatial organization** (data positioned by geographic coordinates)
+- **Interactive exploration** (user-driven navigation, not scripted tours)
+
+**The Vision:**
+> "Navigate information spatially—not through menus and hierarchies, but by moving through 3D space where data naturally belongs."
+
+### Why It Wasn't Mainstream (1994)
+
+| Limitation | Details |
+|------------|---------|
+| **Hardware** | Required powerful workstations (SGI, Sun) — not consumer accessible |
+| **Bandwidth** | Streaming satellite imagery over 1994 networks = impractical |
+| **Data Storage** | Terabytes of imagery = expensive, specialized infrastructure |
+| **Paradigm** | Ahead of its time (Web barely existed, no Google yet) |
+| **Business Model** | Art installation / research project, not commercial product |
+
+**Historical Context:**
+- 1994: Mosaic browser just released (1993), Web = text + simple images
+- No broadband (dial-up modems = 56 kbps max)
+- No consumer GPUs (3D graphics = workstations only)
+- No cloud storage (distributing terabytes of data = impossible)
+
+### The Google Earth Controversy
+
+**2014-2017: Legal Battle**
+- ART+COM sued Google for patent infringement
+- Claimed Google Earth bore "remarkable similarities" to TerraVision
+- **Court ruling:** Found in favor of Google (2016)
+- **Appeal:** ART+COM lost on appeal (2017)
+
+**Netflix Series (2021):**
+"The Billion Dollar Code" dramatizes the legal battle and innovation story.
+
+**Why It Matters for K3D:**
+- Demonstrates **spatial navigation** concept existed 30+ years ago
+- Shows **prior art** for software-as-space paradigm
+- Validates that spatial organization of information is not new — but **technology finally caught up**
+
+### Why It IS Possible (Now)
+
+| Technology | 2026 Reality |
+|------------|--------------|
+| **Hardware** | Every smartphone has GPU (WebGL, WebGPU) |
+| **Bandwidth** | Gigabit internet, 5G (stream high-res data seamlessly) |
+| **Storage** | Cloud storage = pennies per GB (distribute terabytes easily) |
+| **Standards** | glTF (3D assets), JSON-LD (semantic data), WebXR (spatial interfaces) |
+| **Paradigm** | Spatial computing mainstream (AR/VR, Apple Vision Pro, Meta Quest) |
+
+### What K3D Built (TerraVision's Spiritual Successor)
+
+**Galaxy Universe** = TerraVision for **knowledge**, not just Earth
+
+| TerraVision (1994) | K3D Galaxy Universe (2026) |
+|--------------------|----------------------------|
+| Navigate **Earth data** spatially | Navigate **knowledge** spatially |
+| Multi-resolution imagery (zoom levels) | Multi-modal knowledge (Drawing, Math, Reality Galaxies) |
+| Geographic coordinates | Semantic coordinates (proximity = relationships) |
+| Satellite images + altitude data | RPN programs + procedural metadata |
+| 3D Earth visualization | 3D knowledge workspace (VRAM-resident) |
+| User explores Earth | AI + humans explore knowledge together |
+| Proprietary (ART+COM) | Open standard (W3C PM-KR) |
+
+**The Critical Evolution:**
+- TerraVision: **Spatial navigation of geographic data** (maps)
+- K3D: **Spatial navigation of semantic knowledge** (meaning)
+
+**What TerraVision pioneered:**
+1. Multi-resolution streaming (only load what you need)
+2. Spatial organization (position encodes meaning)
+3. Interactive exploration (user-driven, not predetermined)
+
+**What K3D adds:**
+1. **Semantic layer** (proximity = conceptual relationships, not just geographic)
+2. **Procedural representation** (RPN programs, not just images)
+3. **Dual-client** (AI navigates same space as humans)
+4. **AI memory** (persistent knowledge workspace in VRAM)
+5. **Multi-modal** (visual, text, audio, physics — all unified)
+
+**Spec:** [docs/vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md](https://github.com/danielcamposramos/Knowledge3D/blob/main/docs/vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md)
+
+### Christoph's Insight (February 2026)
+
+**Why the connection matters:**
+
+Christoph Dorn (W3C PM-KR Co-Chair, W3C veteran) connected K3D's "world as memory" paradigm to TerraVision's spatial navigation innovation.
+
+**The parallel:**
+- TerraVision (1994): Navigate Earth data by moving through 3D space
+- K3D (2026): Navigate knowledge by moving through semantic 3D space
+
+**The validation:**
+Spatial memory isn't science fiction — it was **built in 1994**, just 30 years too early for mainstream adoption.
+
+**Now (2026):** Hardware, standards, and paradigm have converged. **Software as space is ready.**
+
+**Attribution:** Thank you, Christoph, for recognizing the lineage! 🙏
+
+---
+
 <a name="tron-1982"></a>
-## 2. Tron (1982) / Tron: Legacy (2010) — The Grid
+## 3. Tron (1982) / Tron: Legacy (2010) — The Grid
 
 ### The Iconic Vision
 
@@ -156,7 +286,7 @@ K3D isn't "folders in 3D" — it's **semantic knowledge organized spatially**, w
 ---
 
 <a name="minority-report-2002"></a>
-## 3. Minority Report (2002) — Spatial Gestural Interface
+## 4. Minority Report (2002) — Spatial Gestural Interface
 
 ### The Scene That Defined "Future UI"
 
@@ -218,7 +348,7 @@ K3D enables **semantic manipulation** of knowledge (not just moving pixels).
 ---
 
 <a name="iron-man-2008"></a>
-## 4. Iron Man (2008+) — JARVIS Holographic Workspace
+## 5. Iron Man (2008+) — JARVIS Holographic Workspace
 
 ### Tony Stark's Dream Workshop
 
@@ -286,7 +416,7 @@ K3D **enables** it via dual-client perception (same procedural source, different
 ---
 
 <a name="the-matrix-1999"></a>
-## 5. The Matrix (1999) — Code as Spatial Visualization
+## 6. The Matrix (1999) — Code as Spatial Visualization
 
 ### "I Don't Even See the Code Anymore"
 
@@ -360,7 +490,7 @@ You **see**:
 ---
 
 <a name="ready-player-one-2018"></a>
-## 6. Ready Player One (2018) — The OASIS
+## 7. Ready Player One (2018) — The OASIS
 
 ### The Virtual World as Unified Workspace
 
@@ -442,7 +572,7 @@ You **see**:
 ---
 
 <a name="ghost-in-the-shell-1995"></a>
-## 7. Ghost in the Shell (1995) — Network Diving
+## 8. Ghost in the Shell (1995) — Network Diving
 
 ### Navigating Cyberspace as Physical Space
 
