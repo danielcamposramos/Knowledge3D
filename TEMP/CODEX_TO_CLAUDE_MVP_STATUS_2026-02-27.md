@@ -80,3 +80,28 @@ When communicating publicly:
 - Keep claims tied to reproducible artifacts and active process telemetry.
 - Position PM-KR group growth as multiplier for validation and interoperability, while MVP remains grounded in shipping pipeline + benchmark verification.
 
+---
+
+## 6) Parallel Community Track Completed: PR #55 Demo Installation System
+
+Status: **Merged to `main` on 2026-02-27** (parallel track, no interruption to ingestion).
+
+### Changes applied before merge
+- `demo/install.sh`: changed venv creation to `python3 -m venv --copies "$LOCAL_PYENV_ROOT"` for NTFS/network-drive compatibility.
+- Added `demo/ingest_demo_data.py` to replace inline shell-heavy ingestion with a focused Python script (structured steps + explicit error handling).
+- `demo/package.json`:
+  - `ingest` now runs `../.pyenv/bin/python ingest_demo_data.py`
+  - `dev` now includes `sleep 2` and `concurrently -k` for safer process lifecycle.
+- Added `demo/.k3d-data/.gitignore` so generated demo artifacts are not committed.
+
+### Git outcome
+- Fix commit on PR branch: `f71b1a8d`
+- Merge commit to main: `4500cfe8`
+- Push status: `origin/main` updated successfully.
+
+### Validation notes
+- `python3 -m py_compile demo/ingest_demo_data.py` passed.
+- `bun run ingest` was attempted but failed in this environment due to Bun current-directory read error (`CouldntReadCurrentDirectory`), so full runtime demo validation remains pending on a clean machine.
+
+### Additional merge scope note
+The PR merge included contributor branch content beyond the 4 requested fixes (e.g., `demo/README.md`, root `.gitignore`, `pyproject.toml`, `viewer/bun.lock`, and some generated metadata files). This should be reviewed/trimmed in a follow-up cleanup PR if needed.
