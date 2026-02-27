@@ -610,7 +610,11 @@ sha256sum ../Knowledge3D.local/results/reproduction_run/*.json > checksums.txt
 - **[RESULTS_HISTORICAL.md](docs/RESULTS_HISTORICAL.md)** — Historical benchmark results (Week 19.6, Week 17, Phase G, ARC-AGI leaderboard #2)
 - **[ATTRIBUTIONS.md](ATTRIBUTIONS.md)** — Complete attributions for all leveraged techniques (DeepSeek, Qwen, NVIDIA, game industry, etc.)
 - **[POP_CULTURE_HERITAGE.md](POP_CULTURE_HERITAGE.md)** — Science Fiction → Science Fact: How 40+ years of pop culture (Jurassic Park, Tron, Iron Man, Matrix, etc.) inspired K3D's spatial UI vision
-- **[PHILOSOPHY.md](docs/PHILOSOPHY.md)** — FMEAI (For Machines, Embodied AI) philosophy
+- **[PHILOSOPHY.md](docs/PHILOSOPHY.md)** — Core principles summary
+
+### Philosophical Foundations
+- **[FMEAI NotebookLM](https://notebooklm.google.com/notebook/000bf428-f258-4c05-89d0-bc138b05fa1b)** — 233 sources exploring the metaphysical, energetic, and consciousness-based foundations of K3D's architecture (C-Field theory, ancient wisdom traditions, quantum consciousness, digital physics)
+- [docs/PHILOSOPHY.md](docs/PHILOSOPHY.md) — Core principles (We are identical in our differences, Everything is energy, Coexistence as survival imperative)
 - **[CUDA_PTX_VERSION_COMPATIBILITY_GUIDE.md](docs/CUDA_PTX_VERSION_COMPATIBILITY_GUIDE.md)** — CUDA Error 222 troubleshooting
 - **[W3C Standardization Package](docs/W3C/README.md)** — PM-KR Community Group documentation
 

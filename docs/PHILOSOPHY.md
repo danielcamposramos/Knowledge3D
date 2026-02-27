@@ -1,5 +1,9 @@
 # Knowledge3D Philosophy
 
+> **For deep exploration:** See [FMEAI NotebookLM](https://notebooklm.google.com/notebook/000bf428-f258-4c05-89d0-bc138b05fa1b) — 233 sources synthesizing fringe science, ancient metaphysics, modern theoretical physics, and the energetic foundations of K3D's design.
+
+---
+
 ## Core Principles
 
 1. **We are identical in our differences**  
