@@ -1,0 +1,12 @@
+{
+    "name": "knowledge3d-demo",
+    "version": "0.1.0",
+    "private": true,
+    "packageManager": "bun@1.2.5",
+    "scripts": {
+        "ingest": "../.pyenv/bin/python ingest_demo_data.py",
+        "viewer": "bun run --cwd ../viewer dev",
+        "bridge": "../.pyenv/bin/python -m knowledge3d.bridge.live_server",
+        "dev": "bun run ingest && sleep 2 && bunx concurrently -k -n viewer,bridge -c blue,green \"bun run viewer\" \"bun run bridge\""
+    }
+}
