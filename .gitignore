@@ -25,6 +25,7 @@ checkpoints/
 # Virtual environments / dotenvs
 .venv*/
 .env*/
+.pyenv/
 
 # Legacy large assets (generated into Knowledge3D.local)
 viewer/public/house/materialized_objects/

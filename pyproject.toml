@@ -21,8 +21,8 @@ dependencies = [
 k3dgen = "k3dgen.__main__:main"
 codeopt = "codeopt.__main__:main"
 
-[tool.setuptools]
-packages = ["k3dgen"]
+[tool.setuptools.packages.find]
+include = ["k3dgen*", "knowledge3d*", "codeopt*"]
 
 [tool.flake8]
 max-line-length = 88
