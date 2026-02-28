@@ -1,6 +1,6 @@
 # Knowledge3D Vocabulary — Architecture Specifications
 
-**Last Updated**: February 6, 2026
+**Last Updated**: February 28, 2026
 **Status**: Living documentation (updated as architecture evolves)
 
 ---
@@ -11,9 +11,10 @@ This directory contains the **canonical architectural specifications** for Knowl
 
 **Reading Order for New Contributors:**
 1. Start with [THREE_BRAIN_SYSTEM_SPECIFICATION.md](#three-brain-system) (foundational architecture)
-2. Read [KNOWLEDGEVERSE_SPECIFICATION.md](#knowledgeverse) (runtime memory substrate)
-3. Read [DUAL_CLIENT_CONTRACT_SPECIFICATION.md](#dual-client-contract) (human + AI duality)
-4. Then explore domain-specific specs as needed
+2. Read [HYPER_MODULAR_ARCHITECTURE.md](#hyper-modular-architecture) (organizing paradigm)
+3. Read [KNOWLEDGEVERSE_SPECIFICATION.md](#knowledgeverse) (runtime memory substrate)
+4. Read [DUAL_CLIENT_CONTRACT_SPECIFICATION.md](#dual-client-contract) (human + AI duality)
+5. Then explore domain-specific specs as needed
 
 ---
 
@@ -72,6 +73,34 @@ Defines the three-layer memory hierarchy that enables sovereign reasoning with p
 **Production Status**: ✅ Validated (foundational architecture)
 
 **Integration**: Referenced by Knowledgeverse, Sovereign Training, Reality Enabler
+
+---
+
+### [HYPER_MODULAR_ARCHITECTURE.md](HYPER_MODULAR_ARCHITECTURE.md)
+**Paradigm: Cross-Domain Procedural Composition**
+
+Defines the **Hyper-Modular Architecture** paradigm where procedural RPN programs compose across ALL modalities (visual, mathematical, physical, auditory), ALL client types (human, AI, robot), and ALL scales (atomic → cosmic).
+
+**Term Coined**: February 20, 2026 by Daniel Ramos
+
+**Key Concepts:**
+- **Cross-domain composition**: Math + Drawing + Reality + Audio in ONE RPN program (not separate systems)
+- **N-client reality**: SAME Galaxy entry renders for human (readable) + AI (executable) + robot (actionable)
+- **Symlink deduplication**: Content-based references (zero code duplication)
+- **Infinite procedural spawning**: Programs spawn sub-programs dynamically
+- **VRAM-resident workspace**: Galaxy Universe (not database-backed)
+- **Procedural sovereignty**: PTX + Galaxy only in hot path (zero external dependencies)
+- **Shadow copy learning**: Architecture learns from successful compositions
+
+**Comparison to Traditional Modular Programming:**
+- Traditional: Functions compose within ONE domain (e.g., image processing → image processing)
+- Hyper-Modular: Galaxy entries compose across ALL domains (e.g., Math Galaxy → Drawing Galaxy → Reality Galaxy)
+
+**15-dimension comparison table** showing distinction from traditional modular, microservices, OOP, Unix pipes, knowledge graphs, TerraVision
+
+**Production Status**: ✅ Foundational paradigm (publicly timestamped, defensible)
+
+**Integration**: Organizing principle for ALL K3D specifications (cross-cutting concern)
 
 ---
 
@@ -352,6 +381,9 @@ Canonical registry of all RPN opcodes across domains.
 ## Integration Map
 
 ```
+HYPER_MODULAR_ARCHITECTURE (Organizing Paradigm — Cross-Cutting)
+│   └── Applies to ALL regions (cross-domain composition, N-client reality, symlink deduplication)
+│
 Knowledgeverse (Runtime Substrate)
 ├── THREE_BRAIN_SYSTEM (Cranium + Galaxy + House)
 │   ├── SOVEREIGN_NSI (PTX execution)
