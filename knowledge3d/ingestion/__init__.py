@@ -20,6 +20,8 @@ _MODULE_EXPORTS = {
     "enrichment_pipeline": "knowledge3d.ingestion.enrichment_pipeline",
     "pdf_classifier": "knowledge3d.ingestion.pdf_classifier",
     "pdf_augmenter": "knowledge3d.ingestion.pdf_augmenter",
+    "encapsulate_importer": "knowledge3d.ingestion.encapsulate_importer",
+    "encapsulate_exporter": "knowledge3d.ingestion.encapsulate_exporter",
 }
 
 _SYMBOL_EXPORTS = {
@@ -31,6 +33,8 @@ _SYMBOL_EXPORTS = {
     "EnrichmentPipeline": ("knowledge3d.ingestion.enrichment_pipeline", "EnrichmentPipeline"),
     "PDFKnowledgeClassifier": ("knowledge3d.ingestion.pdf_classifier", "PDFKnowledgeClassifier"),
     "PDFKnowledgeAugmenter": ("knowledge3d.ingestion.pdf_augmenter", "PDFKnowledgeAugmenter"),
+    "EncapsulateImporter": ("knowledge3d.ingestion.encapsulate_importer", "EncapsulateImporter"),
+    "EncapsulateExporter": ("knowledge3d.ingestion.encapsulate_exporter", "EncapsulateExporter"),
 }
 
 __all__ = sorted([*list(_MODULE_EXPORTS.keys()), *list(_SYMBOL_EXPORTS.keys())])
