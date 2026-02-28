@@ -460,4 +460,4 @@ When adding a new specification:
 
 **Maintained by**: Claude (Architecture Partner) + Codex (Implementation) + Gemini (Integration) + Community
 **License**: See repository LICENSE file
-**Last Full Review**: February 23, 2026
+**Last Full Review**: February 28, 2026
