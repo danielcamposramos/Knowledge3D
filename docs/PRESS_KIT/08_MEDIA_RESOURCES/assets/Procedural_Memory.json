@@ -1,0 +1,1592 @@
+[
+    {
+        "start": 0,
+        "stop": 1.38,
+        "text": " Alright, today we're going to"
+    },
+    {
+        "start": 1.38,
+        "stop": 2.77,
+        "text": " dive into a really fundamental"
+    },
+    {
+        "start": 2.77,
+        "stop": 3.93,
+        "text": " shift in how we think about"
+    },
+    {
+        "start": 3.93,
+        "stop": 5.48,
+        "text": " digital information, not just"
+    },
+    {
+        "start": 5.48,
+        "stop": 6.82,
+        "text": " for us, but for artificial"
+    },
+    {
+        "start": 6.82,
+        "stop": 7.94,
+        "text": " intelligence too."
+    },
+    {
+        "start": 7.94,
+        "stop": 9.55,
+        "text": " This is all about something"
+    },
+    {
+        "start": 9.55,
+        "stop": 11.44,
+        "text": " called procedural memory, and"
+    },
+    {
+        "start": 11.44,
+        "stop": 12.98,
+        "text": " its huge goal of building a"
+    },
+    {
+        "start": 12.98,
+        "stop": 14.54,
+        "text": " truly shared reality."
+    },
+    {
+        "start": 14.54,
+        "stop": 16.38,
+        "text": " Okay, let's get into it."
+    },
+    {
+        "start": 16.38,
+        "stop": 18.38,
+        "text": " This one question, it really"
+    },
+    {
+        "start": 18.38,
+        "stop": 20.22,
+        "text": " gets to the very heart of the"
+    },
+    {
+        "start": 20.22,
+        "stop": 21.98,
+        "text": " problem we're facing."
+    },
+    {
+        "start": 21.98,
+        "stop": 23.78,
+        "text": " You know, our current approach"
+    },
+    {
+        "start": 23.78,
+        "stop": 25.5,
+        "text": " to AI is incredibly powerful,"
+    },
+    {
+        "start": 25.5,
+        "stop": 26.88,
+        "text": " but so much of it is a black"
+    },
+    {
+        "start": 26.88,
+        "stop": 27.38,
+        "text": " box."
+    },
+    {
+        "start": 27.68,
+        "stop": 28.86,
+        "text": " This new idea wants to"
+    },
+    {
+        "start": 28.86,
+        "stop": 30.58,
+        "text": " basically turn that box inside"
+    },
+    {
+        "start": 30.58,
+        "stop": 32.24,
+        "text": " out, transforming AI memory"
+    },
+    {
+        "start": 32.24,
+        "stop": 33.63,
+        "text": " into something we can all"
+    },
+    {
+        "start": 33.63,
+        "stop": 35.53,
+        "text": " explore, a tangible, navigable"
+    },
+    {
+        "start": 35.53,
+        "stop": 36.2,
+        "text": " space."
+    },
+    {
+        "start": 36.2,
+        "stop": 37.58,
+        "text": " So to really understand the"
+    },
+    {
+        "start": 37.58,
+        "stop": 39.2,
+        "text": " solution here, we first have to"
+    },
+    {
+        "start": 39.2,
+        "stop": 40.64,
+        "text": " get a handle on the problem it"
+    },
+    {
+        "start": 40.64,
+        "stop": 41.78,
+        "text": "'s trying to solve."
+    },
+    {
+        "start": 41.78,
+        "stop": 43.26,
+        "text": " And it's a big one, quietly"
+    },
+    {
+        "start": 43.26,
+        "stop": 44.95,
+        "text": " draining resources all across"
+    },
+    {
+        "start": 44.95,
+        "stop": 46.22,
+        "text": " our digital world."
+    },
+    {
+        "start": 46.22,
+        "stop": 47.84,
+        "text": " They call it the duplication"
+    },
+    {
+        "start": 47.84,
+        "stop": 48.52,
+        "text": " crisis."
+    },
+    {
+        "start": 48.52,
+        "stop": 50.03,
+        "text": " Just think about it for a"
+    },
+    {
+        "start": 50.03,
+        "stop": 50.76,
+        "text": " second."
+    },
+    {
+        "start": 50.76,
+        "stop": 52.74,
+        "text": " A single character, a company's"
+    },
+    {
+        "start": 52.74,
+        "stop": 54.4,
+        "text": " logo, one piece of data."
+    },
+    {
+        "start": 54.48,
+        "stop": 56.25,
+        "text": " It's not just stored once. Nope"
+    },
+    {
+        "start": 56.25,
+        "stop": 56.48,
+        "text": "."
+    },
+    {
+        "start": 56.48,
+        "stop": 58.02,
+        "text": " It's copied into font files,"
+    },
+    {
+        "start": 58.02,
+        "stop": 59.32,
+        "text": " into image assets, into"
+    },
+    {
+        "start": 59.32,
+        "stop": 61.16,
+        "text": " accessibility data, AI training"
+    },
+    {
+        "start": 61.16,
+        "stop": 62.75,
+        "text": " sets, application code, you"
+    },
+    {
+        "start": 62.75,
+        "stop": 63.44,
+        "text": " name it."
+    },
+    {
+        "start": 63.44,
+        "stop": 64.73,
+        "text": " And every single one of those"
+    },
+    {
+        "start": 64.73,
+        "stop": 66.08,
+        "text": " copies is a potential point of"
+    },
+    {
+        "start": 66.08,
+        "stop": 67.63,
+        "text": " failure, a maintenance headache"
+    },
+    {
+        "start": 67.63,
+        "stop": 69.16,
+        "text": ", and just a source of waste."
+    },
+    {
+        "start": 69.64,
+        "stop": 71.39,
+        "text": " And the scale of this problem"
+    },
+    {
+        "start": 71.39,
+        "stop": 73.18,
+        "text": " is absolutely staggering."
+    },
+    {
+        "start": 73.18,
+        "stop": 75.28,
+        "text": " We're talking about over 70% of"
+    },
+    {
+        "start": 75.28,
+        "stop": 77.03,
+        "text": " our storage and compute power"
+    },
+    {
+        "start": 77.03,
+        "stop": 78.8,
+        "text": " being wasted just by managing"
+    },
+    {
+        "start": 78.8,
+        "stop": 80.53,
+        "text": " redundant copies of the exact"
+    },
+    {
+        "start": 80.53,
+        "stop": 81.84,
+        "text": " same information."
+    },
+    {
+        "start": 81.84,
+        "stop": 83.74,
+        "text": " This isn't just inefficient."
+    },
+    {
+        "start": 83.74,
+        "stop": 85.77,
+        "text": " It's completely unsustainable,"
+    },
+    {
+        "start": 85.77,
+        "stop": 87.59,
+        "text": " especially with the demand for"
+    },
+    {
+        "start": 87.59,
+        "stop": 88.86,
+        "text": " AI just exploding."
+    },
+    {
+        "start": 89.58,
+        "stop": 91.14,
+        "text": " Let's just trace the journey of"
+    },
+    {
+        "start": 91.14,
+        "stop": 92.54,
+        "text": " a single symbol, right?"
+    },
+    {
+        "start": 92.54,
+        "stop": 93.98,
+        "text": " So it gets designed."
+    },
+    {
+        "start": 93.98,
+        "stop": 95.61,
+        "text": " Then that design is copied into"
+    },
+    {
+        "start": 95.61,
+        "stop": 96.16,
+        "text": " a font."
+    },
+    {
+        "start": 96.16,
+        "stop": 97.54,
+        "text": " Then it's copied again for a"
+    },
+    {
+        "start": 97.54,
+        "stop": 98.48,
+        "text": " screen reader."
+    },
+    {
+        "start": 98.48,
+        "stop": 99.75,
+        "text": " And then again so an AI can"
+    },
+    {
+        "start": 99.75,
+        "stop": 100.72,
+        "text": " understand it."
+    },
+    {
+        "start": 100.72,
+        "stop": 102.33,
+        "text": " Now what happens if you need to"
+    },
+    {
+        "start": 102.33,
+        "stop": 103.78,
+        "text": " update that one symbol?"
+    },
+    {
+        "start": 103.78,
+        "stop": 105.12,
+        "text": " You have to hunt down and"
+    },
+    {
+        "start": 105.12,
+        "stop": 106.8,
+        "text": " manually change every single"
+    },
+    {
+        "start": 106.8,
+        "stop": 107.32,
+        "text": " copy."
+    },
+    {
+        "start": 107.32,
+        "stop": 108.7,
+        "text": " The whole system is basically"
+    },
+    {
+        "start": 108.7,
+        "stop": 110.18,
+        "text": " designed for fragmentation and"
+    },
+    {
+        "start": 110.18,
+        "stop": 110.68,
+        "text": " error."
+    },
+    {
+        "start": 110.68,
+        "stop": 113.12,
+        "text": " So how do we fix this?"
+    },
+    {
+        "start": 113.6,
+        "stop": 115.49,
+        "text": " Well, the answer is a complete"
+    },
+    {
+        "start": 115.49,
+        "stop": 116.7,
+        "text": " paradigm shift."
+    },
+    {
+        "start": 116.7,
+        "stop": 118,
+        "text": " We have to move away from"
+    },
+    {
+        "start": 118,
+        "stop": 119.63,
+        "text": " storing all these static dead"
+    },
+    {
+        "start": 119.63,
+        "stop": 121.16,
+        "text": " copies of information."
+    },
+    {
+        "start": 121.16,
+        "stop": 122.94,
+        "text": " And instead we store a single"
+    },
+    {
+        "start": 122.94,
+        "stop": 124.34,
+        "text": " living procedure."
+    },
+    {
+        "start": 124.34,
+        "stop": 126.84,
+        "text": " And this is procedural memory."
+    },
+    {
+        "start": 126.84,
+        "stop": 128.66,
+        "text": " The idea is so simple, but it's"
+    },
+    {
+        "start": 128.66,
+        "stop": 130.16,
+        "text": " incredibly profound."
+    },
+    {
+        "start": 130.16,
+        "stop": 131.91,
+        "text": " Instead of taking a million"
+    },
+    {
+        "start": 131.91,
+        "stop": 133.59,
+        "text": " photos of a cake, you just"
+    },
+    {
+        "start": 133.59,
+        "stop": 134.88,
+        "text": " store the recipe."
+    },
+    {
+        "start": 134.88,
+        "stop": 136.46,
+        "text": " That one single recipe can then"
+    },
+    {
+        "start": 136.46,
+        "stop": 137.72,
+        "text": " be used to render the cake"
+    },
+    {
+        "start": 137.72,
+        "stop": 139.02,
+        "text": " visually for a person,"
+    },
+    {
+        "start": 139.02,
+        "stop": 140.47,
+        "text": " to generate audio instructions"
+    },
+    {
+        "start": 140.47,
+        "stop": 142.02,
+        "text": " for a screen reader, or even to"
+    },
+    {
+        "start": 142.02,
+        "stop": 143.41,
+        "text": " let an AI understand its"
+    },
+    {
+        "start": 143.41,
+        "stop": 144.22,
+        "text": " ingredients"
+    },
+    {
+        "start": 144.22,
+        "stop": 145.52,
+        "text": " and what it actually is."
+    },
+    {
+        "start": 145.52,
+        "stop": 147.36,
+        "text": " It is one source for multiple"
+    },
+    {
+        "start": 147.36,
+        "stop": 149.4,
+        "text": " uses with zero duplication."
+    },
+    {
+        "start": 149.4,
+        "stop": 150.6,
+        "text": " And when you put the two"
+    },
+    {
+        "start": 150.6,
+        "stop": 152.12,
+        "text": " approaches side by side like"
+    },
+    {
+        "start": 152.12,
+        "stop": 153.66,
+        "text": " this, the difference is just"
+    },
+    {
+        "start": 153.66,
+        "stop": 154.58,
+        "text": " night and day."
+    },
+    {
+        "start": 154.58,
+        "stop": 156.11,
+        "text": " The old way is wasteful and it"
+    },
+    {
+        "start": 156.11,
+        "stop": 157.51,
+        "text": " creates these separate,"
+    },
+    {
+        "start": 157.51,
+        "stop": 159.26,
+        "text": " inconsistent worlds for people"
+    },
+    {
+        "start": 159.26,
+        "stop": 160.22,
+        "text": " and machines."
+    },
+    {
+        "start": 160.22,
+        "stop": 162.36,
+        "text": " The new way, the PMKR approach,"
+    },
+    {
+        "start": 162.36,
+        "stop": 163.84,
+        "text": " uses these executable"
+    },
+    {
+        "start": 163.84,
+        "stop": 165,
+        "text": " procedures."
+    },
+    {
+        "start": 165.2,
+        "stop": 166.49,
+        "text": " Think of them like smart"
+    },
+    {
+        "start": 166.49,
+        "stop": 168.04,
+        "text": " shortcuts that always point"
+    },
+    {
+        "start": 168.04,
+        "stop": 169.76,
+        "text": " back to the one original source"
+    },
+    {
+        "start": 169.76,
+        "stop": 169.76,
+        "text": ","
+    },
+    {
+        "start": 169.76,
+        "stop": 171.26,
+        "text": " instead of making tons of waste"
+    },
+    {
+        "start": 171.26,
+        "stop": 172.02,
+        "text": "ful copies."
+    },
+    {
+        "start": 172.02,
+        "stop": 173.72,
+        "text": " The savings are massive."
+    },
+    {
+        "start": 173.72,
+        "stop": 175.17,
+        "text": " And more importantly, it"
+    },
+    {
+        "start": 175.17,
+        "stop": 177.03,
+        "text": " creates a single, shared source"
+    },
+    {
+        "start": 177.03,
+        "stop": 177.76,
+        "text": " of truth."
+    },
+    {
+        "start": 177.76,
+        "stop": 179.51,
+        "text": " And this is where things get"
+    },
+    {
+        "start": 179.51,
+        "stop": 180.7,
+        "text": " really elegant."
+    },
+    {
+        "start": 180.7,
+        "stop": 182.36,
+        "text": " This all leads to something"
+    },
+    {
+        "start": 182.36,
+        "stop": 184.29,
+        "text": " called the dual client contract"
+    },
+    {
+        "start": 184.29,
+        "stop": 184.58,
+        "text": "."
+    },
+    {
+        "start": 184.58,
+        "stop": 186.33,
+        "text": " It's how one single source of"
+    },
+    {
+        "start": 186.33,
+        "stop": 187.81,
+        "text": " information can serve two"
+    },
+    {
+        "start": 187.81,
+        "stop": 189.96,
+        "text": " completely different consumers,"
+    },
+    {
+        "start": 189.96,
+        "stop": 191.96,
+        "text": " a human and an AI, without any"
+    },
+    {
+        "start": 191.96,
+        "stop": 193.52,
+        "text": " duplication at all."
+    },
+    {
+        "start": 193.78,
+        "stop": 195.31,
+        "text": " This chart just lays it out"
+    },
+    {
+        "start": 195.31,
+        "stop": 196.16,
+        "text": " perfectly."
+    },
+    {
+        "start": 196.16,
+        "stop": 198.22,
+        "text": " A human looks at an interface"
+    },
+    {
+        "start": 198.22,
+        "stop": 200.35,
+        "text": " and sees a save icon, a floppy"
+    },
+    {
+        "start": 200.35,
+        "stop": 201.04,
+        "text": " disk."
+    },
+    {
+        "start": 201.04,
+        "stop": 202.71,
+        "text": " But the AI reading the exact"
+    },
+    {
+        "start": 202.71,
+        "stop": 204.52,
+        "text": " same source code doesn't see a"
+    },
+    {
+        "start": 204.52,
+        "stop": 205.32,
+        "text": " picture."
+    },
+    {
+        "start": 205.32,
+        "stop": 207.53,
+        "text": " It sees an executable command,"
+    },
+    {
+        "start": 207.53,
+        "stop": 208.64,
+        "text": " action save."
+    },
+    {
+        "start": 208.64,
+        "stop": 210,
+        "text": " A human sees a button."
+    },
+    {
+        "start": 210,
+        "stop": 211.98,
+        "text": " The AI sees a semantic function"
+    },
+    {
+        "start": 211.98,
+        "stop": 212.24,
+        "text": "."
+    },
+    {
+        "start": 212.24,
+        "stop": 214.22,
+        "text": " It's two totally different ways"
+    },
+    {
+        "start": 214.22,
+        "stop": 215.84,
+        "text": " of perceiving one unified"
+    },
+    {
+        "start": 215.84,
+        "stop": 216.64,
+        "text": " reality."
+    },
+    {
+        "start": 217.06,
+        "stop": 218.81,
+        "text": " Now, this isn't just some"
+    },
+    {
+        "start": 218.81,
+        "stop": 220.16,
+        "text": " abstract theory."
+    },
+    {
+        "start": 220.16,
+        "stop": 222.04,
+        "text": " There's actually a reference"
+    },
+    {
+        "start": 222.04,
+        "stop": 224.23,
+        "text": " implementation called Knowledge"
+    },
+    {
+        "start": 224.23,
+        "stop": 226.46,
+        "text": " 3D, or K3D, that's putting all"
+    },
+    {
+        "start": 226.46,
+        "stop": 227.86,
+        "text": " these principles into practice."
+    },
+    {
+        "start": 227.86,
+        "stop": 228.92,
+        "text": " So let's take a look at how it"
+    },
+    {
+        "start": 228.92,
+        "stop": 229.9,
+        "text": "'s actually built."
+    },
+    {
+        "start": 230.32,
+        "stop": 232.09,
+        "text": " The K3D architecture is modeled"
+    },
+    {
+        "start": 232.09,
+        "stop": 233.56,
+        "text": " as a knowledge verse, and at"
+    },
+    {
+        "start": 233.56,
+        "stop": 235.01,
+        "text": " its core is this three-brain"
+    },
+    {
+        "start": 235.01,
+        "stop": 236.58,
+        "text": " system that's actually super"
+    },
+    {
+        "start": 236.58,
+        "stop": 238.08,
+        "text": " intuitive because it mirrors"
+    },
+    {
+        "start": 238.08,
+        "stop": 239.54,
+        "text": " the computer hardware we all"
+    },
+    {
+        "start": 239.54,
+        "stop": 240.18,
+        "text": " know."
+    },
+    {
+        "start": 240.18,
+        "stop": 242,
+        "text": " You've got the cranium, which"
+    },
+    {
+        "start": 242,
+        "stop": 243.42,
+        "text": " is like the CPU or GPU."
+    },
+    {
+        "start": 243.42,
+        "stop": 244.78,
+        "text": " It's the engine that does the"
+    },
+    {
+        "start": 244.78,
+        "stop": 245.46,
+        "text": " thinking."
+    },
+    {
+        "start": 245.46,
+        "stop": 247.08,
+        "text": " Then there's the galaxy, which"
+    },
+    {
+        "start": 247.08,
+        "stop": 248.7,
+        "text": " is like your RAM, active memory"
+    },
+    {
+        "start": 248.7,
+        "stop": 250,
+        "text": " for real-time tasks."
+    },
+    {
+        "start": 250.26,
+        "stop": 251.81,
+        "text": " And finally, the house, which"
+    },
+    {
+        "start": 251.81,
+        "stop": 252.83,
+        "text": " is like your SSD, the"
+    },
+    {
+        "start": 252.83,
+        "stop": 254.6,
+        "text": " persistent long-term memory."
+    },
+    {
+        "start": 254.6,
+        "stop": 256.35,
+        "text": " So let's zoom in on the cranium"
+    },
+    {
+        "start": 256.35,
+        "stop": 256.6,
+        "text": "."
+    },
+    {
+        "start": 256.6,
+        "stop": 257.99,
+        "text": " This is the reasoning core, and"
+    },
+    {
+        "start": 257.99,
+        "stop": 259.23,
+        "text": " it's built for what they call"
+    },
+    {
+        "start": 259.23,
+        "stop": 260.04,
+        "text": " sovereignty."
+    },
+    {
+        "start": 260.04,
+        "stop": 261.42,
+        "text": " That means no reliance on"
+    },
+    {
+        "start": 261.42,
+        "stop": 262.88,
+        "text": " external frameworks like"
+    },
+    {
+        "start": 262.88,
+        "stop": 264.39,
+        "text": " TensorFlow or PyTorch."
+    },
+    {
+        "start": 264.39,
+        "stop": 266.04,
+        "text": " It runs on low-level, hand"
+    },
+    {
+        "start": 266.04,
+        "stop": 267.98,
+        "text": "written code directly on the GPU"
+    },
+    {
+        "start": 267.98,
+        "stop": 269.88,
+        "text": ", which makes it unbelievably"
+    },
+    {
+        "start": 269.88,
+        "stop": 270.45,
+        "text": " fast."
+    },
+    {
+        "start": 270.45,
+        "stop": 271.83,
+        "text": " We're talking inference loops"
+    },
+    {
+        "start": 271.83,
+        "stop": 273.39,
+        "text": " under 100 microseconds."
+    },
+    {
+        "start": 273.39,
+        "stop": 274.97,
+        "text": " And it's completely transparent"
+    },
+    {
+        "start": 274.97,
+        "stop": 275.16,
+        "text": "."
+    },
+    {
+        "start": 275.16,
+        "stop": 276.43,
+        "text": " You can inspect every single"
+    },
+    {
+        "start": 276.43,
+        "stop": 277.2,
+        "text": " instruction."
+    },
+    {
+        "start": 277.2,
+        "stop": 279.24,
+        "text": " And here's the real kicker."
+    },
+    {
+        "start": 279.68,
+        "stop": 281.26,
+        "text": " The whole system is powered by"
+    },
+    {
+        "start": 281.26,
+        "stop": 282.83,
+        "text": " a tiny recursive model of just"
+    },
+    {
+        "start": 282.83,
+        "stop": 284.38,
+        "text": " 7 million parameters."
+    },
+    {
+        "start": 284.38,
+        "stop": 285.94,
+        "text": " But it can achieve the same"
+    },
+    {
+        "start": 285.94,
+        "stop": 287.81,
+        "text": " reasoning depth as models with"
+    },
+    {
+        "start": 287.81,
+        "stop": 289.98,
+        "text": " tens of billions of parameters."
+    },
+    {
+        "start": 289.98,
+        "stop": 291.04,
+        "text": " How?"
+    },
+    {
+        "start": 291.04,
+        "stop": 293.42,
+        "text": " Because it focuses on process."
+    },
+    {
+        "start": 293.42,
+        "stop": 295.02,
+        "text": " It reuses a small set of"
+    },
+    {
+        "start": 295.02,
+        "stop": 297.08,
+        "text": " instructions in incredibly"
+    },
+    {
+        "start": 297.08,
+        "stop": 298.89,
+        "text": " complex ways, instead of"
+    },
+    {
+        "start": 298.89,
+        "stop": 299.89,
+        "text": " needing a giant library of"
+    },
+    {
+        "start": 299.89,
+        "stop": 300.89,
+        "text": " stored knowledge."
+    },
+    {
+        "start": 300.89,
+        "stop": 302.33,
+        "text": " This is a massive leap in"
+    },
+    {
+        "start": 302.33,
+        "stop": 303.32,
+        "text": " efficiency."
+    },
+    {
+        "start": 303.32,
+        "stop": 304.92,
+        "text": " And all that efficiency?"
+    },
+    {
+        "start": 304.92,
+        "stop": 306.91,
+        "text": " Well, it isn't just about speed"
+    },
+    {
+        "start": 306.91,
+        "stop": 307.62,
+        "text": " or cost."
+    },
+    {
+        "start": 308.1,
+        "stop": 309.52,
+        "text": " It has a direct and, frankly, a"
+    },
+    {
+        "start": 309.52,
+        "stop": 310.74,
+        "text": " massive impact on one of the"
+    },
+    {
+        "start": 310.74,
+        "stop": 312.24,
+        "text": " biggest challenges we're facing"
+    },
+    {
+        "start": 312.24,
+        "stop": 312.52,
+        "text": "."
+    },
+    {
+        "start": 312.52,
+        "stop": 314.66,
+        "text": " The energy consumption of AI."
+    },
+    {
+        "start": 314.66,
+        "stop": 317.3,
+        "text": " So, the crucial point is this."
+    },
+    {
+        "start": 317.3,
+        "stop": 318.88,
+        "text": " The carbon blueprint for this"
+    },
+    {
+        "start": 318.88,
+        "stop": 320.58,
+        "text": " kind of architecture projects a"
+    },
+    {
+        "start": 320.58,
+        "stop": 322.66,
+        "text": " cumulative savings of 12 gigat"
+    },
+    {
+        "start": 322.66,
+        "stop": 324.47,
+        "text": "ons of CO2 over a 10-year period"
+    },
+    {
+        "start": 324.47,
+        "stop": 324.8,
+        "text": "."
+    },
+    {
+        "start": 324.8,
+        "stop": 326.26,
+        "text": " Let that sink in for a second."
+    },
+    {
+        "start": 326.26,
+        "stop": 327.44,
+        "text": " 12 gigatons."
+    },
+    {
+        "start": 327.44,
+        "stop": 328.71,
+        "text": " This is not some minor"
+    },
+    {
+        "start": 328.71,
+        "stop": 329.82,
+        "text": " optimization."
+    },
+    {
+        "start": 329.82,
+        "stop": 331.38,
+        "text": " It is an architectural shift"
+    },
+    {
+        "start": 331.38,
+        "stop": 332.55,
+        "text": " with planetary scale"
+    },
+    {
+        "start": 332.55,
+        "stop": 333.58,
+        "text": " consequences."
+    },
+    {
+        "start": 333.58,
+        "stop": 335.34,
+        "text": " And this timeline shows you how"
+    },
+    {
+        "start": 335.34,
+        "stop": 337.38,
+        "text": " that impact just keeps growing."
+    },
+    {
+        "start": 337.38,
+        "stop": 339.86,
+        "text": " By 2035, the projected annual"
+    },
+    {
+        "start": 339.86,
+        "stop": 342.19,
+        "text": " savings could hit 2.5 gigatons"
+    },
+    {
+        "start": 342.19,
+        "stop": 343,
+        "text": " of CO2."
+    },
+    {
+        "start": 343,
+        "stop": 344.46,
+        "text": " That would be almost 7% of our"
+    },
+    {
+        "start": 344.46,
+        "stop": 345.99,
+        "text": " entire planet's current yearly"
+    },
+    {
+        "start": 345.99,
+        "stop": 346.74,
+        "text": " emissions."
+    },
+    {
+        "start": 347.28,
+        "stop": 348.33,
+        "text": " And it all comes from just"
+    },
+    {
+        "start": 348.33,
+        "stop": 349.43,
+        "text": " getting rid of the waste of"
+    },
+    {
+        "start": 349.43,
+        "stop": 350.73,
+        "text": " duplication and using hyper-e"
+    },
+    {
+        "start": 350.73,
+        "stop": 351.84,
+        "text": "fficient reasoning."
+    },
+    {
+        "start": 351.84,
+        "stop": 353.84,
+        "text": " You know, 12 gigatons is such a"
+    },
+    {
+        "start": 353.84,
+        "stop": 355.62,
+        "text": " huge number, it's hard to even"
+    },
+    {
+        "start": 355.62,
+        "stop": 357.2,
+        "text": " wrap your head around."
+    },
+    {
+        "start": 357.2,
+        "stop": 359.07,
+        "text": " So, to put that in perspective,"
+    },
+    {
+        "start": 359.07,
+        "stop": 360.63,
+        "text": " it's the same as taking over"
+    },
+    {
+        "start": 360.63,
+        "stop": 362.24,
+        "text": " half a billion gasoline cars"
+    },
+    {
+        "start": 362.24,
+        "stop": 363.84,
+        "text": " off the road for a year."
+    },
+    {
+        "start": 363.84,
+        "stop": 365.97,
+        "text": " Or shutting down 800 coal-fired"
+    },
+    {
+        "start": 365.97,
+        "stop": 366.92,
+        "text": " power plants."
+    },
+    {
+        "start": 366.92,
+        "stop": 368.54,
+        "text": " These are not small numbers."
+    },
+    {
+        "start": 368.54,
+        "stop": 370.1,
+        "text": " This is a real blueprint for a"
+    },
+    {
+        "start": 370.1,
+        "stop": 371.94,
+        "text": " sustainable digital future."
+    },
+    {
+        "start": 372.62,
+        "stop": 374.12,
+        "text": " Now, a project this ambitious"
+    },
+    {
+        "start": 374.12,
+        "stop": 375.52,
+        "text": " can't happen in a vacuum."
+    },
+    {
+        "start": 375.52,
+        "stop": 376.87,
+        "text": " It has to be built out in the"
+    },
+    {
+        "start": 376.87,
+        "stop": 378.68,
+        "text": " open as a global, collaborative"
+    },
+    {
+        "start": 378.68,
+        "stop": 379.92,
+        "text": " effort to really set a new"
+    },
+    {
+        "start": 379.92,
+        "stop": 381.45,
+        "text": " standard for how we all share"
+    },
+    {
+        "start": 381.45,
+        "stop": 382.3,
+        "text": " knowledge."
+    },
+    {
+        "start": 382.3,
+        "stop": 383.88,
+        "text": " And that's exactly what's"
+    },
+    {
+        "start": 383.88,
+        "stop": 384.78,
+        "text": " happening."
+    },
+    {
+        "start": 384.78,
+        "stop": 386.53,
+        "text": " The work is being hosted at the"
+    },
+    {
+        "start": 386.53,
+        "stop": 388.28,
+        "text": " World Wide Web Consortium, the"
+    },
+    {
+        "start": 388.28,
+        "stop": 389.81,
+        "text": " W3C, the same group that"
+    },
+    {
+        "start": 389.81,
+        "stop": 391.8,
+        "text": " standardizes the web itself."
+    },
+    {
+        "start": 391.8,
+        "stop": 392.98,
+        "text": " It's a groundbreaking"
+    },
+    {
+        "start": 392.98,
+        "stop": 394.55,
+        "text": " partnership between Daniel R"
+    },
+    {
+        "start": 394.55,
+        "stop": 396.3,
+        "text": "amos, an engineer from Brazil,"
+    },
+    {
+        "start": 396.3,
+        "stop": 397.44,
+        "text": " and Milton Ponson,"
+    },
+    {
+        "start": 397.44,
+        "stop": 398.51,
+        "text": " a mathematician with three"
+    },
+    {
+        "start": 398.51,
+        "stop": 399.54,
+        "text": " decades of environmental"
+    },
+    {
+        "start": 399.54,
+        "stop": 401,
+        "text": " knowledge from the Netherlands."
+    },
+    {
+        "start": 401.62,
+        "stop": 403.26,
+        "text": " And their work immediately got"
+    },
+    {
+        "start": 403.26,
+        "stop": 404.95,
+        "text": " support from leading experts at"
+    },
+    {
+        "start": 404.95,
+        "stop": 406.46,
+        "text": " places like MIT and Huawei,"
+    },
+    {
+        "start": 406.46,
+        "stop": 407.9,
+        "text": " which just shows its global"
+    },
+    {
+        "start": 407.9,
+        "stop": 408.78,
+        "text": " resonance."
+    },
+    {
+        "start": 408.78,
+        "stop": 410.33,
+        "text": " And this is already translating"
+    },
+    {
+        "start": 410.33,
+        "stop": 411.94,
+        "text": " into some incredible real-world"
+    },
+    {
+        "start": 411.94,
+        "stop": 412.86,
+        "text": " applications."
+    },
+    {
+        "start": 412.86,
+        "stop": 414.39,
+        "text": " I mean, imagine e-readers that"
+    },
+    {
+        "start": 414.39,
+        "stop": 415.82,
+        "text": " don't need to store bulky font"
+    },
+    {
+        "start": 415.82,
+        "stop": 417.32,
+        "text": " files but can still render over"
+    },
+    {
+        "start": 417.32,
+        "stop": 419.57,
+        "text": " 100,000 characters perfectly"
+    },
+    {
+        "start": 419.57,
+        "stop": 421.14,
+        "text": " with almost zero storage."
+    },
+    {
+        "start": 421.14,
+        "stop": 422.41,
+        "text": " Imagine interfaces with"
+    },
+    {
+        "start": 422.41,
+        "stop": 424.11,
+        "text": " infinite zoom for accessibility"
+    },
+    {
+        "start": 424.11,
+        "stop": 425.92,
+        "text": " with absolutely no pixelation."
+    },
+    {
+        "start": 425.92,
+        "stop": 427.18,
+        "text": " And a truly explainable AI"
+    },
+    {
+        "start": 427.18,
+        "stop": 428.64,
+        "text": " where you can literally watch"
+    },
+    {
+        "start": 428.64,
+        "stop": 429.87,
+        "text": " the AI's path of logic as it"
+    },
+    {
+        "start": 429.87,
+        "stop": 431.4,
+        "text": " moves through this universe of"
+    },
+    {
+        "start": 431.4,
+        "stop": 432.26,
+        "text": " knowledge."
+    },
+    {
+        "start": 432.26,
+        "stop": 434.05,
+        "text": " The best part is, this entire"
+    },
+    {
+        "start": 434.05,
+        "stop": 435.77,
+        "text": " project is being built right"
+    },
+    {
+        "start": 435.77,
+        "stop": 436.92,
+        "text": " out in the open."
+    },
+    {
+        "start": 436.92,
+        "stop": 438.52,
+        "text": " You can follow the standards"
+    },
+    {
+        "start": 438.52,
+        "stop": 440.36,
+        "text": " work at the W3C community group"
+    },
+    {
+        "start": 440.36,
+        "stop": 442.32,
+        "text": ", or you can dive right into the"
+    },
+    {
+        "start": 442.32,
+        "stop": 443.96,
+        "text": " code for the K3D implementation"
+    },
+    {
+        "start": 443.96,
+        "stop": 444.8,
+        "text": " on GitHub."
+    },
+    {
+        "start": 445.08,
+        "stop": 446.16,
+        "text": " This is really an open"
+    },
+    {
+        "start": 446.16,
+        "stop": 447.47,
+        "text": " invitation for anyone to"
+    },
+    {
+        "start": 447.47,
+        "stop": 448.92,
+        "text": " participate in building this"
+    },
+    {
+        "start": 448.92,
+        "stop": 449.52,
+        "text": " future."
+    },
+    {
+        "start": 449.52,
+        "stop": 451.01,
+        "text": " And we'll just end on this"
+    },
+    {
+        "start": 451.01,
+        "stop": 451.78,
+        "text": " thought."
+    },
+    {
+        "start": 451.78,
+        "stop": 453.14,
+        "text": " For decades, we've interacted"
+    },
+    {
+        "start": 453.14,
+        "stop": 454.44,
+        "text": " with data through these flat,"
+    },
+    {
+        "start": 454.44,
+        "stop": 455.7,
+        "text": " two-dimensional windows on a"
+    },
+    {
+        "start": 455.7,
+        "stop": 456.22,
+        "text": " screen."
+    },
+    {
+        "start": 456.22,
+        "stop": 457.68,
+        "text": " This new paradigm treats"
+    },
+    {
+        "start": 457.68,
+        "stop": 459.66,
+        "text": " software as a three-dimensional"
+    },
+    {
+        "start": 459.66,
+        "stop": 461.12,
+        "text": ", navigatable place."
+    },
+    {
+        "start": 461.12,
+        "stop": 462.98,
+        "text": " A cognitive habitat where we,"
+    },
+    {
+        "start": 462.98,
+        "stop": 464.68,
+        "text": " and AI, can finally explore"
+    },
+    {
+        "start": 464.68,
+        "stop": 466.69,
+        "text": " knowledge together, in a shared"
+    },
+    {
+        "start": 466.69,
+        "stop": 467.3,
+        "text": " home."
+    },
+    {
+        "start": 467.3,
+        "stop": 497.28,
+        "text": " Thank you."
+    }
+]

@@ -1,0 +1,1271 @@
+1
+00:00:00,000 --> 00:00:01,380
+Alright, today we're going to
+
+2
+00:00:01,380 --> 00:00:02,770
+dive into a really fundamental
+
+3
+00:00:02,770 --> 00:00:03,930
+shift in how we think about
+
+4
+00:00:03,930 --> 00:00:05,480
+digital information, not just
+
+5
+00:00:05,480 --> 00:00:06,820
+for us, but for artificial
+
+6
+00:00:06,820 --> 00:00:07,940
+intelligence too.
+
+7
+00:00:07,940 --> 00:00:09,550
+This is all about something
+
+8
+00:00:09,550 --> 00:00:11,440
+called procedural memory, and
+
+9
+00:00:11,440 --> 00:00:12,980
+its huge goal of building a
+
+10
+00:00:12,980 --> 00:00:14,540
+truly shared reality.
+
+11
+00:00:14,540 --> 00:00:16,380
+Okay, let's get into it.
+
+12
+00:00:16,380 --> 00:00:18,380
+This one question, it really
+
+13
+00:00:18,380 --> 00:00:20,220
+gets to the very heart of the
+
+14
+00:00:20,220 --> 00:00:21,980
+problem we're facing.
+
+15
+00:00:21,980 --> 00:00:23,780
+You know, our current approach
+
+16
+00:00:23,780 --> 00:00:25,500
+to AI is incredibly powerful,
+
+17
+00:00:25,500 --> 00:00:26,880
+but so much of it is a black
+
+18
+00:00:26,880 --> 00:00:27,380
+box.
+
+19
+00:00:27,680 --> 00:00:28,860
+This new idea wants to
+
+20
+00:00:28,860 --> 00:00:30,580
+basically turn that box inside
+
+21
+00:00:30,580 --> 00:00:32,240
+out, transforming AI memory
+
+22
+00:00:32,240 --> 00:00:33,630
+into something we can all
+
+23
+00:00:33,630 --> 00:00:35,530
+explore, a tangible, navigable
+
+24
+00:00:35,530 --> 00:00:36,200
+space.
+
+25
+00:00:36,200 --> 00:00:37,580
+So to really understand the
+
+26
+00:00:37,580 --> 00:00:39,200
+solution here, we first have to
+
+27
+00:00:39,200 --> 00:00:40,640
+get a handle on the problem it
+
+28
+00:00:40,640 --> 00:00:41,780
+'s trying to solve.
+
+29
+00:00:41,780 --> 00:00:43,260
+And it's a big one, quietly
+
+30
+00:00:43,260 --> 00:00:44,950
+draining resources all across
+
+31
+00:00:44,950 --> 00:00:46,220
+our digital world.
+
+32
+00:00:46,220 --> 00:00:47,840
+They call it the duplication
+
+33
+00:00:47,840 --> 00:00:48,520
+crisis.
+
+34
+00:00:48,520 --> 00:00:50,030
+Just think about it for a
+
+35
+00:00:50,030 --> 00:00:50,760
+second.
+
+36
+00:00:50,760 --> 00:00:52,740
+A single character, a company's
+
+37
+00:00:52,740 --> 00:00:54,400
+logo, one piece of data.
+
+38
+00:00:54,480 --> 00:00:56,250
+It's not just stored once. Nope
+
+39
+00:00:56,250 --> 00:00:56,480
+.
+
+40
+00:00:56,480 --> 00:00:58,020
+It's copied into font files,
+
+41
+00:00:58,020 --> 00:00:59,320
+into image assets, into
+
+42
+00:00:59,320 --> 00:01:01,160
+accessibility data, AI training
+
+43
+00:01:01,160 --> 00:01:02,750
+sets, application code, you
+
+44
+00:01:02,750 --> 00:01:03,440
+name it.
+
+45
+00:01:03,440 --> 00:01:04,730
+And every single one of those
+
+46
+00:01:04,730 --> 00:01:06,080
+copies is a potential point of
+
+47
+00:01:06,080 --> 00:01:07,630
+failure, a maintenance headache
+
+48
+00:01:07,630 --> 00:01:09,160
+, and just a source of waste.
+
+49
+00:01:09,640 --> 00:01:11,390
+And the scale of this problem
+
+50
+00:01:11,390 --> 00:01:13,180
+is absolutely staggering.
+
+51
+00:01:13,180 --> 00:01:15,280
+We're talking about over 70% of
+
+52
+00:01:15,280 --> 00:01:17,030
+our storage and compute power
+
+53
+00:01:17,030 --> 00:01:18,800
+being wasted just by managing
+
+54
+00:01:18,800 --> 00:01:20,530
+redundant copies of the exact
+
+55
+00:01:20,530 --> 00:01:21,840
+same information.
+
+56
+00:01:21,840 --> 00:01:23,740
+This isn't just inefficient.
+
+57
+00:01:23,740 --> 00:01:25,770
+It's completely unsustainable,
+
+58
+00:01:25,770 --> 00:01:27,590
+especially with the demand for
+
+59
+00:01:27,590 --> 00:01:28,860
+AI just exploding.
+
+60
+00:01:29,580 --> 00:01:31,140
+Let's just trace the journey of
+
+61
+00:01:31,140 --> 00:01:32,540
+a single symbol, right?
+
+62
+00:01:32,540 --> 00:01:33,980
+So it gets designed.
+
+63
+00:01:33,980 --> 00:01:35,610
+Then that design is copied into
+
+64
+00:01:35,610 --> 00:01:36,160
+a font.
+
+65
+00:01:36,160 --> 00:01:37,540
+Then it's copied again for a
+
+66
+00:01:37,540 --> 00:01:38,480
+screen reader.
+
+67
+00:01:38,480 --> 00:01:39,750
+And then again so an AI can
+
+68
+00:01:39,750 --> 00:01:40,720
+understand it.
+
+69
+00:01:40,720 --> 00:01:42,330
+Now what happens if you need to
+
+70
+00:01:42,330 --> 00:01:43,780
+update that one symbol?
+
+71
+00:01:43,780 --> 00:01:45,120
+You have to hunt down and
+
+72
+00:01:45,120 --> 00:01:46,800
+manually change every single
+
+73
+00:01:46,800 --> 00:01:47,320
+copy.
+
+74
+00:01:47,320 --> 00:01:48,700
+The whole system is basically
+
+75
+00:01:48,700 --> 00:01:50,180
+designed for fragmentation and
+
+76
+00:01:50,180 --> 00:01:50,680
+error.
+
+77
+00:01:50,680 --> 00:01:53,120
+So how do we fix this?
+
+78
+00:01:53,600 --> 00:01:55,490
+Well, the answer is a complete
+
+79
+00:01:55,490 --> 00:01:56,700
+paradigm shift.
+
+80
+00:01:56,700 --> 00:01:58,000
+We have to move away from
+
+81
+00:01:58,000 --> 00:01:59,630
+storing all these static dead
+
+82
+00:01:59,630 --> 00:02:01,160
+copies of information.
+
+83
+00:02:01,160 --> 00:02:02,940
+And instead we store a single
+
+84
+00:02:02,940 --> 00:02:04,340
+living procedure.
+
+85
+00:02:04,340 --> 00:02:06,840
+And this is procedural memory.
+
+86
+00:02:06,840 --> 00:02:08,660
+The idea is so simple, but it's
+
+87
+00:02:08,660 --> 00:02:10,160
+incredibly profound.
+
+88
+00:02:10,160 --> 00:02:11,910
+Instead of taking a million
+
+89
+00:02:11,910 --> 00:02:13,590
+photos of a cake, you just
+
+90
+00:02:13,590 --> 00:02:14,880
+store the recipe.
+
+91
+00:02:14,880 --> 00:02:16,460
+That one single recipe can then
+
+92
+00:02:16,460 --> 00:02:17,720
+be used to render the cake
+
+93
+00:02:17,720 --> 00:02:19,020
+visually for a person,
+
+94
+00:02:19,020 --> 00:02:20,470
+to generate audio instructions
+
+95
+00:02:20,470 --> 00:02:22,020
+for a screen reader, or even to
+
+96
+00:02:22,020 --> 00:02:23,410
+let an AI understand its
+
+97
+00:02:23,410 --> 00:02:24,220
+ingredients
+
+98
+00:02:24,220 --> 00:02:25,520
+and what it actually is.
+
+99
+00:02:25,520 --> 00:02:27,360
+It is one source for multiple
+
+100
+00:02:27,360 --> 00:02:29,400
+uses with zero duplication.
+
+101
+00:02:29,400 --> 00:02:30,600
+And when you put the two
+
+102
+00:02:30,600 --> 00:02:32,120
+approaches side by side like
+
+103
+00:02:32,120 --> 00:02:33,660
+this, the difference is just
+
+104
+00:02:33,660 --> 00:02:34,580
+night and day.
+
+105
+00:02:34,580 --> 00:02:36,110
+The old way is wasteful and it
+
+106
+00:02:36,110 --> 00:02:37,510
+creates these separate,
+
+107
+00:02:37,510 --> 00:02:39,260
+inconsistent worlds for people
+
+108
+00:02:39,260 --> 00:02:40,220
+and machines.
+
+109
+00:02:40,220 --> 00:02:42,360
+The new way, the PMKR approach,
+
+110
+00:02:42,360 --> 00:02:43,840
+uses these executable
+
+111
+00:02:43,840 --> 00:02:45,000
+procedures.
+
+112
+00:02:45,200 --> 00:02:46,490
+Think of them like smart
+
+113
+00:02:46,490 --> 00:02:48,040
+shortcuts that always point
+
+114
+00:02:48,040 --> 00:02:49,760
+back to the one original source
+
+115
+00:02:49,760 --> 00:02:49,760
+,
+
+116
+00:02:49,760 --> 00:02:51,260
+instead of making tons of waste
+
+117
+00:02:51,260 --> 00:02:52,020
+ful copies.
+
+118
+00:02:52,020 --> 00:02:53,720
+The savings are massive.
+
+119
+00:02:53,720 --> 00:02:55,170
+And more importantly, it
+
+120
+00:02:55,170 --> 00:02:57,030
+creates a single, shared source
+
+121
+00:02:57,030 --> 00:02:57,760
+of truth.
+
+122
+00:02:57,760 --> 00:02:59,510
+And this is where things get
+
+123
+00:02:59,510 --> 00:03:00,700
+really elegant.
+
+124
+00:03:00,700 --> 00:03:02,360
+This all leads to something
+
+125
+00:03:02,360 --> 00:03:04,290
+called the dual client contract
+
+126
+00:03:04,290 --> 00:03:04,580
+.
+
+127
+00:03:04,580 --> 00:03:06,330
+It's how one single source of
+
+128
+00:03:06,330 --> 00:03:07,810
+information can serve two
+
+129
+00:03:07,810 --> 00:03:09,960
+completely different consumers,
+
+130
+00:03:09,960 --> 00:03:11,960
+a human and an AI, without any
+
+131
+00:03:11,960 --> 00:03:13,520
+duplication at all.
+
+132
+00:03:13,780 --> 00:03:15,310
+This chart just lays it out
+
+133
+00:03:15,310 --> 00:03:16,160
+perfectly.
+
+134
+00:03:16,160 --> 00:03:18,220
+A human looks at an interface
+
+135
+00:03:18,220 --> 00:03:20,350
+and sees a save icon, a floppy
+
+136
+00:03:20,350 --> 00:03:21,040
+disk.
+
+137
+00:03:21,040 --> 00:03:22,710
+But the AI reading the exact
+
+138
+00:03:22,710 --> 00:03:24,520
+same source code doesn't see a
+
+139
+00:03:24,520 --> 00:03:25,320
+picture.
+
+140
+00:03:25,320 --> 00:03:27,530
+It sees an executable command,
+
+141
+00:03:27,530 --> 00:03:28,640
+action save.
+
+142
+00:03:28,640 --> 00:03:30,000
+A human sees a button.
+
+143
+00:03:30,000 --> 00:03:31,980
+The AI sees a semantic function
+
+144
+00:03:31,980 --> 00:03:32,240
+.
+
+145
+00:03:32,240 --> 00:03:34,220
+It's two totally different ways
+
+146
+00:03:34,220 --> 00:03:35,840
+of perceiving one unified
+
+147
+00:03:35,840 --> 00:03:36,640
+reality.
+
+148
+00:03:37,060 --> 00:03:38,810
+Now, this isn't just some
+
+149
+00:03:38,810 --> 00:03:40,160
+abstract theory.
+
+150
+00:03:40,160 --> 00:03:42,040
+There's actually a reference
+
+151
+00:03:42,040 --> 00:03:44,230
+implementation called Knowledge
+
+152
+00:03:44,230 --> 00:03:46,460
+3D, or K3D, that's putting all
+
+153
+00:03:46,460 --> 00:03:47,860
+these principles into practice.
+
+154
+00:03:47,860 --> 00:03:48,920
+So let's take a look at how it
+
+155
+00:03:48,920 --> 00:03:49,900
+'s actually built.
+
+156
+00:03:50,320 --> 00:03:52,090
+The K3D architecture is modeled
+
+157
+00:03:52,090 --> 00:03:53,560
+as a knowledge verse, and at
+
+158
+00:03:53,560 --> 00:03:55,010
+its core is this three-brain
+
+159
+00:03:55,010 --> 00:03:56,580
+system that's actually super
+
+160
+00:03:56,580 --> 00:03:58,080
+intuitive because it mirrors
+
+161
+00:03:58,080 --> 00:03:59,540
+the computer hardware we all
+
+162
+00:03:59,540 --> 00:04:00,180
+know.
+
+163
+00:04:00,180 --> 00:04:02,000
+You've got the cranium, which
+
+164
+00:04:02,000 --> 00:04:03,420
+is like the CPU or GPU.
+
+165
+00:04:03,420 --> 00:04:04,780
+It's the engine that does the
+
+166
+00:04:04,780 --> 00:04:05,460
+thinking.
+
+167
+00:04:05,460 --> 00:04:07,080
+Then there's the galaxy, which
+
+168
+00:04:07,080 --> 00:04:08,700
+is like your RAM, active memory
+
+169
+00:04:08,700 --> 00:04:10,000
+for real-time tasks.
+
+170
+00:04:10,260 --> 00:04:11,810
+And finally, the house, which
+
+171
+00:04:11,810 --> 00:04:12,830
+is like your SSD, the
+
+172
+00:04:12,830 --> 00:04:14,600
+persistent long-term memory.
+
+173
+00:04:14,600 --> 00:04:16,350
+So let's zoom in on the cranium
+
+174
+00:04:16,350 --> 00:04:16,600
+.
+
+175
+00:04:16,600 --> 00:04:17,990
+This is the reasoning core, and
+
+176
+00:04:17,990 --> 00:04:19,230
+it's built for what they call
+
+177
+00:04:19,230 --> 00:04:20,040
+sovereignty.
+
+178
+00:04:20,040 --> 00:04:21,420
+That means no reliance on
+
+179
+00:04:21,420 --> 00:04:22,880
+external frameworks like
+
+180
+00:04:22,880 --> 00:04:24,390
+TensorFlow or PyTorch.
+
+181
+00:04:24,390 --> 00:04:26,040
+It runs on low-level, hand
+
+182
+00:04:26,040 --> 00:04:27,980
+written code directly on the GPU
+
+183
+00:04:27,980 --> 00:04:29,880
+, which makes it unbelievably
+
+184
+00:04:29,880 --> 00:04:30,450
+fast.
+
+185
+00:04:30,450 --> 00:04:31,830
+We're talking inference loops
+
+186
+00:04:31,830 --> 00:04:33,390
+under 100 microseconds.
+
+187
+00:04:33,390 --> 00:04:34,970
+And it's completely transparent
+
+188
+00:04:34,970 --> 00:04:35,160
+.
+
+189
+00:04:35,160 --> 00:04:36,430
+You can inspect every single
+
+190
+00:04:36,430 --> 00:04:37,200
+instruction.
+
+191
+00:04:37,200 --> 00:04:39,240
+And here's the real kicker.
+
+192
+00:04:39,680 --> 00:04:41,260
+The whole system is powered by
+
+193
+00:04:41,260 --> 00:04:42,830
+a tiny recursive model of just
+
+194
+00:04:42,830 --> 00:04:44,380
+7 million parameters.
+
+195
+00:04:44,380 --> 00:04:45,940
+But it can achieve the same
+
+196
+00:04:45,940 --> 00:04:47,810
+reasoning depth as models with
+
+197
+00:04:47,810 --> 00:04:49,980
+tens of billions of parameters.
+
+198
+00:04:49,980 --> 00:04:51,040
+How?
+
+199
+00:04:51,040 --> 00:04:53,420
+Because it focuses on process.
+
+200
+00:04:53,420 --> 00:04:55,020
+It reuses a small set of
+
+201
+00:04:55,020 --> 00:04:57,080
+instructions in incredibly
+
+202
+00:04:57,080 --> 00:04:58,890
+complex ways, instead of
+
+203
+00:04:58,890 --> 00:04:59,890
+needing a giant library of
+
+204
+00:04:59,890 --> 00:05:00,890
+stored knowledge.
+
+205
+00:05:00,890 --> 00:05:02,330
+This is a massive leap in
+
+206
+00:05:02,330 --> 00:05:03,320
+efficiency.
+
+207
+00:05:03,320 --> 00:05:04,920
+And all that efficiency?
+
+208
+00:05:04,920 --> 00:05:06,910
+Well, it isn't just about speed
+
+209
+00:05:06,910 --> 00:05:07,620
+or cost.
+
+210
+00:05:08,100 --> 00:05:09,520
+It has a direct and, frankly, a
+
+211
+00:05:09,520 --> 00:05:10,740
+massive impact on one of the
+
+212
+00:05:10,740 --> 00:05:12,240
+biggest challenges we're facing
+
+213
+00:05:12,240 --> 00:05:12,520
+.
+
+214
+00:05:12,520 --> 00:05:14,660
+The energy consumption of AI.
+
+215
+00:05:14,660 --> 00:05:17,300
+So, the crucial point is this.
+
+216
+00:05:17,300 --> 00:05:18,880
+The carbon blueprint for this
+
+217
+00:05:18,880 --> 00:05:20,580
+kind of architecture projects a
+
+218
+00:05:20,580 --> 00:05:22,660
+cumulative savings of 12 gigat
+
+219
+00:05:22,660 --> 00:05:24,470
+ons of CO2 over a 10-year period
+
+220
+00:05:24,470 --> 00:05:24,800
+.
+
+221
+00:05:24,800 --> 00:05:26,260
+Let that sink in for a second.
+
+222
+00:05:26,260 --> 00:05:27,440
+12 gigatons.
+
+223
+00:05:27,440 --> 00:05:28,710
+This is not some minor
+
+224
+00:05:28,710 --> 00:05:29,820
+optimization.
+
+225
+00:05:29,820 --> 00:05:31,380
+It is an architectural shift
+
+226
+00:05:31,380 --> 00:05:32,550
+with planetary scale
+
+227
+00:05:32,550 --> 00:05:33,580
+consequences.
+
+228
+00:05:33,580 --> 00:05:35,340
+And this timeline shows you how
+
+229
+00:05:35,340 --> 00:05:37,380
+that impact just keeps growing.
+
+230
+00:05:37,380 --> 00:05:39,860
+By 2035, the projected annual
+
+231
+00:05:39,860 --> 00:05:42,190
+savings could hit 2.5 gigatons
+
+232
+00:05:42,190 --> 00:05:43,000
+of CO2.
+
+233
+00:05:43,000 --> 00:05:44,460
+That would be almost 7% of our
+
+234
+00:05:44,460 --> 00:05:45,990
+entire planet's current yearly
+
+235
+00:05:45,990 --> 00:05:46,740
+emissions.
+
+236
+00:05:47,280 --> 00:05:48,330
+And it all comes from just
+
+237
+00:05:48,330 --> 00:05:49,430
+getting rid of the waste of
+
+238
+00:05:49,430 --> 00:05:50,730
+duplication and using hyper-e
+
+239
+00:05:50,730 --> 00:05:51,840
+fficient reasoning.
+
+240
+00:05:51,840 --> 00:05:53,840
+You know, 12 gigatons is such a
+
+241
+00:05:53,840 --> 00:05:55,620
+huge number, it's hard to even
+
+242
+00:05:55,620 --> 00:05:57,200
+wrap your head around.
+
+243
+00:05:57,200 --> 00:05:59,070
+So, to put that in perspective,
+
+244
+00:05:59,070 --> 00:06:00,630
+it's the same as taking over
+
+245
+00:06:00,630 --> 00:06:02,240
+half a billion gasoline cars
+
+246
+00:06:02,240 --> 00:06:03,840
+off the road for a year.
+
+247
+00:06:03,840 --> 00:06:05,970
+Or shutting down 800 coal-fired
+
+248
+00:06:05,970 --> 00:06:06,920
+power plants.
+
+249
+00:06:06,920 --> 00:06:08,540
+These are not small numbers.
+
+250
+00:06:08,540 --> 00:06:10,100
+This is a real blueprint for a
+
+251
+00:06:10,100 --> 00:06:11,940
+sustainable digital future.
+
+252
+00:06:12,620 --> 00:06:14,120
+Now, a project this ambitious
+
+253
+00:06:14,120 --> 00:06:15,520
+can't happen in a vacuum.
+
+254
+00:06:15,520 --> 00:06:16,870
+It has to be built out in the
+
+255
+00:06:16,870 --> 00:06:18,680
+open as a global, collaborative
+
+256
+00:06:18,680 --> 00:06:19,920
+effort to really set a new
+
+257
+00:06:19,920 --> 00:06:21,450
+standard for how we all share
+
+258
+00:06:21,450 --> 00:06:22,300
+knowledge.
+
+259
+00:06:22,300 --> 00:06:23,880
+And that's exactly what's
+
+260
+00:06:23,880 --> 00:06:24,780
+happening.
+
+261
+00:06:24,780 --> 00:06:26,530
+The work is being hosted at the
+
+262
+00:06:26,530 --> 00:06:28,280
+World Wide Web Consortium, the
+
+263
+00:06:28,280 --> 00:06:29,810
+W3C, the same group that
+
+264
+00:06:29,810 --> 00:06:31,800
+standardizes the web itself.
+
+265
+00:06:31,800 --> 00:06:32,980
+It's a groundbreaking
+
+266
+00:06:32,980 --> 00:06:34,550
+partnership between Daniel R
+
+267
+00:06:34,550 --> 00:06:36,300
+amos, an engineer from Brazil,
+
+268
+00:06:36,300 --> 00:06:37,440
+and Milton Ponson,
+
+269
+00:06:37,440 --> 00:06:38,510
+a mathematician with three
+
+270
+00:06:38,510 --> 00:06:39,540
+decades of environmental
+
+271
+00:06:39,540 --> 00:06:41,000
+knowledge from the Netherlands.
+
+272
+00:06:41,620 --> 00:06:43,260
+And their work immediately got
+
+273
+00:06:43,260 --> 00:06:44,950
+support from leading experts at
+
+274
+00:06:44,950 --> 00:06:46,460
+places like MIT and Huawei,
+
+275
+00:06:46,460 --> 00:06:47,900
+which just shows its global
+
+276
+00:06:47,900 --> 00:06:48,780
+resonance.
+
+277
+00:06:48,780 --> 00:06:50,330
+And this is already translating
+
+278
+00:06:50,330 --> 00:06:51,940
+into some incredible real-world
+
+279
+00:06:51,940 --> 00:06:52,860
+applications.
+
+280
+00:06:52,860 --> 00:06:54,390
+I mean, imagine e-readers that
+
+281
+00:06:54,390 --> 00:06:55,820
+don't need to store bulky font
+
+282
+00:06:55,820 --> 00:06:57,320
+files but can still render over
+
+283
+00:06:57,320 --> 00:06:59,570
+100,000 characters perfectly
+
+284
+00:06:59,570 --> 00:07:01,140
+with almost zero storage.
+
+285
+00:07:01,140 --> 00:07:02,410
+Imagine interfaces with
+
+286
+00:07:02,410 --> 00:07:04,110
+infinite zoom for accessibility
+
+287
+00:07:04,110 --> 00:07:05,920
+with absolutely no pixelation.
+
+288
+00:07:05,920 --> 00:07:07,180
+And a truly explainable AI
+
+289
+00:07:07,180 --> 00:07:08,640
+where you can literally watch
+
+290
+00:07:08,640 --> 00:07:09,870
+the AI's path of logic as it
+
+291
+00:07:09,870 --> 00:07:11,400
+moves through this universe of
+
+292
+00:07:11,400 --> 00:07:12,260
+knowledge.
+
+293
+00:07:12,260 --> 00:07:14,050
+The best part is, this entire
+
+294
+00:07:14,050 --> 00:07:15,770
+project is being built right
+
+295
+00:07:15,770 --> 00:07:16,920
+out in the open.
+
+296
+00:07:16,920 --> 00:07:18,520
+You can follow the standards
+
+297
+00:07:18,520 --> 00:07:20,360
+work at the W3C community group
+
+298
+00:07:20,360 --> 00:07:22,320
+, or you can dive right into the
+
+299
+00:07:22,320 --> 00:07:23,960
+code for the K3D implementation
+
+300
+00:07:23,960 --> 00:07:24,800
+on GitHub.
+
+301
+00:07:25,080 --> 00:07:26,160
+This is really an open
+
+302
+00:07:26,160 --> 00:07:27,470
+invitation for anyone to
+
+303
+00:07:27,470 --> 00:07:28,920
+participate in building this
+
+304
+00:07:28,920 --> 00:07:29,520
+future.
+
+305
+00:07:29,520 --> 00:07:31,010
+And we'll just end on this
+
+306
+00:07:31,010 --> 00:07:31,780
+thought.
+
+307
+00:07:31,780 --> 00:07:33,140
+For decades, we've interacted
+
+308
+00:07:33,140 --> 00:07:34,440
+with data through these flat,
+
+309
+00:07:34,440 --> 00:07:35,700
+two-dimensional windows on a
+
+310
+00:07:35,700 --> 00:07:36,220
+screen.
+
+311
+00:07:36,220 --> 00:07:37,680
+This new paradigm treats
+
+312
+00:07:37,680 --> 00:07:39,660
+software as a three-dimensional
+
+313
+00:07:39,660 --> 00:07:41,120
+, navigatable place.
+
+314
+00:07:41,120 --> 00:07:42,980
+A cognitive habitat where we,
+
+315
+00:07:42,980 --> 00:07:44,680
+and AI, can finally explore
+
+316
+00:07:44,680 --> 00:07:46,690
+knowledge together, in a shared
+
+317
+00:07:46,690 --> 00:07:47,300
+home.
+
+318
+00:07:47,300 --> 00:08:17,280
+Thank you.

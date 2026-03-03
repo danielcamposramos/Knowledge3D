@@ -35,20 +35,24 @@ This folder is a media-ready package for journalists, standards participants, di
 
 ## NotebookLM / Nano Banana Workflow
 
-**Comprehensive prompts:** See [NOTEBOOKLM_PROMPTS_FOR_NANO_BANANA.md](NOTEBOOKLM_PROMPTS_FOR_NANO_BANANA.md)
+**🎯 RECOMMENDED (Most Useful):** [NOTEBOOKLM_AUDIO_AND_DATA_PROMPTS.md](NOTEBOOKLM_AUDIO_AND_DATA_PROMPTS.md)
+- **Audio Overview** (podcast-style, ~10 min) → YouTube explainer, press kit audio
+- **Data Tables** (structured CSV/JSON) → Press releases, grant applications, presentations
+  - Carbon Impact Timeline (2026-2035)
+  - PM-KR vs LLMs vs RAG Comparison
+  - W3C Cross-CG Collaboration Matrix
 
-Quick workflow:
-1. Upload the entire `docs/PRESS_KIT/` folder to NotebookLM
-2. Copy-paste prompts from NOTEBOOKLM_PROMPTS file (7 prompts available):
-   - Prompt 1: Carbon Impact Infographic (PNG + PDF)
-   - Prompt 2: Architecture Diagram (PNG + SVG)
-   - Prompt 3: Comparison Chart (PNG + PDF)
-   - Prompt 4: Presentation Deck (10 slides, PDF + PNG)
-   - Prompt 5: Explainer Video Script (8-10 minutes, Audio MP3 + TXT)
-   - Prompt 6: Team Photo Mockup (PNG + JPG)
-   - Prompt 7: Social Media Graphics (4 images, PNG)
-3. Save generated assets to `08_MEDIA_RESOURCES/generated_assets/`
-4. Use for press outreach, conference submissions, social media
+**Alternative (Visual Assets):** [NOTEBOOKLM_PROMPTS_FOR_NANO_BANANA.md](NOTEBOOKLM_PROMPTS_FOR_NANO_BANANA.md)
+- 7 prompts for infographics, architecture diagrams, slides, team photos, social graphics
+- Useful for conferences, display manufacturer pitches, social media
+
+Quick workflow (Audio + Data - RECOMMENDED):
+1. Upload entire `docs/PRESS_KIT/` folder to NotebookLM
+2. Click **"Audio Overview"** button (generates podcast automatically)
+3. Click **"Generate data table"** button (new feature, creates CSV/JSON)
+4. Download outputs: Audio MP3 + Data CSV/JSON
+5. Save to `08_MEDIA_RESOURCES/generated_assets/`
+6. Use for press outreach, YouTube, conference submissions
 
 ## Grounding Sources Used
 - `TEMP/PROJECT_OVERVIEW_KEY_PERSONNEL_2026-03-04.md`
