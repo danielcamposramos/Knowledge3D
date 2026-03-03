@@ -1,0 +1,17 @@
+# Post 0311: The Fast Approaching Digital Control Grid - by harry blazer
+
+- URL: https://hblazer.substack.com/p/the-fast-approaching-digital-control
+- Fetched At (UTC): 2026-03-03T11:54:55.898070+00:00
+- Keyword Signals: ai:83, control:32, ethic:2, privacy:1, sovereign:4, systems:23
+- Full Text File: `docs/CHRISTOPH_SOVEREIGN_SYSTEMS_CHARTER_MISSION/posts_full/0311_the-fast-approaching-digital-control.txt`
+
+## Summary
+55 to Repeal the National Voter Registration Act Financial and Other Data, Payment Systems, and AI Summary : To build a digital control grid, digital IDs must link with programmable money and interoperable systems across multiple platforms (banks, credit cards, online payment systems), which can be integrated with social credit and surveillance systems. Executive Orders and Actions: America’s Bank Account; Information Silos; AI Leadership Three executive orders centralize federal data and payment verification into Treasury; centralize federal databases and systems integration; and promote “decisive” action to retain global AI leadership. 23, 2025) AI Action Plan and Additional AI Executive Orders (added July 28, 2025) On July 23, 2025, the White House released “Winning the AI Race: America’s AI Action Plan,” identifying over 90 federal policy actions grouped around three pillars: Accelerating Innovation, Building American AI Infrastructure, and Leading in International Diplomacy and Security.
+
+## Key Sentences
+- 55 to Repeal the National Voter Registration Act Financial and Other Data, Payment Systems, and AI Summary : To build a digital control grid, digital IDs must link with programmable money and interoperable systems across multiple platforms (banks, credit cards, online payment systems), which can be integrated with social credit and surveillance systems.
+- Executive Orders and Actions: America’s Bank Account; Information Silos; AI Leadership Three executive orders centralize federal data and payment verification into Treasury; centralize federal databases and systems integration; and promote “decisive” action to retain global AI leadership.
+- 23, 2025) AI Action Plan and Additional AI Executive Orders (added July 28, 2025) On July 23, 2025, the White House released “Winning the AI Race: America’s AI Action Plan,” identifying over 90 federal policy actions grouped around three pillars: Accelerating Innovation, Building American AI Infrastructure, and Leading in International Diplomacy and Security.
+- Estimates project that AI could generate $15 trillion globally by 2030.” White House Unveils America’s AI Action Plan (July 23, 2025) EO: Preventing Woke AI in the Federal Government (July 23, 2025) and Fact Sheet EO: Advancing Artificial Intelligence (AI) Education for American Youth (April 23, 2025) and Fact Sheet The Coming Artificial Intelligence Crisis: Power Without Oversight The Internet of Bodies Summary : During the first Trump Administration, the president appointed a pharmaceutical executive who was an expert in brain-machine interface to run Operation Warp Speed.
+- Institutional investors including sovereign wealth funds, pension funds and even government entities would be affected, as well as retail investors and businesses with US assets.” “Revenge Tax” to Hit US Allies with Tax Rules Tagged Unfair by Trump Executive Orders and Actions: Crypto Asset Forfeiture; Creation of Sovereign Wealth Fund Asset Forfeiture Fund included in the push to increase federal crypto holdings.
+

@@ -1,0 +1,17 @@
+# Post 0200: SO TAKE A GUESS - WHAT IS META&#x27;s PROJECTED CAPEX FOR FISCAL YEAR 2025?
+
+- URL: https://hblazer.substack.com/p/so-take-a-guess-what-is-metas-capex
+- Fetched At (UTC): 2026-03-03T08:49:38.115804+00:00
+- Keyword Signals: ai:32, boundaries:1, control:9, privacy:1, sovereign:11, sovereignty:6, systems:2
+- Full Text File: `docs/CHRISTOPH_SOVEREIGN_SYSTEMS_CHARTER_MISSION/posts_full/0200_so-take-a-guess-what-is-metas-capex.txt`
+
+## Summary
+And control has: no unit cost infinite scalability recursive feedback loops a flywheel effect no ceiling no market boundaries almost no competition enormous lock-in In other words, AI infrastructure is the new utility , but controlled by private entities rather than states. Legacy businesses operate on: thin margins real-world constraints labor intensity physical inventory regulation geography Meta operates on: software economics attention extraction digital scaling no geographic constraint practically infinite growth curves AI as a force multiplier margins that would make a 20th century CEO faint This is why companies like Meta, Google, Microsoft, and Amazon can spend tens of billions annually while still appearing financially invincible. From “cloud provider” to “digital utility” They are converging toward the role of: Electric company for cognition Water company for data Railroad for AI agents Except: They are not regulated like utilities They can pick and choose customers globally They can weaponize pricing, access and latency They can embed policy in code (AUPs, filters, defaults) So AI infrastructure is effectively a sovereign asset without a sovereign — privately controlled but socially systemic.
+
+## Key Sentences
+- And control has: no unit cost infinite scalability recursive feedback loops a flywheel effect no ceiling no market boundaries almost no competition enormous lock-in In other words, AI infrastructure is the new utility , but controlled by private entities rather than states.
+- Legacy businesses operate on: thin margins real-world constraints labor intensity physical inventory regulation geography Meta operates on: software economics attention extraction digital scaling no geographic constraint practically infinite growth curves AI as a force multiplier margins that would make a 20th century CEO faint This is why companies like Meta, Google, Microsoft, and Amazon can spend tens of billions annually while still appearing financially invincible.
+- From “cloud provider” to “digital utility” They are converging toward the role of: Electric company for cognition Water company for data Railroad for AI agents Except: They are not regulated like utilities They can pick and choose customers globally They can weaponize pricing, access and latency They can embed policy in code (AUPs, filters, defaults) So AI infrastructure is effectively a sovereign asset without a sovereign — privately controlled but socially systemic.
+- Thus, revenue sources reflect where the leverage lies.Essay: Digital Empire-Building and the New Sovereignty Crisis A Closing Essay: Digital Empire-Building and the New Sovereignty Crisis When a company spends seventy billion dollars in a year on metal boxes that think, it is no longer just “a business.” It is building a grid.
+- This is the new sovereignty crisis: States still control territory Corporations increasingly control cognition Humans sit in the crossfire, mistaking personalized interfaces for agency We are watching a quiet inversion of power.
+
