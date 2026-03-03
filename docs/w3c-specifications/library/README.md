@@ -36,6 +36,12 @@ This room contains consolidated reference material for PM-KR specification devel
 
 ## 📂 Contents
 
+### `PM_KR_CG_CHARTER.md` — PM-KR Community Group Charter
+- Grounded charter snapshot for PM-KR social/standards work.
+
+### `PM_KR_WEBML_GROUNDING_MATRIX.md` — WebML Proposal Claim Map
+- Claim-to-source matrix used to keep Intel/WebML submissions evidence-based.
+
 ### `prior-art/` — Research Papers & Related Work
 - Procedural Knowledge Networks (PKN)
 - Neuroscience research (Milton's bilingual brain studies)
