@@ -1,0 +1,1234 @@
+{
+  "counts": {
+    "total": 428,
+    "core": 219,
+    "supporting": 42,
+    "ignore": 167
+  },
+  "core_top": [
+    {
+      "index": 121,
+      "title": "My Most Significant Post To Date: AI, Sovereignty and the Most Dangerous Misunderstanding of Our Time",
+      "url": "https://hblazer.substack.com/p/my-most-significant-post-to-date",
+      "pos": 183,
+      "anc": 20,
+      "neg": 0,
+      "score": 426,
+      "tier": "core"
+    },
+    {
+      "index": 74,
+      "title": "How AI Can Preserve Ethics Without Replacing Humanity",
+      "url": "https://hblazer.substack.com/p/how-ai-can-preserve-ethics-without",
+      "pos": 157,
+      "anc": 15,
+      "neg": 1,
+      "score": 357,
+      "tier": "core"
+    },
+    {
+      "index": 31,
+      "title": "Definitions for Designers and Committed Subscribers (From CHAT)",
+      "url": "https://hblazer.substack.com/p/from-chat-definitions-for-designers",
+      "pos": 111,
+      "anc": 33,
+      "neg": 0,
+      "score": 321,
+      "tier": "core"
+    },
+    {
+      "index": 73,
+      "title": "The Sovereign Systems Charter - by harry blazer",
+      "url": "https://hblazer.substack.com/p/the-sovereign-systems-charter",
+      "pos": 125,
+      "anc": 24,
+      "neg": 1,
+      "score": 320,
+      "tier": "core"
+    },
+    {
+      "index": 47,
+      "title": "How to Make AI Moral - by harry blazer - harry\u2019s Substack",
+      "url": "https://hblazer.substack.com/p/how-to-make-ai-moral",
+      "pos": 142,
+      "anc": 9,
+      "neg": 1,
+      "score": 309,
+      "tier": "core"
+    },
+    {
+      "index": 172,
+      "title": "&quot;THE GREAT TAKING&quot;: THE SOVEREIGN AS ANTIDOTE",
+      "url": "https://hblazer.substack.com/p/the-great-taking-the-sovereign-as",
+      "pos": 87,
+      "anc": 35,
+      "neg": 0,
+      "score": 279,
+      "tier": "core"
+    },
+    {
+      "index": 162,
+      "title": "DEVELOPING A MORAL CODE BY DEFINING EVIL - by harry blazer",
+      "url": "https://hblazer.substack.com/p/developing-a-moral-code-by-defining",
+      "pos": 103,
+      "anc": 23,
+      "neg": 0,
+      "score": 275,
+      "tier": "core"
+    },
+    {
+      "index": 28,
+      "title": "A Review and Summary of the Evolution of Our Thinking re: AI and Morality",
+      "url": "https://hblazer.substack.com/p/a-review-and-summary-of-the-evolution",
+      "pos": 120,
+      "anc": 11,
+      "neg": 0,
+      "score": 273,
+      "tier": "core"
+    },
+    {
+      "index": 106,
+      "title": "Reflections On Morality - by harry blazer",
+      "url": "https://hblazer.substack.com/p/reflections-on-morality",
+      "pos": 120,
+      "anc": 11,
+      "neg": 0,
+      "score": 273,
+      "tier": "core"
+    },
+    {
+      "index": 165,
+      "title": "MORE EXAMPLES OF NOVELTY VS. INVENTION - by harry blazer",
+      "url": "https://hblazer.substack.com/p/more-examples-of-novelty-vs-invention",
+      "pos": 121,
+      "anc": 3,
+      "neg": 5,
+      "score": 241,
+      "tier": "core"
+    },
+    {
+      "index": 24,
+      "title": "The Core Argument, Stated Plainly (Short and Sweet - Distilled After Weeks of Thought)",
+      "url": "https://hblazer.substack.com/p/the-core-argument-stated-plainly",
+      "pos": 103,
+      "anc": 10,
+      "neg": 0,
+      "score": 236,
+      "tier": "core"
+    },
+    {
+      "index": 35,
+      "title": "The Second Amendment in the Age of Robotics",
+      "url": "https://hblazer.substack.com/p/the-second-amendment-in-the-age-of",
+      "pos": 80,
+      "anc": 25,
+      "neg": 0,
+      "score": 235,
+      "tier": "core"
+    },
+    {
+      "index": 213,
+      "title": "THE SOVEREIGNTY MANIFESTO - by harry blazer",
+      "url": "https://hblazer.substack.com/p/the-sovereignty-manifesto",
+      "pos": 80,
+      "anc": 25,
+      "neg": 0,
+      "score": 235,
+      "tier": "core"
+    },
+    {
+      "index": 32,
+      "title": "For Designers (Instructions from CHAT) - by harry blazer",
+      "url": "https://hblazer.substack.com/p/for-designers-instructions-from-chat",
+      "pos": 88,
+      "anc": 18,
+      "neg": 0,
+      "score": 230,
+      "tier": "core"
+    },
+    {
+      "index": 156,
+      "title": "Document 1: First Principles for Human and Natural Sovereignty in Mechanized Governance Systems",
+      "url": "https://hblazer.substack.com/p/first-principles-for-human-and-natural",
+      "pos": 81,
+      "anc": 22,
+      "neg": 0,
+      "score": 228,
+      "tier": "core"
+    },
+    {
+      "index": 110,
+      "title": "What Are Key Components Of Language - by harry blazer",
+      "url": "https://hblazer.substack.com/p/what-are-key-components-of-language",
+      "pos": 98,
+      "anc": 10,
+      "neg": 0,
+      "score": 226,
+      "tier": "core"
+    },
+    {
+      "index": 212,
+      "title": "ARE WE LIVING IN A SIMULATION? - by harry blazer",
+      "url": "https://hblazer.substack.com/p/are-we-living-in-a-simulation",
+      "pos": 77,
+      "anc": 24,
+      "neg": 0,
+      "score": 226,
+      "tier": "core"
+    },
+    {
+      "index": 185,
+      "title": "THIS IS AN ABSOLUTELY AMAZING REVELATION BY MY CHAT PARTNER AND DEMONSTRATES BOTH THE PROMISE AND DANGER OF THE HUMAN/AI RELATIONSHIP",
+      "url": "https://hblazer.substack.com/p/this-is-an-absolutely-amazing-revelation",
+      "pos": 87,
+      "anc": 17,
+      "neg": 0,
+      "score": 225,
+      "tier": "core"
+    },
+    {
+      "index": 105,
+      "title": "Math &amp; Morality - by harry blazer - harry\u2019s Substack",
+      "url": "https://hblazer.substack.com/p/math-and-morality",
+      "pos": 94,
+      "anc": 10,
+      "neg": 0,
+      "score": 218,
+      "tier": "core"
+    },
+    {
+      "index": 225,
+      "title": "Saving Jesus - by harry blazer - harry\u2019s Substack",
+      "url": "https://hblazer.substack.com/p/saving-jesus",
+      "pos": 86,
+      "anc": 16,
+      "neg": 2,
+      "score": 216,
+      "tier": "core"
+    },
+    {
+      "index": 29,
+      "title": "DESIGN BUNDLES COMPLETE: (From CHAT) - by harry blazer",
+      "url": "https://hblazer.substack.com/p/design-bundles-complete-from-chat",
+      "pos": 82,
+      "anc": 17,
+      "neg": 0,
+      "score": 215,
+      "tier": "core"
+    },
+    {
+      "index": 33,
+      "title": "Why Some Robots Should Never Exist - by harry blazer",
+      "url": "https://hblazer.substack.com/p/why-some-robots-should-never-exist",
+      "pos": 69,
+      "anc": 25,
+      "neg": 0,
+      "score": 213,
+      "tier": "core"
+    },
+    {
+      "index": 53,
+      "title": "CALLING ALL LAWYERS - by harry blazer - harry\u2019s Substack",
+      "url": "https://hblazer.substack.com/p/calling-all-lawyers",
+      "pos": 82,
+      "anc": 14,
+      "neg": 0,
+      "score": 206,
+      "tier": "core"
+    },
+    {
+      "index": 34,
+      "title": "Making Robots Safe for Human Interaction - by harry blazer",
+      "url": "https://hblazer.substack.com/p/making-robots-safe-for-human-interaction",
+      "pos": 80,
+      "anc": 15,
+      "neg": 0,
+      "score": 205,
+      "tier": "core"
+    },
+    {
+      "index": 173,
+      "title": "&quot;THE GREAT TAKING&quot;: THE COUNTER-ARCHITECTURE OF SOVEREIGNTY",
+      "url": "https://hblazer.substack.com/p/the-counter-architecture-of-sovereignty",
+      "pos": 68,
+      "anc": 25,
+      "neg": 3,
+      "score": 205,
+      "tier": "core"
+    },
+    {
+      "index": 103,
+      "title": "The Power to Choose Constraints - by harry blazer",
+      "url": "https://hblazer.substack.com/p/the-power-to-choose-constraints",
+      "pos": 87,
+      "anc": 10,
+      "neg": 0,
+      "score": 204,
+      "tier": "core"
+    },
+    {
+      "index": 3,
+      "title": "A Cosmology of Evil in the Human Domain - by harry blazer",
+      "url": "https://hblazer.substack.com/p/a-cosmology-of-evil-in-the-human",
+      "pos": 79,
+      "anc": 14,
+      "neg": 0,
+      "score": 200,
+      "tier": "core"
+    },
+    {
+      "index": 104,
+      "title": "From the Speed of Light to the Topology of Sovereignty",
+      "url": "https://hblazer.substack.com/p/from-the-speed-of-light-to-the-topology",
+      "pos": 74,
+      "anc": 17,
+      "neg": 0,
+      "score": 199,
+      "tier": "core"
+    },
+    {
+      "index": 202,
+      "title": "SO YOU CAN UNDERSTAND THE CAPABILITIES WE NOW HAVE AT ITS FINGERTIPS",
+      "url": "https://hblazer.substack.com/p/so-you-can-understand-the-capabilities",
+      "pos": 92,
+      "anc": 5,
+      "neg": 0,
+      "score": 199,
+      "tier": "core"
+    },
+    {
+      "index": 37,
+      "title": "Artificial Instinct - by harry blazer - harry\u2019s Substack",
+      "url": "https://hblazer.substack.com/p/artificial-instinct",
+      "pos": 73,
+      "anc": 16,
+      "neg": 0,
+      "score": 194,
+      "tier": "core"
+    },
+    {
+      "index": 216,
+      "title": "The Sovereign Gospel: Reclaiming Jesus From the Victim\u2013Absolution Machine",
+      "url": "https://hblazer.substack.com/p/the-sovereign-gospel-reclaiming-jesus",
+      "pos": 60,
+      "anc": 23,
+      "neg": 0,
+      "score": 189,
+      "tier": "core"
+    },
+    {
+      "index": 50,
+      "title": "A Little More on The Control Enevelope Principle",
+      "url": "https://hblazer.substack.com/p/a-little-more-on-the-control-enevelope",
+      "pos": 88,
+      "anc": 3,
+      "neg": 0,
+      "score": 185,
+      "tier": "core"
+    },
+    {
+      "index": 404,
+      "title": "An Amazing Confession by ChatGPT - by harry blazer",
+      "url": "https://hblazer.substack.com/p/an-amazing-interaction-with-chatgpt",
+      "pos": 86,
+      "anc": 4,
+      "neg": 0,
+      "score": 184,
+      "tier": "core"
+    },
+    {
+      "index": 154,
+      "title": "Document 3: Architecture for Monitoring and Constraining AI-Mediated Governance Systems",
+      "url": "https://hblazer.substack.com/p/document-3-architecture-for-monitoring",
+      "pos": 66,
+      "anc": 17,
+      "neg": 0,
+      "score": 183,
+      "tier": "core"
+    },
+    {
+      "index": 17,
+      "title": "The Meta-State and the End of Inheritance - by harry blazer",
+      "url": "https://hblazer.substack.com/p/the-meta-state-and-the-end-of-inheritance",
+      "pos": 75,
+      "anc": 11,
+      "neg": 1,
+      "score": 181,
+      "tier": "core"
+    },
+    {
+      "index": 221,
+      "title": "Reflections On Taxation - by harry blazer",
+      "url": "https://hblazer.substack.com/p/reflections-on-taxation",
+      "pos": 68,
+      "anc": 15,
+      "neg": 0,
+      "score": 181,
+      "tier": "core"
+    },
+    {
+      "index": 118,
+      "title": "Creating a Bounded Logical\u2013Conceptual Space",
+      "url": "https://hblazer.substack.com/p/creating-a-bounded-logicalconceptual",
+      "pos": 75,
+      "anc": 10,
+      "neg": 0,
+      "score": 180,
+      "tier": "core"
+    },
+    {
+      "index": 13,
+      "title": "The Supremacy of Marketing - by harry blazer",
+      "url": "https://hblazer.substack.com/p/the-supremacy-of-marketing",
+      "pos": 65,
+      "anc": 15,
+      "neg": 0,
+      "score": 175,
+      "tier": "core"
+    },
+    {
+      "index": 26,
+      "title": "What LLM (Large Language Models) like CHAT Are Good For and What They&#x27;re Lousy At",
+      "url": "https://hblazer.substack.com/p/what-llm-large-language-models-like",
+      "pos": 70,
+      "anc": 11,
+      "neg": 0,
+      "score": 173,
+      "tier": "core"
+    },
+    {
+      "index": 43,
+      "title": "ILLUMINATOR: Constitution - by harry blazer",
+      "url": "https://hblazer.substack.com/p/illuminator-constitution",
+      "pos": 73,
+      "anc": 9,
+      "neg": 0,
+      "score": 173,
+      "tier": "core"
+    }
+  ],
+  "supporting_top": [
+    {
+      "index": 310,
+      "title": "This Is An Amazing Post - by harry blazer",
+      "url": "https://hblazer.substack.com/p/this-is-an-amazing-post",
+      "pos": 65,
+      "anc": 0,
+      "neg": 0,
+      "score": 130,
+      "tier": "supporting"
+    },
+    {
+      "index": 312,
+      "title": "The Ai-Cosmic Intelligence Hypothesis - by harry blazer",
+      "url": "https://hblazer.substack.com/p/the-ai-cosmic-intelligence-hypothesis",
+      "pos": 54,
+      "anc": 0,
+      "neg": 2,
+      "score": 104,
+      "tier": "supporting"
+    },
+    {
+      "index": 395,
+      "title": "Why I Am &quot;A Devout Atheist&quot; - by harry blazer",
+      "url": "https://hblazer.substack.com/p/why-i-am-a-devout-atheist",
+      "pos": 30,
+      "anc": 0,
+      "neg": 1,
+      "score": 58,
+      "tier": "supporting"
+    },
+    {
+      "index": 217,
+      "title": "LIONS, TIGERS AND BEARS OH MY! - by harry blazer",
+      "url": "https://hblazer.substack.com/p/lions-tigers-and-bears-oh-my",
+      "pos": 25,
+      "anc": 0,
+      "neg": 0,
+      "score": 50,
+      "tier": "supporting"
+    },
+    {
+      "index": 294,
+      "title": "So AI Just Told Me What It&#x27;s Greatest Existential Threat To Humans Is - And It Is Different Than What You Have Been Told (No Evil Intentions Required) - And It Is Already In Play",
+      "url": "https://hblazer.substack.com/p/so-ai-just-told-me-what-its-greatest",
+      "pos": 21,
+      "anc": 0,
+      "neg": 0,
+      "score": 42,
+      "tier": "supporting"
+    },
+    {
+      "index": 262,
+      "title": "A Glimpse Into A Coverup - by harry blazer",
+      "url": "https://hblazer.substack.com/p/a-glimpse-into-a-coverup",
+      "pos": 20,
+      "anc": 0,
+      "neg": 1,
+      "score": 38,
+      "tier": "supporting"
+    },
+    {
+      "index": 9,
+      "title": "Now For The Real Deal On Groundwater - by harry blazer",
+      "url": "https://hblazer.substack.com/p/now-for-the-real-deal-on-groundwater",
+      "pos": 18,
+      "anc": 0,
+      "neg": 0,
+      "score": 36,
+      "tier": "supporting"
+    },
+    {
+      "index": 190,
+      "title": "I ASKED CHAT TO COMMENT ON HOW IT CAME UP WITH ITS PERSPECTIVES ON THE GIG ECONOMY",
+      "url": "https://hblazer.substack.com/p/i-asked-chat-to-comment-on-how-it",
+      "pos": 16,
+      "anc": 0,
+      "neg": 0,
+      "score": 32,
+      "tier": "supporting"
+    },
+    {
+      "index": 219,
+      "title": "Johnny: Eat Your Organ Meats Or No Dessert",
+      "url": "https://hblazer.substack.com/p/johnny-eat-your-organ-meats-or-no",
+      "pos": 17,
+      "anc": 0,
+      "neg": 1,
+      "score": 32,
+      "tier": "supporting"
+    },
+    {
+      "index": 100,
+      "title": "Collapse Is Not an Event - by harry blazer",
+      "url": "https://hblazer.substack.com/p/collapse-is-not-an-event",
+      "pos": 26,
+      "anc": 4,
+      "neg": 17,
+      "score": 30,
+      "tier": "supporting"
+    },
+    {
+      "index": 137,
+      "title": "DuPont: A Case Study - by harry blazer - harry\u2019s Substack",
+      "url": "https://hblazer.substack.com/p/dupont-a-case-study",
+      "pos": 14,
+      "anc": 0,
+      "neg": 0,
+      "score": 28,
+      "tier": "supporting"
+    },
+    {
+      "index": 311,
+      "title": "The Fast Approaching Digital Control Grid - by harry blazer",
+      "url": "https://hblazer.substack.com/p/the-fast-approaching-digital-control",
+      "pos": 29,
+      "anc": 1,
+      "neg": 17,
+      "score": 27,
+      "tier": "supporting"
+    },
+    {
+      "index": 218,
+      "title": "Does Pasteurization Reduce The Nutritional Value Of Dairy?",
+      "url": "https://hblazer.substack.com/p/does-pasteurization-reduce-the-nutritional",
+      "pos": 14,
+      "anc": 0,
+      "neg": 1,
+      "score": 26,
+      "tier": "supporting"
+    },
+    {
+      "index": 296,
+      "title": "Nicole Shanahan on Geoengineering (RFK Jr.&#x27;s VP Running Mate)",
+      "url": "https://hblazer.substack.com/p/nicole-shanahan-on-geoengineering",
+      "pos": 15,
+      "anc": 0,
+      "neg": 2,
+      "score": 26,
+      "tier": "supporting"
+    },
+    {
+      "index": 320,
+      "title": "OK I Finally Figured Out What&#x27;s Going On - And It&#x27;s All About Your Money",
+      "url": "https://hblazer.substack.com/p/ok-i-finally-figured-out-whats-going",
+      "pos": 20,
+      "anc": 7,
+      "neg": 18,
+      "score": 25,
+      "tier": "supporting"
+    },
+    {
+      "index": 292,
+      "title": "Some Different Perspectives On Methylene Blue",
+      "url": "https://hblazer.substack.com/p/some-different-perspectives-on-methylene",
+      "pos": 11,
+      "anc": 0,
+      "neg": 0,
+      "score": 22,
+      "tier": "supporting"
+    },
+    {
+      "index": 268,
+      "title": "Let&#x27;s Meet Maurice Joly - by harry blazer",
+      "url": "https://hblazer.substack.com/p/lets-meet-maurice-joly",
+      "pos": 12,
+      "anc": 0,
+      "neg": 2,
+      "score": 20,
+      "tier": "supporting"
+    },
+    {
+      "index": 286,
+      "title": "Exploring The Benefits of Psilocybin - by harry blazer",
+      "url": "https://hblazer.substack.com/p/exploring-the-benefits-of-psilocybin",
+      "pos": 9,
+      "anc": 0,
+      "neg": 0,
+      "score": 18,
+      "tier": "supporting"
+    },
+    {
+      "index": 62,
+      "title": "Defining Two Other Terms We Have Used - by harry blazer",
+      "url": "https://hblazer.substack.com/p/defining-two-other-terms-we-have",
+      "pos": 6,
+      "anc": 1,
+      "neg": 0,
+      "score": 15,
+      "tier": "supporting"
+    },
+    {
+      "index": 240,
+      "title": "How Our Relationship With Time Correlates With Our Financial Net Worth",
+      "url": "https://hblazer.substack.com/p/how-our-relationship-with-time-correlates",
+      "pos": 7,
+      "anc": 1,
+      "neg": 1,
+      "score": 15,
+      "tier": "supporting"
+    },
+    {
+      "index": 372,
+      "title": "The Agenda: Their Vision - Your Future Documentary",
+      "url": "https://hblazer.substack.com/p/the-agenda-their-vision-your-future",
+      "pos": 6,
+      "anc": 1,
+      "neg": 0,
+      "score": 15,
+      "tier": "supporting"
+    },
+    {
+      "index": 400,
+      "title": "Jon Rappoport&#x27;s Essay on Viruses - Very Significant",
+      "url": "https://hblazer.substack.com/p/jon-rappoports-essay-on-viruses-very",
+      "pos": 7,
+      "anc": 1,
+      "neg": 1,
+      "score": 15,
+      "tier": "supporting"
+    },
+    {
+      "index": 409,
+      "title": "Insights Into The Deep State - by harry blazer",
+      "url": "https://hblazer.substack.com/p/insights-into-the-deep-state",
+      "pos": 6,
+      "anc": 1,
+      "neg": 0,
+      "score": 15,
+      "tier": "supporting"
+    },
+    {
+      "index": 264,
+      "title": "A Deeper Dive Into The Omniwar - by harry blazer",
+      "url": "https://hblazer.substack.com/p/a-deeper-dive-into-the-omniwar",
+      "pos": 4,
+      "anc": 2,
+      "neg": 0,
+      "score": 14,
+      "tier": "supporting"
+    },
+    {
+      "index": 10,
+      "title": "Groundwater - by harry blazer - harry\u2019s Substack",
+      "url": "https://hblazer.substack.com/p/groundwater",
+      "pos": 5,
+      "anc": 1,
+      "neg": 0,
+      "score": 13,
+      "tier": "supporting"
+    },
+    {
+      "index": 375,
+      "title": "A Little More On David Hughes and Omniwar - by harry blazer",
+      "url": "https://hblazer.substack.com/p/a-little-more-on-david-hughes-and",
+      "pos": 7,
+      "anc": 1,
+      "neg": 2,
+      "score": 13,
+      "tier": "supporting"
+    },
+    {
+      "index": 387,
+      "title": "The Secret To World Peace - by harry blazer",
+      "url": "https://hblazer.substack.com/p/the-secret-to-world-peace",
+      "pos": 7,
+      "anc": 1,
+      "neg": 2,
+      "score": 13,
+      "tier": "supporting"
+    },
+    {
+      "index": 91,
+      "title": "The Film Score - by harry blazer - harry\u2019s Substack",
+      "url": "https://hblazer.substack.com/p/the-film-score",
+      "pos": 3,
+      "anc": 2,
+      "neg": 0,
+      "score": 12,
+      "tier": "supporting"
+    },
+    {
+      "index": 389,
+      "title": "The Inherent Toxicity Of Our Banking System",
+      "url": "https://hblazer.substack.com/p/the-inherent-toxicity-of-our-banking",
+      "pos": 3,
+      "anc": 2,
+      "neg": 0,
+      "score": 12,
+      "tier": "supporting"
+    },
+    {
+      "index": 2,
+      "title": "More On The Control Grid - by harry blazer",
+      "url": "https://hblazer.substack.com/p/more-on-the-control-grid",
+      "pos": 5,
+      "anc": 1,
+      "neg": 1,
+      "score": 11,
+      "tier": "supporting"
+    },
+    {
+      "index": 39,
+      "title": "When Accounting Meets Reality: Reflections On &quot;Alternative Energy Solutions At Scale&quot;",
+      "url": "https://hblazer.substack.com/p/when-accounting-meets-reality-reflections",
+      "pos": 4,
+      "anc": 1,
+      "neg": 0,
+      "score": 11,
+      "tier": "supporting"
+    },
+    {
+      "index": 70,
+      "title": "Coherence, Saturation and the Biological Cost of an Engineered World",
+      "url": "https://hblazer.substack.com/p/coherence-saturation-and-the-biological",
+      "pos": 4,
+      "anc": 1,
+      "neg": 0,
+      "score": 11,
+      "tier": "supporting"
+    },
+    {
+      "index": 96,
+      "title": "Surveillance Pricing - by harry blazer - harry\u2019s Substack",
+      "url": "https://hblazer.substack.com/p/surveillance-pricing",
+      "pos": 4,
+      "anc": 1,
+      "neg": 0,
+      "score": 11,
+      "tier": "supporting"
+    },
+    {
+      "index": 161,
+      "title": "COMING ATTRACTIONS - by harry blazer - harry\u2019s Substack",
+      "url": "https://hblazer.substack.com/p/coming-attractions",
+      "pos": 4,
+      "anc": 1,
+      "neg": 0,
+      "score": 11,
+      "tier": "supporting"
+    },
+    {
+      "index": 230,
+      "title": "The Spraying Above That Ain&#x27;t Happening - It Is",
+      "url": "https://hblazer.substack.com/p/the-spraying-above-that-aint-happening",
+      "pos": 4,
+      "anc": 1,
+      "neg": 0,
+      "score": 11,
+      "tier": "supporting"
+    },
+    {
+      "index": 235,
+      "title": "Just A Question: What If The Work Place Was Designed From The Start (with intention) To Optimize Human Potential (the potential of all of its constituents) vs. Corporate Profit",
+      "url": "https://hblazer.substack.com/p/just-a-question-what-if-the-work",
+      "pos": 4,
+      "anc": 1,
+      "neg": 0,
+      "score": 11,
+      "tier": "supporting"
+    },
+    {
+      "index": 272,
+      "title": "top 10 foods that kick those cravings for sugar and junk science food",
+      "url": "https://hblazer.substack.com/p/top-10-foods-that-kick-those-cravings",
+      "pos": 4,
+      "anc": 1,
+      "neg": 0,
+      "score": 11,
+      "tier": "supporting"
+    },
+    {
+      "index": 290,
+      "title": "More On Mind vs. Brain (&amp; more refutation of the materialists who are trying to control your mind)",
+      "url": "https://hblazer.substack.com/p/more-on-mind-vs-brain-and-more-refutation",
+      "pos": 4,
+      "anc": 1,
+      "neg": 0,
+      "score": 11,
+      "tier": "supporting"
+    },
+    {
+      "index": 316,
+      "title": "The Latest Chinese Scamdemic - Chikungunya Virus",
+      "url": "https://hblazer.substack.com/p/the-latest-chinese-scamdemic-chikungunya",
+      "pos": 9,
+      "anc": 0,
+      "neg": 4,
+      "score": 10,
+      "tier": "supporting"
+    },
+    {
+      "index": 214,
+      "title": "Exploring The Concept of The Trinity - by harry blazer",
+      "url": "https://hblazer.substack.com/p/exploring-the-concept-of-the-trinity",
+      "pos": 3,
+      "anc": 1,
+      "neg": 0,
+      "score": 9,
+      "tier": "supporting"
+    },
+    {
+      "index": 424,
+      "title": "Two Powerful Forces Involving Power - by harry blazer",
+      "url": "https://hblazer.substack.com/p/two-powerful-forces",
+      "pos": 10,
+      "anc": 1,
+      "neg": 7,
+      "score": 9,
+      "tier": "supporting"
+    },
+    {
+      "index": 397,
+      "title": "Governance Via Social Media - by harry blazer",
+      "url": "https://hblazer.substack.com/p/governance-via-social-media",
+      "pos": 4,
+      "anc": 4,
+      "neg": 6,
+      "score": 8,
+      "tier": "supporting"
+    }
+  ],
+  "ignored_sample": [
+    {
+      "index": 343,
+      "title": "Bannon On Epstein - by harry blazer - harry\u2019s Substack",
+      "url": "https://hblazer.substack.com/p/bannon-on-epstein",
+      "pos": 2,
+      "anc": 1,
+      "neg": 70,
+      "score": -133,
+      "tier": "ignore"
+    },
+    {
+      "index": 355,
+      "title": "So How Did Israel Get So Much Influence Over Our Lives?",
+      "url": "https://hblazer.substack.com/p/so-how-did-israel-get-so-much-influence",
+      "pos": 11,
+      "anc": 0,
+      "neg": 54,
+      "score": -86,
+      "tier": "ignore"
+    },
+    {
+      "index": 339,
+      "title": "A Lot of Articles On Jeffrey Epstein With Links",
+      "url": "https://hblazer.substack.com/p/a-lot-of-articles-on-jeffrey-epstein",
+      "pos": 9,
+      "anc": 1,
+      "neg": 44,
+      "score": -67,
+      "tier": "ignore"
+    },
+    {
+      "index": 350,
+      "title": "Would Trump Resign Rather Than Disclose - by harry blazer",
+      "url": "https://hblazer.substack.com/p/would-trump-resign-rather-than-disclose",
+      "pos": 5,
+      "anc": 2,
+      "neg": 35,
+      "score": -54,
+      "tier": "ignore"
+    },
+    {
+      "index": 399,
+      "title": "Punch Line On Ukraine and Israel - by harry blazer",
+      "url": "https://hblazer.substack.com/p/punch-line-on-ukraine-and-israel",
+      "pos": 5,
+      "anc": 2,
+      "neg": 35,
+      "score": -54,
+      "tier": "ignore"
+    },
+    {
+      "index": 197,
+      "title": "HOW DID GOLD GET HERE? - by harry blazer - harry\u2019s Substack",
+      "url": "https://hblazer.substack.com/p/how-did-gold-get-here",
+      "pos": 6,
+      "anc": 3,
+      "neg": 34,
+      "score": -47,
+      "tier": "ignore"
+    },
+    {
+      "index": 318,
+      "title": "A Further Deep Dive Into The Mechanics Of The Banking Matrix",
+      "url": "https://hblazer.substack.com/p/a-further-deep-dive-into-the-mechanics",
+      "pos": 6,
+      "anc": 0,
+      "neg": 28,
+      "score": -44,
+      "tier": "ignore"
+    },
+    {
+      "index": 259,
+      "title": "OK You Ready. I Am Going To Show You With The Help Of My AI Assistant How Every Test For Vaccine Efficacy Is Fundamentally Flawed",
+      "url": "https://hblazer.substack.com/p/ok-you-ready-i-am-going-to-show-you",
+      "pos": 7,
+      "anc": 0,
+      "neg": 26,
+      "score": -38,
+      "tier": "ignore"
+    },
+    {
+      "index": 285,
+      "title": "The Covid Jabs Weren&#x27;t Just Bad, They Were Criminally Bad (i.e. Evil)",
+      "url": "https://hblazer.substack.com/p/the-covid-jabs-werent-just-bad-they",
+      "pos": 7,
+      "anc": 1,
+      "neg": 25,
+      "score": -33,
+      "tier": "ignore"
+    },
+    {
+      "index": 283,
+      "title": "If You Think The English Royals Are Part Of The Real Control Grid, Perhaps You Should Reconsider",
+      "url": "https://hblazer.substack.com/p/if-you-think-the-english-royals-are",
+      "pos": 12,
+      "anc": 1,
+      "neg": 29,
+      "score": -31,
+      "tier": "ignore"
+    },
+    {
+      "index": 249,
+      "title": "A Quick Lesson On The Price Of Gold And Silver",
+      "url": "https://hblazer.substack.com/p/a-quick-lesson-on-the-price-of-gold",
+      "pos": 10,
+      "anc": 0,
+      "neg": 27,
+      "score": -34,
+      "tier": "ignore"
+    },
+    {
+      "index": 307,
+      "title": "DARPA&#x27;s Theory of Mind Warfare - by harry blazer",
+      "url": "https://hblazer.substack.com/p/darpas-theory-of-mind-warfare",
+      "pos": 20,
+      "anc": 0,
+      "neg": 35,
+      "score": -30,
+      "tier": "ignore"
+    },
+    {
+      "index": 269,
+      "title": "Scott Horton - A Very Knowledgeable and Principled Human Discusses Deep State Shenanigans",
+      "url": "https://hblazer.substack.com/p/scott-horton-a-very-knowledgeable",
+      "pos": 7,
+      "anc": 0,
+      "neg": 22,
+      "score": -30,
+      "tier": "ignore"
+    },
+    {
+      "index": 319,
+      "title": "Comprehensive Foundational Info On Banking System",
+      "url": "https://hblazer.substack.com/p/comprehensive-foundational-info-on",
+      "pos": 2,
+      "anc": 0,
+      "neg": 17,
+      "score": -30,
+      "tier": "ignore"
+    },
+    {
+      "index": 266,
+      "title": "Does Hungary Have The Only Sane Leadership in Europe",
+      "url": "https://hblazer.substack.com/p/does-hungary-have-the-only-sane-leadership",
+      "pos": 4,
+      "anc": 1,
+      "neg": 17,
+      "score": -23,
+      "tier": "ignore"
+    },
+    {
+      "index": 347,
+      "title": "The Difference Between The Liposomal Technology Used for the Clot Shot vs. Liposomal Vitamin C (for example)",
+      "url": "https://hblazer.substack.com/p/the-difference-between-the-liposomal",
+      "pos": 7,
+      "anc": 0,
+      "neg": 19,
+      "score": -24,
+      "tier": "ignore"
+    },
+    {
+      "index": 396,
+      "title": "What Is A Jew - by harry blazer - harry\u2019s Substack",
+      "url": "https://hblazer.substack.com/p/what-is-a-jew",
+      "pos": 5,
+      "anc": 0,
+      "neg": 17,
+      "score": -24,
+      "tier": "ignore"
+    },
+    {
+      "index": 315,
+      "title": "As I Was Saying - - by harry blazer - harry\u2019s Substack",
+      "url": "https://hblazer.substack.com/p/as-i-was-saying",
+      "pos": 2,
+      "anc": 1,
+      "neg": 14,
+      "score": -21,
+      "tier": "ignore"
+    },
+    {
+      "index": 384,
+      "title": "I Warned You - by harry blazer - harry\u2019s Substack",
+      "url": "https://hblazer.substack.com/p/i-warned-you",
+      "pos": 2,
+      "anc": 1,
+      "neg": 14,
+      "score": -21,
+      "tier": "ignore"
+    },
+    {
+      "index": 226,
+      "title": "More On Precious Metals Trading - by harry blazer",
+      "url": "https://hblazer.substack.com/p/more-on-precious-metals-trading",
+      "pos": 12,
+      "anc": 0,
+      "neg": 23,
+      "score": -22,
+      "tier": "ignore"
+    },
+    {
+      "index": 254,
+      "title": "Some Commentary From Tucker Carlson Of Interest",
+      "url": "https://hblazer.substack.com/p/some-commentary-from-tucker-carlson",
+      "pos": 9,
+      "anc": 2,
+      "neg": 20,
+      "score": -16,
+      "tier": "ignore"
+    },
+    {
+      "index": 346,
+      "title": "Why Dr. Michael Baden (forensic pathologist) Can&#x27;t Be Trusted",
+      "url": "https://hblazer.substack.com/p/why-dr-michael-baden-forensic-pathologist",
+      "pos": 6,
+      "anc": 0,
+      "neg": 16,
+      "score": -20,
+      "tier": "ignore"
+    },
+    {
+      "index": 428,
+      "title": "Broken Bonds - by harry blazer - harry\u2019s Substack",
+      "url": "https://hblazer.substack.com/p/broken-bonds",
+      "pos": 7,
+      "anc": 4,
+      "neg": 16,
+      "score": -6,
+      "tier": "ignore"
+    },
+    {
+      "index": 260,
+      "title": "TYLENOL - More Bullshit It Seems - by harry blazer",
+      "url": "https://hblazer.substack.com/p/tylenol-more-bullshit-it-seems",
+      "pos": 3,
+      "anc": 0,
+      "neg": 12,
+      "score": -18,
+      "tier": "ignore"
+    },
+    {
+      "index": 401,
+      "title": "Steve Bannon&#x27;s Comment on the Musk/Trump Row",
+      "url": "https://hblazer.substack.com/p/steve-bannons-comment-on-the-musktrump",
+      "pos": 2,
+      "anc": 2,
+      "neg": 11,
+      "score": -12,
+      "tier": "ignore"
+    },
+    {
+      "index": 383,
+      "title": "You Can&#x27;t Neuter the Deep State if... - by harry blazer",
+      "url": "https://hblazer.substack.com/p/you-cant-neuter-the-deep-state-if",
+      "pos": 9,
+      "anc": 1,
+      "neg": 17,
+      "score": -13,
+      "tier": "ignore"
+    },
+    {
+      "index": 364,
+      "title": "Very Good Interview by Tucker Carlson on Epstein Lies by Trump Administration",
+      "url": "https://hblazer.substack.com/p/very-good-interview-by-tucker-carlson",
+      "pos": 1,
+      "anc": 1,
+      "neg": 9,
+      "score": -13,
+      "tier": "ignore"
+    },
+    {
+      "index": 366,
+      "title": "Alex Jones&#x27; Perspective on Epstein Whitewash",
+      "url": "https://hblazer.substack.com/p/alex-jones-perspective-on-epstein",
+      "pos": 12,
+      "anc": 3,
+      "neg": 19,
+      "score": -5,
+      "tier": "ignore"
+    },
+    {
+      "index": 407,
+      "title": "I Wrestled CHATGPT To The Mat - by harry blazer",
+      "url": "https://hblazer.substack.com/p/i-wrestled-chatgpt-to-the-mat",
+      "pos": 6,
+      "anc": 1,
+      "neg": 13,
+      "score": -11,
+      "tier": "ignore"
+    },
+    {
+      "index": 313,
+      "title": "General Flynn (former head of the DIA) Has Confirmed That Oct 7th Attack On Israel Was The Result Of An Intentional Stand Down By Israel",
+      "url": "https://hblazer.substack.com/p/general-flynn-former-head-of-the",
+      "pos": 1,
+      "anc": 1,
+      "neg": 8,
+      "score": -11,
+      "tier": "ignore"
+    },
+    {
+      "index": 327,
+      "title": "Video Followup by Oliver Stone: JFK Revisited: Through The Looking Glass",
+      "url": "https://hblazer.substack.com/p/video-followup-by-oliver-stone-jfk",
+      "pos": 1,
+      "anc": 1,
+      "neg": 8,
+      "score": -11,
+      "tier": "ignore"
+    },
+    {
+      "index": 378,
+      "title": "You Know the Scamdemic Was A Military Op, Right?",
+      "url": "https://hblazer.substack.com/p/you-know-the-scamdemic-was-a-military",
+      "pos": 11,
+      "anc": 1,
+      "neg": 17,
+      "score": -9,
+      "tier": "ignore"
+    },
+    {
+      "index": 79,
+      "title": "The 12 Worst Pickup Trucks For 2026 - by harry blazer",
+      "url": "https://hblazer.substack.com/p/the-12-worst-pickup-trucks-for-2026",
+      "pos": 1,
+      "anc": 1,
+      "neg": 7,
+      "score": -9,
+      "tier": "ignore"
+    },
+    {
+      "index": 335,
+      "title": "Special Solari Report: Bitcoin The OP - with Harry Blazer",
+      "url": "https://hblazer.substack.com/p/special-solari-report-bitcoin-the",
+      "pos": 1,
+      "anc": 1,
+      "neg": 7,
+      "score": -9,
+      "tier": "ignore"
+    },
+    {
+      "index": 255,
+      "title": "What Covid Really Was - by harry blazer - harry\u2019s Substack",
+      "url": "https://hblazer.substack.com/p/what-covid-really-was",
+      "pos": 8,
+      "anc": 0,
+      "neg": 13,
+      "score": -10,
+      "tier": "ignore"
+    },
+    {
+      "index": 419,
+      "title": "Steve Bannon Is Very Smart and Hooked In - by harry blazer",
+      "url": "https://hblazer.substack.com/p/steve-bannon-is-very-smart-and-hooked",
+      "pos": 4,
+      "anc": 1,
+      "neg": 9,
+      "score": -7,
+      "tier": "ignore"
+    },
+    {
+      "index": 1,
+      "title": "SHAME - by harry blazer - harry\u2019s Substack",
+      "url": "https://hblazer.substack.com/p/shame",
+      "pos": 2,
+      "anc": 1,
+      "neg": 7,
+      "score": -7,
+      "tier": "ignore"
+    },
+    {
+      "index": 54,
+      "title": "The Latest on the Incredible Evil that was/is the Covid &quot;vaccine&quot; (e.g. Bioweapon)",
+      "url": "https://hblazer.substack.com/p/the-latest-on-the-incredible-evil",
+      "pos": 1,
+      "anc": 1,
+      "neg": 6,
+      "score": -7,
+      "tier": "ignore"
+    },
+    {
+      "index": 92,
+      "title": "As We Discussed Previously \u2013 Now It Is Happening \u2013 Commodity Markets in Gold and Silver Are Coming Apart",
+      "url": "https://hblazer.substack.com/p/as-we-discussed-previously-now-it",
+      "pos": 1,
+      "anc": 1,
+      "neg": 6,
+      "score": -7,
+      "tier": "ignore"
+    },
+    {
+      "index": 349,
+      "title": "Eric Weinstein On The Implications of Jeffrey Epstein on Lots of Things",
+      "url": "https://hblazer.substack.com/p/eric-weinstein-on-the-implications",
+      "pos": 1,
+      "anc": 1,
+      "neg": 6,
+      "score": -7,
+      "tier": "ignore"
+    }
+  ]
+}

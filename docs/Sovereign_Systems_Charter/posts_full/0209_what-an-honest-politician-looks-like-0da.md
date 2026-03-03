@@ -1,0 +1,17 @@
+# Post 0209: WHAT AN HONEST POLITICIAN LOOKS LIKE - by harry blazer
+
+- URL: https://hblazer.substack.com/p/what-an-honest-politician-looks-like-0da
+- Fetched At (UTC): 2026-03-03T09:03:56.579408+00:00
+- Keyword Signals: ai:2, privacy:1
+- Full Text File: `docs/CHRISTOPH_SOVEREIGN_SYSTEMS_CHARTER_MISSION/posts_full/0209_what-an-honest-politician-looks-like-0da.txt`
+
+## Summary
+WHAT AN HONEST POLITICIAN LOOKS LIKE - by harry blazer harry’s Substack Subscribe Sign in WHAT AN HONEST POLITICIAN LOOKS LIKE Trump Is A Scumbag harry blazer Nov 23, 2025 Share My Comment: You will be missed deeply by me and one of the other few honest politicians - Thomas Massie from Kentucky. Majorie Taylor Greene's Resignation Announcement Transcript of Her Video Announcement: Transcript Trump’s Comment: Early Saturday morning, President Trump (the scumbag) weighed in on MTG’s resignation on Truth Social, writing in a post: Marjorie “Traitor” Brown, because of PLUMMETING Poll Numbers, and not wanting to face a Primary Challenger with a strong Trump Endorsement (where she would have no chance of winning!), has decided to call it “quits.” Her relationship with the WORST Republican Congressman in decades, Tom Massie of Kentucky, also known as Rand Paul Jr. because he votes against the Republican Party (and really good legislation!), did not help her.
+
+## Key Sentences
+- WHAT AN HONEST POLITICIAN LOOKS LIKE - by harry blazer harry’s Substack Subscribe Sign in WHAT AN HONEST POLITICIAN LOOKS LIKE Trump Is A Scumbag harry blazer Nov 23, 2025 Share My Comment: You will be missed deeply by me and one of the other few honest politicians - Thomas Massie from Kentucky.
+- Majorie Taylor Greene's Resignation Announcement Transcript of Her Video Announcement: Transcript Trump’s Comment: Early Saturday morning, President Trump (the scumbag) weighed in on MTG’s resignation on Truth Social, writing in a post: Marjorie “Traitor” Brown, because of PLUMMETING Poll Numbers, and not wanting to face a Primary Challenger with a strong Trump Endorsement (where she would have no chance of winning!), has decided to call it “quits.” Her relationship with the WORST Republican Congressman in decades, Tom Massie of Kentucky, also known as Rand Paul Jr.
+- because he votes against the Republican Party (and really good legislation!), did not help her.
+- For some reason, primarily that I refused to return her never ending barrage of phone calls, Marjorie went BAD.
+- Subscribe © 2026 harry blazer · Privacy ∙ Terms ∙ Collection notice Start your Substack Get the app Substack is the home for great culture This site requires JavaScript to run correctly.
+
