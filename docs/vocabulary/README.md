@@ -1,6 +1,6 @@
 # Knowledge3D Vocabulary — Architecture Specifications
 
-**Last Updated**: February 28, 2026
+**Last Updated**: March 4, 2026
 **Status**: Living documentation (updated as architecture evolves)
 
 ---
@@ -10,11 +10,37 @@
 This directory contains the **canonical architectural specifications** for Knowledge3D. Each specification defines a critical component of the system, providing detailed design, implementation guidance, and integration contracts.
 
 **Reading Order for New Contributors:**
-1. Start with [THREE_BRAIN_SYSTEM_SPECIFICATION.md](#three-brain-system) (foundational architecture)
-2. Read [HYPER_MODULAR_ARCHITECTURE.md](#hyper-modular-architecture) (organizing paradigm)
-3. Read [KNOWLEDGEVERSE_SPECIFICATION.md](#knowledgeverse) (runtime memory substrate)
-4. Read [DUAL_CLIENT_CONTRACT_SPECIFICATION.md](#dual-client-contract) (human + AI duality)
-5. Then explore domain-specific specs as needed
+1. Start with [SPATIAL_GENERAL_INTELLIGENCE_SPECIFICATION.md](#spatial-general-intelligence-sgi) ⭐ **NEW: Foundational Goal**
+2. Read [THREE_BRAIN_SYSTEM_SPECIFICATION.md](#three-brain-system) (foundational architecture)
+3. Read [HYPER_MODULAR_ARCHITECTURE.md](#hyper-modular-architecture) (organizing paradigm)
+4. Read [KNOWLEDGEVERSE_SPECIFICATION.md](#knowledgeverse) (runtime memory substrate)
+5. Read [DUAL_CLIENT_CONTRACT_SPECIFICATION.md](#dual-client-contract) (human + AI duality)
+6. Then explore domain-specific specs as needed
+
+---
+
+## Foundational Paradigm
+
+### [SPATIAL_GENERAL_INTELLIGENCE_SPECIFICATION.md](SPATIAL_GENERAL_INTELLIGENCE_SPECIFICATION.md) ⭐ **NEW**
+**Spatial General Intelligence (SGI) — The Goal of PM-KR/K3D**
+
+**SGI** is the paradigm where intelligence—both human and artificial—operates within a shared, navigable 3D spatial environment. Unlike AGI (Artificial General Intelligence), which pursues intelligence in abstract, opaque forms, SGI grounds intelligence in **spatial reality** where humans and AI cohabit the same cognitive workspace.
+
+**Key Principles**:
+- **Spatial Grounding**: Intelligence operates in navigable 3D (Galaxy Universe)
+- **Dual-Client Transparency**: Humans + AI share identical data at identical (x, y, z) coordinates
+- **Procedural Composition**: 7M param navigator + procedural programs (not 100B+ monoliths)
+- **Sovereign Execution**: PTX kernels, deterministic traces, zero hidden state
+- **Multi-Modal Unity**: ALL modalities (visual, language, audio, physics) in ONE substrate
+
+**AGI vs SGI**:
+- **AGI**: Abstract reasoning, opaque systems, separate realities, Gt-scale carbon
+- **SGI**: Spatial grounding, transparent workspaces, shared reality, sustainable (12 Gt CO₂ savings)
+
+**Date Defined**: March 4, 2026 (from NotebookLM press kit podcast insight)
+
+**Quote** (Press Kit Podcast):
+> "For decades, we've interacted with data through flat, two-dimensional windows on a screen. This new paradigm treats software as a three-dimensional, navigable place. A cognitive habitat where we, and AI, can finally explore knowledge together, in a shared home."
 
 ---
 
