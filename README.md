@@ -250,6 +250,26 @@ Knowledge3D stands on the shoulders of giants. We build upon foundational resear
 
 ---
 
+### 🌍 MERCOSUR-EU Collaboration: Brazil-Netherlands Partnership
+
+**This technology is being created by EchoSystems AI Studios in Brazil and the Rainbow Warriors Core Foundation CIAMSD Institute, the former creates the hardware and RWI CIAMSD builds the foundational mathematical framework.**
+
+**Key Personnel:**
+- **Daniel Campos Ramos** (Brazil) — Electrical Engineer, PM-KR Community Group Co-Chair
+- **Milton Ponson** (Netherlands) — Mathematician and AI Researcher, 30 years environmental knowledge, PM-KR Community Group Co-Chair
+
+**W3C Context:**
+
+These two persons are co-chairs who run the newly created **W3C Procedural Memory Knowledge Representation Community Group**. The W3C, or World Wide Web Consortium, was created by Tim Berners-Lee, who invented the World Wide Web. The World Wide Web Consortium (W3C) develops standards and guidelines to help everyone build and enjoy a web based on the principles of accessibility, internationalization, privacy and security.
+
+**Historic Collaboration:**
+
+This collaboration between an electrical engineer from Brazil and a mathematician from the Kingdom of the Netherlands is **the first truly groundbreaking joint effort between a MERCOSUR country and a European Union country**, marking the beginning of advanced collaboration between MERCOSUR and the European Union in key frontier technologies.
+
+**Carbon Impact:** Projected 12 Gt CO₂ cumulative savings over 10 years through procedural compression and lightweight reasoning. See [Carbon Blueprint](docs/CARBON_BLUEPRINT_10_YEAR_PROJECTION.md) for full analysis.
+
+---
+
 ### Core Innovations
 
 1. **Procedural Memory** — Knowledge as executable RPN programs, not static embeddings

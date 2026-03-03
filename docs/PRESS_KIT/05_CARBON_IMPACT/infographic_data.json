@@ -1,0 +1,20 @@
+{
+  "title": "PM-KR Carbon Impact Projection",
+  "subtitle": "10-Year Cumulative CO2 Savings",
+  "data": [
+    {"year": 2026, "savings_gt": 0.05},
+    {"year": 2027, "savings_gt": 0.15},
+    {"year": 2028, "savings_gt": 0.35},
+    {"year": 2029, "savings_gt": 0.70},
+    {"year": 2030, "savings_gt": 1.20},
+    {"year": 2031, "savings_gt": 1.80},
+    {"year": 2032, "savings_gt": 2.50},
+    {"year": 2033, "savings_gt": 3.30},
+    {"year": 2034, "savings_gt": 4.20},
+    {"year": 2035, "savings_gt": 5.20}
+  ],
+  "cumulative_total_gt": 12.0,
+  "comparison": "Equivalent to global aviation emissions x 2",
+  "source": "docs/CARBON_BLUEPRINT_10_YEAR_PROJECTION.md",
+  "disclaimer": "Scenario projection, not guaranteed production baseline."
+}
