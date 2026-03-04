@@ -239,10 +239,9 @@ Knowledge3D stands on the shoulders of giants. We build upon foundational resear
 
 1. **🔐 Access Control & Sovereignty** (Jonathan DeRouchie) — Formalize House-Galaxy boundaries with security metadata
 2. **🔏 Cryptographic Trust** (Manu Sporny) — Procedural C14N + W3C Verifiable Credentials integration
-3. **🤖 AI Planning** (Adam Sobieski) — STRIPS/PDDL metadata enabling TRM to plan workflows
-4. **🔄 Interoperability** (Community consensus) — RDF↔PM-KR converters, JSON-LD export, SPARQL endpoints
-5. **📚 Developer Familiarity** (Jonathan DeRouchie) — Map K3D concepts to familiar paradigms (file systems, OOP, graphs)
-6. **✅ Level C Conformance** (W3C standard) — External test suites, third-party audit, cryptographic provenance
+3. **🔄 Interoperability** (Community consensus) — RDF↔PM-KR converters, JSON-LD export, SPARQL endpoints
+4. **📚 Developer Familiarity** (Jonathan DeRouchie) — Map K3D concepts to familiar paradigms (file systems, OOP, graphs)
+5. **✅ Level C Conformance** (W3C standard) — External test suites, third-party audit, cryptographic provenance
 
 **Full Analysis**: [docs/W3C/PM_KR_STRATEGIC_STEERING.md](docs/W3C/PM_KR_STRATEGIC_STEERING.md) — How PM-KR shapes K3D's roadmap
 
@@ -297,7 +296,6 @@ This collaboration between an electrical engineer from Brazil and a mathematicia
 **Founding Members (24+ as of Feb 2026):**
 - **Manu Sporny** (JSON-LD co-creator, RDF Canonicalization editor) — Cryptographic C14N guidance
 - **Milton Ponson** (Mathematician, Gödelian KR, domains of discourse) — Official supporter
-- **Adam Sobieski** (W3C veteran, 10+ years, founded 3 CGs) — STRIPS/PDDL planning metadata
 - **Jonathan DeRouchie** (Persistent memory AI systems) — Security boundaries + Developer UX (March-June commitment)
 - **Christoph Lange** (Interactive schemas, Linked Data) — Multi-schema evolution patterns
 - **ixo.world** (Shaun Conway, W3C DIDs/Verifiable Claims) — Blockchain-backed provenance use cases

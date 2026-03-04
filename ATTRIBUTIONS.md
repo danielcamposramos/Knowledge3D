@@ -1092,55 +1092,6 @@ Trusted Procedural Knowledge: Sign workflows, verify execution, audit trail
 
 ---
 
-#### 4.3.3 Adam Sobieski: WICG #188 Visionary & BPM Expert
-
-**Background**: 5+ years of W3C/WICG standardization work (Automated Planning CG, Web Registry API, WebAgents, WoT)
-**Contribution Period**: February 2026 (PM-KR founding member)
-**Expertise**: Business process management, workflow automation, stateful procedural execution, Lean4 formalization
-
-**What He Validated**:
-- **WICG #188 (2019-2021)**: Proposed "stateful procedural execution" with task context, pausing/resuming, audit trail
-- **K3D Architecture**: Validates his 5-year-old vision EXACTLY:
-  - WICG "task context" → K3D House/Room/Node state ✅
-  - WICG "process model" → K3D RPN programs ✅
-  - WICG "pausing/resuming" → K3D SleepTime protocol (<10ms for 51K nodes) ✅
-  - WICG "at point X during Y, observed Z" → K3D Audit Journal (Knowledgeverse Region 6) ✅
-
-**The OpenFn Connection**:
-Adam introduced [OpenFn.org](https://www.openfn.org/) — workflow automation platform serving:
-- **40+ countries** (governments, NGOs, healthcare systems)
-- **10M+ transactions/year** (critical workflows: patient intake, grant approval, data sync)
-- **Production validation** for PM-KR distribution model (not just theory!)
-
-**The Debian `apt` Insight** (sparked by Adam's OpenFn use case):
-```
-OpenFn Challenge: How to distribute trusted workflows to 40+ countries?
-    ↓ (Daniel's 0.01% Connection Ability)
-Debian `apt` Model: Package repos + mirrors + local customization
-    ↓ (PM-KR Application)
-Galaxy Universe = repos, Houses = dpkg database, 97.7% compression for 43 countries
-```
-
-**His Contribution to PM-KR**:
-- **BPM/Workflow Track**: Connects PM-KR to $X billion industry (Camunda, Temporal, Zapier, OpenFn)
-- **BPMN → PM-KR Mapping**: Compile BPMN XML to executable RPN programs
-- **Audit Message Schema**: His "at point X during Y, observed Z" format → proposed PM-KR standard
-- **Lean4 Formalization**: Theorem proving for workflow correctness (Year 2 PM-KR work)
-
-**Credit**:
-- **Adam Sobieski** for being 5+ years ahead with WICG #188 stateful execution proposal
-- For connecting PM-KR to real-world production workflows (OpenFn validation)
-- For the audit message format that became PM-KR's canonical schema
-- For proposing the BPM/workflow standardization track (Year 1 deliverable)
-
-**Proposed Collaboration** (Q2 2026 - Q1 2027):
-- BPM Use Case Workshop (OpenFn, Camunda, Temporal)
-- BPMN → PM-KR compilation spec
-- State/Context ontology formalization
-- W3C Note: "Procedural Memory for Business Process Management" (co-authored)
-
----
-
 #### 4.3.4 Jonathan DeRouchie: Persistent Memory AI Architecture
 
 **Background**: AI researcher focused on persistent memory and context management
@@ -2164,7 +2115,6 @@ We stand on the shoulders of:
 **W3C PM-KR Community Group Founding Members (February 2026):**
 - **Ian Jacobs** (W3C Head of Communications) for championing PM-KR CG launch and editorial guidance
 - **Manu Sporny** (JSON-LD co-creator, Digital Bazaar CTO) for connecting PM-KR to 15+ years of Linked Data work, CBOR-LD compression, and procedural canonicalization insights
-- **Adam Sobieski** (WICG #188 visionary) for validating K3D architecture with 5+ year-old stateful procedural execution proposal, OpenFn BPM use case, and audit message schema
 - **Jonathan DeRouchie** (AI researcher) for persistent memory architecture validation and March-June 2026 collaboration commitment
 - **Nitin Pasumarthy** (LinkedIn LLM/GNN) for bringing production-scale systems perspective to PM-KR standardization
 - **OpenFn organization** for real-world validation (40+ countries, 10M+ transactions/year, governments/NGOs/healthcare workflows)
@@ -2186,6 +2136,5 @@ The **Multi-Vibe Code In Chain (MVCIC)** methodology — 7 AI partners, 1 human 
 - W3C PM-KR Community Group launched (February 20, 2026)
 - "Hyper-Modular Architecture" term coined (February 20, 2026) — first architecture with 7-level simultaneous modularity
 - Debian `apt` distribution model for PM-KR formalized (February 21, 2026)
-- 5 founding members committed to PM-KR standardization (Ian Jacobs, Manu Sporny, Adam Sobieski, Jonathan DeRouchie, Nitin Pasumarthy)
+- Key founding members committed to PM-KR standardization (Ian Jacobs, Manu Sporny, Jonathan DeRouchie, Nitin Pasumarthy)
 - OpenFn validation (40+ countries, 10M+ transactions/year) proves PM-KR addresses real production workflows
-- WICG #188 (Adam's 5-year-old proposal) validated by K3D architecture
