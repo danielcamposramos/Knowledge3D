@@ -81,7 +81,9 @@ This directory contains the **canonical architectural specifications** for Knowl
 
 The **Knowledgeverse** is the runtime memory substrate where all active galaxies, house context, TRM weights, and sovereign reasoning assets coexist in one persistent CUDA/PTX execution domain.
 
-**Companion**: [KNOWLEDGEVERSE_MVP_ROADMAP.md](KNOWLEDGEVERSE_MVP_ROADMAP.md) — Grounded implementation plan separating MVP from research
+**Companions**:
+- [KNOWLEDGEVERSE_TERM_DEFINITION.md](KNOWLEDGEVERSE_TERM_DEFINITION.md) 🆕 — Simple term definition for emails/press materials (March 5, 2026)
+- [KNOWLEDGEVERSE_MVP_ROADMAP.md](KNOWLEDGEVERSE_MVP_ROADMAP.md) — Grounded implementation plan separating MVP from research
 
 ---
 
