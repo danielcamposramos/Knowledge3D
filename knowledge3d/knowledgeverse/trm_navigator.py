@@ -6,14 +6,17 @@ import datetime
 import json
 import os
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Mapping, Sequence
 
+from .execution_grammar_detector import ExecutionGrammarDetector
 from .galaxy_manager import GalaxyManager
+from .execution_quality_tracker import ExecutionQualityTracker
 from .navigator_specialist import NavigatorSpecialist
 from .resilience import SelfHealingWrapper
 from .specialist_base import SpecialistBase
 from .specialist_router import SpecialistRouter
 from .specialist_spawner import SpecialistSpawner
+from .tool_execution import ToolExecutionResolver
 
 
 class TRMNavigator(SpecialistBase):
@@ -62,6 +65,18 @@ class TRMNavigator(SpecialistBase):
         }
         self._last_math_missing_signal: dict[str, Any] | None = None
         self._last_math_execution_error: str | None = None
+        self.execution_quality_tracker: ExecutionQualityTracker | None = None
+        self.execution_grammar_detector: ExecutionGrammarDetector | None = None
+        if knowledgeverse is not None and hasattr(knowledgeverse, "storage_root"):
+            root = Path(getattr(knowledgeverse, "storage_root"))
+            self.execution_quality_tracker = ExecutionQualityTracker(
+                state_path=root / "checkpoints" / "execution_quality_tracker.json",
+                gap_log_path=root / "logs" / "specialist_gaps.jsonl",
+            )
+            self.execution_grammar_detector = ExecutionGrammarDetector(
+                storage_root=root,
+                galaxy_manager=self.galaxy_manager,
+            )
 
     def _bootstrap_matryoshka_specialists(self) -> None:
         """
@@ -85,6 +100,7 @@ class TRMNavigator(SpecialistBase):
         math_master = self.spawn_child(name="MathSpecialist", domain="math")
         visual_master = self.spawn_child(name="VisualSpecialist", domain="visual")
         physics_master = self.spawn_child(name="PhysicsSpecialist", domain="physics")
+        audio_master = self.spawn_child(name="AudioSpecialist", domain="audio")
         grammar_master = self.spawn_child(name="GrammarSpecialist", domain="language")
 
         math_master.spawn_child(name="BasicMathSpecialist", domain="basic_math")
@@ -95,6 +111,8 @@ class TRMNavigator(SpecialistBase):
 
         physics_master.spawn_child(name="MechanicsSpecialist", domain="mechanics")
         physics_master.spawn_child(name="ProceduralRealitySpecialist", domain="procedural_systems")
+        audio_master.spawn_child(name="SignalAudioSpecialist", domain="signal_audio")
+        audio_master.spawn_child(name="SpectralAudioSpecialist", domain="spectral_audio")
 
         grammar_master.spawn_child(name="SyntaxSpecialist", domain="syntax")
         grammar_master.spawn_child(name="SemanticsSpecialist", domain="semantics")
@@ -142,6 +160,7 @@ class TRMNavigator(SpecialistBase):
             "math": "MathSpecialist",
             "visual": "VisualSpecialist",
             "physics": "PhysicsSpecialist",
+            "audio": "AudioSpecialist",
             "grammar": "GrammarSpecialist",
             "logic": "GrammarSpecialist",
             "language": "GrammarSpecialist",
@@ -221,11 +240,12 @@ class TRMNavigator(SpecialistBase):
             return {"error": "source_galaxy is required", "query": query}
 
         specialist = self._specialist_for_galaxy(source_name)
+        target_name = str(target_galaxy or self._default_generation_target(source_name))
         candidates = self.query(
             query=f"{query} procedural generation",
             galaxy_names=[source_name],
             top_k=20,
-            specialist="any",
+            specialist=specialist,
             domain_hint=source_name.lower(),
         )
         if not candidates:
@@ -236,9 +256,20 @@ class TRMNavigator(SpecialistBase):
         if not rpn_program:
             return {"error": "Failed to compose procedural program", "query": query}
 
-        target_name = str(target_galaxy or self._default_generation_target(source_name))
         now = datetime.datetime.now(datetime.timezone.utc)
         generated_id = f"generated_{source_name.lower()}_{now.strftime('%Y%m%d_%H%M%S_%f')}"
+        tool_context = composed.get("tool_context")
+        execution_plan = composed.get("execution_plan")
+        promotion_targets = list(composed.get("promotion_targets", []))
+        if tool_context:
+            self._record_tool_promotion_pressure(
+                query=query,
+                source_galaxy=source_name,
+                target_galaxy=target_name,
+                specialist=specialist,
+                tool_context=tool_context,
+                promotion_targets=promotion_targets,
+            )
         generated_entry = {
             "id": generated_id,
             "name": f"{query} (Generated)",
@@ -255,6 +286,9 @@ class TRMNavigator(SpecialistBase):
                     f"{target_name}.generated_pattern"
                 ),
                 "confidence": float(composed.get("confidence", 0.7)),
+                "tool_context": tool_context,
+                "execution_plan": execution_plan,
+                "promotion_targets": promotion_targets,
                 "timestamp": now.isoformat(),
                 "query": query,
             },
@@ -274,6 +308,8 @@ class TRMNavigator(SpecialistBase):
                     "specialist": specialist,
                     "galaxy": target_name,
                     "verification": "procedural_generation",
+                    "tool_ids": list((tool_context or {}).get("tool_ids", [])),
+                    "promotion_targets": promotion_targets,
                 },
             )
 
@@ -341,25 +377,50 @@ class TRMNavigator(SpecialistBase):
     ) -> dict[str, Any]:
         self._trace.append(f"compose specialist={specialist} enriched={use_enriched}")
         if task_examples:
+            tool_context = self._extract_tool_context(patterns or [], query_text=query or "")
             transform = self._infer_arc_transform(task_examples, prefer_enriched=use_enriched)
             return {
                 "program_type": "arc_transform",
                 "transform": transform,
                 "specialist": specialist,
                 "patterns_used": len(patterns or []),
+                "tool_context": tool_context,
+                "execution_plan": self._build_tool_execution_plan(tool_context),
             }
 
+        tool_context = self._extract_tool_context(patterns or [], query_text=query or "")
         return {
             "program_type": "math_expression",
             "expression": query or "",
             "specialist": specialist,
             "patterns_used": len(patterns or []),
             "use_enriched": bool(use_enriched),
+            "tool_context": tool_context,
+            "execution_plan": self._build_tool_execution_plan(tool_context),
         }
 
     def execute(self, program: dict[str, Any], input_data: Any | None = None) -> Any:
         program_type = str(program.get("program_type", "unknown"))
         self._trace.append(f"execute type={program_type}")
+        execution_plan = program.get("execution_plan") if isinstance(program, dict) else None
+
+        if execution_plan and isinstance(input_data, dict):
+            self._trace.append("execute via tool_entrypoint_chain payload")
+            query_context = str(
+                program.get("query")
+                or program.get("expression")
+                or program.get("prompt")
+                or ""
+            )
+            specialist_id = str(program.get("specialist", "") or "") or None
+            domain_hint = str(program.get("domain_hint", "") or "") or None
+            return self.invoke_execution_plan_from_payload(
+                execution_plan,
+                input_data,
+                query_context=query_context,
+                specialist_id=specialist_id,
+                domain_hint=domain_hint,
+            )
 
         if program_type == "arc_transform":
             if input_data is None:
@@ -374,6 +435,71 @@ class TRMNavigator(SpecialistBase):
 
         raise ValueError(f"Unsupported program type: {program_type}")
 
+    def resolve_execution_plan(self, execution_plan: dict[str, Any] | None) -> dict[str, Any] | None:
+        return ToolExecutionResolver.resolve_plan_blueprint(execution_plan)
+
+    def invoke_execution_plan(
+        self,
+        execution_plan: dict[str, Any] | None,
+        *args: Any,
+        query_context: str | None = None,
+        specialist_id: str | None = None,
+        domain_hint: str | None = None,
+        **kwargs: Any,
+    ) -> Any:
+        return ToolExecutionResolver.invoke_primary_observed(
+            execution_plan,
+            *args,
+            knowledgeverse=self.knowledgeverse,
+            query_context=query_context,
+            specialist_id=specialist_id,
+            domain_hint=domain_hint,
+            **kwargs,
+        )
+
+    def invoke_execution_plan_from_payload(
+        self,
+        execution_plan: dict[str, Any] | None,
+        payload: Mapping[str, Any],
+        *,
+        query_context: str | None = None,
+        specialist_id: str | None = None,
+        domain_hint: str | None = None,
+    ) -> Any:
+        return ToolExecutionResolver.invoke_primary_from_payload_observed(
+            execution_plan,
+            payload,
+            quality_tracker=self.execution_quality_tracker,
+            knowledgeverse=self.knowledgeverse,
+            query_context=query_context,
+            specialist_id=specialist_id,
+            domain_hint=domain_hint,
+        )
+
+    def observe_execution_event(self, event: Mapping[str, Any]) -> dict[str, Any]:
+        outcome = int(max(-1, min(1, int(event.get("outcome", 0) or 0))))
+        specialist = str(event.get("specialist_id", "") or "").strip()
+        query = str(event.get("query_context", "") or "").strip()
+        domain_hint = str(event.get("domain_hint", "") or "").strip()
+        if specialist and outcome != 0 and query:
+            self.learn_from_feedback(
+                query=query,
+                specialist=specialist,
+                success=(outcome > 0),
+                confidence=float(event.get("quality_signal", 0.0) or 0.0),
+                domain_hint=(domain_hint or None),
+            )
+            self.save_weights()
+        summary: dict[str, Any] = {}
+        if self.execution_quality_tracker is not None:
+            summary["quality"] = self.execution_quality_tracker.observe_event(
+                event,
+                specialist_catalog=self.list_specialists(),
+            )
+        if self.execution_grammar_detector is not None:
+            summary["grammar"] = self.execution_grammar_detector.observe_event(event)
+        return summary
+
     def _compose_procedural_program(
         self,
         *,
@@ -381,35 +507,73 @@ class TRMNavigator(SpecialistBase):
         candidates: Sequence[dict[str, Any]],
     ) -> dict[str, Any]:
         """Compose top procedural candidates into a new RPN program."""
-        selected: list[dict[str, Any]] = []
-        for candidate in candidates[:8]:
+        tool_selected: list[dict[str, Any]] = []
+        base_selected: list[dict[str, Any]] = []
+        for candidate in candidates[:12]:
             entry = candidate.get("entry", {})
             if not isinstance(entry, dict):
                 continue
             rpn = str(entry.get("rpn_program", "")).strip()
             if not rpn:
                 continue
-            selected.append(
-                {
-                    "id": str(entry.get("id", "")),
-                    "category": str(entry.get("category", "unknown")),
-                    "rpn_program": rpn,
-                    "score": float(candidate.get("score", 1.0)),
-                    "confidence": self._candidate_confidence(entry, candidate),
-                }
-            )
-            if len(selected) >= 3:
+            item = {
+                "id": str(entry.get("id", "")),
+                "category": str(entry.get("category", "unknown")),
+                "rpn_program": rpn,
+                "score": float(candidate.get("score", 1.0)),
+                "confidence": self._candidate_confidence(entry, candidate),
+                "entry": entry,
+                "candidate": candidate,
+            }
+            if str(entry.get("type", "")).strip().lower() == "tool_node":
+                if len(tool_selected) < 2:
+                    tool_selected.append(item)
+            elif len(base_selected) < 3:
+                base_selected.append(item)
+            if len(base_selected) >= 3 and len(tool_selected) >= 2:
                 break
 
+        selected = tool_selected + base_selected
+        if not selected:
+            # Fallback to original permissive behavior if the split produced nothing.
+            for candidate in candidates[:3]:
+                entry = candidate.get("entry", {})
+                if not isinstance(entry, dict):
+                    continue
+                rpn = str(entry.get("rpn_program", "")).strip()
+                if not rpn:
+                    continue
+                selected.append(
+                    {
+                        "id": str(entry.get("id", "")),
+                        "category": str(entry.get("category", "unknown")),
+                        "rpn_program": rpn,
+                        "score": float(candidate.get("score", 1.0)),
+                        "confidence": self._candidate_confidence(entry, candidate),
+                        "entry": entry,
+                        "candidate": candidate,
+                    }
+                )
         if not selected:
             return {}
 
         composed_rpn = "  ".join(item["rpn_program"] for item in selected)
-        categories = [item["category"] for item in selected if item["category"]]
+        categories = [item["category"] for item in base_selected if item["category"]]
+        if not categories:
+            categories = [item["category"] for item in selected if item["category"]]
         category = max(set(categories), key=categories.count) if categories else "unknown"
         avg_conf = sum(item["confidence"] for item in selected) / len(selected)
         depth = len(selected)
-        source_primitives = [item["id"] for item in selected if item["id"]]
+        source_primitives = [item["id"] for item in base_selected if item["id"]]
+        if not source_primitives:
+            source_primitives = [item["id"] for item in selected if item["id"]]
+        tool_context = self._extract_tool_context(
+            [item["candidate"] for item in selected if isinstance(item.get("candidate"), dict)],
+            query_text=query,
+        )
+        promotion_targets = self._extract_promotion_targets(
+            [item["entry"] for item in selected if isinstance(item.get("entry"), dict)]
+        )
 
         self._trace.append(
             "autogen compose "
@@ -422,6 +586,9 @@ class TRMNavigator(SpecialistBase):
             "category": category,
             "confidence": max(0.05, min(avg_conf, 0.99)),
             "source_primitives": source_primitives,
+            "tool_context": tool_context,
+            "execution_plan": self._build_tool_execution_plan(tool_context),
+            "promotion_targets": promotion_targets,
         }
 
     def _candidate_confidence(self, entry: dict[str, Any], candidate: dict[str, Any]) -> float:
@@ -440,6 +607,541 @@ class TRMNavigator(SpecialistBase):
             score = 1.0
         return max(0.05, min(score / 10.0, 0.95))
 
+    def _extract_tool_context(
+        self,
+        patterns: Sequence[dict[str, Any]],
+        query_text: str = "",
+    ) -> dict[str, Any] | None:
+        tool_entries: list[dict[str, Any]] = []
+        for candidate in patterns:
+            entry = candidate.get("entry")
+            if not isinstance(entry, dict):
+                continue
+            if str(entry.get("type", "")).strip().lower() != "tool_node":
+                continue
+            tool_entries.append(entry)
+
+        if not tool_entries:
+            return None
+
+        tool_ids: list[str] = []
+        tool_kinds: list[str] = []
+        runtime_statuses: list[str] = []
+        codec_ops: list[str] = []
+        component_refs: list[str] = []
+        modalities: list[str] = []
+        promotion_targets: list[str] = []
+        math_core_tiers: list[str] = []
+        math_core_roles: list[str] = []
+        math_core_spawn_policies: list[str] = []
+        math_core_cascades: list[str] = []
+        memory_residencies: list[str] = []
+        execution_residencies: list[str] = []
+        execution_rows: list[dict[str, Any]] = []
+        for entry in tool_entries[:6]:
+            tool_id = str(entry.get("id", "")).strip()
+            if tool_id:
+                tool_ids.append(tool_id)
+            component_refs.extend(str(ref) for ref in entry.get("component_refs", []) if str(ref).strip())
+            metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+            tool_kind = str(metadata.get("tool_kind", "")).strip()
+            if tool_kind:
+                tool_kinds.append(tool_kind)
+            runtime_status = str(metadata.get("runtime_status", "")).strip()
+            if runtime_status:
+                runtime_statuses.append(runtime_status)
+            memory_residency = str(metadata.get("memory_residency", "")).strip()
+            if memory_residency:
+                memory_residencies.append(memory_residency)
+            execution_residency = str(metadata.get("execution_residency", "")).strip()
+            if execution_residency:
+                execution_residencies.append(execution_residency)
+            codec_ops.extend(str(op) for op in metadata.get("codec_ops", []) if str(op).strip())
+            modalities.extend(str(mod) for mod in metadata.get("modalities", []) if str(mod).strip())
+            promotion_targets.extend(
+                str(item) for item in metadata.get("promotion_targets", []) if str(item).strip()
+            )
+            math_core = metadata.get("math_core") if isinstance(metadata.get("math_core"), dict) else {}
+            tier = math_core.get("preferred_tier")
+            if tier is not None:
+                math_core_tiers.append(str(tier).strip())
+            role = str(math_core.get("tier_role", "")).strip()
+            if role:
+                math_core_roles.append(role)
+            spawn_policy = str(math_core.get("spawn_policy", "")).strip()
+            if spawn_policy:
+                math_core_spawn_policies.append(spawn_policy)
+            math_core_cascades.extend(
+                str(item) for item in math_core.get("cascade", []) if str(item).strip()
+            )
+            entrypoints = [
+                str(item).strip()
+                for item in metadata.get("entrypoints", [])
+                if str(item).strip()
+            ]
+            inputs = [str(item).strip() for item in metadata.get("inputs", []) if str(item).strip()]
+            outputs = [str(item).strip() for item in metadata.get("outputs", []) if str(item).strip()]
+            raw_argument_schemas = (
+                metadata.get("entrypoint_argument_schemas")
+                if isinstance(metadata.get("entrypoint_argument_schemas"), dict)
+                else {}
+            )
+            raw_chain_presets = (
+                metadata.get("execution_chain_presets")
+                if isinstance(metadata.get("execution_chain_presets"), dict)
+                else {}
+            )
+            argument_schemas = {
+                str(key).strip(): dict(value)
+                for key, value in raw_argument_schemas.items()
+                if str(key).strip() and isinstance(value, dict)
+            }
+            chain_presets = {
+                str(key).strip(): dict(value)
+                for key, value in raw_chain_presets.items()
+                if str(key).strip() and isinstance(value, dict)
+            }
+            if tool_id and runtime_status and entrypoints:
+                execution_rows.append(
+                    {
+                        "tool_id": tool_id,
+                        "tool_kind": tool_kind,
+                        "runtime_status": runtime_status,
+                        "entrypoints": entrypoints,
+                        "inputs": inputs,
+                        "outputs": outputs,
+                        "argument_schemas": argument_schemas,
+                        "chain_presets": chain_presets,
+                        "math_core": math_core,
+                    }
+                )
+
+        def _dedupe(values: list[str]) -> list[str]:
+            out: list[str] = []
+            seen: set[str] = set()
+            for value in values:
+                if not value or value in seen:
+                    continue
+                seen.add(value)
+                out.append(value)
+            return out
+
+        deduped_tiers = _dedupe(math_core_tiers)
+        deduped_roles = _dedupe(math_core_roles)
+        deduped_spawn = _dedupe(math_core_spawn_policies)
+        deduped_cascades = _dedupe(math_core_cascades)
+        deduped_memory = _dedupe(memory_residencies)
+        deduped_execution = _dedupe(execution_residencies)
+        sorted_execution = self._prioritize_executable_tools(execution_rows, query_text=query_text)
+        executable_tool_ids = _dedupe([str(row.get("tool_id", "")).strip() for row in sorted_execution])
+        entrypoints = _dedupe(
+            [
+                str(entrypoint).strip()
+                for row in sorted_execution
+                for entrypoint in row.get("entrypoints", [])
+                if str(entrypoint).strip()
+            ]
+        )
+        primary_tool_id = executable_tool_ids[0] if executable_tool_ids else ""
+        primary_entrypoint = entrypoints[0] if entrypoints else ""
+        all_inputs = _dedupe(
+            [
+                str(item).strip()
+                for row in sorted_execution
+                for item in row.get("inputs", [])
+                if str(item).strip()
+            ]
+        )
+        all_outputs = _dedupe(
+            [
+                str(item).strip()
+                for row in sorted_execution
+                for item in row.get("outputs", [])
+                if str(item).strip()
+            ]
+        )
+        primary_argument_schema: dict[str, Any] | None = None
+        primary_inputs: list[str] = []
+        primary_outputs: list[str] = []
+        primary_chain_presets: dict[str, Any] = {}
+        for row in sorted_execution:
+            row_entrypoints = [str(item).strip() for item in row.get("entrypoints", []) if str(item).strip()]
+            if primary_tool_id and str(row.get("tool_id", "")).strip() != primary_tool_id and primary_entrypoint not in row_entrypoints:
+                continue
+            primary_argument_schema = dict(row.get("argument_schemas", {}).get(primary_entrypoint, {})) or None
+            primary_inputs = [str(item).strip() for item in row.get("inputs", []) if str(item).strip()]
+            primary_outputs = [str(item).strip() for item in row.get("outputs", []) if str(item).strip()]
+            primary_chain_presets = {
+                str(key).strip(): dict(value)
+                for key, value in row.get("chain_presets", {}).items()
+                if str(key).strip() and isinstance(value, dict)
+            }
+            break
+
+        return {
+            "tool_ids": _dedupe(tool_ids),
+            "tool_kinds": _dedupe(tool_kinds),
+            "runtime_statuses": _dedupe(runtime_statuses),
+            "component_refs": _dedupe(component_refs),
+            "codec_ops": _dedupe(codec_ops),
+            "modalities": _dedupe(modalities),
+            "inputs": all_inputs,
+            "outputs": all_outputs,
+            "promotion_targets": _dedupe(promotion_targets),
+            "math_core_tiers": deduped_tiers,
+            "math_core_roles": deduped_roles,
+            "math_core_spawn_policies": deduped_spawn,
+            "math_core_cascades": deduped_cascades,
+            "memory_residencies": deduped_memory,
+            "execution_residencies": deduped_execution,
+            "executable_tool_ids": executable_tool_ids,
+            "entrypoints": entrypoints,
+            "primary_tool_id": primary_tool_id,
+            "primary_entrypoint": primary_entrypoint,
+            "primary_argument_schema": primary_argument_schema,
+            "primary_inputs": primary_inputs,
+            "primary_outputs": primary_outputs,
+            "chain_presets": primary_chain_presets,
+            "execution_chain": [
+                {
+                    "tool_id": str(row.get("tool_id", "")).strip(),
+                    "tool_kind": str(row.get("tool_kind", "")).strip(),
+                    "runtime_status": str(row.get("runtime_status", "")).strip(),
+                    "inputs": [str(item).strip() for item in row.get("inputs", []) if str(item).strip()],
+                    "outputs": [str(item).strip() for item in row.get("outputs", []) if str(item).strip()],
+                    "entrypoints": [
+                        str(item).strip() for item in row.get("entrypoints", []) if str(item).strip()
+                    ],
+                    "argument_schemas": {
+                        str(key).strip(): dict(value)
+                        for key, value in row.get("argument_schemas", {}).items()
+                        if str(key).strip() and isinstance(value, dict)
+                    },
+                    "chain_presets": {
+                        str(key).strip(): dict(value)
+                        for key, value in row.get("chain_presets", {}).items()
+                        if str(key).strip() and isinstance(value, dict)
+                    },
+                }
+                for row in sorted_execution
+            ],
+            "math_core_plan": self._synthesize_math_core_plan(
+                tiers=deduped_tiers,
+                roles=deduped_roles,
+                spawn_policies=deduped_spawn,
+                cascades=deduped_cascades,
+                memory_residencies=deduped_memory,
+                execution_residencies=deduped_execution,
+            ),
+        }
+
+    def _synthesize_math_core_plan(
+        self,
+        *,
+        tiers: Sequence[str],
+        roles: Sequence[str],
+        spawn_policies: Sequence[str],
+        cascades: Sequence[str],
+        memory_residencies: Sequence[str],
+        execution_residencies: Sequence[str],
+    ) -> dict[str, Any] | None:
+        if not tiers and not roles and not spawn_policies and not cascades:
+            return None
+
+        preferred_tier = 1
+        if "3" in tiers or "master" in roles:
+            preferred_tier = 3
+        elif "2" in tiers or "worker" in roles:
+            preferred_tier = 2
+
+        tier_role = {1: "worker_worker", 2: "worker", 3: "master"}[preferred_tier]
+        if preferred_tier == 3:
+            cascade = ["parallel_fanout", "worker_reduce", "master_commit"]
+        elif preferred_tier == 2:
+            cascade = ["parallel_fanout", "worker_reduce"]
+        else:
+            cascade = ["parallel_fanout"]
+        for step in cascades:
+            if step and step not in cascade:
+                cascade.append(step)
+
+        return {
+            "preferred_tier": preferred_tier,
+            "tier_role": tier_role,
+            "spawn_policy": str(spawn_policies[0]) if spawn_policies else "adaptive_reuse",
+            "cascade": cascade,
+            "memory_residency": (
+                str(memory_residencies[0]) if memory_residencies else "knowledgeverse_galaxy"
+            ),
+            "execution_residency": str(execution_residencies[0]) if execution_residencies else "gpu_ptx",
+        }
+
+    def _prioritize_executable_tools(
+        self,
+        execution_rows: Sequence[dict[str, Any]],
+        *,
+        query_text: str = "",
+    ) -> list[dict[str, Any]]:
+        def _runtime_priority(status: str) -> int:
+            normalized = str(status).strip().lower()
+            if normalized == "ptx_rpn_available":
+                return 4
+            if normalized == "ptx_bridge_available":
+                return 3
+            if normalized == "ptx_runtime_available":
+                return 2
+            if normalized.startswith("ptx_"):
+                return 1
+            return 0
+
+        def _kind_priority(kind: str) -> int:
+            normalized = str(kind).strip().lower()
+            if "fusion" in normalized:
+                return 5
+            if "projection" in normalized or "material" in normalized:
+                return 4
+            if "surface" in normalized or "displacement" in normalized:
+                return 3
+            if "signal" in normalized or "surface" in normalized:
+                return 2
+            if "codec" in normalized:
+                return 1
+            if "math_core" in normalized:
+                return 0
+            return 0
+
+        query_tokens = str(query_text or "").strip().lower()
+
+        def _query_bonus(row: Mapping[str, Any]) -> int:
+            normalized_kind = str(row.get("tool_kind", "")).strip().lower()
+            temporal_query = any(
+                token in query_tokens
+                for token in ("temporal", "timeline", "video", "animate", "animation", "sequence", "frame")
+            )
+            scene_query = any(
+                token in query_tokens
+                for token in ("scene", "layer", "layered", "composite", "composition", "playback")
+            )
+            replay_query = any(
+                token in query_tokens
+                for token in ("replay", "journal", "audit", "history")
+            )
+            library_query = any(
+                token in query_tokens
+                for token in ("knowledge", "library", "settled", "stable", "what i know")
+            )
+            garden_query = any(
+                token in query_tokens
+                for token in ("learning", "growing", "garden", "exploring", "exploration", "what i'm learning", "what i am learning")
+            )
+            museum_query = any(
+                token in query_tokens
+                for token in ("museum", "archive", "failures", "failure", "lessons", "history", "my history")
+            )
+            tour_query = any(
+                token in query_tokens
+                for token in ("tour", "overview", "all", "everything", "whole house")
+            )
+            ui_query = any(
+                token in query_tokens
+                for token in ("ui", "hud", "overlay", "widget", "panel", "cursor", "icon", "focus")
+            )
+            world_query = any(
+                token in query_tokens
+                for token in ("world", "ambient", "environment", "scene", "room", "house", "orbit", "breathe")
+            )
+            bonus = 0
+            if temporal_query:
+                if "temporal" in normalized_kind or "timeline" in normalized_kind or "video" in normalized_kind:
+                    bonus += 6
+            elif "temporal" in normalized_kind or "timeline" in normalized_kind or "video" in normalized_kind:
+                bonus -= 6
+            if scene_query:
+                if "scene" in normalized_kind or "layering" in normalized_kind or "composition" in normalized_kind:
+                    bonus += 7
+            elif "scene" in normalized_kind:
+                bonus -= 5
+            if replay_query:
+                if "replay_scene" in normalized_kind:
+                    bonus += 10
+            elif "replay_scene" in normalized_kind:
+                bonus -= 8
+            if library_query:
+                if "library_scene" in normalized_kind:
+                    bonus += 12
+                elif "garden_scene" in normalized_kind or "museum_scene" in normalized_kind:
+                    bonus -= 4
+            elif "library_scene" in normalized_kind:
+                bonus -= 8
+            if garden_query:
+                if "garden_scene" in normalized_kind:
+                    bonus += 12
+                elif "library_scene" in normalized_kind or "museum_scene" in normalized_kind:
+                    bonus -= 4
+            elif "garden_scene" in normalized_kind:
+                bonus -= 8
+            if museum_query:
+                if "museum_scene" in normalized_kind:
+                    bonus += 12
+                elif "library_scene" in normalized_kind or "garden_scene" in normalized_kind:
+                    bonus -= 4
+            elif "museum_scene" in normalized_kind:
+                bonus -= 8
+            if tour_query:
+                if "tour_scene" in normalized_kind:
+                    bonus += 14
+                elif "library_scene" in normalized_kind or "garden_scene" in normalized_kind or "museum_scene" in normalized_kind:
+                    bonus -= 2
+            elif "tour_scene" in normalized_kind:
+                bonus -= 10
+            if ui_query:
+                if "ui_animation" in normalized_kind:
+                    bonus += 8
+                elif "ui_scene" in normalized_kind:
+                    bonus += 9
+                elif "world_animation" in normalized_kind:
+                    bonus -= 3
+                elif "world_scene" in normalized_kind:
+                    bonus -= 4
+            elif "ui_animation" in normalized_kind:
+                bonus -= 8
+            elif "ui_scene" in normalized_kind:
+                bonus -= 9
+            if world_query:
+                if "world_animation" in normalized_kind:
+                    bonus += 8
+                elif "world_scene" in normalized_kind:
+                    bonus += 9
+                elif "ui_animation" in normalized_kind:
+                    bonus -= 3
+                elif "ui_scene" in normalized_kind:
+                    bonus -= 4
+            elif "world_animation" in normalized_kind:
+                bonus -= 8
+            elif "world_scene" in normalized_kind:
+                bonus -= 9
+            return bonus
+
+        def _quality_bonus(row: Mapping[str, Any]) -> float:
+            if self.execution_quality_tracker is None:
+                return 0.0
+            tool_id = str(row.get("tool_id", "")).strip()
+            runtime_status = str(row.get("runtime_status", "")).strip()
+            tool_kind = str(row.get("tool_kind", "")).strip()
+            return float(
+                self.execution_quality_tracker.tool_quality_bonus(tool_id)
+                + self.execution_quality_tracker.source_quality_bonus(
+                    tool_id,
+                    runtime_status=runtime_status,
+                    tool_kind=tool_kind,
+                )
+            )
+
+        def _routing_bonus(row: Mapping[str, Any]) -> float:
+            if self.execution_quality_tracker is None:
+                return 0.0
+            gate = self.execution_quality_tracker.routing_gate(
+                str(row.get("tool_id", "")).strip(),
+                runtime_status=str(row.get("runtime_status", "")).strip(),
+                tool_kind=str(row.get("tool_kind", "")).strip(),
+            )
+            return float(self.execution_quality_tracker.routing_alignment_bonus(gate))
+
+        ranked = list(execution_rows)
+        ranked.sort(
+            key=lambda row: (
+                _query_bonus(row) + _quality_bonus(row) + _routing_bonus(row),
+                _kind_priority(str(row.get("tool_kind", ""))),
+                _runtime_priority(str(row.get("runtime_status", ""))),
+            ),
+            reverse=True,
+        )
+        return ranked
+
+    def _extract_promotion_targets(self, entries: Sequence[dict[str, Any]]) -> list[str]:
+        targets: list[str] = []
+        for entry in entries:
+            metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+            for value in metadata.get("promotion_targets", []):
+                token = str(value).strip()
+                if token:
+                    targets.append(token)
+        out: list[str] = []
+        seen: set[str] = set()
+        for token in targets:
+            if token in seen:
+                continue
+            seen.add(token)
+            out.append(token)
+        return out
+
+    def _build_tool_execution_plan(self, tool_context: dict[str, Any] | None) -> dict[str, Any] | None:
+        if not tool_context:
+            return None
+        primary_tool_id = str(tool_context.get("primary_tool_id", "")).strip()
+        primary_entrypoint = str(tool_context.get("primary_entrypoint", "")).strip()
+        execution_chain = tool_context.get("execution_chain", [])
+        if not primary_tool_id and not primary_entrypoint and not execution_chain:
+            return None
+        return {
+            "mode": "tool_entrypoint_chain",
+            "primary_tool_id": primary_tool_id,
+            "primary_entrypoint": primary_entrypoint,
+            "primary_argument_schema": tool_context.get("primary_argument_schema"),
+            "primary_inputs": list(tool_context.get("primary_inputs", [])),
+            "primary_outputs": list(tool_context.get("primary_outputs", [])),
+            "chain_presets": dict(tool_context.get("chain_presets", {}) or {}),
+            "executable_tool_ids": list(tool_context.get("executable_tool_ids", [])),
+            "inputs": list(tool_context.get("inputs", [])),
+            "outputs": list(tool_context.get("outputs", [])),
+            "entrypoints": list(tool_context.get("entrypoints", [])),
+            "execution_chain": list(execution_chain),
+            "math_core_plan": tool_context.get("math_core_plan"),
+            "promotion_targets": list(tool_context.get("promotion_targets", [])),
+        }
+
+    def _record_tool_promotion_pressure(
+        self,
+        *,
+        query: str,
+        source_galaxy: str,
+        target_galaxy: str,
+        specialist: str,
+        tool_context: dict[str, Any],
+        promotion_targets: Sequence[str],
+    ) -> None:
+        if self.knowledgeverse is None or not hasattr(self.knowledgeverse, "storage_root"):
+            return
+        payload = {
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "query": query,
+            "source_galaxy": source_galaxy,
+            "target_galaxy": target_galaxy,
+            "specialist": specialist,
+            "tool_ids": list(tool_context.get("tool_ids", [])),
+            "tool_kinds": list(tool_context.get("tool_kinds", [])),
+            "runtime_statuses": list(tool_context.get("runtime_statuses", [])),
+            "codec_ops": list(tool_context.get("codec_ops", [])),
+            "math_core_tiers": list(tool_context.get("math_core_tiers", [])),
+            "math_core_roles": list(tool_context.get("math_core_roles", [])),
+            "math_core_spawn_policies": list(tool_context.get("math_core_spawn_policies", [])),
+            "math_core_cascades": list(tool_context.get("math_core_cascades", [])),
+            "memory_residencies": list(tool_context.get("memory_residencies", [])),
+            "execution_residencies": list(tool_context.get("execution_residencies", [])),
+            "executable_tool_ids": list(tool_context.get("executable_tool_ids", [])),
+            "entrypoints": list(tool_context.get("entrypoints", [])),
+            "primary_tool_id": str(tool_context.get("primary_tool_id", "")),
+            "primary_entrypoint": str(tool_context.get("primary_entrypoint", "")),
+            "math_core_plan": tool_context.get("math_core_plan"),
+            "promotion_targets": list(promotion_targets),
+            "component_refs_count": len(tool_context.get("component_refs", [])),
+        }
+        logs_dir = Path(getattr(self.knowledgeverse, "storage_root")) / "logs"
+        logs_dir.mkdir(parents=True, exist_ok=True)
+        out_path = logs_dir / "tool_promotion_pressure.jsonl"
+        with out_path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(payload, separators=(",", ":"), sort_keys=True) + "\n")
+
     def _specialist_for_galaxy(self, galaxy_name: str) -> str:
         lowered = galaxy_name.strip().lower()
         mapping = {
@@ -449,7 +1151,8 @@ class TRMNavigator(SpecialistBase):
             "drawing": "visual",
             "math": "math",
             "grammar": "grammar",
-            "audio": "any",
+            "audio": "audio",
+            "tool": "cartographer",
         }
         return mapping.get(lowered, "any")
 

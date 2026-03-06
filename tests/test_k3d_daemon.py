@@ -81,6 +81,9 @@ def test_ping_and_status() -> None:
     out = daemon.handle_command({"command": "PING"})
     assert out["status"] == "ok"
     assert out["manifest_version"] == "test"
+    assert "drawing_warmup" in out
+    assert "geometry_warmup" in out
+    assert "material_warmup" in out
 
 
 def test_route_query_and_solve_math() -> None:

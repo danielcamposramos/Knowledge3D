@@ -64,6 +64,100 @@ document.body.appendChild(lodHud);
 const lodToggle = document.getElementById('toggle-lod-hud') as HTMLInputElement | null;
 if (lodToggle) lodToggle.onchange = () => { lodHud.style.display = lodToggle.checked ? 'block' : 'none'; };
 
+// --- Boot Overlay (Flash-style preload shell) ---
+const bootOverlay = document.createElement('div');
+bootOverlay.id = 'boot-overlay';
+bootOverlay.innerHTML = `
+  <div id="boot-panel">
+    <div id="boot-kicker">K3D Boot Sequence</div>
+    <div id="boot-title">Preloading Procedural Space</div>
+    <div id="boot-status">Starting scene bootstrap…</div>
+    <div id="boot-progress-shell"><div id="boot-progress-bar"></div></div>
+    <div id="boot-meta">
+      <span id="boot-stage">stage: cold-start</span>
+      <span id="boot-percent">0%</span>
+    </div>
+  </div>
+`;
+document.body.appendChild(bootOverlay);
+const bootStatus = bootOverlay.querySelector('#boot-status') as HTMLDivElement;
+const bootStage = bootOverlay.querySelector('#boot-stage') as HTMLSpanElement;
+const bootPercent = bootOverlay.querySelector('#boot-percent') as HTMLSpanElement;
+const bootProgressBar = bootOverlay.querySelector('#boot-progress-bar') as HTMLDivElement;
+bootOverlay.style.transition = 'opacity 240ms ease';
+
+let bootLocalProgress = 0.0;
+let bootLocalStatus = 'Starting scene bootstrap…';
+let bootLocalStage = 'stage: cold-start';
+let bootRemoteProgress = 0.0;
+let bootRemoteStatus = '';
+let bootRemoteStage = '';
+let bootPollHandle: number | null = null;
+let bootFinished = false;
+
+function refreshBootOverlay() {
+    const progress = Math.max(bootLocalProgress, bootRemoteProgress);
+    const statusText = bootRemoteStatus || bootLocalStatus;
+    const stageText = bootRemoteStage || bootLocalStage;
+    bootStatus.textContent = statusText;
+    bootStage.textContent = stageText;
+    bootPercent.textContent = `${Math.round(progress * 100)}%`;
+    bootProgressBar.style.width = `${Math.round(progress * 100)}%`;
+}
+
+function setBootLocal(progress: number, statusText: string, stageText: string) {
+    bootLocalProgress = Math.max(bootLocalProgress, Math.min(1.0, progress));
+    bootLocalStatus = statusText;
+    bootLocalStage = stageText;
+    if (!bootFinished) refreshBootOverlay();
+}
+
+async function pollRuntimeBootStatus() {
+    try {
+        const res = await fetch(`/runtime_boot.json?ts=${Date.now()}`, { cache: 'no-store' });
+        if (!res.ok) return;
+        const payload = await res.json();
+        const progress = typeof payload?.progress === 'number' ? payload.progress : 0.0;
+        bootRemoteProgress = Math.max(bootRemoteProgress, Math.min(1.0, progress));
+        const stage = String(payload?.stage || '').trim();
+        const state = String(payload?.state || '').trim();
+        bootRemoteStage = stage ? `stage: ${stage}` : bootRemoteStage;
+        bootRemoteStatus = stage
+            ? `${stage.replace(/_/g, ' ')}${state ? ` (${state})` : ''}`
+            : bootRemoteStatus;
+        if (!bootFinished) refreshBootOverlay();
+    } catch {}
+}
+
+function startBootPolling() {
+    if (bootPollHandle !== null) return;
+    bootPollHandle = window.setInterval(() => { void pollRuntimeBootStatus(); }, 500);
+    void pollRuntimeBootStatus();
+}
+
+function stopBootPolling() {
+    if (bootPollHandle !== null) {
+        window.clearInterval(bootPollHandle);
+        bootPollHandle = null;
+    }
+}
+
+function finishBootOverlay(statusText = 'K3D ready.') {
+    if (bootFinished) return;
+    bootFinished = true;
+    bootRemoteProgress = Math.max(bootRemoteProgress, 1.0);
+    bootRemoteStatus = statusText;
+    bootRemoteStage = 'stage: ready';
+    refreshBootOverlay();
+    window.setTimeout(() => {
+        bootOverlay.style.opacity = '0';
+        window.setTimeout(() => {
+            bootOverlay.style.display = 'none';
+        }, 260);
+    }, 180);
+    stopBootPolling();
+}
+
 // --- Main Logic ---
 
 /**
@@ -1142,9 +1236,9 @@ try {
     });
     slider.addEventListener('change', () => {
         // reload rays on change
-        while (raySegments.length) {
-            const ls = raySegments.pop()!;
-            scene.remove(ls);
+        while (rayObjects.length) {
+            const obj = rayObjects.pop()!;
+            scene.remove(obj);
         }
         loadRayBundles();
     });
@@ -1573,47 +1667,96 @@ function startApp() {
     const dev = params.get('dev') === '1';
     const panel = document.getElementById('ui-container') as HTMLDivElement | null;
     if (panel) panel.style.display = dev ? 'block' : 'none';
+    startBootPolling();
+    setBootLocal(0.08, 'Igniting stars backdrop…', 'stage: stars');
     createStars();
+    setBootLocal(0.14, 'Preparing HUD and tablet surfaces…', 'stage: interface');
     initHudChat();
     if (dev) {
+        setBootLocal(0.32, 'Developer controls ready.', 'stage: developer-panel');
         initCondoSelector();
+        setBootLocal(1.0, 'K3D ready.', 'stage: ready');
+        finishBootOverlay('K3D ready.');
     } else {
         const assetCombo = params.get('asset');
         if (assetCombo && assetCombo.toLowerCase() === 'garden+greenhouse') {
-            (async () => { try { await loadGardenAndGreenhouse(); await loadMaterializedShapes(0.7); await loadRayBundles(); } catch (e) { console.error(e); } finally { animate(); } })();
+            setBootLocal(0.28, 'Loading greenhouse and garden assets…', 'stage: asset-preload');
+            (async () => {
+                try {
+                    await loadGardenAndGreenhouse();
+                    setBootLocal(0.62, 'Materializing procedural shapes…', 'stage: scene-compose');
+                    await loadMaterializedShapes(0.7);
+                    setBootLocal(0.82, 'Loading ray bundles…', 'stage: scene-rays');
+                    await loadRayBundles();
+                } catch (e) {
+                    console.error(e);
+                } finally {
+                    setBootLocal(1.0, 'Entering K3D world…', 'stage: ready');
+                    animate();
+                    finishBootOverlay('K3D ready.');
+                }
+            })();
             return;
         }
         const asset = params.get('asset');
         if (asset && asset.length > 0) {
-            (async () => { try { await loadAssetGLB(asset); } catch {} finally { animate(); } })();
+            setBootLocal(0.28, `Loading asset ${asset}…`, 'stage: asset-preload');
+            (async () => {
+                try { await loadAssetGLB(asset); } catch {}
+                finally {
+                    setBootLocal(1.0, 'Entering K3D world…', 'stage: ready');
+                    animate();
+                    finishBootOverlay('K3D ready.');
+                }
+            })();
             return;
         }
         // Optional override via URL: ?gltf=/galaxy.cross.glb
         const pick = params.get('gltf') || params.get('house');
         if (pick && pick.length > 0) {
+            setBootLocal(0.28, `Checking ${pick}…`, 'stage: house-probe');
             (async () => {
                 try {
                     const r = await fetch(pick, { method: 'HEAD', cache: 'no-store' });
-                    if (r.ok) { await loadHouse(pick); animate(); return; }
+                    if (r.ok) {
+                        setBootLocal(0.52, `Loading ${pick}…`, 'stage: house-load');
+                        await loadHouse(pick);
+                        setBootLocal(1.0, 'Entering K3D world…', 'stage: ready');
+                        animate();
+                        finishBootOverlay('K3D ready.');
+                        return;
+                    }
                 } catch {}
                 const tip = document.getElementById('hud-tip') as HTMLDivElement | null;
                 if (tip) tip.textContent = `Not found: ${pick}`;
+                setBootLocal(1.0, `Not found: ${pick}`, 'stage: ready');
                 animate();
+                finishBootOverlay(`Not found: ${pick}`);
             })();
             return;
         }
         // Pick a default galaxy from known names
         const candidates = ['/galaxy.glb', '/coco_50k.glb', '/clotho.glb', '/vatex_2k.glb'];
+        setBootLocal(0.22, 'Scanning default houses…', 'stage: house-probe');
         (async () => {
             for (const u of candidates) {
                 try {
                     const r = await fetch(u, { method: 'HEAD', cache: 'no-store' });
-                    if (r.ok) { await loadHouse(u); animate(); return; }
+                    if (r.ok) {
+                        setBootLocal(0.55, `Loading ${u}…`, 'stage: house-load');
+                        await loadHouse(u);
+                        setBootLocal(1.0, 'Entering K3D world…', 'stage: ready');
+                        animate();
+                        finishBootOverlay('K3D ready.');
+                        return;
+                    }
                 } catch {}
             }
             const tip = document.getElementById('hud-tip') as HTMLDivElement | null;
             if (tip) tip.textContent = 'No house found. Build one (see docs/RUNBOOK_MULTIMODAL_50K.md).';
+            setBootLocal(1.0, 'No house found. Build one to enter the world.', 'stage: ready');
             animate();
+            finishBootOverlay('No house found.');
         })();
         return;
     }

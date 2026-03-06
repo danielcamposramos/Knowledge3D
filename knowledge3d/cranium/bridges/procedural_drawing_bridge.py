@@ -18,13 +18,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 import ctypes
+import os
 import re
 import math
+import time
 from typing import List, Sequence, Tuple
 
 import numpy as np
 
 from knowledge3d.cranium.bridges.procedural_glyph_bridge import ProceduralGlyphBridge
+from knowledge3d.cranium.ptx_runtime.drawing_effects import DrawingEffects
 from knowledge3d.cranium.ptx_runtime.latency_guard import LatencyGuard
 from knowledge3d.cranium.sovereign import loader
 from knowledge3d.cranium.ptx_runtime.modular_rpn_engine import ModularRPNEngine
@@ -132,12 +135,14 @@ class ProceduralDrawingBridge:
 
     MAX_SEGMENTS = 4096  # safety cap to avoid runaway tessellation
     SEGMENT_STRIDE = 9   # x0,y0,x1,y1,r,g,b,a,width
+    _WARMED_PID: int | None = None
 
     def __init__(self, matryoshka_dim: int = 512) -> None:
         quality = MATRYOSHKA_QUALITY.get(matryoshka_dim, MATRYOSHKA_QUALITY[512])
         self.segments_per_curve = quality["segments"]
         self.supersample = quality["supersample"]
         self.rasterizer = ProceduralGlyphBridge()
+        self.effects = DrawingEffects()
         # Guard tuned for arc/device-math path (~13-25 ms on 3060-class)
         self.latency_guard = LatencyGuard(threshold_us=26000.0)
 
@@ -171,6 +176,7 @@ class ProceduralDrawingBridge:
             if rpn_exec_ptx.exists()
             else None
         )
+        self._warmup_report: dict[str, float | bool | str] | None = None
 
     def _get_rpn_engine(self):
         """Lazy-load RPN Math Kernel for trigonometric preprocessing."""
@@ -405,6 +411,7 @@ class ProceduralDrawingBridge:
         ternary_hint: float = 0.0,
         math_buffer: np.ndarray | MathRecord | Sequence[MathRecord] | None = None,
         use_device_math: bool = True,
+        track_latency: bool = True,
     ) -> RenderResult:
         """Execute drawing RPN entirely on GPU (bytecode → segments → rasterize).
 
@@ -413,7 +420,8 @@ class ProceduralDrawingBridge:
         if self.pixel_genesis_kernel is None:
             return self.execute_rpn_program(rpn_program, width, height)
 
-        self.latency_guard.start()
+        if track_latency:
+            self.latency_guard.start()
 
         # Preprocess RPN math tokens if math_buffer not provided
         if math_buffer is None:
@@ -498,10 +506,11 @@ class ProceduralDrawingBridge:
                 segments.nbytes,
             )
 
-        elapsed_ns, breached = self.latency_guard.stop()
-        if breached:
-            import logging
-            logging.warning(f"GPU RPN execution breached latency budget: {elapsed_ns / 1000:.1f} µs")
+        if track_latency:
+            elapsed_ns, breached = self.latency_guard.stop()
+            if breached:
+                import logging
+                logging.warning(f"GPU RPN execution breached latency budget: {elapsed_ns / 1000:.1f} µs")
 
         if skip_raster:
             return RenderResult(segments=segments, rgba=None)
@@ -519,6 +528,134 @@ class ProceduralDrawingBridge:
     def execute_batch_gpu(self, programs: Sequence[str], width: int = 256, height: int = 256) -> List[RenderResult]:
         """Execute multiple RPN programs; placeholder loop until kernel batch mode exists."""
         return [self.execute_rpn_gpu(p, width, height) for p in programs]
+
+    def warmup_runtime(self) -> dict[str, float | bool | str]:
+        """Preload heavy drawing/runtime assets before first live interaction."""
+        pid = os.getpid()
+        if self._warmup_report is not None and self._WARMED_PID == pid:
+            return dict(self._warmup_report)
+
+        report: dict[str, float | bool | str] = {
+            "status": "warming",
+            "pid": str(pid),
+        }
+
+        t0 = time.perf_counter()
+        base = self.execute_rpn_gpu(
+            "0 0 MOVE 0 0 LINE STROKE",
+            width=8,
+            height=8,
+            skip_raster=False,
+            track_latency=False,
+        )
+        loader.synchronize()
+        report["draw_warmup_ms"] = (time.perf_counter() - t0) * 1000.0
+
+        t0 = time.perf_counter()
+        backdrop = self.effects.linear_gradient(
+            8,
+            8,
+            self._default_painterly_stops(),
+            x1=0.0,
+            y1=0.0,
+            x2=1.0,
+            y2=1.0,
+        )
+        loader.synchronize()
+        report["gradient_warmup_ms"] = (time.perf_counter() - t0) * 1000.0
+
+        t0 = time.perf_counter()
+        composed = self.effects.alpha_over_rgba(backdrop, base.rgba)
+        composed = self.effects.blur_rgba(composed, radius=1)
+        composed = self.effects.sharpen_rgba(composed, radius=1, amount=0.25)
+        _edges = self.effects.edge_map(composed)
+        _ = self.effects.invert_rgba(composed)
+        loader.synchronize()
+        report["effects_warmup_ms"] = (time.perf_counter() - t0) * 1000.0
+
+        report["status"] = "ready"
+        report["total_warmup_ms"] = (
+            float(report["draw_warmup_ms"])
+            + float(report["gradient_warmup_ms"])
+            + float(report["effects_warmup_ms"])
+        )
+        self._WARMED_PID = pid
+        self._warmup_report = dict(report)
+        return dict(report)
+
+    def render_painterly_gpu(
+        self,
+        rpn_program: str,
+        width: int = 256,
+        height: int = 256,
+        *,
+        background: str | None = "linear",
+        gradient_stops: Sequence[Sequence[float]] | None = None,
+        blur_radius: int = 0,
+        sharpen_amount: float = 0.0,
+        invert: bool = False,
+    ) -> RenderResult:
+        """Render a drawing plus a PTX-backed background/effect stack.
+
+        This keeps orchestration in Python while gradients, blur/sharpen,
+        inversion, and compositing all execute on GPU.
+        """
+        result = self.execute_rpn_gpu(rpn_program, width=width, height=height)
+        if result.rgba is None:
+            return result
+
+        composed = result.rgba
+        if background:
+            stops = list(gradient_stops or self._default_painterly_stops())
+            background = background.lower()
+            if background == "linear":
+                backdrop = self.effects.linear_gradient(
+                    width,
+                    height,
+                    stops,
+                    x1=0.0,
+                    y1=0.0,
+                    x2=1.0,
+                    y2=1.0,
+                )
+            elif background == "radial":
+                backdrop = self.effects.radial_gradient(
+                    width,
+                    height,
+                    stops,
+                    cx=0.5,
+                    cy=0.5,
+                    radius=0.65,
+                )
+            elif background == "conic":
+                backdrop = self.effects.conic_gradient(
+                    width,
+                    height,
+                    stops,
+                    cx=0.5,
+                    cy=0.5,
+                    start_angle=0.0,
+                )
+            else:
+                raise ValueError(f"unsupported painterly background: {background}")
+            composed = self.effects.alpha_over_rgba(backdrop, composed)
+
+        if blur_radius > 0:
+            composed = self.effects.blur_rgba(composed, radius=blur_radius)
+        if sharpen_amount > 0.0:
+            composed = self.effects.sharpen_rgba(
+                composed,
+                radius=max(1, blur_radius or 1),
+                amount=sharpen_amount,
+            )
+        if invert:
+            composed = self.effects.invert_rgba(composed)
+
+        return RenderResult(segments=result.segments, rgba=composed.astype(np.float32, copy=False))
+
+    def edge_map_gpu(self, rgba: np.ndarray) -> np.ndarray:
+        """Produce a GPU Sobel edge map from an RGBA canvas."""
+        return self.effects.edge_map(rgba).astype(np.float32, copy=False)
 
     def execute_rpn_bytecode_gpu(self, bytecode: bytes, width: int = 256, height: int = 256, ternary_meta: np.ndarray | None = None) -> RenderResult:
         """Execute precompiled RPN bytecode via device-side executor (geometry only)."""
@@ -608,6 +745,14 @@ class ProceduralDrawingBridge:
     def _extract_style_defaults(self) -> List[float]:
         """Default style vector: r,g,b,a,width."""
         return [1.0, 1.0, 1.0, 1.0, 1.0]
+
+    def _default_painterly_stops(self) -> List[Tuple[float, float, float, float, float]]:
+        return [
+            (0.0, 0.964, 0.753, 0.318, 1.0),
+            (0.35, 0.906, 0.427, 0.333, 1.0),
+            (0.72, 0.506, 0.247, 0.537, 1.0),
+            (1.0, 0.122, 0.157, 0.353, 1.0),
+        ]
 
     def _rpn_to_segments(self, rpn_program: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         tokens = rpn_program.strip().split()

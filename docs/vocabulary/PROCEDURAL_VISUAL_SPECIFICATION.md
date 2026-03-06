@@ -1,9 +1,9 @@
 # Procedural Visual Specification — Drawing Galaxy & VectorDotMap Architecture
 
-**Version**: 1.0
+**Version**: 1.1
 **Status**: Implementation Ready
 **License**: CC-BY-4.0 (Documentation), Apache 2.0 (Implementation)
-**Date**: December 2025
+**Date**: March 2026 (updated from December 2025)
 
 ---
 
@@ -737,7 +737,101 @@ All visual operations MUST execute on GPU via PTX:
 
 ---
 
-## 10. References
+## 10. 3D Technique Fusion (Procedural Composition of ALL Techniques)
+
+### 10.1 The Fusion Paradigm
+
+Traditional 3D engines isolate techniques into separate workflows, tools, and file formats. K3D treats ALL 3D generation techniques as **RPN programs in Reality Galaxy**, composable via symlinks with Drawing Galaxy textures and Math Galaxy parameters.
+
+| Technique | Traditional Tool | K3D Procedural Equivalent |
+|-----------|-----------------|--------------------------|
+| **CSG** (boolean operations) | Blender Modifier | `OP_BOOLEAN_3D` + mesh refs (Class B) |
+| **Mesh Modeling** (vertex/edge/face) | Maya/Blender Edit Mode | `OP_MESH_TRANSFORM` + vertex RPN (Class A) |
+| **Procedural Generation** (L-systems, fractals, noise) | Houdini VEX | `OP_LSYSTEM_STEP` + growth rules (Class B) |
+| **Sculpting** (organic deformation) | ZBrush, Blender Sculpt | `OP_DISPLACEMENT_MAP` + strength field (Class B) |
+| **Parametric** (math-driven surfaces) | Grasshopper, CAD | Math Galaxy RPN directly (Class A) |
+| **Physics-Based** (simulation-driven) | Houdini Vellum | Reality Galaxy laws + integration (Class A) |
+| **Voxel** (volume modeling) | MagicaVoxel | `OP_MARCHING_CUBES` + scalar field (Class B) |
+| **NURBS** (curve control) | Rhino, Alias | `OP_BEZIER_EVAL` + control points (Class A) |
+
+Capability classes per `RPN_DOMAIN_OPCODE_REGISTRY.md` Section 5.
+
+### 10.2 2D-to-3D Fusion (Same Knowledge Base)
+
+Drawing Galaxy entries are used for BOTH 2D rendering and 3D texturing:
+
+```rpn
+# Drawing Galaxy entry: "brick_pattern"
+#   form_rpn: RECT 0.1 0.2 LINE OFFSET ...   (how to draw brick)
+#   color_rpn: RGB 0.6 0.3 0.1 NOISE ...      (brick color variation)
+
+# Used in 2D: Drawing Bridge renders form_rpn + color_rpn -> 2D texture
+# Used in 3D: UV mapping routes form_rpn to mesh surface -> 3D textured wall
+# Same knowledge, different application, zero duplication
+```
+
+A 2D shape can become 3D geometry via extrusion:
+
+```rpn
+# 2D star from Drawing Galaxy
+DRAWING_REF star_shape     # Symlink to 2D shape RPN
+MESH_EXTRUDE 0.5           # Extrude 0.5 units into 3D
+BEVEL_EDGES 0.1            # Round corners
+# Result: 3D star from 2D drawing knowledge
+```
+
+### 10.3 Fusion Composition Example
+
+"Ancient Tree on Cliff" using multiple techniques in ONE composed RPN program:
+
+```rpn
+# L-system growth (trunk + branches)
+REALITY_REF tree_growth_lsystem_v1
+# CSG boolean (cliff subtract tree roots)
+REALITY_REF cliff_geometry_v1
+BOOLEAN_SUBTRACT root_cavity
+# Physics (roots grip cliff, stable under gravity)
+REALITY_REF gravity_stability_check
+# Procedural noise (bark texture, rock detail)
+DRAWING_REF bark_texture_noise_v2
+DRAWING_REF rock_detail_noise_v1
+# All techniques composed, all symlinked, fully reusable
+```
+
+### 10.4 Visual Tool-Nodes
+
+3D techniques are stored as **tool-nodes** in Galaxy Universe -- procedural capabilities as knowledge:
+
+```json
+{
+  "id": "tool_extrude_profile_v1",
+  "galaxy": "Reality",
+  "category": "procedural_tool",
+  "input_contract": {
+    "requires": ["2d_contour_ref", "depth"],
+    "optional": ["bevel_profile_ref", "uv_rule_ref"]
+  },
+  "output_contract": {
+    "produces": ["mesh_ref", "normal_ref", "uv_ref"]
+  },
+  "behavior_rpn": ["DRAWING_REF", "MESH_EXTRUDE_MACRO", "UV_PROJECT_MACRO"],
+  "component_refs": ["tool_uv_project_v1", "tool_bevel_profile_v1"],
+  "constraints": ["closed_contour_required", "positive_depth_only"]
+}
+```
+
+**Tool families**:
+
+- **2D tools**: contour construction, stroke expansion, fill/gradient composition
+- **3D tools**: extrude, revolve, sweep, boolean combine, displacement, UV/triplanar mapping
+- **Physics tools**: gravity integration, collision correction, spring-mass relaxation
+- **Temporal tools**: keyframe interpolation, camera path generation, event-triggered transitions
+
+Tool-nodes make K3D's "verbs" part of the knowledge substrate. TRM learns not only what things are, but which techniques to apply and how to compose them.
+
+---
+
+## 11. References
 
 ### Core Implementation Files
 - `knowledge3d/training/arc_agi/drawing_galaxy.py` — Drawing Galaxy storage
@@ -758,7 +852,7 @@ All visual operations MUST execute on GPU via PTX:
 
 ---
 
-## 11. Conclusion
+## 12. Conclusion
 
 The Procedural Visual Architecture transforms K3D from a system that stores and retrieves visual data into one that **generates** visual data from compact procedural programs. By treating images, video, and even audio spectrograms as quantum field emissions rather than pixel grids, we achieve:
 
@@ -773,3 +867,4 @@ This is the visual foundation for K3D's Dual Client Reality — where every pixe
 
 **Version History**:
 - 1.0 (December 2025): Initial specification documenting 8-layer Drawing Galaxy, VectorDotMap architecture, procedural codecs, and cross-galaxy integration.
+- 1.1 (March 2026): Added 3D Technique Fusion (Section 10) — CSG/mesh/L-system/sculpting/parametric/physics/voxel/NURBS as composable RPN, 2D-to-3D fusion, tool-nodes concept. Aligned with TRM Multi-Modal Enhancement Architecture.

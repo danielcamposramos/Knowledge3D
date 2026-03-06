@@ -38,7 +38,11 @@ class GrammarGalaxy(LegacyGrammarGalaxy):
                     "pattern": rule.pattern,
                     "rpn_program": rule.rpn_program,
                     "domain": getattr(rule, "domain", "general"),
+                    "symbol_refs": list(getattr(rule, "symbol_refs", []) or []),
+                    "word_refs": list(getattr(rule, "word_refs", []) or []),
                     "description": getattr(rule, "description", None),
+                    "semantics": dict(getattr(rule, "semantics", {}) or {}),
+                    "usage_conditions": list(getattr(rule, "usage_conditions", []) or []),
                     "is_canonical": getattr(rule, "is_canonical", False),
                 }
             )

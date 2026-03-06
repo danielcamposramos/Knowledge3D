@@ -8,6 +8,8 @@ import ctypes
 from pathlib import Path
 from typing import Dict, Tuple, List
 
+import numpy as np
+
 from knowledge3d.cranium.codecs.ternary_codec_ops import TernaryCodecOps
 from knowledge3d.cranium.sovereign import loader
 from knowledge3d.cranium.ternary import TernaryTensor, TernaryVector, TernaryGalaxy
@@ -47,57 +49,88 @@ class SovereignTernaryImageCodec:
         padded_w = w + pad_w
 
         coeffs_all: List[float] = []
-        values = image_rgb.values.to_python()
+        rgb = self._reshape_rgb(image_rgb.values.to_python(), width=w, height=h)
+        if pad_h or pad_w:
+            rgb = np.pad(rgb, ((0, pad_h), (0, pad_w), (0, 0)), mode="edge")
+        signal_plan = self.ops.execution_plan(
+            work_items=3 * ((padded_h * padded_w) // 64),
+            preferred_tier=2,
+        )
+        per_channel = self.n_coefficients // 3
         for channel in range(3):
-            chan = self._extract_channel(values, image_rgb.shape, channel, padded_h, padded_w)
-            blocks = self._to_blocks(chan, padded_w, padded_h)
+            chan = rgb[:, :, channel].astype(np.float32, copy=False).reshape(-1).tolist()
+            blocks = self.ops.reshape_to_blocks(chan, rows=padded_h, cols=padded_w, block_h=8, block_w=8)
             dct_coeffs = self.ops.dct8_forward(blocks)
-            field_coeffs = self._field_fit_gpu(dct_coeffs, self.n_coefficients // 3)
+            field_coeffs = self._field_fit_gpu(dct_coeffs, per_channel)
             coeffs_all.extend(field_coeffs)
 
         quantized = self.ops.quantize(coeffs_all)
         residual_vec = TernaryVector(quantized)
         seed_rpn = f"VECTORDOTMAP {self.n_coefficients} {h} {w}"
-        self.galaxy.store_frame(image_id, seed_rpn, residual_vec)
+        self.galaxy.store_frame(
+            image_id,
+            seed_rpn,
+            residual_vec,
+            metadata={
+                "original_height": h,
+                "original_width": w,
+                "padded_height": padded_h,
+                "padded_width": padded_w,
+                "channels": 3,
+                "coefficients_per_channel": per_channel,
+                "blocks_per_channel": (padded_h * padded_w) // 64,
+                "math_core_plan": signal_plan,
+            },
+        )
         return {
             "image_id": image_id,
+            "seed_rpn": seed_rpn,
             "original_size": (h, w),
+            "padded_size": (padded_h, padded_w),
             "n_coefficients": self.n_coefficients,
             "compression_ratio": (h * w * 3) / max(1, self.n_coefficients),
             "stored_in_galaxy": True,
+            "math_core_plan": signal_plan,
         }
 
     def decode(self, image_id: str, target_width: int | None = None, target_height: int | None = None) -> TernaryTensor:
-        seed_rpn, residual = self.galaxy.load_frame(image_id)
+        seed_rpn, residual, metadata = self.galaxy.load_frame_details(image_id)
         parts = seed_rpn.split()
         if len(parts) >= 4 and parts[0] == "VECTORDOTMAP":
             orig_h, orig_w = int(parts[2]), int(parts[3])
         else:
             orig_h, orig_w = 256, 256
-        h = target_height or orig_h
-        w = target_width or orig_w
+        h = min(int(target_height or orig_h), orig_h)
+        w = min(int(target_width or orig_w), orig_w)
+        padded_h = int(metadata.get("padded_height", ((orig_h + 7) // 8) * 8))
+        padded_w = int(metadata.get("padded_width", ((orig_w + 7) // 8) * 8))
 
         coeffs = self.ops.dequantize([int(v) for v in residual.to_python()])
-        per_channel = self.n_coefficients // 3
-        channel_size = ((h + 7) // 8) * ((w + 7) // 8) * 64
+        per_channel = int(metadata.get("coefficients_per_channel", self.n_coefficients // 3))
+        channel_size = int(metadata.get("blocks_per_channel", (padded_h // 8) * (padded_w // 8))) * 64
 
-        channels: List[List[float]] = []
+        _decode_plan = self.ops.execution_plan(
+            work_items=int(metadata.get("channels", 3)) * int(metadata.get("blocks_per_channel", channel_size // 64)),
+            preferred_tier=2,
+        )
+        channels: List[np.ndarray] = []
         for c in range(3):
             field_coeffs = coeffs[c * per_channel : (c + 1) * per_channel]
             dct_coeffs = self._field_expand_gpu(field_coeffs, channel_size)
             blocks = self.ops.dct8_inverse(dct_coeffs)
-            channel = self._from_blocks(blocks, w, h)
-            channels.append(channel)
+            padded_channel = self.ops.blocks_to_grid(
+                blocks,
+                rows=padded_h,
+                cols=padded_w,
+                block_h=8,
+                block_w=8,
+            )
+            channels.append(self._crop_channel_array(padded_channel, padded_w, padded_h, w, h))
 
-        combined: List[int] = []
-        for idx in range(h * w):
-            r = int(channels[0][idx]) if idx < len(channels[0]) else 0
-            g = int(channels[1][idx]) if idx < len(channels[1]) else 0
-            b = int(channels[2][idx]) if idx < len(channels[2]) else 0
-            combined.extend([r, g, b])
-
-        ternary_rgb = [0 if v < 85 else (1 if v > 170 else -1) for v in combined]
-        return TernaryTensor((h, w, 3), TernaryVector(ternary_rgb))
+        rgb = np.stack(channels, axis=2)
+        rgb = np.clip(rgb, 0, 255).astype(np.int32, copy=False)
+        ternary_rgb = np.where(rgb < 85, 0, np.where(rgb > 170, 1, -1)).astype(np.int32, copy=False)
+        return TernaryTensor((h, w, 3), TernaryVector(ternary_rgb.reshape(-1).tolist()))
 
     # ------------------------------------------------------------------ #
     # GPU helpers
@@ -172,40 +205,25 @@ class SovereignTernaryImageCodec:
     # ------------------------------------------------------------------ #
     # Block helpers
     # ------------------------------------------------------------------ #
-    def _extract_channel(self, values: List[int], shape: Tuple[int, int, int], channel: int, padded_h: int, padded_w: int) -> List[float]:
-        orig_h, orig_w, _ = shape
-        out: List[float] = []
-        for y in range(padded_h):
-            for x in range(padded_w):
-                oy = min(y, orig_h - 1)
-                ox = min(x, orig_w - 1)
-                idx = (oy * orig_w + ox) * 3 + channel
-                out.append(float(values[idx]) if idx < len(values) else 0.0)
-        return out
+    def _reshape_rgb(self, rgb_flat: List[int], *, width: int, height: int) -> np.ndarray:
+        arr = np.asarray(rgb_flat, dtype=np.float32)
+        expected = width * height * 3
+        if arr.size != expected:
+            raise ValueError(f"expected {expected} RGB values, got {arr.size}")
+        return arr.reshape(height, width, 3)
 
-    def _to_blocks(self, channel: List[float], w: int, h: int) -> List[float]:
-        blocks: List[float] = []
-        for by in range(0, h, 8):
-            for bx in range(0, w, 8):
-                for y in range(8):
-                    for x in range(8):
-                        idx = (by + y) * w + (bx + x)
-                        blocks.append(channel[idx] if idx < len(channel) else 0.0)
-        return blocks
-
-    def _from_blocks(self, blocks: List[float], w: int, h: int) -> List[float]:
-        result = [0.0] * (w * h)
-        block_idx = 0
-        for by in range(0, h, 8):
-            for bx in range(0, w, 8):
-                for y in range(8):
-                    for x in range(8):
-                        dst = (by + y) * w + (bx + x)
-                        src_idx = block_idx * 64 + y * 8 + x
-                        if dst < len(result) and src_idx < len(blocks):
-                            result[dst] = blocks[src_idx]
-                block_idx += 1
-        return result
-
+    def _crop_channel_array(
+        self,
+        padded_channel: List[float],
+        padded_w: int,
+        padded_h: int,
+        target_w: int,
+        target_h: int,
+    ) -> np.ndarray:
+        arr = np.asarray(padded_channel, dtype=np.float32)
+        expected = padded_h * padded_w
+        if arr.size != expected:
+            raise ValueError(f"expected padded channel size {expected}, got {arr.size}")
+        return arr.reshape(padded_h, padded_w)[: min(target_h, padded_h), : min(target_w, padded_w)]
 
 __all__ = ["SovereignTernaryImageCodec"]

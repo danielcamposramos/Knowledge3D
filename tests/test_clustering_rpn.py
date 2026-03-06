@@ -113,6 +113,27 @@ def test_pairwise_similarities():
 
 
 @pytest.mark.cuda
+def test_similarity_matrix_rectangular_matches_numpy_cosine():
+    """Test rectangular source-target similarity matrix against NumPy baseline."""
+    _require_gpu()
+
+    from knowledge3d.cranium.clustering_rpn import compute_similarity_matrix_rpn
+
+    rng = np.random.default_rng(42)
+    sources = rng.normal(size=(3, 8)).astype(np.float32)
+    targets = rng.normal(size=(2, 8)).astype(np.float32)
+
+    gpu_sims = compute_similarity_matrix_rpn(sources, targets)
+
+    src_norm = sources / (np.linalg.norm(sources, axis=1, keepdims=True) + 1e-8)
+    tgt_norm = targets / (np.linalg.norm(targets, axis=1, keepdims=True) + 1e-8)
+    expected = src_norm @ tgt_norm.T
+
+    assert gpu_sims.shape == (3, 2)
+    np.testing.assert_allclose(gpu_sims, expected.astype(np.float32), atol=1e-4)
+
+
+@pytest.mark.cuda
 def test_nearest_neighbors():
     """Test k-nearest neighbor search."""
     _require_gpu()

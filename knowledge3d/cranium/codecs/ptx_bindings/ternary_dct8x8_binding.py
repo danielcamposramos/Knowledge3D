@@ -44,7 +44,8 @@ extern "C" __global__ void dct8x8_forward(const float* input, int num_blocks, fl
     int u = tid / 8;
     int v = tid % 8;
 
-    float norm = 0.5f * ((u == 0) ? rsqrtf(2.0f) : 1.0f) * ((v == 0) ? rsqrtf(2.0f) : 1.0f);
+    float alpha_u = (u == 0) ? rsqrtf(2.0f) : 1.0f;
+    float alpha_v = (v == 0) ? rsqrtf(2.0f) : 1.0f;
     float sum = 0.0f;
     const float* block = input + b * 64;
     for (int y = 0; y < 8; ++y) {
@@ -55,7 +56,7 @@ extern "C" __global__ void dct8x8_forward(const float* input, int num_blocks, fl
             sum = fmaf(val, cu * cv, sum);
         }
     }
-    output[b * 64 + tid] = norm * sum * 0.25f; // match orthonormal scaling
+    output[b * 64 + tid] = 0.25f * alpha_u * alpha_v * sum;
 }
 
 extern "C" __global__ void dct8x8_inverse(const float* coeffs, int num_blocks, float* output) {
@@ -66,9 +67,9 @@ extern "C" __global__ void dct8x8_inverse(const float* coeffs, int num_blocks, f
     int x = tid % 8;
     float sum = 0.0f;
     const float* block = coeffs + b * 64;
-    for (int v = 0; v < 8; ++v) {
-        for (int u = 0; u < 8; ++u) {
-            float c = block[v * 8 + u];
+    for (int u = 0; u < 8; ++u) {
+        for (int v = 0; v < 8; ++v) {
+            float c = block[u * 8 + v];
             float alpha_u = (u == 0) ? rsqrtf(2.0f) : 1.0f;
             float alpha_v = (v == 0) ? rsqrtf(2.0f) : 1.0f;
             float cu = cosf((PI / 8.0f) * (x + 0.5f) * u);

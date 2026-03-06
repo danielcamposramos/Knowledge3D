@@ -30,7 +30,8 @@ def test_foundational_bootstrap_is_idempotent(tmp_path):
     first = populate_foundational_operations(kv.galaxy_manager)
     second = populate_foundational_operations(kv.galaxy_manager)
 
-    assert first["total_inserted"] > 0
+    # Knowledgeverse now boots foundational deterministic operations eagerly.
+    assert first["total_inserted"] >= 0
     assert second["total_inserted"] == 0
 
 

@@ -121,6 +121,8 @@ def set_test_environment():
     # Set environment variables for testing
     os.environ['K3D_TEST_MODE'] = '1'
     os.environ['K3D_PTX_STRICT'] = '0'  # Disable for CPU-only tests
+    if not (_HAS_CUPY and _HAS_CUDA):
+        os.environ['K3D_REQUIRE_PTX_QUERY'] = 'false'
 
     yield
 
@@ -129,6 +131,8 @@ def set_test_environment():
         del os.environ['K3D_TEST_MODE']
     if 'K3D_PTX_STRICT' in os.environ:
         del os.environ['K3D_PTX_STRICT']
+    if 'K3D_REQUIRE_PTX_QUERY' in os.environ:
+        del os.environ['K3D_REQUIRE_PTX_QUERY']
 
 
 @pytest.fixture

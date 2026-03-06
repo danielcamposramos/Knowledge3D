@@ -222,4 +222,98 @@ __global__ void find_bbox_kernel(
     }
 }
 
+// Column-wise contour/profile scan.
+// Outputs per-column top-most match, bottom-most match, and fill count.
+__global__ void profile_scan_kernel(
+    const int* grid,
+    int* top_out,
+    int* bottom_out,
+    int* fill_out,
+    int height, int width,
+    int target_color
+) {
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    if (x >= width) return;
+
+    int top = -1;
+    int bottom = -1;
+    int fill = 0;
+
+    for (int y = 0; y < height; ++y) {
+        int val = grid[y * width + x];
+        bool match = (target_color == 0) ? (val != 0) : (val == target_color);
+        if (!match) continue;
+        if (top < 0) top = y;
+        bottom = y;
+        fill += 1;
+    }
+
+    top_out[x] = top;
+    bottom_out[x] = bottom;
+    fill_out[x] = fill;
+}
+
+// Row-wise contour/profile scan.
+// Outputs per-row left-most match, right-most match, and fill count.
+__global__ void row_profile_scan_kernel(
+    const int* grid,
+    int* left_out,
+    int* right_out,
+    int* fill_out,
+    int height, int width,
+    int target_color
+) {
+    int y = blockIdx.x * blockDim.x + threadIdx.x;
+    if (y >= height) return;
+
+    int left = -1;
+    int right = -1;
+    int fill = 0;
+
+    int row_base = y * width;
+    for (int x = 0; x < width; ++x) {
+        int val = grid[row_base + x];
+        bool match = (target_color == 0) ? (val != 0) : (val == target_color);
+        if (!match) continue;
+        if (left < 0) left = x;
+        right = x;
+        fill += 1;
+    }
+
+    left_out[y] = left;
+    right_out[y] = right;
+    fill_out[y] = fill;
+}
+
+// Smooth a 1D integer profile with a radius-1 neighborhood.
+// Invalid values are skipped; if no valid neighbor exists the output remains invalid_value.
+__global__ void smooth_profile_kernel(
+    const int* input,
+    int* output,
+    int length,
+    int invalid_value
+) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= length) return;
+
+    int sum = 0;
+    int count = 0;
+    for (int delta = -1; delta <= 1; ++delta) {
+        int pos = idx + delta;
+        if (pos < 0 || pos >= length) continue;
+        int value = input[pos];
+        if (value == invalid_value) continue;
+        sum += value;
+        count += 1;
+    }
+
+    if (count == 0) {
+        output[idx] = invalid_value;
+        return;
+    }
+
+    int rounded = (sum >= 0) ? ((sum + (count / 2)) / count) : ((sum - (count / 2)) / count);
+    output[idx] = rounded;
+}
+
 }  // extern "C"

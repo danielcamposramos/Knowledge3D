@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
@@ -126,3 +127,52 @@ def test_shadow_copy_learns_from_generation(tmp_path):
     assert "source_galaxy" in event_data
     assert "target_galaxy" in event_data
     assert "composition_depth" in event_data
+
+
+def test_generation_records_tool_context_and_promotion_pressure(tmp_path):
+    kv = _build_kv(tmp_path)
+    result = kv.trm_navigator.generate_from_procedural(
+        query="generate textured mesh from contour with surface material",
+        source_galaxy="3DObjects",
+        target_galaxy="3DObjects",
+        store_result=True,
+    )
+    assert "error" not in result
+    metadata = result["metadata"]
+    tool_context = metadata.get("tool_context")
+    assert isinstance(tool_context, dict)
+    assert tool_context["tool_ids"]
+    assert tool_context["tool_kinds"]
+    assert tool_context["runtime_statuses"]
+    assert tool_context["codec_ops"]
+    assert tool_context["math_core_tiers"]
+    assert tool_context["math_core_roles"]
+    assert tool_context["math_core_spawn_policies"]
+    assert tool_context["memory_residencies"]
+    assert tool_context["executable_tool_ids"]
+    assert tool_context["entrypoints"]
+    assert tool_context["primary_tool_id"]
+    assert tool_context["primary_entrypoint"]
+    assert metadata.get("execution_plan")
+    assert metadata["execution_plan"]["mode"] == "tool_entrypoint_chain"
+    assert tool_context["math_core_plan"]
+    assert metadata.get("promotion_targets")
+
+    pressure_log = tmp_path / "kv_autogen" / "logs" / "tool_promotion_pressure.jsonl"
+    assert pressure_log.exists()
+    rows = [json.loads(line) for line in pressure_log.read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert rows
+    latest = rows[-1]
+    assert latest["tool_ids"]
+    assert latest["tool_kinds"]
+    assert latest["runtime_statuses"]
+    assert latest["math_core_tiers"]
+    assert latest["math_core_roles"]
+    assert latest["math_core_spawn_policies"]
+    assert latest["memory_residencies"]
+    assert latest["executable_tool_ids"]
+    assert latest["entrypoints"]
+    assert latest["primary_tool_id"]
+    assert latest["primary_entrypoint"]
+    assert latest["math_core_plan"]
+    assert latest["promotion_targets"]

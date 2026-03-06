@@ -51,7 +51,8 @@ void dct8x8_forward_blocks(const float* input, int num_blocks, float* output) {
     int v = tid % 8;
 
     const float PI = 3.14159265358979f;
-    float norm = 0.5f * ((u == 0) ? rsqrtf(2.0f) : 1.0f) * ((v == 0) ? rsqrtf(2.0f) : 1.0f);
+    float alpha_u = (u == 0) ? rsqrtf(2.0f) : 1.0f;
+    float alpha_v = (v == 0) ? rsqrtf(2.0f) : 1.0f;
     float sum = 0.0f;
     const float* block = input + b * 64;
     for (int y = 0; y < 8; ++y) {
@@ -62,7 +63,7 @@ void dct8x8_forward_blocks(const float* input, int num_blocks, float* output) {
             sum = fmaf(val, cu * cv, sum);
         }
     }
-    output[b * 64 + tid] = norm * sum * 0.25f;
+    output[b * 64 + tid] = 0.25f * alpha_u * alpha_v * sum;
 }
 
 extern "C" __global__
@@ -75,9 +76,9 @@ void dct8x8_inverse_blocks(const float* coeffs, int num_blocks, float* output) {
     const float PI = 3.14159265358979f;
     float sum = 0.0f;
     const float* block = coeffs + b * 64;
-    for (int v = 0; v < 8; ++v) {
-        for (int u = 0; u < 8; ++u) {
-            float c = block[v * 8 + u];
+    for (int u = 0; u < 8; ++u) {
+        for (int v = 0; v < 8; ++v) {
+            float c = block[u * 8 + v];
             float alpha_u = (u == 0) ? rsqrtf(2.0f) : 1.0f;
             float alpha_v = (v == 0) ? rsqrtf(2.0f) : 1.0f;
             float cu = _cosf_fast((PI / 8.0f) * (x + 0.5f) * u);
@@ -189,4 +190,126 @@ void imdct_inverse_kernel(const float* input, float* output, int frame_size) {
     const float window = 0.5f - 0.5f * _cos_mdct((2.0f * 3.14159265358979323846f * static_cast<float>(n)) /
                                                 static_cast<float>(N - 1));
     output[n] = sum * scale * window;
+}
+
+// ------------------------------------------------------------------------- //
+// Block layout transforms.
+// These make RESHAPE_TO_BLOCKS / BLOCKS_TO_GRID first-class executable ops
+// instead of vocabulary-only tokens.
+// ------------------------------------------------------------------------- //
+
+extern "C" __global__
+void reshape_to_blocks_f32_kernel(
+    const float* input,
+    float* output,
+    int rows,
+    int cols,
+    int block_h,
+    int block_w
+) {
+    const int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    const int total = rows * cols;
+    if (idx >= total) {
+        return;
+    }
+
+    const int row = idx / cols;
+    const int col = idx % cols;
+    const int blocks_per_row = cols / block_w;
+    const int block_area = block_h * block_w;
+    const int block_row = row / block_h;
+    const int block_col = col / block_w;
+    const int local_row = row % block_h;
+    const int local_col = col % block_w;
+    const int block_index = block_row * blocks_per_row + block_col;
+    const int local_index = local_row * block_w + local_col;
+
+    output[block_index * block_area + local_index] = input[idx];
+}
+
+extern "C" __global__
+void blocks_to_grid_f32_kernel(
+    const float* input,
+    float* output,
+    int rows,
+    int cols,
+    int block_h,
+    int block_w
+) {
+    const int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    const int total = rows * cols;
+    if (idx >= total) {
+        return;
+    }
+
+    const int row = idx / cols;
+    const int col = idx % cols;
+    const int blocks_per_row = cols / block_w;
+    const int block_area = block_h * block_w;
+    const int block_row = row / block_h;
+    const int block_col = col / block_w;
+    const int local_row = row % block_h;
+    const int local_col = col % block_w;
+    const int block_index = block_row * blocks_per_row + block_col;
+    const int local_index = local_row * block_w + local_col;
+
+    output[idx] = input[block_index * block_area + local_index];
+}
+
+extern "C" __global__
+void reshape_to_blocks_i32_kernel(
+    const int* input,
+    int* output,
+    int rows,
+    int cols,
+    int block_h,
+    int block_w
+) {
+    const int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    const int total = rows * cols;
+    if (idx >= total) {
+        return;
+    }
+
+    const int row = idx / cols;
+    const int col = idx % cols;
+    const int blocks_per_row = cols / block_w;
+    const int block_area = block_h * block_w;
+    const int block_row = row / block_h;
+    const int block_col = col / block_w;
+    const int local_row = row % block_h;
+    const int local_col = col % block_w;
+    const int block_index = block_row * blocks_per_row + block_col;
+    const int local_index = local_row * block_w + local_col;
+
+    output[block_index * block_area + local_index] = input[idx];
+}
+
+extern "C" __global__
+void blocks_to_grid_i32_kernel(
+    const int* input,
+    int* output,
+    int rows,
+    int cols,
+    int block_h,
+    int block_w
+) {
+    const int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    const int total = rows * cols;
+    if (idx >= total) {
+        return;
+    }
+
+    const int row = idx / cols;
+    const int col = idx % cols;
+    const int blocks_per_row = cols / block_w;
+    const int block_area = block_h * block_w;
+    const int block_row = row / block_h;
+    const int block_col = col / block_w;
+    const int local_row = row % block_h;
+    const int local_col = col % block_w;
+    const int block_index = block_row * blocks_per_row + block_col;
+    const int local_index = local_row * block_w + local_col;
+
+    output[idx] = input[block_index * block_area + local_index];
 }

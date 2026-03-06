@@ -1,6 +1,6 @@
 # Knowledge3D Vocabulary — Architecture Specifications
 
-**Last Updated**: March 5, 2026
+**Last Updated**: March 6, 2026
 **Status**: Living documentation (updated as architecture evolves)
 
 ---
@@ -252,32 +252,39 @@ Defines procedural physics systems for the Reality Galaxy.
 ---
 
 ### [PROCEDURAL_VISUAL_SPECIFICATION.md](PROCEDURAL_VISUAL_SPECIFICATION.md)
-**Visual Reasoning System**
+**Visual Reasoning System (v1.1)**
 
-Defines procedural visual primitives and the Drawing Galaxy.
+Defines procedural visual primitives, Drawing Galaxy, and 3D technique fusion.
 
 **Key Concepts:**
 - Drawing primitives: LINE, CIRCLE, RECT (as RPN programs)
 - VectorDotMap: Universal audio ↔ visual codec
 - ARC-AGI visual reasoning (46.7% validation)
 - Procedural font rendering (Character Galaxy)
+- **3D Technique Fusion**: CSG, mesh, L-system, sculpting, parametric, physics, voxel, NURBS as composable RPN (v1.1)
+- **2D-to-3D Fusion**: Drawing Galaxy entries usable as both 2D textures and 3D materials (v1.1)
+- **Tool-Nodes**: Techniques stored as reusable Galaxy knowledge entries (v1.1)
 
-**Integration**: Drawing Galaxy, Character Galaxy (Knowledgeverse Region 2)
+**Integration**: Drawing Galaxy, Character Galaxy, Reality Galaxy (Knowledgeverse Region 2)
 
 ---
 
 ### [UNIFIED_SIGNAL_SPECIFICATION.md](UNIFIED_SIGNAL_SPECIFICATION.md)
-**Audio + Visual Unification**
+**Audio + Visual + Video Unification (v1.1)**
 
-Defines cross-modal signal processing for synesthesia.
+Defines cross-modal signal processing, temporal video architecture, and signal tool-nodes.
 
 **Key Concepts:**
 - Spectrograms as universal interface (audio → visual)
 - VectorDotMap codec (shared between Audio/Visual galaxies)
 - Sonification (visual → audio)
 - Procedural generation (both modalities)
+- **Five-Layer Temporal Video Contract**: Scene/Dynamics/Camera/Render/Audio separation (v1.1)
+- **Scene-Time Video**: Video as scene program evaluated over time, NOT frame lists (v1.1)
+- **Signal Tool-Nodes**: Waveform synthesis, FFT, filter chains as Galaxy knowledge (v1.1)
+- **K3D Video Benchmarks**: Deterministic rebuild, variant edit cost, symlink reuse ratio (v1.1)
 
-**Integration**: Audio Galaxy, Drawing Galaxy (Cross-Modal Bridge)
+**Integration**: Audio Galaxy, Drawing Galaxy, Reality Galaxy (Cross-Modal Bridge)
 
 ---
 
@@ -421,9 +428,9 @@ Defines K3D-specific glTF extensions for House objects.
 ---
 
 ### [RPN_DOMAIN_OPCODE_REGISTRY.md](RPN_DOMAIN_OPCODE_REGISTRY.md)
-**RPN Instruction Set**
+**RPN Instruction Set & Opcode Admission Pipeline**
 
-Canonical registry of all RPN opcodes across domains.
+Canonical registry of all RPN opcodes across domains, with formal capability classification and promotion pipeline.
 
 **Key Concepts:**
 - Core operations (PUSH, POP, SWAP, DUP, etc.)
@@ -431,6 +438,9 @@ Canonical registry of all RPN opcodes across domains.
 - Visual domain (LINE, CIRCLE, RECT, etc.)
 - Galaxy domain (QUERY, COMPOSE, CREATE, etc.)
 - Physics domain (VELOCITY, FORCE, INTEGRATE, etc.)
+- **Three Capability Classes** (A/B/C): Executable Now, Representable Now/Kernel Later, Research (v0.2)
+- **Four-Stage Admission Pipeline**: Galaxy Recipe -> Macro -> Opcode Candidate -> PTX Kernel (v0.2)
+- **Multimodal Target Opcodes**: 3D, Signal, Image, Temporal domains at Stage 0-1 (v0.2)
 
 **Integration**: Cranium RPN VM, Sovereign PTX kernels
 

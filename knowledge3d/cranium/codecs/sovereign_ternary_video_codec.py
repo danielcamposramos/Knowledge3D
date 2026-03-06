@@ -1,9 +1,9 @@
 """
-Sovereign ternary video codec (construction phase).
+Sovereign ternary video codec using PTX-backed block + DCT primitives.
 
-No numpy, no CPU fallbacks. Uses TernaryVector/TernaryGalaxy and GPU-only ops.
-Pending PTX kernels for DCT/IDCT and block operations; encode/decode currently
-raise NotImplementedError to avoid silent CPU paths.
+No numpy, no CPU fallbacks. Uses TernaryVector/TernaryGalaxy and GPU-backed ops.
+Channel split/recombine remains host orchestration, but block packing and
+frequency transforms execute through the sovereign codec runtime.
 
 Architecture References:
 - docs/vocabulary/UNIFIED_SIGNAL_SPECIFICATION.md — Video as temporal signal
@@ -18,13 +18,15 @@ from __future__ import annotations
 
 from typing import Dict, Tuple
 
+import numpy as np
+
 from knowledge3d.cranium.ternary import TernaryVector, TernaryTensor, TernaryGalaxy
 from knowledge3d.cranium.ptx_runtime.modular_rpn_engine import ModularRPNEngine
 from knowledge3d.cranium.codecs.ternary_codec_ops import TernaryCodecOps
 
 
 class SovereignTernaryVideoCodec:
-    """GPU-native ternary video codec skeleton (fails loudly until kernels wired)."""
+    """GPU-native ternary video codec with PTX-backed block transforms."""
 
     def __init__(self, width: int = 1920, height: int = 1080, threshold: float = 0.2) -> None:
         if width % 8 != 0 or height % 8 != 0:
@@ -42,19 +44,28 @@ class SovereignTernaryVideoCodec:
         if h != self.height or w != self.width:
             raise ValueError("frame dimensions do not match codec configuration")
 
-        # Flatten blocks per channel -> DCT -> quantize
-        blocks_flat: list[int] = []
+        seed_rpn = f"RESHAPE_TO_BLOCKS DCT8X8_FORWARD {self.ops.threshold} TERNARY_QUANT"
+        residual_values: list[int] = []
+        rgb = self._reshape_rgb(frame_rgb.values.to_python(), width=w, height=h)
+        signal_plan = self.ops.execution_plan(work_items=3 * ((h * w) // 64), preferred_tier=2)
         for channel in range(3):
-            chan_vals = self._extract_channel(frame_rgb.values.to_python(), channel)
-            chan_blocks = self._blocks_from_channel(chan_vals, w, h)
-            blocks_flat.extend(chan_blocks)
+            channel_grid = rgb[:, :, channel].astype(np.float32, copy=False).tolist()
+            quantized = self.rpn.evaluate(seed_rpn, data=channel_grid, return_vector=True)
+            residual_values.extend(int(round(v)) for v in self._flatten_layout_data(quantized))
 
-        rpn_program = f"DCT8X8_FORWARD {self.ops.threshold} TERNARY_QUANT"
-        quantized = self.rpn.evaluate(rpn_program, data=blocks_flat, return_vector=True)
-        residual_vec = TernaryVector(self._flatten_list(quantized))
-
-        seed_rpn = "PROC_NONE"  # Placeholder procedural seed
-        self.galaxy.store_frame(frame_id, seed_rpn, residual_vec)
+        residual_vec = TernaryVector(residual_values)
+        self.galaxy.store_frame(
+            frame_id,
+            seed_rpn,
+            residual_vec,
+            metadata={
+                "width": self.width,
+                "height": self.height,
+                "channels": 3,
+                "blocks_per_channel": (self.width * self.height) // 64,
+                "math_core_plan": signal_plan,
+            },
+        )
 
         return {
             "frame_id": frame_id,
@@ -62,39 +73,37 @@ class SovereignTernaryVideoCodec:
             "height": self.height,
             "seed_rpn": seed_rpn,
             "stored_in_galaxy": True,
+            "math_core_plan": signal_plan,
         }
 
     def decode(self, frame_id: str) -> TernaryTensor:
-        seed_rpn, residual = self.galaxy.load_frame(frame_id)
-        _ = seed_rpn  # placeholder for future procedural reconstruction
-        # Ensure integer coeffs for dequantisation (ternary {-1,0,+1})
+        seed_rpn, residual, metadata = self.galaxy.load_frame_details(frame_id)
+        _ = seed_rpn
         coeffs = [int(round(v)) for v in residual.to_python()]
-        inv = self.rpn.evaluate("TERNARY_DEQUANT IDCT8X8", data=coeffs, return_vector=True)
+        decode_rpn = "TERNARY_DEQUANT IDCT8X8_INVERSE BLOCKS_TO_GRID"
 
-        # Reconstruct channels from blocks
         channel_size = self.width * self.height
         blocks_per_channel = channel_size // 64
-        channel_arrays: list[list[int]] = []
+        _decode_plan = self.ops.execution_plan(
+            work_items=int(metadata.get("channels", 3)) * int(metadata.get("blocks_per_channel", blocks_per_channel)),
+            preferred_tier=2,
+        )
+        channel_arrays: list[np.ndarray] = []
         offset = 0
         for _ in range(3):
-            chan_blocks = inv[offset : offset + blocks_per_channel * 64]
+            chan_blocks = coeffs[offset : offset + blocks_per_channel * 64]
             offset += blocks_per_channel * 64
-            channel_arrays.append(self._blocks_to_channel(chan_blocks, self.width, self.height))
+            packet = self._make_block_packet(chan_blocks, rows=self.height, cols=self.width, integer=True)
+            channel_grid = self.rpn.evaluate(decode_rpn, data=packet, return_vector=True)
+            channel_arrays.append(np.asarray(self._flatten_grid(channel_grid), dtype=np.int32))
 
-        # Combine channels into TernaryTensor (packed from int grid)
-        combined: list[int] = []
-        for idx in range(channel_size):
-            r = channel_arrays[0][idx]
-            g = channel_arrays[1][idx]
-            b = channel_arrays[2][idx]
-            combined.extend([
-                max(0, min(255, int(r))),
-                max(0, min(255, int(g))),
-                max(0, min(255, int(b))),
-            ])
+        rgb = np.stack(channel_arrays, axis=1)
+        rgb = np.clip(rgb, 0, 255).astype(np.int32, copy=False)
+        combined = rgb.reshape(-1)
         # Flattened RGB; wrap in TernaryVector after quantizing to ternary palette {-1,0,+1} placeholder
-        ternary_rgb = [0 if v < 85 else (1 if v > 170 else -1) for v in combined]
-        return TernaryTensor((self.height, self.width, 3), TernaryVector(ternary_rgb))
+        ternary_rgb = np.where(combined < 85, 0, np.where(combined > 170, 1, -1)).astype(np.int32, copy=False)
+        ternary_list = [int(v) for v in ternary_rgb.tolist()]
+        return TernaryTensor((self.height, self.width, 3), TernaryVector(ternary_list))
 
     def store_residual(self, frame_id: str, seed_rpn: str, residual: TernaryVector) -> None:
         """Explicit store helper to keep galaxy interaction centralized."""
@@ -104,39 +113,34 @@ class SovereignTernaryVideoCodec:
         return self.galaxy.load_frame(frame_id)
 
     # ------------------------------------------------------------------ #
-    # Helpers (CPU orchestration only)
+    # Helpers (host orchestration only; transforms are on GPU)
     # ------------------------------------------------------------------ #
-    def _extract_channel(self, rgb_flat: list[int], channel: int) -> list[int]:
-        """Extract single channel from flattened RGB list (H*W*3)."""
-        chan = []
-        total_pixels = self.width * self.height
-        for i in range(total_pixels):
-            chan.append(rgb_flat[i * 3 + channel])
-        return chan
+    def _reshape_rgb(self, rgb_flat: list[int], *, width: int, height: int) -> np.ndarray:
+        arr = np.asarray(rgb_flat, dtype=np.float32)
+        expected = width * height * 3
+        if arr.size != expected:
+            raise ValueError(f"expected {expected} RGB values, got {arr.size}")
+        return arr.reshape(height, width, 3)
 
-    def _blocks_from_channel(self, channel_vals: list[int], width: int, height: int) -> list[float]:
-        """Convert channel grid to contiguous 8x8 blocks (float)."""
-        blocks: list[float] = []
-        for by in range(0, height, 8):
-            for bx in range(0, width, 8):
-                for y in range(8):
-                    for x in range(8):
-                        idx = (by + y) * width + (bx + x)
-                        blocks.append(float(channel_vals[idx]))
-        return blocks
+    def _make_block_packet(self, flat_blocks: list[int], *, rows: int, cols: int, integer: bool) -> dict:
+        blocks_per_grid = (rows // 8) * (cols // 8)
+        return {
+            "__k3d_layout__": "blocks8x8_v1",
+            "rows": int(rows),
+            "cols": int(cols),
+            "block_h": 8,
+            "block_w": 8,
+            "integer": bool(integer),
+            "data": self._reshape_flat(flat_blocks, (blocks_per_grid, 64)),
+        }
 
-    def _blocks_to_channel(self, blocks_flat: list[float], width: int, height: int) -> list[int]:
-        """Reassemble channel grid from contiguous 8x8 blocks."""
-        out = [0.0 for _ in range(width * height)]
-        block_idx = 0
-        for by in range(0, height, 8):
-            for bx in range(0, width, 8):
-                for y in range(8):
-                    for x in range(8):
-                        dst = (by + y) * width + (bx + x)
-                        out[dst] = blocks_flat[block_idx * 64 + y * 8 + x]
-                block_idx += 1
-        return [int(round(v)) for v in out]
+    def _flatten_grid(self, grid) -> list[int]:
+        return [int(round(v)) for v in self._flatten_layout_data(grid)]
+
+    def _flatten_layout_data(self, value) -> list:
+        if isinstance(value, dict) and value.get("__k3d_layout__") == "blocks8x8_v1":
+            value = value.get("data", [])
+        return self._flatten_list(value)
 
     def _flatten_list(self, value) -> list:
         if isinstance(value, list):
@@ -145,6 +149,21 @@ class SovereignTernaryVideoCodec:
                 out.extend(self._flatten_list(item))
             return out
         return [value]
+
+    def _reshape_flat(self, flat: list[int], shape: tuple[int, ...]):
+        rebuilt, _ = self._reshape_flat_recursive(flat, shape, 0)
+        return rebuilt
+
+    def _reshape_flat_recursive(self, flat: list[int], shape: tuple[int, ...], offset: int):
+        if not shape:
+            return flat[offset], offset + 1
+        size = int(shape[0])
+        out = []
+        cursor = offset
+        for _ in range(size):
+            item, cursor = self._reshape_flat_recursive(flat, shape[1:], cursor)
+            out.append(item)
+        return out, cursor
 
 
 __all__ = ["SovereignTernaryVideoCodec"]

@@ -1,5 +1,5 @@
 """
-Content-addressed storage for ternary codec data (seed + residual).
+Content-addressed storage for ternary codec data (seed + residual + metadata).
 
 Seeds are procedural RPN programs; residuals are ternary vectors stored once and
 referenced by content hash. All data is GPU-resident; host hashes rely on the
@@ -9,7 +9,7 @@ packed host bytes kept in TernaryVector.
 from __future__ import annotations
 
 import hashlib
-from typing import Dict, Tuple
+from typing import Any, Dict, Tuple
 
 from knowledge3d.cranium.ternary.ternary_vector import TernaryVector
 
@@ -21,8 +21,15 @@ class TernaryGalaxy:
         self.seeds: Dict[str, str] = {}  # seed_id -> RPN seed program
         self.residuals: Dict[bytes, TernaryVector] = {}  # hash -> vector
         self.frame_refs: Dict[str, Tuple[str, bytes]] = {}  # frame_id -> (seed_id, residual_hash)
+        self.frame_meta: Dict[str, Dict[str, Any]] = {}  # frame_id -> optional metadata
 
-    def store_frame(self, frame_id: str, seed_rpn: str, residual: TernaryVector) -> None:
+    def store_frame(
+        self,
+        frame_id: str,
+        seed_rpn: str,
+        residual: TernaryVector,
+        metadata: Dict[str, Any] | None = None,
+    ) -> None:
         seed_hash = hashlib.sha256(seed_rpn.encode("utf-8")).hexdigest()
         seed_id = f"seed_{seed_hash}"
         if seed_id not in self.seeds:
@@ -33,12 +40,17 @@ class TernaryGalaxy:
             self.residuals[residual_hash] = residual
 
         self.frame_refs[frame_id] = (seed_id, residual_hash)
+        self.frame_meta[frame_id] = dict(metadata or {})
 
     def load_frame(self, frame_id: str) -> Tuple[str, TernaryVector]:
         if frame_id not in self.frame_refs:
             raise KeyError(f"Frame {frame_id} not found")
         seed_id, residual_hash = self.frame_refs[frame_id]
         return self.seeds[seed_id], self.residuals[residual_hash]
+
+    def load_frame_details(self, frame_id: str) -> Tuple[str, TernaryVector, Dict[str, Any]]:
+        seed_rpn, residual = self.load_frame(frame_id)
+        return seed_rpn, residual, dict(self.frame_meta.get(frame_id, {}))
 
     def _hash_ternary(self, vector: TernaryVector) -> bytes:
         """Hash packed ternary bytes (host copy)."""

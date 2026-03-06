@@ -99,4 +99,79 @@ __global__ void sharpen_kernel(
     output[idx] = orig + amount * (orig - blur);
 }
 
+// Convert RGB/RGBA canvas to grayscale luminance field
+__global__ void rgba_to_luma_kernel(
+    const float* input,
+    float* output,
+    int width,
+    int height,
+    int channels
+) {
+    int px = blockIdx.x * blockDim.x + threadIdx.x;
+    int py = blockIdx.y * blockDim.y + threadIdx.y;
+    if (px >= width || py >= height) return;
+
+    int base = (py * width + px) * channels;
+    float r = input[base + 0];
+    float g = channels > 1 ? input[base + 1] : r;
+    float b = channels > 2 ? input[base + 2] : g;
+    output[py * width + px] = 0.2126f * r + 0.7152f * g + 0.0722f * b;
+}
+
+// Straight-alpha compositing: foreground over background
+__global__ void alpha_over_rgba_kernel(
+    const float* background,
+    const float* foreground,
+    float* output,
+    int width,
+    int height
+) {
+    int px = blockIdx.x * blockDim.x + threadIdx.x;
+    int py = blockIdx.y * blockDim.y + threadIdx.y;
+    if (px >= width || py >= height) return;
+
+    int idx = (py * width + px) * 4;
+
+    float br = background[idx + 0];
+    float bg = background[idx + 1];
+    float bb = background[idx + 2];
+    float ba = fminf(fmaxf(background[idx + 3], 0.0f), 1.0f);
+
+    float fr = foreground[idx + 0];
+    float fg = foreground[idx + 1];
+    float fb = foreground[idx + 2];
+    float fa = fminf(fmaxf(foreground[idx + 3], 0.0f), 1.0f);
+
+    float out_a = fa + ba * (1.0f - fa);
+    float premul_r = fr * fa + br * ba * (1.0f - fa);
+    float premul_g = fg * fa + bg * ba * (1.0f - fa);
+    float premul_b = fb * fa + bb * ba * (1.0f - fa);
+
+    if (out_a > 1e-6f) {
+        output[idx + 0] = premul_r / out_a;
+        output[idx + 1] = premul_g / out_a;
+        output[idx + 2] = premul_b / out_a;
+    } else {
+        output[idx + 0] = 0.0f;
+        output[idx + 1] = 0.0f;
+        output[idx + 2] = 0.0f;
+    }
+    output[idx + 3] = out_a;
+}
+
+// Simple color invert for RGB/RGBA canvases
+__global__ void invert_rgba_kernel(
+    const float* input,
+    float* output,
+    int total_values,
+    int channels
+) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= total_values) return;
+
+    int channel = idx % channels;
+    float value = input[idx];
+    output[idx] = channel == 3 ? value : 1.0f - value;
+}
+
 }  // extern "C"

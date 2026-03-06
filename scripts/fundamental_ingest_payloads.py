@@ -79,12 +79,30 @@ def _extract_text_tokens(entry: dict[str, Any]) -> tuple[list[str], list[str]]:
     name = entry.get("name")
     if isinstance(name, str) and name.strip():
         texts.append(name)
+    description = entry.get("description")
+    if isinstance(description, str) and description.strip():
+        texts.append(description)
+    tags = entry.get("tags")
+    if isinstance(tags, list):
+        texts.extend(str(tag) for tag in tags if str(tag).strip())
     metadata = entry.get("metadata")
     if isinstance(metadata, dict):
-        for key in ("summary", "embedding_text", "question_text", "problem_text", "ollama_hint"):
+        for key in (
+            "summary",
+            "embedding_text",
+            "question_text",
+            "problem_text",
+            "ollama_hint",
+            "description",
+            "procedural_goal",
+        ):
             value = metadata.get(key)
             if isinstance(value, str) and value.strip():
                 texts.append(value)
+        for key in ("inputs", "outputs", "modalities", "cross_modal", "promotion_targets"):
+            value = metadata.get(key)
+            if isinstance(value, list):
+                texts.extend(str(item) for item in value if str(item).strip())
 
     word_tokens: list[str] = []
     symbol_tokens: list[str] = []

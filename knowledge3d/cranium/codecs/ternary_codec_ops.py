@@ -1,8 +1,8 @@
 """
 Sovereign ternary codec ops launcher (GPU-only, no numpy).
 
-Supports basic quantise/dequantise kernels. DCT/MDCT batch kernels will be
-added subsequently; missing ops raise loudly to avoid CPU fallbacks.
+Supports the current PTX-backed codec surface used by the sovereign runtime:
+quantise/dequantise, DCT8x8, MDCT/iMDCT, and batch frame transforms.
 """
 
 from __future__ import annotations
@@ -10,6 +10,7 @@ from __future__ import annotations
 import ctypes
 from typing import List, Sequence
 
+from knowledge3d.cranium.ptx_runtime.math_core_pool import get_global_math_core_pool
 from knowledge3d.cranium.sovereign import loader
 
 
@@ -28,7 +29,40 @@ class TernaryCodecOps:
         self.dct_inv_kernel = loader.get_function(module, "dct8x8_inverse_blocks")
         self.mdct_kernel = loader.get_function(module, "mdct_forward_kernel")
         self.imdct_kernel = loader.get_function(module, "imdct_inverse_kernel")
+        self.reshape_blocks_f32_kernel = loader.get_function(module, "reshape_to_blocks_f32_kernel")
+        self.blocks_to_grid_f32_kernel = loader.get_function(module, "blocks_to_grid_f32_kernel")
+        self.reshape_blocks_i32_kernel = loader.get_function(module, "reshape_to_blocks_i32_kernel")
+        self.blocks_to_grid_i32_kernel = loader.get_function(module, "blocks_to_grid_i32_kernel")
         self.threshold = float(threshold)
+
+    def execution_plan(self, *, work_items: int, preferred_tier: int = 2) -> dict:
+        """Expose a pool-aware signal execution plan for host orchestration."""
+        pool = get_global_math_core_pool()
+        snapshot = pool.snapshot()
+        max_cores = max(1, int(snapshot.get("max_cores", 1)))
+        active = max(0, int(snapshot.get("active", 0)))
+        available = max(1, max_cores - min(active, max_cores - 1))
+        work = max(1, int(work_items))
+        tier = int(preferred_tier)
+        if tier <= 1:
+            fanout = min(work, max(1, available // 4))
+            cascade = ["parallel_fanout", "local_reduce"]
+        elif tier == 2:
+            fanout = min(work, max(1, available // 8))
+            cascade = ["parallel_fanout", "worker_reduce"]
+        else:
+            fanout = min(work, max(1, available // 16))
+            cascade = ["parallel_fanout", "worker_reduce", "master_commit"]
+        batch_size = max(1, (work + fanout - 1) // fanout)
+        return {
+            "preferred_tier": tier,
+            "tier_role": pool.describe_tier(tier),
+            "work_items": work,
+            "fanout": int(fanout),
+            "batch_size": int(batch_size),
+            "cascade": cascade,
+            "pool_snapshot": snapshot,
+        }
 
     def quantize(self, values: Sequence[float], *, threshold: float | None = None) -> List[int]:
         """Quantise float sequence -> {-1,0,+1} on GPU."""
@@ -257,6 +291,161 @@ class TernaryCodecOps:
             loader.synchronize()
             host_out = (ctypes.c_float * n)()
             loader.memcpy_dtoh(ctypes.cast(host_out, ctypes.c_void_p), d_out, n * ctypes.sizeof(ctypes.c_float))
+            return [float(v) for v in host_out]
+        finally:
+            loader.gpu_free(d_in)
+            loader.gpu_free(d_out)
+
+    def reshape_to_blocks(
+        self,
+        values: Sequence[float] | Sequence[int],
+        *,
+        rows: int,
+        cols: int,
+        block_h: int = 8,
+        block_w: int = 8,
+        integer: bool = False,
+    ) -> list[float] | list[int]:
+        """Reshape row-major grid into block-major layout on GPU."""
+        rows = int(rows)
+        cols = int(cols)
+        block_h = int(block_h)
+        block_w = int(block_w)
+        if rows <= 0 or cols <= 0:
+            raise ValueError("rows and cols must be positive")
+        if block_h <= 0 or block_w <= 0:
+            raise ValueError("block_h and block_w must be positive")
+        if rows % block_h != 0 or cols % block_w != 0:
+            raise ValueError("rows and cols must be divisible by block dims")
+        n = rows * cols
+        if len(values) != n:
+            raise ValueError("values length must match rows * cols")
+        return self._launch_block_layout(
+            values,
+            rows=rows,
+            cols=cols,
+            block_h=block_h,
+            block_w=block_w,
+            integer=integer,
+            forward=True,
+        )
+
+    def blocks_to_grid(
+        self,
+        values: Sequence[float] | Sequence[int],
+        *,
+        rows: int,
+        cols: int,
+        block_h: int = 8,
+        block_w: int = 8,
+        integer: bool = False,
+    ) -> list[float] | list[int]:
+        """Reshape block-major layout back into row-major grid on GPU."""
+        rows = int(rows)
+        cols = int(cols)
+        block_h = int(block_h)
+        block_w = int(block_w)
+        if rows <= 0 or cols <= 0:
+            raise ValueError("rows and cols must be positive")
+        if block_h <= 0 or block_w <= 0:
+            raise ValueError("block_h and block_w must be positive")
+        if rows % block_h != 0 or cols % block_w != 0:
+            raise ValueError("rows and cols must be divisible by block dims")
+        n = rows * cols
+        if len(values) != n:
+            raise ValueError("values length must match rows * cols")
+        return self._launch_block_layout(
+            values,
+            rows=rows,
+            cols=cols,
+            block_h=block_h,
+            block_w=block_w,
+            integer=integer,
+            forward=False,
+        )
+
+    def _launch_block_layout(
+        self,
+        values: Sequence[float] | Sequence[int],
+        *,
+        rows: int,
+        cols: int,
+        block_h: int,
+        block_w: int,
+        integer: bool,
+        forward: bool,
+    ) -> list[float] | list[int]:
+        n = rows * cols
+        block = (256, 1, 1)
+        grid_x = (n + block[0] - 1) // block[0]
+        if integer:
+            IntArray = ctypes.c_int * n
+            in_buf = IntArray(*[int(v) for v in values])
+            d_in = loader.gpu_malloc(n * ctypes.sizeof(ctypes.c_int))
+            d_out = loader.gpu_malloc(n * ctypes.sizeof(ctypes.c_int))
+            kernel = self.reshape_blocks_i32_kernel if forward else self.blocks_to_grid_i32_kernel
+            try:
+                loader.memcpy_htod(
+                    d_in,
+                    ctypes.cast(in_buf, ctypes.c_void_p),
+                    n * ctypes.sizeof(ctypes.c_int),
+                )
+                loader.launch(
+                    kernel,
+                    grid=(grid_x, 1, 1),
+                    block=block,
+                    params=[
+                        ctypes.c_uint64(d_in.value),
+                        ctypes.c_uint64(d_out.value),
+                        ctypes.c_int(rows),
+                        ctypes.c_int(cols),
+                        ctypes.c_int(block_h),
+                        ctypes.c_int(block_w),
+                    ],
+                )
+                loader.synchronize()
+                host_out = IntArray()
+                loader.memcpy_dtoh(
+                    ctypes.cast(host_out, ctypes.c_void_p),
+                    d_out,
+                    n * ctypes.sizeof(ctypes.c_int),
+                )
+                return [int(v) for v in host_out]
+            finally:
+                loader.gpu_free(d_in)
+                loader.gpu_free(d_out)
+
+        FloatArray = ctypes.c_float * n
+        in_buf = FloatArray(*[float(v) for v in values])
+        d_in = loader.gpu_malloc(n * ctypes.sizeof(ctypes.c_float))
+        d_out = loader.gpu_malloc(n * ctypes.sizeof(ctypes.c_float))
+        kernel = self.reshape_blocks_f32_kernel if forward else self.blocks_to_grid_f32_kernel
+        try:
+            loader.memcpy_htod(
+                d_in,
+                ctypes.cast(in_buf, ctypes.c_void_p),
+                n * ctypes.sizeof(ctypes.c_float),
+            )
+            loader.launch(
+                kernel,
+                grid=(grid_x, 1, 1),
+                block=block,
+                params=[
+                    ctypes.c_uint64(d_in.value),
+                    ctypes.c_uint64(d_out.value),
+                    ctypes.c_int(rows),
+                    ctypes.c_int(cols),
+                    ctypes.c_int(block_h),
+                    ctypes.c_int(block_w),
+                ],
+            )
+            loader.synchronize()
+            host_out = FloatArray()
+            loader.memcpy_dtoh(
+                ctypes.cast(host_out, ctypes.c_void_p),
+                d_out,
+                n * ctypes.sizeof(ctypes.c_float),
+            )
             return [float(v) for v in host_out]
         finally:
             loader.gpu_free(d_in)

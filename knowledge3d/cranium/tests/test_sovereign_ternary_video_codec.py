@@ -18,7 +18,25 @@ def test_video_codec_encode_decode_identity():
     codec = SovereignTernaryVideoCodec(width=w, height=h, threshold=0.2)
     meta = codec.encode("frame0", tensor)
     assert meta["stored_in_galaxy"]
+    assert meta["seed_rpn"].startswith("RESHAPE_TO_BLOCKS DCT8X8_FORWARD")
+    assert meta["math_core_plan"]["preferred_tier"] == 2
     out = codec.decode("frame0")
     assert out.shape == (h, w, 3)
     # We quantize to ternary palette on decode; ensure lengths match
     assert len(out.values.to_python()) == len(pixels)
+
+
+def test_video_codec_stores_real_procedural_seed():
+    h, w = 8, 8
+    pixels = [1 for _ in range(h * w * 3)]
+    tensor = TernaryTensor((h, w, 3), TernaryVector(pixels))
+
+    codec = SovereignTernaryVideoCodec(width=w, height=h, threshold=0.2)
+    meta = codec.encode("frame_seed", tensor)
+    seed_rpn, residual, metadata = codec.galaxy.load_frame_details("frame_seed")
+
+    assert meta["seed_rpn"] == seed_rpn
+    assert "TERNARY_QUANT" in seed_rpn
+    assert metadata["math_core_plan"]["preferred_tier"] == 2
+    assert metadata["blocks_per_channel"] == 1
+    assert len(residual.to_python()) == h * w * 3

@@ -27,12 +27,23 @@ class SpecialistRoute:
 class SpecialistRouter:
     """Single source of truth for specialist + galaxy routing."""
 
+    _ALWAYS_ON_AUXILIARY_GALAXIES: dict[str, list[str]] = {
+        "visual": ["Tool"],
+        "math": ["Tool"],
+        "physics": ["Tool"],
+        "audio": ["Tool"],
+        "grammar": ["Tool"],
+        "cartographer": ["Tool"],
+        "any": ["Tool"],
+    }
+
     _SPECIALIST_GALAXIES: dict[str, list[str]] = {
-        "visual": ["Drawing", "Grammar"],
+        "visual": ["Drawing", "Tool", "Grammar"],
         "math": ["Math", "Grammar"],
-        "physics": ["Reality", "3DObjects", "Math", "Grammar"],
-        "grammar": ["Grammar"],
-        "cartographer": ["Math", "Reality", "3DObjects", "Grammar", "Drawing"],
+        "physics": ["Reality", "3DObjects", "Tool", "Math", "Grammar"],
+        "audio": ["Audio", "Tool", "Drawing", "Grammar"],
+        "grammar": ["Grammar", "Tool"],
+        "cartographer": ["Math", "Reality", "3DObjects", "Tool", "Grammar", "Drawing"],
         "any": [],
     }
 
@@ -40,6 +51,8 @@ class SpecialistRouter:
         "visual": "visual",
         "math": "math",
         "physics": "physics",
+        "audio": "audio",
+        "signal": "audio",
         "logic": "grammar",
         "grammar": "grammar",
         "language": "grammar",
@@ -94,6 +107,18 @@ class SpecialistRouter:
         "electromagnetism",
         "field",
     }
+    _AUDIO_HINTS = {
+        "audio",
+        "sound",
+        "spectrogram",
+        "waveform",
+        "phoneme",
+        "voice",
+        "signal",
+        "frequency",
+        "music",
+        "noise",
+    }
     _LOGIC_HINTS = {
         "proof",
         "therefore",
@@ -111,6 +136,7 @@ class SpecialistRouter:
             "visual": 0.0,
             "math": 0.0,
             "physics": 0.0,
+            "audio": 0.0,
             "grammar": 0.0,
             "cartographer": 0.0,
             "any": 0.0,
@@ -147,11 +173,12 @@ class SpecialistRouter:
                 resolved_specialist = self._specialist_from_domain(resolved_domain)
                 reason = "query_inference"
 
-        resolved_galaxies = (
+        base_galaxies = (
             explicit_galaxies
             if explicit_galaxies is not None
             else list(self._SPECIALIST_GALAXIES.get(resolved_specialist, ["Grammar"]))
         )
+        resolved_galaxies = self._merge_auxiliary_galaxies(resolved_specialist, base_galaxies)
 
         return SpecialistRoute(
             specialist=resolved_specialist,
@@ -168,6 +195,17 @@ class SpecialistRouter:
     def _specialist_from_domain(self, domain: str) -> str:
         return self._DOMAIN_SPECIALIST.get(domain, "grammar")
 
+    def _merge_auxiliary_galaxies(self, specialist: str, galaxies: Sequence[str]) -> list[str]:
+        merged: list[str] = []
+        seen: set[str] = set()
+        for name in list(galaxies) + self._ALWAYS_ON_AUXILIARY_GALAXIES.get(specialist, []):
+            token = str(name).strip()
+            if not token or token in seen:
+                continue
+            seen.add(token)
+            merged.append(token)
+        return merged
+
     def _infer_domain(self, query: str) -> str:
         lowered = query.lower()
         tokens = self._tokenize_query(lowered)
@@ -176,6 +214,7 @@ class SpecialistRouter:
             "visual": float(len(tokens & self._VISUAL_HINTS)),
             "math": float(len(tokens & self._MATH_HINTS)),
             "physics": float(len(tokens & self._PHYSICS_HINTS)),
+            "audio": float(len(tokens & self._AUDIO_HINTS)),
             "logic": float(len(tokens & self._LOGIC_HINTS)),
         }
         # Numeric and symbolic cues provide extra evidence for math.
@@ -183,7 +222,7 @@ class SpecialistRouter:
             domain_scores["math"] += 1.0
 
         # Inject learned specialist bias into domain scoring.
-        for domain in ("visual", "math", "physics", "logic"):
+        for domain in ("visual", "math", "physics", "audio", "logic"):
             specialist = self._specialist_from_domain(domain)
             domain_scores[domain] += float(self._specialist_bias.get(specialist, 0.0))
 

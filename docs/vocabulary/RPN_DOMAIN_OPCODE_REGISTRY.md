@@ -134,22 +134,95 @@ These tools are sufficient to encode:
 
 ---
 
-## 5. Future Extensions (Placeholder)
+## 5. Capability Classification (A/B/C)
 
-Once the math core tiering and Reality Enabler galaxies are stable, we can consider **new opcodes** where justified by repeated patterns:
+Every multimodal or domain feature proposal MUST be classified into one of three capability classes before implementation begins:
+
+### Class A: Executable Now
+- Can be expressed with current opcodes and bridges.
+- Examples: drawing primitives, STORE/RECALL-driven temporal state, vector/matrix transforms, ternary routing, simple procedural animation.
+- **Action**: Compose Galaxy recipes immediately. No new opcodes needed.
+
+### Class B: Representable Now, Kernel Later
+- Can be encoded immediately as Galaxy recipes or Grammar macros using existing opcodes.
+- Deserves a dedicated opcode only after usage frequency and performance justify it.
+- Examples: L-system expansion, spectrogram pipelines, triplanar mapping, mesh extrusion from 2D contours, boid update rules.
+- **Action**: Encode as recipes/macros first. Monitor usage. Promote to opcode only when justified (see Section 6).
+
+### Class C: Research / Not Yet Admitted
+- Requires new data structures, too many host-side assumptions, or unproven performance.
+- Examples: full volumetric remeshing pipelines, robust production-grade cloth/fluids, heavy differentiable rendering loops.
+- **Action**: Document as research target. Do not encode or plan implementation until prerequisites are resolved.
+
+**Rule**: Every new multimodal proposal must state which class it belongs to.
+
+---
+
+## 6. Opcode Admission and Promotion Pipeline
+
+The principle from Section 1 ("programs before opcodes") is formalized here as a four-stage pipeline:
+
+### Stage 0: Galaxy Recipe
+- Store the technique as Grammar/Reality/Drawing/Audio knowledge only.
+- No new opcode. Prove semantic usefulness first.
+
+### Stage 1: Macro Surface
+- Add a stable macro or token expansion in the high-level compiler (`ModularRPNEngine`).
+- Examples: `STORE_X`, `RECALL_DISC`, future `SPECTROGRAM_MACRO`.
+- Still no new kernel.
+
+### Stage 2: Opcode Candidate
+- Measure repeated usage across Galaxy recipes and tool-nodes (see `KNOWLEDGEVERSE_SPECIFICATION.md`).
+- Profile cost of recipe/macro execution.
+- Show that a dedicated opcode reduces complexity materially.
+
+### Stage 3: PTX Kernel Admission
+- Add kernel only after ALL of the following are satisfied:
+
+| Criterion | Requirement |
+|-----------|-------------|
+| **Recipe exists** | Already expressed as composition of existing ops |
+| **Frequency is high** | Appears in many tool-nodes or object recipes |
+| **Speedup is meaningful** | Not 5%, but enough to matter architecturally |
+| **Semantics are stable** | Same meaning across use cases |
+| **Graph complexity reduced** | Fewer references, cleaner composition, easier TRM routing |
+| **Test coverage** | Sovereignty tests + functional tests |
+| **Sovereignty review** | Pure PTX, no CPU fallbacks, no external dependencies |
+
+### Multimodal Target Opcodes (Stage 2 Candidates)
+
+The following are valid design targets currently at Stage 0-1. They MUST pass the promotion pipeline before receiving PTX kernels:
+
+**3D Generation Domain** (Stage 0):
+- `OP_MESH_EXTRUDE`, `OP_BOOLEAN_UNION`, `OP_BOOLEAN_SUBTRACT`, `OP_BOOLEAN_INTERSECT`
+- `OP_LSYSTEM_STEP`, `OP_MARCHING_CUBES`, `OP_NOISE_3D`
+
+**Signal Domain** (Stage 0):
+- `OP_FFT_FORWARD`, `OP_FFT_INVERSE`
+- `OP_AUDIO_TO_SPECTROGRAM`, `OP_SPECTROGRAM_TO_AUDIO`
+- `OP_FREQUENCY_FILTER`
+
+**Image Generation Domain** (Stage 0):
+- `OP_GRADIENT_BLEND`, `OP_TEXTURE_SAMPLE`, `OP_CONVOLUTION_2D`
+
+**Temporal Domain** (Stage 0):
+- `OP_TEMPORAL_SEQUENCE`, `OP_TEMPORAL_INTERPOLATE`, `OP_PHYSICS_INTEGRATE`
+
+---
+
+## 7. Future Extensions
+
+Once the math core tiering and Reality Enabler galaxies are stable, the promotion pipeline (Section 6) governs admission of new opcodes. Candidates include:
 
 - Physics-specific shortcuts (e.g., `OP_FORCE_ACCUM`, `OP_INTEGRATE_EULER`), if profiling shows strong benefit.
 - Chemistry-specific combinators (e.g., `OP_APPLY_REACTION_RULE`) built on top of set/graph ops.
 - Biology-specific pattern operators (e.g., `OP_BRANCH_LSYSTEM`) for more compact growth programs.
 
-Any new opcode MUST:
-- Be definable as a composition of existing primitives (for verification).
-- Demonstrate a measurable performance or clarity benefit vs programs alone.
-- Be added to `rpn_opcodes.py` and documented here with domain semantics.
+All candidates MUST pass the Stage 0-3 pipeline documented above.
 
 ---
 
-## 6. References
+## 8. References
 
 - `knowledge3d/cranium/ptx_runtime/rpn_opcodes.py`  
 - `knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py`  

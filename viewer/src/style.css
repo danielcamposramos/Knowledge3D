@@ -13,3 +13,74 @@ html, body {
 #tooltip {
   pointer-events: none;
 }
+
+#boot-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 160;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(68, 105, 190, 0.18), transparent 28%),
+    radial-gradient(circle at 80% 30%, rgba(222, 122, 55, 0.18), transparent 24%),
+    linear-gradient(180deg, rgba(7, 11, 22, 0.96), rgba(12, 16, 30, 0.98));
+  color: #f2f0ea;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+#boot-panel {
+  width: min(540px, calc(100vw - 32px));
+  padding: 24px 24px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  background: rgba(11, 15, 28, 0.78);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(10px);
+}
+
+#boot-kicker {
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #f4be5f;
+  margin-bottom: 10px;
+}
+
+#boot-title {
+  font-size: 28px;
+  line-height: 1.05;
+  margin-bottom: 10px;
+}
+
+#boot-status {
+  font-size: 14px;
+  line-height: 1.4;
+  color: rgba(242, 240, 234, 0.86);
+  min-height: 40px;
+}
+
+#boot-progress-shell {
+  margin-top: 18px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+#boot-progress-bar {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f4be5f, #ec6e5b, #5b82f0);
+  transition: width 180ms ease;
+}
+
+#boot-meta {
+  margin-top: 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  color: rgba(242, 240, 234, 0.6);
+}

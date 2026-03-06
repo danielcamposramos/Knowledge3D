@@ -25,6 +25,7 @@ class RasterizerBatch:
     batch: int
     height: int
     width: int
+    owns_memory: bool = True
 
     def to_numpy(self) -> np.ndarray:
         """Copy the rendered batch back to host memory."""
@@ -39,7 +40,7 @@ class RasterizerBatch:
 
     def free(self) -> None:
         """Release device memory."""
-        if getattr(self.device_ptr, "value", 0):
+        if self.owns_memory and getattr(self.device_ptr, "value", 0):
             loader.gpu_free(self.device_ptr)
             self.device_ptr = loader.CUdeviceptr(0)
 
@@ -54,6 +55,49 @@ class ProceduralGlyphBridge:
         ptx_file = ptx_path if ptx_path else str(default_ptx)
         self.module = loader.load_module_from_file(ptx_file)
         self.kernel = loader.get_function(self.module, "procedural_glyph_rasterizer")
+        self._d_segments = loader.CUdeviceptr(0)
+        self._d_offsets = loader.CUdeviceptr(0)
+        self._d_lengths = loader.CUdeviceptr(0)
+        self._d_transforms = loader.CUdeviceptr(0)
+        self._d_output = loader.CUdeviceptr(0)
+        self._segments_capacity = 0
+        self._offsets_capacity = 0
+        self._lengths_capacity = 0
+        self._transforms_capacity = 0
+        self._output_capacity = 0
+
+    def _ensure_buffer(self, attr: str, capacity_attr: str, size_bytes: int) -> loader.CUdeviceptr:
+        ptr = getattr(self, attr)
+        cap = getattr(self, capacity_attr)
+        if size_bytes <= cap and getattr(ptr, "value", 0):
+            return ptr
+        if getattr(ptr, "value", 0):
+            loader.gpu_free(ptr)
+        new_cap = max(size_bytes, max(256, cap * 2 if cap else 0))
+        new_ptr = loader.gpu_malloc(new_cap)
+        setattr(self, attr, new_ptr)
+        setattr(self, capacity_attr, new_cap)
+        return new_ptr
+
+    def close(self) -> None:
+        for attr, cap_attr in (
+            ("_d_segments", "_segments_capacity"),
+            ("_d_offsets", "_offsets_capacity"),
+            ("_d_lengths", "_lengths_capacity"),
+            ("_d_transforms", "_transforms_capacity"),
+            ("_d_output", "_output_capacity"),
+        ):
+            ptr = getattr(self, attr)
+            if getattr(ptr, "value", 0):
+                loader.gpu_free(ptr)
+                setattr(self, attr, loader.CUdeviceptr(0))
+            setattr(self, cap_attr, 0)
+
+    def __del__(self):  # pragma: no cover - defensive cleanup only
+        try:
+            self.close()
+        except Exception:
+            pass
 
     def render(
         self,
@@ -81,12 +125,16 @@ class ProceduralGlyphBridge:
         lengths = np.ascontiguousarray(segment_lengths.astype(np.int32, copy=False))
         transforms = np.ascontiguousarray(transforms.astype(np.float32, copy=False))
 
-        d_segments = loader.gpu_malloc(segments.nbytes) if segments.size else loader.CUdeviceptr(0)
-        d_offsets = loader.gpu_malloc(offsets.nbytes)
-        d_lengths = loader.gpu_malloc(lengths.nbytes)
-        d_transforms = loader.gpu_malloc(transforms.nbytes)
         output_bytes = batch * height * width * 4 * 4  # RGBA float32
-        d_output = loader.gpu_malloc(output_bytes)
+        d_segments = (
+            self._ensure_buffer("_d_segments", "_segments_capacity", segments.nbytes)
+            if segments.size
+            else loader.CUdeviceptr(0)
+        )
+        d_offsets = self._ensure_buffer("_d_offsets", "_offsets_capacity", offsets.nbytes)
+        d_lengths = self._ensure_buffer("_d_lengths", "_lengths_capacity", lengths.nbytes)
+        d_transforms = self._ensure_buffer("_d_transforms", "_transforms_capacity", transforms.nbytes)
+        d_output = self._ensure_buffer("_d_output", "_output_capacity", output_bytes)
 
         if segments.size:
             loader.memcpy_htod(d_segments, segments.ctypes.data_as(ctypes.c_void_p), segments.nbytes)
@@ -117,9 +165,4 @@ class ProceduralGlyphBridge:
             ],
         )
 
-        loader.gpu_free(d_segments)
-        loader.gpu_free(d_offsets)
-        loader.gpu_free(d_lengths)
-        loader.gpu_free(d_transforms)
-
-        return RasterizerBatch(device_ptr=d_output, batch=batch, height=height, width=width)
+        return RasterizerBatch(device_ptr=d_output, batch=batch, height=height, width=width, owns_memory=False)

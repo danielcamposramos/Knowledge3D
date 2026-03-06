@@ -7,6 +7,13 @@ import pytest
 from knowledge3d.cranium.sleep.glyph_consolidator import GlyphConsolidator
 
 
+def _require_gpu():
+    cupy = pytest.importorskip("cupy")
+    if cupy.cuda.runtime.getDeviceCount() == 0:
+        pytest.skip("CUDA device not available")
+    return cupy
+
+
 def _make_feature(seed: int) -> np.ndarray:
     rng = np.random.default_rng(seed)
     vec = rng.normal(size=128).astype(np.float32)
@@ -62,7 +69,9 @@ def font_db_path(tmp_path: Path) -> Path:
     return path
 
 
+@pytest.mark.cuda
 def test_glyph_consolidation(font_db_path: Path, tmp_path: Path):
+    _require_gpu()
     consolidator = GlyphConsolidator(font_db_path)
 
     metrics_path = tmp_path / "glyph_metrics.jsonl"

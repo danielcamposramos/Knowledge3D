@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from .foundational_galaxy_bootstrap import populate_always_on_foundational_galaxies
 from .galaxy_manager import GalaxyManager
 from .shadow_copy import ShadowCopyLearning
 from .sleeptime import SleepTimeConsolidation
@@ -32,6 +33,7 @@ class Knowledgeverse:
         "Reality",
         "Audio",
         "3DObjects",
+        "Tool",
     )
 
     def __init__(
@@ -44,6 +46,7 @@ class Knowledgeverse:
         sleeptime_journal_path: str | Path | None = None,
         stargate_storage_root: str | Path | None = None,
         eager_load_default_galaxies: bool = True,
+        bootstrap_foundational_galaxies: bool = True,
     ):
         self.manifest_version = manifest_version
         self.storage_root = Path(storage_root)
@@ -57,6 +60,11 @@ class Knowledgeverse:
         )
         self.galaxy_manager = GalaxyManager(storage_root=galaxy_root)
         self.galaxy_manager.set_knowledgeverse(self)
+        self.foundational_bootstrap_summary: dict[str, Any] = {}
+        if bootstrap_foundational_galaxies:
+            self.foundational_bootstrap_summary = populate_always_on_foundational_galaxies(
+                self.galaxy_manager
+            )
 
         stargate_root = (
             Path(stargate_storage_root)

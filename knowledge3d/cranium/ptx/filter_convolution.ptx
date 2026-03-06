@@ -7,7 +7,7 @@
 //
 
 .version 8.4
-.target sm_52
+.target sm_86
 .address_size 64
 
 	// .globl	blur_horizontal_kernel
@@ -108,16 +108,16 @@ $L__BB0_7:
 $L__BB0_9:
 	ld.global.f32 	%f10, [%rd17];
 	ld.shared.f32 	%f11, [%r57+-8];
-	fma.rn.f32 	%f12, %f11, %f10, %f29;
+	fma.rn.ftz.f32 	%f12, %f11, %f10, %f29;
 	ld.global.f32 	%f13, [%rd17+4];
 	ld.shared.f32 	%f14, [%r57+-4];
-	fma.rn.f32 	%f15, %f14, %f13, %f12;
+	fma.rn.ftz.f32 	%f15, %f14, %f13, %f12;
 	ld.global.f32 	%f16, [%rd17+8];
 	ld.shared.f32 	%f17, [%r57];
-	fma.rn.f32 	%f18, %f17, %f16, %f15;
+	fma.rn.ftz.f32 	%f18, %f17, %f16, %f15;
 	ld.global.f32 	%f19, [%rd17+12];
 	ld.shared.f32 	%f20, [%r57+4];
-	fma.rn.f32 	%f29, %f20, %f19, %f18;
+	fma.rn.ftz.f32 	%f29, %f20, %f19, %f18;
 	add.s32 	%r60, %r60, 4;
 	add.s32 	%r57, %r57, 16;
 	add.s64 	%rd17, %rd17, 16;
@@ -134,16 +134,16 @@ $L__BB0_10:
 	add.s64 	%rd6, %rd2, %rd12;
 	ld.global.f32 	%f21, [%rd6];
 	ld.shared.f32 	%f22, [%r25];
-	fma.rn.f32 	%f30, %f22, %f21, %f29;
+	fma.rn.ftz.f32 	%f30, %f22, %f21, %f29;
 	setp.eq.s32 	%p10, %r14, 1;
 	@%p10 bra 	$L__BB0_12;
 
 	ld.global.f32 	%f23, [%rd6+4];
 	ld.shared.f32 	%f24, [%r25+4];
-	fma.rn.f32 	%f25, %f24, %f23, %f30;
+	fma.rn.ftz.f32 	%f25, %f24, %f23, %f30;
 	ld.global.f32 	%f26, [%rd6+8];
 	ld.shared.f32 	%f27, [%r25+8];
-	fma.rn.f32 	%f30, %f27, %f26, %f25;
+	fma.rn.ftz.f32 	%f30, %f27, %f26, %f25;
 
 $L__BB0_12:
 	add.s32 	%r50, %r56, %r11;
@@ -264,16 +264,16 @@ $L__BB1_7:
 $L__BB1_9:
 	ld.global.f32 	%f10, [%rd17];
 	ld.shared.f32 	%f11, [%r55+-8];
-	fma.rn.f32 	%f12, %f11, %f10, %f29;
+	fma.rn.ftz.f32 	%f12, %f11, %f10, %f29;
 	ld.global.f32 	%f13, [%rd17+4];
 	ld.shared.f32 	%f14, [%r55+-4];
-	fma.rn.f32 	%f15, %f14, %f13, %f12;
+	fma.rn.ftz.f32 	%f15, %f14, %f13, %f12;
 	ld.global.f32 	%f16, [%rd17+8];
 	ld.shared.f32 	%f17, [%r55];
-	fma.rn.f32 	%f18, %f17, %f16, %f15;
+	fma.rn.ftz.f32 	%f18, %f17, %f16, %f15;
 	ld.global.f32 	%f19, [%rd17+12];
 	ld.shared.f32 	%f20, [%r55+4];
-	fma.rn.f32 	%f29, %f20, %f19, %f18;
+	fma.rn.ftz.f32 	%f29, %f20, %f19, %f18;
 	add.s32 	%r58, %r58, 4;
 	add.s32 	%r55, %r55, 16;
 	add.s64 	%rd17, %rd17, 16;
@@ -290,16 +290,16 @@ $L__BB1_10:
 	add.s64 	%rd6, %rd2, %rd12;
 	ld.global.f32 	%f21, [%rd6];
 	ld.shared.f32 	%f22, [%r23];
-	fma.rn.f32 	%f30, %f22, %f21, %f29;
+	fma.rn.ftz.f32 	%f30, %f22, %f21, %f29;
 	setp.eq.s32 	%p10, %r12, 1;
 	@%p10 bra 	$L__BB1_12;
 
 	ld.global.f32 	%f23, [%rd6+4];
 	ld.shared.f32 	%f24, [%r23+4];
-	fma.rn.f32 	%f25, %f24, %f23, %f30;
+	fma.rn.ftz.f32 	%f25, %f24, %f23, %f30;
 	ld.global.f32 	%f26, [%rd6+8];
 	ld.shared.f32 	%f27, [%r23+8];
-	fma.rn.f32 	%f30, %f27, %f26, %f25;
+	fma.rn.ftz.f32 	%f30, %f27, %f26, %f25;
 
 $L__BB1_12:
 	mad.lo.s32 	%r48, %r54, %r28, %r1;
@@ -372,36 +372,36 @@ $L__BB1_14:
 	add.s64 	%rd6, %rd3, %rd5;
 	ld.global.f32 	%f1, [%rd6+4];
 	ld.global.f32 	%f2, [%rd6+-4];
-	sub.f32 	%f3, %f1, %f2;
+	sub.ftz.f32 	%f3, %f1, %f2;
 	mul.lo.s32 	%r15, %r2, %r3;
 	add.s32 	%r16, %r15, %r1;
 	add.s32 	%r17, %r16, -1;
 	mul.wide.s32 	%rd7, %r17, 4;
 	add.s64 	%rd8, %rd3, %rd7;
 	ld.global.f32 	%f4, [%rd8];
-	add.f32 	%f5, %f4, %f4;
-	sub.f32 	%f6, %f3, %f5;
+	add.ftz.f32 	%f5, %f4, %f4;
+	sub.ftz.f32 	%f6, %f3, %f5;
 	ld.global.f32 	%f7, [%rd8+8];
-	fma.rn.f32 	%f8, %f7, 0f40000000, %f6;
+	fma.rn.ftz.f32 	%f8, %f7, 0f40000000, %f6;
 	add.s32 	%r18, %r15, %r3;
 	add.s32 	%r19, %r18, %r1;
 	mul.wide.s32 	%rd9, %r19, 4;
 	add.s64 	%rd10, %rd3, %rd9;
 	ld.global.f32 	%f9, [%rd10+-4];
-	sub.f32 	%f10, %f8, %f9;
+	sub.ftz.f32 	%f10, %f8, %f9;
 	ld.global.f32 	%f11, [%rd10+4];
-	add.f32 	%f12, %f11, %f10;
+	add.ftz.f32 	%f12, %f11, %f10;
 	ld.global.f32 	%f13, [%rd6];
-	mul.f32 	%f14, %f13, 0fC0000000;
-	sub.f32 	%f15, %f14, %f2;
-	sub.f32 	%f16, %f15, %f1;
-	add.f32 	%f17, %f9, %f16;
+	mul.ftz.f32 	%f14, %f13, 0fC0000000;
+	sub.ftz.f32 	%f15, %f14, %f2;
+	sub.ftz.f32 	%f16, %f15, %f1;
+	add.ftz.f32 	%f17, %f9, %f16;
 	ld.global.f32 	%f18, [%rd10];
-	fma.rn.f32 	%f19, %f18, 0f40000000, %f17;
-	add.f32 	%f20, %f11, %f19;
-	mul.f32 	%f21, %f20, %f20;
-	fma.rn.f32 	%f22, %f12, %f12, %f21;
-	sqrt.rn.f32 	%f23, %f22;
+	fma.rn.ftz.f32 	%f19, %f18, 0f40000000, %f17;
+	add.ftz.f32 	%f20, %f11, %f19;
+	mul.ftz.f32 	%f21, %f20, %f20;
+	fma.rn.ftz.f32 	%f22, %f12, %f12, %f21;
+	sqrt.approx.ftz.f32 	%f23, %f22;
 	mul.wide.s32 	%rd11, %r16, 4;
 	add.s64 	%rd12, %rd4, %rd11;
 	st.global.f32 	[%rd12], %f23;
@@ -450,13 +450,216 @@ $L__BB2_2:
 	add.s64 	%rd8, %rd7, %rd5;
 	ld.global.f32 	%f2, [%rd8];
 	ld.global.f32 	%f3, [%rd6];
-	sub.f32 	%f4, %f3, %f2;
-	fma.rn.f32 	%f5, %f4, %f1, %f3;
+	sub.ftz.f32 	%f4, %f3, %f2;
+	fma.rn.ftz.f32 	%f5, %f4, %f1, %f3;
 	cvta.to.global.u64 	%rd9, %rd3;
 	add.s64 	%rd10, %rd9, %rd5;
 	st.global.f32 	[%rd10], %f5;
 
 $L__BB3_2:
+	ret;
+
+}
+	// .globl	rgba_to_luma_kernel
+.visible .entry rgba_to_luma_kernel(
+	.param .u64 rgba_to_luma_kernel_param_0,
+	.param .u64 rgba_to_luma_kernel_param_1,
+	.param .u32 rgba_to_luma_kernel_param_2,
+	.param .u32 rgba_to_luma_kernel_param_3,
+	.param .u32 rgba_to_luma_kernel_param_4
+)
+{
+	.reg .pred 	%p<6>;
+	.reg .f32 	%f<11>;
+	.reg .b32 	%r<14>;
+	.reg .b64 	%rd<9>;
+
+
+	ld.param.u64 	%rd2, [rgba_to_luma_kernel_param_0];
+	ld.param.u64 	%rd3, [rgba_to_luma_kernel_param_1];
+	ld.param.u32 	%r4, [rgba_to_luma_kernel_param_2];
+	ld.param.u32 	%r6, [rgba_to_luma_kernel_param_3];
+	ld.param.u32 	%r5, [rgba_to_luma_kernel_param_4];
+	mov.u32 	%r7, %ntid.x;
+	mov.u32 	%r8, %ctaid.x;
+	mov.u32 	%r9, %tid.x;
+	mad.lo.s32 	%r1, %r8, %r7, %r9;
+	mov.u32 	%r10, %ntid.y;
+	mov.u32 	%r11, %ctaid.y;
+	mov.u32 	%r12, %tid.y;
+	mad.lo.s32 	%r2, %r11, %r10, %r12;
+	setp.ge.s32 	%p1, %r1, %r4;
+	setp.ge.s32 	%p2, %r2, %r6;
+	or.pred  	%p3, %p1, %p2;
+	@%p3 bra 	$L__BB4_6;
+
+	mad.lo.s32 	%r3, %r2, %r4, %r1;
+	mul.lo.s32 	%r13, %r3, %r5;
+	cvta.to.global.u64 	%rd4, %rd2;
+	mul.wide.s32 	%rd5, %r13, 4;
+	add.s64 	%rd1, %rd4, %rd5;
+	ld.global.f32 	%f1, [%rd1];
+	setp.lt.s32 	%p4, %r5, 2;
+	mov.f32 	%f9, %f1;
+	@%p4 bra 	$L__BB4_3;
+
+	ld.global.f32 	%f9, [%rd1+4];
+
+$L__BB4_3:
+	setp.lt.s32 	%p5, %r5, 3;
+	mov.f32 	%f10, %f9;
+	@%p5 bra 	$L__BB4_5;
+
+	ld.global.f32 	%f10, [%rd1+8];
+
+$L__BB4_5:
+	mul.ftz.f32 	%f6, %f9, 0f3F371759;
+	fma.rn.ftz.f32 	%f7, %f1, 0f3E59B3D0, %f6;
+	fma.rn.ftz.f32 	%f8, %f10, 0f3D93DD98, %f7;
+	cvta.to.global.u64 	%rd6, %rd3;
+	mul.wide.s32 	%rd7, %r3, 4;
+	add.s64 	%rd8, %rd6, %rd7;
+	st.global.f32 	[%rd8], %f8;
+
+$L__BB4_6:
+	ret;
+
+}
+	// .globl	alpha_over_rgba_kernel
+.visible .entry alpha_over_rgba_kernel(
+	.param .u64 alpha_over_rgba_kernel_param_0,
+	.param .u64 alpha_over_rgba_kernel_param_1,
+	.param .u64 alpha_over_rgba_kernel_param_2,
+	.param .u32 alpha_over_rgba_kernel_param_3,
+	.param .u32 alpha_over_rgba_kernel_param_4
+)
+{
+	.reg .pred 	%p<5>;
+	.reg .f32 	%f<29>;
+	.reg .b32 	%r<15>;
+	.reg .b64 	%rd<13>;
+
+
+	ld.param.u64 	%rd3, [alpha_over_rgba_kernel_param_0];
+	ld.param.u64 	%rd4, [alpha_over_rgba_kernel_param_1];
+	ld.param.u64 	%rd5, [alpha_over_rgba_kernel_param_2];
+	ld.param.u32 	%r4, [alpha_over_rgba_kernel_param_3];
+	ld.param.u32 	%r5, [alpha_over_rgba_kernel_param_4];
+	cvta.to.global.u64 	%rd1, %rd5;
+	mov.u32 	%r6, %ntid.x;
+	mov.u32 	%r7, %ctaid.x;
+	mov.u32 	%r8, %tid.x;
+	mad.lo.s32 	%r1, %r7, %r6, %r8;
+	mov.u32 	%r9, %ntid.y;
+	mov.u32 	%r10, %ctaid.y;
+	mov.u32 	%r11, %tid.y;
+	mad.lo.s32 	%r2, %r10, %r9, %r11;
+	setp.ge.s32 	%p1, %r1, %r4;
+	setp.ge.s32 	%p2, %r2, %r5;
+	or.pred  	%p3, %p1, %p2;
+	@%p3 bra 	$L__BB5_5;
+
+	mad.lo.s32 	%r12, %r2, %r4, %r1;
+	shl.b32 	%r3, %r12, 2;
+	cvta.to.global.u64 	%rd6, %rd3;
+	mul.wide.s32 	%rd7, %r3, 4;
+	add.s64 	%rd8, %rd6, %rd7;
+	ld.global.f32 	%f5, [%rd8+12];
+	mov.f32 	%f6, 0f00000000;
+	max.ftz.f32 	%f7, %f5, %f6;
+	mov.f32 	%f8, 0f3F800000;
+	min.ftz.f32 	%f9, %f7, %f8;
+	cvta.to.global.u64 	%rd9, %rd4;
+	add.s64 	%rd10, %rd9, %rd7;
+	ld.global.f32 	%f10, [%rd10+12];
+	max.ftz.f32 	%f11, %f10, %f6;
+	min.ftz.f32 	%f12, %f11, %f8;
+	sub.ftz.f32 	%f13, %f8, %f12;
+	fma.rn.ftz.f32 	%f1, %f9, %f13, %f12;
+	ld.global.f32 	%f14, [%rd10];
+	ld.global.f32 	%f15, [%rd8];
+	mul.ftz.f32 	%f16, %f15, %f9;
+	mul.ftz.f32 	%f17, %f16, %f13;
+	fma.rn.ftz.f32 	%f2, %f14, %f12, %f17;
+	ld.global.f32 	%f18, [%rd10+4];
+	ld.global.f32 	%f19, [%rd8+4];
+	mul.ftz.f32 	%f20, %f19, %f9;
+	mul.ftz.f32 	%f21, %f20, %f13;
+	fma.rn.ftz.f32 	%f3, %f18, %f12, %f21;
+	ld.global.f32 	%f22, [%rd10+8];
+	ld.global.f32 	%f23, [%rd8+8];
+	mul.ftz.f32 	%f24, %f23, %f9;
+	mul.ftz.f32 	%f25, %f24, %f13;
+	fma.rn.ftz.f32 	%f4, %f22, %f12, %f25;
+	setp.gt.ftz.f32 	%p4, %f1, 0f358637BD;
+	add.s64 	%rd2, %rd1, %rd7;
+	@%p4 bra 	$L__BB5_3;
+	bra.uni 	$L__BB5_2;
+
+$L__BB5_3:
+	div.approx.ftz.f32 	%f26, %f2, %f1;
+	st.global.f32 	[%rd2], %f26;
+	div.approx.ftz.f32 	%f27, %f3, %f1;
+	st.global.f32 	[%rd2+4], %f27;
+	div.approx.ftz.f32 	%f28, %f4, %f1;
+	st.global.f32 	[%rd2+8], %f28;
+	bra.uni 	$L__BB5_4;
+
+$L__BB5_2:
+	mov.u32 	%r13, 0;
+	st.global.u32 	[%rd2], %r13;
+	st.global.u32 	[%rd2+4], %r13;
+	st.global.u32 	[%rd2+8], %r13;
+
+$L__BB5_4:
+	add.s32 	%r14, %r3, 3;
+	mul.wide.s32 	%rd11, %r14, 4;
+	add.s64 	%rd12, %rd1, %rd11;
+	st.global.f32 	[%rd12], %f1;
+
+$L__BB5_5:
+	ret;
+
+}
+	// .globl	invert_rgba_kernel
+.visible .entry invert_rgba_kernel(
+	.param .u64 invert_rgba_kernel_param_0,
+	.param .u64 invert_rgba_kernel_param_1,
+	.param .u32 invert_rgba_kernel_param_2,
+	.param .u32 invert_rgba_kernel_param_3
+)
+{
+	.reg .pred 	%p<3>;
+	.reg .f32 	%f<5>;
+	.reg .b32 	%r<8>;
+	.reg .b64 	%rd<8>;
+
+
+	ld.param.u64 	%rd1, [invert_rgba_kernel_param_0];
+	ld.param.u64 	%rd2, [invert_rgba_kernel_param_1];
+	ld.param.u32 	%r3, [invert_rgba_kernel_param_2];
+	ld.param.u32 	%r2, [invert_rgba_kernel_param_3];
+	mov.u32 	%r4, %ctaid.x;
+	mov.u32 	%r5, %ntid.x;
+	mov.u32 	%r6, %tid.x;
+	mad.lo.s32 	%r1, %r4, %r5, %r6;
+	setp.ge.s32 	%p1, %r1, %r3;
+	@%p1 bra 	$L__BB6_2;
+
+	cvta.to.global.u64 	%rd3, %rd1;
+	mul.wide.s32 	%rd4, %r1, 4;
+	add.s64 	%rd5, %rd3, %rd4;
+	rem.s32 	%r7, %r1, %r2;
+	setp.eq.s32 	%p2, %r7, 3;
+	ld.global.f32 	%f1, [%rd5];
+	mov.f32 	%f2, 0f3F800000;
+	sub.ftz.f32 	%f3, %f2, %f1;
+	selp.f32 	%f4, %f1, %f3, %p2;
+	cvta.to.global.u64 	%rd6, %rd2;
+	add.s64 	%rd7, %rd6, %rd4;
+	st.global.f32 	[%rd7], %f4;
+
+$L__BB6_2:
 	ret;
 
 }

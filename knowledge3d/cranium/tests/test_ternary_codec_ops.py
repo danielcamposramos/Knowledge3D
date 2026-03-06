@@ -31,3 +31,33 @@ def test_mdct_roundtrip():
 
     correlation = float(np.corrcoef(windowed, np.array(reconstructed, dtype=np.float32))[0, 1])
     assert correlation > 0.95, f"MDCT round-trip correlation too low: {correlation}"
+
+
+def test_block_layout_roundtrip():
+    """Grid-to-block and block-to-grid should be exact for 8x8-divisible float grids."""
+    import numpy as np
+
+    ops = TernaryCodecOps()
+    grid = np.arange(16 * 16, dtype=np.float32).reshape(16, 16)
+    flat = grid.reshape(-1).tolist()
+
+    blocks = ops.reshape_to_blocks(flat, rows=16, cols=16, block_h=8, block_w=8)
+    rebuilt = ops.blocks_to_grid(blocks, rows=16, cols=16, block_h=8, block_w=8)
+    arr = np.array(rebuilt, dtype=np.float32).reshape(16, 16)
+
+    assert np.allclose(arr, grid)
+
+
+def test_dct8_roundtrip():
+    """DCT8 forward + inverse should reconstruct contiguous 8x8 blocks accurately."""
+    import numpy as np
+
+    ops = TernaryCodecOps()
+    blocks = np.random.randn(3, 8, 8).astype(np.float32)
+    flat = blocks.reshape(-1).tolist()
+
+    coeffs = ops.dct8_forward(flat)
+    rebuilt = ops.dct8_inverse(coeffs)
+    arr = np.array(rebuilt, dtype=np.float32).reshape(3, 8, 8)
+
+    assert np.allclose(arr, blocks, atol=1e-3)

@@ -1,8 +1,8 @@
 """
 Opcode constants for ternary codec operations (DCT/MDCT + ternary quantization).
 
-These map to PTX kernels in knowledge3d/cranium/kernels/codec_ops.cu (to be
-implemented). They are declared here for integration with ModularRPNEngine.
+These map to PTX kernels in knowledge3d/cranium/kernels/codec_ops.cu and are
+used by ModularRPNEngine / TieredRPN for the current sovereign codec surface.
 """
 
 OP_TERNARY_QUANT = 0xC0

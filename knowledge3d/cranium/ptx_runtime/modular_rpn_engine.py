@@ -231,6 +231,8 @@ class ModularRPNEngine:
         "IMDCT_INVERSE",
         "BATCH_MDCT",
         "BATCH_DCT",
+        "RESHAPE_TO_BLOCKS",
+        "BLOCKS_TO_GRID",
         "TERNARY_ADD",
         "TERNARY_MUL",
     }
@@ -257,6 +259,7 @@ class ModularRPNEngine:
         self.pool = pool or get_global_math_core_pool()
         self.instance_id: Optional[int] = instance_id
         self._owned = instance_id is None
+        self._last_requested_tier: int | None = None
         self.gpu_call_count: int = 0
         # Lazy import keeps module importable in environments without CUDA bindings.
         from knowledge3d.cranium.bridges.tiered_rpn import (
@@ -538,19 +541,36 @@ class ModularRPNEngine:
         except:
             pass
 
+    def get_math_core_descriptor(self) -> dict[str, object]:
+        """Expose the current math-core binding and pool state."""
+        tier = int(self._last_requested_tier or 1)
+        return {
+            "instance_id": self.instance_id,
+            "requested_tier": tier,
+            "tier_role": self.pool.describe_tier(tier),
+            "ownership": "owned" if self._owned else "shared",
+            "pool": self.pool.snapshot(),
+        }
+
     # ------------------------------------------------------------------ #
     # Internal helpers
     # ------------------------------------------------------------------ #
     def _ensure_core(self, tier: int = 1, *, override_instance: Optional[int] = None) -> int:
         """Ensure a math core is available and return its instance id."""
+        self._last_requested_tier = int(tier)
         if override_instance is not None:
             self.instance_id = override_instance
             self._owned = False
+            try:
+                self.pool.retier_core(override_instance, tier=tier)
+            except Exception:
+                pass
             return override_instance
 
         if self.instance_id is None:
             self.instance_id = self.pool.spawn_core(tier=tier)
         else:
+            self.pool.retier_core(self.instance_id, tier=tier)
             self.pool.touch(self.instance_id)
         return self.instance_id
 

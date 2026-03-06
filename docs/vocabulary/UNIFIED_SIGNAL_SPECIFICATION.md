@@ -1,9 +1,9 @@
 # Unified Signal Specification — Frequency-Time Architecture
 
-**Version**: 1.0
+**Version**: 1.1
 **Status**: Implementation Ready
 **License**: CC-BY-4.0 (Documentation), Apache 2.0 (Implementation)
-**Date**: December 2025
+**Date**: March 2026 (updated from December 2025)
 
 ---
 
@@ -540,7 +540,97 @@ The Discovery Layer can identify:
 
 ---
 
-## 11. References
+## 11. Video as Scene-Time Programs (Temporal Signal Architecture)
+
+### 11.1 Core Principle
+
+Video in K3D is NOT a list of frames. Video is a **scene program evaluated over time**.
+
+Traditional video models (Sora, Runway) generate frames via latent diffusion with temporal coherence as an afterthought. K3D treats video as temporal execution of composed procedural programs — the scene exists as knowledge, and time is a parameter.
+
+### 11.2 Five-Layer Temporal Video Contract
+
+Every procedural video composition separates five orthogonal layers:
+
+| Layer | Concerns | Galaxy Source |
+|-------|----------|---------------|
+| **Scene** | What exists in the world (objects, materials, sky, terrain, fluids) | Reality + Drawing Galaxy |
+| **Dynamics** | What changes state (physics, growth, flocking, deformation, lighting drift) | Reality Galaxy (physics laws) |
+| **Camera** | Point of view (orbit, pan, zoom, cuts, focus) | Grammar Galaxy (composition rules) |
+| **Render** | How to turn state into view (image formation, shading, spectrogram, overlays) | Drawing Galaxy (rendering programs) |
+| **Audio** | Waveform or event-driven sound state (ambience, source positioning, signal synthesis) | Audio Galaxy (Unified Signal) |
+
+### 11.3 Canonical Example
+
+```rpn
+# "Sunset Ocean Timelapse" as five-layer composition
+scene_rpn:
+  SKY_REF sunset_gradient_v2
+  WATER_REF ocean_surface_v4
+  BIRD_REF seagull_flock_v1
+
+dynamics_rpn:
+  LIGHT_ANGLE animate_low_to_horizon
+  WAVE_STATE fluid_iterate
+  FLOCK_STATE boid_step
+
+camera_rpn:
+  ORBIT coastline_path_v1
+  ZOOM slow_in
+
+render_rpn:
+  DRAWING_RENDER sky
+  REALITY_RENDER water
+  DRAWING_OVERLAY glare
+
+audio_rpn:
+  WIND_REF coastal_wind_v2
+  SURF_REF shore_break_v1
+  BIRD_AUDIO_REF gull_call_v1
+```
+
+Each layer is independently editable: change `sunset_gradient_v2` to `dawn_gradient_v1` and the entire video updates. Change bird species and flock behavior is reused. Change camera path without touching scene or dynamics.
+
+### 11.4 Why Scene-Time Beats Frame-Time
+
+| Metric | Frame-Time (Sora) | Scene-Time (K3D) |
+|--------|-------------------|-------------------|
+| Storage | 300 frames x pixels | 1 scene program + parameters |
+| Editability | Re-generate all frames | Change one symlink reference |
+| Physics | Hallucinated motion | Simulated reality |
+| Audio sync | Post-hoc alignment | Native (shared temporal axis) |
+| Cross-modal reuse | None | Scene objects reused in 3D, 2D, audio |
+
+### 11.5 Video Benchmarking (K3D-Specific Metrics)
+
+For K3D, video quality is not only visual plausibility. It must also measure:
+
+- **Deterministic Rebuild Score**: Same source program regenerates same artifact
+- **Variant Edit Cost**: Number of changed refs/tokens required for a meaningful variant
+- **Symlink Reuse Ratio**: Percentage of final artifact sourced by references (not duplication)
+- **Cross-Modal Reuse Count**: How many modalities reuse the same underlying procedural source
+- **Temporal Compression Ratio**: Scene-time program size versus equivalent frame-by-frame storage
+
+These metrics reveal value that diffusion benchmarks hide: editability, inspectability, knowledge reuse, and sovereign compression.
+
+---
+
+## 12. Tool-Nodes for Signal Processing
+
+Signal processing techniques are stored as **tool-nodes** — procedural capabilities represented as Galaxy knowledge, not just code. See `KNOWLEDGEVERSE_SPECIFICATION.md` Section 4.8 for the full tool-node contract.
+
+**Signal Tool Family**:
+- `tool_waveform_synthesis_v1` — oscillator bank + envelope shaping
+- `tool_fft_projection_v1` — time/space to frequency domain
+- `tool_filter_chain_v1` — cascaded IIR/FIR filtering
+- `tool_spectrogram_render_v1` — frequency-time to VectorDotMap image
+- `tool_image_sonification_v1` — spatial frequencies to audio waveform
+
+Each tool-node has input/output contracts, behavior RPN, and symlinks to component tools — making K3D's signal "verbs" part of the knowledge substrate, not hidden in code.
+
+---
+
+## 13. References
 
 ### Core Implementation
 - `knowledge3d/cranium/codecs/sovereign_ternary_audio_codec.py`
@@ -559,7 +649,7 @@ The Discovery Layer can identify:
 
 ---
 
-## 12. Conclusion
+## 14. Conclusion
 
 The Unified Signal Architecture treats all time-varying data as frequency components, enabling:
 
@@ -574,3 +664,4 @@ This is the signal foundation for K3D's multi-modal intelligence — where heari
 
 **Version History**:
 - 1.0 (December 2025): Initial specification documenting frequency-time architecture, audio-image bridge, SDR integration, binaural audio, and cross-modal discovery.
+- 1.1 (March 2026): Added Five-Layer Temporal Video Contract (Section 11), Signal Tool-Nodes (Section 12), K3D-specific video benchmarks. Aligned with TRM Multi-Modal Enhancement Architecture.

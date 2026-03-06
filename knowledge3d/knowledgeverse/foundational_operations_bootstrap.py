@@ -5,8 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from .knowledgeverse import Knowledgeverse
-
 
 def _entry(
     *,
@@ -318,10 +316,11 @@ def populate_foundational_operations(galaxy_manager: Any) -> dict[str, int]:
 
 def bootstrap_default(storage_root: str | Path = "../Knowledge3D.local") -> dict[str, Any]:
     """Convenience bootstrap entrypoint for scripts and CLI usage."""
+    from .knowledgeverse import Knowledgeverse
+
     kv = Knowledgeverse(storage_root=storage_root)
-    summary = populate_foundational_operations(kv.galaxy_manager)
     return {
-        **summary,
+        **kv.foundational_bootstrap_summary,
         "storage_root": str(kv.storage_root),
     }
 

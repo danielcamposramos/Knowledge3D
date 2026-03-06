@@ -6,6 +6,7 @@ import numpy as np
 
 from knowledge3d.cranium.bridges.sovereign_bridges import VectorResonator
 from knowledge3d.cranium.clustering_rpn import compute_similarity_matrix_rpn
+from knowledge3d.cranium.ptx_runtime.sleep_cluster_kernels import SleepClusterKernels
 
 
 class SovereignClusteringOps:
@@ -20,6 +21,7 @@ class SovereignClusteringOps:
 
     def __init__(self) -> None:
         self._resonator = VectorResonator()
+        self._sleep_kernels = SleepClusterKernels()
 
     # ------------------------------------------------------------------ #
     # Similarity + assignments
@@ -35,8 +37,13 @@ class SovereignClusteringOps:
         return compute_similarity_matrix_rpn(vectors, centroids, batch_size=batch_size)
 
     def assign_to_clusters(self, similarities: np.ndarray) -> np.ndarray:
-        """Argmax routing as before."""
-        return np.argmax(similarities, axis=1).astype(np.int32, copy=False)
+        """PTX-backed argmax routing across centroid similarities."""
+        sims = np.asarray(similarities, dtype=np.float32)
+        if sims.ndim != 2:
+            raise ValueError(f"expected 2D similarity matrix, got shape={sims.shape}")
+        if sims.shape[0] == 0:
+            return np.empty((0,), dtype=np.int32)
+        return self._sleep_kernels.assign_to_best_centroid(sims)
 
     # ------------------------------------------------------------------ #
     # Centroid updates
@@ -47,26 +54,16 @@ class SovereignClusteringOps:
         assignments: np.ndarray,
         n_clusters: int,
     ) -> tuple[np.ndarray, np.ndarray]:
-        """Centroid averaging identical to the legacy consolidator."""
-        n_vectors, dim = vectors.shape
-        centroids = np.zeros((n_clusters, dim), dtype=np.float32)
-        counts = np.zeros(n_clusters, dtype=np.int32)
-
-        for idx in range(n_vectors):
-            cluster_id = int(assignments[idx])
-            if cluster_id < 0 or cluster_id >= n_clusters:
-                continue
-            centroids[cluster_id] += vectors[idx]
-            counts[cluster_id] += 1
-
-        for cluster_idx in range(n_clusters):
-            if counts[cluster_idx] > 0:
-                centroids[cluster_idx] /= counts[cluster_idx]
-                norm = np.linalg.norm(centroids[cluster_idx])
-                if norm > 1e-8:
-                    centroids[cluster_idx] /= norm
-
-        return centroids, counts
+        """PTX-backed centroid accumulation with host-side normalization."""
+        vecs = np.asarray(vectors, dtype=np.float32)
+        asn = np.asarray(assignments, dtype=np.int32)
+        if vecs.ndim != 2:
+            raise ValueError(f"expected 2D vectors, got shape={vecs.shape}")
+        if asn.ndim != 1:
+            raise ValueError(f"expected 1D assignments, got shape={asn.shape}")
+        if vecs.shape[0] != asn.shape[0]:
+            raise ValueError("vectors and assignments length mismatch")
+        return self._sleep_kernels.accumulate_centroids(vecs, asn, int(n_clusters))
 
     def blend_toward_centroids(
         self,
@@ -121,4 +118,3 @@ class SovereignClusteringOps:
 
 
 __all__ = ["SovereignClusteringOps"]
-

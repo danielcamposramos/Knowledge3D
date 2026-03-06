@@ -35,6 +35,8 @@ _CODEC_TOKEN_MAP = {
     "IMDCT_INVERSE": "imdct",
     "BATCH_MDCT": "batch_mdct",
     "BATCH_DCT": "batch_dct",
+    "RESHAPE_TO_BLOCKS": "reshape_blocks",
+    "BLOCKS_TO_GRID": "blocks_to_grid",
     "TERNARY_ADD": "tadd",
     "TERNARY_MUL": "tmul",
 }
@@ -266,74 +268,136 @@ class TieredRPNEngine:
             if token in _CODEC_TOKEN_MAP:
                 op = _CODEC_TOKEN_MAP[token]
                 if op == "dct8":
-                    values, shape = self._flatten_with_shape(self._pop_any(stack))
+                    source = self._pop_any(stack)
+                    values, shape = self._flatten_with_shape(source)
                     transformed = self._codec_ops.dct8_forward(values)
-                    stack.append(self._reshape_from_flat(transformed, shape))
+                    stack.append(self._preserve_layout(source, self._reshape_from_flat(transformed, shape)))
                 elif op == "idct8":
-                    values, shape = self._flatten_with_shape(self._pop_any(stack))
+                    source = self._pop_any(stack)
+                    values, shape = self._flatten_with_shape(source)
                     transformed = self._codec_ops.dct8_inverse(values)
-                    stack.append(self._reshape_from_flat(transformed, shape))
+                    stack.append(self._preserve_layout(source, self._reshape_from_flat(transformed, shape)))
                 elif op == "quant":
                     threshold = self._pop_number(stack, default=self._codec_ops.threshold)
-                    values, shape = self._flatten_with_shape(self._pop_any(stack))
+                    source = self._pop_any(stack)
+                    values, shape = self._flatten_with_shape(source)
                     q = self._codec_ops.quantize(values, threshold=threshold)
-                    stack.append(self._reshape_from_flat(q, shape))
+                    stack.append(self._preserve_layout(source, self._reshape_from_flat(q, shape)))
                 elif op == "dequant":
-                    values, shape = self._flatten_with_shape(self._pop_any(stack))
+                    source = self._pop_any(stack)
+                    values, shape = self._flatten_with_shape(source)
                     dq = self._codec_ops.dequantize(values)
-                    stack.append(self._reshape_from_flat(dq, shape))
+                    stack.append(self._preserve_layout(source, self._reshape_from_flat(dq, shape)))
                 elif op == "tadd":
-                    b_vals, b_shape = self._flatten_with_shape(self._pop_any(stack))
-                    a_vals, a_shape = self._flatten_with_shape(self._pop_any(stack))
+                    b_source = self._pop_any(stack)
+                    a_source = self._pop_any(stack)
+                    b_vals, b_shape = self._flatten_with_shape(b_source)
+                    a_vals, a_shape = self._flatten_with_shape(a_source)
                     if len(a_vals) != len(b_vals):
                         raise ValueError("TERNARY_ADD requires operands of equal length")
                     result = self._ternary_add_gpu(a_vals, b_vals)
                     target_shape = a_shape or b_shape
-                    stack.append(self._reshape_from_flat(result, target_shape))
+                    stack.append(
+                        self._preserve_layout(a_source, self._reshape_from_flat(result, target_shape))
+                    )
                 elif op == "tmul":
-                    b_vals, b_shape = self._flatten_with_shape(self._pop_any(stack))
-                    a_vals, a_shape = self._flatten_with_shape(self._pop_any(stack))
+                    b_source = self._pop_any(stack)
+                    a_source = self._pop_any(stack)
+                    b_vals, b_shape = self._flatten_with_shape(b_source)
+                    a_vals, a_shape = self._flatten_with_shape(a_source)
                     if len(a_vals) != len(b_vals):
                         raise ValueError("TERNARY_MUL requires operands of equal length")
                     result = self._ternary_mul_gpu(a_vals, b_vals)
                     target_shape = a_shape or b_shape
-                    stack.append(self._reshape_from_flat(result, target_shape))
+                    stack.append(
+                        self._preserve_layout(a_source, self._reshape_from_flat(result, target_shape))
+                    )
                 elif op == "mdct":
                     frame_size_val = stack.pop() if stack and self._is_number(stack[-1]) else None
-                    values, shape = self._flatten_with_shape(self._pop_any(stack))
+                    source = self._pop_any(stack)
+                    values, shape = self._flatten_with_shape(source)
                     frame_size_int = int(frame_size_val) if frame_size_val is not None else len(values)
                     coeffs = self._codec_ops.batch_mdct(values, frame_size=frame_size_int)
                     frame_count = len(values) // frame_size_int if frame_size_int else 0
                     out_shape = (frame_count, frame_size_int // 2) if frame_count > 1 else (frame_size_int // 2,)
-                    stack.append(self._reshape_from_flat(coeffs, out_shape))
+                    stack.append(self._preserve_layout(source, self._reshape_from_flat(coeffs, out_shape)))
                 elif op == "imdct":
                     frame_size_val = stack.pop() if stack and self._is_number(stack[-1]) else None
-                    values, shape = self._flatten_with_shape(self._pop_any(stack))
+                    source = self._pop_any(stack)
+                    values, shape = self._flatten_with_shape(source)
                     inferred_size = len(values) * 2
                     frame_size_int = int(frame_size_val) if frame_size_val is not None else inferred_size
                     reconstructed = self._codec_ops.batch_imdct(values, frame_size=frame_size_int)
                     half = frame_size_int // 2
                     frame_count = len(values) // half if half else 0
                     out_shape = (frame_count, frame_size_int) if frame_count > 1 else (frame_size_int,)
-                    stack.append(self._reshape_from_flat(reconstructed, out_shape))
+                    stack.append(
+                        self._preserve_layout(source, self._reshape_from_flat(reconstructed, out_shape))
+                    )
                 elif op == "batch_mdct":
                     frame_size = self._pop_number(stack)
                     frame_size_int = int(frame_size)
                     # Optional frame-count scalar on stack (used for validation only)
                     if stack and self._is_number(stack[-1]):
                         stack.pop()
-                    values, shape = self._flatten_with_shape(self._pop_any(stack))
+                    source = self._pop_any(stack)
+                    values, shape = self._flatten_with_shape(source)
                     total = len(values)
                     if frame_size_int <= 0 or total % frame_size_int != 0:
                         raise ValueError("Input length must be multiple of frame_size for BATCH_MDCT")
                     frame_count = total // frame_size_int
                     coeffs = self._codec_ops.batch_mdct(values, frame_size=frame_size_int)
                     out_shape = (frame_count, frame_size_int // 2) if frame_count > 1 else (frame_size_int // 2,)
-                    stack.append(self._reshape_from_flat(coeffs, out_shape))
+                    stack.append(self._preserve_layout(source, self._reshape_from_flat(coeffs, out_shape)))
                 elif op == "batch_dct":
-                    values, shape = self._flatten_with_shape(self._pop_any(stack))
+                    source = self._pop_any(stack)
+                    values, shape = self._flatten_with_shape(source)
                     transformed = self._codec_ops.dct8_forward(values)
-                    stack.append(self._reshape_from_flat(transformed, shape))
+                    stack.append(self._preserve_layout(source, self._reshape_from_flat(transformed, shape)))
+                elif op == "reshape_blocks":
+                    source = self._pop_any(stack)
+                    values, shape = self._flatten_with_shape(source)
+                    rows, cols = self._infer_grid_shape(shape)
+                    is_integer = self._all_integral(values)
+                    transformed = self._codec_ops.reshape_to_blocks(
+                        values,
+                        rows=rows,
+                        cols=cols,
+                        block_h=8,
+                        block_w=8,
+                        integer=is_integer,
+                    )
+                    blocks_per_grid = (rows // 8) * (cols // 8)
+                    block_data = self._reshape_from_flat(transformed, (blocks_per_grid, 64))
+                    stack.append(
+                        self._make_block_packet(
+                            data=block_data,
+                            rows=rows,
+                            cols=cols,
+                            block_h=8,
+                            block_w=8,
+                            integer=is_integer,
+                        )
+                    )
+                elif op == "blocks_to_grid":
+                    source = self._pop_any(stack)
+                    if not self._is_block_packet(source):
+                        raise ValueError("BLOCKS_TO_GRID requires block layout packet from RESHAPE_TO_BLOCKS")
+                    rows = int(source["rows"])
+                    cols = int(source["cols"])
+                    block_h = int(source["block_h"])
+                    block_w = int(source["block_w"])
+                    is_integer = bool(source["integer"])
+                    values, shape = self._flatten_with_shape(source)
+                    transformed = self._codec_ops.blocks_to_grid(
+                        values,
+                        rows=rows,
+                        cols=cols,
+                        block_h=block_h,
+                        block_w=block_w,
+                        integer=is_integer,
+                    )
+                    stack.append(self._reshape_from_flat(transformed, (rows, cols)))
                 else:
                     raise ValueError(f"Unsupported codec op {op}")
             elif token.startswith("[") and token.endswith("]"):
@@ -598,7 +662,10 @@ class TieredRPNEngine:
         return stack.pop()
 
     def _flatten_with_shape(self, value) -> tuple[list, tuple[int, ...]]:
-        native = self._to_native(value)
+        if self._is_block_packet(value):
+            native = value.get("data", [])
+        else:
+            native = self._to_native(value)
         shape = self._infer_shape(native)
         flat: list = []
         for item in self._flatten(native):
@@ -610,7 +677,10 @@ class TieredRPNEngine:
             for item in value:
                 yield from self._flatten(item)
         else:
-            yield float(value)
+            if isinstance(value, numbers.Integral) and not isinstance(value, bool):
+                yield int(value)
+            else:
+                yield float(value)
 
     def _infer_shape(self, value) -> tuple[int, ...]:
         if isinstance(value, (list, tuple)) and value:
@@ -640,6 +710,49 @@ class TieredRPNEngine:
         if len(base_shape) == 1:
             return (new_last,)
         return tuple(base_shape[:-1]) + (new_last,)
+
+    def _infer_grid_shape(self, shape: tuple[int, ...]) -> tuple[int, int]:
+        if len(shape) != 2:
+            raise ValueError("RESHAPE_TO_BLOCKS currently requires a 2D grid input")
+        rows, cols = int(shape[0]), int(shape[1])
+        if rows <= 0 or cols <= 0:
+            raise ValueError("grid shape must be positive")
+        if rows % 8 != 0 or cols % 8 != 0:
+            raise ValueError("RESHAPE_TO_BLOCKS requires 2D grid dimensions divisible by 8")
+        return rows, cols
+
+    def _all_integral(self, values: Sequence[object]) -> bool:
+        return all(isinstance(v, numbers.Integral) and not isinstance(v, bool) for v in values)
+
+    def _is_block_packet(self, value) -> bool:
+        return isinstance(value, dict) and value.get("__k3d_layout__") == "blocks8x8_v1"
+
+    def _make_block_packet(
+        self,
+        *,
+        data,
+        rows: int,
+        cols: int,
+        block_h: int,
+        block_w: int,
+        integer: bool,
+    ) -> dict:
+        return {
+            "__k3d_layout__": "blocks8x8_v1",
+            "rows": int(rows),
+            "cols": int(cols),
+            "block_h": int(block_h),
+            "block_w": int(block_w),
+            "integer": bool(integer),
+            "data": data,
+        }
+
+    def _preserve_layout(self, source, rebuilt):
+        if self._is_block_packet(source):
+            packet = dict(source)
+            packet["data"] = rebuilt
+            return packet
+        return rebuilt
 
     def get_stats(self) -> dict:
         """Expose tier dispatch statistics."""

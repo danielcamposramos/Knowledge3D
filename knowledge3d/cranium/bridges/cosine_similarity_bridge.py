@@ -4,6 +4,8 @@ import ctypes
 from pathlib import Path
 from typing import List, Sequence
 
+import numpy as np
+
 from knowledge3d.cranium.sovereign import loader
 
 
@@ -14,6 +16,7 @@ class CosineSimilarityBridge:
         ptx_path = Path(__file__).parent.parent / "ptx" / "cosine_similarity.ptx"
         module = loader.load_module_from_file(str(ptx_path))
         self.batch_kernel = loader.get_function(module, "cosine_similarity_batch")
+        self.matrix_kernel = loader.get_function(module, "cosine_similarity_matrix")
         self.norm_kernel = loader.get_function(module, "compute_norm")
 
     def _compute_norm(self, vec: Sequence[float]) -> float:
@@ -90,6 +93,53 @@ class CosineSimilarityBridge:
             loader.gpu_free(d_cand)
             loader.gpu_free(d_exp)
             loader.gpu_free(d_scores)
+
+    def compute_similarity_matrix(self, sources: np.ndarray, targets: np.ndarray) -> np.ndarray:
+        src = np.ascontiguousarray(np.asarray(sources, dtype=np.float32))
+        tgt = np.ascontiguousarray(np.asarray(targets, dtype=np.float32))
+        if src.ndim != 2 or tgt.ndim != 2:
+            raise ValueError(
+                f"expected 2D sources/targets, got {src.shape=} {tgt.shape=}"
+            )
+        if src.shape[1] != tgt.shape[1]:
+            raise ValueError(
+                f"source/target dimension mismatch: {src.shape[1]} != {tgt.shape[1]}"
+            )
+
+        n, d = src.shape
+        k = tgt.shape[0]
+        if n == 0 or k == 0:
+            return np.empty((n, k), dtype=np.float32)
+
+        out = np.empty((n, k), dtype=np.float32)
+        d_src = loader.gpu_malloc(src.nbytes)
+        d_tgt = loader.gpu_malloc(tgt.nbytes)
+        d_out = loader.gpu_malloc(out.nbytes)
+        try:
+            loader.memcpy_htod(d_src, src.ctypes.data_as(ctypes.c_void_p), src.nbytes)
+            loader.memcpy_htod(d_tgt, tgt.ctypes.data_as(ctypes.c_void_p), tgt.nbytes)
+            block = (256, 1, 1)
+            grid = (((n * k) + block[0] - 1) // block[0], 1, 1)
+            loader.launch(
+                self.matrix_kernel,
+                grid=grid,
+                block=block,
+                params=[
+                    ctypes.c_uint64(d_src.value),
+                    ctypes.c_uint64(d_tgt.value),
+                    ctypes.c_uint64(d_out.value),
+                    ctypes.c_int(n),
+                    ctypes.c_int(k),
+                    ctypes.c_int(d),
+                ],
+            )
+            loader.synchronize()
+            loader.memcpy_dtoh(out.ctypes.data_as(ctypes.c_void_p), d_out, out.nbytes)
+            return out
+        finally:
+            loader.gpu_free(d_src)
+            loader.gpu_free(d_tgt)
+            loader.gpu_free(d_out)
 
 
 __all__ = ["CosineSimilarityBridge"]

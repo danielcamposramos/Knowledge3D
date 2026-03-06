@@ -9,12 +9,17 @@ Performance: ~100x faster than CuPy custom kernels.
 
 import numpy as np
 from typing import Dict, List, Tuple
-try:
-    from knowledge3d.cranium.sovereign_rpn_executor import (
-        get_sovereign_rpn_executor as get_rpn_executor,
-    )
-except ImportError:  # Fallback for legacy path
-    from knowledge3d.cranium.rpn_executor import get_rpn_executor
+from knowledge3d.cranium.bridges.cosine_similarity_bridge import CosineSimilarityBridge
+
+
+_COSINE_BRIDGE: CosineSimilarityBridge | None = None
+
+
+def _get_cosine_bridge() -> CosineSimilarityBridge:
+    global _COSINE_BRIDGE
+    if _COSINE_BRIDGE is None:
+        _COSINE_BRIDGE = CosineSimilarityBridge()
+    return _COSINE_BRIDGE
 
 
 def compile_cosine_similarity_rpn(
@@ -99,100 +104,14 @@ def compute_cosine_similarity_rpn(
     Returns:
         Cosine similarity in [-1, 1]
     """
-    program = compile_cosine_similarity_rpn(vec_u, vec_v)
-
-    # Simple case: <=3D, direct computation
-    if not program.get('requires_chunking', False):
-        executor = get_rpn_executor()
-        similarity = executor.execute_single(
-            instance_id=0,
-            op_codes=program['op_codes'],
-            scalars=program['scalars'],
-            vectors=program['vectors']
-        )
-        return float(np.clip(similarity, -1.0, 1.0))
-
-    # Adaptive chunking for high-dimensional vectors
-    vec_u = program['vec_u']
-    vec_v = program['vec_v']
-    dim = program['dim']
-    executor = get_rpn_executor()
-
-    # Chunk into 3D pieces
-    chunk_size = 3
-    num_chunks = (dim + chunk_size - 1) // chunk_size  # Ceiling division
-
-    # Prepare all chunks upfront
-    chunks_u = []
-    chunks_v = []
-    for chunk_idx in range(num_chunks):
-        start = chunk_idx * chunk_size
-        end = min(start + chunk_size, dim)
-        chunk_dim = end - start
-
-        u_padded = np.zeros(3, dtype=np.float32)
-        v_padded = np.zeros(3, dtype=np.float32)
-        u_padded[:chunk_dim] = vec_u[start:end]
-        v_padded[:chunk_dim] = vec_v[start:end]
-
-        chunks_u.append(u_padded)
-        chunks_v.append(v_padded)
-
-    # Process chunks in batches of 15 (leverage 15 RPN instances!)
-    batch_size = 15
-    dot_product = 0.0
-    norm_u_sq = 0.0
-    norm_v_sq = 0.0
-
-    op_codes = np.array([0x01, 0x01, 0x3C], dtype=np.uint16)  # VEC, VEC, DOT
-    scalars = np.zeros(1, dtype=np.float32)
-
-    for batch_start in range(0, num_chunks, batch_size):
-        batch_end = min(batch_start + batch_size, num_chunks)
-        batch_chunks_u = chunks_u[batch_start:batch_end]
-        batch_chunks_v = chunks_v[batch_start:batch_end]
-
-        # Prepare batch programs for dot(u, v)
-        programs_uv = []
-        programs_uu = []
-        programs_vv = []
-
-        for u, v in zip(batch_chunks_u, batch_chunks_v):
-            programs_uv.append({
-                'op_codes': op_codes,
-                'scalars': scalars,
-                'vectors': np.concatenate([u, v])
-            })
-            programs_uu.append({
-                'op_codes': op_codes,
-                'scalars': scalars,
-                'vectors': np.concatenate([u, u])
-            })
-            programs_vv.append({
-                'op_codes': op_codes,
-                'scalars': scalars,
-                'vectors': np.concatenate([v, v])
-            })
-
-        # Execute batches in parallel (15 RPN instances!)
-        results_uv = executor.execute_batch(programs_uv, max_instances=batch_size)
-        results_uu = executor.execute_batch(programs_uu, max_instances=batch_size)
-        results_vv = executor.execute_batch(programs_vv, max_instances=batch_size)
-
-        # Accumulate batch results
-        dot_product += sum(results_uv)
-        norm_u_sq += sum(results_uu)
-        norm_v_sq += sum(results_vv)
-
-    # Compute final cosine similarity
-    norm_u = np.sqrt(norm_u_sq)
-    norm_v = np.sqrt(norm_v_sq)
-
-    if norm_u < 1e-8 or norm_v < 1e-8:
+    if len(vec_u) == 0 or len(vec_v) == 0:
         return 0.0
 
-    similarity = dot_product / (norm_u * norm_v)
-    return float(np.clip(similarity, -1.0, 1.0))
+    sims = _get_cosine_bridge().compute_similarity_matrix(
+        np.asarray(vec_u, dtype=np.float32).reshape(1, -1),
+        np.asarray(vec_v, dtype=np.float32).reshape(1, -1),
+    )
+    return float(np.clip(sims[0, 0], -1.0, 1.0))
 
 
 def compute_pairwise_similarities_rpn(
@@ -209,35 +128,8 @@ def compute_pairwise_similarities_rpn(
     Returns:
         Similarity matrix (N, N), symmetric
     """
-    N = len(embeddings)
-    similarities = np.zeros((N, N), dtype=np.float32)
-    executor = get_rpn_executor()
-
-    # Generate all pairs (i, j) where i < j
-    pairs = [(i, j) for i in range(N) for j in range(i + 1, N)]
-
-    # Process in batches
-    for batch_start in range(0, len(pairs), batch_size):
-        batch_pairs = pairs[batch_start:batch_start + batch_size]
-
-        # Compile batch programs
-        programs = [
-            compile_cosine_similarity_rpn(embeddings[i], embeddings[j])
-            for i, j in batch_pairs
-        ]
-
-        # Execute batch
-        batch_similarities = executor.execute_batch(programs, max_instances=batch_size)
-
-        # Fill similarity matrix (symmetric)
-        for k, (i, j) in enumerate(batch_pairs):
-            sim = batch_similarities[k]
-            similarities[i, j] = sim
-            similarities[j, i] = sim  # Symmetric
-
-    # Diagonal is 1.0 (self-similarity)
+    similarities = compute_similarity_matrix_rpn(embeddings, embeddings, batch_size=batch_size)
     np.fill_diagonal(similarities, 1.0)
-
     return similarities
 
 
@@ -259,45 +151,18 @@ def compute_similarity_matrix_rpn(
     Returns:
         Similarity matrix with shape (N, K)
     """
-    # Check if we need chunking by testing first vector pair
-    test_program = compile_cosine_similarity_rpn(sources[0], targets[0])
+    src = np.asarray(sources, dtype=np.float32)
+    tgt = np.asarray(targets, dtype=np.float32)
+    if src.ndim != 2 or tgt.ndim != 2:
+        raise ValueError(f"expected 2D sources/targets, got {src.shape=} {tgt.shape=}")
+    if src.shape[0] == 0 or tgt.shape[0] == 0:
+        return np.empty((src.shape[0], tgt.shape[0]), dtype=np.float32)
+    if src.shape[1] != tgt.shape[1]:
+        raise ValueError(
+            f"source/target dimension mismatch: {src.shape[1]} != {tgt.shape[1]}"
+        )
 
-    if test_program.get('requires_chunking', False):
-        # High-dimensional case: use adaptive chunking for each pair
-        # NOTE: Each compute_cosine_similarity_rpn() call uses batched chunking internally (15-way)
-        # This achieves 92% GPU when matrix is small (100×10), lower for large matrices (10K×256)
-        # TODO: Batch the PAIRS themselves for even better GPU saturation with large matrices
-        sims = np.zeros((len(sources), len(targets)), dtype=np.float32)
-        for i, src in enumerate(sources):
-            for j, tgt in enumerate(targets):
-                sims[i, j] = compute_cosine_similarity_rpn(src, tgt)
-        return sims
-
-    # Low-dimensional case (<=3D): use batch execution
-    executor = get_rpn_executor()
-    sims = np.zeros((len(sources), len(targets)), dtype=np.float32)
-
-    programs: List[Dict[str, np.ndarray]] = []
-    pairs: List[Tuple[int, int]] = []
-
-    for i, src in enumerate(sources):
-        for j, tgt in enumerate(targets):
-            programs.append(compile_cosine_similarity_rpn(src, tgt))
-            pairs.append((i, j))
-
-            if len(programs) == batch_size:
-                results = executor.execute_batch(programs, max_instances=batch_size)
-                for idx, (ii, jj) in enumerate(pairs):
-                    sims[ii, jj] = results[idx]
-                programs.clear()
-                pairs.clear()
-
-    if programs:
-        results = executor.execute_batch(programs, max_instances=batch_size)
-        for idx, (ii, jj) in enumerate(pairs):
-            sims[ii, jj] = results[idx]
-
-    return sims
+    return _get_cosine_bridge().compute_similarity_matrix(src, tgt)
 
 
 def compute_nearest_neighbors_rpn(
@@ -316,25 +181,10 @@ def compute_nearest_neighbors_rpn(
     Returns:
         (indices, similarities) - Top-k nearest neighbors
     """
-    N = len(embeddings)
-    executor = get_rpn_executor()
-
-    # Compute similarities to all embeddings in batches
-    similarities = np.zeros(N, dtype=np.float32)
-
-    for batch_start in range(0, N, 15):
-        batch_end = min(batch_start + 15, N)
-        batch_embeddings = embeddings[batch_start:batch_end]
-
-        # Compile batch programs
-        programs = [
-            compile_cosine_similarity_rpn(query, emb)
-            for emb in batch_embeddings
-        ]
-
-        # Execute batch
-        batch_sims = executor.execute_batch(programs, max_instances=15)
-        similarities[batch_start:batch_end] = batch_sims
+    similarities = compute_similarity_matrix_rpn(
+        np.asarray(query, dtype=np.float32).reshape(1, -1),
+        np.asarray(embeddings, dtype=np.float32),
+    )[0]
 
     # Get top-k
     top_k_indices = np.argsort(similarities)[::-1][:k]

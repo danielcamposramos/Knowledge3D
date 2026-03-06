@@ -31,3 +31,31 @@ def test_rpn_mdct_batch():
 
     assert arr.shape == (num_frames, frame_size // 2)
     assert set(np.unique(arr)).issubset({-1, 0, 1})
+
+
+def test_rpn_blocks_roundtrip():
+    """Block layout reshape ops should round-trip a 2D grid through PTX kernels."""
+    engine = ModularRPNEngine()
+    grid = np.arange(16 * 16, dtype=np.float32).reshape(16, 16)
+
+    result = engine.evaluate("RESHAPE_TO_BLOCKS BLOCKS_TO_GRID", data=grid.tolist(), return_vector=True)
+    arr = np.array(result, dtype=np.float32)
+
+    assert arr.shape == grid.shape
+    assert np.allclose(arr, grid)
+
+
+def test_rpn_blocks_dct_roundtrip():
+    """Block packet layout should survive DCT/IDCT and return to the original grid."""
+    engine = ModularRPNEngine()
+    grid = np.random.randn(16, 16).astype(np.float32)
+
+    result = engine.evaluate(
+        "RESHAPE_TO_BLOCKS DCT8X8_FORWARD IDCT8X8_INVERSE BLOCKS_TO_GRID",
+        data=grid.tolist(),
+        return_vector=True,
+    )
+    arr = np.array(result, dtype=np.float32)
+
+    assert arr.shape == grid.shape
+    assert np.allclose(arr, grid, atol=1e-3)

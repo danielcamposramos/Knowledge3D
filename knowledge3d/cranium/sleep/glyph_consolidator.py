@@ -35,6 +35,8 @@ from typing import Dict, Iterable, List, Tuple
 
 import numpy as np
 
+from knowledge3d.cranium.ptx_runtime.sleep_glyph_kernels import SleepGlyphKernels
+
 DEFAULT_FONT_DB_PATH = Path("/K3D/Knowledge3D.local/font_db.pkl")
 
 
@@ -71,6 +73,7 @@ class GlyphConsolidator:
         self.font_db_path = Path(font_db_path)
         if not self.font_db_path.exists():
             raise FileNotFoundError(f"Font database not found: {self.font_db_path}")
+        self._sleep_kernels = SleepGlyphKernels()
 
     # ------------------------------------------------------------------ #
     # Public API
@@ -205,36 +208,56 @@ class GlyphConsolidator:
             )
         return groups
 
-    @staticmethod
     def _cluster_char_entries(
+        self,
         entries: List[Dict[str, object]],
         similarity_threshold: float,
         min_retention_ratio: float,
     ) -> Tuple[List[Dict[str, object]], List[Dict[str, object]]]:
-        clusters: List[Dict[str, object]] = []
-        retained: List[Dict[str, object]] = []
+        if not entries:
+            return [], []
+
         min_cluster_target = max(1, math.ceil(len(entries) * min_retention_ratio))
+        vectors = np.vstack([np.asarray(entry["vector"], dtype=np.float32) for entry in entries])
+        representative_indices = self._sleep_kernels.cluster_by_similarity(
+            vectors,
+            float(similarity_threshold),
+        )
 
-        for entry in entries:
-            vector = entry["vector"]
-            assigned = False
-            if len(clusters) >= min_cluster_target:
-                for cluster in clusters:
-                    similarity = float(np.dot(vector, cluster["rep_vector"]))
-                    if similarity >= similarity_threshold:
-                        cluster["members"].append(entry)
-                        assigned = True
-                        break
-
-            if not assigned:
+        clusters_by_rep: Dict[int, Dict[str, object]] = {}
+        for idx, rep_idx in enumerate(representative_indices.tolist()):
+            rep_token = int(rep_idx)
+            cluster = clusters_by_rep.get(rep_token)
+            if cluster is None:
                 cluster = {
-                    "rep": entry,
-                    "rep_vector": vector,
-                    "members": [entry],
+                    "rep": entries[rep_token],
+                    "rep_vector": vectors[rep_token],
+                    "members": [],
                 }
-                clusters.append(cluster)
-                retained.append(entry)
+                clusters_by_rep[rep_token] = cluster
+            cluster["members"].append(entries[idx])
 
+        retained_indices = sorted(clusters_by_rep.keys())
+        if len(retained_indices) < min_cluster_target:
+            for idx in range(len(entries)):
+                if idx in retained_indices:
+                    continue
+                retained_indices.append(idx)
+                if len(retained_indices) >= min_cluster_target:
+                    break
+            retained_indices = sorted(set(retained_indices))
+            for idx in retained_indices:
+                clusters_by_rep.setdefault(
+                    idx,
+                    {
+                        "rep": entries[idx],
+                        "rep_vector": vectors[idx],
+                        "members": [entries[idx]],
+                    },
+                )
+
+        clusters = [clusters_by_rep[idx] for idx in retained_indices]
+        retained = [entries[idx] for idx in retained_indices]
         return clusters, retained
 
     def _write_backup(self) -> Path:

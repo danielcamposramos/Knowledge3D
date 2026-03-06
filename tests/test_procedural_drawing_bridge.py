@@ -45,3 +45,42 @@ def test_draw_quadratic_curve():
     assert rgba.shape == (96, 96, 4)
     non_zero = np.count_nonzero(rgba[..., 0] > 0.05)
     assert non_zero > 50, f"Curve should produce visible pixels, got {non_zero}"
+
+
+@pytest.mark.cuda
+def test_glyph_bridge_reuses_persistent_output_buffer():
+    _require_gpu()
+    from knowledge3d.cranium.bridges.procedural_glyph_bridge import ProceduralGlyphBridge
+
+    bridge = ProceduralGlyphBridge()
+    segments = np.array([[0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]], dtype=np.float32)
+    offsets = np.array([0], dtype=np.int32)
+    lengths = np.array([1], dtype=np.int32)
+    transforms = np.array([[1.0, 0.0, 0.0, 0.0]], dtype=np.float32)
+
+    first = bridge.render(segments, offsets, lengths, transforms, batch=1, height=32, width=32)
+    first_ptr = int(first.device_ptr.value)
+    _ = first.to_numpy()
+
+    second = bridge.render(segments, offsets, lengths, transforms, batch=1, height=32, width=32)
+    second_ptr = int(second.device_ptr.value)
+    _ = second.to_numpy()
+
+    assert first_ptr != 0
+    assert first_ptr == second_ptr
+    bridge.close()
+
+
+@pytest.mark.cuda
+def test_drawing_bridge_warmup_is_idempotent():
+    _require_gpu()
+    from knowledge3d.cranium.bridges.procedural_drawing_bridge import ProceduralDrawingBridge
+
+    bridge = ProceduralDrawingBridge(matryoshka_dim=64)
+    first = bridge.warmup_runtime()
+    second = bridge.warmup_runtime()
+
+    assert first["status"] == "ready"
+    assert float(first["total_warmup_ms"]) > 0.0
+    assert second["status"] == "ready"
+    assert first == second

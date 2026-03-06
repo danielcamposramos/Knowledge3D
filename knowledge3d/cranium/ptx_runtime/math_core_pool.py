@@ -88,12 +88,54 @@ class MathCorePool:
             else:
                 core.cleanup()
 
+    def retier_core(self, instance_id: int, tier: int) -> None:
+        """Update an active or pooled core to a new tier."""
+        with self._lock:
+            core = self.active_cores.get(instance_id)
+            if core is not None:
+                core.reset(tier=tier)
+                return
+            for pooled in self.idle_pool:
+                if pooled.instance_id == instance_id:
+                    pooled.reset(tier=tier)
+                    return
+
     def touch(self, instance_id: int) -> None:
         """Update last_used timestamp to keep core warm."""
         with self._lock:
             core = self.active_cores.get(instance_id)
             if core:
                 core.last_used = time.time()
+
+    def describe_tier(self, tier: int) -> str:
+        """Return the canonical math-core role name for a tier."""
+        return {
+            1: "worker_worker",
+            2: "worker",
+            3: "master",
+        }.get(int(tier), "unknown")
+
+    def snapshot(self) -> dict:
+        """Expose a lightweight runtime snapshot for orchestration/telemetry."""
+        with self._lock:
+            self._cleanup_idle_cores_locked()
+            active_tiers = {1: 0, 2: 0, 3: 0}
+            idle_tiers = {1: 0, 2: 0, 3: 0}
+            for core in self.active_cores.values():
+                active_tiers[int(core.tier)] = active_tiers.get(int(core.tier), 0) + 1
+            for core in self.idle_pool:
+                idle_tiers[int(core.tier)] = idle_tiers.get(int(core.tier), 0) + 1
+            return {
+                "gpu_id": int(self.gpu_id),
+                "max_cores": int(self.max_cores),
+                "active": len(self.active_cores),
+                "idle": len(self.idle_pool),
+                "idle_timeout": float(self.idle_timeout),
+                "active_tiers": active_tiers,
+                "idle_tiers": idle_tiers,
+                "spawn_policy": "adaptive_reuse",
+                "pool_role": "dynamic_math_core_pool",
+            }
 
     # ------------------------------------------------------------------ #
     # Internals

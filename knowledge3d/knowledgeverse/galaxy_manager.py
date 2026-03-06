@@ -111,6 +111,7 @@ class GalaxyManager:
                 score = float(sum(1 for tok in tokens if tok in haystack))
                 if preferred_pattern_type:
                     score += self._pattern_type_score_boost(entry, preferred_pattern_type)
+                score += self._math_core_score_boost(entry, tokens)
                 if score > 0:
                     scored.append((score, entry, name))
         scored.sort(key=lambda item: item[0], reverse=True)
@@ -181,6 +182,7 @@ class GalaxyManager:
                 boosted = float(score)
                 if preferred_pattern_type:
                     boosted += self._pattern_type_score_boost(entry, preferred_pattern_type)
+                boosted += self._math_core_score_boost(entry, tokens)
                 scored.append((boosted, entry, name))
 
         scored.sort(key=lambda item: item[0], reverse=True)
@@ -195,7 +197,15 @@ class GalaxyManager:
         wanted = [str(name).strip() for name in galaxies if str(name).strip()]
         if not wanted:
             return list(self._galaxies.keys())
-        return [name for name in wanted if name in self._galaxies]
+        resolved: list[str] = []
+        for name in wanted:
+            try:
+                self.get_galaxy(name)
+            except Exception:
+                continue
+            if name in self._galaxies:
+                resolved.append(name)
+        return resolved
 
     def _tokenize_query_tokens(self, text: str) -> set[str]:
         return {tok for tok in re.split(r"[^a-z0-9_]+", text.lower()) if tok}
@@ -275,6 +285,59 @@ class GalaxyManager:
             boost += 0.20
         return boost
 
+    def _math_core_score_boost(self, entry: dict[str, Any], query_tokens: set[str]) -> float:
+        metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+        math_core = metadata.get("math_core") if isinstance(metadata.get("math_core"), dict) else {}
+        preferred_tier = math_core.get("preferred_tier")
+        tool_kind = str(metadata.get("tool_kind", "")).strip().lower()
+        if preferred_tier is None and tool_kind != "math_core_allocator":
+            return 0.0
+
+        tokens = {str(token).strip().lower() for token in query_tokens if str(token).strip()}
+        boost = 0.0
+        if preferred_tier is not None:
+            tier = int(preferred_tier)
+            tier1_tokens = {
+                "scalar",
+                "ternary",
+                "cheap",
+                "fast",
+                "gradient",
+                "palette",
+                "worker_worker",
+                "tier1",
+            }
+            tier2_tokens = {
+                "grid",
+                "mesh",
+                "signal",
+                "video",
+                "audio",
+                "spectrogram",
+                "geometry",
+                "profile",
+                "worker",
+                "tier2",
+            }
+            tier3_tokens = {
+                "matrix",
+                "tensor",
+                "trm",
+                "master",
+                "high",
+                "tier3",
+                "complex",
+            }
+            if tier == 1 and not tier1_tokens.isdisjoint(tokens):
+                boost += 0.16
+            if tier == 2 and not tier2_tokens.isdisjoint(tokens):
+                boost += 0.18
+            if tier == 3 and not tier3_tokens.isdisjoint(tokens):
+                boost += 0.22
+        if tool_kind == "math_core_allocator" and {"pool", "spawn", "cascade", "allocate"} & tokens:
+            boost += 0.20
+        return boost
+
     def _entries_for_specialist(
         self,
         *,
@@ -295,10 +358,49 @@ class GalaxyManager:
         for entry in galaxy.entries:
             domain = str(entry.get("domain", "")).lower()
             category = str(entry.get("category", "")).lower()
-            if specialist_key in domain or specialist_key in category:
+            metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+            modality_tokens = self._entry_specialist_tokens(entry, metadata)
+            if (
+                specialist_key in domain
+                or specialist_key in category
+                or specialist_key in modality_tokens
+                or not self._specialist_aliases(specialist_key).isdisjoint(modality_tokens)
+            ):
                 filtered.append(entry)
         self._specialist_entry_cache[cache_key] = filtered
         return filtered
+
+    def _specialist_aliases(self, specialist_key: str) -> set[str]:
+        key = str(specialist_key or "").strip().lower()
+        aliases = {
+            "visual": {"visual", "drawing", "image", "texture", "signal"},
+            "audio": {"audio", "sound", "signal", "spectrogram"},
+            "physics": {"physics", "reality", "3dobjects", "3d", "spatial"},
+            "cartographer": {"drawing", "reality", "3dobjects", "spatial", "visual"},
+            "math": {"math"},
+            "grammar": {"grammar", "language"},
+        }
+        return aliases.get(key, {key})
+
+    def _entry_specialist_tokens(self, entry: dict[str, Any], metadata: dict[str, Any]) -> set[str]:
+        raw_values: list[str] = []
+        for key in ("tool_kind", "cross_modal", "modalities"):
+            value = metadata.get(key)
+            if isinstance(value, str):
+                raw_values.append(value)
+            elif isinstance(value, list):
+                raw_values.extend(str(item) for item in value)
+        for key in ("pattern_type", "type", "domain", "category"):
+            value = entry.get(key)
+            if isinstance(value, str):
+                raw_values.append(value)
+
+        tokens: set[str] = set()
+        for value in raw_values:
+            for token in re.split(r"[^a-z0-9_]+", value.lower()):
+                if token:
+                    tokens.add(token)
+        return tokens
 
     def get_galaxy(self, name: str) -> Any:
         galaxy = self._galaxies.get(name)
