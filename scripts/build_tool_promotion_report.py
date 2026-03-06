@@ -7,6 +7,7 @@ import argparse
 import json
 from collections import Counter
 from pathlib import Path
+import re
 from typing import Any
 
 
@@ -63,6 +64,11 @@ def _normalize(value: float, upper: float) -> float:
     if upper <= 1e-12:
         return 0.0
     return max(0.0, min(float(value) / float(upper), 1.0))
+
+
+def _tokenize(text: str) -> list[str]:
+    expanded = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", str(text or ""))
+    return [token for token in re.split(r"[^a-z0-9]+", expanded.lower()) if token]
 
 
 def _aggregate_event_tools(event_rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -148,6 +154,51 @@ def _aggregate_grammar_support(grammar_rows: list[dict[str, Any]]) -> dict[str, 
         occurrences = max(1, int(record["occurrence_count"]))
         record["avg_quality_signal"] = float(record["quality_sum"]) / float(occurrences)
     return per_tool
+
+
+def _aggregate_multimodal_grammar_support(grammar_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for row in grammar_rows:
+        event_name = str(row.get("event", "")).strip()
+        if event_name not in {
+            "execution_multimodal_grammar_promoted",
+            "execution_multimodal_antipattern_promoted",
+        }:
+            continue
+        polarity = "positive" if "antipattern" not in event_name else "negative"
+        query_tokens = [
+            str(value).strip().lower()
+            for value in row.get("query_tokens", []) or []
+            if str(value).strip()
+        ]
+        family_tokens = [
+            str(value).strip().lower()
+            for value in row.get("tool_family_tokens", []) or []
+            if str(value).strip()
+        ]
+        modalities = [
+            str(value).strip().lower()
+            for value in row.get("modalities", []) or []
+            if str(value).strip()
+        ]
+        route_sources = [
+            str(value).strip().lower()
+            for value in row.get("route_sources", []) or []
+            if str(value).strip()
+        ]
+        rows.append(
+            {
+                "rule_id": str(row.get("rule_id", "")).strip(),
+                "polarity": polarity,
+                "count": max(1, int(row.get("count", 0) or 0)),
+                "avg_quality_signal": max(0.0, min(_safe_float(row.get("avg_quality_signal", 0.0)), 1.0)),
+                "query_tokens": query_tokens,
+                "tool_family_tokens": family_tokens,
+                "modalities": modalities,
+                "route_sources": route_sources,
+            }
+        )
+    return rows
 
 
 def _aggregate_chain_patterns(event_rows: list[dict[str, Any]]) -> Counter[str]:
@@ -238,9 +289,11 @@ def _build_candidate_rankings(
     *,
     event_tool_stats: dict[str, dict[str, Any]],
     grammar_tool_stats: dict[str, dict[str, Any]],
+    multimodal_grammar_rows: list[dict[str, Any]] | None = None,
     quality_state: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     quality_state = dict(quality_state or {})
+    multimodal_grammar_rows = list(multimodal_grammar_rows or [])
     tool_sources = {
         str(key): value
         for key, value in dict(quality_state.get("tool_sources", {}) or {}).items()
@@ -271,6 +324,24 @@ def _build_candidate_rankings(
             token = str(target).strip()
             if not token:
                 continue
+            query_tokens = {item for item in _tokenize(query) if item}
+            tool_kind_tokens = {
+                item
+                for kind in row.get("tool_kinds", []) or []
+                for item in _tokenize(str(kind))
+                if item
+            }
+            tool_id_tokens = {
+                item
+                for tool_id in tool_ids
+                for item in _tokenize(str(tool_id))
+                if item
+            }
+            modality_tokens = {
+                item
+                for item in row.get("modalities", []) or []
+                if str(item).strip()
+            }
             record = candidates.setdefault(
                 token,
                 {
@@ -281,6 +352,10 @@ def _build_candidate_rankings(
                     "queries": set(),
                     "entrypoints": set(),
                     "route_sources": Counter(),
+                    "query_tokens": set(),
+                    "tool_kind_tokens": set(),
+                    "tool_id_tokens": set(),
+                    "modalities": set(),
                 },
             )
             record["pressure_count"] += 1
@@ -290,6 +365,10 @@ def _build_candidate_rankings(
             if query:
                 record["queries"].add(query)
             record["entrypoints"].update(entrypoints)
+            record["query_tokens"].update(query_tokens)
+            record["tool_kind_tokens"].update(tool_kind_tokens)
+            record["tool_id_tokens"].update(tool_id_tokens)
+            record["modalities"].update(str(item).strip().lower() for item in modality_tokens)
             for runtime_status in row.get("runtime_statuses", []) or []:
                 normalized = str(runtime_status).strip().lower()
                 if normalized == "ptx_rpn_available":
@@ -343,31 +422,68 @@ def _build_candidate_rankings(
             for tool in record["tool_ids"]
             if tool in grammar_tool_stats
         )
+        multimodal_positive_support = 0
+        multimodal_negative_support = 0
+        multimodal_positive_patterns = 0
+        multimodal_negative_patterns = 0
+        for grammar_row in multimodal_grammar_rows:
+            grammar_token_pool = set(grammar_row.get("query_tokens", [])) | set(grammar_row.get("tool_family_tokens", []))
+            grammar_modalities = set(grammar_row.get("modalities", []))
+            grammar_routes = set(grammar_row.get("route_sources", []))
+            candidate_token_pool = set(record["query_tokens"]) | set(record["tool_kind_tokens"]) | set(record["tool_id_tokens"])
+            token_overlap = candidate_token_pool & grammar_token_pool
+            modality_overlap = set(record["modalities"]) & grammar_modalities
+            route_overlap = set(record["route_sources"]) & grammar_routes
+            if len(token_overlap) < 2 and not (modality_overlap and route_overlap):
+                continue
+            support = int(grammar_row.get("count", 0) or 0)
+            if str(grammar_row.get("polarity", "positive")) == "negative":
+                multimodal_negative_support += support
+                multimodal_negative_patterns += 1
+            else:
+                multimodal_positive_support += support
+                multimodal_positive_patterns += 1
+        record["multimodal_positive_support"] = int(multimodal_positive_support)
+        record["multimodal_negative_support"] = int(multimodal_negative_support)
+        record["multimodal_positive_patterns"] = int(multimodal_positive_patterns)
+        record["multimodal_negative_patterns"] = int(multimodal_negative_patterns)
         max_latency = max(max_latency, float(record["avg_execution_us"]))
         max_grammar_occurrences = max(max_grammar_occurrences, int(grammar_occurrences))
 
     ranked: list[dict[str, Any]] = []
+    max_multimodal_positive = max(
+        [int(record.get("multimodal_positive_support", 0) or 0) for record in candidates.values()] or [0]
+    )
+    max_multimodal_negative = max(
+        [int(record.get("multimodal_negative_support", 0) or 0) for record in candidates.values()] or [0]
+    )
     for record in candidates.values():
         frequency_norm = _normalize(float(record["pressure_count"]), float(max_pressure))
         latency_norm = _normalize(float(record["avg_execution_us"]), float(max_latency))
         quality_gap = max(0.0, min(1.0 - float(record["avg_quality_signal"]), 1.0))
         source_gap = max(0.0, min(1.0 - float(record["source_quality_level"]), 1.0))
         grammar_norm = _normalize(float(record["grammar_occurrence_count"]), float(max_grammar_occurrences))
+        multimodal_positive_norm = _normalize(float(record["multimodal_positive_support"]), float(max_multimodal_positive))
+        multimodal_negative_norm = _normalize(float(record["multimodal_negative_support"]), float(max_multimodal_negative))
         support_norm = _normalize(float(len(record["primary_tools"])), float(max(1, max(len(r["primary_tools"]) for r in candidates.values()))))
         priority_score = (
-            0.35 * frequency_norm
-            + 0.25 * latency_norm
-            + 0.15 * quality_gap
+            0.28 * frequency_norm
+            + 0.20 * latency_norm
+            + 0.16 * quality_gap
             + 0.10 * source_gap
             + 0.10 * grammar_norm
+            + 0.09 * multimodal_negative_norm
+            + 0.04 * multimodal_positive_norm
             + 0.05 * support_norm
         )
         readiness_score = (
-            0.35 * frequency_norm
-            + 0.25 * (1.0 - quality_gap)
+            0.28 * frequency_norm
+            + 0.23 * (1.0 - quality_gap)
             + 0.10 * (1.0 - source_gap)
             + 0.20 * grammar_norm
-            + 0.10 * (1.0 - float(record["failure_rate"]))
+            + 0.09 * multimodal_positive_norm
+            + 0.05 * (1.0 - multimodal_negative_norm)
+            + 0.05 * (1.0 - float(record["failure_rate"]))
         )
         dominant_route_source = ""
         if record["route_sources"]:
@@ -389,6 +505,10 @@ def _build_candidate_rankings(
                 "uncertain_rate": round(float(record["uncertain_rate"]), 6),
                 "grammar_occurrence_count": int(record["grammar_occurrence_count"]),
                 "grammar_pattern_count": int(record["grammar_pattern_count"]),
+                "multimodal_positive_support": int(record["multimodal_positive_support"]),
+                "multimodal_negative_support": int(record["multimodal_negative_support"]),
+                "multimodal_positive_patterns": int(record["multimodal_positive_patterns"]),
+                "multimodal_negative_patterns": int(record["multimodal_negative_patterns"]),
                 "promotion_priority_score": round(float(priority_score), 6),
                 "promotion_readiness_score": round(float(readiness_score), 6),
                 "dominant_route_source": dominant_route_source,
@@ -400,6 +520,8 @@ def _build_candidate_rankings(
                 "tool_ids": sorted(record["tool_ids"]),
                 "entrypoints": sorted(record["entrypoints"]),
                 "sample_queries": sorted(record["queries"])[:5],
+                "sample_query_tokens": sorted(record["query_tokens"])[:8],
+                "sample_tool_kind_tokens": sorted(record["tool_kind_tokens"])[:8],
             }
         )
     ranked.sort(
@@ -505,12 +627,14 @@ def build_report(
 
     event_tool_stats = _aggregate_event_tools(event_rows)
     grammar_tool_stats = _aggregate_grammar_support(grammar_rows)
+    multimodal_grammar_stats = _aggregate_multimodal_grammar_support(grammar_rows)
     chain_counter = _aggregate_chain_patterns(event_rows)
     quality_rankings = _build_quality_state_rankings(quality_state)
     candidate_rankings = _build_candidate_rankings(
         rows,
         event_tool_stats=event_tool_stats,
         grammar_tool_stats=grammar_tool_stats,
+        multimodal_grammar_rows=multimodal_grammar_stats,
         quality_state=quality_state,
     )
     top_candidate = candidate_rankings[0] if candidate_rankings else None
@@ -542,6 +666,7 @@ def build_report(
             "distinct_event_tools": int(len(event_tool_stats)),
             "distinct_event_chains": int(len(chain_counter)),
             "distinct_grammar_supported_tools": int(len(grammar_tool_stats)),
+            "distinct_multimodal_grammar_patterns": int(len(multimodal_grammar_stats)),
             "distinct_route_sources": int(len(dict(quality_state.get("route_sources", {}) or {}))),
             "distinct_tool_sources": int(len(dict(quality_state.get("tool_sources", {}) or {}))),
         },

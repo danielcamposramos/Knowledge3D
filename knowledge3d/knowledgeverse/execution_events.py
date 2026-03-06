@@ -7,6 +7,7 @@ consume without touching the sovereign PTX hot path.
 
 from __future__ import annotations
 
+import atexit
 from dataclasses import dataclass, fields, is_dataclass, replace
 import json
 import time
@@ -59,18 +60,39 @@ class ExecutionEvent:
 
 
 class ExecutionEventRecorder:
-    def __init__(self, *, storage_root: str | Path):
+    def __init__(
+        self,
+        *,
+        storage_root: str | Path,
+        buffer_size: int = 64,
+        flush_interval_s: float = 1.0,
+    ):
         self.storage_root = Path(storage_root)
         self.logs_dir = self.storage_root / "logs"
         self.logs_dir.mkdir(parents=True, exist_ok=True)
         self.event_path = self.logs_dir / "execution_events.jsonl"
+        self.buffer_size = max(1, int(buffer_size))
+        self.flush_interval_s = max(0.0, float(flush_interval_s))
+        self._buffer: list[str] = []
+        self._last_flush_monotonic = time.monotonic()
+        atexit.register(self.flush)
 
     def append(self, event: ExecutionEvent, *, knowledgeverse: Any | None = None) -> None:
         payload = event.as_dict()
-        with self.event_path.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(payload, separators=(",", ":"), sort_keys=True) + "\n")
+        self._buffer.append(json.dumps(payload, separators=(",", ":"), sort_keys=True))
+        is_chain_step = event.execution_mode == "tool_chain_step"
+        force_flush = (
+            len(self._buffer) >= self.buffer_size
+            or (time.monotonic() - self._last_flush_monotonic) >= self.flush_interval_s
+        )
+        if force_flush:
+            self.flush()
 
-        if knowledgeverse is not None and hasattr(knowledgeverse, "shadow_copy"):
+        if (
+            not is_chain_step
+            and knowledgeverse is not None
+            and hasattr(knowledgeverse, "shadow_copy")
+        ):
             try:
                 knowledgeverse.shadow_copy.record_event(
                     event_type="tool_execution",
@@ -85,6 +107,14 @@ class ExecutionEventRecorder:
                 )
             except Exception:
                 pass
+
+    def flush(self) -> None:
+        if not self._buffer:
+            return
+        with self.event_path.open("a", encoding="utf-8") as handle:
+            handle.write("\n".join(self._buffer) + "\n")
+        self._buffer.clear()
+        self._last_flush_monotonic = time.monotonic()
 
 
 def timestamp_us() -> int:

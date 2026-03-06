@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import atexit
 import datetime
 import json
 import os
+import time
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -65,6 +67,10 @@ class TRMNavigator(SpecialistBase):
         }
         self._last_math_missing_signal: dict[str, Any] | None = None
         self._last_math_execution_error: str | None = None
+        self._weight_save_every = 64
+        self._weight_save_interval_s = 2.0
+        self._dirty_weight_updates = 0
+        self._last_weight_save_monotonic = time.monotonic()
         self.execution_quality_tracker: ExecutionQualityTracker | None = None
         self.execution_grammar_detector: ExecutionGrammarDetector | None = None
         if knowledgeverse is not None and hasattr(knowledgeverse, "storage_root"):
@@ -77,6 +83,7 @@ class TRMNavigator(SpecialistBase):
                 storage_root=root,
                 galaxy_manager=self.galaxy_manager,
             )
+        atexit.register(self.save_weights)
 
     def _bootstrap_matryoshka_specialists(self) -> None:
         """
@@ -478,10 +485,12 @@ class TRMNavigator(SpecialistBase):
 
     def observe_execution_event(self, event: Mapping[str, Any]) -> dict[str, Any]:
         outcome = int(max(-1, min(1, int(event.get("outcome", 0) or 0))))
+        execution_mode = str(event.get("execution_mode", "") or "").strip()
+        is_chain_step = execution_mode == "tool_chain_step"
         specialist = str(event.get("specialist_id", "") or "").strip()
         query = str(event.get("query_context", "") or "").strip()
         domain_hint = str(event.get("domain_hint", "") or "").strip()
-        if specialist and outcome != 0 and query:
+        if specialist and outcome != 0 and query and not is_chain_step:
             self.learn_from_feedback(
                 query=query,
                 specialist=specialist,
@@ -489,14 +498,17 @@ class TRMNavigator(SpecialistBase):
                 confidence=float(event.get("quality_signal", 0.0) or 0.0),
                 domain_hint=(domain_hint or None),
             )
-            self.save_weights()
+            self._dirty_weight_updates += 1
+            self._maybe_save_weights()
         summary: dict[str, Any] = {}
         if self.execution_quality_tracker is not None:
             summary["quality"] = self.execution_quality_tracker.observe_event(
                 event,
-                specialist_catalog=self.list_specialists(),
+                specialist_catalog=(self.list_specialists() if not is_chain_step else ()),
+                update_specialist=not is_chain_step,
+                update_gap_detection=not is_chain_step,
             )
-        if self.execution_grammar_detector is not None:
+        if self.execution_grammar_detector is not None and not is_chain_step:
             summary["grammar"] = self.execution_grammar_detector.observe_event(event)
         return summary
 
@@ -1262,10 +1274,34 @@ class TRMNavigator(SpecialistBase):
             "weights_path": str(self.navigator_specialist.weight_store.path),
         }
 
-    def save_weights(self) -> None:
+    def _weights_paths_exist(self) -> bool:
+        paths = [
+            getattr(self.navigator_specialist.weight_store, "path", None),
+            getattr(self.specialist_spawner, "storage_path", None),
+            self._specialist_tree_path,
+        ]
+        return all(path is not None and Path(path).exists() for path in paths)
+
+    def _persist_weights_now(self) -> None:
         self.navigator_specialist.save_state()
         self.specialist_spawner.persist()
         self._save_specialist_tree()
+        self._dirty_weight_updates = 0
+        self._last_weight_save_monotonic = time.monotonic()
+
+    def _maybe_save_weights(self, *, force: bool = False) -> None:
+        elapsed = time.monotonic() - self._last_weight_save_monotonic
+        should_persist = (
+            force
+            or not self._weights_paths_exist()
+            or self._dirty_weight_updates >= self._weight_save_every
+            or elapsed >= self._weight_save_interval_s
+        )
+        if should_persist:
+            self._persist_weights_now()
+
+    def save_weights(self) -> None:
+        self._persist_weights_now()
 
     def _infer_arc_transform(
         self,

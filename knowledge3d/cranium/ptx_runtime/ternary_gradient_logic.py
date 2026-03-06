@@ -50,6 +50,10 @@ class TernaryGradientLogic:
 
     def __init__(self) -> None:
         self.ops = TernaryCodecOps()
+        self._signature_cache: dict[
+            tuple[tuple[tuple[float, float, float, float, float], ...], tuple[float, float, float, float, float]],
+            TernaryGradientSignature,
+        ] = {}
 
     def encode_signature(
         self,
@@ -58,30 +62,35 @@ class TernaryGradientLogic:
         thresholds: tuple[float, float, float, float, float] = (0.08, 0.1, 0.1, 0.1, 0.08),
     ) -> TernaryGradientSignature:
         arr = _prepare_stops(stops)
+        threshold_key = tuple(float(v) for v in thresholds)
+        stops_key = tuple(tuple(float(v) for v in row.tolist()) for row in arr)
+        cache_key = (stops_key, threshold_key)
+        cached = self._signature_cache.get(cache_key)
+        if cached is not None:
+            return cached
         if len(arr) == 1:
-            return TernaryGradientSignature(
+            signature = TernaryGradientSignature(
                 base_stop=tuple(float(v) for v in arr[0].tolist()),
                 delta_trits=(),
-                thresholds=tuple(float(v) for v in thresholds),
+                thresholds=threshold_key,
             )
+            self._signature_cache[cache_key] = signature
+            return signature
 
         deltas = arr[1:] - arr[:-1]
-        trit_columns: list[list[int]] = []
+        trit_columns: list[np.ndarray] = []
         for col in range(deltas.shape[1]):
-            trits = self.ops.quantize(deltas[:, col].tolist(), threshold=float(thresholds[col]))
+            trits = self.ops.quantize_numpy(deltas[:, col], threshold=float(thresholds[col]))
             trit_columns.append(trits)
 
-        delta_trits: list[tuple[int, int, int, int, int]] = []
-        for row in range(deltas.shape[0]):
-            delta_trits.append(
-                tuple(int(trit_columns[col][row]) for col in range(deltas.shape[1]))
-            )
-
-        return TernaryGradientSignature(
+        trit_matrix = np.stack(trit_columns, axis=1).astype(np.int32, copy=False)
+        signature = TernaryGradientSignature(
             base_stop=tuple(float(v) for v in arr[0].tolist()),
-            delta_trits=tuple(delta_trits),
-            thresholds=tuple(float(v) for v in thresholds),
+            delta_trits=tuple(tuple(int(v) for v in row) for row in trit_matrix.tolist()),
+            thresholds=threshold_key,
         )
+        self._signature_cache[cache_key] = signature
+        return signature
 
     def contrastive_score(
         self,

@@ -20,7 +20,6 @@ import numpy as np
 
 from knowledge3d.cranium.ternary import TernaryVector, TernaryGalaxy
 from knowledge3d.cranium.codecs.ternary_codec_ops import TernaryCodecOps
-from knowledge3d.cranium.ptx_runtime.modular_rpn_engine import ModularRPNEngine
 
 
 class SovereignTernaryAudioCodec:
@@ -32,11 +31,10 @@ class SovereignTernaryAudioCodec:
         self.frame_size = int(frame_size)
         self.hop_size = int(hop_size) if hop_size is not None else self.frame_size // 2
         self.ops = TernaryCodecOps(threshold=threshold)
-        self.rpn = ModularRPNEngine()
         self.galaxy = TernaryGalaxy()
 
     def encode(self, clip_id: str, samples: TernaryVector) -> Dict:
-        samples_arr = np.asarray(samples.to_python(), dtype=np.float32)
+        samples_arr = samples.to_numpy().astype(np.float32, copy=False)
         original_length = int(samples_arr.shape[0])
         # Pad to frame boundary
         remainder = original_length % self.frame_size
@@ -47,8 +45,9 @@ class SovereignTernaryAudioCodec:
         frame_count = padded_length // self.frame_size
         signal_plan = self.ops.execution_plan(work_items=frame_count, preferred_tier=2)
         seed_rpn = f"{self.frame_size} BATCH_MDCT {self.ops.threshold} TERNARY_QUANT"
-        quantized = self.rpn.evaluate(seed_rpn, data=samples_arr.tolist(), return_vector=True)
-        residual_vec = TernaryVector(self._flatten_list(quantized))
+        mdct = self.ops.batch_mdct_numpy(samples_arr, frame_size=self.frame_size)
+        quantized = self.ops.quantize_numpy(mdct, threshold=self.ops.threshold)
+        residual_vec = TernaryVector(quantized)
         self.galaxy.store_frame(
             clip_id,
             seed_rpn,
@@ -77,22 +76,14 @@ class SovereignTernaryAudioCodec:
         _ = seed_rpn
         frame_count = int(metadata.get("frame_count", 1))
         _decode_plan = self.ops.execution_plan(work_items=frame_count, preferred_tier=2)
-        imdct_program = f"TERNARY_DEQUANT {self.frame_size} IMDCT"
-        imdct = self.rpn.evaluate(imdct_program, data=residual.to_python(), return_vector=True)
-        flat_imdct = self._flatten_list(imdct)
+        coeffs = residual.to_numpy().astype(np.int32, copy=False)
+        dequantized = self.ops.dequantize_numpy(coeffs)
+        flat_imdct = self.ops.batch_imdct_numpy(dequantized, frame_size=self.frame_size)
         original_length = int(metadata.get("original_length", len(flat_imdct)))
         if original_length < len(flat_imdct):
             flat_imdct = flat_imdct[:original_length]
-        ternary = [0 if v == 0 else (1 if v > 0 else -1) for v in flat_imdct]
+        ternary = np.where(flat_imdct > 0, 1, np.where(flat_imdct < 0, -1, 0)).astype(np.int8, copy=False)
         return TernaryVector(ternary)
-
-    def _flatten_list(self, value) -> list:
-        if isinstance(value, list):
-            out: list = []
-            for item in value:
-                out.extend(self._flatten_list(item))
-            return out
-        return [value]
 
 
 __all__ = ["SovereignTernaryAudioCodec"]

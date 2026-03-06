@@ -1,0 +1,89 @@
+{
+  "event_rows": 106,
+  "grammar_rows": 60,
+  "iterations": 8,
+  "pressure_rows": 22,
+  "quality_state_exists": true,
+  "report_path": "../Knowledge3D.local/runtime_execution_journal_batch/results/tool_promotion_report.json",
+  "storage_root": "../Knowledge3D.local/runtime_execution_journal_batch",
+  "top_candidate": {
+    "avg_execution_us": 3654.0,
+    "avg_quality_signal": 0.666739,
+    "dominant_route_source": "bridge",
+    "entrypoints": [
+      "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.contour_to_textured_extrude_mesh",
+      "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.contour_to_textured_lathe_mesh",
+      "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.contour_to_textured_sweep_mesh",
+      "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.project_material",
+      "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.signal_projection_to_material_target",
+      "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.signal_to_textured_surface",
+      "knowledge3d.cranium.bridges.procedural_temporal_bridge.ProceduralTemporalBridge.surface_material_to_temporal_preview",
+      "knowledge3d.cranium.bridges.procedural_temporal_bridge.ProceduralTemporalBridge.surface_material_to_timeline_preset",
+      "knowledge3d.cranium.ptx_runtime.math_core_pool.MathCorePool.release_core",
+      "knowledge3d.cranium.ptx_runtime.math_core_pool.MathCorePool.snapshot",
+      "knowledge3d.cranium.ptx_runtime.math_core_pool.MathCorePool.spawn_core",
+      "knowledge3d.cranium.ptx_runtime.modular_rpn_engine.ModularRPNEngine.get_math_core_descriptor"
+    ],
+    "event_execution_count": 64,
+    "failure_rate": 0.0,
+    "grammar_occurrence_count": 66,
+    "grammar_pattern_count": 22,
+    "multimodal_negative_patterns": 0,
+    "multimodal_negative_support": 0,
+    "multimodal_positive_patterns": 1,
+    "multimodal_positive_support": 3,
+    "name": "TRIPLANAR_MAP",
+    "pressure_count": 22,
+    "primary_tool_count": 2,
+    "primary_tools": [
+      "tool_fusion_surface_material_projection_v1",
+      "tool_fusion_surface_material_timeline_v1"
+    ],
+    "promotion_priority_score": 0.771992,
+    "promotion_readiness_score": 0.87468,
+    "quality_gap": 0.333261,
+    "route_quality_level": 0.716014,
+    "route_source_counts": [
+      {
+        "count": 30,
+        "name": "bridge"
+      }
+    ],
+    "sample_queries": [
+      "generate L-system plant with axiom F and rule F->F[+F]F[-F]F for 3 iterations",
+      "generate textured mesh from contour with surface material",
+      "visualize electric field for point charge at origin with magnitude 1.0"
+    ],
+    "sample_query_tokens": [
+      "0",
+      "1",
+      "3",
+      "and",
+      "at",
+      "axiom",
+      "charge",
+      "contour"
+    ],
+    "sample_tool_kind_tokens": [
+      "allocator",
+      "animation",
+      "core",
+      "fusion",
+      "material",
+      "math",
+      "projection",
+      "signal"
+    ],
+    "source_quality_gap": 0.486705,
+    "source_quality_level": 0.513295,
+    "success_rate": 0.109375,
+    "tool_ids": [
+      "tool_fusion_signal_surface_material_v1",
+      "tool_fusion_surface_material_projection_v1",
+      "tool_fusion_surface_material_timeline_v1",
+      "tool_fusion_surface_material_ui_animation_v1",
+      "tool_mathcore_spawn_cascade_v1"
+    ],
+    "uncertain_rate": 0.890625
+  }
+}

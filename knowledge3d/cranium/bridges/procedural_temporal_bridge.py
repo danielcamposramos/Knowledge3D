@@ -24,10 +24,11 @@ import numpy as np
 from knowledge3d.cranium.actions import ActionBuffer, ActionType
 from knowledge3d.cranium.bridges.procedural_material_bridge import SurfaceMaterialCandidate, SurfaceMaterialPlan
 from knowledge3d.cranium.bridges.sovereign_bridges import TemporalReasoning, WorldModelBridge
-from knowledge3d.cranium.codecs.procedural_video import ProceduralVideoGenerator
 from knowledge3d.cranium.codecs.sovereign_ternary_video_codec import SovereignTernaryVideoCodec
 from knowledge3d.cranium.ptx_runtime.drawing_effects import DrawingEffects
+from knowledge3d.cranium.ptx_runtime.temporal_frame_kernels import TemporalFrameKernels
 from knowledge3d.cranium.ptx_runtime.math_core_pool import get_global_math_core_pool
+from knowledge3d.cranium.ptx_runtime.temporal_preset_kernels import TemporalPresetKernels
 from knowledge3d.cranium.ternary import TernaryTensor, TernaryVector
 from knowledge3d.knowledgeverse.execution_events import ternary_quantize_quality
 
@@ -139,6 +140,12 @@ class ProceduralTemporalBridge:
         self.temporal_reasoning = TemporalReasoning()
         self.world_model = WorldModelBridge()
         self.effects = DrawingEffects()
+        self.frame_kernels = TemporalFrameKernels()
+        self.preset_kernels = TemporalPresetKernels()
+        self._video_codec_cache: dict[tuple[int, int, float], SovereignTernaryVideoCodec] = {}
+        self._preview_plan_cache: dict[tuple[Any, ...], TemporalPreviewPlan] = {}
+        self._house_room_scene_cache: dict[tuple[Any, ...], TemporalScenePlan] = {}
+        self._house_tour_scene_cache: dict[tuple[Any, ...], TemporalScenePlan] = {}
 
     def surface_material_to_temporal_preview(
         self,
@@ -162,9 +169,25 @@ class ProceduralTemporalBridge:
         height = int(preview.shape[0])
         width = int(preview.shape[1])
         seed = self._derive_seed(surface_plan)
+        cache_key = self._preview_plan_cache_key(
+            surface_plan=surface_plan,
+            preset_key="__linear__",
+            frame_count=frame_count,
+            time_span=span,
+            feature_grid=feature_grid,
+            encode_frames=encode_frames,
+            codec_threshold=codec_threshold,
+            timeline_id=timeline_id,
+            seed=seed,
+            width=width,
+            height=height,
+        )
+        cached = self._preview_plan_cache.get(cache_key) if cache_key is not None else None
+        if cached is not None:
+            return cached
         time_points = self._time_points(frame_count=frame_count, time_span=span, curve="linear")
         frames = self._generate_frames(seed, width=width, height=height, time_points=time_points)
-        return self._build_preview_plan(
+        plan = self._build_preview_plan(
             surface_plan=surface_plan,
             frames=frames,
             feature_grid=feature_grid,
@@ -174,6 +197,9 @@ class ProceduralTemporalBridge:
             timeline_id=timeline_id,
             extra_metadata={},
         )
+        if cache_key is not None:
+            self._preview_plan_cache[cache_key] = plan
+        return plan
 
     def surface_material_to_timeline_preset(
         self,
@@ -212,6 +238,22 @@ class ProceduralTemporalBridge:
         height = int(preview.shape[0])
         width = int(preview.shape[1])
         seed = self._derive_seed(surface_plan)
+        cache_key = self._preview_plan_cache_key(
+            surface_plan=surface_plan,
+            preset_key=preset_key,
+            frame_count=resolved_frame_count,
+            time_span=resolved_time_span,
+            feature_grid=resolved_feature_grid,
+            encode_frames=encode_frames,
+            codec_threshold=codec_threshold,
+            timeline_id=timeline_id,
+            seed=seed,
+            width=width,
+            height=height,
+        )
+        cached = self._preview_plan_cache.get(cache_key) if cache_key is not None else None
+        if cached is not None:
+            return cached
         time_points = self._time_points(
             frame_count=resolved_frame_count,
             time_span=resolved_time_span,
@@ -224,7 +266,7 @@ class ProceduralTemporalBridge:
             preset_key=preset_key,
             time_points=time_points,
         )
-        return self._build_preview_plan(
+        plan = self._build_preview_plan(
             surface_plan=surface_plan,
             frames=frames,
             feature_grid=resolved_feature_grid,
@@ -240,6 +282,9 @@ class ProceduralTemporalBridge:
                 "timeline_loop": bool(preset["loop"]),
             },
         )
+        if cache_key is not None:
+            self._preview_plan_cache[cache_key] = plan
+        return plan
 
     def compose_scene_timeline(
         self,
@@ -331,11 +376,11 @@ class ProceduralTemporalBridge:
 
         encoded_frames: list[dict[str, Any]] = []
         if encode_frames and width % 8 == 0 and height % 8 == 0:
-            codec = SovereignTernaryVideoCodec(width=width, height=height, threshold=codec_threshold)
+            codec = self._video_codec_for(width=width, height=height, threshold=codec_threshold)
             prefix = str(scene_id or self._default_scene_id(ordered_layers))
             for idx, frame in enumerate(frames):
                 frame_id = f"{prefix}_frame_{idx:03d}"
-                meta = codec.encode(frame_id, self._frame_to_ternary_tensor(frame[..., :3]))
+                meta = codec.encode_frame_array(frame_id, frame[..., :3])
                 encoded_frames.append(
                     {
                         "frame_id": frame_id,
@@ -426,7 +471,7 @@ class ProceduralTemporalBridge:
                 frame_count=frame_count,
                 time_span=time_span,
                 feature_grid=feature_grid,
-                encode_frames=encode_frames,
+                encode_frames=False,
                 codec_threshold=codec_threshold,
                 timeline_id=None if scene_id is None else f"{scene_id}_layer_{idx:02d}",
             )
@@ -625,6 +670,18 @@ class ProceduralTemporalBridge:
             execution_events=execution_events,
         )
         behavior = self._room_scene_behavior(room_preset)
+        cache_key = self._house_room_scene_cache_key(
+            entries=entries,
+            room_preset=str(room_preset),
+            max_events=max_events,
+            feature_grid=feature_grid,
+            encode_frames=encode_frames,
+            codec_threshold=codec_threshold,
+            scene_id=scene_id,
+        )
+        cached = self._house_room_scene_cache.get(cache_key) if cache_key is not None else None
+        if cached is not None:
+            return cached
         selected = self._select_house_room_entries(
             entries,
             room_preset=str(room_preset),
@@ -691,7 +748,7 @@ class ProceduralTemporalBridge:
                 "event_tokens": [self._event_token(entry) for entry in selected],
             }
         )
-        return TemporalScenePlan(
+        plan = TemporalScenePlan(
             layers=scene.layers,
             frames=scene.frames,
             frame_features=scene.frame_features,
@@ -699,6 +756,9 @@ class ProceduralTemporalBridge:
             coherence_scores=scene.coherence_scores,
             metadata=metadata,
         )
+        if cache_key is not None:
+            self._house_room_scene_cache[cache_key] = plan
+        return plan
 
     def execution_events_to_house_tour_scene(
         self,
@@ -717,6 +777,17 @@ class ProceduralTemporalBridge:
         )
         if not entries:
             raise ValueError("execution event log is empty")
+        cache_key = self._house_tour_scene_cache_key(
+            entries=entries,
+            max_events_per_room=max_events_per_room,
+            feature_grid=feature_grid,
+            encode_frames=encode_frames,
+            codec_threshold=codec_threshold,
+            scene_id=scene_id,
+        )
+        cached = self._house_tour_scene_cache.get(cache_key) if cache_key is not None else None
+        if cached is not None:
+            return cached
 
         room_specs = (
             ("house_library", 1.0, 0.0),
@@ -776,7 +847,7 @@ class ProceduralTemporalBridge:
                 "tour_layer_count": len(room_layers),
             }
         )
-        return TemporalScenePlan(
+        plan = TemporalScenePlan(
             layers=scene.layers,
             frames=scene.frames,
             frame_features=scene.frame_features,
@@ -784,6 +855,9 @@ class ProceduralTemporalBridge:
             coherence_scores=scene.coherence_scores,
             metadata=metadata,
         )
+        if cache_key is not None:
+            self._house_tour_scene_cache[cache_key] = plan
+        return plan
 
     def _build_preview_plan(
         self,
@@ -830,11 +904,11 @@ class ProceduralTemporalBridge:
         width = int(frames.shape[2])
         encoded_frames: list[dict[str, Any]] = []
         if encode_frames and width % 8 == 0 and height % 8 == 0:
-            codec = SovereignTernaryVideoCodec(width=width, height=height, threshold=codec_threshold)
+            codec = self._video_codec_for(width=width, height=height, threshold=codec_threshold)
             prefix = str(timeline_id or self._default_timeline_id(surface_plan))
             for idx, frame in enumerate(frames):
                 frame_id = f"{prefix}_frame_{idx:03d}"
-                meta = codec.encode(frame_id, self._frame_to_ternary_tensor(frame))
+                meta = codec.encode_frame_array(frame_id, frame)
                 encoded_frames.append(
                     {
                         "frame_id": frame_id,
@@ -882,10 +956,11 @@ class ProceduralTemporalBridge:
         height: int,
         time_points: np.ndarray,
     ) -> np.ndarray:
-        generator = ProceduralVideoGenerator(width=width, height=height)
-        return np.stack(
-            [generator.generate_frame(seed, time_param=float(t)) for t in time_points],
-            axis=0,
+        return self.frame_kernels.generate_frames(
+            seed,
+            width=width,
+            height=height,
+            time_points=np.asarray(time_points, dtype=np.float32),
         ).astype(np.uint8, copy=False)
 
     def _time_points(
@@ -912,6 +987,14 @@ class ProceduralTemporalBridge:
             points = np.mod(points, 1.0)
         return points.astype(np.float32, copy=False)
 
+    def _video_codec_for(self, *, width: int, height: int, threshold: float) -> SovereignTernaryVideoCodec:
+        key = (int(width), int(height), float(threshold))
+        codec = self._video_codec_cache.get(key)
+        if codec is None:
+            codec = SovereignTernaryVideoCodec(width=key[0], height=key[1], threshold=key[2])
+            self._video_codec_cache[key] = codec
+        return codec
+
     def _apply_timeline_preset(
         self,
         *,
@@ -920,46 +1003,20 @@ class ProceduralTemporalBridge:
         preset_key: str,
         time_points: np.ndarray,
     ) -> np.ndarray:
-        base = np.asarray(frames, dtype=np.float32) / 255.0
         preview = np.asarray(surface_plan.material_preview, dtype=np.float32)
-        overlay_rgba = self._resize_rgba_to_match(preview, height=base.shape[1], width=base.shape[2])
-        overlay_rgb = np.clip(overlay_rgba[..., :3], 0.0, 1.0)
-        overlay_alpha = np.clip(overlay_rgba[..., 3:4], 0.0, 1.0)
-        alpha_scale = np.clip(
-            np.mean(np.asarray(surface_plan.projection_weights, dtype=np.float32), axis=0),
-            0.0,
-            1.0,
-        ).astype(np.float32, copy=False)
-        if alpha_scale.ndim == 0:
-            alpha_scale = alpha_scale.reshape(1, 1, 1, 1)
-        else:
-            alpha_scale = alpha_scale.reshape(1, 1, 1, -1)
-
-        if preset_key == "ui_idle":
-            phase = (0.5 + 0.5 * np.sin((time_points * np.pi * 2.0).reshape(-1, 1, 1, 1))).astype(np.float32)
-            blend = 0.06 + 0.08 * phase
-            out = base * (1.0 - blend * overlay_alpha * alpha_scale) + overlay_rgb[None, ...] * (blend * overlay_alpha * alpha_scale)
-        elif preset_key == "ui_focus":
-            luma = np.mean(overlay_rgb, axis=2, keepdims=True)
-            grad_x = np.abs(np.diff(luma, axis=1, append=luma[:, -1:, :]))
-            grad_y = np.abs(np.diff(luma, axis=0, append=luma[-1:, :, :]))
-            edge = np.clip(grad_x + grad_y, 0.0, 1.0)
-            pulse = (0.55 + 0.45 * np.sin((time_points * np.pi * 2.0).reshape(-1, 1, 1, 1))).astype(np.float32)
-            out = np.clip(base * (1.0 + 0.1 * pulse) + edge[None, ...] * pulse * 0.35, 0.0, 1.0)
-        elif preset_key == "world_breathe":
-            normal_hint = np.asarray(surface_plan.normal_hint, dtype=np.float32)
-            bias = float(np.mean(np.abs(normal_hint))) if normal_hint.size else 0.0
-            pulse = (0.5 + 0.5 * np.sin((time_points * np.pi * 2.0).reshape(-1, 1, 1, 1))).astype(np.float32)
-            warmth = np.mean(overlay_rgb, axis=2, keepdims=True)
-            out = np.clip(base * (0.92 + 0.12 * pulse) + warmth[None, ...] * (0.05 + 0.08 * bias * pulse), 0.0, 1.0)
-        elif preset_key == "world_orbit":
-            shifts = np.rint(time_points * float(base.shape[2]) * 0.25).astype(np.int32)
-            rolled = np.stack([np.roll(overlay_rgb, int(shift), axis=1) for shift in shifts], axis=0)
-            mix = 0.12 + 0.08 * (0.5 + 0.5 * np.cos((time_points * np.pi * 2.0).reshape(-1, 1, 1, 1)))
-            out = np.clip(base * (1.0 - mix) + rolled * mix, 0.0, 1.0)
-        else:
-            out = base
-        return np.clip(np.rint(out * 255.0), 0.0, 255.0).astype(np.uint8, copy=False)
+        overlay_rgba = self._resize_rgba_to_match(
+            preview,
+            height=int(frames.shape[1]),
+            width=int(frames.shape[2]),
+        )
+        return self.preset_kernels.apply_preset(
+            frames,
+            overlay_rgba,
+            preset_key=preset_key,
+            time_points=np.asarray(time_points, dtype=np.float32),
+            projection_weights=np.asarray(surface_plan.projection_weights, dtype=np.float32),
+            normal_hint=np.asarray(surface_plan.normal_hint, dtype=np.float32),
+        )
 
     def _resize_rgba_to_match(self, rgba: np.ndarray, *, height: int, width: int) -> np.ndarray:
         src = np.asarray(rgba, dtype=np.float32)
@@ -968,6 +1025,101 @@ class ProceduralTemporalBridge:
         y_idx = np.linspace(0, src.shape[0] - 1, height, dtype=np.int32)
         x_idx = np.linspace(0, src.shape[1] - 1, width, dtype=np.int32)
         return src[np.ix_(y_idx, x_idx)].astype(np.float32, copy=False)
+
+    def _preview_plan_cache_key(
+        self,
+        *,
+        surface_plan: SurfaceMaterialPlan,
+        preset_key: str,
+        frame_count: int,
+        time_span: float,
+        feature_grid: int,
+        encode_frames: bool,
+        codec_threshold: float,
+        timeline_id: str | None,
+        seed: np.ndarray,
+        width: int,
+        height: int,
+    ) -> tuple[Any, ...] | None:
+        if timeline_id is not None:
+            return None
+        seed_hash = hashlib.sha1(np.ascontiguousarray(seed, dtype=np.float32).tobytes()).hexdigest()
+        return (
+            str(surface_plan.selected_material.material_id),
+            str(surface_plan.mesh.metadata.get("mesh_kind", "")),
+            seed_hash,
+            str(preset_key),
+            int(frame_count),
+            round(float(time_span), 6),
+            int(feature_grid),
+            bool(encode_frames),
+            round(float(codec_threshold), 6),
+            int(width),
+            int(height),
+        )
+
+    def _house_room_scene_cache_key(
+        self,
+        *,
+        entries: list[dict[str, Any]],
+        room_preset: str,
+        max_events: int,
+        feature_grid: int,
+        encode_frames: bool,
+        codec_threshold: float,
+        scene_id: str | None,
+    ) -> tuple[Any, ...] | None:
+        if scene_id is not None:
+            return None
+        return (
+            "house_room",
+            self._execution_entries_digest(entries),
+            str(room_preset or "house_library").strip().lower(),
+            max(1, int(max_events)),
+            max(2, int(feature_grid)),
+            bool(encode_frames),
+            round(float(codec_threshold), 6),
+        )
+
+    def _house_tour_scene_cache_key(
+        self,
+        *,
+        entries: list[dict[str, Any]],
+        max_events_per_room: int,
+        feature_grid: int,
+        encode_frames: bool,
+        codec_threshold: float,
+        scene_id: str | None,
+    ) -> tuple[Any, ...] | None:
+        if scene_id is not None:
+            return None
+        return (
+            "house_tour",
+            self._execution_entries_digest(entries),
+            max(1, int(max_events_per_room)),
+            max(2, int(feature_grid)),
+            bool(encode_frames),
+            round(float(codec_threshold), 6),
+        )
+
+    def _execution_entries_digest(self, entries: list[dict[str, Any]]) -> str:
+        compact_rows: list[dict[str, Any]] = []
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            compact_rows.append(
+                {
+                    "tool_id": str(entry.get("tool_id", "")).strip(),
+                    "action_type": str(entry.get("action_type", "")).strip(),
+                    "outcome": int(entry.get("outcome", entry.get("ternary_quality", 0)) or 0),
+                    "ternary_quality": int(entry.get("ternary_quality", 0) or 0),
+                    "quality_signal": round(float(entry.get("quality_signal", 0.0) or 0.0), 6),
+                    "curiosity": round(float(entry.get("curiosity", 0.0) or 0.0), 6),
+                    "timestamp": int(entry.get("timestamp_us", entry.get("timestamp", 0)) or 0),
+                }
+            )
+        payload = json.dumps(compact_rows, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        return hashlib.sha1(payload).hexdigest()
 
     def _derive_seed(self, surface_plan: SurfaceMaterialPlan) -> np.ndarray:
         mesh = surface_plan.mesh

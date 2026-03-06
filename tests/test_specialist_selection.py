@@ -178,3 +178,36 @@ def test_routing_gate_demotes_unhealthy_kernel_below_bridge(tmp_path, monkeypatc
     assert kernel_gate["preferred_route"] == "recipe"
     assert kernel_gate["ternary_gate"] == -1
     assert bridge_gate["preferred_route"] == "bridge"
+
+
+def test_chain_step_event_skips_specialist_gap_and_grammar(tmp_path, monkeypatch):
+    monkeypatch.setenv("K3D_REQUIRE_PTX_QUERY", "false")
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_chain_step_light")
+
+    summary = kv.trm_navigator.observe_execution_event(
+        {
+            "tool_id": "tool_chain_probe",
+            "query_context": "quux zorb flux lattice entelechy",
+            "specialist_id": "GrammarSpecialist",
+            "math_core_tier": 2,
+            "execution_us": 700,
+            "outcome": 1,
+            "quality_signal": 0.77,
+            "ternary_quality": 1,
+            "timestamp_us": 99,
+            "chain_depth": 3,
+            "promotion_pressure": False,
+            "runtime_status": "ptx_bridge_available",
+            "tool_kind": "scene_fusion",
+            "execution_mode": "tool_chain_step",
+        }
+    )
+
+    record = kv.trm_navigator.execution_quality_tracker.get_tool_record("tool_chain_probe")
+    assert record is not None
+    assert int(record["total_executions"]) == 1
+    assert summary["quality"]["gap_logged"] is False
+    assert summary.get("grammar", {}) == {}
+
+    gap_log = tmp_path / "kv_chain_step_light" / "logs" / "specialist_gaps.jsonl"
+    assert not gap_log.exists()

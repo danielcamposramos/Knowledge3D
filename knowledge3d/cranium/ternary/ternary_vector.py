@@ -14,6 +14,8 @@ from __future__ import annotations
 import ctypes
 from typing import List, Sequence, Tuple
 
+import numpy as np
+
 from knowledge3d.cranium.sovereign import loader
 
 
@@ -21,11 +23,8 @@ class TernaryVector:
     """GPU-resident ternary vector with packed 2-bit storage."""
 
     def __init__(self, values: Sequence[int]):
-        # Accept strict ternary inputs and gracefully quantize other numeric values
-        # (e.g., 0-255 pixel intensities) into {-1, 0, +1}. This keeps downstream
-        # GPU logic operating on ternary data while allowing higher-range inputs.
-        quantized = [self._normalize_value(v) for v in values]
-        self.length = len(quantized)
+        quantized = self._normalize_values(values)
+        self.length = int(quantized.size)
         self.packed_host = self._pack_host(quantized)
         self.device_ptr = self._upload(self.packed_host)
 
@@ -49,6 +48,30 @@ class TernaryVector:
             return 1
         return -1
 
+    @classmethod
+    def _normalize_values(cls, values: Sequence[int]) -> np.ndarray:
+        arr = np.asarray(values)
+        if arr.ndim == 0:
+            arr = arr.reshape(1)
+        flat = arr.reshape(-1).astype(np.float32, copy=False)
+
+        out = np.full(flat.shape, -1, dtype=np.int8)
+        exact = (flat == -1.0) | (flat == 0.0) | (flat == 1.0)
+        if np.any(exact):
+            out[exact] = flat[exact].astype(np.int8, copy=False)
+
+        small = (~exact) & (flat >= -1.0) & (flat <= 1.0)
+        if np.any(small):
+            out[small] = np.clip(np.rint(flat[small]), -1, 1).astype(np.int8, copy=False)
+
+        non_small = ~(exact | small)
+        if np.any(non_small):
+            low = non_small & (flat < 85.0)
+            high = non_small & (flat > 170.0)
+            out[low] = 0
+            out[high] = 1
+        return out
+
     @staticmethod
     def _encode_value(v: int) -> int:
         if v == -1:
@@ -66,20 +89,20 @@ class TernaryVector:
         return 0
 
     def _pack_host(self, values: Sequence[int]) -> bytes:
-        packed: List[int] = []
-        acc = 0
-        count = 0
-        for v in values:
-            code = self._encode_value(int(v))
-            shift = (count % 4) * 2
-            acc |= (code & 0b11) << shift
-            count += 1
-            if count % 4 == 0:
-                packed.append(acc & 0xFF)
-                acc = 0
-        if count % 4 != 0:
-            packed.append(acc & 0xFF)
-        return bytes(packed)
+        arr = np.asarray(values, dtype=np.int8).reshape(-1)
+        if arr.size == 0:
+            return b""
+        codes = np.where(arr < 0, 0b10, np.where(arr > 0, 0b01, 0b00)).astype(np.uint8, copy=False)
+        pad = (-codes.size) % 4
+        if pad:
+            codes = np.pad(codes, (0, pad), constant_values=0)
+        packed = (
+            codes[0::4]
+            | (codes[1::4] << 2)
+            | (codes[2::4] << 4)
+            | (codes[3::4] << 6)
+        ).astype(np.uint8, copy=False)
+        return packed.tobytes()
 
     def _upload(self, data: bytes) -> loader.CUdeviceptr:
         size = len(data)
@@ -89,21 +112,33 @@ class TernaryVector:
             loader.memcpy_htod(d_ptr, ctypes.cast(buf, ctypes.c_void_p), size)
         return d_ptr
 
+    @staticmethod
+    def _unpack_bytes(host_bytes: bytes, length: int) -> np.ndarray:
+        byte_arr = np.frombuffer(host_bytes, dtype=np.uint8)
+        if byte_arr.size == 0:
+            return np.empty((0,), dtype=np.int8)
+        codes = np.empty(byte_arr.size * 4, dtype=np.uint8)
+        codes[0::4] = byte_arr & 0b11
+        codes[1::4] = (byte_arr >> 2) & 0b11
+        codes[2::4] = (byte_arr >> 4) & 0b11
+        codes[3::4] = (byte_arr >> 6) & 0b11
+        values = np.zeros(codes.shape, dtype=np.int8)
+        values[codes == 0b01] = 1
+        values[codes == 0b10] = -1
+        return values[:length]
+
     def to_python(self) -> List[int]:
         """Download and unpack to Python list (debug/validation only)."""
         size = len(self.packed_host)
         host_buf = (ctypes.c_ubyte * size)()
         if size:
             loader.memcpy_dtoh(ctypes.cast(host_buf, ctypes.c_void_p), self.device_ptr, size)
-        out: List[int] = []
-        total = self.length
-        for byte in host_buf:
-            for shift in (0, 2, 4, 6):
-                if len(out) >= total:
-                    break
-                code = (byte >> shift) & 0b11
-                out.append(self._decode_value(code))
-        return out
+        values = self._unpack_bytes(bytes(host_buf), self.length)
+        return values.astype(int, copy=False).tolist()
+
+    def to_numpy(self) -> np.ndarray:
+        """Unpack from the immutable host cache to a contiguous int8 numpy array."""
+        return self._unpack_bytes(self.packed_host, self.length).copy()
 
     # ------------------------------------------------------------------ #
     # Lifecycle

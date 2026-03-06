@@ -40,6 +40,13 @@ def _as_float32_rgba_rows(rows: np.ndarray) -> np.ndarray:
     return arr
 
 
+def _as_float32_xyz(vertices: np.ndarray) -> np.ndarray:
+    arr = np.ascontiguousarray(np.asarray(vertices, dtype=np.float32))
+    if arr.ndim != 2 or arr.shape[1] != 3:
+        raise ValueError(f"expected Nx3 float32 vertices, got shape={arr.shape}")
+    return arr
+
+
 class MaterialProjectionKernels:
     """PTX kernels for planar sampling and triplanar blending."""
 
@@ -47,6 +54,7 @@ class MaterialProjectionKernels:
         module = loader.load_module_from_file(str(PROJECTION_PTX))
         self.sample_planar_kernel = loader.get_function(module, "sample_planar_rgba_kernel")
         self.blend_triplanar_kernel = loader.get_function(module, "blend_triplanar_rgba_kernel")
+        self.project_triplanar_kernel = loader.get_function(module, "project_triplanar_rgba_kernel")
 
     def sample_preview(
         self,
@@ -154,6 +162,66 @@ class MaterialProjectionKernels:
             loader.gpu_free(d_yz)
             loader.gpu_free(d_xz)
             loader.gpu_free(d_xy)
+            loader.gpu_free(d_weights)
+            loader.gpu_free(d_out)
+
+    def project_triplanar(
+        self,
+        preview: np.ndarray,
+        vertices: np.ndarray,
+        weights: np.ndarray,
+        mins: np.ndarray,
+        extents: np.ndarray,
+        tiling: float,
+    ) -> np.ndarray:
+        image = _as_float32_rgba(preview)
+        vertex_arr = _as_float32_xyz(vertices)
+        weight_arr = _as_float32_weights(weights)
+        if vertex_arr.shape[0] != weight_arr.shape[0]:
+            raise ValueError("weights must align with vertex count")
+        mins_arr = np.asarray(mins, dtype=np.float32).reshape(3)
+        extents_arr = np.maximum(np.asarray(extents, dtype=np.float32).reshape(3), 1e-6)
+        vertex_count = int(vertex_arr.shape[0])
+        if vertex_count == 0:
+            return np.empty((0, 4), dtype=np.float32)
+
+        d_preview = loader.gpu_malloc(image.nbytes)
+        d_vertices = loader.gpu_malloc(vertex_arr.nbytes)
+        d_weights = loader.gpu_malloc(weight_arr.nbytes)
+        d_out = loader.gpu_malloc(vertex_count * 4 * 4)
+        try:
+            loader.memcpy_htod(d_preview, image.ctypes.data_as(ctypes.c_void_p), image.nbytes)
+            loader.memcpy_htod(d_vertices, vertex_arr.ctypes.data_as(ctypes.c_void_p), vertex_arr.nbytes)
+            loader.memcpy_htod(d_weights, weight_arr.ctypes.data_as(ctypes.c_void_p), weight_arr.nbytes)
+            block = (256, 1, 1)
+            grid = ((vertex_count + 255) // 256, 1, 1)
+            loader.launch(
+                self.project_triplanar_kernel,
+                grid=grid,
+                block=block,
+                params=[
+                    d_preview,
+                    d_vertices,
+                    d_weights,
+                    d_out,
+                    ctypes.c_int(vertex_count),
+                    ctypes.c_int(int(image.shape[1])),
+                    ctypes.c_int(int(image.shape[0])),
+                    ctypes.c_float(float(mins_arr[0])),
+                    ctypes.c_float(float(mins_arr[1])),
+                    ctypes.c_float(float(mins_arr[2])),
+                    ctypes.c_float(float(extents_arr[0])),
+                    ctypes.c_float(float(extents_arr[1])),
+                    ctypes.c_float(float(extents_arr[2])),
+                    ctypes.c_float(float(tiling)),
+                ],
+            )
+            out = np.empty((vertex_count, 4), dtype=np.float32)
+            loader.memcpy_dtoh(out.ctypes.data_as(ctypes.c_void_p), d_out, out.nbytes)
+            return out
+        finally:
+            loader.gpu_free(d_preview)
+            loader.gpu_free(d_vertices)
             loader.gpu_free(d_weights)
             loader.gpu_free(d_out)
 

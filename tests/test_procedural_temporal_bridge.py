@@ -124,6 +124,98 @@ def test_surface_material_to_timeline_preset_emits_named_ui_and_world_metadata()
 
 
 @pytest.mark.cuda
+def test_surface_material_to_timeline_preset_reuses_cached_plan_without_timeline_id():
+    _require_gpu()
+    from knowledge3d.cranium.bridges.procedural_material_bridge import (
+        ProceduralMaterialBridge,
+        SurfaceMaterialCandidate,
+    )
+    from knowledge3d.cranium.bridges.procedural_temporal_bridge import ProceduralTemporalBridge
+
+    grid = np.zeros((24, 24), dtype=np.int32)
+    grid[5:19, 8:14] = 1
+
+    cool = SurfaceMaterialCandidate(
+        material_id="timeline_cache",
+        name="Timeline Cache",
+        palette=((0.08, 0.16, 0.62, 1.0), (0.4, 0.62, 0.95, 1.0), (0.92, 0.98, 1.0, 1.0)),
+    )
+
+    material_bridge = ProceduralMaterialBridge()
+    surface_plan = material_bridge.contour_to_textured_lathe_mesh(
+        grid,
+        color=1,
+        pad=1,
+        segments=12,
+        target_material=cool,
+        candidates=(cool,),
+        preview_size=32,
+    )
+
+    temporal_bridge = ProceduralTemporalBridge()
+    first = temporal_bridge.surface_material_to_timeline_preset(
+        surface_plan,
+        timeline_preset="ui_idle",
+        encode_frames=True,
+    )
+    second = temporal_bridge.surface_material_to_timeline_preset(
+        surface_plan,
+        timeline_preset="ui_idle",
+        encode_frames=True,
+    )
+
+    assert first is second
+
+
+@pytest.mark.cuda
+def test_surface_material_to_timeline_preset_bypasses_cache_with_timeline_id():
+    _require_gpu()
+    from knowledge3d.cranium.bridges.procedural_material_bridge import (
+        ProceduralMaterialBridge,
+        SurfaceMaterialCandidate,
+    )
+    from knowledge3d.cranium.bridges.procedural_temporal_bridge import ProceduralTemporalBridge
+
+    grid = np.zeros((24, 24), dtype=np.int32)
+    grid[5:19, 8:14] = 1
+
+    cool = SurfaceMaterialCandidate(
+        material_id="timeline_cache_id",
+        name="Timeline Cache Id",
+        palette=((0.08, 0.16, 0.62, 1.0), (0.4, 0.62, 0.95, 1.0), (0.92, 0.98, 1.0, 1.0)),
+    )
+
+    material_bridge = ProceduralMaterialBridge()
+    surface_plan = material_bridge.contour_to_textured_lathe_mesh(
+        grid,
+        color=1,
+        pad=1,
+        segments=12,
+        target_material=cool,
+        candidates=(cool,),
+        preview_size=32,
+    )
+
+    temporal_bridge = ProceduralTemporalBridge()
+    first = temporal_bridge.surface_material_to_timeline_preset(
+        surface_plan,
+        timeline_preset="ui_idle",
+        encode_frames=True,
+        timeline_id="timeline_a",
+    )
+    second = temporal_bridge.surface_material_to_timeline_preset(
+        surface_plan,
+        timeline_preset="ui_idle",
+        encode_frames=True,
+        timeline_id="timeline_b",
+    )
+
+    assert first is not second
+    assert first.metadata["encoded_frames"][0]["frame_id"].startswith("timeline_a")
+    assert second.metadata["encoded_frames"][0]["frame_id"].startswith("timeline_b")
+
+
+@pytest.mark.cuda
 def test_surface_materials_to_scene_timeline_composes_multiple_layers():
     _require_gpu()
     from knowledge3d.cranium.bridges.procedural_material_bridge import (
@@ -189,6 +281,7 @@ def test_surface_materials_to_scene_timeline_composes_multiple_layers():
     assert scene.metadata["scene_domain"] == "ui"
     assert scene.metadata["codec_enabled"] is True
     assert len(scene.metadata["encoded_frames"]) == 4
+    assert all(layer.preview_plan.metadata["codec_enabled"] is False for layer in scene.layers)
 
 
 @pytest.mark.cuda
@@ -223,3 +316,63 @@ def test_replay_journal_to_scene_timeline_builds_golden_orbit_playback(tmp_path)
     assert scene.metadata["replay_source"] == "journal"
     assert scene.metadata["replay_action_types"] == ["NAV_MOVE", "DIALOGUE", "WRITE_MEM"]
     assert scene.metadata["layer_count"] == 3
+
+
+@pytest.mark.cuda
+def test_execution_events_to_house_room_scene_reuses_cached_plan_without_scene_id():
+    _require_gpu()
+    from knowledge3d.cranium.bridges.procedural_temporal_bridge import ProceduralTemporalBridge
+
+    execution_events = [
+        {"tool_id": "tool_fusion_surface_material_ui_animation_v1", "outcome": 1, "quality_signal": 0.92, "ternary_quality": 1, "timestamp_us": 1},
+        {"tool_id": "tool_fusion_surface_material_world_animation_v1", "outcome": 1, "quality_signal": 0.86, "ternary_quality": 1, "timestamp_us": 2},
+        {"tool_id": "tool_fusion_signal_surface_material_world_animation_v1", "outcome": 0, "quality_signal": 0.58, "ternary_quality": 0, "timestamp_us": 3, "curiosity": 0.8},
+        {"tool_id": "tool_house_replay_scene_v1", "outcome": -1, "quality_signal": 0.22, "ternary_quality": -1, "timestamp_us": 4},
+    ]
+
+    temporal_bridge = ProceduralTemporalBridge()
+    first = temporal_bridge.execution_events_to_house_room_scene(
+        execution_events=execution_events,
+        room_preset="house_library",
+        encode_frames=True,
+    )
+    second = temporal_bridge.execution_events_to_house_room_scene(
+        execution_events=execution_events,
+        room_preset="house_library",
+        encode_frames=True,
+    )
+
+    assert first is second
+    assert first.metadata["house_room_preset"] == "house_library"
+    assert first.metadata["event_count"] >= 1
+
+
+@pytest.mark.cuda
+def test_execution_events_to_house_tour_scene_bypasses_cache_with_scene_id():
+    _require_gpu()
+    from knowledge3d.cranium.bridges.procedural_temporal_bridge import ProceduralTemporalBridge
+
+    execution_events = [
+        {"tool_id": "tool_fusion_surface_material_ui_animation_v1", "outcome": 1, "quality_signal": 0.92, "ternary_quality": 1, "timestamp_us": 1},
+        {"tool_id": "tool_fusion_surface_material_world_animation_v1", "outcome": 1, "quality_signal": 0.81, "ternary_quality": 1, "timestamp_us": 2, "curiosity": 0.4},
+        {"tool_id": "tool_fusion_signal_surface_material_world_animation_v1", "outcome": 0, "quality_signal": 0.55, "ternary_quality": 0, "timestamp_us": 3, "curiosity": 0.9},
+        {"tool_id": "tool_house_replay_scene_v1", "outcome": -1, "quality_signal": 0.18, "ternary_quality": -1, "timestamp_us": 4},
+    ]
+
+    temporal_bridge = ProceduralTemporalBridge()
+    first = temporal_bridge.execution_events_to_house_tour_scene(
+        execution_events=execution_events,
+        encode_frames=True,
+        scene_id="tour_scene_a",
+    )
+    second = temporal_bridge.execution_events_to_house_tour_scene(
+        execution_events=execution_events,
+        encode_frames=True,
+        scene_id="tour_scene_b",
+    )
+
+    assert first is not second
+    assert first.metadata["house_room_preset"] == "house_tour"
+    assert second.metadata["house_room_preset"] == "house_tour"
+    assert first.metadata["encoded_frames"][0]["frame_id"].startswith("tour_scene_a")
+    assert second.metadata["encoded_frames"][0]["frame_id"].startswith("tour_scene_b")

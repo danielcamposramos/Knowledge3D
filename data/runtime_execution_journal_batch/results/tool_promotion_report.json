@@ -1,0 +1,879 @@
+{
+  "candidate_summary": {
+    "candidate_count": 3,
+    "top_candidate": {
+      "avg_execution_us": 3654.0,
+      "avg_quality_signal": 0.666739,
+      "dominant_route_source": "bridge",
+      "entrypoints": [
+        "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.contour_to_textured_extrude_mesh",
+        "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.contour_to_textured_lathe_mesh",
+        "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.contour_to_textured_sweep_mesh",
+        "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.project_material",
+        "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.signal_projection_to_material_target",
+        "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.signal_to_textured_surface",
+        "knowledge3d.cranium.bridges.procedural_temporal_bridge.ProceduralTemporalBridge.surface_material_to_temporal_preview",
+        "knowledge3d.cranium.bridges.procedural_temporal_bridge.ProceduralTemporalBridge.surface_material_to_timeline_preset",
+        "knowledge3d.cranium.ptx_runtime.math_core_pool.MathCorePool.release_core",
+        "knowledge3d.cranium.ptx_runtime.math_core_pool.MathCorePool.snapshot",
+        "knowledge3d.cranium.ptx_runtime.math_core_pool.MathCorePool.spawn_core",
+        "knowledge3d.cranium.ptx_runtime.modular_rpn_engine.ModularRPNEngine.get_math_core_descriptor"
+      ],
+      "event_execution_count": 64,
+      "failure_rate": 0.0,
+      "grammar_occurrence_count": 66,
+      "grammar_pattern_count": 22,
+      "multimodal_negative_patterns": 0,
+      "multimodal_negative_support": 0,
+      "multimodal_positive_patterns": 1,
+      "multimodal_positive_support": 3,
+      "name": "TRIPLANAR_MAP",
+      "pressure_count": 22,
+      "primary_tool_count": 2,
+      "primary_tools": [
+        "tool_fusion_surface_material_projection_v1",
+        "tool_fusion_surface_material_timeline_v1"
+      ],
+      "promotion_priority_score": 0.771992,
+      "promotion_readiness_score": 0.87468,
+      "quality_gap": 0.333261,
+      "route_quality_level": 0.716014,
+      "route_source_counts": [
+        {
+          "count": 30,
+          "name": "bridge"
+        }
+      ],
+      "sample_queries": [
+        "generate L-system plant with axiom F and rule F->F[+F]F[-F]F for 3 iterations",
+        "generate textured mesh from contour with surface material",
+        "visualize electric field for point charge at origin with magnitude 1.0"
+      ],
+      "sample_query_tokens": [
+        "0",
+        "1",
+        "3",
+        "and",
+        "at",
+        "axiom",
+        "charge",
+        "contour"
+      ],
+      "sample_tool_kind_tokens": [
+        "allocator",
+        "animation",
+        "core",
+        "fusion",
+        "material",
+        "math",
+        "projection",
+        "signal"
+      ],
+      "source_quality_gap": 0.486705,
+      "source_quality_level": 0.513295,
+      "success_rate": 0.109375,
+      "tool_ids": [
+        "tool_fusion_signal_surface_material_v1",
+        "tool_fusion_surface_material_projection_v1",
+        "tool_fusion_surface_material_timeline_v1",
+        "tool_fusion_surface_material_ui_animation_v1",
+        "tool_mathcore_spawn_cascade_v1"
+      ],
+      "uncertain_rate": 0.890625
+    }
+  },
+  "event_rows": 106,
+  "grammar_rows": 60,
+  "rankings": {
+    "codec_ops": [
+      {
+        "count": 22,
+        "name": "TERNARY_QUANT"
+      },
+      {
+        "count": 16,
+        "name": "BLOCKS_TO_GRID"
+      },
+      {
+        "count": 8,
+        "name": "MDCT"
+      },
+      {
+        "count": 8,
+        "name": "RESHAPE_TO_BLOCKS"
+      },
+      {
+        "count": 6,
+        "name": "DCT8"
+      }
+    ],
+    "entrypoints": [
+      {
+        "count": 21,
+        "name": "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.contour_to_textured_lathe_mesh"
+      },
+      {
+        "count": 21,
+        "name": "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.contour_to_textured_extrude_mesh"
+      },
+      {
+        "count": 21,
+        "name": "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.contour_to_textured_sweep_mesh"
+      },
+      {
+        "count": 16,
+        "name": "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.project_material"
+      },
+      {
+        "count": 8,
+        "name": "knowledge3d.cranium.ptx_runtime.math_core_pool.MathCorePool.spawn_core"
+      },
+      {
+        "count": 8,
+        "name": "knowledge3d.cranium.ptx_runtime.math_core_pool.MathCorePool.release_core"
+      },
+      {
+        "count": 8,
+        "name": "knowledge3d.cranium.ptx_runtime.math_core_pool.MathCorePool.snapshot"
+      },
+      {
+        "count": 8,
+        "name": "knowledge3d.cranium.ptx_runtime.modular_rpn_engine.ModularRPNEngine.get_math_core_descriptor"
+      },
+      {
+        "count": 8,
+        "name": "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.signal_to_textured_surface"
+      },
+      {
+        "count": 8,
+        "name": "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.signal_projection_to_material_target"
+      },
+      {
+        "count": 6,
+        "name": "knowledge3d.cranium.bridges.procedural_temporal_bridge.ProceduralTemporalBridge.surface_material_to_temporal_preview"
+      },
+      {
+        "count": 6,
+        "name": "knowledge3d.cranium.bridges.procedural_temporal_bridge.ProceduralTemporalBridge.surface_material_to_timeline_preset"
+      }
+    ],
+    "event_chains": [
+      {
+        "count": 7,
+        "name": "tool_fusion_signal_surface_material_v1 -> tool_signal_spectrogram_surface_v1 -> tool_fusion_signal_surface_material_timeline_v1 -> tool_video_temporal_preview_v1 -> tool_fusion_signal_surface_material_ui_animation_v1 -> tool_fusion_signal_surface_material_world_animation_v1"
+      },
+      {
+        "count": 7,
+        "name": "tool_fusion_surface_material_projection_v1 -> tool_fusion_signal_surface_material_v1 -> tool_fusion_surface_material_timeline_v1 -> tool_fusion_surface_material_ui_animation_v1 -> tool_fusion_surface_material_world_animation_v1"
+      },
+      {
+        "count": 7,
+        "name": "tool_house_replay_scene_v1 -> tool_fusion_surface_material_world_scene_v1 -> tool_house_library_scene_v1 -> tool_house_garden_scene_v1 -> tool_house_museum_scene_v1 -> tool_house_tour_scene_v1"
+      },
+      {
+        "count": 7,
+        "name": "tool_house_library_scene_v1 -> tool_fusion_surface_material_world_scene_v1 -> tool_video_temporal_scene_v1 -> tool_house_replay_scene_v1 -> tool_house_tour_scene_v1 -> tool_fusion_surface_material_ui_scene_v1"
+      },
+      {
+        "count": 7,
+        "name": "tool_house_garden_scene_v1 -> tool_fusion_surface_material_world_scene_v1 -> tool_video_temporal_scene_v1 -> tool_house_replay_scene_v1 -> tool_house_tour_scene_v1 -> tool_fusion_surface_material_ui_scene_v1"
+      },
+      {
+        "count": 7,
+        "name": "tool_house_museum_scene_v1 -> tool_house_replay_scene_v1 -> tool_fusion_surface_material_world_scene_v1 -> tool_video_temporal_scene_v1 -> tool_house_tour_scene_v1 -> tool_fusion_surface_material_ui_scene_v1"
+      },
+      {
+        "count": 7,
+        "name": "tool_house_tour_scene_v1 -> tool_fusion_surface_material_world_scene_v1 -> tool_house_replay_scene_v1 -> tool_house_library_scene_v1 -> tool_house_garden_scene_v1 -> tool_house_museum_scene_v1"
+      }
+    ],
+    "event_tools": [
+      {
+        "avg_execution_us": 4856.361,
+        "avg_quality_signal": 0.655048,
+        "execution_count": 36,
+        "name": "tool_fusion_signal_surface_material_v1",
+        "promotion_pressure_count": 36,
+        "success_rate": 0.0
+      },
+      {
+        "avg_execution_us": 2108.107,
+        "avg_quality_signal": 0.681771,
+        "execution_count": 28,
+        "name": "tool_fusion_surface_material_projection_v1",
+        "promotion_pressure_count": 28,
+        "success_rate": 0.25
+      },
+      {
+        "avg_execution_us": 19017.429,
+        "avg_quality_signal": 0.856398,
+        "execution_count": 7,
+        "name": "tool_house_tour_scene_v1",
+        "promotion_pressure_count": 0,
+        "success_rate": 1.0
+      },
+      {
+        "avg_execution_us": 22495.143,
+        "avg_quality_signal": 0.83659,
+        "execution_count": 7,
+        "name": "tool_house_garden_scene_v1",
+        "promotion_pressure_count": 0,
+        "success_rate": 1.0
+      },
+      {
+        "avg_execution_us": 14662.0,
+        "avg_quality_signal": 0.827356,
+        "execution_count": 7,
+        "name": "tool_house_replay_scene_v1",
+        "promotion_pressure_count": 0,
+        "success_rate": 1.0
+      },
+      {
+        "avg_execution_us": 9713.286,
+        "avg_quality_signal": 0.807674,
+        "execution_count": 7,
+        "name": "tool_house_museum_scene_v1",
+        "promotion_pressure_count": 0,
+        "success_rate": 1.0
+      },
+      {
+        "avg_execution_us": 7679.714,
+        "avg_quality_signal": 0.743211,
+        "execution_count": 7,
+        "name": "tool_house_library_scene_v1",
+        "promotion_pressure_count": 0,
+        "success_rate": 1.0
+      },
+      {
+        "avg_execution_us": 368.143,
+        "avg_quality_signal": 0.65,
+        "execution_count": 7,
+        "name": "tool_signal_spectrogram_surface_v1",
+        "promotion_pressure_count": 7,
+        "success_rate": 0.0
+      }
+    ],
+    "math_core_cascades": [
+      {
+        "count": 22,
+        "name": "parallel_fanout"
+      },
+      {
+        "count": 22,
+        "name": "worker_reduce"
+      },
+      {
+        "count": 22,
+        "name": "master_commit"
+      }
+    ],
+    "math_core_roles": [
+      {
+        "count": 22,
+        "name": "master"
+      },
+      {
+        "count": 8,
+        "name": "allocator"
+      }
+    ],
+    "math_core_tiers": [
+      {
+        "count": 22,
+        "name": "3"
+      }
+    ],
+    "primary_tool_targets": [
+      {
+        "count": 16,
+        "name": "tool_fusion_surface_material_projection_v1::TRIPLANAR_MAP"
+      },
+      {
+        "count": 16,
+        "name": "tool_fusion_surface_material_projection_v1::UV_PROJECT"
+      },
+      {
+        "count": 8,
+        "name": "tool_fusion_surface_material_projection_v1::SIGNAL_SURFACE_MATERIAL"
+      },
+      {
+        "count": 6,
+        "name": "tool_fusion_surface_material_timeline_v1::TRIPLANAR_MAP"
+      },
+      {
+        "count": 6,
+        "name": "tool_fusion_surface_material_timeline_v1::UV_PROJECT"
+      }
+    ],
+    "primary_tools": [
+      {
+        "count": 16,
+        "name": "tool_fusion_surface_material_projection_v1"
+      },
+      {
+        "count": 6,
+        "name": "tool_fusion_surface_material_timeline_v1"
+      }
+    ],
+    "promotion_candidates": [
+      {
+        "avg_execution_us": 3654.0,
+        "avg_quality_signal": 0.666739,
+        "dominant_route_source": "bridge",
+        "entrypoints": [
+          "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.contour_to_textured_extrude_mesh",
+          "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.contour_to_textured_lathe_mesh",
+          "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.contour_to_textured_sweep_mesh",
+          "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.project_material",
+          "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.signal_projection_to_material_target",
+          "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.signal_to_textured_surface",
+          "knowledge3d.cranium.bridges.procedural_temporal_bridge.ProceduralTemporalBridge.surface_material_to_temporal_preview",
+          "knowledge3d.cranium.bridges.procedural_temporal_bridge.ProceduralTemporalBridge.surface_material_to_timeline_preset",
+          "knowledge3d.cranium.ptx_runtime.math_core_pool.MathCorePool.release_core",
+          "knowledge3d.cranium.ptx_runtime.math_core_pool.MathCorePool.snapshot",
+          "knowledge3d.cranium.ptx_runtime.math_core_pool.MathCorePool.spawn_core",
+          "knowledge3d.cranium.ptx_runtime.modular_rpn_engine.ModularRPNEngine.get_math_core_descriptor"
+        ],
+        "event_execution_count": 64,
+        "failure_rate": 0.0,
+        "grammar_occurrence_count": 66,
+        "grammar_pattern_count": 22,
+        "multimodal_negative_patterns": 0,
+        "multimodal_negative_support": 0,
+        "multimodal_positive_patterns": 1,
+        "multimodal_positive_support": 3,
+        "name": "TRIPLANAR_MAP",
+        "pressure_count": 22,
+        "primary_tool_count": 2,
+        "primary_tools": [
+          "tool_fusion_surface_material_projection_v1",
+          "tool_fusion_surface_material_timeline_v1"
+        ],
+        "promotion_priority_score": 0.771992,
+        "promotion_readiness_score": 0.87468,
+        "quality_gap": 0.333261,
+        "route_quality_level": 0.716014,
+        "route_source_counts": [
+          {
+            "count": 30,
+            "name": "bridge"
+          }
+        ],
+        "sample_queries": [
+          "generate L-system plant with axiom F and rule F->F[+F]F[-F]F for 3 iterations",
+          "generate textured mesh from contour with surface material",
+          "visualize electric field for point charge at origin with magnitude 1.0"
+        ],
+        "sample_query_tokens": [
+          "0",
+          "1",
+          "3",
+          "and",
+          "at",
+          "axiom",
+          "charge",
+          "contour"
+        ],
+        "sample_tool_kind_tokens": [
+          "allocator",
+          "animation",
+          "core",
+          "fusion",
+          "material",
+          "math",
+          "projection",
+          "signal"
+        ],
+        "source_quality_gap": 0.486705,
+        "source_quality_level": 0.513295,
+        "success_rate": 0.109375,
+        "tool_ids": [
+          "tool_fusion_signal_surface_material_v1",
+          "tool_fusion_surface_material_projection_v1",
+          "tool_fusion_surface_material_timeline_v1",
+          "tool_fusion_surface_material_ui_animation_v1",
+          "tool_mathcore_spawn_cascade_v1"
+        ],
+        "uncertain_rate": 0.890625
+      },
+      {
+        "avg_execution_us": 3654.0,
+        "avg_quality_signal": 0.666739,
+        "dominant_route_source": "bridge",
+        "entrypoints": [
+          "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.contour_to_textured_extrude_mesh",
+          "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.contour_to_textured_lathe_mesh",
+          "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.contour_to_textured_sweep_mesh",
+          "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.project_material",
+          "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.signal_projection_to_material_target",
+          "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.signal_to_textured_surface",
+          "knowledge3d.cranium.bridges.procedural_temporal_bridge.ProceduralTemporalBridge.surface_material_to_temporal_preview",
+          "knowledge3d.cranium.bridges.procedural_temporal_bridge.ProceduralTemporalBridge.surface_material_to_timeline_preset",
+          "knowledge3d.cranium.ptx_runtime.math_core_pool.MathCorePool.release_core",
+          "knowledge3d.cranium.ptx_runtime.math_core_pool.MathCorePool.snapshot",
+          "knowledge3d.cranium.ptx_runtime.math_core_pool.MathCorePool.spawn_core",
+          "knowledge3d.cranium.ptx_runtime.modular_rpn_engine.ModularRPNEngine.get_math_core_descriptor"
+        ],
+        "event_execution_count": 64,
+        "failure_rate": 0.0,
+        "grammar_occurrence_count": 66,
+        "grammar_pattern_count": 22,
+        "multimodal_negative_patterns": 0,
+        "multimodal_negative_support": 0,
+        "multimodal_positive_patterns": 1,
+        "multimodal_positive_support": 3,
+        "name": "UV_PROJECT",
+        "pressure_count": 22,
+        "primary_tool_count": 2,
+        "primary_tools": [
+          "tool_fusion_surface_material_projection_v1",
+          "tool_fusion_surface_material_timeline_v1"
+        ],
+        "promotion_priority_score": 0.771992,
+        "promotion_readiness_score": 0.87468,
+        "quality_gap": 0.333261,
+        "route_quality_level": 0.716014,
+        "route_source_counts": [
+          {
+            "count": 30,
+            "name": "bridge"
+          }
+        ],
+        "sample_queries": [
+          "generate L-system plant with axiom F and rule F->F[+F]F[-F]F for 3 iterations",
+          "generate textured mesh from contour with surface material",
+          "visualize electric field for point charge at origin with magnitude 1.0"
+        ],
+        "sample_query_tokens": [
+          "0",
+          "1",
+          "3",
+          "and",
+          "at",
+          "axiom",
+          "charge",
+          "contour"
+        ],
+        "sample_tool_kind_tokens": [
+          "allocator",
+          "animation",
+          "core",
+          "fusion",
+          "material",
+          "math",
+          "projection",
+          "signal"
+        ],
+        "source_quality_gap": 0.486705,
+        "source_quality_level": 0.513295,
+        "success_rate": 0.109375,
+        "tool_ids": [
+          "tool_fusion_signal_surface_material_v1",
+          "tool_fusion_surface_material_projection_v1",
+          "tool_fusion_surface_material_timeline_v1",
+          "tool_fusion_surface_material_ui_animation_v1",
+          "tool_mathcore_spawn_cascade_v1"
+        ],
+        "uncertain_rate": 0.890625
+      },
+      {
+        "avg_execution_us": 3654.0,
+        "avg_quality_signal": 0.666739,
+        "dominant_route_source": "bridge",
+        "entrypoints": [
+          "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.contour_to_textured_extrude_mesh",
+          "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.contour_to_textured_lathe_mesh",
+          "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.contour_to_textured_sweep_mesh",
+          "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.project_material",
+          "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.signal_projection_to_material_target",
+          "knowledge3d.cranium.bridges.procedural_material_bridge.ProceduralMaterialBridge.signal_to_textured_surface"
+        ],
+        "event_execution_count": 64,
+        "failure_rate": 0.0,
+        "grammar_occurrence_count": 27,
+        "grammar_pattern_count": 9,
+        "multimodal_negative_patterns": 0,
+        "multimodal_negative_support": 0,
+        "multimodal_positive_patterns": 0,
+        "multimodal_positive_support": 0,
+        "name": "SIGNAL_SURFACE_MATERIAL",
+        "pressure_count": 8,
+        "primary_tool_count": 1,
+        "primary_tools": [
+          "tool_fusion_surface_material_projection_v1"
+        ],
+        "promotion_priority_score": 0.46972,
+        "promotion_readiness_score": 0.488316,
+        "quality_gap": 0.333261,
+        "route_quality_level": 0.716014,
+        "route_source_counts": [
+          {
+            "count": 8,
+            "name": "bridge"
+          }
+        ],
+        "sample_queries": [
+          "visualize electric field for point charge at origin with magnitude 1.0"
+        ],
+        "sample_query_tokens": [
+          "0",
+          "1",
+          "at",
+          "charge",
+          "electric",
+          "field",
+          "for",
+          "magnitude"
+        ],
+        "sample_tool_kind_tokens": [
+          "material",
+          "projection",
+          "signal"
+        ],
+        "source_quality_gap": 0.486705,
+        "source_quality_level": 0.513295,
+        "success_rate": 0.109375,
+        "tool_ids": [
+          "tool_fusion_signal_surface_material_v1",
+          "tool_fusion_surface_material_projection_v1"
+        ],
+        "uncertain_rate": 0.890625
+      }
+    ],
+    "promotion_targets": [
+      {
+        "count": 22,
+        "name": "TRIPLANAR_MAP"
+      },
+      {
+        "count": 22,
+        "name": "UV_PROJECT"
+      },
+      {
+        "count": 8,
+        "name": "SIGNAL_SURFACE_MATERIAL"
+      }
+    ],
+    "route_source_quality": [
+      {
+        "avg_execution_us": 9283.5,
+        "bayesian_quality": 0.62069,
+        "name": "bridge",
+        "quality_level": 0.716014,
+        "ternary_trend": 0,
+        "total_executions": 56
+      },
+      {
+        "avg_execution_us": 4630.6,
+        "bayesian_quality": 0.153846,
+        "name": "recipe",
+        "quality_level": 0.511629,
+        "ternary_trend": 0,
+        "total_executions": 50
+      }
+    ],
+    "runtime_statuses": [
+      {
+        "count": 22,
+        "name": "ptx_bridge_available"
+      },
+      {
+        "count": 8,
+        "name": "ptx_runtime_available"
+      }
+    ],
+    "source_target_routes": [
+      {
+        "count": 8,
+        "name": "Reality->3DObjects"
+      },
+      {
+        "count": 8,
+        "name": "Reality->Drawing"
+      },
+      {
+        "count": 6,
+        "name": "3DObjects->3DObjects"
+      }
+    ],
+    "specialists": [
+      {
+        "count": 16,
+        "name": "physics"
+      },
+      {
+        "count": 6,
+        "name": "cartographer"
+      }
+    ],
+    "tool_kinds": [
+      {
+        "count": 16,
+        "name": "material_projection"
+      },
+      {
+        "count": 8,
+        "name": "math_core_allocator"
+      },
+      {
+        "count": 8,
+        "name": "signal_material_projection"
+      },
+      {
+        "count": 6,
+        "name": "temporal_fusion"
+      },
+      {
+        "count": 5,
+        "name": "ui_animation_fusion"
+      }
+    ],
+    "tool_source_quality": [
+      {
+        "avg_execution_us": 19017.429,
+        "bayesian_quality": 0.888889,
+        "name": "tool_house_tour_scene_v1::bridge",
+        "quality_level": 0.866145,
+        "route_source": "bridge",
+        "ternary_trend": 0,
+        "tool_id": "tool_house_tour_scene_v1",
+        "total_executions": 7
+      },
+      {
+        "avg_execution_us": 22495.143,
+        "bayesian_quality": 0.888889,
+        "name": "tool_house_garden_scene_v1::bridge",
+        "quality_level": 0.85228,
+        "route_source": "bridge",
+        "ternary_trend": 0,
+        "tool_id": "tool_house_garden_scene_v1",
+        "total_executions": 7
+      },
+      {
+        "avg_execution_us": 14662.0,
+        "bayesian_quality": 0.888889,
+        "name": "tool_house_replay_scene_v1::bridge",
+        "quality_level": 0.845816,
+        "route_source": "bridge",
+        "ternary_trend": 0,
+        "tool_id": "tool_house_replay_scene_v1",
+        "total_executions": 7
+      },
+      {
+        "avg_execution_us": 9713.286,
+        "bayesian_quality": 0.888889,
+        "name": "tool_house_museum_scene_v1::bridge",
+        "quality_level": 0.832038,
+        "route_source": "bridge",
+        "ternary_trend": 0,
+        "tool_id": "tool_house_museum_scene_v1",
+        "total_executions": 7
+      },
+      {
+        "avg_execution_us": 7679.714,
+        "bayesian_quality": 0.888889,
+        "name": "tool_house_library_scene_v1::bridge",
+        "quality_level": 0.786914,
+        "route_source": "bridge",
+        "ternary_trend": 0,
+        "tool_id": "tool_house_library_scene_v1",
+        "total_executions": 7
+      },
+      {
+        "avg_execution_us": 2704.714,
+        "bayesian_quality": 0.347826,
+        "name": "tool_fusion_surface_material_projection_v1::recipe",
+        "quality_level": 0.583957,
+        "route_source": "recipe",
+        "ternary_trend": 0,
+        "tool_id": "tool_fusion_surface_material_projection_v1",
+        "total_executions": 21
+      },
+      {
+        "avg_execution_us": 318.286,
+        "bayesian_quality": 0.111111,
+        "name": "tool_fusion_surface_material_projection_v1::bridge",
+        "quality_level": 0.511667,
+        "route_source": "bridge",
+        "ternary_trend": 0,
+        "tool_id": "tool_fusion_surface_material_projection_v1",
+        "total_executions": 7
+      },
+      {
+        "avg_execution_us": 14.0,
+        "bayesian_quality": 0.111111,
+        "name": "tool_fusion_signal_surface_material_v1::bridge",
+        "quality_level": 0.488333,
+        "route_source": "bridge",
+        "ternary_trend": 0,
+        "tool_id": "tool_fusion_signal_surface_material_v1",
+        "total_executions": 7
+      },
+      {
+        "avg_execution_us": 368.143,
+        "bayesian_quality": 0.111111,
+        "name": "tool_signal_spectrogram_surface_v1::bridge",
+        "quality_level": 0.488333,
+        "route_source": "bridge",
+        "ternary_trend": 0,
+        "tool_id": "tool_signal_spectrogram_surface_v1",
+        "total_executions": 7
+      },
+      {
+        "avg_execution_us": 6025.207,
+        "bayesian_quality": 0.032258,
+        "name": "tool_fusion_signal_surface_material_v1::recipe",
+        "quality_level": 0.469221,
+        "route_source": "recipe",
+        "ternary_trend": 0,
+        "tool_id": "tool_fusion_signal_surface_material_v1",
+        "total_executions": 29
+      }
+    ],
+    "tools": [
+      {
+        "count": 16,
+        "name": "tool_fusion_surface_material_projection_v1"
+      },
+      {
+        "count": 8,
+        "name": "tool_mathcore_spawn_cascade_v1"
+      },
+      {
+        "count": 8,
+        "name": "tool_fusion_signal_surface_material_v1"
+      },
+      {
+        "count": 6,
+        "name": "tool_fusion_surface_material_timeline_v1"
+      },
+      {
+        "count": 5,
+        "name": "tool_fusion_surface_material_ui_animation_v1"
+      }
+    ]
+  },
+  "recent_queries": [
+    {
+      "primary_tool_id": "tool_fusion_surface_material_projection_v1",
+      "promotion_targets": [
+        "TRIPLANAR_MAP",
+        "UV_PROJECT"
+      ],
+      "query": "generate L-system plant with axiom F and rule F->F[+F]F[-F]F for 3 iterations",
+      "timestamp": "2026-03-06T22:43:40.891990+00:00"
+    },
+    {
+      "primary_tool_id": "tool_fusion_surface_material_projection_v1",
+      "promotion_targets": [
+        "SIGNAL_SURFACE_MATERIAL",
+        "TRIPLANAR_MAP",
+        "UV_PROJECT"
+      ],
+      "query": "visualize electric field for point charge at origin with magnitude 1.0",
+      "timestamp": "2026-03-06T22:43:41.031799+00:00"
+    },
+    {
+      "primary_tool_id": "tool_fusion_surface_material_timeline_v1",
+      "promotion_targets": [
+        "TRIPLANAR_MAP",
+        "UV_PROJECT"
+      ],
+      "query": "generate textured mesh from contour with surface material",
+      "timestamp": "2026-03-06T22:43:41.192251+00:00"
+    },
+    {
+      "primary_tool_id": "tool_fusion_surface_material_projection_v1",
+      "promotion_targets": [
+        "TRIPLANAR_MAP",
+        "UV_PROJECT"
+      ],
+      "query": "generate L-system plant with axiom F and rule F->F[+F]F[-F]F for 3 iterations",
+      "timestamp": "2026-03-06T22:43:42.788242+00:00"
+    },
+    {
+      "primary_tool_id": "tool_fusion_surface_material_projection_v1",
+      "promotion_targets": [
+        "SIGNAL_SURFACE_MATERIAL",
+        "TRIPLANAR_MAP",
+        "UV_PROJECT"
+      ],
+      "query": "visualize electric field for point charge at origin with magnitude 1.0",
+      "timestamp": "2026-03-06T22:43:42.935055+00:00"
+    },
+    {
+      "primary_tool_id": "tool_fusion_surface_material_timeline_v1",
+      "promotion_targets": [
+        "TRIPLANAR_MAP",
+        "UV_PROJECT"
+      ],
+      "query": "generate textured mesh from contour with surface material",
+      "timestamp": "2026-03-06T22:43:43.068289+00:00"
+    },
+    {
+      "primary_tool_id": "tool_fusion_surface_material_projection_v1",
+      "promotion_targets": [
+        "TRIPLANAR_MAP",
+        "UV_PROJECT"
+      ],
+      "query": "generate L-system plant with axiom F and rule F->F[+F]F[-F]F for 3 iterations",
+      "timestamp": "2026-03-06T22:43:47.540707+00:00"
+    },
+    {
+      "primary_tool_id": "tool_fusion_surface_material_projection_v1",
+      "promotion_targets": [
+        "SIGNAL_SURFACE_MATERIAL",
+        "TRIPLANAR_MAP",
+        "UV_PROJECT"
+      ],
+      "query": "visualize electric field for point charge at origin with magnitude 1.0",
+      "timestamp": "2026-03-06T22:43:47.720282+00:00"
+    },
+    {
+      "primary_tool_id": "tool_fusion_surface_material_timeline_v1",
+      "promotion_targets": [
+        "TRIPLANAR_MAP",
+        "UV_PROJECT"
+      ],
+      "query": "generate textured mesh from contour with surface material",
+      "timestamp": "2026-03-06T22:43:47.848289+00:00"
+    },
+    {
+      "primary_tool_id": "tool_fusion_surface_material_projection_v1",
+      "promotion_targets": [
+        "TRIPLANAR_MAP",
+        "UV_PROJECT"
+      ],
+      "query": "generate L-system plant with axiom F and rule F->F[+F]F[-F]F for 3 iterations",
+      "timestamp": "2026-03-06T22:43:48.548553+00:00"
+    }
+  ],
+  "rows": 22,
+  "source_exists": true,
+  "source_exists_map": {
+    "events": true,
+    "grammar": true,
+    "pressure": true,
+    "quality_state": true
+  },
+  "source_path": "../Knowledge3D.local/runtime_execution_journal_batch/logs/tool_promotion_pressure.jsonl",
+  "source_paths": {
+    "events": "../Knowledge3D.local/runtime_execution_journal_batch/logs/execution_events.jsonl",
+    "grammar": "../Knowledge3D.local/runtime_execution_journal_batch/logs/execution_grammar_patterns.jsonl",
+    "pressure": "../Knowledge3D.local/runtime_execution_journal_batch/logs/tool_promotion_pressure.jsonl",
+    "quality_state": "../Knowledge3D.local/runtime_execution_journal_batch/checkpoints/execution_quality_tracker.json"
+  },
+  "stats": {
+    "distinct_entrypoints": 12,
+    "distinct_event_chains": 7,
+    "distinct_event_tools": 8,
+    "distinct_grammar_supported_tools": 13,
+    "distinct_multimodal_grammar_patterns": 6,
+    "distinct_primary_tools": 2,
+    "distinct_promotion_targets": 3,
+    "distinct_route_sources": 2,
+    "distinct_tool_kinds": 5,
+    "distinct_tool_sources": 10,
+    "distinct_tools": 5
+  }
+}

@@ -61,3 +61,21 @@ def test_dct8_roundtrip():
     arr = np.array(rebuilt, dtype=np.float32).reshape(3, 8, 8)
 
     assert np.allclose(arr, blocks, atol=1e-3)
+
+
+def test_numpy_codec_paths_roundtrip():
+    import numpy as np
+
+    ops = TernaryCodecOps(threshold=0.2)
+    grid = np.arange(16 * 16, dtype=np.float32).reshape(16, 16)
+
+    blocks = ops.reshape_to_blocks_numpy(grid.reshape(-1), rows=16, cols=16)
+    coeffs = ops.dct8_forward_numpy(blocks)
+    quantized = ops.quantize_numpy(coeffs)
+    dequantized = ops.dequantize_numpy(quantized)
+    rebuilt = ops.dct8_inverse_numpy(dequantized)
+    roundtrip = ops.blocks_to_grid_numpy(rebuilt, rows=16, cols=16).reshape(16, 16)
+
+    assert blocks.dtype == np.float32
+    assert quantized.dtype == np.int32
+    assert roundtrip.shape == (16, 16)

@@ -12,6 +12,7 @@ import json
 import math
 from pathlib import Path
 import re
+import time
 from typing import Any, Mapping, Sequence
 
 
@@ -61,6 +62,8 @@ class ExecutionQualityTracker:
         gap_log_path: str | Path,
         dims: int = 16,
         spawn_threshold: float = 0.3,
+        save_every: int = 64,
+        save_interval_s: float = 2.0,
     ):
         self.state_path = Path(state_path)
         self.state_path.parent.mkdir(parents=True, exist_ok=True)
@@ -68,6 +71,12 @@ class ExecutionQualityTracker:
         self.gap_log_path.parent.mkdir(parents=True, exist_ok=True)
         self.dims = max(8, int(dims))
         self.spawn_threshold = float(spawn_threshold)
+        self.save_every = max(1, int(save_every))
+        self.save_interval_s = max(0.0, float(save_interval_s))
+        self._dirty_observations = 0
+        self._last_save_monotonic = 0.0
+        self._token_cache: dict[str, list[str]] = {}
+        self._embed_cache: dict[str, list[float]] = {}
         self._state: dict[str, Any] = {
             "tools": {},
             "specialists": {},
@@ -90,29 +99,61 @@ class ExecutionQualityTracker:
         self._state["tool_sources"] = dict(payload.get("tool_sources", {}) or {})
         self._state["route_sources"] = dict(payload.get("route_sources", {}) or {})
 
-    def _save(self) -> None:
+    def _save(self, *, force: bool = False) -> None:
+        now = time.monotonic()
+        if not force:
+            if self._dirty_observations <= 0:
+                return
+            if (
+                self._dirty_observations < self.save_every
+                and (now - self._last_save_monotonic) < self.save_interval_s
+            ):
+                return
         self.state_path.write_text(json.dumps(self._state, indent=2, sort_keys=True), encoding="utf-8")
+        self._dirty_observations = 0
+        self._last_save_monotonic = now
+
+    def flush(self) -> None:
+        self._save(force=True)
 
     def _tokenize(self, text: str) -> list[str]:
-        expanded = re.sub(r"([a-z0-9])([A-Z])", r"\\1 \\2", str(text))
-        return [
+        token = str(text or "")
+        cached = self._token_cache.get(token)
+        if cached is not None:
+            return cached
+        expanded = re.sub(r"([a-z0-9])([A-Z])", r"\\1 \\2", token)
+        rows = [
             tok
             for tok in "".join(ch.lower() if ch.isalnum() else " " for ch in expanded).split()
             if tok
         ]
+        if len(self._token_cache) >= 2048:
+            self._token_cache.clear()
+        self._token_cache[token] = rows
+        return rows
 
     def _embed_text(self, text: str) -> list[float]:
+        cache_key = str(text or "")
+        cached = self._embed_cache.get(cache_key)
+        if cached is not None:
+            return cached
         tokens = self._tokenize(text)
         if not tokens:
-            return [0.0] * self.dims
+            vec = [0.0] * self.dims
+            self._embed_cache[cache_key] = vec
+            return vec
         vec = [0.0] * self.dims
         inv = 1.0 / float(len(tokens))
-        for token in tokens:
-            digest = hashlib.sha1(token.encode("utf-8")).digest()
+        for token_text in tokens:
+            digest = hashlib.sha1(token_text.encode("utf-8")).digest()
             for i in range(0, min(len(digest), self.dims)):
                 sign = 1.0 if (digest[i] & 1) else -1.0
                 vec[i] += sign * inv
-        return _normalize(vec)
+        embedded = _normalize(vec)
+        if len(self._embed_cache) >= 2048:
+            self._embed_cache.clear()
+        self._embed_cache[cache_key] = embedded
+        return embedded
 
     def _ensure_specialist(self, specialist_id: str) -> dict[str, Any]:
         token = str(specialist_id or "").strip() or "unknown"
@@ -296,6 +337,8 @@ class ExecutionQualityTracker:
         event: Mapping[str, Any],
         *,
         specialist_catalog: Sequence[str] | None = None,
+        update_specialist: bool = True,
+        update_gap_detection: bool = True,
     ) -> dict[str, Any]:
         tool_id = str(event.get("tool_id", "")).strip()
         if not tool_id:
@@ -400,7 +443,7 @@ class ExecutionQualityTracker:
         gap_logged = False
         best_specialist_id: str | None = None
         best_relevance = 0.0
-        if specialist_id:
+        if update_specialist and specialist_id:
             specialist = self._ensure_specialist(specialist_id)
             task_vec = self._embed_text(query_context)
             current_centroid = [float(v) for v in specialist.get("centroid", [])]
@@ -422,7 +465,7 @@ class ExecutionQualityTracker:
                 specialist["exploration_count"] = int(specialist.get("exploration_count", 0)) + 1
 
         catalog = [str(item).strip() for item in (specialist_catalog or []) if str(item).strip()]
-        if query_context and catalog:
+        if update_gap_detection and query_context and catalog:
             best_specialist_id, best_relevance = self.max_specialist_relevance(catalog, query_context)
             if best_relevance < self.spawn_threshold:
                 gap_payload = {
@@ -437,7 +480,8 @@ class ExecutionQualityTracker:
                     handle.write(json.dumps(gap_payload, separators=(",", ":"), sort_keys=True) + "\n")
                 gap_logged = True
 
-        self._save()
+        self._dirty_observations += 1
+        self._save(force=not self.state_path.exists())
         routing_gate = self.routing_gate(
             tool_id,
             runtime_status=runtime_status,

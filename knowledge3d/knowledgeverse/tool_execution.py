@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, is_dataclass, replace
 import importlib
+import json
 import time
 from typing import Any, Mapping
 
@@ -26,11 +27,38 @@ class EntrypointBlueprint:
 class ToolExecutionResolver:
     """Resolve Tool execution plans into importable blueprints or callables."""
 
-    @staticmethod
-    def _normalize_param_specs(rows: Any) -> list[dict[str, Any]]:
+    _entrypoint_blueprint_cache: dict[str, EntrypointBlueprint] = {}
+    _entrypoint_callable_cache: dict[str, Any] = {}
+    _plan_blueprint_cache: dict[str, dict[str, Any]] = {}
+    _param_specs_cache: dict[str, list[dict[str, Any]]] = {}
+    _event_recorder_cache: dict[str, ExecutionEventRecorder] = {}
+
+    @classmethod
+    def _cache_key(cls, value: Any) -> str:
+        return json.dumps(value, sort_keys=True, separators=(",", ":"), default=str)
+
+    @classmethod
+    def clear_caches(cls) -> None:
+        cls._entrypoint_blueprint_cache.clear()
+        cls._entrypoint_callable_cache.clear()
+        cls._plan_blueprint_cache.clear()
+        cls._param_specs_cache.clear()
+        for recorder in cls._event_recorder_cache.values():
+            try:
+                recorder.flush()
+            except Exception:
+                pass
+        cls._event_recorder_cache.clear()
+
+    @classmethod
+    def _normalize_param_specs(cls, rows: Any) -> list[dict[str, Any]]:
         specs: list[dict[str, Any]] = []
         if not isinstance(rows, list):
             return specs
+        cache_key = cls._cache_key(rows)
+        cached = cls._param_specs_cache.get(cache_key)
+        if cached is not None:
+            return cached
         for row in rows:
             if not isinstance(row, dict):
                 continue
@@ -48,6 +76,7 @@ class ToolExecutionResolver:
                         "default": row.get("default"),
                     }
                 )
+        cls._param_specs_cache[cache_key] = specs
         return specs
 
     @classmethod
@@ -102,11 +131,14 @@ class ToolExecutionResolver:
             if extra:
                 raise ValueError(f"unexpected keyword arguments: {', '.join(extra)}")
 
-    @staticmethod
-    def resolve_entrypoint_blueprint(import_path: str) -> EntrypointBlueprint:
+    @classmethod
+    def resolve_entrypoint_blueprint(cls, import_path: str) -> EntrypointBlueprint:
         token = str(import_path).strip()
         if not token:
             raise ValueError("entrypoint import path is required")
+        cached = cls._entrypoint_blueprint_cache.get(token)
+        if cached is not None:
+            return cached
 
         parts = token.split(".")
         if len(parts) < 2:
@@ -118,40 +150,68 @@ class ToolExecutionResolver:
             callable_name = parts[-1]
             try:
                 importlib.import_module(module_path)
-                return EntrypointBlueprint(
+                blueprint = EntrypointBlueprint(
                     import_path=token,
                     module_path=module_path,
                     owner_name=owner_name,
                     callable_name=callable_name,
                 )
+                cls._entrypoint_blueprint_cache[token] = blueprint
+                return blueprint
             except Exception:
                 pass
 
         module_path = ".".join(parts[:-1])
         callable_name = parts[-1]
         importlib.import_module(module_path)
-        return EntrypointBlueprint(
+        blueprint = EntrypointBlueprint(
             import_path=token,
             module_path=module_path,
             owner_name=None,
             callable_name=callable_name,
         )
+        cls._entrypoint_blueprint_cache[token] = blueprint
+        return blueprint
 
-    @staticmethod
-    def instantiate_entrypoint(blueprint: EntrypointBlueprint) -> Any:
+    @classmethod
+    def instantiate_entrypoint(cls, blueprint: EntrypointBlueprint) -> Any:
+        cached = cls._entrypoint_callable_cache.get(blueprint.import_path)
+        if cached is not None:
+            return cached
         module = importlib.import_module(blueprint.module_path)
         if blueprint.owner_name:
             owner = getattr(module, blueprint.owner_name)
             bound = getattr(owner(), blueprint.callable_name)
+            cls._entrypoint_callable_cache[blueprint.import_path] = bound
             return bound
-        return getattr(module, blueprint.callable_name)
+        bound = getattr(module, blueprint.callable_name)
+        cls._entrypoint_callable_cache[blueprint.import_path] = bound
+        return bound
+
+    @classmethod
+    def _instantiate_primary_from_resolved(cls, resolved: Mapping[str, Any]) -> Any:
+        primary = resolved.get("primary_entrypoint")
+        if primary is None:
+            raise ValueError("execution plan does not define a primary entrypoint")
+        return cls.instantiate_entrypoint(primary)
+
+    @classmethod
+    def _invoke_primary_resolved(
+        cls,
+        resolved: Mapping[str, Any],
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any:
+        cls.validate_argument_schema(resolved.get("primary_argument_schema"), *args, **kwargs)
+        bound = cls._instantiate_primary_from_resolved(resolved)
+        return bound(*args, **kwargs)
 
     @classmethod
     def instantiate_primary(cls, execution_plan: dict[str, Any] | None) -> Any:
         resolved = cls.resolve_plan_blueprint(execution_plan)
-        if not resolved or resolved.get("primary_entrypoint") is None:
+        if not resolved:
             raise ValueError("execution plan does not define a primary entrypoint")
-        return cls.instantiate_entrypoint(resolved["primary_entrypoint"])
+        return cls._instantiate_primary_from_resolved(resolved)
 
     @classmethod
     def invoke_primary(
@@ -163,15 +223,18 @@ class ToolExecutionResolver:
         resolved = cls.resolve_plan_blueprint(execution_plan)
         if not resolved:
             raise ValueError("execution plan is required")
-        cls.validate_argument_schema(resolved.get("primary_argument_schema"), *args, **kwargs)
-        bound = cls.instantiate_primary(execution_plan)
-        return bound(*args, **kwargs)
+        return cls._invoke_primary_resolved(resolved, *args, **kwargs)
 
     @staticmethod
     def _resolve_recorder(knowledgeverse: Any | None) -> ExecutionEventRecorder | None:
         if knowledgeverse is None or not hasattr(knowledgeverse, "storage_root"):
             return None
-        return ExecutionEventRecorder(storage_root=getattr(knowledgeverse, "storage_root"))
+        storage_root = str(getattr(knowledgeverse, "storage_root"))
+        recorder = ToolExecutionResolver._event_recorder_cache.get(storage_root)
+        if recorder is None:
+            recorder = ExecutionEventRecorder(storage_root=storage_root)
+            ToolExecutionResolver._event_recorder_cache[storage_root] = recorder
+        return recorder
 
     @staticmethod
     def _record_execution_event(
@@ -193,6 +256,16 @@ class ToolExecutionResolver:
     def _chain_tool_index(
         resolved: Mapping[str, Any] | None,
     ) -> tuple[dict[str, tuple[str, str]], list[str], list[str]]:
+        if isinstance(resolved, Mapping):
+            cached_mapping = resolved.get("_chain_tool_index")
+            cached_tool_ids = resolved.get("_chain_tool_ids")
+            cached_statuses = resolved.get("_chain_runtime_statuses")
+            if (
+                isinstance(cached_mapping, dict)
+                and isinstance(cached_tool_ids, tuple)
+                and isinstance(cached_statuses, tuple)
+            ):
+                return cached_mapping, list(cached_tool_ids), list(cached_statuses)
         mapping: dict[str, tuple[str, str]] = {}
         tool_ids: list[str] = []
         runtime_statuses: list[str] = []
@@ -307,6 +380,47 @@ class ToolExecutionResolver:
         return args, kwargs
 
     @classmethod
+    def _invoke_selected_entry(
+        cls,
+        selected: Mapping[str, Any],
+        payload: Mapping[str, Any],
+    ) -> Any:
+        args, kwargs = cls.bind_payload_to_entrypoint(
+            selected["blueprint"],
+            selected.get("argument_schema"),
+            payload,
+        )
+        bound = cls.instantiate_entrypoint(selected["blueprint"])
+        return bound(*args, **kwargs)
+
+    @classmethod
+    def _invoke_selected_chain(
+        cls,
+        selected: Mapping[str, Any],
+        payload: Mapping[str, Any],
+    ) -> Any:
+        preset = selected["preset"]
+        context: dict[str, Any] = dict(payload)
+        last_result: Any = None
+        for step in preset.get("steps", []) or []:
+            blueprint = step.get("entrypoint")
+            if not isinstance(blueprint, EntrypointBlueprint):
+                raise ValueError("chain step entrypoint blueprint is required")
+            args, kwargs = cls.bind_payload_to_entrypoint(
+                blueprint,
+                step.get("argument_schema"),
+                context,
+            )
+            bound = cls.instantiate_entrypoint(blueprint)
+            last_result = bound(*args, **kwargs)
+            cls._store_chain_result(context, step, last_result)
+
+        return_alias = str(preset.get("return_alias", "")).strip()
+        if return_alias and return_alias in context:
+            last_result = context[return_alias]
+        return cls._enrich_chain_result(last_result, context)
+
+    @classmethod
     def _payload_satisfies_schema(
         cls,
         payload: Mapping[str, Any],
@@ -371,8 +485,18 @@ class ToolExecutionResolver:
     ) -> dict[str, Any]:
         if not isinstance(resolved, Mapping):
             return {}
+        tool_index = resolved.get("_row_by_tool_id")
+        import_index = resolved.get("_row_by_import_path")
         tool_token = str(tool_id).strip()
         import_token = str(import_path).strip()
+        if tool_token and isinstance(tool_index, dict):
+            cached = tool_index.get(tool_token)
+            if isinstance(cached, dict):
+                return dict(cached)
+        if import_token and isinstance(import_index, dict):
+            cached = import_index.get(import_token)
+            if isinstance(cached, dict):
+                return dict(cached)
         for row in resolved.get("chain", []) or []:
             if not isinstance(row, Mapping):
                 continue
@@ -789,26 +913,7 @@ class ToolExecutionResolver:
         )
         if not selected:
             raise ValueError("no execution chain preset matches the provided payload")
-        preset = selected["preset"]
-        context: dict[str, Any] = dict(payload)
-        last_result: Any = None
-        for step in preset.get("steps", []) or []:
-            blueprint = step.get("entrypoint")
-            if not isinstance(blueprint, EntrypointBlueprint):
-                raise ValueError("chain step entrypoint blueprint is required")
-            args, kwargs = cls.bind_payload_to_entrypoint(
-                blueprint,
-                step.get("argument_schema"),
-                context,
-            )
-            bound = cls.instantiate_entrypoint(blueprint)
-            last_result = bound(*args, **kwargs)
-            cls._store_chain_result(context, step, last_result)
-
-        return_alias = str(preset.get("return_alias", "")).strip()
-        if return_alias and return_alias in context:
-            last_result = context[return_alias]
-        return cls._enrich_chain_result(last_result, context)
+        return cls._invoke_selected_chain(selected, payload)
 
     @classmethod
     def _invoke_chain_from_payload_observed(
@@ -816,6 +921,7 @@ class ToolExecutionResolver:
         execution_plan: dict[str, Any] | None,
         payload: Mapping[str, Any],
         *,
+        selected: Mapping[str, Any] | None = None,
         quality_tracker: ExecutionQualityTracker | None = None,
         knowledgeverse: Any | None = None,
         query_context: str | None = None,
@@ -825,7 +931,7 @@ class ToolExecutionResolver:
         resolved = cls.resolve_plan_blueprint(execution_plan)
         if not resolved:
             raise ValueError("execution plan is required")
-        selected = cls.select_chain_preset_for_payload(
+        selected = selected or cls.select_chain_preset_for_payload(
             execution_plan,
             payload,
             quality_tracker=quality_tracker,
@@ -946,23 +1052,13 @@ class ToolExecutionResolver:
             quality_tracker=quality_tracker,
         )
         if chain_selected is not None:
-            return cls.invoke_chain_from_payload(
-                execution_plan,
-                payload,
-                quality_tracker=quality_tracker,
-            )
+            return cls._invoke_selected_chain(chain_selected, payload)
         selected = cls.select_entrypoint_for_payload(
             execution_plan,
             payload,
             quality_tracker=quality_tracker,
         )
-        args, kwargs = cls.bind_payload_to_entrypoint(
-            selected["blueprint"],
-            selected.get("argument_schema"),
-            payload,
-        )
-        bound = cls.instantiate_entrypoint(selected["blueprint"])
-        return bound(*args, **kwargs)
+        return cls._invoke_selected_entry(selected, payload)
 
     @classmethod
     def invoke_primary_from_payload_observed(
@@ -988,6 +1084,7 @@ class ToolExecutionResolver:
             return cls._invoke_chain_from_payload_observed(
                 execution_plan,
                 payload,
+                selected=selected_chain,
                 quality_tracker=quality_tracker,
                 knowledgeverse=knowledgeverse,
                 query_context=query_context,
@@ -1018,11 +1115,7 @@ class ToolExecutionResolver:
 
         started_ns = time.perf_counter_ns()
         try:
-            result = cls.invoke_primary_from_payload(
-                execution_plan,
-                payload,
-                quality_tracker=quality_tracker,
-            )
+            result = cls._invoke_selected_entry(selected_entry, payload)
         except Exception as exc:
             event = build_execution_event(
                 execution_plan=execution_plan,
@@ -1059,6 +1152,10 @@ class ToolExecutionResolver:
     def resolve_plan_blueprint(cls, execution_plan: dict[str, Any] | None) -> dict[str, Any] | None:
         if not execution_plan:
             return None
+        cache_key = cls._cache_key(execution_plan)
+        cached = cls._plan_blueprint_cache.get(cache_key)
+        if cached is not None:
+            return cached
         chain = []
         for row in execution_plan.get("execution_chain", []) or []:
             entrypoints = [
@@ -1149,7 +1246,29 @@ class ToolExecutionResolver:
                 "selectors": dict(preset.get("selectors", {}) or {}),
                 "steps": steps,
             }
-        return {
+        row_by_tool_id: dict[str, dict[str, Any]] = {}
+        row_by_import_path: dict[str, dict[str, Any]] = {}
+        chain_tool_index: dict[str, tuple[str, str]] = {}
+        chain_tool_ids: list[str] = []
+        chain_runtime_statuses: list[str] = []
+        for row in chain:
+            row_meta = {
+                "tool_id": str(row.get("tool_id", "")).strip(),
+                "tool_kind": str(row.get("tool_kind", "")).strip(),
+                "runtime_status": str(row.get("runtime_status", "")).strip(),
+            }
+            tool_id = row_meta["tool_id"]
+            runtime_status = row_meta["runtime_status"]
+            if tool_id:
+                row_by_tool_id[tool_id] = row_meta
+                chain_tool_ids.append(tool_id)
+                chain_runtime_statuses.append(runtime_status)
+            for blueprint in row.get("entrypoints", []) or []:
+                if isinstance(blueprint, EntrypointBlueprint):
+                    row_by_import_path[blueprint.import_path] = row_meta
+                    chain_tool_index[blueprint.import_path] = (tool_id, runtime_status)
+
+        resolved = {
             "mode": str(execution_plan.get("mode", "")).strip(),
             "primary_tool_id": str(execution_plan.get("primary_tool_id", "")).strip(),
             "primary_entrypoint": primary,
@@ -1161,7 +1280,14 @@ class ToolExecutionResolver:
             "outputs": list(execution_plan.get("outputs", []) or []),
             "chain_presets": top_chain_presets,
             "chain": chain,
+            "_row_by_tool_id": row_by_tool_id,
+            "_row_by_import_path": row_by_import_path,
+            "_chain_tool_index": chain_tool_index,
+            "_chain_tool_ids": tuple(chain_tool_ids),
+            "_chain_runtime_statuses": tuple(chain_runtime_statuses),
         }
+        cls._plan_blueprint_cache[cache_key] = resolved
+        return resolved
 
 
 __all__ = ["EntrypointBlueprint", "ToolExecutionResolver"]

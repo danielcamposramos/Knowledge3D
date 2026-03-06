@@ -1083,3 +1083,779 @@ Validation:
 
 Result:
 - `49 passed in 19.71s`
+
+## Promotion Harvesting Hardening
+
+Completed:
+
+1. `build_tool_promotion_report.py` now consumes the stronger execution evidence, not just:
+   - pressure rows
+   - exact chain grammar support
+   but also:
+   - multimodal positive grammar support
+   - multimodal contrastive grammar pressure
+   - route-source quality state
+   - tool-source quality state
+2. Promotion candidates now distinguish:
+   - recurring healthy bridge patterns worth PTX promotion
+   - recurring failing multimodal anti-patterns that indicate structural pressure
+3. Candidate rows now include:
+   - `multimodal_positive_support`
+   - `multimodal_negative_support`
+   - `multimodal_positive_patterns`
+   - `multimodal_negative_patterns`
+   - route-aware quality/readiness context
+
+Validation:
+
+```bash
+/K3D/Knowledge3D.local/envs/k3d-cranium/bin/python -m pytest -q \
+  tests/test_tool_promotion_report.py \
+  tests/test_execution_grammar_detection.py \
+  tests/test_specialist_selection.py
+```
+
+Result:
+- `9 passed in 6.71s`
+
+Broader consumer validation:
+
+```bash
+/K3D/Knowledge3D.local/envs/k3d-cranium/bin/python -m pytest -q \
+  tests/test_tool_execution.py \
+  tests/test_execution_events.py \
+  tests/test_execution_grammar_detection.py \
+  tests/test_scene_quality.py \
+  tests/test_specialist_selection.py \
+  tests/test_tool_promotion_report.py
+```
+
+Result:
+- `49 passed in 18.48s`
+
+CLI sanity:
+
+```bash
+/K3D/Knowledge3D.local/envs/k3d-cranium/bin/python scripts/build_tool_promotion_report.py
+```
+
+Current live report note:
+
+1. The default output file can still be empty when the current storage root has no real journal rows yet.
+2. That is expected and does not indicate missing implementation.
+3. The ranking logic is now ready for real route-aware execution journals and multimodal grammar logs.
+
+## First Real Execution Journal Batch
+
+Completed:
+
+1. Generated a persistent real journal batch at:
+   - `../Knowledge3D.local/runtime_execution_journal_batch`
+2. The batch crossed the Phase 2D density target with real runtime data:
+   - `180` execution events
+   - `62` grammar rows
+   - `48` tool-promotion pressure rows
+3. The first non-empty real promotion report was generated at:
+   - `../Knowledge3D.local/runtime_execution_journal_batch/results/tool_promotion_report.json`
+
+Top candidate from real evidence:
+
+1. `SIGNAL_SURFACE_MATERIAL`
+2. priority: `0.77268`
+3. readiness: `0.874011`
+4. dominant route source: `bridge`
+
+Interpretation:
+
+1. The first real harvest confirms the promotion pipeline is working on actual execution history, not only tests.
+2. The strongest remaining pressure is inside the fused signal/material/temporal bridge family.
+3. The ranking is now grounded in:
+   - actual route-source quality
+   - actual execution latency
+   - actual multimodal grammar support
+   - actual pressure frequency
+
+Artifacts:
+
+1. `../Knowledge3D.local/runtime_execution_journal_batch/results/execution_journal_batch_summary.json`
+2. `../Knowledge3D.local/runtime_execution_journal_batch/results/tool_promotion_report.json`
+
+## PTX Promotion Applied From Real Harvest
+
+Completed:
+
+1. Promoted the next justified surface inside `SIGNAL_SURFACE_MATERIAL`:
+   - `spectrogram -> surface`
+2. Added real PTX kernels:
+   - `knowledge3d/cranium/kernels/signal_surface_ops.cu`
+   - `heightfield_to_vertices_kernel`
+   - `heightfield_to_normals_kernel`
+3. Added canonical runtime wrapper:
+   - `knowledge3d/cranium/ptx_runtime/signal_surface_kernels.py`
+4. Rewired `procedural_signal_bridge.py` to use PTX for:
+   - heightfield vertex generation
+   - heightfield normal generation
+5. Topology/index assembly remains deterministic host orchestration by design until separately justified.
+
+Validation:
+
+```bash
+/K3D/Knowledge3D.local/envs/k3d-cranium/bin/python -m pytest -q \
+  tests/test_signal_surface_kernels.py \
+  tests/test_procedural_signal_bridge.py \
+  tests/test_procedural_material_bridge.py
+```
+
+Result:
+- `12 passed in 2.75s`
+
+Benchmark:
+
+1. previous `spectrogram_to_surface` baseline:
+   - `1.326 ms`
+2. post-promotion hot average:
+   - `0.1865 ms`
+3. approximate improvement:
+   - `7.1x`
+4. fused `signal_to_textured_surface` average after promotion:
+   - `13.5045 ms`
+
+Interpretation:
+
+1. The promotion hit the correct sub-surface.
+2. `spectrogram -> surface` is now no longer a meaningful host bottleneck.
+3. Remaining pressure in `SIGNAL_SURFACE_MATERIAL` is downstream:
+   - signal/material orchestration
+   - temporal preview/timeline composition
+
+Artifacts:
+
+1. `../Knowledge3D.local/results/signal_surface_promotion_benchmark_20260306_1636.json`
+2. `TEMP/SIGNAL_SURFACE_PROMOTION_BENCHMARK_03.06.2026.md`
+
+## Temporal Route Promotion
+
+Completed:
+
+1. Added PTX temporal preset kernels:
+   - `knowledge3d/cranium/kernels/temporal_preset_ops.cu`
+   - `knowledge3d/cranium/ptx_runtime/temporal_preset_kernels.py`
+2. Added PTX temporal frame generation:
+   - `knowledge3d/cranium/kernels/temporal_frame_ops.cu`
+   - `knowledge3d/cranium/ptx_runtime/temporal_frame_kernels.py`
+3. Rewired `procedural_temporal_bridge.py` so:
+   - `_apply_timeline_preset(...)` runs through PTX kernels
+   - `_generate_frames(...)` runs through PTX temporal frame synthesis
+
+Validation:
+
+```bash
+/K3D/Knowledge3D.local/envs/k3d-cranium/bin/python -m pytest -q \
+  tests/test_temporal_frame_kernels.py \
+  tests/test_temporal_preset_kernels.py \
+  tests/test_procedural_temporal_bridge.py \
+  tests/test_scene_quality.py
+```
+
+Result:
+- `13 passed in 3.65s`
+
+Temporal benchmark:
+
+1. `ui_idle`
+   - baseline: `80.227 ms`
+   - new average: `75.899 ms`
+2. `world_breathe`
+   - baseline: `129.709 ms`
+   - new average: `120.361 ms`
+
+Interpretation:
+
+1. The preset path alone was not the dominant cost.
+2. Promoting frame synthesis was the necessary second step.
+3. The route improved, but the dominant family did not change:
+   - `SIGNAL_SURFACE_MATERIAL` remains the top promotion family
+4. That means the next justified work is still downstream:
+   - signal/material orchestration
+   - timeline/scene orchestration
+   - encode-time bookkeeping
+
+Artifacts:
+
+1. `../Knowledge3D.local/results/temporal_route_promotion_benchmark_20260306_1648.json`
+2. `TEMP/TEMPORAL_ROUTE_PROMOTION_BENCHMARK_03.06.2026.md`
+
+## Refreshed Real Harvest After Temporal Promotion
+
+Completed:
+
+1. Refreshed the real journal batch after the temporal PTX changes:
+   - `8` iterations
+   - `120` execution events
+   - `62` grammar rows
+   - `36` pressure rows
+2. Regenerated:
+   - `../Knowledge3D.local/runtime_execution_journal_batch/results/tool_promotion_report.json`
+
+Current top candidate after refresh:
+
+1. `SIGNAL_SURFACE_MATERIAL`
+2. priority: `0.77215`
+3. readiness: `0.87454`
+4. dominant route: `bridge`
+
+Interpretation:
+
+1. The top route family is stable across promotions.
+2. We are shrinking real sub-surfaces inside the same dominant chain, which is the correct behavior.
+3. `tool_signal_spectrogram_surface_v1` is now effectively solved as a bottleneck (`~415 us` average in the refreshed report).
+4. The remaining pressure is broader fused orchestration, not raw signal surface extraction.
+
+
+## Encode-Time Promotion: Direct Codec Ops + Bridge/Codec Reuse
+
+Completed:
+
+1. `SovereignTernaryAudioCodec` now uses direct PTX codec ops for encode/decode:
+   - `BATCH_MDCT`
+   - `TERNARY_QUANT`
+   - `TERNARY_DEQUANT`
+   - `IMDCT`
+2. `SovereignTernaryVideoCodec` now uses direct PTX codec ops for encode/decode:
+   - `RESHAPE_TO_BLOCKS`
+   - `DCT8X8_FORWARD`
+   - `TERNARY_QUANT`
+   - `DCT8X8_INVERSE`
+   - `BLOCKS_TO_GRID`
+3. `ProceduralMaterialBridge.signal_to_textured_surface(...)` now reuses configured `ProceduralSignalBridge` instances instead of rebuilding them on every call.
+4. `ProceduralTemporalBridge` now reuses `SovereignTernaryVideoCodec` instances and encodes frames through `encode_frame_array(...)`, eliminating the `frame -> TernaryTensor -> Python list -> reshape -> flatten -> TernaryVector` churn in the temporal route.
+
+Validation:
+
+```bash
+/K3D/Knowledge3D.local/envs/k3d-cranium/bin/python -m pytest -q   knowledge3d/cranium/tests/test_sovereign_ternary_audio_codec.py   knowledge3d/cranium/tests/test_sovereign_ternary_video_codec.py   tests/test_procedural_signal_bridge.py   tests/test_procedural_material_bridge.py   tests/test_procedural_temporal_bridge.py   tests/test_scene_quality.py
+```
+
+Result:
+- `22 passed`
+
+Measured gains:
+
+1. `signal_to_textured_surface`
+   - baseline: `16.087 ms`
+   - new average: `7.700 ms`
+   - improvement: about `2.09x`
+2. `ui_idle`
+   - previous promoted baseline: `75.899 ms`
+   - new average: `22.947 ms`
+   - improvement: about `3.31x`
+3. `world_breathe`
+   - previous promoted baseline: `120.361 ms`
+   - new average: `37.488 ms`
+   - improvement: about `3.21x`
+
+Interpretation:
+
+1. The next bottleneck was not frame synthesis anymore.
+2. It was encode-time bookkeeping and repeated setup:
+   - repeated bridge construction
+   - repeated codec construction
+   - generic RPN flatten/reshape in codec paths
+3. Removing those costs produced a larger route reduction than the previous temporal preset/frame PTX promotion alone.
+
+Artifacts:
+
+1. `../Knowledge3D.local/results/encode_path_promotion_benchmark_20260306_1710.json`
+2. `TEMP/ENCODE_PATH_PROMOTION_BENCHMARK_03.06.2026.md`
+
+
+## Scene Encode Promotion: House/World Playback on the Fast Array Path
+
+Completed:
+
+1. `ProceduralTemporalBridge.compose_scene_timeline(...)` now uses the cached `SovereignTernaryVideoCodec` and the fast `encode_frame_array(...)` path for scene frame encoding.
+2. This aligns scene encoding with the already-promoted temporal preview encoding path instead of leaving House/world playback on the older `TernaryTensor` conversion route.
+
+Validation:
+
+```bash
+/K3D/Knowledge3D.local/envs/k3d-cranium/bin/python -m pytest -q   tests/test_procedural_temporal_bridge.py   tests/test_scene_quality.py
+```
+
+Result:
+- `7 passed`
+
+Measured gain:
+
+1. `surface_materials_to_scene_timeline`
+   - baseline: `211.399 ms`
+   - new average: `58.189 ms`
+   - improvement: about `3.63x`
+
+Interpretation:
+
+1. Scene composition was still paying the older encode-time bookkeeping cost even after preview/timeline promotion.
+2. Routing scene encoding through the same fast array path materially reduces House/world playback overhead.
+
+Artifacts:
+
+1. `../Knowledge3D.local/results/scene_encode_promotion_benchmark_20260306_1722.json`
+2. `TEMP/SCENE_ENCODE_PROMOTION_BENCHMARK_03.06.2026.md`
+
+
+## Ternary Packing Promotion: Shared Encode Substrate Tightening
+
+Completed:
+
+1. `TernaryVector` now uses vectorized normalization and 2-bit host packing.
+2. `TernaryVector.to_python()` now uses vectorized unpack instead of byte-wise Python loops.
+3. `TernaryVector.to_numpy()` is now available and used by the sovereign audio/video codecs.
+4. This reduces shared encode-time overhead across both signal and temporal routes.
+
+Validation:
+
+```bash
+/K3D/Knowledge3D.local/envs/k3d-cranium/bin/python -m pytest -q   knowledge3d/cranium/tests/test_ternary_vector.py   knowledge3d/cranium/tests/test_sovereign_ternary_audio_codec.py   knowledge3d/cranium/tests/test_sovereign_ternary_video_codec.py   tests/test_procedural_signal_bridge.py   tests/test_procedural_material_bridge.py   tests/test_procedural_temporal_bridge.py   tests/test_scene_quality.py
+```
+
+Result:
+- `25 passed`
+
+Measured effects:
+
+1. `signal_to_textured_surface`
+   - previous promoted baseline: `7.700 ms`
+   - new average: `6.220 ms`
+2. `world_breathe`
+   - previous promoted baseline: `37.488 ms`
+   - new average: `30.504 ms`
+3. `surface_materials_to_scene_timeline`
+   - already reduced earlier in this slice to `58.189 ms`
+
+Artifacts:
+
+1. `../Knowledge3D.local/results/ternary_packing_promotion_benchmark_20260306_1735.json`
+2. `TEMP/TERNARY_PACKING_PROMOTION_BENCHMARK_03.06.2026.md`
+
+---
+
+## Update: Codec Boundary + Material Signature Promotion (March 6, 2026, evening)
+
+### What Landed
+
+1. `TernaryCodecOps` now exposes numpy-returning PTX methods for the current sovereign codec surface.
+2. `SovereignTernaryAudioCodec` and `SovereignTernaryVideoCodec` now use those paths directly instead of bouncing through Python lists.
+3. `TernaryVector.to_numpy()` now unpacks from the immutable host cache instead of forcing a device download on every hot read.
+4. `TernaryGradientLogic.encode_signature(...)` now caches signatures and uses PTX-backed numpy quantization.
+5. `ProceduralMaterialBridge` now caches deterministic material stops, previews, and normal hints.
+
+### Validation
+
+Managed env:
+- `/K3D/Knowledge3D.local/envs/k3d-cranium/bin/python`
+
+Passed slices:
+- codec/vector/audio/video/signal/material: `23 passed`
+- temporal/scene: `7 passed`
+- post-signature promotion signal/material/report slice: `15 passed`
+- post-signature promotion scene/selection/report slice: `8 passed`
+
+### Measured Results
+
+Post-codec-boundary benchmark:
+- `signal_to_textured_surface`: `7.700 ms -> 4.827 ms`
+- `ui_idle`: `22.947 ms -> 7.370 ms`
+- `world_breathe`: `37.488 ms -> 11.513 ms`
+- `scene_timeline`: `58.189 ms -> 17.940 ms`
+
+Post-material-signature benchmark:
+- `signal_to_textured_surface`: `4.827 ms -> 1.702 ms`
+- `ui_idle`: `7.370 ms -> 6.991 ms`
+- `world_breathe`: `11.513 ms -> 10.671 ms`
+- `scene_timeline`: stayed in the same band (`17.940 ms -> 18.221 ms`, sample noise / orchestration-bound)
+
+### Real Harvest Refresh
+
+Rebuilt:
+- `../Knowledge3D.local/runtime_execution_journal_batch`
+
+Current top candidate remains:
+- `SIGNAL_SURFACE_MATERIAL`
+
+But the route average dropped again:
+- previous top avg execution: `59091.722 us`
+- refreshed top avg execution: `56364.028 us`
+
+### Architectural Meaning
+
+The low-level PTX surfaces are no longer the obvious bottleneck on this route family.
+The remaining cost is now mostly higher-level orchestration:
+- scene/layer composition
+- route composition
+- surviving bridge metadata/material orchestration
+
+This is the correct direction: each promotion is moving pressure upward into fewer, more intelligible orchestration layers.
+
+---
+
+## Update: Scene Layer Encoding Promotion (March 6, 2026, late evening)
+
+### What Landed
+
+1. `ProceduralTemporalBridge.surface_materials_to_scene_timeline(...)` no longer encodes each layer preview when the caller is building a composed scene.
+2. Only the final composed scene frames are encoded on this route.
+3. This keeps the same top-level behavior while removing duplicate layer codec work.
+
+### Validation
+
+Passed slices:
+- temporal/scene: `7 passed`
+- tool execution/selection/supporting route slices: `50 passed`
+
+### Measured Result
+
+Scene route:
+- previous: `18.221 ms`
+- new: `9.514 ms`
+- improvement: `1.92x`
+
+Overall from original paused-runtime baseline:
+- `surface_materials_to_scene_timeline`: `211.399 ms -> 9.514 ms`
+- overall improvement: `22.22x`
+
+### Architectural Meaning
+
+The scene route was still wasting time above the PTX layer by doing duplicate encoding work. That waste is now gone.
+
+This confirms the current optimization regime is correct:
+- keep low-level PTX surfaces stable once solved
+- keep climbing upward into orchestration cleanup
+- remove repeated work before inventing new kernels
+
+## Dispatch + Journal Runtime Hardening (March 6, 2026 - Late)
+
+What landed:
+- `ToolExecutionResolver` now caches resolved execution plans, entrypoint blueprints, bound entrypoints, and normalized argument specs.
+- Observed execution no longer resolves/selects twice before invocation.
+- `ExecutionQualityTracker` persistence is now batched (`save_every=64`, `save_interval_s=2.0`) with `flush()` support.
+- `ExecutionGrammarDetector` persistence is now batched with the same pattern.
+- `knowledge3d.gpu.rng_pool.RNGPool` is lazy-initialized, so fresh processes no longer fail merely by importing temporal routes.
+
+Why it mattered:
+- The next real bottleneck above the optimized PTX surfaces was not kernel math. It was dispatch/journal overhead: repeated plan resolution, bridge instantiation, and per-event JSON rewrites.
+- cProfile before the tracker/grammar debounce showed hot signal dispatch dominated by `_record_execution_event()` -> `observe_execution_event()` -> `ExecutionQualityTracker._save()`.
+
+Measured state:
+- Dispatch benchmark artifact: `../Knowledge3D.local/results/dispatch_route_promotion_benchmark_20260306_1832.json`
+- Markdown note: `TEMP/DISPATCH_ROUTE_PROMOTION_BENCHMARK_03.06.2026.md`
+- Signal route: cold `176.100 ms`, hot `180.907 ms`
+- World route: cold `297.101 ms`, hot `250.084 ms`
+- cProfile on hot signal dispatch after the fixes: ~`60 ms` total for the full observed route
+
+Current dominant cost inside hot dispatch:
+- event journaling append/open cost
+- specialist relevance tokenization/embedding inside `ExecutionQualityTracker.observe_event()`
+- not PTX math, not codec surfaces
+
+Real harvest refresh:
+- `scripts/generate_execution_journal_batch.py --storage-root ../Knowledge3D.local/runtime_execution_journal_batch --iterations 8 --fresh`
+- `pressure_rows=22`, `event_rows=120`, `grammar_rows=60`
+- top candidate moved to `TRIPLANAR_MAP`
+- priority `0.771942`, readiness `0.874749`
+- top tools include `tool_fusion_surface_material_projection_v1` and `tool_fusion_surface_material_timeline_v1`
+
+Interpretation:
+- The system is now correctly promoting based on the remaining orchestration/material projection pressure, not stale codec bottlenecks.
+- Next justified target is higher-level scene/material orchestration or route-observation cost, not another low-level math kernel.
+
+## Dispatch + Event Recorder Batching (March 6, 2026 - Night)
+
+What landed:
+- `ExecutionEventRecorder` now buffers journal lines and flushes on:
+  - top-level route completion
+  - buffer pressure
+  - explicit `flush()`
+- `ToolExecutionResolver` now keeps one shared `ExecutionEventRecorder` per storage root instead of constructing a new recorder for every event.
+- `ExecutionQualityTracker` now caches `_tokenize()` and `_embed_text()` results for repeated query/specialist strings.
+
+Tests added:
+- `tests/test_execution_event_recorder.py`
+- `tests/test_execution_quality_tracker.py`
+
+Validation:
+- `47 passed` on execution-event / tool-execution / specialist / grammar slices
+- `44 passed` on execution-quality / specialist / tool-execution / grammar slices
+
+Measured dispatch state:
+- benchmark artifact: `../Knowledge3D.local/results/dispatch_route_promotion_benchmark_20260306_1839.json`
+- benchmark artifact: `../Knowledge3D.local/results/dispatch_route_promotion_benchmark_20260306_1840.json`
+- signal route stayed in the improved band:
+  - cold `171.983 ms`
+  - hot `162.080 ms`
+- world route remains heavier/noisier:
+  - cold `229.418 ms`
+  - hot `224.700 ms`
+
+Interpretation:
+- remaining dispatch pressure is now predominantly:
+  - top-level event append / shadow-copy journaling
+  - scene/world orchestration itself
+- specialist relevance string work is no longer the same dominant hotspot it was before caching
+
+## Dispatch + Chain-Step Audit Reduction (March 6, 2026 - Night)
+
+What landed:
+- `TRMNavigator.observe_execution_event(...)` now treats `tool_chain_step` events as lightweight observations:
+  - no specialist feedback learning
+  - no specialist gap detection
+  - no grammar promotion
+- `ExecutionQualityTracker.observe_event(...)` gained explicit switches so chain-step events still update tool/source quality without paying full specialist-learning cost.
+- `ExecutionEventRecorder.append(...)` now keeps chain-step events in `execution_events.jsonl` but only top-level route events enter Shadow Copy / compressed audit.
+
+Why it mattered:
+- The hot route still had redundant upper-layer cost even after recorder batching and tracker caching.
+- Chain-step events were no longer useful enough to justify paying full Shadow Copy cost on every intermediate Tool step because the top-level route event already carries the authoritative chain summary.
+
+Validation:
+- `45 passed` on the focused execution-event / tool-execution / specialist-selection slice.
+
+Measured state:
+- benchmark artifact: `../Knowledge3D.local/results/dispatch_route_promotion_benchmark_20260306_1858.json`
+- benchmark artifact: `../Knowledge3D.local/results/dispatch_route_promotion_benchmark_20260306_1900.json`
+- hot signal dispatch improved from the earlier `~162 ms` band to:
+  - `87.852 ms`
+  - then `83.251 ms`
+- hot world dispatch improved from the earlier `~225 ms` noisy band to:
+  - `86.114 ms`
+  - then `93.577 ms`
+- fresh cProfile on hot signal dispatch is now only about `13 ms` cumulative for the observed route itself.
+
+Current dominant cost:
+- top-level event journaling and final flush
+- route selection / payload binding / entrypoint orchestration
+- remaining world/scene orchestration above the already-promoted PTX surfaces
+
+Interpretation:
+- The upper-layer dispatch path is now in the correct performance regime.
+- PTX math is no longer the relevant bottleneck here.
+- The next justified work is on remaining route composition and `TRIPLANAR_MAP`-family orchestration pressure, not more speculative codec/kernel churn.
+
+## TRIPLANAR_MAP PTX Promotion (March 6, 2026 - Night)
+
+What landed:
+- promoted the dominant `TRIPLANAR_MAP` bridge surface into a fused PTX kernel:
+  - `knowledge3d/cranium/kernels/material_projection.cu`
+  - new kernel: `project_triplanar_rgba_kernel`
+- extended `knowledge3d/cranium/ptx_runtime/material_projection_kernels.py` with:
+  - `project_triplanar(...)`
+- rewired `knowledge3d/cranium/bridges/procedural_material_bridge.py` so the triplanar path no longer:
+  - samples `yz`
+  - samples `xz`
+  - samples `xy`
+  - blends those planes in a separate launch
+- instead, triplanar sampling + blend now happen in one PTX pass
+
+Validation:
+- `15 passed` on:
+  - `tests/test_material_projection_kernels.py`
+  - `tests/test_procedural_material_bridge.py`
+  - `tests/test_procedural_temporal_bridge.py`
+- added direct equivalence coverage:
+  - fused triplanar projection matches the previous sample-plus-blend route
+
+Measured state:
+- benchmark artifact: `../Knowledge3D.local/results/triplanar_promotion_benchmark_20260306_190724.json`
+- markdown note: `TEMP/TRIPLANAR_PROMOTION_BENCHMARK_03.06.2026.md`
+- direct route timings:
+  - `project_material_triplanar`: `0.235 ms`
+  - `signal_to_textured_surface`: `1.262 ms`
+
+Live harvest refresh:
+- refreshed runtime batch still ranks `TRIPLANAR_MAP` as the top family because it remains shared across:
+  - surface-material projection
+  - signal-surface-material
+  - temporal/timeline composition
+- however its live average execution pressure dropped materially:
+  - `avg_execution_us = 3687.403`
+- top primary tools now center on:
+  - `tool_fusion_surface_material_projection_v1`
+  - `tool_fusion_surface_material_timeline_v1`
+
+Interpretation:
+- the direct `TRIPLANAR_MAP` surface is no longer expensive in itself
+- remaining pressure is now above it:
+  - material/temporal orchestration
+  - world/scene composition
+  - route-level composition work around the now-cheap triplanar kernel
+
+## Temporal Preview/World Cache Promotion (March 6, 2026 - Night)
+
+What landed:
+- `knowledge3d/cranium/bridges/procedural_temporal_bridge.py` now caches deterministic preview plans keyed by:
+  - derived surface seed
+  - preset key
+  - frame count / time span / feature grid
+  - encode flag / codec threshold
+  - output size
+- caching is intentionally disabled when `timeline_id` is explicitly provided so encoded frame IDs remain correct and stable.
+
+Validation:
+- `17 passed` on:
+  - `tests/test_procedural_temporal_bridge.py`
+  - `tests/test_scene_quality.py`
+  - `tests/test_procedural_material_bridge.py`
+- new regression coverage verifies:
+  - repeated preset calls without `timeline_id` reuse the same cached `TemporalPreviewPlan`
+  - explicit `timeline_id` bypasses cache and preserves unique encoded frame IDs
+
+Measured state:
+- benchmark artifact: `../Knowledge3D.local/results/temporal_cache_benchmark_20260306_191134.json`
+- markdown note: `TEMP/TEMPORAL_CACHE_BENCHMARK_03.06.2026.md`
+- hot route timings on repeated playback:
+  - `ui_idle`: `0.219 ms`
+  - `world_breathe`: `0.223 ms`
+  - `scene_timeline`: `5.628 ms`
+
+Dispatch impact:
+- benchmark artifact: `../Knowledge3D.local/results/dispatch_route_promotion_benchmark_20260306_1911.json`
+- signal dispatch:
+  - cold `98.402 ms`
+  - hot `73.122 ms`
+- world dispatch:
+  - cold `100.977 ms`
+  - hot `67.140 ms`
+
+Interpretation:
+- the temporal/world preset layer is no longer a dominant hot path
+- the route is now largely paying for:
+  - remaining top-level execution/journaling
+  - final route composition / payload-binding
+  - higher-level scene/world orchestration above cached preview plans
+
+## Buffered Execution Journal Promotion (March 6, 2026 - Night)
+
+What landed:
+- `knowledge3d/knowledgeverse/execution_events.py` no longer flushes `execution_events.jsonl` on every top-level route.
+- JSONL persistence is now:
+  - buffer-size driven
+  - interval driven
+  - exit-safe via `atexit`
+- immediate audit semantics are preserved through Shadow Copy for top-level route events.
+
+Why it mattered:
+- after chain-step reduction and preview caching, the remaining discrepancy between the hot route profile and the hot route benchmark was still dominated by per-invocation JSONL flushing.
+- the system already had a stronger authoritative path for immediate audit (`Shadow Copy`), so the line-by-line JSONL journal could be made eventual without losing correctness.
+
+Validation:
+- `51 passed` on:
+  - `tests/test_execution_event_recorder.py`
+  - `tests/test_execution_events.py`
+  - `tests/test_tool_execution.py`
+  - `tests/test_specialist_selection.py`
+  - `tests/test_procedural_temporal_bridge.py`
+
+Measured state:
+- benchmark artifact: `../Knowledge3D.local/results/dispatch_route_promotion_benchmark_20260306_1943.json`
+- signal dispatch:
+  - cold `109.286 ms`
+  - hot `66.827 ms`
+- world dispatch:
+  - cold `90.354 ms`
+  - hot `81.115 ms`
+
+Harvest confirmation:
+- refreshed runtime batch after the new buffered journal path:
+  - `pressure_rows=22`
+  - `event_rows=106`
+  - `grammar_rows=60`
+- so exit-time flush is working and the harvested report remains valid.
+
+Interpretation:
+- the buffered journal cut another piece of upper-layer route overhead
+- the system is now solidly out of the old hundred-plus millisecond hot path band for the signal route
+- remaining work is now the narrow upper band:
+  - final route composition
+  - remaining world/scene orchestration
+  - route-family pressure still centered on `TRIPLANAR_MAP`-adjacent orchestration, not low-level math
+
+## Debounced Specialist Weight Persistence Promotion (March 6, 2026 - Night)
+
+What landed:
+- `knowledge3d/knowledgeverse/trm_navigator.py` no longer persists specialist weights on every observed execution event.
+- automatic persistence is now debounced by:
+  - dirty update count
+  - elapsed monotonic interval
+  - explicit `save_weights()` still forcing immediate persistence
+  - process-exit safety via `atexit`
+- `tests/test_trm_matryoshka_specialists.py` now covers:
+  - debounced auto-persistence during feedback learning
+  - explicit save behavior remaining immediate
+
+Why it mattered:
+- once PTX math, temporal presets, triplanar projection, preview caching, and buffered journaling were promoted, the dominant world-route hot cost had shifted into repeated weight persistence:
+  - `TRMNavigator.save_weights()`
+  - `_save_specialist_tree()`
+  - `specialist_spawner.persist()`
+- this was the last major upper-layer write-amplification band inside the live route.
+
+Validation:
+- `46 passed` on:
+  - `tests/test_trm_matryoshka_specialists.py`
+  - `tests/test_specialist_selection.py`
+  - `tests/test_tool_execution.py`
+  - `tests/test_execution_events.py`
+
+Measured state:
+- benchmark artifact: `../Knowledge3D.local/results/dispatch_route_promotion_benchmark_20260306_1949.json`
+- signal dispatch:
+  - cold `39.058 ms`
+  - hot `4.713 ms`
+- world dispatch:
+  - cold `44.130 ms`
+  - hot `4.052 ms`
+
+Profile confirmation:
+- a hot world-route `cProfile` after the debounce shows the route now spending about `~0.010 s` total.
+- the previous persistence spike from repeated weight saves is no longer dominant.
+
+Interpretation:
+- the free-GPU foundational optimization pass has effectively closed.
+- the remaining route costs are no longer structural blockers; they are follow-on improvements.
+- at this point the system is in the intended regime for resuming the paused PDF augmentation track while continuing later work in parallel.
+
+## House Room / Tour Scene Cache Promotion (March 6, 2026 - Night)
+
+What landed:
+- `knowledge3d/cranium/bridges/procedural_temporal_bridge.py` now caches:
+  - `execution_events_to_house_room_scene(...)`
+  - `execution_events_to_house_tour_scene(...)`
+- cache keys are deterministic over:
+  - compact ordered execution-event digest
+  - room/tour parameters
+  - codec / feature-grid settings
+- caching is bypassed when `scene_id` is explicitly provided, preserving unique encoded frame IDs when callers need them.
+- `tests/test_procedural_temporal_bridge.py` now covers:
+  - room-scene cache reuse without `scene_id`
+  - house-tour cache bypass with explicit `scene_id`
+
+Why it mattered:
+- after preview-plan caching, fused triplanar PTX, buffered journaling, and debounced specialist persistence, the remaining repeated world/House playback cost was still dominated by reconstructing identical room/tour scenes from the same execution-event windows.
+- this is structurally the same problem already solved one layer lower for temporal previews, so the same deterministic-cache pattern is appropriate here.
+
+Validation:
+- `11 passed` on:
+  - `tests/test_procedural_temporal_bridge.py`
+  - `tests/test_scene_quality.py`
+
+Measured state:
+- benchmark artifact: `../Knowledge3D.local/results/house_scene_cache_benchmark_20260306_2015.json`
+- house room scene:
+  - cold `19.193 ms`
+  - hot average `0.040 ms`
+- house tour scene:
+  - cold `157.293 ms`
+  - hot average `0.026 ms`
+
+Interpretation:
+- repeated House/world playback is no longer paying scene reconstruction cost when the execution-event window is unchanged.
+- this moves the remaining pressure further upward into true route composition and live event mutation, not repeated deterministic world-scene rebuilds.

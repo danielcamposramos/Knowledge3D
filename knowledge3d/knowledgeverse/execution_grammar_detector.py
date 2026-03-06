@@ -13,6 +13,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import time
 from typing import Any, Mapping
 
 from .execution_quality_tracker import ExecutionQualityTracker
@@ -69,14 +70,20 @@ class ExecutionGrammarDetector:
         storage_root: str | Path,
         galaxy_manager: Any,
         min_occurrences: int = 3,
+        save_every: int = 64,
+        save_interval_s: float = 2.0,
     ):
         self.storage_root = Path(storage_root)
         self.galaxy_manager = galaxy_manager
         self.min_occurrences = max(2, int(min_occurrences))
+        self.save_every = max(1, int(save_every))
+        self.save_interval_s = max(0.0, float(save_interval_s))
         self.state_path = self.storage_root / "checkpoints" / "execution_grammar_detector.json"
         self.log_path = self.storage_root / "logs" / "execution_grammar_patterns.jsonl"
         self.state_path.parent.mkdir(parents=True, exist_ok=True)
         self.log_path.parent.mkdir(parents=True, exist_ok=True)
+        self._dirty_updates = 0
+        self._last_save_monotonic = 0.0
         self._state: dict[str, Any] = {
             "patterns": {},
             "promoted_rules": {},
@@ -96,11 +103,25 @@ class ExecutionGrammarDetector:
         self._state["patterns"] = dict(payload.get("patterns", {}) or {})
         self._state["promoted_rules"] = dict(payload.get("promoted_rules", {}) or {})
 
-    def _save(self) -> None:
+    def _save(self, *, force: bool = False) -> None:
+        now = time.monotonic()
+        if not force:
+            if self._dirty_updates <= 0:
+                return
+            if (
+                self._dirty_updates < self.save_every
+                and (now - self._last_save_monotonic) < self.save_interval_s
+            ):
+                return
         self.state_path.write_text(
             json.dumps(self._state, indent=2, sort_keys=True),
             encoding="utf-8",
         )
+        self._dirty_updates = 0
+        self._last_save_monotonic = now
+
+    def flush(self) -> None:
+        self._save(force=True)
 
     def _append_log(self, payload: Mapping[str, Any]) -> None:
         with self.log_path.open("a", encoding="utf-8") as handle:
@@ -628,7 +649,8 @@ class ExecutionGrammarDetector:
                 )
                 promoted_multimodal_rules.append(key)
 
-        self._save()
+        self._dirty_updates += 1
+        self._save(force=not self.state_path.exists())
         return {
             "updated_patterns": updated_patterns,
             "promoted_rules": promoted_rules,

@@ -811,4 +811,417 @@ Current foundational status:
 2. Track 4 grammar evolution: materially in place.
 3. The next rational foundational targets are:
    - richer grammar evolution beyond recurrence/signature aggregation
-   - route-aware promotion harvesting from the now stronger execution journals
+   - using the now stronger promotion harvest on real journals
+
+Promotion harvesting hardening completed:
+
+1. `build_tool_promotion_report.py` now integrates:
+   - pressure rows
+   - execution events
+   - exact chain grammar support
+   - multimodal positive grammar support
+   - multimodal contrastive grammar pressure
+   - route-source and tool-source quality state
+2. candidate ranking now distinguishes:
+   - recurring healthy bridge demand
+   - recurring failing multimodal anti-pattern pressure
+3. candidate rows now expose:
+   - `multimodal_positive_support`
+   - `multimodal_negative_support`
+   - `multimodal_positive_patterns`
+   - `multimodal_negative_patterns`
+
+Validation:
+
+1. focused harvest slice:
+   - `tests/test_tool_promotion_report.py`
+   - `tests/test_execution_grammar_detection.py`
+   - `tests/test_specialist_selection.py`
+   - result: `9 passed in 6.71s`
+2. broader execution/journal slice:
+   - `tests/test_tool_execution.py`
+   - `tests/test_execution_events.py`
+   - `tests/test_execution_grammar_detection.py`
+   - `tests/test_scene_quality.py`
+   - `tests/test_specialist_selection.py`
+   - `tests/test_tool_promotion_report.py`
+   - result: `49 passed in 18.48s`
+
+CLI sanity:
+
+1. `scripts/build_tool_promotion_report.py` runs cleanly in the managed env.
+2. Current live output may still be empty when the default storage root has no populated journal files.
+
+Real journal harvest completed:
+
+1. Generated a persistent execution batch at:
+   - `../Knowledge3D.local/runtime_execution_journal_batch`
+2. Real counts:
+   - `180` execution events
+   - `62` grammar rows
+   - `48` pressure rows
+3. First non-empty real promotion report generated:
+   - `../Knowledge3D.local/runtime_execution_journal_batch/results/tool_promotion_report.json`
+4. First real top candidate:
+   - `SIGNAL_SURFACE_MATERIAL`
+   - priority `0.77268`
+   - readiness `0.874011`
+
+PTX promotion from real harvest completed:
+
+1. Promoted `spectrogram -> surface` inside the top-ranked `SIGNAL_SURFACE_MATERIAL` route.
+2. Added:
+   - `knowledge3d/cranium/kernels/signal_surface_ops.cu`
+   - `knowledge3d/cranium/ptx_runtime/signal_surface_kernels.py`
+3. `procedural_signal_bridge.py` now uses PTX for:
+   - heightfield vertex generation
+   - heightfield normal generation
+4. Focused validation:
+   - `tests/test_signal_surface_kernels.py`
+   - `tests/test_procedural_signal_bridge.py`
+   - `tests/test_procedural_material_bridge.py`
+   - result: `12 passed in 2.75s`
+
+Measured gain:
+
+1. previous `spectrogram_to_surface` baseline:
+   - `1.326 ms`
+2. post-promotion hot average:
+   - `0.1865 ms`
+3. improvement:
+   - about `7.1x`
+
+Current next justified target from real evidence:
+
+1. The route family is still `SIGNAL_SURFACE_MATERIAL`.
+2. The promoted surface is no longer the bottleneck.
+3. The remaining heavier pressure is downstream in:
+   - signal/material orchestration
+   - temporal preview/timeline composition
+
+Temporal PTX promotion completed:
+
+1. Added:
+   - `knowledge3d/cranium/kernels/temporal_preset_ops.cu`
+   - `knowledge3d/cranium/ptx_runtime/temporal_preset_kernels.py`
+   - `knowledge3d/cranium/kernels/temporal_frame_ops.cu`
+   - `knowledge3d/cranium/ptx_runtime/temporal_frame_kernels.py`
+2. `procedural_temporal_bridge.py` now uses PTX for:
+   - timeline preset application
+   - procedural frame synthesis
+3. Focused validation:
+   - `tests/test_temporal_frame_kernels.py`
+   - `tests/test_temporal_preset_kernels.py`
+   - `tests/test_procedural_temporal_bridge.py`
+   - `tests/test_scene_quality.py`
+   - result: `13 passed in 3.65s`
+
+Measured route gain:
+
+1. `ui_idle`
+   - `80.227 ms` -> `75.899 ms`
+2. `world_breathe`
+   - `129.709 ms` -> `120.361 ms`
+
+Refreshed harvest after temporal promotion:
+
+1. `8` iterations
+2. `120` execution events
+3. `62` grammar rows
+4. `36` pressure rows
+5. top candidate remains:
+   - `SIGNAL_SURFACE_MATERIAL`
+   - priority `0.77215`
+   - readiness `0.87454`
+
+Current next justified target from refreshed evidence:
+
+1. stay on the `SIGNAL_SURFACE_MATERIAL` family
+2. do not revisit solved sub-surfaces
+3. the remaining heavier pressure is in:
+   - signal/material orchestration
+   - timeline/scene orchestration
+   - encode-time bookkeeping
+
+
+## Latest Promotion Closure: Encode-Time Bookkeeping Removed
+
+Completed:
+
+- `SovereignTernaryAudioCodec` no longer routes encode/decode through generic `ModularRPNEngine.evaluate(...)`.
+- `SovereignTernaryVideoCodec` no longer routes encode/decode through generic RPN flatten/reshape.
+- `ProceduralMaterialBridge` now caches configured `ProceduralSignalBridge` instances.
+- `ProceduralTemporalBridge` now caches configured `SovereignTernaryVideoCodec` instances.
+- temporal frame encoding now uses `encode_frame_array(...)` instead of `frame -> TernaryTensor -> Python list -> reshape -> flatten -> TernaryVector`.
+
+Measured effect:
+
+- `signal_to_textured_surface`: `16.087 ms -> 7.700 ms`
+- `ui_idle`: `75.899 ms -> 22.947 ms`
+- `world_breathe`: `120.361 ms -> 37.488 ms`
+
+Interpretation:
+
+- The dominant remaining cost after earlier PTX promotions was encode-time bookkeeping.
+- That bookkeeping is now materially reduced.
+- The route family is still the same, but another real bottleneck layer has been removed.
+
+
+## Scene Playback Alignment
+
+Completed:
+
+- `compose_scene_timeline(...)` now uses the same fast array-based video encode path as temporal preview.
+- House/world playback no longer lags behind preview/timeline routes because of older `TernaryTensor` encode bookkeeping.
+
+Measured effect:
+
+- `surface_materials_to_scene_timeline`: `211.399 ms -> 58.189 ms`
+
+Interpretation:
+
+- scene playback is now materially closer to the promoted temporal preview path
+- the remaining pressure is increasingly in higher-level orchestration and route selection, not the previously repeated encode bookkeeping
+
+
+## Shared Ternary Substrate Tightening
+
+Completed:
+
+- `TernaryVector` pack/unpack is now vectorized.
+- sovereign audio/video codecs now consume ternary data through `to_numpy()` instead of Python-list roundtrips.
+
+Measured effect:
+
+- `signal_to_textured_surface`: `7.700 ms -> 6.220 ms`
+- `world_breathe`: `37.488 ms -> 30.504 ms`
+
+Interpretation:
+
+- This is a true small-detail improvement with system-wide effect.
+- The shared ternary substrate is now cheaper across the promoted multimodal routes.
+
+---
+
+## Additional Completed Work: Codec Boundary + Material Signature Promotion
+
+Completed:
+- numpy/PTX codec-op boundary for audio/video/block transforms
+- immutable-host ternary unpack path for `TernaryVector.to_numpy()`
+- cached ternary material signature encoding
+- cached material stops / previews / normal hints
+- refreshed real promotion harvest after the new route timings
+
+Measured state now:
+- `signal_to_textured_surface`: `1.702 ms`
+- `ui_idle`: `6.991 ms`
+- `world_breathe`: `10.671 ms`
+- `scene_timeline`: `18.221 ms` (same band; current bottleneck has moved upward)
+
+Implication:
+- the remaining foundational work is no longer the codec boundary for this route family
+- the next justified promotions should target scene/layer orchestration or remaining bridge-level composition overhead, not already-solved PTX math surfaces
+
+---
+
+## Additional Completed Work: Scene Layer Encoding Promotion
+
+Completed:
+- removed duplicate layer-preview encoding in `surface_materials_to_scene_timeline(...)`
+- preserved final scene encoding on the composed route
+
+Measured state now:
+- `scene_timeline`: `9.514 ms`
+- overall from paused-runtime baseline: `211.399 ms -> 9.514 ms` (`22.22x`)
+
+Implication:
+- scene/layer orchestration is materially tighter
+- the next justified foundational work is above this route again: surviving scene composition / route composition overhead, not solved codec math
+
+## Added Completion Slice: Dispatch/Journaling Hardening
+
+Completed:
+- cache resolved Tool execution plans and entrypoints in `knowledge3d/knowledgeverse/tool_execution.py`
+- remove duplicate select/invoke passes in observed payload execution
+- debounce `ExecutionQualityTracker` state writes
+- debounce `ExecutionGrammarDetector` state writes
+- lazy-init `knowledge3d/gpu/rng_pool.py` to eliminate fresh-process temporal import failure
+- refresh real execution journal batch and promotion report
+
+Measured result:
+- hot observed signal dispatch profiled at ~`60 ms`
+- real journal batch top candidate now `TRIPLANAR_MAP`
+
+Remaining route overhead is now primarily:
+- execution event append/open cost
+- specialist relevance/tokenization cost in learning/journaling
+
+## Added Completion Slice: Event Recorder Batching + Text Embedding Cache
+
+Completed:
+- buffer `execution_events.jsonl` appends in `knowledge3d/knowledgeverse/execution_events.py`
+- flush buffered step events on top-level route completion or explicit flush
+- share one `ExecutionEventRecorder` per storage root in `knowledge3d/knowledgeverse/tool_execution.py`
+- cache `_tokenize()` and `_embed_text()` in `knowledge3d/knowledgeverse/execution_quality_tracker.py`
+- add regression tests for recorder flush semantics and debounced quality persistence
+
+Measured state:
+- signal dispatch hot benchmark now stable in the `~162 ms` band
+- world dispatch remains heavier in the `~225 ms` band
+
+Implication:
+- remaining pressure has shifted further upward into:
+  - shadow-copy / top-level journaling overhead
+  - world/scene orchestration
+- event append/open cost is no longer the same per-step problem it was before batching
+
+## Added Completion Slice: Chain-Step Audit Reduction
+
+Completed:
+- treat `tool_chain_step` events as lightweight observations in `knowledge3d/knowledgeverse/trm_navigator.py`
+- keep step events in `execution_events.jsonl` but stop sending them individually into Shadow Copy in `knowledge3d/knowledgeverse/execution_events.py`
+- preserve tool/source quality updates for chain steps while skipping:
+  - specialist feedback learning
+  - gap detection
+  - grammar promotion
+- add regression coverage in `tests/test_execution_event_recorder.py` and `tests/test_specialist_selection.py`
+
+Measured state:
+- dispatch benchmark artifact: `../Knowledge3D.local/results/dispatch_route_promotion_benchmark_20260306_1858.json`
+- dispatch benchmark artifact: `../Knowledge3D.local/results/dispatch_route_promotion_benchmark_20260306_1900.json`
+- signal dispatch hot: `~162 ms -> 87.852 ms -> 83.251 ms`
+- world dispatch hot: `~225 ms -> 86.114 ms -> 93.577 ms`
+- hot observed signal dispatch profile now sits around `~13 ms` cumulative for the route itself
+
+Implication:
+- dispatch/observation overhead is now materially tighter
+- remaining foundational work has shifted above step-level journaling
+- next justified plan work is:
+  - route composition / payload-binding overhead
+  - world/scene orchestration
+  - promotion targets emerging from the live `TRIPLANAR_MAP` family pressure
+
+## Added Completion Slice: TRIPLANAR_MAP PTX Promotion
+
+Completed:
+- add fused `project_triplanar_rgba_kernel` in `knowledge3d/cranium/kernels/material_projection.cu`
+- expose `project_triplanar(...)` in `knowledge3d/cranium/ptx_runtime/material_projection_kernels.py`
+- replace the old triplanar bridge path in `knowledge3d/cranium/bridges/procedural_material_bridge.py`
+  - old path:
+    - three planar sample launches
+    - one blend launch
+  - new path:
+    - one fused PTX launch
+- add direct equivalence coverage in `tests/test_material_projection_kernels.py`
+
+Measured state:
+- benchmark artifact: `../Knowledge3D.local/results/triplanar_promotion_benchmark_20260306_190724.json`
+- `project_material_triplanar`: `0.235 ms`
+- `signal_to_textured_surface`: `1.262 ms`
+- refreshed promotion report now shows the `TRIPLANAR_MAP` family average around:
+  - `3687.403 us`
+
+Implication:
+- the promoted triplanar surface itself is no longer the real bottleneck
+- the remaining foundational work has moved upward into:
+  - material/temporal orchestration
+  - world/scene composition
+  - route-level composition around the promoted surface
+
+## Added Completion Slice: Temporal Preview/World Cache Promotion
+
+Completed:
+- add deterministic preview-plan caching in `knowledge3d/cranium/bridges/procedural_temporal_bridge.py`
+- cache key is based on:
+  - derived surface seed
+  - preset parameters
+  - output size
+  - encode/codec settings
+- explicitly bypass cache when `timeline_id` is provided so encoded frame IDs remain unique and correct
+- add regression coverage for:
+  - cache reuse without `timeline_id`
+  - cache bypass with `timeline_id`
+
+Measured state:
+- benchmark artifact: `../Knowledge3D.local/results/temporal_cache_benchmark_20260306_191134.json`
+- `ui_idle`: `0.219 ms`
+- `world_breathe`: `0.223 ms`
+- `scene_timeline`: `5.628 ms`
+- dispatch artifact: `../Knowledge3D.local/results/dispatch_route_promotion_benchmark_20260306_1911.json`
+- signal dispatch hot: `73.122 ms`
+- world dispatch hot: `67.140 ms`
+
+Implication:
+- temporal/world preview generation is now in the correct regime
+- remaining foundational pressure is above the preview layer:
+  - final route composition
+  - top-level journaling/observation
+  - broader world/scene orchestration
+
+## Added Completion Slice: Buffered Execution Journal Promotion
+
+Completed:
+- stop flushing `execution_events.jsonl` on every top-level route in `knowledge3d/knowledgeverse/execution_events.py`
+- keep the journal:
+  - buffer-size driven
+  - interval driven
+  - exit-safe via `atexit`
+- preserve immediate top-level audit through Shadow Copy
+- update execution-event tests to verify the new eventual JSONL contract and explicit flush boundary
+
+Measured state:
+- dispatch artifact: `../Knowledge3D.local/results/dispatch_route_promotion_benchmark_20260306_1943.json`
+- signal dispatch hot: `66.827 ms`
+- world dispatch hot: `81.115 ms`
+- refreshed journal batch still yields:
+  - `event_rows=106`
+  - `grammar_rows=60`
+  - `pressure_rows=22`
+
+Implication:
+- the JSONL journal is no longer taxing every invocation
+- correctness is preserved through:
+  - Shadow Copy for immediate audit
+  - buffered execution journal for harvest/reporting
+- remaining plan work is now concentrated in the last upper-layer orchestration band
+
+## Added Completion Slice: Debounced Specialist Weight Persistence Promotion
+
+Completed:
+- debounce automatic `save_weights()` inside `knowledge3d/knowledgeverse/trm_navigator.py`
+- preserve explicit `save_weights()` as an immediate persistence boundary
+- add process-exit safety via `atexit`
+- add regression coverage in `tests/test_trm_matryoshka_specialists.py`
+
+Measured state:
+- dispatch artifact: `../Knowledge3D.local/results/dispatch_route_promotion_benchmark_20260306_1949.json`
+- signal dispatch hot: `4.713 ms`
+- world dispatch hot: `4.052 ms`
+
+Implication:
+- the last major upper-layer persistence spike is removed from the live route
+- the foundational free-GPU pass is effectively complete
+- augmentation can now be resumed on the preserved base state while follow-on work proceeds in parallel
+
+## Added Completion Slice: House Room / Tour Scene Cache Promotion
+
+Completed:
+- add deterministic cache for:
+  - `execution_events_to_house_room_scene(...)`
+  - `execution_events_to_house_tour_scene(...)`
+- key over compact ordered execution-event digest plus route parameters
+- bypass cache when explicit `scene_id` is provided
+- add regression coverage in `tests/test_procedural_temporal_bridge.py`
+
+Measured state:
+- benchmark artifact: `../Knowledge3D.local/results/house_scene_cache_benchmark_20260306_2015.json`
+- house room scene:
+  - cold `19.193 ms`
+  - hot average `0.040 ms`
+- house tour scene:
+  - cold `157.293 ms`
+  - hot average `0.026 ms`
+
+Implication:
+- repeated House/world playback rebuild is effectively removed from the hot path
+- the remaining work is now concentrated in live route mutation and higher-level orchestration, not deterministic scene reconstruction

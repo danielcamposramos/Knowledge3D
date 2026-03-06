@@ -105,24 +105,54 @@ class ProceduralMaterialBridge:
         self.projection_kernels = MaterialProjectionKernels()
         self.geometry_bridge = ProceduralGeometryBridge()
         self.signal_bridge = ProceduralSignalBridge()
+        self._signal_bridge_cache: dict[tuple[int, float], ProceduralSignalBridge] = {
+            (self.signal_bridge.frame_size, self.signal_bridge.threshold): self.signal_bridge
+        }
+        self._stops_cache: dict[tuple[Any, ...], tuple[tuple[float, float, float, float, float], ...]] = {}
+        self._preview_cache: dict[tuple[tuple[Any, ...], int, int], np.ndarray] = {}
+        self._normal_hint_cache: dict[tuple[tuple[Any, ...], int, int], np.ndarray] = {}
+
+    @staticmethod
+    def _candidate_cache_key(candidate: SurfaceMaterialCandidate) -> tuple[Any, ...]:
+        return (
+            candidate.material_id,
+            candidate.gradient_type,
+            tuple(tuple(float(v) for v in row) for row in candidate.gradient_stops),
+            tuple(tuple(float(v) for v in row) for row in candidate.palette),
+            None if candidate.base_stop is None else tuple(float(v) for v in candidate.base_stop),
+            tuple(tuple(int(v) for v in row) for row in candidate.position_layers),
+            tuple(
+                tuple(tuple(int(v) for v in rgba) for rgba in layer)
+                for layer in candidate.color_layers
+            ),
+            candidate.projection_strategy,
+            float(candidate.tiling),
+        )
 
     def material_to_stops(
         self,
         candidate: SurfaceMaterialCandidate,
     ) -> tuple[tuple[float, float, float, float, float], ...]:
+        cache_key = self._candidate_cache_key(candidate)
+        cached = self._stops_cache.get(cache_key)
+        if cached is not None:
+            return cached
         if candidate.gradient_stops:
-            return tuple(self._normalize_stops(candidate.gradient_stops))
-        if candidate.palette:
-            return tuple(self.effects.palette_to_gradient_stops(candidate.palette))
-        if candidate.base_stop is not None and candidate.position_layers and candidate.color_layers:
-            return tuple(
+            stops = tuple(self._normalize_stops(candidate.gradient_stops))
+        elif candidate.palette:
+            stops = tuple(self.effects.palette_to_gradient_stops(candidate.palette))
+        elif candidate.base_stop is not None and candidate.position_layers and candidate.color_layers:
+            stops = tuple(
                 self.effects.ternary_gradient.compose_stops_from_cascade(
                     base_stop=candidate.base_stop,
                     position_layers=candidate.position_layers,
                     color_layers=candidate.color_layers,
                 )
             )
-        raise ValueError(f"material candidate {candidate.material_id} has no procedural color definition")
+        else:
+            raise ValueError(f"material candidate {candidate.material_id} has no procedural color definition")
+        self._stops_cache[cache_key] = stops
+        return stops
 
     def select_material(
         self,
@@ -175,10 +205,14 @@ class ProceduralMaterialBridge:
         width: int = 64,
         height: int = 64,
     ) -> np.ndarray:
+        cache_key = (self._candidate_cache_key(candidate), int(width), int(height))
+        cached = self._preview_cache.get(cache_key)
+        if cached is not None:
+            return cached
         stops = self.material_to_stops(candidate)
         gradient_type = str(candidate.gradient_type or "linear").lower()
         if candidate.base_stop is not None and candidate.position_layers and candidate.color_layers:
-            return self.effects.linear_gradient_from_ternary_cascade(
+            preview = self.effects.linear_gradient_from_ternary_cascade(
                 width,
                 height,
                 base_stop=candidate.base_stop,
@@ -189,11 +223,16 @@ class ProceduralMaterialBridge:
                 x2=1.0,
                 y2=1.0,
             )
-        if gradient_type == "radial":
-            return self.effects.radial_gradient(width, height, stops, cx=0.5, cy=0.5, radius=0.72)
-        if gradient_type == "conic":
-            return self.effects.conic_gradient(width, height, stops, cx=0.5, cy=0.5, start_angle=0.0)
-        return self.effects.linear_gradient(width, height, stops, x1=0.0, y1=0.0, x2=1.0, y2=1.0)
+        elif gradient_type == "radial":
+            preview = self.effects.radial_gradient(width, height, stops, cx=0.5, cy=0.5, radius=0.72)
+        elif gradient_type == "conic":
+            preview = self.effects.conic_gradient(width, height, stops, cx=0.5, cy=0.5, start_angle=0.0)
+        else:
+            preview = self.effects.linear_gradient(width, height, stops, x1=0.0, y1=0.0, x2=1.0, y2=1.0)
+        preview = np.asarray(preview, dtype=np.float32)
+        preview.setflags(write=False)
+        self._preview_cache[cache_key] = preview
+        return preview
 
     def project_material(
         self,
@@ -203,8 +242,14 @@ class ProceduralMaterialBridge:
         preview_size: int = 64,
         projection_strategy: str | None = None,
     ) -> SurfaceMaterialPlan:
+        candidate_key = self._candidate_cache_key(candidate)
+        preview_cache_key = (candidate_key, int(preview_size), int(preview_size))
         preview = self.render_material_preview(candidate, width=preview_size, height=preview_size)
-        normal_hint = self.effects.edge_map(preview)
+        normal_hint = self._normal_hint_cache.get(preview_cache_key)
+        if normal_hint is None:
+            normal_hint = np.asarray(self.effects.edge_map(preview), dtype=np.float32)
+            normal_hint.setflags(write=False)
+            self._normal_hint_cache[preview_cache_key] = normal_hint
         strategy = str(projection_strategy or candidate.projection_strategy or "triplanar").lower()
         tiling = max(0.1, float(candidate.tiling))
 
@@ -220,27 +265,7 @@ class ProceduralMaterialBridge:
         extents = np.maximum(maxs - mins, 1e-6)
         if strategy == "triplanar":
             projection_plan = _resolve_material_math_core_plan(2, int(vertices.shape[0]) * 3)
-            yz = self.projection_kernels.sample_preview(
-                preview,
-                vertices[:, [1, 2]],
-                mins[[1, 2]],
-                extents[[1, 2]],
-                tiling,
-            )
-            xz = self.projection_kernels.sample_preview(
-                preview,
-                vertices[:, [0, 2]],
-                mins[[0, 2]],
-                extents[[0, 2]],
-                tiling,
-            )
-            xy = self.projection_kernels.sample_preview(
-                preview,
-                vertices[:, [0, 1]],
-                mins[[0, 1]],
-                extents[[0, 1]],
-                tiling,
-            )
+            yz = xz = xy = None
         elif strategy == "planar_xy":
             projection_plan = _resolve_material_math_core_plan(1, int(vertices.shape[0]))
             xy = self.projection_kernels.sample_preview(
@@ -292,8 +317,14 @@ class ProceduralMaterialBridge:
             weight_sum = np.sum(weights, axis=1, keepdims=True)
             weight_sum[weight_sum < 1e-6] = 1.0
             weights = weights / weight_sum
-            assert yz is not None and xz is not None and xy is not None
-            vertex_rgba = self.projection_kernels.blend_triplanar(yz, xz, xy, weights)
+            vertex_rgba = self.projection_kernels.project_triplanar(
+                preview,
+                vertices,
+                weights,
+                mins,
+                extents,
+                tiling,
+            )
 
         metadata = dict(mesh.metadata)
         metadata.update(
@@ -376,7 +407,7 @@ class ProceduralMaterialBridge:
         preview_size: int = 64,
         projection_strategy: str | None = None,
     ) -> SurfaceMaterialPlan:
-        signal_bridge = ProceduralSignalBridge(frame_size=frame_size, threshold=threshold)
+        signal_bridge = self._signal_bridge_for(frame_size=frame_size, threshold=threshold)
         projection = signal_bridge.audio_to_spectrogram(clip_id, samples)
         surface = signal_bridge.spectrogram_to_surface(
             projection,
@@ -424,6 +455,14 @@ class ProceduralMaterialBridge:
             projection_weights=plan.projection_weights,
             metadata=metadata,
         )
+
+    def _signal_bridge_for(self, *, frame_size: int, threshold: float) -> ProceduralSignalBridge:
+        key = (int(frame_size), float(threshold))
+        bridge = self._signal_bridge_cache.get(key)
+        if bridge is None:
+            bridge = ProceduralSignalBridge(frame_size=key[0], threshold=key[1])
+            self._signal_bridge_cache[key] = bridge
+        return bridge
 
     def contour_to_textured_lathe_mesh(
         self,

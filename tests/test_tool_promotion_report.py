@@ -132,6 +132,26 @@ def test_build_tool_promotion_report_ranks_primary_tools_and_targets(tmp_path):
             "count": 4,
             "avg_quality_signal": 0.88,
         },
+        {
+            "event": "execution_multimodal_grammar_promoted",
+            "rule_id": "exec_multimodal_good",
+            "modalities": ["audio", "signal", "drawing", "reality"],
+            "route_sources": ["bridge"],
+            "tool_family_tokens": ["signal", "surface", "material", "projection"],
+            "query_tokens": ["audio", "signal", "fusion", "surface"],
+            "count": 5,
+            "avg_quality_signal": 0.91,
+        },
+        {
+            "event": "execution_multimodal_antipattern_promoted",
+            "rule_id": "exec_multimodal_bad",
+            "modalities": ["drawing", "reality"],
+            "route_sources": ["bridge"],
+            "tool_family_tokens": ["contour", "mesh", "material", "projection"],
+            "query_tokens": ["contour", "mesh", "texture", "failure"],
+            "count": 4,
+            "avg_quality_signal": 0.21,
+        },
     ]
     quality_state = {
         "tools": {},
@@ -187,9 +207,10 @@ def test_build_tool_promotion_report_ranks_primary_tools_and_targets(tmp_path):
 
     assert report["rows"] == 2
     assert report["event_rows"] == 3
-    assert report["grammar_rows"] == 2
+    assert report["grammar_rows"] == 4
     assert report["stats"]["distinct_primary_tools"] == 2
     assert report["stats"]["distinct_event_tools"] == 2
+    assert report["stats"]["distinct_multimodal_grammar_patterns"] == 2
     assert report["stats"]["distinct_route_sources"] == 2
     assert report["stats"]["distinct_tool_sources"] == 2
     assert report["rankings"]["promotion_targets"][0] == {
@@ -217,5 +238,7 @@ def test_build_tool_promotion_report_ranks_primary_tools_and_targets(tmp_path):
     assert top_candidate["promotion_priority_score"] > 0.0
     assert top_candidate["dominant_route_source"] == "bridge"
     assert top_candidate["source_quality_level"] > 0.0
+    assert top_candidate["multimodal_positive_support"] > 0
+    assert top_candidate["multimodal_negative_support"] >= 0
     assert report["rankings"]["route_source_quality"][0]["name"] == "bridge"
     assert report["rankings"]["tool_source_quality"][0]["route_source"] == "bridge"

@@ -36,3 +36,4 @@ def test_spectrogram_to_surface_emits_mesh_with_tier3_plan():
     assert surface.metadata["source_math_core_plan"]["preferred_tier"] == 2
     lengths = np.linalg.norm(surface.normals, axis=1)
     assert np.all(lengths > 0.0)
+    assert np.allclose(lengths, 1.0, atol=1e-4)

@@ -1,3 +1,5 @@
+import numpy as np
+
 from knowledge3d.cranium.ternary import TernaryVector, TernaryTensor
 
 
@@ -13,3 +15,10 @@ def test_ternary_tensor_shape_check():
     tensor = TernaryTensor((2, 2), tv)
     assert tensor.shape == (2, 2)
     assert tensor.to_python() == [0, 1, -1, 0]
+
+
+def test_ternary_vector_accepts_numpy_array():
+    vals = np.asarray([-1, 0, 1, 200, 10, 120], dtype=np.int32)
+    tv = TernaryVector(vals)
+    assert tv.to_python() == [-1, 0, 1, 1, 0, -1]
+    assert tv.to_numpy().dtype == np.int8

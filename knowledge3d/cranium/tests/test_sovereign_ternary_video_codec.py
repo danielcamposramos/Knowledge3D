@@ -1,3 +1,5 @@
+import numpy as np
+
 from knowledge3d.cranium.codecs.sovereign_ternary_video_codec import SovereignTernaryVideoCodec
 from knowledge3d.cranium.ternary import TernaryVector, TernaryTensor
 
@@ -38,5 +40,22 @@ def test_video_codec_stores_real_procedural_seed():
     assert meta["seed_rpn"] == seed_rpn
     assert "TERNARY_QUANT" in seed_rpn
     assert metadata["math_core_plan"]["preferred_tier"] == 2
+    assert metadata["blocks_per_channel"] == 1
+    assert len(residual.to_python()) == h * w * 3
+
+
+def test_video_codec_encode_frame_array_matches_tensor_path():
+    h, w = 8, 8
+    frame = np.zeros((h, w, 3), dtype=np.uint8)
+    frame[..., 0] = 32
+    frame[..., 1] = 128
+    frame[..., 2] = 224
+
+    codec = SovereignTernaryVideoCodec(width=w, height=h, threshold=0.2)
+    meta = codec.encode_frame_array("frame_array", frame)
+    seed_rpn, residual, metadata = codec.galaxy.load_frame_details("frame_array")
+
+    assert meta["stored_in_galaxy"] is True
+    assert meta["seed_rpn"] == seed_rpn
     assert metadata["blocks_per_channel"] == 1
     assert len(residual.to_python()) == h * w * 3

@@ -50,20 +50,23 @@ class RNGPool:
         if use_cupy is None:
             use_cupy = _HAS_CUPY
         self._use_cupy = bool(use_cupy and _HAS_CUPY)
+        self._rng = None
+
+    def _ensure_rng(self):
+        if self._rng is not None:
+            return self._rng
         if self._use_cupy:
-            self._rng = cp.random.RandomState(seed)
+            self._rng = cp.random.RandomState(self._state.seed)
         else:
-            self._rng = np.random.default_rng(seed)
+            self._rng = np.random.default_rng(self._state.seed)
+        return self._rng
 
     # ------------------------------------------------------------------
     def seed(self, seed: int) -> None:
         """Reset the generator to a given seed."""
         with self._lock:
             self._state = RNGState(seed=seed)
-            if self._use_cupy:
-                self._rng = cp.random.RandomState(seed)
-            else:
-                self._rng = np.random.default_rng(seed)
+            self._rng = None
 
     # ------------------------------------------------------------------
     def uniform(self, shape: Iterable[int], dtype: str = "float32") -> Tuple[np.ndarray, Optional["cp.ndarray"]]:
@@ -75,12 +78,13 @@ class RNGPool:
         without forcing data transfers.
         """
         with self._lock:
+            rng = self._ensure_rng()
             if self._use_cupy:
-                gpu = self._rng.random_sample(shape, dtype=dtype)  # type: ignore[arg-type]
+                gpu = rng.random_sample(shape, dtype=dtype)  # type: ignore[arg-type]
                 cpu = None
             else:
                 gpu = None
-                cpu = self._rng.random(shape, dtype=dtype)  # type: ignore[arg-type]
+                cpu = rng.random(shape, dtype=dtype)  # type: ignore[arg-type]
         if gpu is not None:
             return gpu.get(), gpu
         assert cpu is not None
@@ -90,12 +94,13 @@ class RNGPool:
     def integers(self, low: int, high: int, size: Iterable[int]) -> Tuple[np.ndarray, Optional["cp.ndarray"]]:
         """Sample integers in ``[low, high)`` deterministically."""
         with self._lock:
+            rng = self._ensure_rng()
             if self._use_cupy:
-                gpu = self._rng.randint(low, high, size=size, dtype=cp.int32)
+                gpu = rng.randint(low, high, size=size, dtype=cp.int32)
                 cpu = None
             else:
                 gpu = None
-                cpu = self._rng.integers(low, high, size, dtype=np.int32)
+                cpu = rng.integers(low, high, size, dtype=np.int32)
         if gpu is not None:
             return gpu.get(), gpu
         assert cpu is not None
@@ -104,4 +109,3 @@ class RNGPool:
 
 # Global pool shared by PTX helpers
 global_rng_pool = RNGPool()
-

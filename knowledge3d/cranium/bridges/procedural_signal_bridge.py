@@ -3,8 +3,9 @@
 The bridge stays honest about the current substrate:
 - spectral transforms are PTX-backed through the sovereign ternary audio codec
 - preview coloring is PTX-backed through the signal visualization runtime
-- heightfield mesh assembly remains deterministic host orchestration until a
-  dedicated signal-surface kernel is justified
+- heightfield vertex/normal generation is PTX-backed through signal surface kernels
+- surface topology assembly remains deterministic host orchestration until a
+  dedicated signal-topology kernel is justified
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ import numpy as np
 
 from knowledge3d.cranium.codecs.sovereign_ternary_audio_codec import SovereignTernaryAudioCodec
 from knowledge3d.cranium.ptx_runtime.math_core_pool import get_global_math_core_pool
+from knowledge3d.cranium.ptx_runtime.signal_surface_kernels import SignalSurfaceKernels
 from knowledge3d.cranium.ptx_runtime.signal_visualization_kernels import SignalVisualizationKernels
 from knowledge3d.cranium.ternary import TernaryVector
 
@@ -64,37 +66,6 @@ def _resolve_signal_math_core_plan(preferred_tier: int, work_items: int) -> dict
     }
 
 
-def _compute_vertex_normals(
-    vertices: np.ndarray,
-    indices: np.ndarray,
-    *,
-    execution_plan: dict[str, object] | None = None,
-) -> np.ndarray:
-    normals = np.zeros_like(vertices, dtype=np.float32)
-    tris = np.asarray(indices, dtype=np.uint32).reshape(-1, 3)
-    verts = np.asarray(vertices, dtype=np.float32)
-    batch_size = int((execution_plan or {}).get("batch_size", max(1, tris.shape[0])))
-    for start in range(0, tris.shape[0], batch_size):
-        tri_batch = tris[start:start + batch_size]
-        v0 = verts[tri_batch[:, 0]]
-        v1 = verts[tri_batch[:, 1]]
-        v2 = verts[tri_batch[:, 2]]
-        face_normals = np.cross(v1 - v0, v2 - v0).astype(np.float32, copy=False)
-        lengths = np.linalg.norm(face_normals, axis=1, keepdims=True).astype(np.float32, copy=False)
-        face_normals = np.divide(
-            face_normals,
-            lengths,
-            out=np.zeros_like(face_normals, dtype=np.float32),
-            where=lengths > 1e-8,
-        )
-        np.add.at(normals, tri_batch[:, 0], face_normals)
-        np.add.at(normals, tri_batch[:, 1], face_normals)
-        np.add.at(normals, tri_batch[:, 2], face_normals)
-    lengths = np.linalg.norm(normals, axis=1, keepdims=True)
-    lengths[lengths < 1e-8] = 1.0
-    return (normals / lengths).astype(np.float32, copy=False)
-
-
 class ProceduralSignalBridge:
     """Always-on signal bridge built on the sovereign PTX codec substrate."""
 
@@ -103,6 +74,7 @@ class ProceduralSignalBridge:
         self.threshold = float(threshold)
         self.codec = SovereignTernaryAudioCodec(frame_size=self.frame_size, threshold=self.threshold)
         self.visualization = SignalVisualizationKernels()
+        self.surface_kernels = SignalSurfaceKernels()
 
     def audio_to_spectrogram(
         self,
@@ -113,7 +85,7 @@ class ProceduralSignalBridge:
         _seed_rpn, residual, stored_meta = self.codec.galaxy.load_frame_details(clip_id)
         frame_count = int(stored_meta["frame_count"])
         bins = self.frame_size // 2
-        spectrogram = np.asarray(residual.to_python(), dtype=np.int32).reshape(frame_count, bins).T
+        spectrogram = residual.to_numpy().astype(np.int32, copy=False).reshape(frame_count, bins).T
         preview_rgba = self.visualization.spectrogram_to_rgba(spectrogram)
         total = max(1, int(spectrogram.size))
         metadata = {
@@ -157,11 +129,11 @@ class ProceduralSignalBridge:
         rows, cols = spectrogram.shape
         surface_plan = _resolve_signal_math_core_plan(preferred_tier=3, work_items=rows * cols)
         heightfield = (spectrogram * float(displacement_gain)).astype(np.float32, copy=False)
-
-        x_coords = np.linspace(-0.5, 0.5, cols, dtype=np.float32) * float(time_scale)
-        z_coords = np.linspace(0.5, -0.5, rows, dtype=np.float32) * float(frequency_scale)
-        xx, zz = np.meshgrid(x_coords, z_coords, indexing="xy")
-        vertices = np.stack((xx, heightfield, zz), axis=-1).astype(np.float32, copy=False).reshape(-1, 3)
+        vertices = self.surface_kernels.heightfield_to_vertices(
+            heightfield,
+            time_scale=float(time_scale),
+            frequency_scale=float(frequency_scale),
+        )
 
         if rows > 1 and cols > 1:
             row_ids = np.arange(rows - 1, dtype=np.uint32)[:, None]
@@ -176,7 +148,11 @@ class ProceduralSignalBridge:
         else:
             indices = np.empty((0, 3), dtype=np.uint32)
 
-        normals = _compute_vertex_normals(vertices, indices, execution_plan=surface_plan)
+        normals = self.surface_kernels.heightfield_to_normals(
+            heightfield,
+            time_scale=float(time_scale),
+            frequency_scale=float(frequency_scale),
+        )
         metadata = {
             "rows": int(rows),
             "cols": int(cols),

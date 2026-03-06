@@ -7,6 +7,7 @@ import pytest
 from knowledge3d.cranium.bridges.procedural_material_bridge import SurfaceMaterialCandidate
 from knowledge3d.cranium.ternary import TernaryVector
 from knowledge3d.knowledgeverse import Knowledgeverse
+from knowledge3d.knowledgeverse.tool_execution import ToolExecutionResolver
 
 
 def _require_gpu():
@@ -106,6 +107,7 @@ def test_execution_events_record_three_distinct_tool_routes(tmp_path, monkeypatc
     )
 
     event_path = tmp_path / "kv_exec_events" / "logs" / "execution_events.jsonl"
+    ToolExecutionResolver.clear_caches()
     rows = [json.loads(line) for line in event_path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
     assert len(rows) >= 3
@@ -278,6 +280,7 @@ def test_execution_events_reach_phase_2d_density_target(tmp_path, monkeypatch):
         )
 
     event_path = tmp_path / "kv_exec_density" / "logs" / "execution_events.jsonl"
+    ToolExecutionResolver.clear_caches()
     rows = [json.loads(line) for line in event_path.read_text(encoding="utf-8").splitlines() if line.strip()]
     assert len(rows) >= 100
     assert any(str(row.get("tool_id", "")) == "tool_house_tour_scene_v1" for row in rows)
