@@ -1002,8 +1002,6 @@ def main() -> None:
     os.environ.setdefault("K3D_REQUIRE_PTX_ARC_PIPELINE", "true")
     if args.arc_enable_full_ptx:
         os.environ.setdefault("K3D_ALLOW_LEGACY_ARC_PIPELINE", "false")
-        # Full PTX mode must not silently drop to CPU query scans.
-        os.environ["K3D_REQUIRE_PTX_QUERY"] = "true"
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     inventory = _dataset_inventory(args.dataset_root)

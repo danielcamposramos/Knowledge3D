@@ -40,3 +40,28 @@ def test_execution_quality_tracker_debounces_state_writes(tmp_path) -> None:
     tracker.flush()
     saved_twice = json.loads(state_path.read_text(encoding="utf-8"))
     assert saved_twice["tools"]["tool_alpha"]["total_executions"] == 2
+
+
+def test_execution_quality_tracker_buffers_gap_log_until_flush(tmp_path) -> None:
+    state_path = tmp_path / "execution_quality_tracker.json"
+    gap_log_path = tmp_path / "specialist_gaps.jsonl"
+    tracker = ExecutionQualityTracker(
+        state_path=state_path,
+        gap_log_path=gap_log_path,
+        spawn_threshold=1.1,
+        save_every=1000,
+        save_interval_s=999.0,
+    )
+
+    tracker.observe_event(_event(1, quality=0.7), specialist_catalog=["VisualSpecialist"])
+    rows = [json.loads(line) for line in gap_log_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert len(rows) == 1
+
+    tracker.observe_event(_event(2, quality=0.7), specialist_catalog=["VisualSpecialist"])
+    rows_after_second = [json.loads(line) for line in gap_log_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert len(rows_after_second) == 1
+
+    tracker.flush()
+    rows = [json.loads(line) for line in gap_log_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert len(rows) == 2
+    assert rows[0]["query_context"] == "dispatch route benchmark"

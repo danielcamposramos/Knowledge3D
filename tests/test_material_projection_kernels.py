@@ -97,3 +97,31 @@ def test_project_triplanar_matches_sample_plus_blend():
 
     assert fused.shape == blended.shape == (2, 4)
     assert np.allclose(fused, blended, atol=1e-5)
+
+
+@pytest.mark.cuda
+def test_preview_device_cache_reuses_same_preview_upload():
+    _require_gpu()
+    from knowledge3d.cranium.ptx_runtime.material_projection_kernels import MaterialProjectionKernels
+
+    preview = np.asarray(
+        [
+            [[1.0, 0.0, 0.0, 1.0], [0.0, 1.0, 0.0, 1.0]],
+            [[0.0, 0.0, 1.0, 1.0], [1.0, 1.0, 1.0, 1.0]],
+        ],
+        dtype=np.float32,
+    )
+    vertices = np.asarray([[0.1, 0.2, 0.3]], dtype=np.float32)
+    weights = np.asarray([[0.2, 0.3, 0.5]], dtype=np.float32)
+    mins = np.asarray([0.0, 0.0, 0.0], dtype=np.float32)
+    extents = np.asarray([1.0, 1.0, 1.0], dtype=np.float32)
+
+    kernels = MaterialProjectionKernels()
+    before = kernels.preview_cache_size()
+    kernels.project_triplanar(preview, vertices, weights, mins, extents, 1.0)
+    middle = kernels.preview_cache_size()
+    kernels.project_triplanar(preview, vertices, weights, mins, extents, 1.0)
+    after = kernels.preview_cache_size()
+
+    assert middle >= before
+    assert after == middle

@@ -35,6 +35,21 @@ def test_foundational_bootstrap_is_idempotent(tmp_path):
     assert second["total_inserted"] == 0
 
 
+def test_foundational_number_word_symlinks_exist(tmp_path):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_num")
+    populate_foundational_operations(kv.galaxy_manager)
+
+    number_entries = kv.galaxy_manager.get_galaxy("Number").entries
+    word_entries = kv.galaxy_manager.get_galaxy("Word").entries
+
+    num_five = next(entry for entry in number_entries if entry.get("id") == "num_5")
+    word_five = next(entry for entry in word_entries if entry.get("id") == "word_five")
+
+    assert num_five["metadata"]["word_ref"] == "word_five"
+    assert word_five["metadata"]["number_ref"] == "num_5"
+    assert word_five["metadata"]["is_numeric_word"] is True
+
+
 def test_deterministic_benchmark_smoke(tmp_path):
     kv = Knowledgeverse(storage_root=tmp_path / "kv")
     populate_foundational_operations(kv.galaxy_manager)

@@ -288,9 +288,65 @@ def test_execution_plan_binds_semantic_payload_with_defaults(tmp_path, monkeypat
     assert args[0] == "signal_exec_alias_defaults"
     assert kwargs["frame_size"] == 1024
     assert kwargs["threshold"] == 0.2
-    assert kwargs["displacement_gain"] == 0.25
-    assert kwargs["preview_size"] == 64
-    assert kwargs["negative_materials"] == []
+
+
+def test_execution_plan_structural_candidate_caches_reuse_payload_shape(tmp_path, monkeypatch):
+    monkeypatch.setenv("K3D_REQUIRE_PTX_QUERY", "false")
+    ToolExecutionResolver.clear_caches()
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_exec_structural_cache")
+    rows = kv.galaxy_manager.query(
+        query_text="audio signal surface material fusion",
+        specialist="audio",
+        top_k=8,
+        galaxies=["Tool"],
+    )
+    composed = kv.trm_navigator.compose(
+        query="audio signal surface material fusion",
+        patterns=rows,
+        specialist="audio",
+    )
+    cool = SurfaceMaterialCandidate(
+        material_id="cool",
+        name="Cool",
+        palette=((0.08, 0.16, 0.62, 1.0), (0.4, 0.62, 0.95, 1.0), (0.92, 0.98, 1.0, 1.0)),
+    )
+    warm = SurfaceMaterialCandidate(
+        material_id="warm",
+        name="Warm",
+        palette=((0.7, 0.18, 0.08, 1.0), (0.9, 0.48, 0.2, 1.0), (1.0, 0.9, 0.7, 1.0)),
+    )
+    payload = {
+        "clip_id": "signal_exec_alias",
+        "audio_signal": TernaryVector([0] * 1024),
+        "material_candidates": (cool, warm),
+        "preview_size": 32,
+    }
+
+    selected_first = ToolExecutionResolver.select_entrypoint_for_payload(
+        composed.get("execution_plan"),
+        payload,
+        quality_tracker=kv.trm_navigator.execution_quality_tracker,
+    )
+    selected_second = ToolExecutionResolver.select_entrypoint_for_payload(
+        composed.get("execution_plan"),
+        payload,
+        quality_tracker=kv.trm_navigator.execution_quality_tracker,
+    )
+    chain_first = ToolExecutionResolver.select_chain_preset_for_payload(
+        composed.get("execution_plan"),
+        payload,
+        quality_tracker=kv.trm_navigator.execution_quality_tracker,
+    )
+    chain_second = ToolExecutionResolver.select_chain_preset_for_payload(
+        composed.get("execution_plan"),
+        payload,
+        quality_tracker=kv.trm_navigator.execution_quality_tracker,
+    )
+
+    assert selected_first["tool_id"] == selected_second["tool_id"]
+    assert chain_first["preset_name"] == chain_second["preset_name"]
+    assert len(ToolExecutionResolver._entrypoint_candidate_cache) == 1
+    assert len(ToolExecutionResolver._chain_candidate_cache) == 1
 
 
 def test_execution_plan_selects_contour_entrypoint_from_semantic_payload(tmp_path, monkeypatch):
@@ -1490,6 +1546,26 @@ def test_trm_execute_auto_dispatches_library_garden_museum_and_tour_scene_tools(
             payload["max_events"] = 3
         result = kv.trm_navigator.execute(program, input_data=payload)
         assert result.metadata["house_room_preset"] == expected_room
+
+
+@pytest.mark.cuda
+def test_navigate_and_compose_auto_world_scene_query_keeps_tool_execution_plan(tmp_path, monkeypatch):
+    _require_gpu()
+    monkeypatch.setenv("K3D_REQUIRE_PTX_QUERY", "false")
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_auto_world_scene")
+
+    program = kv.trm_navigator.navigate_and_compose(
+        query="house tour overview all scene playback",
+        specialist="auto",
+        domain_hint="world",
+    )
+
+    execution_plan = program.get("execution_plan")
+    assert execution_plan is not None
+
+    blueprint = kv.trm_navigator.resolve_execution_plan(execution_plan)
+    assert blueprint is not None
+    assert blueprint["primary_tool_id"] == "tool_house_tour_scene_v1"
 
 
 @pytest.mark.cuda

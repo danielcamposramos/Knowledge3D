@@ -100,3 +100,25 @@ def test_lhe_benchmark_empty_vs_enriched(tmp_path):
     assert enriched_result["total_questions"] == 2
     assert enriched_result["accuracy"] >= empty_result["accuracy"]
     assert enriched_result["accuracy"] > empty_result["accuracy"]
+
+
+def test_lhe_benchmark_accepts_direct_json_file_path(tmp_path):
+    dataset_file = tmp_path / "last_humanity_exam.json"
+    payload = {
+        "questions": [
+            {
+                "id": "q_math",
+                "domain": "math",
+                "question_text": "What is 2 + 2?",
+                "options": ["3", "4", "5"],
+                "correct_answer": "4",
+            }
+        ]
+    }
+    dataset_file.write_text(json.dumps(payload), encoding="utf-8")
+
+    benchmark = LastHumanityExamBenchmark(dataset_path=dataset_file)
+
+    assert benchmark.synthetic_fallback is False
+    assert benchmark.dataset_file == str(dataset_file)
+    assert len(benchmark.questions) == 1

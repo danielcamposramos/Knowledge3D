@@ -24,7 +24,7 @@ def _event(*, mode: str, stamp: int) -> ExecutionEvent:
     )
 
 
-def test_execution_event_recorder_buffers_chain_steps_and_top_level_until_flush(tmp_path) -> None:
+def test_execution_event_recorder_buffers_chain_steps_but_flushes_top_level_immediately(tmp_path) -> None:
     recorder = ExecutionEventRecorder(storage_root=tmp_path / "kv_events", buffer_size=64, flush_interval_s=999.0)
     event_path = tmp_path / "kv_events" / "logs" / "execution_events.jsonl"
 
@@ -32,9 +32,6 @@ def test_execution_event_recorder_buffers_chain_steps_and_top_level_until_flush(
     assert not event_path.exists()
 
     recorder.append(_event(mode="tool_entrypoint_chain", stamp=2))
-    assert not event_path.exists()
-
-    recorder.flush()
     rows = [json.loads(line) for line in event_path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
     assert len(rows) == 2

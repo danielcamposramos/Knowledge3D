@@ -32,7 +32,8 @@ def test_hot_path_has_no_regex_or_eval_fallbacks() -> None:
 def test_galaxy_manager_requires_ptx_query_by_default() -> None:
     content = _read("knowledge3d/knowledgeverse/galaxy_manager.py")
     assert 'self.require_ptx_query = _env_true("K3D_REQUIRE_PTX_QUERY", "true")' in content
-    assert "return self._query_ptx_implementation(" in content
+    assert "return self._query_token_implementation(" in content
+    assert "_query_ptx_implementation" not in content
 
 
 def test_arc_ops_blocks_cpu_fallbacks() -> None:
@@ -42,11 +43,11 @@ def test_arc_ops_blocks_cpu_fallbacks() -> None:
     assert "cpu_passthrough" not in content
 
 
-def test_full_ptx_runner_enforces_ptx_query() -> None:
+def test_full_ptx_runner_no_longer_forces_query_env() -> None:
     bench = _read("scripts/run_all_benchmarks.py")
     global_bench = _read("scripts/run_all_global_benchmarks.py")
-    assert 'os.environ["K3D_REQUIRE_PTX_QUERY"] = "true"' in bench
-    assert 'os.environ["K3D_REQUIRE_PTX_QUERY"] = "true"' in global_bench
+    assert 'os.environ["K3D_REQUIRE_PTX_QUERY"] = "true"' not in bench
+    assert 'os.environ["K3D_REQUIRE_PTX_QUERY"] = "true"' not in global_bench
 
 
 def test_sender_runtime_gpu_enforcement_is_present() -> None:

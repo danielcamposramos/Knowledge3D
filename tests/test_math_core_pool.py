@@ -22,3 +22,20 @@ def test_math_core_pool_snapshot_and_retier():
     pool.release_core(core_id)
     third = pool.snapshot()
     assert third["active"] == 0
+
+
+def test_math_core_pool_snapshot_cache_invalidates_on_mutation():
+    pool = MathCorePool(idle_timeout=0.0)
+
+    first = pool.snapshot()
+    second = pool.snapshot()
+    assert first == second
+
+    core_id = pool.spawn_core(tier=2, reuse=False)
+    third = pool.snapshot()
+    assert third["active"] == 1
+    assert third["active_tiers"][2] == 1
+
+    pool.release_core(core_id, pool=False)
+    fourth = pool.snapshot()
+    assert fourth["active"] == 0

@@ -259,6 +259,22 @@ def test_project_material_planar_xy_uses_tier1_projection_plan():
 
 
 @pytest.mark.cuda
+def test_material_bridge_reuses_global_signal_bridge_cache():
+    _require_gpu()
+    from knowledge3d.cranium.bridges.procedural_material_bridge import ProceduralMaterialBridge
+
+    first = ProceduralMaterialBridge()
+    second = ProceduralMaterialBridge()
+
+    bridge_a = first._signal_bridge_for(frame_size=256, threshold=0.2)
+    bridge_b = second._signal_bridge_for(frame_size=256, threshold=0.2)
+    bridge_c = second._signal_bridge_for(frame_size=512, threshold=0.2)
+
+    assert bridge_a is bridge_b
+    assert bridge_a is not bridge_c
+
+
+@pytest.mark.cuda
 def test_material_bridge_warmup_is_idempotent():
     _require_gpu()
     from knowledge3d.cranium.bridges.procedural_material_bridge import ProceduralMaterialBridge

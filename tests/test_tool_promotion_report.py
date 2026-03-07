@@ -232,13 +232,17 @@ def test_build_tool_promotion_report_ranks_primary_tools_and_targets(tmp_path):
     }
     top_candidate = report["candidate_summary"]["top_candidate"]
     assert top_candidate is not None
-    assert top_candidate["name"] == "TRIPLANAR_MAP"
-    assert top_candidate["pressure_count"] == 2
-    assert top_candidate["grammar_occurrence_count"] >= 3
+    assert top_candidate["name"] == "UV_PROJECT"
+    assert top_candidate["promotion_status"] == "candidate"
+    assert top_candidate["already_promoted"] is False
+    assert top_candidate["pressure_count"] == 1
     assert top_candidate["promotion_priority_score"] > 0.0
-    assert top_candidate["dominant_route_source"] == "bridge"
-    assert top_candidate["source_quality_level"] > 0.0
-    assert top_candidate["multimodal_positive_support"] > 0
-    assert top_candidate["multimodal_negative_support"] >= 0
+    triplanar = next(item for item in report["rankings"]["promotion_candidates"] if item["name"] == "TRIPLANAR_MAP")
+    assert triplanar["promotion_status"] == "materialized"
+    assert triplanar["already_promoted"] is True
+    assert triplanar["dominant_route_source"] == "bridge"
+    assert triplanar["source_quality_level"] > 0.0
+    assert triplanar["multimodal_positive_support"] > 0
+    assert triplanar["multimodal_negative_support"] >= 0
     assert report["rankings"]["route_source_quality"][0]["name"] == "bridge"
     assert report["rankings"]["tool_source_quality"][0]["route_source"] == "bridge"

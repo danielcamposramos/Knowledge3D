@@ -38,3 +38,12 @@ def test_week19_router_includes_3dobjects_for_physics_and_multi():
     assert multi_route["specialist"] == "cartographer"
     assert "3DObjects" in multi_route["galaxy_names"]
 
+
+def test_week19_router_routes_house_scene_playback_to_cartographer():
+    router = SpecialistRouter()
+
+    route = router.route("house tour overview all scene playback", specialist="auto")
+
+    assert route["specialist"] == "cartographer"
+    assert route["domain"] in {"world", "multi"}
+    assert "Tool" in route["galaxy_names"]

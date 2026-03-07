@@ -37,3 +37,23 @@ def test_spectrogram_to_surface_emits_mesh_with_tier3_plan():
     lengths = np.linalg.norm(surface.normals, axis=1)
     assert np.all(lengths > 0.0)
     assert np.allclose(lengths, 1.0, atol=1e-4)
+
+
+def test_audio_to_spectrogram_can_skip_preview_generation():
+    samples = TernaryVector([(-1 if i % 7 == 0 else (1 if i % 3 == 0 else 0)) for i in range(1024)])
+    bridge = ProceduralSignalBridge(frame_size=256, threshold=0.15)
+
+    projection = bridge.audio_to_spectrogram("sig_no_preview", samples, build_preview=False)
+
+    assert projection.spectrogram.shape == (128, 4)
+    assert projection.preview_rgba is None
+    assert projection.metadata["frame_count"] == 4
+
+
+def test_configured_signal_bridge_reuses_cached_instance():
+    first = ProceduralSignalBridge.for_config(frame_size=256, threshold=0.2)
+    second = ProceduralSignalBridge.for_config(frame_size=256, threshold=0.2)
+    different = ProceduralSignalBridge.for_config(frame_size=512, threshold=0.2)
+
+    assert first is second
+    assert first is not different

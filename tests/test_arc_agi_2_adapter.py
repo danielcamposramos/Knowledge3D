@@ -13,37 +13,621 @@ def _sample_task() -> dict:
     }
 
 
-def test_adapter_fallback_when_pipeline_unavailable():
+def _phase_tile_task() -> dict:
+    return {
+        "id": "phase_tile_test",
+        "train": [
+            {
+                "input": [[8, 6], [6, 4]],
+                "output": [
+                    [8, 6, 8, 6, 8, 6],
+                    [6, 4, 6, 4, 6, 4],
+                    [6, 8, 6, 8, 6, 8],
+                    [4, 6, 4, 6, 4, 6],
+                    [8, 6, 8, 6, 8, 6],
+                    [6, 4, 6, 4, 6, 4],
+                ],
+            },
+            {
+                "input": [[7, 9], [4, 3]],
+                "output": [
+                    [7, 9, 7, 9, 7, 9],
+                    [4, 3, 4, 3, 4, 3],
+                    [9, 7, 9, 7, 9, 7],
+                    [3, 4, 3, 4, 3, 4],
+                    [7, 9, 7, 9, 7, 9],
+                    [4, 3, 4, 3, 4, 3],
+                ],
+            },
+        ],
+        "test": [
+            {
+                "input": [[3, 2], [7, 8]],
+                "output": [
+                    [3, 2, 3, 2, 3, 2],
+                    [7, 8, 7, 8, 7, 8],
+                    [2, 3, 2, 3, 2, 3],
+                    [8, 7, 8, 7, 8, 7],
+                    [3, 2, 3, 2, 3, 2],
+                    [7, 8, 7, 8, 7, 8],
+                ],
+            }
+        ],
+    }
+
+
+def _self_pattern_nonzero_mask_task() -> dict:
+    adapter = ArcAgi2Adapter(use_enriched=False, strict_legacy=False)
+    train_input = [[0, 1], [1, 0]]
+    test_input = [[2, 0], [2, 2]]
+    return {
+        "id": "0692e18c_like",
+        "train": [
+            {
+                "input": train_input,
+                "output": adapter._grid_self_pattern_nonzero_mask(train_input),
+            }
+        ],
+        "test": [
+            {
+                "input": test_input,
+                "output": adapter._grid_self_pattern_nonzero_mask(test_input),
+            }
+        ],
+    }
+
+
+def _self_pattern_complement_mask_task() -> dict:
+    adapter = ArcAgi2Adapter(use_enriched=False, strict_legacy=False)
+    train_input = [[0, 7, 0], [7, 7, 7], [0, 7, 0]]
+    test_input = [[0, 0, 3], [3, 3, 0], [0, 3, 0]]
+    return {
+        "id": "0692e18c_complement_like",
+        "train": [
+            {
+                "input": train_input,
+                "output": adapter._grid_self_pattern_complement_mask(train_input),
+            }
+        ],
+        "test": [
+            {
+                "input": test_input,
+                "output": adapter._grid_self_pattern_complement_mask(test_input),
+            }
+        ],
+    }
+
+
+def _enclosed_fill_count_mod_task() -> dict:
+    return {
+        "id": "00dbd492_like",
+        "train": [
+            {
+                "input": [
+                    [2, 2, 2, 2, 2, 0, 0],
+                    [2, 0, 0, 0, 2, 0, 0],
+                    [2, 0, 2, 0, 2, 0, 0],
+                    [2, 0, 0, 0, 2, 0, 0],
+                    [2, 2, 2, 2, 2, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0],
+                ],
+                "output": [
+                    [2, 2, 2, 2, 2, 0, 0],
+                    [2, 8, 8, 8, 2, 0, 0],
+                    [2, 8, 2, 8, 2, 0, 0],
+                    [2, 8, 8, 8, 2, 0, 0],
+                    [2, 2, 2, 2, 2, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0],
+                ],
+            }
+        ],
+        "test": [
+            {
+                "input": [
+                    [0, 0, 2, 2, 2, 2, 2, 0, 0],
+                    [0, 0, 2, 0, 0, 0, 2, 0, 0],
+                    [0, 0, 2, 0, 2, 0, 2, 0, 0],
+                    [0, 0, 2, 0, 0, 0, 2, 0, 0],
+                    [0, 0, 2, 2, 2, 2, 2, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                ],
+                "output": [
+                    [0, 0, 2, 2, 2, 2, 2, 0, 0],
+                    [0, 0, 2, 8, 8, 8, 2, 0, 0],
+                    [0, 0, 2, 8, 2, 8, 2, 0, 0],
+                    [0, 0, 2, 8, 8, 8, 2, 0, 0],
+                    [0, 0, 2, 2, 2, 2, 2, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                ],
+            }
+        ],
+    }
+
+
+def _enclosed_fill_count_lookup_task() -> dict:
+    return {
+        "id": "00dbd492_lookup_like",
+        "train": [
+            {
+                "input": [
+                    [2, 2, 2, 2, 2, 0, 0],
+                    [2, 0, 0, 0, 2, 0, 0],
+                    [2, 0, 2, 0, 2, 0, 0],
+                    [2, 0, 0, 0, 2, 0, 0],
+                    [2, 2, 2, 2, 2, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0],
+                ],
+                "output": [
+                    [2, 2, 2, 2, 2, 0, 0],
+                    [2, 8, 8, 8, 2, 0, 0],
+                    [2, 8, 2, 8, 2, 0, 0],
+                    [2, 8, 8, 8, 2, 0, 0],
+                    [2, 2, 2, 2, 2, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0],
+                ],
+            },
+            {
+                "input": [
+                    [2, 2, 2, 2, 2, 2, 2, 0, 0],
+                    [2, 0, 0, 0, 0, 0, 2, 0, 0],
+                    [2, 0, 0, 0, 0, 0, 2, 0, 0],
+                    [2, 0, 0, 2, 0, 0, 2, 0, 0],
+                    [2, 0, 0, 0, 0, 0, 2, 0, 0],
+                    [2, 0, 0, 0, 0, 0, 2, 0, 0],
+                    [2, 2, 2, 2, 2, 2, 2, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                ],
+                "output": [
+                    [2, 2, 2, 2, 2, 2, 2, 0, 0],
+                    [2, 4, 4, 4, 4, 4, 2, 0, 0],
+                    [2, 4, 4, 4, 4, 4, 2, 0, 0],
+                    [2, 4, 4, 2, 4, 4, 2, 0, 0],
+                    [2, 4, 4, 4, 4, 4, 2, 0, 0],
+                    [2, 4, 4, 4, 4, 4, 2, 0, 0],
+                    [2, 2, 2, 2, 2, 2, 2, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                ],
+            },
+        ],
+        "test": [
+            {
+                "input": [
+                    [2, 2, 2, 2, 2, 2, 2, 0, 0],
+                    [2, 0, 0, 0, 0, 0, 2, 0, 0],
+                    [2, 0, 0, 0, 0, 0, 2, 0, 0],
+                    [2, 0, 0, 2, 0, 0, 2, 0, 0],
+                    [2, 0, 0, 0, 0, 0, 2, 0, 0],
+                    [2, 0, 0, 0, 0, 0, 2, 0, 0],
+                    [2, 2, 2, 2, 2, 2, 2, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [2, 2, 2, 2, 2, 0, 0, 0, 0],
+                    [2, 0, 0, 0, 2, 0, 0, 0, 0],
+                    [2, 0, 2, 0, 2, 0, 0, 0, 0],
+                    [2, 0, 0, 0, 2, 0, 0, 0, 0],
+                    [2, 2, 2, 2, 2, 0, 0, 0, 0],
+                ],
+                "output": [
+                    [2, 2, 2, 2, 2, 2, 2, 0, 0],
+                    [2, 4, 4, 4, 4, 4, 2, 0, 0],
+                    [2, 4, 4, 4, 4, 4, 2, 0, 0],
+                    [2, 4, 4, 2, 4, 4, 2, 0, 0],
+                    [2, 4, 4, 4, 4, 4, 2, 0, 0],
+                    [2, 4, 4, 4, 4, 4, 2, 0, 0],
+                    [2, 2, 2, 2, 2, 2, 2, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [2, 2, 2, 2, 2, 0, 0, 0, 0],
+                    [2, 8, 8, 8, 2, 0, 0, 0, 0],
+                    [2, 8, 2, 8, 2, 0, 0, 0, 0],
+                    [2, 8, 8, 8, 2, 0, 0, 0, 0],
+                    [2, 2, 2, 2, 2, 0, 0, 0, 0],
+                ],
+            }
+        ],
+    }
+
+
+def _connect_color_pairs_task() -> dict:
+    adapter = ArcAgi2Adapter(use_enriched=False, strict_legacy=False)
+    train_input = [
+        [0, 0, 2, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0],
+        [0, 3, 0, 0, 0, 3, 0],
+        [0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 2, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0],
+    ]
+    test_input = [
+        [0, 4, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [5, 0, 0, 0, 5, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 4, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+    ]
+    return {
+        "id": "070dd51e_like",
+        "train": [{"input": train_input, "output": adapter._grid_connect_color_pairs(train_input)}],
+        "test": [{"input": test_input, "output": adapter._grid_connect_color_pairs(test_input)}],
+    }
+
+
+def _diagonal_component_pack_task() -> dict:
+    adapter = ArcAgi2Adapter(use_enriched=False, strict_legacy=False)
+    train_input = [
+        [0, 0, 0, 0, 0, 0, 0],
+        [4, 4, 0, 0, 0, 0, 0],
+        [4, 4, 0, 0, 0, 0, 0],
+        [0, 0, 0, 2, 0, 0, 0],
+        [0, 0, 0, 2, 0, 3, 3],
+        [0, 0, 0, 2, 0, 3, 3],
+        [0, 0, 0, 0, 0, 0, 0],
+    ]
+    test_input = [
+        [0, 0, 0, 0, 0, 0, 0],
+        [7, 0, 0, 0, 0, 0, 0],
+        [7, 0, 8, 8, 0, 0, 0],
+        [7, 0, 8, 8, 0, 6, 0],
+        [7, 0, 0, 0, 0, 6, 0],
+        [0, 0, 0, 0, 0, 6, 0],
+        [0, 0, 0, 0, 0, 0, 0],
+    ]
+    return {
+        "id": "03560426_like",
+        "train": [{"input": train_input, "output": adapter._grid_diagonal_component_pack(train_input)}],
+        "test": [{"input": test_input, "output": adapter._grid_diagonal_component_pack(test_input)}],
+    }
+
+
+def _marker_shape_lookup_task() -> dict:
+    adapter = ArcAgi2Adapter(use_enriched=False, strict_legacy=False)
+    train_a = [
+        [0, 0, 0, 0, 0, 0, 0],
+        [0, 8, 8, 8, 0, 0, 0],
+        [0, 8, 0, 8, 0, 0, 0],
+        [0, 8, 8, 8, 0, 0, 0],
+        [0, 0, 0, 0, 1, 0, 0],
+        [0, 0, 0, 1, 1, 1, 0],
+        [0, 0, 0, 0, 1, 0, 0],
+    ]
+    train_b = [
+        [0, 0, 0, 0, 0, 0, 0],
+        [0, 8, 8, 8, 0, 0, 0],
+        [0, 8, 0, 8, 0, 0, 0],
+        [0, 8, 8, 8, 0, 0, 0],
+        [0, 0, 0, 1, 0, 0, 0],
+        [0, 0, 0, 1, 0, 0, 0],
+        [0, 0, 0, 1, 1, 0, 0],
+    ]
+    train_c = [
+        [0, 0, 0, 0, 0, 0, 0],
+        [0, 8, 8, 8, 0, 0, 0],
+        [0, 8, 0, 8, 0, 0, 0],
+        [0, 8, 8, 8, 0, 0, 0],
+        [0, 0, 1, 1, 1, 0, 0],
+        [0, 0, 0, 1, 0, 0, 0],
+        [0, 0, 0, 1, 0, 0, 0],
+    ]
+    test_input = [
+        [0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 8, 8, 8, 0, 0],
+        [0, 0, 8, 0, 8, 0, 0],
+        [0, 0, 8, 8, 8, 0, 0],
+        [0, 1, 1, 1, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0, 0],
+        [0, 0, 0, 0, 1, 0, 0],
+    ]
+    return {
+        "id": "009d5c81_like",
+        "train": [
+            {
+                "input": train_a,
+                "output": adapter._grid_marker_shape_color_lookup_recolor(
+                    train_a,
+                    params={
+                        "marker_color": 1,
+                        "object_color": 8,
+                        "shape_to_color": {"0:1;1:0;1:1;1:2;2:1": 2},
+                    },
+                ),
+            },
+            {
+                "input": train_b,
+                "output": adapter._grid_marker_shape_color_lookup_recolor(
+                    train_b,
+                    params={
+                        "marker_color": 1,
+                        "object_color": 8,
+                        "shape_to_color": {"0:0;1:0;2:0;2:1": 3},
+                    },
+                ),
+            },
+            {
+                "input": train_c,
+                "output": adapter._grid_marker_shape_color_lookup_recolor(
+                    train_c,
+                    params={
+                        "marker_color": 1,
+                        "object_color": 8,
+                        "shape_to_color": {"0:0;0:1;0:2;1:1;2:1": 7},
+                    },
+                ),
+            },
+        ],
+        "test": [
+            {
+                "input": test_input,
+                "output": adapter._grid_marker_shape_color_lookup_recolor(
+                    test_input,
+                    params={
+                        "marker_color": 1,
+                        "object_color": 8,
+                        "shape_to_color": {"0:0;0:1;0:2;1:1;2:1": 7},
+                    },
+                ),
+            }
+        ],
+    }
+
+
+def _repeated_tile_consensus_task() -> dict:
+    return {
+        "id": "0607ce86_consensus_like",
+        "train": [
+            {
+                "input": [
+                    [2, 8, 0, 2, 2],
+                    [3, 3, 0, 3, 8],
+                    [0, 1, 0, 0, 0],
+                    [2, 2, 0, 8, 2],
+                    [3, 8, 0, 3, 3],
+                ],
+                "output": [
+                    [2, 2, 0, 2, 2],
+                    [3, 3, 0, 3, 3],
+                    [0, 0, 0, 0, 0],
+                    [2, 2, 0, 2, 2],
+                    [3, 3, 0, 3, 3],
+                ],
+            }
+        ],
+        "test": [
+            {
+                "input": [
+                    [7, 4, 0, 7, 9],
+                    [5, 5, 0, 9, 5],
+                    [0, 2, 0, 0, 1],
+                    [9, 4, 0, 7, 4],
+                    [5, 9, 0, 5, 5],
+                ],
+                "output": [
+                    [7, 4, 0, 7, 4],
+                    [5, 5, 0, 5, 5],
+                    [0, 0, 0, 0, 0],
+                    [7, 4, 0, 7, 4],
+                    [5, 5, 0, 5, 5],
+                ],
+            }
+        ],
+    }
+
+
+def test_adapter_ignores_legacy_fallback_and_uses_sovereign_solver():
     adapter = ArcAgi2Adapter(use_enriched=False, strict_legacy=False)
     adapter.pipeline = None
 
     def fallback(task: dict, use_enriched: bool) -> dict:
-        assert task["id"] == "adapter_test"
-        assert use_enriched is False
-        return {
-            "task_id": task["id"],
-            "correct": True,
-            "exact_match": True,
-            "predicted": task["test"][0]["output"],
-            "expected": task["test"][0]["output"],
-            "reasoning_trace": ["fallback_used"],
-            "patterns_used": 1,
-            "score": 1.0,
-            "fuzzy_score": 1.0,
-        }
+        raise AssertionError("legacy fallback should not be called")
 
     result = adapter.solve_task(_sample_task(), fallback_solver=fallback)
-    assert result["solver"] == "trm_navigator_fallback"
+    assert result["solver"] == "arc_sovereign"
     assert result["correct"] is True
-    assert "fallback_reason" in result
 
 
-def test_adapter_strict_mode_raises_without_pipeline():
+def test_adapter_strict_mode_still_uses_sovereign_solver():
     adapter = ArcAgi2Adapter(use_enriched=False, strict_legacy=False)
     adapter.pipeline = None
     adapter.strict_legacy = True
-    with pytest.raises(RuntimeError, match="Legacy ARC pipeline unavailable"):
-        adapter.solve_task(_sample_task())
+    result = adapter.solve_task(_sample_task())
+    assert result["solver"] == "arc_sovereign"
+    assert result["correct"] is True
+
+
+def test_phase_tile_pattern_is_discovered_and_applied_compositionally():
+    adapter = ArcAgi2Adapter(use_enriched=True, strict_legacy=False)
+    task = _phase_tile_task()
+    patterns = adapter.discover_patterns(task["train"])
+    phase_patterns = [p for p in patterns if tuple(getattr(p, "ops", ())) == ("tile_pattern", "phase_shift")]
+    assert phase_patterns
+    assert max(int(p.composition_depth) for p in phase_patterns) >= 2
+    predicted = adapter._generate_candidate_from_pattern(task["test"][0]["input"], phase_patterns[0])
+    assert predicted == task["test"][0]["output"]
+
+
+def test_phase_tile_task_stays_correct_under_benchmark_arc_flags():
+    adapter = ArcAgi2Adapter(
+        use_enriched=True,
+        strict_legacy=False,
+        enable_contrastive_learning=True,
+        enable_validity_gates=True,
+        enable_fuzzy_oracle=True,
+        enable_figure_ground_reversal=True,
+        enable_object_aware_generation=True,
+        enable_ptx_ranking=False,
+        enable_full_ptx=False,
+    )
+    result = adapter.solve_task(_phase_tile_task())
+    assert result["correct"] is True
+    assert result["predicted"] == _phase_tile_task()["test"][0]["output"]
+
+
+def test_self_pattern_nonzero_mask_is_discovered_and_applied():
+    adapter = ArcAgi2Adapter(use_enriched=True, strict_legacy=False)
+    task = _self_pattern_nonzero_mask_task()
+    patterns = adapter.discover_patterns(task["train"])
+    target = [p for p in patterns if tuple(getattr(p, "ops", ())) == ("object_extract", "object_place")]
+    assert target
+    predicted = adapter._generate_candidate_from_pattern(task["test"][0]["input"], target[0])
+    assert predicted == task["test"][0]["output"]
+
+
+def test_self_pattern_complement_mask_is_discovered_and_applied():
+    adapter = ArcAgi2Adapter(use_enriched=True, strict_legacy=False)
+    task = _self_pattern_complement_mask_task()
+    patterns = adapter.discover_patterns(task["train"])
+    target = [p for p in patterns if tuple(getattr(p, "ops", ())) == ("object_extract", "object_place")]
+    assert any(getattr(p, "params", {}).get("mode") == "self_pattern_complement_mask" for p in target)
+    pattern = next(p for p in target if getattr(p, "params", {}).get("mode") == "self_pattern_complement_mask")
+    predicted = adapter._generate_candidate_from_pattern(task["test"][0]["input"], pattern)
+    assert predicted == task["test"][0]["output"]
+
+
+def test_enclosed_zero_count_fill_is_discovered_and_applied():
+    adapter = ArcAgi2Adapter(use_enriched=True, strict_legacy=False)
+    task = _enclosed_fill_count_mod_task()
+    patterns = adapter.discover_patterns(task["train"])
+    target = [
+        p
+        for p in patterns
+        if tuple(getattr(p, "ops", ())) == ("object_extract", "connected_components", "conditional_fill")
+    ]
+    assert target
+    predicted = adapter._generate_candidate_from_pattern(task["test"][0]["input"], target[0])
+    assert predicted == task["test"][0]["output"]
+
+
+def test_enclosed_zero_count_lookup_is_discovered_and_applied():
+    adapter = ArcAgi2Adapter(use_enriched=True, strict_legacy=False)
+    task = _enclosed_fill_count_lookup_task()
+    patterns = adapter.discover_patterns(task["train"])
+    target = [
+        p
+        for p in patterns
+        if tuple(getattr(p, "ops", ())) == ("object_extract", "connected_components", "conditional_fill")
+        and getattr(p, "params", {}).get("mode") == "enclosed_zero_count_lookup"
+    ]
+    assert target
+    predicted = adapter._generate_candidate_from_pattern(task["test"][0]["input"], target[0])
+    assert predicted == task["test"][0]["output"]
+
+
+def test_connect_color_pairs_is_discovered_and_applied():
+    adapter = ArcAgi2Adapter(use_enriched=True, strict_legacy=False)
+    task = _connect_color_pairs_task()
+    patterns = adapter.discover_patterns(task["train"])
+    target = [p for p in patterns if tuple(getattr(p, "ops", ())) == ("object_extract", "object_place")]
+    assert any(getattr(p, "params", {}).get("mode") == "connect_color_pairs" for p in target)
+    pattern = next(p for p in target if getattr(p, "params", {}).get("mode") == "connect_color_pairs")
+    predicted = adapter._generate_candidate_from_pattern(task["test"][0]["input"], pattern)
+    assert predicted == task["test"][0]["output"]
+
+
+def test_connect_color_pairs_survives_benchmark_flags_with_negative_forms():
+    adapter = ArcAgi2Adapter(
+        use_enriched=True,
+        strict_legacy=False,
+        enable_contrastive_learning=True,
+        enable_validity_gates=True,
+        enable_fuzzy_oracle=True,
+        enable_figure_ground_reversal=True,
+        enable_object_aware_generation=True,
+        enable_ptx_ranking=False,
+        enable_full_ptx=False,
+    )
+    result = adapter.solve_task(_connect_color_pairs_task())
+    assert result["correct"] is True
+
+
+def test_diagonal_component_pack_is_discovered_and_applied():
+    adapter = ArcAgi2Adapter(use_enriched=True, strict_legacy=False)
+    task = _diagonal_component_pack_task()
+    patterns = adapter.discover_patterns(task["train"])
+    target = [p for p in patterns if tuple(getattr(p, "ops", ())) == ("object_extract", "object_place")]
+    assert any(getattr(p, "params", {}).get("mode") == "diagonal_component_pack" for p in target)
+    pattern = next(p for p in target if getattr(p, "params", {}).get("mode") == "diagonal_component_pack")
+    predicted = adapter._generate_candidate_from_pattern(task["test"][0]["input"], pattern)
+    assert predicted == task["test"][0]["output"]
+
+
+def test_marker_shape_lookup_is_discovered_and_applied():
+    adapter = ArcAgi2Adapter(use_enriched=True, strict_legacy=False)
+    task = _marker_shape_lookup_task()
+    patterns = adapter.discover_patterns(task["train"])
+    target = [p for p in patterns if tuple(getattr(p, "ops", ())) == ("object_extract", "lookup_color_remap")]
+    assert target
+    assert any(getattr(p, "params", {}).get("mode") == "marker_shape_color_lookup" for p in target)
+    pattern = next(p for p in target if getattr(p, "params", {}).get("mode") == "marker_shape_color_lookup")
+    predicted = adapter._generate_candidate_from_pattern(task["test"][0]["input"], pattern)
+    assert predicted == task["test"][0]["output"]
+
+
+def test_repeated_tile_consensus_is_discovered_and_applied():
+    adapter = ArcAgi2Adapter(use_enriched=True, strict_legacy=False)
+    task = _repeated_tile_consensus_task()
+    patterns = adapter.discover_patterns(task["train"])
+    target = [p for p in patterns if tuple(getattr(p, "ops", ())) == ("object_extract", "object_place")]
+    assert any(getattr(p, "params", {}).get("mode") == "repeated_tile_consensus" for p in target)
+    pattern = next(p for p in target if getattr(p, "params", {}).get("mode") == "repeated_tile_consensus")
+    predicted = adapter._generate_candidate_from_pattern(task["test"][0]["input"], pattern)
+    assert predicted == task["test"][0]["output"]
+
+
+def test_low_precision_autonomous_navigation_does_not_outrank_precise_four_pass():
+    adapter = ArcAgi2Adapter(use_enriched=True, strict_legacy=False, enable_ptx_ranking=False)
+    four_pass = {
+        "candidate": [[1]],
+        "score": 0.0,
+        "components": {
+            "source_precision": 0.98,
+            "quality_prior": 0.5,
+            "train_similarity": 0.675,
+            "novelty": 1.0,
+            "grammar_confidence": 0.897,
+            "cross_modal": 0.4,
+            "compositional": 0.4,
+            "reuse": 0.0,
+            "family_bonus": 0.1,
+            "navigation_multiplier": 1.0,
+            "family_score": 1.0,
+            "shape_score": 1.0,
+            "palette_score": 1.0,
+            "object_score": 1.0,
+            "generation_pass": True,
+        },
+        "pattern": {"source": "arc_four_pass"},
+    }
+    autonomous = {
+        "candidate": [[2]],
+        "score": 0.0,
+        "components": {
+            "source_precision": 0.19,
+            "quality_prior": 0.5,
+            "train_similarity": 0.675,
+            "novelty": 1.0,
+            "grammar_confidence": 0.9,
+            "cross_modal": 0.4,
+            "compositional": 0.4,
+            "reuse": 0.1,
+            "family_bonus": 0.1,
+            "navigation_multiplier": 1.45,
+            "family_score": 1.0,
+            "shape_score": 1.0,
+            "palette_score": 1.0,
+            "object_score": 1.0,
+            "generation_pass": True,
+        },
+        "pattern": {"source": "autonomous_generation"},
+    }
+    ranked = adapter._score_and_sort_candidates_sovereign([four_pass, autonomous])
+    assert ranked[0]["pattern"]["source"] == "arc_four_pass"
 
 
 def test_describe_visual_transformation_reflection_and_color():
@@ -275,7 +859,8 @@ def test_solve_task_emits_oracle_and_ranking_diagnostics():
     result = adapter.solve_task(_sample_task())
 
     assert result["correct"] is True
-    assert result["legacy_correct"] is True
+    assert result["legacy_correct"] is False
+    assert result["solver"] == "arc_sovereign"
     assert "oracle_at_3" in result
     assert "oracle_at_10" in result
     assert "oracle_at_all" in result
@@ -288,8 +873,8 @@ def test_solve_task_emits_oracle_and_ranking_diagnostics():
     assert isinstance(result["ranking_top_5_sources"], list)
 
     event_types = [event_type for event_type, _ in kv.events]
-    assert "arc_candidate_ranking" in event_types
-    assert "arc_ranking_scores" in event_types
+    assert "arc_pattern_discovery" in event_types
+    assert "arc_candidate_contrast" in event_types
 
 
 def test_validity_profile_infers_family_and_expected_shape():
