@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
+from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC, TabletIngest
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
 from knowledge3d.knowledgeverse.trm_navigator import TRMNavigator
 
@@ -20,12 +22,15 @@ class MathCompetitionBenchmark:
         max_problems: int | None = None,
         query_scope_galaxies: str | list[str] | None = None,
         runtime_seed_knowledge: bool = False,
+        tablet_boundary: HeadlessTabletMPC | None = None,
     ):
         self.kv = knowledgeverse or Knowledgeverse()
         self.dataset_path = self._resolve_dataset_path(dataset_path)
         self.max_problems = max_problems
         self.query_scope_galaxies = self._normalize_query_scope(query_scope_galaxies)
         self.runtime_seed_knowledge = bool(runtime_seed_knowledge)
+        self.tablet_boundary = tablet_boundary
+        self.dataset_sources: list[str] = []
         self.problems = self._load_problems()
         self.results: list[dict[str, Any]] = []
 
@@ -33,6 +38,9 @@ class MathCompetitionBenchmark:
         if dataset_path is not None:
             return Path(dataset_path)
         candidates = [
+            Path("/K3D/K3D_llama_cpp/datasets"),
+            Path("/K3D/K3D_llama_cpp/datasets/GSM8K"),
+            Path("/K3D/K3D_llama_cpp/datasets/math"),
             Path("/K3D/Knowledge3D.local/datasets/math_competitions"),
             Path("../Knowledge3D.local/datasets/math_competitions"),
             Path("data"),
@@ -44,16 +52,43 @@ class MathCompetitionBenchmark:
 
     def _load_problems(self) -> list[dict[str, Any]]:
         if self.dataset_path and self.dataset_path.exists():
-            staged = self._load_from_competition_files(self.dataset_path)
+            staged = self._load_from_present_datasets(self.dataset_path, limit=self.max_problems)
             if staged:
-                return staged[: self.max_problems] if self.max_problems is not None else staged
+                return staged
         fallback = self._load_from_calculus_microbench()
         if fallback:
             return fallback[: self.max_problems] if self.max_problems is not None else fallback
         synthetic = self._synthetic_problems()
         return synthetic[: self.max_problems] if self.max_problems is not None else synthetic
 
-    def _load_from_competition_files(self, root: Path) -> list[dict[str, Any]]:
+    def _load_from_present_datasets(self, root: Path, limit: int | None = None) -> list[dict[str, Any]]:
+        batches: list[list[dict[str, Any]]] = []
+        for loader in (
+            self._load_from_competition_files,
+            self._load_from_gsm8k,
+            self._load_from_math_dataset,
+        ):
+            batch = loader(root, limit=limit)
+            if batch:
+                batches.append(batch)
+        if limit is None:
+            return [row for batch in batches for row in batch]
+        out: list[dict[str, Any]] = []
+        offset = 0
+        while len(out) < int(limit):
+            progressed = False
+            for batch in batches:
+                if offset < len(batch):
+                    out.append(batch[offset])
+                    progressed = True
+                    if len(out) >= int(limit):
+                        break
+            if not progressed:
+                break
+            offset += 1
+        return out
+
+    def _load_from_competition_files(self, root: Path, limit: int | None = None) -> list[dict[str, Any]]:
         out: list[dict[str, Any]] = []
         sources = [
             ("AMC", root / "amc_problems.json"),
@@ -74,6 +109,8 @@ class MathCompetitionBenchmark:
             if not isinstance(records, list):
                 continue
             for idx, record in enumerate(records):
+                if limit is not None and len(out) >= int(limit):
+                    return out
                 if not isinstance(record, dict):
                     continue
                 text = str(record.get("problem_text") or record.get("question") or "").strip()
@@ -88,7 +125,88 @@ class MathCompetitionBenchmark:
                         "answer": answer,
                     }
                 )
+        if out:
+            self.dataset_sources.append("competition_json")
         return out
+
+    def _load_from_gsm8k(self, root: Path, limit: int | None = None) -> list[dict[str, Any]]:
+        candidates = [
+            root / "grade_school_math" / "data" / "test.jsonl",
+            root / "GSM8K" / "grade_school_math" / "data" / "test.jsonl",
+            root / "grade_school_math" / "data" / "train.jsonl",
+            root / "GSM8K" / "grade_school_math" / "data" / "train.jsonl",
+        ]
+        for path in candidates:
+            if not path.exists():
+                continue
+            out: list[dict[str, Any]] = []
+            with path.open("r", encoding="utf-8") as handle:
+                for idx, line in enumerate(handle):
+                    if limit is not None and len(out) >= int(limit):
+                        break
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        payload = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    text = str(payload.get("question") or "").strip()
+                    answer = self._extract_gsm8k_answer(payload.get("answer"))
+                    if not text or answer is None:
+                        continue
+                    out.append(
+                        {
+                            "id": f"gsm8k_{idx}",
+                            "competition": "GSM8K",
+                            "problem_text": text,
+                            "answer": answer,
+                        }
+                    )
+            if out:
+                self.dataset_sources.append(str(path))
+                return out
+        return []
+
+    def _load_from_math_dataset(self, root: Path, limit: int | None = None) -> list[dict[str, Any]]:
+        candidates = [
+            root / "data" / "train.jsonl",
+            root / "math" / "data" / "train.jsonl",
+            root / "data_train.jsonl",
+            root / "math" / "data_train.jsonl",
+        ]
+        for path in candidates:
+            if not path.exists():
+                continue
+            out: list[dict[str, Any]] = []
+            with path.open("r", encoding="utf-8") as handle:
+                for idx, line in enumerate(handle):
+                    if limit is not None and len(out) >= int(limit):
+                        break
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        payload = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    text = str(payload.get("problem") or "").strip()
+                    answer = self._extract_math_answer(payload.get("solution"))
+                    if not text or answer is None:
+                        continue
+                    math_type = str(payload.get("type") or "MATH").strip() or "MATH"
+                    out.append(
+                        {
+                            "id": f"math_{idx}",
+                            "competition": f"MATH:{math_type}",
+                            "problem_text": text,
+                            "answer": answer,
+                        }
+                    )
+            if out:
+                self.dataset_sources.append(str(path))
+                return out
+        return []
 
     def _load_from_calculus_microbench(self) -> list[dict[str, Any]]:
         paths = [
@@ -183,6 +301,7 @@ class MathCompetitionBenchmark:
         return {
             "benchmark": "Math Competitions",
             "dataset_path": str(self.dataset_path) if self.dataset_path else "synthetic",
+            "dataset_sources": list(self.dataset_sources),
             "use_enriched": use_enriched,
             "results_by_competition": by_competition,
             "overall_accuracy": (total_correct / total_count) if total_count else 0.0,
@@ -207,6 +326,8 @@ class MathCompetitionBenchmark:
     ) -> dict[str, Any]:
         navigator.clear_trace()
         generated_entry: dict[str, Any] | None = None
+        if self.tablet_boundary is not None:
+            return self._solve_problem_via_tablet(problem=problem, use_enriched=use_enriched)
         if use_enriched and self.runtime_seed_knowledge:
             self._seed_math_knowledge(problem)
             if self._should_attempt_autonomous_generation(str(problem["problem_text"])):
@@ -285,6 +406,49 @@ class MathCompetitionBenchmark:
             ),
         }
 
+    def _solve_problem_via_tablet(
+        self,
+        *,
+        problem: dict[str, Any],
+        use_enriched: bool,
+    ) -> dict[str, Any]:
+        envelope = TabletIngest.math_problem(
+            task_id=str(problem["id"]),
+            question=str(problem["problem_text"]),
+            competition=str(problem.get("competition") or ""),
+            expected_answer=problem.get("answer"),
+        )
+        tablet_result = self.tablet_boundary.submit(envelope, use_enriched=use_enriched)
+        emitted = dict(tablet_result["emitted"])
+        route = emitted.get("route", {})
+        predicted = emitted.get("predicted_answer")
+        expected = problem["answer"]
+        correct = bool(emitted.get("correct", False))
+        self.kv.log_event(
+            "math_problem_solved" if correct else "math_problem_failed",
+            {
+                "specialist": route.get("specialist", "math"),
+                "confidence": 0.9 if correct else 0.35,
+                "competition": problem["competition"],
+            },
+        )
+        return {
+            "problem_id": problem["id"],
+            "competition": problem["competition"],
+            "correct": int(correct),
+            "predicted_answer": predicted,
+            "expected_answer": expected,
+            "failure_reason": "" if predicted is not None else "tablet_boundary_no_result",
+            "failure_signal": None,
+            "symbols_used": 0,
+            "reasoning_trace": emitted.get("task_result", {}).get("reasoning_trace", []),
+            "route": route,
+            "meta_specialist": route.get("specialist"),
+            "method": "tablet_boundary",
+            "generated_id": None,
+            "tablet_contract": tablet_result["tablet_contract"],
+        }
+
     def _extract_failure_reason(self, reasoning_trace: list[str]) -> str:
         for item in reversed(reasoning_trace):
             if not isinstance(item, str):
@@ -349,13 +513,80 @@ class MathCompetitionBenchmark:
         exp = self._to_float(expected)
         if pred is not None and exp is not None:
             return abs(pred - exp) <= 1e-3
-        return str(predicted).strip().lower() == str(expected).strip().lower()
+        return self._normalize_text_answer(predicted) == self._normalize_text_answer(expected)
 
     def _to_float(self, value: Any) -> float | None:
         try:
             return float(value)
         except Exception:
+            try:
+                cleaned = str(value).strip().replace(",", "").replace("\\", "")
+                if cleaned.endswith("%"):
+                    cleaned = cleaned[:-1]
+                if cleaned.startswith("$"):
+                    cleaned = cleaned[1:]
+                return float(cleaned)
+            except Exception:
+                return None
+
+    def _normalize_text_answer(self, value: Any) -> str:
+        return (
+            str(value)
+            .strip()
+            .lower()
+            .replace("\\", "")
+            .replace(" ", "")
+        )
+
+    def _extract_gsm8k_answer(self, raw_answer: Any) -> str | None:
+        text = str(raw_answer or "").strip()
+        if not text:
             return None
+        match = re.search(r"####\s*([^\n]+)", text)
+        if match:
+            return match.group(1).strip().replace(",", "")
+        return text.splitlines()[-1].strip() or None
+
+    def _extract_math_answer(self, solution: Any) -> str | None:
+        text = str(solution or "").strip()
+        if not text:
+            return None
+        boxed = self._extract_last_boxed(text)
+        if boxed:
+            return boxed.strip()
+        match = re.search(r"####\s*([^\n]+)", text)
+        if match:
+            return match.group(1).strip()
+        tail = text.splitlines()[-1].strip()
+        tail = tail.rstrip(".")
+        eq_match = re.search(r"=\s*([^=]+)$", tail)
+        if eq_match:
+            return eq_match.group(1).strip()
+        return tail or None
+
+    def _extract_last_boxed(self, text: str) -> str | None:
+        markers = (r"\boxed{", r"\fbox{")
+        last_pos = -1
+        marker_used = ""
+        for marker in markers:
+            pos = text.rfind(marker)
+            if pos > last_pos:
+                last_pos = pos
+                marker_used = marker
+        if last_pos < 0:
+            return None
+        start = last_pos + len(marker_used)
+        depth = 1
+        chars: list[str] = []
+        for ch in text[start:]:
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    return "".join(chars)
+            chars.append(ch)
+        return None
 
     def _should_attempt_autonomous_generation(self, text: str) -> bool:
         lowered = text.lower()

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import re
@@ -11,14 +10,6 @@ from pathlib import Path
 from typing import Any, Sequence
 
 from .resilience import SelfHealingWrapper
-
-try:  # pragma: no cover - optional GPU dependency
-    import cupy as cp  # type: ignore
-
-    _HAS_CUPY = True
-except Exception:  # pragma: no cover
-    cp = None  # type: ignore
-    _HAS_CUPY = False
 
 
 def _env_true(name: str, default: str = "false") -> bool:
@@ -41,18 +32,14 @@ class GalaxyManager:
         self.storage_root.mkdir(parents=True, exist_ok=True)
         self._galaxies: dict[str, Any] = {}
         self._knowledgeverse: Any | None = None
-        # Sovereign enforcement: CPU O(n) scan is forbidden when PTX query is required.
+        # Sovereign query is currently token/rule matching only. Any future
+        # embedding query must arrive as a real PTX kernel, not a wrapper library.
         self.require_ptx_query = _env_true("K3D_REQUIRE_PTX_QUERY", "true")
         # Runtime cache for serialized entry text to reduce repeated O(entry_size)
         # json.dumps calls during benchmark query loops.
         self._entry_text_cache: dict[int, str] = {}
-        # Runtime cache for hashed query vectors per entry id.
-        self._entry_vector_cache: dict[int, Any] = {}
         # Cache specialist-filtered entry views per galaxy.
         self._specialist_entry_cache: dict[tuple[str, str], list[dict[str, Any]]] = {}
-        # Cache stacked vectors per specialist-filtered pool.
-        self._specialist_vector_cache: dict[tuple[str, str], Any] = {}
-        self._query_vector_dim = max(64, int(os.environ.get("K3D_QUERY_VECTOR_DIM", "512")))
 
     def set_knowledgeverse(self, knowledgeverse: Any) -> None:
         """Attach parent Knowledgeverse reference for specialized galaxy classes."""
@@ -83,14 +70,23 @@ class GalaxyManager:
         galaxies: Sequence[str] | None = None,
         preferred_pattern_type: str | None = None,
     ) -> Any:
-        if self.require_ptx_query:
-            return self._query_ptx_implementation(
-                query_text=query_text,
-                specialist=specialist,
-                top_k=top_k,
-                galaxies=galaxies,
-                preferred_pattern_type=preferred_pattern_type,
-            )
+        return self._query_token_implementation(
+            query_text=query_text,
+            specialist=specialist,
+            top_k=top_k,
+            galaxies=galaxies,
+            preferred_pattern_type=preferred_pattern_type,
+        )
+
+    def _query_token_implementation(
+        self,
+        *,
+        query_text: str,
+        specialist: str,
+        top_k: int,
+        galaxies: Sequence[str] | None = None,
+        preferred_pattern_type: str | None = None,
+    ) -> list[dict[str, Any]]:
         tokens = {tok for tok in re.split(r"[^a-z0-9_]+", query_text.lower()) if tok}
         specialist_key = str(specialist or "any").strip().lower()
         top_limit = max(1, int(top_k))
@@ -120,77 +116,6 @@ class GalaxyManager:
             for score, entry, name in scored[:top_limit]
         ]
 
-    def _query_ptx_implementation(
-        self,
-        *,
-        query_text: str,
-        specialist: str,
-        top_k: int,
-        galaxies: Sequence[str] | None,
-        preferred_pattern_type: str | None = None,
-    ) -> list[dict[str, Any]]:
-        if not _HAS_CUPY or cp is None:
-            raise NotImplementedError(
-                "PTX query kernel required but CuPy is unavailable. "
-                "Install GPU runtime or run explicit non-sovereign diagnostics with "
-                "K3D_REQUIRE_PTX_QUERY=false."
-            )
-        tokens = self._tokenize_query_tokens(query_text)
-        if not tokens:
-            return []
-        specialist_key = str(specialist or "any").strip().lower()
-        top_limit = max(1, int(top_k))
-        target_names = self._resolve_target_galaxies(galaxies)
-        query_vec = self._encode_tokens(tokens)
-        query_gpu = cp.asarray(query_vec, dtype=cp.float32)
-
-        scored: list[tuple[float, dict[str, Any], str]] = []
-        for name in target_names:
-            galaxy = self._galaxies.get(name)
-            if galaxy is None:
-                continue
-            specialist_matches_galaxy = specialist_key in {"", "any"} or specialist_key in name.lower()
-            entries = self._entries_for_specialist(
-                galaxy_name=name,
-                specialist_key=specialist_key,
-                specialist_matches_galaxy=specialist_matches_galaxy,
-            )
-            if not entries:
-                continue
-            pool_key = (
-                name,
-                "__all__" if specialist_key in {"", "any"} or specialist_matches_galaxy else specialist_key,
-            )
-            matrix_np = self._vectors_for_pool(pool_key, entries)
-            if matrix_np.shape[0] == 0:
-                continue
-            matrix_gpu = cp.asarray(matrix_np, dtype=cp.float32)
-            scores_gpu = matrix_gpu.dot(query_gpu)
-            local_k = min(top_limit, int(matrix_np.shape[0]))
-            if local_k <= 0:
-                continue
-            if local_k < int(matrix_np.shape[0]):
-                idx_gpu = cp.argpartition(scores_gpu, int(matrix_np.shape[0]) - local_k)[-local_k:]
-            else:
-                idx_gpu = cp.arange(int(matrix_np.shape[0]), dtype=cp.int32)
-            local_idx = cp.asnumpy(idx_gpu).astype("int32", copy=False)
-            local_scores = cp.asnumpy(scores_gpu[idx_gpu]).astype("float32", copy=False)
-            for idx, score in zip(local_idx.tolist(), local_scores.tolist()):
-                if score <= 0.0:
-                    continue
-                entry = entries[int(idx)]
-                boosted = float(score)
-                if preferred_pattern_type:
-                    boosted += self._pattern_type_score_boost(entry, preferred_pattern_type)
-                boosted += self._math_core_score_boost(entry, tokens)
-                scored.append((boosted, entry, name))
-
-        scored.sort(key=lambda item: item[0], reverse=True)
-        return [
-            {"galaxy": name, "score": float(score), "entry": entry}
-            for score, entry, name in scored[:top_limit]
-        ]
-
     def _resolve_target_galaxies(self, galaxies: Sequence[str] | None) -> list[str]:
         if not galaxies:
             return list(self._galaxies.keys())
@@ -209,56 +134,6 @@ class GalaxyManager:
 
     def _tokenize_query_tokens(self, text: str) -> set[str]:
         return {tok for tok in re.split(r"[^a-z0-9_]+", text.lower()) if tok}
-
-    def _token_to_index(self, token: str) -> int:
-        digest = hashlib.blake2b(token.encode("utf-8"), digest_size=8).digest()
-        return int.from_bytes(digest, byteorder="little", signed=False) % self._query_vector_dim
-
-    def _encode_tokens(self, tokens: set[str]) -> Any:
-        vec = [0.0] * self._query_vector_dim
-        for token in tokens:
-            idx = self._token_to_index(token)
-            vec[idx] += 1.0
-        # NumPy-like dense vector is intentionally built on host once;
-        # matching is offloaded to GPU.
-        try:
-            import numpy as np  # local import keeps module deps minimal for non-query paths
-
-            return np.asarray(vec, dtype="float32")
-        except Exception:
-            return vec
-
-    def _entry_vector(self, entry: dict[str, Any]) -> Any:
-        cache_key = id(entry)
-        cached = self._entry_vector_cache.get(cache_key)
-        if cached is not None:
-            return cached
-        tokens = self._tokenize_query_tokens(self._entry_haystack(entry))
-        vec = self._encode_tokens(tokens)
-        self._entry_vector_cache[cache_key] = vec
-        return vec
-
-    def _vectors_for_pool(self, pool_key: tuple[str, str], entries: list[dict[str, Any]]) -> Any:
-        cached = self._specialist_vector_cache.get(pool_key)
-        if cached is not None and int(getattr(cached, "shape", [0])[0]) == len(entries):
-            return cached
-        if not entries:
-            try:
-                import numpy as np
-
-                empty = np.empty((0, self._query_vector_dim), dtype="float32")
-            except Exception:
-                empty = []
-            self._specialist_vector_cache[pool_key] = empty
-            return empty
-        try:
-            import numpy as np
-
-            matrix = np.vstack([self._entry_vector(entry) for entry in entries]).astype("float32", copy=False)
-        except Exception:
-            matrix = [self._entry_vector(entry) for entry in entries]
-        self._specialist_vector_cache[pool_key] = matrix
-        return matrix
 
     def _entry_haystack(self, entry: dict[str, Any]) -> str:
         cache_key = id(entry)
@@ -436,9 +311,7 @@ class GalaxyManager:
             galaxy.entries.append(entry)
         # Entry list changed; clear cache to avoid stale pointers.
         self._entry_text_cache.clear()
-        self._entry_vector_cache.clear()
         self._specialist_entry_cache.clear()
-        self._specialist_vector_cache.clear()
         self._append_entry_to_disk(galaxy_name, entry)
 
     def _read_entries_from_disk(self, name: str) -> list[dict[str, Any]]:

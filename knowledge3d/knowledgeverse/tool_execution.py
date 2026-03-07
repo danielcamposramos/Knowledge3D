@@ -32,6 +32,8 @@ class ToolExecutionResolver:
     _plan_blueprint_cache: dict[str, dict[str, Any]] = {}
     _param_specs_cache: dict[str, list[dict[str, Any]]] = {}
     _event_recorder_cache: dict[str, ExecutionEventRecorder] = {}
+    _entrypoint_candidate_cache: dict[str, list[dict[str, Any]]] = {}
+    _chain_candidate_cache: dict[str, list[dict[str, Any]]] = {}
 
     @classmethod
     def _cache_key(cls, value: Any) -> str:
@@ -43,6 +45,8 @@ class ToolExecutionResolver:
         cls._entrypoint_callable_cache.clear()
         cls._plan_blueprint_cache.clear()
         cls._param_specs_cache.clear()
+        cls._entrypoint_candidate_cache.clear()
+        cls._chain_candidate_cache.clear()
         for recorder in cls._event_recorder_cache.values():
             try:
                 recorder.flush()
@@ -82,6 +86,41 @@ class ToolExecutionResolver:
     @classmethod
     def _normalize_param_rows(cls, rows: Any) -> list[str]:
         return [spec["name"] for spec in cls._normalize_param_specs(rows)]
+
+    @classmethod
+    def _payload_signature(cls, payload: Mapping[str, Any]) -> tuple[Any, ...]:
+        rows: list[tuple[str, Any, Any]] = []
+        for raw_key in sorted(payload.keys(), key=lambda item: str(item)):
+            key = str(raw_key)
+            value = payload[raw_key]
+            if isinstance(value, (str, int, float, bool)) or value is None:
+                rows.append((key, type(value).__name__, value))
+                continue
+            shape = getattr(value, "shape", None)
+            if shape is not None:
+                rows.append((key, type(value).__name__, tuple(int(dim) for dim in shape)))
+                continue
+            rows.append((key, type(value).__name__, None))
+        return tuple(rows)
+
+    @classmethod
+    def _structural_candidate_cache_key(
+        cls,
+        resolved: Mapping[str, Any],
+        payload: Mapping[str, Any],
+        *,
+        mode: str,
+    ) -> str:
+        return cls._cache_key(
+            {
+                "mode": str(mode),
+                "primary_tool_id": str(resolved.get("primary_tool_id", "")).strip(),
+                "primary_entrypoint": getattr(resolved.get("primary_entrypoint"), "import_path", ""),
+                "chain_tool_ids": list(resolved.get("_chain_tool_ids", ()) or ()),
+                "chain_runtime_statuses": list(resolved.get("_chain_runtime_statuses", ()) or ()),
+                "payload_signature": cls._payload_signature(payload),
+            }
+        )
 
     @staticmethod
     def _resolve_payload_value(payload: Mapping[str, Any], spec: Mapping[str, Any]) -> tuple[str | None, Any]:
@@ -242,13 +281,14 @@ class ToolExecutionResolver:
         knowledgeverse: Any | None,
         event: Any,
     ) -> None:
+        payload = event.as_dict()
         recorder = ToolExecutionResolver._resolve_recorder(knowledgeverse)
         if recorder is not None:
-            recorder.append(event, knowledgeverse=knowledgeverse)
+            recorder.append(event, knowledgeverse=knowledgeverse, payload=payload)
         navigator = getattr(knowledgeverse, "trm_navigator", None) if knowledgeverse is not None else None
         if navigator is not None and hasattr(navigator, "observe_execution_event"):
             try:
-                navigator.observe_execution_event(event.as_dict())
+                navigator.observe_execution_event(payload)
             except Exception:
                 pass
 
@@ -583,76 +623,84 @@ class ToolExecutionResolver:
         if not isinstance(payload, Mapping):
             raise ValueError("payload mapping is required")
 
-        candidates: list[dict[str, Any]] = []
-        primary = resolved.get("primary_entrypoint")
-        primary_schema = resolved.get("primary_argument_schema")
-        primary_ok, primary_score = cls._payload_satisfies_schema(payload, primary_schema)
         primary_candidate: dict[str, Any] | None = None
-        if primary is not None and primary_ok:
-            primary_meta = cls._resolve_execution_row(
-                resolved,
-                tool_id=str(resolved.get("primary_tool_id", "")).strip(),
-                import_path=primary.import_path,
-            )
-            rank = cls._candidate_rank(
-                schema_score=primary_score,
-                tool_id=str(primary_meta.get("tool_id", "")).strip(),
-                runtime_status=str(primary_meta.get("runtime_status", "")).strip(),
-                tool_kind=str(primary_meta.get("tool_kind", "")).strip(),
-                plan_priority_bonus=0.5,
-                quality_tracker=quality_tracker,
-            )
-            candidates.append(
-                {
-                    "tool_id": str(primary_meta.get("tool_id", "")).strip(),
-                    "tool_kind": str(primary_meta.get("tool_kind", "")).strip(),
-                    "runtime_status": str(primary_meta.get("runtime_status", "")).strip(),
-                    "route_source": str(rank.get("route_source", "")).strip(),
-                    "routing_gate": rank.get("routing_gate"),
-                    "blueprint": primary,
-                    "argument_schema": primary_schema,
-                    "schema_score": int(rank["schema_score"]),
-                    "plan_priority_bonus": float(rank["plan_priority_bonus"]),
-                    "quality_bonus": float(rank["quality_bonus"]),
-                    "routing_bonus": float(rank["routing_bonus"]),
-                    "score": float(rank["score"]),
-                }
-            )
-            primary_candidate = candidates[-1]
-
-        for row in resolved.get("chain", []):
-            tool_id = str(row.get("tool_id", "")).strip()
-            tool_kind = str(row.get("tool_kind", "")).strip()
-            runtime_status = str(row.get("runtime_status", "")).strip()
-            row_schemas = row.get("argument_schemas", {}) if isinstance(row.get("argument_schemas"), dict) else {}
-            for blueprint in row.get("entrypoints", []) or []:
-                schema = row_schemas.get(blueprint.import_path)
-                ok, score = cls._payload_satisfies_schema(payload, schema)
-                if not ok:
-                    continue
-                rank = cls._candidate_rank(
-                    schema_score=score,
-                    tool_id=tool_id,
-                    runtime_status=runtime_status,
-                    tool_kind=tool_kind,
-                    quality_tracker=quality_tracker,
+        candidate_key = cls._structural_candidate_cache_key(resolved, payload, mode="entrypoint")
+        structural_candidates = cls._entrypoint_candidate_cache.get(candidate_key)
+        if structural_candidates is None:
+            structural_candidates = []
+            primary = resolved.get("primary_entrypoint")
+            primary_schema = resolved.get("primary_argument_schema")
+            primary_ok, primary_score = cls._payload_satisfies_schema(payload, primary_schema)
+            if primary is not None and primary_ok:
+                primary_meta = cls._resolve_execution_row(
+                    resolved,
+                    tool_id=str(resolved.get("primary_tool_id", "")).strip(),
+                    import_path=primary.import_path,
                 )
-                candidates.append(
+                structural_candidates.append(
                     {
-                        "tool_id": tool_id,
-                        "tool_kind": tool_kind,
-                        "runtime_status": runtime_status,
-                        "route_source": str(rank.get("route_source", "")).strip(),
-                        "routing_gate": rank.get("routing_gate"),
-                        "blueprint": blueprint,
-                        "argument_schema": schema,
-                        "schema_score": int(rank["schema_score"]),
-                        "plan_priority_bonus": float(rank["plan_priority_bonus"]),
-                        "quality_bonus": float(rank["quality_bonus"]),
-                        "routing_bonus": float(rank["routing_bonus"]),
-                        "score": float(rank["score"]),
+                        "tool_id": str(primary_meta.get("tool_id", "")).strip(),
+                        "tool_kind": str(primary_meta.get("tool_kind", "")).strip(),
+                        "runtime_status": str(primary_meta.get("runtime_status", "")).strip(),
+                        "blueprint": primary,
+                        "argument_schema": primary_schema,
+                        "schema_score": int(primary_score),
+                        "plan_priority_bonus": 0.5,
+                        "is_primary": True,
                     }
                 )
+
+            for row in resolved.get("chain", []):
+                tool_id = str(row.get("tool_id", "")).strip()
+                tool_kind = str(row.get("tool_kind", "")).strip()
+                runtime_status = str(row.get("runtime_status", "")).strip()
+                row_schemas = row.get("argument_schemas", {}) if isinstance(row.get("argument_schemas"), dict) else {}
+                for blueprint in row.get("entrypoints", []) or []:
+                    schema = row_schemas.get(blueprint.import_path)
+                    ok, score = cls._payload_satisfies_schema(payload, schema)
+                    if not ok:
+                        continue
+                    structural_candidates.append(
+                        {
+                            "tool_id": tool_id,
+                            "tool_kind": tool_kind,
+                            "runtime_status": runtime_status,
+                            "blueprint": blueprint,
+                            "argument_schema": schema,
+                            "schema_score": int(score),
+                            "plan_priority_bonus": 0.0,
+                            "is_primary": False,
+                        }
+                    )
+            cls._entrypoint_candidate_cache[candidate_key] = structural_candidates
+
+        candidates: list[dict[str, Any]] = []
+        for structural in structural_candidates:
+            rank = cls._candidate_rank(
+                schema_score=int(structural["schema_score"]),
+                tool_id=str(structural.get("tool_id", "")).strip(),
+                runtime_status=str(structural.get("runtime_status", "")).strip(),
+                tool_kind=str(structural.get("tool_kind", "")).strip(),
+                plan_priority_bonus=float(structural.get("plan_priority_bonus", 0.0)),
+                quality_tracker=quality_tracker,
+            )
+            candidate = {
+                "tool_id": str(structural.get("tool_id", "")).strip(),
+                "tool_kind": str(structural.get("tool_kind", "")).strip(),
+                "runtime_status": str(structural.get("runtime_status", "")).strip(),
+                "route_source": str(rank.get("route_source", "")).strip(),
+                "routing_gate": rank.get("routing_gate"),
+                "blueprint": structural.get("blueprint"),
+                "argument_schema": structural.get("argument_schema"),
+                "schema_score": int(rank["schema_score"]),
+                "plan_priority_bonus": float(rank["plan_priority_bonus"]),
+                "quality_bonus": float(rank["quality_bonus"]),
+                "routing_bonus": float(rank["routing_bonus"]),
+                "score": float(rank["score"]),
+            }
+            candidates.append(candidate)
+            if bool(structural.get("is_primary", False)) and primary_candidate is None:
+                primary_candidate = candidate
 
         if not candidates:
             raise ValueError("no executable Tool entrypoint matches the provided payload")
@@ -798,51 +846,13 @@ class ToolExecutionResolver:
         if not isinstance(payload, Mapping):
             raise ValueError("payload mapping is required")
 
-        candidates: list[dict[str, Any]] = []
         primary_tool_id = str(resolved.get("primary_tool_id", "")).strip()
         primary_candidate: dict[str, Any] | None = None
-        for preset_name, preset in (resolved.get("chain_presets", {}) or {}).items():
-            required_inputs = [str(item).strip() for item in preset.get("required_inputs", []) if str(item).strip()]
-            if any(name not in payload for name in required_inputs):
-                continue
-            selectors_ok, selector_score = cls._payload_matches_selectors(
-                payload,
-                preset.get("selectors") if isinstance(preset, dict) else None,
-            )
-            if not selectors_ok:
-                continue
-            primary_meta = cls._resolve_execution_row(resolved, tool_id=primary_tool_id)
-            rank = cls._candidate_rank(
-                schema_score=len(required_inputs) + int(selector_score),
-                tool_id=str(primary_meta.get("tool_id", "")).strip(),
-                runtime_status=str(primary_meta.get("runtime_status", "")).strip(),
-                tool_kind=str(primary_meta.get("tool_kind", "")).strip(),
-                plan_priority_bonus=0.5,
-                quality_tracker=quality_tracker,
-            )
-            candidates.append(
-                {
-                    "tool_id": str(primary_meta.get("tool_id", "")).strip(),
-                    "tool_kind": str(primary_meta.get("tool_kind", "")).strip(),
-                    "runtime_status": str(primary_meta.get("runtime_status", "")).strip(),
-                    "route_source": str(rank.get("route_source", "")).strip(),
-                    "routing_gate": rank.get("routing_gate"),
-                    "preset_name": str(preset_name).strip(),
-                    "preset": preset,
-                    "schema_score": len(required_inputs) + int(selector_score),
-                    "plan_priority_bonus": float(rank["plan_priority_bonus"]),
-                    "quality_bonus": float(rank["quality_bonus"]),
-                    "routing_bonus": float(rank["routing_bonus"]),
-                    "score": float(rank["score"]),
-                }
-            )
-            primary_candidate = candidates[-1]
-
-        for row in resolved.get("chain", []):
-            tool_id = str(row.get("tool_id", "")).strip()
-            tool_kind = str(row.get("tool_kind", "")).strip()
-            runtime_status = str(row.get("runtime_status", "")).strip()
-            for preset_name, preset in (row.get("chain_presets", {}) or {}).items():
+        candidate_key = cls._structural_candidate_cache_key(resolved, payload, mode="chain")
+        structural_candidates = cls._chain_candidate_cache.get(candidate_key)
+        if structural_candidates is None:
+            structural_candidates = []
+            for preset_name, preset in (resolved.get("chain_presets", {}) or {}).items():
                 required_inputs = [str(item).strip() for item in preset.get("required_inputs", []) if str(item).strip()]
                 if any(name not in payload for name in required_inputs):
                     continue
@@ -852,29 +862,75 @@ class ToolExecutionResolver:
                 )
                 if not selectors_ok:
                     continue
-                rank = cls._candidate_rank(
-                    schema_score=len(required_inputs) + int(selector_score),
-                    tool_id=tool_id,
-                    runtime_status=runtime_status,
-                    tool_kind=tool_kind,
-                    quality_tracker=quality_tracker,
-                )
-                candidates.append(
+                primary_meta = cls._resolve_execution_row(resolved, tool_id=primary_tool_id)
+                structural_candidates.append(
                     {
-                        "tool_id": tool_id,
-                        "tool_kind": tool_kind,
-                        "runtime_status": runtime_status,
-                        "route_source": str(rank.get("route_source", "")).strip(),
-                        "routing_gate": rank.get("routing_gate"),
+                        "tool_id": str(primary_meta.get("tool_id", "")).strip(),
+                        "tool_kind": str(primary_meta.get("tool_kind", "")).strip(),
+                        "runtime_status": str(primary_meta.get("runtime_status", "")).strip(),
                         "preset_name": str(preset_name).strip(),
                         "preset": preset,
                         "schema_score": len(required_inputs) + int(selector_score),
-                        "plan_priority_bonus": float(rank["plan_priority_bonus"]),
-                        "quality_bonus": float(rank["quality_bonus"]),
-                        "routing_bonus": float(rank["routing_bonus"]),
-                        "score": float(rank["score"]),
+                        "plan_priority_bonus": 0.5,
+                        "is_primary": True,
                     }
                 )
+
+            for row in resolved.get("chain", []):
+                tool_id = str(row.get("tool_id", "")).strip()
+                tool_kind = str(row.get("tool_kind", "")).strip()
+                runtime_status = str(row.get("runtime_status", "")).strip()
+                for preset_name, preset in (row.get("chain_presets", {}) or {}).items():
+                    required_inputs = [str(item).strip() for item in preset.get("required_inputs", []) if str(item).strip()]
+                    if any(name not in payload for name in required_inputs):
+                        continue
+                    selectors_ok, selector_score = cls._payload_matches_selectors(
+                        payload,
+                        preset.get("selectors") if isinstance(preset, dict) else None,
+                    )
+                    if not selectors_ok:
+                        continue
+                    structural_candidates.append(
+                        {
+                            "tool_id": tool_id,
+                            "tool_kind": tool_kind,
+                            "runtime_status": runtime_status,
+                            "preset_name": str(preset_name).strip(),
+                            "preset": preset,
+                            "schema_score": len(required_inputs) + int(selector_score),
+                            "plan_priority_bonus": 0.0,
+                            "is_primary": False,
+                        }
+                    )
+            cls._chain_candidate_cache[candidate_key] = structural_candidates
+
+        candidates: list[dict[str, Any]] = []
+        for structural in structural_candidates:
+            rank = cls._candidate_rank(
+                schema_score=int(structural["schema_score"]),
+                tool_id=str(structural.get("tool_id", "")).strip(),
+                runtime_status=str(structural.get("runtime_status", "")).strip(),
+                tool_kind=str(structural.get("tool_kind", "")).strip(),
+                plan_priority_bonus=float(structural.get("plan_priority_bonus", 0.0)),
+                quality_tracker=quality_tracker,
+            )
+            candidate = {
+                "tool_id": str(structural.get("tool_id", "")).strip(),
+                "tool_kind": str(structural.get("tool_kind", "")).strip(),
+                "runtime_status": str(structural.get("runtime_status", "")).strip(),
+                "route_source": str(rank.get("route_source", "")).strip(),
+                "routing_gate": rank.get("routing_gate"),
+                "preset_name": str(structural.get("preset_name", "")).strip(),
+                "preset": structural.get("preset"),
+                "schema_score": int(rank["schema_score"]),
+                "plan_priority_bonus": float(rank["plan_priority_bonus"]),
+                "quality_bonus": float(rank["quality_bonus"]),
+                "routing_bonus": float(rank["routing_bonus"]),
+                "score": float(rank["score"]),
+            }
+            candidates.append(candidate)
+            if bool(structural.get("is_primary", False)) and primary_candidate is None:
+                primary_candidate = candidate
 
         if not candidates:
             return None

@@ -11,6 +11,19 @@ import re
 from typing import Any
 
 
+_ALREADY_PROMOTED_TARGETS = {
+    "TRIPLANAR_MAP",
+    "RESHAPE_TO_BLOCKS",
+    "BLOCKS_TO_GRID",
+    "DCT8X8_FORWARD",
+    "IDCT8X8_INVERSE",
+    "SIGNAL_SURFACE_VERTICES",
+    "SIGNAL_SURFACE_NORMALS",
+    "TEMPORAL_FRAME_SYNTHESIS",
+    "TEMPORAL_PRESET_APPLY",
+}
+
+
 def _load_rows(path: Path) -> list[dict[str, Any]]:
     if not path.exists():
         return []
@@ -346,6 +359,7 @@ def _build_candidate_rankings(
                 token,
                 {
                     "name": token,
+                    "already_promoted": token in _ALREADY_PROMOTED_TARGETS,
                     "pressure_count": 0,
                     "primary_tools": set(),
                     "tool_ids": set(),
@@ -466,6 +480,7 @@ def _build_candidate_rankings(
         multimodal_positive_norm = _normalize(float(record["multimodal_positive_support"]), float(max_multimodal_positive))
         multimodal_negative_norm = _normalize(float(record["multimodal_negative_support"]), float(max_multimodal_negative))
         support_norm = _normalize(float(len(record["primary_tools"])), float(max(1, max(len(r["primary_tools"]) for r in candidates.values()))))
+        already_promoted = bool(record.get("already_promoted", False))
         priority_score = (
             0.28 * frequency_norm
             + 0.20 * latency_norm
@@ -485,12 +500,17 @@ def _build_candidate_rankings(
             + 0.05 * (1.0 - multimodal_negative_norm)
             + 0.05 * (1.0 - float(record["failure_rate"]))
         )
+        if already_promoted:
+            priority_score *= 0.15
+            readiness_score *= 0.35
         dominant_route_source = ""
         if record["route_sources"]:
             dominant_route_source = record["route_sources"].most_common(1)[0][0]
         ranked.append(
             {
                 "name": str(record["name"]),
+                "promotion_status": "materialized" if already_promoted else "candidate",
+                "already_promoted": bool(already_promoted),
                 "pressure_count": int(record["pressure_count"]),
                 "primary_tool_count": int(len(record["primary_tools"])),
                 "event_execution_count": int(record["event_execution_count"]),
@@ -526,6 +546,7 @@ def _build_candidate_rankings(
         )
     ranked.sort(
         key=lambda row: (
+            bool(row.get("already_promoted", False)),
             -float(row["promotion_priority_score"]),
             -int(row["pressure_count"]),
             -float(row["avg_execution_us"]),

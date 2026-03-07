@@ -40,6 +40,9 @@ class MathCorePool:
         self.active_cores: Dict[int, MathCore] = {}
         self.idle_pool: List[MathCore] = []
         self._lock = threading.Lock()
+        self._state_version = 0
+        self._snapshot_cache: dict | None = None
+        self._snapshot_cache_version = -1
         self.max_cores = self._query_gpu_capacity()
 
     # ------------------------------------------------------------------ #
@@ -54,6 +57,7 @@ class MathCorePool:
                 core = self.idle_pool.pop()
                 core.reset(tier=tier)
                 self.active_cores[core.instance_id] = core
+                self._mark_dirty_locked()
                 return core.instance_id
 
             if len(self.active_cores) >= self.max_cores:
@@ -69,6 +73,7 @@ class MathCorePool:
                 gpu_id=self.gpu_id,
             )
             self.active_cores[instance_id] = core
+            self._mark_dirty_locked()
             return instance_id
 
     def release_core(self, instance_id: int, pool: bool = True) -> None:
@@ -77,7 +82,10 @@ class MathCorePool:
             core = self.active_cores.pop(instance_id, None)
             if core is None:
                 # If already in idle pool, drop it.
+                original_len = len(self.idle_pool)
                 self.idle_pool = [c for c in self.idle_pool if c.instance_id != instance_id]
+                if len(self.idle_pool) != original_len:
+                    self._mark_dirty_locked()
                 return
 
             core.last_used = time.time()
@@ -87,6 +95,7 @@ class MathCorePool:
                 self.idle_pool.append(core)
             else:
                 core.cleanup()
+            self._mark_dirty_locked()
 
     def retier_core(self, instance_id: int, tier: int) -> None:
         """Update an active or pooled core to a new tier."""
@@ -94,10 +103,12 @@ class MathCorePool:
             core = self.active_cores.get(instance_id)
             if core is not None:
                 core.reset(tier=tier)
+                self._mark_dirty_locked()
                 return
             for pooled in self.idle_pool:
                 if pooled.instance_id == instance_id:
                     pooled.reset(tier=tier)
+                    self._mark_dirty_locked()
                     return
 
     def touch(self, instance_id: int) -> None:
@@ -106,6 +117,7 @@ class MathCorePool:
             core = self.active_cores.get(instance_id)
             if core:
                 core.last_used = time.time()
+                self._mark_dirty_locked()
 
     def describe_tier(self, tier: int) -> str:
         """Return the canonical math-core role name for a tier."""
@@ -119,13 +131,26 @@ class MathCorePool:
         """Expose a lightweight runtime snapshot for orchestration/telemetry."""
         with self._lock:
             self._cleanup_idle_cores_locked()
+            if self._snapshot_cache is not None and self._snapshot_cache_version == self._state_version:
+                cached = self._snapshot_cache
+                return {
+                    "gpu_id": int(cached["gpu_id"]),
+                    "max_cores": int(cached["max_cores"]),
+                    "active": int(cached["active"]),
+                    "idle": int(cached["idle"]),
+                    "idle_timeout": float(cached["idle_timeout"]),
+                    "active_tiers": dict(cached["active_tiers"]),
+                    "idle_tiers": dict(cached["idle_tiers"]),
+                    "spawn_policy": str(cached["spawn_policy"]),
+                    "pool_role": str(cached["pool_role"]),
+                }
             active_tiers = {1: 0, 2: 0, 3: 0}
             idle_tiers = {1: 0, 2: 0, 3: 0}
             for core in self.active_cores.values():
                 active_tiers[int(core.tier)] = active_tiers.get(int(core.tier), 0) + 1
             for core in self.idle_pool:
                 idle_tiers[int(core.tier)] = idle_tiers.get(int(core.tier), 0) + 1
-            return {
+            snapshot = {
                 "gpu_id": int(self.gpu_id),
                 "max_cores": int(self.max_cores),
                 "active": len(self.active_cores),
@@ -135,6 +160,19 @@ class MathCorePool:
                 "idle_tiers": idle_tiers,
                 "spawn_policy": "adaptive_reuse",
                 "pool_role": "dynamic_math_core_pool",
+            }
+            self._snapshot_cache = snapshot
+            self._snapshot_cache_version = self._state_version
+            return {
+                "gpu_id": int(snapshot["gpu_id"]),
+                "max_cores": int(snapshot["max_cores"]),
+                "active": int(snapshot["active"]),
+                "idle": int(snapshot["idle"]),
+                "idle_timeout": float(snapshot["idle_timeout"]),
+                "active_tiers": dict(snapshot["active_tiers"]),
+                "idle_tiers": dict(snapshot["idle_tiers"]),
+                "spawn_policy": str(snapshot["spawn_policy"]),
+                "pool_role": str(snapshot["pool_role"]),
             }
 
     # ------------------------------------------------------------------ #
@@ -152,12 +190,21 @@ class MathCorePool:
             return
         cutoff = time.time() - self.idle_timeout
         keep: List[MathCore] = []
+        changed = False
         for core in self.idle_pool:
             if core.last_used >= cutoff:
                 keep.append(core)
             else:
                 core.cleanup()
+                changed = True
         self.idle_pool = keep
+        if changed:
+            self._mark_dirty_locked()
+
+    def _mark_dirty_locked(self) -> None:
+        self._state_version += 1
+        self._snapshot_cache = None
+        self._snapshot_cache_version = -1
 
     def _query_gpu_capacity(self) -> int:
         """Query GPU SM count + VRAM to determine max concurrent cores.

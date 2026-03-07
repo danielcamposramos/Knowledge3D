@@ -144,6 +144,7 @@ class ProceduralTemporalBridge:
         self.preset_kernels = TemporalPresetKernels()
         self._video_codec_cache: dict[tuple[int, int, float], SovereignTernaryVideoCodec] = {}
         self._preview_plan_cache: dict[tuple[Any, ...], TemporalPreviewPlan] = {}
+        self._surface_scene_cache: dict[tuple[Any, ...], TemporalScenePlan] = {}
         self._house_room_scene_cache: dict[tuple[Any, ...], TemporalScenePlan] = {}
         self._house_tour_scene_cache: dict[tuple[Any, ...], TemporalScenePlan] = {}
 
@@ -461,6 +462,21 @@ class ProceduralTemporalBridge:
             raise ValueError("at least one surface plan is required")
 
         layout = str(scene_layout or "overlay").strip().lower()
+        cache_key = self._surface_scene_cache_key(
+            plans=plans,
+            timeline_preset=timeline_preset,
+            frame_count=frame_count,
+            time_span=time_span,
+            feature_grid=feature_grid,
+            encode_frames=encode_frames,
+            codec_threshold=codec_threshold,
+            scene_layout=layout,
+            scene_id=scene_id,
+            layer_opacity=layer_opacity,
+        )
+        cached = self._surface_scene_cache.get(cache_key) if cache_key is not None else None
+        if cached is not None:
+            return cached
         offsets = self._scene_layout_offsets(plans, layout)
         opacity_values = list(layer_opacity or [])
         layers: list[TemporalSceneLayer] = []
@@ -511,7 +527,7 @@ class ProceduralTemporalBridge:
                 )
             )
 
-        return self.compose_scene_timeline(
+        scene = self.compose_scene_timeline(
             layers,
             feature_grid=int(feature_grid or 8),
             encode_frames=encode_frames,
@@ -519,6 +535,9 @@ class ProceduralTemporalBridge:
             scene_id=scene_id,
             scene_layout=layout,
         )
+        if cache_key is not None:
+            self._surface_scene_cache[cache_key] = scene
+        return scene
 
     def replay_journal_to_scene_timeline(
         self,
@@ -1041,7 +1060,7 @@ class ProceduralTemporalBridge:
         width: int,
         height: int,
     ) -> tuple[Any, ...] | None:
-        if timeline_id is not None:
+        if encode_frames and timeline_id is not None:
             return None
         seed_hash = hashlib.sha1(np.ascontiguousarray(seed, dtype=np.float32).tobytes()).hexdigest()
         return (
@@ -1069,7 +1088,7 @@ class ProceduralTemporalBridge:
         codec_threshold: float,
         scene_id: str | None,
     ) -> tuple[Any, ...] | None:
-        if scene_id is not None:
+        if encode_frames and scene_id is not None:
             return None
         return (
             "house_room",
@@ -1091,7 +1110,7 @@ class ProceduralTemporalBridge:
         codec_threshold: float,
         scene_id: str | None,
     ) -> tuple[Any, ...] | None:
-        if scene_id is not None:
+        if encode_frames and scene_id is not None:
             return None
         return (
             "house_tour",
@@ -1100,6 +1119,35 @@ class ProceduralTemporalBridge:
             max(2, int(feature_grid)),
             bool(encode_frames),
             round(float(codec_threshold), 6),
+        )
+
+    def _surface_scene_cache_key(
+        self,
+        *,
+        plans: list[SurfaceMaterialPlan],
+        timeline_preset: str | None,
+        frame_count: int | None,
+        time_span: float | None,
+        feature_grid: int | None,
+        encode_frames: bool,
+        codec_threshold: float,
+        scene_layout: str,
+        scene_id: str | None,
+        layer_opacity: list[float] | tuple[float, ...] | None,
+    ) -> tuple[Any, ...] | None:
+        if encode_frames and scene_id is not None:
+            return None
+        return (
+            "surface_scene",
+            tuple(id(plan) for plan in plans),
+            str(timeline_preset or "").strip().lower(),
+            None if frame_count is None else int(frame_count),
+            None if time_span is None else round(float(time_span), 6),
+            None if feature_grid is None else int(feature_grid),
+            bool(encode_frames),
+            round(float(codec_threshold), 6),
+            str(scene_layout or "overlay").strip().lower(),
+            tuple(round(float(v), 6) for v in (layer_opacity or ())),
         )
 
     def _execution_entries_digest(self, entries: list[dict[str, Any]]) -> str:

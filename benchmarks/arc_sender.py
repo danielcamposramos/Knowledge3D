@@ -18,6 +18,7 @@ def _resolve_dataset_path(dataset_path: str | None) -> Path:
     if dataset_path:
         return Path(dataset_path)
     candidates = [
+        Path("/K3D/K3D_llama_cpp/datasets/ARC-AGI-master/data/evaluation"),
         Path("/K3D/Knowledge3D.local/datasets/exams/arc-src/data/evaluation"),
         Path("/K3D/Knowledge3D.local/datasets/arc_agi_2/evaluation"),
         Path("../Knowledge3D.local/datasets/exams/arc-src/data/evaluation"),

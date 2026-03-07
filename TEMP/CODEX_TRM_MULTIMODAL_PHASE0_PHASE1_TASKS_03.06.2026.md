@@ -4,6 +4,30 @@
 **Scope**: TRM multimodal enhancement, grounded in current sovereign runtime  
 **Status**: Phase 0 complete, Phase 1 canonical consumer path complete
 
+## Track 0 Status
+
+**New status**: Track 0 benchmark Tablet boundary is implemented at smoke-validation level.
+
+- `Track 0A` headless Tablet boundary: implemented
+- `Track 0B` benchmark grammar rules in Grammar Galaxy: implemented
+- `Track 0C` ARC + Math + LHE smoke validation through Tablet: implemented
+
+Artifacts:
+
+- `knowledge3d/bridge/headless_tablet.py`
+- `scripts/run_headless_tablet_benchmarks.py`
+- `tests/bridge/test_headless_tablet.py`
+- `tests/test_tablet_boundary_benchmarks.py`
+- `tests/test_benchmark_grammar_bootstrap.py`
+
+Audit run:
+
+- real ARC Tablet-boundary run completed on `50` evaluation tasks
+- result artifact: `../Knowledge3D.local/results/tablet_boundary_mid_aug_20260306_224601/tablet_boundary_benchmark_summary.json`
+- audit note: `TEMP/TABLET_BOUNDARY_BENCHMARK_AUDIT_20260306.md`
+- observed ARC accuracy: `0.0`
+- Math/LHE were explicitly skipped due missing canonical dataset files on this machine
+
 ## Phase 2 Interleave Status
 
 **New status**: Phase 2A foundation landed, with first consumers in 2B and 2C.
@@ -1225,3 +1249,352 @@ Measured state:
 Implication:
 - repeated House/world playback rebuild is effectively removed from the hot path
 - the remaining work is now concentrated in live route mutation and higher-level orchestration, not deterministic scene reconstruction
+
+## Added Completion Slice: Structural Route-Selection Cache Promotion
+
+Completed:
+- add structural candidate caches for:
+  - `select_entrypoint_for_payload(...)`
+  - `select_chain_preset_for_payload(...)`
+- keep dynamic quality/routing scoring live on cached candidate sets
+- add regression coverage in `tests/test_tool_execution.py`
+
+Measured state:
+- benchmark artifact: `../Knowledge3D.local/results/resolver_selection_cache_benchmark_20260306_2030.json`
+- entrypoint selection hot average: `0.328 ms`
+- chain selection hot average: `0.283 ms`
+
+Implication:
+- repeated route-selection scanning is effectively removed as a meaningful hot-path cost
+- the remaining work is in live route mutation, event observation, and real execution, not candidate discovery
+
+## Added Completion Slice: UV-Projection Orchestration Tightening
+
+Completed:
+- add process-local configured signal-bridge reuse in `knowledge3d/cranium/bridges/procedural_signal_bridge.py`
+- route `audio_to_spectrogram_configured(...)` through that shared cache instead of rebuilding a fresh bridge every call
+- make `ProceduralMaterialBridge._signal_bridge_for(...)` reuse the same shared configured bridges across material-bridge instances
+- add process-local PTX module reuse and GPU preview-texture reuse in `knowledge3d/cranium/ptx_runtime/material_projection_kernels.py`
+- add regression coverage in:
+  - `tests/test_procedural_signal_bridge.py`
+  - `tests/test_procedural_material_bridge.py`
+  - `tests/test_material_projection_kernels.py`
+
+Measured state:
+- benchmark artifacts:
+  - `../Knowledge3D.local/results/configured_signal_bridge_cache_benchmark_20260306_2139.json`
+  - `../Knowledge3D.local/results/uv_family_hot_benchmark_20260306_2148.json`
+- configured signal route:
+  - cold `16.130 ms`
+  - hot avg `6.401 ms`
+  - hot min `0.560 ms`
+- UV family hot average:
+  - previous `26.517 ms`
+  - current `15.302 ms`
+
+Profile state:
+- artifact: `../Knowledge3D.local/results/uv_family_cprofile_20260306_d.txt`
+- dominant remaining cumulative work is now:
+  - `audio_to_spectrogram`
+  - `SovereignTernaryAudioCodec.encode`
+  - `memcpy_dtoh`
+  - `spectrogram_to_surface`
+  - `project_triplanar`
+
+Implication:
+- repeated configured bridge construction and repeated preview upload are no longer the dominant UV-family friction
+- the next justified optimization is real signal/material transfer/encode work, not more structural route setup
+
+## Added Completion Slice: Signal Encode Fast-Path Promotion
+
+Completed:
+- add `encode_details(...)` to `knowledge3d/cranium/codecs/sovereign_ternary_audio_codec.py`
+- route `audio_to_spectrogram(...)` through returned quantized coefficients instead of immediate Galaxy reload/unpack
+- add optional `build_preview=False` to `knowledge3d/cranium/bridges/procedural_signal_bridge.py`
+- make `signal_to_textured_surface(...)` skip spectrogram preview generation because that route never consumes it
+- add regression coverage in:
+  - `knowledge3d/cranium/tests/test_sovereign_ternary_audio_codec.py`
+  - `tests/test_procedural_signal_bridge.py`
+  - `tests/test_procedural_material_bridge.py`
+
+Measured state:
+- benchmark artifacts:
+  - `../Knowledge3D.local/results/signal_to_textured_surface_parallel_ollama_benchmark_20260306_2210.json`
+  - `../Knowledge3D.local/results/signal_to_textured_surface_parallel_ollama_benchmark_20260306_2218.json`
+- recorded under parallel PDF augmentation + Ollama load
+- `signal_to_textured_surface`:
+  - pre fast-path avg `16.042 ms`
+  - post fast-path avg `1.035 ms`
+
+Implication:
+- the signal/material route no longer burns time on unused preview generation or immediate audio residual reload/unpack
+- even under live parallel Ollama contention, this route is now effectively out of the hot band
+
+## Added Completion Slice: Math-Core Snapshot Cache
+
+Completed:
+- add snapshot caching with explicit invalidation in `knowledge3d/cranium/ptx_runtime/math_core_pool.py`
+- invalidate on:
+  - spawn
+  - release
+  - retier
+  - touch
+  - actual idle-core cleanup
+- keep returned snapshots isolated from cache mutation
+- add regression coverage in `tests/test_math_core_pool.py`
+
+Measured state:
+- benchmark artifact:
+  - `../Knowledge3D.local/results/math_core_snapshot_cache_benchmark_20260306_2234.json`
+- recorded while PDF augmentation + Ollama were active in parallel
+- hot snapshot average:
+  - `0.001095 ms`
+
+Implication:
+- repeated math-core planning snapshots are effectively out of the hot path
+- the remaining upper-layer cost is now in real route execution/composition, not pool bookkeeping
+
+## Added Completion Slice: Observation-Path Hardening Promotion
+
+Completed:
+- reuse a single execution-event payload across recorder + navigator observation
+- allow `ExecutionEventRecorder.append(...)` to accept prebuilt payloads
+- buffer `specialist_gaps.jsonl` writes while preserving immediate file creation on first gap for compatibility
+- add targeted regression coverage for:
+  - buffered gap logging
+  - impacted specialist selection path
+  - structural selection cache reuse
+
+Measured state:
+- benchmark artifact: `../Knowledge3D.local/results/dispatch_observation_promotion_benchmark_20260306_2042.json`
+- gap rows:
+  - after first event `1`
+  - after second before flush `1`
+  - after flush `2`
+- real observed dispatch:
+  - signal cold `2482.113 ms`
+  - signal hot `4.158 ms`
+  - world cold `412.878 ms`
+  - world hot `455.819 ms`
+
+Implication:
+- duplicate event serialization and per-gap write churn are removed from the live path
+- the remaining pressure is now in true top-level execution and the heavier world-scene route family, not the observation plumbing itself
+
+## Added Completion Slice: World/Scene Auto-Routing Correction
+
+Completed:
+- add explicit world/scene/temporal/replay/house domain mapping to `cartographer` in `knowledge3d/knowledgeverse/specialist_router.py`
+- add query hints for House/world playback language:
+  - `scene`, `playback`, `tour`, `overview`, `house`, `room`, `library`, `garden`, `museum`, `animation`, `journal`, `history`
+- add navigator-level regression coverage so auto-routing keeps the House/world Tool plan alive
+
+Measured state:
+- benchmark artifact: `../Knowledge3D.local/results/world_route_dispatch_benchmark_20260306_2054.json`
+- corrected route:
+  - `primary_tool_id = tool_house_tour_scene_v1`
+  - `primary_entrypoint = ProceduralTemporalBridge.execution_events_to_house_tour_scene`
+- world dispatch hot:
+  - `2.400 ms`
+
+Implication:
+- the world-scene route now executes on the intended Tool path instead of leaking into the grammar/math fallback
+- this closes a correctness gap in the upper-layer routing model, not just a latency gap
+
+## Added Completion Slice: Promotion-Harvest Materialization Correction
+
+Completed:
+- teach `scripts/build_tool_promotion_report.py` to mark already-materialized PTX targets
+- keep materialized targets visible but de-prioritized
+- preserve immediate top-level execution-event visibility by flushing non-step events immediately
+- keep step-event buffering for lower churn on chain internals
+
+Measured / observed state:
+- refreshed report path: `../Knowledge3D.local/runtime_execution_journal_batch/results/tool_promotion_report.json`
+- refreshed live counts:
+  - `pressure_rows = 6`
+  - `event_rows = 30`
+  - `grammar_rows = 13`
+- top actionable candidate:
+  - `UV_PROJECT`
+  - priority `0.629223`
+  - readiness `0.587467`
+- now correctly de-prioritized materialized target:
+  - `TRIPLANAR_MAP`
+  - status `materialized`
+
+Implication:
+- the harvest now surfaces the next unsolved orchestration family instead of repeatedly nominating a PTX surface that already exists
+- the next justified work is above the solved triplanar kernel, not inside it
+
+## Added Completion Slice: Structural Route-Selection Cache Promotion
+
+Completed:
+- add structural candidate caches for:
+  - `select_entrypoint_for_payload(...)`
+  - `select_chain_preset_for_payload(...)`
+- keep dynamic quality/routing scoring live on cached candidate sets
+- add regression coverage in `tests/test_tool_execution.py`
+
+Measured state:
+- benchmark artifact: `../Knowledge3D.local/results/resolver_selection_cache_benchmark_20260306_2030.json`
+- entrypoint selection hot average: `0.328 ms`
+- chain selection hot average: `0.283 ms`
+
+Implication:
+- repeated route-selection scanning is effectively removed as a meaningful hot-path cost
+- the remaining work is in live route mutation, event observation, and real execution, not candidate discovery
+
+## Added Completion Slice: Temporal Cache-Key Relaxation
+
+Completed:
+- relax preview-plan cache key in `knowledge3d/cranium/bridges/procedural_temporal_bridge.py` so `timeline_id` only disables caching when `encode_frames=True`
+- relax House room/tour scene cache keys so `scene_id` only disables caching when `encode_frames=True`
+- add regression coverage in `tests/test_procedural_temporal_bridge.py`
+
+Measured state:
+- benchmark artifact:
+  - `../Knowledge3D.local/results/scene_timeline_parallel_ollama_benchmark_20260306_2252.json`
+- recorded while PDF augmentation + Ollama were active in parallel
+- no-encode scene timeline with caller-provided `scene_id`:
+  - hot avg `2.449 ms`
+
+Implication:
+- unique caller IDs no longer defeat deterministic internal cache reuse on no-encode routes
+- the remaining upper-layer cost is now in true route execution/composition, not avoidable cache misses from caller-provided IDs
+
+## Added Completion Slice: Top-Level Scene Cache Promotion
+
+Completed:
+- add top-level caching for `surface_materials_to_scene_timeline(...)` in `knowledge3d/cranium/bridges/procedural_temporal_bridge.py`
+- allow deterministic no-encode scene plans to reuse the cache even when the caller passes `scene_id`
+- add regression coverage in `tests/test_procedural_temporal_bridge.py`
+
+Measured state:
+- benchmark artifact:
+  - `../Knowledge3D.local/results/surface_scene_cache_parallel_ollama_benchmark_20260306_220434.json`
+- recorded while PDF augmentation + Ollama were active in parallel
+- `surface_materials_to_scene_timeline(...)` with `encode_frames=False` and caller `scene_id`:
+  - cold `6.595 ms`
+  - hot avg `0.005 ms`
+  - hot min `0.004 ms`
+  - hot max `0.016 ms`
+
+Implication:
+- deterministic top-level scene composition is now effectively free after the first hit
+- the remaining upper-layer work is in true live route execution and observation, not repeated scene-plan reconstruction
+
+## Added Completion Slice: Four-Pass Math Composition Fix
+
+Completed:
+- fix `half that much` / `half as much` so those phrases remain reference expressions, not stray numeric literals
+- remove non-reference `half` entities before clause-level reference resolution
+- close the remaining robe/reference bug in the compositional math path
+- rerun the focused math + tablet slice and the real smoke benchmark
+
+Measured / observed state:
+- focused slice:
+  - `21 passed in 13.04s`
+- audited smoke artifact:
+  - `../Knowledge3D.local/results/tablet_boundary_post_four_pass_smoke_20260307_020220/summary.json`
+- benchmark delta:
+  - `Math: 2 / 20 -> 8 / 20`
+  - `ARC: 0 / 10`
+  - `LHE: 0 / 10`
+
+Implication:
+- the benchmark front door and the four-pass compositional math path are now structurally correct
+- the remaining math failures are no longer reference-expression parsing failures
+- the next failure band is:
+  - `tablet_boundary_no_result`
+  - algebra/open-form normalization
+  - symbolic vs numeric answer emission
+
+## Added Completion Slice: Universal Four-Pass Lift To LHE Boundary
+
+Completed:
+- remove the non-math `LHE_TASK -> process_chat(...)` passthrough in the daemon
+- add a structured four-pass LHE path at the Tablet boundary:
+  - forward semantic entities
+  - backward goal extraction
+  - fusion/deduplication
+  - evidence query + option/open-answer synthesis
+- keep `Math` unchanged as the guardrail benchmark
+- rerun the smoke benchmark with the GPU free
+
+Measured / observed state:
+- focused slice:
+  - `15 passed in 13.11s`
+- audited smoke artifact:
+  - `../Knowledge3D.local/results/tablet_boundary_post_lhe_four_pass_smoke_20260307/summary.json`
+- benchmark state:
+  - `ARC: 1 / 10`
+  - `Math: 20 / 20`
+  - `LHE: 0 / 10`
+- key audit signal:
+  - `ARC composition_depth.avg = 1.1`
+
+Implication:
+- universal four-pass is now active across:
+  - math
+  - ARC
+  - LHE boundary dispatch
+- Math remains stable at `20 / 20`
+- LHE is structurally corrected but still knowledge-limited
+- the next justified implementation target is ARC generator/primitive coverage, not more benchmark plumbing
+
+## Added Completion Slice: ARC Positive-Only Four-Pass Verification
+
+Completed:
+- filter four-pass compositional ARC discovery down to canonical positive/original train pairs before:
+  - pair fusion
+  - candidate verification
+- keep contrastive / figure-ground derived examples available to the wider contrastive path, but stop using them to reject valid direct generators
+- add a benchmark-grade regression for `connect_color_pairs` under the full ARC benchmark flag set
+- rerun the same audited 10/20/10 smoke benchmark
+
+Measured / observed state:
+- focused slice:
+  - `40 passed in 17.38s`
+- audited smoke artifact:
+  - `../Knowledge3D.local/results/tablet_boundary_arc_positive_four_pass_smoke_20260307_1230/summary.json`
+- benchmark delta:
+  - `ARC: 1 / 10 -> 2 / 10`
+  - `Math: 20 / 20`
+  - `LHE: 0 / 10`
+- ARC audit signal:
+  - `composition_depth.avg = 1.2`
+  - `arc_four_pass` now accounts for both solved ARC tasks in the smoke pack
+
+Implication:
+- the current benchmark ARC bottleneck is no longer negative-form verification suppression
+- existing sovereign compositional primitives are now allowed to surface under benchmark-grade flags
+- the next justified target is more ARC primitive coverage from the remaining audited failures, not more discovery plumbing
+
+## Added Completion Slice: Unified Four-Pass Single-System Refactor
+
+Completed:
+- remove the active daemon-local LHE forward/backward/fusion parser from the execution path
+- canonicalize LHE Pass 4 input from the universal `parse_bundle` returned by `NavigatorSpecialist`
+- align ARC four-pass entity output with the same top-level structural fields:
+  - `kind`
+  - `role`
+  - `source_pass`
+- rerun the same `10 / 20 / 10` smoke benchmark
+
+Measured / observed state:
+- focused slice:
+  - `40 passed in 13.10s`
+- audited smoke artifact:
+  - `../Knowledge3D.local/results/tablet_boundary_post_unified_four_pass_smoke_20260307_1245/summary.json`
+- benchmark state:
+  - `ARC: 2 / 10`
+  - `Math: 20 / 20`
+  - `LHE: 0 / 10`
+
+Implication:
+- the single-system architectural correction is now in place without benchmark regression
+- Math remains guarded at `20 / 20`
+- ARC keeps the previous gain at `2 / 10`
+- LHE remains structurally corrected but knowledge-limited
+- the next justified work is ARC primitive family expansion from the 8 audited failures, not more four-pass duplication cleanup

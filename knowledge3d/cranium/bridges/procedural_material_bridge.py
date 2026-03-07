@@ -103,14 +103,19 @@ class ProceduralMaterialBridge:
     def __init__(self) -> None:
         self.effects = DrawingEffects()
         self.projection_kernels = MaterialProjectionKernels()
-        self.geometry_bridge = ProceduralGeometryBridge()
-        self.signal_bridge = ProceduralSignalBridge()
-        self._signal_bridge_cache: dict[tuple[int, float], ProceduralSignalBridge] = {
-            (self.signal_bridge.frame_size, self.signal_bridge.threshold): self.signal_bridge
-        }
+        self._geometry_bridge: ProceduralGeometryBridge | None = None
+        self._signal_bridge_cache: dict[tuple[int, float], ProceduralSignalBridge] = {}
         self._stops_cache: dict[tuple[Any, ...], tuple[tuple[float, float, float, float, float], ...]] = {}
         self._preview_cache: dict[tuple[tuple[Any, ...], int, int], np.ndarray] = {}
         self._normal_hint_cache: dict[tuple[tuple[Any, ...], int, int], np.ndarray] = {}
+
+    @property
+    def geometry_bridge(self) -> ProceduralGeometryBridge:
+        bridge = self._geometry_bridge
+        if bridge is None:
+            bridge = ProceduralGeometryBridge()
+            self._geometry_bridge = bridge
+        return bridge
 
     @staticmethod
     def _candidate_cache_key(candidate: SurfaceMaterialCandidate) -> tuple[Any, ...]:
@@ -408,7 +413,7 @@ class ProceduralMaterialBridge:
         projection_strategy: str | None = None,
     ) -> SurfaceMaterialPlan:
         signal_bridge = self._signal_bridge_for(frame_size=frame_size, threshold=threshold)
-        projection = signal_bridge.audio_to_spectrogram(clip_id, samples)
+        projection = signal_bridge.audio_to_spectrogram(clip_id, samples, build_preview=False)
         surface = signal_bridge.spectrogram_to_surface(
             projection,
             displacement_gain=displacement_gain,
@@ -460,7 +465,7 @@ class ProceduralMaterialBridge:
         key = (int(frame_size), float(threshold))
         bridge = self._signal_bridge_cache.get(key)
         if bridge is None:
-            bridge = ProceduralSignalBridge(frame_size=key[0], threshold=key[1])
+            bridge = ProceduralSignalBridge.for_config(frame_size=key[0], threshold=key[1])
             self._signal_bridge_cache[key] = bridge
         return bridge
 

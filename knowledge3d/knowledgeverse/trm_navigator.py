@@ -1451,7 +1451,26 @@ class TRMNavigator(SpecialistBase):
                 f"query={text[:200]!r}"
             )
         specialist = self.get_math_specialist()
-        solved = specialist.process({"question": text}, use_enriched=use_enriched)
+        math_task: dict[str, Any] = {"question": text}
+        try:
+            routes = self.navigator_specialist.plan_routes(
+                query=text,
+                specialist="math",
+                galaxy_names=["Math", "Grammar", "Tool"],
+                use_forward_backward=True,
+            )
+            math_task["route_plan"] = routes
+            for key in ("forward_parse", "backward_parse", "fusion_parse"):
+                for route in routes:
+                    if not isinstance(route, dict):
+                        continue
+                    value = route.get(key)
+                    if isinstance(value, dict):
+                        math_task[key] = value
+                        break
+        except Exception:
+            pass
+        solved = specialist.process(math_task, use_enriched=use_enriched)
         if solved.get("status") == "success":
             result = self._to_float(solved.get("result"))
             if result is None:

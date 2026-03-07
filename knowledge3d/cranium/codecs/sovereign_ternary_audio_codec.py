@@ -34,6 +34,10 @@ class SovereignTernaryAudioCodec:
         self.galaxy = TernaryGalaxy()
 
     def encode(self, clip_id: str, samples: TernaryVector) -> Dict:
+        encoded = self.encode_details(clip_id, samples)
+        return dict(encoded["metadata"])
+
+    def encode_details(self, clip_id: str, samples: TernaryVector) -> Dict[str, object]:
         samples_arr = samples.to_numpy().astype(np.float32, copy=False)
         original_length = int(samples_arr.shape[0])
         # Pad to frame boundary
@@ -61,7 +65,7 @@ class SovereignTernaryAudioCodec:
                 "math_core_plan": signal_plan,
             },
         )
-        return {
+        metadata = {
             "clip_id": clip_id,
             "seed_rpn": seed_rpn,
             "stored_in_galaxy": True,
@@ -69,6 +73,11 @@ class SovereignTernaryAudioCodec:
             "padded_length": padded_length,
             "frame_count": frame_count,
             "math_core_plan": signal_plan,
+        }
+        return {
+            "metadata": metadata,
+            "quantized_coeffs": quantized,
+            "residual": residual_vec,
         }
 
     def decode(self, clip_id: str) -> TernaryVector:

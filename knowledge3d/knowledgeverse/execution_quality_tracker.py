@@ -7,6 +7,7 @@ routing updates.
 
 from __future__ import annotations
 
+import atexit
 import hashlib
 import json
 import math
@@ -74,7 +75,12 @@ class ExecutionQualityTracker:
         self.save_every = max(1, int(save_every))
         self.save_interval_s = max(0.0, float(save_interval_s))
         self._dirty_observations = 0
-        self._last_save_monotonic = 0.0
+        self._last_save_monotonic = time.monotonic()
+        self._gap_buffer: list[str] = []
+        self._gap_buffer_size = max(1, int(save_every))
+        self._last_gap_flush_monotonic = time.monotonic()
+        self._state_path_ready = self.state_path.exists()
+        self._gap_log_ready = self.gap_log_path.exists()
         self._token_cache: dict[str, list[str]] = {}
         self._embed_cache: dict[str, list[float]] = {}
         self._state: dict[str, Any] = {
@@ -84,6 +90,7 @@ class ExecutionQualityTracker:
             "route_sources": {},
         }
         self._load()
+        atexit.register(self.flush)
 
     def _load(self) -> None:
         if not self.state_path.exists():
@@ -112,9 +119,39 @@ class ExecutionQualityTracker:
         self.state_path.write_text(json.dumps(self._state, indent=2, sort_keys=True), encoding="utf-8")
         self._dirty_observations = 0
         self._last_save_monotonic = now
+        self._state_path_ready = True
 
     def flush(self) -> None:
         self._save(force=True)
+        self._flush_gap_buffer(force=True)
+
+    def _append_gap(self, payload: Mapping[str, Any]) -> None:
+        self._gap_buffer.append(json.dumps(dict(payload), separators=(",", ":"), sort_keys=True))
+        if not self._gap_log_ready:
+            self._flush_gap_buffer(force=True)
+            return
+        now = time.monotonic()
+        if (
+            len(self._gap_buffer) >= self._gap_buffer_size
+            or (now - self._last_gap_flush_monotonic) >= self.save_interval_s
+        ):
+            self._flush_gap_buffer()
+
+    def _flush_gap_buffer(self, *, force: bool = False) -> None:
+        if not self._gap_buffer:
+            return
+        if not force:
+            now = time.monotonic()
+            if (
+                len(self._gap_buffer) < self._gap_buffer_size
+                and (now - self._last_gap_flush_monotonic) < self.save_interval_s
+            ):
+                return
+        with self.gap_log_path.open("a", encoding="utf-8") as handle:
+            handle.write("\n".join(self._gap_buffer) + "\n")
+        self._gap_buffer.clear()
+        self._last_gap_flush_monotonic = time.monotonic()
+        self._gap_log_ready = True
 
     def _tokenize(self, text: str) -> list[str]:
         token = str(text or "")
@@ -476,12 +513,11 @@ class ExecutionQualityTracker:
                     "best_relevance": float(best_relevance),
                     "spawn_threshold": float(self.spawn_threshold),
                 }
-                with self.gap_log_path.open("a", encoding="utf-8") as handle:
-                    handle.write(json.dumps(gap_payload, separators=(",", ":"), sort_keys=True) + "\n")
+                self._append_gap(gap_payload)
                 gap_logged = True
 
         self._dirty_observations += 1
-        self._save(force=not self.state_path.exists())
+        self._save(force=not self._state_path_ready)
         routing_gate = self.routing_gate(
             tool_id,
             runtime_status=runtime_status,

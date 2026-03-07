@@ -28,6 +28,7 @@ class Knowledgeverse:
         "Drawing",
         "Character",
         "Word",
+        "Number",
         "Grammar",
         "Math",
         "Reality",

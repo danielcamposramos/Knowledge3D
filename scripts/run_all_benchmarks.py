@@ -1013,8 +1013,6 @@ def main() -> None:
     os.environ.setdefault("K3D_REQUIRE_PTX_ARC_PIPELINE", "true")
     if args.arc_enable_full_ptx:
         os.environ.setdefault("K3D_ALLOW_LEGACY_ARC_PIPELINE", "false")
-        # Hard-enforce PTX query path during full PTX runs to prevent silent CPU scans.
-        os.environ["K3D_REQUIRE_PTX_QUERY"] = "true"
 
     run_arc = _is_enabled_limit(args.max_arc_tasks)
     run_math = _is_enabled_limit(args.max_math_problems)

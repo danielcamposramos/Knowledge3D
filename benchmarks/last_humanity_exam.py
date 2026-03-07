@@ -7,6 +7,7 @@ import re
 from pathlib import Path
 from typing import Any, Sequence
 
+from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC, TabletIngest
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
 from knowledge3d.knowledgeverse.trm_navigator import TRMNavigator
 
@@ -21,12 +22,14 @@ class LastHumanityExamBenchmark:
         max_questions: int | None = None,
         query_scope_galaxies: str | list[str] | None = None,
         runtime_seed_knowledge: bool = False,
+        tablet_boundary: HeadlessTabletMPC | None = None,
     ):
         self.kv = knowledgeverse or Knowledgeverse()
         self.dataset_path = self._resolve_dataset_path(dataset_path)
         self.max_questions = max_questions
         self.query_scope_galaxies = self._normalize_query_scope(query_scope_galaxies)
         self.runtime_seed_knowledge = bool(runtime_seed_knowledge)
+        self.tablet_boundary = tablet_boundary
         self.dataset_source = "unknown"
         self.dataset_file: str | None = None
         self.synthetic_fallback = False
@@ -37,6 +40,9 @@ class LastHumanityExamBenchmark:
         if dataset_path is not None:
             return Path(dataset_path)
         candidates = [
+            Path("/K3D/K3D_llama_cpp/datasets/last_humanity_exam"),
+            Path("/K3D/K3D_llama_cpp/datasets/hle"),
+            Path("/K3D/K3D_llama_cpp/datasets/mmlu"),
             Path("/K3D/Knowledge3D.local/datasets/last_humanity_exam"),
             Path("../Knowledge3D.local/datasets/last_humanity_exam"),
             Path("/K3D/Knowledge3D.local/datasets/exams/hle-src"),
@@ -63,11 +69,16 @@ class LastHumanityExamBenchmark:
         return fallback[: self.max_questions] if self.max_questions is not None else fallback
 
     def _load_from_known_files(self, root: Path) -> list[dict[str, Any]]:
-        candidates = [
-            root / "last_humanity_exam.json",
-            root / "questions.json",
-            root / "dataset.json",
-        ]
+        if root.is_file():
+            candidates = [root]
+            jsonl_path = root if root.suffix.lower() == ".jsonl" else None
+        else:
+            candidates = [
+                root / "last_humanity_exam.json",
+                root / "questions.json",
+                root / "dataset.json",
+            ]
+            jsonl_path = root / "questions.jsonl"
         for candidate in candidates:
             if not candidate.exists():
                 continue
@@ -84,8 +95,7 @@ class LastHumanityExamBenchmark:
                 return parsed
 
         # Optional JSONL support.
-        jsonl_path = root / "questions.jsonl"
-        if jsonl_path.exists():
+        if jsonl_path is not None and jsonl_path.exists():
             records: list[dict[str, Any]] = []
             with jsonl_path.open("r", encoding="utf-8") as handle:
                 for line in handle:
@@ -213,6 +223,8 @@ class LastHumanityExamBenchmark:
         use_enriched: bool,
     ) -> dict[str, Any]:
         domain = str(question.get("domain", "multi"))
+        if self.tablet_boundary is not None:
+            return self._answer_question_via_tablet(question=question, use_enriched=use_enriched)
         route = navigator.route(
             query=question["question_text"],
             specialist="auto",
@@ -272,6 +284,45 @@ class LastHumanityExamBenchmark:
             "reasoning_trace": navigator.get_reasoning_trace(),
             "route": route,
             "question_type": question_type,
+        }
+
+    def _answer_question_via_tablet(
+        self,
+        *,
+        question: dict[str, Any],
+        use_enriched: bool,
+    ) -> dict[str, Any]:
+        domain = str(question.get("domain", "multi"))
+        envelope = TabletIngest.lhe_question(
+            task_id=str(question["id"]),
+            question=str(question["question_text"]),
+            options=question.get("options") if isinstance(question.get("options"), list) else [],
+            domain=domain,
+            expected_answer=str(question["correct_answer"]),
+        )
+        tablet_result = self.tablet_boundary.submit(envelope, use_enriched=use_enriched)
+        emitted = dict(tablet_result["emitted"])
+        route = emitted.get("route", {})
+        correct = bool(emitted.get("correct", False))
+        self.kv.log_event(
+            "lhe_question_success" if correct else "lhe_question_failure",
+            {
+                "specialist": route.get("specialist", "chat"),
+                "domain": domain,
+                "confidence": 0.85 if correct else 0.3,
+            },
+        )
+        return {
+            "question_id": question["id"],
+            "domain": domain,
+            "correct": int(correct),
+            "predicted_answer": emitted.get("predicted_answer"),
+            "correct_answer": str(question["correct_answer"]),
+            "knowledge_used": 0,
+            "reasoning_trace": emitted.get("task_result", {}).get("reasoning_trace", []),
+            "route": route,
+            "question_type": str(question.get("question_type") or "multiple_choice").lower(),
+            "tablet_contract": tablet_result["tablet_contract"],
         }
 
     def _normalize_query_scope(self, value: str | list[str] | None) -> list[str] | None:

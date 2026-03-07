@@ -32,3 +32,14 @@ def test_audio_codec_persists_clip_metadata():
     assert metadata["frame_count"] == 2
     assert metadata["math_core_plan"]["preferred_tier"] == 2
     assert len(residual.to_python()) == 8
+
+
+def test_audio_codec_encode_details_returns_quantized_coeffs():
+    samples = TernaryVector([1, 0, -1, 1, 0, -1, 1, 0, -1, 1])
+    codec = SovereignTernaryAudioCodec(frame_size=8, threshold=0.15)
+    encoded = codec.encode_details("clip_details", samples)
+
+    assert encoded["metadata"]["seed_rpn"] == "8 BATCH_MDCT 0.15 TERNARY_QUANT"
+    assert encoded["metadata"]["frame_count"] == 2
+    assert encoded["quantized_coeffs"].shape == (8,)
+    assert len(encoded["residual"].to_python()) == 8

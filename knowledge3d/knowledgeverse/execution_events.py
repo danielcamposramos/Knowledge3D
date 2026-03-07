@@ -75,13 +75,23 @@ class ExecutionEventRecorder:
         self.flush_interval_s = max(0.0, float(flush_interval_s))
         self._buffer: list[str] = []
         self._last_flush_monotonic = time.monotonic()
+        self._event_path_ready = self.event_path.exists()
         atexit.register(self.flush)
 
-    def append(self, event: ExecutionEvent, *, knowledgeverse: Any | None = None) -> None:
-        payload = event.as_dict()
+    def append(
+        self,
+        event: ExecutionEvent,
+        *,
+        knowledgeverse: Any | None = None,
+        payload: Mapping[str, Any] | None = None,
+    ) -> None:
+        if payload is None:
+            payload = event.as_dict()
         self._buffer.append(json.dumps(payload, separators=(",", ":"), sort_keys=True))
         is_chain_step = event.execution_mode == "tool_chain_step"
         force_flush = (
+            not is_chain_step
+            or
             len(self._buffer) >= self.buffer_size
             or (time.monotonic() - self._last_flush_monotonic) >= self.flush_interval_s
         )
@@ -97,7 +107,7 @@ class ExecutionEventRecorder:
                 knowledgeverse.shadow_copy.record_event(
                     event_type="tool_execution",
                     event_data={
-                        **payload,
+                        **dict(payload),
                         "timestamp": float(payload["timestamp_us"]) / 1_000_000.0,
                         "confidence": float(payload["quality_signal"]),
                         "specialist": str(payload.get("specialist_id") or "unknown"),
@@ -115,6 +125,7 @@ class ExecutionEventRecorder:
             handle.write("\n".join(self._buffer) + "\n")
         self._buffer.clear()
         self._last_flush_monotonic = time.monotonic()
+        self._event_path_ready = True
 
 
 def timestamp_us() -> int:

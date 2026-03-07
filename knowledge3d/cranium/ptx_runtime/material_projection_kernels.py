@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import ctypes
+import os
+from collections import OrderedDict
 from pathlib import Path
 
 import numpy as np
@@ -50,11 +52,68 @@ def _as_float32_xyz(vertices: np.ndarray) -> np.ndarray:
 class MaterialProjectionKernels:
     """PTX kernels for planar sampling and triplanar blending."""
 
+    _MODULE_PID: int | None = None
+    _MODULE_FUNCS: tuple[object, object, object] | None = None
+    _PREVIEW_CACHE_PID: int | None = None
+    _PREVIEW_DEVICE_CACHE: "OrderedDict[tuple[int, int, int, tuple[int, ...]], tuple[ctypes.c_void_p, int]]" = OrderedDict()
+    _MAX_PREVIEW_CACHE = 16
+
     def __init__(self) -> None:
-        module = loader.load_module_from_file(str(PROJECTION_PTX))
-        self.sample_planar_kernel = loader.get_function(module, "sample_planar_rgba_kernel")
-        self.blend_triplanar_kernel = loader.get_function(module, "blend_triplanar_rgba_kernel")
-        self.project_triplanar_kernel = loader.get_function(module, "project_triplanar_rgba_kernel")
+        pid = os.getpid()
+        cached_pid = self.__class__._MODULE_PID
+        funcs = self.__class__._MODULE_FUNCS
+        if cached_pid != pid or funcs is None:
+            module = loader.load_module_from_file(str(PROJECTION_PTX))
+            funcs = (
+                loader.get_function(module, "sample_planar_rgba_kernel"),
+                loader.get_function(module, "blend_triplanar_rgba_kernel"),
+                loader.get_function(module, "project_triplanar_rgba_kernel"),
+            )
+            self.__class__._MODULE_PID = pid
+            self.__class__._MODULE_FUNCS = funcs
+        self.sample_planar_kernel, self.blend_triplanar_kernel, self.project_triplanar_kernel = funcs
+        if self.__class__._PREVIEW_CACHE_PID != pid:
+            self.__class__._reset_preview_cache(pid)
+
+    @classmethod
+    def _reset_preview_cache(cls, pid: int) -> None:
+        for ptr, _nbytes in cls._PREVIEW_DEVICE_CACHE.values():
+            loader.gpu_free(ptr)
+        cls._PREVIEW_DEVICE_CACHE.clear()
+        cls._PREVIEW_CACHE_PID = pid
+
+    @classmethod
+    def _evict_preview_cache(cls) -> None:
+        while len(cls._PREVIEW_DEVICE_CACHE) > cls._MAX_PREVIEW_CACHE:
+            _key, (ptr, _nbytes) = cls._PREVIEW_DEVICE_CACHE.popitem(last=False)
+            loader.gpu_free(ptr)
+
+    @classmethod
+    def _preview_cache_key(cls, image: np.ndarray) -> tuple[int, int, int, tuple[int, ...]]:
+        return (
+            os.getpid(),
+            id(image),
+            int(image.ctypes.data),
+            tuple(int(v) for v in image.shape),
+        )
+
+    @classmethod
+    def _device_preview(cls, image: np.ndarray) -> ctypes.c_void_p:
+        key = cls._preview_cache_key(image)
+        cached = cls._PREVIEW_DEVICE_CACHE.get(key)
+        if cached is not None:
+            ptr, _nbytes = cached
+            cls._PREVIEW_DEVICE_CACHE.move_to_end(key)
+            return ptr
+        d_preview = loader.gpu_malloc(image.nbytes)
+        loader.memcpy_htod(d_preview, image.ctypes.data_as(ctypes.c_void_p), image.nbytes)
+        cls._PREVIEW_DEVICE_CACHE[key] = (d_preview, int(image.nbytes))
+        cls._evict_preview_cache()
+        return d_preview
+
+    @classmethod
+    def preview_cache_size(cls) -> int:
+        return len(cls._PREVIEW_DEVICE_CACHE)
 
     def sample_preview(
         self,
@@ -72,11 +131,10 @@ class MaterialProjectionKernels:
         if vertex_count == 0:
             return np.empty((0, 4), dtype=np.float32)
 
-        d_preview = loader.gpu_malloc(image.nbytes)
+        d_preview = self._device_preview(image)
         d_coords = loader.gpu_malloc(coord_arr.nbytes)
         d_out = loader.gpu_malloc(vertex_count * 4 * 4)
         try:
-            loader.memcpy_htod(d_preview, image.ctypes.data_as(ctypes.c_void_p), image.nbytes)
             loader.memcpy_htod(d_coords, coord_arr.ctypes.data_as(ctypes.c_void_p), coord_arr.nbytes)
             block = (256, 1, 1)
             grid = ((vertex_count + 255) // 256, 1, 1)
@@ -102,7 +160,6 @@ class MaterialProjectionKernels:
             loader.memcpy_dtoh(out.ctypes.data_as(ctypes.c_void_p), d_out, out.nbytes)
             return out
         finally:
-            loader.gpu_free(d_preview)
             loader.gpu_free(d_coords)
             loader.gpu_free(d_out)
 
@@ -185,12 +242,11 @@ class MaterialProjectionKernels:
         if vertex_count == 0:
             return np.empty((0, 4), dtype=np.float32)
 
-        d_preview = loader.gpu_malloc(image.nbytes)
+        d_preview = self._device_preview(image)
         d_vertices = loader.gpu_malloc(vertex_arr.nbytes)
         d_weights = loader.gpu_malloc(weight_arr.nbytes)
         d_out = loader.gpu_malloc(vertex_count * 4 * 4)
         try:
-            loader.memcpy_htod(d_preview, image.ctypes.data_as(ctypes.c_void_p), image.nbytes)
             loader.memcpy_htod(d_vertices, vertex_arr.ctypes.data_as(ctypes.c_void_p), vertex_arr.nbytes)
             loader.memcpy_htod(d_weights, weight_arr.ctypes.data_as(ctypes.c_void_p), weight_arr.nbytes)
             block = (256, 1, 1)
@@ -220,7 +276,6 @@ class MaterialProjectionKernels:
             loader.memcpy_dtoh(out.ctypes.data_as(ctypes.c_void_p), d_out, out.nbytes)
             return out
         finally:
-            loader.gpu_free(d_preview)
             loader.gpu_free(d_vertices)
             loader.gpu_free(d_weights)
             loader.gpu_free(d_out)

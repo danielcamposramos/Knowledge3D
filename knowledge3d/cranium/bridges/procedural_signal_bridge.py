@@ -11,6 +11,7 @@ The bridge stays honest about the current substrate:
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 
 import numpy as np
 
@@ -24,7 +25,7 @@ from knowledge3d.cranium.ternary import TernaryVector
 @dataclass(frozen=True)
 class SpectrogramPlan:
     spectrogram: np.ndarray
-    preview_rgba: np.ndarray
+    preview_rgba: np.ndarray | None
     metadata: dict[str, object]
 
 
@@ -69,6 +70,8 @@ def _resolve_signal_math_core_plan(preferred_tier: int, work_items: int) -> dict
 class ProceduralSignalBridge:
     """Always-on signal bridge built on the sovereign PTX codec substrate."""
 
+    _CONFIGURED_CACHE: dict[tuple[int, int, float], "ProceduralSignalBridge"] = {}
+
     def __init__(self, frame_size: int = 1024, threshold: float = 0.2) -> None:
         self.frame_size = int(frame_size)
         self.threshold = float(threshold)
@@ -76,17 +79,29 @@ class ProceduralSignalBridge:
         self.visualization = SignalVisualizationKernels()
         self.surface_kernels = SignalSurfaceKernels()
 
+    @classmethod
+    def for_config(cls, *, frame_size: int = 1024, threshold: float = 0.2) -> "ProceduralSignalBridge":
+        key = (os.getpid(), int(frame_size), float(threshold))
+        bridge = cls._CONFIGURED_CACHE.get(key)
+        if bridge is None:
+            bridge = cls(frame_size=frame_size, threshold=threshold)
+            cls._CONFIGURED_CACHE[key] = bridge
+        return bridge
+
     def audio_to_spectrogram(
         self,
         clip_id: str,
         samples: TernaryVector,
+        *,
+        build_preview: bool = True,
     ) -> SpectrogramPlan:
-        meta = self.codec.encode(clip_id, samples)
-        _seed_rpn, residual, stored_meta = self.codec.galaxy.load_frame_details(clip_id)
-        frame_count = int(stored_meta["frame_count"])
+        encoded = self.codec.encode_details(clip_id, samples)
+        meta = dict(encoded["metadata"])
+        quantized = np.asarray(encoded["quantized_coeffs"], dtype=np.int32)
+        frame_count = int(meta["frame_count"])
         bins = self.frame_size // 2
-        spectrogram = residual.to_numpy().astype(np.int32, copy=False).reshape(frame_count, bins).T
-        preview_rgba = self.visualization.spectrogram_to_rgba(spectrogram)
+        spectrogram = quantized.reshape(frame_count, bins).T
+        preview_rgba = self.visualization.spectrogram_to_rgba(spectrogram) if build_preview else None
         total = max(1, int(spectrogram.size))
         metadata = {
             "clip_id": clip_id,
@@ -113,9 +128,10 @@ class ProceduralSignalBridge:
         *,
         frame_size: int = 1024,
         threshold: float = 0.2,
+        build_preview: bool = True,
     ) -> SpectrogramPlan:
-        bridge = ProceduralSignalBridge(frame_size=frame_size, threshold=threshold)
-        return bridge.audio_to_spectrogram(clip_id, samples)
+        bridge = self.for_config(frame_size=frame_size, threshold=threshold)
+        return bridge.audio_to_spectrogram(clip_id, samples, build_preview=build_preview)
 
     def spectrogram_to_surface(
         self,

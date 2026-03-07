@@ -7,6 +7,7 @@ containing extras.k3d nodes.
 from __future__ import annotations
 
 from typing import List
+from pathlib import Path
 
 from .galaxy_loader import GalaxyUniverseLoader
 from .glb_ctypes_loader import load_stars_from_glb
@@ -22,6 +23,10 @@ class MemoryTablet:
 
     def list_loaded(self) -> List[str]:
         return sorted(self.loader.loaded)
+
+    def prepare_headless_context(self, *, user_lang: str = "en", document_langs: List[str] | None = None) -> None:
+        """Ensure the minimal tablet context is loaded for a headless task."""
+        self.ensure_galaxies(user_lang=user_lang, document_langs=document_langs or [user_lang])
 
     def load_glb(self, galaxy_id: str, path: str) -> None:
         """

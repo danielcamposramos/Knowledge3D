@@ -5,26 +5,13 @@ from __future__ import annotations
 import os
 import statistics
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 import sys
 from typing import Any, Callable
 
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
 from knowledge3d.knowledgeverse.ternary_quality_memory import TernaryQualityMemory
-
-# Keep CUDA headers discoverable for CuPy JIT in environments that ship
-# headers under /usr/include without exporting CUDA_PATH.
-if "CUDA_PATH" not in os.environ and Path("/usr/include/cuda_fp16.h").exists():
-    os.environ["CUDA_PATH"] = "/usr"
-
-try:  # pragma: no cover - optional GPU dependency
-    import cupy as cp  # type: ignore
-
-    _HAS_CUPY = True
-except Exception:  # pragma: no cover - CPU-only environments
-    cp = None  # type: ignore
-    _HAS_CUPY = False
 
 try:  # pragma: no cover - optional PTX runtime dependency
     from knowledge3d.cranium.ptx import ARC_PTX_OPS
@@ -61,6 +48,9 @@ class _GeneratedPattern:
     query: str
     source: str
     pair_index: int | None = None
+    ops: tuple[str, ...] = ()
+    params: dict[str, Any] = field(default_factory=dict)
+    composition_depth: int = 1
 
 
 class ArcAgi2Adapter:
@@ -136,15 +126,12 @@ class ArcAgi2Adapter:
         self.palette_penalty_weight = self._normalize_penalty_weight(palette_penalty_weight)
         self.object_penalty_weight = self._normalize_penalty_weight(object_penalty_weight)
         self.query_scope_galaxies = self._normalize_optional_galaxy_scope(query_scope_galaxies)
-        self._ptx_ranking_available = bool(self.enable_ptx_ranking and _HAS_CUPY and _HAS_PTX_OPS)
-        self._full_ptx_available = bool(self.enable_full_ptx and _HAS_CUPY and _HAS_PTX_OPS)
+        ptx_ops_available = bool(_HAS_PTX_OPS and getattr(ARC_PTX_OPS, "available", False))
+        self._ptx_ranking_available = bool(self.enable_ptx_ranking and ptx_ops_available)
+        self._full_ptx_available = bool(self.enable_full_ptx and ptx_ops_available)
         ptx_unavailable_reasons: list[str] = []
-        if self.enable_ptx_ranking and not _HAS_CUPY:
-            ptx_unavailable_reasons.append("cupy_missing")
         if self.enable_ptx_ranking and not _HAS_PTX_OPS:
             ptx_unavailable_reasons.append("ptx_ops_unavailable")
-        if self.enable_full_ptx and not _HAS_CUPY:
-            ptx_unavailable_reasons.append("full_ptx_cupy_missing")
         if self.enable_full_ptx and not _HAS_PTX_OPS:
             ptx_unavailable_reasons.append("full_ptx_ops_unavailable")
         self._ptx_unavailable_reason = ",".join(ptx_unavailable_reasons) if ptx_unavailable_reasons else None
@@ -183,17 +170,7 @@ class ArcAgi2Adapter:
             state_path = Path(getattr(knowledgeverse, "storage_root")) / "checkpoints" / "arc_quality_memory.json"
             self.quality_memory = TernaryQualityMemory(state_path=state_path, emit_galaxy_entries=False)
 
-        if not self._full_ptx_available:
-            raise RuntimeError(
-                "PTX-only ARC path is mandatory; ARC PTX operations are unavailable "
-                f"(reason={self._ptx_unavailable_reason or 'unknown'})."
-            )
-        if not self._ptx_ranking_available:
-            raise RuntimeError(
-                "PTX ranking is mandatory for ARC hot path; ranking kernel unavailable "
-                f"(reason={self._ptx_unavailable_reason or 'unknown'})."
-            )
-        self._init_error = "legacy_disabled_ptx_only"
+        self._init_error = self._ptx_unavailable_reason
 
     def solve_task(
         self,
@@ -201,12 +178,7 @@ class ArcAgi2Adapter:
         *,
         fallback_solver: Callable[[dict[str, Any], bool], dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
-        """Solve one ARC task using PTX-only path. Legacy fallback is forbidden."""
-        if fallback_solver is not None:
-            raise RuntimeError(
-                "Fallback solver is forbidden in PTX-only ARC mode. "
-                "Remove fallback wiring and run sovereign hot path only."
-            )
+        """Solve one ARC task using sovereign in-file reasoning, with PTX when present."""
         return self._solve_task_ptx_only(task)
 
     def _solve_task_ptx_only(self, task: dict[str, Any]) -> dict[str, Any]:
@@ -402,6 +374,7 @@ class ArcAgi2Adapter:
                 },
             )
 
+        solver_name = "arc_ptx_ops" if ptx_full_used else "arc_sovereign"
         return {
             "task_id": task_id,
             "correct": final_correct,
@@ -412,13 +385,13 @@ class ArcAgi2Adapter:
             "legacy_exact_match": False,
             "expected": expected_output,
             "reasoning_trace": [
-                "solver=arc_ptx_ops",
+                f"solver={solver_name}",
                 f"ranking_applied={ranking_applied}",
                 f"ptx_mode={ptx_mode}",
                 f"ptx_full_used={ptx_full_used}",
             ],
             "patterns_used": len(discovered_patterns),
-            "solver": "arc_ptx_ops",
+            "solver": solver_name,
             "score": float(top_5_scores[0] if top_5_scores else 0.0),
             "fuzzy_score": fuzzy_best,
             "generated_patterns": [pattern.__dict__ for pattern in discovered_patterns],
@@ -602,6 +575,7 @@ class ArcAgi2Adapter:
         if self.enable_contrastive_learning:
             return self.discover_patterns_contrastive(discovery_examples)
         generated: list[_GeneratedPattern] = []
+        generated.extend(self._discover_patterns_four_pass_compositional(discovery_examples))
         generated.extend(self._discover_patterns_traditional(discovery_examples))
         generated.extend(self._discover_patterns_with_autonomous_generation(discovery_examples))
         generated.extend(self._discover_patterns_cross_modal(discovery_examples))
@@ -636,6 +610,7 @@ class ArcAgi2Adapter:
         """
         discovery_examples = self._prepare_discovery_examples(train_examples)
         forward: list[_GeneratedPattern] = []
+        forward.extend(self._discover_patterns_four_pass_compositional(discovery_examples))
         forward.extend(self._discover_patterns_traditional(discovery_examples))
         forward.extend(self._discover_patterns_with_autonomous_generation(discovery_examples))
         forward.extend(self._discover_patterns_cross_modal(discovery_examples))
@@ -713,6 +688,239 @@ class ArcAgi2Adapter:
                 }
             )
         return augmented
+
+    def _filter_original_discovery_examples(
+        self,
+        train_examples: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        """
+        Keep only the canonical positive/original train pairs.
+
+        Contrastive and figure-ground derived forms are useful for backward
+        pressure, but four-pass compositional verification must anchor to the
+        original train evidence or valid generators get rejected for the wrong
+        reason.
+        """
+        originals: list[dict[str, Any]] = []
+        for pair in train_examples:
+            if not isinstance(pair, dict):
+                continue
+            metadata = pair.get("metadata", {}) if isinstance(pair.get("metadata"), dict) else {}
+            if str(metadata.get("form_polarity", "positive")).lower() == "negative":
+                continue
+            if metadata.get("derived_from"):
+                continue
+            originals.append(pair)
+        return originals or [pair for pair in train_examples if isinstance(pair, dict)]
+
+    def _discover_patterns_four_pass_compositional(
+        self,
+        train_examples: list[dict[str, Any]],
+    ) -> list[_GeneratedPattern]:
+        """
+        Four-pass ARC decomposition using composable primitives instead of family templates.
+        """
+        verification_examples = self._filter_original_discovery_examples(train_examples)
+        pair_fusions: list[list[dict[str, Any]]] = []
+        for pair in verification_examples:
+            if not isinstance(pair, dict):
+                continue
+            input_grid = self._to_grid(pair.get("input"))
+            output_grid = self._to_grid(pair.get("output"))
+            if not input_grid or not output_grid:
+                continue
+            forward_entities = self._arc_forward_entities(input_grid, output_grid)
+            backward_entities = self._arc_backward_entities(input_grid, output_grid)
+            fused_entities = self._arc_fuse_entities(forward_entities, backward_entities)
+            if fused_entities:
+                pair_fusions.append(fused_entities)
+
+        if not pair_fusions:
+            return []
+
+        pair_count = len(pair_fusions)
+        aggregate: dict[tuple[tuple[str, ...], tuple[tuple[str, str], ...]], dict[str, Any]] = {}
+        for pair_entities in pair_fusions:
+            pair_seen: set[tuple[tuple[str, ...], tuple[tuple[str, str], ...]]] = set()
+            for entity in pair_entities:
+                ops = tuple(str(op) for op in entity.get("ops", ()))
+                params = {str(k): entity["params"][k] for k in sorted(entity.get("params", {}))}
+                key = (ops, tuple((name, repr(value)) for name, value in params.items()))
+                if key in pair_seen:
+                    continue
+                pair_seen.add(key)
+                bucket = aggregate.setdefault(
+                    key,
+                    {
+                        "name": str(entity.get("name", "arc_four_pass")),
+                        "ops": ops,
+                        "params": params,
+                        "count": 0,
+                        "confidence": 0.0,
+                    },
+                )
+                bucket["count"] = int(bucket["count"]) + 1
+                bucket["confidence"] = max(float(bucket["confidence"]), float(entity.get("confidence", 0.5)))
+
+        patterns: list[_GeneratedPattern] = []
+        for idx, bucket in enumerate(aggregate.values()):
+            ops = tuple(str(op) for op in bucket.get("ops", ()))
+            params = dict(bucket.get("params", {}))
+            support_count = int(bucket.get("count", 0))
+            if pair_count == 1 and "color_remap" in ops and len(ops) > 1:
+                # Single-pair mixed geometry+recolor chains are often ambiguous
+                # overfits. Require repeated train-pair support before trusting
+                # them over simpler direct transforms.
+                continue
+            verification = self._verify_arc_ops_on_examples(verification_examples, ops=ops, params=params)
+            if not verification["pass"]:
+                continue
+            confidence = self._clamp(
+                0.55
+                + 0.20 * (float(support_count) / max(1, pair_count))
+                + 0.15 * float(bucket.get("confidence", 0.5))
+            )
+            hint = self._arc_param_hint(params)
+            query_parts = [*ops]
+            if hint:
+                query_parts.append(hint)
+            patterns.append(
+                _GeneratedPattern(
+                    pattern_id=f"arc_four_pass_{idx}",
+                    source_galaxy="Grammar",
+                    target_galaxy="Grammar",
+                    confidence=confidence,
+                    query=", ".join(query_parts) or "arc_four_pass",
+                    source="arc_four_pass",
+                    ops=ops,
+                    params=params,
+                    composition_depth=max(2, len(ops)),
+                )
+            )
+        cross_example = self._detect_enclosed_zero_fill_count_lookup_pattern(verification_examples)
+        if cross_example is not None:
+            patterns.append(cross_example)
+        marker_lookup = self._detect_marker_shape_color_lookup_pattern(verification_examples)
+        if marker_lookup is not None:
+            patterns.append(marker_lookup)
+        return patterns
+
+    def _arc_forward_entities(
+        self,
+        input_grid: list[list[int]],
+        output_grid: list[list[int]],
+    ) -> list[dict[str, Any]]:
+        entities: list[dict[str, Any]] = []
+        periodic = self._detect_periodic_tile_transform(input_grid, output_grid)
+        if periodic is not None:
+            entities.append(
+                {
+                    "kind": "arc_transform",
+                    "name": "tile_pattern",
+                    "ops": ("tile_pattern",),
+                    "params": periodic,
+                    "role": "candidate",
+                    "confidence": 0.9,
+                    "source_pass": "forward",
+                }
+            )
+        phase = self._detect_phase_tile_transform(input_grid, output_grid)
+        if phase is not None:
+            entities.append(
+                {
+                    "kind": "arc_transform",
+                    "name": "phase_tile_pattern",
+                    "ops": ("tile_pattern", "phase_shift"),
+                    "params": phase,
+                    "role": "candidate",
+                    "confidence": 0.98,
+                    "source_pass": "forward",
+                }
+            )
+        transform = self._detect_direct_transform_ops(input_grid, output_grid)
+        if transform is not None:
+            entities.append(
+                {
+                    "kind": "arc_transform",
+                    "name": "direct_transform",
+                    "ops": tuple(transform.get("ops", ())),
+                    "params": dict(transform.get("params", {})),
+                    "role": "candidate",
+                    "confidence": float(transform.get("confidence", 0.9)),
+                    "source_pass": "forward",
+                }
+            )
+        return entities
+
+    def _arc_backward_entities(
+        self,
+        input_grid: list[list[int]],
+        output_grid: list[list[int]],
+    ) -> list[dict[str, Any]]:
+        entities: list[dict[str, Any]] = []
+        in_h = len(input_grid)
+        in_w = len(input_grid[0]) if in_h else 0
+        out_h = len(output_grid)
+        out_w = len(output_grid[0]) if out_h else 0
+        if in_h and in_w and out_h % in_h == 0 and out_w % in_w == 0:
+            factor_h = out_h // in_h
+            factor_w = out_w // in_w
+            if factor_h == factor_w and factor_h > 1:
+                entities.append(
+                    {
+                        "kind": "arc_transform",
+                        "name": "tile_requirement",
+                        "ops": ("tile_pattern",),
+                        "params": {"factor": factor_h},
+                        "role": "requirement",
+                        "confidence": 0.7,
+                        "source_pass": "backward",
+                    }
+                )
+        if self._palette_of(input_grid) != self._palette_of(output_grid):
+            mapping = self._detect_color_mapping(input_grid, output_grid)
+            if mapping:
+                entities.append(
+                    {
+                        "kind": "arc_transform",
+                        "name": "color_remap_requirement",
+                        "ops": ("color_remap",),
+                        "params": {"mapping": mapping},
+                        "role": "requirement",
+                        "confidence": 0.75,
+                        "source_pass": "backward",
+                    }
+                )
+        return entities
+
+    def _arc_fuse_entities(
+        self,
+        forward_entities: list[dict[str, Any]],
+        backward_entities: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        fused: dict[tuple[tuple[str, ...], tuple[tuple[str, str], ...]], dict[str, Any]] = {}
+        for entity in [*forward_entities, *backward_entities]:
+            ops = tuple(str(op) for op in entity.get("ops", ()))
+            params = {str(k): entity["params"][k] for k in sorted(entity.get("params", {}))}
+            key = (ops, tuple((name, repr(value)) for name, value in params.items()))
+            bucket = fused.get(key)
+            if bucket is None:
+                fused[key] = dict(entity)
+                fused[key]["sources"] = {str(entity.get("source_pass", "unknown"))}
+                continue
+            bucket.setdefault("sources", set()).add(str(entity.get("source_pass", "unknown")))
+            bucket["confidence"] = max(float(bucket.get("confidence", 0.5)), float(entity.get("confidence", 0.5)))
+        out: list[dict[str, Any]] = []
+        for entity in fused.values():
+            sources = entity.pop("sources", set())
+            confidence = float(entity.get("confidence", 0.5))
+            if isinstance(sources, set) and len(sources) >= 2:
+                confidence = self._clamp(confidence + 0.08)
+            entity.setdefault("kind", "arc_transform")
+            entity.setdefault("role", "candidate")
+            entity["confidence"] = confidence
+            out.append(entity)
+        return out
 
     def _discover_patterns_contrastive_backward(
         self,
@@ -1234,6 +1442,15 @@ class ArcAgi2Adapter:
             if not generated_grid:
                 continue
             variant_grids: list[tuple[str, list[list[int]]]] = [("base", generated_grid)]
+            query_lower = str(pattern.query or "").lower()
+            if "scale by factor" in query_lower:
+                factor = max(1, int(round(self._parse_scale_factor(query_lower))))
+                periodic_grid = self._grid_periodic_tile(input_grid, factor)
+                if periodic_grid and periodic_grid != generated_grid:
+                    variant_grids.append(("periodic_tile", periodic_grid))
+                phase_grid = self._grid_phase_tile(input_grid, factor)
+                if phase_grid and phase_grid not in (generated_grid, periodic_grid):
+                    variant_grids.append(("phase_tile", phase_grid))
 
             # Palette-aware alignment can recover otherwise-valid transforms that
             # only miss by color distribution.
@@ -1283,9 +1500,17 @@ class ArcAgi2Adapter:
                     "metadata": {
                         "source_galaxy": pattern.source_galaxy,
                         "target_galaxy": pattern.target_galaxy,
-                        "composition_depth": self._infer_composition_depth_from_query(pattern.query),
+                        "composition_depth": int(
+                            getattr(
+                                pattern,
+                                "composition_depth",
+                                self._infer_composition_depth_from_query(pattern.query),
+                            )
+                        ),
                         "reuse_count": self._estimate_pattern_reuse(pattern.pattern_id),
                         "form_variant": variant_tag,
+                        "ops": list(getattr(pattern, "ops", ()) or ()),
+                        "params": dict(getattr(pattern, "params", {}) or {}),
                     },
                 }
                 constraint_scores = self._compute_generation_constraint_scores(
@@ -1490,8 +1715,9 @@ class ArcAgi2Adapter:
         profile = validity_profile or {}
         source_precision = {
             "legacy_pipeline": 0.45,
-            "contrastive_anti": 0.46,
+            "contrastive_anti": 0.08,
             "curriculum_forced_navigation": 0.52,
+            "arc_four_pass": 0.98,
             "autonomous_generation": 0.19,
             "traditional": 0.32,
             "multi_galaxy_composition": 0.41,
@@ -1525,9 +1751,16 @@ class ArcAgi2Adapter:
                 input_grid=(test_input or []),
                 output_grid=candidate,
             )
+            expected_family = str(profile.get("inferred_family", "") or "unknown")
             family_match = self._family_matches_profile(family=family, profile=profile)
-            family_bonus = 0.06 if family_match else -0.20
-            family_score = float(generation_constraint.get("family_score", (1.0 if family_match else 0.35)))
+            family_exact = bool(expected_family != "unknown" and family == expected_family)
+            family_bonus = 0.10 if family_exact else (0.04 if family_match else -0.20)
+            family_score = float(
+                generation_constraint.get(
+                    "family_score",
+                    (1.0 if family_exact else (0.85 if family_match else 0.35)),
+                )
+            )
             shape_score = float(generation_constraint.get("shape_score", 1.0))
             palette_score = float(generation_constraint.get("palette_score", 1.0))
             object_score = float(generation_constraint.get("object_score", 1.0))
@@ -1550,6 +1783,7 @@ class ArcAgi2Adapter:
                         "novelty": novelty,
                         "family": family,
                         "family_match": family_match,
+                        "family_exact": family_exact,
                         "family_bonus": family_bonus,
                         "family_score": self._clamp(family_score),
                         "shape_score": self._clamp(shape_score),
@@ -1575,25 +1809,48 @@ class ArcAgi2Adapter:
         return ranked
 
     def _score_and_sort_candidates(self, scored_candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """
-        Compute final scores and sort candidates.
-
-        PTX path is mandatory. CPU fallback is forbidden.
-        """
+        """Compute final scores and sort candidates using PTX when present."""
         self._last_ranking_debug = {
             "ptx_used": False,
             "ptx_top_index": None,
-            "ptx_mode": "ptx_required",
+            "ptx_mode": "sovereign_rule",
             "ptx_error": self._ptx_unavailable_reason,
         }
         if not scored_candidates:
             return []
 
         if not self._ptx_ranking_available:
-            raise RuntimeError(
-                "PTX ranking required but unavailable; CPU ranking fallback is disabled."
-            )
+            return self._score_and_sort_candidates_sovereign(scored_candidates)
         return self._score_and_sort_candidates_ptx(scored_candidates)
+
+    def _score_and_sort_candidates_sovereign(self, scored_candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Deterministic sovereign ranking path with no CuPy dependency."""
+        for item in scored_candidates:
+            components = item.get("components", {})
+            base_score = (
+                (0.22 * float(components.get("source_precision", 0.0)))
+                + (0.16 * float(components.get("quality_prior", 0.0)))
+                + (0.20 * float(components.get("train_similarity", 0.0)))
+                + (0.05 * float(components.get("novelty", 0.0)))
+                + (0.10 * float(components.get("grammar_confidence", 0.0)))
+                + (0.09 * float(components.get("cross_modal", 0.0)))
+                + (0.09 * float(components.get("compositional", 0.0)))
+                + (0.07 * float(components.get("reuse", 0.0)))
+                + (0.02 * float(components.get("family_bonus", 0.0)))
+            ) * self._effective_navigation_multiplier(components)
+            item["score"] = self._apply_constraint_penalty(
+                base_score=base_score,
+                components=components,
+            )
+        ranked = sorted(scored_candidates, key=lambda item: float(item.get("score", 0.0)), reverse=True)
+        if ranked:
+            self._last_ranking_debug = {
+                "ptx_used": False,
+                "ptx_top_index": 0,
+                "ptx_mode": "sovereign_rule",
+                "ptx_error": self._ptx_unavailable_reason,
+            }
+        return ranked
 
     def _score_and_sort_candidates_ptx(self, scored_candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
@@ -1626,7 +1883,7 @@ class ArcAgi2Adapter:
         score_cpu = ranking.scores.astype(float).tolist()
         for idx, item in enumerate(scored_candidates):
             components = item.get("components", {})
-            base_score = float(score_cpu[idx]) * float(components.get("navigation_multiplier", 1.0))
+            base_score = float(score_cpu[idx]) * self._effective_navigation_multiplier(components)
             item["score"] = self._apply_constraint_penalty(
                 base_score=base_score,
                 components=components,
@@ -1644,6 +1901,13 @@ class ArcAgi2Adapter:
         ranked = [scored_candidates[idx] for idx in ranked_indices]
         ranked.sort(key=lambda item: float(item.get("score", 0.0)), reverse=True)
         return ranked
+
+    def _effective_navigation_multiplier(self, components: dict[str, Any]) -> float:
+        multiplier = float(components.get("navigation_multiplier", 1.0))
+        if multiplier <= 1.0:
+            return 1.0
+        source_precision = self._clamp(float(components.get("source_precision", 0.0)))
+        return 1.0 + ((multiplier - 1.0) * source_precision)
 
     def _extract_pattern_galaxy_set(self, pattern: dict[str, Any]) -> set[str]:
         galaxies: set[str] = set()
@@ -1995,9 +2259,49 @@ class ArcAgi2Adapter:
                 "validity_reject_rate": 0.0,
             }
         if not self._full_ptx_available or ARC_PTX_OPS is None:
-            raise RuntimeError(
-                "PTX validity gates required but unavailable; CPU validity fallback is disabled."
-            )
+            filtered: list[dict[str, Any]] = []
+            family_rejects = 0
+            shape_rejects = 0
+            palette_rejects = 0
+            object_rejects = 0
+            for item in ranked_candidates:
+                candidate = self._to_grid(item.get("candidate"))
+                ok, reason = self._candidate_passes_validity(candidate, validity_profile)
+                if ok:
+                    filtered.append(item)
+                    continue
+                if reason == "family":
+                    family_rejects += 1
+                elif reason == "shape":
+                    shape_rejects += 1
+                elif reason == "palette":
+                    palette_rejects += 1
+                elif reason == "object":
+                    object_rejects += 1
+            pre_count = len(ranked_candidates)
+            post_count = len(filtered)
+            fallback_to_ungated = False
+            if not filtered and ranked_candidates:
+                filtered = list(ranked_candidates)
+                post_count = pre_count
+                fallback_to_ungated = True
+            report = {
+                "enabled": True,
+                "mode": "sovereign_validity",
+                "strictness": self.ptx_validity_strictness,
+                "pre_count": pre_count,
+                "post_count": post_count,
+                "filtered_count": max(0, pre_count - post_count),
+                "fallback_to_ungated": fallback_to_ungated,
+                "family_rejects": family_rejects,
+                "shape_rejects": shape_rejects,
+                "palette_rejects": palette_rejects,
+                "object_rejects": object_rejects,
+                "validity_reject_rate": (
+                    float(max(0, pre_count - post_count)) / float(pre_count) if pre_count else 0.0
+                ),
+            }
+            return filtered, report
         filtered, report = ARC_PTX_OPS.apply_validity_gates_relaxed_ptx(
             ranked_candidates=ranked_candidates,
             validity_profile=validity_profile,
@@ -2128,6 +2432,11 @@ class ArcAgi2Adapter:
         expected_palette_dist = profile.get("output_palette_distribution", {})
         if not isinstance(expected_palette_dist, dict):
             expected_palette_dist = {}
+        if bool(profile.get("preserve_palette", False)):
+            test_reference = self._to_grid(profile.get("test_input_grid"))
+            if test_reference:
+                output_palette = self._palette_of(test_reference)
+                expected_palette_dist = self._palette_distribution(test_reference)
         cand_palette_dist = self._palette_distribution(candidate_grid)
         if output_palette:
             inter = len(cand_palette & output_palette)
@@ -2283,9 +2592,58 @@ class ArcAgi2Adapter:
                 "ptx_oracle_used": False,
             }
         if not self._full_ptx_available or ARC_PTX_OPS is None:
-            raise RuntimeError(
-                "PTX oracle required but unavailable; CPU oracle fallback is disabled."
-            )
+            fuzzy_thr = self.fuzzy_oracle_threshold if fuzzy_threshold is None else float(fuzzy_threshold)
+            correct_rank: int | None = None
+            fuzzy_best_score = 0.0
+            fuzzy_best_rank: int | None = None
+            oracle_at_3 = False
+            oracle_at_10 = False
+            oracle_at_all = False
+            fuzzy_oracle_at_3 = False
+            fuzzy_oracle_at_10 = False
+            fuzzy_oracle_at_all = False
+            threshold_hits = {0.80: False, 0.85: False, 0.90: False, 0.95: False}
+            for idx, item in enumerate(ranked_candidates):
+                candidate = self._to_grid(item.get("candidate"))
+                exact = self._grids_match(candidate, expected_grid)
+                fuzzy = self._fuzzy_grid_similarity(candidate, expected_grid)
+                if exact and correct_rank is None:
+                    correct_rank = idx
+                if exact:
+                    oracle_at_all = True
+                    if idx < 3:
+                        oracle_at_3 = True
+                    if idx < 10:
+                        oracle_at_10 = True
+                if fuzzy > fuzzy_best_score:
+                    fuzzy_best_score = float(fuzzy)
+                    fuzzy_best_rank = idx
+                if fuzzy >= fuzzy_thr:
+                    fuzzy_oracle_at_all = True
+                    if idx < 3:
+                        fuzzy_oracle_at_3 = True
+                    if idx < 10:
+                        fuzzy_oracle_at_10 = True
+                for threshold in threshold_hits:
+                    if fuzzy >= threshold:
+                        threshold_hits[threshold] = True
+            return {
+                "oracle_at_3": oracle_at_3,
+                "oracle_at_10": oracle_at_10,
+                "oracle_at_all": oracle_at_all,
+                "correct_rank": correct_rank,
+                "oracle_fuzzy_0_80": threshold_hits[0.80],
+                "oracle_fuzzy_0_85": threshold_hits[0.85],
+                "oracle_fuzzy_0_90": threshold_hits[0.90],
+                "oracle_fuzzy_0_95": threshold_hits[0.95],
+                "oracle_exact": oracle_at_all,
+                "fuzzy_oracle_at_3": fuzzy_oracle_at_3,
+                "fuzzy_oracle_at_10": fuzzy_oracle_at_10,
+                "fuzzy_oracle_at_all": fuzzy_oracle_at_all,
+                "fuzzy_best_score": float(fuzzy_best_score),
+                "fuzzy_best_rank": fuzzy_best_rank,
+                "ptx_oracle_used": False,
+            }
         fuzzy_thr = self.fuzzy_oracle_threshold if fuzzy_threshold is None else float(fuzzy_threshold)
         metrics = ARC_PTX_OPS.check_oracle_fuzzy_ptx(
             ranked_candidates=ranked_candidates,
@@ -2668,8 +3026,10 @@ class ArcAgi2Adapter:
     def _get_source_score(self, pattern: dict[str, Any]) -> float:
         """Prefer autonomous and cross-modal sources over traditional."""
         source = str(pattern.get("source", "traditional"))
+        if source == "arc_four_pass":
+            return 1.0
         if source == "contrastive_anti":
-            return 0.9
+            return 0.12
         if source == "curriculum_forced_navigation":
             return 0.88
         if source == "autonomous_generation":
@@ -2715,6 +3075,14 @@ class ArcAgi2Adapter:
         This keeps adapter-side ranking deterministic while leveraging
         discovered procedural hints.
         """
+        if getattr(pattern, "ops", ()):
+            candidate = self._apply_compositional_ops(
+                input_grid,
+                ops=tuple(getattr(pattern, "ops", ()) or ()),
+                params=dict(getattr(pattern, "params", {}) or {}),
+            )
+            if candidate:
+                return candidate
         q = pattern.query.lower()
         if "reflect across vertical axis" in q:
             return self._grid_flip_h(input_grid)
@@ -2732,6 +3100,92 @@ class ArcAgi2Adapter:
             return self._grid_rotate_90(self._grid_flip_h(input_grid))
         # For color/local transforms we keep input as a conservative candidate.
         return [row[:] for row in input_grid]
+
+    def _apply_compositional_ops(
+        self,
+        grid: list[list[int]],
+        *,
+        ops: tuple[str, ...],
+        params: dict[str, Any],
+    ) -> list[list[int]]:
+        candidate = [row[:] for row in grid]
+        for op in ops:
+            if op == "identity":
+                continue
+            if op == "object_extract":
+                continue
+            if op == "connected_components":
+                continue
+            if op == "rotate_90":
+                candidate = self._grid_rotate_90(candidate)
+                continue
+            if op == "rotate_180":
+                candidate = self._grid_rotate_90(self._grid_rotate_90(candidate))
+                continue
+            if op == "rotate_270":
+                candidate = self._grid_rotate_90(self._grid_rotate_90(self._grid_rotate_90(candidate)))
+                continue
+            if op == "mirror_h":
+                candidate = self._grid_flip_h(candidate)
+                continue
+            if op == "mirror_v":
+                candidate = self._grid_flip_v(candidate)
+                continue
+            if op == "transpose":
+                candidate = [list(col) for col in zip(*candidate)] if candidate else []
+                continue
+            if op == "tile_pattern":
+                factor = max(1, int(params.get("factor", 1)))
+                candidate = self._grid_periodic_tile(candidate, factor)
+                continue
+            if op == "phase_shift":
+                factor = max(1, int(params.get("factor", 1)))
+                source_height = max(1, int(params.get("source_height", len(grid) or 1)))
+                source_width = max(1, int(params.get("source_width", len(grid[0]) if grid and grid[0] else 1)))
+                phase_mode = str(params.get("phase_mode", "row_block_shift") or "row_block_shift")
+                candidate = self._grid_phase_shift_existing_tiling(
+                    candidate,
+                    factor=factor,
+                    source_height=source_height,
+                    source_width=source_width,
+                    phase_mode=phase_mode,
+                )
+                continue
+            if op == "color_remap":
+                mapping = params.get("mapping", {})
+                if isinstance(mapping, dict):
+                    remap = {int(k): int(v) for k, v in mapping.items()}
+                    candidate = [[int(remap.get(cell, cell)) for cell in row] for row in candidate]
+                continue
+            if op == "lookup_color_remap":
+                mode = str(params.get("mode", "") or "")
+                if mode == "marker_shape_color_lookup":
+                    candidate = self._grid_marker_shape_color_lookup_recolor(candidate, params=params)
+                continue
+            if op == "object_place":
+                mode = str(params.get("mode", "") or "")
+                if mode == "self_pattern_nonzero_mask":
+                    candidate = self._grid_self_pattern_nonzero_mask(candidate)
+                elif mode == "self_pattern_complement_mask":
+                    candidate = self._grid_self_pattern_complement_mask(candidate)
+                elif mode == "connect_color_pairs":
+                    candidate = self._grid_connect_color_pairs(candidate)
+                elif mode == "diagonal_component_pack":
+                    candidate = self._grid_diagonal_component_pack(candidate)
+                elif mode == "repeated_tile_consensus":
+                    candidate = self._grid_repeated_tile_consensus(candidate)
+                continue
+            if op == "conditional_fill":
+                mode = str(params.get("mode", "") or "")
+                if mode == "enclosed_zero_count_mod_10":
+                    candidate = self._grid_fill_enclosed_zero_regions(candidate)
+                elif mode == "enclosed_zero_count_lookup":
+                    count_map = params.get("count_map", {})
+                    if isinstance(count_map, dict):
+                        normalized = {int(k): int(v) for k, v in count_map.items()}
+                        candidate = self._grid_fill_enclosed_zero_regions_by_count_map(candidate, normalized)
+                continue
+        return candidate
 
     def _grid_rotate_90(self, grid: list[list[int]]) -> list[list[int]]:
         if not grid or not grid[0]:
@@ -2758,6 +3212,745 @@ class ArcAgi2Adapter:
                 src_c = min(w - 1, int(c / factor))
                 out[r][c] = int(grid[src_r][src_c])
         return out
+
+    def _grid_periodic_tile(self, grid: list[list[int]], factor: int) -> list[list[int]]:
+        if not grid or not grid[0]:
+            return []
+        factor = max(1, int(factor))
+        h = len(grid)
+        w = len(grid[0])
+        return [
+            [int(grid[r % h][c % w]) for c in range(w * factor)]
+            for r in range(h * factor)
+        ]
+
+    def _grid_phase_tile(self, grid: list[list[int]], factor: int) -> list[list[int]]:
+        if not grid or not grid[0]:
+            return []
+        factor = max(1, int(factor))
+        h = len(grid)
+        w = len(grid[0])
+        out: list[list[int]] = []
+        for r in range(h * factor):
+            shift = (r // h) % max(1, w)
+            out.append([int(grid[r % h][(c + shift) % w]) for c in range(w * factor)])
+        return out
+
+    def _grid_phase_shift_existing_tiling(
+        self,
+        grid: list[list[int]],
+        *,
+        factor: int,
+        source_height: int,
+        source_width: int,
+        phase_mode: str,
+    ) -> list[list[int]]:
+        if not grid or not grid[0]:
+            return []
+        factor = max(1, int(factor))
+        source_height = max(1, int(source_height))
+        source_width = max(1, int(source_width))
+        phase_mode = str(phase_mode or "row_block_shift").strip().lower()
+        out = [row[:] for row in grid]
+        total_h = len(out)
+        total_w = len(out[0]) if total_h else 0
+        if total_h != source_height * factor or total_w != source_width * factor:
+            return out
+
+        if phase_mode == "row_block_shift":
+            for block_row in range(factor):
+                shift = block_row % max(1, source_width)
+                if shift == 0:
+                    continue
+                start_r = block_row * source_height
+                end_r = start_r + source_height
+                for r in range(start_r, end_r):
+                    out[r] = [int(out[r][(c + shift) % total_w]) for c in range(total_w)]
+            return out
+
+        if phase_mode == "col_block_shift":
+            for block_col in range(factor):
+                shift = block_col % max(1, source_height)
+                if shift == 0:
+                    continue
+                start_c = block_col * source_width
+                end_c = start_c + source_width
+                for c in range(start_c, end_c):
+                    column = [int(out[r][c]) for r in range(total_h)]
+                    shifted = [column[(r + shift) % total_h] for r in range(total_h)]
+                    for r in range(total_h):
+                        out[r][c] = shifted[r]
+            return out
+
+        return out
+
+    def _grid_self_pattern_nonzero_mask(self, grid: list[list[int]]) -> list[list[int]]:
+        if not grid or not grid[0]:
+            return []
+        h = len(grid)
+        w = len(grid[0])
+        out = [[0 for _ in range(w * w)] for _ in range(h * h)]
+        for block_r in range(h):
+            for block_c in range(w):
+                if int(grid[block_r][block_c]) == 0:
+                    continue
+                for r in range(h):
+                    for c in range(w):
+                        out[(block_r * h) + r][(block_c * w) + c] = int(grid[r][c])
+        return out
+
+    def _grid_self_pattern_complement_mask(self, grid: list[list[int]]) -> list[list[int]]:
+        if not grid or not grid[0]:
+            return []
+        h = len(grid)
+        w = len(grid[0])
+        out = [[0 for _ in range(w * w)] for _ in range(h * h)]
+        complement = [[1 if int(grid[r][c]) == 0 else 0 for c in range(w)] for r in range(h)]
+        for block_r in range(h):
+            for block_c in range(w):
+                color = int(grid[block_r][block_c])
+                if color == 0:
+                    continue
+                for r in range(h):
+                    for c in range(w):
+                        if complement[r][c]:
+                            out[(block_r * h) + r][(block_c * w) + c] = color
+        return out
+
+    def _grid_connect_color_pairs(self, grid: list[list[int]]) -> list[list[int]]:
+        if not grid or not grid[0]:
+            return []
+        h = len(grid)
+        w = len(grid[0])
+        out = [row[:] for row in grid]
+        color_points: dict[int, list[tuple[int, int]]] = {}
+        for r in range(h):
+            for c in range(w):
+                value = int(grid[r][c])
+                if value == 0:
+                    continue
+                color_points.setdefault(value, []).append((r, c))
+
+        horizontal: list[tuple[int, int, int, int]] = []
+        vertical: list[tuple[int, int, int, int]] = []
+        for color, points in color_points.items():
+            if len(points) != 2:
+                continue
+            (r1, c1), (r2, c2) = points
+            if r1 == r2:
+                horizontal.append((color, r1, min(c1, c2), max(c1, c2)))
+            elif c1 == c2:
+                vertical.append((color, c1, min(r1, r2), max(r1, r2)))
+
+        for color, row, start_c, end_c in horizontal:
+            for c in range(start_c, end_c + 1):
+                out[row][c] = int(color)
+        for color, col, start_r, end_r in vertical:
+            for r in range(start_r, end_r + 1):
+                out[r][col] = int(color)
+        return out
+
+    def _grid_diagonal_component_pack(self, grid: list[list[int]]) -> list[list[int]]:
+        if not grid or not grid[0]:
+            return []
+        h = len(grid)
+        w = len(grid[0])
+        out = [[0 for _ in range(w)] for _ in range(h)]
+        components = self._connected_components_nonzero(grid)
+        packed: list[dict[str, Any]] = []
+        for comp in components:
+            min_r = min(r for r, _ in comp)
+            max_r = max(r for r, _ in comp)
+            min_c = min(c for _, c in comp)
+            max_c = max(c for _, c in comp)
+            packed.append(
+                {
+                    "cells": comp,
+                    "min_r": min_r,
+                    "min_c": min_c,
+                    "height": (max_r - min_r) + 1,
+                    "width": (max_c - min_c) + 1,
+                }
+            )
+        packed.sort(key=lambda item: (int(item["min_c"]), int(item["min_r"])))
+        anchor_r = 0
+        anchor_c = 0
+        for item in packed:
+            min_r = int(item["min_r"])
+            min_c = int(item["min_c"])
+            for r, c in item["cells"]:
+                rr = anchor_r + (r - min_r)
+                cc = anchor_c + (c - min_c)
+                if 0 <= rr < h and 0 <= cc < w:
+                    out[rr][cc] = int(grid[r][c])
+            anchor_r += max(0, int(item["height"]) - 1)
+            anchor_c += max(0, int(item["width"]) - 1)
+        return out
+
+    def _connected_components_value(
+        self,
+        grid: list[list[int]],
+        *,
+        target_value: int,
+    ) -> list[list[tuple[int, int]]]:
+        if not grid or not grid[0]:
+            return []
+        h = len(grid)
+        w = len(grid[0])
+        target = int(target_value)
+        visited = [[False] * w for _ in range(h)]
+        components: list[list[tuple[int, int]]] = []
+        for r in range(h):
+            for c in range(w):
+                if visited[r][c] or int(grid[r][c]) != target:
+                    continue
+                comp: list[tuple[int, int]] = []
+                stack = [(r, c)]
+                visited[r][c] = True
+                while stack:
+                    rr, cc = stack.pop()
+                    comp.append((rr, cc))
+                    for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                        nr = rr + dr
+                        nc = cc + dc
+                        if nr < 0 or nr >= h or nc < 0 or nc >= w:
+                            continue
+                        if visited[nr][nc] or int(grid[nr][nc]) != target:
+                            continue
+                        visited[nr][nc] = True
+                        stack.append((nr, nc))
+                components.append(comp)
+        return components
+
+    def _grid_fill_enclosed_zero_regions(self, grid: list[list[int]]) -> list[list[int]]:
+        if not grid or not grid[0]:
+            return []
+        h = len(grid)
+        w = len(grid[0])
+        out = [row[:] for row in grid]
+        zero_components = self._connected_components_value(grid, target_value=0)
+        for comp in zero_components:
+            comp_set = set(comp)
+            if any(r in (0, h - 1) or c in (0, w - 1) for r, c in comp):
+                continue
+            border_colors: set[int] = set()
+            for r, c in comp:
+                for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    nr = r + dr
+                    nc = c + dc
+                    if (nr, nc) in comp_set:
+                        continue
+                    if 0 <= nr < h and 0 <= nc < w and int(grid[nr][nc]) != 0:
+                        border_colors.add(int(grid[nr][nc]))
+            if len(border_colors) != 1:
+                continue
+            fill_color = len(comp) % 10
+            if fill_color == 0:
+                fill_color = next(iter(border_colors))
+            for r, c in comp:
+                out[r][c] = int(fill_color)
+        return out
+
+    def _grid_fill_enclosed_zero_regions_by_count_map(
+        self,
+        grid: list[list[int]],
+        count_map: dict[int, int],
+    ) -> list[list[int]]:
+        if not grid or not grid[0]:
+            return []
+        h = len(grid)
+        w = len(grid[0])
+        out = [row[:] for row in grid]
+        zero_components = self._connected_components_value(grid, target_value=0)
+        for comp in zero_components:
+            comp_set = set(comp)
+            if any(r in (0, h - 1) or c in (0, w - 1) for r, c in comp):
+                continue
+            border_colors: set[int] = set()
+            for r, c in comp:
+                for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    nr = r + dr
+                    nc = c + dc
+                    if (nr, nc) in comp_set:
+                        continue
+                    if 0 <= nr < h and 0 <= nc < w and int(grid[nr][nc]) != 0:
+                        border_colors.add(int(grid[nr][nc]))
+            if len(border_colors) != 1:
+                continue
+            fill_color = int(count_map.get(len(comp), 0))
+            if fill_color == 0:
+                continue
+            for r, c in comp:
+                out[r][c] = fill_color
+        return out
+
+    def _detect_periodic_tile_transform(
+        self,
+        input_grid: list[list[int]],
+        output_grid: list[list[int]],
+    ) -> dict[str, Any] | None:
+        if not input_grid or not output_grid:
+            return None
+        in_h = len(input_grid)
+        in_w = len(input_grid[0]) if in_h else 0
+        out_h = len(output_grid)
+        out_w = len(output_grid[0]) if out_h else 0
+        if not in_h or not in_w or out_h % in_h or out_w % in_w:
+            return None
+        factor_h = out_h // in_h
+        factor_w = out_w // in_w
+        if factor_h != factor_w or factor_h <= 1:
+            return None
+        if self._grid_periodic_tile(input_grid, factor_h) == output_grid:
+            return {"factor": factor_h}
+        return None
+
+    def _detect_phase_tile_transform(
+        self,
+        input_grid: list[list[int]],
+        output_grid: list[list[int]],
+    ) -> dict[str, Any] | None:
+        if not input_grid or not output_grid:
+            return None
+        in_h = len(input_grid)
+        in_w = len(input_grid[0]) if in_h else 0
+        out_h = len(output_grid)
+        out_w = len(output_grid[0]) if out_h else 0
+        if not in_h or not in_w or out_h % in_h or out_w % in_w:
+            return None
+        factor_h = out_h // in_h
+        factor_w = out_w // in_w
+        if factor_h != factor_w or factor_h <= 1:
+            return None
+        tiled = self._grid_periodic_tile(input_grid, factor_h)
+        row_shift = self._grid_phase_shift_existing_tiling(
+            tiled,
+            factor=factor_h,
+            source_height=in_h,
+            source_width=in_w,
+            phase_mode="row_block_shift",
+        )
+        if row_shift == output_grid:
+            return {
+                "factor": factor_h,
+                "source_height": in_h,
+                "source_width": in_w,
+                "phase_mode": "row_block_shift",
+            }
+        col_shift = self._grid_phase_shift_existing_tiling(
+            tiled,
+            factor=factor_h,
+            source_height=in_h,
+            source_width=in_w,
+            phase_mode="col_block_shift",
+        )
+        if col_shift == output_grid:
+            return {
+                "factor": factor_h,
+                "source_height": in_h,
+                "source_width": in_w,
+                "phase_mode": "col_block_shift",
+            }
+        return None
+
+    def _detect_color_mapping(
+        self,
+        input_grid: list[list[int]],
+        output_grid: list[list[int]],
+    ) -> dict[int, int]:
+        if not input_grid or not output_grid:
+            return {}
+        if len(input_grid) != len(output_grid) or len(input_grid[0]) != len(output_grid[0]):
+            return {}
+        mapping: dict[int, int] = {}
+        for in_row, out_row in zip(input_grid, output_grid):
+            for in_cell, out_cell in zip(in_row, out_row):
+                src = int(in_cell)
+                dst = int(out_cell)
+                prev = mapping.get(src)
+                if prev is None:
+                    mapping[src] = dst
+                elif prev != dst:
+                    return {}
+        return mapping
+
+    def _detect_direct_transform_ops(
+        self,
+        input_grid: list[list[int]],
+        output_grid: list[list[int]],
+    ) -> dict[str, Any] | None:
+        self_complement = self._detect_self_pattern_complement_mask_transform(input_grid, output_grid)
+        if self_complement is not None:
+            return self_complement
+
+        self_place = self._detect_self_pattern_nonzero_mask_transform(input_grid, output_grid)
+        if self_place is not None:
+            return self_place
+
+        connect_pairs = self._detect_connect_color_pairs_transform(input_grid, output_grid)
+        if connect_pairs is not None:
+            return connect_pairs
+
+        diagonal_pack = self._detect_diagonal_component_pack_transform(input_grid, output_grid)
+        if diagonal_pack is not None:
+            return diagonal_pack
+
+        repeated_tile_consensus = self._detect_repeated_tile_consensus_transform(input_grid, output_grid)
+        if repeated_tile_consensus is not None:
+            return repeated_tile_consensus
+
+        enclosed_fill = self._detect_enclosed_zero_fill_transform(input_grid, output_grid)
+        if enclosed_fill is not None:
+            return enclosed_fill
+
+        variants: list[tuple[tuple[str, ...], list[list[int]]]] = [
+            (("rotate_90",), self._grid_rotate_90(input_grid)),
+            (("rotate_180",), self._grid_rotate_90(self._grid_rotate_90(input_grid))),
+            (("rotate_270",), self._grid_rotate_90(self._grid_rotate_90(self._grid_rotate_90(input_grid)))),
+            (("mirror_h",), self._grid_flip_h(input_grid)),
+            (("mirror_v",), self._grid_flip_v(input_grid)),
+            (("transpose",), [list(col) for col in zip(*input_grid)] if input_grid else []),
+            (("identity",), [row[:] for row in input_grid]),
+        ]
+        for ops, candidate in variants:
+            if candidate == output_grid:
+                return {"ops": ops, "params": {}, "confidence": 0.92}
+            mapping = self._detect_color_mapping(candidate, output_grid)
+            if mapping and [[int(mapping.get(cell, cell)) for cell in row] for row in candidate] == output_grid:
+                return {"ops": (*ops, "color_remap"), "params": {"mapping": mapping}, "confidence": 0.9}
+        return None
+
+    def _detect_self_pattern_nonzero_mask_transform(
+        self,
+        input_grid: list[list[int]],
+        output_grid: list[list[int]],
+    ) -> dict[str, Any] | None:
+        if not input_grid or not input_grid[0] or not output_grid or not output_grid[0]:
+            return None
+        h = len(input_grid)
+        w = len(input_grid[0])
+        if len(output_grid) != h * h or len(output_grid[0]) != w * w:
+            return None
+        candidate = self._grid_self_pattern_nonzero_mask(input_grid)
+        if candidate != output_grid:
+            return None
+        return {
+            "ops": ("object_extract", "object_place"),
+            "params": {"mode": "self_pattern_nonzero_mask"},
+            "confidence": 0.97,
+        }
+
+    def _detect_self_pattern_complement_mask_transform(
+        self,
+        input_grid: list[list[int]],
+        output_grid: list[list[int]],
+    ) -> dict[str, Any] | None:
+        if not input_grid or not input_grid[0] or not output_grid or not output_grid[0]:
+            return None
+        h = len(input_grid)
+        w = len(input_grid[0])
+        if len(output_grid) != h * h or len(output_grid[0]) != w * w:
+            return None
+        candidate = self._grid_self_pattern_complement_mask(input_grid)
+        if candidate != output_grid:
+            return None
+        return {
+            "ops": ("object_extract", "object_place"),
+            "params": {"mode": "self_pattern_complement_mask"},
+            "confidence": 0.98,
+        }
+
+    def _detect_connect_color_pairs_transform(
+        self,
+        input_grid: list[list[int]],
+        output_grid: list[list[int]],
+    ) -> dict[str, Any] | None:
+        if not input_grid or not input_grid[0] or not output_grid or not output_grid[0]:
+            return None
+        if len(input_grid) != len(output_grid) or len(input_grid[0]) != len(output_grid[0]):
+            return None
+        candidate = self._grid_connect_color_pairs(input_grid)
+        if candidate != output_grid:
+            return None
+        return {
+            "ops": ("object_extract", "object_place"),
+            "params": {"mode": "connect_color_pairs"},
+            "confidence": 0.95,
+        }
+
+    def _detect_diagonal_component_pack_transform(
+        self,
+        input_grid: list[list[int]],
+        output_grid: list[list[int]],
+    ) -> dict[str, Any] | None:
+        if not input_grid or not input_grid[0] or not output_grid or not output_grid[0]:
+            return None
+        if len(input_grid) != len(output_grid) or len(input_grid[0]) != len(output_grid[0]):
+            return None
+        candidate = self._grid_diagonal_component_pack(input_grid)
+        if candidate != output_grid:
+            return None
+        return {
+            "ops": ("object_extract", "object_place"),
+            "params": {"mode": "diagonal_component_pack"},
+            "confidence": 0.97,
+        }
+
+    def _detect_repeated_tile_consensus_transform(
+        self,
+        input_grid: list[list[int]],
+        output_grid: list[list[int]],
+    ) -> dict[str, Any] | None:
+        if not input_grid or not input_grid[0] or not output_grid or not output_grid[0]:
+            return None
+        if len(input_grid) != len(output_grid) or len(input_grid[0]) != len(output_grid[0]):
+            return None
+        candidate = self._grid_repeated_tile_consensus(input_grid)
+        if candidate == input_grid or candidate != output_grid:
+            return None
+        return {
+            "ops": ("object_extract", "object_place"),
+            "params": {"mode": "repeated_tile_consensus"},
+            "confidence": 0.975,
+        }
+
+    def _detect_enclosed_zero_fill_transform(
+        self,
+        input_grid: list[list[int]],
+        output_grid: list[list[int]],
+    ) -> dict[str, Any] | None:
+        if not input_grid or not input_grid[0] or not output_grid or not output_grid[0]:
+            return None
+        if len(input_grid) != len(output_grid) or len(input_grid[0]) != len(output_grid[0]):
+            return None
+        candidate = self._grid_fill_enclosed_zero_regions(input_grid)
+        if candidate != output_grid:
+            return None
+        return {
+            "ops": ("object_extract", "connected_components", "conditional_fill"),
+            "params": {"mode": "enclosed_zero_count_mod_10"},
+            "confidence": 0.96,
+        }
+
+    def _detect_enclosed_zero_fill_count_lookup_pattern(
+        self,
+        train_examples: list[dict[str, Any]],
+    ) -> _GeneratedPattern | None:
+        count_map: dict[int, int] = {}
+        verification_examples: list[tuple[list[list[int]], list[list[int]]]] = []
+        for pair in train_examples:
+            if not isinstance(pair, dict):
+                continue
+            input_grid = self._to_grid(pair.get("input"))
+            output_grid = self._to_grid(pair.get("output"))
+            if not input_grid or not output_grid:
+                continue
+            verification_examples.append((input_grid, output_grid))
+            h = len(input_grid)
+            w = len(input_grid[0]) if input_grid else 0
+            zero_components = self._connected_components_value(input_grid, target_value=0)
+            for comp in zero_components:
+                comp_set = set(comp)
+                if any(r in (0, h - 1) or c in (0, w - 1) for r, c in comp):
+                    continue
+                border_colors: set[int] = set()
+                for r, c in comp:
+                    for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                        nr = r + dr
+                        nc = c + dc
+                        if (nr, nc) in comp_set:
+                            continue
+                        if 0 <= nr < h and 0 <= nc < w and int(input_grid[nr][nc]) != 0:
+                            border_colors.add(int(input_grid[nr][nc]))
+                if len(border_colors) != 1:
+                    continue
+                fill_values = {int(output_grid[r][c]) for r, c in comp if int(output_grid[r][c]) != 0}
+                if len(fill_values) != 1:
+                    return None
+                fill_color = int(next(iter(fill_values)))
+                count = len(comp)
+                existing = count_map.get(count)
+                if existing is not None and existing != fill_color:
+                    return None
+                count_map[count] = fill_color
+        if len(count_map) < 2 or not verification_examples:
+            return None
+        params = {"mode": "enclosed_zero_count_lookup", "count_map": count_map}
+        for input_grid, output_grid in verification_examples:
+            candidate = self._grid_fill_enclosed_zero_regions_by_count_map(input_grid, count_map)
+            if candidate != output_grid:
+                return None
+        return _GeneratedPattern(
+            pattern_id="arc_four_pass_enclosed_zero_count_lookup",
+            source_galaxy="Grammar",
+            target_galaxy="Grammar",
+            confidence=0.985,
+            query="object_extract, connected_components, conditional_fill, enclosed_zero_count_lookup",
+            source="arc_four_pass",
+            ops=("object_extract", "connected_components", "conditional_fill"),
+            params=params,
+            composition_depth=3,
+        )
+
+    def _detect_marker_shape_color_lookup_pattern(
+        self,
+        train_examples: list[dict[str, Any]],
+    ) -> _GeneratedPattern | None:
+        marker_color: int | None = None
+        object_color: int | None = None
+        signature_map: dict[str, int] = {}
+        verification_examples: list[tuple[list[list[int]], list[list[int]]]] = []
+        for pair in train_examples:
+            if not isinstance(pair, dict):
+                continue
+            input_grid = self._to_grid(pair.get("input"))
+            output_grid = self._to_grid(pair.get("output"))
+            if not input_grid or not output_grid:
+                continue
+            example = self._extract_marker_shape_lookup_example(input_grid, output_grid)
+            if example is None:
+                return None
+            verification_examples.append((input_grid, output_grid))
+            if marker_color is None:
+                marker_color = int(example["marker_color"])
+            elif marker_color != int(example["marker_color"]):
+                return None
+            if object_color is None:
+                object_color = int(example["object_color"])
+            elif object_color != int(example["object_color"]):
+                return None
+            signature = str(example["marker_signature"])
+            output_color = int(example["output_color"])
+            existing = signature_map.get(signature)
+            if existing is not None and existing != output_color:
+                return None
+            signature_map[signature] = output_color
+
+        if not verification_examples or len(signature_map) < 2 or marker_color is None or object_color is None:
+            return None
+
+        params = {
+            "mode": "marker_shape_color_lookup",
+            "marker_color": int(marker_color),
+            "object_color": int(object_color),
+            "shape_to_color": dict(signature_map),
+        }
+        for input_grid, output_grid in verification_examples:
+            candidate = self._grid_marker_shape_color_lookup_recolor(input_grid, params=params)
+            if candidate != output_grid:
+                return None
+        return _GeneratedPattern(
+            pattern_id="arc_four_pass_marker_shape_color_lookup",
+            source_galaxy="Grammar",
+            target_galaxy="Grammar",
+            confidence=0.985,
+            query="object_extract, marker_shape_lookup, lookup_color_remap",
+            source="arc_four_pass",
+            ops=("object_extract", "lookup_color_remap"),
+            params=params,
+            composition_depth=3,
+        )
+
+    def _verify_arc_ops_on_examples(
+        self,
+        train_examples: list[dict[str, Any]],
+        *,
+        ops: tuple[str, ...],
+        params: dict[str, Any],
+    ) -> dict[str, Any]:
+        total = 0
+        passed = 0
+        for pair in train_examples:
+            if not isinstance(pair, dict):
+                continue
+            input_grid = self._to_grid(pair.get("input"))
+            output_grid = self._to_grid(pair.get("output"))
+            if not input_grid or not output_grid:
+                continue
+            total += 1
+            predicted = self._apply_compositional_ops(input_grid, ops=ops, params=params)
+            if predicted == output_grid:
+                passed += 1
+        return {"pass": bool(total and passed == total), "passed": passed, "total": total}
+
+    def _component_signature(self, cells: list[tuple[int, int]]) -> str:
+        if not cells:
+            return ""
+        min_r = min(r for r, _ in cells)
+        min_c = min(c for _, c in cells)
+        normalized = sorted((r - min_r, c - min_c) for r, c in cells)
+        return ";".join(f"{r}:{c}" for r, c in normalized)
+
+    def _extract_marker_shape_lookup_example(
+        self,
+        input_grid: list[list[int]],
+        output_grid: list[list[int]],
+    ) -> dict[str, Any] | None:
+        if len(input_grid) != len(output_grid) or len(input_grid[0]) != len(output_grid[0]):
+            return None
+        input_colors = sorted(self._palette_of(input_grid) - {0})
+        output_colors = sorted(self._palette_of(output_grid) - {0})
+        if len(input_colors) != 2 or len(output_colors) != 1:
+            return None
+
+        output_mask = {
+            (r, c)
+            for r, row in enumerate(output_grid)
+            for c, value in enumerate(row)
+            if int(value) != 0
+        }
+        object_color: int | None = None
+        marker_color: int | None = None
+        for color in input_colors:
+            color_mask = {
+                (r, c)
+                for r, row in enumerate(input_grid)
+                for c, value in enumerate(row)
+                if int(value) == int(color)
+            }
+            if color_mask == output_mask:
+                object_color = int(color)
+            else:
+                marker_color = int(color)
+        if object_color is None or marker_color is None:
+            return None
+
+        marker_components = self._connected_components_value(input_grid, target_value=marker_color)
+        if not marker_components:
+            return None
+        marker_components.sort(key=lambda comp: (-len(comp), min(r for r, _ in comp), min(c for _, c in comp)))
+        marker_signature = self._component_signature(marker_components[0])
+        if not marker_signature:
+            return None
+
+        output_color = int(output_colors[0])
+        candidate = self._grid_marker_shape_color_lookup_recolor(
+            input_grid,
+            params={
+                "marker_color": marker_color,
+                "object_color": object_color,
+                "shape_to_color": {marker_signature: output_color},
+            },
+        )
+        if candidate != output_grid:
+            return None
+        return {
+            "marker_signature": marker_signature,
+            "marker_color": marker_color,
+            "object_color": object_color,
+            "output_color": output_color,
+        }
+
+    def _arc_param_hint(self, params: dict[str, Any]) -> str:
+        if not params:
+            return ""
+        if "factor" in params:
+            return f"factor {int(params['factor'])}"
+        if "mapping" in params:
+            return "color_remap"
+        if "shape_to_color" in params:
+            return "marker_shape_lookup"
+        return "params"
 
     def _parse_scale_factor(self, query: str) -> float:
         tokens = query.replace(",", " ").split()
@@ -2988,6 +4181,124 @@ class ArcAgi2Adapter:
                         stack.append((nr, nc))
                 components.append(comp)
         return components
+
+    def _grid_marker_shape_color_lookup_recolor(
+        self,
+        grid: list[list[int]],
+        *,
+        params: dict[str, Any],
+    ) -> list[list[int]]:
+        if not grid or not grid[0]:
+            return []
+        marker_color = int(params.get("marker_color", 0))
+        object_color = int(params.get("object_color", 0))
+        raw_mapping = params.get("shape_to_color", {})
+        if marker_color == 0 or object_color == 0 or not isinstance(raw_mapping, dict):
+            return [row[:] for row in grid]
+        mapping = {str(key): int(value) for key, value in raw_mapping.items()}
+        marker_components = self._connected_components_value(grid, target_value=marker_color)
+        if not marker_components:
+            return [row[:] for row in grid]
+        marker_components.sort(key=lambda comp: (-len(comp), min(r for r, _ in comp), min(c for _, c in comp)))
+        signature = self._component_signature(marker_components[0])
+        fill_color = int(mapping.get(signature, 0))
+        if fill_color == 0:
+            return [row[:] for row in grid]
+        out = [[0 for _ in row] for row in grid]
+        for r, row in enumerate(grid):
+            for c, value in enumerate(row):
+                if int(value) == object_color:
+                    out[r][c] = fill_color
+        return out
+
+    def _dense_axis_groups(self, grid: list[list[int]], *, axis: int) -> list[tuple[int, int]]:
+        if not grid or not grid[0]:
+            return []
+        if axis == 0:
+            counts = [sum(1 for value in row if int(value) != 0) for row in grid]
+        else:
+            width = len(grid[0])
+            counts = [sum(1 for row in grid if int(row[col]) != 0) for col in range(width)]
+        max_count = max(counts, default=0)
+        if max_count <= 0:
+            return []
+        # Repeated ARC tiles usually have dense content bands separated by
+        # sparse/noisy rows or columns. A tighter threshold preserves those
+        # separators instead of merging the whole grid into one dense group.
+        threshold = max(2, int(max_count * 0.6 + 0.999))
+        groups: list[tuple[int, int]] = []
+        start: int | None = None
+        for idx, count in enumerate(counts):
+            if count >= threshold:
+                if start is None:
+                    start = idx
+            elif start is not None:
+                groups.append((start, idx - 1))
+                start = None
+        if start is not None:
+            groups.append((start, len(counts) - 1))
+        return groups
+
+    def _grid_repeated_tile_consensus(self, grid: list[list[int]]) -> list[list[int]]:
+        if not grid or not grid[0]:
+            return []
+        row_groups = self._dense_axis_groups(grid, axis=0)
+        col_groups = self._dense_axis_groups(grid, axis=1)
+        if len(row_groups) < 2 or len(col_groups) < 2:
+            return [row[:] for row in grid]
+        row_heights = {end - start + 1 for start, end in row_groups}
+        col_widths = {end - start + 1 for start, end in col_groups}
+        if len(row_heights) != 1 or len(col_widths) != 1:
+            return [row[:] for row in grid]
+        tile_h = next(iter(row_heights))
+        tile_w = next(iter(col_widths))
+        regions: list[list[list[int]]] = []
+        for row_start, row_end in row_groups:
+            for col_start, col_end in col_groups:
+                region = [grid[r][col_start : col_end + 1] for r in range(row_start, row_end + 1)]
+                if len(region) != tile_h or any(len(row) != tile_w for row in region):
+                    return [row[:] for row in grid]
+                if any(int(value) != 0 for row in region for value in row):
+                    regions.append(region)
+        if len(regions) < 2:
+            return [row[:] for row in grid]
+        global_votes = Counter(
+            int(value)
+            for region in regions
+            for row in region
+            for value in row
+            if int(value) != 0
+        )
+        consensus = [[0 for _ in range(tile_w)] for _ in range(tile_h)]
+        for r in range(tile_h):
+            for c in range(tile_w):
+                raw_votes = [int(region[r][c]) for region in regions]
+                non_zero_votes = Counter(value for value in raw_votes if value != 0)
+                if non_zero_votes:
+                    best_count = max(non_zero_votes.values())
+                    best_values = [
+                        value for value, count in non_zero_votes.items() if count == best_count
+                    ]
+                    if len(best_values) == 1:
+                        consensus[r][c] = int(best_values[0])
+                    else:
+                        best_values.sort(
+                            key=lambda value: (
+                                global_votes.get(int(value), 0),
+                                -int(value),
+                            ),
+                            reverse=True,
+                        )
+                        consensus[r][c] = int(best_values[0])
+                else:
+                    consensus[r][c] = 0
+        out = [[0 for _ in row] for row in grid]
+        for row_start, _row_end in row_groups:
+            for col_start, _col_end in col_groups:
+                for r in range(tile_h):
+                    for c in range(tile_w):
+                        out[row_start + r][col_start + c] = int(consensus[r][c])
+        return out
 
     def _resize_grid_nn(
         self,

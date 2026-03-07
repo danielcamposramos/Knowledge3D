@@ -7,6 +7,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC, TabletIngest
 from benchmarks.arc_agi_2_adapter import ArcAgi2Adapter
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
 from knowledge3d.knowledgeverse.trm_navigator import TRMNavigator
@@ -48,6 +49,7 @@ class ARCAGI2Benchmark:
         object_penalty_weight: float = 1.0,
         query_scope_galaxies: str | list[str] | None = None,
         runtime_seed_knowledge: bool = False,
+        tablet_boundary: HeadlessTabletMPC | None = None,
     ):
         self.kv = knowledgeverse or Knowledgeverse()
         self.dataset_version = dataset_version
@@ -80,6 +82,7 @@ class ARCAGI2Benchmark:
         self.object_penalty_weight = float(object_penalty_weight)
         self.query_scope_galaxies = self._normalize_query_scope(query_scope_galaxies)
         self.runtime_seed_knowledge = bool(runtime_seed_knowledge)
+        self.tablet_boundary = tablet_boundary
         self.dataset_path = self._resolve_dataset_path(dataset_path, dataset_version)
         self.max_tasks = max_tasks
         self.tasks = self._load_tasks()
@@ -93,6 +96,7 @@ class ARCAGI2Benchmark:
         version = dataset_version.lower().strip()
         if version in {"arc_agi_3", "arc3", "3"}:
             candidates = [
+                Path("/K3D/K3D_llama_cpp/datasets/ARC-AGI-3/data/evaluation"),
                 Path("/K3D/Knowledge3D.local/datasets/arc_agi_3/evaluation"),
                 Path("/K3D/Knowledge3D.local/datasets/exams/arc-agi-3/evaluation"),
                 Path("../Knowledge3D.local/datasets/arc_agi_3/evaluation"),
@@ -100,6 +104,7 @@ class ARCAGI2Benchmark:
             ]
         else:
             candidates = [
+                Path("/K3D/K3D_llama_cpp/datasets/ARC-AGI-master/data/evaluation"),
                 Path("/K3D/Knowledge3D.local/datasets/exams/arc-src/data/evaluation"),
                 Path("/K3D/Knowledge3D.local/datasets/arc_agi/ARC-AGI-master/data/evaluation"),
                 Path("/K3D/Knowledge3D.local/datasets/arc_agi_2/evaluation"),
@@ -164,36 +169,39 @@ class ARCAGI2Benchmark:
         correct = 0
         generated_patterns_total = 0
         tasks_with_generated_patterns = 0
-        self.adapter = ArcAgi2Adapter(
-            use_enriched=use_enriched,
-            strict_legacy=(self.strict_legacy or self.enable_full_ptx),
-            knowledgeverse=self.kv,
-            enable_contrastive_learning=self.enable_contrastive_learning,
-            enable_validity_gates=self.enable_validity_gates,
-            enable_fuzzy_oracle=self.enable_fuzzy_oracle,
-            fuzzy_oracle_threshold=self.fuzzy_oracle_threshold,
-            enable_ptx_ranking=self.enable_ptx_ranking,
-            enable_full_ptx=self.enable_full_ptx,
-            ptx_validity_strictness=self.ptx_validity_strictness,
-            constraint_mode=self.constraint_mode,
-            enable_figure_ground_reversal=self.enable_figure_ground_reversal,
-            enable_object_aware_generation=self.enable_object_aware_generation,
-            enable_forced_navigation_curriculum=self.enable_forced_navigation_curriculum,
-            forced_navigation_ratio=self.forced_navigation_ratio,
-            forced_navigation_required_galaxies=self.forced_navigation_required_galaxies,
-            enable_rescue_lane=self.enable_rescue_lane,
-            rescue_lane_size=self.rescue_lane_size,
-            oracle_search_lane_size=self.oracle_search_lane_size,
-            enable_oracle_rejected_rescue=self.enable_oracle_rejected_rescue,
-            oracle_rejected_rescue_size=self.oracle_rejected_rescue_size,
-            oracle_rejected_rescue_fuzzy_threshold=self.oracle_rejected_rescue_fuzzy_threshold,
-            enable_dual_track_oracle=self.enable_dual_track_oracle,
-            family_penalty_weight=self.family_penalty_weight,
-            shape_penalty_weight=self.shape_penalty_weight,
-            palette_penalty_weight=self.palette_penalty_weight,
-            object_penalty_weight=self.object_penalty_weight,
-            query_scope_galaxies=self.query_scope_galaxies,
-        )
+        if self.tablet_boundary is None:
+            self.adapter = ArcAgi2Adapter(
+                use_enriched=use_enriched,
+                strict_legacy=(self.strict_legacy or self.enable_full_ptx),
+                knowledgeverse=self.kv,
+                enable_contrastive_learning=self.enable_contrastive_learning,
+                enable_validity_gates=self.enable_validity_gates,
+                enable_fuzzy_oracle=self.enable_fuzzy_oracle,
+                fuzzy_oracle_threshold=self.fuzzy_oracle_threshold,
+                enable_ptx_ranking=self.enable_ptx_ranking,
+                enable_full_ptx=self.enable_full_ptx,
+                ptx_validity_strictness=self.ptx_validity_strictness,
+                constraint_mode=self.constraint_mode,
+                enable_figure_ground_reversal=self.enable_figure_ground_reversal,
+                enable_object_aware_generation=self.enable_object_aware_generation,
+                enable_forced_navigation_curriculum=self.enable_forced_navigation_curriculum,
+                forced_navigation_ratio=self.forced_navigation_ratio,
+                forced_navigation_required_galaxies=self.forced_navigation_required_galaxies,
+                enable_rescue_lane=self.enable_rescue_lane,
+                rescue_lane_size=self.rescue_lane_size,
+                oracle_search_lane_size=self.oracle_search_lane_size,
+                enable_oracle_rejected_rescue=self.enable_oracle_rejected_rescue,
+                oracle_rejected_rescue_size=self.oracle_rejected_rescue_size,
+                oracle_rejected_rescue_fuzzy_threshold=self.oracle_rejected_rescue_fuzzy_threshold,
+                enable_dual_track_oracle=self.enable_dual_track_oracle,
+                family_penalty_weight=self.family_penalty_weight,
+                shape_penalty_weight=self.shape_penalty_weight,
+                palette_penalty_weight=self.palette_penalty_weight,
+                object_penalty_weight=self.object_penalty_weight,
+                query_scope_galaxies=self.query_scope_galaxies,
+            )
+        else:
+            self.adapter = None
         for task in self.tasks:
             result = self._solve_task(task=task, use_enriched=use_enriched)
             if self.enable_full_ptx and str(result.get("solver")) != "arc_ptx_ops":
@@ -235,6 +243,8 @@ class ARCAGI2Benchmark:
     ) -> dict[str, Any]:
         if use_enriched and self.runtime_seed_knowledge:
             self._seed_visual_knowledge(task)
+        if self.tablet_boundary is not None:
+            return self._solve_task_via_tablet(task=task, use_enriched=use_enriched)
         assert self.adapter is not None
         result = self.adapter.solve_task(task, fallback_solver=self._solve_task_fallback)
         correct = bool(result["correct"])
@@ -252,6 +262,89 @@ class ARCAGI2Benchmark:
             },
         )
         return result
+
+    def _solve_task_via_tablet(
+        self,
+        *,
+        task: dict[str, Any],
+        use_enriched: bool,
+    ) -> dict[str, Any]:
+        envelope = TabletIngest.arc_task(
+            task_id=str(task["id"]),
+            training_examples=task["train"],
+            input_grid=task["test"][0].get("input"),
+            expected_output=task["test"][0].get("output"),
+        )
+        tablet_result = self.tablet_boundary.submit(envelope, use_enriched=use_enriched)
+        emitted = dict(tablet_result["emitted"])
+        route = emitted.get("route", {})
+        correct = bool(emitted.get("correct", False))
+        route_galaxies = route.get("galaxy_names") or ["Drawing"]
+        self.kv.log_event(
+            "arc_task_success" if correct else "arc_task_failure",
+            {
+                "specialist": route.get("specialist", "visual"),
+                "task_id": task["id"],
+                "confidence": 0.9 if correct else 0.4,
+                "galaxy": route_galaxies[0],
+                "verification": "tablet_boundary",
+            },
+        )
+        return {
+            "task_id": task["id"],
+            "correct": correct,
+            "exact_match": correct,
+            "predicted": emitted.get("predicted"),
+            "expected": emitted.get("expected"),
+            "transform": None,
+            "patterns_used": int(emitted.get("task_result", {}).get("patterns_used", 0)),
+            "reasoning_trace": emitted.get("task_result", {}).get("reasoning_trace", []),
+            "route": route,
+            "score": float(emitted.get("task_result", {}).get("score", 1.0 if correct else 0.0)),
+            "fuzzy_score": float(emitted.get("task_result", {}).get("fuzzy_score", 1.0 if correct else 0.0)),
+            "solver": str(emitted.get("task_result", {}).get("solver", "tablet_boundary")),
+            "tablet_contract": tablet_result["tablet_contract"],
+            "generated_pattern_count": int(emitted.get("task_result", {}).get("generated_pattern_count", 0)),
+            "pattern_source": emitted.get("task_result", {}).get("pattern_source"),
+            "selected_source": emitted.get("task_result", {}).get("selected_source"),
+            "selected_rank": emitted.get("task_result", {}).get("selected_rank"),
+            "selected_oracle_track": emitted.get("task_result", {}).get("selected_oracle_track"),
+            "selected_exact_match": bool(emitted.get("task_result", {}).get("selected_exact_match", False)),
+            "selected_fuzzy_score": float(emitted.get("task_result", {}).get("selected_fuzzy_score", 0.0)),
+            "correct_rank": emitted.get("task_result", {}).get("correct_rank"),
+            "oracle_at_3": bool(emitted.get("task_result", {}).get("oracle_at_3", False)),
+            "oracle_at_10": bool(emitted.get("task_result", {}).get("oracle_at_10", False)),
+            "oracle_at_all": bool(emitted.get("task_result", {}).get("oracle_at_all", False)),
+            "fuzzy_oracle_at_all": bool(emitted.get("task_result", {}).get("fuzzy_oracle_at_all", False)),
+            "oracle_fuzzy_0_80": bool(emitted.get("task_result", {}).get("oracle_fuzzy_0_80", False)),
+            "oracle_fuzzy_0_85": bool(emitted.get("task_result", {}).get("oracle_fuzzy_0_85", False)),
+            "oracle_fuzzy_0_90": bool(emitted.get("task_result", {}).get("oracle_fuzzy_0_90", False)),
+            "oracle_fuzzy_0_95": bool(emitted.get("task_result", {}).get("oracle_fuzzy_0_95", False)),
+            "ranking_top_components": emitted.get("task_result", {}).get("ranking_top_components", {}),
+            "oracle_failure_modes": emitted.get("task_result", {}).get("oracle_failure_modes", {}),
+            "queried_galaxies": emitted.get("task_result", {}).get("queried_galaxies", []),
+            "ptx_ranking_used": bool(emitted.get("task_result", {}).get("ptx_ranking_used", False)),
+            "ptx_full_used": bool(emitted.get("task_result", {}).get("ptx_full_used", False)),
+            "ptx_oracle_used": bool(emitted.get("task_result", {}).get("ptx_oracle_used", False)),
+            "generation_filter_generated_total": int(
+                emitted.get("task_result", {}).get("generation_filter_generated_total", 0)
+            ),
+            "generation_filter_accept_rate": float(
+                emitted.get("task_result", {}).get("generation_filter_accept_rate", 0.0)
+            ),
+            "generation_filter_reject_rate": float(
+                emitted.get("task_result", {}).get("generation_filter_reject_rate", 0.0)
+            ),
+            "generation_object_count_distribution": emitted.get("task_result", {}).get(
+                "generation_object_count_distribution", {}
+            ),
+            "generation_object_count_distribution_accepted": emitted.get("task_result", {}).get(
+                "generation_object_count_distribution_accepted", {}
+            ),
+            "generation_object_count_distribution_rejected": emitted.get("task_result", {}).get(
+                "generation_object_count_distribution_rejected", {}
+            ),
+        }
 
     def _solve_task_fallback(self, task: dict[str, Any], use_enriched: bool) -> dict[str, Any]:
         """Fallback solver keeps benchmark operable when legacy path cannot execute."""

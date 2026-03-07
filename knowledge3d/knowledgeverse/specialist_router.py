@@ -50,12 +50,26 @@ class SpecialistRouter:
     _DOMAIN_SPECIALIST: dict[str, str] = {
         "visual": "visual",
         "math": "math",
+        "mathematics": "math",
         "physics": "physics",
+        "chemistry": "physics",
+        "biology": "physics",
         "audio": "audio",
         "signal": "audio",
+        "world": "cartographer",
+        "scene": "cartographer",
+        "temporal": "cartographer",
+        "timeline": "cartographer",
+        "replay": "cartographer",
+        "house": "cartographer",
         "logic": "grammar",
         "grammar": "grammar",
         "language": "grammar",
+        "philosophy": "grammar",
+        "trivia": "grammar",
+        "cybersecurity": "grammar",
+        "history": "grammar",
+        "chess": "grammar",
         "multi": "cartographer",
         "cartographer": "cartographer",
         "any": "any",
@@ -118,6 +132,32 @@ class SpecialistRouter:
         "frequency",
         "music",
         "noise",
+    }
+    _WORLD_HINTS = {
+        "world",
+        "scene",
+        "timeline",
+        "temporal",
+        "playback",
+        "replay",
+        "tour",
+        "overview",
+        "house",
+        "room",
+        "rooms",
+        "library",
+        "garden",
+        "museum",
+        "ambient",
+        "environment",
+        "orbit",
+        "breathe",
+        "animation",
+        "animate",
+        "frame",
+        "sequence",
+        "journal",
+        "history",
     }
     _LOGIC_HINTS = {
         "proof",
@@ -215,6 +255,7 @@ class SpecialistRouter:
             "math": float(len(tokens & self._MATH_HINTS)),
             "physics": float(len(tokens & self._PHYSICS_HINTS)),
             "audio": float(len(tokens & self._AUDIO_HINTS)),
+            "world": float(len(tokens & self._WORLD_HINTS)),
             "logic": float(len(tokens & self._LOGIC_HINTS)),
         }
         # Numeric and symbolic cues provide extra evidence for math.
@@ -222,7 +263,7 @@ class SpecialistRouter:
             domain_scores["math"] += 1.0
 
         # Inject learned specialist bias into domain scoring.
-        for domain in ("visual", "math", "physics", "audio", "logic"):
+        for domain in ("visual", "math", "physics", "audio", "world", "logic"):
             specialist = self._specialist_from_domain(domain)
             domain_scores[domain] += float(self._specialist_bias.get(specialist, 0.0))
 

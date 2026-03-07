@@ -10,6 +10,26 @@ from knowledge3d.training.arc_agi.grammar_galaxy import (
     GrammarGalaxy as LegacyGrammarGalaxy,
 )
 from knowledge3d.training.arc_agi.grammar_galaxy import GrammarRule, default_grammar_rules
+from knowledge3d.training.math_benchmarks.calculus_grammar_rules import get_calculus_rules
+
+
+_BENCHMARK_GSM8K_RULE_IDS = {
+    "gsm_consume_from_total",
+    "gsm_rate_application",
+    "gsm_sequential_computation",
+    "gsm_comparison_delta",
+    "gsm_percent_of",
+    "gsm_answer_final_stack",
+}
+
+_BENCHMARK_CALCULUS_RULE_IDS = {
+    "apply_power_rule_natural",
+    "apply_power_rule_leibniz",
+    "apply_sum_rule_natural",
+    "apply_product_rule_natural",
+    "apply_fundamental_theorem_calculus_natural",
+    "apply_fundamental_theorem_calculus_latex",
+}
 
 
 class GrammarGalaxy(LegacyGrammarGalaxy):
@@ -25,6 +45,7 @@ class GrammarGalaxy(LegacyGrammarGalaxy):
         self._extra_entries: list[dict[str, Any]] = []
         super().__init__(rules=rules or default_grammar_rules())
         self._bootstrap_arc_patterns()
+        self._bootstrap_benchmark_patterns()
 
     @property
     def entries(self) -> list[dict[str, Any]]:
@@ -113,6 +134,23 @@ class GrammarGalaxy(LegacyGrammarGalaxy):
             "extra_entries": len(self._extra_entries),
             "total": len(self.rules) + len(self._local_discoveries) + len(self._extra_entries),
         }
+
+    def list_benchmark_rules(self, family: str | None = None) -> list[GrammarRule]:
+        """Return canonical benchmark-facing rules loaded into the Grammar Galaxy."""
+        out: list[GrammarRule] = []
+        for rule in self.rules.values():
+            semantics = getattr(rule, "semantics", {}) or {}
+            benchmark_family = str(semantics.get("benchmark_family", "")).strip()
+            if not benchmark_family and not str(rule.rule_id).startswith("arc_"):
+                continue
+            if family is not None:
+                if family == "ARC_AGI_2" and str(rule.rule_id).startswith("arc_"):
+                    out.append(rule)
+                    continue
+                if benchmark_family != family:
+                    continue
+            out.append(rule)
+        return out
 
     def get_high_confidence_rules(self, min_score: float = 0.70) -> list[dict[str, Any]]:
         """Compatibility surface used by legacy ARC refiners."""
@@ -266,6 +304,193 @@ class GrammarGalaxy(LegacyGrammarGalaxy):
         ]
         for rule in arc_rules:
             self.add_rule(rule, persist=False)
+
+    def _bootstrap_benchmark_patterns(self) -> None:
+        """Load canonical benchmark-facing math and reasoning rules."""
+        for rule in self._selected_gsm8k_rules():
+            self.add_rule(rule, persist=False)
+        for rule in self._selected_calculus_rules():
+            self.add_rule(rule, persist=False)
+        for rule in self._multiple_choice_benchmark_rules():
+            self.add_rule(rule, persist=False)
+
+    def _selected_gsm8k_rules(self) -> list[GrammarRule]:
+        rules = [
+            GrammarRule(
+                rule_id="gsm_consume_from_total",
+                language="natural",
+                pattern=r"(left|remaining|remainder|after|spent|used|gave|lost|ate)",
+                rpn_program="STACK total consumed SUB",
+                domain="math",
+                word_refs=["word_left", "word_remaining"],
+                description="Subtract consumed quantities from a running total.",
+                semantics={
+                    "benchmark_family": "GSM8K",
+                    "tablet_contract": "math_text_answer",
+                    "benchmark_stage": "track0_tablet",
+                    "benchmark_track": "math_word_problem",
+                    "composition_role": "consume_from_total",
+                },
+                usage_conditions=["tablet_boundary", "benchmark_math", "word_problem", "composition"],
+                is_canonical=True,
+            ),
+            GrammarRule(
+                rule_id="gsm_rate_application",
+                language="natural",
+                pattern=r"(each|per|every|times)",
+                rpn_program="STACK quantity rate MUL",
+                domain="math",
+                word_refs=["word_each", "word_every"],
+                description="Apply a rate or per-unit multiplier to a quantity.",
+                semantics={
+                    "benchmark_family": "GSM8K",
+                    "tablet_contract": "math_text_answer",
+                    "benchmark_stage": "track0_tablet",
+                    "benchmark_track": "math_word_problem",
+                    "composition_role": "rate_application",
+                },
+                usage_conditions=["tablet_boundary", "benchmark_math", "word_problem", "composition"],
+                is_canonical=True,
+            ),
+            GrammarRule(
+                rule_id="gsm_sequential_computation",
+                language="natural",
+                pattern=r"(then|after|finally|next)",
+                rpn_program="STACK step_1 step_2 step_3 EVAL_CHAIN",
+                domain="math",
+                word_refs=["word_then", "word_after"],
+                description="Chain multiple benchmark steps while carrying the intermediate stack state.",
+                semantics={
+                    "benchmark_family": "GSM8K",
+                    "tablet_contract": "math_text_answer",
+                    "benchmark_stage": "track0_tablet",
+                    "benchmark_track": "math_word_problem",
+                    "composition_role": "sequential_computation",
+                },
+                usage_conditions=["tablet_boundary", "benchmark_math", "word_problem", "composition"],
+                is_canonical=True,
+            ),
+            GrammarRule(
+                rule_id="gsm_comparison_delta",
+                language="natural",
+                pattern=r"(more than|less than|fewer than|difference)",
+                rpn_program="STACK larger smaller SUB",
+                domain="math",
+                description="Compute comparison deltas between two quantities.",
+                semantics={
+                    "benchmark_family": "GSM8K",
+                    "tablet_contract": "math_text_answer",
+                    "benchmark_stage": "track0_tablet",
+                    "benchmark_track": "math_word_problem",
+                    "composition_role": "comparison_delta",
+                },
+                usage_conditions=["tablet_boundary", "benchmark_math", "word_problem", "comparison"],
+                is_canonical=True,
+            ),
+            GrammarRule(
+                rule_id="gsm_percent_of",
+                language="natural",
+                pattern=r"(percent of|percentage|%)",
+                rpn_program="STACK base percent MUL 100 DIV",
+                domain="math",
+                description="Apply a percentage to a base quantity.",
+                semantics={
+                    "benchmark_family": "GSM8K",
+                    "tablet_contract": "math_text_answer",
+                    "benchmark_stage": "track0_tablet",
+                    "benchmark_track": "math_word_problem",
+                    "composition_role": "percentage_application",
+                },
+                usage_conditions=["tablet_boundary", "benchmark_math", "word_problem", "percentage"],
+                is_canonical=True,
+            ),
+            GrammarRule(
+                rule_id="gsm_answer_final_stack",
+                language="natural",
+                pattern=r"(how many|how much|what is|what does)",
+                rpn_program="STACK TOP EMIT",
+                domain="math",
+                description="Emit the final stack value as the benchmark answer.",
+                semantics={
+                    "benchmark_family": "GSM8K",
+                    "tablet_contract": "math_text_answer",
+                    "benchmark_stage": "track0_tablet",
+                    "benchmark_track": "math_word_problem",
+                    "composition_role": "answer_final_stack",
+                },
+                usage_conditions=["tablet_boundary", "benchmark_math", "word_problem", "emit"],
+                is_canonical=True,
+            ),
+        ]
+        return [rule for rule in rules if rule.rule_id in _BENCHMARK_GSM8K_RULE_IDS]
+
+    def _selected_calculus_rules(self) -> list[GrammarRule]:
+        selected: list[GrammarRule] = []
+        for rule in get_calculus_rules():
+            if rule.rule_id not in _BENCHMARK_CALCULUS_RULE_IDS:
+                continue
+            semantics = dict(getattr(rule, "semantics", {}) or {})
+            semantics.update(
+                {
+                    "benchmark_family": "MATH",
+                    "tablet_contract": "math_text_answer",
+                    "benchmark_stage": "track0_tablet",
+                    "benchmark_track": "symbolic_math",
+                }
+            )
+            selected.append(
+                GrammarRule(
+                    rule_id=rule.rule_id,
+                    language=rule.language,
+                    pattern=rule.pattern,
+                    rpn_program=rule.rpn_program,
+                    domain=rule.domain,
+                    symbol_refs=list(getattr(rule, "symbol_refs", []) or []),
+                    word_refs=list(getattr(rule, "word_refs", []) or []),
+                    examples=list(getattr(rule, "examples", []) or []),
+                    description=rule.description or "Canonical symbolic math benchmark pattern",
+                    semantics=semantics,
+                    usage_conditions=["tablet_boundary", "benchmark_math", "symbolic_reasoning"],
+                    is_canonical=True,
+                )
+            )
+        return selected
+
+    def _multiple_choice_benchmark_rules(self) -> list[GrammarRule]:
+        return [
+            GrammarRule(
+                rule_id="benchmark_choice_score_and_emit",
+                language="benchmark",
+                pattern="multiple_choice_selection",
+                rpn_program="PARSE_PROMPT PARSE_OPTIONS SCORE_OPTIONS ARGMAX EMIT_CHOICE",
+                domain="benchmark_reasoning",
+                description="Canonical multiple-choice benchmark flow for tablet-mediated evaluation.",
+                semantics={
+                    "benchmark_family": "LHE",
+                    "tablet_contract": "multiple_choice_letter",
+                    "benchmark_stage": "track0_tablet",
+                    "benchmark_track": "multiple_choice",
+                },
+                usage_conditions=["tablet_boundary", "benchmark_reasoning", "multiple_choice"],
+                is_canonical=True,
+            ),
+            GrammarRule(
+                rule_id="benchmark_choice_eliminate_then_emit",
+                language="benchmark",
+                pattern="multiple_choice_elimination",
+                rpn_program="PARSE_PROMPT PARSE_OPTIONS ELIMINATE_CONTRADICTIONS SCORE_REMAINING ARGMAX EMIT_CHOICE",
+                domain="benchmark_reasoning",
+                description="Contrastive multiple-choice flow that prunes implausible answers before emission.",
+                semantics={
+                    "benchmark_family": "LHE",
+                    "tablet_contract": "multiple_choice_letter",
+                    "benchmark_stage": "track0_tablet",
+                    "benchmark_track": "contrastive_multiple_choice",
+                },
+                usage_conditions=["tablet_boundary", "benchmark_reasoning", "multiple_choice"],
+                is_canonical=True,
+            ),
+        ]
 
     def list_arc_rules(self) -> list[GrammarRule]:
         """Return canonical and learned ARC visual rules."""
