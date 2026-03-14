@@ -100,6 +100,10 @@ class DaemonConfig:
     eager_load_default_galaxies: bool = True
     host: str = "127.0.0.1"
     port: int = 7777
+    idle_threshold_seconds: float = 30.0
+    tcp_poll_seconds: float = 0.2
+    sleep_sample_size: int = 512
+    warm_gpu_runtime_on_boot: bool = False
 
 
 class K3DDaemon:
@@ -125,9 +129,23 @@ class K3DDaemon:
         self._drawing_bridge: ProceduralDrawingBridge | None = None
         self._geometry_bridge: ProceduralGeometryBridge | None = None
         self._material_bridge: ProceduralMaterialBridge | None = None
+        self._sleep_cluster_refiner = None
+        self._sleep_glyph_consolidator = None
         self._drawing_warmup: dict[str, Any] = {}
         self._geometry_warmup: dict[str, Any] = {}
         self._material_warmup: dict[str, Any] = {}
+        self._boot_binding: dict[str, Any] = {}
+        self._sleep_tick_count = 0
+        self._sleep_tick_cursor = 0
+        self._last_sleep_tick: dict[str, Any] = {}
+        self._pending_sleep_embedding_updates = 0
+        self._idle_elapsed_seconds = 0.0
+        self._sleep_tick_order: tuple[str, ...] = (
+            "cluster_refiner",
+            "glyph_consolidator",
+            "memory_updater",
+            "graph_crystallizer",
+        )
         self._write_boot_status(stage="daemon_boot", progress=0.05, state="starting")
 
         os.environ["K3D_REQUIRE_PTX_QUERY"] = "true" if config.require_ptx_query else "false"
@@ -139,11 +157,17 @@ class K3DDaemon:
         )
         self.trm = self.kv.trm_navigator
         self._default_counts = self.kv.ensure_default_galaxies_loaded()
+        if self.config.warm_gpu_runtime_on_boot:
+            self._write_boot_status(stage="gpu_runtime_bind", progress=0.62, state="warming")
+            self._boot_binding = self._warmup_gpu_runtime_binding()
         self._write_boot_status(
             stage="knowledgeverse_ready",
             progress=0.55,
             state="loading",
-            extra={"default_galaxy_counts": dict(self._default_counts)},
+            extra={
+                "default_galaxy_counts": dict(self._default_counts),
+                "gpu_binding": dict(self._boot_binding),
+            },
         )
         self._warmup_boot_runtime()
         self._write_boot_status(
@@ -154,6 +178,7 @@ class K3DDaemon:
                 "drawing_warmup": dict(self._drawing_warmup),
                 "geometry_warmup": dict(self._geometry_warmup),
                 "material_warmup": dict(self._material_warmup),
+                "gpu_binding": dict(self._boot_binding),
             },
         )
 
@@ -309,6 +334,304 @@ class K3DDaemon:
             "gpu_utilization": float(util),
         }
 
+    def _warmup_gpu_runtime_binding(self) -> dict[str, Any]:
+        try:
+            binding = self.kv.bind_gpu_galaxy_runtime(galaxy_names=list(self.kv.DEFAULT_GALAXIES))
+            return {
+                "status": "ok",
+                "entry_count": int(binding.get("entry_count", 0)),
+                "buffer_bytes": int(binding.get("buffer_bytes", 0)),
+                "galaxies": list(binding.get("galaxies", [])),
+            }
+        except Exception as exc:
+            return {
+                "status": "error",
+                "exception_type": type(exc).__name__,
+                "detail": str(exc),
+            }
+
+    def _binding_report(self) -> dict[str, Any]:
+        binding = getattr(self.kv, "_gpu_galaxy_binding", None)
+        if not isinstance(binding, dict):
+            return {"status": "unbound"}
+        return {
+            "status": "ready",
+            "entry_count": int(binding.get("entry_count", 0)),
+            "buffer_bytes": int(binding.get("buffer_bytes", 0)),
+            "galaxies": list(binding.get("galaxies", [])),
+            "runtime_artifact_entries": int(binding.get("runtime_artifact_entries", 0)),
+        }
+
+    def _semantic_graph_report(self) -> dict[str, Any]:
+        graph = getattr(self.kv, "_semantic_csr_graph", None)
+        if graph is None:
+            return {"status": "unbound"}
+        node_count = 0
+        edge_count = 0
+        try:
+            node_count = int(getattr(graph, "embeddings").shape[0])
+        except Exception:
+            pass
+        try:
+            edge_count = int(getattr(graph, "col_indices").shape[0])
+        except Exception:
+            pass
+        return {
+            "status": "ready",
+            "signature": str(getattr(graph, "signature", "")),
+            "node_count": node_count,
+            "edge_count": edge_count,
+            "knn_k": int(getattr(graph, "knn_k", 0)),
+            "similarity_threshold": float(getattr(graph, "similarity_threshold", 0.0)),
+        }
+
+    def _vram_report_payload(self) -> dict[str, Any]:
+        galaxy_entry_counts = {
+            name: len(self.kv.galaxy_manager.get_galaxy(name).entries)
+            for name in self.kv.DEFAULT_GALAXIES
+        }
+        return {
+            "status": "ok",
+            "timestamp": _now_iso(),
+            "gpu": self._gpu_snapshot(),
+            "binding": self._binding_report(),
+            "semantic_csr_graph": self._semantic_graph_report(),
+            "catalog_entry_count": len(self.kv.get_gpu_galaxy_catalog()),
+            "default_galaxy_counts": galaxy_entry_counts,
+            "sleep": {
+                "tick_count": int(self._sleep_tick_count),
+                "tick_cursor": int(self._sleep_tick_cursor),
+                "tick_order": list(self._sleep_tick_order),
+                "last_tick": dict(self._last_sleep_tick),
+                "pending_embedding_updates": int(self._pending_sleep_embedding_updates),
+                "idle_elapsed_seconds": float(self._idle_elapsed_seconds),
+                "idle_threshold_seconds": float(self.config.idle_threshold_seconds),
+            },
+        }
+
+    def _get_sleep_cluster_refiner(self):
+        if self._sleep_cluster_refiner is False:
+            return None
+        if self._sleep_cluster_refiner is None:
+            try:
+                from knowledge3d.cranium.bridges.sovereign_bridges import SleepClusterRefiner
+
+                self._sleep_cluster_refiner = SleepClusterRefiner()
+            except Exception:
+                self._sleep_cluster_refiner = False
+                return None
+        return self._sleep_cluster_refiner
+
+    def _get_sleep_glyph_consolidator(self):
+        if self._sleep_glyph_consolidator is False:
+            return None
+        if self._sleep_glyph_consolidator is None:
+            try:
+                from knowledge3d.cranium.bridges.sovereign_bridges import SleepGlyphConsolidator
+
+                self._sleep_glyph_consolidator = SleepGlyphConsolidator()
+            except Exception:
+                self._sleep_glyph_consolidator = False
+                return None
+        return self._sleep_glyph_consolidator
+
+    def _live_embedding_rows(
+        self,
+        *,
+        galaxy_names: list[str],
+        limit: int | None = None,
+    ) -> list[tuple[str, dict[str, Any], list[float]]]:
+        rows: list[tuple[str, dict[str, Any], list[float]]] = []
+        max_rows = None if limit is None else max(0, int(limit))
+        for galaxy_name in galaxy_names:
+            galaxy = self.kv.galaxy_manager.get_galaxy(galaxy_name)
+            for entry in getattr(galaxy, "entries", []):
+                if not isinstance(entry, dict):
+                    continue
+                try:
+                    embedding = list(self.kv._entry_embedding16(entry))
+                except Exception:
+                    continue
+                if not embedding:
+                    continue
+                rows.append((galaxy_name, entry, embedding))
+                if max_rows is not None and len(rows) >= max_rows:
+                    return rows
+        return rows
+
+    def _apply_embedding_updates(
+        self,
+        rows: list[tuple[str, dict[str, Any], list[float]]],
+        updated_embeddings: list[list[float]],
+    ) -> int:
+        updated = 0
+        for (_, entry, _), embedding in zip(rows, updated_embeddings):
+            normalized = [float(value) for value in embedding[:16]]
+            entry["embedding16"] = list(normalized)
+            metadata = entry.get("metadata")
+            if isinstance(metadata, dict):
+                metadata["embedding16"] = list(normalized)
+            updated += 1
+        self._pending_sleep_embedding_updates += updated
+        return updated
+
+    def _sleep_cluster_tick(self) -> dict[str, Any]:
+        refiner = self._get_sleep_cluster_refiner()
+        if refiner is None:
+            return {"status": "skipped", "reason": "sleep_cluster_refiner_unavailable"}
+        sample_rows = self._live_embedding_rows(
+            galaxy_names=list(self.kv.DEFAULT_GALAXIES),
+            limit=min(int(self.config.sleep_sample_size), 512),
+        )
+        if len(sample_rows) < 2:
+            return {"status": "skipped", "reason": "insufficient_embeddings", "rows": len(sample_rows)}
+        matrix = [embedding for _, _, embedding in sample_rows]
+        clusters = max(2, min(32, max(2, len(sample_rows) // 16)))
+        result = refiner.refine_clusters(matrix, n_clusters=clusters, n_iterations=2, learning_rate=0.12)
+        refined = result.get("refined_embeddings")
+        updated = 0
+        if refined is not None:
+            try:
+                updated = self._apply_embedding_updates(
+                    sample_rows,
+                    [[float(value) for value in row.tolist()] for row in refined],
+                )
+            except Exception:
+                updated = 0
+        return {
+            "status": "ok",
+            "rows": len(sample_rows),
+            "clusters": int(clusters),
+            "updated_embeddings": int(updated),
+            "mean_silhouette": float(result.get("mean_silhouette", 0.0)),
+        }
+
+    def _sleep_glyph_tick(self) -> dict[str, Any]:
+        consolidator = self._get_sleep_glyph_consolidator()
+        if consolidator is None:
+            return {"status": "skipped", "reason": "sleep_glyph_consolidator_unavailable"}
+        sample_rows = self._live_embedding_rows(
+            galaxy_names=["Character"],
+            limit=min(int(self.config.sleep_sample_size), 512),
+        )
+        if len(sample_rows) < 2:
+            return {"status": "skipped", "reason": "insufficient_glyph_embeddings", "rows": len(sample_rows)}
+        matrix = [embedding for _, _, embedding in sample_rows]
+        result = consolidator.consolidate_glyphs(matrix, similarity_threshold=0.92)
+        return {
+            "status": "ok",
+            "rows": len(sample_rows),
+            "group_count": int(result.get("group_count", 0)),
+            "group_sizes": list(result.get("group_sizes", []))[:12],
+        }
+
+    def _sleep_memory_update_tick(self) -> dict[str, Any]:
+        try:
+            from knowledge3d.cranium.ptx_runtime.galaxy_memory_updater import GalaxyMemoryUpdater
+
+            updater = GalaxyMemoryUpdater()
+        except Exception:
+            return {"status": "skipped", "reason": "galaxy_memory_updater_unavailable"}
+        sample_rows = self._live_embedding_rows(
+            galaxy_names=list(self.kv.DEFAULT_GALAXIES),
+            limit=min(int(self.config.sleep_sample_size), 256),
+        )
+        if len(sample_rows) < 2:
+            return {"status": "skipped", "reason": "insufficient_embeddings", "rows": len(sample_rows)}
+        import numpy as np
+
+        matrix = np.asarray([embedding for _, _, embedding in sample_rows], dtype=np.float32)
+        teacher = np.mean(matrix, axis=0, keepdims=False).astype(np.float32)
+        updated_rows: list[list[float]] = []
+        for row in matrix:
+            blended = updater.blend(row, teacher, blend_factor=0.06)
+            updated_rows.append([float(value) for value in blended.reshape(-1).tolist()])
+        updated = self._apply_embedding_updates(sample_rows, updated_rows)
+        return {
+            "status": "ok",
+            "rows": len(sample_rows),
+            "updated_embeddings": int(updated),
+            "blend_factor": 0.06,
+        }
+
+    def _sleep_graph_crystallization_tick(self) -> dict[str, Any]:
+        crystallizer = self.kv.get_graph_crystallizer() if hasattr(self.kv, "get_graph_crystallizer") else None
+        if crystallizer is None:
+            return {"status": "skipped", "reason": "graph_crystallizer_unavailable"}
+        graph = getattr(self.kv, "_semantic_csr_graph", None)
+        catalog = self.kv.get_gpu_galaxy_catalog()
+        if graph is None or not catalog:
+            return {"status": "skipped", "reason": "semantic_graph_unavailable"}
+        import numpy as np
+
+        max_rows = min(int(self.config.sleep_sample_size), min(256, len(catalog)))
+        sample_indexes = list(range(max_rows))
+        node_rows: list[list[float]] = []
+        neighbor_rows: list[list[float]] = []
+        for idx in sample_indexes:
+            entry = catalog[idx]
+            node_rows.append([float(value) for value in entry.get("embedding16", [0.0] * 16)[:16]])
+            row_start = int(graph.row_offsets[idx])
+            row_end = int(graph.row_offsets[idx + 1])
+            neighbors = [
+                [float(value) for value in catalog[int(graph.col_indices[edge_idx])].get("embedding16", [0.0] * 16)[:16]]
+                for edge_idx in range(row_start, row_end)
+                if int(graph.col_indices[edge_idx]) < len(catalog)
+            ]
+            if neighbors:
+                neighbor_rows.append(
+                    np.mean(np.asarray(neighbors, dtype=np.float32), axis=0).astype(np.float32).tolist()
+                )
+            else:
+                neighbor_rows.append(list(node_rows[-1]))
+        crystallized = crystallizer.crystallize_list(node_rows, neighbor_rows, ema_rate=0.985)
+        return {
+            "status": "ok",
+            "rows": len(sample_indexes),
+            "graph_signature": str(getattr(graph, "signature", "")),
+            "crystallized_rows": len(crystallized),
+        }
+
+    def _run_sleep_consolidation_tick(self) -> dict[str, Any]:
+        tick_name = self._sleep_tick_order[self._sleep_tick_cursor % len(self._sleep_tick_order)]
+        handlers = {
+            "cluster_refiner": self._sleep_cluster_tick,
+            "glyph_consolidator": self._sleep_glyph_tick,
+            "memory_updater": self._sleep_memory_update_tick,
+            "graph_crystallizer": self._sleep_graph_crystallization_tick,
+        }
+        started = time.perf_counter()
+        try:
+            summary = dict(handlers[tick_name]())
+        except Exception as exc:
+            summary = {
+                "status": "error",
+                "exception_type": type(exc).__name__,
+                "detail": str(exc),
+            }
+        summary.update(
+            {
+                "tick_name": tick_name,
+                "tick_index": int(self._sleep_tick_count),
+                "elapsed_ms": float((time.perf_counter() - started) * 1000.0),
+                "timestamp": _now_iso(),
+            }
+        )
+        self._sleep_tick_count += 1
+        self._sleep_tick_cursor = (self._sleep_tick_cursor + 1) % len(self._sleep_tick_order)
+        self._last_sleep_tick = summary
+        return dict(summary)
+
+    def _advance_idle_clock(self, *, had_request: bool) -> dict[str, Any] | None:
+        if had_request:
+            self._idle_elapsed_seconds = 0.0
+            return None
+        self._idle_elapsed_seconds += float(self.config.tcp_poll_seconds)
+        if self._idle_elapsed_seconds + 1e-9 < float(self.config.idle_threshold_seconds):
+            return None
+        self._idle_elapsed_seconds = 0.0
+        return self._run_sleep_consolidation_tick()
+
     @property
     def should_shutdown(self) -> bool:
         return self._shutdown_requested
@@ -328,6 +651,11 @@ class K3DDaemon:
             "drawing_warmup": dict(self._drawing_warmup),
             "geometry_warmup": dict(self._geometry_warmup),
             "material_warmup": dict(self._material_warmup),
+            "gpu_binding": self._binding_report(),
+            "semantic_csr_graph": self._semantic_graph_report(),
+            "idle_threshold_seconds": float(self.config.idle_threshold_seconds),
+            "sleep_tick_count": int(self._sleep_tick_count),
+            "last_sleep_tick": dict(self._last_sleep_tick),
             "boot_status_paths": [str(path) for path in self._boot_status_paths],
         }
 
@@ -518,6 +846,9 @@ class K3DDaemon:
 
         if cmd in {"PING", "STATUS"}:
             return self.status_payload()
+
+        if cmd == "VRAM_REPORT":
+            return self._vram_report_payload()
 
         if cmd == "SHUTDOWN":
             self._shutdown_requested = True
@@ -767,9 +1098,12 @@ class K3DDaemon:
                 self.wfile.write(out.encode("utf-8"))
 
         with ReusableTCPServer((self.config.host, self.config.port), Handler) as server:
-            server.timeout = 0.2
+            server.timeout = float(self.config.tcp_poll_seconds)
             while not self._shutdown_requested:
+                commands_before = int(self._command_count)
                 server.handle_request()
+                had_request = int(self._command_count) != commands_before
+                self._advance_idle_clock(had_request=had_request)
         return 0
 
 
@@ -784,6 +1118,23 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--host", default="127.0.0.1", help="TCP host when --mode=tcp.")
     parser.add_argument("--port", type=int, default=7777, help="TCP port when --mode=tcp.")
+    parser.add_argument(
+        "--idle-threshold-seconds",
+        type=float,
+        default=30.0,
+        help="Idle time in seconds before a single sleep consolidation tick runs in TCP mode.",
+    )
+    parser.add_argument(
+        "--sleep-sample-size",
+        type=int,
+        default=512,
+        help="Maximum embedding rows sampled by a sleep consolidation tick.",
+    )
+    parser.add_argument(
+        "--warm-gpu-runtime-on-boot",
+        action="store_true",
+        help="Bind the default galaxy runtime during daemon boot instead of on first query.",
+    )
     parser.add_argument(
         "--allow-nonsovereign-query",
         action="store_true",
@@ -805,6 +1156,10 @@ def main(argv: list[str] | None = None) -> int:
         eager_load_default_galaxies=not bool(args.no_eager_load_default_galaxies),
         host=str(args.host),
         port=int(args.port),
+        idle_threshold_seconds=float(args.idle_threshold_seconds),
+        tcp_poll_seconds=0.2,
+        sleep_sample_size=max(16, int(args.sleep_sample_size)),
+        warm_gpu_runtime_on_boot=bool(args.warm_gpu_runtime_on_boot),
     )
     daemon = K3DDaemon(config=config)
     if args.mode == "tcp":

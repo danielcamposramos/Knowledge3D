@@ -1,0 +1,15 @@
+[Unit]
+Description=K3D Knowledgeverse Daemon
+After=default.target
+
+[Service]
+Type=simple
+Environment=CUDA_VISIBLE_DEVICES=0
+Environment=PYTHONUNBUFFERED=1
+WorkingDirectory=/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D
+ExecStart=/K3D/Knowledge3D.local/envs/k3d-cranium/bin/python -m knowledge3d.daemon.main --mode=tcp --host=127.0.0.1 --port=7777 --storage-root=../Knowledge3D.local --idle-threshold-seconds=30 --sleep-sample-size=512 --warm-gpu-runtime-on-boot
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

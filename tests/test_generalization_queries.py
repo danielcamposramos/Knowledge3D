@@ -117,3 +117,55 @@ def test_daemon_lhe_cipher_query_prefers_reality_clue_fact(tmp_path) -> None:
     assert task_result["answer"] == LHE_CIPHER_ANSWER
     assert task_result["match"]["galaxy"] == "Reality"
     assert task_result["match"]["id"] == "concept_cybersecurity_two_step_substitution_plaintext_katie"
+
+
+def test_daemon_vram_report_surfaces_binding_and_sleep_state(tmp_path) -> None:
+    daemon = _make_daemon(tmp_path)
+
+    response = daemon.handle_command({"command": "VRAM_REPORT"})
+
+    assert response["status"] == "ok"
+    assert "gpu" in response
+    assert "binding" in response
+    assert "semantic_csr_graph" in response
+    sleep = response.get("sleep")
+    assert isinstance(sleep, dict)
+    assert int(sleep.get("tick_count", -1)) == 0
+    assert float(sleep.get("idle_threshold_seconds", 0.0)) == float(
+        daemon.config.idle_threshold_seconds
+    )
+
+
+def test_daemon_idle_clock_runs_single_tick_per_threshold_window(tmp_path, monkeypatch) -> None:
+    daemon = K3DDaemon(
+        DaemonConfig(
+            storage_root=tmp_path / "daemon_idle",
+            idle_threshold_seconds=0.4,
+            tcp_poll_seconds=0.2,
+        )
+    )
+    calls: list[int] = []
+
+    def _fake_tick() -> dict[str, object]:
+        calls.append(len(calls))
+        return {
+            "status": "ok",
+            "tick_name": "cluster_refiner",
+            "tick_index": len(calls) - 1,
+        }
+
+    monkeypatch.setattr(daemon, "_run_sleep_consolidation_tick", _fake_tick)
+
+    assert daemon._advance_idle_clock(had_request=False) is None
+    fired = daemon._advance_idle_clock(had_request=False)
+
+    assert isinstance(fired, dict)
+    assert fired["tick_name"] == "cluster_refiner"
+    assert calls == [0]
+    assert daemon._idle_elapsed_seconds == 0.0
+
+    assert daemon._advance_idle_clock(had_request=False) is None
+    assert calls == [0]
+
+    daemon._advance_idle_clock(had_request=True)
+    assert daemon._idle_elapsed_seconds == 0.0
