@@ -1,0 +1,1287 @@
+1
+00:00:00,000 --> 00:00:01,280
+Alright, let's just jump right
+
+2
+00:00:01,280 --> 00:00:02,800
+in. For what feels like forever
+
+3
+00:00:02,800 --> 00:00:04,110
+, we've been treating AI like
+
+4
+00:00:04,110 --> 00:00:04,400
+this
+
+5
+00:00:04,400 --> 00:00:06,320
+unexplainable black box, right?
+
+6
+00:00:06,320 --> 00:00:07,610
+You ask it something, you get
+
+7
+00:00:07,610 --> 00:00:09,240
+an answer. But the how behind
+
+8
+00:00:09,240 --> 00:00:11,150
+it all? That's a total mystery.
+
+9
+00:00:11,150 --> 00:00:12,400
+Well, today we're going to
+
+10
+00:00:12,400 --> 00:00:13,520
+crack that box wide open by
+
+11
+00:00:13,520 --> 00:00:14,360
+looking at a
+
+12
+00:00:14,360 --> 00:00:15,600
+new kind of architecture, one
+
+13
+00:00:15,600 --> 00:00:16,690
+that's actually built on an
+
+14
+00:00:16,690 --> 00:00:18,320
+idea that's 50 years old. It's
+
+15
+00:00:18,320 --> 00:00:18,480
+called
+
+16
+00:00:18,480 --> 00:00:20,010
+procedural memory, and it
+
+17
+00:00:20,010 --> 00:00:21,750
+basically forces AI to show its
+
+18
+00:00:21,750 --> 00:00:23,550
+work. And this, right here,
+
+19
+00:00:23,550 --> 00:00:24,260
+gets to the
+
+20
+00:00:24,260 --> 00:00:25,730
+absolute heart of it. We're all
+
+21
+00:00:25,730 --> 00:00:27,050
+used to the equation on top.
+
+22
+00:00:27,050 --> 00:00:28,620
+That's standard algebra. It's
+
+23
+00:00:28,620 --> 00:00:28,900
+intuitive
+
+24
+00:00:28,900 --> 00:00:30,820
+for us humans. But look at the
+
+25
+00:00:30,820 --> 00:00:32,320
+one on the bottom. That's
+
+26
+00:00:32,320 --> 00:00:34,360
+called reverse Polish notation,
+
+27
+00:00:34,360 --> 00:00:34,940
+or RPN.
+
+28
+00:00:34,940 --> 00:00:36,360
+You might remember it from old
+
+29
+00:00:36,360 --> 00:00:38,100
+school HP calculators. It looks
+
+30
+00:00:38,100 --> 00:00:39,740
+weird, but for a computer, it's
+
+31
+00:00:39,740 --> 00:00:40,420
+incredibly
+
+32
+00:00:40,420 --> 00:00:42,250
+efficient. And more importantly
+
+33
+00:00:42,250 --> 00:00:43,580
+, it's explicit, and you can
+
+34
+00:00:43,580 --> 00:00:45,200
+actually debug it. This strange
+
+35
+00:00:45,200 --> 00:00:45,740
+-looking
+
+36
+00:00:45,740 --> 00:00:47,660
+logic? It's the key to a more
+
+37
+00:00:47,660 --> 00:00:49,530
+transparent, and frankly, more
+
+38
+00:00:49,530 --> 00:00:51,430
+powerful AI. So that really is
+
+39
+00:00:51,430 --> 00:00:51,740
+the
+
+40
+00:00:51,740 --> 00:00:53,120
+big question for this whole
+
+41
+00:00:53,120 --> 00:00:54,900
+explainer. Why on earth are we
+
+42
+00:00:54,900 --> 00:00:56,290
+looking back at calculator
+
+43
+00:00:56,290 --> 00:00:57,740
+logic from the 1970s
+
+44
+00:00:57,740 --> 00:00:59,160
+to solve some of the biggest,
+
+45
+00:00:59,160 --> 00:01:00,450
+most pressing problems in
+
+46
+00:01:00,450 --> 00:01:02,290
+artificial intelligence today?
+
+47
+00:01:02,290 --> 00:01:03,120
+Well, the answer is
+
+48
+00:01:03,120 --> 00:01:04,120
+surprisingly elegant,
+
+49
+00:01:04,120 --> 00:01:06,040
+and it has some truly massive
+
+50
+00:01:06,040 --> 00:01:07,340
+implications. So here's our
+
+51
+00:01:07,340 --> 00:01:09,140
+game plan. First, we're going
+
+52
+00:01:09,140 --> 00:01:10,360
+to tackle what's called the
+
+53
+00:01:10,360 --> 00:01:11,830
+dead brain problem that plagues
+
+54
+00:01:11,830 --> 00:01:13,420
+current AI. Then, we'll dive
+
+55
+00:01:13,420 --> 00:01:15,310
+into the solution, the living
+
+56
+00:01:15,310 --> 00:01:16,950
+stack. After that, we'll break
+
+57
+00:01:16,950 --> 00:01:17,950
+down the three-brain
+
+58
+00:01:17,950 --> 00:01:19,340
+architecture and its super
+
+59
+00:01:19,340 --> 00:01:20,810
+efficient GPU engine. And
+
+60
+00:01:20,810 --> 00:01:22,450
+finally, we'll see how this all
+
+61
+00:01:22,450 --> 00:01:23,500
+adds up to a new kind of
+
+62
+00:01:23,500 --> 00:01:25,310
+intelligence, one that doesn't
+
+63
+00:01:25,310 --> 00:01:27,080
+come with all the insane bloat.
+
+64
+00:01:27,080 --> 00:01:29,460
+Okay. First up, the dead brain
+
+65
+00:01:29,460 --> 00:01:31,670
+problem. This really gets to
+
+66
+00:01:31,670 --> 00:01:33,460
+the core of what's wrong with
+
+67
+00:01:33,460 --> 00:01:34,710
+So many of the AI systems we
+
+68
+00:01:34,710 --> 00:01:36,270
+use today. They're basically
+
+69
+00:01:36,270 --> 00:01:37,830
+impossible to look inside, and
+
+70
+00:01:37,830 --> 00:01:39,470
+they are incredibly inefficient
+
+71
+00:01:39,470 --> 00:01:39,840
+.
+
+72
+00:01:39,840 --> 00:01:41,760
+Yeah, this slide lays it out
+
+73
+00:01:41,760 --> 00:01:43,390
+perfectly. On the one hand, you
+
+74
+00:01:43,390 --> 00:01:45,210
+have the current AI paradigm.
+
+75
+00:01:45,210 --> 00:01:46,880
+It's like the AI is just saying
+
+76
+00:01:46,880 --> 00:01:48,800
+, "Trust me, I ran the numbers.
+
+77
+00:01:48,800 --> 00:01:50,360
+It's a black box." But the
+
+78
+00:01:50,360 --> 00:01:51,020
+problem with that is on the
+
+79
+00:01:51,020 --> 00:01:51,600
+right. These systems are opaque
+
+80
+00:01:51,600 --> 00:01:52,240
+, so you can't debug them. And
+
+81
+00:01:52,240 --> 00:01:52,870
+they have this huge knowledge
+
+82
+00:01:52,870 --> 00:01:53,530
+duplication crisis, where the
+
+83
+00:01:53,530 --> 00:01:54,170
+same pieces of information are
+
+84
+00:01:54,170 --> 00:01:54,850
+stored over and over again. All
+
+85
+00:01:54,850 --> 00:01:55,460
+that leads to bloated,
+
+86
+00:01:55,460 --> 00:01:56,070
+inefficient, and risky models.
+
+87
+00:01:56,070 --> 00:01:56,680
+That's the dead brain problem
+
+88
+00:01:56,680 --> 00:01:57,340
+in a nutshell. So if that's the
+
+89
+00:01:57,340 --> 00:01:58,220
+problem, what's the fix?
+
+90
+00:01:58,220 --> 00:01:59,340
+Well, the source calls it the
+
+91
+00:01:59,340 --> 00:02:00,280
+living stack. And this
+
+92
+00:02:00,280 --> 00:02:01,410
+introduces us to a really core
+
+93
+00:02:01,410 --> 00:02:02,500
+concept: procedural memory
+
+94
+00:02:02,500 --> 00:02:03,860
+knowledge representation, or PM
+
+95
+00:02:03,860 --> 00:02:04,600
+KR for short.
+
+96
+00:02:04,600 --> 00:02:06,090
+That's the deadbrain problem in
+
+97
+00:02:06,090 --> 00:02:07,760
+a nutshell. So if that's the
+
+98
+00:02:07,760 --> 00:02:10,130
+problem, what's the fix? Well,
+
+99
+00:02:10,130 --> 00:02:12,020
+the source calls it the living
+
+100
+00:02:12,020 --> 00:02:13,400
+stack. And this introduces us
+
+101
+00:02:13,400 --> 00:02:14,860
+to a really core concept,
+
+102
+00:02:14,860 --> 00:02:16,790
+procedural memory knowledge
+
+103
+00:02:16,790 --> 00:02:18,690
+representation, or PMKR for
+
+104
+00:02:18,690 --> 00:02:20,790
+short. Okay, this is the
+
+105
+00:02:20,790 --> 00:02:21,320
+crucial
+
+106
+00:02:21,320 --> 00:02:23,120
+difference. Think about it like
+
+107
+00:02:23,120 --> 00:02:24,190
+this. Instead of storing a
+
+108
+00:02:24,190 --> 00:02:25,510
+million photos of a finished
+
+109
+00:02:25,510 --> 00:02:25,940
+cake,
+
+110
+00:02:25,940 --> 00:02:27,940
+PMKR just stores the recipe for
+
+111
+00:02:27,940 --> 00:02:30,030
+the cake once. That recipe is a
+
+112
+00:02:30,030 --> 00:02:32,410
+procedure, right? It's an
+
+113
+00:02:32,410 --> 00:02:33,880
+executable program. You can run
+
+114
+00:02:33,880 --> 00:02:35,150
+it whenever you want to get the
+
+115
+00:02:35,150 --> 00:02:36,360
+cake. You can look at every
+
+116
+00:02:36,360 --> 00:02:36,820
+single
+
+117
+00:02:36,820 --> 00:02:38,330
+step. You can even tweak the
+
+118
+00:02:38,330 --> 00:02:40,060
+ingredients. The knowledge isn
+
+119
+00:02:40,060 --> 00:02:41,800
+'t some static dead object. It's
+
+120
+00:02:41,800 --> 00:02:41,940
+a
+
+121
+00:02:41,940 --> 00:02:43,860
+living, breathing, executable
+
+122
+00:02:43,860 --> 00:02:45,290
+process. And here's where it
+
+123
+00:02:45,290 --> 00:02:46,930
+gets really clever. It's this
+
+124
+00:02:46,930 --> 00:02:47,480
+idea of a
+
+125
+00:02:47,480 --> 00:02:49,400
+dual client contract. You have
+
+126
+00:02:49,400 --> 00:02:50,990
+one single source of truth for
+
+127
+00:02:50,990 --> 00:02:52,800
+a piece of knowledge. For us,
+
+128
+00:02:52,800 --> 00:02:53,360
+the human
+
+129
+00:02:53,360 --> 00:02:55,280
+client, it gets rendered into
+
+130
+00:02:55,280 --> 00:02:56,250
+something we can easily
+
+131
+00:02:56,250 --> 00:02:58,010
+understand, like a 3D model or
+
+132
+00:02:58,010 --> 00:02:58,820
+a normal math
+
+133
+00:02:58,820 --> 00:03:00,800
+equation. But for the AI client
+
+134
+00:03:00,800 --> 00:03:02,430
+, that exact same source of
+
+135
+00:03:02,430 --> 00:03:04,520
+truth is an executable program,
+
+136
+00:03:04,520 --> 00:03:05,200
+like those
+
+137
+00:03:05,200 --> 00:03:07,120
+RPN operations we saw. You get
+
+138
+00:03:07,120 --> 00:03:08,810
+two views, but there's only one
+
+139
+00:03:08,810 --> 00:03:10,840
+underlying source. No conflicts
+
+140
+00:03:10,840 --> 00:03:11,160
+and
+
+141
+00:03:11,160 --> 00:03:13,190
+absolutely no duplication. So
+
+142
+00:03:13,190 --> 00:03:15,010
+how does this actually work in
+
+143
+00:03:15,010 --> 00:03:17,120
+practice? Well, that brings us
+
+144
+00:03:17,120 --> 00:03:17,960
+to K3D.
+
+145
+00:03:17,960 --> 00:03:18,800
+It's the reference
+
+146
+00:03:18,800 --> 00:03:20,130
+implementation of this whole
+
+147
+00:03:20,130 --> 00:03:21,530
+procedural memory idea, and it
+
+148
+00:03:21,530 --> 00:03:22,400
+'s built on what's
+
+149
+00:03:22,400 --> 00:03:23,390
+called a three-brain
+
+150
+00:03:23,390 --> 00:03:24,960
+architecture. The architecture
+
+151
+00:03:24,960 --> 00:03:26,120
+is really elegant because it
+
+152
+00:03:26,120 --> 00:03:27,100
+kind of mirrors how a
+
+153
+00:03:27,100 --> 00:03:28,840
+computer's memory already works
+
+154
+00:03:28,840 --> 00:03:30,300
+. You've got the house, which is
+
+155
+00:03:30,300 --> 00:03:32,080
+like your SSD or hard drive. It
+
+156
+00:03:32,080 --> 00:03:32,520
+'s for
+
+157
+00:03:32,520 --> 00:03:33,720
+the long-term persistent
+
+158
+00:03:33,720 --> 00:03:35,130
+storage of all those recipes or
+
+159
+00:03:35,130 --> 00:03:36,760
+procedural programs. Then there
+
+160
+00:03:36,760 --> 00:03:38,040
+'s the galaxy, which
+
+161
+00:03:38,040 --> 00:03:39,340
+you can think of as your VRAM.
+
+162
+00:03:39,340 --> 00:03:40,660
+It's the active 3D workspace
+
+163
+00:03:40,660 --> 00:03:41,980
+where knowledge gets loaded up
+
+164
+00:03:41,980 --> 00:03:42,720
+for real-time
+
+165
+00:03:42,720 --> 00:03:44,190
+reasoning. And finally, you
+
+166
+00:03:44,190 --> 00:03:45,610
+have the cranium. That's the
+
+167
+00:03:45,610 --> 00:03:47,030
+GPU itself, the actual engine
+
+168
+00:03:47,030 --> 00:03:47,740
+that does the
+
+169
+00:03:47,740 --> 00:03:49,130
+thinking and executes the
+
+170
+00:03:49,130 --> 00:03:50,960
+programs. It's a really clean,
+
+171
+00:03:50,960 --> 00:03:52,730
+logical system. Now let's zoom
+
+172
+00:03:52,730 --> 00:03:53,760
+in on the heart of
+
+173
+00:03:53,760 --> 00:03:55,610
+that cranium, the engine that
+
+174
+00:03:55,610 --> 00:03:56,920
+makes this whole thing tick.
+
+175
+00:03:56,920 --> 00:03:58,680
+This is where that 50-year-old
+
+176
+00:03:58,680 --> 00:03:59,640
+calculator logic
+
+177
+00:03:59,640 --> 00:04:01,620
+comes roaring back to life. So
+
+178
+00:04:01,620 --> 00:04:03,780
+why use reverse polish notation
+
+179
+00:04:03,780 --> 00:04:06,500
+on a cutting-edge GPU? Well, it
+
+180
+00:04:06,500 --> 00:04:06,780
+turns out
+
+181
+00:04:06,780 --> 00:04:08,080
+to be a perfect marriage.
+
+182
+00:04:08,080 --> 00:04:09,630
+Because every single operation
+
+183
+00:04:09,630 --> 00:04:11,050
+is explicit and visible on the
+
+184
+00:04:11,050 --> 00:04:12,380
+stack, the whole process
+
+185
+00:04:12,380 --> 00:04:13,750
+is completely transparent and
+
+186
+00:04:13,750 --> 00:04:15,230
+debuggable. Stack operations
+
+187
+00:04:15,230 --> 00:04:16,600
+are also incredibly efficient
+
+188
+00:04:16,600 --> 00:04:16,980
+for the
+
+189
+00:04:16,980 --> 00:04:18,100
+way GPUs process things in
+
+190
+00:04:18,100 --> 00:04:19,640
+parallel. It's deterministic,
+
+191
+00:04:19,640 --> 00:04:20,940
+meaning the same input always
+
+192
+00:04:20,940 --> 00:04:21,700
+gives you the same
+
+193
+00:04:21,700 --> 00:04:23,230
+output, which is a huge deal.
+
+194
+00:04:23,230 --> 00:04:24,860
+And maybe the wildest part, the
+
+195
+00:04:24,860 --> 00:04:26,490
+core engine is just 2.3 kilob
+
+196
+00:04:26,490 --> 00:04:27,580
+ytes. You can
+
+197
+00:04:27,580 --> 00:04:28,790
+spawn thousands and thousands
+
+198
+00:04:28,790 --> 00:04:29,890
+of them for massive parallel
+
+199
+00:04:29,890 --> 00:04:31,450
+reasoning. And I really want to
+
+200
+00:04:31,450 --> 00:04:32,260
+make this clear,
+
+201
+00:04:32,260 --> 00:04:34,200
+this isn't just some academic
+
+202
+00:04:34,200 --> 00:04:36,390
+theory. The source emphasizes
+
+203
+00:04:36,390 --> 00:04:38,500
+that this is a real, working RP
+
+204
+00:04:38,500 --> 00:04:39,020
+N engine.
+
+205
+00:04:39,020 --> 00:04:40,990
+It's been implemented directly
+
+206
+00:04:40,990 --> 00:04:42,880
+on NVIDIA GPUs using low-level
+
+207
+00:04:42,880 --> 00:04:44,760
+PTX kernels. That means it is
+
+208
+00:04:44,760 --> 00:04:45,390
+running
+
+209
+00:04:45,390 --> 00:04:46,760
+right on the metal. This is
+
+210
+00:04:46,760 --> 00:04:48,560
+real-world tech. Okay, so we've
+
+211
+00:04:48,560 --> 00:04:49,570
+got this beautiful new
+
+212
+00:04:49,570 --> 00:04:50,640
+architecture.
+
+213
+00:04:50,640 --> 00:04:52,000
+What's the payoff? What do we
+
+214
+00:04:52,000 --> 00:04:53,410
+actually get out of it? Well,
+
+215
+00:04:53,410 --> 00:04:54,560
+this brings us to our final
+
+216
+00:04:54,560 --> 00:04:55,140
+section,
+
+217
+00:04:55,140 --> 00:04:56,450
+building truly powerful
+
+218
+00:04:56,450 --> 00:04:57,830
+intelligence without the
+
+219
+00:04:57,830 --> 00:04:59,470
+absolutely insane bloat we see
+
+220
+00:04:59,470 --> 00:05:00,680
+in current models.
+
+221
+00:05:00,680 --> 00:05:01,980
+I mean, just look at this
+
+222
+00:05:01,980 --> 00:05:03,830
+comparison. It's not even close
+
+223
+00:05:03,830 --> 00:05:05,430
+. On the left, you've got your
+
+224
+00:05:05,430 --> 00:05:06,240
+traditional
+
+225
+00:05:06,240 --> 00:05:08,220
+large language models with over
+
+226
+00:05:08,220 --> 00:05:10,790
+100 trillion parameters. And on
+
+227
+00:05:10,790 --> 00:05:12,890
+the right, the K3D procedural
+
+228
+00:05:12,890 --> 00:05:14,920
+core with just 7 million. See,
+
+229
+00:05:14,920 --> 00:05:16,620
+it's not trying to store all of
+
+230
+00:05:16,620 --> 00:05:18,540
+the world's knowledge. It's
+
+231
+00:05:18,540 --> 00:05:18,740
+learning
+
+232
+00:05:18,740 --> 00:05:20,660
+how to use the recipes for that
+
+233
+00:05:20,660 --> 00:05:21,890
+knowledge. And that is a
+
+234
+00:05:21,890 --> 00:05:23,630
+fundamental, game-changing
+
+235
+00:05:23,630 --> 00:05:24,260
+shift.
+
+236
+00:05:24,260 --> 00:05:26,170
+And the efficiency gains are
+
+237
+00:05:26,170 --> 00:05:27,680
+just mind-blowing. Using a
+
+238
+00:05:27,680 --> 00:05:29,300
+technique called adaptive
+
+239
+00:05:29,300 --> 00:05:30,620
+procedural compression,
+
+240
+00:05:31,100 --> 00:05:32,370
+K3D can take something
+
+241
+00:05:32,370 --> 00:05:34,260
+incredibly complex, like a chip
+
+242
+00:05:34,260 --> 00:05:35,770
+design file. We're talking ter
+
+243
+00:05:35,770 --> 00:05:36,720
+abytes of data,
+
+244
+00:05:36,720 --> 00:05:38,370
+and compress it by a factor of
+
+245
+00:05:38,370 --> 00:05:39,910
+a thousand. It does this by
+
+246
+00:05:39,910 --> 00:05:41,610
+storing the rules to generate
+
+247
+00:05:41,610 --> 00:05:42,460
+the design,
+
+248
+00:05:42,460 --> 00:05:44,370
+not the massive final design
+
+249
+00:05:44,370 --> 00:05:45,620
+itself. So how does it pull
+
+250
+00:05:45,620 --> 00:05:47,600
+this off? Well, the compression
+
+251
+00:05:47,600 --> 00:05:48,400
+really comes
+
+252
+00:05:48,760 --> 00:05:50,670
+from three main places. The
+
+253
+00:05:50,670 --> 00:05:51,960
+biggest piece of the pie, about
+
+254
+00:05:51,960 --> 00:05:53,760
+70%, comes from just storing
+
+255
+00:05:53,760 --> 00:05:54,420
+knowledge once,
+
+256
+00:05:54,420 --> 00:05:56,330
+and then pointing to it, like a
+
+257
+00:05:56,330 --> 00:05:58,040
+computer simlink. Another 20%
+
+258
+00:05:58,040 --> 00:05:59,360
+comes from really clever
+
+259
+00:05:59,360 --> 00:06:00,080
+procedural
+
+260
+00:06:00,080 --> 00:06:01,990
+codecs that represent data as
+
+261
+00:06:01,990 --> 00:06:03,640
+little programs. And the final
+
+262
+00:06:03,640 --> 00:06:05,720
+10% comes from just being smart
+
+263
+00:06:05,720 --> 00:06:07,080
+about using
+
+264
+00:06:07,080 --> 00:06:08,990
+simpler procedures for simpler
+
+265
+00:06:08,990 --> 00:06:10,240
+concepts. This incredibly
+
+266
+00:06:10,240 --> 00:06:11,350
+efficient and transparent
+
+267
+00:06:11,350 --> 00:06:12,080
+architecture
+
+268
+00:06:12,080 --> 00:06:14,000
+opens the door to a new goal,
+
+269
+00:06:14,000 --> 00:06:15,810
+not just artificial general
+
+270
+00:06:15,810 --> 00:06:17,520
+intelligence or AGI, but
+
+271
+00:06:17,520 --> 00:06:18,840
+something called
+
+272
+00:06:18,840 --> 00:06:21,080
+spatial general intelligence or
+
+273
+00:06:21,080 --> 00:06:23,000
+SGI. The big idea here is to
+
+274
+00:06:23,000 --> 00:06:25,160
+ground intelligence in a shared
+
+275
+00:06:25,160 --> 00:06:26,060
+3D space,
+
+276
+00:06:26,060 --> 00:06:27,970
+that galaxy universe we talked
+
+277
+00:06:27,970 --> 00:06:29,420
+about, where humans and AI can
+
+278
+00:06:29,420 --> 00:06:30,970
+literally navigate the same
+
+279
+00:06:30,970 --> 00:06:31,800
+cognitive map
+
+280
+00:06:31,800 --> 00:06:32,850
+and look at the exact same
+
+281
+00:06:32,850 --> 00:06:34,240
+piece of knowledge together.
+
+282
+00:06:34,240 --> 00:06:36,350
+And the ultimate vision here is
+
+283
+00:06:36,350 --> 00:06:36,940
+something
+
+284
+00:06:36,940 --> 00:06:38,860
+called superhuman general
+
+285
+00:06:38,860 --> 00:06:40,660
+intelligence. But, and this is
+
+286
+00:06:40,660 --> 00:06:42,580
+key, this is not about building
+
+287
+00:06:42,580 --> 00:06:43,320
+one giant,
+
+288
+00:06:43,320 --> 00:06:45,530
+all-knowing, godlike AI. SHGI
+
+289
+00:06:45,530 --> 00:06:47,870
+is an emergent intelligence. It
+
+290
+00:06:47,870 --> 00:06:49,820
+'s what happens when you have
+
+291
+00:06:49,820 --> 00:06:51,180
+billions of these small,
+
+292
+00:06:51,180 --> 00:06:52,590
+efficient K3D models all
+
+293
+00:06:52,590 --> 00:06:54,370
+working together with humans in
+
+294
+00:06:54,370 --> 00:06:55,480
+that shared space.
+
+295
+00:06:55,480 --> 00:06:57,400
+It's intelligence as a massive,
+
+296
+00:06:57,400 --> 00:06:58,870
+collaborative network, not a
+
+297
+00:06:58,870 --> 00:07:00,940
+single monolith. And, you know,
+
+298
+00:07:00,940 --> 00:07:01,820
+this addresses the
+
+299
+00:07:01,820 --> 00:07:03,740
+elephant in the room: safety.
+
+300
+00:07:03,740 --> 00:07:04,990
+The source makes a really
+
+301
+00:07:04,990 --> 00:07:06,380
+powerful claim here.
+
+302
+00:07:06,380 --> 00:07:08,270
+It says you simply cannot build
+
+303
+00:07:08,270 --> 00:07:10,100
+Skynet with this architecture.
+
+304
+00:07:10,100 --> 00:07:12,020
+And why is that? Because there
+
+305
+00:07:12,020 --> 00:07:12,760
+'s no single,
+
+306
+00:07:12,760 --> 00:07:14,670
+all-powerful AI to go rogue.
+
+307
+00:07:14,670 --> 00:07:16,160
+And by its very design, every
+
+308
+00:07:16,160 --> 00:07:17,900
+single step of its reasoning is
+
+309
+00:07:17,900 --> 00:07:19,760
+transparent and inspectable.
+
+310
+00:07:19,760 --> 00:07:21,260
+Nothing is hidden.
+
+311
+00:07:21,260 --> 00:07:23,160
+Which brings us right back to
+
+312
+00:07:23,160 --> 00:07:24,710
+where we started. Decades ago,
+
+313
+00:07:24,710 --> 00:07:25,810
+we figured out that a
+
+314
+00:07:25,810 --> 00:07:27,600
+transparent, living stack was
+
+315
+00:07:27,600 --> 00:07:29,100
+way more powerful than a dead-
+
+316
+00:07:29,100 --> 00:07:30,720
+brained black box for our calcul
+
+317
+00:07:30,720 --> 00:07:32,920
+ators. So this whole explainer
+
+318
+00:07:32,920 --> 00:07:34,480
+really boils down to one simple
+
+319
+00:07:34,480 --> 00:07:35,820
+, powerful question:
+
+320
+00:07:35,820 --> 00:07:37,990
+Isn't it finally time we demand
+
+321
+00:07:37,990 --> 00:07:39,860
+the exact same thing from our
+
+322
+00:07:39,860 --> 00:07:40,340
+AI?

@@ -102,6 +102,12 @@ class ARCAGI2Benchmark:
                 Path("../Knowledge3D.local/datasets/arc_agi_3/evaluation"),
                 Path("../Knowledge3D.local/datasets/exams/arc-agi-3/evaluation"),
             ]
+        elif version in {"arc_agi_2_main", "arc_agi_2_prize", "arc_2", "arc2", "prize"}:
+            candidates = [
+                Path("/K3D/K3D_llama_cpp/datasets/ARC-AGI-2-main/data/evaluation"),
+                Path("/K3D/Knowledge3D.local/datasets/arc_agi_2_main/evaluation"),
+                Path("../Knowledge3D.local/datasets/arc_agi_2_main/evaluation"),
+            ]
         else:
             candidates = [
                 Path("/K3D/K3D_llama_cpp/datasets/ARC-AGI-master/data/evaluation"),
@@ -243,10 +249,48 @@ class ARCAGI2Benchmark:
     ) -> dict[str, Any]:
         if use_enriched and self.runtime_seed_knowledge:
             self._seed_visual_knowledge(task)
-        if self.tablet_boundary is not None:
-            return self._solve_task_via_tablet(task=task, use_enriched=use_enriched)
-        assert self.adapter is not None
-        result = self.adapter.solve_task(task, fallback_solver=self._solve_task_fallback)
+        try:
+            if self.tablet_boundary is not None:
+                result = self._solve_task_via_tablet(task=task, use_enriched=use_enriched)
+            else:
+                assert self.adapter is not None
+                result = self.adapter.solve_task(task, fallback_solver=self._solve_task_fallback)
+        except Exception as exc:
+            route = {
+                "specialist": "visual",
+                "domain_hint": "visual",
+                "galaxy_names": list(Knowledgeverse.GPU_ARC_TARGET_GALAXIES),
+            }
+            failure_trace = [f"arc_gpu_exception: {type(exc).__name__}: {exc}"]
+            self.kv.log_event(
+                "arc_task_failure",
+                {
+                    "specialist": "visual",
+                    "task_id": task["id"],
+                    "confidence": 0.05,
+                    "galaxy": "Drawing",
+                    "verification": "knowledgeverse_gpu_query_exception",
+                },
+            )
+            return {
+                "task_id": task["id"],
+                "correct": False,
+                "exact_match": False,
+                "predicted": None,
+                "expected": task["test"][0].get("output"),
+                "transform": None,
+                "patterns_used": 0,
+                "reasoning_trace": failure_trace,
+                "route": route,
+                "score": 0.0,
+                "fuzzy_score": 0.0,
+                "solver": "knowledgeverse_gpu_query",
+                "runtime": "knowledgeverse_gpu_query_exception",
+                "gpu_execution": False,
+                "program_id": "",
+                "generated_pattern_count": 0,
+                "failure_reason": f"{type(exc).__name__}: {exc}",
+            }
         correct = bool(result["correct"])
         route = result.get("route", {})
         route_galaxies = route.get("galaxy_names") or ["Drawing"]
@@ -303,7 +347,11 @@ class ARCAGI2Benchmark:
             "score": float(emitted.get("task_result", {}).get("score", 1.0 if correct else 0.0)),
             "fuzzy_score": float(emitted.get("task_result", {}).get("fuzzy_score", 1.0 if correct else 0.0)),
             "solver": str(emitted.get("task_result", {}).get("solver", "tablet_boundary")),
+            "runtime": str(emitted.get("task_result", {}).get("runtime", "")),
+            "gpu_execution": bool(emitted.get("task_result", {}).get("gpu_execution", False)),
+            "program_id": str(emitted.get("task_result", {}).get("program_id", "")),
             "tablet_contract": tablet_result["tablet_contract"],
+            "task_result": emitted.get("task_result", {}),
             "generated_pattern_count": int(emitted.get("task_result", {}).get("generated_pattern_count", 0)),
             "pattern_source": emitted.get("task_result", {}).get("pattern_source"),
             "selected_source": emitted.get("task_result", {}).get("selected_source"),

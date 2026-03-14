@@ -4,111 +4,120 @@ This repository uses AI partners (both external AI assistants and internal Synth
 
 ## Quick Start for AI Assistants
 
-**NEW (2025-11-17):** If you're an AI assistant joining this project:
+If you're an AI assistant joining this project:
 
-1. **Read First**: [CLAUDE.md](CLAUDE.md) — Comprehensive onboarding guide for AI assistants (1,455 lines)
-2. **Environment-Specific**: [CLAUDE_LOCAL.md](CLAUDE_LOCAL.md) — Verified filesystem paths, real metrics, budget-conscious practices
+1. **Read First**: [docs/briefings/ARCHITECTURE_BRIEFING.md](docs/briefings/ARCHITECTURE_BRIEFING.md) -- Phase-agnostic architectural overview with kernel inventory
+2. **Architecture role**: [CLAUDE.md](CLAUDE.md) -- Architecture partner guide (design, specs, reviews)
+3. **Implementation role**: [CODEX.md](CODEX.md) -- Implementation lead guide (code, tests, benchmarks)
+4. **Environment-Specific**: [docs/ENV_POLICY.md](docs/ENV_POLICY.md) -- GPU setup, conda envs, CUDA_VISIBLE_DEVICES
 
 These documents provide the foundational understanding of:
-- Project philosophy and architecture
-- Partnership development model (human + Claude Code + browser Claude)
-- PTX-first sovereignty principles
+- **Memory Palace paradigm**: House = external shared reality (Method of Loci), Galaxy = internal AI brain
+- **TRM IS the Avatar**: Not a function Python calls -- an entity that lives in the House and thinks inside the Galaxy
+- **Sovereignty**: Hot path = PTX + Galaxy + RPN ONLY. Zero Python in reasoning. Zero fallbacks.
+- **88+ PTX kernels**, 38K+ Galaxy entries, 55+ compiled PTX modules
+- Partnership development model (human + Claude + Codex)
 - Budget constraints (self-funded favela lab)
-- Verified metrics (45+ CUDA kernels, 547+ git commits, 51,532 Galaxy nodes)
 
 **Then proceed to the documents below for specific workflows.**
 
 ## Primary Guiding Documents
 
-1.  **[Knowledge3D (K3D) — Unified Project Brief & Technical Whitepaper](docs/Jules_K3D_Whitepaper.md)**: Authoritative single source of truth for the project. Contains core vision, architecture, training methodology, and current roadmap. All work must be grounded in this document.
+1.  **[Architecture Briefing](docs/briefings/ARCHITECTURE_BRIEFING.md)**: Phase-agnostic architectural overview. Kernel inventory, Galaxy types, sovereignty principles. Read FIRST.
 
-2.  **[Codex Tasks (CODEX.md)](CODEX.md)**: Detailed, actionable task list corresponding to the current phase of the roadmap outlined in the whitepaper. Agents should consult this file for specific implementation tasks.
+2.  **[BRIEFING v4.0](docs/briefings/BRIEFING_v4.0.md)**: Galaxy Universe paradigm, TRM navigation, multi-curriculum architecture. Read COMPLETELY.
 
-3.  **[K3D Sovereign Swarm Briefing](SOVEREIGN_SWARM_BRIEFING.md)**: Briefing for AI partners participating in the current human‑orchestrated chain (old paradigm). Read fully before contributing.
+3.  **[Codex Tasks (CODEX.md)](CODEX.md)**: Implementation backlog, current benchmark state, sovereignty patterns, GPU environment setup.
 
-4.  **[Memory Tablet & Dual-Space Architecture](docs/HOUSE_GALAXY_TABLET.md)**: Defines how Galaxy (RAM), House (persistent memory), Museum (deprecated archive), and the new Memory Tablet interact. Any knowledge-management change must follow this workflow.
+4.  **Architecture Specs ([docs/vocabulary/](docs/vocabulary/))**: The specs define HOW K3D works. Key files:
+    - [FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md](docs/vocabulary/FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md) -- 4-layer architecture (Form -> Meaning -> Rules -> Meta-Rules)
+    - [THREE_BRAIN_SYSTEM_SPECIFICATION.md](docs/vocabulary/THREE_BRAIN_SYSTEM_SPECIFICATION.md) -- Cranium + Galaxy + House
+    - [KNOWLEDGEVERSE_SPECIFICATION.md](docs/vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md) -- 7-region VRAM substrate
+    - [SPATIAL_GENERAL_INTELLIGENCE_SPECIFICATION.md](docs/vocabulary/SPATIAL_GENERAL_INTELLIGENCE_SPECIFICATION.md) -- SGI paradigm (vs AGI)
+    - [MEMORY_TABLET_SPECIFICATION.md](docs/vocabulary/MEMORY_TABLET_SPECIFICATION.md) -- Primary interface object (3D tablet in space)
 
-5.  **[Training Directives](docs/TRAINING_DIRECTIVES.md)**: Prompt hygiene, timestamp policies, dataset priorities, and lesson vs inference rules.
+5.  **[Memory Tablet & Dual-Space Architecture](docs/HOUSE_GALAXY_TABLET.md)**: Galaxy (RAM), House (persistent memory), Museum (deprecated archive), Memory Tablet interaction.
+
+6.  **[Training Directives](docs/TRAINING_DIRECTIVES.md)**: Prompt hygiene, timestamp policies, dataset priorities.
 
 Additional local environment reference (hardware, GPU, and folder layout): see `docs/LOCAL_ENV.md` and [CLAUDE_LOCAL.md](CLAUDE_LOCAL.md).
 
 ### Repository vs Workspace Layout
-- `Knowledge3D/` — tracked code (PTX kernels, viewer sources, docs).
-- `Knowledge3D.local/` — runtime workspace for Houses, tablet logs, generated datasets, and all artifacts larger than ~99 MB.
-- `Old_Attempts/Legacy_Fancy_RAG/` — manifests describing the deprecated fancy-RAG assets that now live in `.local`.
-- `Large_Assets_Kitchen/` — recipes for regenerating those large artifacts in-place under `.local`.
+- `Knowledge3D/` — tracked code (PTX kernels, Python bridges, docs, specs).
+- `Knowledge3D.local/` — runtime workspace for Houses, tablet logs, conda envs, and all artifacts larger than ~99 MB.
+- `Old_Attempts/` — archived code superseded by the sovereign GPU path.
 
-**Your primary directive is to follow the phased plan outlined in the [Project Roadmap](docs/ROADMAP.md)** _and_ uphold the memory policy in `docs/HOUSE_GALAXY_TABLET.md`. Contributions must keep Galaxy (active), House (persistent), and Museum (deprecated) in sync.
+**Your primary directive is to follow the phased plan outlined in the [Project Roadmap](docs/ROADMAP.md)** _and_ uphold the memory policy in `docs/HOUSE_GALAXY_TABLET.md`.
 
-We are a team of humans and AI working together. Clear communication and alignment with the project's strategic vision are essential for our success.
+**CRITICAL:** Read [docs/briefings/ARCHITECTURE_BRIEFING.md](docs/briefings/ARCHITECTURE_BRIEFING.md) for the complete kernel inventory and architectural overview before making any changes.
+
+## The Foundational Paradigm
+
+**K3D is NOT a program you run. It is a living, always-on, embodied AI that perfects itself during idle time.**
+
+### Memory Palace + Internal Brain
+
+- **House = Memory Palace (Method of Loci)**: The external shared 3D reality where humans AND AI cohabit. Rooms are knowledge domains. Doors are network interfaces. The avatar LIVES here.
+- **Galaxy = Internal Brain**: What happens INSIDE the avatar’s head. Processes the House as unified multi-modal reality. Breaks domain boundaries that House rooms impose. ALL default galaxies loaded simultaneously in VRAM.
+- **TRM IS the Avatar**: The TRM (~7M params) is NOT a function Python calls. It IS the AI entity — lives in the House, thinks inside the Galaxy. Like an NPC in a game, but the objective is to exist in a knowledge world and reason inside the Knowledgeverse.
+- **Internal Swarm = “Superdotados” Thinking**: The nine-chain parallel swarm models how gifted individuals think — multiple internal cognitive channels processing simultaneously inside the avatar’s head. These are INTERNAL, not external calls.
+
+### Reverse Analogy
+
+The tech industry borrowed spatial metaphors (windows, desktop, doors, addresses, rooms). K3D reverses this — builds ACTUAL spatial reality where those metaphors become literal. K3D is the pinnacle of computer science: uniting ALL knowledge representation, game engines, computer history, and network architecture into one spatial system.
+
+### Sovereignty = Zero Python in Reasoning
+
+- Hot path: PTX kernels + Galaxy queries + RPN composition + TRM ONLY
+- Forbidden in hot path: numpy, cupy, scipy, sympy, regex, CPU preprocessing, Python string ops
+- **No fallbacks. EVER.** “We fail and fix — this is the goal.” (Daniel)
+- If GPU path breaks, fix ON GPU. Do not add Python workarounds.
+
+---
 
 ## Contributors
 
 **Core Team:**
-- **Daniel (Jules)**: Project founder and architect. Self-funded engineer from Brazil favela. Maintains philosophical integrity, makes all architectural decisions, provides vision and constraints.
-- **Codex**: AI collaborator (OpenAI). Assisted with code generation, training sessions, and local testing. Procedural glyph rasterization kernel development.
-- **Grok**: AI collaborator (xAI). Analyzed data, synced results with repo, expanded documentation, and provided insights on MVP implementation. (September 2025)
-- **Claude (Browser)**: AI collaborator (Anthropic). Documentation writing, planning, code review. Created foundational CLAUDE.md guide. Cost-effective for extended sessions.
-- **Claude Code (VS Code)**: AI collaborator (Anthropic). Filesystem operations, git workflow, environment validation, cross-repository access. "The Guy" for implementation and verification. Limited credits — used strategically.
+- **Daniel (Jules)**: Project founder and architect. Self-funded engineer from Brazil favela. Maintains philosophical integrity, makes ALL architectural decisions, provides vision and constraints. Final authority.
+- **Claude**: AI architecture partner (Anthropic). Design specifications, sovereignty compliance, documentation, physics design. Does NOT write implementation code.
+- **Codex**: AI implementation lead (OpenAI). All implementation code, tests, benchmarks, GPU optimization. Implements per Claude’s specs.
+- **Grok**: AI collaborator (xAI). Analyzed data, synced results with repo, expanded documentation. (September 2025)
+- **Gemini**: AI collaborator (Google). Integration support, documentation.
 
 ---
 
-## Multi-Agent Collaboration Patterns (NEW)
+## Multi-Agent Collaboration Patterns
 
 ### Pattern: Architect + Implementer (Claude + Codex)
 
 **When:** Complex features needing design + implementation.
 
 **Roles:**
-- **Architect (Claude):** Design, specs, success criteria, validation.
-- **Implementer (Codex):** Implement per spec, write tests, deliver code.
+- **Architect (Claude):** Design, specs, success criteria, sovereignty validation.
+- **Implementer (Codex):** Implement per spec, write tests, deliver code. ZERO fallbacks.
 
 **Workflow:**
-- **Phase 1: Design (Architect)**  
-  1) Analyze requirements  
-  2) Design architecture  
-  3) Write spec (TEMP/*.md)  
-  4) Define success criteria  
-  5) Commit spec
-- **Phase 2: Handoff**  
-  Architect: “Spec ready in TEMP/X.md. Implement Y, target tests: N/N.”  
-  Implementer: “Received. ETA X days. Will commit incrementally.”
-- **Phase 3: Implementation (Implementer)**  
-  Implement, test, commit often; surface blockers fast.
-- **Phase 4: Review (Architect)**  
-  Review commits, run tests, request changes, approve when aligned.
-- **Phase 5: Completion (Architect)**  
-  Write completion report (TEMP/*), update ROADMAP/BRIEFING, commit docs.
+1. **Design (Claude):** Analyze requirements → design architecture → write spec (TEMP/*.md) → define success criteria
+2. **Handoff:** Claude writes directive with clear examples and success criteria. Codex reads spec COMPLETELY before starting.
+3. **Implementation (Codex):** Implement in batches, test in batches. Surface blockers fast. No test after every line.
+4. **Review (Claude):** Validate sovereignty compliance, architecture alignment, benchmark non-regression.
+5. **Completion (Claude):** Write completion report, update ROADMAP/BRIEFING.
 
-**Example (Phase 4A Tier Integration):**  
-Claude designed 3-tier allocation + specs; Codex added tier metadata, ternary ops, exports, and tier tests; 32/32 tests passed; completion report in TEMP/CODEX_PHASE4A_TIER_INTEGRATION_COMPLETE_11.24.2025.md.
+**Critical Rule:** Claude designs, Codex implements. If Claude starts writing implementation code, STOP and write a spec instead. If Codex starts inventing architecture, STOP and ask Claude.
 
 ### Pattern: Parallel Implementation
-Independent features in parallel branches (codex/<task>, claude/<task>); merge sequentially with tests to avoid conflicts.
+Independent features in parallel branches; merge sequentially with tests to avoid conflicts.
 
-### Pattern: Ping-Pong Review
-Iterative Q&A between architect and implementer for complex designs; clarify, adjust, retest, approve.
+### Pattern: Continuous Steering
+Claude provides real-time tips, directions, and kernel pointers while Codex implements. Daniel observes GPU usage graphs and corrects course.
 
 ### Communication Guidelines
-1. Declare role (“I’m Claude (architect)…”, “I’m Codex (implementer)…”).  
-2. Reference prior work (specs, commits, file paths).  
-3. State assumptions; flag blockers immediately.  
-4. Document decisions (TEMP/*.md for major choices; brief comments for non-obvious code).  
-5. Keep hot path sovereign; ingestion flexibility is fine if isolated.  
-
-### Example Session (Phase 4A)
-Daniel → Claude: Need tier integration.  
-Claude: Designs spec in TEMP/CODEX_PHASE4A_TIER_INTEGRATION_11.24.2025.md.  
-Claude → Codex: “Implement tier metadata, ternary drag/mode, export 9 systems, add tests; target 32/32 green.”  
-Codex: Implements incrementally, reports test pass.  
-Claude: Reviews, validates, writes completion report; updates BRIEFING/ROADMAP.  
-Daniel: Approves milestone; next phase queued.
-
-**Partnership Model (2025-11-17):**
-The project operates through three-way collaboration:
-1. **Daniel** — Human architect with final authority
-2. **Claude Code** — Filesystem/git operations, real-time validation (expensive, strategic use)
-3. **Browser Claude** — Planning, documentation, code review (affordable, extended use)
+1. Declare role (“I’m Claude (architect)…”, “I’m Codex (implementer)…”).
+2. Reference prior work (specs, commits, file paths, kernel names).
+3. State assumptions; flag blockers immediately.
+4. Document decisions (TEMP/*.md for major choices).
+5. Keep hot path sovereign; ingestion flexibility is fine if isolated.
+6. **When Daniel corrects you, update your understanding immediately.** His vision defines the architecture.
 
 **Budget Reality:** Self-funded project from favela lab. Every API call, GPU hour, and storage byte counts. AI partners must respect this constraint and work efficiently.
 
@@ -159,8 +168,31 @@ The project operates through three-way collaboration:
 
 ## AI Avatar Specification
 
+**CRITICAL UNDERSTANDING: TRM IS the Avatar**
+
+The TRM (~7M parameters, 2-layer SwiGLU MLP) is NOT a function that Python calls. It IS the AI entity:
+
+- **Lives in the House** (embodied in 3D spatial environment, navigates rooms via doors)
+- **Thinks in the Galaxy** (internal brain processes multi-modal knowledge in VRAM)
+- **Runs as a game loop** (`trm_step_fused.ptx` = one game tick, like an NPC update cycle)
+- **Has internal swarm** (nine-chain parallel workers = superdotados model of gifted thinking)
+
+**Game Engine Analogy:**
+| Game Concept | K3D Equivalent |
+|-------------|----------------|
+| NPC update() | `trm_step_fused.ptx` game tick |
+| NPC brain | Galaxy Universe (VRAM) |
+| Game world | House (3D spatial environment) |
+| NPC perception | Frustum culling + LOD |
+| NPC pathfinding | LED-A* + Morton Octree |
+| NPC decision | Nine-Chain Swarm + Halting Gate |
+| Save game | House persistence (GLB on disk) |
+| Inventory | Memory Tablet |
+
+**Python's role:** Boot the system, handle I/O (keyboard, network, display). That's it. ~200 lines target.
+
 ```
-AI Avatar = House (Persistent Memory) + Cranium (Active Processing) + Logic Layer (Swappable AI Models)
+AI Avatar = TRM (Game Loop Entity) + Galaxy (Internal Brain/VRAM) + House (External World/Disk)
 ```
 
 ![Cognitive House](docs/images/cognitive_house.png)

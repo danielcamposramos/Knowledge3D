@@ -21,6 +21,9 @@ from knowledge3d.cranium.ptx_runtime.math_core_pool import (
 )
 from .rpn_opcodes import (
     OP_ENTROPY_SUM,
+    OP_GALAXY_SCAN,
+    OP_GALAXY_SIMILARITY,
+    OP_LOAD_GALAXY,
     OP_SIGMOID_APPROX,
     OP_SMAV,
     OP_SPARSE_LOAD,
@@ -95,6 +98,9 @@ class ModularRPNEngine:
         # just stable meaning-preserving opcode synonyms).
         "ln": 22,
         "sigmoid": OP_SIGMOID_APPROX,
+        "load_galaxy": OP_LOAD_GALAXY,
+        "galaxy_similarity": OP_GALAXY_SIMILARITY,
+        "galaxy_scan": OP_GALAXY_SCAN,
         "sin": 24,
         "cos": 25,
         "tan": 26,
@@ -267,6 +273,40 @@ class ModularRPNEngine:
         )
 
         self._sovereign_engine = SovereignRPNEngine()
+
+    def bind_galaxy_buffer(
+        self,
+        flat_entries: Sequence[float],
+        *,
+        entry_count: int,
+        entry_stride: int = 19,
+        embedding_offset: int = 3,
+        embedding_dim: int = 16,
+    ) -> dict[str, int]:
+        """Bind a flattened Galaxy table into the sovereign runtime."""
+        return self._sovereign_engine.bind_galaxy_buffer(
+            flat_entries,
+            entry_count=entry_count,
+            entry_stride=entry_stride,
+            embedding_offset=embedding_offset,
+            embedding_dim=embedding_dim,
+        )
+
+    def store_embedding(
+        self,
+        *,
+        embedding: Sequence[float],
+        slot: int = 0,
+        instance_id: Optional[int] = None,
+    ) -> int:
+        """Upload a query embedding into the GPU-resident RPN runtime."""
+        core_id = self._ensure_core(tier=2, override_instance=instance_id)
+        self._sovereign_engine.store_embedding(
+            instance_id=core_id,
+            embedding=embedding,
+            slot=slot,
+        )
+        return int(core_id)
 
     @classmethod
     def get_global_gpu_call_count(cls) -> int:
@@ -457,6 +497,29 @@ class ModularRPNEngine:
         )
 
         return float(result)
+
+    def evaluate_with_stack(
+        self,
+        expression: str,
+        instance_id: Optional[int] = None,
+    ) -> tuple[float, list[float]]:
+        """Evaluate one RPN expression and return both top result and scalar stack."""
+        tokens = self.tokenize_rpn(expression)
+        if any(token in self.CODEC_TOKENS for token in tokens):
+            raise ValueError("Codec opcodes are not supported in evaluate_with_stack.")
+
+        core_id = self._ensure_core(tier=2, override_instance=instance_id)
+        self._sovereign_engine.reset_instance(core_id)
+        op_codes, scalars, vectors = self.compile_tokens(tokens, core_id)
+        self._record_gpu_call(1)
+        result = self._sovereign_engine.execute_single(
+            instance_id=core_id,
+            op_codes=op_codes,
+            scalars=scalars,
+            vectors=vectors,
+        )
+        stack = self._sovereign_engine.read_instance_stack_scalars(core_id)
+        return float(result), list(stack)
 
     def evaluate_batch(
         self,

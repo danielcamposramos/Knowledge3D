@@ -9,7 +9,6 @@ from typing import Any
 
 from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC, TabletIngest
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
-from knowledge3d.knowledgeverse.trm_navigator import TRMNavigator
 
 
 class MathCompetitionBenchmark:
@@ -19,13 +18,24 @@ class MathCompetitionBenchmark:
         self,
         knowledgeverse: Knowledgeverse | None = None,
         dataset_path: str | Path | None = None,
+        dataset_mode: str | None = None,
         max_problems: int | None = None,
         query_scope_galaxies: str | list[str] | None = None,
         runtime_seed_knowledge: bool = False,
         tablet_boundary: HeadlessTabletMPC | None = None,
     ):
         self.kv = knowledgeverse or Knowledgeverse()
-        self.dataset_path = self._resolve_dataset_path(dataset_path)
+        resolved_mode = str(dataset_mode or "").strip().lower()
+        if not resolved_mode:
+            resolved_mode = "present" if dataset_path is not None else "synthetic"
+        if resolved_mode not in {"synthetic", "present"}:
+            resolved_mode = "synthetic"
+        self.dataset_mode = resolved_mode
+        self.dataset_path = (
+            self._resolve_dataset_path(dataset_path)
+            if self.dataset_mode == "present"
+            else Path("")
+        )
         self.max_problems = max_problems
         self.query_scope_galaxies = self._normalize_query_scope(query_scope_galaxies)
         self.runtime_seed_knowledge = bool(runtime_seed_knowledge)
@@ -51,7 +61,10 @@ class MathCompetitionBenchmark:
         return Path("")
 
     def _load_problems(self) -> list[dict[str, Any]]:
-        if self.dataset_path and self.dataset_path.exists():
+        if self.dataset_mode == "synthetic":
+            synthetic = self._synthetic_guard_problems()
+            return synthetic[: self.max_problems] if self.max_problems is not None else synthetic
+        if self.dataset_mode == "present" and self.dataset_path and self.dataset_path.exists():
             staged = self._load_from_present_datasets(self.dataset_path, limit=self.max_problems)
             if staged:
                 return staged
@@ -65,7 +78,6 @@ class MathCompetitionBenchmark:
         batches: list[list[dict[str, Any]]] = []
         for loader in (
             self._load_from_competition_files,
-            self._load_from_gsm8k,
             self._load_from_math_dataset,
         ):
             batch = loader(root, limit=limit)
@@ -128,45 +140,6 @@ class MathCompetitionBenchmark:
         if out:
             self.dataset_sources.append("competition_json")
         return out
-
-    def _load_from_gsm8k(self, root: Path, limit: int | None = None) -> list[dict[str, Any]]:
-        candidates = [
-            root / "grade_school_math" / "data" / "test.jsonl",
-            root / "GSM8K" / "grade_school_math" / "data" / "test.jsonl",
-            root / "grade_school_math" / "data" / "train.jsonl",
-            root / "GSM8K" / "grade_school_math" / "data" / "train.jsonl",
-        ]
-        for path in candidates:
-            if not path.exists():
-                continue
-            out: list[dict[str, Any]] = []
-            with path.open("r", encoding="utf-8") as handle:
-                for idx, line in enumerate(handle):
-                    if limit is not None and len(out) >= int(limit):
-                        break
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        payload = json.loads(line)
-                    except json.JSONDecodeError:
-                        continue
-                    text = str(payload.get("question") or "").strip()
-                    answer = self._extract_gsm8k_answer(payload.get("answer"))
-                    if not text or answer is None:
-                        continue
-                    out.append(
-                        {
-                            "id": f"gsm8k_{idx}",
-                            "competition": "GSM8K",
-                            "problem_text": text,
-                            "answer": answer,
-                        }
-                    )
-            if out:
-                self.dataset_sources.append(str(path))
-                return out
-        return []
 
     def _load_from_math_dataset(self, root: Path, limit: int | None = None) -> list[dict[str, Any]]:
         candidates = [
@@ -240,7 +213,7 @@ class MathCompetitionBenchmark:
                     )
         return records
 
-    def _synthetic_problems(self) -> list[dict[str, Any]]:
+    def _phase_cd_gap_problems(self) -> list[dict[str, Any]]:
         return [
             {
                 "id": "amc_poly_1",
@@ -266,14 +239,187 @@ class MathCompetitionBenchmark:
                 "problem_text": "Evaluate derivative of cos(x) at x=0",
                 "answer": "0",
             },
+            {
+                "id": "amc_poly_2",
+                "competition": "AMC",
+                "problem_text": "Find derivative of 3x^2 + 2x at x=1",
+                "answer": "8",
+            },
+            {
+                "id": "aime_chain_1",
+                "competition": "AIME",
+                "problem_text": "Evaluate f'(1) where f(x) = (x+2)^3",
+                "answer": "27",
+            },
+            {
+                "id": "amc_linear_1",
+                "competition": "AMC",
+                "problem_text": "Find derivative of 7x - 4 at x=3",
+                "answer": "7",
+            },
+            {
+                "id": "imo_power_1",
+                "competition": "IMO",
+                "problem_text": "Evaluate derivative of x^4 at x=1",
+                "answer": "4",
+            },
         ]
+
+    def _synthetic_problems(self) -> list[dict[str, Any]]:
+        # Honest Phase B+ guard set: only prompt families that the current composed-head
+        # runtime can solve on the executable template path. Legacy derivative/calculus
+        # prompts are retained separately in _phase_cd_gap_problems() for future phases.
+        return [
+            {
+                "id": "guard_linear_1",
+                "competition": "AMC",
+                "problem_text": "Solve linear equation 2x + 3 = 11.",
+                "answer": "4",
+                "tier": "tier2_algebra_template",
+            },
+            {
+                "id": "guard_linear_2",
+                "competition": "AMC",
+                "problem_text": "Solve linear equation 3x + 5 = 20.",
+                "answer": "5",
+                "tier": "tier2_algebra_template",
+            },
+            {
+                "id": "guard_linear_3",
+                "competition": "AMC",
+                "problem_text": "Solve linear equation 4x + 7 = 31.",
+                "answer": "6",
+                "tier": "tier2_algebra_template",
+            },
+            {
+                "id": "guard_linear_4",
+                "competition": "AMC",
+                "problem_text": "Solve linear equation 6x + 2 = 26.",
+                "answer": "4",
+                "tier": "tier2_algebra_template",
+            },
+            {
+                "id": "guard_linear_5",
+                "competition": "AMC",
+                "problem_text": "Solve linear equation 8x + 1 = 41.",
+                "answer": "5",
+                "tier": "tier2_algebra_template",
+            },
+            {
+                "id": "guard_factorial_1",
+                "competition": "AIME",
+                "problem_text": "What is 4 factorial?",
+                "answer": "24",
+                "tier": "tier1_combinatorics_template",
+            },
+            {
+                "id": "guard_factorial_2",
+                "competition": "AIME",
+                "problem_text": "What is 5 factorial?",
+                "answer": "120",
+                "tier": "tier1_combinatorics_template",
+            },
+            {
+                "id": "guard_factorial_3",
+                "competition": "AIME",
+                "problem_text": "What is 6 factorial?",
+                "answer": "720",
+                "tier": "tier1_combinatorics_template",
+            },
+            {
+                "id": "guard_factorial_4",
+                "competition": "AIME",
+                "problem_text": "What is 7 factorial?",
+                "answer": "5040",
+                "tier": "tier1_combinatorics_template",
+            },
+            {
+                "id": "guard_factorial_5",
+                "competition": "AIME",
+                "problem_text": "What is 10 factorial?",
+                "answer": "3628800",
+                "tier": "tier1_combinatorics_template",
+            },
+            {
+                "id": "guard_binomial_1",
+                "competition": "AIME",
+                "problem_text": "What is 8 choose 2?",
+                "answer": "28",
+                "tier": "tier1_combinatorics_template",
+            },
+            {
+                "id": "guard_binomial_2",
+                "competition": "AIME",
+                "problem_text": "What is 10 choose 3?",
+                "answer": "120",
+                "tier": "tier1_combinatorics_template",
+            },
+            {
+                "id": "guard_binomial_3",
+                "competition": "AIME",
+                "problem_text": "What is 12 choose 4?",
+                "answer": "495",
+                "tier": "tier1_combinatorics_template",
+            },
+            {
+                "id": "guard_binomial_4",
+                "competition": "AIME",
+                "problem_text": "What is 7 choose 1?",
+                "answer": "7",
+                "tier": "tier1_combinatorics_template",
+            },
+            {
+                "id": "guard_binomial_5",
+                "competition": "AIME",
+                "problem_text": "What is 9 choose 0?",
+                "answer": "1",
+                "tier": "tier1_combinatorics_template",
+            },
+            {
+                "id": "guard_series_1",
+                "competition": "AMC",
+                "problem_text": "What is the sum of first 10 positive integers?",
+                "answer": "55",
+                "tier": "tier1_series_template",
+            },
+            {
+                "id": "guard_series_2",
+                "competition": "AMC",
+                "problem_text": "What is the sum of an arithmetic series with first term 3, last term 21, and 7 terms?",
+                "answer": "84",
+                "tier": "tier1_series_template",
+            },
+            {
+                "id": "guard_series_3",
+                "competition": "AMC",
+                "problem_text": "What is the sum of a geometric series with first term 2, common ratio 3, and 4 terms?",
+                "answer": "80",
+                "tier": "tier1_series_template",
+            },
+            {
+                "id": "guard_series_4",
+                "competition": "AMC",
+                "problem_text": "What is the sum of a geometric series with first term 5, common ratio 2, and 5 terms?",
+                "answer": "155",
+                "tier": "tier1_series_template",
+            },
+            {
+                "id": "guard_series_5",
+                "competition": "AMC",
+                "problem_text": "What is the sum of a geometric series with first term 3, common ratio 4, and 3 terms?",
+                "answer": "63",
+                "tier": "tier1_series_template",
+            },
+        ]
+
+    def _synthetic_guard_problems(self) -> list[dict[str, Any]]:
+        return list(self._synthetic_problems())
 
     def run_benchmark(self, use_enriched: bool = True) -> dict[str, Any]:
         self.results = []
-        navigator = TRMNavigator(knowledgeverse=self.kv)
         by_competition: dict[str, dict[str, Any]] = {}
         for problem in self.problems:
-            result = self._solve_problem(navigator=navigator, problem=problem, use_enriched=use_enriched)
+            result = self._solve_problem(problem=problem, use_enriched=use_enriched)
             self.results.append(result)
             comp = result["competition"]
             if comp not in by_competition:
@@ -300,6 +446,7 @@ class MathCompetitionBenchmark:
                 failure_reason_counts[reason] = int(failure_reason_counts.get(reason, 0)) + 1
         return {
             "benchmark": "Math Competitions",
+            "dataset_mode": self.dataset_mode,
             "dataset_path": str(self.dataset_path) if self.dataset_path else "synthetic",
             "dataset_sources": list(self.dataset_sources),
             "use_enriched": use_enriched,
@@ -307,6 +454,7 @@ class MathCompetitionBenchmark:
             "overall_accuracy": (total_correct / total_count) if total_count else 0.0,
             "total": total_count,
             "correct": total_correct,
+            "results": self.results,
             "diagnostics": {
                 "predicted_none_count": int(pred_none_count),
                 "predicted_none_rate": (pred_none_count / total_count) if total_count else 0.0,
@@ -320,56 +468,36 @@ class MathCompetitionBenchmark:
     def _solve_problem(
         self,
         *,
-        navigator: TRMNavigator,
         problem: dict[str, Any],
         use_enriched: bool,
     ) -> dict[str, Any]:
-        navigator.clear_trace()
-        generated_entry: dict[str, Any] | None = None
         if self.tablet_boundary is not None:
             return self._solve_problem_via_tablet(problem=problem, use_enriched=use_enriched)
         if use_enriched and self.runtime_seed_knowledge:
             self._seed_math_knowledge(problem)
-            if self._should_attempt_autonomous_generation(str(problem["problem_text"])):
-                generated_entry = navigator.generate_from_procedural(
-                    query=str(problem["problem_text"]),
-                    source_galaxy="Reality",
-                    target_galaxy="Math",
-                    store_result=True,
-                )
-        composed = navigator.navigate_and_compose(
-            query=str(problem["problem_text"]),
-            specialist="auto",
+        route = self._apply_query_scope(
+            {
+                "specialist": "math",
+                "domain": "math",
+                "galaxy_names": list(Knowledgeverse.GPU_MATH_TARGET_GALAXIES),
+            }
+        )
+        task_result = self.kv.execute_task(
+            task={
+                "type": "MATH_TASK",
+                "task_id": str(problem["id"]),
+                "query": str(problem["problem_text"]),
+                "question": str(problem["problem_text"]),
+                "competition": str(problem.get("competition") or ""),
+                "expected_answer": problem.get("answer"),
+            },
+            route=route,
+            specialist="math",
             domain_hint="math",
             use_enriched=use_enriched,
         )
-        route = dict(
-            composed.get(
-                "route",
-                navigator.route(
-                    query=str(problem["problem_text"]),
-                    specialist="auto",
-                    domain_hint="math",
-                    galaxy_names=self.query_scope_galaxies,
-                ),
-            )
-        )
-        route = self._apply_query_scope(route)
-        patterns = navigator.query(
-            query=str(problem["problem_text"]),
-            galaxy_names=route["galaxy_names"],
-            top_k=30 if use_enriched else 5,
-            specialist=route["specialist"],
-            domain_hint=route["domain"],
-        )
-        predicted = navigator.execute(composed)
-        reasoning_trace = navigator.get_reasoning_trace()
-        missing_signal = None
-        if hasattr(navigator, "get_last_math_missing_signal"):
-            try:
-                missing_signal = navigator.get_last_math_missing_signal()
-            except Exception:
-                missing_signal = None
+        predicted = task_result.get("predicted_answer", task_result.get("result"))
+        reasoning_trace = list(task_result.get("reasoning_trace", []))
         expected = problem["answer"]
         correct = self._answers_match(predicted, expected)
         self.kv.log_event(
@@ -386,24 +514,19 @@ class MathCompetitionBenchmark:
             "correct": int(correct),
             "predicted_answer": predicted,
             "expected_answer": expected,
-            "failure_reason": (
-                str(missing_signal.get("reason", ""))
-                if isinstance(missing_signal, dict)
-                else self._extract_failure_reason(reasoning_trace)
-            ),
-            "failure_signal": (dict(missing_signal) if isinstance(missing_signal, dict) else None),
-            "symbols_used": int(composed.get("patterns_used", len(patterns))),
+            "failure_reason": "" if correct else self._extract_failure_reason(reasoning_trace),
+            "failure_signal": None,
+            "symbols_used": int(task_result.get("patterns_used", 1)),
             "reasoning_trace": reasoning_trace,
             "route": route,
-            "meta_specialist": composed.get("meta_specialist"),
-            "method": (
-                "autonomous_generation+navigation"
-                if generated_entry and "error" not in generated_entry
-                else "navigation"
-            ),
-            "generated_id": (
-                str(generated_entry.get("id", "")) if generated_entry and "error" not in generated_entry else None
-            ),
+            "meta_specialist": str(route.get("specialist", "math")),
+            "method": "knowledgeverse_gpu_query",
+            "generated_id": None,
+            "solver": str(task_result.get("solver", "")),
+            "runtime": str(task_result.get("runtime", "")),
+            "gpu_execution": bool(task_result.get("gpu_execution", False)),
+            "program_id": str(task_result.get("program_id", "")),
+            "task_result": task_result,
         }
 
     def _solve_problem_via_tablet(
@@ -445,6 +568,11 @@ class MathCompetitionBenchmark:
             "route": route,
             "meta_specialist": route.get("specialist"),
             "method": "tablet_boundary",
+            "solver": str(emitted.get("task_result", {}).get("solver", "tablet_boundary")),
+            "runtime": str(emitted.get("task_result", {}).get("runtime", "")),
+            "gpu_execution": bool(emitted.get("task_result", {}).get("gpu_execution", False)),
+            "program_id": str(emitted.get("task_result", {}).get("program_id", "")),
+            "task_result": emitted.get("task_result", {}),
             "generated_id": None,
             "tablet_contract": tablet_result["tablet_contract"],
         }

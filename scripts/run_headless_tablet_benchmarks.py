@@ -20,11 +20,20 @@ from knowledge3d.bridge.headless_tablet import CommandHandler, HeadlessTabletMPC
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
 
 
+def _log_section(message: str) -> None:
+    print(f"[HEADLESS BENCH] {message}", file=sys.stderr, flush=True)
+
+
 def _skip_summary(reason: str) -> dict[str, Any]:
     return {
         "status": "skipped",
         "reason": reason,
     }
+
+
+def _reset_query_session(kv: Knowledgeverse) -> None:
+    if hasattr(kv, "reset_query_session"):
+        kv.reset_query_session()
 
 
 def run_tablet_benchmark_suite(
@@ -43,32 +52,41 @@ def run_tablet_benchmark_suite(
     )
 
     if int(args.max_arc_tasks) > 0:
+        _reset_query_session(kv)
+        _log_section("starting ARC benchmark")
         arc = ARCAGI2Benchmark(
             knowledgeverse=kv,
             dataset_path=args.arc_dataset_path,
             max_tasks=args.max_arc_tasks,
             tablet_boundary=tablet,
         ).run_benchmark(use_enriched=bool(args.use_enriched))
+        _log_section("completed ARC benchmark")
     else:
         arc = _skip_summary("max_arc_tasks<=0")
 
     if int(args.max_math_problems) > 0:
+        _reset_query_session(kv)
+        _log_section("starting Math benchmark")
         math = MathCompetitionBenchmark(
             knowledgeverse=kv,
             dataset_path=args.math_dataset_path,
             max_problems=args.max_math_problems,
             tablet_boundary=tablet,
         ).run_benchmark(use_enriched=bool(args.use_enriched))
+        _log_section("completed Math benchmark")
     else:
         math = _skip_summary("max_math_problems<=0")
 
     if int(args.max_lhe_questions) > 0:
+        _reset_query_session(kv)
+        _log_section("starting LHE benchmark")
         lhe = LastHumanityExamBenchmark(
             knowledgeverse=kv,
             dataset_path=args.lhe_dataset_path,
             max_questions=args.max_lhe_questions,
             tablet_boundary=tablet,
         ).run_benchmark(use_enriched=bool(args.use_enriched))
+        _log_section("completed LHE benchmark")
     else:
         lhe = _skip_summary("max_lhe_questions<=0")
 

@@ -1,0 +1,935 @@
+1
+00:00:00,000 --> 00:00:01,560
+Alright, let's get right into
+
+2
+00:00:01,560 --> 00:00:02,960
+it. Today we're talking about
+
+3
+00:00:02,960 --> 00:00:04,610
+something called PMKR. That
+
+4
+00:00:04,610 --> 00:00:05,010
+stands
+
+5
+00:00:05,010 --> 00:00:06,830
+for Procedural Memory Knowledge
+
+6
+00:00:06,830 --> 00:00:08,770
+Representation. And yeah, it's
+
+7
+00:00:08,770 --> 00:00:10,510
+a new W3C spec, but stick with
+
+8
+00:00:10,510 --> 00:00:10,980
+me here.
+
+9
+00:00:10,980 --> 00:00:12,290
+This is not just another dry
+
+10
+00:00:12,290 --> 00:00:13,700
+technical standard. It's
+
+11
+00:00:13,700 --> 00:00:15,020
+actually a proposed fix for a
+
+12
+00:00:15,020 --> 00:00:15,620
+massive,
+
+13
+00:00:15,620 --> 00:00:16,950
+colossal problem of digital
+
+14
+00:00:16,950 --> 00:00:18,210
+waste. A problem that's
+
+15
+00:00:18,210 --> 00:00:19,620
+silently bloating our entire
+
+16
+00:00:19,620 --> 00:00:20,560
+digital world.
+
+17
+00:00:20,560 --> 00:00:23,070
+So, what is this crisis? Well,
+
+18
+00:00:23,070 --> 00:00:25,390
+it's a crisis of duplication.
+
+19
+00:00:25,390 --> 00:00:27,840
+It's like this invisible plague
+
+20
+00:00:27,840 --> 00:00:29,590
+where the exact same piece of
+
+21
+00:00:29,590 --> 00:00:30,860
+information, the same bit of
+
+22
+00:00:30,860 --> 00:00:32,450
+knowledge gets copied and re-
+
+23
+00:00:32,450 --> 00:00:32,960
+encoded
+
+24
+00:00:32,960 --> 00:00:34,790
+and stored over and over and
+
+25
+00:00:34,790 --> 00:00:37,040
+over again. And all that duplic
+
+26
+00:00:37,040 --> 00:00:39,320
+ation creates just immense bloat
+
+27
+00:00:39,320 --> 00:00:39,680
+across
+
+28
+00:00:39,680 --> 00:00:41,430
+everything we do online. To
+
+29
+00:00:41,430 --> 00:00:42,960
+really get a grip on this, let
+
+30
+00:00:42,960 --> 00:00:44,610
+'s take a super simple, really
+
+31
+00:00:44,610 --> 00:00:44,980
+common
+
+32
+00:00:44,980 --> 00:00:46,580
+example. The Greek letter sigma
+
+33
+00:00:46,580 --> 00:00:47,730
+. You know, the one we use for
+
+34
+00:00:47,730 --> 00:00:48,890
+summation. Seems pretty
+
+35
+00:00:48,890 --> 00:00:49,840
+straightforward,
+
+36
+00:00:49,840 --> 00:00:51,590
+right? But if you were to ask a
+
+37
+00:00:51,590 --> 00:00:53,040
+computer, hey, where does this
+
+38
+00:00:53,040 --> 00:00:54,700
+symbol actually live? Well, the
+
+39
+00:00:54,700 --> 00:00:55,220
+answer is
+
+40
+00:00:55,220 --> 00:00:56,310
+way more complicated than you'd
+
+41
+00:00:56,310 --> 00:00:57,450
+think. And here's the thing you
+
+42
+00:00:57,450 --> 00:00:58,790
+'ve got to understand. Every
+
+43
+00:00:58,790 --> 00:00:59,140
+single
+
+44
+00:00:59,140 --> 00:01:00,360
+one of these is a totally
+
+45
+00:01:00,360 --> 00:01:01,570
+separate, completely
+
+46
+00:01:01,570 --> 00:01:03,280
+disconnected copy. The visual
+
+47
+00:01:03,280 --> 00:01:04,090
+shape of sigma
+
+48
+00:01:04,090 --> 00:01:05,400
+stored in a font file, it has
+
+49
+00:01:05,400 --> 00:01:06,730
+no idea that it's supposed to
+
+50
+00:01:06,730 --> 00:01:08,110
+be a mathematical operator in
+
+51
+00:01:08,110 --> 00:01:08,310
+an
+
+52
+00:01:08,310 --> 00:01:10,150
+equation. Its representation in
+
+53
+00:01:10,150 --> 00:01:11,620
+an AI model is another island
+
+54
+00:01:11,620 --> 00:01:13,280
+altogether. This isn't just
+
+55
+00:01:13,280 --> 00:01:15,030
+inefficient, it's a maintenance
+
+56
+00:01:15,030 --> 00:01:16,190
+nightmare. Every time we use
+
+57
+00:01:16,190 --> 00:01:17,890
+this one little symbol, we're
+
+58
+00:01:17,890 --> 00:01:18,090
+creating
+
+59
+00:01:18,090 --> 00:01:19,840
+another brand new isolated
+
+60
+00:01:19,840 --> 00:01:21,450
+piece of data. So what's the
+
+61
+00:01:21,450 --> 00:01:23,240
+solution? Well, what's so
+
+62
+00:01:23,240 --> 00:01:24,660
+remarkable here is that
+
+63
+00:01:24,660 --> 00:01:26,450
+it's not some crazy futuristic
+
+64
+00:01:26,450 --> 00:01:27,940
+new concept. The fix is
+
+65
+00:01:27,940 --> 00:01:29,560
+actually an idea that's been
+
+66
+00:01:29,560 --> 00:01:31,780
+around for about 40,000
+
+67
+00:01:31,780 --> 00:01:33,580
+years. It's a reflection of how
+
+68
+00:01:33,580 --> 00:01:35,270
+we humans have always, always
+
+69
+00:01:35,270 --> 00:01:37,280
+learned to represent knowledge.
+
+70
+00:01:37,520 --> 00:01:39,270
+Just think about how we evolved
+
+71
+00:01:39,270 --> 00:01:40,820
+. We started with pure form,
+
+72
+00:01:40,820 --> 00:01:42,480
+literally just visual marks on
+
+73
+00:01:42,480 --> 00:01:44,240
+a cave wall. Then over
+
+74
+00:01:44,240 --> 00:01:45,740
+thousands of years, we started
+
+75
+00:01:45,740 --> 00:01:47,020
+attaching meaning to those
+
+76
+00:01:47,020 --> 00:01:48,760
+forms, and we got pictographs.
+
+77
+00:01:48,760 --> 00:01:49,980
+After that, we standardized
+
+78
+00:01:49,980 --> 00:01:51,540
+them into alphabets. Then we
+
+79
+00:01:51,540 --> 00:01:53,120
+invented rules, like grammar,
+
+80
+00:01:53,120 --> 00:01:54,820
+to combine them. And eventually
+
+81
+00:01:54,820 --> 00:01:56,390
+we developed meta rules, things
+
+82
+00:01:56,390 --> 00:01:57,850
+like logic and philosophy, to
+
+83
+00:01:57,850 --> 00:01:59,420
+help us reason about the rules
+
+84
+00:01:59,420 --> 00:02:00,080
+themselves.
+
+85
+00:02:00,080 --> 00:02:01,830
+You see the pattern? It's a
+
+86
+00:02:01,830 --> 00:02:03,440
+natural climb from concrete
+
+87
+00:02:03,440 --> 00:02:05,430
+shapes to abstract strategy.
+
+88
+00:02:05,430 --> 00:02:07,080
+And that brings us right to the
+
+89
+00:02:07,080 --> 00:02:08,970
+heart of the PMKR specification
+
+90
+00:02:08,970 --> 00:02:10,320
+. It takes this exact
+
+91
+00:02:10,320 --> 00:02:12,050
+evolutionary pattern and cod
+
+92
+00:02:12,050 --> 00:02:13,720
+ifies it into a modern, four
+
+93
+00:02:13,720 --> 00:02:15,910
+layer technical architecture.
+
+94
+00:02:15,910 --> 00:02:18,030
+This hierarchy is absolutely
+
+95
+00:02:18,030 --> 00:02:19,800
+crucial. So at the very bottom,
+
+96
+00:02:19,800 --> 00:02:21,440
+you have the form layer. These
+
+97
+00:02:21,440 --> 00:02:22,610
+are the raw procedural
+
+98
+00:02:22,610 --> 00:02:24,130
+instructions, like how to
+
+99
+00:02:24,130 --> 00:02:25,440
+actually draw the strokes of
+
+100
+00:02:25,440 --> 00:02:27,030
+the letter A. Then sitting on
+
+101
+00:02:27,030 --> 00:02:28,300
+top of that is the meaning
+
+102
+00:02:28,300 --> 00:02:29,970
+layer, which says, hey,
+
+103
+00:02:29,970 --> 00:02:31,190
+that specific form you just
+
+104
+00:02:31,190 --> 00:02:32,520
+drew, that specific form you
+
+105
+00:02:32,520 --> 00:02:33,880
+just drew, that is the letter A
+
+106
+00:02:33,880 --> 00:02:35,410
+. Next up, the rules layer gives
+
+107
+00:02:35,410 --> 00:02:36,620
+us executable logic, like
+
+108
+00:02:36,620 --> 00:02:37,910
+grammar, for combining all
+
+109
+00:02:37,910 --> 00:02:39,410
+those meanings. And at the very
+
+110
+00:02:39,410 --> 00:02:40,580
+top, the meta rules layer
+
+111
+00:02:40,580 --> 00:02:42,070
+provides the strategy, the high
+
+112
+00:02:42,070 --> 00:02:43,560
+level control that decides
+
+113
+00:02:43,560 --> 00:02:45,220
+which rules to apply and when.
+
+114
+00:02:45,220 --> 00:02:46,600
+And this parallel is just
+
+115
+00:02:46,600 --> 00:02:48,570
+perfect. The form layer, that's
+
+116
+00:02:48,570 --> 00:02:50,480
+our ancient cave paintings. The
+
+117
+00:02:50,480 --> 00:02:52,060
+meaning layer is when we came
+
+118
+00:02:52,060 --> 00:02:54,030
+up with words and concepts. The
+
+119
+00:02:54,030 --> 00:02:55,680
+rules layer, well, that's our
+
+120
+00:02:55,680 --> 00:02:57,600
+grammar, our formulas. And the
+
+121
+00:02:57,600 --> 00:02:59,310
+meta rules layer is our ability
+
+122
+00:02:59,310 --> 00:02:59,880
+to use
+
+123
+00:02:59,880 --> 00:03:01,630
+logic and strategy. All PMKR
+
+124
+00:03:01,630 --> 00:03:03,450
+does is make this ancient, time
+
+125
+00:03:03,450 --> 00:03:05,230
+-tested structure something a
+
+126
+00:03:05,230 --> 00:03:07,050
+computer can understand and use
+
+127
+00:03:07,050 --> 00:03:08,520
+. So how does this clever
+
+128
+00:03:08,520 --> 00:03:10,230
+layered model actually solve
+
+129
+00:03:10,230 --> 00:03:12,120
+our duplication crisis? It all
+
+130
+00:03:12,120 --> 00:03:13,880
+comes down to a really powerful
+
+131
+00:03:13,880 --> 00:03:15,690
+but simple idea called the save
+
+132
+00:03:15,690 --> 00:03:17,830
+information principle. And it's
+
+133
+00:03:17,830 --> 00:03:19,440
+exactly what it sounds like.
+
+134
+00:03:19,440 --> 00:03:21,240
+You store a piece of knowledge
+
+135
+00:03:21,240 --> 00:03:22,810
+one time in its most basic form
+
+136
+00:03:22,810 --> 00:03:24,630
+. And every other time you need
+
+137
+00:03:24,630 --> 00:03:26,380
+it, you just use a lightweight
+
+138
+00:03:26,380 --> 00:03:27,940
+pointer back to that single
+
+139
+00:03:27,940 --> 00:03:29,780
+source of truth. The technical
+
+140
+00:03:29,780 --> 00:03:31,530
+name for this is Simlink style
+
+141
+00:03:31,530 --> 00:03:33,350
+composition. And you know what?
+
+142
+00:03:33,350 --> 00:03:34,540
+If you've ever created a
+
+143
+00:03:34,540 --> 00:03:35,840
+shortcut to a file on your
+
+144
+00:03:35,840 --> 00:03:37,670
+computer, you basically already
+
+145
+00:03:37,670 --> 00:03:39,170
+get it. You're not making a
+
+146
+00:03:39,170 --> 00:03:40,600
+whole new copy of the file,
+
+147
+00:03:40,600 --> 00:03:42,220
+right? You're just making a
+
+148
+00:03:42,220 --> 00:03:43,860
+tiny little pointer that says,
+
+149
+00:03:43,860 --> 00:03:45,230
+hey, the real file is over
+
+150
+00:03:45,230 --> 00:03:46,970
+there. PMKR does the exact same
+
+151
+00:03:46,970 --> 00:03:48,590
+thing, but for every tiny unit
+
+152
+00:03:48,590 --> 00:03:50,790
+of knowledge. Now, let's look
+
+153
+00:03:50,790 --> 00:03:52,260
+at the real world impact. In
+
+154
+00:03:52,260 --> 00:03:53,830
+the old way, if you have a
+
+155
+00:03:53,830 --> 00:03:55,280
+thousand different rules that
+
+156
+00:03:55,280 --> 00:03:57,020
+all need the partial derivative
+
+157
+00:03:57,020 --> 00:03:58,670
+symbol, you'd store a five kil
+
+158
+00:03:58,670 --> 00:03:59,680
+obyte copy of it
+
+159
+00:03:59,680 --> 00:04:01,910
+1000 times. That's five meg
+
+160
+00:04:01,910 --> 00:04:03,820
+abytes. Now in the PMKR way, you
+
+161
+00:04:03,820 --> 00:04:05,580
+store that symbol just once.
+
+162
+00:04:05,580 --> 00:04:07,200
+Each of those thousand rules
+
+163
+00:04:07,200 --> 00:04:08,610
+then uses a tiny four byte
+
+164
+00:04:08,610 --> 00:04:10,560
+reference. The grand total, we
+
+165
+00:04:10,560 --> 00:04:12,440
+'re talking about four kilobytes
+
+166
+00:04:12,440 --> 00:04:14,020
+. I mean, that's not just a
+
+167
+00:04:14,020 --> 00:04:15,640
+small improvement. It's a
+
+168
+00:04:15,640 --> 00:04:17,630
+complete paradigm shift. And
+
+169
+00:04:17,630 --> 00:04:19,140
+when you apply this principle
+
+170
+00:04:19,140 --> 00:04:21,050
+across entire knowledge bases,
+
+171
+00:04:21,050 --> 00:04:22,790
+you see an average compression
+
+172
+00:04:22,790 --> 00:04:24,800
+of over 70%. That is a direct
+
+173
+00:04:24,800 --> 00:04:26,360
+massive benefit that you get
+
+174
+00:04:26,360 --> 00:04:27,910
+just by not being redundant
+
+175
+00:04:27,910 --> 00:04:29,580
+anymore. But this
+
+176
+00:04:29,580 --> 00:04:31,330
+incredible efficiency, that's
+
+177
+00:04:31,330 --> 00:04:33,140
+really just the beginning. This
+
+178
+00:04:33,140 --> 00:04:34,740
+architecture makes something
+
+179
+00:04:34,740 --> 00:04:36,350
+else possible, something far
+
+180
+00:04:36,350 --> 00:04:37,890
+more profound for the world of
+
+181
+00:04:37,890 --> 00:04:39,830
+AI. It's called the dual client
+
+182
+00:04:39,830 --> 00:04:41,320
+contract. And it means having a
+
+183
+00:04:41,320 --> 00:04:42,830
+single shared source of truth
+
+184
+00:04:42,830 --> 00:04:44,040
+that can be understood
+
+185
+00:04:44,040 --> 00:04:45,520
+perfectly by both humans and
+
+186
+00:04:45,520 --> 00:04:47,720
+machines. Okay, so check this
+
+187
+00:04:47,720 --> 00:04:49,580
+out. When a human, that's us,
+
+188
+00:04:49,580 --> 00:04:51,470
+sees the visual Sigma symbol,
+
+189
+00:04:51,470 --> 00:04:53,260
+an AI looking at the exact same
+
+190
+00:04:53,260 --> 00:04:54,870
+source file sees the underlying
+
+191
+00:04:54,870 --> 00:04:56,410
+program that defines it as a
+
+192
+00:04:56,410 --> 00:04:58,330
+mathematical operator. A human
+
+193
+00:04:58,330 --> 00:04:59,480
+sees a save icon,
+
+194
+00:04:59,480 --> 00:05:01,230
+but the AI sees an executable
+
+195
+00:05:01,230 --> 00:05:02,510
+command at action save. It's
+
+196
+00:05:02,510 --> 00:05:04,080
+one single piece of knowledge
+
+197
+00:05:04,080 --> 00:05:05,730
+just rendered differently, but
+
+198
+00:05:05,730 --> 00:05:06,890
+with perfect flawless
+
+199
+00:05:06,890 --> 00:05:08,160
+consistency for two very
+
+200
+00:05:08,160 --> 00:05:09,730
+different clients. This
+
+201
+00:05:09,730 --> 00:05:11,450
+completely changes the game for
+
+202
+00:05:11,450 --> 00:05:13,130
+AI. Right now, most AI is a
+
+203
+00:05:13,130 --> 00:05:14,580
+total black box. It spits out
+
+204
+00:05:14,580 --> 00:05:16,200
+an answer and basically says,
+
+205
+00:05:16,200 --> 00:05:17,770
+trust me. The PMKR paradigm
+
+206
+00:05:17,770 --> 00:05:18,910
+though, it creates a
+
+207
+00:05:18,910 --> 00:05:20,830
+transparent proof. It's the
+
+208
+00:05:20,830 --> 00:05:22,140
+difference between getting a
+
+209
+00:05:22,140 --> 00:05:23,940
+compiled program versus getting
+
+210
+00:05:23,940 --> 00:05:25,830
+the full debuggable source code
+
+211
+00:05:25,830 --> 00:05:27,270
+. It doesn't just give you the
+
+212
+00:05:27,270 --> 00:05:29,460
+answer. It gives you a verified
+
+213
+00:05:29,460 --> 00:05:31,210
+step-by-step receipt showing
+
+214
+00:05:31,210 --> 00:05:32,830
+you exactly how it got there.
+
+215
+00:05:32,830 --> 00:05:34,500
+You know, this isn't even a new
+
+216
+00:05:34,500 --> 00:05:36,320
+idea. It's a lesson we learned
+
+217
+00:05:36,320 --> 00:05:38,130
+50 years ago from old HP calcul
+
+218
+00:05:38,130 --> 00:05:40,080
+ators. Their transparent stacks
+
+219
+00:05:40,080 --> 00:05:41,450
+showed us that seeing the
+
+220
+00:05:41,450 --> 00:05:43,110
+process was way more powerful
+
+221
+00:05:43,110 --> 00:05:44,450
+than just getting a magic
+
+222
+00:05:44,450 --> 00:05:46,060
+answer out of a black box. We
+
+223
+00:05:46,060 --> 00:05:47,740
+figured this out for our calcul
+
+224
+00:05:47,740 --> 00:05:50,490
+ators. And that really leaves us
+
+225
+00:05:50,490 --> 00:05:51,700
+with one final and I think
+
+226
+00:05:51,700 --> 00:05:53,730
+crucial question. If we demand
+
+227
+00:05:53,730 --> 00:05:55,830
+transparent, verifiable
+
+228
+00:05:55,830 --> 00:05:57,210
+reasoning from a simple pocket
+
+229
+00:05:57,210 --> 00:05:59,160
+calculator, why on earth would
+
+230
+00:05:59,160 --> 00:05:59,440
+we
+
+231
+00:05:59,440 --> 00:06:00,750
+demand any less from the
+
+232
+00:06:00,750 --> 00:06:02,640
+artificial intelligence that is
+
+233
+00:06:02,640 --> 00:06:04,110
+literally set to shape our
+
+234
+00:06:04,110 --> 00:06:05,100
+entire future?

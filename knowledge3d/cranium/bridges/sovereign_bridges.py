@@ -26,7 +26,10 @@ from pathlib import Path
 from typing import Tuple, Optional, Iterable, Sequence, List
 
 from knowledge3d.cranium.sovereign.loader import (
+    get_function,
+    get_global,
     load_ptx_file,
+    load_module_from_file,
     gpu_malloc,
     gpu_free,
     memcpy_htod,
@@ -350,6 +353,27 @@ class GalaxyResonanceEngine:
             gpu_free(d_latent)
             gpu_free(d_output)
 
+    def resonate_list(
+        self,
+        embeddings: list[list[float]],
+        latent: list[list[float]] | list[float],
+        alpha: float = 0.5,
+    ) -> list[list[float]]:
+        np_mod = _np()
+        embedding_arr = np_mod.asarray(embeddings, dtype=np_mod.float32)
+        latent_arr = np_mod.asarray(latent, dtype=np_mod.float32)
+        if embedding_arr.ndim != 2:
+            raise ValueError("embeddings_must_be_rank2")
+        if latent_arr.ndim == 1:
+            latent_arr = np_mod.tile(latent_arr.reshape(1, -1), (embedding_arr.shape[0], 1))
+        if latent_arr.shape != embedding_arr.shape:
+            raise ValueError("latent_shape_mismatch")
+        resonated = self.resonate(embedding_arr, latent_arr, alpha=alpha)
+        return [
+            [float(value) for value in row.tolist()]
+            for row in np_mod.asarray(resonated, dtype=np_mod.float32)
+        ]
+
 
 __all__ = [
     "LatencyGuard",
@@ -598,6 +622,57 @@ class AtomicFissionFusion:
             gpu_free(d_input)
             gpu_free(d_output)
 
+    def transform_list(
+        self,
+        atoms: Sequence[float],
+        mode: int,
+        ratio: float,
+    ) -> list[float]:
+        """List-friendly atom transform without exposing NumPy to the caller."""
+        values = [float(value) for value in atoms]
+        count = len(values)
+        if count <= 0:
+            return []
+        byte_count = count * 4
+        InArray = ctypes.c_float * count
+        OutArray = ctypes.c_float * count
+        input_host = InArray(*values)
+        out_host = OutArray()
+
+        d_input = gpu_malloc(byte_count)
+        d_output = gpu_malloc(byte_count)
+
+        try:
+            memcpy_htod(
+                d_input,
+                ctypes.cast(input_host, ctypes.c_void_p),
+                byte_count,
+            )
+
+            launch(
+                self.kernel,
+                grid=((count + 255) // 256, 1, 1),
+                block=(256, 1, 1),
+                params=[
+                    ctypes.c_uint64(d_input.value),
+                    ctypes.c_uint64(d_output.value),
+                    ctypes.c_uint32(count),
+                    ctypes.c_uint32(mode),
+                    ctypes.c_float(ratio),
+                ],
+            )
+            synchronize()
+
+            memcpy_dtoh(
+                ctypes.cast(out_host, ctypes.c_void_p),
+                d_output,
+                byte_count,
+            )
+            return [float(out_host[i]) for i in range(count)]
+        finally:
+            gpu_free(d_input)
+            gpu_free(d_output)
+
     def create_sparse(self, weights, sparsity_level: float, preserve_important: bool = True) -> dict:
         """Create sparse weight representation for efficient GPU computation.
 
@@ -839,6 +914,13 @@ class VectorResonator:
             gpu_free(d_b)
             gpu_free(d_out)
 
+    def resonate_list(self, vec_a, vec_b, alpha: float) -> list[float]:
+        np_mod = _np()
+        arr_a = np_mod.asarray(list(vec_a), dtype=np_mod.float32)
+        arr_b = np_mod.asarray(list(vec_b), dtype=np_mod.float32)
+        blended = self.resonate(arr_a, arr_b, alpha)
+        return [float(value) for value in np_mod.asarray(blended, dtype=np_mod.float32).reshape(-1).tolist()]
+
     def calculate_complexity(self, input_embedding, modal_signature: list) -> float:
         """Calculate input complexity for adaptive sparsity decisions.
 
@@ -925,9 +1007,14 @@ class GraphCrystallizer:
         Returns:
             Updated node values
         """
-        assert nodes.shape == neighbors.shape
+        np_mod = _np()
+        node_arr = np_mod.asarray(nodes, dtype=np_mod.float32)
+        neighbor_arr = np_mod.asarray(neighbors, dtype=np_mod.float32)
+        assert node_arr.shape == neighbor_arr.shape
 
-        length = len(nodes)
+        flat_nodes = node_arr.reshape(-1)
+        flat_neighbors = neighbor_arr.reshape(-1)
+        length = int(flat_nodes.size)
         byte_count = length * 4
 
         d_nodes = gpu_malloc(byte_count)
@@ -935,18 +1022,18 @@ class GraphCrystallizer:
         d_output = gpu_malloc(byte_count)
         
         try:
-            memcpy_htod(d_nodes, nodes.ctypes.data_as(ctypes.c_void_p), byte_count)
-            memcpy_htod(d_neighbors, neighbors.ctypes.data_as(ctypes.c_void_p), byte_count)
+            memcpy_htod(d_nodes, flat_nodes.ctypes.data_as(ctypes.c_void_p), byte_count)
+            memcpy_htod(d_neighbors, flat_neighbors.ctypes.data_as(ctypes.c_void_p), byte_count)
             
             launch(
                 self.kernel,
-                grid=((len(nodes) + 255) // 256, 1, 1),
+                grid=((length + 255) // 256, 1, 1),
                 block=(256, 1, 1),
                 params=[
                     ctypes.c_uint64(d_nodes.value),
                     ctypes.c_uint64(d_neighbors.value),
                     ctypes.c_uint64(d_output.value),
-                    ctypes.c_uint32(len(nodes)),
+                    ctypes.c_uint32(length),
                     ctypes.c_float(ema_rate),
                 ],
             )
@@ -957,14 +1044,34 @@ class GraphCrystallizer:
             memcpy_dtoh(ctypes.cast(out_host, ctypes.c_void_p), d_output, byte_count)
 
             try:
-                np_mod = _np()
-                return np_mod.asarray(out_host, dtype=np_mod.float32).reshape(nodes.shape)
+                return np_mod.asarray(out_host, dtype=np_mod.float32).reshape(node_arr.shape)
             except Exception:
                 return [float(out_host[i]) for i in range(length)]
         finally:
             gpu_free(d_nodes)
             gpu_free(d_neighbors)
             gpu_free(d_output)
+
+    def crystallize_list(
+        self,
+        nodes: list[list[float]],
+        neighbors: list[list[float]] | list[float],
+        ema_rate: float = 0.999,
+    ) -> list[list[float]]:
+        np_mod = _np()
+        node_arr = np_mod.asarray(nodes, dtype=np_mod.float32)
+        neighbor_arr = np_mod.asarray(neighbors, dtype=np_mod.float32)
+        if node_arr.ndim != 2:
+            raise ValueError("nodes_must_be_rank2")
+        if neighbor_arr.ndim == 1:
+            neighbor_arr = np_mod.tile(neighbor_arr.reshape(1, -1), (node_arr.shape[0], 1))
+        if neighbor_arr.shape != node_arr.shape:
+            raise ValueError("neighbor_shape_mismatch")
+        crystallized = self.crystallize(node_arr, neighbor_arr, ema_rate=ema_rate)
+        return [
+            [float(value) for value in row.tolist()]
+            for row in np_mod.asarray(crystallized, dtype=np_mod.float32)
+        ]
 
     def smooth_intermediate(self, output, ema_buffer, warp_level: bool = True):
         """Smooth intermediate outputs using EMA buffer.
@@ -1027,6 +1134,123 @@ class GraphCrystallizer:
         return self.smooth_intermediate(output, ema_buffer, warp_level=True)
 
 
+class SleepClusterRefiner:
+    """Sovereign sleep-time cluster refiner backed by sleep_cluster_refiner.ptx.
+
+    This bridge is intentionally thin: orchestration stays in Python, while
+    centroid assignment, refinement, and silhouette scoring run on GPU via the
+    canonical PTX runtime wrapper.
+    """
+
+    def __init__(self):
+        from knowledge3d.cranium.ptx_runtime.sleep_cluster_kernels import SleepClusterKernels
+
+        self._kernels = SleepClusterKernels()
+
+    def refine_clusters(
+        self,
+        embeddings,
+        n_clusters: int,
+        n_iterations: int = 4,
+        learning_rate: float = 0.2,
+    ) -> dict:
+        np_mod = _np()
+        emb = np_mod.asarray(embeddings, dtype=np_mod.float32)
+        if emb.ndim != 2:
+            raise ValueError(f"sleep_cluster_refiner expects rank-2 embeddings, got {emb.shape}")
+        rows, dims = emb.shape
+        if rows == 0:
+            return {
+                "assignments": np_mod.empty((0,), dtype=np_mod.int32),
+                "centroids": np_mod.empty((0, dims), dtype=np_mod.float32),
+                "cluster_counts": np_mod.empty((0,), dtype=np_mod.int32),
+                "silhouette_scores": np_mod.empty((0,), dtype=np_mod.float32),
+                "mean_silhouette": 0.0,
+                "refined_embeddings": np_mod.empty((0, dims), dtype=np_mod.float32),
+            }
+        cluster_target = max(1, min(int(n_clusters), rows))
+        if cluster_target == 1:
+            assignments = np_mod.zeros((rows,), dtype=np_mod.int32)
+            centroids = np_mod.mean(emb, axis=0, keepdims=True).astype(np_mod.float32, copy=False)
+            refined = self._kernels.refine_embeddings(emb, centroids, assignments, float(learning_rate))
+            return {
+                "assignments": assignments,
+                "centroids": centroids,
+                "cluster_counts": np_mod.asarray([rows], dtype=np_mod.int32),
+                "silhouette_scores": np_mod.zeros((rows,), dtype=np_mod.float32),
+                "mean_silhouette": 0.0,
+                "refined_embeddings": refined,
+            }
+
+        rng = np_mod.random.default_rng(0)
+        seeds = rng.choice(rows, size=cluster_target, replace=False)
+        centroids = np_mod.ascontiguousarray(emb[seeds], dtype=np_mod.float32)
+        assignments = np_mod.zeros((rows,), dtype=np_mod.int32)
+
+        for _ in range(max(1, int(n_iterations))):
+            similarity = np_mod.ascontiguousarray(emb @ centroids.T, dtype=np_mod.float32)
+            assignments = self._kernels.assign_to_best_centroid(similarity)
+            centroids, counts = self._kernels.accumulate_centroids(emb, assignments, cluster_target)
+            empty = np_mod.where(counts <= 0)[0]
+            for idx in empty.tolist():
+                centroids[idx] = emb[int(rng.integers(0, rows))]
+
+        refined = self._kernels.refine_embeddings(emb, centroids, assignments, float(learning_rate))
+        silhouettes = self._kernels.compute_silhouette_scores(refined, assignments, cluster_target)
+        _, counts = self._kernels.accumulate_centroids(refined, assignments, cluster_target)
+        mean_silhouette = float(np_mod.mean(silhouettes)) if silhouettes.size else 0.0
+        return {
+            "assignments": assignments,
+            "centroids": centroids,
+            "cluster_counts": counts,
+            "silhouette_scores": silhouettes,
+            "mean_silhouette": mean_silhouette,
+            "refined_embeddings": refined,
+        }
+
+
+class SleepGlyphConsolidator:
+    """Sovereign glyph consolidator backed by sleep_glyph_consolidator.ptx."""
+
+    def __init__(self):
+        from knowledge3d.cranium.ptx_runtime.sleep_glyph_kernels import SleepGlyphKernels
+
+        self._kernels = SleepGlyphKernels()
+
+    def consolidate_glyphs(
+        self,
+        glyph_embeddings,
+        similarity_threshold: float = 0.92,
+    ) -> dict:
+        np_mod = _np()
+        emb = np_mod.asarray(glyph_embeddings, dtype=np_mod.float32)
+        if emb.ndim != 2:
+            raise ValueError(f"sleep_glyph_consolidator expects rank-2 embeddings, got {emb.shape}")
+        rows, dims = emb.shape
+        if rows == 0:
+            return {
+                "assignments": np_mod.empty((0,), dtype=np_mod.int32),
+                "group_count": 0,
+                "group_sizes": [],
+                "embeddings_shape": [0, dims],
+            }
+        assignments = self._kernels.cluster_by_similarity(emb, float(similarity_threshold))
+        if assignments.size == 0:
+            return {
+                "assignments": assignments,
+                "group_count": 0,
+                "group_sizes": [],
+                "embeddings_shape": [rows, dims],
+            }
+        unique_ids, counts = np_mod.unique(assignments, return_counts=True)
+        return {
+            "assignments": assignments,
+            "group_count": int(unique_ids.size),
+            "group_sizes": [int(value) for value in counts.tolist()],
+            "embeddings_shape": [rows, dims],
+        }
+
+
 class MultimodalHaltingGate:
     """Sovereign Multimodal Halting Gate - Geometry-aware halting"""
 
@@ -1046,40 +1270,83 @@ class MultimodalHaltingGate:
             Halt flags (uint32: 1=continue, 0=halt)
         """
         np_mod = _np()
-        assert logits.dtype == np_mod.float32
-        assert masks.dtype == np_mod.uint32
-        assert logits.shape == masks.shape
-        
-        output = np.zeros_like(masks)
-        
-        d_logits = gpu_malloc(logits.nbytes)
-        d_masks = gpu_malloc(masks.nbytes)
-        d_output = gpu_malloc(output.nbytes)
-        
+        logits_arr = np_mod.asarray(logits, dtype=np_mod.float32).reshape(-1)
+        masks_arr = np_mod.asarray(masks, dtype=np_mod.uint32).reshape(-1)
+        assert logits_arr.shape == masks_arr.shape
+        return np_mod.asarray(
+            [
+                0 if mask == 0 else (1 if float(logit) >= float(threshold) else 0)
+                for logit, mask in zip(logits_arr.tolist(), masks_arr.tolist())
+            ],
+            dtype=np_mod.uint32,
+        )
+
+    def analyze_scores(
+        self,
+        scores,
+        candidate_hashes,
+        *,
+        minimum_threshold: float,
+        gap_threshold: float,
+        agreement_threshold: float,
+    ):
+        """Compute halting flags directly from raw path scores and candidate hashes.
+
+        Args:
+            scores: Raw path scores (float32)
+            candidate_hashes: Candidate identity hashes (uint32)
+            minimum_threshold: Minimum top-score threshold. <= 0 disables.
+            gap_threshold: Winner-gap threshold. <= 0 disables.
+            agreement_threshold: Agreement-count threshold. <= 0 disables.
+
+        Returns:
+            tuple[np.ndarray, np.ndarray]: (flags[4], metrics[3]) where metrics are
+            [top_score, score_gap, agreement_count].
+        """
+        np_mod = _np()
+        score_arr = np_mod.asarray(scores, dtype=np_mod.float32).reshape(-1)
+        hash_arr = np_mod.asarray(candidate_hashes, dtype=np_mod.uint32).reshape(-1)
+        if score_arr.shape != hash_arr.shape:
+            raise ValueError(
+                f"score/hash shape mismatch: {score_arr.shape} != {hash_arr.shape}"
+            )
+
+        flags = np_mod.zeros(4, dtype=np_mod.uint32)
+        metrics = np_mod.zeros(3, dtype=np_mod.float32)
+        if score_arr.size == 0:
+            return flags, metrics
+
+        d_scores = gpu_malloc(score_arr.nbytes)
+        d_hashes = gpu_malloc(hash_arr.nbytes)
+        d_flags = gpu_malloc(flags.nbytes)
+        d_metrics = gpu_malloc(metrics.nbytes)
         try:
-            memcpy_htod(d_logits, logits.ctypes.data_as(ctypes.c_void_p), logits.nbytes)
-            memcpy_htod(d_masks, masks.ctypes.data_as(ctypes.c_void_p), masks.nbytes)
-            
+            memcpy_htod(d_scores, score_arr.ctypes.data_as(ctypes.c_void_p), score_arr.nbytes)
+            memcpy_htod(d_hashes, hash_arr.ctypes.data_as(ctypes.c_void_p), hash_arr.nbytes)
             launch(
                 self.kernel,
-                grid=((len(logits) + 255) // 256, 1, 1),
-                block=(256, 1, 1),
+                grid=(1, 1, 1),
+                block=(1, 1, 1),
                 params=[
-                    ctypes.c_uint64(d_logits.value),
-                    ctypes.c_uint64(d_masks.value),
-                    ctypes.c_uint64(d_output.value),
-                    ctypes.c_uint32(len(logits)),
-                    ctypes.c_float(threshold),
+                    ctypes.c_uint64(d_scores.value),
+                    ctypes.c_uint64(d_hashes.value),
+                    ctypes.c_uint64(d_flags.value),
+                    ctypes.c_uint64(d_metrics.value),
+                    ctypes.c_uint32(int(score_arr.size)),
+                    ctypes.c_float(float(minimum_threshold)),
+                    ctypes.c_float(float(gap_threshold)),
+                    ctypes.c_float(float(agreement_threshold)),
                 ],
             )
             synchronize()
-            
-            memcpy_dtoh(output.ctypes.data_as(ctypes.c_void_p), d_output, output.nbytes)
-            return output
+            memcpy_dtoh(flags.ctypes.data_as(ctypes.c_void_p), d_flags, flags.nbytes)
+            memcpy_dtoh(metrics.ctypes.data_as(ctypes.c_void_p), d_metrics, metrics.nbytes)
+            return flags, metrics
         finally:
-            gpu_free(d_logits)
-            gpu_free(d_masks)
-            gpu_free(d_output)
+            gpu_free(d_scores)
+            gpu_free(d_hashes)
+            gpu_free(d_flags)
+            gpu_free(d_metrics)
 
 
 class ModularRPNEngine:
@@ -1117,17 +1384,103 @@ class ModularRPNEngine:
         if not ptx_path.exists():
             raise FileNotFoundError(f"RPN PTX kernel not found: {ptx_path}")
 
-        self.kernel = load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-        self.extract_kernel = load_ptx_file(str(ptx_path), "modular_rpn_extract_top")
+        self.module = load_module_from_file(str(ptx_path))
+        self.kernel = get_function(self.module, "modular_rpn_geometric_kernel")
+        self.extract_kernel = get_function(self.module, "modular_rpn_extract_top")
 
         # Allocate persistent state buffer (18 instances × 1040 bytes, Tesla 3-6-9 resonance)
         total_bytes = self.MAX_INSTANCES * self.INSTANCE_STRIDE
         self.d_state = gpu_malloc(total_bytes)
+        self.d_galaxy_entries: Optional[CUdeviceptr] = None
+        self.d_query_embeddings = gpu_malloc(self.MAX_INSTANCES * 16 * 4)
+        self._galaxy_entry_count = 0
+        self._galaxy_entry_stride = 19
+        self._galaxy_embedding_dim = 16
+        self._galaxy_embedding_offset = 3
 
         # Zero-initialize state buffer using ctypes (no NumPy)
         ZerosArray = ctypes.c_uint8 * total_bytes
         zeros = ZerosArray()
         memcpy_htod(self.d_state, ctypes.cast(zeros, ctypes.c_void_p), total_bytes)
+        QueryZerosArray = ctypes.c_float * (self.MAX_INSTANCES * 16)
+        query_zeros = QueryZerosArray()
+        memcpy_htod(self.d_query_embeddings, ctypes.cast(query_zeros, ctypes.c_void_p), ctypes.sizeof(query_zeros))
+        self._bind_runtime_globals()
+
+    def _set_module_global(self, symbol_name: str, value, ctype) -> None:
+        symbol_ptr, symbol_size = get_global(self.module, symbol_name)
+        payload = ctype(value)
+        copy_size = min(symbol_size, ctypes.sizeof(payload))
+        memcpy_htod(symbol_ptr, ctypes.cast(ctypes.byref(payload), ctypes.c_void_p), copy_size)
+
+    def _bind_runtime_globals(self) -> None:
+        galaxy_ptr = int(self.d_galaxy_entries.value) if self.d_galaxy_entries is not None else 0
+        self._set_module_global("g_galaxy_entries_ptr", galaxy_ptr, ctypes.c_uint64)
+        self._set_module_global("g_galaxy_entry_count", int(self._galaxy_entry_count), ctypes.c_uint32)
+        self._set_module_global("g_galaxy_entry_stride", int(self._galaxy_entry_stride), ctypes.c_uint32)
+        self._set_module_global("g_galaxy_embedding_dim", int(self._galaxy_embedding_dim), ctypes.c_uint32)
+        self._set_module_global("g_galaxy_embedding_offset", int(self._galaxy_embedding_offset), ctypes.c_uint32)
+        self._set_module_global("g_query_embedding_ptr", int(self.d_query_embeddings.value), ctypes.c_uint64)
+        self._set_module_global("g_query_embedding_stride", 16, ctypes.c_uint32)
+
+    def bind_galaxy_buffer(
+        self,
+        flat_entries: Sequence[float],
+        *,
+        entry_count: int,
+        entry_stride: int = 19,
+        embedding_offset: int = 3,
+        embedding_dim: int = 16,
+    ) -> dict[str, int]:
+        data = [float(value) for value in flat_entries]
+        if entry_count < 0:
+            raise ValueError("entry_count must be non-negative")
+        expected = int(entry_count) * int(entry_stride)
+        if expected != len(data):
+            raise ValueError(f"Galaxy buffer length mismatch: expected {expected}, got {len(data)}")
+
+        if self.d_galaxy_entries is not None:
+            gpu_free(self.d_galaxy_entries)
+            self.d_galaxy_entries = None
+        if data:
+            FloatArray = ctypes.c_float * len(data)
+            host = FloatArray(*data)
+            self.d_galaxy_entries = gpu_malloc(ctypes.sizeof(host))
+            memcpy_htod(self.d_galaxy_entries, ctypes.cast(host, ctypes.c_void_p), ctypes.sizeof(host))
+        self._galaxy_entry_count = int(entry_count)
+        self._galaxy_entry_stride = int(entry_stride)
+        self._galaxy_embedding_offset = int(embedding_offset)
+        self._galaxy_embedding_dim = int(embedding_dim)
+        self._bind_runtime_globals()
+        return {
+            "entry_count": self._galaxy_entry_count,
+            "entry_stride": self._galaxy_entry_stride,
+            "embedding_offset": self._galaxy_embedding_offset,
+            "embedding_dim": self._galaxy_embedding_dim,
+        }
+
+    def store_embedding(
+        self,
+        *,
+        instance_id: int,
+        embedding: Sequence[float],
+        slot: int = 0,
+    ) -> None:
+        if slot != 0:
+            raise ValueError("Only query embedding slot 0 is currently supported")
+        if not (0 <= instance_id < self.MAX_INSTANCES):
+            raise ValueError(f"Invalid instance_id: {instance_id}")
+        values = [float(value) for value in embedding]
+        if len(values) != 16:
+            raise ValueError(f"Query embedding must have 16 values, got {len(values)}")
+        FloatArray = ctypes.c_float * len(values)
+        host = FloatArray(*values)
+        offset = instance_id * len(values) * 4
+        memcpy_htod(
+            ctypes.c_void_p(self.d_query_embeddings.value + offset),
+            ctypes.cast(host, ctypes.c_void_p),
+            ctypes.sizeof(host),
+        )
 
     def execute_single(
         self,
@@ -1347,6 +1700,44 @@ class ModularRPNEngine:
         synchronize()
         return d_out, count
 
+    def read_instance_stack_scalars(self, instance_id: int) -> List[float]:
+        """Return scalar values from one instance stack in logical bottom->top order."""
+        if not (0 <= instance_id < self.MAX_INSTANCES):
+            raise ValueError(f"Invalid instance_id: {instance_id}")
+
+        instance_offset = instance_id * self.INSTANCE_STRIDE
+        HeaderArray = ctypes.c_uint32 * 4
+        header_bytes = HeaderArray()
+        memcpy_dtoh(
+            ctypes.cast(header_bytes, ctypes.c_void_p),
+            ctypes.c_void_p(self.d_state.value + instance_offset),
+            16,
+        )
+
+        head = int(header_bytes[0])
+        size = int(header_bytes[1])
+        error_code = int(header_bytes[2])
+
+        if error_code != 0:
+            raise RuntimeError(f"RPN execution error: code {error_code}")
+        if size <= 0:
+            return []
+
+        stack_base_offset = instance_offset + 16
+        ResultArray = ctypes.c_float * 4
+        scalars: List[float] = []
+        for logical_index in range(size):
+            stack_index = (head + logical_index) & 63
+            element_offset = stack_base_offset + (stack_index * 16)
+            result_bytes = ResultArray()
+            memcpy_dtoh(
+                ctypes.cast(result_bytes, ctypes.c_void_p),
+                ctypes.c_void_p(self.d_state.value + element_offset),
+                16,
+            )
+            scalars.append(float(result_bytes[0]))
+        return scalars
+
     def reset_instance(self, instance_id: int):
         """Reset instance state (clear stack, reset head/size)"""
         if not (0 <= instance_id < self.MAX_INSTANCES):
@@ -1364,6 +1755,10 @@ class ModularRPNEngine:
 
     def cleanup(self):
         """Free GPU memory"""
+        if self.d_galaxy_entries is not None:
+            gpu_free(self.d_galaxy_entries)
+            self.d_galaxy_entries = None
+        gpu_free(self.d_query_embeddings)
         gpu_free(self.d_state)
 
     def __del__(self):

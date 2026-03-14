@@ -58,3 +58,26 @@ class TestLEDPathfinderSovereign:
 
         assert min_node == 11
         assert idx == 1
+
+    def test_csr_navigation(self, pathfinder: LEDPathfinder):
+        row_offsets = np.array([0, 2, 3, 4], dtype=np.uint32)
+        col_indices = np.array([1, 2, 2, 1], dtype=np.uint32)
+        packed_costs = np.array(
+            [
+                (10 << 16) | 1,
+                (100 << 16) | 8,
+                (5 << 16) | 1,
+                (5 << 16) | 1,
+            ],
+            dtype=np.uint32,
+        )
+
+        path = pathfinder.navigate_csr(
+            row_offsets,
+            col_indices,
+            packed_costs,
+            start=0,
+            goal=2,
+        )
+
+        assert path.tolist() == [0, 1, 2]

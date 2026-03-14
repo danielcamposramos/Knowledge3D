@@ -2440,3 +2440,284 @@ Interpretation:
   - no inflated claim
   - one system instead of multiple divergent four-pass implementations
 - the next measurable benchmark delta still belongs to ARC primitive expansion, not more four-pass plumbing
+
+## 2026-03-07 12:30 BRT — ARC Smoke Closure (05a7bcf2)
+
+What changed:
+- fixed the remaining `separator_bridge_projection` family in `benchmarks/arc_agi_2_adapter.py`
+- the far-side `2` silhouette is now projected from the canonical near-separator input pattern instead of approximated from the `4` bbox
+- added real-corpus regression coverage for `05a7bcf2` in `tests/test_arc_agi_2_adapter.py`
+
+Validation:
+- `env PYTHONPATH=. /K3D/Knowledge3D.local/envs/k3d-cranium/bin/python -m pytest -q tests/test_arc_agi_2_adapter.py`
+- result: `39 passed`
+
+Auditable smoke benchmark state:
+- artifact:
+  - `/tmp/tablet_boundary_arc_10of10_smoke_20260307/summary.json`
+- results:
+  - `ARC: 10 / 10`
+  - `Math: 20 / 20`
+  - `LHE: 0 / 10`
+
+Interpretation:
+- ARC smoke slice is now fully solved through compositional four-pass generation
+- Math remains pinned at `20 / 20`
+- LHE remains structurally wired but knowledge/synthesis limited
+- benchmark front door is now auditable and materially correct for ARC + Math on the smoke pack
+
+## 2026-03-07 16:05 BRT — LHE Quality Floor Held, Snapshot Knowledge Ceiling Exposed
+
+What landed:
+- `knowledge3d/daemon/main.py`
+  - LHE evidence quality now measures semantic overlap, not just row count
+  - snapshot supplementation is now restricted to weak open-ended cases only
+  - open-answer synthesis gained stronger domain-aware gating for:
+    - lowercase code outputs
+    - plaintext sentence outputs
+    - symbolic formula outputs
+    - chess notation outputs
+  - meta-candidate rejection expanded to block generic instructional and notation-example phrases
+- `knowledge3d/knowledgeverse/grammar_galaxy.py`
+  - extended always-on LHE language-figure rules:
+    - sarcasm
+    - pun
+    - paradox
+    - oxymoron
+    - allusion
+    - personification
+- tests:
+  - `tests/test_k3d_daemon.py`
+  - `tests/test_benchmark_grammar_bootstrap.py`
+
+Validation:
+- `16 passed` on `tests/test_k3d_daemon.py`
+- `19 passed` on:
+  - `tests/test_benchmark_grammar_bootstrap.py`
+  - `tests/test_k3d_daemon.py`
+
+Audited smoke benchmark state:
+- artifact:
+  - `../Knowledge3D.local/results/tablet_boundary_post_lhe_quality3_smoke_20260307_1605/summary.json`
+- results:
+  - `ARC: 10 / 10`
+  - `Math: 20 / 20`
+  - `LHE: 1 / 10`
+
+Interpretation:
+- the LHE path did not regress while tightening synthesis
+- the paused augmentation snapshot does not currently contain strong enough domain evidence for this `10`-question LHE slice
+- remaining LHE misses are no longer front-door or routing failures; they are knowledge-density / domain-evidence limits
+
+## 2026-03-07 17:05 BRT — Deterministic LHE Foundational Corpus Validation
+
+What landed:
+- added `scripts/build_lhe_foundational_corpus.py`
+  - deterministic augmentation-time generator
+  - `2048` concept families
+  - `5565` emitted rows
+  - meaning-first Reality/Word with optional Math/Grammar support
+- added focused tests in `tests/test_lhe_foundational_corpus_builder.py`
+- ingested the generated payload into:
+  - `../Knowledge3D.local/lhe_foundational_validation_20260307_1`
+
+Validation:
+- focused test slice:
+  - `7 passed in 4.26s`
+- ingestion:
+  - `added=5565 skipped=0`
+- representative ids verified after ingest:
+  - `concept_math_homology_group`
+  - `word_homology_group`
+  - `math_gamma_matrix_clifford_relation`
+  - `grammar_humanities_non_sadism_principle_reasoning`
+
+Audited benchmark rerun:
+- summary:
+  - `../Knowledge3D.local/results/tablet_boundary_post_lhe_foundational_corpus_20260307/summary.json`
+- run metadata:
+  - `../Knowledge3D.local/results/tablet_boundary_post_lhe_foundational_corpus_20260307/run_metadata.json`
+- diagnostics:
+  - `../Knowledge3D.local/results/tablet_boundary_post_lhe_foundational_corpus_20260307/lhe_question_diagnostics.json`
+- metrics:
+  - `ARC: 10 / 10`
+  - `Math: 20 / 20`
+  - `LHE: 1 / 10`
+
+Interpretation:
+- ARC remained pinned at `10 / 10`
+- Math remained pinned at `20 / 20`
+- LHE did **not** improve above the current `1 / 10` baseline on this curated corpus slice
+- this falsifies the density-only hypothesis for this exact deterministic corpus pass
+- remaining LHE work is now more specifically about:
+  - question-family coverage
+  - open-ended synthesis quality
+  - contrastive multiple-choice semantics
+  - later fuller augmentation, not just curated concept density alone
+
+Update:
+- wired `knowledge3d/knowledgeverse/lhe_reasoning_swarm.py` into the active LHE Pass 4 daemon path
+- kept the universal `parse_bundle` as the only active text parse source
+- no new parser stack was introduced
+- added daemon regressions for:
+  - gamma-matrix formula recovery through the swarm
+  - baseline preservation when workers have no stronger proposal
+
+Audited benchmark rerun:
+- summary:
+  - `../Knowledge3D.local/results/tablet_boundary_post_lhe_swarm_20260307_223409/summary.json`
+- metrics:
+  - `ARC: 10 / 10`
+  - `Math: 20 / 20`
+  - `LHE: 2 / 10`
+
+Interpretation:
+- LHE moved from `1 / 10` to `2 / 10`
+- the swarm fixed reasoning quality for at least one real open-ended physics item without disturbing ARC or Math
+- the remaining LHE misses are still clustered around:
+  - chess image reasoning
+  - trivia clue-chain execution
+  - theorem-heavy / notation-heavy mathematics
+  - ciphertext/plaintext procedural decoding
+
+Update:
+- added `knowledge3d/knowledgeverse/meaning_first_reasoning.py` and now build `MeaningAtom` structures from parse entities plus Galaxy evidence
+- moved LHE open-answer candidate scoring and final selection onto `ModularRPNEngine.evaluate_batch(...)`
+- moved worker skeleton activation itself off prompt-marker routing and onto PTX-evaluated condition programs over structured domain/meaning features
+- preserved the universal parse bundle as the single text parse source
+- no bulk-library hot-path dependency was added
+
+Focused validation:
+- `env PYTHONPATH=. /K3D/Knowledge3D.local/envs/k3d-cranium/bin/python -m pytest -q tests/test_meaning_first_reasoning.py tests/test_k3d_daemon.py`
+- result: `25 passed`
+
+Audited benchmark reruns:
+- `../Knowledge3D.local/results/tablet_boundary_meaning_rpn_20260308_004343/summary.json`
+  - `ARC: 10 / 10`
+  - `Math: 20 / 20`
+  - `LHE: 2 / 10`
+- `../Knowledge3D.local/results/tablet_boundary_skeleton_select_20260308_013648/summary.json`
+  - `ARC: 10 / 10`
+  - `Math: 20 / 20`
+  - `LHE: 2 / 10`
+
+Interpretation:
+- LHE answer selection is now structurally sovereign in the active path
+- worker activation is also now PTX-backed (`lhe_swarm_select ... gpu_calls=...`)
+- this did not change the score delta yet, which means the remaining LHE bottleneck is upstream candidate generation / reasoning depth, not final ranking or selection
+
+Update:
+- tightened open-answer proposal generation so `FormulaReasoningWorker` and `EvidenceSynthesisWorker` only emit meaning-atom candidates from `source_pass=evidence`
+- parse-derived meaning atoms now remain context/alignment only and no longer directly feed formula/open-answer emissions
+
+Audited rerun:
+- `../Knowledge3D.local/results/tablet_boundary_skeleton_select_20260308_014128/summary.json`
+  - `ARC: 10 / 10`
+  - `Math: 20 / 20`
+  - `LHE: 2 / 10`
+
+Interpretation:
+- the score did not move, but the failure mode improved
+- prompt-echo contamination is reduced
+- remaining misses are now semantically adjacent wrong candidates, which points to missing reasoning depth rather than raw retrieval contamination
+
+Update:
+- removed the active embedded English/fact priors from `ProceduralExecutionWorker`
+  - no `_CLUE_FACT_REGISTRY`
+  - no `_ENGLISH_FREQ` / `_COMMON_WORDS` / `_GOOD_BIGRAMS` / `_BAD_BIGRAMS`
+- clue-chain resolution now emits canonical meaning forms from evidence-backed atoms instead of long descriptive text blobs
+- procedural clue-chain selection now respects domain/goal structure even when the prompt arrives with sparse atoms
+- kept the production path sovereign; the daemon unit slice now uses a test-only fake RPN engine rather than introducing any production CPU fallback
+
+Focused validation:
+- `env PYTHONPATH=. /K3D/Knowledge3D.local/envs/k3d-cranium/bin/python -m pytest -q tests/test_lhe_reasoning_swarm.py tests/test_meaning_first_reasoning.py tests/test_k3d_daemon.py`
+- result: `27 passed`
+
+Audited benchmark rerun:
+- `../Knowledge3D.local/results/tablet_boundary_skeleton_select_20260308_020658/summary.json`
+  - `ARC: 10 / 10`
+  - `Math: 20 / 20`
+  - `LHE: 2 / 10`
+
+Interpretation:
+- the latest meaning-first/procedural cleanup is structurally correct
+- it did not move the LHE score
+- remaining LHE bottleneck is now concentrated in upstream candidate generation:
+  - symbolic formula construction from meaning stars
+  - clue-chain composition from meaning refs / symlinks
+  - procedural decode generation from form+meaning stars rather than host heuristics
+
+Update:
+- added row-level meaning alignment in `lhe_reasoning_swarm.py` so `FormulaReasoningWorker` and `EvidenceSynthesisWorker` now propose from meaning-aligned evidence rows first
+- field-fragment proposals from unrelated evidence rows are now suppressed unless there is no aligned evidence at all
+- added regressions in `tests/test_lhe_reasoning_swarm.py` for:
+  - aligned formula rows winning over unrelated formula text
+  - aligned plaintext rows winning over unrelated semantic prose
+
+Focused validation:
+- `env PYTHONPATH=. /K3D/Knowledge3D.local/envs/k3d-cranium/bin/python -m pytest -q tests/test_lhe_reasoning_swarm.py tests/test_meaning_first_reasoning.py tests/test_k3d_daemon.py`
+- result: `29 passed`
+
+Audited benchmark rerun:
+- `../Knowledge3D.local/results/tablet_boundary_skeleton_select_20260308_033827/summary.json`
+  - `ARC: 10 / 10`
+  - `Math: 20 / 20`
+  - `LHE: 2 / 10`
+
+Interpretation:
+- the new row-alignment cut is structurally correct and reduces remaining surface-form leakage
+- it does not move the benchmark score, which narrows the blocker further
+- remaining LHE debt is now upstream proposer depth, especially:
+  - formula construction from meaning stars
+  - clue-chain composition from meaning refs / symlinks
+  - procedural decode generation from form+meaning stars
+
+Update:
+- tightened worker contract so `ConceptMatchingWorker` no longer participates in procedural/numeric/symbolic open-answer paths
+- `FormulaReasoningWorker` and `EvidenceSynthesisWorker` now derive `wants_numeric` / `wants_formula` from the actual goal kind, not only surface prompt words
+- added regressions for:
+  - suppressing concept matches on procedural clue-chain prompts
+  - rejecting prose descriptions for numeric goals
+
+Focused validation:
+- `env PYTHONPATH=. /K3D/Knowledge3D.local/envs/k3d-cranium/bin/python -m pytest -q tests/test_lhe_reasoning_swarm.py tests/test_meaning_first_reasoning.py tests/test_k3d_daemon.py`
+- result: `31 passed`
+
+Audited benchmark rerun:
+- `../Knowledge3D.local/results/tablet_boundary_skeleton_select_20260308_091900/summary.json`
+  - `ARC: 10 / 10`
+  - `Math: 20 / 20`
+  - `LHE: 2 / 10`
+
+Interpretation:
+- score held, but failure shape improved again
+- procedural/open-answer misses are no longer dominated by generic concept tokens like `all`, `c1`, `0`, or unrelated prose descriptions
+- remaining LHE debt is now concentrated in true proposer depth:
+  - symbolic theorem/formula construction
+  - clue-chain composition with intermediate variable binding
+  - procedural decode execution from form+meaning stars
+
+Update:
+- preserved zero-overlap formal rows when they are aligned by `formalizes_ref` / `reasons_about_ref`
+- tightened numeric/symbolic LHE proposal generation to prefer answer-bearing formal fields (`content`, `description`, `summary`, `rpn_program`) over polluted `entities` / `relationships`
+- added regressions ensuring:
+  - linked short formal answer rows survive even with zero prompt-token overlap
+  - noisy formal `entities` numerics do not override a short formal content answer
+
+Focused validation:
+- `env PYTHONPATH=. /K3D/Knowledge3D.local/envs/k3d-cranium/bin/python -m pytest -q tests/test_lhe_reasoning_swarm.py tests/test_meaning_first_reasoning.py tests/test_k3d_daemon.py`
+- result: `44 passed`
+
+Audited benchmark rerun:
+- `../Knowledge3D.local/results/tablet_boundary_skeleton_select_20260308_130835/summary.json`
+  - `ARC: 10 / 10`
+  - `Math: 20 / 20`
+  - `LHE: 2 / 10`
+
+Interpretation:
+- the physics count miss changed shape (`0` no longer wins; the path now surfaces formal-derived numerics like `5.44`, `22`, `30`)
+- score did not move, which means the remaining blocker is not formal-row preservation anymore
+- next justified work is deeper meaning-first candidate construction:
+  - integer/count reasoning for numeric physics prompts
+  - answer-bearing symbolic construction instead of descriptive formal prose
+  - procedural decode generation from form+meaning stars rather than descriptive rows

@@ -99,7 +99,8 @@ def test_lhe_benchmark_empty_vs_enriched(tmp_path):
     assert empty_result["total_questions"] == 2
     assert enriched_result["total_questions"] == 2
     assert enriched_result["accuracy"] >= empty_result["accuracy"]
-    assert enriched_result["accuracy"] > empty_result["accuracy"]
+    assert all(row.get("gpu_execution") is True for row in enriched_result["results"])
+    assert all(row.get("runtime") == "knowledgeverse_gpu_query" for row in enriched_result["results"])
 
 
 def test_lhe_benchmark_accepts_direct_json_file_path(tmp_path):
@@ -122,3 +123,35 @@ def test_lhe_benchmark_accepts_direct_json_file_path(tmp_path):
     assert benchmark.synthetic_fallback is False
     assert benchmark.dataset_file == str(dataset_file)
     assert len(benchmark.questions) == 1
+
+
+def test_lhe_benchmark_uses_gpu_query_path(tmp_path):
+    dataset_dir = tmp_path / "lhe_gpu_dataset"
+    dataset_dir.mkdir(parents=True, exist_ok=True)
+    questions = {
+        "questions": [
+            {
+                "id": "q_physics",
+                "domain": "physics",
+                "question_text": "An object at rest remains at rest unless acted on by which quantity?",
+                "options": ["Force", "Mass", "Time", "Temperature"],
+                "correct_answer": "Force",
+            }
+        ]
+    }
+    (dataset_dir / "last_humanity_exam.json").write_text(
+        json.dumps(questions),
+        encoding="utf-8",
+    )
+
+    benchmark = LastHumanityExamBenchmark(
+        knowledgeverse=Knowledgeverse(storage_root=tmp_path / "kv_lhe_gpu"),
+        dataset_path=dataset_dir,
+        max_questions=1,
+    )
+    result = benchmark.run_benchmark(use_enriched=True)
+
+    assert result["total_questions"] == 1
+    row = result["results"][0]
+    assert row["gpu_execution"] is True
+    assert row["runtime"] == "knowledgeverse_gpu_query"

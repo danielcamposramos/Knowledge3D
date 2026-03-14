@@ -2,8 +2,22 @@
 #include <math.h>
 #include <stdint.h>
 
+extern "C" {
+__device__ __constant__ unsigned long long g_galaxy_entries_ptr = 0ULL;
+__device__ __constant__ unsigned int g_galaxy_entry_count = 0u;
+__device__ __constant__ unsigned int g_galaxy_entry_stride = 19u;
+__device__ __constant__ unsigned int g_galaxy_embedding_dim = 16u;
+__device__ __constant__ unsigned int g_galaxy_embedding_offset = 3u;
+__device__ __constant__ unsigned long long g_query_embedding_ptr = 0ULL;
+__device__ __constant__ unsigned int g_query_embedding_stride = 16u;
+}
+
 namespace {
 constexpr int kStackCapacity = 64;
+constexpr int kGalaxyEmbeddingDim = 16;
+constexpr int kGalaxyEntryStrideDefault = 19;
+constexpr int kGalaxyEmbeddingOffsetDefault = 3;
+constexpr int kGalaxyTopKMax = 16;
 
 enum class ValueType : uint32_t {
     kScalar = 0,
@@ -169,6 +183,58 @@ __device__ inline float3 pseudo_random_vec(uint32_t seed) {
     float z = (seed & 0x3FFu) / 1024.0f;
     float3 vec = make_float3(x * 2.0f - 1.0f, y * 2.0f - 1.0f, z * 2.0f - 1.0f);
     return normalize3(vec);
+}
+
+__device__ inline const float* galaxy_entries() {
+    return reinterpret_cast<const float*>(g_galaxy_entries_ptr);
+}
+
+__device__ inline const float* query_embedding_for_instance(uint32_t instance_id) {
+    if (g_query_embedding_ptr == 0ULL) {
+        return nullptr;
+    }
+    return reinterpret_cast<const float*>(g_query_embedding_ptr)
+        + (instance_id * g_query_embedding_stride);
+}
+
+__device__ inline int rounded_index(float value) {
+    return static_cast<int>(floorf(value + 0.5f));
+}
+
+__device__ inline bool galaxy_index_valid(int entry_index) {
+    return entry_index >= 0 && static_cast<unsigned int>(entry_index) < g_galaxy_entry_count;
+}
+
+__device__ inline const float* galaxy_entry_base(int entry_index) {
+    return galaxy_entries() + (entry_index * static_cast<int>(g_galaxy_entry_stride));
+}
+
+__device__ inline float galaxy_entry_confidence(int entry_index) {
+    return galaxy_entry_base(entry_index)[0];
+}
+
+__device__ inline float galaxy_cosine_similarity(uint32_t instance_id, int entry_index) {
+    const float* query = query_embedding_for_instance(instance_id);
+    if (query == nullptr || g_galaxy_entries_ptr == 0ULL || !galaxy_index_valid(entry_index)) {
+        return 0.0f;
+    }
+    const float* entry = galaxy_entry_base(entry_index) + static_cast<int>(g_galaxy_embedding_offset);
+    const int dim = static_cast<int>(g_galaxy_embedding_dim);
+    float dot = 0.0f;
+    float norm_q = 0.0f;
+    float norm_e = 0.0f;
+    for (int i = 0; i < dim; ++i) {
+        float q = query[i];
+        float e = entry[i];
+        dot += q * e;
+        norm_q += q * q;
+        norm_e += e * e;
+    }
+    float denom = sqrtf(norm_q) * sqrtf(norm_e);
+    if (denom <= 1e-8f) {
+        return 0.0f;
+    }
+    return dot / denom;
 }
 }  // namespace
 
@@ -616,6 +682,99 @@ extern "C" __global__ void modular_rpn_geometric_kernel(
                     if (!pop_scalar(stack, stack_size, value, error_code)) break;
                     float sig = 0.5f * (1.0f + tanhf(0.5f * value));
                     push(stack, stack_size, make_scalar(sig), error_code);
+                    break;
+                }
+                case 0xE0: {  // LOAD_GALAXY
+                    float entry_index_scalar = 0.0f;
+                    if (!pop_scalar(stack, stack_size, entry_index_scalar, error_code)) break;
+                    int entry_index = rounded_index(entry_index_scalar);
+                    if (g_galaxy_entries_ptr == 0ULL || !galaxy_index_valid(entry_index)) {
+                        error_code = kErrorInvalidArgument;
+                        break;
+                    }
+                    const float* entry = galaxy_entry_base(entry_index);
+                    push(stack, stack_size, make_scalar(entry[0]), error_code);  // confidence
+                    if (error_code != kErrorNone) break;
+                    push(stack, stack_size, make_scalar(entry[1]), error_code);  // domain hash
+                    if (error_code != kErrorNone) break;
+                    push(stack, stack_size, make_scalar(entry[2]), error_code);  // subject hash
+                    if (error_code != kErrorNone) break;
+                    push(stack, stack_size, make_scalar(static_cast<float>(entry_index)), error_code);
+                    break;
+                }
+                case 0xE1: {  // GALAXY_SIMILARITY
+                    float entry_index_scalar = 0.0f;
+                    if (!pop_scalar(stack, stack_size, entry_index_scalar, error_code)) break;
+                    int entry_index = rounded_index(entry_index_scalar);
+                    if (g_galaxy_entries_ptr == 0ULL || !galaxy_index_valid(entry_index) || g_query_embedding_ptr == 0ULL) {
+                        error_code = kErrorInvalidArgument;
+                        break;
+                    }
+                    float similarity = galaxy_cosine_similarity(instance_id, entry_index);
+                    push(stack, stack_size, make_scalar(similarity), error_code);
+                    break;
+                }
+                case 0xE2: {  // GALAXY_SCAN
+                    float requested_k_scalar = 0.0f;
+                    if (!pop_scalar(stack, stack_size, requested_k_scalar, error_code)) break;
+                    if (g_galaxy_entries_ptr == 0ULL || g_query_embedding_ptr == 0ULL) {
+                        error_code = kErrorInvalidArgument;
+                        break;
+                    }
+                    int requested_k = rounded_index(requested_k_scalar);
+                    if (requested_k <= 0) {
+                        error_code = kErrorInvalidArgument;
+                        break;
+                    }
+                    int available_stack = static_cast<int>(kStackCapacity - stack_size - 1);
+                    if (available_stack <= 0) {
+                        error_code = kErrorStackOverflow;
+                        break;
+                    }
+                    int k = requested_k;
+                    if (k > static_cast<int>(g_galaxy_entry_count)) k = static_cast<int>(g_galaxy_entry_count);
+                    if (k > kGalaxyTopKMax) k = kGalaxyTopKMax;
+                    if (k > available_stack) k = available_stack;
+                    if (k <= 0) {
+                        push(stack, stack_size, make_scalar(0.0f), error_code);
+                        break;
+                    }
+
+                    float top_scores[kGalaxyTopKMax];
+                    int top_indices[kGalaxyTopKMax];
+                    for (int pos = 0; pos < kGalaxyTopKMax; ++pos) {
+                        top_scores[pos] = -2.0f;
+                        top_indices[pos] = -1;
+                    }
+
+                    for (int entry_index = 0; entry_index < static_cast<int>(g_galaxy_entry_count); ++entry_index) {
+                        float score = galaxy_cosine_similarity(instance_id, entry_index);
+                        for (int pos = 0; pos < k; ++pos) {
+                            if (score > top_scores[pos]) {
+                                for (int shift = k - 1; shift > pos; --shift) {
+                                    top_scores[shift] = top_scores[shift - 1];
+                                    top_indices[shift] = top_indices[shift - 1];
+                                }
+                                top_scores[pos] = score;
+                                top_indices[pos] = entry_index;
+                                break;
+                            }
+                        }
+                    }
+
+                    int actual_count = 0;
+                    for (int pos = 0; pos < k; ++pos) {
+                        if (top_indices[pos] >= 0) {
+                            actual_count += 1;
+                        }
+                    }
+                    // Push worst-to-best so the best candidate sits on top after dropping count.
+                    for (int pos = actual_count - 1; pos >= 0; --pos) {
+                        push(stack, stack_size, make_scalar(static_cast<float>(top_indices[pos])), error_code);
+                        if (error_code != kErrorNone) break;
+                    }
+                    if (error_code != kErrorNone) break;
+                    push(stack, stack_size, make_scalar(static_cast<float>(actual_count)), error_code);
                     break;
                 }
                 case 0x46: {  // rotate (around Z axis)

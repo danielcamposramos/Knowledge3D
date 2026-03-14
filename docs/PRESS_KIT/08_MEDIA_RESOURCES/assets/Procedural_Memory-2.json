@@ -1,0 +1,1612 @@
+[
+    {
+        "start": 0,
+        "stop": 1.28,
+        "text": " Alright, let's just jump right"
+    },
+    {
+        "start": 1.28,
+        "stop": 2.8,
+        "text": " in. For what feels like forever"
+    },
+    {
+        "start": 2.8,
+        "stop": 4.11,
+        "text": ", we've been treating AI like"
+    },
+    {
+        "start": 4.11,
+        "stop": 4.4,
+        "text": " this"
+    },
+    {
+        "start": 4.4,
+        "stop": 6.32,
+        "text": " unexplainable black box, right?"
+    },
+    {
+        "start": 6.32,
+        "stop": 7.61,
+        "text": " You ask it something, you get"
+    },
+    {
+        "start": 7.61,
+        "stop": 9.24,
+        "text": " an answer. But the how behind"
+    },
+    {
+        "start": 9.24,
+        "stop": 11.15,
+        "text": " it all? That's a total mystery."
+    },
+    {
+        "start": 11.15,
+        "stop": 12.4,
+        "text": " Well, today we're going to"
+    },
+    {
+        "start": 12.4,
+        "stop": 13.52,
+        "text": " crack that box wide open by"
+    },
+    {
+        "start": 13.52,
+        "stop": 14.36,
+        "text": " looking at a"
+    },
+    {
+        "start": 14.36,
+        "stop": 15.6,
+        "text": " new kind of architecture, one"
+    },
+    {
+        "start": 15.6,
+        "stop": 16.69,
+        "text": " that's actually built on an"
+    },
+    {
+        "start": 16.69,
+        "stop": 18.32,
+        "text": " idea that's 50 years old. It's"
+    },
+    {
+        "start": 18.32,
+        "stop": 18.48,
+        "text": " called"
+    },
+    {
+        "start": 18.48,
+        "stop": 20.01,
+        "text": " procedural memory, and it"
+    },
+    {
+        "start": 20.01,
+        "stop": 21.75,
+        "text": " basically forces AI to show its"
+    },
+    {
+        "start": 21.75,
+        "stop": 23.55,
+        "text": " work. And this, right here,"
+    },
+    {
+        "start": 23.55,
+        "stop": 24.26,
+        "text": " gets to the"
+    },
+    {
+        "start": 24.26,
+        "stop": 25.73,
+        "text": " absolute heart of it. We're all"
+    },
+    {
+        "start": 25.73,
+        "stop": 27.05,
+        "text": " used to the equation on top."
+    },
+    {
+        "start": 27.05,
+        "stop": 28.62,
+        "text": " That's standard algebra. It's"
+    },
+    {
+        "start": 28.62,
+        "stop": 28.9,
+        "text": " intuitive"
+    },
+    {
+        "start": 28.9,
+        "stop": 30.82,
+        "text": " for us humans. But look at the"
+    },
+    {
+        "start": 30.82,
+        "stop": 32.32,
+        "text": " one on the bottom. That's"
+    },
+    {
+        "start": 32.32,
+        "stop": 34.36,
+        "text": " called reverse Polish notation,"
+    },
+    {
+        "start": 34.36,
+        "stop": 34.94,
+        "text": " or RPN."
+    },
+    {
+        "start": 34.94,
+        "stop": 36.36,
+        "text": " You might remember it from old"
+    },
+    {
+        "start": 36.36,
+        "stop": 38.1,
+        "text": " school HP calculators. It looks"
+    },
+    {
+        "start": 38.1,
+        "stop": 39.74,
+        "text": " weird, but for a computer, it's"
+    },
+    {
+        "start": 39.74,
+        "stop": 40.42,
+        "text": " incredibly"
+    },
+    {
+        "start": 40.42,
+        "stop": 42.25,
+        "text": " efficient. And more importantly"
+    },
+    {
+        "start": 42.25,
+        "stop": 43.58,
+        "text": ", it's explicit, and you can"
+    },
+    {
+        "start": 43.58,
+        "stop": 45.2,
+        "text": " actually debug it. This strange"
+    },
+    {
+        "start": 45.2,
+        "stop": 45.74,
+        "text": "-looking"
+    },
+    {
+        "start": 45.74,
+        "stop": 47.66,
+        "text": " logic? It's the key to a more"
+    },
+    {
+        "start": 47.66,
+        "stop": 49.53,
+        "text": " transparent, and frankly, more"
+    },
+    {
+        "start": 49.53,
+        "stop": 51.43,
+        "text": " powerful AI. So that really is"
+    },
+    {
+        "start": 51.43,
+        "stop": 51.74,
+        "text": " the"
+    },
+    {
+        "start": 51.74,
+        "stop": 53.12,
+        "text": " big question for this whole"
+    },
+    {
+        "start": 53.12,
+        "stop": 54.9,
+        "text": " explainer. Why on earth are we"
+    },
+    {
+        "start": 54.9,
+        "stop": 56.29,
+        "text": " looking back at calculator"
+    },
+    {
+        "start": 56.29,
+        "stop": 57.74,
+        "text": " logic from the 1970s"
+    },
+    {
+        "start": 57.74,
+        "stop": 59.16,
+        "text": " to solve some of the biggest,"
+    },
+    {
+        "start": 59.16,
+        "stop": 60.45,
+        "text": " most pressing problems in"
+    },
+    {
+        "start": 60.45,
+        "stop": 62.29,
+        "text": " artificial intelligence today?"
+    },
+    {
+        "start": 62.29,
+        "stop": 63.12,
+        "text": " Well, the answer is"
+    },
+    {
+        "start": 63.12,
+        "stop": 64.12,
+        "text": " surprisingly elegant,"
+    },
+    {
+        "start": 64.12,
+        "stop": 66.04,
+        "text": " and it has some truly massive"
+    },
+    {
+        "start": 66.04,
+        "stop": 67.34,
+        "text": " implications. So here's our"
+    },
+    {
+        "start": 67.34,
+        "stop": 69.14,
+        "text": " game plan. First, we're going"
+    },
+    {
+        "start": 69.14,
+        "stop": 70.36,
+        "text": " to tackle what's called the"
+    },
+    {
+        "start": 70.36,
+        "stop": 71.83,
+        "text": " dead brain problem that plagues"
+    },
+    {
+        "start": 71.83,
+        "stop": 73.42,
+        "text": " current AI. Then, we'll dive"
+    },
+    {
+        "start": 73.42,
+        "stop": 75.31,
+        "text": " into the solution, the living"
+    },
+    {
+        "start": 75.31,
+        "stop": 76.95,
+        "text": " stack. After that, we'll break"
+    },
+    {
+        "start": 76.95,
+        "stop": 77.95,
+        "text": " down the three-brain"
+    },
+    {
+        "start": 77.95,
+        "stop": 79.34,
+        "text": " architecture and its super"
+    },
+    {
+        "start": 79.34,
+        "stop": 80.81,
+        "text": " efficient GPU engine. And"
+    },
+    {
+        "start": 80.81,
+        "stop": 82.45,
+        "text": " finally, we'll see how this all"
+    },
+    {
+        "start": 82.45,
+        "stop": 83.5,
+        "text": " adds up to a new kind of"
+    },
+    {
+        "start": 83.5,
+        "stop": 85.31,
+        "text": " intelligence, one that doesn't"
+    },
+    {
+        "start": 85.31,
+        "stop": 87.08,
+        "text": " come with all the insane bloat."
+    },
+    {
+        "start": 87.08,
+        "stop": 89.46,
+        "text": " Okay. First up, the dead brain"
+    },
+    {
+        "start": 89.46,
+        "stop": 91.67,
+        "text": " problem. This really gets to"
+    },
+    {
+        "start": 91.67,
+        "stop": 93.46,
+        "text": " the core of what's wrong with"
+    },
+    {
+        "start": 93.46,
+        "stop": 94.71,
+        "text": " So many of the AI systems we"
+    },
+    {
+        "start": 94.71,
+        "stop": 96.27,
+        "text": " use today. They're basically"
+    },
+    {
+        "start": 96.27,
+        "stop": 97.83,
+        "text": " impossible to look inside, and"
+    },
+    {
+        "start": 97.83,
+        "stop": 99.47,
+        "text": " they are incredibly inefficient"
+    },
+    {
+        "start": 99.47,
+        "stop": 99.84,
+        "text": "."
+    },
+    {
+        "start": 99.84,
+        "stop": 101.76,
+        "text": " Yeah, this slide lays it out"
+    },
+    {
+        "start": 101.76,
+        "stop": 103.39,
+        "text": " perfectly. On the one hand, you"
+    },
+    {
+        "start": 103.39,
+        "stop": 105.21,
+        "text": " have the current AI paradigm."
+    },
+    {
+        "start": 105.21,
+        "stop": 106.88,
+        "text": " It's like the AI is just saying"
+    },
+    {
+        "start": 106.88,
+        "stop": 108.8,
+        "text": ", \"Trust me, I ran the numbers."
+    },
+    {
+        "start": 108.8,
+        "stop": 110.36,
+        "text": " It's a black box.\" But the"
+    },
+    {
+        "start": 110.36,
+        "stop": 111.02,
+        "text": " problem with that is on the"
+    },
+    {
+        "start": 111.02,
+        "stop": 111.6,
+        "text": " right. These systems are opaque"
+    },
+    {
+        "start": 111.6,
+        "stop": 112.24,
+        "text": ", so you can't debug them. And"
+    },
+    {
+        "start": 112.24,
+        "stop": 112.87,
+        "text": " they have this huge knowledge"
+    },
+    {
+        "start": 112.87,
+        "stop": 113.53,
+        "text": " duplication crisis, where the"
+    },
+    {
+        "start": 113.53,
+        "stop": 114.17,
+        "text": " same pieces of information are"
+    },
+    {
+        "start": 114.17,
+        "stop": 114.85,
+        "text": " stored over and over again. All"
+    },
+    {
+        "start": 114.85,
+        "stop": 115.46,
+        "text": " that leads to bloated,"
+    },
+    {
+        "start": 115.46,
+        "stop": 116.07,
+        "text": " inefficient, and risky models."
+    },
+    {
+        "start": 116.07,
+        "stop": 116.68,
+        "text": " That's the dead brain problem"
+    },
+    {
+        "start": 116.68,
+        "stop": 117.34,
+        "text": " in a nutshell. So if that's the"
+    },
+    {
+        "start": 117.34,
+        "stop": 118.22,
+        "text": " problem, what's the fix?"
+    },
+    {
+        "start": 118.22,
+        "stop": 119.34,
+        "text": " Well, the source calls it the"
+    },
+    {
+        "start": 119.34,
+        "stop": 120.28,
+        "text": " living stack. And this"
+    },
+    {
+        "start": 120.28,
+        "stop": 121.41,
+        "text": " introduces us to a really core"
+    },
+    {
+        "start": 121.41,
+        "stop": 122.5,
+        "text": " concept: procedural memory"
+    },
+    {
+        "start": 122.5,
+        "stop": 123.86,
+        "text": " knowledge representation, or PM"
+    },
+    {
+        "start": 123.86,
+        "stop": 124.6,
+        "text": "KR for short."
+    },
+    {
+        "start": 124.6,
+        "stop": 126.09,
+        "text": " That's the deadbrain problem in"
+    },
+    {
+        "start": 126.09,
+        "stop": 127.76,
+        "text": " a nutshell. So if that's the"
+    },
+    {
+        "start": 127.76,
+        "stop": 130.13,
+        "text": " problem, what's the fix? Well,"
+    },
+    {
+        "start": 130.13,
+        "stop": 132.02,
+        "text": " the source calls it the living"
+    },
+    {
+        "start": 132.02,
+        "stop": 133.4,
+        "text": " stack. And this introduces us"
+    },
+    {
+        "start": 133.4,
+        "stop": 134.86,
+        "text": " to a really core concept,"
+    },
+    {
+        "start": 134.86,
+        "stop": 136.79,
+        "text": " procedural memory knowledge"
+    },
+    {
+        "start": 136.79,
+        "stop": 138.69,
+        "text": " representation, or PMKR for"
+    },
+    {
+        "start": 138.69,
+        "stop": 140.79,
+        "text": " short. Okay, this is the"
+    },
+    {
+        "start": 140.79,
+        "stop": 141.32,
+        "text": " crucial"
+    },
+    {
+        "start": 141.32,
+        "stop": 143.12,
+        "text": " difference. Think about it like"
+    },
+    {
+        "start": 143.12,
+        "stop": 144.19,
+        "text": " this. Instead of storing a"
+    },
+    {
+        "start": 144.19,
+        "stop": 145.51,
+        "text": " million photos of a finished"
+    },
+    {
+        "start": 145.51,
+        "stop": 145.94,
+        "text": " cake,"
+    },
+    {
+        "start": 145.94,
+        "stop": 147.94,
+        "text": " PMKR just stores the recipe for"
+    },
+    {
+        "start": 147.94,
+        "stop": 150.03,
+        "text": " the cake once. That recipe is a"
+    },
+    {
+        "start": 150.03,
+        "stop": 152.41,
+        "text": " procedure, right? It's an"
+    },
+    {
+        "start": 152.41,
+        "stop": 153.88,
+        "text": " executable program. You can run"
+    },
+    {
+        "start": 153.88,
+        "stop": 155.15,
+        "text": " it whenever you want to get the"
+    },
+    {
+        "start": 155.15,
+        "stop": 156.36,
+        "text": " cake. You can look at every"
+    },
+    {
+        "start": 156.36,
+        "stop": 156.82,
+        "text": " single"
+    },
+    {
+        "start": 156.82,
+        "stop": 158.33,
+        "text": " step. You can even tweak the"
+    },
+    {
+        "start": 158.33,
+        "stop": 160.06,
+        "text": " ingredients. The knowledge isn"
+    },
+    {
+        "start": 160.06,
+        "stop": 161.8,
+        "text": "'t some static dead object. It's"
+    },
+    {
+        "start": 161.8,
+        "stop": 161.94,
+        "text": " a"
+    },
+    {
+        "start": 161.94,
+        "stop": 163.86,
+        "text": " living, breathing, executable"
+    },
+    {
+        "start": 163.86,
+        "stop": 165.29,
+        "text": " process. And here's where it"
+    },
+    {
+        "start": 165.29,
+        "stop": 166.93,
+        "text": " gets really clever. It's this"
+    },
+    {
+        "start": 166.93,
+        "stop": 167.48,
+        "text": " idea of a"
+    },
+    {
+        "start": 167.48,
+        "stop": 169.4,
+        "text": " dual client contract. You have"
+    },
+    {
+        "start": 169.4,
+        "stop": 170.99,
+        "text": " one single source of truth for"
+    },
+    {
+        "start": 170.99,
+        "stop": 172.8,
+        "text": " a piece of knowledge. For us,"
+    },
+    {
+        "start": 172.8,
+        "stop": 173.36,
+        "text": " the human"
+    },
+    {
+        "start": 173.36,
+        "stop": 175.28,
+        "text": " client, it gets rendered into"
+    },
+    {
+        "start": 175.28,
+        "stop": 176.25,
+        "text": " something we can easily"
+    },
+    {
+        "start": 176.25,
+        "stop": 178.01,
+        "text": " understand, like a 3D model or"
+    },
+    {
+        "start": 178.01,
+        "stop": 178.82,
+        "text": " a normal math"
+    },
+    {
+        "start": 178.82,
+        "stop": 180.8,
+        "text": " equation. But for the AI client"
+    },
+    {
+        "start": 180.8,
+        "stop": 182.43,
+        "text": ", that exact same source of"
+    },
+    {
+        "start": 182.43,
+        "stop": 184.52,
+        "text": " truth is an executable program,"
+    },
+    {
+        "start": 184.52,
+        "stop": 185.2,
+        "text": " like those"
+    },
+    {
+        "start": 185.2,
+        "stop": 187.12,
+        "text": " RPN operations we saw. You get"
+    },
+    {
+        "start": 187.12,
+        "stop": 188.81,
+        "text": " two views, but there's only one"
+    },
+    {
+        "start": 188.81,
+        "stop": 190.84,
+        "text": " underlying source. No conflicts"
+    },
+    {
+        "start": 190.84,
+        "stop": 191.16,
+        "text": " and"
+    },
+    {
+        "start": 191.16,
+        "stop": 193.19,
+        "text": " absolutely no duplication. So"
+    },
+    {
+        "start": 193.19,
+        "stop": 195.01,
+        "text": " how does this actually work in"
+    },
+    {
+        "start": 195.01,
+        "stop": 197.12,
+        "text": " practice? Well, that brings us"
+    },
+    {
+        "start": 197.12,
+        "stop": 197.96,
+        "text": " to K3D."
+    },
+    {
+        "start": 197.96,
+        "stop": 198.8,
+        "text": " It's the reference"
+    },
+    {
+        "start": 198.8,
+        "stop": 200.13,
+        "text": " implementation of this whole"
+    },
+    {
+        "start": 200.13,
+        "stop": 201.53,
+        "text": " procedural memory idea, and it"
+    },
+    {
+        "start": 201.53,
+        "stop": 202.4,
+        "text": "'s built on what's"
+    },
+    {
+        "start": 202.4,
+        "stop": 203.39,
+        "text": " called a three-brain"
+    },
+    {
+        "start": 203.39,
+        "stop": 204.96,
+        "text": " architecture. The architecture"
+    },
+    {
+        "start": 204.96,
+        "stop": 206.12,
+        "text": " is really elegant because it"
+    },
+    {
+        "start": 206.12,
+        "stop": 207.1,
+        "text": " kind of mirrors how a"
+    },
+    {
+        "start": 207.1,
+        "stop": 208.84,
+        "text": " computer's memory already works"
+    },
+    {
+        "start": 208.84,
+        "stop": 210.3,
+        "text": ". You've got the house, which is"
+    },
+    {
+        "start": 210.3,
+        "stop": 212.08,
+        "text": " like your SSD or hard drive. It"
+    },
+    {
+        "start": 212.08,
+        "stop": 212.52,
+        "text": "'s for"
+    },
+    {
+        "start": 212.52,
+        "stop": 213.72,
+        "text": " the long-term persistent"
+    },
+    {
+        "start": 213.72,
+        "stop": 215.13,
+        "text": " storage of all those recipes or"
+    },
+    {
+        "start": 215.13,
+        "stop": 216.76,
+        "text": " procedural programs. Then there"
+    },
+    {
+        "start": 216.76,
+        "stop": 218.04,
+        "text": "'s the galaxy, which"
+    },
+    {
+        "start": 218.04,
+        "stop": 219.34,
+        "text": " you can think of as your VRAM."
+    },
+    {
+        "start": 219.34,
+        "stop": 220.66,
+        "text": " It's the active 3D workspace"
+    },
+    {
+        "start": 220.66,
+        "stop": 221.98,
+        "text": " where knowledge gets loaded up"
+    },
+    {
+        "start": 221.98,
+        "stop": 222.72,
+        "text": " for real-time"
+    },
+    {
+        "start": 222.72,
+        "stop": 224.19,
+        "text": " reasoning. And finally, you"
+    },
+    {
+        "start": 224.19,
+        "stop": 225.61,
+        "text": " have the cranium. That's the"
+    },
+    {
+        "start": 225.61,
+        "stop": 227.03,
+        "text": " GPU itself, the actual engine"
+    },
+    {
+        "start": 227.03,
+        "stop": 227.74,
+        "text": " that does the"
+    },
+    {
+        "start": 227.74,
+        "stop": 229.13,
+        "text": " thinking and executes the"
+    },
+    {
+        "start": 229.13,
+        "stop": 230.96,
+        "text": " programs. It's a really clean,"
+    },
+    {
+        "start": 230.96,
+        "stop": 232.73,
+        "text": " logical system. Now let's zoom"
+    },
+    {
+        "start": 232.73,
+        "stop": 233.76,
+        "text": " in on the heart of"
+    },
+    {
+        "start": 233.76,
+        "stop": 235.61,
+        "text": " that cranium, the engine that"
+    },
+    {
+        "start": 235.61,
+        "stop": 236.92,
+        "text": " makes this whole thing tick."
+    },
+    {
+        "start": 236.92,
+        "stop": 238.68,
+        "text": " This is where that 50-year-old"
+    },
+    {
+        "start": 238.68,
+        "stop": 239.64,
+        "text": " calculator logic"
+    },
+    {
+        "start": 239.64,
+        "stop": 241.62,
+        "text": " comes roaring back to life. So"
+    },
+    {
+        "start": 241.62,
+        "stop": 243.78,
+        "text": " why use reverse polish notation"
+    },
+    {
+        "start": 243.78,
+        "stop": 246.5,
+        "text": " on a cutting-edge GPU? Well, it"
+    },
+    {
+        "start": 246.5,
+        "stop": 246.78,
+        "text": " turns out"
+    },
+    {
+        "start": 246.78,
+        "stop": 248.08,
+        "text": " to be a perfect marriage."
+    },
+    {
+        "start": 248.08,
+        "stop": 249.63,
+        "text": " Because every single operation"
+    },
+    {
+        "start": 249.63,
+        "stop": 251.05,
+        "text": " is explicit and visible on the"
+    },
+    {
+        "start": 251.05,
+        "stop": 252.38,
+        "text": " stack, the whole process"
+    },
+    {
+        "start": 252.38,
+        "stop": 253.75,
+        "text": " is completely transparent and"
+    },
+    {
+        "start": 253.75,
+        "stop": 255.23,
+        "text": " debuggable. Stack operations"
+    },
+    {
+        "start": 255.23,
+        "stop": 256.6,
+        "text": " are also incredibly efficient"
+    },
+    {
+        "start": 256.6,
+        "stop": 256.98,
+        "text": " for the"
+    },
+    {
+        "start": 256.98,
+        "stop": 258.1,
+        "text": " way GPUs process things in"
+    },
+    {
+        "start": 258.1,
+        "stop": 259.64,
+        "text": " parallel. It's deterministic,"
+    },
+    {
+        "start": 259.64,
+        "stop": 260.94,
+        "text": " meaning the same input always"
+    },
+    {
+        "start": 260.94,
+        "stop": 261.7,
+        "text": " gives you the same"
+    },
+    {
+        "start": 261.7,
+        "stop": 263.23,
+        "text": " output, which is a huge deal."
+    },
+    {
+        "start": 263.23,
+        "stop": 264.86,
+        "text": " And maybe the wildest part, the"
+    },
+    {
+        "start": 264.86,
+        "stop": 266.49,
+        "text": " core engine is just 2.3 kilob"
+    },
+    {
+        "start": 266.49,
+        "stop": 267.58,
+        "text": "ytes. You can"
+    },
+    {
+        "start": 267.58,
+        "stop": 268.79,
+        "text": " spawn thousands and thousands"
+    },
+    {
+        "start": 268.79,
+        "stop": 269.89,
+        "text": " of them for massive parallel"
+    },
+    {
+        "start": 269.89,
+        "stop": 271.45,
+        "text": " reasoning. And I really want to"
+    },
+    {
+        "start": 271.45,
+        "stop": 272.26,
+        "text": " make this clear,"
+    },
+    {
+        "start": 272.26,
+        "stop": 274.2,
+        "text": " this isn't just some academic"
+    },
+    {
+        "start": 274.2,
+        "stop": 276.39,
+        "text": " theory. The source emphasizes"
+    },
+    {
+        "start": 276.39,
+        "stop": 278.5,
+        "text": " that this is a real, working RP"
+    },
+    {
+        "start": 278.5,
+        "stop": 279.02,
+        "text": "N engine."
+    },
+    {
+        "start": 279.02,
+        "stop": 280.99,
+        "text": " It's been implemented directly"
+    },
+    {
+        "start": 280.99,
+        "stop": 282.88,
+        "text": " on NVIDIA GPUs using low-level"
+    },
+    {
+        "start": 282.88,
+        "stop": 284.76,
+        "text": " PTX kernels. That means it is"
+    },
+    {
+        "start": 284.76,
+        "stop": 285.39,
+        "text": " running"
+    },
+    {
+        "start": 285.39,
+        "stop": 286.76,
+        "text": " right on the metal. This is"
+    },
+    {
+        "start": 286.76,
+        "stop": 288.56,
+        "text": " real-world tech. Okay, so we've"
+    },
+    {
+        "start": 288.56,
+        "stop": 289.57,
+        "text": " got this beautiful new"
+    },
+    {
+        "start": 289.57,
+        "stop": 290.64,
+        "text": " architecture."
+    },
+    {
+        "start": 290.64,
+        "stop": 292,
+        "text": " What's the payoff? What do we"
+    },
+    {
+        "start": 292,
+        "stop": 293.41,
+        "text": " actually get out of it? Well,"
+    },
+    {
+        "start": 293.41,
+        "stop": 294.56,
+        "text": " this brings us to our final"
+    },
+    {
+        "start": 294.56,
+        "stop": 295.14,
+        "text": " section,"
+    },
+    {
+        "start": 295.14,
+        "stop": 296.45,
+        "text": " building truly powerful"
+    },
+    {
+        "start": 296.45,
+        "stop": 297.83,
+        "text": " intelligence without the"
+    },
+    {
+        "start": 297.83,
+        "stop": 299.47,
+        "text": " absolutely insane bloat we see"
+    },
+    {
+        "start": 299.47,
+        "stop": 300.68,
+        "text": " in current models."
+    },
+    {
+        "start": 300.68,
+        "stop": 301.98,
+        "text": " I mean, just look at this"
+    },
+    {
+        "start": 301.98,
+        "stop": 303.83,
+        "text": " comparison. It's not even close"
+    },
+    {
+        "start": 303.83,
+        "stop": 305.43,
+        "text": ". On the left, you've got your"
+    },
+    {
+        "start": 305.43,
+        "stop": 306.24,
+        "text": " traditional"
+    },
+    {
+        "start": 306.24,
+        "stop": 308.22,
+        "text": " large language models with over"
+    },
+    {
+        "start": 308.22,
+        "stop": 310.79,
+        "text": " 100 trillion parameters. And on"
+    },
+    {
+        "start": 310.79,
+        "stop": 312.89,
+        "text": " the right, the K3D procedural"
+    },
+    {
+        "start": 312.89,
+        "stop": 314.92,
+        "text": " core with just 7 million. See,"
+    },
+    {
+        "start": 314.92,
+        "stop": 316.62,
+        "text": " it's not trying to store all of"
+    },
+    {
+        "start": 316.62,
+        "stop": 318.54,
+        "text": " the world's knowledge. It's"
+    },
+    {
+        "start": 318.54,
+        "stop": 318.74,
+        "text": " learning"
+    },
+    {
+        "start": 318.74,
+        "stop": 320.66,
+        "text": " how to use the recipes for that"
+    },
+    {
+        "start": 320.66,
+        "stop": 321.89,
+        "text": " knowledge. And that is a"
+    },
+    {
+        "start": 321.89,
+        "stop": 323.63,
+        "text": " fundamental, game-changing"
+    },
+    {
+        "start": 323.63,
+        "stop": 324.26,
+        "text": " shift."
+    },
+    {
+        "start": 324.26,
+        "stop": 326.17,
+        "text": " And the efficiency gains are"
+    },
+    {
+        "start": 326.17,
+        "stop": 327.68,
+        "text": " just mind-blowing. Using a"
+    },
+    {
+        "start": 327.68,
+        "stop": 329.3,
+        "text": " technique called adaptive"
+    },
+    {
+        "start": 329.3,
+        "stop": 330.62,
+        "text": " procedural compression,"
+    },
+    {
+        "start": 331.1,
+        "stop": 332.37,
+        "text": " K3D can take something"
+    },
+    {
+        "start": 332.37,
+        "stop": 334.26,
+        "text": " incredibly complex, like a chip"
+    },
+    {
+        "start": 334.26,
+        "stop": 335.77,
+        "text": " design file. We're talking ter"
+    },
+    {
+        "start": 335.77,
+        "stop": 336.72,
+        "text": "abytes of data,"
+    },
+    {
+        "start": 336.72,
+        "stop": 338.37,
+        "text": " and compress it by a factor of"
+    },
+    {
+        "start": 338.37,
+        "stop": 339.91,
+        "text": " a thousand. It does this by"
+    },
+    {
+        "start": 339.91,
+        "stop": 341.61,
+        "text": " storing the rules to generate"
+    },
+    {
+        "start": 341.61,
+        "stop": 342.46,
+        "text": " the design,"
+    },
+    {
+        "start": 342.46,
+        "stop": 344.37,
+        "text": " not the massive final design"
+    },
+    {
+        "start": 344.37,
+        "stop": 345.62,
+        "text": " itself. So how does it pull"
+    },
+    {
+        "start": 345.62,
+        "stop": 347.6,
+        "text": " this off? Well, the compression"
+    },
+    {
+        "start": 347.6,
+        "stop": 348.4,
+        "text": " really comes"
+    },
+    {
+        "start": 348.76,
+        "stop": 350.67,
+        "text": " from three main places. The"
+    },
+    {
+        "start": 350.67,
+        "stop": 351.96,
+        "text": " biggest piece of the pie, about"
+    },
+    {
+        "start": 351.96,
+        "stop": 353.76,
+        "text": " 70%, comes from just storing"
+    },
+    {
+        "start": 353.76,
+        "stop": 354.42,
+        "text": " knowledge once,"
+    },
+    {
+        "start": 354.42,
+        "stop": 356.33,
+        "text": " and then pointing to it, like a"
+    },
+    {
+        "start": 356.33,
+        "stop": 358.04,
+        "text": " computer simlink. Another 20%"
+    },
+    {
+        "start": 358.04,
+        "stop": 359.36,
+        "text": " comes from really clever"
+    },
+    {
+        "start": 359.36,
+        "stop": 360.08,
+        "text": " procedural"
+    },
+    {
+        "start": 360.08,
+        "stop": 361.99,
+        "text": " codecs that represent data as"
+    },
+    {
+        "start": 361.99,
+        "stop": 363.64,
+        "text": " little programs. And the final"
+    },
+    {
+        "start": 363.64,
+        "stop": 365.72,
+        "text": " 10% comes from just being smart"
+    },
+    {
+        "start": 365.72,
+        "stop": 367.08,
+        "text": " about using"
+    },
+    {
+        "start": 367.08,
+        "stop": 368.99,
+        "text": " simpler procedures for simpler"
+    },
+    {
+        "start": 368.99,
+        "stop": 370.24,
+        "text": " concepts. This incredibly"
+    },
+    {
+        "start": 370.24,
+        "stop": 371.35,
+        "text": " efficient and transparent"
+    },
+    {
+        "start": 371.35,
+        "stop": 372.08,
+        "text": " architecture"
+    },
+    {
+        "start": 372.08,
+        "stop": 374,
+        "text": " opens the door to a new goal,"
+    },
+    {
+        "start": 374,
+        "stop": 375.81,
+        "text": " not just artificial general"
+    },
+    {
+        "start": 375.81,
+        "stop": 377.52,
+        "text": " intelligence or AGI, but"
+    },
+    {
+        "start": 377.52,
+        "stop": 378.84,
+        "text": " something called"
+    },
+    {
+        "start": 378.84,
+        "stop": 381.08,
+        "text": " spatial general intelligence or"
+    },
+    {
+        "start": 381.08,
+        "stop": 383,
+        "text": " SGI. The big idea here is to"
+    },
+    {
+        "start": 383,
+        "stop": 385.16,
+        "text": " ground intelligence in a shared"
+    },
+    {
+        "start": 385.16,
+        "stop": 386.06,
+        "text": " 3D space,"
+    },
+    {
+        "start": 386.06,
+        "stop": 387.97,
+        "text": " that galaxy universe we talked"
+    },
+    {
+        "start": 387.97,
+        "stop": 389.42,
+        "text": " about, where humans and AI can"
+    },
+    {
+        "start": 389.42,
+        "stop": 390.97,
+        "text": " literally navigate the same"
+    },
+    {
+        "start": 390.97,
+        "stop": 391.8,
+        "text": " cognitive map"
+    },
+    {
+        "start": 391.8,
+        "stop": 392.85,
+        "text": " and look at the exact same"
+    },
+    {
+        "start": 392.85,
+        "stop": 394.24,
+        "text": " piece of knowledge together."
+    },
+    {
+        "start": 394.24,
+        "stop": 396.35,
+        "text": " And the ultimate vision here is"
+    },
+    {
+        "start": 396.35,
+        "stop": 396.94,
+        "text": " something"
+    },
+    {
+        "start": 396.94,
+        "stop": 398.86,
+        "text": " called superhuman general"
+    },
+    {
+        "start": 398.86,
+        "stop": 400.66,
+        "text": " intelligence. But, and this is"
+    },
+    {
+        "start": 400.66,
+        "stop": 402.58,
+        "text": " key, this is not about building"
+    },
+    {
+        "start": 402.58,
+        "stop": 403.32,
+        "text": " one giant,"
+    },
+    {
+        "start": 403.32,
+        "stop": 405.53,
+        "text": " all-knowing, godlike AI. SHGI"
+    },
+    {
+        "start": 405.53,
+        "stop": 407.87,
+        "text": " is an emergent intelligence. It"
+    },
+    {
+        "start": 407.87,
+        "stop": 409.82,
+        "text": "'s what happens when you have"
+    },
+    {
+        "start": 409.82,
+        "stop": 411.18,
+        "text": " billions of these small,"
+    },
+    {
+        "start": 411.18,
+        "stop": 412.59,
+        "text": " efficient K3D models all"
+    },
+    {
+        "start": 412.59,
+        "stop": 414.37,
+        "text": " working together with humans in"
+    },
+    {
+        "start": 414.37,
+        "stop": 415.48,
+        "text": " that shared space."
+    },
+    {
+        "start": 415.48,
+        "stop": 417.4,
+        "text": " It's intelligence as a massive,"
+    },
+    {
+        "start": 417.4,
+        "stop": 418.87,
+        "text": " collaborative network, not a"
+    },
+    {
+        "start": 418.87,
+        "stop": 420.94,
+        "text": " single monolith. And, you know,"
+    },
+    {
+        "start": 420.94,
+        "stop": 421.82,
+        "text": " this addresses the"
+    },
+    {
+        "start": 421.82,
+        "stop": 423.74,
+        "text": " elephant in the room: safety."
+    },
+    {
+        "start": 423.74,
+        "stop": 424.99,
+        "text": " The source makes a really"
+    },
+    {
+        "start": 424.99,
+        "stop": 426.38,
+        "text": " powerful claim here."
+    },
+    {
+        "start": 426.38,
+        "stop": 428.27,
+        "text": " It says you simply cannot build"
+    },
+    {
+        "start": 428.27,
+        "stop": 430.1,
+        "text": " Skynet with this architecture."
+    },
+    {
+        "start": 430.1,
+        "stop": 432.02,
+        "text": " And why is that? Because there"
+    },
+    {
+        "start": 432.02,
+        "stop": 432.76,
+        "text": "'s no single,"
+    },
+    {
+        "start": 432.76,
+        "stop": 434.67,
+        "text": " all-powerful AI to go rogue."
+    },
+    {
+        "start": 434.67,
+        "stop": 436.16,
+        "text": " And by its very design, every"
+    },
+    {
+        "start": 436.16,
+        "stop": 437.9,
+        "text": " single step of its reasoning is"
+    },
+    {
+        "start": 437.9,
+        "stop": 439.76,
+        "text": " transparent and inspectable."
+    },
+    {
+        "start": 439.76,
+        "stop": 441.26,
+        "text": " Nothing is hidden."
+    },
+    {
+        "start": 441.26,
+        "stop": 443.16,
+        "text": " Which brings us right back to"
+    },
+    {
+        "start": 443.16,
+        "stop": 444.71,
+        "text": " where we started. Decades ago,"
+    },
+    {
+        "start": 444.71,
+        "stop": 445.81,
+        "text": " we figured out that a"
+    },
+    {
+        "start": 445.81,
+        "stop": 447.6,
+        "text": " transparent, living stack was"
+    },
+    {
+        "start": 447.6,
+        "stop": 449.1,
+        "text": " way more powerful than a dead-"
+    },
+    {
+        "start": 449.1,
+        "stop": 450.72,
+        "text": "brained black box for our calcul"
+    },
+    {
+        "start": 450.72,
+        "stop": 452.92,
+        "text": "ators. So this whole explainer"
+    },
+    {
+        "start": 452.92,
+        "stop": 454.48,
+        "text": " really boils down to one simple"
+    },
+    {
+        "start": 454.48,
+        "stop": 455.82,
+        "text": ", powerful question:"
+    },
+    {
+        "start": 455.82,
+        "stop": 457.99,
+        "text": " Isn't it finally time we demand"
+    },
+    {
+        "start": 457.99,
+        "stop": 459.86,
+        "text": " the exact same thing from our"
+    },
+    {
+        "start": 459.86,
+        "stop": 460.34,
+        "text": " AI?"
+    }
+]

@@ -12,6 +12,50 @@ from typing import Any, Sequence
 from .specialist_router import SpecialistRouter
 from .trm_weight_store import TRMWeightStore
 
+_NUMERIC_WORD_UNITS: dict[str, int] = {
+    "zero": 0,
+    "one": 1,
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": 5,
+    "six": 6,
+    "seven": 7,
+    "eight": 8,
+    "nine": 9,
+    "ten": 10,
+    "eleven": 11,
+    "twelve": 12,
+    "thirteen": 13,
+    "fourteen": 14,
+    "fifteen": 15,
+    "sixteen": 16,
+    "seventeen": 17,
+    "eighteen": 18,
+    "nineteen": 19,
+}
+
+_NUMERIC_WORD_TENS: dict[str, int] = {
+    "twenty": 20,
+    "thirty": 30,
+    "forty": 40,
+    "fifty": 50,
+    "sixty": 60,
+    "seventy": 70,
+    "eighty": 80,
+    "ninety": 90,
+}
+
+_NUMERIC_WORD_SPECIAL: dict[str, float] = {
+    "half": 0.5,
+    "quarter": 0.25,
+    "twice": 2.0,
+    "double": 2.0,
+    "thrice": 3.0,
+    "triple": 3.0,
+    "quadruple": 4.0,
+}
+
 
 @dataclass
 class PathCandidate:
@@ -74,6 +118,8 @@ class NavigatorSpecialist:
         domain_hint: str | None = None,
         galaxy_names: Sequence[str] | None = None,
         use_forward_backward: bool = False,
+        task_type: str | None = None,
+        goal_type_family: str | None = None,
     ) -> list[dict[str, Any]]:
         """
         Plan route candidates using multiple strategies.
@@ -107,6 +153,10 @@ class NavigatorSpecialist:
             domain_hint=domain_hint,
             galaxy_names=galaxy_names,
         )
+        if task_type:
+            base["task_type"] = str(task_type).strip().upper()
+        if goal_type_family:
+            base["goal_type_family"] = str(goal_type_family).strip().lower()
         if use_forward_backward:
             _append(self._forward_reading_path(query, base), "forward")
             _append(self._backward_reading_path(query, base), "backward")
@@ -369,7 +419,22 @@ class NavigatorSpecialist:
             return {**base_route, "query_variant": query}
         reverse_clauses = list(reversed(clauses))
         goal = self._extract_goal(reverse_clauses[0])
-        dependencies = [self._extract_variables_and_constraints(s) for s in reverse_clauses[1:]]
+        goal_type_entry = self._goal_type_entry(str(goal.get("raw", reverse_clauses[0])), base_route=base_route)
+        goal_metadata = goal_type_entry.get("metadata") if isinstance(goal_type_entry.get("metadata"), dict) else {}
+        if goal_metadata:
+            goal = self._apply_goal_roles_to_block(goal, goal_metadata=goal_metadata)
+        if goal_metadata:
+            goal["goal_type"] = str(goal_metadata.get("goal_type", "")).strip()
+            goal["operation_frame"] = str(goal_metadata.get("operation_frame", "")).strip()
+            goal["implies_roles"] = dict(goal_metadata.get("implies_roles", {})) if isinstance(goal_metadata.get("implies_roles"), dict) else {}
+            goal["goal_type_id"] = str(goal_type_entry.get("id", "")).strip()
+        dependencies = [
+            self._apply_goal_roles_to_block(
+                self._extract_variables_and_constraints(s),
+                goal_metadata=goal_metadata,
+            )
+            for s in reverse_clauses[1:]
+        ]
         deps_text = " ".join(item.get("raw", "") for item in dependencies if item.get("raw"))
         goal_text = goal.get("raw", reverse_clauses[0])
         variant = f"goal: {goal_text} dependencies: {deps_text}".strip()
@@ -388,10 +453,29 @@ class NavigatorSpecialist:
         forward = self._forward_reading_path(query, base_route)
         backward = self._backward_reading_path(query, base_route)
 
+        backward_goal = backward.get("backward_parse", {}).get("goal", {})
+        backward_goal_metadata = {
+            "goal_type": str(backward_goal.get("goal_type", "")).strip(),
+            "operation_frame": str(backward_goal.get("operation_frame", "")).strip(),
+            "implies_roles": (
+                dict(backward_goal.get("implies_roles", {}))
+                if isinstance(backward_goal.get("implies_roles"), dict)
+                else {}
+            ),
+        }
         forward_context = list(forward.get("forward_parse", {}).get("context", []))
+        if backward_goal_metadata.get("implies_roles"):
+            forward_context = [
+                self._apply_goal_roles_to_block(dict(ctx), goal_metadata=backward_goal_metadata)
+                if isinstance(ctx, dict)
+                else ctx
+                for ctx in forward_context
+            ]
         backward_deps = list(backward.get("backward_parse", {}).get("dependencies", []))
 
         merged_vars: dict[str, Any] = {}
+        merged_quantities: list[dict[str, Any]] = []
+        quantity_index: dict[tuple[float, str, str, int], int] = {}
 
         def _merge_var_block(block: dict[str, Any]) -> None:
             if str(block.get("type", "")) != "variables":
@@ -402,20 +486,65 @@ class NavigatorSpecialist:
             for key, value in data.items():
                 merged_vars[str(key)] = value
 
+        def _merge_quantity_block(block: dict[str, Any]) -> None:
+            rows = block.get("quantities") if isinstance(block.get("quantities"), list) else []
+            raw_block = str(block.get("raw", "")).strip()
+            for raw_row in rows:
+                if not isinstance(raw_row, dict):
+                    continue
+                try:
+                    value = float(raw_row.get("value"))
+                except Exception:
+                    continue
+                surface = str(raw_row.get("surface", "")).strip().lower()
+                role = str(raw_row.get("role", "")).strip().lower() or "quantity"
+                offset = int(raw_row.get("offset", 0) or 0)
+                key = (value, surface, raw_block, offset)
+                existing_index = quantity_index.get(key)
+                if existing_index is not None:
+                    existing = merged_quantities[existing_index]
+                    existing_role = str(existing.get("role", "")).strip().lower() or "quantity"
+                    if existing_role == "quantity" and role != "quantity":
+                        existing["role"] = role
+                        existing["source"] = str(raw_row.get("source", "")).strip() or "parse"
+                    continue
+                quantity_index[key] = len(merged_quantities)
+                merged_quantities.append(
+                    {
+                        "value": value,
+                        "surface": str(raw_row.get("surface", "")).strip(),
+                        "role": role,
+                        "source": str(raw_row.get("source", "")).strip() or "parse",
+                        "offset": offset,
+                    }
+                )
+
         for ctx in forward_context:
             if isinstance(ctx, dict):
                 _merge_var_block(ctx)
+                _merge_quantity_block(ctx)
         for dep in backward_deps:
             if isinstance(dep, dict):
                 _merge_var_block(dep)
+                _merge_quantity_block(dep)
 
         f_goal = forward.get("forward_parse", {}).get("goal", {})
-        b_goal = backward.get("backward_parse", {}).get("goal", {})
+        if isinstance(f_goal, dict) and backward_goal_metadata.get("implies_roles"):
+            f_goal = self._apply_goal_roles_to_block(dict(f_goal), goal_metadata=backward_goal_metadata)
+        b_goal = backward_goal
+        if isinstance(f_goal, dict):
+            _merge_quantity_block(f_goal)
+        if isinstance(b_goal, dict):
+            _merge_quantity_block(b_goal)
         f_expr = str(f_goal.get("expression", "")) if isinstance(f_goal, dict) else ""
         b_expr = str(b_goal.get("expression", "")) if isinstance(b_goal, dict) else ""
         unified_goal = f_goal if len(f_expr) >= len(b_expr) else b_goal
         if not isinstance(unified_goal, dict):
             unified_goal = {"type": "goal", "raw": query}
+        if isinstance(b_goal, dict):
+            for key in ("goal_type", "operation_frame", "implies_roles", "goal_type_id"):
+                if key not in unified_goal and b_goal.get(key):
+                    unified_goal[key] = b_goal.get(key)
 
         var_str = ", ".join(f"{k}={v}" for k, v in merged_vars.items())
         goal_raw = str(unified_goal.get("raw") or unified_goal.get("expression") or query)
@@ -426,7 +555,11 @@ class NavigatorSpecialist:
             "query_variant": query_variant or query,
             "fusion_parse": {
                 "merged_variables": merged_vars,
+                "merged_quantities": merged_quantities,
+                "quantity_values": [float(row["value"]) for row in merged_quantities],
                 "unified_goal": unified_goal,
+                "goal_type": str(unified_goal.get("goal_type", "")).strip(),
+                "operation_frame": str(unified_goal.get("operation_frame", "")).strip(),
                 "forward_context_count": len(forward_context),
                 "backward_deps_count": len(backward_deps),
                 "deduplication_savings": max(
@@ -449,22 +582,231 @@ class NavigatorSpecialist:
                 assignments[var] = float(value) if "." in value else int(value)
             except ValueError:
                 assignments[var] = value
+        quantities = self._extract_quantities(sentence)
         return {
             "type": "variables" if assignments else "context",
             "data": assignments,
+            "quantities": quantities,
             "raw": sentence,
         }
+
+    @classmethod
+    def _numeric_word_value(cls, token: str) -> float | None:
+        normalized = str(token).strip().lower()
+        if not normalized:
+            return None
+        if normalized in _NUMERIC_WORD_SPECIAL:
+            return float(_NUMERIC_WORD_SPECIAL[normalized])
+        if normalized in _NUMERIC_WORD_UNITS:
+            return float(_NUMERIC_WORD_UNITS[normalized])
+        if normalized in _NUMERIC_WORD_TENS:
+            return float(_NUMERIC_WORD_TENS[normalized])
+        if "-" in normalized:
+            left, _, right = normalized.partition("-")
+            if left in _NUMERIC_WORD_TENS and right in _NUMERIC_WORD_UNITS:
+                return float(_NUMERIC_WORD_TENS[left] + _NUMERIC_WORD_UNITS[right])
+        return None
+
+    def _extract_quantities(self, sentence: str) -> list[dict[str, Any]]:
+        quantities: list[dict[str, Any]] = []
+        lowered = str(sentence or "").lower()
+        for match in re.finditer(r"(?<![A-Za-z])[-+]?\d+(?:\.\d+)?", sentence):
+            raw = match.group(0)
+            try:
+                value = float(raw)
+            except ValueError:
+                continue
+            quantities.append(
+                {
+                    "value": value,
+                    "surface": raw,
+                    "role": "quantity",
+                    "source": "digit",
+                    "offset": int(match.start()),
+                }
+            )
+        for match in re.finditer(r"\b[a-z]+(?:-[a-z]+)?\b", lowered):
+            raw = match.group(0)
+            value = self._numeric_word_value(raw)
+            if value is None:
+                continue
+            quantities.append(
+                {
+                    "value": float(value),
+                    "surface": raw,
+                    "role": "quantity",
+                    "source": "word",
+                    "offset": int(match.start()),
+                }
+            )
+        quantities.sort(key=lambda item: (int(item.get("offset", 0)), str(item.get("surface", ""))))
+        return quantities
 
     def _extract_goal(self, sentence: str) -> dict[str, Any]:
         """Extract goal-like expression from a sentence."""
         lowered = sentence.lower()
         goal_markers = ("what is", "find", "compute", "calculate", "determine", "solve for")
+        quantities = self._extract_quantities(sentence)
         for marker in goal_markers:
             idx = lowered.find(marker)
             if idx >= 0:
                 expr = sentence[idx + len(marker) :].strip(" ?.")
-                return {"type": "goal", "operation": "evaluate", "expression": expr, "raw": sentence}
-        return {"type": "goal", "raw": sentence}
+                return {
+                    "type": "goal",
+                    "operation": "evaluate",
+                    "expression": expr,
+                    "raw": sentence,
+                    "quantities": quantities,
+                }
+        return {"type": "goal", "raw": sentence, "quantities": quantities}
+
+    def _goal_type_rows(self, *, base_route: dict[str, Any]) -> list[dict[str, Any]]:
+        if self.knowledgeverse is None or not hasattr(self.knowledgeverse, "get_gpu_galaxy_catalog"):
+            return []
+        allowed = {
+            str(name).strip()
+            for name in (
+                base_route.get("galaxy_names")
+                if isinstance(base_route.get("galaxy_names"), list)
+                else []
+            )
+            if str(name).strip()
+        }
+        goal_type_family = str(base_route.get("goal_type_family", "")).strip().lower()
+        allowed_subfields: set[str] | None = None
+        if goal_type_family == "gsm8k":
+            allowed_subfields = {"word_problem_binding"}
+        elif goal_type_family == "lhe":
+            allowed_subfields = {"lhe_goal_typing"}
+        elif goal_type_family == "math":
+            allowed_subfields = {"algebra", "geometry", "number_theory", "combinatorics"}
+        rows: list[dict[str, Any]] = []
+        for entry in self.knowledgeverse.get_gpu_galaxy_catalog():
+            galaxy = str(entry.get("galaxy", "")).strip()
+            if allowed and galaxy not in allowed:
+                continue
+            if galaxy != "Grammar":
+                continue
+            metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+            if not str(metadata.get("goal_type", "")).strip():
+                continue
+            if allowed_subfields is not None:
+                subfield = str(metadata.get("subfield", "")).strip().lower()
+                if subfield not in allowed_subfields:
+                    continue
+            if not list(entry.get("embedding16", [])):
+                continue
+            rows.append(dict(entry))
+        return rows
+
+    @staticmethod
+    def _phrase_overlap_score(text: str, phrases: list[str]) -> float:
+        lowered = str(text or "").lower()
+        active = [str(phrase).strip().lower() for phrase in phrases if str(phrase).strip()]
+        if not lowered or not active:
+            return 0.0
+        matched = sum(1 for phrase in active if phrase in lowered)
+        return float(matched) / float(len(active))
+
+    def _goal_type_entry(self, goal_text: str, *, base_route: dict[str, Any]) -> dict[str, Any]:
+        rows = self._goal_type_rows(base_route=base_route)
+        if not rows or self.knowledgeverse is None:
+            return {}
+        try:
+            goal_embedding = self.knowledgeverse._embed_query_gpu(goal_text)
+        except Exception:
+            return {}
+        similarities = self.knowledgeverse._embedding_similarities(
+            goal_embedding,
+            [list(entry.get("embedding16", [])) for entry in rows],
+        )
+        cue_rows = [
+            self._phrase_overlap_score(
+                goal_text,
+                [
+                    str(value)
+                    for value in (
+                        (
+                            entry.get("metadata")
+                            if isinstance(entry.get("metadata"), dict)
+                            else {}
+                        ).get("structural_cues", [])
+                        if isinstance(
+                            (
+                                entry.get("metadata")
+                                if isinstance(entry.get("metadata"), dict)
+                                else {}
+                            ).get("structural_cues", []),
+                            list,
+                        )
+                        else []
+                    )
+                ],
+            )
+            for entry in rows
+        ]
+        ranked = sorted(
+            [
+                (
+                    1.0 if cue_score > 0.0 else 0.0,
+                    (0.35 * float(similarity)) + (0.65 * float(cue_score)),
+                    entry,
+                )
+                for similarity, cue_score, entry in zip(similarities, cue_rows, rows)
+            ],
+            key=lambda item: (item[0], item[1]),
+            reverse=True,
+        )
+        return dict(ranked[0][2]) if ranked else {}
+
+    @staticmethod
+    def _quantity_local_snippet(raw_text: str, *, surface: str, offset: int) -> str:
+        text = str(raw_text or "").strip()
+        if not text:
+            return str(surface or "").strip()
+        start = max(int(offset) - 56, 0)
+        end = min(int(offset) + max(len(str(surface or "")), 1) + 48, len(text))
+        return text[start:end].strip(" ,.;:!?") or text
+
+    def _apply_goal_roles_to_block(
+        self,
+        block: dict[str, Any],
+        *,
+        goal_metadata: dict[str, Any],
+    ) -> dict[str, Any]:
+        if not isinstance(block, dict):
+            return block
+        implies_roles = goal_metadata.get("implies_roles") if isinstance(goal_metadata, dict) else {}
+        if not isinstance(implies_roles, dict) or not implies_roles:
+            return block
+        raw_text = str(block.get("raw", "")).strip()
+        rows = block.get("quantities") if isinstance(block.get("quantities"), list) else []
+        updated_rows: list[dict[str, Any]] = []
+        for raw_row in rows:
+            if not isinstance(raw_row, dict):
+                continue
+            row = dict(raw_row)
+            surface = str(row.get("surface", "")).strip()
+            offset = int(row.get("offset", 0) or 0)
+            snippet = self._quantity_local_snippet(raw_text, surface=surface, offset=offset).lower()
+            best_role = ""
+            best_score = 0.0
+            for role_name, cues in implies_roles.items():
+                phrase_list = [str(value) for value in cues] if isinstance(cues, list) else []
+                overlap = self._phrase_overlap_score(snippet, phrase_list)
+                if overlap > best_score:
+                    best_score = overlap
+                    best_role = str(role_name).strip().lower()
+            if best_role:
+                row["role"] = best_role
+                row["source"] = "backward_goal"
+                row["role_confidence"] = float(best_score)
+            updated_rows.append(row)
+        out = dict(block)
+        out["quantities"] = updated_rows
+        if goal_metadata:
+            out["goal_frame"] = str(goal_metadata.get("operation_frame", "")).strip()
+        return out
 
     def _path_signature(self, path: PathCandidate) -> str:
         """Create stable signature for cross-path agreement checks."""

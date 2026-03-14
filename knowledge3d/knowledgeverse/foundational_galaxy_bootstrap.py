@@ -6,6 +6,7 @@ scattered per-task setup paths.
 
 from __future__ import annotations
 
+from contextlib import nullcontext
 from typing import Any, Callable
 
 from .foundational_operations_bootstrap import populate_foundational_operations
@@ -55,22 +56,27 @@ def _populate_galaxy_entries(
 
 def populate_always_on_foundational_galaxies(galaxy_manager: Any) -> dict[str, Any]:
     """Populate all foundational deterministic galaxies through one entrypoint."""
-
-    return {
-        "operations": populate_foundational_operations(galaxy_manager),
-        "reality": _populate_galaxy_entries(
-            galaxy_manager,
-            galaxy_name="Reality",
-            entry_builder=default_reality_entries,
-        ),
-        "objects_3d": _populate_galaxy_entries(
-            galaxy_manager,
-            galaxy_name="3DObjects",
-            entry_builder=default_3d_objects_entries,
-        ),
-        "tool": _populate_galaxy_entries(
-            galaxy_manager,
-            galaxy_name="Tool",
-            entry_builder=default_tool_entries,
-        ),
-    }
+    sync_context = (
+        galaxy_manager.bulk_disk_sync()
+        if hasattr(galaxy_manager, "bulk_disk_sync")
+        else nullcontext()
+    )
+    with sync_context:
+        return {
+            "operations": populate_foundational_operations(galaxy_manager),
+            "reality": _populate_galaxy_entries(
+                galaxy_manager,
+                galaxy_name="Reality",
+                entry_builder=default_reality_entries,
+            ),
+            "objects_3d": _populate_galaxy_entries(
+                galaxy_manager,
+                galaxy_name="3DObjects",
+                entry_builder=default_3d_objects_entries,
+            ),
+            "tool": _populate_galaxy_entries(
+                galaxy_manager,
+                galaxy_name="Tool",
+                entry_builder=default_tool_entries,
+            ),
+        }

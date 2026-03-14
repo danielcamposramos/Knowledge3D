@@ -1,0 +1,1172 @@
+[
+    {
+        "start": 0,
+        "stop": 1.56,
+        "text": " Alright, let's get right into"
+    },
+    {
+        "start": 1.56,
+        "stop": 2.96,
+        "text": " it. Today we're talking about"
+    },
+    {
+        "start": 2.96,
+        "stop": 4.61,
+        "text": " something called PMKR. That"
+    },
+    {
+        "start": 4.61,
+        "stop": 5.01,
+        "text": " stands"
+    },
+    {
+        "start": 5.01,
+        "stop": 6.83,
+        "text": " for Procedural Memory Knowledge"
+    },
+    {
+        "start": 6.83,
+        "stop": 8.77,
+        "text": " Representation. And yeah, it's"
+    },
+    {
+        "start": 8.77,
+        "stop": 10.51,
+        "text": " a new W3C spec, but stick with"
+    },
+    {
+        "start": 10.51,
+        "stop": 10.98,
+        "text": " me here."
+    },
+    {
+        "start": 10.98,
+        "stop": 12.29,
+        "text": " This is not just another dry"
+    },
+    {
+        "start": 12.29,
+        "stop": 13.7,
+        "text": " technical standard. It's"
+    },
+    {
+        "start": 13.7,
+        "stop": 15.02,
+        "text": " actually a proposed fix for a"
+    },
+    {
+        "start": 15.02,
+        "stop": 15.62,
+        "text": " massive,"
+    },
+    {
+        "start": 15.62,
+        "stop": 16.95,
+        "text": " colossal problem of digital"
+    },
+    {
+        "start": 16.95,
+        "stop": 18.21,
+        "text": " waste. A problem that's"
+    },
+    {
+        "start": 18.21,
+        "stop": 19.62,
+        "text": " silently bloating our entire"
+    },
+    {
+        "start": 19.62,
+        "stop": 20.56,
+        "text": " digital world."
+    },
+    {
+        "start": 20.56,
+        "stop": 23.07,
+        "text": " So, what is this crisis? Well,"
+    },
+    {
+        "start": 23.07,
+        "stop": 25.39,
+        "text": " it's a crisis of duplication."
+    },
+    {
+        "start": 25.39,
+        "stop": 27.84,
+        "text": " It's like this invisible plague"
+    },
+    {
+        "start": 27.84,
+        "stop": 29.59,
+        "text": " where the exact same piece of"
+    },
+    {
+        "start": 29.59,
+        "stop": 30.86,
+        "text": " information, the same bit of"
+    },
+    {
+        "start": 30.86,
+        "stop": 32.45,
+        "text": " knowledge gets copied and re-"
+    },
+    {
+        "start": 32.45,
+        "stop": 32.96,
+        "text": "encoded"
+    },
+    {
+        "start": 32.96,
+        "stop": 34.79,
+        "text": " and stored over and over and"
+    },
+    {
+        "start": 34.79,
+        "stop": 37.04,
+        "text": " over again. And all that duplic"
+    },
+    {
+        "start": 37.04,
+        "stop": 39.32,
+        "text": "ation creates just immense bloat"
+    },
+    {
+        "start": 39.32,
+        "stop": 39.68,
+        "text": " across"
+    },
+    {
+        "start": 39.68,
+        "stop": 41.43,
+        "text": " everything we do online. To"
+    },
+    {
+        "start": 41.43,
+        "stop": 42.96,
+        "text": " really get a grip on this, let"
+    },
+    {
+        "start": 42.96,
+        "stop": 44.61,
+        "text": "'s take a super simple, really"
+    },
+    {
+        "start": 44.61,
+        "stop": 44.98,
+        "text": " common"
+    },
+    {
+        "start": 44.98,
+        "stop": 46.58,
+        "text": " example. The Greek letter sigma"
+    },
+    {
+        "start": 46.58,
+        "stop": 47.73,
+        "text": ". You know, the one we use for"
+    },
+    {
+        "start": 47.73,
+        "stop": 48.89,
+        "text": " summation. Seems pretty"
+    },
+    {
+        "start": 48.89,
+        "stop": 49.84,
+        "text": " straightforward,"
+    },
+    {
+        "start": 49.84,
+        "stop": 51.59,
+        "text": " right? But if you were to ask a"
+    },
+    {
+        "start": 51.59,
+        "stop": 53.04,
+        "text": " computer, hey, where does this"
+    },
+    {
+        "start": 53.04,
+        "stop": 54.7,
+        "text": " symbol actually live? Well, the"
+    },
+    {
+        "start": 54.7,
+        "stop": 55.22,
+        "text": " answer is"
+    },
+    {
+        "start": 55.22,
+        "stop": 56.31,
+        "text": " way more complicated than you'd"
+    },
+    {
+        "start": 56.31,
+        "stop": 57.45,
+        "text": " think. And here's the thing you"
+    },
+    {
+        "start": 57.45,
+        "stop": 58.79,
+        "text": "'ve got to understand. Every"
+    },
+    {
+        "start": 58.79,
+        "stop": 59.14,
+        "text": " single"
+    },
+    {
+        "start": 59.14,
+        "stop": 60.36,
+        "text": " one of these is a totally"
+    },
+    {
+        "start": 60.36,
+        "stop": 61.57,
+        "text": " separate, completely"
+    },
+    {
+        "start": 61.57,
+        "stop": 63.28,
+        "text": " disconnected copy. The visual"
+    },
+    {
+        "start": 63.28,
+        "stop": 64.09,
+        "text": " shape of sigma"
+    },
+    {
+        "start": 64.09,
+        "stop": 65.4,
+        "text": " stored in a font file, it has"
+    },
+    {
+        "start": 65.4,
+        "stop": 66.73,
+        "text": " no idea that it's supposed to"
+    },
+    {
+        "start": 66.73,
+        "stop": 68.11,
+        "text": " be a mathematical operator in"
+    },
+    {
+        "start": 68.11,
+        "stop": 68.31,
+        "text": " an"
+    },
+    {
+        "start": 68.31,
+        "stop": 70.15,
+        "text": " equation. Its representation in"
+    },
+    {
+        "start": 70.15,
+        "stop": 71.62,
+        "text": " an AI model is another island"
+    },
+    {
+        "start": 71.62,
+        "stop": 73.28,
+        "text": " altogether. This isn't just"
+    },
+    {
+        "start": 73.28,
+        "stop": 75.03,
+        "text": " inefficient, it's a maintenance"
+    },
+    {
+        "start": 75.03,
+        "stop": 76.19,
+        "text": " nightmare. Every time we use"
+    },
+    {
+        "start": 76.19,
+        "stop": 77.89,
+        "text": " this one little symbol, we're"
+    },
+    {
+        "start": 77.89,
+        "stop": 78.09,
+        "text": " creating"
+    },
+    {
+        "start": 78.09,
+        "stop": 79.84,
+        "text": " another brand new isolated"
+    },
+    {
+        "start": 79.84,
+        "stop": 81.45,
+        "text": " piece of data. So what's the"
+    },
+    {
+        "start": 81.45,
+        "stop": 83.24,
+        "text": " solution? Well, what's so"
+    },
+    {
+        "start": 83.24,
+        "stop": 84.66,
+        "text": " remarkable here is that"
+    },
+    {
+        "start": 84.66,
+        "stop": 86.45,
+        "text": " it's not some crazy futuristic"
+    },
+    {
+        "start": 86.45,
+        "stop": 87.94,
+        "text": " new concept. The fix is"
+    },
+    {
+        "start": 87.94,
+        "stop": 89.56,
+        "text": " actually an idea that's been"
+    },
+    {
+        "start": 89.56,
+        "stop": 91.78,
+        "text": " around for about 40,000"
+    },
+    {
+        "start": 91.78,
+        "stop": 93.58,
+        "text": " years. It's a reflection of how"
+    },
+    {
+        "start": 93.58,
+        "stop": 95.27,
+        "text": " we humans have always, always"
+    },
+    {
+        "start": 95.27,
+        "stop": 97.28,
+        "text": " learned to represent knowledge."
+    },
+    {
+        "start": 97.52,
+        "stop": 99.27,
+        "text": " Just think about how we evolved"
+    },
+    {
+        "start": 99.27,
+        "stop": 100.82,
+        "text": ". We started with pure form,"
+    },
+    {
+        "start": 100.82,
+        "stop": 102.48,
+        "text": " literally just visual marks on"
+    },
+    {
+        "start": 102.48,
+        "stop": 104.24,
+        "text": " a cave wall. Then over"
+    },
+    {
+        "start": 104.24,
+        "stop": 105.74,
+        "text": " thousands of years, we started"
+    },
+    {
+        "start": 105.74,
+        "stop": 107.02,
+        "text": " attaching meaning to those"
+    },
+    {
+        "start": 107.02,
+        "stop": 108.76,
+        "text": " forms, and we got pictographs."
+    },
+    {
+        "start": 108.76,
+        "stop": 109.98,
+        "text": " After that, we standardized"
+    },
+    {
+        "start": 109.98,
+        "stop": 111.54,
+        "text": " them into alphabets. Then we"
+    },
+    {
+        "start": 111.54,
+        "stop": 113.12,
+        "text": " invented rules, like grammar,"
+    },
+    {
+        "start": 113.12,
+        "stop": 114.82,
+        "text": " to combine them. And eventually"
+    },
+    {
+        "start": 114.82,
+        "stop": 116.39,
+        "text": " we developed meta rules, things"
+    },
+    {
+        "start": 116.39,
+        "stop": 117.85,
+        "text": " like logic and philosophy, to"
+    },
+    {
+        "start": 117.85,
+        "stop": 119.42,
+        "text": " help us reason about the rules"
+    },
+    {
+        "start": 119.42,
+        "stop": 120.08,
+        "text": " themselves."
+    },
+    {
+        "start": 120.08,
+        "stop": 121.83,
+        "text": " You see the pattern? It's a"
+    },
+    {
+        "start": 121.83,
+        "stop": 123.44,
+        "text": " natural climb from concrete"
+    },
+    {
+        "start": 123.44,
+        "stop": 125.43,
+        "text": " shapes to abstract strategy."
+    },
+    {
+        "start": 125.43,
+        "stop": 127.08,
+        "text": " And that brings us right to the"
+    },
+    {
+        "start": 127.08,
+        "stop": 128.97,
+        "text": " heart of the PMKR specification"
+    },
+    {
+        "start": 128.97,
+        "stop": 130.32,
+        "text": ". It takes this exact"
+    },
+    {
+        "start": 130.32,
+        "stop": 132.05,
+        "text": " evolutionary pattern and cod"
+    },
+    {
+        "start": 132.05,
+        "stop": 133.72,
+        "text": "ifies it into a modern, four"
+    },
+    {
+        "start": 133.72,
+        "stop": 135.91,
+        "text": " layer technical architecture."
+    },
+    {
+        "start": 135.91,
+        "stop": 138.03,
+        "text": " This hierarchy is absolutely"
+    },
+    {
+        "start": 138.03,
+        "stop": 139.8,
+        "text": " crucial. So at the very bottom,"
+    },
+    {
+        "start": 139.8,
+        "stop": 141.44,
+        "text": " you have the form layer. These"
+    },
+    {
+        "start": 141.44,
+        "stop": 142.61,
+        "text": " are the raw procedural"
+    },
+    {
+        "start": 142.61,
+        "stop": 144.13,
+        "text": " instructions, like how to"
+    },
+    {
+        "start": 144.13,
+        "stop": 145.44,
+        "text": " actually draw the strokes of"
+    },
+    {
+        "start": 145.44,
+        "stop": 147.03,
+        "text": " the letter A. Then sitting on"
+    },
+    {
+        "start": 147.03,
+        "stop": 148.3,
+        "text": " top of that is the meaning"
+    },
+    {
+        "start": 148.3,
+        "stop": 149.97,
+        "text": " layer, which says, hey,"
+    },
+    {
+        "start": 149.97,
+        "stop": 151.19,
+        "text": " that specific form you just"
+    },
+    {
+        "start": 151.19,
+        "stop": 152.52,
+        "text": " drew, that specific form you"
+    },
+    {
+        "start": 152.52,
+        "stop": 153.88,
+        "text": " just drew, that is the letter A"
+    },
+    {
+        "start": 153.88,
+        "stop": 155.41,
+        "text": ". Next up, the rules layer gives"
+    },
+    {
+        "start": 155.41,
+        "stop": 156.62,
+        "text": " us executable logic, like"
+    },
+    {
+        "start": 156.62,
+        "stop": 157.91,
+        "text": " grammar, for combining all"
+    },
+    {
+        "start": 157.91,
+        "stop": 159.41,
+        "text": " those meanings. And at the very"
+    },
+    {
+        "start": 159.41,
+        "stop": 160.58,
+        "text": " top, the meta rules layer"
+    },
+    {
+        "start": 160.58,
+        "stop": 162.07,
+        "text": " provides the strategy, the high"
+    },
+    {
+        "start": 162.07,
+        "stop": 163.56,
+        "text": " level control that decides"
+    },
+    {
+        "start": 163.56,
+        "stop": 165.22,
+        "text": " which rules to apply and when."
+    },
+    {
+        "start": 165.22,
+        "stop": 166.6,
+        "text": " And this parallel is just"
+    },
+    {
+        "start": 166.6,
+        "stop": 168.57,
+        "text": " perfect. The form layer, that's"
+    },
+    {
+        "start": 168.57,
+        "stop": 170.48,
+        "text": " our ancient cave paintings. The"
+    },
+    {
+        "start": 170.48,
+        "stop": 172.06,
+        "text": " meaning layer is when we came"
+    },
+    {
+        "start": 172.06,
+        "stop": 174.03,
+        "text": " up with words and concepts. The"
+    },
+    {
+        "start": 174.03,
+        "stop": 175.68,
+        "text": " rules layer, well, that's our"
+    },
+    {
+        "start": 175.68,
+        "stop": 177.6,
+        "text": " grammar, our formulas. And the"
+    },
+    {
+        "start": 177.6,
+        "stop": 179.31,
+        "text": " meta rules layer is our ability"
+    },
+    {
+        "start": 179.31,
+        "stop": 179.88,
+        "text": " to use"
+    },
+    {
+        "start": 179.88,
+        "stop": 181.63,
+        "text": " logic and strategy. All PMKR"
+    },
+    {
+        "start": 181.63,
+        "stop": 183.45,
+        "text": " does is make this ancient, time"
+    },
+    {
+        "start": 183.45,
+        "stop": 185.23,
+        "text": "-tested structure something a"
+    },
+    {
+        "start": 185.23,
+        "stop": 187.05,
+        "text": " computer can understand and use"
+    },
+    {
+        "start": 187.05,
+        "stop": 188.52,
+        "text": ". So how does this clever"
+    },
+    {
+        "start": 188.52,
+        "stop": 190.23,
+        "text": " layered model actually solve"
+    },
+    {
+        "start": 190.23,
+        "stop": 192.12,
+        "text": " our duplication crisis? It all"
+    },
+    {
+        "start": 192.12,
+        "stop": 193.88,
+        "text": " comes down to a really powerful"
+    },
+    {
+        "start": 193.88,
+        "stop": 195.69,
+        "text": " but simple idea called the save"
+    },
+    {
+        "start": 195.69,
+        "stop": 197.83,
+        "text": " information principle. And it's"
+    },
+    {
+        "start": 197.83,
+        "stop": 199.44,
+        "text": " exactly what it sounds like."
+    },
+    {
+        "start": 199.44,
+        "stop": 201.24,
+        "text": " You store a piece of knowledge"
+    },
+    {
+        "start": 201.24,
+        "stop": 202.81,
+        "text": " one time in its most basic form"
+    },
+    {
+        "start": 202.81,
+        "stop": 204.63,
+        "text": ". And every other time you need"
+    },
+    {
+        "start": 204.63,
+        "stop": 206.38,
+        "text": " it, you just use a lightweight"
+    },
+    {
+        "start": 206.38,
+        "stop": 207.94,
+        "text": " pointer back to that single"
+    },
+    {
+        "start": 207.94,
+        "stop": 209.78,
+        "text": " source of truth. The technical"
+    },
+    {
+        "start": 209.78,
+        "stop": 211.53,
+        "text": " name for this is Simlink style"
+    },
+    {
+        "start": 211.53,
+        "stop": 213.35,
+        "text": " composition. And you know what?"
+    },
+    {
+        "start": 213.35,
+        "stop": 214.54,
+        "text": " If you've ever created a"
+    },
+    {
+        "start": 214.54,
+        "stop": 215.84,
+        "text": " shortcut to a file on your"
+    },
+    {
+        "start": 215.84,
+        "stop": 217.67,
+        "text": " computer, you basically already"
+    },
+    {
+        "start": 217.67,
+        "stop": 219.17,
+        "text": " get it. You're not making a"
+    },
+    {
+        "start": 219.17,
+        "stop": 220.6,
+        "text": " whole new copy of the file,"
+    },
+    {
+        "start": 220.6,
+        "stop": 222.22,
+        "text": " right? You're just making a"
+    },
+    {
+        "start": 222.22,
+        "stop": 223.86,
+        "text": " tiny little pointer that says,"
+    },
+    {
+        "start": 223.86,
+        "stop": 225.23,
+        "text": " hey, the real file is over"
+    },
+    {
+        "start": 225.23,
+        "stop": 226.97,
+        "text": " there. PMKR does the exact same"
+    },
+    {
+        "start": 226.97,
+        "stop": 228.59,
+        "text": " thing, but for every tiny unit"
+    },
+    {
+        "start": 228.59,
+        "stop": 230.79,
+        "text": " of knowledge. Now, let's look"
+    },
+    {
+        "start": 230.79,
+        "stop": 232.26,
+        "text": " at the real world impact. In"
+    },
+    {
+        "start": 232.26,
+        "stop": 233.83,
+        "text": " the old way, if you have a"
+    },
+    {
+        "start": 233.83,
+        "stop": 235.28,
+        "text": " thousand different rules that"
+    },
+    {
+        "start": 235.28,
+        "stop": 237.02,
+        "text": " all need the partial derivative"
+    },
+    {
+        "start": 237.02,
+        "stop": 238.67,
+        "text": " symbol, you'd store a five kil"
+    },
+    {
+        "start": 238.67,
+        "stop": 239.68,
+        "text": "obyte copy of it"
+    },
+    {
+        "start": 239.68,
+        "stop": 241.91,
+        "text": " 1000 times. That's five meg"
+    },
+    {
+        "start": 241.91,
+        "stop": 243.82,
+        "text": "abytes. Now in the PMKR way, you"
+    },
+    {
+        "start": 243.82,
+        "stop": 245.58,
+        "text": " store that symbol just once."
+    },
+    {
+        "start": 245.58,
+        "stop": 247.2,
+        "text": " Each of those thousand rules"
+    },
+    {
+        "start": 247.2,
+        "stop": 248.61,
+        "text": " then uses a tiny four byte"
+    },
+    {
+        "start": 248.61,
+        "stop": 250.56,
+        "text": " reference. The grand total, we"
+    },
+    {
+        "start": 250.56,
+        "stop": 252.44,
+        "text": "'re talking about four kilobytes"
+    },
+    {
+        "start": 252.44,
+        "stop": 254.02,
+        "text": ". I mean, that's not just a"
+    },
+    {
+        "start": 254.02,
+        "stop": 255.64,
+        "text": " small improvement. It's a"
+    },
+    {
+        "start": 255.64,
+        "stop": 257.63,
+        "text": " complete paradigm shift. And"
+    },
+    {
+        "start": 257.63,
+        "stop": 259.14,
+        "text": " when you apply this principle"
+    },
+    {
+        "start": 259.14,
+        "stop": 261.05,
+        "text": " across entire knowledge bases,"
+    },
+    {
+        "start": 261.05,
+        "stop": 262.79,
+        "text": " you see an average compression"
+    },
+    {
+        "start": 262.79,
+        "stop": 264.8,
+        "text": " of over 70%. That is a direct"
+    },
+    {
+        "start": 264.8,
+        "stop": 266.36,
+        "text": " massive benefit that you get"
+    },
+    {
+        "start": 266.36,
+        "stop": 267.91,
+        "text": " just by not being redundant"
+    },
+    {
+        "start": 267.91,
+        "stop": 269.58,
+        "text": " anymore. But this"
+    },
+    {
+        "start": 269.58,
+        "stop": 271.33,
+        "text": " incredible efficiency, that's"
+    },
+    {
+        "start": 271.33,
+        "stop": 273.14,
+        "text": " really just the beginning. This"
+    },
+    {
+        "start": 273.14,
+        "stop": 274.74,
+        "text": " architecture makes something"
+    },
+    {
+        "start": 274.74,
+        "stop": 276.35,
+        "text": " else possible, something far"
+    },
+    {
+        "start": 276.35,
+        "stop": 277.89,
+        "text": " more profound for the world of"
+    },
+    {
+        "start": 277.89,
+        "stop": 279.83,
+        "text": " AI. It's called the dual client"
+    },
+    {
+        "start": 279.83,
+        "stop": 281.32,
+        "text": " contract. And it means having a"
+    },
+    {
+        "start": 281.32,
+        "stop": 282.83,
+        "text": " single shared source of truth"
+    },
+    {
+        "start": 282.83,
+        "stop": 284.04,
+        "text": " that can be understood"
+    },
+    {
+        "start": 284.04,
+        "stop": 285.52,
+        "text": " perfectly by both humans and"
+    },
+    {
+        "start": 285.52,
+        "stop": 287.72,
+        "text": " machines. Okay, so check this"
+    },
+    {
+        "start": 287.72,
+        "stop": 289.58,
+        "text": " out. When a human, that's us,"
+    },
+    {
+        "start": 289.58,
+        "stop": 291.47,
+        "text": " sees the visual Sigma symbol,"
+    },
+    {
+        "start": 291.47,
+        "stop": 293.26,
+        "text": " an AI looking at the exact same"
+    },
+    {
+        "start": 293.26,
+        "stop": 294.87,
+        "text": " source file sees the underlying"
+    },
+    {
+        "start": 294.87,
+        "stop": 296.41,
+        "text": " program that defines it as a"
+    },
+    {
+        "start": 296.41,
+        "stop": 298.33,
+        "text": " mathematical operator. A human"
+    },
+    {
+        "start": 298.33,
+        "stop": 299.48,
+        "text": " sees a save icon,"
+    },
+    {
+        "start": 299.48,
+        "stop": 301.23,
+        "text": " but the AI sees an executable"
+    },
+    {
+        "start": 301.23,
+        "stop": 302.51,
+        "text": " command at action save. It's"
+    },
+    {
+        "start": 302.51,
+        "stop": 304.08,
+        "text": " one single piece of knowledge"
+    },
+    {
+        "start": 304.08,
+        "stop": 305.73,
+        "text": " just rendered differently, but"
+    },
+    {
+        "start": 305.73,
+        "stop": 306.89,
+        "text": " with perfect flawless"
+    },
+    {
+        "start": 306.89,
+        "stop": 308.16,
+        "text": " consistency for two very"
+    },
+    {
+        "start": 308.16,
+        "stop": 309.73,
+        "text": " different clients. This"
+    },
+    {
+        "start": 309.73,
+        "stop": 311.45,
+        "text": " completely changes the game for"
+    },
+    {
+        "start": 311.45,
+        "stop": 313.13,
+        "text": " AI. Right now, most AI is a"
+    },
+    {
+        "start": 313.13,
+        "stop": 314.58,
+        "text": " total black box. It spits out"
+    },
+    {
+        "start": 314.58,
+        "stop": 316.2,
+        "text": " an answer and basically says,"
+    },
+    {
+        "start": 316.2,
+        "stop": 317.77,
+        "text": " trust me. The PMKR paradigm"
+    },
+    {
+        "start": 317.77,
+        "stop": 318.91,
+        "text": " though, it creates a"
+    },
+    {
+        "start": 318.91,
+        "stop": 320.83,
+        "text": " transparent proof. It's the"
+    },
+    {
+        "start": 320.83,
+        "stop": 322.14,
+        "text": " difference between getting a"
+    },
+    {
+        "start": 322.14,
+        "stop": 323.94,
+        "text": " compiled program versus getting"
+    },
+    {
+        "start": 323.94,
+        "stop": 325.83,
+        "text": " the full debuggable source code"
+    },
+    {
+        "start": 325.83,
+        "stop": 327.27,
+        "text": ". It doesn't just give you the"
+    },
+    {
+        "start": 327.27,
+        "stop": 329.46,
+        "text": " answer. It gives you a verified"
+    },
+    {
+        "start": 329.46,
+        "stop": 331.21,
+        "text": " step-by-step receipt showing"
+    },
+    {
+        "start": 331.21,
+        "stop": 332.83,
+        "text": " you exactly how it got there."
+    },
+    {
+        "start": 332.83,
+        "stop": 334.5,
+        "text": " You know, this isn't even a new"
+    },
+    {
+        "start": 334.5,
+        "stop": 336.32,
+        "text": " idea. It's a lesson we learned"
+    },
+    {
+        "start": 336.32,
+        "stop": 338.13,
+        "text": " 50 years ago from old HP calcul"
+    },
+    {
+        "start": 338.13,
+        "stop": 340.08,
+        "text": "ators. Their transparent stacks"
+    },
+    {
+        "start": 340.08,
+        "stop": 341.45,
+        "text": " showed us that seeing the"
+    },
+    {
+        "start": 341.45,
+        "stop": 343.11,
+        "text": " process was way more powerful"
+    },
+    {
+        "start": 343.11,
+        "stop": 344.45,
+        "text": " than just getting a magic"
+    },
+    {
+        "start": 344.45,
+        "stop": 346.06,
+        "text": " answer out of a black box. We"
+    },
+    {
+        "start": 346.06,
+        "stop": 347.74,
+        "text": " figured this out for our calcul"
+    },
+    {
+        "start": 347.74,
+        "stop": 350.49,
+        "text": "ators. And that really leaves us"
+    },
+    {
+        "start": 350.49,
+        "stop": 351.7,
+        "text": " with one final and I think"
+    },
+    {
+        "start": 351.7,
+        "stop": 353.73,
+        "text": " crucial question. If we demand"
+    },
+    {
+        "start": 353.73,
+        "stop": 355.83,
+        "text": " transparent, verifiable"
+    },
+    {
+        "start": 355.83,
+        "stop": 357.21,
+        "text": " reasoning from a simple pocket"
+    },
+    {
+        "start": 357.21,
+        "stop": 359.16,
+        "text": " calculator, why on earth would"
+    },
+    {
+        "start": 359.16,
+        "stop": 359.44,
+        "text": " we"
+    },
+    {
+        "start": 359.44,
+        "stop": 360.75,
+        "text": " demand any less from the"
+    },
+    {
+        "start": 360.75,
+        "stop": 362.64,
+        "text": " artificial intelligence that is"
+    },
+    {
+        "start": 362.64,
+        "stop": 364.11,
+        "text": " literally set to shape our"
+    },
+    {
+        "start": 364.11,
+        "stop": 365.1,
+        "text": " entire future?"
+    }
+]

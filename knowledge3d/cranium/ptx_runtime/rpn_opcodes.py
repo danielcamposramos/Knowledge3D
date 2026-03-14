@@ -155,12 +155,17 @@ OP_QUANTUM_PHASE = 0xD5
 OP_QUANTUM_HADAMARD = 0xD6
 OP_QUANTUM_CNOT = 0xD7
 
+# Knowledgeverse Galaxy opcodes (GPU-resident Galaxy access)
+OP_LOAD_GALAXY = 0xE0
+OP_GALAXY_SIMILARITY = 0xE1
+OP_GALAXY_SCAN = 0xE2
+
 # Multivariate variable reference opcodes (Tier 0: 1 cycle)
-OP_VAR_X = 0xE0
-OP_VAR_Y = 0xE1
-OP_VAR_Z = 0xE2
-OP_VAR_W = 0xE3
-OP_CONST = 0xE4
+OP_VAR_X = 0xEA
+OP_VAR_Y = 0xEB
+OP_VAR_Z = 0xEC
+OP_VAR_W = 0xED
+OP_CONST = 0xEE
 
 # Grammar evolution opcodes (cross-modality discovery → promotion)
 OP_GRAMMAR_OBSERVE = 0xE5      # visual_emb text_emb → correlation score
@@ -350,6 +355,10 @@ __all__ = [
     "OP_QUANTUM_PHASE",
     "OP_QUANTUM_HADAMARD",
     "OP_QUANTUM_CNOT",
+    # GPU Galaxy access
+    "OP_LOAD_GALAXY",
+    "OP_GALAXY_SIMILARITY",
+    "OP_GALAXY_SCAN",
     # Multivariate variable references
     "OP_VAR_X",
     "OP_VAR_Y",

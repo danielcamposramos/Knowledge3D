@@ -24,8 +24,12 @@ class LastHumanityExamBenchmark:
         runtime_seed_knowledge: bool = False,
         tablet_boundary: HeadlessTabletMPC | None = None,
     ):
-        self.kv = knowledgeverse or Knowledgeverse()
         self.dataset_path = self._resolve_dataset_path(dataset_path)
+        if knowledgeverse is None:
+            default_storage_root = self._default_storage_root(self.dataset_path)
+            self.kv = Knowledgeverse(storage_root=default_storage_root)
+        else:
+            self.kv = knowledgeverse
         self.max_questions = max_questions
         self.query_scope_galaxies = self._normalize_query_scope(query_scope_galaxies)
         self.runtime_seed_knowledge = bool(runtime_seed_knowledge)
@@ -52,6 +56,13 @@ class LastHumanityExamBenchmark:
             if candidate.exists():
                 return candidate
         return Path("")
+
+    def _default_storage_root(self, dataset_path: Path) -> Path:
+        if dataset_path:
+            base = dataset_path.parent if dataset_path.is_file() else dataset_path
+            if str(base):
+                return base / ".knowledgeverse_runtime"
+        return Path("../Knowledge3D.local")
 
     def _load_questions(self) -> list[dict[str, Any]]:
         if self.dataset_path and self.dataset_path.exists():
@@ -225,46 +236,51 @@ class LastHumanityExamBenchmark:
         domain = str(question.get("domain", "multi"))
         if self.tablet_boundary is not None:
             return self._answer_question_via_tablet(question=question, use_enriched=use_enriched)
-        route = navigator.route(
-            query=question["question_text"],
-            specialist="auto",
-            domain_hint=domain,
-            galaxy_names=self.query_scope_galaxies,
-        )
-        route = self._apply_query_scope(route)
-        specialist = route["specialist"]
-        if use_enriched and self.runtime_seed_knowledge:
-            self._seed_domain_knowledge(question, route=route)
-        patterns = navigator.query(
-            query=question["question_text"],
-            galaxy_names=route["galaxy_names"],
-            top_k=40 if use_enriched else 5,
-            specialist=specialist,
-            domain_hint=route["domain"],
-        )
-
         question_type = str(question.get("question_type") or "multiple_choice").lower()
         options = question.get("options") if isinstance(question.get("options"), list) else []
         expected = str(question["correct_answer"])
-
-        if question_type == "open_ended" or not options:
-            predicted, correct = self._answer_open_ended(
-                navigator=navigator,
-                question=question,
-                use_enriched=use_enriched,
-            )
-        else:
-            if use_enriched:
-                reasoning = self._enriched_reasoning(
-                    navigator=navigator,
-                    question=question,
-                    route=route,
-                    use_enriched=use_enriched,
-                )
-            else:
-                reasoning = self._empty_mind_reasoning(question)
-            predicted = navigator.select_answer(reasoning=reasoning, options=options)
+        domain_lower = domain.strip().lower()
+        math_like_domain = domain_lower in {"math", "mathematics", "physics"}
+        task_type = "LHE_TASK"
+        route = {
+            "specialist": "math" if math_like_domain else "chat",
+            "domain_hint": domain,
+            "galaxy_names": list(Knowledgeverse.GPU_LHE_TARGET_GALAXIES),
+        }
+        route = self._apply_query_scope(route)
+        specialist = str(route.get("specialist", "chat"))
+        if use_enriched and self.runtime_seed_knowledge:
+            self._seed_domain_knowledge(question, route=route)
+        task_result = self.kv.execute_task(
+            task={
+                "type": task_type,
+                "task_id": str(question["id"]),
+                "query": str(question["question_text"]),
+                "prompt": str(question["question_text"]),
+                "question": str(question["question_text"]),
+                "messages": [{"role": "user", "content": str(question["question_text"])}],
+                "domain": domain,
+                "options": list(options),
+                "question_type": question_type,
+                "expected_answer": expected,
+            },
+            route=route,
+            specialist=specialist,
+            domain_hint=domain,
+            use_enriched=use_enriched,
+        )
+        predicted = str(
+            task_result.get("predicted_answer")
+            or task_result.get("response")
+            or task_result.get("answer")
+            or task_result.get("result")
+            or ""
+        ).strip()
+        if options:
+            predicted = self._normalize_option_prediction(predicted, options)
             correct = predicted.strip() == expected.strip()
+        else:
+            correct = self._open_ended_match(predicted, expected)
 
         self.kv.log_event(
             "lhe_question_success" if correct else "lhe_question_failure",
@@ -280,10 +296,15 @@ class LastHumanityExamBenchmark:
             "correct": int(correct),
             "predicted_answer": predicted,
             "correct_answer": expected,
-            "knowledge_used": len(patterns),
-            "reasoning_trace": navigator.get_reasoning_trace(),
-            "route": route,
+            "knowledge_used": 0,
+            "reasoning_trace": list(task_result.get("reasoning_trace", [])),
+            "route": task_result.get("route", route),
             "question_type": question_type,
+            "solver": str(task_result.get("solver", "")),
+            "runtime": str(task_result.get("runtime", "")),
+            "gpu_execution": bool(task_result.get("gpu_execution", False)),
+            "program_id": str(task_result.get("program_id", "")),
+            "task_result": task_result,
         }
 
     def _answer_question_via_tablet(
@@ -322,6 +343,11 @@ class LastHumanityExamBenchmark:
             "reasoning_trace": emitted.get("task_result", {}).get("reasoning_trace", []),
             "route": route,
             "question_type": str(question.get("question_type") or "multiple_choice").lower(),
+            "solver": str(emitted.get("task_result", {}).get("solver", "tablet_boundary")),
+            "runtime": str(emitted.get("task_result", {}).get("runtime", "")),
+            "gpu_execution": bool(emitted.get("task_result", {}).get("gpu_execution", False)),
+            "program_id": str(emitted.get("task_result", {}).get("program_id", "")),
+            "task_result": emitted.get("task_result", {}),
             "tablet_contract": tablet_result["tablet_contract"],
         }
 
@@ -385,19 +411,53 @@ class LastHumanityExamBenchmark:
         return text
 
     def _open_ended_match(self, predicted: str, expected: str) -> bool:
+        predicted_numeric = self._to_float(predicted)
+        expected_numeric = self._to_float(expected)
+        if predicted_numeric is not None and expected_numeric is not None:
+            return abs(predicted_numeric - expected_numeric) <= 1e-9
         p = self._normalize_answer_text(predicted)
         e = self._normalize_answer_text(expected)
         if not p or not e:
             return False
-        if p == e:
-            return True
-        return (e in p) or (p in e)
+        return p == e
+
+    @staticmethod
+    def _to_float(value: str) -> float | None:
+        text = str(value or "").strip().replace(",", "").replace("\\", "")
+        if not text:
+            return None
+        if text.startswith("$"):
+            text = text[1:]
+        try:
+            return float(text)
+        except Exception:
+            return None
 
     def _normalize_answer_text(self, value: str) -> str:
         text = str(value).strip().lower()
         text = re.sub(r"\s+", " ", text)
         text = re.sub(r"[^a-z0-9+#=,./:;() -]+", "", text)
         return text.strip()
+
+    def _normalize_option_prediction(self, raw_answer: str, options: Sequence[str]) -> str:
+        answer = str(raw_answer or "").strip()
+        if not answer:
+            return ""
+        normalized_answer = self._normalize_answer_text(answer)
+        for option in options:
+            option_text = str(option).strip()
+            if not option_text:
+                continue
+            normalized_option = self._normalize_answer_text(option_text)
+            if normalized_answer == normalized_option:
+                return option_text
+            if normalized_answer in {"a", "b", "c", "d"}:
+                index = ord(normalized_answer) - ord("a")
+                if 0 <= index < len(options):
+                    return str(options[index]).strip()
+            if normalized_option and (normalized_option in normalized_answer or normalized_answer in normalized_option):
+                return option_text
+        return answer
 
     def _enriched_reasoning(
         self,

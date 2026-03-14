@@ -93,7 +93,9 @@
 
 ### 2.1 The Three Universes
 
-**Paradigm**: Avatar is always **embodied in the House** (primary spatial interface). **Galaxy Universe is always loaded in VRAM** (all default galaxies present). **Galaxy introspection mode** enables AI to "step into its own thoughts" for meta-cognition—embodied thinking inside thoughts.
+**Paradigm**: **TRM IS the Avatar** — the TRM (~7M params) is NOT a function Python calls. It IS the AI entity that lives in the **House (Memory Palace)** and thinks inside the **Galaxy (Internal Brain)**. Runs as a continuous game loop (`trm_step_fused.ptx`). Python = boot + I/O only (~200 lines target). **K3D is NOT a program you run — it is a living, always-on, embodied AI that perfects itself during idle time.**
+
+Avatar is always **embodied in the House** (external shared reality, Method of Loci). **Galaxy Universe is always loaded in VRAM** (the avatar's internal brain — ALL default galaxies present). Internal swarm of nine parallel cognitive channels = "superdotados" model (how gifted individuals think).
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -142,9 +144,11 @@ Museum (Cold Storage)  → Deprecated artifacts, versioned (long-term)
 ```
 
 **Key Distinction**:
-- **House** = WHERE the avatar IS (spatial embodiment, primary interface)
-- **Galaxy** = HOW the AI THINKS ABOUT THINKING (introspection mode, meta-cognition)
-- Both are critical, both always present, different purposes
+- **House** = Memory Palace (Method of Loci) — WHERE the avatar LIVES (external shared 3D reality for humans AND AI)
+- **Galaxy** = Internal Brain — what happens INSIDE the avatar's head (unified multi-modal VRAM workspace)
+- **TRM** = The Avatar Entity — lives in House, thinks in Galaxy, runs as game loop (`trm_step_fused.ptx`)
+- **Internal Swarm** = "Superdotados" thinking — nine parallel cognitive channels inside the avatar's head
+- Both House and Galaxy are critical, both always present, different purposes
 
 ### 2.2 Design Principles
 
@@ -606,7 +610,13 @@ class KnowledgeverseBootstrap:
         })
 
     def _boot_step_6_load_trm(self):
-        """Load TRM weights into Region 5."""
+        """Load TRM weights into Region 5 (the avatar's neural substrate).
+
+        Region 5 holds the avatar entity's brain (~7M params + specialist adapters).
+        TRM IS the avatar — it lives in the House, thinks in the Galaxy, and runs
+        as a continuous game loop via trm_step_fused.ptx. This step loads the
+        avatar's neural substrate into VRAM so the game loop can begin.
+        """
         trm_artifact = next(
             a for a in self.manifest['artifacts']
             if a['kind'] == 'trm_weights'

@@ -1,0 +1,955 @@
+1
+00:00:00,000 --> 00:00:01,340
+Vamos falar sobre uma ideia que
+
+2
+00:00:01,340 --> 00:00:02,610
+pode de verdade reprogramar o
+
+3
+00:00:02,610 --> 00:00:03,720
+nosso mundo digital.
+
+4
+00:00:03,720 --> 00:00:04,900
+É uma solução que ataca um
+
+5
+00:00:04,900 --> 00:00:06,180
+problema fundamental no jeito
+
+6
+00:00:06,180 --> 00:00:07,620
+como a inteligência artificial
+
+7
+00:00:07,620 --> 00:00:08,940
+e a própria web lidam com o
+
+8
+00:00:08,940 --> 00:00:09,900
+conhecimento.
+
+9
+00:00:09,900 --> 00:00:11,220
+O nosso mundo digital tem um
+
+10
+00:00:11,220 --> 00:00:12,760
+problema sério, um que a gente
+
+11
+00:00:12,760 --> 00:00:14,460
+quase nunca para para pensar.
+
+12
+00:00:14,460 --> 00:00:16,480
+Quase tudo que existe online é,
+
+13
+00:00:16,480 --> 00:00:18,070
+no fundo, uma cópia.
+
+14
+00:00:18,070 --> 00:00:19,480
+E outra cópia? E mais uma?
+
+15
+00:00:19,480 --> 00:00:20,600
+Essa é a realidade.
+
+16
+00:00:20,600 --> 00:00:21,940
+Uma base toda construída em
+
+17
+00:00:21,940 --> 00:00:23,500
+cima de uma duplicação de dados
+
+18
+00:00:23,500 --> 00:00:24,380
+que é massiva,
+
+19
+00:00:24,380 --> 00:00:25,920
+ineficiente e que custa muito
+
+20
+00:00:25,920 --> 00:00:27,540
+tempo, dinheiro e energia.
+
+21
+00:00:27,660 --> 00:00:29,410
+Pois é, e aqui a gente não está
+
+22
+00:00:29,410 --> 00:00:30,950
+falando de um bug pequeno ou um
+
+23
+00:00:30,950 --> 00:00:32,470
+probleminha técnico.
+
+24
+00:00:32,470 --> 00:00:34,100
+Isso é uma verdadeira crise
+
+25
+00:00:34,100 --> 00:00:35,060
+sistêmica.
+
+26
+00:00:35,060 --> 00:00:36,970
+Estamos gastando uma quantidade
+
+27
+00:00:36,970 --> 00:00:38,110
+absurda de recursos
+
+28
+00:00:38,110 --> 00:00:40,030
+só para armazenar e manter sinc
+
+29
+00:00:40,030 --> 00:00:42,240
+ronizadas as mesmíssimas coisas,
+
+30
+00:00:42,240 --> 00:00:43,500
+de novo e de novo.
+
+31
+00:00:43,500 --> 00:00:45,100
+Para entender isso na prática,
+
+32
+00:00:45,100 --> 00:00:46,380
+olha só esse exemplo.
+
+33
+00:00:46,380 --> 00:00:48,100
+O símbolo da derivada parcial.
+
+34
+00:00:48,100 --> 00:00:49,240
+Parece simples, né?
+
+35
+00:00:49,240 --> 00:00:50,830
+Mas para ele existir no mundo
+
+36
+00:00:50,830 --> 00:00:52,620
+digital, a coisa complica.
+
+37
+00:00:52,620 --> 00:00:54,170
+A forma dele está guardada em
+
+38
+00:00:54,170 --> 00:00:55,360
+um artigo de fonte.
+
+39
+00:00:55,360 --> 00:00:57,130
+O significado matemático dele,
+
+40
+00:00:57,130 --> 00:00:58,770
+para o Maya entender, vira um
+
+41
+00:00:58,770 --> 00:01:00,080
+monte de números.
+
+42
+00:01:00,080 --> 00:01:01,320
+Um tal de embedding.
+
+43
+00:01:01,320 --> 00:01:02,800
+E a descrição dele, para um le
+
+44
+00:01:02,800 --> 00:01:04,500
+itor de tela, é outra informação
+
+45
+00:01:04,500 --> 00:01:05,160
+separada.
+
+46
+00:01:05,160 --> 00:01:06,450
+Cada um é uma cópia, um dado
+
+47
+00:01:06,450 --> 00:01:07,880
+isolado que precisa ser mantido
+
+48
+00:01:07,880 --> 00:01:08,950
+por conta própria.
+
+49
+00:01:08,950 --> 00:01:10,060
+É uma loucura.
+
+50
+00:01:10,060 --> 00:01:11,560
+E o tamanho do estrago?
+
+51
+00:01:11,560 --> 00:01:13,040
+Em alguns sistemas, essa crise
+
+52
+00:01:13,040 --> 00:01:14,290
+de duplicação chega a ser
+
+53
+00:01:14,290 --> 00:01:17,360
+responsável por mais de 70% de
+
+54
+00:01:17,360 --> 00:01:18,640
+todo o desperdício de dados.
+
+55
+00:01:19,080 --> 00:01:21,260
+Pensa nisso. 70%.
+
+56
+00:01:21,260 --> 00:01:22,660
+É uma ineficiência gigantesca,
+
+57
+00:01:22,660 --> 00:01:23,700
+que de alguma forma a gente
+
+58
+00:01:23,700 --> 00:01:24,890
+passou a tratar como se fosse
+
+59
+00:01:24,890 --> 00:01:25,460
+normal.
+
+60
+00:01:25,460 --> 00:01:28,050
+Tá, mas... então como a gente
+
+61
+00:01:28,050 --> 00:01:28,760
+sai disso?
+
+62
+00:01:28,760 --> 00:01:30,680
+A proposta é uma virada de ch
+
+63
+00:01:30,680 --> 00:01:31,240
+ave.
+
+64
+00:01:31,240 --> 00:01:32,860
+Em vez de ficar copiando tudo,
+
+65
+00:01:32,860 --> 00:01:34,480
+e se a gente pudesse só apontar
+
+66
+00:01:34,480 --> 00:01:35,640
+para o original?
+
+67
+00:01:35,640 --> 00:01:37,320
+Pensa num atalho de computador,
+
+68
+00:01:37,320 --> 00:01:37,760
+sabe?
+
+69
+00:01:37,760 --> 00:01:39,140
+O famoso SIM-link.
+
+70
+00:01:39,140 --> 00:01:40,930
+A ideia é essa, só que aplicada
+
+71
+00:01:40,930 --> 00:01:42,680
+a todo tipo de conhecimento.
+
+72
+00:01:42,680 --> 00:01:44,460
+E o nome dessa abordagem é
+
+73
+00:01:44,460 --> 00:01:46,710
+Representação de Conhecimento
+
+74
+00:01:46,710 --> 00:01:48,770
+por Memória Procedural, ou PMKR
+
+75
+00:01:48,770 --> 00:01:49,080
+.
+
+76
+00:01:49,080 --> 00:01:50,690
+A ideia central é de uma sim
+
+77
+00:01:50,690 --> 00:01:51,980
+plicidade genial.
+
+78
+00:01:51,980 --> 00:01:53,830
+A memória procedural não trata
+
+79
+00:01:53,830 --> 00:01:55,340
+o conhecimento como um dado
+
+80
+00:01:55,340 --> 00:01:56,760
+estático, parado.
+
+81
+00:01:56,760 --> 00:01:58,680
+Ela o trata como um programa,
+
+82
+00:01:58,680 --> 00:01:59,760
+uma receita.
+
+83
+00:01:59,760 --> 00:02:01,310
+O melhor exemplo é um arquivo
+
+84
+00:02:01,310 --> 00:02:01,900
+de fonte.
+
+85
+00:02:01,900 --> 00:02:03,240
+Ele não guarda a imagem de cada
+
+86
+00:02:03,240 --> 00:02:04,860
+letra em cada tamanho possível.
+
+87
+00:02:04,860 --> 00:02:06,470
+Ele guarda as instruções de
+
+88
+00:02:06,470 --> 00:02:08,220
+como desenhar aquela letra.
+
+89
+00:02:08,220 --> 00:02:10,130
+A PMKR pega essa lógica e apl
+
+90
+00:02:10,130 --> 00:02:11,580
+ica a todo o resto.
+
+91
+00:02:11,580 --> 00:02:13,340
+E aqui o contraste fica bem
+
+92
+00:02:13,340 --> 00:02:14,000
+claro.
+
+93
+00:02:14,000 --> 00:02:15,780
+De um lado, o jeito antigo.
+
+94
+00:02:15,780 --> 00:02:17,440
+O caos do copiar e colar, que é
+
+95
+00:02:17,440 --> 00:02:19,220
+caro, frágil, e um prato cheio
+
+96
+00:02:19,220 --> 00:02:20,960
+para dar inconsistência.
+
+97
+00:02:20,960 --> 00:02:23,340
+Do outro, o jeito PMKR.
+
+98
+00:02:23,340 --> 00:02:24,970
+Referenciar e executar.
+
+99
+00:02:24,970 --> 00:02:26,940
+Você guarda a receita uma única
+
+100
+00:02:26,940 --> 00:02:27,410
+vez.
+
+101
+00:02:27,410 --> 00:02:28,540
+Precisou dela?
+
+102
+00:02:28,540 --> 00:02:29,360
+Só aponta.
+
+103
+00:02:29,360 --> 00:02:30,800
+Atualizou a receita?
+
+104
+00:02:30,800 --> 00:02:31,410
+Pronto!
+
+105
+00:02:31,410 --> 00:02:33,190
+Está atualizado em todo lugar.
+
+106
+00:02:33,190 --> 00:02:34,190
+Simples assim.
+
+107
+00:02:34,190 --> 00:02:35,840
+É o poder do SIM-link, do atal
+
+108
+00:02:35,840 --> 00:02:37,360
+ho, levado ao mundo do conhe
+
+109
+00:02:37,360 --> 00:02:38,100
+cimento.
+
+110
+00:02:38,220 --> 00:02:40,160
+Certo, a ideia é poderosa.
+
+111
+00:02:40,160 --> 00:02:41,710
+Mas como isso funciona na pr
+
+112
+00:02:41,710 --> 00:02:42,380
+ática?
+
+113
+00:02:42,380 --> 00:02:43,870
+Como se constrói um sistema
+
+114
+00:02:43,870 --> 00:02:44,420
+assim?
+
+115
+00:02:44,420 --> 00:02:45,680
+Vamos mergulhar um pouco na
+
+116
+00:02:45,680 --> 00:02:46,500
+arquitetura.
+
+117
+00:02:46,500 --> 00:02:48,200
+Nesse caminho que leva da forma
+
+118
+00:02:48,200 --> 00:02:50,100
+mais bruta até o significado.
+
+119
+00:02:50,580 --> 00:02:52,130
+E tudo se baseia em um princíp
+
+120
+00:02:52,130 --> 00:02:52,440
+io.
+
+121
+00:02:52,440 --> 00:02:53,300
+Quase um mantra.
+
+122
+00:02:53,300 --> 00:02:55,740
+Não duplique o que já existe.
+
+123
+00:02:55,740 --> 00:02:57,420
+Use referências.
+
+124
+00:02:57,420 --> 00:02:59,240
+Essa é a regra de ouro que com
+
+125
+00:02:59,240 --> 00:03:01,120
+anda toda a arquitetura.
+
+126
+00:03:01,120 --> 00:03:03,030
+Cada decisão de projeto volta
+
+127
+00:03:03,030 --> 00:03:04,620
+para esse mandamento.
+
+128
+00:03:04,620 --> 00:03:06,550
+Não guarde a mesma coisa duas
+
+129
+00:03:06,550 --> 00:03:07,220
+vezes.
+
+130
+00:03:07,220 --> 00:03:08,770
+Apenas aponte para a fonte
+
+131
+00:03:08,770 --> 00:03:09,560
+original.
+
+132
+00:03:10,100 --> 00:03:11,360
+E a estrutura tem quatro cam
+
+133
+00:03:11,360 --> 00:03:12,680
+adas, como se fossem blocos de
+
+134
+00:03:12,680 --> 00:03:13,240
+montar.
+
+135
+00:03:13,240 --> 00:03:15,240
+A base de tudo é a forma.
+
+136
+00:03:15,240 --> 00:03:17,030
+As instruções puras, tipo,
+
+137
+00:03:17,030 --> 00:03:18,480
+desenhe estas curvas.
+
+138
+00:03:18,480 --> 00:03:20,090
+A segunda camada adiciona o
+
+139
+00:03:20,090 --> 00:03:21,100
+significado.
+
+140
+00:03:21,100 --> 00:03:22,730
+Ela diz que aquela forma é, por
+
+141
+00:03:22,730 --> 00:03:23,940
+exemplo, a letra A.
+
+142
+00:03:23,940 --> 00:03:25,350
+A terceira camada traz as regr
+
+143
+00:03:25,350 --> 00:03:26,600
+as, que são códigos que
+
+144
+00:03:26,600 --> 00:03:28,280
+transformam o significado.
+
+145
+00:03:28,280 --> 00:03:29,440
+Como uma regra para colocar
+
+146
+00:03:29,440 --> 00:03:30,380
+palavras no plural.
+
+147
+00:03:30,940 --> 00:03:32,490
+E no topo, a quarta camada tem
+
+148
+00:03:32,490 --> 00:03:34,060
+as meta-regras, que funcionam
+
+149
+00:03:34,060 --> 00:03:35,740
+como a estratégia, decidindo
+
+150
+00:03:35,740 --> 00:03:37,200
+qual regra usar e quando.
+
+151
+00:03:37,200 --> 00:03:39,400
+E aqui está o pulo do gato.
+
+152
+00:03:39,400 --> 00:03:41,790
+A camada de regras não copia a
+
+153
+00:03:41,790 --> 00:03:44,100
+letra A da camada de signific
+
+154
+00:03:44,100 --> 00:03:44,820
+ado.
+
+155
+00:03:44,820 --> 00:03:46,120
+De jeito nenhum.
+
+156
+00:03:46,120 --> 00:03:47,740
+Ela referencia.
+
+157
+00:03:47,740 --> 00:03:49,290
+Ela aponta para a camada de
+
+158
+00:03:49,290 --> 00:03:51,030
+baixo, que por sua vez aponta
+
+159
+00:03:51,030 --> 00:03:52,620
+para a camada da forma.
+
+160
+00:03:52,620 --> 00:03:54,770
+É essa cadeia contínua de refer
+
+161
+00:03:54,770 --> 00:03:56,830
+ências e não de cópias que imp
+
+162
+00:03:56,830 --> 00:03:58,740
+ede a duplicação e gera toda
+
+163
+00:03:58,740 --> 00:04:00,320
+essa eficiência.
+
+164
+00:04:00,840 --> 00:04:02,430
+Ok, a arquitetura faz todo o
+
+165
+00:04:02,430 --> 00:04:03,180
+sentido.
+
+166
+00:04:03,180 --> 00:04:04,080
+Mas e daí?
+
+167
+00:04:04,080 --> 00:04:05,630
+O que a gente ganha com isso no
+
+168
+00:04:05,630 --> 00:04:06,460
+mundo real?
+
+169
+00:04:06,460 --> 00:04:07,760
+Vamos ver o impacto de
+
+170
+00:04:07,760 --> 00:04:09,640
+transformar o conhecimento em
+
+171
+00:04:09,640 --> 00:04:11,760
+algo que a gente pode executar.
+
+172
+00:04:11,760 --> 00:04:14,100
+E os números são absurdos.
+
+173
+00:04:14,100 --> 00:04:16,140
+Ao simplesmente referenciar sí
+
+174
+00:04:16,140 --> 00:04:18,140
+mbolos em vez de duplicá-los, a
+
+175
+00:04:18,140 --> 00:04:20,120
+taxa de compressão pode chegar
+
+176
+00:04:20,120 --> 00:04:21,800
+a 190 mil vezes.
+
+177
+00:04:21,800 --> 00:04:23,300
+É até difícil de imaginar.
+
+178
+00:04:23,300 --> 00:04:25,080
+E mesmo nos cenários mais comun
+
+179
+00:04:25,080 --> 00:04:27,320
+s, os ganhos são na casa de 70 a
+
+180
+00:04:27,320 --> 00:04:28,100
+80 vezes.
+
+181
+00:04:28,100 --> 00:04:29,540
+Isso não é uma melhoria pequena
+
+182
+00:04:29,540 --> 00:04:29,740
+.
+
+183
+00:04:29,880 --> 00:04:31,220
+É uma transformação completa na
+
+184
+00:04:31,220 --> 00:04:31,880
+eficiência.
+
+185
+00:04:31,880 --> 00:04:33,700
+E o impacto vai muito além dos
+
+186
+00:04:33,700 --> 00:04:34,620
+nossos HDs.
+
+187
+00:04:34,620 --> 00:04:35,890
+Uma projeção climática para
+
+188
+00:04:35,890 --> 00:04:37,180
+essa abordagem estilo aqui.
+
+189
+00:04:37,180 --> 00:04:38,730
+Se ela for adotada em larga esc
+
+190
+00:04:38,730 --> 00:04:40,420
+ala, a gente pode ter uma econom
+
+191
+00:04:40,420 --> 00:04:42,410
+ia acumulada de 12 gigatoneladas
+
+192
+00:04:42,410 --> 00:04:43,920
+de CO2 em 10 anos.
+
+193
+00:04:44,220 --> 00:04:45,950
+É isso mesmo. Uma mudança na
+
+194
+00:04:45,950 --> 00:04:47,320
+arquitetura de software com
+
+195
+00:04:47,320 --> 00:04:49,040
+impacto ambiental gigantesco.
+
+196
+00:04:49,040 --> 00:04:50,920
+E tem mais benefícios.
+
+197
+00:04:50,920 --> 00:04:52,630
+A realidade de cliente duplo
+
+198
+00:04:52,630 --> 00:04:54,270
+significa que humanos e IAs
+
+199
+00:04:54,270 --> 00:04:55,990
+passam a usar a mesma fonte da
+
+200
+00:04:55,990 --> 00:04:58,060
+verdade, acabando com inconsist
+
+201
+00:04:58,060 --> 00:04:58,920
+ências.
+
+202
+00:04:58,920 --> 00:05:00,570
+A auditabilidade completa nos
+
+203
+00:05:00,570 --> 00:05:02,200
+permite rastrear cada passo do
+
+204
+00:05:02,200 --> 00:05:03,930
+raciocínio de uma IA, abrindo a
+
+205
+00:05:03,930 --> 00:05:04,940
+caixa preta.
+
+206
+00:05:05,320 --> 00:05:06,940
+E o melhor, o sistema não quer
+
+207
+00:05:06,940 --> 00:05:08,700
+substituir tudo. Ele foi feito
+
+208
+00:05:08,700 --> 00:05:10,230
+para complementar os padrões
+
+209
+00:05:10,230 --> 00:05:11,240
+que a web já usa.
+
+210
+00:05:11,240 --> 00:05:13,520
+Essa citação resume tudo de um
+
+211
+00:05:13,520 --> 00:05:14,890
+jeito perfeito.
+
+212
+00:05:15,500 --> 00:05:16,810
+Hoje, um sistema de IA te dá
+
+213
+00:05:16,810 --> 00:05:18,250
+uma resposta, como se fosse um
+
+214
+00:05:18,250 --> 00:05:19,620
+programa já compilado.
+
+215
+00:05:19,620 --> 00:05:21,040
+Com a PMKR, ele te dá o
+
+216
+00:05:21,040 --> 00:05:22,910
+processo, o passo a passo, o
+
+217
+00:05:22,910 --> 00:05:25,100
+código fonte que você pode ins
+
+218
+00:05:25,100 --> 00:05:27,060
+pecionar para entender como ele
+
+219
+00:05:27,060 --> 00:05:29,020
+chegou àquela resposta.
+
+220
+00:05:29,020 --> 00:05:31,240
+É a diferença entre confiança c
+
+221
+00:05:31,240 --> 00:05:33,250
+ega e compreensão que pode ser
+
+222
+00:05:33,250 --> 00:05:34,340
+verificada.
+
+223
+00:05:34,340 --> 00:05:35,610
+E a gente termina com essa
+
+224
+00:05:35,610 --> 00:05:37,130
+pergunta, que na verdade é o
+
+225
+00:05:37,130 --> 00:05:38,700
+resumo de toda essa mudança de
+
+226
+00:05:38,700 --> 00:05:39,580
+paradigma.
+
+227
+00:05:39,580 --> 00:05:41,210
+E se o conhecimento não fosse
+
+228
+00:05:41,210 --> 00:05:42,750
+só algo que a gente lê, mas
+
+229
+00:05:42,750 --> 00:05:44,450
+algo que a gente pudesse execut
+
+230
+00:05:44,450 --> 00:05:44,880
+ar?
+
+231
+00:05:44,880 --> 00:05:46,520
+O que acontece quando saímos de
+
+232
+00:05:46,520 --> 00:05:48,030
+um mundo de documentos estát
+
+233
+00:05:48,030 --> 00:05:49,540
+icos para um universo de conhe
+
+234
+00:05:49,540 --> 00:05:51,180
+cimento vivo, dinâmico?
+
+235
+00:05:51,180 --> 00:05:53,210
+As implicações disso para a IA,
+
+236
+00:05:53,210 --> 00:05:54,540
+para a web e para o nosso
+
+237
+00:05:54,540 --> 00:05:55,260
+futuro?
+
+238
+00:05:55,260 --> 00:05:57,330
+Bom, mal começamos a arranhar a
+
+239
+00:05:57,330 --> 00:05:58,440
+superfície.

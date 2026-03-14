@@ -41,6 +41,8 @@ This specification defines SGI as the foundational goal of PM-KR (Procedural Mem
 
 **Result**: SGI = verifiable, energy-efficient, and fundamentally collaborative (humans + AI share cognitive habitat).
 
+**The Reverse Analogy**: The tech industry borrowed spatial metaphors (windows, desktop, folders, doors, addresses, rooms) and flattened them into 2D. SGI reverses this — builds ACTUAL spatial reality where those metaphors become literal. K3D is the pinnacle: uniting ALL knowledge representation, game engines, computer history, and network architecture into one spatial system. The House IS a memory palace (Method of Loci, 40,000 years old). The Galaxy IS the brain. The avatar IS the AI entity.
+
 ---
 
 ## 2. Core Principles of SGI
@@ -56,8 +58,9 @@ This specification defines SGI as the foundational goal of PM-KR (Procedural Mem
 
 **Implementation** (K3D):
 - **Galaxy Universe**: Unified VRAM workspace where ALL knowledge lives (Drawing, Character, Word, Grammar, Math, Reality galaxies)
-- **TRM Navigation**: 7M parameter model learns to navigate Galaxy, not store knowledge internally
-- **Spatial queries**: AI retrieves knowledge at (x, y, z) coordinates (same mechanism humans use to "look" at objects)
+- **TRM IS the Avatar**: 7M parameter entity that LIVES in the House (Memory Palace) and THINKS inside the Galaxy (Internal Brain). Runs as a continuous game loop (`trm_step_fused.ptx`), not as a function Python calls. Has an internal swarm of nine parallel cognitive channels ("superdotados" model — how gifted individuals think).
+- **Spatial queries**: Avatar navigates to knowledge at (x, y, z) coordinates (same mechanism humans use to "look" at objects)
+- **K3D is NOT a program you run**: It is a living, always-on, embodied AI that perfects itself during idle time (sleep-time consolidation)
 
 **Counter-example** (AGI):
 - Knowledge embedded in model weights (no spatial coordinates)
@@ -246,22 +249,35 @@ This specification defines SGI as the foundational goal of PM-KR (Procedural Mem
 
 ---
 
-### 5.2 TRM (Ternary Resonance Model)
+### 5.2 TRM — The AI Avatar (NOT Just a Model)
 
-**7M Parameter Core** (Base Model):
+**CRITICAL: TRM IS the Avatar Entity, NOT a function Python calls.**
+
+**7M Parameter Core** (The Avatar's Brain):
+- **Lives in the House** (Memory Palace) — embodied in the 3D spatial environment
+- **Thinks in the Galaxy** (Internal Brain) — processes all knowledge in VRAM
+- **Runs as a game loop** — `trm_step_fused.ptx` = one game tick (perceive → navigate → reason → decide → act → learn)
+- **Has internal swarm** — nine parallel cognitive channels ("superdotados" model: how gifted individuals think)
 - **NOT a knowledge store**: Learns HOW to navigate Galaxy (not WHAT knowledge to store)
-- **Navigation logic**: Which symbols to query in Galaxy Universe
-- **Combination logic**: How to compose procedural programs from Galaxy symbols
-- **Routing logic**: Which specialist adapter to use (math, visual, physics)
 
-**LoRA-Style Specialists**:
+**Game Loop (`trm_step_fused.ptx`):**
+1. Perceive → Frustum cull field-of-view (`frustum_cull_simd.ptx`)
+2. Navigate → LED-A* + Morton Octree to relevant Galaxy neighborhood
+3. Reason → Nine-Chain Swarm parallel workers (`nine_chain_swarm_kernel.ptx`)
+4. Decide → Halting Gate checks convergence (`gre_multimodal_halting_gate`)
+5. Act → Create new Galaxy entry or emit answer
+6. Learn → Shadow copy records successful trace
+
+**Internal Specialists** (Brain Regions, NOT External Services):
 - **Math Specialist**: Navigates Math + Grammar galaxies for symbolic reasoning
 - **Visual Specialist**: Navigates Drawing + Character galaxies for visual tasks
 - **Physics Specialist**: Navigates Reality galaxy for simulations
+- Specialists activate autonomously within the avatar, not called by Python
 
 **Shadow Copy Enhancement**:
 - **Learning from success**: Successful navigation paths reinforced automatically
 - **Continuous improvement**: No manual retraining required
+- **Sleep-time consolidation**: Idle periods used for knowledge crystallization
 
 **Source**: [docs/vocabulary/THREE_BRAIN_SYSTEM_SPECIFICATION.md](THREE_BRAIN_SYSTEM_SPECIFICATION.md) (Section 2.2)
 
@@ -504,7 +520,7 @@ This specification defines SGI as the foundational goal of PM-KR (Procedural Mem
 
 **Galaxy Universe**: Unified 3D workspace in VRAM containing ALL default galaxies (Drawing, Character, Word, Grammar, Math, Reality, Audio, etc.).
 
-**TRM (Ternary Resonance Model)**: 7M parameter navigator that learns HOW to navigate Galaxy Universe (not WHAT knowledge to store).
+**TRM (Ternary Resonance Model)**: 7M parameter AI avatar entity that LIVES in the House (Memory Palace) and THINKS inside the Galaxy (Internal Brain). Runs as a continuous game loop (`trm_step_fused.ptx`). Learns HOW to navigate Galaxy Universe (not WHAT knowledge to store). Has internal swarm of nine parallel cognitive channels ("superdotados" model).
 
 **Dual-Client Contract**: Guarantee that humans and AI consume identical K3D nodes at identical (x, y, z) coordinates.
 

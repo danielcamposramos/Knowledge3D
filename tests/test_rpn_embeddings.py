@@ -50,3 +50,31 @@ def test_rpn_semantic_clustering():
     # Ensure similarities stay within cosine bounds
     for sim in (cat_cats_sim, cat_kitten_sim, cat_computer_sim):
         assert -1.01 <= sim <= 1.01
+
+
+def test_gpu_table_sync_is_lazy_until_gpu_lookup():
+    class _StubBridge:
+        def __init__(self):
+            self.uploads: list[int] = []
+
+        def upload_embedding_table(self, table):
+            self.uploads.append(int(table.shape[0]))
+
+        @staticmethod
+        def embed_indices(indices, return_cpu=True):
+            del return_cpu
+            return np.ones(128, dtype=np.float32) / np.sqrt(128.0)
+
+    engine = RPNEmbeddingEngine(embedding_dim=128)
+    bridge = _StubBridge()
+    engine.attach_gpu_bridge(bridge)
+
+    initial_uploads = list(bridge.uploads)
+    engine.embed_sentence("Janet sells eggs")
+
+    assert bridge.uploads == initial_uploads
+
+    gpu_embedding = engine.embed_word_gpu("Janet")
+
+    assert gpu_embedding.shape == (128,)
+    assert len(bridge.uploads) == len(initial_uploads) + 1

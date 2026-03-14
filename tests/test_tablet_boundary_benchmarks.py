@@ -102,14 +102,12 @@ def test_math_benchmark_loads_real_gsm8k_and_math_layouts(tmp_path: Path):
 
     benchmark = MathCompetitionBenchmark(dataset_path=tmp_path / "datasets", max_problems=10)
 
-    assert len(benchmark.problems) == 2
+    assert len(benchmark.problems) == 1
     competitions = {row["competition"] for row in benchmark.problems}
-    assert "GSM8K" in competitions
     assert "MATH:Algebra" in competitions
     answers = {str(row["answer"]) for row in benchmark.problems}
-    assert "5" in answers
     assert "2" in answers
-    assert any("GSM8K" in source for source in benchmark.dataset_sources)
+    assert benchmark.dataset_mode == "present"
     assert any("math/data/train.jsonl" in source for source in benchmark.dataset_sources)
 
 
@@ -137,6 +135,23 @@ def test_lhe_benchmark_can_run_via_headless_tablet_boundary(tmp_path: Path):
     assert result["total_questions"] == 1
     assert result["accuracy"] == 1.0
     assert result["results"][0]["tablet_contract"]["action_type"] == "UPDATE_TABLET"
+
+
+def test_math_benchmark_defaults_to_synthetic_guard_set() -> None:
+    benchmark = MathCompetitionBenchmark(dataset_path=None, max_problems=20)
+
+    assert benchmark.dataset_mode == "synthetic"
+    assert benchmark.dataset_path == Path("")
+    assert len(benchmark.problems) == 20
+    assert all(problem.get("tier") for problem in benchmark.problems)
+    assert all(
+        not str(problem.get("competition", "")).upper().startswith("GSM8K")
+        for problem in benchmark.problems
+    )
+    assert all(
+        "derivative" not in str(problem.get("problem_text", "")).lower()
+        for problem in benchmark.problems
+    )
 
 
 def test_headless_tablet_runner_executes_arc_math_and_lhe(tmp_path: Path):

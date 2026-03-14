@@ -1598,3 +1598,218 @@ Implication:
 - ARC keeps the previous gain at `2 / 10`
 - LHE remains structurally corrected but knowledge-limited
 - the next justified work is ARC primitive family expansion from the 8 audited failures, not more four-pass duplication cleanup
+
+## 2026-03-07 12:30 BRT — Benchmark Delta
+
+- ARC smoke slice closed at `10 / 10`
+- Math smoke slice remains `20 / 20`
+- LHE smoke slice remains `0 / 10`
+- remaining benchmark work is now concentrated in LHE synthesis/knowledge density, not ARC or Math routing
+
+## 2026-03-07 16:05 BRT — LHE Quality Tightening
+
+Completed:
+- tighten LHE open-answer evidence selection by semantic overlap, not row count alone
+- restrict snapshot supplementation to weak open-ended cases only
+- add domain-aware synthesis gates for:
+  - lowercase code outputs
+  - plaintext sentence outputs
+  - symbolic formula outputs
+  - chess notation outputs
+- expand always-on LHE language-figure grammar with:
+  - sarcasm
+  - pun
+  - paradox
+  - oxymoron
+  - allusion
+  - personification
+
+Measured / observed state:
+- audited smoke artifact:
+  - `../Knowledge3D.local/results/tablet_boundary_post_lhe_quality3_smoke_20260307_1605/summary.json`
+- benchmark state:
+  - `ARC: 10 / 10`
+  - `Math: 20 / 20`
+  - `LHE: 1 / 10`
+
+Implication:
+- the LHE floor is stable at `1 / 10`
+- the paused augmentation snapshot is not yet dense enough for the remaining `9` misses
+- next justified work is richer LHE knowledge density or domain-specific support corpora, not more benchmark plumbing
+
+## Added Completion Slice: Deterministic LHE Foundational Corpus
+
+Completed:
+- add `scripts/build_lhe_foundational_corpus.py`
+- generate a deterministic, meaning-first LHE support payload
+- validate payload cleanliness, stable ids, and cross-galaxy refs
+- ingest the payload into a fresh benchmark validation root
+- rerun the audited `10 / 20 / 10` benchmark pack against the enriched root
+
+Measured / observed state:
+- concept families:
+  - `2048`
+- emitted rows:
+  - `5565`
+- ingestion:
+  - `added=5565`
+  - `skipped=0`
+- validation root:
+  - `../Knowledge3D.local/lhe_foundational_validation_20260307_1`
+- benchmark result:
+  - `ARC: 10 / 10`
+  - `Math: 20 / 20`
+  - `LHE: 1 / 10`
+
+Artifacts:
+- payload:
+  - `../Knowledge3D.local/fundamental_augmentation/lhe_foundational_corpus.jsonl`
+- manifest:
+  - `../Knowledge3D.local/fundamental_augmentation/lhe_foundational_corpus.manifest.json`
+- ingestion report:
+  - `../Knowledge3D.local/lhe_foundational_validation_20260307_1/results/lhe_foundational_ingestion_report.json`
+- benchmark summary:
+  - `../Knowledge3D.local/results/tablet_boundary_post_lhe_foundational_corpus_20260307/summary.json`
+- run metadata:
+  - `../Knowledge3D.local/results/tablet_boundary_post_lhe_foundational_corpus_20260307/run_metadata.json`
+
+Implication:
+- this deterministic corpus pass preserved ARC and Math exactly
+- it did not move LHE above `1 / 10`
+- for this slice, curated density alone is insufficient
+- the next justified LHE work is not more generic corpus mass; it is tighter question-family support and stronger answer synthesis/contrastive selection
+
+Completed:
+- wire `knowledge3d/knowledgeverse/lhe_reasoning_swarm.py` into the active daemon LHE Pass 4 path
+- keep universal `parse_bundle` as the single active text parse source
+- preserve Math at `20 / 20` and ARC at `10 / 10`
+- rerun the same audited `10 / 20 / 10` pack on the same validation root
+
+Measured / observed state:
+- benchmark summary:
+  - `../Knowledge3D.local/results/tablet_boundary_post_lhe_swarm_20260307_223409/summary.json`
+- benchmark result:
+  - `ARC: 10 / 10`
+  - `Math: 20 / 20`
+  - `LHE: 2 / 10`
+
+Implication:
+- LHE reasoning quality improved without changing benchmark plumbing or adding a second parser
+- the next justified LHE work is now narrower:
+  - chess/image handling
+  - clue-chain procedural decoding
+  - stronger symbolic/theorem answer synthesis
+
+Completed:
+- added deterministic `MeaningAtom` extraction layer for benchmark-facing reasoning
+- moved LHE open-answer final scoring onto sovereign PTX/RPN batch evaluation
+- moved LHE worker skeleton activation onto sovereign PTX/RPN condition evaluation over structured meaning/domain features
+- preserved `ARC: 10 / 10` and `Math: 20 / 20` in audited reruns
+
+Measured / observed state:
+- `../Knowledge3D.local/results/tablet_boundary_meaning_rpn_20260308_004343/summary.json`
+  - `ARC: 10 / 10`
+  - `Math: 20 / 20`
+  - `LHE: 2 / 10`
+- `../Knowledge3D.local/results/tablet_boundary_skeleton_select_20260308_013648/summary.json`
+  - `ARC: 10 / 10`
+  - `Math: 20 / 20`
+  - `LHE: 2 / 10`
+
+Implication:
+- selection and scoring are no longer the main sovereignty debt in LHE
+- the next justified work is candidate-generation depth:
+  - formula construction from meaning stars instead of field fragments
+  - procedural decode from form+meaning stars instead of English-specific host heuristics
+  - clue-chain composition from meaning refs / symlinked concepts instead of surface-pattern extraction
+
+Completed:
+- restricted LHE meaning-atom answer proposals to evidence-grounded atoms only
+
+Measured / observed state:
+- `../Knowledge3D.local/results/tablet_boundary_skeleton_select_20260308_014128/summary.json`
+  - `ARC: 10 / 10`
+  - `Math: 20 / 20`
+  - `LHE: 2 / 10`
+
+Implication:
+- contamination from parse-derived question echoes is reduced
+- remaining LHE failures are now dominated by semantically adjacent but non-computed candidates
+- next work should target deeper composition in:
+  - formula construction
+  - clue-chain resolution
+  - procedural decode
+
+Completed:
+- removed active English-specific/fact-registry priors from `ProceduralExecutionWorker`
+- clue-chain extraction now prefers canonical meaning forms from evidence-backed atoms
+- added focused `tests/test_lhe_reasoning_swarm.py`
+- kept daemon unit validation production-safe by using a test-only fake RPN engine instead of a runtime CPU fallback
+
+Measured / observed state:
+- `../Knowledge3D.local/results/tablet_boundary_skeleton_select_20260308_020658/summary.json`
+  - `ARC: 10 / 10`
+  - `Math: 20 / 20`
+  - `LHE: 2 / 10`
+
+Implication:
+- benchmark stability is preserved
+- the current LHE blocker is no longer selection/scoring or prompt contamination
+- the next justified work is meaning-first candidate generation depth, not more selection tuning
+
+Completed:
+- added row-level meaning alignment for LHE open-answer proposal generation
+- `FormulaReasoningWorker` and `EvidenceSynthesisWorker` now emit semantic field proposals from meaning-aligned evidence rows first
+- unrelated evidence rows no longer inject formula/plaintext candidates just because they contain plausible-looking text
+- added focused regressions in `tests/test_lhe_reasoning_swarm.py`
+
+Measured / observed state:
+- `../Knowledge3D.local/results/tablet_boundary_skeleton_select_20260308_033827/summary.json`
+  - `ARC: 10 / 10`
+  - `Math: 20 / 20`
+  - `LHE: 2 / 10`
+
+Implication:
+- selection, scoring, and row-alignment are no longer the main blocker for LHE
+- next justified work is upstream meaning-first proposer depth:
+  - symbolic formula construction
+  - clue-chain composition via meaning refs / symlinks
+  - procedural decode generation via form+meaning stars
+
+Completed:
+- removed `ConceptMatchingWorker` from procedural/numeric/symbolic open-answer paths
+- moved numeric/symbolic gating in LHE workers from prompt-word heuristics toward goal-kind evaluation
+- added focused LHE regressions for procedural concept suppression and numeric-goal prose rejection
+
+Measured / observed state:
+- `../Knowledge3D.local/results/tablet_boundary_skeleton_select_20260308_091900/summary.json`
+  - `ARC: 10 / 10`
+  - `Math: 20 / 20`
+  - `LHE: 2 / 10`
+
+Implication:
+- the remaining blocker is no longer generic concept leakage
+- the next justified work is true meaning-first proposer depth:
+  - symbolic theorem / formula construction
+  - clue-chain intermediate binding and composition
+  - procedural decode generation over form+meaning stars
+
+Completed:
+- preserved aligned zero-overlap formal rows in the LHE proposer path instead of dropping them behind overlapping semantic rows
+- narrowed numeric/symbolic LHE proposal extraction to primary formal answer fields before wider semantic fallback
+- added LHE regressions for:
+  - zero-overlap formal answer retention via `formalizes_ref`
+  - suppression of noisy numeric `entities` fields when formal answer content exists
+
+Measured / observed state:
+- `../Knowledge3D.local/results/tablet_boundary_skeleton_select_20260308_130835/summary.json`
+  - `ARC: 10 / 10`
+  - `Math: 20 / 20`
+  - `LHE: 2 / 10`
+
+Implication:
+- formal-row preservation is no longer the main blocker
+- the next justified work is meaning-first proposer depth for the remaining LHE families:
+  - count/integer reasoning for physics-style numeric questions
+  - symbolic answer construction from formal meaning refs
+  - procedural decode generation from form+meaning stars

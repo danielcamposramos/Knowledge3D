@@ -84,6 +84,7 @@ class RPNEmbeddingEngine:
         self._hash_to_index: Dict[int, int] = {}
         self._embedding_list: List[np.ndarray] = []
         self._gpu_bridge = None
+        self._gpu_table_dirty = True
 
     def hash_trigram(self, trigram: str) -> int:
         """Hash a trigram to an unsigned 32-bit integer."""
@@ -112,7 +113,7 @@ class RPNEmbeddingEngine:
         self.vocab_size = len(self._embedding_list)
         self.miss_count += 1
         self.mark_unconsolidated()
-        self._sync_gpu_table()
+        self._gpu_table_dirty = True
         return vec
 
     def embed_lookup(self, trigram_hash: int) -> np.ndarray:
@@ -166,16 +167,18 @@ class RPNEmbeddingEngine:
     def attach_gpu_bridge(self, bridge) -> None:
         """Attach a GPU trigram embedding bridge (optional)."""
         self._gpu_bridge = bridge
+        self._gpu_table_dirty = True
         self._sync_gpu_table()
 
     def has_gpu_bridge(self) -> bool:
         return self._gpu_bridge is not None
 
     def _sync_gpu_table(self) -> None:
-        if self._gpu_bridge is None:
+        if self._gpu_bridge is None or not self._gpu_table_dirty:
             return
         table = self.get_embedding_table()
         self._gpu_bridge.upload_embedding_table(table)
+        self._gpu_table_dirty = False
 
     def _ensure_trigram_indices(self, trigrams: Sequence[str]) -> List[int]:
         indices: List[int] = []
@@ -202,6 +205,7 @@ class RPNEmbeddingEngine:
         if not trigrams:
             return np.zeros(self.embedding_dim, dtype=np.float32)
         indices = self._ensure_trigram_indices(trigrams)
+        self._sync_gpu_table()
         return self._gpu_bridge.embed_indices(indices, return_cpu=True)
 
     def embed_sentence_gpu(self, sentence: str) -> np.ndarray:
@@ -290,6 +294,7 @@ class RPNEmbeddingEngine:
         self._pending_consolidation = bool(payload.get("pending_consolidation", False))
         last_ts = payload.get("last_consolidated_at")
         self._last_consolidated_at = float(last_ts) if last_ts is not None else None
+        self._gpu_table_dirty = True
         self._sync_gpu_table()
 
     # ------------------------------------------------------------------ #
@@ -326,6 +331,7 @@ class RPNEmbeddingEngine:
             int(h): embeddings[idx] for idx, h in enumerate(hashes.tolist())
         }
         self.vocab_size = embeddings.shape[0]
+        self._gpu_table_dirty = True
         self._sync_gpu_table()
 
     # ------------------------------------------------------------------ #

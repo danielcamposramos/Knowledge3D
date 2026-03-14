@@ -1199,6 +1199,28 @@ class TRMNavigator(SpecialistBase):
     def clear_trace(self) -> None:
         self._trace.clear()
 
+    def reset_session_state(self) -> None:
+        """Reset per-session mutable routing state without rebuilding the object."""
+        self._trace.clear()
+        self.specialist_router = SpecialistRouter()
+        self.navigator_specialist = NavigatorSpecialist(
+            knowledgeverse=self.knowledgeverse,
+            router=self.specialist_router,
+        )
+        self._bootstrap_matryoshka_specialists()
+        self.specialist_spawner = SpecialistSpawner(
+            root=self,
+            storage_path=self._specialist_tree_path.parent / "trm_specialist_spawner.json",
+            frequency_threshold=100,
+            low_confidence_threshold=0.6,
+            low_confidence_min_samples=20,
+            max_children_per_parent=16,
+        )
+        self._last_math_missing_signal = None
+        self._last_math_execution_error = None
+        self._dirty_weight_updates = 0
+        self._last_weight_save_monotonic = time.monotonic()
+
     def learn_from_feedback(
         self,
         *,
@@ -1450,38 +1472,43 @@ class TRMNavigator(SpecialistBase):
                 f"[K3D_MATH_DEBUG] solve_start use_enriched={bool(use_enriched)} "
                 f"query={text[:200]!r}"
             )
-        specialist = self.get_math_specialist()
-        math_task: dict[str, Any] = {"question": text}
-        try:
-            routes = self.navigator_specialist.plan_routes(
+        kv = getattr(self, "knowledgeverse", None)
+        if kv is None or not hasattr(kv, "execute_task"):
+            self._record_math_missing_signal(
+                reason="knowledgeverse_execute_task_unavailable",
                 query=text,
-                specialist="math",
-                galaxy_names=["Math", "Grammar", "Tool"],
-                use_forward_backward=True,
+                use_enriched=use_enriched,
             )
-            math_task["route_plan"] = routes
-            for key in ("forward_parse", "backward_parse", "fusion_parse"):
-                for route in routes:
-                    if not isinstance(route, dict):
-                        continue
-                    value = route.get(key)
-                    if isinstance(value, dict):
-                        math_task[key] = value
-                        break
-        except Exception:
-            pass
-        solved = specialist.process(math_task, use_enriched=use_enriched)
-        if solved.get("status") == "success":
+            return None
+        solved = kv.execute_task(
+            task={
+                "type": "MATH_TASK",
+                "query": text,
+                "question": text,
+            },
+            route={
+                "specialist": "math",
+                "domain_hint": "math",
+                "galaxy_names": list(getattr(kv, "GPU_MATH_TARGET_GALAXIES", ("Math", "Grammar", "Tool"))),
+            },
+            specialist="math",
+            domain_hint="math",
+            use_enriched=use_enriched,
+        )
+        if str(solved.get("status", "")).lower() == "ok":
             result = self._to_float(solved.get("result"))
             if result is None:
                 self._record_math_missing_signal(
-                    reason="math_specialist_non_numeric_result",
+                    reason="knowledgeverse_math_non_numeric_result",
                     query=text,
                     use_enriched=use_enriched,
-                    extra={"raw_result": solved.get("result")},
+                    extra={
+                        "raw_result": solved.get("result"),
+                        "program_id": solved.get("program_id"),
+                    },
                 )
                 return None
-            rpn_program = str(solved.get("rpn_program", "")).strip()
+            rpn_program = str(solved.get("program_id", "")).strip()
             self._trace.append(f"math_solve_success rpn={rpn_program}")
             self._last_math_missing_signal = None
             if self._math_debug:
@@ -1490,9 +1517,9 @@ class TRMNavigator(SpecialistBase):
                 )
             return result
 
-        reason = str(solved.get("reason", "math_specialist_failed")).strip() or "math_specialist_failed"
+        reason = str(solved.get("error", "knowledgeverse_math_query_failed")).strip() or "knowledgeverse_math_query_failed"
         extra: dict[str, Any] = {}
-        for key in ("detail", "rpn_program", "pattern_type", "template_id", "pattern_id"):
+        for key in ("detail", "program_id", "runtime"):
             if key in solved:
                 extra[key] = solved.get(key)
         self._record_math_missing_signal(
@@ -1607,42 +1634,6 @@ class TRMNavigator(SpecialistBase):
         return dict(self._last_math_missing_signal)
 
     # ========== Chat Specialist Integration (Sovereign LLM-compatible I/O) ==========
-
-    def get_math_specialist(self):
-        """
-        Get or create Math Specialist instance.
-
-        This keeps math solving on the specialist composition path even when
-        benchmark runners use TRMNavigator directly.
-        """
-        if "MathSpecialist" not in self.children:
-            self._bootstrap_matryoshka_specialists()
-
-        math_child = self.children.get("MathSpecialist")
-        if math_child is None:
-            from knowledge3d.knowledgeverse.specialists.math_specialist import MathSpecialist
-
-            math_specialist = MathSpecialist(
-                knowledgeverse=self.knowledgeverse,
-                parent=self,
-            )
-            self.children["MathSpecialist"] = math_specialist
-            return math_specialist
-
-        from knowledge3d.knowledgeverse.specialists.math_specialist import MathSpecialist
-
-        if not isinstance(math_child, MathSpecialist):
-            math_specialist = MathSpecialist(
-                knowledgeverse=self.knowledgeverse,
-                parent=self,
-            )
-            math_specialist.query_count = math_child.query_count
-            math_specialist.success_count = math_child.success_count
-            math_specialist.failure_count = math_child.failure_count
-            self.children["MathSpecialist"] = math_specialist
-            return math_specialist
-
-        return math_child
 
     def get_chat_specialist(self):
         """

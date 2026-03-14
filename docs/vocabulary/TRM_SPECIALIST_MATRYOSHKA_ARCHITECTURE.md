@@ -1,9 +1,26 @@
 # TRM Specialist Matryoshka Architecture Specification
 
-**Version:** 1.0
-**Date:** February 8, 2026
-**Status:** Design Specification
+**Version:** 1.1
+**Date:** March 10, 2026
+**Status:** Design Specification (Updated: TRM-as-Avatar Framing)
 **Related:** THREE_BRAIN_SYSTEM_SPECIFICATION.md, DUAL_CLIENT_CONTRACT_SPECIFICATION.md
+
+---
+
+## 0. Critical Paradigm: TRM IS the Avatar
+
+**The TRM (~7M parameters, 2-layer SwiGLU MLP) is NOT a Python class hierarchy that external code calls. It IS the AI entity.**
+
+- **Lives in the House** — embodied in the 3D Memory Palace (Method of Loci)
+- **Thinks in the Galaxy** — internal brain processes multi-modal knowledge in VRAM
+- **Runs as a game loop** — `trm_step_fused.ptx` = one game tick (like an NPC update cycle)
+- **Has internal swarm** — nine-chain parallel workers = "superdotados" model
+
+**The specialist hierarchy described below is INTERNAL to the avatar.** Specialists are NOT Python objects that external code instantiates. They are cognitive regions within the avatar's brain (Galaxy) that activate autonomously during the game loop. Think of them like brain regions that activate based on the task — the avatar decides which specialist to engage, not Python.
+
+**Python class examples in this spec are CONCEPTUAL ILLUSTRATIONS** of the data structures. The actual implementation lives in GPU VRAM and is dispatched by `trm_step_fused.ptx` and `nine_chain_swarm_kernel.ptx`, not by Python method calls.
+
+**Target:** Python code for specialist dispatch should be ~0 lines in the hot path. The TRM selects and activates specialists via GPU-native routing.
 
 ---
 
@@ -12,6 +29,7 @@
 **Matryoshka Concept Applied to AI:**
 - Traditional: Flat specialist roster (math, visual, physics, grammar)
 - **Matryoshka:** Hierarchical fractal specialists (specialists contain sub-specialists recursively)
+- **Internal to the avatar:** Like brain regions that activate contextually, not external services
 
 **Key Insight:**
 > "Everything is a specialist, including routers. Specialists can spawn sub-specialists autonomously."
@@ -609,14 +627,20 @@ def update_routing_bias_from_shadow_copy(specialist: SpecialistBase):
 
 ## 9. Sovereignty Compliance
 
-**Hot path remains sovereign:**
-- ✅ Specialist routing: Pure Python + NumPy (no external frameworks)
-- ✅ Delta weights: NumPy arrays (no PyTorch/TensorFlow)
-- ✅ Weight composition: Simple addition (W_base + ΔW_1 + ΔW_2 + ...)
+**Hot path = GPU-native ONLY:**
+- ✅ Specialist routing: GPU kernel dispatch via `trm_step_fused.ptx` (NOT Python)
+- ✅ Delta weights: VRAM-resident (loaded at boot, composed on GPU)
+- ✅ Weight composition: GPU-native addition (W_base + ΔW_1 + ΔW_2 + ...)
+- ✅ Swarm dispatch: `nine_chain_swarm_kernel.ptx` assigns specialists to workers
+- ❌ NO Python method calls in reasoning path
+- ❌ NO numpy/cupy/scipy in hot path
+- ❌ NO Python fallbacks. "We fail and fix on GPU." (Daniel)
+
+**Python's role:** Boot the system, load initial weights to VRAM, handle I/O. ~200 lines target.
 
 **Ingestion path can use tools:**
 - Fine-tuning specialists (if needed): Can use external frameworks
-- Result stored as sovereign delta weights
+- Result stored as sovereign delta weights in VRAM
 
 ---
 

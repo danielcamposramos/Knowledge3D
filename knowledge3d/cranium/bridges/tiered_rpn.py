@@ -248,6 +248,38 @@ class TieredRPNEngine:
         # Route to tier2 where device extraction kernel lives
         return self._tier2.execute_batch_device(programs)
 
+    def bind_galaxy_buffer(
+        self,
+        flat_entries: Sequence[float],
+        *,
+        entry_count: int,
+        entry_stride: int = 19,
+        embedding_offset: int = 3,
+        embedding_dim: int = 16,
+    ) -> dict[str, int]:
+        """Bind a flattened Galaxy table into the Tier-2 sovereign runtime."""
+        return self._tier2.bind_galaxy_buffer(
+            flat_entries,
+            entry_count=entry_count,
+            entry_stride=entry_stride,
+            embedding_offset=embedding_offset,
+            embedding_dim=embedding_dim,
+        )
+
+    def read_instance_stack_scalars(self, instance_id: int) -> list[float]:
+        """Expose the Tier-2 stack surface for frontier-aware navigation."""
+        return self._tier2.read_instance_stack_scalars(instance_id)
+
+    def store_embedding(
+        self,
+        *,
+        instance_id: int,
+        embedding: Sequence[float],
+        slot: int = 0,
+    ) -> None:
+        """Upload a query embedding for a specific instance."""
+        self._tier2.store_embedding(instance_id=instance_id, embedding=embedding, slot=slot)
+
     # ------------------------------------------------------------------ #
     # Codec-aware execution (GPU kernels orchestrated via TernaryCodecOps)
     # ------------------------------------------------------------------ #
@@ -465,17 +497,22 @@ class TieredRPNEngine:
             return self._tier_cache_value
 
         ternary_ops = {0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76}
+        tier2_forced_ops = {0xE0, 0xE1, 0xE2}
+        op_set = set(iterable)
         has_tier3 = any(
-            (op not in ternary_ops) and (op >= self.MATRIX_OPCODE_THRESHOLD or op == 0x02)
+            (op not in ternary_ops)
+            and (op not in tier2_forced_ops)
+            and (op >= self.MATRIX_OPCODE_THRESHOLD or op == 0x02)
             for op in iterable
         )
         if has_tier3:
             tier = 3
+        elif op_set & tier2_forced_ops:
+            tier = 2
         else:
             # Tier-1 for simple programs, Tier-2 for stack-heavy programs.
             # Tier-1 has a known bug with empty stack - fallback to Tier-2 is automatic.
             stack_ops = {50, 51, 52, 53, 54, 55}  # DUP, SWAP, DROP, OVER, ROT, NIP
-            op_set = set(iterable)
             tier1_supported = getattr(self._tier1, "SUPPORTED_OPS", set())
             needs_tier2 = any(
                 (op not in tier1_supported) and (op not in ternary_ops) and (op < self.MATRIX_OPCODE_THRESHOLD)

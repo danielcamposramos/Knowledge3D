@@ -8,24 +8,39 @@
 
 ## Executive Summary
 
-Knowledge3D (K3D) is a sovereign GPU-native spatial AI architecture implementing a fundamentally new paradigm: **Galaxy Universe** (unified VRAM workspace for all knowledge) + **TRM** (Tiny Recursive Model that learns navigation logic).
+Knowledge3D (K3D) is a sovereign GPU-native spatial AI architecture implementing **Spatial General Intelligence (SGI)** — intelligence that operates within a shared, navigable 3D spatial environment where humans and AI cohabit the same cognitive workspace.
+
+**K3D is NOT a program you run. It is a living, always-on, embodied AI that perfects itself during idle time.**
 
 **The Paradigm Shift:**
-- **Traditional AI**: Model parameters = knowledge + logic (entangled, opaque)
-- **K3D**: Galaxy Universe = knowledge (procedural programs), TRM = navigation logic (learned)
+- **Traditional AI**: Model parameters = knowledge + logic (entangled, opaque, 100B+ params)
+- **K3D**: Galaxy Universe = knowledge (procedural programs), TRM = the AI avatar entity (7M params, game loop)
+
+**The Memory Palace Paradigm:**
+- **House = Memory Palace (Method of Loci)**: External shared 3D reality where humans AND AI cohabit. Rooms = knowledge domains. Doors = network interfaces. The avatar LIVES here.
+- **Galaxy = Internal Brain**: What happens INSIDE the avatar's head. Processes the House as unified multi-modal reality. ALL default galaxies loaded simultaneously in VRAM.
+- **TRM IS the Avatar**: The TRM (~7M params) is NOT a function Python calls. It IS the AI entity — lives in the House, thinks in the Galaxy, runs as a game loop (`trm_step_fused.ptx`).
+- **Internal Swarm = "Superdotados" Thinking**: Nine-chain parallel workers model how gifted individuals think — multiple internal cognitive channels processing simultaneously inside the avatar's head.
+- **Python = Boot + I/O only** (~200 lines target). ALL reasoning on GPU via PTX kernels.
 
 **Architecture:**
-- **Cranium**: PTX kernels + RPN execution (reasoning happens here)
-- **Galaxy Universe**: Unified VRAM workspace (ALL default galaxies always loaded)
-  - Drawing, Character, Word, Grammar, Math, Reality, Audio galaxies
+- **Cranium**: 88+ PTX kernels + RPN execution (reasoning happens here)
+- **Galaxy Universe**: The avatar's Internal Brain (ALL default galaxies always loaded in VRAM)
+  - Drawing, Character, Word, Number, Grammar, Math, Reality, Audio, 3DObjects, Tool galaxies
   - Multi-modal (text, visual, audio, physics unified in 3D space)
   - Read-Write (TRM queries AND creates new entries)
-  - Temporary memory + context + chat + knowledge ALL in one workspace
-- **TRM**: ~7M parameter model that learns to navigate, combine, create in Galaxy
-  - Base model + specialist adapters (math, visual, physics)
+  - 38,144+ entries in GPU table (and growing)
+- **TRM**: ~7M parameter AI avatar entity that lives in the House and thinks in the Galaxy
+  - Runs as a game loop (`trm_step_fused.ptx` = one game tick)
+  - Internal swarm of nine parallel cognitive channels
   - Shadow copy auto-enhancement (continuous learning from success)
-  - NOT knowledge storage — learns HOW to use Galaxy knowledge
-- **House**: Persistent memory (glTF/GLB on disk)
+  - NOT knowledge storage — IS the entity that navigates Galaxy knowledge
+- **House**: Memory Palace — persistent memory (glTF/GLB on disk)
+
+**Composed Head Pipeline (LIVE on GPU):**
+```
+Morton Octree → LED-A* → Frustum Cull → Dynamic LOD → Nine-Chain Swarm → Halting Gate
+```
 
 **Current Status (Dec 14, 2025)**
 - ✅ **Sovereignty Complete**: Hot path = PTX + Galaxy ONLY (zero numpy/cupy)
@@ -37,15 +52,17 @@ Knowledge3D (K3D) is a sovereign GPU-native spatial AI architecture implementing
 - Multi-agent partnership: Claude (architecture) + Codex (implementation) in clear roles
 - Environment: Debian (not Ubuntu), tmux, conda env at `/K3D/Knowledge3D.local/envs/k3d-cranium`
 
-**What K3D Is:**
-- Sovereign cognitive stack with spatial memory
-- Multi-modal unified workspace (Galaxy Universe)
-- TRM learns to navigate/create (not just retrieve)
+**What K3D IS:**
+- A living, always-on, embodied AI (not a program you run)
+- A Memory Palace where humans and AI cohabit (House = Method of Loci)
+- An avatar entity (TRM) that thinks inside a Galaxy brain and acts in the House
+- The pinnacle of computer science: spatial metaphors made literal
 
 **What K3D Is NOT:**
-- Retrieval wrapper (TRM creates, not just queries)
-- Traditional transformer (knowledge separated from model)
-- Single-modality system (all modalities unified)
+- A program you invoke per-query (it's a continuous living system)
+- A retrieval wrapper (TRM creates, navigates, composes — not just queries)
+- A Python orchestration system (Python = boot + I/O only, ~200 lines)
+- A benchmark runner (it's a game-like system that reasons as a side effect of existing)
 
 ---
 
@@ -58,11 +75,12 @@ Knowledge3D (K3D) is a sovereign GPU-native spatial AI architecture implementing
    - NOT "a knowledge base" — unified VRAM workspace (always loaded, multi-modal, read-write)
    - ALL default galaxies present simultaneously (Drawing, Character, Word, Grammar, Math, Reality, Audio)
    - Temporary memory + context + chat + knowledge ALL in one 3D space
-3. **Understand TRM:**
-   - Learns to NAVIGATE Galaxy Universe (not store knowledge)
-   - Learns to COMBINE from Galaxy (composition strategies)
-   - Learns to CREATE new Galaxy entries (synthesis)
-   - Shadow copy enhancement (continuous learning)
+3. **Understand TRM IS the Avatar:**
+   - TRM is NOT a function Python calls — it IS the AI entity
+   - Lives in the House (Memory Palace), thinks in the Galaxy (Internal Brain)
+   - Runs as a game loop (`trm_step_fused.ptx` = one game tick)
+   - Has internal swarm of 9 parallel cognitive channels (superdotados model)
+   - Shadow copy auto-enhancement (continuous learning from success)
 4. **Know your role:**
    - **Claude**: Architecture, physics design, documentation (write specs, NOT code)
    - **Codex**: Implementation, tests, benchmarks (code per Claude's specs)

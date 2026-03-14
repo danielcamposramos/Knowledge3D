@@ -21,11 +21,35 @@ def _entry(
     tags: list[str] | None = None,
     metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    resolved_tags = list(tags or [])
     base_meta = {
         "source": "week19_reality_bootstrap",
         "bootstrap": "week19_reality_enabler",
         "procedural": True,
     }
+    lowered = " ".join([str(category or "").lower(), *[str(tag).lower() for tag in resolved_tags]])
+    inferred_subject = "reality"
+    inferred_subfield = str(category or "reality")
+    if any(token in lowered for token in ("kinematics", "dynamics", "electromagnetism", "thermodynamics")):
+        inferred_subject = "physics"
+        if "kinematics" in lowered or "projectile" in lowered:
+            inferred_subfield = "kinematics"
+        elif "electromagnetism" in lowered or "circuits" in lowered:
+            inferred_subfield = "electromagnetism"
+        elif "thermodynamics" in lowered or "entropy" in lowered or "ideal_gas" in lowered:
+            inferred_subfield = "thermodynamics"
+        else:
+            inferred_subfield = "dynamics"
+    elif any(token in lowered for token in ("procedural", "cellular_automata", "lsystem", "fractal", "eca")):
+        inferred_subject = "computer_science"
+        inferred_subfield = "procedural_generation"
+    base_meta.update(
+        {
+            "subject": inferred_subject,
+            "subfield": inferred_subfield,
+            "query_anchor": f"{name} {str(category).replace('_', ' ')} {' '.join(resolved_tags)}".strip(),
+        }
+    )
     if metadata:
         base_meta.update(metadata)
     return {
@@ -34,225 +58,452 @@ def _entry(
         "domain": "reality",
         "category": category,
         "rpn_program": rpn_program,
-        "tags": tags or [],
+        "tags": resolved_tags,
         "metadata": base_meta,
     }
 
 
 def create_kinematics_primitives() -> list[dict[str, Any]]:
-    out: list[dict[str, Any]] = []
-    out.append(
+    specs = [
+        (
+            "reality_kinematics_position_update_euler",
+            "Position Update (Euler)",
+            "X V DT MUL ADD",
+            ["kinematics", "integration", "euler"],
+            "position update displacement x plus v dt motion euler integration constant velocity",
+        ),
+        (
+            "reality_kinematics_velocity_update_euler",
+            "Velocity Update (Euler)",
+            "V A DT MUL ADD",
+            ["kinematics", "integration", "euler"],
+            "velocity update acceleration v plus a dt motion euler integration change in speed",
+        ),
+        (
+            "reality_kinematics_constant_acceleration",
+            "Constant Acceleration Displacement",
+            "X0 V0 DT MUL ADD 0.5 A MUL DT DT MUL ADD",
+            ["kinematics", "constant_acceleration", "motion"],
+            "constant acceleration displacement x0 plus v0 dt plus one half a dt squared uniformly accelerated motion",
+        ),
+        (
+            "reality_kinematics_average_velocity",
+            "Average Velocity",
+            "DISPLACEMENT TIME DIV",
+            ["kinematics", "velocity", "rate"],
+            "average velocity displacement divided by time motion rate change in position over time",
+        ),
+        (
+            "reality_kinematics_acceleration_definition",
+            "Acceleration Definition",
+            "DELTA_V DELTA_T DIV",
+            ["kinematics", "acceleration", "rate"],
+            "acceleration change in velocity divided by change in time rate of motion",
+        ),
+        (
+            "reality_kinematics_projectile_2d",
+            "Projectile Motion (2D)",
+            "X VX DT MUL ADD Y VY DT MUL ADD 0.5 G MUL DT DT MUL MUL SUB",
+            ["kinematics", "projectile", "composed"],
+            "projectile motion launch angle horizontal vertical gravity parabola time of flight range",
+        ),
+        (
+            "reality_kinematics_projectile_range",
+            "Projectile Range",
+            "V V MUL THETA2 SIN MUL G DIV",
+            ["kinematics", "projectile", "range"],
+            "projectile range launch speed angle distance gravity horizontal range",
+        ),
+        (
+            "reality_kinematics_projectile_time_of_flight",
+            "Projectile Time of Flight",
+            "2 V MUL THETA SIN MUL G DIV",
+            ["kinematics", "projectile", "time"],
+            "projectile time of flight launch speed angle gravity vertical motion duration",
+        ),
+        (
+            "reality_kinematics_uniform_circular_speed",
+            "Uniform Circular Speed",
+            "2 PI MUL R MUL T DIV",
+            ["kinematics", "circular_motion", "speed"],
+            "uniform circular motion speed circumference divided by period orbit rotation",
+        ),
+        (
+            "reality_kinematics_relative_velocity",
+            "Relative Velocity",
+            "V_OBJECT V_OBSERVER SUB",
+            ["kinematics", "relative_motion", "velocity"],
+            "relative velocity object speed minus observer speed motion reference frame",
+        ),
+    ]
+    return [
         _entry(
-            entry_id="reality_kinematics_position_update_euler",
-            name="Position Update (Euler)",
+            entry_id=entry_id,
+            name=name,
             category="kinematics",
-            rpn_program="X V DT MUL ADD",
-            tags=["kinematics", "integration", "euler"],
-            metadata={"cross_modal": ["drawing", "math"]},
+            rpn_program=program,
+            tags=tags,
+            metadata={
+                "cross_modal": ["drawing", "math"] if "projectile" in tags or "motion" in tags else ["math"],
+                "query_anchor": query_anchor,
+                "canonical_family": "physics_kinematics",
+            },
         )
-    )
-    out.append(
-        _entry(
-            entry_id="reality_kinematics_velocity_update_euler",
-            name="Velocity Update (Euler)",
-            category="kinematics",
-            rpn_program="V A DT MUL ADD",
-            tags=["kinematics", "integration", "euler"],
-            metadata={"cross_modal": ["math"]},
-        )
-    )
-    out.append(
-        _entry(
-            entry_id="reality_kinematics_projectile_2d",
-            name="Projectile Motion (2D)",
-            category="kinematics",
-            rpn_program="X VX DT MUL ADD Y VY DT MUL ADD 0.5 G MUL DT DT MUL MUL SUB",
-            tags=["kinematics", "projectile", "composed"],
-            metadata={"cross_modal": ["drawing", "math"], "composition_depth": 3, "generative": True},
-        )
-    )
-    for accel in range(-24, 25):
-        out.append(
-            _entry(
-                entry_id=f"reality_kinematics_velocity_a_{accel:+d}",
-                name=f"Velocity Update a={accel}",
-                category="kinematics",
-                rpn_program=f"V0 {accel} DT MUL ADD",
-                tags=["kinematics", "velocity"],
-                metadata={"cross_modal": ["math"]},
-            )
-        )
-    for accel in range(-16, 17):
-        for t_step in (0.25, 0.5, 1.0, 2.0):
-            out.append(
-                _entry(
-                    entry_id=f"reality_kinematics_position_a_{accel:+d}_dt_{str(t_step).replace('.', 'p')}",
-                    name=f"Position Update a={accel} dt={t_step}",
-                    category="kinematics",
-                    rpn_program=f"X0 V0 {t_step} MUL ADD 0.5 {accel} MUL {t_step} {t_step} MUL MUL ADD",
-                    tags=["kinematics", "position", "motion"],
-                    metadata={"cross_modal": ["drawing", "math"]},
-                )
-            )
-    for angle in range(5, 90, 5):
-        for speed in (10, 20, 30, 40):
-            out.append(
-                _entry(
-                    entry_id=f"reality_kinematics_projectile_angle_{angle}_speed_{speed}",
-                    name=f"Projectile angle={angle} speed={speed}",
-                    category="kinematics",
-                    rpn_program=f"{speed} {angle} DEG2RAD COS MUL VX_STORE {speed} {angle} DEG2RAD SIN MUL VY_STORE",
-                    tags=["kinematics", "projectile", "launch"],
-                    metadata={"cross_modal": ["drawing", "math"], "generative": True},
-                )
-            )
-    return out
+        for entry_id, name, program, tags, query_anchor in specs
+    ]
 
 
 def create_dynamics_primitives() -> list[dict[str, Any]]:
-    out: list[dict[str, Any]] = []
-    laws = [
-        ("newton_second_law", "F M DIV", ["fundamental", "dynamics"]),
-        ("kinetic_energy", "0.5 M MUL V V MUL MUL", ["energy", "dynamics"]),
-        ("potential_energy_gravity", "M G MUL H MUL", ["energy", "gravity"]),
-        ("momentum_linear", "M V MUL", ["momentum", "dynamics"]),
-        ("impulse", "F DELTA_T MUL", ["impulse", "dynamics"]),
-        ("work", "F D MUL", ["work", "energy"]),
-        ("power", "WORK TIME DIV", ["power", "energy"]),
-        ("energy_conservation", "KE1 PE1 ADD PE2 SUB", ["conservation", "energy"]),
-        ("momentum_conservation_1d", "M1 V1 MUL M2 V2 MUL ADD", ["conservation", "momentum"]),
+    specs = [
+        (
+            "reality_dynamics_newton_second_law",
+            "Newton Second Law",
+            "F M DIV",
+            "dynamics",
+            ["fundamental", "dynamics", "force"],
+            "newton second law acceleration equals force divided by mass force motion dynamics",
+        ),
+        (
+            "reality_dynamics_kinetic_energy",
+            "Kinetic Energy",
+            "0.5 M MUL V V MUL MUL",
+            "dynamics",
+            ["energy", "dynamics"],
+            "kinetic energy one half m v squared moving body energy",
+        ),
+        (
+            "reality_dynamics_potential_energy_gravity",
+            "Gravitational Potential Energy",
+            "M G MUL H MUL",
+            "dynamics",
+            ["energy", "gravity"],
+            "gravitational potential energy m g h height gravity field",
+        ),
+        (
+            "reality_dynamics_momentum_linear",
+            "Linear Momentum",
+            "M V MUL",
+            "dynamics",
+            ["momentum", "dynamics"],
+            "linear momentum mass times velocity impulse collision motion",
+        ),
+        (
+            "reality_dynamics_impulse",
+            "Impulse",
+            "F DELTA_T MUL",
+            "dynamics",
+            ["impulse", "dynamics"],
+            "impulse force times time change in momentum collision push",
+        ),
+        (
+            "reality_dynamics_work",
+            "Work",
+            "F D MUL",
+            "dynamics",
+            ["work", "energy"],
+            "work force times displacement mechanical energy transfer",
+        ),
+        (
+            "reality_dynamics_power",
+            "Power",
+            "WORK TIME DIV",
+            "dynamics",
+            ["power", "energy"],
+            "power work divided by time rate of energy transfer",
+        ),
+        (
+            "reality_dynamics_energy_conservation",
+            "Mechanical Energy Conservation",
+            "KE1 PE1 ADD KE2 PE2 ADD EQ",
+            "dynamics",
+            ["conservation", "energy"],
+            "energy conservation total mechanical energy initial equals final",
+        ),
+        (
+            "reality_dynamics_momentum_conservation_1d",
+            "Momentum Conservation (1D)",
+            "M1 V1 MUL M2 V2 MUL ADD",
+            "dynamics",
+            ["conservation", "momentum"],
+            "momentum conservation one dimensional collision total momentum before equals after",
+        ),
+        (
+            "reality_dynamics_torque",
+            "Torque",
+            "R F MUL THETA SIN MUL",
+            "dynamics",
+            ["torque", "rotation"],
+            "torque lever arm force sine angle rotational dynamics moment",
+        ),
+        (
+            "reality_dynamics_angular_momentum",
+            "Angular Momentum",
+            "I OMEGA MUL",
+            "dynamics",
+            ["angular_momentum", "rotation"],
+            "angular momentum moment of inertia times angular velocity rotation",
+        ),
+        (
+            "reality_dynamics_hooke_law",
+            "Hooke Law",
+            "K X MUL NEG",
+            "dynamics",
+            ["spring", "restoring_force"],
+            "hooke law spring restoring force minus kx oscillation elasticity",
+        ),
+        (
+            "reality_dynamics_friction_force",
+            "Friction Force",
+            "MU N MUL",
+            "dynamics",
+            ["friction", "contact_force"],
+            "friction coefficient times normal force contact surface sliding",
+        ),
+        (
+            "reality_dynamics_elastic_collision_1d",
+            "Elastic Collision (1D)",
+            "M1 U1 MUL M2 U2 MUL ADD M1 M2 ADD DIV",
+            "dynamics_collision",
+            ["collision", "elastic", "conservation"],
+            "elastic collision one dimensional momentum conservation kinetic energy conserved",
+        ),
+        (
+            "reality_dynamics_inelastic_collision_1d",
+            "Inelastic Collision (1D)",
+            "M1 U1 MUL M2 U2 MUL ADD M1 M2 ADD DIV",
+            "dynamics_collision",
+            ["collision", "inelastic", "conservation"],
+            "inelastic collision one dimensional combined mass shared velocity momentum conserved",
+        ),
+        (
+            "reality_dynamics_center_of_mass_velocity",
+            "Center of Mass Velocity",
+            "M1 V1 MUL M2 V2 MUL ADD M1 M2 ADD DIV",
+            "dynamics_collision",
+            ["center_of_mass", "momentum", "system"],
+            "center of mass velocity total momentum divided by total mass system motion",
+        ),
     ]
-    for law_id, program, tags in laws:
+    out: list[dict[str, Any]] = []
+    for entry_id, name, program, category, tags, query_anchor in specs:
         out.append(
             _entry(
-                entry_id=f"reality_dynamics_{law_id}",
-                name=law_id.replace("_", " ").title(),
-                category="dynamics",
+                entry_id=entry_id,
+                name=name,
+                category=category,
                 rpn_program=program,
                 tags=tags,
-                metadata={"fundamental_law": True, "cross_modal": ["math"]},
+                metadata={
+                    "fundamental_law": category == "dynamics",
+                    "cross_modal": ["math"],
+                    "query_anchor": query_anchor,
+                    "canonical_family": "physics_dynamics",
+                },
             )
         )
-    for mass in range(1, 41):
-        for velocity in range(1, 13):
-            out.append(
-                _entry(
-                    entry_id=f"reality_dynamics_ke_m{mass}_v{velocity}",
-                    name=f"Kinetic Energy m={mass} v={velocity}",
-                    category="dynamics_templates",
-                    rpn_program=f"0.5 {mass} MUL {velocity} {velocity} MUL MUL",
-                    tags=["energy", "template"],
-                    metadata={"cross_modal": ["math"]},
-                )
-            )
-    for m1 in range(1, 16):
-        for m2 in range(1, 16):
-            out.append(
-                _entry(
-                    entry_id=f"reality_dynamics_collision_1d_m{m1}_{m2}",
-                    name=f"1D Collision Template m1={m1} m2={m2}",
-                    category="dynamics_collision",
-                    rpn_program=f"{m1} U1 MUL {m2} U2 MUL ADD {m1} {m2} ADD DIV",
-                    tags=["collision", "conservation", "template"],
-                    metadata={"cross_modal": ["math"], "generative": True},
-                )
-            )
     return out
 
 
 def create_electromagnetism_primitives() -> list[dict[str, Any]]:
-    out: list[dict[str, Any]] = []
-    core = [
-        ("coulomb_force", "K Q1 MUL Q2 MUL R R MUL DIV", ["electromagnetism", "inverse_square"]),
-        ("electric_field_point", "K Q MUL R R MUL DIV", ["electromagnetism", "field"]),
-        ("electric_potential_point", "K Q MUL R DIV", ["electromagnetism", "potential"]),
-        ("ohm_voltage", "I R MUL", ["electromagnetism", "circuits"]),
-        ("ohm_current", "V R DIV", ["electromagnetism", "circuits"]),
-        ("capacitor_charge", "C V MUL", ["electromagnetism", "circuits"]),
+    specs = [
+        (
+            "reality_em_coulomb_force",
+            "Coulomb Force",
+            "K Q1 MUL Q2 MUL R R MUL DIV",
+            ["electromagnetism", "inverse_square", "charge"],
+            "coulomb force electric charges inverse square separation distance",
+        ),
+        (
+            "reality_em_electric_field_point",
+            "Electric Field (Point Charge)",
+            "K Q MUL R R MUL DIV",
+            ["electromagnetism", "field", "charge"],
+            "electric field point charge strength over distance squared field lines",
+        ),
+        (
+            "reality_em_electric_potential_point",
+            "Electric Potential (Point Charge)",
+            "K Q MUL R DIV",
+            ["electromagnetism", "potential", "charge"],
+            "electric potential point charge work per unit charge voltage",
+        ),
+        (
+            "reality_em_ohm_voltage",
+            "Ohm Voltage",
+            "I R MUL",
+            ["electromagnetism", "circuits", "ohm"],
+            "ohm law voltage current times resistance circuit",
+        ),
+        (
+            "reality_em_ohm_current",
+            "Ohm Current",
+            "V R DIV",
+            ["electromagnetism", "circuits", "ohm"],
+            "ohm law current equals voltage divided by resistance circuit",
+        ),
+        (
+            "reality_em_capacitor_charge",
+            "Capacitor Charge",
+            "C V MUL",
+            ["electromagnetism", "circuits", "capacitor"],
+            "capacitor charge capacitance times voltage stored electric charge",
+        ),
+        (
+            "reality_em_lorentz_force",
+            "Lorentz Force",
+            "Q V MUL B MUL THETA SIN MUL",
+            ["electromagnetism", "magnetic", "force"],
+            "lorentz force charge moving in magnetic field velocity cross magnetic field",
+        ),
+        (
+            "reality_em_gauss_law",
+            "Gauss Law",
+            "Q_ENC EPSILON0 DIV",
+            ["electromagnetism", "flux", "gauss"],
+            "gauss law electric flux enclosed charge divided by epsilon zero",
+        ),
+        (
+            "reality_em_faraday_law",
+            "Faraday Law",
+            "DELTA_FLUX DELTA_T DIV NEG",
+            ["electromagnetism", "induction", "faraday"],
+            "faraday law induced emf equals negative rate of change of magnetic flux",
+        ),
+        (
+            "reality_em_ampere_law",
+            "Ampere Law",
+            "MU0 I_ENC MUL",
+            ["electromagnetism", "magnetic_field", "ampere"],
+            "ampere law circulation magnetic field enclosed current",
+        ),
+        (
+            "reality_em_resistor_power",
+            "Resistor Power",
+            "I I MUL R MUL",
+            ["electromagnetism", "circuits", "power"],
+            "electric power in resistor i squared r circuit dissipation",
+        ),
+        (
+            "reality_em_series_resistance",
+            "Series Resistance",
+            "R1 R2 ADD",
+            ["electromagnetism", "circuits", "series"],
+            "series resistance add resistors in a single current path",
+        ),
+        (
+            "reality_em_parallel_resistance",
+            "Parallel Resistance",
+            "R1 R2 MUL R1 R2 ADD DIV",
+            ["electromagnetism", "circuits", "parallel"],
+            "parallel resistance reciprocal sum equivalent resistance branch circuits",
+        ),
     ]
-    for cid, program, tags in core:
-        out.append(
-            _entry(
-                entry_id=f"reality_em_{cid}",
-                name=cid.replace("_", " ").title(),
-                category="electromagnetism",
-                rpn_program=program,
-                tags=tags,
-                metadata={"fundamental_law": True, "cross_modal": ["drawing", "math"]},
-            )
+    return [
+        _entry(
+            entry_id=entry_id,
+            name=name,
+            category="electromagnetism",
+            rpn_program=program,
+            tags=tags,
+            metadata={
+                "fundamental_law": True,
+                "cross_modal": ["drawing", "math"] if "field" in tags or "magnetic" in tags else ["math"],
+                "query_anchor": query_anchor,
+                "canonical_family": "physics_electromagnetism",
+            },
         )
-    for q in range(1, 16):
-        for r in range(1, 11):
-            out.append(
-                _entry(
-                    entry_id=f"reality_em_field_q{q}_r{r}",
-                    name=f"Electric Field q={q} r={r}",
-                    category="electromagnetism_field_templates",
-                    rpn_program=f"K {q} MUL {r} {r} MUL DIV",
-                    tags=["electromagnetism", "field", "template"],
-                    metadata={"cross_modal": ["drawing", "math"], "generative": True},
-                )
-            )
-    for i in range(1, 13):
-        for resistance in (1, 2, 5, 10, 20, 50):
-            out.append(
-                _entry(
-                    entry_id=f"reality_em_ohm_i{i}_r{resistance}",
-                    name=f"Ohm Template i={i} r={resistance}",
-                    category="electromagnetism_circuit_templates",
-                    rpn_program=f"{i} {resistance} MUL",
-                    tags=["circuits", "ohm", "template"],
-                    metadata={"cross_modal": ["math"]},
-                )
-            )
-    return out
+        for entry_id, name, program, tags, query_anchor in specs
+    ]
 
 
 def create_thermodynamics_primitives() -> list[dict[str, Any]]:
-    out: list[dict[str, Any]] = []
-    base = [
-        ("ideal_gas_pressure", "N R_GAS MUL T MUL V DIV", ["thermodynamics", "ideal_gas"]),
-        ("ideal_gas_volume", "N R_GAS MUL T MUL P DIV", ["thermodynamics", "ideal_gas"]),
-        ("heat_capacity", "Q DELTA_T DIV", ["thermodynamics", "heat"]),
-        ("thermal_energy", "M C_P MUL DELTA_T MUL", ["thermodynamics", "heat"]),
-        ("entropy_change", "Q_REV T DIV", ["thermodynamics", "entropy"]),
+    specs = [
+        (
+            "reality_thermo_ideal_gas_pressure",
+            "Ideal Gas Pressure",
+            "N R_GAS MUL T MUL V DIV",
+            ["thermodynamics", "ideal_gas", "pressure"],
+            "ideal gas law pressure number of moles gas constant temperature volume",
+        ),
+        (
+            "reality_thermo_ideal_gas_volume",
+            "Ideal Gas Volume",
+            "N R_GAS MUL T MUL P DIV",
+            ["thermodynamics", "ideal_gas", "volume"],
+            "ideal gas law volume number of moles gas constant temperature pressure",
+        ),
+        (
+            "reality_thermo_ideal_gas_temperature",
+            "Ideal Gas Temperature",
+            "P V MUL N R_GAS MUL DIV",
+            ["thermodynamics", "ideal_gas", "temperature"],
+            "ideal gas law temperature pressure volume moles gas constant",
+        ),
+        (
+            "reality_thermo_heat_capacity",
+            "Heat Capacity",
+            "Q DELTA_T DIV",
+            ["thermodynamics", "heat", "capacity"],
+            "heat capacity heat divided by temperature change thermal response",
+        ),
+        (
+            "reality_thermo_thermal_energy",
+            "Thermal Energy",
+            "M C_P MUL DELTA_T MUL",
+            ["thermodynamics", "heat", "specific_heat"],
+            "thermal energy mass specific heat temperature change heating",
+        ),
+        (
+            "reality_thermo_entropy_change",
+            "Entropy Change",
+            "Q_REV T DIV",
+            ["thermodynamics", "entropy", "reversible"],
+            "entropy change reversible heat divided by temperature disorder state function",
+        ),
+        (
+            "reality_thermo_first_law",
+            "First Law of Thermodynamics",
+            "Q W SUB",
+            ["thermodynamics", "energy_conservation", "first_law"],
+            "first law thermodynamics internal energy equals heat minus work",
+        ),
+        (
+            "reality_thermo_carnot_efficiency",
+            "Carnot Efficiency",
+            "1 TCOLD THOT DIV SUB",
+            ["thermodynamics", "heat_engine", "efficiency"],
+            "carnot efficiency one minus cold over hot temperature ideal heat engine",
+        ),
+        (
+            "reality_thermo_phase_change_heat",
+            "Phase Change Heat",
+            "M L MUL",
+            ["thermodynamics", "latent_heat", "phase_change"],
+            "phase change latent heat mass times latent heat melting boiling",
+        ),
+        (
+            "reality_thermo_conduction_rate",
+            "Thermal Conduction Rate",
+            "K A MUL DELTA_T MUL L DIV",
+            ["thermodynamics", "heat_transfer", "conduction"],
+            "thermal conduction rate conductivity area temperature difference length",
+        ),
     ]
-    for tid, program, tags in base:
-        out.append(
-            _entry(
-                entry_id=f"reality_thermo_{tid}",
-                name=tid.replace("_", " ").title(),
-                category="thermodynamics",
-                rpn_program=program,
-                tags=tags,
-                metadata={"cross_modal": ["math"]},
-            )
+    return [
+        _entry(
+            entry_id=entry_id,
+            name=name,
+            category="thermodynamics",
+            rpn_program=program,
+            tags=tags,
+            metadata={
+                "cross_modal": ["math"],
+                "query_anchor": query_anchor,
+                "canonical_family": "physics_thermodynamics",
+            },
         )
-    for n in range(1, 21):
-        for t in (273, 300, 350, 400, 450, 500):
-            out.append(
-                _entry(
-                    entry_id=f"reality_thermo_ideal_n{n}_t{t}",
-                    name=f"Ideal Gas Template n={n} T={t}",
-                    category="thermodynamics_templates",
-                    rpn_program=f"{n} R_GAS MUL {t} MUL V DIV",
-                    tags=["ideal_gas", "template"],
-                    metadata={"cross_modal": ["math"], "generative": True},
-                )
-            )
-    for cp in (0.5, 1.0, 2.0, 4.0):
-        for dt in (5, 10, 25, 50, 100):
-            out.append(
-                _entry(
-                    entry_id=f"reality_thermo_heat_cp_{str(cp).replace('.', 'p')}_dt_{dt}",
-                    name=f"Heat Transfer cp={cp} dt={dt}",
-                    category="thermodynamics_heat_templates",
-                    rpn_program=f"M {cp} MUL {dt} MUL",
-                    tags=["heat", "template"],
-                    metadata={"cross_modal": ["math"]},
-                )
-            )
-    return out
+        for entry_id, name, program, tags, query_anchor in specs
+    ]
 
 
 def create_procedural_system_primitives() -> list[dict[str, Any]]:

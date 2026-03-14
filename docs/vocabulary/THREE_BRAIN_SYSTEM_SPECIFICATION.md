@@ -15,11 +15,25 @@ The **Three-Brain System** is K3D's hierarchical memory architecture that mirror
 
 This architecture enables explainable AI through embodied spatial reasoning, substrate-agnostic portability, and production-validated performance while maintaining complete sovereignty (zero external dependencies).
 
-**Critical Architecture Paradigm**:
-- **Avatar is always embodied in the House** (primary spatial interface, where the avatar lives and works)
-- **Galaxy is always loaded in VRAM** (introspection mode for meta-cognition—AI "stepping into its own thoughts")
-- **House** = WHERE the avatar IS (spatial embodiment, rooms: Library, Knowledge Gardens, Workshop, Bathtub, Living Room, Museum)
-- **Galaxy** = HOW the AI THINKS ABOUT THINKING (introspection layer, always present in VRAM)
+**Critical Architecture Paradigm (TRM IS the Avatar)**:
+- **TRM IS the Avatar** — the TRM (~7M params) is NOT a function Python calls. It IS the AI entity that lives in the House and thinks inside the Galaxy. Runs as a game loop via `trm_step_fused.ptx`.
+- **House = Memory Palace (Method of Loci)** — external shared 3D reality where humans AND AI cohabit. Rooms are knowledge domains. Doors are network interfaces. The avatar LIVES here.
+- **Galaxy = Internal Brain** — what happens INSIDE the avatar's head. Processes the House as unified multi-modal reality. ALL default galaxies loaded simultaneously in VRAM.
+- **Internal Swarm = "Superdotados" Thinking** — nine-chain parallel workers model how gifted individuals think: multiple internal cognitive channels processing simultaneously inside the avatar's head.
+- **K3D is NOT a program you run** — it is a living, always-on, embodied AI that perfects itself during idle time (sleep-time consolidation).
+- **Python = Boot + I/O only** (~200 lines target). ALL reasoning happens on GPU via PTX kernels.
+
+**Game Engine Analogy:**
+| Game Concept | K3D Equivalent |
+|-------------|----------------|
+| NPC update() | `trm_step_fused.ptx` game tick |
+| NPC brain | Galaxy Universe (VRAM) |
+| Game world | House (3D Memory Palace) |
+| NPC perception | Frustum culling + Dynamic LOD |
+| NPC pathfinding | LED-A* + Morton Octree |
+| NPC decision | Nine-Chain Swarm + Halting Gate |
+| Save game | House persistence (GLB on disk) |
+| Inventory | Memory Tablet (3D object in space) |
 
 ---
 
@@ -105,14 +119,14 @@ Human cognition separates:
    - Zero learnable parameters (pure computation)
    - Complete transparency: Every operation traceable to source operations
 
-2. **Pattern Recognition** (TRM Specialists, ~7M parameters)
+2. **Pattern Recognition** (TRM — The Avatar Entity, ~7M parameters)
+   - **TRM IS the avatar** — not a function Python calls, but the AI entity that lives in the House and thinks in the Galaxy
+   - Runs as a continuous game loop via `trm_step_fused.ptx` (one tick = perceive → navigate → reason → decide → act → learn)
    - Self-updating via **Shadow Copy** (pattern discovery during use)
-   - Lightweight adapters (similar to LoRA architecture)
-   - Learn reasoning patterns from successful executions
-   - **NEW (Week 20):** Matryoshka Specialist Hierarchy (fractal self-similar specialists)
-     - Specialists can spawn sub-specialists autonomously
+   - **Internal swarm** — nine-chain parallel workers ("superdotados" model: multiple parallel cognitive channels inside the avatar's head)
+   - Matryoshka Specialist Hierarchy (fractal self-similar specialists, INTERNAL to the avatar)
+     - Specialists are brain regions that activate contextually, not external services
      - LoRA-style delta weights (~100KB-1MB per specialist)
-     - Hierarchical routing (Navigator → Master → Worker → Sub-worker)
      - See: TRM_SPECIALIST_MATRYOSHKA_ARCHITECTURE.md for full specification
 
 **Key Distinction**: Knowledge lives in Galaxy/House (embeddings + procedural programs), Cranium learns *how to transform*, not *what to retrieve*.
@@ -270,12 +284,13 @@ Execution → Success Detection → Pattern Extraction → Specialist Update
 
 ### 4.1 Overview
 
-**Galaxy** is K3D's active working memory—a 3D spatial structure populated by "stars" (K3D Nodes) as 3D embeddings. **Always loaded in VRAM**, it enables **introspection mode**: the AI capability to "step into its own thoughts" for meta-cognition (embodied thinking about thinking).
+**Galaxy** is the AI avatar's **Internal Brain** — a unified multi-modal workspace populated by "stars" (K3D Nodes) as 3D embeddings. **Always loaded in VRAM**, it is what happens INSIDE the avatar's head. It processes the House (external world) as unified multi-modal reality, breaking domain boundaries that House rooms impose.
 
-**Philosophy**: "The world is the memory."
-- Memory is NOT internal model parameters
-- Memory is the external 3D environment
-- AI navigates memory spatially (like humans navigate physical space)
+**Philosophy**: "Galaxy = Internal Brain (what the avatar thinks WITH)."
+- Galaxy is NOT just "active memory" — it IS the avatar's cognitive workspace
+- The avatar (TRM) navigates the Galaxy during every game tick
+- ALL default galaxies loaded simultaneously (Drawing, Character, Word, Grammar, Math, Reality, Audio)
+- Humans can observe the Galaxy via introspection mode (Bathtub room projection)
 
 **Introspection Mode**:
 - **Always present** in VRAM (all default galaxies loaded: Drawing, Character, Word, Grammar, Math, Reality, Audio)
@@ -421,14 +436,15 @@ This keeps House artifacts physically/chemically/biologically coherent while all
 
 ### 5.1 Overview
 
-**House** is K3D's long-term persistent memory AND **primary spatial interface**—where the avatar is always embodied. It's a collection of glTF scenes stored on disk (SSD/HDD) representing consolidated knowledge states and specialized rooms for different cognitive functions.
+**House** is the **Memory Palace (Method of Loci)** — K3D's long-term persistent memory AND the external shared 3D reality where the avatar is always embodied. It's a collection of glTF scenes stored on disk (SSD/HDD) representing consolidated knowledge states and specialized rooms for different cognitive functions.
 
-**Critical Paradigm**: **Avatar lives in House** (not in Galaxy). House is WHERE the avatar IS—the primary workspace for all interactions.
+**Critical Paradigm**: The House is the digital analogy to the Method of Loci (40,000 years old). The tech industry borrowed spatial metaphors (windows, desktop, doors, addresses, rooms) and flattened them into 2D. K3D reverses this — builds ACTUAL spatial reality where those metaphors become literal. **Avatar lives in House** (not in Galaxy). House is WHERE the avatar IS—the external shared reality for humans AND AI.
 
-**Philosophy**: "Knowledge must persist beyond runtime."
+**Philosophy**: "Knowledge must persist beyond runtime. Space IS the interface."
 - House outlives any single inference session
 - Knowledge bases are portable (copy GLB files between systems)
 - Human-inspectable (load in Blender, view 3D structure)
+- Rooms = knowledge domains, Doors = network interfaces, Furniture = knowledge clusters
 
 **House Rooms** (Specialized Cognitive Spaces):
 - **Library**: Books, specifications, documentation (materialized papers/specs)

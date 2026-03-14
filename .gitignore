@@ -54,3 +54,6 @@ rpn_kernel_profile.*
 # Exclude only files larger than 99MB (if any exist)
 # Note: Currently all TEMP files are <1MB, well below threshold
 .claude/
+
+# Runtime data (generated per session)
+$ROOT/

@@ -1,0 +1,1197 @@
+[
+    {
+        "start": 0,
+        "stop": 1.34,
+        "text": " Vamos falar sobre uma ideia que"
+    },
+    {
+        "start": 1.34,
+        "stop": 2.61,
+        "text": " pode de verdade reprogramar o"
+    },
+    {
+        "start": 2.61,
+        "stop": 3.72,
+        "text": " nosso mundo digital."
+    },
+    {
+        "start": 3.72,
+        "stop": 4.9,
+        "text": " É uma solução que ataca um"
+    },
+    {
+        "start": 4.9,
+        "stop": 6.18,
+        "text": " problema fundamental no jeito"
+    },
+    {
+        "start": 6.18,
+        "stop": 7.62,
+        "text": " como a inteligência artificial"
+    },
+    {
+        "start": 7.62,
+        "stop": 8.94,
+        "text": " e a própria web lidam com o"
+    },
+    {
+        "start": 8.94,
+        "stop": 9.9,
+        "text": " conhecimento."
+    },
+    {
+        "start": 9.9,
+        "stop": 11.22,
+        "text": " O nosso mundo digital tem um"
+    },
+    {
+        "start": 11.22,
+        "stop": 12.76,
+        "text": " problema sério, um que a gente"
+    },
+    {
+        "start": 12.76,
+        "stop": 14.46,
+        "text": " quase nunca para para pensar."
+    },
+    {
+        "start": 14.46,
+        "stop": 16.48,
+        "text": " Quase tudo que existe online é,"
+    },
+    {
+        "start": 16.48,
+        "stop": 18.07,
+        "text": " no fundo, uma cópia."
+    },
+    {
+        "start": 18.07,
+        "stop": 19.48,
+        "text": " E outra cópia? E mais uma?"
+    },
+    {
+        "start": 19.48,
+        "stop": 20.6,
+        "text": " Essa é a realidade."
+    },
+    {
+        "start": 20.6,
+        "stop": 21.94,
+        "text": " Uma base toda construída em"
+    },
+    {
+        "start": 21.94,
+        "stop": 23.5,
+        "text": " cima de uma duplicação de dados"
+    },
+    {
+        "start": 23.5,
+        "stop": 24.38,
+        "text": " que é massiva,"
+    },
+    {
+        "start": 24.38,
+        "stop": 25.92,
+        "text": " ineficiente e que custa muito"
+    },
+    {
+        "start": 25.92,
+        "stop": 27.54,
+        "text": " tempo, dinheiro e energia."
+    },
+    {
+        "start": 27.66,
+        "stop": 29.41,
+        "text": " Pois é, e aqui a gente não está"
+    },
+    {
+        "start": 29.41,
+        "stop": 30.95,
+        "text": " falando de um bug pequeno ou um"
+    },
+    {
+        "start": 30.95,
+        "stop": 32.47,
+        "text": " probleminha técnico."
+    },
+    {
+        "start": 32.47,
+        "stop": 34.1,
+        "text": " Isso é uma verdadeira crise"
+    },
+    {
+        "start": 34.1,
+        "stop": 35.06,
+        "text": " sistêmica."
+    },
+    {
+        "start": 35.06,
+        "stop": 36.97,
+        "text": " Estamos gastando uma quantidade"
+    },
+    {
+        "start": 36.97,
+        "stop": 38.11,
+        "text": " absurda de recursos"
+    },
+    {
+        "start": 38.11,
+        "stop": 40.03,
+        "text": " só para armazenar e manter sinc"
+    },
+    {
+        "start": 40.03,
+        "stop": 42.24,
+        "text": "ronizadas as mesmíssimas coisas,"
+    },
+    {
+        "start": 42.24,
+        "stop": 43.5,
+        "text": " de novo e de novo."
+    },
+    {
+        "start": 43.5,
+        "stop": 45.1,
+        "text": " Para entender isso na prática,"
+    },
+    {
+        "start": 45.1,
+        "stop": 46.38,
+        "text": " olha só esse exemplo."
+    },
+    {
+        "start": 46.38,
+        "stop": 48.1,
+        "text": " O símbolo da derivada parcial."
+    },
+    {
+        "start": 48.1,
+        "stop": 49.24,
+        "text": " Parece simples, né?"
+    },
+    {
+        "start": 49.24,
+        "stop": 50.83,
+        "text": " Mas para ele existir no mundo"
+    },
+    {
+        "start": 50.83,
+        "stop": 52.62,
+        "text": " digital, a coisa complica."
+    },
+    {
+        "start": 52.62,
+        "stop": 54.17,
+        "text": " A forma dele está guardada em"
+    },
+    {
+        "start": 54.17,
+        "stop": 55.36,
+        "text": " um artigo de fonte."
+    },
+    {
+        "start": 55.36,
+        "stop": 57.13,
+        "text": " O significado matemático dele,"
+    },
+    {
+        "start": 57.13,
+        "stop": 58.77,
+        "text": " para o Maya entender, vira um"
+    },
+    {
+        "start": 58.77,
+        "stop": 60.08,
+        "text": " monte de números."
+    },
+    {
+        "start": 60.08,
+        "stop": 61.32,
+        "text": " Um tal de embedding."
+    },
+    {
+        "start": 61.32,
+        "stop": 62.8,
+        "text": " E a descrição dele, para um le"
+    },
+    {
+        "start": 62.8,
+        "stop": 64.5,
+        "text": "itor de tela, é outra informação"
+    },
+    {
+        "start": 64.5,
+        "stop": 65.16,
+        "text": " separada."
+    },
+    {
+        "start": 65.16,
+        "stop": 66.45,
+        "text": " Cada um é uma cópia, um dado"
+    },
+    {
+        "start": 66.45,
+        "stop": 67.88,
+        "text": " isolado que precisa ser mantido"
+    },
+    {
+        "start": 67.88,
+        "stop": 68.95,
+        "text": " por conta própria."
+    },
+    {
+        "start": 68.95,
+        "stop": 70.06,
+        "text": " É uma loucura."
+    },
+    {
+        "start": 70.06,
+        "stop": 71.56,
+        "text": " E o tamanho do estrago?"
+    },
+    {
+        "start": 71.56,
+        "stop": 73.04,
+        "text": " Em alguns sistemas, essa crise"
+    },
+    {
+        "start": 73.04,
+        "stop": 74.29,
+        "text": " de duplicação chega a ser"
+    },
+    {
+        "start": 74.29,
+        "stop": 77.36,
+        "text": " responsável por mais de 70% de"
+    },
+    {
+        "start": 77.36,
+        "stop": 78.64,
+        "text": " todo o desperdício de dados."
+    },
+    {
+        "start": 79.08,
+        "stop": 81.26,
+        "text": " Pensa nisso. 70%."
+    },
+    {
+        "start": 81.26,
+        "stop": 82.66,
+        "text": " É uma ineficiência gigantesca,"
+    },
+    {
+        "start": 82.66,
+        "stop": 83.7,
+        "text": " que de alguma forma a gente"
+    },
+    {
+        "start": 83.7,
+        "stop": 84.89,
+        "text": " passou a tratar como se fosse"
+    },
+    {
+        "start": 84.89,
+        "stop": 85.46,
+        "text": " normal."
+    },
+    {
+        "start": 85.46,
+        "stop": 88.05,
+        "text": " Tá, mas... então como a gente"
+    },
+    {
+        "start": 88.05,
+        "stop": 88.76,
+        "text": " sai disso?"
+    },
+    {
+        "start": 88.76,
+        "stop": 90.68,
+        "text": " A proposta é uma virada de ch"
+    },
+    {
+        "start": 90.68,
+        "stop": 91.24,
+        "text": "ave."
+    },
+    {
+        "start": 91.24,
+        "stop": 92.86,
+        "text": " Em vez de ficar copiando tudo,"
+    },
+    {
+        "start": 92.86,
+        "stop": 94.48,
+        "text": " e se a gente pudesse só apontar"
+    },
+    {
+        "start": 94.48,
+        "stop": 95.64,
+        "text": " para o original?"
+    },
+    {
+        "start": 95.64,
+        "stop": 97.32,
+        "text": " Pensa num atalho de computador,"
+    },
+    {
+        "start": 97.32,
+        "stop": 97.76,
+        "text": " sabe?"
+    },
+    {
+        "start": 97.76,
+        "stop": 99.14,
+        "text": " O famoso SIM-link."
+    },
+    {
+        "start": 99.14,
+        "stop": 100.93,
+        "text": " A ideia é essa, só que aplicada"
+    },
+    {
+        "start": 100.93,
+        "stop": 102.68,
+        "text": " a todo tipo de conhecimento."
+    },
+    {
+        "start": 102.68,
+        "stop": 104.46,
+        "text": " E o nome dessa abordagem é"
+    },
+    {
+        "start": 104.46,
+        "stop": 106.71,
+        "text": " Representação de Conhecimento"
+    },
+    {
+        "start": 106.71,
+        "stop": 108.77,
+        "text": " por Memória Procedural, ou PMKR"
+    },
+    {
+        "start": 108.77,
+        "stop": 109.08,
+        "text": "."
+    },
+    {
+        "start": 109.08,
+        "stop": 110.69,
+        "text": " A ideia central é de uma sim"
+    },
+    {
+        "start": 110.69,
+        "stop": 111.98,
+        "text": "plicidade genial."
+    },
+    {
+        "start": 111.98,
+        "stop": 113.83,
+        "text": " A memória procedural não trata"
+    },
+    {
+        "start": 113.83,
+        "stop": 115.34,
+        "text": " o conhecimento como um dado"
+    },
+    {
+        "start": 115.34,
+        "stop": 116.76,
+        "text": " estático, parado."
+    },
+    {
+        "start": 116.76,
+        "stop": 118.68,
+        "text": " Ela o trata como um programa,"
+    },
+    {
+        "start": 118.68,
+        "stop": 119.76,
+        "text": " uma receita."
+    },
+    {
+        "start": 119.76,
+        "stop": 121.31,
+        "text": " O melhor exemplo é um arquivo"
+    },
+    {
+        "start": 121.31,
+        "stop": 121.9,
+        "text": " de fonte."
+    },
+    {
+        "start": 121.9,
+        "stop": 123.24,
+        "text": " Ele não guarda a imagem de cada"
+    },
+    {
+        "start": 123.24,
+        "stop": 124.86,
+        "text": " letra em cada tamanho possível."
+    },
+    {
+        "start": 124.86,
+        "stop": 126.47,
+        "text": " Ele guarda as instruções de"
+    },
+    {
+        "start": 126.47,
+        "stop": 128.22,
+        "text": " como desenhar aquela letra."
+    },
+    {
+        "start": 128.22,
+        "stop": 130.13,
+        "text": " A PMKR pega essa lógica e apl"
+    },
+    {
+        "start": 130.13,
+        "stop": 131.58,
+        "text": "ica a todo o resto."
+    },
+    {
+        "start": 131.58,
+        "stop": 133.34,
+        "text": " E aqui o contraste fica bem"
+    },
+    {
+        "start": 133.34,
+        "stop": 134,
+        "text": " claro."
+    },
+    {
+        "start": 134,
+        "stop": 135.78,
+        "text": " De um lado, o jeito antigo."
+    },
+    {
+        "start": 135.78,
+        "stop": 137.44,
+        "text": " O caos do copiar e colar, que é"
+    },
+    {
+        "start": 137.44,
+        "stop": 139.22,
+        "text": " caro, frágil, e um prato cheio"
+    },
+    {
+        "start": 139.22,
+        "stop": 140.96,
+        "text": " para dar inconsistência."
+    },
+    {
+        "start": 140.96,
+        "stop": 143.34,
+        "text": " Do outro, o jeito PMKR."
+    },
+    {
+        "start": 143.34,
+        "stop": 144.97,
+        "text": " Referenciar e executar."
+    },
+    {
+        "start": 144.97,
+        "stop": 146.94,
+        "text": " Você guarda a receita uma única"
+    },
+    {
+        "start": 146.94,
+        "stop": 147.41,
+        "text": " vez."
+    },
+    {
+        "start": 147.41,
+        "stop": 148.54,
+        "text": " Precisou dela?"
+    },
+    {
+        "start": 148.54,
+        "stop": 149.36,
+        "text": " Só aponta."
+    },
+    {
+        "start": 149.36,
+        "stop": 150.8,
+        "text": " Atualizou a receita?"
+    },
+    {
+        "start": 150.8,
+        "stop": 151.41,
+        "text": " Pronto!"
+    },
+    {
+        "start": 151.41,
+        "stop": 153.19,
+        "text": " Está atualizado em todo lugar."
+    },
+    {
+        "start": 153.19,
+        "stop": 154.19,
+        "text": " Simples assim."
+    },
+    {
+        "start": 154.19,
+        "stop": 155.84,
+        "text": " É o poder do SIM-link, do atal"
+    },
+    {
+        "start": 155.84,
+        "stop": 157.36,
+        "text": "ho, levado ao mundo do conhe"
+    },
+    {
+        "start": 157.36,
+        "stop": 158.1,
+        "text": "cimento."
+    },
+    {
+        "start": 158.22,
+        "stop": 160.16,
+        "text": " Certo, a ideia é poderosa."
+    },
+    {
+        "start": 160.16,
+        "stop": 161.71,
+        "text": " Mas como isso funciona na pr"
+    },
+    {
+        "start": 161.71,
+        "stop": 162.38,
+        "text": "ática?"
+    },
+    {
+        "start": 162.38,
+        "stop": 163.87,
+        "text": " Como se constrói um sistema"
+    },
+    {
+        "start": 163.87,
+        "stop": 164.42,
+        "text": " assim?"
+    },
+    {
+        "start": 164.42,
+        "stop": 165.68,
+        "text": " Vamos mergulhar um pouco na"
+    },
+    {
+        "start": 165.68,
+        "stop": 166.5,
+        "text": " arquitetura."
+    },
+    {
+        "start": 166.5,
+        "stop": 168.2,
+        "text": " Nesse caminho que leva da forma"
+    },
+    {
+        "start": 168.2,
+        "stop": 170.1,
+        "text": " mais bruta até o significado."
+    },
+    {
+        "start": 170.58,
+        "stop": 172.13,
+        "text": " E tudo se baseia em um princíp"
+    },
+    {
+        "start": 172.13,
+        "stop": 172.44,
+        "text": "io."
+    },
+    {
+        "start": 172.44,
+        "stop": 173.3,
+        "text": " Quase um mantra."
+    },
+    {
+        "start": 173.3,
+        "stop": 175.74,
+        "text": " Não duplique o que já existe."
+    },
+    {
+        "start": 175.74,
+        "stop": 177.42,
+        "text": " Use referências."
+    },
+    {
+        "start": 177.42,
+        "stop": 179.24,
+        "text": " Essa é a regra de ouro que com"
+    },
+    {
+        "start": 179.24,
+        "stop": 181.12,
+        "text": "anda toda a arquitetura."
+    },
+    {
+        "start": 181.12,
+        "stop": 183.03,
+        "text": " Cada decisão de projeto volta"
+    },
+    {
+        "start": 183.03,
+        "stop": 184.62,
+        "text": " para esse mandamento."
+    },
+    {
+        "start": 184.62,
+        "stop": 186.55,
+        "text": " Não guarde a mesma coisa duas"
+    },
+    {
+        "start": 186.55,
+        "stop": 187.22,
+        "text": " vezes."
+    },
+    {
+        "start": 187.22,
+        "stop": 188.77,
+        "text": " Apenas aponte para a fonte"
+    },
+    {
+        "start": 188.77,
+        "stop": 189.56,
+        "text": " original."
+    },
+    {
+        "start": 190.1,
+        "stop": 191.36,
+        "text": " E a estrutura tem quatro cam"
+    },
+    {
+        "start": 191.36,
+        "stop": 192.68,
+        "text": "adas, como se fossem blocos de"
+    },
+    {
+        "start": 192.68,
+        "stop": 193.24,
+        "text": " montar."
+    },
+    {
+        "start": 193.24,
+        "stop": 195.24,
+        "text": " A base de tudo é a forma."
+    },
+    {
+        "start": 195.24,
+        "stop": 197.03,
+        "text": " As instruções puras, tipo,"
+    },
+    {
+        "start": 197.03,
+        "stop": 198.48,
+        "text": " desenhe estas curvas."
+    },
+    {
+        "start": 198.48,
+        "stop": 200.09,
+        "text": " A segunda camada adiciona o"
+    },
+    {
+        "start": 200.09,
+        "stop": 201.1,
+        "text": " significado."
+    },
+    {
+        "start": 201.1,
+        "stop": 202.73,
+        "text": " Ela diz que aquela forma é, por"
+    },
+    {
+        "start": 202.73,
+        "stop": 203.94,
+        "text": " exemplo, a letra A."
+    },
+    {
+        "start": 203.94,
+        "stop": 205.35,
+        "text": " A terceira camada traz as regr"
+    },
+    {
+        "start": 205.35,
+        "stop": 206.6,
+        "text": "as, que são códigos que"
+    },
+    {
+        "start": 206.6,
+        "stop": 208.28,
+        "text": " transformam o significado."
+    },
+    {
+        "start": 208.28,
+        "stop": 209.44,
+        "text": " Como uma regra para colocar"
+    },
+    {
+        "start": 209.44,
+        "stop": 210.38,
+        "text": " palavras no plural."
+    },
+    {
+        "start": 210.94,
+        "stop": 212.49,
+        "text": " E no topo, a quarta camada tem"
+    },
+    {
+        "start": 212.49,
+        "stop": 214.06,
+        "text": " as meta-regras, que funcionam"
+    },
+    {
+        "start": 214.06,
+        "stop": 215.74,
+        "text": " como a estratégia, decidindo"
+    },
+    {
+        "start": 215.74,
+        "stop": 217.2,
+        "text": " qual regra usar e quando."
+    },
+    {
+        "start": 217.2,
+        "stop": 219.4,
+        "text": " E aqui está o pulo do gato."
+    },
+    {
+        "start": 219.4,
+        "stop": 221.79,
+        "text": " A camada de regras não copia a"
+    },
+    {
+        "start": 221.79,
+        "stop": 224.1,
+        "text": " letra A da camada de signific"
+    },
+    {
+        "start": 224.1,
+        "stop": 224.82,
+        "text": "ado."
+    },
+    {
+        "start": 224.82,
+        "stop": 226.12,
+        "text": " De jeito nenhum."
+    },
+    {
+        "start": 226.12,
+        "stop": 227.74,
+        "text": " Ela referencia."
+    },
+    {
+        "start": 227.74,
+        "stop": 229.29,
+        "text": " Ela aponta para a camada de"
+    },
+    {
+        "start": 229.29,
+        "stop": 231.03,
+        "text": " baixo, que por sua vez aponta"
+    },
+    {
+        "start": 231.03,
+        "stop": 232.62,
+        "text": " para a camada da forma."
+    },
+    {
+        "start": 232.62,
+        "stop": 234.77,
+        "text": " É essa cadeia contínua de refer"
+    },
+    {
+        "start": 234.77,
+        "stop": 236.83,
+        "text": "ências e não de cópias que imp"
+    },
+    {
+        "start": 236.83,
+        "stop": 238.74,
+        "text": "ede a duplicação e gera toda"
+    },
+    {
+        "start": 238.74,
+        "stop": 240.32,
+        "text": " essa eficiência."
+    },
+    {
+        "start": 240.84,
+        "stop": 242.43,
+        "text": " Ok, a arquitetura faz todo o"
+    },
+    {
+        "start": 242.43,
+        "stop": 243.18,
+        "text": " sentido."
+    },
+    {
+        "start": 243.18,
+        "stop": 244.08,
+        "text": " Mas e daí?"
+    },
+    {
+        "start": 244.08,
+        "stop": 245.63,
+        "text": " O que a gente ganha com isso no"
+    },
+    {
+        "start": 245.63,
+        "stop": 246.46,
+        "text": " mundo real?"
+    },
+    {
+        "start": 246.46,
+        "stop": 247.76,
+        "text": " Vamos ver o impacto de"
+    },
+    {
+        "start": 247.76,
+        "stop": 249.64,
+        "text": " transformar o conhecimento em"
+    },
+    {
+        "start": 249.64,
+        "stop": 251.76,
+        "text": " algo que a gente pode executar."
+    },
+    {
+        "start": 251.76,
+        "stop": 254.1,
+        "text": " E os números são absurdos."
+    },
+    {
+        "start": 254.1,
+        "stop": 256.14,
+        "text": " Ao simplesmente referenciar sí"
+    },
+    {
+        "start": 256.14,
+        "stop": 258.14,
+        "text": "mbolos em vez de duplicá-los, a"
+    },
+    {
+        "start": 258.14,
+        "stop": 260.12,
+        "text": " taxa de compressão pode chegar"
+    },
+    {
+        "start": 260.12,
+        "stop": 261.8,
+        "text": " a 190 mil vezes."
+    },
+    {
+        "start": 261.8,
+        "stop": 263.3,
+        "text": " É até difícil de imaginar."
+    },
+    {
+        "start": 263.3,
+        "stop": 265.08,
+        "text": " E mesmo nos cenários mais comun"
+    },
+    {
+        "start": 265.08,
+        "stop": 267.32,
+        "text": "s, os ganhos são na casa de 70 a"
+    },
+    {
+        "start": 267.32,
+        "stop": 268.1,
+        "text": " 80 vezes."
+    },
+    {
+        "start": 268.1,
+        "stop": 269.54,
+        "text": " Isso não é uma melhoria pequena"
+    },
+    {
+        "start": 269.54,
+        "stop": 269.74,
+        "text": "."
+    },
+    {
+        "start": 269.88,
+        "stop": 271.22,
+        "text": " É uma transformação completa na"
+    },
+    {
+        "start": 271.22,
+        "stop": 271.88,
+        "text": " eficiência."
+    },
+    {
+        "start": 271.88,
+        "stop": 273.7,
+        "text": " E o impacto vai muito além dos"
+    },
+    {
+        "start": 273.7,
+        "stop": 274.62,
+        "text": " nossos HDs."
+    },
+    {
+        "start": 274.62,
+        "stop": 275.89,
+        "text": " Uma projeção climática para"
+    },
+    {
+        "start": 275.89,
+        "stop": 277.18,
+        "text": " essa abordagem estilo aqui."
+    },
+    {
+        "start": 277.18,
+        "stop": 278.73,
+        "text": " Se ela for adotada em larga esc"
+    },
+    {
+        "start": 278.73,
+        "stop": 280.42,
+        "text": "ala, a gente pode ter uma econom"
+    },
+    {
+        "start": 280.42,
+        "stop": 282.41,
+        "text": "ia acumulada de 12 gigatoneladas"
+    },
+    {
+        "start": 282.41,
+        "stop": 283.92,
+        "text": " de CO2 em 10 anos."
+    },
+    {
+        "start": 284.22,
+        "stop": 285.95,
+        "text": " É isso mesmo. Uma mudança na"
+    },
+    {
+        "start": 285.95,
+        "stop": 287.32,
+        "text": " arquitetura de software com"
+    },
+    {
+        "start": 287.32,
+        "stop": 289.04,
+        "text": " impacto ambiental gigantesco."
+    },
+    {
+        "start": 289.04,
+        "stop": 290.92,
+        "text": " E tem mais benefícios."
+    },
+    {
+        "start": 290.92,
+        "stop": 292.63,
+        "text": " A realidade de cliente duplo"
+    },
+    {
+        "start": 292.63,
+        "stop": 294.27,
+        "text": " significa que humanos e IAs"
+    },
+    {
+        "start": 294.27,
+        "stop": 295.99,
+        "text": " passam a usar a mesma fonte da"
+    },
+    {
+        "start": 295.99,
+        "stop": 298.06,
+        "text": " verdade, acabando com inconsist"
+    },
+    {
+        "start": 298.06,
+        "stop": 298.92,
+        "text": "ências."
+    },
+    {
+        "start": 298.92,
+        "stop": 300.57,
+        "text": " A auditabilidade completa nos"
+    },
+    {
+        "start": 300.57,
+        "stop": 302.2,
+        "text": " permite rastrear cada passo do"
+    },
+    {
+        "start": 302.2,
+        "stop": 303.93,
+        "text": " raciocínio de uma IA, abrindo a"
+    },
+    {
+        "start": 303.93,
+        "stop": 304.94,
+        "text": " caixa preta."
+    },
+    {
+        "start": 305.32,
+        "stop": 306.94,
+        "text": " E o melhor, o sistema não quer"
+    },
+    {
+        "start": 306.94,
+        "stop": 308.7,
+        "text": " substituir tudo. Ele foi feito"
+    },
+    {
+        "start": 308.7,
+        "stop": 310.23,
+        "text": " para complementar os padrões"
+    },
+    {
+        "start": 310.23,
+        "stop": 311.24,
+        "text": " que a web já usa."
+    },
+    {
+        "start": 311.24,
+        "stop": 313.52,
+        "text": " Essa citação resume tudo de um"
+    },
+    {
+        "start": 313.52,
+        "stop": 314.89,
+        "text": " jeito perfeito."
+    },
+    {
+        "start": 315.5,
+        "stop": 316.81,
+        "text": " Hoje, um sistema de IA te dá"
+    },
+    {
+        "start": 316.81,
+        "stop": 318.25,
+        "text": " uma resposta, como se fosse um"
+    },
+    {
+        "start": 318.25,
+        "stop": 319.62,
+        "text": " programa já compilado."
+    },
+    {
+        "start": 319.62,
+        "stop": 321.04,
+        "text": " Com a PMKR, ele te dá o"
+    },
+    {
+        "start": 321.04,
+        "stop": 322.91,
+        "text": " processo, o passo a passo, o"
+    },
+    {
+        "start": 322.91,
+        "stop": 325.1,
+        "text": " código fonte que você pode ins"
+    },
+    {
+        "start": 325.1,
+        "stop": 327.06,
+        "text": "pecionar para entender como ele"
+    },
+    {
+        "start": 327.06,
+        "stop": 329.02,
+        "text": " chegou àquela resposta."
+    },
+    {
+        "start": 329.02,
+        "stop": 331.24,
+        "text": " É a diferença entre confiança c"
+    },
+    {
+        "start": 331.24,
+        "stop": 333.25,
+        "text": "ega e compreensão que pode ser"
+    },
+    {
+        "start": 333.25,
+        "stop": 334.34,
+        "text": " verificada."
+    },
+    {
+        "start": 334.34,
+        "stop": 335.61,
+        "text": " E a gente termina com essa"
+    },
+    {
+        "start": 335.61,
+        "stop": 337.13,
+        "text": " pergunta, que na verdade é o"
+    },
+    {
+        "start": 337.13,
+        "stop": 338.7,
+        "text": " resumo de toda essa mudança de"
+    },
+    {
+        "start": 338.7,
+        "stop": 339.58,
+        "text": " paradigma."
+    },
+    {
+        "start": 339.58,
+        "stop": 341.21,
+        "text": " E se o conhecimento não fosse"
+    },
+    {
+        "start": 341.21,
+        "stop": 342.75,
+        "text": " só algo que a gente lê, mas"
+    },
+    {
+        "start": 342.75,
+        "stop": 344.45,
+        "text": " algo que a gente pudesse execut"
+    },
+    {
+        "start": 344.45,
+        "stop": 344.88,
+        "text": "ar?"
+    },
+    {
+        "start": 344.88,
+        "stop": 346.52,
+        "text": " O que acontece quando saímos de"
+    },
+    {
+        "start": 346.52,
+        "stop": 348.03,
+        "text": " um mundo de documentos estát"
+    },
+    {
+        "start": 348.03,
+        "stop": 349.54,
+        "text": "icos para um universo de conhe"
+    },
+    {
+        "start": 349.54,
+        "stop": 351.18,
+        "text": "cimento vivo, dinâmico?"
+    },
+    {
+        "start": 351.18,
+        "stop": 353.21,
+        "text": " As implicações disso para a IA,"
+    },
+    {
+        "start": 353.21,
+        "stop": 354.54,
+        "text": " para a web e para o nosso"
+    },
+    {
+        "start": 354.54,
+        "stop": 355.26,
+        "text": " futuro?"
+    },
+    {
+        "start": 355.26,
+        "stop": 357.33,
+        "text": " Bom, mal começamos a arranhar a"
+    },
+    {
+        "start": 357.33,
+        "stop": 358.44,
+        "text": " superfície."
+    }
+]

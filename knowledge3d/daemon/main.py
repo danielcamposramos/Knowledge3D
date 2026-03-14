@@ -10,7 +10,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import re
 import socketserver
 import sys
 import time
@@ -19,11 +18,9 @@ from pathlib import Path
 from typing import Any
 
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
-from knowledge3d.knowledgeverse.specialists.math_specialist import MathSpecialist
 from knowledge3d.cranium.bridges.procedural_drawing_bridge import ProceduralDrawingBridge
 from knowledge3d.cranium.bridges.procedural_geometry_bridge import ProceduralGeometryBridge
 from knowledge3d.cranium.bridges.procedural_material_bridge import ProceduralMaterialBridge
-from benchmarks.arc_agi_2_adapter import ArcAgi2Adapter
 
 try:
     from knowledge3d.cranium.ptx_runtime.modular_rpn_engine import ModularRPNEngine
@@ -108,47 +105,11 @@ class DaemonConfig:
 class K3DDaemon:
     """Long-lived command server for K3D runtime orchestration."""
 
-    _LHE_STOPWORDS = {
-        "a",
-        "an",
-        "and",
-        "are",
-        "as",
-        "at",
-        "be",
-        "by",
-        "for",
-        "from",
-        "how",
-        "in",
-        "into",
-        "is",
-        "it",
-        "its",
-        "of",
-        "on",
-        "or",
-        "that",
-        "the",
-        "their",
-        "this",
-        "to",
-        "use",
-        "what",
-        "when",
-        "where",
-        "which",
-        "who",
-        "why",
-        "with",
-    }
-
     def __init__(
         self,
         config: DaemonConfig,
         *,
         knowledgeverse: Knowledgeverse | None = None,
-        math_specialist: MathSpecialist | None = None,
     ):
         self.config = config
         self.started_at = _now_iso()
@@ -164,7 +125,6 @@ class K3DDaemon:
         self._drawing_bridge: ProceduralDrawingBridge | None = None
         self._geometry_bridge: ProceduralGeometryBridge | None = None
         self._material_bridge: ProceduralMaterialBridge | None = None
-        self._arc_adapter_cache: dict[bool, ArcAgi2Adapter] = {}
         self._drawing_warmup: dict[str, Any] = {}
         self._geometry_warmup: dict[str, Any] = {}
         self._material_warmup: dict[str, Any] = {}
@@ -178,7 +138,6 @@ class K3DDaemon:
             eager_load_default_galaxies=config.eager_load_default_galaxies,
         )
         self.trm = self.kv.trm_navigator
-        self.math_specialist = math_specialist or MathSpecialist(knowledgeverse=self.kv, parent=self.trm)
         self._default_counts = self.kv.ensure_default_galaxies_loaded()
         self._write_boot_status(
             stage="knowledgeverse_ready",
@@ -414,757 +373,17 @@ class K3DDaemon:
                         break
         return bundle
 
-    def _collect_math_parse_bundle(self, question: str) -> dict[str, Any]:
-        return self._collect_parse_bundle(
-            question,
-            specialist="math",
-            galaxy_names=["Math", "Grammar", "Tool"],
-            domain_hint="math",
-        )
-
-    def _normalize_lhe_domain_hint(self, domain_hint: str | None) -> str:
-        domain = str(domain_hint or "multi").strip().lower()
-        aliases = {
-            "mathematics": "math",
-            "math": "math",
-            "physics": "physics",
-            "chemistry": "physics",
-            "biology": "physics",
-            "philosophy": "grammar",
-            "trivia": "grammar",
-            "cybersecurity": "grammar",
-            "history": "grammar",
-            "chess": "grammar",
-            "multi": "multi",
-        }
-        return aliases.get(domain, domain or "multi")
-
-    def _split_lhe_clauses(self, text: str) -> list[str]:
-        clauses = [part.strip() for part in re.split(r"(?:[.?!]\s+|;\s+|\n+)", str(text or "").strip()) if part.strip()]
-        return clauses or ([str(text).strip()] if str(text).strip() else [])
-
-    def _tokenize_lhe_text(self, text: str, *, preserve_single: bool = False) -> list[str]:
-        raw_tokens = re.findall(r"[A-Za-z0-9_+#$=:/.-]+", str(text or ""))
-        tokens: list[str] = []
-        for raw in raw_tokens:
-            token = raw.strip().strip(".,:;!?()[]{}").lower()
-            if not token:
-                continue
-            if not preserve_single and len(token) == 1 and not token.isdigit():
-                continue
-            if token in self._LHE_STOPWORDS:
-                continue
-            tokens.append(token)
-        return tokens
-
-    def _normalize_answer_text(self, value: str) -> str:
-        text = str(value or "").strip().lower()
-        text = re.sub(r"\s+", " ", text)
-        text = re.sub(r"[^a-z0-9+#=,./:;() \\-]+", "", text)
-        return text.strip()
-
-    def _append_lhe_text_entities(
-        self,
-        entities: list[dict[str, Any]],
-        *,
-        text: str,
-        role: str,
-        source_pass: str,
-        confidence: float,
-        preserve_single: bool = False,
-        extra: dict[str, Any] | None = None,
-    ) -> None:
-        raw = str(text or "").strip()
-        if not raw:
-            return
-        payload = dict(extra or {})
-        entities.append(
-            {
-                "kind": "phrase",
-                "value": raw.lower(),
-                "raw": raw,
-                "role": role,
-                "source_pass": source_pass,
-                "confidence": confidence,
-                **payload,
-            }
-        )
-        for token_index, token in enumerate(self._tokenize_lhe_text(raw, preserve_single=preserve_single)[:16]):
-            entities.append(
-                {
-                    "kind": "token" if role != "option" else "option_token",
-                    "value": token,
-                    "raw": raw,
-                    "role": role,
-                    "source_pass": source_pass,
-                    "token_index": token_index,
-                    "confidence": min(confidence + 0.1, 0.99),
-                    **payload,
-                }
-            )
-
-    def _build_lhe_parse_entities(
-        self,
-        *,
-        parse_bundle: dict[str, Any],
-        options: list[str] | None = None,
-    ) -> dict[str, list[dict[str, Any]]]:
-        forward_parse = parse_bundle.get("forward_parse", {}) if isinstance(parse_bundle.get("forward_parse"), dict) else {}
-        backward_parse = parse_bundle.get("backward_parse", {}) if isinstance(parse_bundle.get("backward_parse"), dict) else {}
-        fusion_parse = parse_bundle.get("fusion_parse", {}) if isinstance(parse_bundle.get("fusion_parse"), dict) else {}
-
-        forward_entities: list[dict[str, Any]] = []
-        backward_entities: list[dict[str, Any]] = []
-        fused_entities: list[dict[str, Any]] = []
-
-        for idx, block in enumerate(forward_parse.get("context", []) or []):
-            if not isinstance(block, dict):
-                continue
-            raw = str(block.get("raw", "")).strip()
-            self._append_lhe_text_entities(
-                forward_entities,
-                text=raw,
-                role="context",
-                source_pass="forward",
-                confidence=0.55,
-                extra={"clause_index": idx},
-            )
-            data = block.get("data", {})
-            if block.get("type") == "variables" and isinstance(data, dict):
-                for key, value in data.items():
-                    forward_entities.append(
-                        {
-                            "kind": "variable",
-                            "value": str(key),
-                            "raw": f"{key}={value}",
-                            "role": "context",
-                            "source_pass": "forward",
-                            "confidence": 0.72,
-                            "clause_index": idx,
-                            "data_value": value,
-                        }
-                    )
-        if isinstance(forward_parse.get("goal"), dict):
-            goal = forward_parse["goal"]
-            self._append_lhe_text_entities(
-                forward_entities,
-                text=str(goal.get("raw") or goal.get("expression") or ""),
-                role="goal",
-                source_pass="forward",
-                confidence=0.7,
-            )
-
-        for idx, block in enumerate(backward_parse.get("dependencies", []) or []):
-            if not isinstance(block, dict):
-                continue
-            raw = str(block.get("raw", "")).strip()
-            self._append_lhe_text_entities(
-                backward_entities,
-                text=raw,
-                role="context",
-                source_pass="backward",
-                confidence=0.55,
-                extra={"clause_index": idx},
-            )
-            data = block.get("data", {})
-            if block.get("type") == "variables" and isinstance(data, dict):
-                for key, value in data.items():
-                    backward_entities.append(
-                        {
-                            "kind": "variable",
-                            "value": str(key),
-                            "raw": f"{key}={value}",
-                            "role": "context",
-                            "source_pass": "backward",
-                            "confidence": 0.72,
-                            "clause_index": idx,
-                            "data_value": value,
-                        }
-                    )
-        if isinstance(backward_parse.get("goal"), dict):
-            goal = backward_parse["goal"]
-            self._append_lhe_text_entities(
-                backward_entities,
-                text=str(goal.get("raw") or goal.get("expression") or ""),
-                role="goal",
-                source_pass="backward",
-                confidence=0.74,
-            )
-
-        merged_variables = fusion_parse.get("merged_variables", {})
-        if isinstance(merged_variables, dict):
-            for key, value in merged_variables.items():
-                fused_entities.append(
-                    {
-                        "kind": "variable",
-                        "value": str(key),
-                        "raw": f"{key}={value}",
-                        "role": "context",
-                        "source_pass": "fusion",
-                        "confidence": 0.9,
-                        "data_value": value,
-                    }
-                )
-        unified_goal = fusion_parse.get("unified_goal", {})
-        if isinstance(unified_goal, dict):
-            self._append_lhe_text_entities(
-                fused_entities,
-                text=str(unified_goal.get("raw") or unified_goal.get("expression") or ""),
-                role="goal",
-                source_pass="fusion",
-                confidence=0.9,
-            )
-
-        for option_index, option in enumerate(options or []):
-            self._append_lhe_text_entities(
-                forward_entities,
-                text=str(option),
-                role="option",
-                source_pass="forward",
-                confidence=0.65,
-                preserve_single=True,
-                extra={"option_index": option_index},
-            )
-            self._append_lhe_text_entities(
-                backward_entities,
-                text=str(option),
-                role="option",
-                source_pass="backward",
-                confidence=0.65,
-                preserve_single=True,
-                extra={"option_index": option_index},
-            )
-            self._append_lhe_text_entities(
-                fused_entities,
-                text=str(option),
-                role="option",
-                source_pass="fusion",
-                confidence=0.68,
-                preserve_single=True,
-                extra={"option_index": option_index},
-            )
-
-        return {
-            "forward_entities": forward_entities,
-            "backward_entities": backward_entities,
-            "fused_entities": fused_entities,
-        }
-
-    def _build_lhe_goal(
-        self,
-        *,
-        prompt: str,
-        options: list[str],
-        parse_bundle: dict[str, Any],
-        domain_hint: str,
-    ) -> dict[str, Any]:
-        backward = parse_bundle.get("backward_parse", {})
-        goal = backward.get("goal") if isinstance(backward, dict) else None
-        raw_goal = ""
-        if isinstance(goal, dict):
-            raw_goal = str(goal.get("expression") or goal.get("raw") or "")
-        if not raw_goal:
-            raw_goal = str(prompt)
-        return {
-            "kind": "multiple_choice" if options else "open_ended",
-            "domain": domain_hint,
-            "raw": raw_goal,
-            "tokens": self._tokenize_lhe_text(raw_goal, preserve_single=bool(options)),
-            "requires_short_answer": not options,
-        }
-
-    def _augment_lhe_route(self, route: dict[str, Any], *, domain_hint: str) -> dict[str, Any]:
-        effective = dict(route)
-        names = [str(name) for name in route.get("galaxy_names") or [] if str(name).strip()]
-        for required in ("Reality", "Grammar", "Tool"):
-            if required not in names:
-                names.append(required)
-        if domain_hint == "math" and "Math" not in names:
-            names.append("Math")
-        effective["galaxy_names"] = names
-        return effective
-
-    def _extract_lhe_evidence_fields(self, row: dict[str, Any]) -> dict[str, str]:
-        entry = row.get("entry") if isinstance(row.get("entry"), dict) else {}
-        metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
-        fields = {
-            "content": str(entry.get("content", "")).strip(),
-            "description": str(entry.get("description", "")).strip(),
-            "rpn_program": str(entry.get("rpn_program", "")).strip(),
-            "pattern_form": str(entry.get("pattern_form", "")).strip(),
-            "pattern_type": str(entry.get("pattern_type", "")).strip(),
-            "semantics": str(metadata.get("semantics", "")).strip(),
-            "usage_conditions": str(metadata.get("usage_conditions", "")).strip(),
-            "domain": str(metadata.get("domain", "")).strip(),
-            "category": str(metadata.get("category", "")).strip(),
-        }
-        return {key: value for key, value in fields.items() if value}
-
-    def _extract_lhe_row_text(self, row: dict[str, Any]) -> str:
-        entry = row.get("entry") if isinstance(row.get("entry"), dict) else {}
-        parts: list[str] = [
-            str(entry.get("name", "")),
-            str(entry.get("title", "")),
-        ]
-        evidence_fields = self._extract_lhe_evidence_fields(row)
-        parts.extend(evidence_fields.values())
-        return " ".join(part.strip() for part in parts if str(part).strip())
-
-    def _query_lhe_evidence(
-        self,
-        *,
-        prompt: str,
-        route: dict[str, Any],
-        parse_bundle: dict[str, Any],
-        use_enriched: bool,
-        options: list[str],
-    ) -> list[dict[str, Any]]:
-        route_plan = parse_bundle.get("route_plan")
-        plan_rows = route_plan if isinstance(route_plan, list) else []
-        query_specs: list[tuple[str, dict[str, Any]]] = []
-        for planned in plan_rows[:4]:
-            if not isinstance(planned, dict):
-                continue
-            variant = str(planned.get("query_variant", "")).strip()
-            if variant:
-                query_specs.append((variant, planned))
-        if not query_specs:
-            query_specs.append((prompt, route))
-
-        seen: set[tuple[str, str, str]] = set()
-        evidence: list[dict[str, Any]] = []
-        for query_text, planned in query_specs:
-            rows = self.trm.query(
-                query=query_text,
-                galaxy_names=planned.get("galaxy_names") or route.get("galaxy_names"),
-                top_k=20 if use_enriched else 8,
-                specialist=str(planned.get("specialist", route.get("specialist", "auto"))),
-                domain_hint=str(planned.get("domain", route.get("domain", "multi"))),
-            )
-            for index, row in enumerate(rows):
-                row_text = self._extract_lhe_row_text(row)
-                if not row_text:
-                    continue
-                entry = row.get("entry") if isinstance(row.get("entry"), dict) else {}
-                dedupe_key = (
-                    str(entry.get("id", "")),
-                    str(entry.get("name", "")),
-                    row_text[:160],
-                )
-                if dedupe_key in seen:
-                    continue
-                seen.add(dedupe_key)
-                evidence.append(
-                    {
-                        "row": row,
-                        "text": row_text,
-                        "tokens": set(self._tokenize_lhe_text(row_text, preserve_single=bool(options))),
-                        "fields": self._extract_lhe_evidence_fields(row),
-                        "query": query_text,
-                        "rank_weight": max(0.05, 1.0 - (index * 0.08)),
-                    }
-                )
-        return evidence
-
-    def _query_lhe_option_evidence(
-        self,
-        *,
-        prompt: str,
-        option: str,
-        route: dict[str, Any],
-        use_enriched: bool,
-    ) -> list[dict[str, Any]]:
-        rows = self.trm.query(
-            query=f"{prompt}\nCandidate answer: {option}",
-            galaxy_names=route.get("galaxy_names"),
-            top_k=10 if use_enriched else 4,
-            specialist=str(route.get("specialist", "auto")),
-            domain_hint=str(route.get("domain", "multi")),
-        )
-        out: list[dict[str, Any]] = []
-        for index, row in enumerate(rows):
-            text = self._extract_lhe_row_text(row)
-            if not text:
-                continue
-            out.append(
-                {
-                    "row": row,
-                    "text": text,
-                    "tokens": set(self._tokenize_lhe_text(text, preserve_single=True)),
-                    "fields": self._extract_lhe_evidence_fields(row),
-                    "rank_weight": max(0.05, 1.0 - (index * 0.1)),
-                }
-            )
-        return out
-
-    def _score_lhe_option(
-        self,
-        *,
-        prompt: str,
-        options: list[str],
-        option: str,
-        goal: dict[str, Any],
-        fused_entities: list[dict[str, Any]],
-        evidence_rows: list[dict[str, Any]],
-        option_rows: list[dict[str, Any]],
-    ) -> float:
-        prompt_lower = str(prompt).lower()
-        normalized_option = str(option).strip()
-        option_tokens = set(self._tokenize_lhe_text(normalized_option, preserve_single=True))
-        goal_tokens = set(goal.get("tokens", []))
-        fused_tokens = {
-            str(entity.get("value", ""))
-            for entity in fused_entities
-            if str(entity.get("kind", "")) in {"token", "option_token"} and entity.get("value")
-        }
-        normalized_phrase = self._normalize_answer_text(normalized_option)
-        other_phrases = {
-            self._normalize_answer_text(candidate)
-            for candidate in options
-            if self._normalize_answer_text(candidate) and self._normalize_answer_text(candidate) != normalized_phrase
-        }
-        score = 0.0
-        if normalized_option and re.search(rf"\b(?:pick|choose|select)\s+{re.escape(normalized_option.lower())}\b", prompt_lower):
-            score += 10.0
-        score += float(len(option_tokens & goal_tokens)) * 0.10
-        score += float(len(option_tokens & fused_tokens)) * 0.05
-        support = 0.0
-        contradiction = 0.0
-        for evidence in [*evidence_rows, *option_rows]:
-            fields = evidence.get("fields", {}) if isinstance(evidence.get("fields"), dict) else {}
-            normalized_fields = [self._normalize_answer_text(value) for value in fields.values()]
-            exact_hits = sum(1 for value in normalized_fields if normalized_phrase and normalized_phrase in value)
-            if exact_hits:
-                support += exact_hits * (1.5 + float(evidence.get("rank_weight", 0.0)))
-            for other in other_phrases:
-                if other and any(other in value for value in normalized_fields):
-                    contradiction += 0.9 + (0.2 * float(evidence.get("rank_weight", 0.0)))
-        score += support
-        score -= contradiction
-        return score
-
-    def _extract_lhe_open_candidates(self, text: str, *, field_name: str = "") -> list[str]:
-        candidates: list[str] = []
-        normalized = " ".join(str(text).split()).strip()
-        if not normalized:
-            return candidates
-        field = str(field_name or "").strip().lower()
-        patterns = [
-            r"\$[^$]{1,160}\$",
-            r"\\\([^)]{1,160}\\\)",
-            r"\b-?\d+(?:\.\d+)?\b",
-        ]
-        if field not in {"rpn_program", "pattern_form"}:
-            patterns.extend(
-                [
-                    r"[^.!?;\n]{6,180}",
-                    r"\b[A-Z][a-z][A-Za-z0-9,'-]{1,40}(?: [A-Za-z][A-Za-z0-9,'-]{1,40}){0,10}\b",
-                ]
-            )
-        for pattern in patterns:
-            for match in re.findall(pattern, text):
-                item = " ".join(str(match).split()).strip(" ,;:.")
-                if item and item not in candidates:
-                    candidates.append(item)
-        return candidates
-
-    def _is_lhe_meta_candidate(self, candidate: str) -> bool:
-        lowered = str(candidate).strip().lower()
-        if not lowered:
-            return True
-        generic = {
-            "tool",
-            "grammar",
-            "reality",
-            "math",
-            "drawing",
-            "audio",
-            "3dobjects",
-            "english svo",
-            "syntax",
-            "procedural systems",
-            "procedural reality specialist",
-            "basic math specialist",
-        }
-        return lowered in generic
-
-    def _is_lhe_code_like_candidate(self, candidate: str) -> bool:
-        text = str(candidate).strip()
-        if not text:
-            return False
-        compact = text.replace(" ", "")
-        if re.fullmatch(r"[A-Z0-9_#+-]{2,40}", compact):
-            return True
-        if text.count("_") >= 1:
-            return True
-        if re.fullmatch(r"[A-Za-z]+ [A-Z]{2,8}", text):
-            return True
-        return False
-
-    def _canonicalize_lhe_short_numeric_candidate(self, candidate: str) -> str:
-        normalized = self._normalize_answer_text(candidate)
-        if not normalized:
-            return ""
-        if re.fullmatch(r"-?\d+(?:\.\d+)?", normalized):
-            return normalized
-        digit_match = re.search(r"\b-?\d+(?:\.\d+)?\b", normalized)
-        if digit_match:
-            return digit_match.group(0)
-        word_to_num = {
-            "zero": "0",
-            "one": "1",
-            "two": "2",
-            "three": "3",
-            "four": "4",
-            "five": "5",
-            "six": "6",
-            "seven": "7",
-            "eight": "8",
-            "nine": "9",
-            "ten": "10",
-            "eleven": "11",
-            "twelve": "12",
-            "thirteen": "13",
-            "fourteen": "14",
-            "fifteen": "15",
-            "sixteen": "16",
-            "seventeen": "17",
-            "eighteen": "18",
-            "nineteen": "19",
-            "twenty": "20",
-        }
-        for token in self._tokenize_lhe_text(normalized, preserve_single=True):
-            mapped = word_to_num.get(token)
-            if mapped:
-                return mapped
-        return ""
-
-    def _synthesize_lhe_open_answer(
-        self,
-        *,
-        fused_entities: list[dict[str, Any]],
-        goal: dict[str, Any],
-        evidence_rows: list[dict[str, Any]],
-    ) -> str:
-        goal_tokens = set(goal.get("tokens", []))
-        fused_tokens = {
-            str(entity.get("value", ""))
-            for entity in fused_entities
-            if str(entity.get("kind", "")) in {"token", "phrase"} and entity.get("value")
-        }
-        goal_raw = str(goal.get("raw", "")).strip()
-        goal_lower = goal_raw.lower()
-        wants_formula = any(token in goal_raw for token in ("$", "\\(", "\\)", "^", "{", "}")) or any(
-            token in goal_lower for token in ("equation", "expression", "formula", "polynomial")
-        )
-        wants_short_numeric = any(token in goal_lower for token in ("how many", "how much", "what is", "value", "number"))
-        field_weights = {
-            "content": 1.0,
-            "description": 0.92,
-            "semantics": 0.86,
-            "usage_conditions": 0.78,
-            "domain": 0.2,
-            "category": 0.15,
-            "rpn_program": 0.02,
-            "pattern_form": 0.02,
-        }
-        best_candidate = ""
-        best_score = float("-inf")
-        for evidence in evidence_rows:
-            fields = evidence.get("fields", {}) if isinstance(evidence.get("fields"), dict) else {}
-            candidates: list[tuple[str, str, float]] = []
-            for key in ("content", "description", "semantics", "usage_conditions", "domain", "category", "rpn_program", "pattern_form"):
-                value = str(fields.get(key, "")).strip()
-                if not value:
-                    continue
-                field_weight = float(field_weights.get(key, 0.1))
-                for candidate in self._extract_lhe_open_candidates(value, field_name=key):
-                    if candidate and all(existing != candidate for existing, _, _ in candidates):
-                        candidates.append((candidate, key, field_weight))
-            for candidate, field_name, field_weight in candidates:
-                lowered_candidate = candidate.strip().lower()
-                if self._is_lhe_meta_candidate(candidate):
-                    continue
-                if self._is_lhe_code_like_candidate(candidate) and not wants_formula:
-                    continue
-                numeric_variant = self._canonicalize_lhe_short_numeric_candidate(candidate) if wants_short_numeric else ""
-                candidate_variants = [candidate.strip()]
-                if numeric_variant and numeric_variant not in candidate_variants:
-                    candidate_variants.append(numeric_variant)
-                for candidate_variant in candidate_variants:
-                    candidate_tokens = set(self._tokenize_lhe_text(candidate_variant, preserve_single=True))
-                    normalized_candidate = self._normalize_answer_text(candidate_variant)
-                    score = float(evidence.get("rank_weight", 0.0)) * 0.9
-                    score += field_weight
-                    score += float(len(candidate_tokens & goal_tokens)) * 0.7
-                    score += float(len(candidate_tokens & fused_tokens)) * 0.25
-                    if wants_short_numeric and re.fullmatch(r"-?\d+(?:\.\d+)?", normalized_candidate):
-                        score += 1.8
-                    if wants_short_numeric and candidate_variant == candidate.strip() and numeric_variant and candidate_variant != numeric_variant:
-                        score -= 1.2
-                    if not wants_formula and not wants_short_numeric and len(candidate_variant.split()) >= 5:
-                        score += 0.2
-                    if field_name in {"rpn_program", "pattern_form"}:
-                        score -= 0.35
-                    score -= min(len(candidate_variant), 120) * 0.002
-                    if score > best_score:
-                        best_score = score
-                        best_candidate = candidate_variant.strip()
-        return best_candidate
-
-    def _solve_lhe_structured(
-        self,
-        *,
-        prompt: str,
-        options: list[str],
-        route: dict[str, Any],
-        parse_bundle: dict[str, Any],
-        use_enriched: bool,
-        domain_hint: str,
-    ) -> dict[str, Any]:
-        parse_entities = self._build_lhe_parse_entities(parse_bundle=parse_bundle, options=options)
-        forward_entities = list(parse_entities.get("forward_entities", []))
-        backward_entities = list(parse_entities.get("backward_entities", []))
-        fused_entities = list(parse_entities.get("fused_entities", []))
-        goal = self._build_lhe_goal(
-            prompt=prompt,
-            options=options,
-            parse_bundle=parse_bundle,
-            domain_hint=domain_hint,
-        )
-        evidence_rows = self._query_lhe_evidence(
-            prompt=prompt,
-            route=route,
-            parse_bundle=parse_bundle,
-            use_enriched=use_enriched,
-            options=options,
-        )
-        reasoning_trace = [
-            f"lhe_four_pass forward={len(forward_entities)} backward={len(backward_entities)} fused={len(fused_entities)} evidence={len(evidence_rows)}",
-            f"lhe_goal {goal.get('kind')} domain={domain_hint}",
-        ]
-        if options:
-            scored: list[tuple[float, str]] = []
-            for option in options:
-                option_rows = self._query_lhe_option_evidence(
-                    prompt=prompt,
-                    option=option,
-                    route=route,
-                    use_enriched=use_enriched,
-                )
-                score = self._score_lhe_option(
-                    prompt=prompt,
-                    options=options,
-                    option=option,
-                    goal=goal,
-                    fused_entities=fused_entities,
-                    evidence_rows=evidence_rows,
-                    option_rows=option_rows,
-                )
-                scored.append((score, option))
-            scored.sort(key=lambda item: item[0], reverse=True)
-            predicted = str(scored[0][1]) if scored else ""
-            reasoning_trace.append(
-                "lhe_option_scores "
-                + ", ".join(f"{opt}={score:.3f}" for score, opt in scored[:4])
-            )
-        else:
-            predicted = self._synthesize_lhe_open_answer(
-                fused_entities=fused_entities,
-                goal=goal,
-                evidence_rows=evidence_rows,
-            )
-            reasoning_trace.append(f"lhe_open_answer {'present' if predicted else 'empty'}")
-        return {
-            "predicted_answer": predicted,
-            "reasoning_trace": reasoning_trace,
-            "four_pass": {
-                "forward_entities": forward_entities,
-                "backward_entities": backward_entities,
-                "fused_entities": fused_entities,
-                "goal": goal,
-                "evidence_count": len(evidence_rows),
-                "composition_depth": 4 if fused_entities else 1,
-            },
-        }
-
     def _dispatch_lhe_task(self, *, route: dict[str, Any], task: dict[str, Any], use_enriched: bool) -> dict[str, Any]:
-        prompt = str(task.get("prompt", "") or task.get("query", "")).strip()
-        if not prompt:
-            return {"status": "error", "error": "lhe_task_missing_prompt"}
-        domain_hint = self._normalize_lhe_domain_hint(task.get("domain_hint"))
-        options = task.get("options")
-        option_list = [str(item) for item in options] if isinstance(options, list) else []
-        effective_route = self._augment_lhe_route(route, domain_hint=domain_hint)
-
-        parse_bundle = self._collect_parse_bundle(
-            prompt,
-            specialist=str(effective_route.get("specialist", "auto") or "auto"),
-            galaxy_names=[str(name) for name in effective_route.get("galaxy_names") or ["Grammar", "Reality", "Tool"]],
-            domain_hint=domain_hint,
-        )
-
-        if domain_hint == "math":
-            enriched_task = {
-                "question": prompt,
-                "query": prompt,
-                "options": option_list,
-                "domain_hint": domain_hint,
-                **parse_bundle,
-            }
-            solved = self.math_specialist.process(enriched_task, use_enriched=use_enriched)
-            predicted = solved.get("result")
-            return {
-                "status": "ok" if solved.get("status") == "success" else "error",
-                "task_type": "LHE_TASK",
-                "task_id": task.get("task_id"),
-                "response": predicted,
-                "answer": predicted,
-                "result": predicted,
-                "reasoning_trace": list(solved.get("reasoning_trace", [])),
-                "parse_bundle": parse_bundle,
-                "route": route,
-            }
-        structured = self._solve_lhe_structured(
-            prompt=prompt,
-            options=option_list,
-            route=effective_route,
-            parse_bundle=parse_bundle,
+        response = self.kv.execute_task(
+            task=task,
+            route=route,
+            specialist=str(route.get("specialist", "auto")),
+            domain_hint=task.get("domain_hint"),
             use_enriched=use_enriched,
-            domain_hint=domain_hint,
         )
-        response = structured.get("predicted_answer", "")
-        return {
-            "status": "ok",
-            "task_type": "LHE_TASK",
-            "task_id": task.get("task_id"),
-            "response": response,
-            "answer": response,
-            "result": response,
-            "reasoning_trace": list(structured.get("reasoning_trace", [])),
-            "four_pass": structured.get("four_pass", {}),
-            "parse_bundle": parse_bundle,
-            "route": effective_route,
-        }
-
-    def _get_arc_adapter(self, *, use_enriched: bool) -> ArcAgi2Adapter:
-        key = bool(use_enriched)
-        adapter = self._arc_adapter_cache.get(key)
-        if adapter is None:
-            adapter = ArcAgi2Adapter(
-                use_enriched=key,
-                strict_legacy=False,
-                knowledgeverse=self.kv,
-                enable_contrastive_learning=True,
-                enable_validity_gates=True,
-                enable_fuzzy_oracle=True,
-                enable_figure_ground_reversal=True,
-                enable_object_aware_generation=True,
-                enable_ptx_ranking=False,
-                enable_full_ptx=False,
-            )
-            self._arc_adapter_cache[key] = adapter
-        return adapter
+        if isinstance(response, dict):
+            response.setdefault("runtime", "knowledgeverse_gpu_query")
+        return response
 
     def _dispatch_task(self, *, route: dict[str, Any], task: dict[str, Any], use_enriched: bool) -> dict[str, Any]:
         specialist = str(route.get("specialist", "grammar")).lower()
@@ -1176,97 +395,113 @@ class K3DDaemon:
         if specialist == "visual":
             if task_type != "ARC_TASK":
                 return {"status": "not_implemented", "reason": "visual_specialist_expected_arc_task"}
-            training_examples = task.get("training_examples")
-            input_grid = task.get("input_grid")
-            if not isinstance(training_examples, list) or input_grid is None:
-                return {"status": "error", "error": "arc_task_missing_training_or_input"}
-            benchmark_task = {
-                "id": str(task.get("task_id") or "arc_task"),
-                "train": list(training_examples),
-                "test": [
-                    {
-                        "input": input_grid,
-                        "output": task.get("expected_output"),
-                    }
-                ],
+            if not hasattr(self.kv, "execute_task"):
+                return {"status": "error", "error": "knowledgeverse_missing_execute_task"}
+            arc_route = {
+                "specialist": "visual",
+                "domain_hint": str(route.get("domain") or route.get("domain_hint") or "visual"),
+                "galaxy_names": list(getattr(self.kv, "GPU_ARC_TARGET_GALAXIES", ("Drawing", "Grammar", "Tool"))),
             }
-            solved = self._get_arc_adapter(use_enriched=use_enriched).solve_task(benchmark_task)
-            output_grid = solved.get("predicted")
+            solved = self.kv.execute_task(
+                task=task,
+                route=arc_route,
+                specialist="visual",
+                domain_hint="visual",
+                use_enriched=use_enriched,
+            )
+            output_grid = solved.get("output_grid")
             response = {
-                "status": "ok" if solved.get("predicted") is not None else "error",
+                "status": "ok" if str(solved.get("status", "")).lower() == "ok" and output_grid is not None else "error",
                 "task_type": "ARC_TASK",
                 "task_id": task.get("task_id"),
-                "program_type": "arc_benchmark_adapter",
+                "program_type": str(solved.get("program_type") or "knowledgeverse_gpu_query"),
                 "output_grid": output_grid,
-                "reasoning_trace": list(solved.get("reasoning_trace", [])),
-                "solver": solved.get("solver"),
-                "patterns_used": int(solved.get("patterns_used", 0)),
+                "reasoning_trace": list(solved.get("reasoning_trace", solved.get("thinking_trace", []))),
+                "thinking_trace": list(solved.get("thinking_trace", [])),
+                "thinking_xml": solved.get("thinking_xml"),
+                "solver": solved.get("solver", "knowledgeverse_gpu_query"),
+                "patterns_used": int(solved.get("patterns_used", 1 if output_grid is not None else 0)),
                 "generated_pattern_count": int(solved.get("generated_pattern_count", 0)),
-                "score": float(solved.get("score", 0.0)),
-                "fuzzy_score": float(solved.get("fuzzy_score", 0.0)),
-                "exact_match": bool(solved.get("exact_match", False)),
+                "score": float(solved.get("score", 1.0 if output_grid is not None else 0.0)),
+                "fuzzy_score": float(solved.get("fuzzy_score", 1.0 if output_grid is not None else 0.0)),
+                "exact_match": bool(output_grid == task.get("expected_output")) if task.get("expected_output") is not None else False,
+                "gpu_execution": bool(solved.get("gpu_execution", False)),
+                "runtime": solved.get("runtime", "knowledgeverse_gpu_query"),
+                "program_id": solved.get("program_id"),
+                "route": solved.get("route", arc_route),
             }
-            passthrough_keys = (
-                "ranking_top_components",
-                "pattern_source",
-                "selected_source",
-                "selected_rank",
-                "selected_oracle_track",
-                "selected_exact_match",
-                "selected_fuzzy_score",
-                "correct_rank",
-                "oracle_at_3",
-                "oracle_at_10",
-                "oracle_at_all",
-                "fuzzy_oracle_at_all",
-                "oracle_fuzzy_0_80",
-                "oracle_fuzzy_0_85",
-                "oracle_fuzzy_0_90",
-                "oracle_fuzzy_0_95",
-                "oracle_failure_modes",
-                "queried_galaxies",
-                "ptx_ranking_used",
-                "ptx_full_used",
-                "ptx_oracle_used",
-                "generation_filter_generated_total",
-                "generation_filter_accept_rate",
-                "generation_filter_reject_rate",
-                "generation_object_count_distribution",
-                "generation_object_count_distribution_accepted",
-                "generation_object_count_distribution_rejected",
-            )
-            for key in passthrough_keys:
-                if key in solved:
-                    response[key] = solved[key]
             return response
 
         if specialist == "math":
             question = str(task.get("question", "") or task.get("query", "")).strip()
             if not question:
                 return {"status": "error", "error": "math_task_missing_question"}
-            enriched_task = dict(task)
-            enriched_task.update(self._collect_math_parse_bundle(question))
-            solved = self.math_specialist.process(enriched_task, use_enriched=use_enriched)
-            return {
-                "status": "ok" if solved.get("status") == "success" else "error",
+            math_route = {
+                "specialist": "math",
+                "domain_hint": str(route.get("domain") or route.get("domain_hint") or "math"),
+                "galaxy_names": list(getattr(self.kv, "GPU_MATH_TARGET_GALAXIES", ("Math", "Grammar", "Tool"))),
+            }
+            solved = self.kv.execute_task(
+                task={
+                    **dict(task),
+                    "type": task_type or "MATH_TASK",
+                    "query": question,
+                    "question": question,
+                },
+                route=math_route,
+                specialist="math",
+                domain_hint="math",
+                use_enriched=use_enriched,
+            )
+            response = {
+                **solved,
                 "task_type": task_type or "MATH_TASK",
                 "task_id": task.get("task_id"),
-                **solved,
             }
+            response["status"] = "success" if str(solved.get("status", "")).lower() == "ok" else "error"
+            return response
 
-        if specialist in {"chat", "grammar", "any"}:
+        if specialist in {"chat", "grammar", "any"} or task_type == "MMLU_TASK":
             messages = task.get("messages")
             if not isinstance(messages, list):
                 prompt = str(task.get("prompt", "") or task.get("query", "")).strip()
                 if not prompt:
                     return {"status": "error", "error": "chat_task_missing_prompt"}
                 messages = [{"role": "user", "content": prompt}]
-            response = self.trm.process_chat(messages, use_enriched=use_enriched)
+            chat_prompt = str(task.get("prompt", "") or task.get("query", "")).strip()
+            if not chat_prompt:
+                for message in reversed(messages):
+                    if not isinstance(message, dict):
+                        continue
+                    if str(message.get("role", "")).strip().lower() != "user":
+                        continue
+                    chat_prompt = str(message.get("content", "")).strip()
+                    if chat_prompt:
+                        break
+            if not chat_prompt:
+                return {"status": "error", "error": "chat_task_missing_prompt"}
+            chat_route = {
+                "specialist": "chat",
+                "domain_hint": str(route.get("domain") or route.get("domain_hint") or "general"),
+                "galaxy_names": list(getattr(self.kv, "GPU_CHAT_TARGET_GALAXIES", ("Grammar", "Word", "Character"))),
+            }
+            solved = self.kv.execute_task(
+                task={
+                    **dict(task),
+                "type": task_type or "CHAT_TASK",
+                "prompt": chat_prompt,
+                "query": chat_prompt,
+                "messages": list(messages),
+            },
+                route=chat_route,
+                specialist="chat",
+                domain_hint=str(route.get("domain") or route.get("domain_hint") or "general"),
+                use_enriched=use_enriched,
+            )
             return {
-                "status": "ok",
+                **solved,
                 "task_type": task_type or "CHAT_TASK",
                 "task_id": task.get("task_id"),
-                "response": response,
             }
 
         return {
@@ -1293,6 +528,7 @@ class K3DDaemon:
             if task is not None and not isinstance(task, dict):
                 return {"status": "error", "error": "task_must_be_object"}
             task_obj = task if isinstance(task, dict) else None
+            task_type = str((task_obj or {}).get("type", "")).upper()
             query = str(
                 payload.get("query", "")
                 or (task_obj or {}).get("query", "")
@@ -1303,12 +539,40 @@ class K3DDaemon:
             if not query:
                 return {"status": "error", "error": "missing_query_or_task"}
             use_enriched = bool(payload.get("use_enriched", True))
-            route = self.trm.route(
-                query=query,
-                specialist=str(payload.get("specialist", "auto")),
-                domain_hint=payload.get("domain_hint") or (task_obj or {}).get("domain_hint"),
-                galaxy_names=payload.get("galaxies") or (task_obj or {}).get("galaxies"),
-            )
+            if task_type == "LHE_TASK" and hasattr(self.kv, "GPU_FACTUAL_TARGET_GALAXIES"):
+                route = {
+                    "specialist": str(payload.get("specialist", "auto") or "auto"),
+                    "domain": str(payload.get("domain_hint") or (task_obj or {}).get("domain_hint") or ""),
+                    "reason": "knowledgeverse_gpu_query",
+                    "galaxy_names": list(getattr(self.kv, "GPU_FACTUAL_TARGET_GALAXIES")),
+                }
+            elif (
+                task_type == "MATH_TASK"
+                and hasattr(self.kv, "GPU_MATH_TARGET_GALAXIES")
+            ):
+                route = {
+                    "specialist": "math",
+                    "domain": str(payload.get("domain_hint") or (task_obj or {}).get("domain_hint") or "math"),
+                    "reason": "knowledgeverse_gpu_query",
+                    "galaxy_names": list(getattr(self.kv, "GPU_MATH_TARGET_GALAXIES")),
+                }
+            elif (
+                task_type in {"CHAT_TASK", "GENERAL_TASK", "GRAMMAR_TASK", "MMLU_TASK"}
+                and hasattr(self.kv, "GPU_CHAT_TARGET_GALAXIES")
+            ):
+                route = {
+                    "specialist": "chat",
+                    "domain": str(payload.get("domain_hint") or (task_obj or {}).get("domain_hint") or "general"),
+                    "reason": "knowledgeverse_gpu_query",
+                    "galaxy_names": list(getattr(self.kv, "GPU_CHAT_TARGET_GALAXIES")),
+                }
+            else:
+                route = self.trm.route(
+                    query=query,
+                    specialist=str(payload.get("specialist", "auto")),
+                    domain_hint=payload.get("domain_hint") or (task_obj or {}).get("domain_hint"),
+                    galaxy_names=payload.get("galaxies") or (task_obj or {}).get("galaxies"),
+                )
             response: dict[str, Any] = {"status": "ok", "route": route}
             if task_obj is not None:
                 response["task_result"] = self._dispatch_task(
@@ -1341,33 +605,80 @@ class K3DDaemon:
             if not question:
                 return {"status": "error", "error": "missing_question"}
             use_enriched = bool(payload.get("use_enriched", True))
-            math_task = {"question": question}
-            math_task.update(self._collect_math_parse_bundle(question))
-            solved = self.math_specialist.process(math_task, use_enriched=use_enriched)
-            if solved.get("status") != "success":
+            solved = self.kv.execute_task(
+                task={
+                    "type": "MATH_TASK",
+                    "query": question,
+                    "question": question,
+                },
+                route={
+                    "specialist": "math",
+                    "domain_hint": str(payload.get("domain_hint") or "math"),
+                    "galaxy_names": list(getattr(self.kv, "GPU_MATH_TARGET_GALAXIES", ("Math", "Grammar", "Tool"))),
+                },
+                specialist="math",
+                domain_hint=str(payload.get("domain_hint") or "math"),
+                use_enriched=use_enriched,
+            )
+            if str(solved.get("status", "")).lower() != "ok":
                 return {
                     "status": "error",
-                    "error": "math_specialist_failed",
+                    "error": "knowledgeverse_math_query_failed",
                     "detail": solved,
                 }
             return {
                 "status": "ok",
                 "result": solved.get("result"),
-                "rpn_program": solved.get("rpn_program"),
-                "coefficients": solved.get("coefficients"),
-                "pattern_id": solved.get("pattern_id"),
-                "template_id": solved.get("template_id"),
+                "program_id": solved.get("program_id"),
+                "runtime": solved.get("runtime"),
+                "gpu_execution": bool(solved.get("gpu_execution", False)),
             }
 
         if cmd == "CHAT":
             messages = payload.get("messages")
             if not isinstance(messages, list):
-                prompt = str(payload.get("prompt", "")).strip()
+                prompt = str(payload.get("prompt", "") or payload.get("query", "")).strip()
                 if not prompt:
                     return {"status": "error", "error": "missing_messages_or_prompt"}
                 messages = [{"role": "user", "content": prompt}]
-            response = self.trm.process_chat(messages, use_enriched=bool(payload.get("use_enriched", True)))
-            return {"status": "ok", "response": response}
+            prompt = str(payload.get("prompt", "") or payload.get("query", "")).strip()
+            if not prompt:
+                for message in reversed(messages):
+                    if not isinstance(message, dict):
+                        continue
+                    if str(message.get("role", "")).strip().lower() != "user":
+                        continue
+                    prompt = str(message.get("content", "")).strip()
+                    if prompt:
+                        break
+            if not prompt:
+                return {"status": "error", "error": "missing_messages_or_prompt"}
+            solved = self.kv.execute_task(
+                task={
+                    "type": "CHAT_TASK",
+                    "prompt": prompt,
+                    "query": prompt,
+                    "messages": list(messages),
+                },
+                route={
+                    "specialist": "chat",
+                    "domain_hint": str(payload.get("domain_hint") or "general"),
+                    "galaxy_names": list(getattr(self.kv, "GPU_CHAT_TARGET_GALAXIES", ("Grammar", "Word", "Character"))),
+                },
+                specialist="chat",
+                domain_hint=str(payload.get("domain_hint") or "general"),
+                use_enriched=bool(payload.get("use_enriched", True)),
+            )
+            if str(solved.get("status", "")).lower() != "ok":
+                return {"status": "error", "error": "knowledgeverse_chat_query_failed", "detail": solved}
+            return {
+                "status": "ok",
+                "response": solved.get("response", solved.get("answer", "")),
+                "runtime": solved.get("runtime"),
+                "gpu_execution": bool(solved.get("gpu_execution", False)),
+                "program_id": solved.get("program_id"),
+                "task_result": solved,
+            }
 
         return {"status": "error", "error": "unknown_command", "command": cmd}
 

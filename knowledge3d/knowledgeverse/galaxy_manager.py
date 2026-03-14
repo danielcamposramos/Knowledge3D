@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Sequence
@@ -40,6 +41,10 @@ class GalaxyManager:
         self._entry_text_cache: dict[int, str] = {}
         # Cache specialist-filtered entry views per galaxy.
         self._specialist_entry_cache: dict[tuple[str, str], list[dict[str, Any]]] = {}
+        # Batch persistence during foundational bootstrap to avoid rewriting
+        # the full galaxy file once per upsert.
+        self._disk_sync_depth = 0
+        self._dirty_galaxies: set[str] = set()
 
     def set_knowledgeverse(self, knowledgeverse: Any) -> None:
         """Attach parent Knowledgeverse reference for specialized galaxy classes."""
@@ -152,12 +157,9 @@ class GalaxyManager:
         metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
         if not entry_pattern:
             entry_pattern = str(metadata.get("pattern_type", "")).strip().lower()
-        source = str(metadata.get("source", "")).strip().lower()
         boost = 0.0
         if entry_pattern == target:
             boost += 0.30
-        if source == "math_specialist_bootstrap":
-            boost += 0.20
         return boost
 
     def _math_core_score_boost(self, entry: dict[str, Any], query_tokens: set[str]) -> float:
@@ -312,7 +314,55 @@ class GalaxyManager:
         # Entry list changed; clear cache to avoid stale pointers.
         self._entry_text_cache.clear()
         self._specialist_entry_cache.clear()
-        self._append_entry_to_disk(galaxy_name, entry)
+        if self._knowledgeverse is not None and hasattr(self._knowledgeverse, "invalidate_gpu_galaxy_binding"):
+            try:
+                self._knowledgeverse.invalidate_gpu_galaxy_binding()
+            except Exception:
+                pass
+        if self._disk_sync_depth > 0:
+            self._dirty_galaxies.add(galaxy_name)
+        else:
+            self._append_entry_to_disk(galaxy_name, entry)
+
+    def upsert_entry(self, galaxy_name: str, entry: dict[str, Any]) -> str:
+        galaxy = self.get_galaxy(galaxy_name)
+        entry_id = self._entry_identifier(entry)
+        if not entry_id:
+            self.add_entry(galaxy_name, entry)
+            return "inserted"
+
+        replaced = self._replace_entry_in_memory(galaxy, entry_id, entry)
+        if not replaced:
+            self.add_entry(galaxy_name, entry)
+            return "inserted"
+
+        self._entry_text_cache.clear()
+        self._specialist_entry_cache.clear()
+        if self._knowledgeverse is not None and hasattr(self._knowledgeverse, "invalidate_gpu_galaxy_binding"):
+            try:
+                self._knowledgeverse.invalidate_gpu_galaxy_binding()
+            except Exception:
+                pass
+        if self._disk_sync_depth > 0:
+            self._dirty_galaxies.add(galaxy_name)
+        else:
+            self._rewrite_galaxy_disk(galaxy_name, galaxy)
+        return "updated"
+
+    @contextmanager
+    def bulk_disk_sync(self):
+        self._disk_sync_depth += 1
+        try:
+            yield
+        finally:
+            self._disk_sync_depth = max(0, self._disk_sync_depth - 1)
+            if self._disk_sync_depth != 0 or not self._dirty_galaxies:
+                return
+            dirty_galaxies = sorted(self._dirty_galaxies)
+            self._dirty_galaxies.clear()
+            for galaxy_name in dirty_galaxies:
+                galaxy = self.get_galaxy(galaxy_name)
+                self._rewrite_galaxy_disk(galaxy_name, galaxy)
 
     def _read_entries_from_disk(self, name: str) -> list[dict[str, Any]]:
         path = self._galaxy_path(name)
@@ -344,3 +394,39 @@ class GalaxyManager:
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(entry, separators=(",", ":"), sort_keys=True) + "\n")
+
+    @staticmethod
+    def _entry_identifier(entry: dict[str, Any]) -> str:
+        return str(entry.get("id") or entry.get("rule_id") or "").strip()
+
+    def _replace_entry_in_memory(self, galaxy: Any, entry_id: str, entry: dict[str, Any]) -> bool:
+        if isinstance(galaxy, Galaxy):
+            for idx, current in enumerate(galaxy.entries):
+                if not isinstance(current, dict):
+                    continue
+                if self._entry_identifier(current) == entry_id:
+                    galaxy.entries[idx] = dict(entry)
+                    return True
+            return False
+
+        extra_entries = getattr(galaxy, "_extra_entries", None)
+        if isinstance(extra_entries, list):
+            for idx, current in enumerate(extra_entries):
+                if not isinstance(current, dict):
+                    continue
+                if self._entry_identifier(current) == entry_id:
+                    extra_entries[idx] = dict(entry)
+                    return True
+        return False
+
+    def _rewrite_galaxy_disk(self, galaxy_name: str, galaxy: Any) -> None:
+        path = self._galaxy_path(galaxy_name)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if isinstance(galaxy, Galaxy):
+            entries = list(galaxy.entries)
+        else:
+            extra_entries = getattr(galaxy, "_extra_entries", None)
+            entries = list(extra_entries) if isinstance(extra_entries, list) else []
+        with path.open("w", encoding="utf-8") as handle:
+            for entry in entries:
+                handle.write(json.dumps(entry, separators=(",", ":"), sort_keys=True) + "\n")

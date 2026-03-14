@@ -27,3 +27,20 @@ def test_query_uses_sovereign_token_matching_when_ptx_query_is_required(tmp_path
 
     assert rows
     assert rows[0]["entry"]["id"] == "math_word_total"
+
+
+def test_bulk_disk_sync_batches_rewrites(tmp_path) -> None:
+    manager = GalaxyManager(storage_root=tmp_path / "galaxies")
+    rewrite_calls: list[str] = []
+    append_calls: list[str] = []
+
+    manager._rewrite_galaxy_disk = lambda galaxy_name, galaxy: rewrite_calls.append(str(galaxy_name))  # type: ignore[method-assign]
+    manager._append_entry_to_disk = lambda galaxy_name, entry: append_calls.append(str(galaxy_name))  # type: ignore[method-assign]
+
+    with manager.bulk_disk_sync():
+        manager.add_entry("Grammar", {"id": "grammar_a"})
+        manager.upsert_entry("Grammar", {"id": "grammar_a", "content": "updated"})
+        manager.add_entry("Math", {"id": "math_a"})
+
+    assert append_calls == []
+    assert sorted(rewrite_calls) == ["Grammar", "Math"]

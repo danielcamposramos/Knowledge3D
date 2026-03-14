@@ -4,7 +4,7 @@ Drawing Bridge: Convert ARC grids to/from PTX drawing surfaces.
 Architecture:
     ARC Grid (List[List[int]])
     → Raster Surface (GPU texture/buffer)
-    → PTX Drawing Ops (ROTATE, TRANSLATE, FILL)
+    → PTX Drawing Ops (ROTATE, TRANSLATE, RECOLOR, TILE)
     → Raster Surface (modified)
     → ARC Grid (List[List[int]])
 
@@ -76,7 +76,7 @@ class DrawingBridge:
             surface_id: GPU surface handle
             src_w, src_h: Source dimensions
             dst_w, dst_h: Destination dimensions
-            op: Operation code (rotate/flip/translate/recolor)
+            op: Operation code (rotate/flip/translate/recolor/tile/connect/fill)
             p1, p2: Operation parameters
 
         Returns:

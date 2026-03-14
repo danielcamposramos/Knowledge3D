@@ -1,16 +1,14 @@
 """
 GPU trigram embedding bridge for RPN engine.
 
-Compiles and loads the trigram_embed.cu PTX kernels, manages the trigram
-embedding table on device memory, and exposes helpers to embed sequences of
-trigram indices using sovereign GPU kernels.
+Loads the checked-in trigram PTX module, manages the trigram embedding table on
+device memory, and exposes helpers to embed sequences of trigram indices using
+sovereign GPU kernels.
 """
 
 from __future__ import annotations
 
 import ctypes
-import subprocess
-import tempfile
 from pathlib import Path
 from typing import Iterable, Optional, Sequence
 
@@ -24,9 +22,9 @@ class TrigramEmbedBridge:
 
     def __init__(self, arch: str = "sm_86"):
         kernel_dir = Path(__file__).parent.parent / "ptx"
-        self._cu_path = kernel_dir / "trigram_embed.cu"
-        if not self._cu_path.exists():
-            raise FileNotFoundError(f"Trigram embedding kernel not found: {self._cu_path}")
+        self._ptx_path = kernel_dir / "trigram_embed.ptx"
+        if not self._ptx_path.exists():
+            raise FileNotFoundError(f"Trigram embedding PTX not found: {self._ptx_path}")
 
         self._arch = arch
         self._module: Optional[loader.CUmodule] = None
@@ -37,35 +35,21 @@ class TrigramEmbedBridge:
         self.vocab_size: int = 0
         self.embed_dim: int = 0
 
-        self._compile_and_load()
+        self._load_ptx_module()
 
-    def _compile_and_load(self) -> None:
-        with tempfile.NamedTemporaryFile(suffix=".ptx", delete=False) as tmp:
-            ptx_path = Path(tmp.name)
-
+    def _load_ptx_module(self) -> None:
         try:
-            cmd = [
-                "nvcc",
-                "-ptx",
-                str(self._cu_path),
-                "-o",
-                str(ptx_path),
-                "-arch",
-                self._arch,
-                "-O3",
-            ]
-            try:
-                subprocess.run(cmd, check=True, capture_output=True, text=True)
-            except subprocess.CalledProcessError as exc:
-                raise RuntimeError(
-                    f"Failed to compile trigram embedding kernel ({self._cu_path}): {exc.stderr}"
-                ) from exc
-
-            self._module = loader.load_module_from_file(str(ptx_path))
+            self._module = loader.load_module_from_file(str(self._ptx_path))
             self._lookup_kernel = loader.get_function(self._module, "trigram_lookup_average")
             self._normalize_kernel = loader.get_function(self._module, "l2_normalize_embedding")
-        finally:
-            ptx_path.unlink(missing_ok=True)
+        except Exception as exc:
+            self._module = None
+            self._lookup_kernel = None
+            self._normalize_kernel = None
+            raise RuntimeError(
+                f"Failed to load trigram embedding PTX ({self._ptx_path}). "
+                "The live path is PTX-only; rebuild the checked-in PTX if needed."
+            ) from exc
 
     def upload_embedding_table(self, embeddings: np.ndarray) -> None:
         """Upload (or refresh) the embedding table on GPU."""
