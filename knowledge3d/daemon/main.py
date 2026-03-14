@@ -138,6 +138,8 @@ class K3DDaemon:
         self._sleep_tick_count = 0
         self._sleep_tick_cursor = 0
         self._last_sleep_tick: dict[str, Any] = {}
+        self._sleep_tick_history: list[dict[str, Any]] = []
+        self._sleep_tick_history_max = 16
         self._pending_sleep_embedding_updates = 0
         self._idle_elapsed_seconds = 0.0
         self._sleep_tick_order: tuple[str, ...] = (
@@ -403,11 +405,36 @@ class K3DDaemon:
                 "tick_cursor": int(self._sleep_tick_cursor),
                 "tick_order": list(self._sleep_tick_order),
                 "last_tick": dict(self._last_sleep_tick),
+                "tick_history": [dict(item) for item in self._sleep_tick_history],
                 "pending_embedding_updates": int(self._pending_sleep_embedding_updates),
                 "idle_elapsed_seconds": float(self._idle_elapsed_seconds),
                 "idle_threshold_seconds": float(self.config.idle_threshold_seconds),
             },
         }
+
+    def _all_default_galaxies(self) -> list[str]:
+        return [str(name) for name in self.kv.DEFAULT_GALAXIES]
+
+    def _looks_like_math_prompt(self, text: str) -> bool:
+        prompt = str(text).strip().lower()
+        if not prompt:
+            return False
+        has_digit = any(ch.isdigit() for ch in prompt)
+        if has_digit and any(ch in prompt for ch in "+-*/=^"):
+            return True
+        math_markers = (
+            "solve ",
+            "calculate ",
+            "compute ",
+            "evaluate ",
+            "factorial",
+            "binomial",
+            "derivative",
+            "integral",
+            "quadratic",
+            "equation",
+        )
+        return has_digit and any(marker in prompt for marker in math_markers)
 
     def _get_sleep_cluster_refiner(self):
         if self._sleep_cluster_refiner is False:
@@ -620,7 +647,35 @@ class K3DDaemon:
         self._sleep_tick_count += 1
         self._sleep_tick_cursor = (self._sleep_tick_cursor + 1) % len(self._sleep_tick_order)
         self._last_sleep_tick = summary
+        self._sleep_tick_history.append(dict(summary))
+        if len(self._sleep_tick_history) > int(self._sleep_tick_history_max):
+            self._sleep_tick_history = self._sleep_tick_history[-int(self._sleep_tick_history_max) :]
         return dict(summary)
+
+    def _persist_sleep_state(self) -> dict[str, Any]:
+        pending = int(self._pending_sleep_embedding_updates)
+        if pending <= 0:
+            return {"status": "skipped", "reason": "no_pending_updates"}
+        manager = getattr(self.kv, "galaxy_manager", None)
+        if manager is None or not hasattr(manager, "_rewrite_galaxy_disk"):
+            return {"status": "skipped", "reason": "galaxy_persistence_unavailable"}
+
+        persisted = 0
+        failures: list[str] = []
+        for galaxy_name in self.kv.DEFAULT_GALAXIES:
+            try:
+                galaxy = manager.get_galaxy(galaxy_name)
+                manager._rewrite_galaxy_disk(str(galaxy_name), galaxy)
+                persisted += 1
+            except Exception as exc:
+                failures.append(f"{galaxy_name}:{type(exc).__name__}")
+        self._pending_sleep_embedding_updates = 0
+        return {
+            "status": "ok",
+            "persisted_galaxies": int(persisted),
+            "pending_updates_flushed": int(pending),
+            "failures": failures,
+        }
 
     def _advance_idle_clock(self, *, had_request: bool) -> dict[str, Any] | None:
         if had_request:
@@ -656,6 +711,7 @@ class K3DDaemon:
             "idle_threshold_seconds": float(self.config.idle_threshold_seconds),
             "sleep_tick_count": int(self._sleep_tick_count),
             "last_sleep_tick": dict(self._last_sleep_tick),
+            "sleep_tick_history": [dict(item) for item in self._sleep_tick_history],
             "boot_status_paths": [str(path) for path in self._boot_status_paths],
         }
 
@@ -716,6 +772,7 @@ class K3DDaemon:
     def _dispatch_task(self, *, route: dict[str, Any], task: dict[str, Any], use_enriched: bool) -> dict[str, Any]:
         specialist = str(route.get("specialist", "grammar")).lower()
         task_type = str(task.get("type", "")).upper()
+        all_galaxies = self._all_default_galaxies()
 
         if task_type == "LHE_TASK":
             return self._dispatch_lhe_task(route=route, task=task, use_enriched=use_enriched)
@@ -728,7 +785,7 @@ class K3DDaemon:
             arc_route = {
                 "specialist": "visual",
                 "domain_hint": str(route.get("domain") or route.get("domain_hint") or "visual"),
-                "galaxy_names": list(getattr(self.kv, "GPU_ARC_TARGET_GALAXIES", ("Drawing", "Grammar", "Tool"))),
+                "galaxy_names": list(all_galaxies),
             }
             solved = self.kv.execute_task(
                 task=task,
@@ -767,7 +824,7 @@ class K3DDaemon:
             math_route = {
                 "specialist": "math",
                 "domain_hint": str(route.get("domain") or route.get("domain_hint") or "math"),
-                "galaxy_names": list(getattr(self.kv, "GPU_MATH_TARGET_GALAXIES", ("Math", "Grammar", "Tool"))),
+                "galaxy_names": list(all_galaxies),
             }
             solved = self.kv.execute_task(
                 task={
@@ -808,10 +865,33 @@ class K3DDaemon:
                         break
             if not chat_prompt:
                 return {"status": "error", "error": "chat_task_missing_prompt"}
+            if task_type != "MMLU_TASK" and self._looks_like_math_prompt(chat_prompt):
+                math_route = {
+                    "specialist": "math",
+                    "domain_hint": "math",
+                    "galaxy_names": list(all_galaxies),
+                }
+                solved = self.kv.execute_task(
+                    task={
+                        **dict(task),
+                        "type": "MATH_TASK",
+                        "query": chat_prompt,
+                        "question": chat_prompt,
+                    },
+                    route=math_route,
+                    specialist="math",
+                    domain_hint="math",
+                    use_enriched=use_enriched,
+                )
+                return {
+                    **solved,
+                    "task_type": "MATH_TASK",
+                    "task_id": task.get("task_id"),
+                }
             chat_route = {
                 "specialist": "chat",
                 "domain_hint": str(route.get("domain") or route.get("domain_hint") or "general"),
-                "galaxy_names": list(getattr(self.kv, "GPU_CHAT_TARGET_GALAXIES", ("Grammar", "Word", "Character"))),
+                "galaxy_names": list(all_galaxies),
             }
             solved = self.kv.execute_task(
                 task={
@@ -851,8 +931,14 @@ class K3DDaemon:
             return self._vram_report_payload()
 
         if cmd == "SHUTDOWN":
+            persist_result = self._persist_sleep_state()
             self._shutdown_requested = True
-            return {"status": "ok", "message": "shutdown_requested", "timestamp": _now_iso()}
+            return {
+                "status": "ok",
+                "message": "shutdown_requested",
+                "timestamp": _now_iso(),
+                "sleep_persistence": persist_result,
+            }
 
         if cmd == "ROUTE":
             task = payload.get("task")
@@ -870,32 +956,45 @@ class K3DDaemon:
             if not query:
                 return {"status": "error", "error": "missing_query_or_task"}
             use_enriched = bool(payload.get("use_enriched", True))
-            if task_type == "LHE_TASK" and hasattr(self.kv, "GPU_FACTUAL_TARGET_GALAXIES"):
+            all_galaxies = self._all_default_galaxies()
+            if task_type == "ARC_TASK":
+                route = {
+                    "specialist": "visual",
+                    "domain": str(payload.get("domain_hint") or (task_obj or {}).get("domain_hint") or "visual"),
+                    "reason": "knowledgeverse_gpu_query",
+                    "galaxy_names": list(all_galaxies),
+                }
+            elif task_type == "LHE_TASK":
                 route = {
                     "specialist": str(payload.get("specialist", "auto") or "auto"),
                     "domain": str(payload.get("domain_hint") or (task_obj or {}).get("domain_hint") or ""),
                     "reason": "knowledgeverse_gpu_query",
-                    "galaxy_names": list(getattr(self.kv, "GPU_FACTUAL_TARGET_GALAXIES")),
+                    "galaxy_names": list(all_galaxies),
                 }
-            elif (
-                task_type == "MATH_TASK"
-                and hasattr(self.kv, "GPU_MATH_TARGET_GALAXIES")
-            ):
+            elif task_type == "MATH_TASK":
                 route = {
                     "specialist": "math",
                     "domain": str(payload.get("domain_hint") or (task_obj or {}).get("domain_hint") or "math"),
                     "reason": "knowledgeverse_gpu_query",
-                    "galaxy_names": list(getattr(self.kv, "GPU_MATH_TARGET_GALAXIES")),
+                    "galaxy_names": list(all_galaxies),
                 }
-            elif (
-                task_type in {"CHAT_TASK", "GENERAL_TASK", "GRAMMAR_TASK", "MMLU_TASK"}
-                and hasattr(self.kv, "GPU_CHAT_TARGET_GALAXIES")
-            ):
+            elif task_type in {"CHAT_TASK", "GENERAL_TASK", "GRAMMAR_TASK"}:
+                specialist = "math" if self._looks_like_math_prompt(query) else "chat"
+                domain = "math" if specialist == "math" else str(
+                    payload.get("domain_hint") or (task_obj or {}).get("domain_hint") or "general"
+                )
+                route = {
+                    "specialist": specialist,
+                    "domain": domain,
+                    "reason": "knowledgeverse_gpu_query",
+                    "galaxy_names": list(all_galaxies),
+                }
+            elif task_type == "MMLU_TASK":
                 route = {
                     "specialist": "chat",
                     "domain": str(payload.get("domain_hint") or (task_obj or {}).get("domain_hint") or "general"),
                     "reason": "knowledgeverse_gpu_query",
-                    "galaxy_names": list(getattr(self.kv, "GPU_CHAT_TARGET_GALAXIES")),
+                    "galaxy_names": list(all_galaxies),
                 }
             else:
                 route = self.trm.route(
@@ -945,7 +1044,7 @@ class K3DDaemon:
                 route={
                     "specialist": "math",
                     "domain_hint": str(payload.get("domain_hint") or "math"),
-                    "galaxy_names": list(getattr(self.kv, "GPU_MATH_TARGET_GALAXIES", ("Math", "Grammar", "Tool"))),
+                    "galaxy_names": self._all_default_galaxies(),
                 },
                 specialist="math",
                 domain_hint=str(payload.get("domain_hint") or "math"),
@@ -984,6 +1083,32 @@ class K3DDaemon:
                         break
             if not prompt:
                 return {"status": "error", "error": "missing_messages_or_prompt"}
+            if self._looks_like_math_prompt(prompt):
+                solved = self.kv.execute_task(
+                    task={
+                        "type": "MATH_TASK",
+                        "question": prompt,
+                        "query": prompt,
+                    },
+                    route={
+                        "specialist": "math",
+                        "domain_hint": "math",
+                        "galaxy_names": self._all_default_galaxies(),
+                    },
+                    specialist="math",
+                    domain_hint="math",
+                    use_enriched=bool(payload.get("use_enriched", True)),
+                )
+                if str(solved.get("status", "")).lower() != "ok":
+                    return {"status": "error", "error": "knowledgeverse_math_query_failed", "detail": solved}
+                return {
+                    "status": "ok",
+                    "response": solved.get("response", solved.get("result", solved.get("answer", ""))),
+                    "runtime": solved.get("runtime"),
+                    "gpu_execution": bool(solved.get("gpu_execution", False)),
+                    "program_id": solved.get("program_id"),
+                    "task_result": solved,
+                }
             solved = self.kv.execute_task(
                 task={
                     "type": "CHAT_TASK",
@@ -994,7 +1119,7 @@ class K3DDaemon:
                 route={
                     "specialist": "chat",
                     "domain_hint": str(payload.get("domain_hint") or "general"),
-                    "galaxy_names": list(getattr(self.kv, "GPU_CHAT_TARGET_GALAXIES", ("Grammar", "Word", "Character"))),
+                    "galaxy_names": self._all_default_galaxies(),
                 },
                 specialist="chat",
                 domain_hint=str(payload.get("domain_hint") or "general"),

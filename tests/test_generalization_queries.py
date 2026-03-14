@@ -91,6 +91,42 @@ def test_daemon_chat_can_answer_atomic_number_of_carbon(tmp_path) -> None:
     assert str(response["response"]).strip() == "6"
 
 
+def test_daemon_chat_promotes_math_like_prompts_to_math_task(tmp_path, monkeypatch) -> None:
+    daemon = _make_daemon(tmp_path)
+    captured: dict[str, object] = {}
+
+    def _fake_execute_task(*, task, route, specialist, domain_hint, use_enriched):
+        captured["task"] = dict(task)
+        captured["route"] = dict(route)
+        captured["specialist"] = specialist
+        captured["domain_hint"] = domain_hint
+        captured["use_enriched"] = use_enriched
+        return {
+            "status": "ok",
+            "result": "5",
+            "runtime": "knowledgeverse_gpu_query",
+            "gpu_execution": True,
+            "program_id": "reasoning_math_template_match_top1",
+        }
+
+    monkeypatch.setattr(daemon.kv, "execute_task", _fake_execute_task)
+
+    response = daemon.handle_command(
+        {
+            "command": "CHAT",
+            "prompt": "What is 2+3?",
+            "use_enriched": True,
+        }
+    )
+
+    assert response["status"] == "ok"
+    assert response["response"] == "5"
+    assert captured["specialist"] == "math"
+    assert captured["domain_hint"] == "math"
+    assert captured["task"]["type"] == "MATH_TASK"
+    assert captured["route"]["galaxy_names"] == list(daemon.kv.DEFAULT_GALAXIES)
+
+
 def test_daemon_lhe_cipher_query_prefers_reality_clue_fact(tmp_path) -> None:
     daemon = _make_daemon(tmp_path)
     response = daemon.handle_command(
@@ -131,6 +167,7 @@ def test_daemon_vram_report_surfaces_binding_and_sleep_state(tmp_path) -> None:
     sleep = response.get("sleep")
     assert isinstance(sleep, dict)
     assert int(sleep.get("tick_count", -1)) == 0
+    assert sleep.get("tick_history") == []
     assert float(sleep.get("idle_threshold_seconds", 0.0)) == float(
         daemon.config.idle_threshold_seconds
     )
@@ -169,3 +206,43 @@ def test_daemon_idle_clock_runs_single_tick_per_threshold_window(tmp_path, monke
 
     daemon._advance_idle_clock(had_request=True)
     assert daemon._idle_elapsed_seconds == 0.0
+
+
+def test_daemon_route_uses_all_default_galaxies_for_task_dispatch(tmp_path, monkeypatch) -> None:
+    daemon = _make_daemon(tmp_path)
+    monkeypatch.setattr(daemon, "_dispatch_task", lambda **kwargs: {"status": "stub"})
+
+    math_response = daemon.handle_command(
+        {
+            "command": "ROUTE",
+            "task": {"type": "MATH_TASK", "question": "Solve linear equation 2x + 3 = 11."},
+        }
+    )
+    mmlu_response = daemon.handle_command(
+        {
+            "command": "ROUTE",
+            "task": {"type": "MMLU_TASK", "query": "What is 2+3?"},
+        }
+    )
+
+    expected = list(daemon.kv.DEFAULT_GALAXIES)
+    assert math_response["route"]["galaxy_names"] == expected
+    assert mmlu_response["route"]["galaxy_names"] == expected
+
+
+def test_daemon_shutdown_reports_sleep_persistence_result(tmp_path, monkeypatch) -> None:
+    daemon = _make_daemon(tmp_path)
+    monkeypatch.setattr(
+        daemon,
+        "_persist_sleep_state",
+        lambda: {"status": "ok", "persisted_galaxies": 3, "pending_updates_flushed": 9},
+    )
+
+    response = daemon.handle_command({"command": "SHUTDOWN"})
+
+    assert response["status"] == "ok"
+    assert response["sleep_persistence"] == {
+        "status": "ok",
+        "persisted_galaxies": 3,
+        "pending_updates_flushed": 9,
+    }
