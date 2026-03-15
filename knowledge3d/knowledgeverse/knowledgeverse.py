@@ -5182,16 +5182,70 @@ class Knowledgeverse:
         graph_crystallizer = self.get_graph_crystallizer()
         if graph_crystallizer is not None:
             try:
-                neighborhood_vector = self._normalize_embedding(list(lead_embedding))
-                if task_type in {"MMLU_TASK", "LHE_TASK"}:
-                    neighborhood_vector = focus_vector
-                crystallized_rows = self._pad_embedding_rows(
-                    graph_crystallizer.crystallize_list(
-                        resonated_rows,
-                        neighborhood_vector,
-                        ema_rate=0.997 if task_type in {"MMLU_TASK", "LHE_TASK"} else 0.992,
-                    )
+                rounds, self_weight, neighbor_weight = self._task_graph_crystallizer_config(task_type)
+                candidate_indices = [
+                    int(candidate.get("candidate_global_idx", -1))
+                    for candidate in local_candidates
+                ]
+                global_to_local = {
+                    int(global_index): int(local_index)
+                    for local_index, global_index in enumerate(candidate_indices)
+                    if int(global_index) >= 0
+                }
+                max_neighbors = max(
+                    (
+                        len(
+                            [
+                                neighbor_global
+                                for neighbor_global in list(candidate.get("graph_neighbors", []))
+                                if int(neighbor_global) in global_to_local
+                            ]
+                        )
+                        for candidate in local_candidates
+                    ),
+                    default=0,
                 )
+                if max_neighbors > 0:
+                    adjacency = np.full((len(local_candidates), max_neighbors), -1, dtype=np.int32)
+                    neighbor_counts = np.zeros(len(local_candidates), dtype=np.int32)
+                    for local_index, candidate in enumerate(local_candidates):
+                        local_neighbors = [
+                            int(global_to_local[int(neighbor_global)])
+                            for neighbor_global in list(candidate.get("graph_neighbors", []))
+                            if int(neighbor_global) in global_to_local
+                        ][:max_neighbors]
+                        for neighbor_slot, neighbor_local_index in enumerate(local_neighbors):
+                            adjacency[local_index, neighbor_slot] = int(neighbor_local_index)
+                        neighbor_counts[local_index] = int(len(local_neighbors))
+                    crystallized_rows = self._pad_embedding_rows(
+                        [
+                            list(row)
+                            for row in graph_crystallizer.crystallize_graph(
+                                node_features=np.asarray(resonated_rows, dtype=np.float32),
+                                adjacency=adjacency,
+                                neighbor_counts=neighbor_counts,
+                                rounds=rounds,
+                                self_weight=self_weight,
+                                neighbor_weight=neighbor_weight,
+                            ).tolist()
+                        ]
+                    )
+                    selection_steps.append(
+                        "GRE graph crystallizer: "
+                        f"mode=local_graph rounds={rounds} "
+                        f"avg_neighbors={float(np.mean(neighbor_counts)):.2f}"
+                    )
+                else:
+                    neighborhood_vector = self._normalize_embedding(list(lead_embedding))
+                    if task_type in {"MMLU_TASK", "LHE_TASK"}:
+                        neighborhood_vector = focus_vector
+                    crystallized_rows = self._pad_embedding_rows(
+                        graph_crystallizer.crystallize_list(
+                            resonated_rows,
+                            neighborhood_vector,
+                            ema_rate=0.997 if task_type in {"MMLU_TASK", "LHE_TASK"} else 0.992,
+                        )
+                    )
                 applied_kernels.append("gre_graph_crystallizer")
             except Exception:
                 crystallized_rows = resonated_rows
@@ -5694,6 +5748,55 @@ class Knowledgeverse:
         if task_type in {"MATH_TASK", "LHE_TASK"}:
             return 3
         return 4
+
+    @staticmethod
+    def _task_graph_crystallizer_config(task_type: str) -> tuple[int, float, float]:
+        if task_type == "LHE_TASK":
+            return 3, 0.5, 0.5
+        if task_type == "MMLU_TASK":
+            return 2, 0.6, 0.4
+        if task_type == "ARC_TASK":
+            return 1, 0.7, 0.3
+        if task_type == "MATH_TASK":
+            return 1, 0.8, 0.2
+        if task_type == "GSM8K_TASK":
+            return 2, 0.6, 0.4
+        return 2, 0.6, 0.4
+
+    @staticmethod
+    def _build_candidate_adjacency(
+        visible_indices: list[int],
+        local_nodes: list[int],
+        local_rows: list[int],
+        local_cols: list[int],
+    ) -> dict[int, list[int]]:
+        visible_list = [int(index) for index in visible_indices]
+        visible_set = set(visible_list)
+        if not visible_list or not local_nodes or len(local_rows) < (len(local_nodes) + 1):
+            return {int(index): [] for index in visible_list}
+        global_to_local = {
+            int(global_index): int(local_index)
+            for local_index, global_index in enumerate(local_nodes)
+        }
+        adjacency: dict[int, list[int]] = {}
+        for global_index in visible_list:
+            local_index = global_to_local.get(int(global_index))
+            if local_index is None:
+                adjacency[int(global_index)] = []
+                continue
+            row_start = int(local_rows[local_index])
+            row_end = int(local_rows[local_index + 1])
+            neighbors: list[int] = []
+            for edge_index in range(row_start, row_end):
+                local_neighbor_index = int(local_cols[edge_index])
+                if not (0 <= local_neighbor_index < len(local_nodes)):
+                    continue
+                neighbor_global = int(local_nodes[local_neighbor_index])
+                if neighbor_global == int(global_index) or neighbor_global not in visible_set:
+                    continue
+                neighbors.append(neighbor_global)
+            adjacency[int(global_index)] = neighbors
+        return adjacency
 
     def _allocate_galaxy_seed_budget(
         self,
@@ -6202,14 +6305,22 @@ class Knowledgeverse:
             int(candidate_index): float(similarity)
             for candidate_index, similarity in zip(visible_index_list, visible_similarities)
         }
+        candidate_adjacency = self._build_candidate_adjacency(
+            visible_indices=visible_index_list,
+            local_nodes=local_nodes,
+            local_rows=local_rows,
+            local_cols=local_cols,
+        )
         candidates: list[dict[str, Any]] = []
         for candidate_index in visible_index_list:
             match = dict(catalog[candidate_index])
+            match["_candidate_global_idx"] = int(candidate_index)
             similarity = float(visible_similarity_map.get(candidate_index, 0.0))
             lod_saliency, lod_level = lod_metrics.get(candidate_index, (similarity, focus_level + 1))
             candidates.append(
                 {
                     "match": match,
+                    "candidate_global_idx": int(candidate_index),
                     "similarity": float(similarity),
                     "lod_saliency": float(lod_saliency),
                     "lod_level": int(lod_level),
@@ -6220,6 +6331,7 @@ class Knowledgeverse:
                         normalized_galaxy_weights,
                     ),
                     "led_path": list(led_path_nodes),
+                    "graph_neighbors": list(candidate_adjacency.get(int(candidate_index), [])),
                 }
             )
         candidates.sort(

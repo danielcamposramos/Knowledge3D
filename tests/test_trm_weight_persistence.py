@@ -226,6 +226,84 @@ def test_phase_d_seed_budget_concentrates_slots_on_target_and_positive_bias(tmp_
     assert "Grammar" not in budget
 
 
+def test_phase_d_candidate_adjacency_threads_visible_csr_neighbors(tmp_path):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_trm_candidate_adjacency")
+
+    adjacency = kv._build_candidate_adjacency(
+        visible_indices=[10, 12, 14],
+        local_nodes=[9, 10, 11, 12, 14],
+        local_rows=[0, 0, 2, 3, 5, 6],
+        local_cols=[2, 3, 3, 2, 4, 3],
+    )
+
+    assert adjacency[10] == [12]
+    assert adjacency[12] == [14]
+    assert adjacency[14] == [12]
+
+
+def test_phase_d_specialist_swarm_features_use_real_candidate_graph(tmp_path, monkeypatch):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_trm_specialist_graph")
+
+    class _FakeGraphCrystallizer:
+        def __init__(self):
+            self.calls = []
+
+        def crystallize_graph(self, node_features, adjacency, neighbor_counts, rounds, self_weight, neighbor_weight):
+            self.calls.append(
+                {
+                    "shape": tuple(node_features.shape),
+                    "adjacency": adjacency.tolist(),
+                    "neighbor_counts": neighbor_counts.tolist(),
+                    "rounds": rounds,
+                    "self_weight": self_weight,
+                    "neighbor_weight": neighbor_weight,
+                }
+            )
+            return np.asarray(node_features, dtype=np.float32)
+
+        def crystallize_list(self, *_args, **_kwargs):
+            raise AssertionError("compatibility_path_should_not_run")
+
+    fake_graph = _FakeGraphCrystallizer()
+    monkeypatch.setattr(kv, "get_vector_resonator", lambda: None)
+    monkeypatch.setattr(kv, "get_galaxy_resonance_engine", lambda: None)
+    monkeypatch.setattr(kv, "get_graph_crystallizer", lambda: fake_graph)
+
+    local_candidates = [
+        {
+            "match": {"embedding16": [1.0] + [0.0] * 15, "galaxy": "Reality"},
+            "candidate_global_idx": 10,
+            "graph_neighbors": [11],
+            "led_focus": 1.0,
+        },
+        {
+            "match": {"embedding16": [0.0, 1.0] + [0.0] * 14, "galaxy": "Reality"},
+            "candidate_global_idx": 11,
+            "graph_neighbors": [10],
+            "led_focus": 0.0,
+        },
+    ]
+    selection_steps: list[str] = []
+
+    kv._apply_specialist_swarm_features(
+        local_candidates=local_candidates,
+        reference_embedding=[1.0] + [0.0] * 15,
+        task_type="LHE_TASK",
+        path={"label": "primary"},
+        selection_steps=selection_steps,
+    )
+
+    assert len(fake_graph.calls) == 1
+    call = fake_graph.calls[0]
+    assert call["shape"] == (2, 16)
+    assert call["adjacency"] == [[1], [0]]
+    assert call["neighbor_counts"] == [1, 1]
+    assert call["rounds"] == 3
+    assert call["self_weight"] == pytest.approx(0.5)
+    assert call["neighbor_weight"] == pytest.approx(0.5)
+    assert any("GRE specialist dispatch:" in step for step in selection_steps)
+
+
 def test_phase_d_boot_binding_reuses_all_default_catalog_for_subset_requests(tmp_path, monkeypatch):
     monkeypatch.setenv("K3D_TRM_NAVIGATE", "1")
     kv = Knowledgeverse(storage_root=tmp_path / "kv_trm_bind_once")

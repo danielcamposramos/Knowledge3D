@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PM-KR × W3C Ecosystem Mapping</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #050c18;
+    --bg2:       #0a1628;
+    --bg3:       #0f1f3a;
+    --panel:     #0d1e35;
+    --border:    #1e3a5f;
+    --cyan:      #00d4ff;
+    --teal:      #00b4a0;
+    --gold:      #f5c842;
+    --violet:    #7c5cbf;
+    --green:     #2ecc71;
+    --red:       #e74c3c;
+    --orange:    #f39c12;
+    --text:      #d8e8f8;
+    --text-dim:  #7a9bbf;
+    --text-mute: #3d5a78;
+    --high:      rgba(0,212,255,0.08);
+    --high2:     rgba(0,212,255,0.14);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Outfit', sans-serif;
+    font-weight: 300;
+    line-height: 1.65;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ─── Background ─── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 10% 10%, rgba(0,100,160,0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 90% 85%, rgba(60,20,120,0.1) 0%, transparent 55%),
+      repeating-linear-gradient(0deg, transparent, transparent 79px, rgba(30,58,95,0.15) 79px, rgba(30,58,95,0.15) 80px),
+      repeating-linear-gradient(90deg, transparent, transparent 79px, rgba(30,58,95,0.08) 79px, rgba(30,58,95,0.08) 80px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 2rem 6rem;
+  }
+
+  /* ─── Header ─── */
+  header {
+    padding: 4rem 0 3rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 3rem;
+  }
+
+  .header-eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .header-eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 2.5rem;
+    height: 1px;
+    background: var(--cyan);
+  }
+
+  h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(2.2rem, 5vw, 3.8rem);
+    line-height: 1.15;
+    color: #fff;
+    max-width: 900px;
+    margin-bottom: 1.5rem;
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--cyan);
+  }
+
+  .header-sub {
+    color: var(--text-dim);
+    font-size: 1.05rem;
+    max-width: 820px;
+    margin-bottom: 2rem;
+  }
+
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text-mute);
+  }
+  .meta-row span { color: var(--cyan); }
+
+  /* ─── TOC ─── */
+  .toc {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--cyan);
+    padding: 1.5rem 2rem;
+    margin-bottom: 3.5rem;
+    border-radius: 0 6px 6px 0;
+  }
+  .toc-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 1rem;
+  }
+  .toc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 0.4rem 2rem;
+  }
+  .toc a {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 0.88rem;
+    transition: color 0.2s;
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+  .toc a:hover { color: var(--cyan); }
+  .toc a .tnum {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--text-mute);
+    flex-shrink: 0;
+  }
+
+  /* ─── Section headers ─── */
+  .section {
+    margin-bottom: 4.5rem;
+  }
+
+  .section-header {
+    margin-bottom: 1.75rem;
+  }
+
+  .section-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .section-tag .t1 { color: var(--cyan); }
+  .section-tag .t2 { color: var(--gold); }
+  .section-tag .t3 { color: var(--teal); }
+  .section-tag .t4 { color: var(--violet); }
+  .section-tag .t5 { color: var(--green); }
+  .section-tag .t6 { color: var(--orange); }
+  .section-tag .t7 { color: #e25a8a; }
+  .section-tag .ts { color: var(--text-dim); }
+
+  h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    color: #fff;
+    line-height: 1.25;
+  }
+
+  .section-desc {
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    margin-top: 0.6rem;
+    max-width: 860px;
+  }
+
+  /* ─── Table ─── */
+  .table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 4px 32px rgba(0,0,0,0.4);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    min-width: 800px;
+  }
+
+  thead tr {
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+  }
+
+  th {
+    padding: 0.9rem 1.1rem;
+    text-align: left;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(30,58,95,0.5);
+    transition: background 0.15s;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--high); }
+  tbody tr:nth-child(even) { background: rgba(10,22,40,0.5); }
+  tbody tr:nth-child(even):hover { background: var(--high); }
+
+  td {
+    padding: 0.85rem 1.1rem;
+    vertical-align: top;
+    color: var(--text);
+    line-height: 1.55;
+  }
+
+  td strong {
+    font-weight: 600;
+    color: #e8f4ff;
+    display: block;
+    margin-bottom: 0.1rem;
+  }
+
+  td small {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+  }
+
+  /* ─── Badge / pill ─── */
+  .badge {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.18em 0.6em;
+    border-radius: 3px;
+    margin: 0.1rem 0.15rem 0.1rem 0;
+    white-space: nowrap;
+  }
+  .badge-wg  { background: rgba(0,212,255,0.12); color: var(--cyan); border: 1px solid rgba(0,212,255,0.3); }
+  .badge-cg  { background: rgba(245,200,66,0.12); color: var(--gold); border: 1px solid rgba(245,200,66,0.3); }
+  .badge-ig  { background: rgba(124,92,191,0.15); color: #a885e8; border: 1px solid rgba(124,92,191,0.35); }
+  .badge-active    { background: rgba(46,204,113,0.12); color: var(--green); border: 1px solid rgba(46,204,113,0.3); }
+  .badge-dormant   { background: rgba(231,76,60,0.1); color: #e88; border: 1px solid rgba(231,76,60,0.25); }
+  .badge-emerging  { background: rgba(243,156,18,0.12); color: var(--orange); border: 1px solid rgba(243,156,18,0.3); }
+  .badge-both      { background: rgba(0,180,160,0.12); color: var(--teal); border: 1px solid rgba(0,180,160,0.3); }
+  .badge-consume   { background: rgba(124,92,191,0.12); color: #b09fe8; border: 1px solid rgba(124,92,191,0.3); }
+  .badge-contribute{ background: rgba(0,212,255,0.1);  color: #7de8ff; border: 1px solid rgba(0,212,255,0.25); }
+  .badge-high   { background: rgba(0,212,255,0.15); color: var(--cyan); border: 1px solid rgba(0,212,255,0.4); }
+  .badge-med    { background: rgba(245,200,66,0.12); color: var(--gold); border: 1px solid rgba(245,200,66,0.3); }
+  .badge-low    { background: rgba(30,58,95,0.5); color: var(--text-mute); border: 1px solid var(--border); }
+  .badge-now    { background: rgba(46,204,113,0.12); color: var(--green); border: 1px solid rgba(46,204,113,0.3); }
+  .badge-phaseC { background: rgba(0,212,255,0.1); color: #7de8ff; border: 1px solid rgba(0,212,255,0.25); }
+  .badge-phaseD { background: rgba(243,156,18,0.1); color: var(--orange); border: 1px solid rgba(243,156,18,0.25); }
+  .badge-long   { background: rgba(124,92,191,0.1); color: #b09fe8; border: 1px solid rgba(124,92,191,0.25); }
+
+  /* ─── Accent cell colors ─── */
+  .accent-name { color: #a0d4ff; font-weight: 500; }
+
+  /* ─── Notes box ─── */
+  .note-box {
+    margin-top: 1.1rem;
+    background: rgba(0,212,255,0.04);
+    border: 1px solid rgba(0,212,255,0.15);
+    border-left: 3px solid var(--cyan);
+    padding: 0.85rem 1.1rem;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.82rem;
+    color: var(--text-dim);
+  }
+  .note-box strong { color: var(--cyan); font-weight: 600; }
+
+  /* ─── Priority matrix colors ─── */
+  .row-high td:first-child { border-left: 3px solid var(--cyan); }
+  .row-med  td:first-child { border-left: 3px solid var(--gold); }
+  .row-low  td:first-child { border-left: 3px solid var(--text-mute); }
+
+  /* ─── Divider ─── */
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border) 20%, var(--border) 80%, transparent);
+    margin: 3.5rem 0;
+  }
+
+  /* ─── Footer ─── */
+  footer {
+    padding: 2.5rem 0 1rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--text-mute);
+  }
+  footer .logo {
+    color: var(--cyan);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+  }
+
+  @media (max-width: 700px) {
+    th, td { padding: 0.6rem 0.7rem; }
+    h1 { font-size: 2rem; }
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+<!-- ─── HEADER ─── -->
+<header>
+  <div class="header-eyebrow">EchoSystems AI Studios · K3D Framework</div>
+  <h1>PM-KR × W3C<br><em>Ecosystem Mapping</em></h1>
+  <p class="header-sub">
+    Full surface-area analysis of W3C Community Groups and Working Groups whose work the Procedural Memory Knowledge Representation framework touches, enables, or could standardize alongside — across 7 dimensional axes, plus a strategic priority matrix.
+  </p>
+  <div class="meta-row">
+    <span>Source: <span>w3.org/groups/</span></span>
+    <span>Scope: <span>CG + WG + IG</span></span>
+    <span>Version: <span>2026-03-11</span></span>
+    <span>Author: <span>EchoSystems AI Studios</span></span>
+  </div>
+</header>
+
+<!-- ─── TOC ─── -->
+<nav class="toc">
+  <div class="toc-title">Table of Contents</div>
+  <div class="toc-grid">
+    <a href="#t1"><span class="tnum">T1</span> Direct AI / KR Overlap</a>
+    <a href="#t2"><span class="tnum">T2</span> 3D, Spatial &amp; Immersive Web</a>
+    <a href="#t3"><span class="tnum">T3</span> Data, Semantics &amp; Linked Data</a>
+    <a href="#t4"><span class="tnum">T4</span> Web Architecture &amp; Runtime</a>
+    <a href="#t5"><span class="tnum">T5</span> Accessibility, i18n &amp; Human Interface</a>
+    <a href="#t6"><span class="tnum">T6</span> Industry Verticals</a>
+    <a href="#t7"><span class="tnum">T7</span> Governance, Process &amp; Standards Infrastructure</a>
+    <a href="#ts"><span class="tnum">Σ</span> Strategic Priority Matrix</a>
+  </div>
+</nav>
+
+
+<!-- ═══════════════════════════════════════════════
+     TABLE 1 – DIRECT OVERLAP
+═══════════════════════════════════════════════ -->
+<section class="section" id="t1">
+  <div class="section-header">
+    <div class="section-tag"><span class="t1">T1</span> Direct Overlap</div>
+    <h2>Groups Dealing with Declarative Knowledge, Procedural Knowledge, KR &amp; AI Technical Design</h2>
+    <p class="section-desc">Milton's original scope — groups whose charter most directly shares DNA with PM-KR's core proposition: executable knowledge, explainability, and shared representation standards.</p>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Group Name</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th>Charter Focus</th>
+          <th>Overlap with PM-KR</th>
+          <th>Potential Collaboration</th>
+          <th>Role</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="row-high">
+          <td><strong class="accent-name">PM-KR Community Group</strong><small>community/pmkr</small></td>
+          <td><span class="badge badge-cg">CG</span></td>
+          <td><span class="badge badge-emerging">Emerging</span></td>
+          <td>KR paradigm where knowledge is stored once as executable procedures, referenced via symlink-style composition for both human and AI consumers from the same object.</td>
+          <td>This IS PM-KR. The group itself, motivated by prior K3D work.</td>
+          <td>Lead group. All other groups listed here are potential liaison, consumer, or co-spec partners.</td>
+          <td><span class="badge badge-contribute">Lead</span></td>
+        </tr>
+        <tr class="row-high">
+          <td><strong class="accent-name">AI KR (Artificial Intelligence Knowledge Representation) CG</strong><small>community/aikr</small></td>
+          <td><span class="badge badge-cg">CG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>Explore requirements, best practices, and implementation options for conceptualizing and specifying domain knowledge in AI. Focus on AI facets: technology, legislation, ethics. Outcomes: vocabulary, concept maps, NLU/NLG encodings, semantic memory.</td>
+          <td>Both address KR for AI transparency and explainability. AI KR focuses on vocabulary &amp; semantic memory; PM-KR brings the execution layer — procedures as the knowledge unit. XAI standards overlap directly.</td>
+          <td>Joint vocabulary alignment; PM-KR contributes executable encodings to AI KR's concept map; co-author a KR ontology section on procedural vs declarative types.</td>
+          <td><span class="badge badge-both">Both</span></td>
+        </tr>
+        <tr class="row-high">
+          <td><strong class="accent-name">Cognitive AI CG</strong><small>community/cogai</small></td>
+          <td><span class="badge badge-cg">CG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>Demonstrate potential of cognitive AI through use cases, open-source implementations, neurosymbolic systems, episodic memory, and continual learning. Uses "Chunks" format for declarative and procedural knowledge. Covers digital twins and swarm systems.</td>
+          <td>Chunks format is structurally aligned with PM-KR's procedural unit. Both treat episodic memory and procedural memory as first-class knowledge types. Swarm work overlaps with Zion Network / synthetic users.</td>
+          <td>Formalize PM-KR's procedural unit as a compatible Chunks extension; cross-test on digital twin demos; co-author use cases on sovereign knowledge agents.</td>
+          <td><span class="badge badge-both">Both</span></td>
+        </tr>
+        <tr class="row-high">
+          <td><strong class="accent-name">Web &amp; AI Interest Group</strong><small>groups/ig/webai</small></td>
+          <td><span class="badge badge-ig">IG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>Forum to explore how emerging AI technologies intersect with web standards. Coordinates AI-related groups (WebML WG, AI Agent Protocol CG), produces landscape reports, surfaces standardization gaps, covers multi-agent architecture, ethics, privacy, accessibility.</td>
+          <td>PM-KR's dual-client contract (human visual + AI semantic) directly addresses the IG's concern about interoperability between AI consumers and human consumers. Procedural knowledge standardization is an identified gap.</td>
+          <td>Submit PM-KR as a candidate gap for future standardization; present at TPAC; seek liaison with horizontal review horizontals (a11y, i18n, privacy).</td>
+          <td><span class="badge badge-contribute">Contribute</span></td>
+        </tr>
+        <tr class="row-high">
+          <td><strong class="accent-name">Web Machine Learning WG</strong><small>groups/wg/webmachinelearning</small></td>
+          <td><span class="badge badge-wg">WG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>Standardize Web APIs for on-device ML inference. Deliverables: WebNN API (neural network inference), Ethical Principles for Web ML. Coordinates with WebGPU WG, Wasm CG, AI Agent Protocol CG.</td>
+          <td>TRM (Tiny Recursion Models at 2.1M params) are exactly the class of small, on-device models WebNN targets. PM-KR's sovereign GPU stack (PTX/no-CPU fallback) maps to WebNN's device selection model. Ethical Principles overlap with AI-RLWHF honesty scoring.</td>
+          <td>PM-KR provides a KR layer above WebNN inference (what the model knows, not just how it computes); contribute TRM use cases to WebNN operator spec; align Ethical Principles deliverable.</td>
+          <td><span class="badge badge-both">Both</span></td>
+        </tr>
+        <tr class="row-med">
+          <td><strong class="accent-name">AI Agent Protocol CG</strong><small>community/aiagentprotocol</small></td>
+          <td><span class="badge badge-cg">CG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>Agent-to-agent protocols, multi-agent system architecture, agent lifecycle management, delegation models, and governance primitives for scalable, ethical AI agent deployment. Coordinates with WebML WG.</td>
+          <td>Zion Network agents ("Synthetic Users") with 288-byte action buffers are exactly the sovereign agents this CG addresses. PM-KR's procedural memory is the knowledge layer these agents carry between sessions.</td>
+          <td>Contribute Zion Network's agent memory spec as a protocol extension proposal; align 288-byte action buffer with agent lifecycle primitives.</td>
+          <td><span class="badge badge-both">Both</span></td>
+        </tr>
+        <tr class="row-med">
+          <td><strong class="accent-name">Context Graph CG</strong><small>community/context-graph</small></td>
+          <td><span class="badge badge-cg">CG</span></td>
+          <td><span class="badge badge-emerging">Emerging</span></td>
+          <td>Specifications and vocabularies for representing and resolving contextual misalignment between global KBs and local interpretation contexts in decision systems and human-AI workflows. Produces a core data model for contextual prerequisites.</td>
+          <td>PM-KR's symlink-style composition is a structural answer to contextual misalignment: the same procedure resolves differently in different execution environments. K3D's balanced ternary logic (-1,0,+1) maps directly to context resolution states.</td>
+          <td>PM-KR contributes the execution semantics layer to Context Graph's resolution model; share RPN stack as a candidate procedure for context evaluation.</td>
+          <td><span class="badge badge-contribute">Contribute</span></td>
+        </tr>
+        <tr class="row-med">
+          <td><strong class="accent-name">AI-Assisted Standards Development CG</strong><small>(TPAC 2025 breakout)</small></td>
+          <td><span class="badge badge-cg">CG</span></td>
+          <td><span class="badge badge-emerging">Emerging</span></td>
+          <td>AI-driven tools for creation, evaluation, and publication of web standard specifications. Builds on AI KR CG foundational work. Explores AI as co-author of W3C specs.</td>
+          <td>PM-KR's executable knowledge units could serve as the machine-readable specification primitives this group targets — specs as procedures, not prose.</td>
+          <td>Contribute PM-KR as a meta-standard for encoding spec requirements as executable procedures, enabling AI to generate conformance-checkable specs.</td>
+          <td><span class="badge badge-both">Both</span></td>
+        </tr>
+        <tr class="row-med">
+          <td><strong class="accent-name">Autonomous Agents on the Web CG</strong><small>community/autoagents</small></td>
+          <td><span class="badge badge-cg">CG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>Explore requirements and implementation options for autonomous web agents including discovery, trust, execution, and task delegation models.</td>
+          <td>PM-KR's Sleep-Time Compute (Cycle 1 = weight updates, Cycle 2 = Galaxy→House consolidation) describes exactly the lifecycle of a persistent autonomous agent carrying procedural memory between sessions.</td>
+          <td>Co-author use cases on persistent agent memory; contribute Sleep-Time Compute cycle spec as an agent lifecycle proposal.</td>
+          <td><span class="badge badge-both">Both</span></td>
+        </tr>
+        <tr class="row-med">
+          <td><strong class="accent-name">Human Centric AI CG</strong><small>community/humancentric-ai</small></td>
+          <td><span class="badge badge-cg">CG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>Human values, ethics, transparency, and accountability in AI systems on the web. Aligns with DARPA XAI initiative goals.</td>
+          <td>AI-RLWHF honesty scoring (+2 to -2) and PM-KR's dual-client contract (one object serves sighted/blind/AI consumers equally) is a concrete implementation of human-centric AI design.</td>
+          <td>Contribute AI-RLWHF as a concrete honesty/transparency mechanism; demonstrate dual-client contract as an accessible-by-design AI interface.</td>
+          <td><span class="badge badge-contribute">Contribute</span></td>
+        </tr>
+        <tr class="row-low">
+          <td><strong class="accent-name">Generative UI CG</strong><small>community/generative-ui</small></td>
+          <td><span class="badge badge-cg">CG</span></td>
+          <td><span class="badge badge-emerging">Emerging</span></td>
+          <td>Exploratory work on latency/responsiveness of AI-generated UI, validation approaches, and intermediate representations for generative interface components on the web.</td>
+          <td>K3D's House (3D spatial environment generated from knowledge graph) is a form of generative UI — the space IS the interface. PM-KR procedures could be the intermediate representation this CG seeks.</td>
+          <td>Propose K3D House generation as a 3D generative UI use case; contribute procedural node spec as an intermediate representation candidate.</td>
+          <td><span class="badge badge-contribute">Contribute</span></td>
+        </tr>
+        <tr class="row-low">
+          <td><strong class="accent-name">Ontologies &amp; Knowledge Graphs in Industry CG</strong><small>community/okgi</small></td>
+          <td><span class="badge badge-cg">CG</span></td>
+          <td><span class="badge badge-emerging">Emerging</span></td>
+          <td>Transform industry standards (ISO 81346, etc.) into shared, machine-readable ontologies. Enable data interoperability and AI readiness across energy, aerospace, manufacturing.</td>
+          <td>PM-KR's K3D Platonic solid node types (Text=Tetrahedron, etc.) and semantic color encoding (Hue=category, Saturation=confidence) provide a spatial ontology layer directly applicable to industrial knowledge graphs.</td>
+          <td>Map ISO 81346 designation system to K3D node types; contribute Platonic solid ontology as a spatial-industrial knowledge schema.</td>
+          <td><span class="badge badge-both">Both</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note-box"><strong>Note:</strong> Active = confirmed charter, regular meetings. Emerging = proposed or recently launched (2025-2026). The AI KR CG (founded 2018) targets formal WG transition — PM-KR is positioned to be a deliverable candidate in that transition.</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════════════════
+     TABLE 2 – 3D / SPATIAL / IMMERSIVE
+═══════════════════════════════════════════════ -->
+<section class="section" id="t2">
+  <div class="section-header">
+    <div class="section-tag"><span class="t2">T2</span> 3D, Spatial &amp; Immersive Web</div>
+    <h2>WebXR, glTF, Spatial Computing &amp; Digital Twins</h2>
+    <p class="section-desc">The House = Memory Palace: K3D's 3D spatial environment where knowledge has location, physics, and form. glTF is the candidate container for .k3d extension carrying RPN traces and procedural knowledge alongside human-visual geometry.</p>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Group Name</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th>Charter Focus</th>
+          <th>PM-KR Intersection</th>
+          <th>Why It Matters</th>
+          <th>Role</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="row-high">
+          <td><strong class="accent-name">Immersive Web WG</strong><small>groups/wg/immersive-web</small></td>
+          <td><span class="badge badge-wg">WG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>WebXR Device API, AR module, hit test, depth sensing, hand input, anchors, DOM overlays, lighting estimation. Coordinates with Khronos (WebGL/OpenXR), Web3D Consortium (X3D), WebGPU WG.</td>
+          <td>K3D's House (3D Memory Palace) runs on WebXR. Procedural knowledge spatially encoded at 3D coordinates requires WebXR hit-test + anchors to place and retrieve knowledge nodes. Phase J (Reality Enabler) is a direct WebXR use case.</td>
+          <td>WebXR is the runtime environment for K3D's spatial knowledge retrieval. PM-KR procedural nodes need to be addressable by WebXR anchors. A .k3d extension to glTF could be standardized here as a <code>&lt;model&gt;</code> element extension.</td>
+          <td><span class="badge badge-contribute">Contribute</span></td>
+        </tr>
+        <tr class="row-high">
+          <td><strong class="accent-name">Immersive Web CG</strong><small>community/immersive-web</small></td>
+          <td><span class="badge badge-cg">CG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>Incubation zone for new WebXR features before WG adoption. Proposals: navigation, computer-vision, geo-alignment, real-world-geometry, spatial favicon, WebGPU bindings.</td>
+          <td>Spatial favicon proposal is a direct prototype for PM-KR's dual-UV-layer concept (UV0=human visual, UV1=machine data). "Real-world geometry" incubation maps to Phase J Reality Enabler physics.</td>
+          <td>Lower barrier to propose .k3d extension than in the WG. Ideal place to prototype K3D's bi-directional Matryoshka RPN integration with WebXR scene graph before standardization.</td>
+          <td><span class="badge badge-contribute">Contribute</span></td>
+        </tr>
+        <tr class="row-high">
+          <td><strong class="accent-name">GPU for the Web WG (WebGPU)</strong><small>groups/wg/gpu</small></td>
+          <td><span class="badge badge-wg">WG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>WebGPU specification and WebGPU Shading Language (WGSL) for modern GPU access (compute + rendering) from the browser. Coordinates with WebXR WG and WebNN WG.</td>
+          <td>K3D's Sovereign Stack runs PTX/GPU-native with no CPU fallbacks. WebGPU is the web-native target for this. Cranium (GPU RPN/PTX engine) compiles directly to the WebGPU compute pipeline. 950+ TRM instances per GPU feasibility depends on WebGPU compute shader limits.</td>
+          <td>WebGPU is the execution substrate for K3D's sovereign intelligence. PM-KR procedural programs as WebGPU compute kernels is the web-portable form of the K3D sovereign stack.</td>
+          <td><span class="badge badge-both">Both</span></td>
+        </tr>
+        <tr class="row-high">
+          <td><strong class="accent-name">GPU for the Web CG</strong><small>community/gpu</small></td>
+          <td><span class="badge badge-cg">CG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>Incubation for WebGPU features, explainer development, and use case documentation before WG adoption. Maintains ongoing WebGPU explainer.</td>
+          <td>Use case for PM-KR: RPN stack evaluation as a WebGPU compute shader. Prototype Balanced Ternary Logic (-1,0,+1) in WGSL before standardization. Bi-directional Matryoshka depth as a compute-adaptive shader.</td>
+          <td>Proof-of-concept pathway: demonstrate K3D's sovereign execution inside a browser tab using WebGPU compute — the ultimate validation that procedural knowledge is web-portable.</td>
+          <td><span class="badge badge-contribute">Contribute</span></td>
+        </tr>
+        <tr class="row-med">
+          <td><strong class="accent-name">Web3D Consortium liaison (X3D)</strong><small>External liaison body</small></td>
+          <td><span class="badge badge-wg">WG liaison</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>X3D (Extensible 3D) graphics standard with HTML5 integration. X3D4 adds Mixed AR capabilities. Historical root of web 3D from VRML lineage.</td>
+          <td>X3D's node graph model is structurally equivalent to K3D's Galaxy (RAM/working memory) node architecture. X3D4's HTML5 integration could serve as an embedding pathway for .k3d procedural nodes.</td>
+          <td>X3D node extensions are a lower-friction standardization path for PM-KR 3D knowledge nodes than creating a wholly new format. Khronos glTF extensions are the faster path but X3D provides semantic richness.</td>
+          <td><span class="badge badge-consume">Consume</span></td>
+        </tr>
+        <tr class="row-med">
+          <td><strong class="accent-name">Khronos Group (glTF)</strong><small>External liaison — SDO</small></td>
+          <td><span class="badge badge-wg">SDO Liaison</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>glTF 2.0: runtime 3D asset format. Extension mechanism (KHR_ and vendor EXT_). Texture coordinate sets (UV0, UV1). PBR materials, mesh compression (Draco, meshopt). Closely coordinated with W3C Immersive Web WG.</td>
+          <td>The .k3d extension proposal is a glTF EXT_ extension carrying: UV2=Braille texture (U+2800–U+28FF), UV1=machine-data texture, RPN traces in extra JSON, procedural knowledge graph in GLTF extras. Dual-texture tri-UV map (UV0/UV1/UV2) is an extension of glTF's existing two-UV-set support.</td>
+          <td>Critical: glTF is THE 3D knowledge container format for PM-KR. A Khronos EXT_pmkr extension proposal alongside the W3C CG charter is the dual-track strategy for maximum adoption.</td>
+          <td><span class="badge badge-contribute">Contribute</span></td>
+        </tr>
+        <tr class="row-low">
+          <td><strong class="accent-name">Web Real-Time Communications WG</strong><small>groups/wg/webrtc</small></td>
+          <td><span class="badge badge-wg">WG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>WebRTC APIs for real-time peer-to-peer communication (audio, video, data channels). Coordinates with WebML WG for media processing.</td>
+          <td>Zion Network's decentralized Custom GPT ecosystem requires real-time knowledge synchronization between agents. WebRTC data channels are the low-latency transport for K3D Galaxy→House synchronization across peers.</td>
+          <td>PM-KR consumes WebRTC data channels for Zion Network agent mesh communication. No direct spec contribution but important runtime dependency.</td>
+          <td><span class="badge badge-consume">Consume</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note-box"><strong>Key opportunity:</strong> The <code>&lt;model&gt;</code> element proposal (being incubated in Immersive Web CG) is the highest-leverage near-term target. A <code>&lt;model pmkr-src="knowledge.k3d"&gt;</code> element that loads dual-client knowledge containers would be the HTML5 entry point for Web 4.0.</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════════════════
+     TABLE 3 – DATA / SEMANTICS / LINKED DATA
+═══════════════════════════════════════════════ -->
+<section class="section" id="t3">
+  <div class="section-header">
+    <div class="section-tag"><span class="t3">T3</span> Data, Semantics &amp; Linked Data</div>
+    <h2>RDF, OWL, SPARQL, JSON-LD, Ontologies &amp; the Semantic Web</h2>
+    <p class="section-desc">PM-KR's procedural knowledge as linked data: JSON-LD metadata layer, content-addressable deduplication via symlink-style references, and procedural programs as the computation-ready complement to declarative RDF graphs.</p>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Group Name</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th>Charter Focus</th>
+          <th>PM-KR Intersection</th>
+          <th>Why It Matters</th>
+          <th>Role</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="row-high">
+          <td><strong class="accent-name">RDF &amp; SPARQL WG (RDF-star)</strong><small>groups/wg/rdf-star</small></td>
+          <td><span class="badge badge-wg">WG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>RDF 1.2 (triple terms, reifiers, text direction, provenance annotation), SPARQL 1.2. Enables triples as subjects/objects ("reified triples") for provenance and context metadata. Produces candidates for formal W3C Recommendation.</td>
+          <td>PM-KR's symlink-style composition maps directly to RDF-star reified triples: a procedural knowledge reference IS a triple term pointing to its execution definition. Deduplication through content-addressable procedures = RDF-star provenance chains.</td>
+          <td>A PM-KR knowledge unit as an RDF-star reified triple provides a standards-compliant serialization pathway. Querying K3D knowledge graphs with SPARQL 1.2 becomes the semantic query layer over PM-KR procedures.</td>
+          <td><span class="badge badge-both">Both</span></td>
+        </tr>
+        <tr class="row-high">
+          <td><strong class="accent-name">JSON-LD WG</strong><small>groups/wg/json-ld</small></td>
+          <td><span class="badge badge-wg">WG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>Maintain the JSON-LD 1.1 Recommendation family and related WG Notes. JSON-LD provides a method of encoding Linked Data using JSON, connecting web documents to the semantic web.</td>
+          <td>JSON-LD is PM-KR's primary metadata wrapper. Every .k3d glTF extra that carries RPN traces and procedural definitions would be serialized as JSON-LD, making K3D knowledge nodes machine-discoverable and crawlable by semantic agents. JSON-LD 1.2 is expected to align with RDF 1.2 reifiers.</td>
+          <td>JSON-LD is the web-portable surface of PM-KR's knowledge layer. The @procedure context extension, @rpn property, and @platonic-type vocabulary are all JSON-LD extensions PM-KR would standardize here.</td>
+          <td><span class="badge badge-contribute">Contribute</span></td>
+        </tr>
+        <tr class="row-high">
+          <td><strong class="accent-name">Linked Web Storage WG (Solid)</strong><small>groups/wg/solid</small></td>
+          <td><span class="badge badge-wg">WG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>Specifications enabling web applications where data storage, entity authentication, access control, and application provider are loosely coupled. Solid Protocol. Personal data pods.</td>
+          <td>K3D's House (persistent storage) is structurally a Solid Pod for AI agents: private knowledge that persists across sessions, owner-controlled, loosely coupled from the application layer. GPU Sovereignty = data sovereignty applied to AI knowledge.</td>
+          <td>Solid Pods are the persistence layer for K3D House memory. PM-KR procedures stored in Solid Pods give agents portable sovereign knowledge not tied to any API provider. Directly addresses EchoSystems' open-standards mission.</td>
+          <td><span class="badge badge-both">Both</span></td>
+        </tr>
+        <tr class="row-med">
+          <td><strong class="accent-name">Dataset Exchange WG (DXWG)</strong><small>groups/wg/dx</small></td>
+          <td><span class="badge badge-wg">WG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>DCAT 3 (Data Catalog Vocabulary), DCAT profiles, dataset descriptions for federated discovery and access. Supports data portability across government, science, and enterprise.</td>
+          <td>K3D's Museum (archives / Portal Cubes) requires a cataloging system for archived procedural knowledge. DCAT 3 profiles provide the discovery metadata layer for PM-KR knowledge repositories.</td>
+          <td>DCAT 3 is the catalog format for K3D's Museum layer — procedural knowledge as discoverable, reusable datasets with provenance, license, and access metadata.</td>
+          <td><span class="badge badge-both">Both</span></td>
+        </tr>
+        <tr class="row-med">
+          <td><strong class="accent-name">Shapes Constraint Language (SHACL) / OWL WG</strong><small>(via RDF* WG, historical)</small></td>
+          <td><span class="badge badge-wg">WG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>SHACL: constraint language for validating RDF graphs against a set of conditions. OWL 2: Web Ontology Language for structural/semantic reasoning over knowledge graphs.</td>
+          <td>PM-KR's conformance levels and execution semantics require a constraint language. SHACL shapes validate that a PM-KR knowledge node correctly references its procedural definition. OWL 2 provides the ontological backbone for K3D's Platonic solid type system.</td>
+          <td>Without SHACL, PM-KR has no machine-verifiable conformance. OWL 2 subsumption enables K3D type hierarchy reasoning: Tetrahedron ⊆ KnowledgeNode, with inferred properties.</td>
+          <td><span class="badge badge-consume">Consume</span></td>
+        </tr>
+        <tr class="row-med">
+          <td><strong class="accent-name">SKOS (Simple Knowledge Organization System)</strong><small>W3C Recommendation, maintained</small></td>
+          <td><span class="badge badge-wg">WG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>SKOS provides a standard way to represent knowledge organization systems such as thesauri, classification schemes, and taxonomies using RDF. Supports concept hierarchies, labels, notation systems.</td>
+          <td>PM-KR's semantic color encoding (Hue=category, Saturation=confidence) maps directly to SKOS concept schemes: each hue value IS a SKOS Concept with a hierarchical notation. The K3D garden (ontology/fractal plants) is a SKOS ConceptScheme.</td>
+          <td>SKOS provides the standardized vocabulary backbone for K3D's Garden layer — making PM-KR's semantic color encoding interoperable with existing knowledge organization systems worldwide.</td>
+          <td><span class="badge badge-both">Both</span></td>
+        </tr>
+        <tr class="row-low">
+          <td><strong class="accent-name">Web Annotation WG (Annotations)</strong><small>(completed, maintained)</small></td>
+          <td><span class="badge badge-wg">WG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>Web Annotation Data Model, Vocabulary, and Protocol. Enables annotation of any web resource with structured metadata including body (the annotation content) and target (what is annotated).</td>
+          <td>PM-KR's UV1 machine-data texture is a spatial annotation layer on a 3D object. The Web Annotation model provides the standards vocabulary for expressing what a machine-data texture encodes about the geometry it is attached to.</td>
+          <td>Annotations provide a non-invasive pathway to attach PM-KR semantic metadata to existing 3D assets without requiring .k3d extension adoption — ideal for backward-compatible migration strategy.</td>
+          <td><span class="badge badge-consume">Consume</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note-box"><strong>Strategic note:</strong> The JSON-LD WG is the highest-leverage single liaison for near-term spec work. A <code>@context: "https://echosystems.ai/pmkr/v1"</code> JSON-LD context document, published to W3C as a CG Note, gives every PM-KR knowledge unit immediate semantic web interoperability with zero changes to existing RDF infrastructure.</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════════════════
+     TABLE 4 – WEB ARCHITECTURE / RUNTIME
+═══════════════════════════════════════════════ -->
+<section class="section" id="t4">
+  <div class="section-header">
+    <div class="section-tag"><span class="t4">T4</span> Web Architecture &amp; Runtime</div>
+    <h2>WebAssembly, WebGPU, Edge Compute, Service Workers &amp; Web Architecture</h2>
+    <p class="section-desc">Sovereign execution: PTX/GPU-native procedural programs as portable computation. The Cranium (GPU RPN/PTX engine) requires a web-compatible execution substrate that preserves sovereignty — no CPU fallbacks, no cloud dependencies.</p>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Group Name</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th>Charter Focus</th>
+          <th>PM-KR Intersection</th>
+          <th>Why It Matters</th>
+          <th>Role</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="row-high">
+          <td><strong class="accent-name">WebAssembly WG</strong><small>groups/wg/wasm</small></td>
+          <td><span class="badge badge-wg">WG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>WebAssembly Core Specification (safe, portable, low-level code format), JavaScript API, Web Integration. Upcoming: Component Model specification for portable, cross-language compositional modules.</td>
+          <td>PM-KR's procedural knowledge units are, at their core, portable executable programs — exactly what Wasm was designed to standardize. A TRM compiled to Wasm is a portable, sandboxed, sovereign knowledge processor. The Wasm Component Model is the modularity layer K3D's symlink composition requires.</td>
+          <td>Wasm is the compilation target that makes PM-KR procedures truly portable: write once in PTX/RPN, compile to Wasm, run in any browser without cloud dependency. The Component Model enables symlink-style reuse of procedural knowledge modules across the web.</td>
+          <td><span class="badge badge-both">Both</span></td>
+        </tr>
+        <tr class="row-high">
+          <td><strong class="accent-name">WebAssembly CG</strong><small>community/webassembly</small></td>
+          <td><span class="badge badge-cg">CG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>Requirements gathering, language development, and feature incubation for future Wasm versions: threads, SIMD vector operations, garbage collection, WASI (WebAssembly System Interface for low-level system access).</td>
+          <td>WASI is critical for K3D's Sleep-Time Compute: procedural knowledge consolidation (Galaxy→House) requires file system access during agent sleep cycles. WASI provides the system interface for Wasm-based K3D agents to persist their knowledge state.</td>
+          <td>WASI file access + Wasm threads = the runtime substrate for K3D's sleep cycle knowledge consolidation. PM-KR's sovereign stack can be fully specified as a WASI application profile.</td>
+          <td><span class="badge badge-both">Both</span></td>
+        </tr>
+        <tr class="row-med">
+          <td><strong class="accent-name">Technical Architecture Group (TAG)</strong><small>groups/other/tag</small></td>
+          <td><span class="badge badge-wg">Permanent</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>Document and build consensus around principles of Web architecture. Review cross-technology architecture proposals. Resolve architectural issues. Coordinate cross-W3C architecture development.</td>
+          <td>PM-KR's Web 4.0 vision (internet as interconnected 3D spaces, not flat pages) is an architectural proposition for the entire Web platform. The .k3d file format extension is an architectural decision about how the web handles procedural knowledge resources.</td>
+          <td>TAG review is required for any proposal that changes the fundamental resource model of the Web. PM-KR will need TAG alignment before .k3d can become a first-class web resource type. Early engagement prevents architectural conflicts.</td>
+          <td><span class="badge badge-contribute">Contribute</span></td>
+        </tr>
+        <tr class="row-med">
+          <td><strong class="accent-name">Web Application Security WG</strong><small>groups/wg/webappsec</small></td>
+          <td><span class="badge badge-wg">WG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>Content Security Policy, Permissions API, Subresource Integrity, Fetch Metadata, Secure Contexts, and other web security primitives.</td>
+          <td>PM-KR's symlink-style composition requires integrity guarantees: a procedural knowledge reference must cryptographically verify the referenced procedure hasn't been tampered with. Subresource Integrity (SRI) is the existing mechanism for this at the web level.</td>
+          <td>SRI hashes on PM-KR procedural references = content-addressable deduplication with security guarantees. CSP headers scoping which .k3d sources are trusted = the permission model for sovereign knowledge.</td>
+          <td><span class="badge badge-consume">Consume</span></td>
+        </tr>
+        <tr class="row-med">
+          <td><strong class="accent-name">Service Workers / Offline WG (Web Applications WG)</strong><small>groups/wg/webapps</small></td>
+          <td><span class="badge badge-wg">WG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>Service Workers, Background Sync, Push API, Web App Manifest. Enable installable, offline-capable Progressive Web Apps.</td>
+          <td>K3D's Sleep-Time Compute cycle runs during agent idle time. Service Worker background sync is the web-native mechanism for triggering K3D's Cycle 2 (Galaxy→House consolidation) when the user is not actively interacting with the system.</td>
+          <td>Service Workers enable PM-KR agents to run their knowledge consolidation loops as background tasks in a standard browser context, without requiring native app installation or cloud infrastructure.</td>
+          <td><span class="badge badge-consume">Consume</span></td>
+        </tr>
+        <tr class="row-low">
+          <td><strong class="accent-name">Privacy WG</strong><small>groups/wg/privacy</small></td>
+          <td><span class="badge badge-wg">WG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>Advise groups developing standards on how to avoid and mitigate privacy issues. Standardize mechanisms that improve user privacy on the web, including identity, tracking protection, and data minimization.</td>
+          <td>PM-KR's sovereign execution model (knowledge stays on the user's GPU, not in cloud APIs) is fundamentally a privacy-preserving architecture. The 288-byte Synthetic User action buffer deliberately minimizes data exposure.</td>
+          <td>PM-KR's sovereignty principles align with Privacy WG's goals. Contributing PM-KR's architectural principles as a privacy-by-design AI knowledge framework supports horizontal review alignment.</td>
+          <td><span class="badge badge-contribute">Contribute</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════════════════
+     TABLE 5 – ACCESSIBILITY / i18n / HCI
+═══════════════════════════════════════════════ -->
+<section class="section" id="t5">
+  <div class="section-header">
+    <div class="section-tag"><span class="t5">T5</span> Accessibility, i18n &amp; Human Interface</div>
+    <h2>Accessibility, Internationalization, Multimodal Interaction &amp; Language</h2>
+    <p class="section-desc">The dual-client contract guarantees that the same knowledge object serves sighted users, blind users (Braille UV2 texture), multilingual users, and AI systems — from a single source of truth. Unicode Braille (U+2800–U+28FF) and procedural font programs are the bridge between visual and accessible representations.</p>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Group Name</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th>Charter Focus</th>
+          <th>PM-KR Intersection</th>
+          <th>Why It Matters</th>
+          <th>Role</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="row-high">
+          <td><strong class="accent-name">Accessibility Guidelines WG (WCAG)</strong><small>groups/wg/ag</small></td>
+          <td><span class="badge badge-wg">WG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>WCAG specifications (currently WCAG 2.2, WCAG 3 in development) to make web content accessible to people with disabilities. Horizontal review of all W3C specs for accessibility compliance.</td>
+          <td>K3D's tri-UV map with UV2=Braille is a built-in WCAG compliance layer for 3D content. The dual-client contract (same .k3d serves blind users via UV2, sighted users via UV0) is a novel accessibility architecture for 3D knowledge objects — currently unaddressed in WCAG for 3D.</td>
+          <td>WCAG 3 is actively developing criteria for XR/3D content. PM-KR's Braille UV layer could become a reference implementation for accessible 3D information architecture. This is a concrete contribution to a documented gap in current guidelines.</td>
+          <td><span class="badge badge-contribute">Contribute</span></td>
+        </tr>
+        <tr class="row-high">
+          <td><strong class="accent-name">Accessible Platform Architectures WG (APA)</strong><small>groups/wg/apa</small></td>
+          <td><span class="badge badge-wg">WG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>Ensure W3C specs support accessibility for people with disabilities through spec review, technical support materials, and coordination across W3C. Developed XR Accessibility User Requirements (XAUR).</td>
+          <td>XAUR (XR Accessibility User Requirements) is the direct specification PM-KR should align with. The blind student use case from K3D's GitHub manifesto — navigating a 3D knowledge space through Braille tactile layers — is precisely the XAUR scenario for spatial computing.</td>
+          <td>APA WG's XAUR review process is the mechanism by which PM-KR's Braille UV layer gets validated as a standards-conformant accessibility approach for WebXR environments. Without APA alignment, the UV2 approach is a good idea with no standards backing.</td>
+          <td><span class="badge badge-contribute">Contribute</span></td>
+        </tr>
+        <tr class="row-high">
+          <td><strong class="accent-name">Internationalization WG (i18n)</strong><small>groups/wg/i18n</small></td>
+          <td><span class="badge badge-wg">WG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>Enable universal access to the web by proposing and coordinating conventions, technologies, and designs for worldwide use across different languages, scripts, regions, and cultures. Covers text direction, Unicode encoding, font requirements, and locale-specific behavior.</td>
+          <td>K3D's Braille UV texture uses the full Unicode Braille block (U+2800–U+28FF). PM-KR's procedural font programs (knowledge encoded in font rendering procedures) require i18n alignment for CJK, Arabic RTL, and other non-Latin script handling. Semantic encoding of text-direction in procedural definitions.</td>
+          <td>The i18n WG's Unicode expertise is essential for PM-KR's character-level knowledge encoding. A multilingual procedural font program that encodes knowledge across scripts is fundamentally an i18n deliverable. EF SET C2 English + Portuguese + multilingual K3D = direct relevance.</td>
+          <td><span class="badge badge-both">Both</span></td>
+        </tr>
+        <tr class="row-med">
+          <td><strong class="accent-name">Accessible Rich Internet Applications WG (ARIA)</strong><small>groups/wg/aria</small></td>
+          <td><span class="badge badge-wg">WG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>WAI-ARIA specification: supplemental roles, states, and properties for accessibility of interactive web content. Currently developing ARIA 1.3 with expanded roles for dynamic applications.</td>
+          <td>K3D's 3D knowledge spaces (Houses, Museums, Gardens) need ARIA-equivalent spatial roles for screen reader and assistive technology navigation. A <code>role="knowledge-node"</code> with procedural description properties extends ARIA into 3D knowledge space.</td>
+          <td>ARIA semantics for 3D spatial knowledge navigation is an unresolved problem. PM-KR's node type system (Platonic solid = knowledge modality) is a candidate vocabulary for ARIA 3D role extension, enabling AT to navigate K3D Galaxies.</td>
+          <td><span class="badge badge-contribute">Contribute</span></td>
+        </tr>
+        <tr class="row-med">
+          <td><strong class="accent-name">Math WG (MathML)</strong><small>groups/wg/math</small></td>
+          <td><span class="badge badge-wg">WG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>Include mathematics on the web as a first-class citizen: MathML Core specification for rendering, accessibility, and searchability of mathematical notation.</td>
+          <td>K3D's RPN (Reverse Polish Notation) is a mathematical notation system for exact algebraic reasoning. PM-KR's procedural programs encode mathematical operations as executable sequences. MathML-to-RPN compilation is a natural integration for rendering procedural math in K3D nodes.</td>
+          <td>MathML provides a human-accessible rendering format for the mathematical procedures that PM-KR encodes as RPN. A MathML Core → RPN compiler bridge makes K3D's reasoning procedures both readable (MathML) and executable (RPN).</td>
+          <td><span class="badge badge-both">Both</span></td>
+        </tr>
+        <tr class="row-low">
+          <td><strong class="accent-name">Pronunciation Task Force (i18n)</strong><small>subgroup of i18n WG</small></td>
+          <td><span class="badge badge-wg">WG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>Specifications for text-to-speech pronunciation of web content, especially for words with ambiguous pronunciation across languages and contexts.</td>
+          <td>K3D's Phase I (Audio SDR sonification) — where knowledge is encoded as sound rather than visuals — requires pronunciation and audio rendering standards for procedural knowledge nodes that contain linguistic content.</td>
+          <td>Pronunciation standards are the audio-accessibility counterpart to Braille UV2. PM-KR's Phase I roadmap (audio sonification) should be informed by pronunciation specifications to ensure multilingual audio knowledge rendering is standards-compliant.</td>
+          <td><span class="badge badge-consume">Consume</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note-box"><strong>Design principle alignment:</strong> PM-KR's dual-client contract ("same knowledge serves humans and machines") is not just an engineering convenience — it is a statement of values that WCAG, APA, ARIA, and i18n all support institutionally. This alignment is PM-KR's strongest argument for horizontal review approval in the W3C process.</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════════════════
+     TABLE 6 – INDUSTRY VERTICALS
+═══════════════════════════════════════════════ -->
+<section class="section" id="t6">
+  <div class="section-header">
+    <div class="section-tag"><span class="t6">T6</span> Industry Verticals</div>
+    <h2>Publishing, Media, Automotive, Healthcare, Education, Finance, Government &amp; Manufacturing</h2>
+    <p class="section-desc">Each industry vertical represents a potential Galaxy in the PM-KR framework — a domain-specific knowledge space with its own ontology, procedural primitives, and agent population. PM-KR is domain-agnostic by design; every vertical is a deployment context.</p>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Group / Vertical</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th>Industry</th>
+          <th>Knowledge Challenge They Face</th>
+          <th>How PM-KR Addresses It</th>
+          <th>Role</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="row-high">
+          <td><strong class="accent-name">Publishing WG</strong><small>groups/wg/publishing</small></td>
+          <td><span class="badge badge-wg">WG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>Publishing</td>
+          <td>Same content must serve print, web, e-reader, screen reader, and AI summarizer — all from a single source. Format fragmentation, accessibility gaps in EPUB, and AI ingestion readiness are acute issues.</td>
+          <td>PM-KR's dual-client contract is the publishing paradigm: one .k3d document contains UV0 (visual layout), UV1 (AI-semantic metadata), UV2 (Braille/accessible text). The procedural font program approach directly solves EPUB's font rendering and accessibility issues.</td>
+          <td><span class="badge badge-contribute">Contribute</span></td>
+        </tr>
+        <tr class="row-high">
+          <td><strong class="accent-name">Health Care and Life Sciences IG (HCLS)</strong><small>groups/ig/hcls</small></td>
+          <td><span class="badge badge-ig">IG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>Healthcare / Life Sciences</td>
+          <td>Medical knowledge (drug interactions, diagnostic procedures, treatment protocols) must be machine-executable for clinical decision support, yet human-readable for clinician review. Same data, two consumers, zero tolerance for inconsistency.</td>
+          <td>PM-KR's dual-client contract is exactly the clinical KR problem: store drug interaction procedures once, render for pharmacist (UV0 visual) and AI decision-support system (UV1 machine semantic) identically. AI-RLWHF's honesty scoring maps to clinical evidence quality grading.</td>
+          <td><span class="badge badge-both">Both</span></td>
+        </tr>
+        <tr class="row-high">
+          <td><strong class="accent-name">Automotive WG / Auto CG</strong><small>groups/wg/auto</small></td>
+          <td><span class="badge badge-wg">WG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>Automotive</td>
+          <td>Vehicle data APIs, in-vehicle infotainment, and autonomous driving systems require procedural knowledge about road rules, navigation, and sensor interpretation — executed on sovereign, offline-capable hardware without cloud dependency.</td>
+          <td>K3D's sovereign GPU stack (no CPU fallbacks, no cloud) is exactly the safety-critical execution model required for in-vehicle AI. PM-KR's balanced ternary logic (-1,0,+1) handles uncertain sensor data with explicit "Unknown" states critical for autonomous driving safety margins.</td>
+          <td><span class="badge badge-both">Both</span></td>
+        </tr>
+        <tr class="row-med">
+          <td><strong class="accent-name">Media and Entertainment IG (MEIG)</strong><small>groups/ig/me</small></td>
+          <td><span class="badge badge-ig">IG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>Media / Entertainment</td>
+          <td>AI-generated content pipelines, interactive narrative, mixed reality experiences, and IP protection for procedurally generated media require a KR standard that can express both the creative procedure and its legal provenance.</td>
+          <td>K3D's Museum (archives/Portal Cubes) with content-addressable deduplication provides IP provenance tracking for procedurally generated media. The Zion Network GPTs (Iron Maiden GPT, John Wick Codex, etc.) demonstrate this in practice.</td>
+          <td><span class="badge badge-contribute">Contribute</span></td>
+        </tr>
+        <tr class="row-med">
+          <td><strong class="accent-name">Educational and Governmental Applications IG (EdGov)</strong><small>various W3C education CGs</small></td>
+          <td><span class="badge badge-ig">IG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>Education / Government</td>
+          <td>Open educational resources (OERs) and government knowledge bases suffer from massive duplication and fragmentation — the same definition of a legal term, tax procedure, or scientific concept is duplicated across thousands of documents with no shared source of truth.</td>
+          <td>PM-KR's deduplication thesis is most powerfully demonstrated here: one procedural definition of "Article 7 Tax Obligation" stored once, referenced by every related document via symlink, maintained once, accessed by humans and automated compliance systems identically. (Daniel's SCMD consulting experience, 99% data loss reduction, is a direct proof-of-concept.)</td>
+          <td><span class="badge badge-both">Both</span></td>
+        </tr>
+        <tr class="row-med">
+          <td><strong class="accent-name">Financial Services IG / FSWG</strong><small>various</small></td>
+          <td><span class="badge badge-ig">IG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>Finance</td>
+          <td>Regulatory compliance knowledge (IFRS, Basel, GDPR financial provisions) must be machine-executable for automated compliance checking, while remaining human-auditable. Current approaches use fragile NLP over PDF documents.</td>
+          <td>PM-KR's RPN execution engine provides exact algebraic evaluation of financial rules (regulatory thresholds, risk formulas) with full auditability of the execution trace — the "no hallucination" property that financial compliance demands. Balanced ternary handles regulatory ambiguity (Repel/False=violation, Neutral=pending review, Attract/True=compliant).</td>
+          <td><span class="badge badge-contribute">Contribute</span></td>
+        </tr>
+        <tr class="row-low">
+          <td><strong class="accent-name">Manufacturing / Smart Cities CG</strong><small>community/industrial</small></td>
+          <td><span class="badge badge-cg">CG</span></td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>Manufacturing / Industry 4.0</td>
+          <td>Industrial digital twins require procedural knowledge about assembly sequences, maintenance procedures, and failure modes to be executed by both human technicians (AR overlay) and autonomous inspection systems (AI semantic layer) from the same 3D asset.</td>
+          <td>K3D's tri-UV map and House (3D memory palace) are directly applicable to industrial digital twin architectures. UV0=technician AR view, UV1=AI inspection data, UV2=accessible safety instructions. Neoenergia Brasília's Big Jumper project (83% interruption reduction) is a concrete industrial PM-KR proof-of-concept.</td>
+          <td><span class="badge badge-both">Both</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════════════════
+     TABLE 7 – GOVERNANCE / PROCESS
+═══════════════════════════════════════════════ -->
+<section class="section" id="t7">
+  <div class="section-header">
+    <div class="section-tag"><span class="t7">T7</span> Governance, Process &amp; Standards Infrastructure</div>
+    <h2>W3C Process, Patent Policy, CLA, Horizontal Review &amp; Spec Licensing</h2>
+    <p class="section-desc">The path from PM-KR CG → WG Recommendation requires navigating W3C process infrastructure. Understanding these groups is not optional overhead — it determines whether PM-KR's work can be adopted by browser vendors and industry.</p>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Group / Process Layer</th>
+          <th>Type</th>
+          <th>Function</th>
+          <th>PM-KR Relevance</th>
+          <th>Action Required</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="row-high">
+          <td><strong class="accent-name">Community Group Program CG</strong><small>community/cg-program</small></td>
+          <td><span class="badge badge-cg">CG</span></td>
+          <td>Manages CG lifecycle: documentation of practices, helping groups transition to standards track, routine maintenance, CG tooling. All CG chairs are encouraged to participate.</td>
+          <td>PM-KR CG must engage this group to understand the pathway from CG Report → Working Group charter proposal. Chairs here advise on CLA compliance (W3C Community Contributor License Agreement), report publication requirements, and WG proposal templates.</td>
+          <td>PM-KR CG chair should join this group immediately upon CG launch. CLA compliance for all contributors must be verified before any CG Report is published.</td>
+        </tr>
+        <tr class="row-high">
+          <td><strong class="accent-name">W3C Patent Policy / Advisory Committee (AC)</strong><small>W3C Process Document</small></td>
+          <td><span class="badge badge-wg">Permanent</span></td>
+          <td>W3C Patent Policy governs Royalty-Free (RF) licensing commitments for all Working Group participants. AC members review and approve new WG charters. Patent exclusion periods apply to each WG specification.</td>
+          <td>PM-KR's .k3d format and RPN execution engine must be developed under RF licensing terms for browser adoption. CG Reports have no patent protections — only WG Recommendations trigger the Patent Policy's RF commitments. This is the primary reason to eventually graduate from CG to WG.</td>
+          <td>Engage W3C Team contact (recommend connecting with Philippe Le Hégaret, W3C AI lead) about the CG→WG transition timeline. Identify potential AC member sponsors (large tech members: Google, Apple, Mozilla, Meta, NVIDIA) before charter proposal.</td>
+        </tr>
+        <tr class="row-high">
+          <td><strong class="accent-name">Horizontal Review Groups (a11y, i18n, Privacy, Security)</strong><small>Cross-WG review process</small></td>
+          <td><span class="badge badge-wg">Process</span></td>
+          <td>Every W3C specification entering the Recommendation track must seek horizontal review from: Accessibility (APA WG), Internationalization (i18n WG), Privacy (Privacy WG), and Security (WebAppSec WG). Reviews must be invited at each major document transition (FPWD, CR).</td>
+          <td>PM-KR's dual-client contract, Braille UV2 layer, and multilingual procedural encoding make it unusually well-prepared for horizontal review compared to typical technical specs. AI-RLWHF honesty scoring addresses the Privacy WG's AI accountability concerns. Balanced ternary's "Unknown" state addresses security edge-case handling.</td>
+          <td>Write a Horizontal Review self-assessment section into the PM-KR CG Note from the beginning. Pre-briefing each horizontal review group before formal review accelerates transition by months. PM-KR's accessibility and i18n features are assets, not liabilities.</td>
+        </tr>
+        <tr class="row-med">
+          <td><strong class="accent-name">W3C Spec Licensing: CC-BY-4.0 / W3C Software &amp; Document License</strong><small>W3C legal framework</small></td>
+          <td><span class="badge badge-wg">Legal</span></td>
+          <td>CG Reports are published under the W3C CG Final Report License (CC-BY 4.0 or W3C Software License). WG specifications use W3C Document License. Spec content and normative text licensing must be clear before broad adoption.</td>
+          <td>PM-KR's CG Reports on procedural knowledge execution semantics should explicitly choose CC-BY-4.0 (more permissive, broader adoption) rather than W3C Software License. All external contributions from K3D prior art must be licensed consistently to avoid CLA conflicts.</td>
+          <td>Include a clear licensing statement ("CC-BY-4.0") in every PM-KR CG document. Note that K3D prior work that informs but doesn't constrain the CG is the correct framing (already used in the PM-KR CG description — maintain this cleanly).</td>
+        </tr>
+        <tr class="row-med">
+          <td><strong class="accent-name">W3C Test Suite Infrastructure</strong><small>github.com/web-platform-tests</small></td>
+          <td><span class="badge badge-wg">Infrastructure</span></td>
+          <td>Web Platform Tests (WPT) repository is the shared test suite infrastructure for all W3C Recommendations. Two independent implementations of each feature are required for Recommendation status. WPT tests are essential for interoperability claims.</td>
+          <td>PM-KR's conformance levels (specified in charter: "the group will study conformance levels") must produce testable assertions. A PM-KR WPT test suite validating that a .k3d file correctly encodes procedural knowledge retrievable by both human and AI clients is the implementation requirement for future WG graduation.</td>
+          <td>Begin writing a conformance test suite in the CG phase — even informal tests. Two browser vendors (or two open-source implementations) must independently pass tests before Recommendation. Target: a Wasm+WebGPU reference implementation and a JavaScript reference implementation as the two paths.</td>
+        </tr>
+        <tr class="row-low">
+          <td><strong class="accent-name">Advisory Board (AB)</strong><small>groups/other/ab</small></td>
+          <td><span class="badge badge-wg">Permanent</span></td>
+          <td>Provides ongoing guidance to W3C Team on strategy, management, legal matters, process, and conflict resolution. Manages evolution of the W3C Process Document. Elected by W3C Members.</td>
+          <td>If PM-KR's Web 4.0 vision (3D-native web, .k3d as first-class resource type) requires changes to the W3C Process or architectural principles, the AB is the body that evaluates and approves such changes. Low-probability path but important to know exists.</td>
+          <td>No action required until PM-KR reaches WG scale. Monitor for process evolution discussions at TPAC that might affect how novel resource types (3D, procedural) are handled in the W3C architecture.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note-box"><strong>Critical path summary:</strong> CG Launch → Publish CG Note with CC-BY-4.0 → Horizontal review self-assessment → AC sponsor identification → WG charter proposal → Royalty-Free patent commitment triggers → Two conformant implementations → W3C Recommendation. Estimated minimum timeline from CG launch to Recommendation: 3–5 years. The AI KR CG (2018 launch, targeting WG transition now in 2025) is the reference data point.</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════════════════
+     SUMMARY TABLE – STRATEGIC PRIORITY MATRIX
+═══════════════════════════════════════════════ -->
+<section class="section" id="ts">
+  <div class="section-header">
+    <div class="section-tag"><span class="ts">Σ</span> Strategic Priority Matrix</div>
+    <h2>All Groups — Consolidated Priority &amp; Action Plan</h2>
+    <p class="section-desc">Sorted by overlap intensity (High → Medium → Low), then by timeline. Use this matrix for planning outreach sequences, resource allocation, and TPAC session priorities.</p>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Group Name</th>
+          <th>Intensity</th>
+          <th>Collaboration Type</th>
+          <th>PM-KR Role</th>
+          <th>Timeline</th>
+          <th>Key Contact / Entry Point</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- HIGH NOW -->
+        <tr class="row-high">
+          <td><strong class="accent-name">PM-KR CG</strong></td>
+          <td><span class="badge badge-high">High</span></td>
+          <td>Lead Group</td>
+          <td><span class="badge badge-contribute">Lead</span></td>
+          <td><span class="badge badge-now">Now</span></td>
+          <td>Daniel Ramos / EchoSystems — chair the group, file charter, recruit 5 additional founding participants for CG viability</td>
+        </tr>
+        <tr class="row-high">
+          <td><strong class="accent-name">AI KR CG</strong></td>
+          <td><span class="badge badge-high">High</span></td>
+          <td>Joint Spec</td>
+          <td><span class="badge badge-both">Both</span></td>
+          <td><span class="badge badge-now">Now</span></td>
+          <td>Paola Di Maio (CG founder) — introduce PM-KR as an execution-layer contribution to AI KR's vocabulary deliverable; propose joint session at TPAC 2026</td>
+        </tr>
+        <tr class="row-high">
+          <td><strong class="accent-name">Cognitive AI CG</strong></td>
+          <td><span class="badge badge-high">High</span></td>
+          <td>Joint Spec</td>
+          <td><span class="badge badge-both">Both</span></td>
+          <td><span class="badge badge-now">Now</span></td>
+          <td>Dave Raggett (WG chair) — propose PM-KR procedural unit as Chunks format extension; contribute to digital twin demo using K3D House</td>
+        </tr>
+        <tr class="row-high">
+          <td><strong class="accent-name">Web &amp; AI Interest Group</strong></td>
+          <td><span class="badge badge-high">High</span></td>
+          <td>Liaison</td>
+          <td><span class="badge badge-contribute">Contribute</span></td>
+          <td><span class="badge badge-now">Now</span></td>
+          <td>Philippe Le Hégaret (W3C AI lead) — submit PM-KR as a KR standardization gap for IG landscape report; join IG as Invited Expert</td>
+        </tr>
+        <tr class="row-high">
+          <td><strong class="accent-name">Immersive Web WG</strong></td>
+          <td><span class="badge badge-high">High</span></td>
+          <td>Joint Spec</td>
+          <td><span class="badge badge-contribute">Contribute</span></td>
+          <td><span class="badge badge-now">Now</span></td>
+          <td>Ada Rose Cannon / Brandon Jones — propose .k3d as a model-element source type; attend Immersive Web CG meetings to incubate prior to WG scope</td>
+        </tr>
+        <tr class="row-high">
+          <td><strong class="accent-name">JSON-LD WG</strong></td>
+          <td><span class="badge badge-high">High</span></td>
+          <td>Joint Spec</td>
+          <td><span class="badge badge-contribute">Contribute</span></td>
+          <td><span class="badge badge-now">Now</span></td>
+          <td>Gregg Kellogg / Pierre-Antoine Champin — publish a PM-KR @context document on w3.org; coordinate with JSON-LD 1.2 / RDF 1.2 alignment effort</td>
+        </tr>
+        <tr class="row-high">
+          <td><strong class="accent-name">WebAssembly WG + CG</strong></td>
+          <td><span class="badge badge-high">High</span></td>
+          <td>Consumer + Liaison</td>
+          <td><span class="badge badge-both">Both</span></td>
+          <td><span class="badge badge-now">Now</span></td>
+          <td>Andreas Rossberg / Derek Schuff — contribute TRM-as-Wasm-Component use case; engage WASI subgroup for Sleep-Time Compute file system access</td>
+        </tr>
+        <tr class="row-high">
+          <td><strong class="accent-name">GPU for the Web WG (WebGPU)</strong></td>
+          <td><span class="badge badge-high">High</span></td>
+          <td>Consumer + Liaison</td>
+          <td><span class="badge badge-both">Both</span></td>
+          <td><span class="badge badge-now">Now</span></td>
+          <td>Kai Ninomiya / Corentin Wallez — prototype Cranium RPN engine as WebGPU compute shader; document TRM workgroup size against WebGPU limits</td>
+        </tr>
+        <tr class="row-high">
+          <td><strong class="accent-name">Accessibility Guidelines WG (WCAG)</strong></td>
+          <td><span class="badge badge-high">High</span></td>
+          <td>Liaison + Contribute</td>
+          <td><span class="badge badge-contribute">Contribute</span></td>
+          <td><span class="badge badge-now">Now</span></td>
+          <td>Rachael Bradley Montgomery / Shawn Lawton Henry — submit Braille UV2 as a WCAG 3 success criterion candidate for 3D/XR content; join APA XAUR review</td>
+        </tr>
+        <!-- HIGH PHASE C -->
+        <tr class="row-high">
+          <td><strong class="accent-name">Web Machine Learning WG</strong></td>
+          <td><span class="badge badge-high">High</span></td>
+          <td>Joint Spec</td>
+          <td><span class="badge badge-both">Both</span></td>
+          <td><span class="badge badge-phaseC">Phase C</span></td>
+          <td>Anssi Kostiainen (WG chair) — contribute TRM operator use case to WebNN spec; align PM-KR Ethical Principles contribution to WebML Ethics deliverable</td>
+        </tr>
+        <tr class="row-high">
+          <td><strong class="accent-name">AI Agent Protocol CG</strong></td>
+          <td><span class="badge badge-high">High</span></td>
+          <td>Joint Spec</td>
+          <td><span class="badge badge-both">Both</span></td>
+          <td><span class="badge badge-phaseC">Phase C</span></td>
+          <td>CG chairs — contribute Zion Network 288-byte action buffer spec as agent protocol primitive; propose PM-KR memory layer as inter-agent knowledge format</td>
+        </tr>
+        <tr class="row-high">
+          <td><strong class="accent-name">RDF &amp; SPARQL WG</strong></td>
+          <td><span class="badge badge-high">High</span></td>
+          <td>Consumer</td>
+          <td><span class="badge badge-consume">Consume</span></td>
+          <td><span class="badge badge-phaseC">Phase C</span></td>
+          <td>Andy Seaborne / Niklas Lindström — serialize PM-KR procedural references as RDF 1.2 triple terms; demonstrate SPARQL 1.2 query over K3D knowledge graph</td>
+        </tr>
+        <tr class="row-high">
+          <td><strong class="accent-name">Linked Web Storage WG (Solid)</strong></td>
+          <td><span class="badge badge-high">High</span></td>
+          <td>Consumer</td>
+          <td><span class="badge badge-consume">Consume</span></td>
+          <td><span class="badge badge-phaseC">Phase C</span></td>
+          <td>Sarven Capadisli / Tim Berners-Lee lineage community — prototype K3D House as a Solid Pod; demonstrate procedural knowledge stored in decentralized personal data store</td>
+        </tr>
+        <!-- MEDIUM -->
+        <tr class="row-med">
+          <td><strong class="accent-name">Accessible Platform Architectures WG (APA)</strong></td>
+          <td><span class="badge badge-med">Medium</span></td>
+          <td>Liaison</td>
+          <td><span class="badge badge-contribute">Contribute</span></td>
+          <td><span class="badge badge-phaseC">Phase C</span></td>
+          <td>Matthew Atkinson / Janina Sajka — present Braille UV2 approach at APA meeting; seek XAUR alignment for K3D House navigation requirements</td>
+        </tr>
+        <tr class="row-med">
+          <td><strong class="accent-name">Internationalization WG</strong></td>
+          <td><span class="badge badge-med">Medium</span></td>
+          <td>Consumer + Liaison</td>
+          <td><span class="badge badge-both">Both</span></td>
+          <td><span class="badge badge-phaseC">Phase C</span></td>
+          <td>Richard Ishida — review PM-KR Unicode Braille block usage; consult on multilingual procedural font program requirements for CJK and RTL scripts</td>
+        </tr>
+        <tr class="row-med">
+          <td><strong class="accent-name">Autonomous Agents on the Web CG</strong></td>
+          <td><span class="badge badge-med">Medium</span></td>
+          <td>Joint Spec</td>
+          <td><span class="badge badge-both">Both</span></td>
+          <td><span class="badge badge-phaseC">Phase C</span></td>
+          <td>CG chairs — contribute Sleep-Time Compute cycle spec as persistent agent lifecycle proposal; demonstrate K3D agent memory persistence across sessions</td>
+        </tr>
+        <tr class="row-med">
+          <td><strong class="accent-name">Context Graph CG</strong></td>
+          <td><span class="badge badge-med">Medium</span></td>
+          <td>Joint Spec</td>
+          <td><span class="badge badge-contribute">Contribute</span></td>
+          <td><span class="badge badge-phaseC">Phase C</span></td>
+          <td>CG chairs — propose Balanced Ternary states as resolution status vocabulary for Context Graph; contribute RPN as evaluation procedure for context resolution</td>
+        </tr>
+        <tr class="row-med">
+          <td><strong class="accent-name">Ontologies &amp; KG in Industry CG</strong></td>
+          <td><span class="badge badge-med">Medium</span></td>
+          <td>Joint Spec</td>
+          <td><span class="badge badge-both">Both</span></td>
+          <td><span class="badge badge-phaseC">Phase C</span></td>
+          <td>CG chairs — map ISO 81346 to K3D Platonic solid node types; contribute K3D semantic color encoding as industrial knowledge visualization standard</td>
+        </tr>
+        <tr class="row-med">
+          <td><strong class="accent-name">Health Care &amp; Life Sciences IG</strong></td>
+          <td><span class="badge badge-med">Medium</span></td>
+          <td>Provider</td>
+          <td><span class="badge badge-contribute">Contribute</span></td>
+          <td><span class="badge badge-phaseD">Phase D</span></td>
+          <td>HCLS IG chairs — demonstrate PM-KR dual-client contract for clinical decision support; map AI-RLWHF to clinical evidence quality levels (GRADE, Oxford)</td>
+        </tr>
+        <tr class="row-med">
+          <td><strong class="accent-name">Dataset Exchange WG (DCAT)</strong></td>
+          <td><span class="badge badge-med">Medium</span></td>
+          <td>Consumer</td>
+          <td><span class="badge badge-consume">Consume</span></td>
+          <td><span class="badge badge-phaseD">Phase D</span></td>
+          <td>DXWG chairs — publish K3D Museum catalogs as DCAT 3 datasets; register pmkr:ProceduralKnowledge as a DCAT distribution type</td>
+        </tr>
+        <tr class="row-med">
+          <td><strong class="accent-name">MathML / Math WG</strong></td>
+          <td><span class="badge badge-med">Medium</span></td>
+          <td>Joint Spec</td>
+          <td><span class="badge badge-both">Both</span></td>
+          <td><span class="badge badge-phaseD">Phase D</span></td>
+          <td>David Carlisle — build MathML Core → RPN compiler bridge; contribute K3D math node (Tetrahedron for Text, extended for formulae) to MathML use case catalog</td>
+        </tr>
+        <tr class="row-med">
+          <td><strong class="accent-name">Publishing WG</strong></td>
+          <td><span class="badge badge-med">Medium</span></td>
+          <td>Provider</td>
+          <td><span class="badge badge-contribute">Contribute</span></td>
+          <td><span class="badge badge-phaseD">Phase D</span></td>
+          <td>Publishing WG chairs — demonstrate .k3d as an EPUB 4 knowledge container; propose tri-UV map as accessibility layer for complex illustrated documents</td>
+        </tr>
+        <!-- LOW / LONG TERM -->
+        <tr class="row-low">
+          <td><strong class="accent-name">Technical Architecture Group (TAG)</strong></td>
+          <td><span class="badge badge-low">Low→High</span></td>
+          <td>Governance</td>
+          <td><span class="badge badge-contribute">Contribute</span></td>
+          <td><span class="badge badge-phaseD">Phase D</span></td>
+          <td>TAG elected members — file architectural review request for .k3d as new web resource type; ensure PM-KR doesn't conflict with web origin model or URL semantics</td>
+        </tr>
+        <tr class="row-low">
+          <td><strong class="accent-name">Immersive Web CG</strong></td>
+          <td><span class="badge badge-low">Medium</span></td>
+          <td>Incubation</td>
+          <td><span class="badge badge-contribute">Contribute</span></td>
+          <td><span class="badge badge-now">Now</span></td>
+          <td>IWCG chairs — prototype K3D dual-UV in WebXR model element; propose spatial favicon with procedural knowledge metadata as incubation proposal</td>
+        </tr>
+        <tr class="row-low">
+          <td><strong class="accent-name">Automotive WG</strong></td>
+          <td><span class="badge badge-low">Medium</span></td>
+          <td>Provider</td>
+          <td><span class="badge badge-contribute">Contribute</span></td>
+          <td><span class="badge badge-phaseD">Phase D</span></td>
+          <td>Auto WG chairs — contribute balanced ternary sensor uncertainty model for autonomous driving decision systems; propose sovereign K3D stack for in-vehicle AI</td>
+        </tr>
+        <tr class="row-low">
+          <td><strong class="accent-name">Web Application Security WG</strong></td>
+          <td><span class="badge badge-low">Low</span></td>
+          <td>Consumer</td>
+          <td><span class="badge badge-consume">Consume</span></td>
+          <td><span class="badge badge-long">Long-term</span></td>
+          <td>WebAppSec chairs — use SRI for PM-KR content-addressable procedural references; ensure CSP can scope .k3d trusted sources</td>
+        </tr>
+        <tr class="row-low">
+          <td><strong class="accent-name">Privacy WG</strong></td>
+          <td><span class="badge badge-low">Low</span></td>
+          <td>Liaison</td>
+          <td><span class="badge badge-contribute">Contribute</span></td>
+          <td><span class="badge badge-long">Long-term</span></td>
+          <td>Privacy WG chairs — contribute PM-KR sovereign execution as privacy-by-design AI architecture; include in Privacy WG's AI threat model work</td>
+        </tr>
+        <tr class="row-low">
+          <td><strong class="accent-name">Khronos Group (glTF)</strong></td>
+          <td><span class="badge badge-high">High</span></td>
+          <td>Joint Spec (external)</td>
+          <td><span class="badge badge-contribute">Contribute</span></td>
+          <td><span class="badge badge-now">Now</span></td>
+          <td>Khronos 3D Formats WG — file EXT_pmkr extension proposal alongside W3C CG charter; dual-track W3C + Khronos for maximum glTF ecosystem adoption</td>
+        </tr>
+        <tr class="row-low">
+          <td><strong class="accent-name">Community Group Program CG</strong></td>
+          <td><span class="badge badge-low">Low</span></td>
+          <td>Process</td>
+          <td><span class="badge badge-consume">Consume</span></td>
+          <td><span class="badge badge-now">Now</span></td>
+          <td>CG Program coordinators — review CG launch checklist; ensure PM-KR CG meets publication and CLA requirements for first CG Report</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note-box">
+    <strong>Top 5 immediate actions (Now):</strong>
+    (1) PM-KR CG launch — recruit 5 founding participants, file charter.
+    (2) AI KR CG liaison — email Paola Di Maio, propose vocabulary collaboration.
+    (3) Immersive Web CG — attend next meeting, float .k3d model element proposal.
+    (4) JSON-LD WG — publish draft @context document at echosystems.ai/pmkr/v1.
+    (5) Khronos EXT_pmkr — file extension proposal in parallel with W3C CG charter.
+  </div>
+</section>
+
+</div><!-- /wrapper -->
+
+<footer>
+  <div class="wrapper" style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:1rem; padding-top:2rem; padding-bottom:2rem;">
+    <span class="logo">EchoSystems AI Studios · K3D / PM-KR Framework</span>
+    <span>W3C Ecosystem Mapping · v1.0 · 2026-03-11</span>
+    <span>Source: w3.org/groups/ · Research: Claude Sonnet 4.6</span>
+  </div>
+</footer>
+
+</body>
+</html>
