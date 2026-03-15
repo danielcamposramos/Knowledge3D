@@ -5192,27 +5192,34 @@ class Knowledgeverse:
                     for local_index, global_index in enumerate(candidate_indices)
                     if int(global_index) >= 0
                 }
+                graph_neighbor_lists = [
+                    [
+                        int(neighbor_global)
+                        for neighbor_global in list(candidate.get("graph_neighbors", []))
+                        if int(neighbor_global) in global_to_local
+                    ]
+                    for candidate in local_candidates
+                ]
+                neighbor_degree_counts = [len(neighbors) for neighbors in graph_neighbor_lists]
                 max_neighbors = max(
-                    (
-                        len(
-                            [
-                                neighbor_global
-                                for neighbor_global in list(candidate.get("graph_neighbors", []))
-                                if int(neighbor_global) in global_to_local
-                            ]
-                        )
-                        for candidate in local_candidates
-                    ),
+                    neighbor_degree_counts,
                     default=0,
                 )
+                if task_type == "LHE_TASK":
+                    selection_steps.append(
+                        "LHE graph diagnostic: "
+                        f"{len(local_candidates)} candidates, "
+                        f"{int(sum(neighbor_degree_counts))} total edges, "
+                        f"max_neighbors={int(max_neighbors)}, "
+                        f"isolated={int(sum(1 for count in neighbor_degree_counts if count == 0))}"
+                    )
                 if max_neighbors > 0:
                     adjacency = np.full((len(local_candidates), max_neighbors), -1, dtype=np.int32)
                     neighbor_counts = np.zeros(len(local_candidates), dtype=np.int32)
-                    for local_index, candidate in enumerate(local_candidates):
+                    for local_index, local_neighbor_globals in enumerate(graph_neighbor_lists):
                         local_neighbors = [
                             int(global_to_local[int(neighbor_global)])
-                            for neighbor_global in list(candidate.get("graph_neighbors", []))
-                            if int(neighbor_global) in global_to_local
+                            for neighbor_global in local_neighbor_globals
                         ][:max_neighbors]
                         for neighbor_slot, neighbor_local_index in enumerate(local_neighbors):
                             adjacency[local_index, neighbor_slot] = int(neighbor_local_index)
@@ -5235,7 +5242,52 @@ class Knowledgeverse:
                         f"mode=local_graph rounds={rounds} "
                         f"avg_neighbors={float(np.mean(neighbor_counts)):.2f}"
                     )
+                elif len(local_candidates) > 1:
+                    adjacency, neighbor_counts, semantic_k, avg_top_similarity = (
+                        self._build_semantic_knn_adjacency(
+                            resonated_rows=resonated_rows,
+                            k=min(3, len(local_candidates) - 1),
+                        )
+                    )
+                    if semantic_k > 0:
+                        crystallized_rows = self._pad_embedding_rows(
+                            [
+                                list(row)
+                                for row in graph_crystallizer.crystallize_graph(
+                                    node_features=np.asarray(resonated_rows, dtype=np.float32),
+                                    adjacency=adjacency,
+                                    neighbor_counts=neighbor_counts,
+                                    rounds=rounds,
+                                    self_weight=self_weight,
+                                    neighbor_weight=neighbor_weight,
+                                ).tolist()
+                            ]
+                        )
+                        selection_steps.append(
+                            "GRE graph crystallizer: "
+                            f"mode=semantic_knn k={semantic_k} "
+                            f"rounds={rounds} avg_sim={avg_top_similarity:.3f}"
+                        )
+                    else:
+                        if task_type == "LHE_TASK":
+                            selection_steps.append(
+                                "GRE graph crystallizer: mode=compatibility (no local or semantic edges)"
+                            )
+                        neighborhood_vector = self._normalize_embedding(list(lead_embedding))
+                        if task_type in {"MMLU_TASK", "LHE_TASK"}:
+                            neighborhood_vector = focus_vector
+                        crystallized_rows = self._pad_embedding_rows(
+                            graph_crystallizer.crystallize_list(
+                                resonated_rows,
+                                neighborhood_vector,
+                                ema_rate=0.997 if task_type in {"MMLU_TASK", "LHE_TASK"} else 0.992,
+                            )
+                        )
                 else:
+                    if task_type == "LHE_TASK":
+                        selection_steps.append(
+                            "GRE graph crystallizer: mode=compatibility (single candidate)"
+                        )
                     neighborhood_vector = self._normalize_embedding(list(lead_embedding))
                     if task_type in {"MMLU_TASK", "LHE_TASK"}:
                         neighborhood_vector = focus_vector
@@ -5797,6 +5849,45 @@ class Knowledgeverse:
                 neighbors.append(neighbor_global)
             adjacency[int(global_index)] = neighbors
         return adjacency
+
+    def _build_semantic_knn_adjacency(
+        self,
+        resonated_rows: list[list[float]],
+        k: int = 3,
+    ) -> tuple[np.ndarray, np.ndarray, int, float]:
+        node_count = int(len(resonated_rows))
+        if node_count <= 1:
+            return (
+                np.full((node_count, 1), -1, dtype=np.int32),
+                np.zeros(node_count, dtype=np.int32),
+                0,
+                0.0,
+            )
+        k = max(1, min(int(k), node_count - 1))
+        similarity_matrix = self._embedding_similarity_matrix(resonated_rows, resonated_rows)
+        adjacency = np.full((node_count, k), -1, dtype=np.int32)
+        neighbor_counts = np.zeros(node_count, dtype=np.int32)
+        selected_similarities: list[float] = []
+        for row_index, similarity_row in enumerate(similarity_matrix):
+            row_values = np.asarray(similarity_row, dtype=np.float32)
+            if row_values.shape[0] != node_count:
+                continue
+            row_values[row_index] = -1.0
+            ranked_neighbors = np.argsort(row_values)[-k:][::-1]
+            write_index = 0
+            for neighbor_index in ranked_neighbors.tolist():
+                similarity = float(row_values[int(neighbor_index)])
+                if similarity <= 0.0:
+                    continue
+                adjacency[row_index, write_index] = int(neighbor_index)
+                neighbor_counts[row_index] += 1
+                selected_similarities.append(similarity)
+                write_index += 1
+                if write_index >= k:
+                    break
+        effective_k = int(np.max(neighbor_counts)) if neighbor_counts.size else 0
+        avg_top_similarity = float(np.mean(selected_similarities)) if selected_similarities else 0.0
+        return adjacency, neighbor_counts, effective_k, avg_top_similarity
 
     def _allocate_galaxy_seed_budget(
         self,
