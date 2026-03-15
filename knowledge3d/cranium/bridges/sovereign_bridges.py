@@ -990,67 +990,157 @@ class VectorResonator:
 
 
 class GraphCrystallizer:
-    """Sovereign Graph Crystallizer - Recursive GNN with EMA"""
+    """Sovereign Graph Crystallizer - graph message passing with compatibility path."""
 
     def __init__(self):
         ptx_path = KERNELS_DIR / "gre_graph_crystallizer.ptx"
         self.kernel = load_ptx_file(str(ptx_path), "gre_graph_crystallizer")
 
-    def crystallize(self, nodes, neighbors, ema_rate: float = 0.999):
-        """Aggregate neighbor contributions with EMA
-        
-        Args:
-            nodes: Current node values (float32)
-            neighbors: Aggregated neighbor values (float32)
-            ema_rate: EMA rate for stability (0.999 for TRM)
-        
-        Returns:
-            Updated node values
-        """
+    @staticmethod
+    def _as_rank2_float32(values):
         np_mod = _np()
-        node_arr = np_mod.asarray(nodes, dtype=np_mod.float32)
-        neighbor_arr = np_mod.asarray(neighbors, dtype=np_mod.float32)
-        assert node_arr.shape == neighbor_arr.shape
+        array = np_mod.asarray(values, dtype=np_mod.float32)
+        squeezed = False
+        if array.ndim == 1:
+            array = array.reshape(-1, 1)
+            squeezed = True
+        if array.ndim != 2:
+            raise ValueError("node_features_must_be_rank1_or_rank2")
+        return np_mod.ascontiguousarray(array), squeezed
 
-        flat_nodes = node_arr.reshape(-1)
-        flat_neighbors = neighbor_arr.reshape(-1)
-        length = int(flat_nodes.size)
-        byte_count = length * 4
+    @staticmethod
+    def _neighbor_weight_from_ema(ema_rate: float) -> float:
+        # Preserve the intent of "more neighbor trust" for larger EMA values,
+        # but keep the update bounded so message passing stays stable.
+        clamped = min(max(float(ema_rate), 0.0), 1.0)
+        return 0.25 + 0.25 * clamped
 
-        d_nodes = gpu_malloc(byte_count)
-        d_neighbors = gpu_malloc(byte_count)
+    def crystallize_graph(
+        self,
+        node_features,
+        adjacency,
+        neighbor_counts=None,
+        rounds: int = 2,
+        self_weight: float = 0.6,
+        neighbor_weight: float = 0.4,
+    ):
+        np_mod = _np()
+        node_arr, squeezed = self._as_rank2_float32(node_features)
+        adjacency_arr = np_mod.asarray(adjacency, dtype=np_mod.int32)
+        if adjacency_arr.ndim != 2:
+            raise ValueError("adjacency_must_be_rank2")
+        if adjacency_arr.shape[0] != node_arr.shape[0]:
+            raise ValueError("adjacency_row_mismatch")
+
+        if neighbor_counts is None:
+            neighbor_counts_arr = np_mod.sum(adjacency_arr >= 0, axis=1, dtype=np_mod.int32)
+        else:
+            neighbor_counts_arr = np_mod.asarray(neighbor_counts, dtype=np_mod.int32).reshape(-1)
+            if neighbor_counts_arr.shape[0] != node_arr.shape[0]:
+                raise ValueError("neighbor_counts_row_mismatch")
+        max_neighbors = int(adjacency_arr.shape[1])
+        node_count = int(node_arr.shape[0])
+        feature_dim = int(node_arr.shape[1])
+        rounds = max(int(rounds), 0)
+        adjacency_arr = np_mod.ascontiguousarray(adjacency_arr)
+        neighbor_counts_arr = np_mod.ascontiguousarray(
+            np_mod.clip(neighbor_counts_arr, 0, max_neighbors).astype(np_mod.int32, copy=False)
+        )
+
+        if rounds == 0 or node_count == 0 or feature_dim == 0:
+            result = node_arr
+            return result.reshape(-1) if squeezed else result
+
+        current_host = np_mod.ascontiguousarray(node_arr)
+        byte_count = int(current_host.nbytes)
+        adjacency_bytes = int(adjacency_arr.nbytes)
+        counts_bytes = int(neighbor_counts_arr.nbytes)
+
+        d_current = gpu_malloc(byte_count)
         d_output = gpu_malloc(byte_count)
-        
+        d_adjacency = gpu_malloc(adjacency_bytes)
+        d_counts = gpu_malloc(counts_bytes)
         try:
-            memcpy_htod(d_nodes, flat_nodes.ctypes.data_as(ctypes.c_void_p), byte_count)
-            memcpy_htod(d_neighbors, flat_neighbors.ctypes.data_as(ctypes.c_void_p), byte_count)
-            
-            launch(
-                self.kernel,
-                grid=((length + 255) // 256, 1, 1),
-                block=(256, 1, 1),
-                params=[
-                    ctypes.c_uint64(d_nodes.value),
-                    ctypes.c_uint64(d_neighbors.value),
-                    ctypes.c_uint64(d_output.value),
-                    ctypes.c_uint32(length),
-                    ctypes.c_float(ema_rate),
-                ],
-            )
-            synchronize()
+            memcpy_htod(d_current, current_host.ctypes.data_as(ctypes.c_void_p), byte_count)
+            memcpy_htod(d_adjacency, adjacency_arr.ctypes.data_as(ctypes.c_void_p), adjacency_bytes)
+            memcpy_htod(d_counts, neighbor_counts_arr.ctypes.data_as(ctypes.c_void_p), counts_bytes)
 
-            OutArray = ctypes.c_float * length
-            out_host = OutArray()
-            memcpy_dtoh(ctypes.cast(out_host, ctypes.c_void_p), d_output, byte_count)
+            grid_x = max((node_count + 255) // 256, 1)
+            for _ in range(rounds):
+                launch(
+                    self.kernel,
+                    grid=(grid_x, 1, 1),
+                    block=(256, 1, 1),
+                    params=[
+                        ctypes.c_uint64(d_current.value),
+                        ctypes.c_uint64(d_adjacency.value),
+                        ctypes.c_uint64(d_counts.value),
+                        ctypes.c_uint64(d_output.value),
+                        ctypes.c_int32(node_count),
+                        ctypes.c_int32(feature_dim),
+                        ctypes.c_int32(max_neighbors),
+                        ctypes.c_float(float(self_weight)),
+                        ctypes.c_float(float(neighbor_weight)),
+                    ],
+                )
+                synchronize()
+                d_current, d_output = d_output, d_current
 
-            try:
-                return np_mod.asarray(out_host, dtype=np_mod.float32).reshape(node_arr.shape)
-            except Exception:
-                return [float(out_host[i]) for i in range(length)]
+            out_host = np_mod.empty_like(current_host)
+            memcpy_dtoh(out_host.ctypes.data_as(ctypes.c_void_p), d_current, byte_count)
+            return out_host.reshape(-1) if squeezed else out_host
         finally:
-            gpu_free(d_nodes)
-            gpu_free(d_neighbors)
+            gpu_free(d_current)
             gpu_free(d_output)
+            gpu_free(d_adjacency)
+            gpu_free(d_counts)
+
+    def _build_compatibility_graph(self, node_arr, neighbor_arr):
+        np_mod = _np()
+        node_count = int(node_arr.shape[0])
+        feature_dim = int(node_arr.shape[1])
+        total_nodes = node_count * 2
+        features = np_mod.zeros((total_nodes, feature_dim), dtype=np_mod.float32)
+        features[:node_count] = node_arr
+        features[node_count:] = neighbor_arr
+
+        max_neighbors = 3 if node_count > 1 else 1
+        adjacency = np_mod.full((total_nodes, max_neighbors), -1, dtype=np_mod.int32)
+        neighbor_counts = np_mod.zeros(total_nodes, dtype=np_mod.int32)
+
+        for idx in range(node_count):
+            cursor = 0
+            adjacency[idx, cursor] = node_count + idx
+            cursor += 1
+            if idx > 0:
+                adjacency[idx, cursor] = idx - 1
+                cursor += 1
+            if idx + 1 < node_count and cursor < max_neighbors:
+                adjacency[idx, cursor] = idx + 1
+                cursor += 1
+            neighbor_counts[idx] = cursor
+
+        return features, adjacency, neighbor_counts
+
+    def crystallize(self, nodes, neighbors, ema_rate: float = 0.999):
+        """Compatibility API backed by the real graph message-passing kernel."""
+        np_mod = _np()
+        node_arr, squeezed = self._as_rank2_float32(nodes)
+        neighbor_arr, _ = self._as_rank2_float32(neighbors)
+        if neighbor_arr.shape != node_arr.shape:
+            raise ValueError("neighbor_shape_mismatch")
+
+        features, adjacency, neighbor_counts = self._build_compatibility_graph(node_arr, neighbor_arr)
+        result = self.crystallize_graph(
+            features,
+            adjacency,
+            neighbor_counts,
+            rounds=1,
+            self_weight=1.0 - self._neighbor_weight_from_ema(ema_rate),
+            neighbor_weight=self._neighbor_weight_from_ema(ema_rate),
+        )
+        crystallized = np_mod.asarray(result, dtype=np_mod.float32)[: node_arr.shape[0]]
+        return crystallized.reshape(-1) if squeezed else crystallized
 
     def crystallize_list(
         self,

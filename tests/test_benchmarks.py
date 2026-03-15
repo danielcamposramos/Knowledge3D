@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 
+from benchmarks.arc_agi_2_adapter import ArcAgi2Adapter
 from benchmarks.arc_agi_2 import ARCAGI2Benchmark
 from benchmarks.last_humanity_exam import LastHumanityExamBenchmark
 from benchmarks.math_competitions import MathCompetitionBenchmark
@@ -31,6 +32,38 @@ def test_arc_benchmark_empty_vs_enriched(tmp_path):
     assert enriched_result["total_tasks"] == 1
     assert enriched_result["accuracy"] >= empty_result["accuracy"]
     assert enriched_result["accuracy"] == 1.0
+
+
+def test_arc_adapter_preserves_trm_shadow_for_training_collection():
+    class _FakeKnowledgeverse:
+        def execute_task(self, **_kwargs):
+            return {
+                "output_grid": [[1]],
+                "gpu_execution": True,
+                "runtime": "knowledgeverse_gpu_query",
+                "solver": "knowledgeverse_gpu_query",
+                "program_id": Knowledgeverse.GPU_ARC_REASONING_PROGRAM_ID,
+                "route": {"specialist": "visual", "galaxy_names": ["Drawing", "Grammar"]},
+                "trm_shadow": {
+                    "python_galaxies": ["Drawing", "Grammar"],
+                    "python_program": Knowledgeverse.GPU_ARC_REASONING_PROGRAM_ID,
+                    "query_embedding_512": [0.0] * 512,
+                    "y_new_vector_512": [0.0] * 512,
+                },
+            }
+
+    adapter = ArcAgi2Adapter(knowledgeverse=_FakeKnowledgeverse())
+    solved = adapter.solve_task(
+        {
+            "id": "arc_shadow",
+            "train": [],
+            "test": [{"input": [[1]], "output": [[1]]}],
+        }
+    )
+
+    assert solved["correct"] is True
+    assert solved["task_result"]["trm_shadow"]["python_galaxies"] == ["Drawing", "Grammar"]
+    assert solved["trm_shadow"]["python_program"] == Knowledgeverse.GPU_ARC_REASONING_PROGRAM_ID
 
 
 def test_math_benchmark_empty_vs_enriched(tmp_path):

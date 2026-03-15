@@ -189,18 +189,48 @@ class TestGrokKernels:
         print(f"✅ VectorResonator: blend correct")
 
     def test_graph_crystallizer(self):
-        """Test GraphCrystallizer aggregates with EMA"""
+        """Test GraphCrystallizer performs graph message passing"""
         crystallizer = GraphCrystallizer()
 
-        nodes = np.ones(50, dtype=np.float32) * 1.0
-        neighbors = np.ones(50, dtype=np.float32) * 2.0
-        ema_rate = 0.999
+        nodes = np.array(
+            [
+                [1.0, 0.0],
+                [0.0, 1.0],
+                [0.0, 0.0],
+            ],
+            dtype=np.float32,
+        )
+        adjacency = np.array(
+            [
+                [1, -1],
+                [2, -1],
+                [-1, -1],
+            ],
+            dtype=np.int32,
+        )
+        counts = np.array([1, 1, 0], dtype=np.int32)
 
-        output = crystallizer.crystallize(nodes, neighbors, ema_rate)
-        expected = nodes * (1 - ema_rate) + neighbors * ema_rate
+        output = crystallizer.crystallize_graph(nodes, adjacency, counts, rounds=2)
 
-        assert np.allclose(output, expected, rtol=1e-5), "EMA incorrect"
-        print(f"✅ GraphCrystallizer: EMA correct")
+        round1 = np.array(
+            [
+                np.tanh(0.6 * nodes[0] + 0.4 * nodes[1]),
+                np.tanh(0.6 * nodes[1] + 0.4 * nodes[2]),
+                nodes[2],
+            ],
+            dtype=np.float32,
+        )
+        expected = np.array(
+            [
+                np.tanh(0.6 * round1[0] + 0.4 * round1[1]),
+                np.tanh(0.6 * round1[1] + 0.4 * round1[2]),
+                round1[2],
+            ],
+            dtype=np.float32,
+        )
+
+        assert np.allclose(output, expected, rtol=1e-5), "message passing incorrect"
+        print(f"✅ GraphCrystallizer: graph propagation correct")
 
     def test_multimodal_halting_gate(self):
         """Test MultimodalHaltingGate checks halting"""

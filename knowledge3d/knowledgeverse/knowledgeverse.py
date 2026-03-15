@@ -2,21 +2,34 @@
 
 from __future__ import annotations
 
+import ctypes
 from dataclasses import dataclass
 import json
 import math
+import os
 from pathlib import Path
 import re
 import time
 from typing import Any
 import zlib
 
+import numpy as np
+
+from knowledge3d.cranium.bridges.matryoshka_bridge import MatryoshkaProjectionBridge
 from knowledge3d.cranium.bridges.trigram_embed_bridge import TrigramEmbedBridge
 from knowledge3d.cranium.rpn_embedding_engine import RPNEmbeddingEngine
+from knowledge3d.cranium.sovereign.loader import gpu_malloc, launch, memcpy_dtoh, memcpy_htod, synchronize
+from knowledge3d.cranium.sovereign.trm_launcher import TRMLauncher
+from knowledge3d.training.trm_galaxy_nav import (
+    DEFAULT_GALAXY_ORDER,
+    load_galaxy_decoder_checkpoint,
+    load_trm_weight_checkpoint,
+    softmax,
+)
 
 from .foundational_galaxy_bootstrap import populate_always_on_foundational_galaxies
 from .galaxy_manager import GalaxyManager
-from .query_head_substrate import QueryHeadSubstrate, expand_embedding16_to128
+from .query_head_substrate import DynamicLodDriverBridge, QueryHeadSubstrate, expand_embedding16_to128
 from .runtime_ingest import load_books_runtime_entries, load_language_runtime_entries
 from .semantic_csr_graph import load_or_build_semantic_csr_graph
 from .shadow_copy import ShadowCopyLearning
@@ -33,6 +46,7 @@ class KnowledgeverseMetrics:
     ptx_fallback_rate: float = 0.0
     gpu_galaxy_entries: int = 0
     gpu_galaxy_bytes: int = 0
+    gpu_bind_rebuilds: int = 0
     gpu_runtime_artifact_entries: int = 0
     runtime_language_entries: int = 0
 
@@ -40,6 +54,25 @@ class KnowledgeverseMetrics:
 class Knowledgeverse:
     """Minimal runtime assembly for current Knowledgeverse MVP flows."""
 
+    TRM_WEIGHT_SHAPES: dict[str, tuple[int, int]] = {
+        "W1": (1024, 512),
+        "W2": (512, 1024),
+        "W3": (1024, 512),
+        "W4": (512, 1024),
+    }
+    TRM_STATE_VECTOR_DIM = 512
+    TRM_WORKSPACE_FLOATS = 3072
+    TRM_STATE_BUFFER_FLOATS: dict[str, int] = {
+        "d_q_input": TRM_STATE_VECTOR_DIM,
+        "d_q": TRM_STATE_VECTOR_DIM,
+        "d_y": TRM_STATE_VECTOR_DIM,
+        "d_z": TRM_STATE_VECTOR_DIM,
+        "d_z_new": TRM_STATE_VECTOR_DIM,
+        "d_y_new": TRM_STATE_VECTOR_DIM,
+        "d_workspace": TRM_WORKSPACE_FLOATS,
+    }
+    TRM_INIT_SEED = 314159
+    TRM_GALAXY_INFLUENCE_STRENGTH = 0.5
     GPU_GALAXY_ENTRY_STRIDE = 23
     GPU_GALAXY_EMBEDDING_OFFSET = 3
     GPU_GALAXY_EMBEDDING_DIM = 16
@@ -223,8 +256,23 @@ class Knowledgeverse:
         self.trm_navigator = TRMNavigator(knowledgeverse=self)
         self.specialist_router = self.trm_navigator.specialist_router
         self.navigator_specialist = self.trm_navigator.navigator_specialist
+        self._trm: TRMLauncher | None = None
+        self._trm_ready = False
+        self._trm_backend = "uninitialized"
+        self._trm_init_error = ""
+        self._trm_host_weights: dict[str, np.ndarray] = {}
+        self._trm_weight_buffers: dict[str, Any] = {}
+        self._trm_state_buffers: dict[str, Any] = {}
+        self._trm_state_buffer_bytes = 0
+        self._trm_weight_bytes = 0
+        self._matryoshka_bridge: MatryoshkaProjectionBridge | None = None
+        self._trm_matryoshka_host_weights: np.ndarray | None = None
+        self._trm_matryoshka_weight_buffer: Any | None = None
+        self._trm_galaxy_decoder: dict[str, Any] | None = None
+        self._trm_galaxy_decoder_path: str = ""
         self._gpu_reasoning_engine: Any | None = None
         self._gpu_galaxy_binding: dict[str, Any] | None = None
+        self._pinned_all_default_binding = False
         self._gpu_galaxy_catalog: list[dict[str, Any]] = []
         self._text_embedding_engine: RPNEmbeddingEngine | None = None
         self._gpu_query_embedding_bridge: TrigramEmbedBridge | None = None
@@ -266,9 +314,504 @@ class Knowledgeverse:
             knowledgeverse=self,
             journal_path=sleeptime_journal,
         )
+        self._initialize_trm_launcher()
+        self._load_trm_galaxy_decoder()
         self._default_galaxies_loaded = False
         if eager_load_default_galaxies:
             self.ensure_default_galaxies_loaded()
+            if self._trm_navigation_env_enabled():
+                self._pin_all_default_gpu_binding()
+
+    @staticmethod
+    def _trm_navigation_env_enabled() -> bool:
+        return os.getenv("K3D_TRM_NAVIGATE", "0").strip().lower() in {"1", "true", "yes"}
+
+    def _pin_all_default_gpu_binding(self, *, force: bool = False) -> dict[str, Any]:
+        binding = self.bind_gpu_galaxy_runtime(galaxy_names=list(self.DEFAULT_GALAXIES), force=force)
+        self._pinned_all_default_binding = True
+        return binding
+
+    def _initialize_trm_launcher(self) -> None:
+        """Phase D.1 boot-time TRM wiring only; no query-path behavior yet."""
+        self._trm = None
+        self._trm_ready = False
+        self._trm_backend = "uninitialized"
+        self._trm_init_error = ""
+        self._trm_host_weights = {}
+        self._trm_weight_buffers = {}
+        self._trm_state_buffers = {}
+        self._trm_state_buffer_bytes = 0
+        self._trm_weight_bytes = 0
+        self._matryoshka_bridge = None
+        self._trm_matryoshka_host_weights = None
+        self._trm_matryoshka_weight_buffer = None
+        rng = np.random.default_rng(self.TRM_INIT_SEED)
+        try:
+            self._trm = TRMLauncher(use_fused=True)
+            self._matryoshka_bridge = MatryoshkaProjectionBridge()
+            total_bytes = 0
+            checkpoint_weights = self._load_trm_weight_checkpoint()
+            for name, shape in self.TRM_WEIGHT_SHAPES.items():
+                checkpoint_host = None if checkpoint_weights is None else checkpoint_weights.get(name)
+                if checkpoint_host is not None:
+                    host = np.asarray(checkpoint_host, dtype=np.float32).copy()
+                else:
+                    host = (rng.standard_normal(shape, dtype=np.float32) * np.float32(0.02)).astype(
+                        np.float32,
+                        copy=False,
+                    )
+                device = gpu_malloc(host.nbytes)
+                memcpy_htod(device, host.ctypes.data_as(ctypes.c_void_p), host.nbytes)
+                self._trm_host_weights[name] = host
+                self._trm_weight_buffers[name] = device
+                total_bytes += int(host.nbytes)
+            checkpoint_matryoshka = None if checkpoint_weights is None else checkpoint_weights.get("matryoshka")
+            if checkpoint_matryoshka is not None:
+                matryoshka = np.asarray(checkpoint_matryoshka, dtype=np.float32).copy()
+            else:
+                matryoshka = self._build_matryoshka_projection_weights(rng)
+            matryoshka_device = gpu_malloc(matryoshka.nbytes)
+            memcpy_htod(matryoshka_device, matryoshka.ctypes.data_as(ctypes.c_void_p), matryoshka.nbytes)
+            self._trm_matryoshka_host_weights = matryoshka
+            self._trm_matryoshka_weight_buffer = matryoshka_device
+            total_bytes += int(matryoshka.nbytes)
+            self._initialize_trm_state_buffers()
+            total_bytes += int(self._trm_state_buffer_bytes)
+            self._trm_weight_bytes = int(total_bytes)
+            self._trm_ready = True
+            self._trm_backend = "fused"
+        except Exception as exc:
+            self._trm = None
+            self._trm_host_weights = {}
+            self._trm_weight_buffers = {}
+            self._trm_state_buffers = {}
+            self._trm_state_buffer_bytes = 0
+            self._trm_weight_bytes = 0
+            self._matryoshka_bridge = None
+            self._trm_matryoshka_host_weights = None
+            self._trm_matryoshka_weight_buffer = None
+            self._trm_ready = False
+            self._trm_backend = "error"
+            self._trm_init_error = f"{type(exc).__name__}: {exc}"
+
+    def _build_matryoshka_projection_weights(self, rng: np.random.Generator) -> np.ndarray:
+        basis = rng.standard_normal(
+            (self.TRM_STATE_VECTOR_DIM, self.TRM_STATE_VECTOR_DIM),
+            dtype=np.float32,
+        ).astype(np.float64, copy=False)
+        q, r = np.linalg.qr(basis)
+        diag = np.sign(np.diag(r))
+        diag[diag == 0.0] = 1.0
+        q *= diag
+        return np.asarray(q, dtype=np.float32)
+
+    def _trm_galaxy_decoder_checkpoint_path(self) -> Path:
+        return self.storage_root / "checkpoints" / "trm_galaxy_nav_weights.npz"
+
+    def _trm_weight_checkpoint_path(self) -> Path:
+        return self.storage_root / "checkpoints" / "trm_weights.npz"
+
+    def _load_trm_weight_checkpoint(self) -> dict[str, np.ndarray] | None:
+        checkpoint_path = self._trm_weight_checkpoint_path()
+        if not checkpoint_path.exists():
+            return None
+        try:
+            weights = load_trm_weight_checkpoint(checkpoint_path)
+        except Exception:
+            return None
+        resolved: dict[str, np.ndarray] = {}
+        for name, shape in self.TRM_WEIGHT_SHAPES.items():
+            value = np.asarray(weights.get(name, []), dtype=np.float32)
+            if value.shape != shape:
+                return None
+            resolved[name] = value
+        matryoshka = np.asarray(weights.get("matryoshka", []), dtype=np.float32)
+        if matryoshka.size:
+            expected_shape = (self.TRM_STATE_VECTOR_DIM, self.TRM_STATE_VECTOR_DIM)
+            if matryoshka.shape != expected_shape:
+                return None
+            resolved["matryoshka"] = matryoshka
+        return resolved
+
+    def _load_trm_galaxy_decoder(self) -> None:
+        self._trm_galaxy_decoder = None
+        self._trm_galaxy_decoder_path = ""
+        checkpoint_path = self._trm_galaxy_decoder_checkpoint_path()
+        if not checkpoint_path.exists():
+            return
+        try:
+            decoder = load_galaxy_decoder_checkpoint(checkpoint_path)
+        except Exception:
+            return
+        weights = np.asarray(decoder.get("W_galaxy", []), dtype=np.float32)
+        bias = np.asarray(decoder.get("b_galaxy", []), dtype=np.float32)
+        if weights.shape != (len(self.DEFAULT_GALAXIES), self.TRM_STATE_VECTOR_DIM):
+            return
+        if bias.shape != (len(self.DEFAULT_GALAXIES),):
+            return
+        self._trm_galaxy_decoder = {
+            "W_galaxy": weights,
+            "b_galaxy": bias,
+        }
+        self._trm_galaxy_decoder_path = str(checkpoint_path)
+
+    def _initialize_trm_state_buffers(self) -> None:
+        total_bytes = 0
+        for name, float_count in self.TRM_STATE_BUFFER_FLOATS.items():
+            ptr = gpu_malloc(int(float_count) * 4)
+            self._trm_state_buffers[name] = ptr
+            total_bytes += int(float_count) * 4
+        self._trm_state_buffer_bytes = int(total_bytes)
+        self._reset_trm_state()
+
+    def _prepare_trm_stimulus_input(self, query_embedding: Any) -> tuple[np.ndarray, bool]:
+        values = np.asarray(list(query_embedding), dtype=np.float32).reshape(-1)
+        if values.size == self.TRM_STATE_VECTOR_DIM:
+            return np.ascontiguousarray(values, dtype=np.float32), False
+        prepared = np.zeros(self.TRM_STATE_VECTOR_DIM, dtype=np.float32)
+        if values.size > 0:
+            prepared[: min(values.size, self.TRM_STATE_VECTOR_DIM)] = values[: self.TRM_STATE_VECTOR_DIM]
+        return prepared, True
+
+    def _read_trm_state_vector(self, name: str) -> np.ndarray:
+        host = np.zeros(int(self.TRM_STATE_BUFFER_FLOATS[name]), dtype=np.float32)
+        memcpy_dtoh(
+            ctypes.c_void_p(host.ctypes.data),
+            self._trm_state_buffers[name],
+            host.nbytes,
+        )
+        return host
+
+    def _encode_stimulus(self, query_embedding: Any, *, readback: bool = False) -> np.ndarray | None:
+        if not self._trm_state_buffers:
+            raise RuntimeError("TRM state buffers unavailable")
+        prepared, needs_projection = self._prepare_trm_stimulus_input(query_embedding)
+        if needs_projection and self._matryoshka_bridge is not None and self._trm_matryoshka_weight_buffer is not None:
+            memcpy_htod(
+                self._trm_state_buffers["d_q_input"],
+                ctypes.c_void_p(prepared.ctypes.data),
+                prepared.nbytes,
+            )
+            self._matryoshka_bridge.project_device(
+                self._trm_matryoshka_weight_buffer,
+                self._trm_state_buffers["d_q_input"],
+                self._trm_state_buffers["d_q"],
+                target_dim=self.TRM_STATE_VECTOR_DIM,
+                stride=self.TRM_STATE_VECTOR_DIM,
+            )
+        else:
+            memcpy_htod(
+                self._trm_state_buffers["d_q"],
+                ctypes.c_void_p(prepared.ctypes.data),
+                prepared.nbytes,
+            )
+        if readback:
+            return self._read_trm_state_vector("d_q")
+        return None
+
+    def _reset_trm_state(self) -> None:
+        if not self._trm_state_buffers:
+            return
+        for name in ("d_q_input", "d_y", "d_z", "d_z_new", "d_y_new", "d_workspace"):
+            float_count = int(self.TRM_STATE_BUFFER_FLOATS[name])
+            zeros = np.zeros(float_count, dtype=np.float32)
+            memcpy_htod(
+                self._trm_state_buffers[name],
+                ctypes.c_void_p(zeros.ctypes.data),
+                zeros.nbytes,
+            )
+
+    def _run_single_trm_tick(self, query_embedding: Any) -> dict[str, Any]:
+        if not self._trm_ready or self._trm is None:
+            return {}
+        self._reset_trm_state()
+        projected_query = self._encode_stimulus(query_embedding, readback=True)
+        started = time.perf_counter()
+        launch(
+            self._trm.kernel_fused,
+            grid=(1, 1, 1),
+            block=(128, 1, 1),
+            params=[
+                self._trm_state_buffers["d_q"],
+                self._trm_state_buffers["d_y"],
+                self._trm_state_buffers["d_z"],
+                self._trm_weight_buffers["W1"],
+                self._trm_weight_buffers["W2"],
+                self._trm_weight_buffers["W3"],
+                self._trm_weight_buffers["W4"],
+                self._trm_state_buffers["d_z_new"],
+                self._trm_state_buffers["d_y_new"],
+                self._trm_state_buffers["d_workspace"],
+            ],
+        )
+        synchronize()
+        latency_us = float((time.perf_counter() - started) * 1_000_000.0)
+        y_new_host = self._read_trm_state_vector("d_y_new")
+        return {
+            "query_embedding_512": projected_query.tolist() if projected_query is not None else [],
+            "y_new_vector_512": y_new_host.tolist(),
+            "trm_latency_us": latency_us,
+        }
+
+    def _decode_trm_galaxy_distribution(self, y_new_vector_512: Any) -> tuple[np.ndarray, np.ndarray, str]:
+        y_new_host = np.asarray(list(y_new_vector_512), dtype=np.float32).reshape(-1)
+        if self._trm_galaxy_decoder is not None:
+            logits = (
+                np.asarray(self._trm_galaxy_decoder["W_galaxy"], dtype=np.float32) @ y_new_host
+            ) + np.asarray(self._trm_galaxy_decoder["b_galaxy"], dtype=np.float32)
+            decoder_source = "checkpoint"
+        else:
+            logits = np.asarray(y_new_host[: len(self.DEFAULT_GALAXIES)], dtype=np.float32)
+            decoder_source = "raw_head"
+        distribution = softmax(logits)
+        return logits, distribution, decoder_source
+
+    def _trm_shadow_probe(
+        self,
+        query_embedding: Any,
+        target_galaxies: list[str],
+        reasoning_program_id: str,
+        *,
+        trm_tick: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        if not self._trm_ready or self._trm is None:
+            return {}
+        tick = dict(trm_tick or self._run_single_trm_tick(query_embedding))
+        y_new_host = np.asarray(list(tick.get("y_new_vector_512", [])), dtype=np.float32).reshape(-1)
+        projected_query = np.asarray(list(tick.get("query_embedding_512", [])), dtype=np.float32).reshape(-1)
+        latency_us = float(tick.get("trm_latency_us", 0.0))
+        logits, distribution, decoder_source = self._decode_trm_galaxy_distribution(y_new_host)
+        top_indexes = np.argsort(distribution)[-3:][::-1]
+        entropy = float(-np.sum(distribution * np.log(np.clip(distribution, 1e-9, 1.0))))
+        return {
+            "y_new_top3_galaxies": [
+                {
+                    "galaxy": str(DEFAULT_GALAXY_ORDER[int(idx)]),
+                    "weight": float(distribution[int(idx)]),
+                    "logit": float(logits[int(idx)]),
+                }
+                for idx in top_indexes
+            ],
+            "y_new_entropy": entropy,
+            "trm_latency_us": latency_us,
+            "python_galaxies": [str(name) for name in target_galaxies],
+            "python_program": str(reasoning_program_id),
+            "query_embedding_512": projected_query.astype(np.float32, copy=False).tolist(),
+            "y_new_vector_512": y_new_host.astype(np.float32, copy=False).tolist(),
+            "decoder_source": decoder_source,
+            "decoder_checkpoint": str(self._trm_galaxy_decoder_path),
+        }
+
+    @classmethod
+    def _normalize_galaxy_weights(cls, galaxy_weights: dict[str, Any] | None) -> dict[str, float]:
+        if not isinstance(galaxy_weights, dict):
+            return {}
+        raw_weights: dict[str, float] = {}
+        for name, value in galaxy_weights.items():
+            galaxy_name = str(name).strip()
+            if not galaxy_name:
+                continue
+            try:
+                raw_weights[galaxy_name] = max(0.0, float(value))
+            except Exception:
+                continue
+        if not raw_weights:
+            return {}
+        try:
+            strength = max(0.0, float(os.getenv("K3D_TRM_INFLUENCE_STRENGTH", str(cls.TRM_GALAXY_INFLUENCE_STRENGTH))))
+        except Exception:
+            strength = float(cls.TRM_GALAXY_INFLUENCE_STRENGTH)
+        uniform = 1.0 / float(max(len(cls.DEFAULT_GALAXIES), 1))
+        normalized: dict[str, float] = {}
+        for galaxy_name in cls.DEFAULT_GALAXIES:
+            raw_value = float(raw_weights.get(str(galaxy_name), 0.0))
+            multiplier = 1.0 + (strength * (raw_value - uniform))
+            normalized[str(galaxy_name)] = max(0.0, float(multiplier))
+        for galaxy_name, raw_value in raw_weights.items():
+            if galaxy_name in normalized:
+                continue
+            multiplier = 1.0 + (strength * float(raw_value))
+            normalized[galaxy_name] = max(0.0, float(multiplier))
+        return normalized
+
+    def _galaxy_weight_for_name(
+        self,
+        galaxy_name: str,
+        galaxy_weights: dict[str, Any] | None,
+    ) -> float:
+        normalized = self._normalize_galaxy_weights(galaxy_weights)
+        return float(normalized.get(str(galaxy_name).strip(), 0.0))
+
+    def _galaxy_contribution_from_records(
+        self,
+        *,
+        records: list[dict[str, Any]] | None = None,
+        candidates: list[dict[str, Any]] | None = None,
+    ) -> dict[str, float]:
+        scored_rows: list[tuple[str, float]] = []
+        if isinstance(records, list):
+            for record in records:
+                if not isinstance(record, dict):
+                    continue
+                candidate = record.get("candidate") if isinstance(record.get("candidate"), dict) else None
+                if candidate is None and isinstance(record.get("match"), dict):
+                    candidate = record
+                if not isinstance(candidate, dict):
+                    continue
+                match = candidate.get("match") if isinstance(candidate.get("match"), dict) else {}
+                galaxy_name = str(match.get("galaxy", "")).strip()
+                if not galaxy_name:
+                    continue
+                score = record.get("path_score")
+                if score is None:
+                    score = candidate.get("path_score", candidate.get("gpu_score", candidate.get("similarity", 0.0)))
+                try:
+                    score_value = float(score)
+                except Exception:
+                    continue
+                if not math.isfinite(score_value):
+                    continue
+                scored_rows.append((galaxy_name, score_value))
+        if not scored_rows and isinstance(candidates, list):
+            for candidate in candidates:
+                if not isinstance(candidate, dict):
+                    continue
+                match = candidate.get("match") if isinstance(candidate.get("match"), dict) else {}
+                galaxy_name = str(match.get("galaxy", "")).strip()
+                if not galaxy_name:
+                    continue
+                try:
+                    score_value = float(
+                        candidate.get("gpu_score", candidate.get("path_score", candidate.get("similarity", 0.0)))
+                    )
+                except Exception:
+                    continue
+                if not math.isfinite(score_value):
+                    continue
+                scored_rows.append((galaxy_name, score_value))
+        if not scored_rows:
+            return {}
+        max_score = max(score for _, score in scored_rows)
+        totals: dict[str, float] = {}
+        for galaxy_name, score_value in scored_rows:
+            shifted = max(-20.0, min(20.0, float(score_value) - float(max_score)))
+            weight = math.exp(shifted)
+            totals[galaxy_name] = float(totals.get(galaxy_name, 0.0)) + float(weight)
+        total_weight = float(sum(totals.values()))
+        if total_weight <= 0.0:
+            return {}
+        normalized = {
+            galaxy_name: float(weight / total_weight)
+            for galaxy_name, weight in totals.items()
+            if float(weight) > 0.0
+        }
+        return dict(sorted(normalized.items(), key=lambda item: item[1], reverse=True))
+
+    def _attach_galaxy_contribution(
+        self,
+        candidate: dict[str, Any] | None,
+        *,
+        records: list[dict[str, Any]] | None = None,
+        candidates: list[dict[str, Any]] | None = None,
+        selection_steps: list[str] | None = None,
+    ) -> dict[str, Any] | None:
+        if not isinstance(candidate, dict):
+            return candidate
+        contribution = self._galaxy_contribution_from_records(records=records, candidates=candidates)
+        if not contribution:
+            return candidate
+        candidate["galaxy_contribution"] = dict(contribution)
+        candidate["teacher_route_galaxies"] = [
+            galaxy_name
+            for galaxy_name, weight in contribution.items()
+            if float(weight) >= 0.05
+        ] or list(contribution.keys())[:3]
+        if isinstance(selection_steps, list):
+            selection_steps.append(
+                "Galaxy contribution: "
+                + ", ".join(
+                    f"{galaxy_name}={float(weight):.2f}"
+                    for galaxy_name, weight in list(contribution.items())[:4]
+                )
+            )
+        return candidate
+
+    def _trm_select_galaxies(
+        self,
+        query_embedding: Any,
+        *,
+        task_type: str,
+        fallback_galaxies: list[str],
+        reasoning_program_id: str,
+        trm_tick: dict[str, Any] | None = None,
+    ) -> tuple[dict[str, float], str, dict[str, Any]]:
+        if not self._trm_ready or self._trm is None:
+            return {}, reasoning_program_id, {
+                "status": "fallback",
+                "reason": "trm_not_ready",
+            }
+        tick = dict(trm_tick or self._run_single_trm_tick(query_embedding))
+        y_new_host = np.asarray(list(tick.get("y_new_vector_512", [])), dtype=np.float32).reshape(-1)
+        if y_new_host.size != self.TRM_STATE_VECTOR_DIM:
+            return {}, reasoning_program_id, {
+                "status": "fallback",
+                "reason": "invalid_tick",
+            }
+        logits, distribution, decoder_source = self._decode_trm_galaxy_distribution(y_new_host)
+        if not np.all(np.isfinite(distribution)):
+            return {}, reasoning_program_id, {
+                "status": "fallback",
+                "reason": "non_finite_distribution",
+            }
+        ranked_indexes = list(np.argsort(distribution)[::-1])
+        max_weight = float(distribution[ranked_indexes[0]]) if ranked_indexes else 0.0
+        if max_weight < 0.01 or float(np.max(distribution) - np.min(distribution)) <= 1e-6:
+            return {}, reasoning_program_id, {
+                "status": "fallback",
+                "reason": "trm_nav_fallback",
+                "decoder_source": decoder_source,
+                "max_weight": max_weight,
+                "task_type": task_type,
+            }
+        selected_names = [
+            str(DEFAULT_GALAXY_ORDER[idx])
+            for idx in ranked_indexes
+            if float(distribution[idx]) > 0.05
+        ]
+        if len(selected_names) < 2:
+            selected_names = [str(DEFAULT_GALAXY_ORDER[idx]) for idx in ranked_indexes[:2]]
+        if len(selected_names) < 2:
+            return {}, reasoning_program_id, {
+                "status": "fallback",
+                "reason": "trm_nav_fallback",
+                "decoder_source": decoder_source,
+                "max_weight": max_weight,
+                "task_type": task_type,
+            }
+        selected_names = list(dict.fromkeys(selected_names))
+        galaxy_rank = {str(name): idx for idx, name in enumerate(DEFAULT_GALAXY_ORDER)}
+        selected_names = sorted(selected_names, key=lambda name: galaxy_rank.get(str(name), len(DEFAULT_GALAXY_ORDER)))
+        selected_names = selected_names[:5]
+        galaxy_weights = {
+            str(DEFAULT_GALAXY_ORDER[idx]): float(distribution[idx])
+            for idx in range(min(len(DEFAULT_GALAXY_ORDER), len(distribution)))
+        }
+        return galaxy_weights, reasoning_program_id, {
+            "status": "ok",
+            "decoder_source": decoder_source,
+            "task_type": task_type,
+            "selected_galaxies": list(selected_names),
+            "galaxy_weights": dict(galaxy_weights),
+            "top3": [
+                {
+                    "galaxy": str(DEFAULT_GALAXY_ORDER[idx]),
+                    "weight": float(distribution[idx]),
+                    "logit": float(logits[idx]),
+                }
+                for idx in ranked_indexes[:3]
+            ],
+            "trm_latency_us": float(tick.get("trm_latency_us", 0.0)),
+        }
 
     def get_gpu_reasoning_engine(self, *, force_rebind: bool = False):
         """Return the shared GPU reasoning engine bound to the active Galaxy snapshot."""
@@ -288,10 +831,19 @@ class Knowledgeverse:
     ) -> dict[str, Any]:
         """Flatten active Galaxy entries and bind them into the GPU RPN runtime."""
         resolved_names = [str(name) for name in (galaxy_names or self.DEFAULT_GALAXIES)]
+        bound_names = list((self._gpu_galaxy_binding or {}).get("galaxies", []))
         if (
             self._gpu_galaxy_binding is not None
             and not force
-            and list(self._gpu_galaxy_binding.get("galaxies", [])) == resolved_names
+            and (
+                bound_names == resolved_names
+                or (
+                    self._pinned_all_default_binding
+                    and
+                    bound_names == list(self.DEFAULT_GALAXIES)
+                    and set(resolved_names).issubset(set(bound_names))
+                )
+            )
         ):
             return dict(self._gpu_galaxy_binding)
         engine = self._gpu_reasoning_engine
@@ -332,6 +884,7 @@ class Knowledgeverse:
         )
         self.metrics.gpu_galaxy_entries = len(catalog)
         self.metrics.gpu_galaxy_bytes = len(flat_entries) * 4
+        self.metrics.gpu_bind_rebuilds = int(self.metrics.gpu_bind_rebuilds) + 1
         return dict(binding)
 
     def get_gpu_galaxy_catalog(self) -> list[dict[str, Any]]:
@@ -340,6 +893,7 @@ class Knowledgeverse:
     def invalidate_gpu_galaxy_binding(self) -> None:
         if self._query_head_substrate is not None:
             self._query_head_substrate.close()
+        self._pinned_all_default_binding = False
         self._gpu_galaxy_binding = None
         self._gpu_galaxy_catalog = []
         self._gpu_reasoning_programs = {}
@@ -3990,11 +4544,11 @@ class Knowledgeverse:
     def _is_benchmark_evaluation_task(self, task: dict[str, Any] | None) -> bool:
         if not isinstance(task, dict):
             return False
-        if not self._task_expected_answer(task):
-            return False
         task_type = str(task.get("type", "")).strip().upper()
         if task_type in {"MATH_TASK", "LHE_TASK", "MMLU_TASK", "ARC_TASK"}:
             return True
+        if not self._task_expected_answer(task):
+            return False
         return bool(str(task.get("competition", "")).strip() or str(task.get("task_id", "")).strip())
 
     def _entry_answer_texts(self, entry: dict[str, Any]) -> list[str]:
@@ -5131,11 +5685,131 @@ class Knowledgeverse:
             return 5
         return 6
 
+    @staticmethod
+    def _task_seed_budget(task_type: str) -> int:
+        if task_type == "ARC_TASK":
+            return 4
+        if task_type == "MMLU_TASK":
+            return 8
+        if task_type in {"MATH_TASK", "LHE_TASK"}:
+            return 3
+        return 4
+
+    def _allocate_galaxy_seed_budget(
+        self,
+        *,
+        task_type: str,
+        target_galaxies: list[str],
+        normalized_galaxy_weights: dict[str, float],
+    ) -> dict[str, int]:
+        if task_type == "LHE_TASK":
+            return {}
+        total_budget = max(1, min(self._graph_seed_limit(task_type), self._task_seed_budget(task_type)))
+        target_names = [
+            str(name).strip()
+            for name in target_galaxies
+            if str(name).strip()
+        ]
+        positive_bias = {
+            str(galaxy_name): max(0.0, float(normalized_galaxy_weights.get(str(galaxy_name), 0.0)) - 1.0)
+            for galaxy_name in self.DEFAULT_GALAXIES
+        }
+        ranked_bias_names = [
+            galaxy_name
+            for galaxy_name, bias in sorted(
+                positive_bias.items(),
+                key=lambda item: item[1],
+                reverse=True,
+            )
+            if float(bias) > 1e-6
+        ]
+        candidate_names = list(dict.fromkeys(target_names + ranked_bias_names[:4]))
+        if not candidate_names:
+            candidate_names = list(target_names or self.DEFAULT_GALAXIES[:1])
+        budget: dict[str, int] = {name: 0 for name in candidate_names}
+        remaining = int(total_budget)
+        for galaxy_name in target_names:
+            if remaining <= 0:
+                break
+            if galaxy_name not in budget:
+                continue
+            budget[galaxy_name] = int(budget.get(galaxy_name, 0)) + 1
+            remaining -= 1
+        if remaining > 0:
+            signal_sum = float(sum(positive_bias.get(name, 0.0) for name in candidate_names))
+            if signal_sum <= 1e-6:
+                cycle_names = list(candidate_names)
+                for index in range(remaining):
+                    galaxy_name = cycle_names[index % len(cycle_names)]
+                    budget[galaxy_name] = int(budget.get(galaxy_name, 0)) + 1
+            else:
+                exact_rows: list[tuple[float, float, str]] = []
+                assigned = 0
+                for galaxy_name in candidate_names:
+                    exact = float(remaining) * (float(positive_bias.get(galaxy_name, 0.0)) / signal_sum)
+                    whole = int(math.floor(exact))
+                    if whole > 0:
+                        budget[galaxy_name] = int(budget.get(galaxy_name, 0)) + whole
+                        assigned += whole
+                    exact_rows.append((exact - whole, float(positive_bias.get(galaxy_name, 0.0)), galaxy_name))
+                leftover = max(0, remaining - assigned)
+                for _, _, galaxy_name in sorted(exact_rows, reverse=True)[:leftover]:
+                    budget[galaxy_name] = int(budget.get(galaxy_name, 0)) + 1
+        return {
+            str(galaxy_name): int(slots)
+            for galaxy_name, slots in budget.items()
+            if int(slots) > 0
+        }
+
+    def _weighted_seed_pairs_by_galaxy(
+        self,
+        *,
+        similarity_pairs: list[tuple[int, float]],
+        catalog: list[dict[str, Any]],
+        seed_budget: dict[str, int],
+        limit: int,
+        similarity_threshold: float,
+    ) -> list[tuple[int, float]]:
+        if not seed_budget:
+            return []
+        grouped: dict[str, list[tuple[int, float]]] = {}
+        for candidate_index, similarity in similarity_pairs:
+            if not (0 <= int(candidate_index) < len(catalog)):
+                continue
+            galaxy_name = str(catalog[int(candidate_index)].get("galaxy", "")).strip()
+            if galaxy_name not in seed_budget:
+                continue
+            grouped.setdefault(galaxy_name, []).append((int(candidate_index), float(similarity)))
+        selected: list[tuple[int, float]] = []
+        selected_ids: set[int] = set()
+        for galaxy_name, slot_count in seed_budget.items():
+            for candidate_index, similarity in grouped.get(galaxy_name, [])[: int(slot_count)]:
+                if float(similarity) < float(similarity_threshold):
+                    continue
+                if int(candidate_index) in selected_ids:
+                    continue
+                selected.append((int(candidate_index), float(similarity)))
+                selected_ids.add(int(candidate_index))
+                if len(selected) >= int(limit):
+                    return selected
+        if len(selected) < int(limit):
+            for candidate_index, similarity in similarity_pairs:
+                if float(similarity) < float(similarity_threshold):
+                    continue
+                if int(candidate_index) in selected_ids:
+                    continue
+                selected.append((int(candidate_index), float(similarity)))
+                selected_ids.add(int(candidate_index))
+                if len(selected) >= int(limit):
+                    break
+        return selected[: int(limit)]
+
     def _compose_head_navigation_candidates(
         self,
         *,
         binding: dict[str, Any],
         target_galaxies: list[str],
+        galaxy_weights: dict[str, Any] | None,
         reasoning_program_id: str,
         query_embedding: list[float],
         task_type: str,
@@ -5150,19 +5824,58 @@ class Knowledgeverse:
         if not catalog or graph is None:
             return []
 
+        normalized_galaxy_weights = self._normalize_galaxy_weights(galaxy_weights)
+        allowed_galaxies = list(self.DEFAULT_GALAXIES) if normalized_galaxy_weights else list(target_galaxies)
         allowed_indexes = {
             int(round(float(self._gpu_galaxy_index(name))))
-            for name in target_galaxies
+            for name in allowed_galaxies
             if str(name).strip()
         }
+        seed_budget = self._allocate_galaxy_seed_budget(
+            task_type=task_type,
+            target_galaxies=target_galaxies,
+            normalized_galaxy_weights=normalized_galaxy_weights,
+        ) if normalized_galaxy_weights else {}
+        if seed_budget:
+            selection_steps.append(
+                "Seed budget: "
+                + ", ".join(
+                    f"{galaxy_name}={int(slot_count)}"
+                    for galaxy_name, slot_count in seed_budget.items()
+                )
+            )
         morton_radius, euclidean_radius, max_results = self._task_morton_search_config(task_type)
-        candidate_indexes = substrate.morton_locate(
-            query_embedding16=query_embedding,
-            allowed_galaxy_indexes=allowed_indexes or None,
-            max_results=max_results,
-            morton_radius=morton_radius,
-            euclidean_radius=euclidean_radius,
-        )
+        if seed_budget:
+            candidate_indexes = []
+            total_seed_slots = max(1, sum(int(value) for value in seed_budget.values()))
+            for galaxy_name, slot_count in seed_budget.items():
+                galaxy_index = int(round(float(self._gpu_galaxy_index(galaxy_name))))
+                per_galaxy_results = max(
+                    16,
+                    min(
+                        int(max_results),
+                        int(math.ceil((int(max_results) * int(slot_count)) / float(total_seed_slots))),
+                    ),
+                )
+                candidate_indexes.extend(
+                    int(index)
+                    for index in substrate.morton_locate(
+                        query_embedding16=query_embedding,
+                        allowed_galaxy_indexes={galaxy_index},
+                        max_results=per_galaxy_results,
+                        morton_radius=morton_radius,
+                        euclidean_radius=euclidean_radius,
+                    ).tolist()
+                )
+            candidate_indexes = np.asarray(list(dict.fromkeys(candidate_indexes)), dtype=np.uint32)
+        else:
+            candidate_indexes = substrate.morton_locate(
+                query_embedding16=query_embedding,
+                allowed_galaxy_indexes=allowed_indexes or None,
+                max_results=max_results,
+                morton_radius=morton_radius,
+                euclidean_radius=euclidean_radius,
+            )
         if candidate_indexes.size == 0 and allowed_indexes:
             candidate_indexes = substrate.morton_locate(
                 query_embedding16=query_embedding,
@@ -5205,12 +5918,33 @@ class Knowledgeverse:
         if not hasattr(candidate_indexes, "tolist"):
             candidate_indexes = list(candidate_indexes)
 
-        semantic_seed_pairs = graph.select_seed_nodes(
-            query_embedding=query_embedding,
-            allowed_galaxy_indexes=allowed_indexes or None,
-            top_k=max(8, self._graph_seed_limit(task_type) * 2),
-            similarity_threshold=max(0.0, self._graph_seed_similarity_threshold(task_type) - 0.06),
-        )
+        if seed_budget:
+            merged_seed_map: dict[int, float] = {}
+            total_seed_slots = max(1, sum(int(value) for value in seed_budget.values()))
+            for galaxy_name, slot_count in seed_budget.items():
+                galaxy_index = int(round(float(self._gpu_galaxy_index(galaxy_name))))
+                galaxy_pairs = graph.select_seed_nodes(
+                    query_embedding=query_embedding,
+                    allowed_galaxy_indexes={galaxy_index},
+                    top_k=max(4, int(math.ceil((self._graph_seed_limit(task_type) * 2 * int(slot_count)) / float(total_seed_slots)))),
+                    similarity_threshold=max(0.0, self._graph_seed_similarity_threshold(task_type) - 0.06),
+                )
+                for index, similarity in galaxy_pairs:
+                    current = merged_seed_map.get(int(index), float("-inf"))
+                    if float(similarity) > current:
+                        merged_seed_map[int(index)] = float(similarity)
+            semantic_seed_pairs = sorted(
+                merged_seed_map.items(),
+                key=lambda item: item[1],
+                reverse=True,
+            )
+        else:
+            semantic_seed_pairs = graph.select_seed_nodes(
+                query_embedding=query_embedding,
+                allowed_galaxy_indexes=allowed_indexes or None,
+                top_k=max(8, self._graph_seed_limit(task_type) * 2),
+                similarity_threshold=max(0.0, self._graph_seed_similarity_threshold(task_type) - 0.06),
+            )
         semantic_seed_pairs = [
             (index, similarity)
             for index, similarity in semantic_seed_pairs
@@ -5238,12 +5972,33 @@ class Knowledgeverse:
             )
         ]
         if not candidate_index_list:
-            rescue_seed_pairs = graph.select_seed_nodes(
-                query_embedding=query_embedding,
-                allowed_galaxy_indexes=allowed_indexes or None,
-                top_k=max(32, self._graph_seed_limit(task_type) * 8),
-                similarity_threshold=max(0.0, self._graph_seed_similarity_threshold(task_type) - 0.14),
-            )
+            if seed_budget:
+                merged_rescue_map: dict[int, float] = {}
+                total_seed_slots = max(1, sum(int(value) for value in seed_budget.values()))
+                for galaxy_name, slot_count in seed_budget.items():
+                    galaxy_index = int(round(float(self._gpu_galaxy_index(galaxy_name))))
+                    galaxy_pairs = graph.select_seed_nodes(
+                        query_embedding=query_embedding,
+                        allowed_galaxy_indexes={galaxy_index},
+                        top_k=max(8, int(math.ceil((self._graph_seed_limit(task_type) * 8 * int(slot_count)) / float(total_seed_slots)))),
+                        similarity_threshold=max(0.0, self._graph_seed_similarity_threshold(task_type) - 0.14),
+                    )
+                    for index, similarity in galaxy_pairs:
+                        current = merged_rescue_map.get(int(index), float("-inf"))
+                        if float(similarity) > current:
+                            merged_rescue_map[int(index)] = float(similarity)
+                rescue_seed_pairs = sorted(
+                    merged_rescue_map.items(),
+                    key=lambda item: item[1],
+                    reverse=True,
+                )
+            else:
+                rescue_seed_pairs = graph.select_seed_nodes(
+                    query_embedding=query_embedding,
+                    allowed_galaxy_indexes=allowed_indexes or None,
+                    top_k=max(32, self._graph_seed_limit(task_type) * 8),
+                    similarity_threshold=max(0.0, self._graph_seed_similarity_threshold(task_type) - 0.14),
+                )
             candidate_index_list = [
                 int(index)
                 for index, _ in rescue_seed_pairs
@@ -5267,17 +6022,38 @@ class Knowledgeverse:
         candidate_similarities = self._embedding_similarities(query_embedding, candidate_embeddings)
         similarity_pairs = sorted(
             zip(candidate_index_list, candidate_similarities),
-            key=lambda item: item[1],
+            key=lambda item: (
+                item[1]
+                + (
+                    0.18
+                    * (
+                        self._galaxy_weight_for_name(
+                            str(catalog[int(item[0])].get("galaxy", "")),
+                            normalized_galaxy_weights,
+                        )
+                        - 1.0
+                    )
+                )
+            ),
             reverse=True,
         )
         selection_steps.append(
             f"Morton locate: {len(similarity_pairs)} candidates (radius={morton_radius}, target={len(target_galaxies)})"
         )
-        seed_pairs = [
-            pair
-            for pair in similarity_pairs[: self._graph_seed_limit(task_type)]
-            if pair[1] >= self._graph_seed_similarity_threshold(task_type)
-        ]
+        if seed_budget:
+            seed_pairs = self._weighted_seed_pairs_by_galaxy(
+                similarity_pairs=similarity_pairs,
+                catalog=catalog,
+                seed_budget=seed_budget,
+                limit=self._graph_seed_limit(task_type),
+                similarity_threshold=self._graph_seed_similarity_threshold(task_type),
+            )
+        else:
+            seed_pairs = [
+                pair
+                for pair in similarity_pairs[: self._graph_seed_limit(task_type)]
+                if pair[1] >= self._graph_seed_similarity_threshold(task_type)
+            ]
         if not seed_pairs:
             seed_pairs = similarity_pairs[: self._graph_seed_limit(task_type)]
         if not seed_pairs:
@@ -5329,6 +6105,7 @@ class Knowledgeverse:
                         match=catalog[global_index],
                         task_type=task_type,
                         target_galaxies=target_galaxies,
+                        galaxy_weights=normalized_galaxy_weights,
                         reasoning_program_id=reasoning_program_id,
                         query_embedding=query_embedding,
                     )
@@ -5438,6 +6215,10 @@ class Knowledgeverse:
                     "lod_level": int(lod_level),
                     "lod_focus": 1.0 if int(lod_level) <= focus_level else 0.0,
                     "led_focus": 1.0 if led_focus_index == candidate_index else 0.0,
+                    "galaxy_weight": self._galaxy_weight_for_name(
+                        str(match.get("galaxy", "")),
+                        normalized_galaxy_weights,
+                    ),
                     "led_path": list(led_path_nodes),
                 }
             )
@@ -5445,6 +6226,7 @@ class Knowledgeverse:
             key=lambda candidate: (
                 float(candidate.get("led_focus", 0.0)),
                 float(candidate.get("lod_focus", 0.0)),
+                float(candidate.get("galaxy_weight", 0.0)),
                 float(candidate.get("lod_saliency", 0.0)),
                 float(candidate.get("similarity", 0.0)),
                 float(candidate["match"].get("confidence", 0.0)),
@@ -5765,6 +6547,7 @@ class Knowledgeverse:
         binding: dict[str, Any],
         paths: list[dict[str, Any]],
         target_galaxies: list[str],
+        galaxy_weights: dict[str, Any] | None,
         reasoning_program_id: str,
         query_embedding: list[float],
         task_type: str,
@@ -5938,6 +6721,7 @@ class Knowledgeverse:
         navigation_candidates = self._compose_head_navigation_candidates(
             binding=binding,
             target_galaxies=target_galaxies,
+            galaxy_weights=galaxy_weights,
             reasoning_program_id=reasoning_program_id,
             query_embedding=navigation_reference_embedding,
             task_type=task_type,
@@ -6270,6 +7054,7 @@ class Knowledgeverse:
                 path_navigation_candidates = self._compose_head_navigation_candidates(
                     binding=binding,
                     target_galaxies=path_target_galaxies,
+                    galaxy_weights=galaxy_weights,
                     reasoning_program_id=str(program.get("id", "")).strip() or reasoning_program_id,
                     query_embedding=option_embedding,
                     task_type=task_type,
@@ -6897,15 +7682,26 @@ class Knowledgeverse:
         if not converged:
             if task_type == "LHE_TASK" and scored_candidates:
                 selection_steps.append("LHE fallback: use top factual candidate")
-                return max(scored_candidates, key=lambda candidate: float(candidate.get("gpu_score", float("-inf"))))
+                return self._attach_galaxy_contribution(
+                    max(scored_candidates, key=lambda candidate: float(candidate.get("gpu_score", float("-inf")))),
+                    records=path_best_records,
+                    candidates=scored_candidates,
+                    selection_steps=selection_steps,
+                )
             return None
         if task_type in {"MMLU_TASK", "LHE_TASK"} and selected_records:
-            return max(
+            return self._attach_galaxy_contribution(
+                max(
                 (record.get("candidate") for record in selected_records if isinstance(record.get("candidate"), dict)),
                 key=lambda candidate: float((candidate or {}).get("path_score", float("-inf"))),
+                ),
+                records=path_best_records or selected_records,
+                candidates=scored_candidates,
+                selection_steps=selection_steps,
             )
         if gsm8k_mode and selected_records:
-            return max(
+            return self._attach_galaxy_contribution(
+                max(
                 (record.get("candidate") for record in selected_records if isinstance(record.get("candidate"), dict)),
                 key=lambda candidate: (
                     float((candidate or {}).get("gsm8k_consensus_weight", 0.0)),
@@ -6913,8 +7709,17 @@ class Knowledgeverse:
                     float((candidate or {}).get("path_score", float("-inf"))),
                     float((candidate or {}).get("gpu_score", float("-inf"))),
                 ),
+                ),
+                records=path_best_records or selected_records,
+                candidates=scored_candidates,
+                selection_steps=selection_steps,
             )
-        return max(scored_candidates, key=lambda candidate: float(candidate.get("gpu_score", float("-inf"))))
+        return self._attach_galaxy_contribution(
+            max(scored_candidates, key=lambda candidate: float(candidate.get("gpu_score", float("-inf")))),
+            records=path_best_records,
+            candidates=scored_candidates,
+            selection_steps=selection_steps,
+        )
 
     def _goal_edge_cost(
         self,
@@ -6922,25 +7727,34 @@ class Knowledgeverse:
         match: dict[str, Any],
         task_type: str,
         target_galaxies: list[str],
+        galaxy_weights: dict[str, Any] | None,
         reasoning_program_id: str,
         query_embedding: list[float],
     ) -> float | None:
         galaxy_name = str(match.get("galaxy", "")).strip()
         allowed = set(target_galaxies)
+        normalized_galaxy_weights = self._normalize_galaxy_weights(galaxy_weights)
         if task_type == "LHE_TASK":
             allowed = {"Reality", "Math"}
         elif task_type == "ARC_TASK":
             allowed = {"Drawing", "Grammar", "Tool"}
+        elif normalized_galaxy_weights:
+            allowed = set(self.DEFAULT_GALAXIES)
         if allowed and galaxy_name not in allowed:
             return None
         similarity = self._embedding_similarity(query_embedding, list(match.get("embedding16", [])))
-        return max(0.01, 1.0 - similarity)
+        base_cost = max(0.01, 1.0 - similarity)
+        galaxy_weight = self._galaxy_weight_for_name(galaxy_name, normalized_galaxy_weights)
+        if galaxy_weight > 0.0:
+            base_cost *= max(0.25, 1.0 - (0.75 * (galaxy_weight - 1.0)))
+        return max(0.01, float(base_cost))
 
     def _navigate_led_primary_candidate(
         self,
         *,
         binding: dict[str, Any],
         target_galaxies: list[str],
+        galaxy_weights: dict[str, Any] | None,
         reasoning_program_id: str,
         primary_reasoning_program: dict[str, Any],
         query_embedding: list[float],
@@ -7016,6 +7830,7 @@ class Knowledgeverse:
                 match=catalog[global_index],
                 task_type=task_type,
                 target_galaxies=target_galaxies,
+                galaxy_weights=galaxy_weights,
                 reasoning_program_id=reasoning_program_id,
                 query_embedding=query_embedding,
             )
@@ -7411,6 +8226,8 @@ class Knowledgeverse:
         parse_override_algebra_weight = self._parse_override_weight("meta_rule_parse_override_algebra", 0.8)
         parse_override_domain_weight = self._parse_override_weight("meta_rule_parse_override_domain", 0.7)
         program_id = str(candidate["program"].get("id", "")).strip()
+        galaxy_weight = float(candidate.get("galaxy_weight", 1.0))
+        galaxy_bias = float(galaxy_weight - 1.0)
         arc_focus_bonus = 0.0
         arc_focus_penalty = 0.0
         if task_type == "ARC_TASK":
@@ -7430,6 +8247,10 @@ class Knowledgeverse:
             "+",
             self._gpu_scalar_literal(target_flag),
             "0.03",
+            "*",
+            "+",
+            self._gpu_scalar_literal(galaxy_bias),
+            "0.18",
             "*",
             "+",
             self._gpu_scalar_literal(primary_flag),
@@ -7894,7 +8715,7 @@ class Knowledgeverse:
         if lhe_timing_active:
             self._active_lhe_timing = {}
         targets_started = time.perf_counter()
-        target_galaxies, reasoning_program_id = self._select_gpu_profile(
+        python_target_galaxies, reasoning_program_id = self._select_gpu_profile(
             task=task,
             route=route,
             specialist=specialist,
@@ -7905,8 +8726,41 @@ class Knowledgeverse:
             self._record_active_lhe_timing("targets", time.perf_counter() - targets_started)
         resolved_domain_hint = domain_hint or str((task or {}).get("subject", "")).strip() or None
         route_specialist = str((route or {}).get("specialist") or specialist or "auto").strip() or "auto"
+        embed_started = time.perf_counter()
+        query_embedding = self._embed_query_gpu(query_text, task=task)
+        if lhe_timing_active:
+            self._record_active_lhe_timing("embed", time.perf_counter() - embed_started)
+        trm_tick = None
+        if self._trm_ready and (
+            os.getenv("K3D_TRM_SHADOW", "0").strip().lower() in {"1", "true", "yes"}
+            or os.getenv("K3D_TRM_NAVIGATE", "0").strip().lower() in {"1", "true", "yes"}
+        ):
+            trm_tick = self._run_single_trm_tick(query_embedding)
+        trm_shadow = None
+        if self._trm_ready and os.getenv("K3D_TRM_SHADOW", "0").strip().lower() in {"1", "true", "yes"}:
+            trm_shadow = self._trm_shadow_probe(
+                query_embedding,
+                target_galaxies=python_target_galaxies,
+                reasoning_program_id=reasoning_program_id,
+                trm_tick=trm_tick,
+            )
+        target_galaxies = list(python_target_galaxies)
+        trm_galaxy_weights: dict[str, float] = {}
+        trm_navigation = None
+        trm_navigate_enabled = self._trm_navigation_env_enabled()
+        if self._trm_ready and trm_navigate_enabled:
+            trm_galaxy_weights, reasoning_program_id, trm_navigation = self._trm_select_galaxies(
+                query_embedding,
+                task_type=task_type,
+                fallback_galaxies=python_target_galaxies,
+                reasoning_program_id=reasoning_program_id,
+                trm_tick=trm_tick,
+            )
         bind_started = time.perf_counter()
-        binding = self.bind_gpu_galaxy_runtime(galaxy_names=target_galaxies)
+        if trm_navigate_enabled:
+            binding = self._pin_all_default_gpu_binding()
+        else:
+            binding = self.bind_gpu_galaxy_runtime(galaxy_names=target_galaxies)
         if lhe_timing_active:
             self._record_active_lhe_timing("bind", time.perf_counter() - bind_started)
         parse_started = time.perf_counter()
@@ -7921,10 +8775,6 @@ class Knowledgeverse:
             self._record_active_lhe_timing("parse", time.perf_counter() - parse_started)
         reasoning_program = self._select_gpu_reasoning_program(reasoning_program_id)
         primary_reasoning_program = dict(reasoning_program)
-        embed_started = time.perf_counter()
-        query_embedding = self._embed_query_gpu(query_text, task=task)
-        if lhe_timing_active:
-            self._record_active_lhe_timing("embed", time.perf_counter() - embed_started)
         build_paths_started = time.perf_counter()
         paths = self._build_gpu_reasoning_paths(
             task=task,
@@ -7944,6 +8794,7 @@ class Knowledgeverse:
                 binding=binding,
                 paths=paths,
                 target_galaxies=target_galaxies,
+                galaxy_weights=trm_galaxy_weights,
                 reasoning_program_id=reasoning_program_id,
                 query_embedding=query_embedding,
                 task_type=task_type,
@@ -7998,10 +8849,30 @@ class Knowledgeverse:
                 "match": {},
                 "query_type": str(query_type or ""),
                 "use_enriched": bool(use_enriched),
+                **({"trm_shadow": trm_shadow} if trm_shadow is not None else {}),
+                **({"trm_navigation": trm_navigation} if trm_navigation is not None else {}),
             }
         match = best_candidate["match"]
         similarity = float(best_candidate["similarity"])
         winning_program_id = str(best_candidate["program"].get("id", "")).strip()
+        galaxy_contribution = (
+            dict(best_candidate.get("galaxy_contribution", {}))
+            if isinstance(best_candidate.get("galaxy_contribution"), dict)
+            else {}
+        )
+        teacher_route_galaxies = [
+            str(name).strip()
+            for name in (
+                best_candidate.get("teacher_route_galaxies")
+                if isinstance(best_candidate.get("teacher_route_galaxies"), list)
+                else []
+            )
+            if str(name).strip()
+        ]
+        if trm_shadow is not None and galaxy_contribution:
+            trm_shadow["galaxy_contribution"] = dict(galaxy_contribution)
+            trm_shadow["teacher_route_galaxies"] = list(teacher_route_galaxies)
+            trm_shadow["teacher_route_source"] = "dormant_composed_head"
         if winning_program_id and winning_program_id != reasoning_program_id:
             selection_steps.append(f"Winning path: {winning_program_id}")
         if task_type == "MATH_TASK":
@@ -8032,6 +8903,13 @@ class Knowledgeverse:
                 selection_steps=selection_steps,
             )
             result["winning_program_id"] = winning_program_id or reasoning_program_id
+            if galaxy_contribution:
+                result["galaxy_contribution"] = dict(galaxy_contribution)
+                result["teacher_route_galaxies"] = list(teacher_route_galaxies)
+            if trm_shadow is not None:
+                result["trm_shadow"] = trm_shadow
+            if trm_navigation is not None:
+                result["trm_navigation"] = trm_navigation
             self._record_query_feedback(task=task, result=result, specialist=specialist, domain_hint=domain_hint)
             return result
         if task_type == "MATH_TASK":
@@ -8052,6 +8930,13 @@ class Knowledgeverse:
                 best_candidate=best_candidate,
             )
             result["winning_program_id"] = winning_program_id or reasoning_program_id
+            if galaxy_contribution:
+                result["galaxy_contribution"] = dict(galaxy_contribution)
+                result["teacher_route_galaxies"] = list(teacher_route_galaxies)
+            if trm_shadow is not None:
+                result["trm_shadow"] = trm_shadow
+            if trm_navigation is not None:
+                result["trm_navigation"] = trm_navigation
             self._record_query_feedback(task=task, result=result, specialist=specialist, domain_hint=domain_hint)
             return result
         if task_type == "MMLU_TASK":
@@ -8071,6 +8956,13 @@ class Knowledgeverse:
                 best_candidate=best_candidate,
             )
             result["winning_program_id"] = winning_program_id or reasoning_program_id
+            if galaxy_contribution:
+                result["galaxy_contribution"] = dict(galaxy_contribution)
+                result["teacher_route_galaxies"] = list(teacher_route_galaxies)
+            if trm_shadow is not None:
+                result["trm_shadow"] = trm_shadow
+            if trm_navigation is not None:
+                result["trm_navigation"] = trm_navigation
             self._record_query_feedback(task=task, result=result, specialist=specialist, domain_hint=domain_hint)
             return result
         if task_type == "LHE_TASK":
@@ -8098,6 +8990,13 @@ class Knowledgeverse:
                     answer_text=str(result.get("answer", "")),
                 )
             result["winning_program_id"] = winning_program_id or reasoning_program_id
+            if galaxy_contribution:
+                result["galaxy_contribution"] = dict(galaxy_contribution)
+                result["teacher_route_galaxies"] = list(teacher_route_galaxies)
+            if trm_shadow is not None:
+                result["trm_shadow"] = trm_shadow
+            if trm_navigation is not None:
+                result["trm_navigation"] = trm_navigation
             self._record_query_feedback(task=task, result=result, specialist=specialist, domain_hint=domain_hint)
             return result
         if task_type in {"CHAT_TASK", "GENERAL_TASK", "GRAMMAR_TASK"} or reasoning_program_id == self.GPU_CHAT_REASONING_PROGRAM_ID:
@@ -8115,6 +9014,13 @@ class Knowledgeverse:
                 selection_steps=selection_steps,
             )
             result["winning_program_id"] = winning_program_id or reasoning_program_id
+            if galaxy_contribution:
+                result["galaxy_contribution"] = dict(galaxy_contribution)
+                result["teacher_route_galaxies"] = list(teacher_route_galaxies)
+            if trm_shadow is not None:
+                result["trm_shadow"] = trm_shadow
+            if trm_navigation is not None:
+                result["trm_navigation"] = trm_navigation
             self._record_query_feedback(task=task, result=result, specialist=specialist, domain_hint=domain_hint)
             return result
         answer = str(match.get("answer_text") or match.get("name") or match.get("id") or "").strip()
@@ -8151,6 +9057,10 @@ class Knowledgeverse:
             "match": match,
             "query_type": str(query_type or ""),
             "use_enriched": bool(use_enriched),
+            **({"galaxy_contribution": dict(galaxy_contribution)} if galaxy_contribution else {}),
+            **({"teacher_route_galaxies": list(teacher_route_galaxies)} if teacher_route_galaxies else {}),
+            **({"trm_shadow": trm_shadow} if trm_shadow is not None else {}),
+            **({"trm_navigation": trm_navigation} if trm_navigation is not None else {}),
         }
         self._record_query_feedback(task=task, result=result, specialist=specialist, domain_hint=domain_hint)
         return result

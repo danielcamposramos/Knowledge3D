@@ -88,10 +88,27 @@ def test_temporal_reasoning():
 
 def test_graph_crystallizer():
     crystallizer = GraphCrystallizer()
-    nodes = cp.ones(6, dtype=cp.float32)
-    neighbors = cp.full(6, 0.5, dtype=cp.float32)
-    out = crystallizer.crystallize(nodes, neighbors, ema_rate=0.2)
+    nodes = np.asarray(
+        [
+            [1.0, 0.0],
+            [0.0, 1.0],
+            [0.0, 0.0],
+        ],
+        dtype=np.float32,
+    )
+    adjacency = np.asarray(
+        [
+            [1, -1],
+            [2, -1],
+            [-1, -1],
+        ],
+        dtype=np.int32,
+    )
+    counts = np.asarray([1, 1, 0], dtype=np.int32)
+    out = crystallizer.crystallize_graph(nodes, adjacency, counts, rounds=2)
     assert out.shape == nodes.shape
+    assert out[0, 1] > 0.13
+    assert out[1, 1] > 0.53
 
 
 def test_halting_gate():

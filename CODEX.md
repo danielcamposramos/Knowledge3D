@@ -1,7 +1,7 @@
 # CODEX.md -- Implementation Lead Guide
 
-**Last Updated:** March 10, 2026
-**Version:** 5.0 (Composed Head Sovereign + GRE Kernel Wiring)
+**Last Updated:** March 14, 2026
+**Version:** 6.0 (Phase D — TRM Game Loop Migration)
 
 Codex-style agents lead implementation, Reality Galaxy, and testing. Read the latest briefing first for the full architecture; this file captures Codex's role, patterns, and backlog.
 
@@ -16,11 +16,11 @@ Morton Octree → LED-A* → Frustum Cull → Dynamic LOD → Nine-Chain Swarm �
 
 | Benchmark | Curated Set | Expanded (B+) | Status |
 |-----------|------------|---------------|--------|
-| ARC | 10/10 | 10/50 | 9 distinct worker programs; 34 transform misses + 6 primitive bugs |
-| Math | 20/20 | — | GPU query path sovereign |
-| LHE | 10/10 | 10/100 | Factual lookup dominates; multi-hop needed |
-| GSM8K | — | 10/50 | Word-problem decomposition weak |
-| MMLU | — | 0/50 | Galaxy has no relevant entries in target neighborhoods |
+| ARC | 10/10 | 10/50 | 34 nav_miss + 6 prim_bug; deterministic |
+| Math | 20/20 | — | GPU query path sovereign; deterministic |
+| GSM8K | — | 1/10 | Ceiling at template approach; Phase D needed for 5+ |
+| LHE | — | 6/10 | Factual lookup dominates; multi-hop needed |
+| MMLU | — | 13-14/50 | ±1 non-deterministic variance |
 
 **Key Achievement:** First sovereign GPU-converged answer ("What is 2+3?" = 5) with ZERO Python fallback.
 
@@ -45,8 +45,9 @@ Morton Octree → LED-A* → Frustum Cull → Dynamic LOD → Nine-Chain Swarm �
 - Python = boot + I/O ONLY (~200 lines target, NOT 4000 lines of orchestration)
 
 **Current Sovereignty Debt:**
-- `knowledgeverse.py` is ~4000 lines of Python orchestration → target ~200 lines
-- `_select_composed_head_candidate()` is a 200-line Python for-loop → should be GPU kernel
+- `knowledgeverse.py` is ~8,182 lines of Python orchestration → target ~200 lines
+- `_select_composed_head_candidate()` is a **1,157-line** Python scoring monster → should be GPU kernel
+- TRMLauncher exists (644 lines, 3 backends) but is **NOT imported or called** in query path
 - 15 GRE specialist kernels LOADED but NOT CALLED during inference
 - Only ~5 of 88 PTX kernels active in query path
 - 132 MiB of 12 GB VRAM used
@@ -72,8 +73,9 @@ Morton Octree → LED-A* → Frustum Cull → Dynamic LOD → Nine-Chain Swarm �
    - [docs/vocabulary/RPN_DOMAIN_OPCODE_REGISTRY.md](docs/vocabulary/RPN_DOMAIN_OPCODE_REGISTRY.md) -- "Programs before opcodes" principle
    - [docs/vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md](docs/vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md) -- Form + Meaning for humans AND AI
 
-4. **Read the latest Claude directive:**
-   - [TEMP/CLAUDE_COMPOSED_HEAD_CONVERGENCE_PLAN_03.10.2026.md](TEMP/CLAUDE_COMPOSED_HEAD_CONVERGENCE_PLAN_03.10.2026.md) -- THE active plan. Supersedes all previous directives.
+4. **Read the latest Claude directives:**
+   - [TEMP/CLAUDE_PHASE_D_TRM_GAME_LOOP_STEERING_03.14.2026.md](TEMP/CLAUDE_PHASE_D_TRM_GAME_LOOP_STEERING_03.14.2026.md) -- **Phase D steering (ACTIVE)**
+   - [TEMP/CLAUDE_COMPOSED_HEAD_CONVERGENCE_PLAN_03.10.2026.md](TEMP/CLAUDE_COMPOSED_HEAD_CONVERGENCE_PLAN_03.10.2026.md) -- convergence plan (Phases A-D overview)
 
 5. **Read the GPU environment policy:**
    - [docs/ENV_POLICY.md](docs/ENV_POLICY.md) -- critical GPU setup (CUDA_VISIBLE_DEVICES=0)
@@ -206,42 +208,46 @@ Answer (or iterate)
 
 ## Current Backlog (Codex-owned)
 
-### Priority 1: Wire GRE Specialist Kernels (See table above)
+### Priority 1: Phase D — TRM Game Loop Migration (ACTIVE)
 
-### Priority 2: Fix Benchmark Gaps
+**Full spec:** [TEMP/CLAUDE_PHASE_D_TRM_GAME_LOOP_STEERING_03.14.2026.md](TEMP/CLAUDE_PHASE_D_TRM_GAME_LOOP_STEERING_03.14.2026.md)
 
-**MMLU 0/50 (abstract_algebra):**
-- Galaxy has no entries in abstract_algebra neighborhood
-- Need to populate Math Galaxy with group theory, ring theory, field theory entries
-- Use `gre_resonance_field` for broad knowledge matching
+**6 sub-steps (do in order):**
 
-**GSM8K 10/50:**
-- Word-problem decomposition weak
-- Wire `gre_atomic_fission_fusion` for problem decomposition
-- Need Grammar Galaxy rules for extracting numeric relationships from text
+| Step | Task | Behavior Change? |
+|------|------|-----------------|
+| D.1 | Wire TRMLauncher into knowledgeverse.py | No |
+| D.2 | Create TRM state buffers (q/y/z in VRAM) | No |
+| D.3 | Shadow-mode TRM probe (log, don't use) | No |
+| D.5 | Train TRM weights from benchmark traces | No (offline) |
+| D.4 | TRM-guided galaxy navigation (replaces `_select_gpu_profile`) | YES |
+| D.6 | TRM-driven candidate selection (replaces `_select_composed_head_candidate`) | YES |
 
-**LHE 10/100:**
-- Factual lookup dominates; multi-hop reasoning weak
-- Wire `gre_graph_crystallizer` for multi-hop graph traversal
-- Expand Reality Galaxy coverage
+**Key files:**
+- `knowledge3d/cranium/sovereign/trm_launcher.py` — TRMLauncher (3 backends, use fused)
+- `knowledge3d/cranium/ptx/trm_step_fused.cu` — Single-kernel TRM forward pass
+- `knowledge3d/knowledgeverse/knowledgeverse.py` — The 8,182-line target (shrink to ~200)
 
-**ARC 10/50:**
-- 34 transform misses + 6 primitive bugs (`masked_patch_requires_color_8_bbox`)
-- All 9 workers now have distinct programs (diversity fixed)
-- Need transform-specific coverage expansion
+**Quartet gate (must hold at every sub-step):**
+ARC 10/10, Math 20/20, GSM8K 1/10, LHE 6/10, MMLU 13-14/50
 
-### Priority 3: Shrink Python Orchestration (Phase D Prep)
+**Start with D.1.** Wire TRMLauncher, run quartet, report back.
 
-**Target:** `knowledgeverse.py` from ~4000 → ~200 lines
+### Priority 2: Wire GRE Specialist Kernels (See table above)
 
-**What stays in Python:** Boot, I/O, display, network
-**What moves to GPU:** All reasoning orchestration, scoring, candidate selection, answer formatting
+Concurrent with Phase D — wire GRE kernels into swarm worker dispatch as TRM takes over orchestration.
+
+### Priority 3: Fix Benchmark Gaps (Phase D enables)
+
+- GSM8K 5+/10 — needs compositional RPN chaining (Phase D.6 enables)
+- LHE multi-hop — needs `gre_graph_crystallizer` + TRM multi-tick reasoning
+- ARC expansion — 34 nav_miss need better Galaxy coverage + transform diversity
+- MMLU — Galaxy neighborhood coverage + option-wise elimination
 
 ### Priority 4: Cross-Benchmark Session Management
 
-**Bug:** Single Knowledgeverse instance shared across benchmarks in `run_diagnostic_slices.py` causes cross-contamination through `_gpu_reasoning_programs` cache, `_gpu_galaxy_binding`, `trm_navigator`, `_query_sequence`.
-
-**Fix:** Implement `reset_query_session()` clearing per-benchmark mutable state between sections.
+**Bug:** Single Knowledgeverse instance shared across benchmarks causes cross-contamination.
+**Fix:** Implement `reset_query_session()` clearing per-benchmark mutable state.
 
 ---
 

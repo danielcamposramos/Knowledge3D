@@ -97,6 +97,8 @@ class ArcAgi2Adapter:
             "runtime": solved.get("runtime", "knowledgeverse_gpu_query"),
             "program_id": solved.get("program_id"),
             "error": solved.get("error"),
+            "task_result": solved,
+            **({"trm_shadow": solved.get("trm_shadow")} if isinstance(solved.get("trm_shadow"), dict) else {}),
         }
 
     def _solve_task_ptx_only(self, task: dict[str, Any]) -> dict[str, Any]:
