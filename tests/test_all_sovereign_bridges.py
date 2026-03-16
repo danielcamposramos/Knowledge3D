@@ -89,33 +89,95 @@ class TestDeepSeekKernels:
     """Test Deep Seek's 2 kernels: GeometryRouter, FractalEmitter"""
 
     def test_geometry_router(self):
-        """Test GeometryRouter scales by media type"""
+        """Test GeometryRouter computes stable pairwise relation features"""
         router = GeometryRouter()
 
-        data = np.ones(100, dtype=np.float32)
+        a = np.array(
+            [
+                [1.0, 0.0, 0.0, 0.0],
+                [1.0, 2.0, 3.0, 4.0],
+            ],
+            dtype=np.float32,
+        )
+        b = np.array(
+            [
+                [1.0, 0.0, 0.0, 0.0],
+                [4.0, 3.0, 2.0, 1.0],
+            ],
+            dtype=np.float32,
+        )
 
-        # Test each media type
-        scales = {0: 0.8, 1: 1.1, 2: 0.9, 3: 1.2, 4: 1.0}
-        for shape_id, expected_scale in scales.items():
-            output = router.route(data, shape_id)
-            actual_scale = output[0] / data[0]
+        output = router.compute_relations(a, b)
 
-            assert abs(actual_scale - expected_scale) < 1e-5, \
-                f"Shape {shape_id}: expected {expected_scale}, got {actual_scale}"
+        assert output.shape == (2, 16), f"Expected (2,16), got {output.shape}"
+        assert output.dtype == np.float32
+        assert output[0, 0] == pytest.approx(1.0, abs=1e-5)
+        assert output[0, 1] == pytest.approx(0.0, abs=1e-5)
+        assert 0.0 <= float(output[0, 12]) <= 1.0
+        assert 0.0 <= float(output[1, 12]) <= 1.0
+        assert float(output[1, 10]) >= -1.0 and float(output[1, 10]) <= 1.0
 
-        print(f"✅ GeometryRouter: all 5 media types correct")
+        compat = router.route(np.array([1.0, 0.5, 0.25, 0.125], dtype=np.float32), shape_id=2)
+        assert compat.shape == (16,)
+        assert np.all(np.isfinite(compat))
+
+        print("✅ GeometryRouter: pairwise relation features valid")
 
     def test_fractal_emitter(self):
-        """Test FractalEmitter generates coordinates"""
+        """Test FractalEmitter computes self-similarity and keeps emit compatibility"""
         emitter = FractalEmitter()
 
         atoms = np.random.randn(50).astype(np.float32)
         coords = emitter.emit(atoms, base_scale=1.0)
+        features = np.stack(
+            [
+                np.linspace(0.0, 1.0, 16, dtype=np.float32),
+                np.tile(np.array([1.0, 0.0, 1.0, 0.0], dtype=np.float32), 4),
+            ],
+            axis=0,
+        )
+        scores = emitter.compute_self_similarity(features, num_scales=3)
 
         assert coords.shape == (50, 3), f"Expected (50,3), got {coords.shape}"
         assert coords.dtype == np.float32, "Coords should be float32"
+        assert scores.shape == (2,), f"Expected (2,), got {scores.shape}"
+        assert np.all(np.isfinite(scores))
+        assert float(scores[0]) > 0.9
 
-        print(f"✅ FractalEmitter: {coords.shape} coordinates generated")
+        print(f"✅ FractalEmitter: {coords.shape} coords + self-similarity scores")
+
+
+class TestDeferredKernels:
+    """Test deferred sovereign kernels pulled forward into Phase 2B."""
+
+    def test_cognitive_executive(self):
+        """Test CognitiveExecutive produces normalized trust weights."""
+        executive = CognitiveExecutive()
+
+        resonance_matrix = np.array(
+            [
+                [1.0, 0.9, 0.8, 0.8, 0.7, 0.7, 0.6, 0.6],
+                [0.9, 1.0, 0.7, 0.7, 0.6, 0.6, 0.5, 0.5],
+                [0.8, 0.7, 1.0, 0.6, 0.5, 0.5, 0.4, 0.4],
+                [0.8, 0.7, 0.6, 1.0, 0.5, 0.5, 0.4, 0.4],
+                [0.7, 0.6, 0.5, 0.5, 1.0, 0.4, 0.3, 0.3],
+                [0.7, 0.6, 0.5, 0.5, 0.4, 1.0, 0.3, 0.3],
+                [0.6, 0.5, 0.4, 0.4, 0.3, 0.3, 1.0, 0.2],
+                [0.6, 0.5, 0.4, 0.4, 0.3, 0.3, 0.2, 1.0],
+            ],
+            dtype=np.float32,
+        )
+        chain_norms = np.array([2.5, 2.0, 1.7, 1.6, 1.3, 1.2, 1.0, 0.9], dtype=np.float32)
+
+        trust_weights, coherence = executive.compute_trust_weights(resonance_matrix, chain_norms)
+
+        assert trust_weights.shape == (8,)
+        assert np.isclose(float(np.sum(trust_weights)), 1.0, atol=1e-4)
+        assert np.all(trust_weights >= 0.0)
+        assert coherence > 0.0
+        assert int(np.argmax(trust_weights)) == 0
+
+        print(f"✅ CognitiveExecutive: coherence={coherence:.3f}, top_chain={int(np.argmax(trust_weights))}")
 
 
 class TestGLMKernels:
@@ -172,22 +234,30 @@ class TestGLMKernels:
         print(f"✅ AtomicFissionFusion: decompose={consistency:.3f}, compose={fusion_consistency:.3f}")
 
     def test_temporal_reasoning(self):
-        """Test TemporalReasoning computes deltas"""
+        """Test TemporalReasoning extracts sequence pattern features"""
         reasoner = TemporalReasoning()
 
-        sequence = np.random.randn(10, 64).astype(np.float32)
+        sequence = np.stack(
+            [
+                np.linspace(0.0, 1.0, 16, dtype=np.float32),
+                np.linspace(0.1, 1.1, 16, dtype=np.float32),
+                np.linspace(0.2, 1.2, 16, dtype=np.float32),
+                np.linspace(0.3, 1.3, 16, dtype=np.float32),
+            ],
+            axis=0,
+        )
+        patterns = reasoner.compute_patterns(sequence)
         deltas = reasoner.compute_deltas(sequence)
 
+        assert patterns.shape == (24,), f"Expected 24 patterns, got {patterns.shape}"
         assert deltas.shape == sequence.shape, "Delta shape should match sequence"
+        assert patterns[0] > 0.0, "Trend magnitude should be positive"
+        assert patterns[8] > 0.9, "Lag-1 autocorrelation should stay high for smooth sequence"
+        assert patterns[12] > 0.5, "Monotonicity should register positive"
+        assert patterns[20] > 0.5, "Convergence trend should be positive"
+        np.testing.assert_allclose(deltas[:-1], sequence[1:] - sequence[:-1], atol=1e-6)
 
-        # Check that deltas are reasonable (next - current)
-        for t in range(9):
-            expected_delta = sequence[t+1] - sequence[t]
-            actual_delta = deltas[t]
-            error = np.max(np.abs(actual_delta - expected_delta))
-            assert error < 1e-3, f"Delta error at t={t}: {error}"
-
-        print(f"✅ TemporalReasoning: all deltas correct")
+        print("✅ TemporalReasoning: pattern extraction and delta compatibility valid")
 
 
 class TestGrokKernels:
@@ -323,6 +393,13 @@ def run_all_tests():
     ds.test_fractal_emitter()
     print()
 
+    # Deferred kernels
+    print("Testing Deferred Kernels (1):")
+    print("-" * 80)
+    deferred = TestDeferredKernels()
+    deferred.test_cognitive_executive()
+    print()
+
     # GLM's kernels
     print("Testing GLM's Kernels (3):")
     print("-" * 80)
@@ -342,13 +419,14 @@ def run_all_tests():
     print()
 
     print("=" * 80)
-    print("🎉 ALL 12 TESTS PASSED!")
+    print("🎉 ALL 13 TESTS PASSED!")
     print("=" * 80)
     print()
     print("Summary:")
     print("  ✅ Kimi's 3 kernels: LatencyGuard, ARCReasoner, OOMSpillManager")
     print("  ✅ Qwen's 1 kernel: GalaxyResonanceEngine")
     print("  ✅ Deep Seek's 2 kernels: GeometryRouter, FractalEmitter")
+    print("  ✅ Deferred 1 kernel: CognitiveExecutive")
     print("  ✅ GLM's 3 kernels: ResonanceField, AtomicFissionFusion, TemporalReasoning")
     print("  ✅ Grok's 3 kernels: VectorResonator, GraphCrystallizer, MultimodalHaltingGate")
     print()

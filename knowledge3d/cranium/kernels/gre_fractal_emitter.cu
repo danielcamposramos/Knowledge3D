@@ -1,39 +1,45 @@
-// Fractal Emitter - Deep Seek's House Generation
-// Generates fractal coordinates for Knowledge Garden nodes
-// Leverages RPN-style arithmetic for coordinate computation
-//
-// Based on: Step8 Fractal Emitter concept
-// Integration: Uses RPN arithmetic patterns (mul, add, fma)
+// Fractal Emitter - multi-scale self-similarity scoring.
+
+#include <math.h>
 
 extern "C" __global__ void gre_fractal_emitter(
-    const float* __restrict__ input_ptr,  // Consolidated atom values
-    float* __restrict__ coords_ptr,       // Output coordinates [x,y,z] * count
-    unsigned int count,
-    float base_scale
+    const float* __restrict__ features,
+    float* __restrict__ self_similarity,
+    int N,
+    int D,
+    int num_scales
 )
 {
-    // Get global thread ID
-    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    unsigned int stride = blockDim.x * gridDim.x;
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int stride = blockDim.x * gridDim.x;
+    const float eps = 1e-12f;
 
-    // Each thread processes multiple elements via striding
-    for (unsigned int i = idx; i < count; i += stride) {
-        // Load input value
-        float value = input_ptr[i];
+    for (int i = idx; i < N; i += stride) {
+        const float* row = features + (i * D);
+        float total_similarity = 0.0f;
+        int scales_used = 0;
 
-        // Simple pseudo-fractal coordinates derived from input value
-        // RPN equivalent: value scale mul -> x
-        //                 i float 0.5 mul scale mul value add -> y
-        //                 x y add -> z
+        for (int scale = 1; scale <= num_scales; ++scale) {
+            int sample_stride = 1 << scale;
+            int sub_len = D / sample_stride;
+            if (sub_len < 2) {
+                break;
+            }
 
-        float x = value * base_scale;
-        float y = ((float)i * 0.5f) * base_scale + value;
-        float z = x + y;
+            float dot = 0.0f;
+            float norm_full = 0.0f;
+            float norm_sub = 0.0f;
+            for (int d = 0; d < sub_len; ++d) {
+                float full_value = row[d];
+                float sampled_value = row[d * sample_stride];
+                dot += full_value * sampled_value;
+                norm_full += full_value * full_value;
+                norm_sub += sampled_value * sampled_value;
+            }
+            total_similarity += dot * rsqrtf((norm_full + eps) * (norm_sub + eps));
+            scales_used += 1;
+        }
 
-        // Write coordinates (x, y, z)
-        unsigned int coord_idx = i * 3;
-        coords_ptr[coord_idx + 0] = x;
-        coords_ptr[coord_idx + 1] = y;
-        coords_ptr[coord_idx + 2] = z;
+        self_similarity[i] = scales_used > 0 ? (total_similarity / (float)scales_used) : 0.0f;
     }
 }

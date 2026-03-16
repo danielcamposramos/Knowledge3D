@@ -388,120 +388,196 @@ __all__ = [
 # ============================================================================
 
 class GeometryRouter:
-    """Sovereign Geometry Router - Media-type dispatch and scaling"""
+    """Sovereign Geometry Router - spatial relationship features."""
 
     def __init__(self):
         ptx_path = KERNELS_DIR / "gre_geometry_router.ptx"
         self.kernel = load_ptx_file(str(ptx_path), "gre_geometry_router")
 
-    def route(self, input_data, shape_id: int):
-        """Route and scale data based on media geometry
-        
-        Args:
-            input_data: Input float32 array
-            shape_id: 0=text, 1=image, 2=audio, 3=video, 4=mixed
-        
-        Returns:
-            Scaled output array
-        """
-        vector_len = len(input_data)
-        byte_count = vector_len * 4
+    def compute_relations(self, embeddings_a, embeddings_b):
+        """Compute 16 spatial relationship features for aligned embedding pairs."""
+        np_mod = _np()
+        arr_a = np_mod.asarray(embeddings_a, dtype=np_mod.float32)
+        arr_b = np_mod.asarray(embeddings_b, dtype=np_mod.float32)
+        if arr_a.ndim == 1:
+            arr_a = arr_a.reshape(1, -1)
+        if arr_b.ndim == 1:
+            arr_b = arr_b.reshape(1, -1)
+        if arr_a.shape != arr_b.shape:
+            raise ValueError(f"embeddings_a and embeddings_b must match; got {arr_a.shape} vs {arr_b.shape}")
+        if arr_a.ndim != 2 or arr_a.shape[0] <= 0 or arr_a.shape[1] <= 0:
+            raise ValueError("embedding pairs must be non-empty [N x D]")
 
-        d_input = gpu_malloc(byte_count)
-        d_output = gpu_malloc(byte_count)
-        
+        arr_a = np_mod.ascontiguousarray(arr_a, dtype=np_mod.float32)
+        arr_b = np_mod.ascontiguousarray(arr_b, dtype=np_mod.float32)
+        pair_count, dims = arr_a.shape
+        feature_count = 16
+        relations = np_mod.zeros((pair_count, feature_count), dtype=np_mod.float32)
+
+        d_a = gpu_malloc(arr_a.nbytes)
+        d_b = gpu_malloc(arr_b.nbytes)
+        d_relations = gpu_malloc(relations.nbytes)
         try:
-            memcpy_htod(d_input, input_data.ctypes.data_as(ctypes.c_void_p), byte_count)
-            
+            memcpy_htod(d_a, arr_a.ctypes.data_as(ctypes.c_void_p), arr_a.nbytes)
+            memcpy_htod(d_b, arr_b.ctypes.data_as(ctypes.c_void_p), arr_b.nbytes)
+            memcpy_htod(d_relations, relations.ctypes.data_as(ctypes.c_void_p), relations.nbytes)
             launch(
                 self.kernel,
-                grid=((len(input_data) + 255) // 256, 1, 1),
-                block=(256, 1, 1),
+                grid=((pair_count + 127) // 128, 1, 1),
+                block=(128, 1, 1),
                 params=[
-                    ctypes.c_uint64(d_input.value),
-                    ctypes.c_uint64(d_output.value),
-                    ctypes.c_uint32(len(input_data)),
-                    ctypes.c_uint32(shape_id),
+                    ctypes.c_uint64(d_a.value),
+                    ctypes.c_uint64(d_b.value),
+                    ctypes.c_uint64(d_relations.value),
+                    ctypes.c_int(pair_count),
+                    ctypes.c_int(dims),
+                    ctypes.c_int(feature_count),
                 ],
             )
             synchronize()
-            
-            OutArray = ctypes.c_float * vector_len
-            out_host = OutArray()
-            memcpy_dtoh(ctypes.cast(out_host, ctypes.c_void_p), d_output, byte_count)
-
-            try:
-                np_mod = _np()
-                return np_mod.asarray(out_host, dtype=np_mod.float32).reshape(input_data.shape)
-            except Exception:
-                return [float(out_host[i]) for i in range(vector_len)]
+            memcpy_dtoh(relations.ctypes.data_as(ctypes.c_void_p), d_relations, relations.nbytes)
+            return relations
         finally:
-            gpu_free(d_input)
-            gpu_free(d_output)
+            gpu_free(d_a)
+            gpu_free(d_b)
+            gpu_free(d_relations)
+
+    def route(self, input_data, shape_id: int):
+        """Compatibility wrapper returning relation features to a shape prototype."""
+        np_mod = _np()
+        vector = np_mod.asarray(input_data, dtype=np_mod.float32).reshape(-1)
+        dims = int(vector.size)
+        if dims <= 0:
+            return np_mod.zeros((16,), dtype=np_mod.float32)
+        prototype = np_mod.zeros((1, dims), dtype=np_mod.float32)
+        if int(shape_id) == 0:
+            prototype[0] = np_mod.linspace(1.0, 0.2, dims, dtype=np_mod.float32)
+        elif int(shape_id) == 1:
+            half = max(1, dims // 2)
+            prototype[0, :half] = 1.0
+            prototype[0, half:] = 0.5
+        elif int(shape_id) == 2:
+            prototype[0] = np_mod.sin(np_mod.linspace(0.0, np_mod.pi * 2.0, dims, dtype=np_mod.float32))
+        elif int(shape_id) == 3:
+            prototype[0] = np_mod.linspace(0.1, 1.0, dims, dtype=np_mod.float32)
+        else:
+            prototype[0] = 1.0
+        relations = self.compute_relations(vector.reshape(1, -1), prototype)
+        return relations.reshape(-1)
 
 
 class FractalEmitter:
-    """Sovereign Fractal Emitter - Knowledge Garden coordinate generation"""
+    """Sovereign Fractal Emitter - multi-scale self-similarity scoring."""
 
     def __init__(self):
         ptx_path = KERNELS_DIR / "gre_fractal_emitter.ptx"
         self.kernel = load_ptx_file(str(ptx_path), "gre_fractal_emitter")
 
-    def emit(self, atoms, base_scale: float = 1.0):
-        """Generate fractal coordinates for atoms
-        
-        Args:
-            atoms: Atom values (float32)
-            base_scale: Coordinate scaling factor
-        
-        Returns:
-            Coordinates array [count, 3] (x, y, z)
-        """
-        count = len(atoms)
-        atoms_bytes = count * 4
-        coords_bytes = count * 3 * 4
+    def compute_self_similarity(self, features, num_scales: int = 3):
+        """Compute multi-scale self-similarity scores for [N x D] features."""
+        np_mod = _np()
+        arr = np_mod.asarray(features, dtype=np_mod.float32)
+        if arr.ndim == 1:
+            arr = arr.reshape(1, -1)
+        if arr.ndim != 2 or arr.shape[0] <= 0 or arr.shape[1] <= 0:
+            raise ValueError("features must be a non-empty [N x D] array")
+        arr = np_mod.ascontiguousarray(arr, dtype=np_mod.float32)
+        scores = np_mod.zeros((arr.shape[0],), dtype=np_mod.float32)
 
-        d_atoms = gpu_malloc(atoms_bytes)
-        d_coords = gpu_malloc(coords_bytes)
-        
+        d_features = gpu_malloc(arr.nbytes)
+        d_scores = gpu_malloc(scores.nbytes)
+
         try:
-            memcpy_htod(d_atoms, atoms.ctypes.data_as(ctypes.c_void_p), atoms_bytes)
-            
+            memcpy_htod(d_features, arr.ctypes.data_as(ctypes.c_void_p), arr.nbytes)
+            memcpy_htod(d_scores, scores.ctypes.data_as(ctypes.c_void_p), scores.nbytes)
             launch(
                 self.kernel,
-                grid=((count + 255) // 256, 1, 1),
+                grid=((arr.shape[0] + 255) // 256, 1, 1),
                 block=(256, 1, 1),
                 params=[
-                    ctypes.c_uint64(d_atoms.value),
-                    ctypes.c_uint64(d_coords.value),
-                    ctypes.c_uint32(count),
-                    ctypes.c_float(base_scale),
+                    ctypes.c_uint64(d_features.value),
+                    ctypes.c_uint64(d_scores.value),
+                    ctypes.c_int(arr.shape[0]),
+                    ctypes.c_int(arr.shape[1]),
+                    ctypes.c_int(max(1, int(num_scales))),
                 ],
             )
             synchronize()
-            
-            CoordArray = ctypes.c_float * (count * 3)
-            coords_host = CoordArray()
-            memcpy_dtoh(ctypes.cast(coords_host, ctypes.c_void_p), d_coords, coords_bytes)
-
-            try:
-                np_mod = _np()
-                return np_mod.asarray(coords_host, dtype=np_mod.float32).reshape((count, 3))
-            except Exception:
-                rows: List[List[float]] = []
-                for i in range(count):
-                    base = i * 3
-                    rows.append(
-                        [
-                            float(coords_host[base]),
-                            float(coords_host[base + 1]),
-                            float(coords_host[base + 2]),
-                        ]
-                    )
-                return rows
+            memcpy_dtoh(scores.ctypes.data_as(ctypes.c_void_p), d_scores, scores.nbytes)
+            return scores
         finally:
-            gpu_free(d_atoms)
-            gpu_free(d_coords)
+            gpu_free(d_features)
+            gpu_free(d_scores)
+
+    def emit(self, atoms, base_scale: float = 1.0):
+        """Compatibility wrapper returning simple coordinates from self-similarity."""
+        np_mod = _np()
+        arr = np_mod.asarray(atoms, dtype=np_mod.float32).reshape(-1)
+        if arr.size == 0:
+            return np_mod.zeros((0, 3), dtype=np_mod.float32)
+        scores = self.compute_self_similarity(arr.reshape(-1, 1), num_scales=1)
+        indices = np_mod.arange(arr.size, dtype=np_mod.float32)
+        return np_mod.stack(
+            [
+                arr * float(base_scale),
+                scores * float(base_scale),
+                (indices / max(float(arr.size - 1), 1.0)) * float(base_scale),
+            ],
+            axis=1,
+        ).astype(np_mod.float32, copy=False)
+
+
+class CognitiveExecutive:
+    """Sovereign Cognitive Executive - trust weighting for swarm chains."""
+
+    def __init__(self):
+        ptx_path = KERNELS_DIR / "gre_cognitive_executive.ptx"
+        self.kernel = load_ptx_file(str(ptx_path), "gre_cognitive_executive")
+
+    def compute_trust_weights(self, resonance_matrix, chain_norms):
+        """Return (trust_weights[8], coherence_score) from swarm diagnostics."""
+        np_mod = _np()
+        matrix = np_mod.asarray(resonance_matrix, dtype=np_mod.float32)
+        norms = np_mod.asarray(chain_norms, dtype=np_mod.float32).reshape(-1)
+        if matrix.shape != (8, 8):
+            raise ValueError(f"resonance_matrix must be (8, 8), got {matrix.shape}")
+        if norms.shape != (8,):
+            raise ValueError(f"chain_norms must be (8,), got {norms.shape}")
+        matrix = np_mod.ascontiguousarray(matrix, dtype=np_mod.float32)
+        norms = np_mod.ascontiguousarray(norms, dtype=np_mod.float32)
+        trust = np_mod.zeros((8,), dtype=np_mod.float32)
+        coherence = np_mod.zeros((1,), dtype=np_mod.float32)
+
+        d_matrix = gpu_malloc(matrix.nbytes)
+        d_norms = gpu_malloc(norms.nbytes)
+        d_trust = gpu_malloc(trust.nbytes)
+        d_coherence = gpu_malloc(coherence.nbytes)
+
+        try:
+            memcpy_htod(d_matrix, matrix.ctypes.data_as(ctypes.c_void_p), matrix.nbytes)
+            memcpy_htod(d_norms, norms.ctypes.data_as(ctypes.c_void_p), norms.nbytes)
+            memcpy_htod(d_trust, trust.ctypes.data_as(ctypes.c_void_p), trust.nbytes)
+            memcpy_htod(d_coherence, coherence.ctypes.data_as(ctypes.c_void_p), coherence.nbytes)
+            launch(
+                self.kernel,
+                grid=(1, 1, 1),
+                block=(8, 1, 1),
+                params=[
+                    ctypes.c_uint64(d_matrix.value),
+                    ctypes.c_uint64(d_norms.value),
+                    ctypes.c_uint64(d_trust.value),
+                    ctypes.c_uint64(d_coherence.value),
+                ],
+            )
+            synchronize()
+            memcpy_dtoh(trust.ctypes.data_as(ctypes.c_void_p), d_trust, trust.nbytes)
+            memcpy_dtoh(coherence.ctypes.data_as(ctypes.c_void_p), d_coherence, coherence.nbytes)
+            return trust, float(coherence[0])
+        finally:
+            gpu_free(d_matrix)
+            gpu_free(d_norms)
+            gpu_free(d_trust)
+            gpu_free(d_coherence)
 
 
 # ============================================================================
@@ -737,63 +813,57 @@ class AtomicFissionFusion:
 
 
 class TemporalReasoning:
-    """Sovereign Temporal Reasoning - Sequential delta computation"""
+    """Sovereign Temporal Reasoning - ordered sequence pattern extraction."""
 
     def __init__(self):
         ptx_path = KERNELS_DIR / "gre_temporal_reasoning.ptx"
         self.kernel = load_ptx_file(str(ptx_path), "gre_temporal_reasoning")
 
-    def compute_deltas(self, sequence):
-        """Compute frame-to-frame deltas
-        
-        Args:
-            sequence: Sequence array [sequence_length, feature_dim]
-        
-        Returns:
-            Delta array [sequence_length, feature_dim]
-        """
-        assert len(sequence.shape) == 2
+    def compute_patterns(self, sequence):
+        """Compute 24 temporal pattern features for an ordered [T x D] sequence."""
+        np_mod = _np()
+        arr = np_mod.asarray(sequence, dtype=np_mod.float32)
+        if arr.ndim != 2 or arr.shape[0] <= 0 or arr.shape[1] <= 0:
+            raise ValueError("sequence must be a non-empty [T x D] array")
+        arr = np_mod.ascontiguousarray(arr, dtype=np_mod.float32)
+        seq_length, feat_dim = arr.shape
+        pattern_count = 24
+        patterns = np_mod.zeros((pattern_count,), dtype=np_mod.float32)
 
-        seq_length, feat_dim = sequence.shape
-        total = seq_length * feat_dim
-        in_bytes = total * 4
-        out_bytes = total * 4
+        d_sequence = gpu_malloc(arr.nbytes)
+        d_output = gpu_malloc(patterns.nbytes)
 
-        d_sequence = gpu_malloc(in_bytes)
-        d_output = gpu_malloc(out_bytes)
-        
         try:
-            memcpy_htod(d_sequence, sequence.ctypes.data_as(ctypes.c_void_p), in_bytes)
-            
+            memcpy_htod(d_sequence, arr.ctypes.data_as(ctypes.c_void_p), arr.nbytes)
+            memcpy_htod(d_output, patterns.ctypes.data_as(ctypes.c_void_p), patterns.nbytes)
             launch(
                 self.kernel,
-                grid=((feat_dim + 255) // 256, 1, 1),
-                block=(256, 1, 1),
+                grid=(1, 1, 1),
+                block=(32, 1, 1),
                 params=[
                     ctypes.c_uint64(d_sequence.value),
                     ctypes.c_uint64(d_output.value),
-                    ctypes.c_uint32(seq_length),
-                    ctypes.c_uint32(feat_dim),
+                    ctypes.c_int(seq_length),
+                    ctypes.c_int(feat_dim),
                 ],
             )
             synchronize()
-
-            OutArray = ctypes.c_float * total
-            out_host = OutArray()
-            memcpy_dtoh(ctypes.cast(out_host, ctypes.c_void_p), d_output, out_bytes)
-
-            try:
-                np_mod = _np()
-                return np_mod.asarray(out_host, dtype=np_mod.float32).reshape(sequence.shape)
-            except Exception:
-                rows: List[List[float]] = []
-                for t in range(seq_length):
-                    base = t * feat_dim
-                    rows.append([float(out_host[base + j]) for j in range(feat_dim)])
-                return rows
+            memcpy_dtoh(patterns.ctypes.data_as(ctypes.c_void_p), d_output, patterns.nbytes)
+            return patterns
         finally:
             gpu_free(d_sequence)
             gpu_free(d_output)
+
+    def compute_deltas(self, sequence):
+        """Compatibility helper preserving the legacy frame-difference surface."""
+        np_mod = _np()
+        arr = np_mod.asarray(sequence, dtype=np_mod.float32)
+        if arr.ndim != 2:
+            raise ValueError("sequence must be rank-2")
+        deltas = np_mod.zeros_like(arr, dtype=np_mod.float32)
+        if arr.shape[0] > 1:
+            deltas[:-1] = arr[1:] - arr[:-1]
+        return deltas
 
     def compute_coherence(self, crystallized, temporal_context):
         """Compute temporal coherence scores.
@@ -2021,6 +2091,7 @@ __all__ = [
     # Deep Seek's
     "GeometryRouter",
     "FractalEmitter",
+    "CognitiveExecutive",
     # GLM's
     "ResonanceField",
     "AtomicFissionFusion",

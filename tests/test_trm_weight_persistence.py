@@ -445,6 +445,313 @@ def test_phase_a1_resonance_field_adjusts_specialist_coherence(tmp_path, monkeyp
     assert "gre_resonance_field" in local_candidates[0]["specialist_worker"]
 
 
+def test_phase_b4_geometry_router_threads_spatial_signal_into_candidates(tmp_path, monkeypatch):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_geometry_router")
+
+    class _FakeGeometryRouter:
+        def __init__(self):
+            self.calls = []
+
+        def compute_relations(self, embeddings_a, embeddings_b):
+            arr_a = np.asarray(embeddings_a, dtype=np.float32)
+            arr_b = np.asarray(embeddings_b, dtype=np.float32)
+            self.calls.append({"shape_a": tuple(arr_a.shape), "shape_b": tuple(arr_b.shape)})
+            return np.asarray(
+                [
+                    [0.8, 0.1, 0.7, 0.7, 0.7, 0.7, 1.0, 0.0, 1.0, 1.0, 0.6, 0.0, 0.9, 0.8, 0.1, 0.01],
+                    [0.2, 0.4, 0.1, 0.1, 0.1, 0.1, 1.0, 0.0, 1.0, 1.0, 0.2, 0.0, 0.4, 0.3, 0.8, 0.64],
+                ],
+                dtype=np.float32,
+            )
+
+    monkeypatch.setattr(kv, "get_vector_resonator", lambda: None)
+    monkeypatch.setattr(kv, "get_galaxy_resonance_engine", lambda: None)
+    monkeypatch.setattr(kv, "get_graph_crystallizer", lambda: None)
+    monkeypatch.setattr(kv, "get_resonance_field", lambda: None)
+    fake_geometry = _FakeGeometryRouter()
+    monkeypatch.setattr(kv, "get_geometry_router", lambda: fake_geometry)
+
+    local_candidates = [
+        {
+            "match": {"embedding16": [1.0] + [0.0] * 15, "galaxy": "Math", "category": "template", "confidence": 0.8},
+            "candidate_global_idx": 10,
+            "graph_neighbors": [],
+            "led_focus": 1.0,
+            "similarity": 0.6,
+            "option_similarity": 0.6,
+            "program": {"id": "reasoning_math_template_match_top1"},
+            "galaxy_weight": 1.0,
+        },
+        {
+            "match": {"embedding16": [0.0, 1.0] + [0.0] * 14, "galaxy": "Grammar", "category": "rule", "confidence": 0.7},
+            "candidate_global_idx": 11,
+            "graph_neighbors": [],
+            "led_focus": 0.0,
+            "similarity": 0.4,
+            "option_similarity": 0.4,
+            "program": {"id": "reasoning_math_template_match_top1"},
+            "galaxy_weight": 1.0,
+        },
+    ]
+    selection_steps: list[str] = []
+
+    kv._apply_specialist_swarm_features(
+        local_candidates=local_candidates,
+        reference_embedding=[1.0] + [0.0] * 15,
+        task_type="MATH_TASK",
+        path={"label": "primary"},
+        selection_steps=selection_steps,
+    )
+
+    assert len(fake_geometry.calls) == 1
+    assert fake_geometry.calls[0]["shape_a"] == (2, 16)
+    assert fake_geometry.calls[0]["shape_b"] == (2, 16)
+    assert local_candidates[0]["specialist_geometry"] > local_candidates[1]["specialist_geometry"]
+    assert "gre_geometry_router" in local_candidates[0]["specialist_worker"]
+
+    expr = kv._build_gpu_candidate_score_expression(
+        candidate=local_candidates[0],
+        primary_program_id="reasoning_math_template_match_top1",
+        target_galaxies=["Math", "Grammar"],
+        task_type="MATH_TASK",
+        domain_hint="math",
+    )
+    assert kv._gpu_scalar_literal(local_candidates[0]["specialist_geometry"]) in expr
+
+
+def test_phase_b5_temporal_reasoning_threads_path_signal_into_candidates(tmp_path, monkeypatch):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_temporal_reasoning")
+
+    class _FakeTemporalReasoning:
+        def __init__(self):
+            self.calls = []
+
+        def compute_patterns(self, sequence):
+            arr = np.asarray(sequence, dtype=np.float32)
+            self.calls.append({"shape": tuple(arr.shape)})
+            patterns = np.zeros((24,), dtype=np.float32)
+            patterns[8:12] = 0.9
+            patterns[12] = 1.0
+            patterns[13] = 1.0
+            patterns[14:18] = 0.5
+            patterns[18] = 0.8
+            patterns[19] = 0.6
+            patterns[20] = 1.0
+            patterns[21] = 0.75
+            patterns[22] = 0.1
+            patterns[23] = 0.2
+            return patterns
+
+    monkeypatch.setattr(kv, "get_vector_resonator", lambda: None)
+    monkeypatch.setattr(kv, "get_galaxy_resonance_engine", lambda: None)
+    monkeypatch.setattr(kv, "get_graph_crystallizer", lambda: None)
+    monkeypatch.setattr(kv, "get_resonance_field", lambda: None)
+    monkeypatch.setattr(kv, "get_geometry_router", lambda: None)
+    fake_temporal = _FakeTemporalReasoning()
+    monkeypatch.setattr(kv, "get_temporal_reasoning", lambda: fake_temporal)
+
+    local_candidates = [
+        {
+            "match": {"embedding16": [1.0] + [0.0] * 15, "galaxy": "Math", "category": "template", "confidence": 0.8},
+            "candidate_global_idx": 10,
+            "graph_neighbors": [],
+            "led_focus": 0.0,
+            "led_path_position": 0,
+            "similarity": 0.6,
+            "option_similarity": 0.6,
+            "program": {"id": "reasoning_math_template_match_top1"},
+            "galaxy_weight": 1.0,
+        },
+        {
+            "match": {"embedding16": [0.5, 0.5] + [0.0] * 14, "galaxy": "Math", "category": "template", "confidence": 0.85},
+            "candidate_global_idx": 11,
+            "graph_neighbors": [],
+            "led_focus": 1.0,
+            "led_path_position": 1,
+            "similarity": 0.7,
+            "option_similarity": 0.7,
+            "program": {"id": "reasoning_math_template_match_top1"},
+            "galaxy_weight": 1.0,
+        },
+        {
+            "match": {"embedding16": [0.0, 1.0] + [0.0] * 14, "galaxy": "Grammar", "category": "rule", "confidence": 0.7},
+            "candidate_global_idx": 12,
+            "graph_neighbors": [],
+            "led_focus": 0.0,
+            "led_path_position": -1,
+            "similarity": 0.4,
+            "option_similarity": 0.4,
+            "program": {"id": "reasoning_math_template_match_top1"},
+            "galaxy_weight": 1.0,
+        },
+    ]
+    selection_steps: list[str] = []
+
+    kv._apply_specialist_swarm_features(
+        local_candidates=local_candidates,
+        reference_embedding=[1.0] + [0.0] * 15,
+        task_type="MATH_TASK",
+        path={"label": "primary"},
+        selection_steps=selection_steps,
+    )
+
+    assert len(fake_temporal.calls) == 1
+    assert fake_temporal.calls[0]["shape"] == (2, 16)
+    assert local_candidates[1]["specialist_temporal"] > local_candidates[0]["specialist_temporal"] > 0.0
+    assert local_candidates[2]["specialist_temporal"] == pytest.approx(0.0)
+    assert "gre_temporal_reasoning" in local_candidates[0]["specialist_worker"]
+
+    expr = kv._build_gpu_candidate_score_expression(
+        candidate=local_candidates[1],
+        primary_program_id="reasoning_math_template_match_top1",
+        target_galaxies=["Math", "Grammar"],
+        task_type="MATH_TASK",
+        domain_hint="math",
+    )
+    assert kv._gpu_scalar_literal(local_candidates[1]["specialist_temporal"]) in expr
+
+
+def test_phase_b6_fractal_emitter_threads_self_similarity_into_candidates(tmp_path, monkeypatch):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_fractal_emitter")
+
+    class _FakeFractalEmitter:
+        def __init__(self):
+            self.calls = []
+
+        def compute_self_similarity(self, features, num_scales=3):
+            arr = np.asarray(features, dtype=np.float32)
+            self.calls.append({"shape": tuple(arr.shape), "num_scales": int(num_scales)})
+            return np.asarray([0.9, 0.1], dtype=np.float32)
+
+    monkeypatch.setattr(kv, "get_vector_resonator", lambda: None)
+    monkeypatch.setattr(kv, "get_galaxy_resonance_engine", lambda: None)
+    monkeypatch.setattr(kv, "get_graph_crystallizer", lambda: None)
+    monkeypatch.setattr(kv, "get_resonance_field", lambda: None)
+    monkeypatch.setattr(kv, "get_geometry_router", lambda: None)
+    monkeypatch.setattr(kv, "get_temporal_reasoning", lambda: None)
+    fake_fractal = _FakeFractalEmitter()
+    monkeypatch.setattr(kv, "get_fractal_emitter", lambda: fake_fractal)
+
+    local_candidates = [
+        {
+            "match": {"embedding16": [1.0] + [0.0] * 15, "galaxy": "Drawing", "category": "template", "confidence": 0.8},
+            "candidate_global_idx": 10,
+            "graph_neighbors": [],
+            "led_focus": 1.0,
+            "led_path_position": 0,
+            "similarity": 0.6,
+            "option_similarity": 0.6,
+            "program": {"id": "reasoning_arc_grid_transform_top1"},
+            "galaxy_weight": 1.0,
+        },
+        {
+            "match": {"embedding16": [0.0, 1.0] + [0.0] * 14, "galaxy": "Grammar", "category": "rule", "confidence": 0.7},
+            "candidate_global_idx": 11,
+            "graph_neighbors": [],
+            "led_focus": 0.0,
+            "led_path_position": -1,
+            "similarity": 0.4,
+            "option_similarity": 0.4,
+            "program": {"id": "reasoning_arc_grid_transform_top1"},
+            "galaxy_weight": 1.0,
+        },
+    ]
+    selection_steps: list[str] = []
+
+    kv._apply_specialist_swarm_features(
+        local_candidates=local_candidates,
+        reference_embedding=[1.0] + [0.0] * 15,
+        task_type="ARC_TASK",
+        path={"label": "primary"},
+        selection_steps=selection_steps,
+    )
+
+    assert len(fake_fractal.calls) == 1
+    assert fake_fractal.calls[0]["shape"] == (2, 16)
+    assert fake_fractal.calls[0]["num_scales"] == 4
+    assert local_candidates[0]["specialist_fractal"] > local_candidates[1]["specialist_fractal"]
+    assert "gre_fractal_emitter" in local_candidates[0]["specialist_worker"]
+
+    expr = kv._build_gpu_candidate_score_expression(
+        candidate=local_candidates[0],
+        primary_program_id="reasoning_arc_grid_transform_top1",
+        target_galaxies=["Drawing", "Grammar"],
+        task_type="ARC_TASK",
+        domain_hint="visual",
+    )
+    assert kv._gpu_scalar_literal(local_candidates[0]["specialist_fractal"]) in expr
+
+
+def test_phase_b7_cognitive_executive_blends_swarm_trust_weights(tmp_path, monkeypatch):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_cognitive_executive")
+
+    class _Diag:
+        def __init__(self):
+            self.resonance_matrix = np.asarray(
+                [
+                    [1.0, 0.9, 0.8, 0.8, 0.7, 0.7, 0.6, 0.6],
+                    [0.9, 1.0, 0.7, 0.7, 0.6, 0.6, 0.5, 0.5],
+                    [0.8, 0.7, 1.0, 0.6, 0.5, 0.5, 0.4, 0.4],
+                    [0.8, 0.7, 0.6, 1.0, 0.5, 0.5, 0.4, 0.4],
+                    [0.7, 0.6, 0.5, 0.5, 1.0, 0.4, 0.3, 0.3],
+                    [0.7, 0.6, 0.5, 0.5, 0.4, 1.0, 0.3, 0.3],
+                    [0.6, 0.5, 0.4, 0.4, 0.3, 0.3, 1.0, 0.2],
+                    [0.6, 0.5, 0.4, 0.4, 0.3, 0.3, 0.2, 1.0],
+                ],
+                dtype=np.float32,
+            )
+            self.chain_norms = np.asarray([2.5, 2.0, 1.7, 1.6, 1.3, 1.2, 1.0, 0.9, 0.5], dtype=np.float32)
+
+    class _FakeSwarm:
+        def __init__(self):
+            self.exec_calls = 0
+            self.diag = _Diag()
+
+        def execute_swarm(self, *_args, **_kwargs):
+            self.exec_calls += 1
+            return np.zeros((128,), dtype=np.float32), None, np.asarray([0.30, 0.20, 0.15, 0.12, 0.09, 0.06, 0.05, 0.03], dtype=np.float32)
+
+        def get_chain_diagnostics(self):
+            return self.diag
+
+    class _FakeExecutive:
+        def __init__(self):
+            self.calls = []
+
+        def compute_trust_weights(self, resonance_matrix, chain_norms):
+            self.calls.append(
+                {
+                    "matrix_shape": tuple(np.asarray(resonance_matrix).shape),
+                    "norms_shape": tuple(np.asarray(chain_norms).shape),
+                }
+            )
+            return np.asarray([0.40, 0.18, 0.12, 0.10, 0.08, 0.05, 0.04, 0.03], dtype=np.float32), 0.5
+
+    fake_swarm = _FakeSwarm()
+    fake_executive = _FakeExecutive()
+    monkeypatch.setattr(kv, "get_swarm_bridge", lambda: fake_swarm)
+    monkeypatch.setattr(kv, "get_cognitive_executive", lambda: fake_executive)
+
+    selection_steps: list[str] = []
+    weights = kv._dispatch_swarm_weights(
+        query_embedding=[1.0] + [0.0] * 15,
+        paths=[
+            {"program_id": "p0"},
+            {"program_id": "p1"},
+            {"program_id": "p2"},
+        ],
+        selection_steps=selection_steps,
+    )
+
+    assert fake_swarm.exec_calls == 1
+    assert len(fake_executive.calls) == 1
+    assert fake_executive.calls[0]["matrix_shape"] == (8, 8)
+    assert fake_executive.calls[0]["norms_shape"] == (8,)
+    assert len(weights) == 3
+    assert weights[0] > weights[1] > weights[2]
+    assert any("GRE cognitive executive:" in step for step in selection_steps)
+
+
 def test_phase_a3_atomic_fission_threads_compositional_consistency_into_gsm8k_candidates(tmp_path, monkeypatch):
     kv = Knowledgeverse(storage_root=tmp_path / "kv_atomic_fission")
 

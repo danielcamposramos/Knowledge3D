@@ -285,6 +285,10 @@ class Knowledgeverse:
         self._halting_gate: Any | None | bool = None
         self._vector_resonator: Any | None | bool = None
         self._resonance_field: Any | None | bool = None
+        self._geometry_router: Any | None | bool = None
+        self._temporal_reasoning: Any | None | bool = None
+        self._fractal_emitter: Any | None | bool = None
+        self._cognitive_executive: Any | None | bool = None
         self._galaxy_resonance_engine: Any | None | bool = None
         self._graph_crystallizer: Any | None | bool = None
         self._atomic_fission_fusion: Any | None | bool = None
@@ -964,6 +968,58 @@ class Knowledgeverse:
                 self._resonance_field = False
                 return None
         return self._resonance_field
+
+    def get_geometry_router(self):
+        if self._geometry_router is False:
+            return None
+        if self._geometry_router is None:
+            try:
+                from knowledge3d.cranium.bridges.sovereign_bridges import GeometryRouter
+
+                self._geometry_router = GeometryRouter()
+            except Exception:
+                self._geometry_router = False
+                return None
+        return self._geometry_router
+
+    def get_temporal_reasoning(self):
+        if self._temporal_reasoning is False:
+            return None
+        if self._temporal_reasoning is None:
+            try:
+                from knowledge3d.cranium.bridges.sovereign_bridges import TemporalReasoning
+
+                self._temporal_reasoning = TemporalReasoning()
+            except Exception:
+                self._temporal_reasoning = False
+                return None
+        return self._temporal_reasoning
+
+    def get_fractal_emitter(self):
+        if self._fractal_emitter is False:
+            return None
+        if self._fractal_emitter is None:
+            try:
+                from knowledge3d.cranium.bridges.sovereign_bridges import FractalEmitter
+
+                self._fractal_emitter = FractalEmitter()
+            except Exception:
+                self._fractal_emitter = False
+                return None
+        return self._fractal_emitter
+
+    def get_cognitive_executive(self):
+        if self._cognitive_executive is False:
+            return None
+        if self._cognitive_executive is None:
+            try:
+                from knowledge3d.cranium.bridges.sovereign_bridges import CognitiveExecutive
+
+                self._cognitive_executive = CognitiveExecutive()
+            except Exception:
+                self._cognitive_executive = False
+                return None
+        return self._cognitive_executive
 
     def get_galaxy_resonance_engine(self):
         if self._galaxy_resonance_engine is False:
@@ -5405,6 +5461,9 @@ class Knowledgeverse:
         resonance_scores = self._embedding_similarities(focus_vector, resonated_rows)
         coherence_scores = self._embedding_similarities(focus_vector, crystallized_rows)
         adjusted_coherence_scores = list(coherence_scores)
+        geometry_scores = [0.0 for _ in local_candidates]
+        temporal_scores = [0.0 for _ in local_candidates]
+        fractal_scores = [0.0 for _ in local_candidates]
         resonance_field = self.get_resonance_field()
         if resonance_field is not None and len(local_candidates) > 1:
             try:
@@ -5427,6 +5486,107 @@ class Knowledgeverse:
                 applied_kernels.append("gre_resonance_field")
             except Exception:
                 adjusted_coherence_scores = list(coherence_scores)
+        geometry_router = self.get_geometry_router()
+        if geometry_router is not None and len(local_candidates) > 0:
+            try:
+                focus_rows = np.repeat(
+                    np.asarray(focus_vector, dtype=np.float32).reshape(1, -1),
+                    len(local_candidates),
+                    axis=0,
+                )
+                geometry_features = geometry_router.compute_relations(
+                    np.asarray(crystallized_rows, dtype=np.float32),
+                    focus_rows,
+                )
+                if geometry_features.ndim == 2 and geometry_features.shape[0] == len(local_candidates):
+                    cosines = np.clip(geometry_features[:, 0], -1.0, 1.0)
+                    quadrant_focus = np.mean(np.clip(geometry_features[:, 2:6], -1.0, 1.0), axis=1)
+                    sign_agreement = np.clip(geometry_features[:, 12], 0.0, 1.0)
+                    orthogonality = np.clip(1.0 - geometry_features[:, 14], 0.0, 1.0)
+                    geometry_scores = (
+                        (0.45 * ((cosines + 1.0) * 0.5))
+                        + (0.2 * ((quadrant_focus + 1.0) * 0.5))
+                        + (0.2 * sign_agreement)
+                        + (0.15 * orthogonality)
+                    ).astype(np.float32, copy=False).tolist()
+                    applied_kernels.append("gre_geometry_router")
+            except Exception:
+                geometry_scores = [0.0 for _ in local_candidates]
+        temporal_reasoning = self.get_temporal_reasoning()
+        if temporal_reasoning is not None and len(local_candidates) > 1:
+            try:
+                ordered_pairs = sorted(
+                    [
+                        (int(idx), int(candidate.get("led_path_position", -1)))
+                        for idx, candidate in enumerate(local_candidates)
+                        if int(candidate.get("led_path_position", -1)) >= 0
+                    ],
+                    key=lambda item: item[1],
+                )
+                if len(ordered_pairs) >= 2:
+                    ordered_rows = np.asarray(
+                        [crystallized_rows[idx] for idx, _ in ordered_pairs],
+                        dtype=np.float32,
+                    )
+                    temporal_patterns = np.asarray(
+                        temporal_reasoning.compute_patterns(ordered_rows),
+                        dtype=np.float32,
+                    ).reshape(-1)
+                    if temporal_patterns.size >= 24:
+                        autocorr_score = float(
+                            np.mean((np.clip(temporal_patterns[8:12], -1.0, 1.0) + 1.0) * 0.5)
+                        )
+                        monotonicity_score = float(np.mean(np.clip(temporal_patterns[12:14], 0.0, 1.0)))
+                        recurrence_score = float(np.mean(np.clip(temporal_patterns[14:18], 0.0, 1.0)))
+                        predictability_score = float(
+                            (0.5 * np.clip(temporal_patterns[18], 0.0, 1.0))
+                            + (0.5 * ((np.clip(temporal_patterns[19], -1.0, 1.0) + 1.0) * 0.5))
+                        )
+                        convergence_score = float(
+                            np.mean(
+                                [
+                                    np.clip(temporal_patterns[20], 0.0, 1.0),
+                                    np.clip(temporal_patterns[21], 0.0, 1.0),
+                                    1.0 / (1.0 + max(0.0, float(temporal_patterns[22]))),
+                                    1.0 - np.clip(temporal_patterns[23], 0.0, 1.0),
+                                ]
+                            )
+                        )
+                        temporal_chain_score = max(
+                            0.0,
+                            min(
+                                1.0,
+                                (0.25 * autocorr_score)
+                                + (0.2 * monotonicity_score)
+                                + (0.15 * recurrence_score)
+                                + (0.15 * predictability_score)
+                                + (0.25 * convergence_score),
+                            ),
+                        )
+                        sequence_length = max(len(ordered_pairs), 1)
+                        for rank, (candidate_index, _position) in enumerate(ordered_pairs):
+                            progress = float(rank + 1) / float(sequence_length)
+                            temporal_scores[candidate_index] = float(
+                                temporal_chain_score * (0.5 + (0.5 * progress))
+                            )
+                        applied_kernels.append("gre_temporal_reasoning")
+            except Exception:
+                temporal_scores = [0.0 for _ in local_candidates]
+        fractal_emitter = self.get_fractal_emitter()
+        if fractal_emitter is not None and len(local_candidates) > 0:
+            try:
+                fractal_self_similarity = np.asarray(
+                    fractal_emitter.compute_self_similarity(
+                        np.asarray(crystallized_rows, dtype=np.float32),
+                        num_scales=4 if task_type == "ARC_TASK" else 3,
+                    ),
+                    dtype=np.float32,
+                ).reshape(-1)
+                if fractal_self_similarity.size == len(local_candidates):
+                    fractal_scores = np.clip((fractal_self_similarity + 1.0) * 0.5, 0.0, 1.0).tolist()
+                    applied_kernels.append("gre_fractal_emitter")
+            except Exception:
+                fractal_scores = [0.0 for _ in local_candidates]
         for candidate, resonance_score, coherence_score in zip(
             local_candidates,
             resonance_scores,
@@ -5436,6 +5596,12 @@ class Knowledgeverse:
             candidate["specialist_coherence"] = float(coherence_score)
             candidate["cross_galaxy_resonance"] = float(coherence_score)
             candidate["specialist_worker"] = ",".join(applied_kernels) if applied_kernels else "generic_rpn"
+        for candidate, geometry_score in zip(local_candidates, geometry_scores):
+            candidate["specialist_geometry"] = float(geometry_score)
+        for candidate, temporal_score in zip(local_candidates, temporal_scores):
+            candidate["specialist_temporal"] = float(temporal_score)
+        for candidate, fractal_score in zip(local_candidates, fractal_scores):
+            candidate["specialist_fractal"] = float(fractal_score)
         if applied_kernels:
             selection_steps.append(
                 "GRE specialist dispatch: "
@@ -6385,6 +6551,7 @@ class Knowledgeverse:
         )
         led_focus_index: int | None = None
         led_path_nodes: list[int] = []
+        led_path_positions: dict[int, int] = {}
         if local_nodes and pathfinder is not None:
             global_to_local = {global_index: local_index for local_index, global_index in enumerate(local_nodes)}
             query_node = 0
@@ -6457,6 +6624,13 @@ class Knowledgeverse:
                 if 0 <= answer_local_node < len(local_nodes):
                     led_focus_index = int(local_nodes[answer_local_node])
                     led_path_nodes = [int(node) for node in path.tolist()]
+                    for path_position, raw_node in enumerate(led_path_nodes):
+                        node_value = int(raw_node)
+                        if node_value in {query_node, goal_node}:
+                            continue
+                        local_index = node_value - first_real_node
+                        if 0 <= local_index < len(local_nodes):
+                            led_path_positions.setdefault(int(local_nodes[local_index]), int(path_position))
                     selection_steps.append(
                         "LED-A graph navigation: "
                         f"[{str(catalog[led_focus_index].get('galaxy', 'unknown'))}] "
@@ -6547,6 +6721,7 @@ class Knowledgeverse:
                         normalized_galaxy_weights,
                     ),
                     "led_path": list(led_path_nodes),
+                    "led_path_position": int(led_path_positions.get(int(candidate_index), -1)),
                     "graph_neighbors": list(candidate_adjacency.get(int(candidate_index), [])),
                 }
             )
@@ -6588,14 +6763,36 @@ class Knowledgeverse:
         raw_weights = [max(0.0, float(value)) for value in resonance_weights.tolist()]
         if not raw_weights:
             return weights
+        blended_weights = list(raw_weights)
+        cognitive_executive = self.get_cognitive_executive()
+        if cognitive_executive is not None:
+            try:
+                diagnostics = swarm.get_chain_diagnostics()
+                trust_weights, coherence_score = cognitive_executive.compute_trust_weights(
+                    diagnostics.resonance_matrix,
+                    diagnostics.chain_norms[: len(raw_weights)],
+                )
+                trust_values = [max(0.0, float(value)) for value in np.asarray(trust_weights).reshape(-1).tolist()]
+                if len(trust_values) == len(raw_weights):
+                    executive_mix = max(0.2, min(0.5, 0.2 + (0.3 * max(0.0, float(coherence_score)))))
+                    blended_weights = [
+                        ((1.0 - executive_mix) * raw_weights[idx]) + (executive_mix * trust_values[idx])
+                        for idx in range(len(raw_weights))
+                    ]
+                    selection_steps.append(
+                        "GRE cognitive executive: "
+                        f"coherence={float(coherence_score):.2f} mix={executive_mix:.2f}"
+                    )
+            except Exception:
+                blended_weights = list(raw_weights)
         selection_steps.append(
             "Nine-chain swarm dispatch: "
             + ", ".join(
-                f"{str(path.get('option_text') or path.get('program_id', 'path'))}={raw_weights[idx % len(raw_weights)]:.2f}"
+                f"{str(path.get('option_text') or path.get('program_id', 'path'))}={blended_weights[idx % len(blended_weights)]:.2f}"
                 for idx, path in enumerate(paths[: min(len(paths), 9)])
             )
         )
-        return [1.0 + raw_weights[idx % len(raw_weights)] for idx, _ in enumerate(paths)]
+        return [1.0 + blended_weights[idx % len(blended_weights)] for idx, _ in enumerate(paths)]
 
     def _halting_gate_converged(
         self,
@@ -8538,6 +8735,9 @@ class Knowledgeverse:
         subject_anchor_focus = float(candidate.get("subject_anchor_focus", 0.0))
         specialist_resonance = float(candidate.get("specialist_resonance", similarity))
         specialist_coherence = float(candidate.get("specialist_coherence", similarity))
+        specialist_geometry = float(candidate.get("specialist_geometry", 0.0))
+        specialist_temporal = float(candidate.get("specialist_temporal", 0.0))
+        specialist_fractal = float(candidate.get("specialist_fractal", 0.0))
         parse_similarity = float(candidate.get("parse_similarity", 0.0))
         parse_directional_similarity = float(candidate.get("parse_directional_similarity", 0.0))
         parse_support = float(candidate.get("parse_support", 0.0))
@@ -8630,6 +8830,18 @@ class Knowledgeverse:
             "+",
             self._gpu_scalar_literal(specialist_coherence),
             "0.07",
+            "*",
+            "+",
+            self._gpu_scalar_literal(specialist_geometry),
+            "0.03",
+            "*",
+            "+",
+            self._gpu_scalar_literal(specialist_temporal),
+            "0.03",
+            "*",
+            "+",
+            self._gpu_scalar_literal(specialist_fractal),
+            "0.02",
             "*",
             "+",
             self._gpu_scalar_literal(parse_similarity),
