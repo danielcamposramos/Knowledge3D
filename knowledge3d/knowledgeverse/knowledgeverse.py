@@ -284,6 +284,7 @@ class Knowledgeverse:
         self._swarm_bridge: Any | None | bool = None
         self._halting_gate: Any | None | bool = None
         self._vector_resonator: Any | None | bool = None
+        self._resonance_field: Any | None | bool = None
         self._galaxy_resonance_engine: Any | None | bool = None
         self._graph_crystallizer: Any | None | bool = None
         self._atomic_fission_fusion: Any | None | bool = None
@@ -950,6 +951,19 @@ class Knowledgeverse:
                 self._vector_resonator = False
                 return None
         return self._vector_resonator
+
+    def get_resonance_field(self):
+        if self._resonance_field is False:
+            return None
+        if self._resonance_field is None:
+            try:
+                from knowledge3d.cranium.bridges.sovereign_bridges import ResonanceField
+
+                self._resonance_field = ResonanceField()
+            except Exception:
+                self._resonance_field = False
+                return None
+        return self._resonance_field
 
     def get_galaxy_resonance_engine(self):
         if self._galaxy_resonance_engine is False:
@@ -5303,13 +5317,37 @@ class Knowledgeverse:
                 crystallized_rows = resonated_rows
         resonance_scores = self._embedding_similarities(focus_vector, resonated_rows)
         coherence_scores = self._embedding_similarities(focus_vector, crystallized_rows)
+        adjusted_coherence_scores = list(coherence_scores)
+        resonance_field = self.get_resonance_field()
+        if resonance_field is not None and len(local_candidates) > 1:
+            try:
+                galaxy_ids = [
+                    int(
+                        round(
+                            float(
+                                self._gpu_galaxy_index(candidate["match"].get("galaxy", ""))
+                            )
+                        )
+                    )
+                    for candidate in local_candidates
+                ]
+                adjusted = resonance_field.compute_resonance(
+                    crystallized_rows,
+                    galaxy_ids,
+                    coherence_scores,
+                )
+                adjusted_coherence_scores = [float(value) for value in adjusted.tolist()]
+                applied_kernels.append("gre_resonance_field")
+            except Exception:
+                adjusted_coherence_scores = list(coherence_scores)
         for candidate, resonance_score, coherence_score in zip(
             local_candidates,
             resonance_scores,
-            coherence_scores,
+            adjusted_coherence_scores,
         ):
             candidate["specialist_resonance"] = float(resonance_score)
             candidate["specialist_coherence"] = float(coherence_score)
+            candidate["cross_galaxy_resonance"] = float(coherence_score)
             candidate["specialist_worker"] = ",".join(applied_kernels) if applied_kernels else "generic_rpn"
         if applied_kernels:
             selection_steps.append(

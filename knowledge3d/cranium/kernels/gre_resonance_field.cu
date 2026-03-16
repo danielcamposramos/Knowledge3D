@@ -1,39 +1,68 @@
-// Resonance Field - GLM's Energetic Field Management
-// Computes resonance strengths from positions and density
-// Leverages RPN-style vector magnitude computation
+// Resonance Field - cross-galaxy interference scoring
 //
-// Based on: Step8 Resonance Field concept
-// Integration: Uses RPN geometric operations (dot product, magnitude)
+// Candidates supported by semantically aligned entries from other galaxies are
+// boosted; candidates contradicted by other galaxies are attenuated.
+
+#include <math.h>
 
 extern "C" __global__ void gre_resonance_field(
-    const float* __restrict__ positions_ptr,  // [x,y,z] * count
-    const float* __restrict__ density_ptr,    // density values
-    float* __restrict__ output_ptr,           // resonance strengths
-    unsigned int count
+    const float* __restrict__ candidates,    // [N x D] candidate embeddings
+    const int* __restrict__ galaxy_ids,      // [N] galaxy index per candidate
+    const float* __restrict__ base_scores,   // [N] pre-existing scores
+    float* __restrict__ resonance_scores,    // [N] output: interference-adjusted
+    int N,
+    int D
 )
 {
-    // Get global thread ID
-    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    unsigned int stride = blockDim.x * gridDim.x;
+    int i = static_cast<int>(blockIdx.x * blockDim.x + threadIdx.x);
+    int stride = static_cast<int>(blockDim.x * gridDim.x);
 
-    // Each thread processes multiple nodes via striding
-    for (unsigned int i = idx; i < count; i += stride) {
-        // Load position components
-        unsigned int pos_idx = i * 3;
-        float x = positions_ptr[pos_idx + 0];
-        float y = positions_ptr[pos_idx + 1];
-        float z = positions_ptr[pos_idx + 2];
+    for (; i < N; i += stride) {
+        float base = base_scores[i];
+        int my_galaxy = galaxy_ids[i];
 
-        // Load density
-        float density = density_ptr[i];
+        float constructive = 0.0f;
+        float destructive = 0.0f;
+        int cross_count = 0;
 
-        // Compute resonance strength using RPN-style magnitude
-        // RPN equivalent: x DUP mul y DUP mul add z DUP mul add sqrt density mul
-        float mag_sq = x * x + y * y + z * z;
-        float magnitude = sqrtf(mag_sq);
-        float strength = magnitude * density;
+        float self_norm_sq = 0.0f;
+        for (int d = 0; d < D; ++d) {
+            float value = candidates[i * D + d];
+            self_norm_sq += value * value;
+        }
+        float self_norm_inv = (self_norm_sq > 1e-12f) ? rsqrtf(self_norm_sq) : 0.0f;
 
-        // Store result
-        output_ptr[i] = strength;
+        for (int j = 0; j < N; ++j) {
+            if (j == i || galaxy_ids[j] == my_galaxy) {
+                continue;
+            }
+
+            float dot = 0.0f;
+            float other_norm_sq = 0.0f;
+            for (int d = 0; d < D; ++d) {
+                float a = candidates[i * D + d];
+                float b = candidates[j * D + d];
+                dot += a * b;
+                other_norm_sq += b * b;
+            }
+            float other_norm_inv = (other_norm_sq > 1e-12f) ? rsqrtf(other_norm_sq) : 0.0f;
+            float sim = dot * self_norm_inv * other_norm_inv;
+
+            if (sim > 0.3f) {
+                constructive += sim * base_scores[j];
+            } else if (sim < -0.2f) {
+                destructive += fabsf(sim) * base_scores[j];
+            }
+            cross_count += 1;
+        }
+
+        if (cross_count > 0) {
+            float inv_cross = 1.0f / static_cast<float>(cross_count);
+            constructive *= inv_cross;
+            destructive *= inv_cross;
+        }
+
+        float adjusted = base * (1.0f + 0.3f * constructive - 0.15f * destructive);
+        resonance_scores[i] = fmaxf(0.0f, adjusted);
     }
 }

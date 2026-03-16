@@ -509,63 +509,77 @@ class FractalEmitter:
 # ============================================================================
 
 class ResonanceField:
-    """Sovereign Resonance Field - Energetic field management"""
+    """Sovereign Resonance Field - cross-galaxy interference scoring"""
 
     def __init__(self):
         ptx_path = KERNELS_DIR / "gre_resonance_field.ptx"
         self.kernel = load_ptx_file(str(ptx_path), "gre_resonance_field")
 
-    def compute(self, positions, density):
-        """Compute resonance strengths from positions and density
-        
-        Args:
-            positions: Position array [count, 3] (x, y, z)
-            density: Density values [count]
-        
-        Returns:
-            Resonance strengths [count]
-        """
-        count = len(density)
-        assert positions.shape == (count, 3)
+    def compute_resonance(self, candidate_embeddings, galaxy_ids, base_scores):
+        """Cross-galaxy interference scoring."""
+        np_mod = _np()
+        embeddings = np_mod.asarray(candidate_embeddings, dtype=np_mod.float32)
+        if embeddings.ndim == 1:
+            embeddings = embeddings.reshape(-1, 1)
+        if embeddings.ndim != 2:
+            raise ValueError("candidate_embeddings_must_be_rank1_or_rank2")
+        galaxy_arr = np_mod.asarray(galaxy_ids, dtype=np_mod.int32).reshape(-1)
+        score_arr = np_mod.asarray(base_scores, dtype=np_mod.float32).reshape(-1)
+        count = int(embeddings.shape[0])
+        dim = int(embeddings.shape[1])
+        if galaxy_arr.shape[0] != count:
+            raise ValueError("galaxy_ids_length_mismatch")
+        if score_arr.shape[0] != count:
+            raise ValueError("base_scores_length_mismatch")
 
-        pos_bytes = count * 3 * 4
-        density_bytes = count * 4
-        output_bytes = count * 4
+        embedding_bytes = int(embeddings.nbytes)
+        galaxy_bytes = int(galaxy_arr.nbytes)
+        score_bytes = int(score_arr.nbytes)
+        output_bytes = int(score_arr.nbytes)
 
-        d_positions = gpu_malloc(pos_bytes)
-        d_density = gpu_malloc(density_bytes)
+        d_embeddings = gpu_malloc(embedding_bytes)
+        d_galaxy_ids = gpu_malloc(galaxy_bytes)
+        d_scores = gpu_malloc(score_bytes)
         d_output = gpu_malloc(output_bytes)
-        
         try:
-            memcpy_htod(d_positions, positions.ctypes.data_as(ctypes.c_void_p), pos_bytes)
-            memcpy_htod(d_density, density.ctypes.data_as(ctypes.c_void_p), density_bytes)
-            
+            memcpy_htod(d_embeddings, embeddings.ctypes.data_as(ctypes.c_void_p), embedding_bytes)
+            memcpy_htod(d_galaxy_ids, galaxy_arr.ctypes.data_as(ctypes.c_void_p), galaxy_bytes)
+            memcpy_htod(d_scores, score_arr.ctypes.data_as(ctypes.c_void_p), score_bytes)
+
             launch(
                 self.kernel,
                 grid=((count + 255) // 256, 1, 1),
                 block=(256, 1, 1),
                 params=[
-                    ctypes.c_uint64(d_positions.value),
-                    ctypes.c_uint64(d_density.value),
+                    ctypes.c_uint64(d_embeddings.value),
+                    ctypes.c_uint64(d_galaxy_ids.value),
+                    ctypes.c_uint64(d_scores.value),
                     ctypes.c_uint64(d_output.value),
-                    ctypes.c_uint32(count),
+                    ctypes.c_int32(count),
+                    ctypes.c_int32(dim),
                 ],
             )
             synchronize()
-            
+
             OutArray = ctypes.c_float * count
             out_host = OutArray()
             memcpy_dtoh(ctypes.cast(out_host, ctypes.c_void_p), d_output, output_bytes)
-
-            try:
-                np_mod = _np()
-                return np_mod.asarray(out_host, dtype=np_mod.float32)
-            except Exception:
-                return [float(out_host[i]) for i in range(count)]
+            return np_mod.asarray(out_host, dtype=np_mod.float32)
         finally:
-            gpu_free(d_positions)
-            gpu_free(d_density)
+            gpu_free(d_embeddings)
+            gpu_free(d_galaxy_ids)
+            gpu_free(d_scores)
             gpu_free(d_output)
+
+    def compute(self, positions, density):
+        """Compatibility wrapper for legacy tests/non-hot-path usage."""
+        np_mod = _np()
+        embeddings = np_mod.asarray(positions, dtype=np_mod.float32)
+        if embeddings.ndim != 2:
+            raise ValueError("positions_must_be_rank2")
+        count = int(embeddings.shape[0])
+        galaxy_ids = np_mod.arange(count, dtype=np_mod.int32)
+        return self.compute_resonance(embeddings, galaxy_ids, density)
 
 
 class AtomicFissionFusion:

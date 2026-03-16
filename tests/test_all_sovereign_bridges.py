@@ -122,16 +122,25 @@ class TestGLMKernels:
     """Test GLM's 3 kernels: ResonanceField, AtomicFissionFusion, TemporalReasoning"""
 
     def test_resonance_field(self):
-        """Test ResonanceField computes strengths"""
+        """Test ResonanceField computes cross-galaxy interference"""
         field = ResonanceField()
 
-        positions = np.random.randn(30, 3).astype(np.float32)
-        density = np.random.rand(30).astype(np.float32)
+        embeddings = np.array(
+            [
+                [1.0, 0.0],
+                [1.0, 0.0],
+                [-1.0, 0.0],
+            ],
+            dtype=np.float32,
+        )
+        galaxy_ids = np.array([0, 1, 1], dtype=np.int32)
+        base_scores = np.array([1.0, 0.5, 0.5], dtype=np.float32)
 
-        strengths = field.compute(positions, density)
+        strengths = field.compute_resonance(embeddings, galaxy_ids, base_scores)
 
-        assert strengths.shape == (30,), f"Expected (30,), got {strengths.shape}"
+        assert strengths.shape == (3,), f"Expected (3,), got {strengths.shape}"
         assert np.all(strengths >= 0), "Strengths should be non-negative"
+        assert strengths[0] > strengths[1] > strengths[2], "Cross-galaxy interference ordering incorrect"
 
         print(f"✅ ResonanceField: strengths range [{strengths.min():.3f}, {strengths.max():.3f}]")
 

@@ -382,6 +382,69 @@ def test_phase_d_specialist_swarm_features_fall_back_to_semantic_knn(tmp_path, m
     assert any("mode=semantic_knn" in step for step in selection_steps)
 
 
+def test_phase_a1_resonance_field_adjusts_specialist_coherence(tmp_path, monkeypatch):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_resonance_field")
+
+    class _FakeGraphCrystallizer:
+        def crystallize_graph(self, node_features, adjacency, neighbor_counts, rounds, self_weight, neighbor_weight):
+            return np.asarray(node_features, dtype=np.float32)
+
+        def crystallize_list(self, *_args, **_kwargs):
+            raise AssertionError("compatibility_path_should_not_run")
+
+    class _FakeResonanceField:
+        def __init__(self):
+            self.calls = []
+
+        def compute_resonance(self, candidate_embeddings, galaxy_ids, base_scores):
+            self.calls.append(
+                {
+                    "shape": tuple(np.asarray(candidate_embeddings).shape),
+                    "galaxy_ids": list(galaxy_ids),
+                    "base_scores": list(base_scores),
+                }
+            )
+            return np.asarray(base_scores, dtype=np.float32) + 0.25
+
+    fake_resonance = _FakeResonanceField()
+    monkeypatch.setattr(kv, "get_vector_resonator", lambda: None)
+    monkeypatch.setattr(kv, "get_galaxy_resonance_engine", lambda: None)
+    monkeypatch.setattr(kv, "get_graph_crystallizer", lambda: _FakeGraphCrystallizer())
+    monkeypatch.setattr(kv, "get_resonance_field", lambda: fake_resonance)
+
+    local_candidates = [
+        {
+            "match": {"embedding16": [1.0] + [0.0] * 15, "galaxy": "Reality"},
+            "candidate_global_idx": 10,
+            "graph_neighbors": [11],
+            "led_focus": 1.0,
+        },
+        {
+            "match": {"embedding16": [0.0, 1.0] + [0.0] * 14, "galaxy": "Math"},
+            "candidate_global_idx": 11,
+            "graph_neighbors": [10],
+            "led_focus": 0.0,
+        },
+    ]
+    selection_steps: list[str] = []
+
+    kv._apply_specialist_swarm_features(
+        local_candidates=local_candidates,
+        reference_embedding=[1.0] + [0.0] * 15,
+        task_type="MMLU_TASK",
+        path={"label": "primary"},
+        selection_steps=selection_steps,
+    )
+
+    assert len(fake_resonance.calls) == 1
+    call = fake_resonance.calls[0]
+    assert call["shape"] == (2, 16)
+    assert call["galaxy_ids"] == [6, 5]
+    assert local_candidates[0]["cross_galaxy_resonance"] == pytest.approx(call["base_scores"][0] + 0.25)
+    assert local_candidates[0]["specialist_coherence"] == pytest.approx(call["base_scores"][0] + 0.25)
+    assert "gre_resonance_field" in local_candidates[0]["specialist_worker"]
+
+
 def test_phase_d_boot_binding_reuses_all_default_catalog_for_subset_requests(tmp_path, monkeypatch):
     monkeypatch.setenv("K3D_TRM_NAVIGATE", "1")
     kv = Knowledgeverse(storage_root=tmp_path / "kv_trm_bind_once")
