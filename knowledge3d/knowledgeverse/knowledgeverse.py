@@ -5014,6 +5014,93 @@ class Knowledgeverse:
             "typed_roles": list(parse_role_diagnostics.get("typed_roles", [])),
         }
 
+    def _candidate_compositional_atom_rows(self, candidate: dict[str, Any]) -> list[list[float]]:
+        context = candidate.get("gsm8k_context") if isinstance(candidate.get("gsm8k_context"), dict) else {}
+        if not context:
+            match = candidate.get("match") if isinstance(candidate.get("match"), dict) else {}
+            if isinstance(match.get("gsm8k_context"), dict):
+                context = dict(match.get("gsm8k_context"))
+        if not context:
+            return []
+
+        rows: list[list[float]] = []
+        seen: set[str] = set()
+
+        def _append_row(row: dict[str, Any] | None) -> None:
+            if not isinstance(row, dict):
+                return
+            embedding = [float(value) for value in row.get("embedding16", []) if value is not None]
+            if not embedding:
+                return
+            row_id = str(row.get("id", "")).strip()
+            key = row_id or (
+                f"embedding:{len(embedding)}:"
+                + ",".join(f"{float(value):.4f}" for value in embedding[:4])
+            )
+            if key in seen:
+                return
+            seen.add(key)
+            rows.append(embedding)
+
+        for row in context.get("pattern_rows", []):
+            _append_row(row if isinstance(row, dict) else None)
+        for row in context.get("quantity_role_candidates", []):
+            _append_row(row if isinstance(row, dict) else None)
+        for entry_id in context.get("operation_ids", []):
+            _append_row(self._catalog_entry_by_id(str(entry_id)))
+        for entry_id in context.get("number_ids", []):
+            _append_row(self._catalog_entry_by_id(str(entry_id)))
+        return rows[:16]
+
+    def _apply_atomic_compositional_consistency(
+        self,
+        *,
+        local_candidates: list[dict[str, Any]],
+        task_type: str,
+        selection_steps: list[str],
+    ) -> None:
+        if task_type != "MATH_TASK" or not local_candidates:
+            return
+        bridge = self.get_atomic_fission_fusion()
+        if bridge is None:
+            return
+
+        applied = 0
+        consistency_values: list[float] = []
+        for candidate in local_candidates:
+            if float(candidate.get("gsm8k_mode", 0.0)) <= 0.0:
+                continue
+            if (
+                float(candidate.get("gsm8k_template_focus", 0.0)) <= 0.0
+                and float(candidate.get("operation_pattern_focus", 0.0)) <= 0.0
+                and float(candidate.get("numeric_focus", 0.0)) <= 0.0
+            ):
+                continue
+            compound = [float(value) for value in candidate.get("match", {}).get("embedding16", []) if value is not None]
+            atom_rows = self._candidate_compositional_atom_rows(candidate)
+            if not compound or len(atom_rows) <= 1:
+                continue
+            padded = self._pad_embedding_rows([compound, *atom_rows])
+            if len(padded) <= 2:
+                continue
+            compound_row = padded[0]
+            atom_matrix = padded[1:]
+            try:
+                _reconstructed, consistency = bridge.decompose(compound_row, atom_matrix)
+            except Exception:
+                continue
+            candidate["compositional_consistency"] = float(consistency)
+            candidate["compositional_atom_count"] = int(len(atom_matrix))
+            applied += 1
+            consistency_values.append(float(consistency))
+
+        if applied:
+            selection_steps.append(
+                "Atomic fission/fusion: "
+                f"verified {applied} candidates "
+                f"(mean_consistency={sum(consistency_values) / max(1, len(consistency_values)):.2f})"
+            )
+
     @staticmethod
     def _subject_hint_aliases(subject_hint: str) -> list[str]:
         hint = str(subject_hint).strip().lower()
@@ -7614,6 +7701,11 @@ class Knowledgeverse:
                 path=path,
                 selection_steps=selection_steps,
             )
+            self._apply_atomic_compositional_consistency(
+                local_candidates=local_candidates,
+                task_type=task_type,
+                selection_steps=selection_steps,
+            )
             scores = self._score_gpu_candidates_batch(
                 candidates=local_candidates,
                 primary_program_id=reasoning_program_id,
@@ -8464,6 +8556,7 @@ class Knowledgeverse:
         gsm8k_exact_benchmark = float(candidate.get("gsm8k_exact_benchmark", 0.0))
         gsm8k_foreign_benchmark = float(candidate.get("gsm8k_foreign_benchmark", 0.0))
         gsm8k_non_chain_template = float(candidate.get("gsm8k_non_chain_template", 0.0))
+        compositional_consistency = float(candidate.get("compositional_consistency", 0.0))
         parse_override_algebra_weight = self._parse_override_weight("meta_rule_parse_override_algebra", 0.8)
         parse_override_domain_weight = self._parse_override_weight("meta_rule_parse_override_domain", 0.7)
         program_id = str(candidate["program"].get("id", "")).strip()
@@ -8757,6 +8850,12 @@ class Knowledgeverse:
                     self._gpu_scalar_literal(gsm8k_template_focus),
                     "*",
                     "0.10",
+                    "*",
+                    "+",
+                    self._gpu_scalar_literal(gsm8k_mode),
+                    self._gpu_scalar_literal(compositional_consistency),
+                    "*",
+                    "0.12",
                     "*",
                     "+",
                     self._gpu_scalar_literal(gsm8k_exact_benchmark),

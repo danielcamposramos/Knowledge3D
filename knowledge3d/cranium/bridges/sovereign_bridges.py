@@ -583,58 +583,90 @@ class ResonanceField:
 
 
 class AtomicFissionFusion:
-    """Sovereign Atomic Fission/Fusion - Atom compress/expand operations"""
+    """Sovereign Atomic Fission/Fusion - compositional consistency operations."""
 
     def __init__(self):
         ptx_path = KERNELS_DIR / "gre_atomic_fission_fusion.ptx"
         self.kernel = load_ptx_file(str(ptx_path), "gre_atomic_fission_fusion")
 
-    def transform(self, atoms, mode: int, ratio: float):
-        """Transform atoms via fission or fusion
-        
-        Args:
-            atoms: Atom values (float32)
-            mode: 0=fusion (compress), 1=fission (expand)
-            ratio: Transformation ratio
-        
-        Returns:
-            Transformed atoms
-        """
-        count = len(atoms)
-        byte_count = count * 4
+    def _run_compose_decompose(self, compound, atoms, *, mode: int):
+        np_mod = _np()
+        compound_arr = np_mod.asarray(compound, dtype=np_mod.float32).reshape(-1)
+        atom_arr = np_mod.asarray(atoms, dtype=np_mod.float32)
+        if atom_arr.ndim == 1:
+            atom_arr = atom_arr.reshape(1, -1)
+        if atom_arr.ndim != 2 or atom_arr.shape[0] <= 0 or atom_arr.shape[1] <= 0:
+            raise ValueError("atoms must be a non-empty 2D array-like [K x D]")
+        if compound_arr.size <= 0:
+            raise ValueError("compound must be non-empty")
+        if atom_arr.shape[1] != compound_arr.size:
+            raise ValueError("compound and atoms must share the same feature dimension")
 
-        d_input = gpu_malloc(byte_count)
-        d_output = gpu_malloc(byte_count)
-        
+        compound_arr = np_mod.ascontiguousarray(compound_arr, dtype=np_mod.float32)
+        atom_arr = np_mod.ascontiguousarray(atom_arr, dtype=np_mod.float32)
+        d_compound = gpu_malloc(compound_arr.nbytes)
+        d_atoms = gpu_malloc(atom_arr.nbytes)
+        d_result = gpu_malloc(compound_arr.nbytes)
+        d_consistency = gpu_malloc(4)
+
         try:
-            memcpy_htod(d_input, atoms.ctypes.data_as(ctypes.c_void_p), byte_count)
-            
+            memcpy_htod(d_compound, compound_arr.ctypes.data_as(ctypes.c_void_p), compound_arr.nbytes)
+            memcpy_htod(d_atoms, atom_arr.ctypes.data_as(ctypes.c_void_p), atom_arr.nbytes)
+
             launch(
                 self.kernel,
-                grid=((len(atoms) + 255) // 256, 1, 1),
-                block=(256, 1, 1),
+                grid=(1, 1, 1),
+                block=(1, 1, 1),
                 params=[
-                    ctypes.c_uint64(d_input.value),
-                    ctypes.c_uint64(d_output.value),
-                    ctypes.c_uint32(len(atoms)),
-                    ctypes.c_uint32(mode),
-                    ctypes.c_float(ratio),
+                    ctypes.c_uint64(d_compound.value),
+                    ctypes.c_uint64(d_atoms.value),
+                    ctypes.c_uint64(d_result.value),
+                    ctypes.c_uint64(d_consistency.value),
+                    ctypes.c_int(int(atom_arr.shape[0])),
+                    ctypes.c_int(int(atom_arr.shape[1])),
+                    ctypes.c_int(int(mode)),
                 ],
             )
             synchronize()
 
-            OutArray = ctypes.c_float * count
-            out_host = OutArray()
-            memcpy_dtoh(ctypes.cast(out_host, ctypes.c_void_p), d_output, byte_count)
+            result_host = (ctypes.c_float * int(compound_arr.size))()
+            consistency_host = ctypes.c_float()
+            memcpy_dtoh(ctypes.cast(result_host, ctypes.c_void_p), d_result, compound_arr.nbytes)
+            memcpy_dtoh(ctypes.cast(ctypes.pointer(consistency_host), ctypes.c_void_p), d_consistency, 4)
 
-            try:
-                np_mod = _np()
-                return np_mod.asarray(out_host, dtype=np_mod.float32).reshape(atoms.shape)
-            except Exception:
-                return [float(out_host[i]) for i in range(count)]
+            result = np_mod.asarray(result_host, dtype=np_mod.float32).reshape(compound_arr.shape)
+            return result, float(consistency_host.value)
         finally:
-            gpu_free(d_input)
-            gpu_free(d_output)
+            gpu_free(d_compound)
+            gpu_free(d_atoms)
+            gpu_free(d_result)
+            gpu_free(d_consistency)
+
+    def decompose(self, compound, atoms):
+        """Project a compound embedding onto atom directions."""
+        return self._run_compose_decompose(compound, atoms, mode=0)
+
+    def compose(self, atoms):
+        """Fuse a small atom set into a weighted centroid and report agreement."""
+        np_mod = _np()
+        atom_arr = np_mod.asarray(atoms, dtype=np_mod.float32)
+        if atom_arr.ndim == 1:
+            atom_arr = atom_arr.reshape(1, -1)
+        if atom_arr.ndim != 2 or atom_arr.shape[0] <= 0:
+            raise ValueError("atoms must be a non-empty 2D array-like [K x D]")
+        compound = np_mod.mean(atom_arr, axis=0, dtype=np_mod.float32)
+        return self._run_compose_decompose(compound, atom_arr, mode=1)
+
+    def transform(self, atoms, mode: int, ratio: float):
+        """Compatibility scalar transform kept for legacy callers."""
+        np_mod = _np()
+        arr = np_mod.asarray(atoms, dtype=np_mod.float32)
+        factor = float(ratio)
+        if abs(factor) < 1e-6:
+            factor = 1e-6
+        if int(mode) == 0:
+            return arr * factor
+        return arr / factor
 
     def transform_list(
         self,
@@ -642,50 +674,13 @@ class AtomicFissionFusion:
         mode: int,
         ratio: float,
     ) -> list[float]:
-        """List-friendly atom transform without exposing NumPy to the caller."""
-        values = [float(value) for value in atoms]
-        count = len(values)
-        if count <= 0:
+        """List-friendly compatibility transform without exposing NumPy to the caller."""
+        np_mod = _np()
+        values = np_mod.asarray(list(atoms), dtype=np_mod.float32)
+        if values.size <= 0:
             return []
-        byte_count = count * 4
-        InArray = ctypes.c_float * count
-        OutArray = ctypes.c_float * count
-        input_host = InArray(*values)
-        out_host = OutArray()
-
-        d_input = gpu_malloc(byte_count)
-        d_output = gpu_malloc(byte_count)
-
-        try:
-            memcpy_htod(
-                d_input,
-                ctypes.cast(input_host, ctypes.c_void_p),
-                byte_count,
-            )
-
-            launch(
-                self.kernel,
-                grid=((count + 255) // 256, 1, 1),
-                block=(256, 1, 1),
-                params=[
-                    ctypes.c_uint64(d_input.value),
-                    ctypes.c_uint64(d_output.value),
-                    ctypes.c_uint32(count),
-                    ctypes.c_uint32(mode),
-                    ctypes.c_float(ratio),
-                ],
-            )
-            synchronize()
-
-            memcpy_dtoh(
-                ctypes.cast(out_host, ctypes.c_void_p),
-                d_output,
-                byte_count,
-            )
-            return [float(out_host[i]) for i in range(count)]
-        finally:
-            gpu_free(d_input)
-            gpu_free(d_output)
+        transformed = self.transform(values, mode=mode, ratio=ratio)
+        return [float(value) for value in np_mod.asarray(transformed, dtype=np_mod.float32).reshape(-1).tolist()]
 
     def create_sparse(self, weights, sparsity_level: float, preserve_important: bool = True) -> dict:
         """Create sparse weight representation for efficient GPU computation.

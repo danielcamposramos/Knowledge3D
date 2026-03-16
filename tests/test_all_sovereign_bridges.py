@@ -145,21 +145,31 @@ class TestGLMKernels:
         print(f"✅ ResonanceField: strengths range [{strengths.min():.3f}, {strengths.max():.3f}]")
 
     def test_atomic_fission_fusion(self):
-        """Test AtomicFissionFusion transforms atoms"""
+        """Test AtomicFissionFusion performs real decompose/compose operations."""
         transformer = AtomicFissionFusion()
 
-        atoms = np.ones(100, dtype=np.float32) * 2.0
-        ratio = 0.5
+        compound = np.array([1.0, 1.0, 0.0, 0.0], dtype=np.float32)
+        atoms = np.array(
+            [
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+            ],
+            dtype=np.float32,
+        )
 
-        # Test fusion (compress)
-        fused = transformer.transform(atoms, mode=0, ratio=ratio)
-        assert np.allclose(fused, atoms * ratio), "Fusion should multiply by ratio"
+        reconstructed, consistency = transformer.decompose(compound, atoms)
+        assert reconstructed.shape == compound.shape
+        assert consistency > 0.99
+        assert np.allclose(reconstructed[:2], compound[:2], atol=1e-4)
 
-        # Test fission (expand)
-        fissioned = transformer.transform(atoms, mode=1, ratio=ratio)
-        assert np.allclose(fissioned, atoms / ratio), "Fission should divide by ratio"
+        fused, fusion_consistency = transformer.compose(atoms)
+        assert fused.shape == compound.shape
+        assert fusion_consistency > 0.70
+        assert np.allclose(fused[:2], np.array([0.5, 0.5], dtype=np.float32), atol=1e-4)
 
-        print(f"✅ AtomicFissionFusion: fusion and fission correct")
+        compatibility = transformer.transform(np.array([2.0, 4.0], dtype=np.float32), mode=0, ratio=0.5)
+        assert np.allclose(compatibility, np.array([1.0, 2.0], dtype=np.float32))
+        print(f"✅ AtomicFissionFusion: decompose={consistency:.3f}, compose={fusion_consistency:.3f}")
 
     def test_temporal_reasoning(self):
         """Test TemporalReasoning computes deltas"""

@@ -445,6 +445,75 @@ def test_phase_a1_resonance_field_adjusts_specialist_coherence(tmp_path, monkeyp
     assert "gre_resonance_field" in local_candidates[0]["specialist_worker"]
 
 
+def test_phase_a3_atomic_fission_threads_compositional_consistency_into_gsm8k_candidates(tmp_path, monkeypatch):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_atomic_fission")
+
+    class _FakeAtomicFissionFusion:
+        def __init__(self):
+            self.calls = []
+
+        def decompose(self, compound, atoms):
+            self.calls.append(
+                {
+                    "compound": list(compound),
+                    "shape": tuple(np.asarray(atoms).shape),
+                }
+            )
+            return np.asarray(compound, dtype=np.float32), 0.75
+
+    fake_bridge = _FakeAtomicFissionFusion()
+    monkeypatch.setattr(kv, "get_atomic_fission_fusion", lambda: fake_bridge)
+
+    candidate = {
+        "match": {
+            "embedding16": [1.0] + [0.0] * 15,
+            "galaxy": "Math",
+            "category": "template",
+            "confidence": 0.9,
+            "gpu_has_template_ref": 1.0,
+        },
+        "program": {"id": "reasoning_word_problem_fission"},
+        "gsm8k_mode": 1.0,
+        "gsm8k_template_focus": 1.0,
+        "gsm8k_context": {
+            "pattern_rows": [
+                {"id": "grammar_pattern", "embedding16": [0.0, 1.0] + [0.0] * 14},
+            ],
+            "quantity_role_candidates": [
+                {"id": "number_anchor", "embedding16": [0.0, 0.0, 1.0] + [0.0] * 13},
+            ],
+            "number_ids": [],
+        },
+        "similarity": 0.5,
+        "option_similarity": 0.5,
+        "specialist_resonance": 0.5,
+        "specialist_coherence": 0.5,
+        "galaxy_weight": 1.0,
+    }
+    selection_steps: list[str] = []
+
+    kv._apply_atomic_compositional_consistency(
+        local_candidates=[candidate],
+        task_type="MATH_TASK",
+        selection_steps=selection_steps,
+    )
+
+    assert len(fake_bridge.calls) == 1
+    assert fake_bridge.calls[0]["shape"] == (2, 16)
+    assert candidate["compositional_consistency"] == pytest.approx(0.75)
+    assert candidate["compositional_atom_count"] == 2
+    assert any("Atomic fission/fusion:" in step for step in selection_steps)
+
+    expr = kv._build_gpu_candidate_score_expression(
+        candidate=candidate,
+        primary_program_id="reasoning_word_problem_fission",
+        target_galaxies=["Math", "Grammar"],
+        task_type="MATH_TASK",
+        domain_hint="math",
+    )
+    assert kv._gpu_scalar_literal(0.75) in expr
+
+
 def test_phase_d_boot_binding_reuses_all_default_catalog_for_subset_requests(tmp_path, monkeypatch):
     monkeypatch.setenv("K3D_TRM_NAVIGATE", "1")
     kv = Knowledgeverse(storage_root=tmp_path / "kv_trm_bind_once")
