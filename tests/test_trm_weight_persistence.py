@@ -14,6 +14,7 @@ from knowledge3d.knowledgeverse.foundational_operations_bootstrap import (
 )
 from knowledge3d.knowledgeverse.grammar_galaxy import GrammarGalaxy
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
+from knowledge3d.knowledgeverse.specialist_base import SpecialistBase
 from knowledge3d.training.trm_galaxy_nav import (
     apply_trm_weights_to_traces,
     build_trace_balance_weights,
@@ -1107,6 +1108,144 @@ def test_triple_defeasible_defers_stage1_and_stage2_for_mmlu(tmp_path):
 
     assert local_candidates[0]["specialist_intra_defeasible"] == pytest.approx(0.0)
     assert any("deferred_for_mmlu" in step for step in selection_steps)
+
+
+def test_nsi_routing_bias_holds_on_zero_outcome():
+    node = SpecialistBase(name="root", domain="generic")
+    node.routing_bias["child"] = 0.42
+
+    node.update_routing_bias("child", ternary_outcome=0)
+
+    assert node.routing_bias["child"] == pytest.approx(0.42)
+
+
+def test_nsi_mark_query_ternary_uncertain_count():
+    node = SpecialistBase(name="root", domain="generic")
+
+    node.mark_query(ternary_outcome=0)
+
+    assert node.query_count == 1
+    assert node.success_count == 0
+    assert node.failure_count == 0
+    assert node.uncertain_count == 1
+    assert node.exploration_pressure == 1
+
+
+def test_nsi_routing_topology_no_bias_on_zero(tmp_path, monkeypatch):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_nsi_topology_zero")
+    calls: list[tuple[str, float]] = []
+    monkeypatch.setattr(
+        kv.navigator_specialist.router,
+        "adjust_specialist_bias",
+        lambda specialist, delta: calls.append((str(specialist), float(delta))),
+    )
+
+    kv.navigator_specialist.learn_routing_topology(
+        "uncertain specialist route",
+        specialist="GrammarSpecialist",
+        ternary_outcome=0,
+    )
+
+    signature = kv.navigator_specialist._query_signature("uncertain specialist route")
+    bucket = kv.navigator_specialist.routing_topology[signature]["GrammarSpecialist"]
+    assert bucket["success"] == 0
+    assert bucket["failure"] == 0
+    assert bucket["uncertain"] == 1
+    assert calls == []
+
+
+def test_nsi_consolidation_uses_verdict_trit(tmp_path, monkeypatch):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_nsi_consolidation")
+    captured: list[dict[str, object]] = []
+    monkeypatch.setattr(
+        kv.trm_navigator,
+        "learn_from_feedback",
+        lambda **kwargs: captured.append(dict(kwargs)),
+    )
+
+    summary = kv.trm_navigator.consolidate_weights_from_events(
+        [
+            {
+                "type": "defeasible_verdict",
+                "data": {
+                    "specialist": "math",
+                    "query": "factorial guard",
+                    "verdict_trit": -1,
+                    "confidence": 0.73,
+                    "was_defeated_by": "strict_factorial_axiom",
+                },
+                "confidence": 0.73,
+            }
+        ]
+    )
+
+    assert summary["updated_count"] == 1
+    assert captured
+    assert captured[0]["ternary_outcome"] == -1
+    assert captured[0]["defeat_source"] == "strict_factorial_axiom"
+
+
+def test_nsi_grammar_detector_exploratory_polarity(tmp_path):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_nsi_exploratory")
+    detector = kv.trm_navigator.execution_grammar_detector
+    assert detector is not None
+
+    event = {
+        "tool_id": "tool_explore_probe",
+        "query_context": "explore conflict zone alternatives",
+        "domain_hint": "multimodal",
+        "outcome": 0,
+        "quality_signal": 0.55,
+        "timestamp_us": 123,
+        "chain_tool_ids": [
+            "tool_alpha_explore",
+            "tool_beta_explore",
+        ],
+        "chain_runtime_statuses": [
+            "ptx_bridge_available",
+            "ptx_bridge_available",
+        ],
+    }
+
+    summary_a = detector.observe_event(event)
+    summary_b = detector.observe_event({**event, "timestamp_us": 124})
+    summary_c = detector.observe_event({**event, "timestamp_us": 125})
+
+    assert summary_a["updated_patterns"]
+    assert summary_b["updated_patterns"]
+    assert summary_c["updated_patterns"]
+    pattern_key = summary_a["updated_patterns"][0]
+    record = detector._state["patterns"][pattern_key]
+    assert record["polarity"] == "exploratory"
+    promoted = detector._state["promoted_rules"][pattern_key]
+    assert promoted["polarity"] == "exploratory"
+    assert promoted["live_inserted"] is False
+    target = promoted["entry"]
+    assert target["semantics"]["source"] == "auto_detected_exploratory"
+    assert target["semantics"]["contrastive_recommendation"] == "explore_alternatives"
+    assert target["semantics"]["ternary_confidence"] == 0
+
+
+def test_nsi_backward_compat_bool_still_works():
+    via_bool = SpecialistBase(name="bool_node", domain="generic")
+    via_ternary = SpecialistBase(name="ternary_node", domain="generic")
+    via_bool.routing_bias["child"] = 0.5
+    via_ternary.routing_bias["child"] = 0.5
+
+    via_bool.mark_query(success=True)
+    via_ternary.mark_query(ternary_outcome=1)
+    via_bool.mark_query(success=False)
+    via_ternary.mark_query(ternary_outcome=-1)
+    via_bool.update_routing_bias("child", success=True)
+    via_ternary.update_routing_bias("child", ternary_outcome=1)
+    via_bool.update_routing_bias("child", success=False)
+    via_ternary.update_routing_bias("child", ternary_outcome=-1)
+
+    assert via_bool.query_count == via_ternary.query_count
+    assert via_bool.success_count == via_ternary.success_count
+    assert via_bool.failure_count == via_ternary.failure_count
+    assert via_bool.uncertain_count == via_ternary.uncertain_count
+    assert via_bool.routing_bias["child"] == pytest.approx(via_ternary.routing_bias["child"])
 
 
 def test_phase_track1_defeasible_compatibility_mode_preserves_raw_scores(tmp_path):

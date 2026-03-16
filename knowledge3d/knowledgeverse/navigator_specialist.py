@@ -10,6 +10,7 @@ import re
 from typing import Any, Sequence
 
 from .specialist_router import SpecialistRouter
+from .specialist_base import _resolve_ternary
 from .trm_weight_store import TRMWeightStore
 
 _NUMERIC_WORD_UNITS: dict[str, int] = {
@@ -329,18 +330,23 @@ class NavigatorSpecialist:
         query: str,
         *,
         specialist: str,
-        success: bool,
+        success: bool | None = None,
+        ternary_outcome: int | None = None,
     ) -> None:
         """Update topology memory with route outcome signal."""
+        outcome = _resolve_ternary(success, ternary_outcome)
         signature = self._query_signature(query)
         specialist_stats = self.routing_topology.setdefault(signature, {})
-        bucket = specialist_stats.setdefault(specialist, {"success": 0, "failure": 0})
-        if success:
+        bucket = specialist_stats.setdefault(specialist, {"success": 0, "failure": 0, "uncertain": 0})
+        bucket.setdefault("uncertain", 0)
+        if outcome > 0:
             bucket["success"] += 1
             self.router.adjust_specialist_bias(specialist, +0.02)
-        else:
+        elif outcome < 0:
             bucket["failure"] += 1
             self.router.adjust_specialist_bias(specialist, -0.01)
+        else:
+            bucket["uncertain"] += 1
         self._update_count += 1
         if self._update_count % self._auto_save_interval == 0:
             self.save_state()

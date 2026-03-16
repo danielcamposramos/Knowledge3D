@@ -262,7 +262,13 @@ class ExecutionGrammarDetector:
 
     @staticmethod
     def _rpn_program(sequence: tuple[str, ...], *, polarity: str) -> str:
-        suffix = "TOOL_CHAIN" if polarity == "positive" else "TOOL_CHAIN_ANTI"
+        polarity_l = str(polarity).strip().lower()
+        if polarity_l == "positive":
+            suffix = "TOOL_CHAIN"
+        elif polarity_l == "negative":
+            suffix = "TOOL_CHAIN_ANTI"
+        else:
+            suffix = "TOOL_CHAIN_EXPLORE"
         return " ".join(sequence) + f" {suffix}"
 
     @staticmethod
@@ -287,7 +293,13 @@ class ExecutionGrammarDetector:
         modalities = [str(token).strip().upper() for token in signature.get("modality_signature", []) if str(token).strip()]
         routes = [str(token).strip().upper() for token in signature.get("route_signature", []) if str(token).strip()]
         sequence = families + modalities + routes
-        suffix = "MULTIMODAL_GRAMMAR" if polarity == "positive" else "MULTIMODAL_GRAMMAR_ANTI"
+        polarity_l = str(polarity).strip().lower()
+        if polarity_l == "positive":
+            suffix = "MULTIMODAL_GRAMMAR"
+        elif polarity_l == "negative":
+            suffix = "MULTIMODAL_GRAMMAR_ANTI"
+        else:
+            suffix = "MULTIMODAL_GRAMMAR_EXPLORE"
         return " ".join(sequence or ["MULTIMODAL"]) + f" {suffix}"
 
     def _build_rule_entry(
@@ -304,14 +316,31 @@ class ExecutionGrammarDetector:
         bayesian_quality = float(count + 1) / float(count + 2)
         dominant_domain = str(record.get("dominant_domain_hint", "multimodal") or "multimodal")
         query_examples = list(record.get("query_examples", []) or [])[:3]
-        is_positive = str(polarity).strip().lower() == "positive"
-        pattern = "tool_chain_positive" if is_positive else "tool_chain_negative"
-        source = "auto_detected" if is_positive else "auto_detected_contrastive"
+        polarity_l = str(polarity).strip().lower()
+        is_positive = polarity_l == "positive"
+        is_negative = polarity_l == "negative"
+        pattern = (
+            "tool_chain_positive"
+            if is_positive else
+            "tool_chain_negative"
+            if is_negative else
+            "tool_chain_exploratory"
+        )
+        source = (
+            "auto_detected"
+            if is_positive else
+            "auto_detected_contrastive"
+            if is_negative else
+            "auto_detected_exploratory"
+        )
         description = (
             f"Auto-detected execution grammar from {count} successful recurrences of "
             f"{' -> '.join(sequence)}"
             if is_positive else
             f"Auto-detected contrastive anti-pattern from {count} failing recurrences of "
+            f"{' -> '.join(sequence)}"
+            if is_negative else
+            f"Auto-detected exploratory execution grammar from {count} uncertain recurrences of "
             f"{' -> '.join(sequence)}"
         )
         return {
@@ -328,24 +357,28 @@ class ExecutionGrammarDetector:
                     "execution_tool_chain"
                     if is_positive else
                     "execution_tool_chain_antipattern"
+                    if is_negative else
+                    "execution_tool_chain_exploratory"
                 ),
                 "chain_tool_ids": list(sequence),
                 "occurrence_count": count,
                 "success_count": count if is_positive else 0,
-                "failure_count": 0 if is_positive else count,
+                "failure_count": count if is_negative else 0,
                 "avg_quality_signal": float(avg_quality),
                 "bayesian_quality": float(bayesian_quality),
-                "ternary_confidence": int(ternary_quantize_quality(bayesian_quality)),
+                "ternary_confidence": 0 if not (is_positive or is_negative) else int(ternary_quantize_quality(bayesian_quality)),
                 "query_examples": query_examples,
                 "contrastive_recommendation": (
                     "reuse_and_promote"
                     if is_positive else
                     "avoid_or_invert"
+                    if is_negative else
+                    "explore_alternatives"
                 ),
             },
             "usage_conditions": [
                 f"domain_hint:{dominant_domain}",
-                ("outcome:+1" if is_positive else "outcome:-1"),
+                ("outcome:+1" if is_positive else "outcome:-1" if is_negative else "outcome:0"),
                 f"min_occurrences:{self.min_occurrences}",
             ],
             "is_canonical": False,
@@ -510,19 +543,36 @@ class ExecutionGrammarDetector:
         query_tokens = self._counted_tokens(record, "query_token_counts")
         modalities = self._counted_tokens(record, "modality_counts", limit=6)
         route_sources = self._counted_tokens(record, "route_source_counts", limit=3)
-        is_positive = str(polarity).strip().lower() == "positive"
-        pattern = "multimodal_execution_positive" if is_positive else "multimodal_execution_negative"
-        source = "auto_detected_multimodal" if is_positive else "auto_detected_multimodal_contrastive"
+        polarity_l = str(polarity).strip().lower()
+        is_positive = polarity_l == "positive"
+        is_negative = polarity_l == "negative"
+        pattern = (
+            "multimodal_execution_positive"
+            if is_positive else
+            "multimodal_execution_negative"
+            if is_negative else
+            "multimodal_execution_exploratory"
+        )
+        source = (
+            "auto_detected_multimodal"
+            if is_positive else
+            "auto_detected_multimodal_contrastive"
+            if is_negative else
+            "auto_detected_multimodal_exploratory"
+        )
         description = (
             f"Auto-detected multimodal execution grammar from {count} recurring successful observations "
             f"covering {', '.join(modalities or ['multimodal'])}"
             if is_positive else
             f"Auto-detected multimodal contrastive anti-pattern from {count} recurring failed observations "
             f"covering {', '.join(modalities or ['multimodal'])}"
+            if is_negative else
+            f"Auto-detected multimodal exploratory grammar from {count} recurring uncertain observations "
+            f"covering {', '.join(modalities or ['multimodal'])}"
         )
         usage_conditions = [
             f"domain_hint:{dominant_domain}",
-            ("outcome:+1" if is_positive else "outcome:-1"),
+            ("outcome:+1" if is_positive else "outcome:-1" if is_negative else "outcome:0"),
             f"min_occurrences:{self.min_occurrences}",
         ]
         usage_conditions.extend(f"modality:{token}" for token in modalities[:4])
@@ -542,13 +592,15 @@ class ExecutionGrammarDetector:
                     "execution_multimodal_pattern"
                     if is_positive else
                     "execution_multimodal_antipattern"
+                    if is_negative else
+                    "execution_multimodal_exploratory"
                 ),
                 "occurrence_count": count,
                 "success_count": count if is_positive else 0,
-                "failure_count": 0 if is_positive else count,
+                "failure_count": count if is_negative else 0,
                 "avg_quality_signal": float(avg_quality),
                 "bayesian_quality": float(bayesian_quality),
-                "ternary_confidence": int(ternary_quantize_quality(bayesian_quality)),
+                "ternary_confidence": 0 if not (is_positive or is_negative) else int(ternary_quantize_quality(bayesian_quality)),
                 "tool_kind_signature": list(record.get("tool_kind_signature", []) or []),
                 "tool_family_tokens": family_tokens,
                 "modalities": modalities,
@@ -560,6 +612,8 @@ class ExecutionGrammarDetector:
                     "reuse_and_generalize"
                     if is_positive else
                     "avoid_or_invert"
+                    if is_negative else
+                    "explore_alternatives"
                 ),
             },
             "usage_conditions": usage_conditions,
@@ -568,12 +622,10 @@ class ExecutionGrammarDetector:
 
     def observe_event(self, event: Mapping[str, Any]) -> dict[str, Any]:
         outcome = int(event.get("outcome", 0) or 0)
-        if outcome == 0:
-            return {}
         chain = self._normalize_chain(event)
         if len(chain) < 2:
             return {}
-        polarity = "positive" if outcome > 0 else "negative"
+        polarity = "positive" if outcome > 0 else ("negative" if outcome < 0 else "exploratory")
 
         promoted_rules: list[str] = []
         updated_patterns: list[str] = []
@@ -587,12 +639,16 @@ class ExecutionGrammarDetector:
             if key in self._state.setdefault("promoted_rules", {}):
                 continue
             entry = self._build_rule_entry(key, sequence, record, polarity=polarity)
-            self.galaxy_manager.add_entry("Grammar", entry)
+            live_inserted = polarity != "exploratory"
+            if live_inserted:
+                self.galaxy_manager.add_entry("Grammar", entry)
             self._state["promoted_rules"][key] = {
                 "rule_id": key,
                 "sequence": list(sequence),
                 "polarity": polarity,
                 "promoted_at": int(event.get("timestamp_us", 0) or 0),
+                "live_inserted": bool(live_inserted),
+                "entry": entry,
             }
             self._append_log(
                 {
@@ -600,9 +656,12 @@ class ExecutionGrammarDetector:
                         "execution_grammar_promoted"
                         if polarity == "positive" else
                         "execution_antipattern_promoted"
+                        if polarity == "negative" else
+                        "execution_exploratory_grammar_promoted"
                     ),
                     "rule_id": key,
                     "polarity": polarity,
+                    "live_inserted": bool(live_inserted),
                     "sequence": list(sequence),
                     "count": int(record.get("count", 0) or 0),
                     "avg_quality_signal": float(record.get("quality_sum", 0.0) or 0.0) / float(max(1, int(record.get("count", 0) or 0))),
@@ -623,12 +682,16 @@ class ExecutionGrammarDetector:
                 and key not in self._state.setdefault("promoted_rules", {})
             ):
                 entry = self._build_multimodal_rule_entry(key, record, polarity=polarity)
-                self.galaxy_manager.add_entry("Grammar", entry)
+                live_inserted = polarity != "exploratory"
+                if live_inserted:
+                    self.galaxy_manager.add_entry("Grammar", entry)
                 self._state["promoted_rules"][key] = {
                     "rule_id": key,
                     "pattern_class": "multimodal",
                     "polarity": polarity,
                     "promoted_at": int(event.get("timestamp_us", 0) or 0),
+                    "live_inserted": bool(live_inserted),
+                    "entry": entry,
                 }
                 self._append_log(
                     {
@@ -636,9 +699,12 @@ class ExecutionGrammarDetector:
                             "execution_multimodal_grammar_promoted"
                             if polarity == "positive" else
                             "execution_multimodal_antipattern_promoted"
+                            if polarity == "negative" else
+                            "execution_multimodal_exploratory_promoted"
                         ),
                         "rule_id": key,
                         "polarity": polarity,
+                        "live_inserted": bool(live_inserted),
                         "modalities": list(record.get("modality_signature", []) or []),
                         "route_sources": list(record.get("route_signature", []) or []),
                         "tool_family_tokens": self._counted_tokens(record, "tool_family_counts"),

@@ -672,6 +672,36 @@ def sleeptime_protocol_with_rollback():
 
 **Validation**: 100% of active nodes successfully persist to House (verified via checksums).
 
+### 7.4 Defeasible Verdict Consolidation (March 2026)
+
+Sleep-time now processes `DefeasibleVerdictEvent`s alongside traditional execution events. Each verdict carries an explicit ternary outcome (+1/0/-1), the rule that was evaluated, and — critically — the `was_defeated_by` field identifying which superior rule caused a defeat.
+
+**Consolidation per verdict trit:**
+
+| Verdict | Sleep-Time Action |
+|---------|-------------------|
+| +1 (proven) | Strengthen TRM routing weights for the contributing rule. Increase `trust_weight` on the Grammar Galaxy rule. |
+| -1 (defeated) | Weaken routing weights. Decrease `trust_weight`. If recurrent (≥3 defeats), auto-generate a defeater rule (`rule_strength = -1`) in Grammar Galaxy with `superior_to` pointing to the defeated rule. |
+| 0 (undetermined) | Do NOT adjust routing weights (prevent exploration punishment). Increment `exploration_pressure` on the specialist node. If recurrent (≥3 undetermined), generate an exploratory Grammar rule marking this context as a conflict zone. |
+
+**Auto-Generated Defeater Rules:**
+When a defeasible rule is repeatedly defeated (≥ `min_occurrences` in the grammar detector), sleep-time consolidation promotes a defeater anti-pattern:
+
+```python
+GrammarRule(
+    rule_id=f"defeater_{defeated_rule}_{defeating_rule}",
+    rule_strength=-1,  # defeater
+    superior_to=[defeated_rule_id],
+    trust_weight=0.5,  # starts moderate, grows with recurrence
+    semantics={
+        "source": "defeasible_auto_detected_contrastive",
+        "contrastive_recommendation": "block_in_context",
+    },
+)
+```
+
+This is the self-improving loop: the system discovers its own defeaters from runtime behavior, enriching the Grammar Galaxy's superiority web without human authoring.
+
 ---
 
 ## 8. Future Enhancements

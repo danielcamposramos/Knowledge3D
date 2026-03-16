@@ -142,9 +142,13 @@ class GrammarRule:
     pattern: str
     rpn_program: str
     domain: str = "text"
-    symbol_refs: List[int] = field(default_factory=list)  # NEW: Layer 1 symlinks
-    word_refs: List[str] = field(default_factory=list)     # NEW: Layer 2 symlinks
+    symbol_refs: List[int] = field(default_factory=list)  # Layer 1 symlinks
+    word_refs: List[str] = field(default_factory=list)     # Layer 2 symlinks
     examples: List[Dict[str, str]] = field(default_factory=list)
+    # Defeasible logic metadata (March 2026, SPINdle integration)
+    rule_strength: int = 0        # Trit: +1=strict, 0=defeasible, -1=defeater
+    superior_to: List[str] = field(default_factory=list)  # Rule IDs this rule defeats
+    trust_weight: float = 1.0     # Source confidence [0, 1], decays during sleep-time
 ```
 
 **Example (Symlinked)**:
@@ -160,6 +164,50 @@ GrammarRule(
     examples=[{"input": "d/dx[x^3]", "output": "3x^2"}]
 )
 ```
+
+**Example (Defeasible Rule with Superiority)**:
+```python
+# Specific rule defeats general rule via superiority relation
+GrammarRule(
+    rule_id="penguin_no_fly",
+    language="logic",
+    pattern="penguin(X) => ~flies(X)",
+    rpn_program="GALAXY_LOOKUP penguin TQUANT GALAXY_LOOKUP flies TNOT TMUL",
+    domain="reality_biology",
+    rule_strength=0,  # defeasible
+    superior_to=["bird_flies"],  # defeats the general bird-flies rule
+    trust_weight=0.9,
+)
+
+# The general rule it defeats
+GrammarRule(
+    rule_id="bird_flies",
+    language="logic",
+    pattern="bird(X) => flies(X)",
+    rpn_program="GALAXY_LOOKUP bird TQUANT GALAXY_LOOKUP flies TMUL",
+    domain="reality_biology",
+    rule_strength=0,  # defeasible
+)
+
+# A strict axiom (cannot be defeated)
+GrammarRule(
+    rule_id="calc_power_rule_strict",
+    language="math",
+    pattern="d/dx[x^n] = n*x^(n-1)",
+    rpn_program="n RECALL 1 SUB x SWAP POW n MUL",
+    domain="math_calculus",
+    symbol_refs=[8706, 8747],
+    rule_strength=+1,  # strict — mathematical axiom
+    trust_weight=1.0,
+)
+```
+
+**Defeasible Logic Mapping to Ternary:**
+- `rule_strength = +1` (strict): Maps to RPN ternary +1. Cannot be defeated. Used for mathematical axioms and verified facts.
+- `rule_strength = 0` (defeasible): Maps to RPN ternary 0. Default for most rules. Can be overridden by superior evidence.
+- `rule_strength = -1` (defeater): Maps to RPN ternary -1. Blocks conclusions without proving alternatives. Auto-generated during sleep-time from recurring defeasible defeats.
+
+**Superiority Resolution:** When two rules conflict, `superior_to` declares which wins. The `gre_defeasible_resolver.cu` PTX kernel processes these relations in the composed head pipeline.
 
 **Compression**: Without symlinks, 1,000 rules × 152 symbols × 5 KB = 760 MB. With symlinks: 1,000 rules × 4 bytes = 4 KB (190,000x compression).
 

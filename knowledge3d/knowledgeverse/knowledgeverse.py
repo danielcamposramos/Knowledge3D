@@ -1750,6 +1750,7 @@ class Knowledgeverse:
             max(len(profile["superior_to"]) for profile in profiles),
         )
         superiority = np.full((path_count, max_superiors), 0xFFFFFFFF, dtype=np.uint32)
+        incoming_superiors: dict[int, list[str]] = {}
 
         for worker_index, profile in enumerate(profiles):
             scaled_score = abs(float(swarm_weights[worker_index])) * float(profile["trust_weight"])
@@ -1764,6 +1765,7 @@ class Knowledgeverse:
                 if slot >= max_superiors:
                     break
                 superiority[worker_index, slot] = np.uint32(int(inferior_index))
+                incoming_superiors.setdefault(int(inferior_index), []).append(str(profile["rule_id"]))
                 if int(inferior_index) != int(worker_index):
                     conclusions[worker_index, int(inferior_index)] = -scaled_score
 
@@ -1793,6 +1795,14 @@ class Knowledgeverse:
             path["path_defeasible_tag"] = int(path_tag)
             path["path_defeasible_verdict"] = float(verdict)
             path["path_defeasible_proof_tag"] = int(proof_tag)
+            if path_tag <= 0:
+                defeated_by = [
+                    str(rule_id).strip()
+                    for rule_id in incoming_superiors.get(path_index, [])
+                    if str(rule_id).strip()
+                ]
+                if defeated_by:
+                    path["path_defeated_by"] = defeated_by[0]
         selection_steps.append(
             "GRE triple defeasible stage1: "
             f"paths={path_count} soft={soft_defeats} hard={hard_defeats}"
@@ -1919,6 +1929,97 @@ class Knowledgeverse:
             return ""
         return str(match.get("id", "")).strip()
 
+    def _defeasible_event_specialist(
+        self,
+        *,
+        task_type: str,
+        record: dict[str, Any],
+    ) -> str:
+        candidate = record.get("candidate") if isinstance(record.get("candidate"), dict) else {}
+        path = candidate.get("path") if isinstance(candidate.get("path"), dict) else {}
+        specialist = str(path.get("specialist", "")).strip()
+        if specialist:
+            return specialist
+        mapping = {
+            "ARC_TASK": "visual",
+            "MATH_TASK": "math",
+            "LHE_TASK": "grammar",
+            "MMLU_TASK": "grammar",
+            "CHAT_TASK": "chat",
+            "GENERAL_TASK": "grammar",
+            "GRAMMAR_TASK": "grammar",
+        }
+        return mapping.get(str(task_type).strip().upper(), "grammar")
+
+    def _emit_defeasible_verdict_event(
+        self,
+        *,
+        stage: str,
+        task_type: str,
+        record: dict[str, Any],
+        candidate: dict[str, Any] | None,
+        profile: dict[str, Any],
+        verdict: float,
+        proof_tag: int,
+        was_defeated_by: str | None,
+    ) -> None:
+        if self.shadow_copy is None:
+            return
+        verdict_trit = 1 if verdict > 1e-6 else (-1 if verdict < -1e-6 else 0)
+        if verdict_trit == 0 and not was_defeated_by:
+            return
+        candidate_dict = candidate if isinstance(candidate, dict) else {}
+        path = candidate_dict.get("path") if isinstance(candidate_dict.get("path"), dict) else {}
+        match = candidate_dict.get("match") if isinstance(candidate_dict.get("match"), dict) else {}
+        candidate_id = self._halting_record_candidate_id(
+            record=record,
+            task_type=task_type,
+            gsm8k_mode=bool(record.get("gsm8k_mode", False) or candidate_dict.get("gsm8k_mode", False)),
+        )
+        if not candidate_id:
+            candidate_id = str(match.get("id", "")).strip() or str(record.get("option_text", "")).strip()
+        program_id = str((candidate_dict.get("program") or {}).get("id", "")).strip() or str(profile.get("rule_id", "")).strip()
+        query_text = str(
+            path.get("query_text")
+            or record.get("option_text")
+            or record.get("preview_answer")
+            or candidate_id
+        ).strip()
+        confidence = max(0.0, min(abs(float(verdict)), 1.0))
+        from .execution_events import DefeasibleVerdictEvent
+
+        verdict_event = DefeasibleVerdictEvent(
+            stage=str(stage).strip(),
+            candidate_id=str(candidate_id).strip(),
+            program_id=program_id,
+            verdict_trit=int(verdict_trit),
+            proof_tag=int(proof_tag),
+            rule_strength=int(profile.get("rule_strength", 0) or 0),
+            was_defeated_by=(None if not was_defeated_by else str(was_defeated_by).strip()),
+            confidence=float(confidence),
+            timestamp_us=int(time.time_ns() // 1_000),
+            domain_hint=str(path.get("domain_hint") or task_type or "").strip() or None,
+        )
+        payload = verdict_event.as_dict()
+        payload.update(
+            {
+                "timestamp": float(payload["timestamp_us"]) / 1_000_000.0,
+                "query": query_text,
+                "query_context": query_text,
+                "prompt": query_text,
+                "specialist": self._defeasible_event_specialist(task_type=task_type, record=record),
+                "galaxy": "Grammar",
+                "verification": "defeasible_verdict",
+                "confidence": float(confidence),
+                "outcome": int(verdict_trit),
+                "defeat_source": (None if not was_defeated_by else str(was_defeated_by).strip()),
+            }
+        )
+        self.shadow_copy.record_event(
+            event_type="defeasible_verdict",
+            event_data=payload,
+        )
+
     def _apply_defeasible_specialist_resolution(
         self,
         *,
@@ -1967,16 +2068,21 @@ class Knowledgeverse:
             return
 
         neutral_proof_tag = self._pack_defeasible_proof_tag(0, 0)
+        incoming_superiors: dict[int, list[str]] = {}
         has_nondefault_logic = any(
             int(profile["rule_strength"]) != 0 or list(profile["superior_to"])
             for profile in profiles
         )
         if not has_nondefault_logic:
-            for candidate_key, record, candidate, raw_score in record_rows:
+            for worker_index, (candidate_key, record, candidate, raw_score) in enumerate(record_rows):
                 defeasible_trit = 1 if raw_score > 1e-6 else (-1 if raw_score < -1e-6 else 0)
                 verdict = float(raw_score)
                 proof_tag = self._pack_defeasible_proof_tag(0, defeasible_trit)
                 path_tag = self._record_path_defeasible_tag(record)
+                was_defeated_by = None
+                if isinstance(candidate, dict):
+                    path = candidate.get("path") if isinstance(candidate.get("path"), dict) else {}
+                    was_defeated_by = str(path.get("path_defeated_by", "")).strip() or None
                 if path_tag < 0:
                     verdict = 0.0
                     proof_tag = int(neutral_proof_tag)
@@ -1989,6 +2095,16 @@ class Knowledgeverse:
                     candidate["specialist_defeasible_verdict"] = float(verdict)
                     candidate["specialist_proof_tag"] = int(proof_tag)
                     candidate["path_score"] = float(record["path_score"])
+                self._emit_defeasible_verdict_event(
+                    stage="final",
+                    task_type=task_type,
+                    record=record,
+                    candidate=candidate,
+                    profile=profiles[worker_index],
+                    verdict=float(verdict),
+                    proof_tag=int(proof_tag),
+                    was_defeated_by=was_defeated_by,
+                )
             selection_steps.append(
                 "GRE defeasible resolver: compatibility mode "
                 f"(records={len(records)}, candidates={len(candidate_keys)})"
@@ -2024,6 +2140,7 @@ class Knowledgeverse:
                 if slot >= max_superiors:
                     break
                 superiority[worker_index, slot] = np.uint32(int(inferior_index))
+                incoming_superiors.setdefault(int(inferior_index), []).append(str(profile["rule_id"]))
 
         verdicts, proof_tags = resolver.resolve(
             conclusions,
@@ -2041,6 +2158,18 @@ class Knowledgeverse:
             verdict = float(verdicts[candidate_index])
             proof_tag = int(proof_tags[candidate_index])
             path_tag = self._record_path_defeasible_tag(record)
+            was_defeated_by = None
+            if isinstance(candidate, dict):
+                path = candidate.get("path") if isinstance(candidate.get("path"), dict) else {}
+                was_defeated_by = str(path.get("path_defeated_by", "")).strip() or None
+            if not was_defeated_by:
+                defeated_by_rules = [
+                    str(rule_id).strip()
+                    for rule_id in incoming_superiors.get(candidate_index, [])
+                    if str(rule_id).strip()
+                ]
+                if defeated_by_rules:
+                    was_defeated_by = defeated_by_rules[0]
             if path_tag < 0:
                 verdict = 0.0
                 proof_tag = int(neutral_proof_tag)
@@ -2056,6 +2185,19 @@ class Knowledgeverse:
                 candidate["specialist_defeasible_verdict"] = verdict
                 candidate["specialist_proof_tag"] = proof_tag
                 candidate["path_score"] = updated_score
+                if was_defeated_by:
+                    candidate["specialist_was_defeated_by"] = was_defeated_by
+            record["specialist_was_defeated_by"] = was_defeated_by
+            self._emit_defeasible_verdict_event(
+                stage="final",
+                task_type=task_type,
+                record=record,
+                candidate=candidate,
+                profile=profiles[candidate_index],
+                verdict=float(verdict),
+                proof_tag=int(proof_tag),
+                was_defeated_by=was_defeated_by,
+            )
         selection_steps.append(
             "GRE defeasible resolver: "
             f"workers={len(records)} candidates={len(candidate_keys)} decisive={decisive_count}"
@@ -4423,15 +4565,32 @@ class Knowledgeverse:
             specialist = str(event_data.get("specialist", "grammar"))
             query = str(event_data.get("query") or event_data.get("prompt") or event_type)
             lowered = event_type.lower()
-            success = ("success" in lowered) or (
-                "fail" not in lowered and float(event_data.get("confidence", 0.0)) >= 0.65
+            raw_outcome = (
+                event_data.get("verdict_trit")
+                if event_data.get("verdict_trit") is not None else
+                event_data.get("outcome")
             )
+            ternary_outcome: int | None
+            if raw_outcome is not None:
+                ternary_outcome = max(-1, min(1, int(raw_outcome)))
+            else:
+                ternary_outcome = 1 if (
+                    ("success" in lowered) or (
+                        "fail" not in lowered and float(event_data.get("confidence", 0.0)) >= 0.65
+                    )
+                ) else -1
             self.trm_navigator.learn_from_feedback(
                 query=query,
                 specialist=specialist,
-                success=success,
+                success=None,
+                ternary_outcome=ternary_outcome,
                 confidence=float(event_data.get("confidence", 0.0) or 0.0),
                 domain_hint=str(event_data.get("domain_hint") or event_data.get("domain") or ""),
+                defeat_source=str(
+                    event_data.get("was_defeated_by")
+                    or event_data.get("defeat_source")
+                    or ""
+                ).strip() or None,
             )
             self.trm_navigator.save_weights()
         except Exception:

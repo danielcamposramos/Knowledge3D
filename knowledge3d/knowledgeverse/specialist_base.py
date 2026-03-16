@@ -8,6 +8,14 @@ from pathlib import Path
 from typing import Any
 
 
+def _resolve_ternary(success: bool | None, ternary_outcome: int | None) -> int:
+    if ternary_outcome is not None:
+        return max(-1, min(1, int(ternary_outcome)))
+    if success is None:
+        return 0
+    return 1 if success else -1
+
+
 @dataclass
 class SpecialistDelta:
     """Compact LoRA-like delta descriptor (metadata, not a full tensor copy)."""
@@ -62,6 +70,8 @@ class SpecialistBase:
         self.query_count = 0
         self.success_count = 0
         self.failure_count = 0
+        self.uncertain_count = 0
+        self.exploration_pressure = 0
         self.storage_dir = Path(storage_dir) if storage_dir is not None else None
         self.delta = delta if delta is not None else self._default_delta(level=self.level)
 
@@ -119,18 +129,37 @@ class SpecialistBase:
                 return found
         return None
 
-    def update_routing_bias(self, child_name: str, success: bool, *, alpha: float = 0.1) -> None:
+    def update_routing_bias(
+        self,
+        child_name: str,
+        success: bool | None = None,
+        *,
+        ternary_outcome: int | None = None,
+        alpha: float = 0.1,
+    ) -> None:
+        outcome = _resolve_ternary(success, ternary_outcome)
         current = float(self.routing_bias.get(child_name, 0.5))
-        target = 1.0 if success else 0.0
+        if outcome == 0:
+            return
+        target = 1.0 if outcome > 0 else 0.0
         updated = (float(alpha) * target) + ((1.0 - float(alpha)) * current)
         self.routing_bias[child_name] = max(0.0, min(updated, 1.0))
 
-    def mark_query(self, success: bool) -> None:
+    def mark_query(
+        self,
+        success: bool | None = None,
+        *,
+        ternary_outcome: int | None = None,
+    ) -> None:
+        outcome = _resolve_ternary(success, ternary_outcome)
         self.query_count += 1
-        if success:
+        if outcome > 0:
             self.success_count += 1
-        else:
+        elif outcome < 0:
             self.failure_count += 1
+        else:
+            self.uncertain_count += 1
+            self.exploration_pressure += 1
 
     def effective_delta_chain(self) -> list[SpecialistDelta]:
         chain: list[SpecialistDelta] = []
@@ -151,6 +180,8 @@ class SpecialistBase:
             "query_count": int(self.query_count),
             "success_count": int(self.success_count),
             "failure_count": int(self.failure_count),
+            "uncertain_count": int(self.uncertain_count),
+            "exploration_pressure": int(self.exploration_pressure),
             "children": [child.to_dict() for child in self.children.values()],
         }
 
@@ -177,6 +208,8 @@ class SpecialistBase:
         node.query_count = int(payload.get("query_count", 0))
         node.success_count = int(payload.get("success_count", 0))
         node.failure_count = int(payload.get("failure_count", 0))
+        node.uncertain_count = int(payload.get("uncertain_count", 0))
+        node.exploration_pressure = int(payload.get("exploration_pressure", 0))
         for child_payload in list(payload.get("children", [])):
             if not isinstance(child_payload, dict):
                 continue
@@ -224,3 +257,10 @@ class SpecialistBase:
 
     def _child_seed(self, *, name: str) -> int:
         return abs(hash((self.name, self.level, name))) % (2**31 - 1)
+
+
+__all__ = [
+    "SpecialistBase",
+    "SpecialistDelta",
+    "_resolve_ternary",
+]

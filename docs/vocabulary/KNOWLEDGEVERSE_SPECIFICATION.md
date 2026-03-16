@@ -1069,6 +1069,33 @@ class TRMNavigator:
         return result
 ```
 
+### 7.4 Defeasible Verdict Events in Shadow Copy (March 2026)
+
+The Shadow Copy event buffer now accepts `DefeasibleVerdictEvent` alongside traditional `ExecutionEvent`. These events capture the ternary outcome of defeasible reasoning at three pipeline stages:
+
+**Event Structure:**
+```python
+DefeasibleVerdictEvent(
+    stage="final",              # "early_gate" | "intra_path" | "final"
+    candidate_id="math_42",
+    program_id="calc_power_rule",
+    verdict_trit=+1,            # +1 proven, 0 undetermined, -1 defeated
+    proof_tag=0b_10_10,         # packed (D=+1, d=+1) via TPACK encoding
+    rule_strength=+1,           # strict
+    was_defeated_by=None,       # no defeat — strict chain held
+    confidence=0.92,
+    timestamp_us=1710576000000,
+)
+```
+
+**Processing during Sleep-Time:**
+Verdict events are processed by `consolidate_weights_from_events()` which now checks for the `verdict_trit` field before falling back to legacy string-match classification. This ensures defeasible verdicts are consumed as first-class ternary signals rather than binary approximations.
+
+**Emission Policy:**
+- Events are emitted after Stage 3 (final resolution) for candidates with non-neutral verdicts
+- 0-verdicts are only emitted when actual conflict was detected (two rules fired with opposing conclusions)
+- This prevents shadow copy flooding on routine queries where no defeasible reasoning was triggered
+
 ---
 
 ## 8. SleepTime Consolidation

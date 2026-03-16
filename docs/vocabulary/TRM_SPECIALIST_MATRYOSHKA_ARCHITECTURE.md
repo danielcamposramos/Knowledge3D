@@ -530,6 +530,25 @@ class MathSpecialist(SpecialistBase):
 
 ### 6.3 Shadow Copy Learning
 
+### Ternary Routing Feedback (March 2026)
+
+The specialist tree's learning path now supports ternary outcomes throughout:
+
+**`mark_query(ternary_outcome):`**
+- `+1` → `success_count += 1`
+- `-1` → `failure_count += 1`
+- `0` → `uncertain_count += 1` AND `exploration_pressure += 1`
+
+**`update_routing_bias(ternary_outcome):`**
+- `+1` → bias moves toward 1.0 (strengthen)
+- `-1` → bias moves toward 0.0 (weaken)
+- `0` → NO UPDATE (hold position — don't punish exploration)
+
+**Exploration Pressure Mechanism:**
+When `exploration_pressure` on a specialist node exceeds a threshold (default: 3 undetermined outcomes), the routing temporarily shifts from exploitation (favor highest-bias child) to exploration (try least-tried child). After one exploration cycle, `exploration_pressure` resets to 0.
+
+This prevents the specialist tree from prematurely pruning reasoning paths that produce undetermined defeasible verdicts — paths that may become clear with more Galaxy content or additional superiority relations.
+
 **Specialists learn from Shadow Copy events:**
 ```python
 def update_routing_bias_from_shadow_copy(specialist: SpecialistBase):

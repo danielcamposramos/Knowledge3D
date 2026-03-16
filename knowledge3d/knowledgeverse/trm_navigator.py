@@ -16,6 +16,7 @@ from .execution_quality_tracker import ExecutionQualityTracker
 from .navigator_specialist import NavigatorSpecialist
 from .resilience import SelfHealingWrapper
 from .specialist_base import SpecialistBase
+from .specialist_base import _resolve_ternary
 from .specialist_router import SpecialistRouter
 from .specialist_spawner import SpecialistSpawner
 from .tool_execution import ToolExecutionResolver
@@ -144,6 +145,8 @@ class TRMNavigator(SpecialistBase):
         self.query_count = int(loaded.query_count)
         self.success_count = int(loaded.success_count)
         self.failure_count = int(loaded.failure_count)
+        self.uncertain_count = int(getattr(loaded, "uncertain_count", 0))
+        self.exploration_pressure = int(getattr(loaded, "exploration_pressure", 0))
 
     def _save_specialist_tree(self) -> None:
         self._specialist_tree_path.parent.mkdir(parents=True, exist_ok=True)
@@ -490,11 +493,12 @@ class TRMNavigator(SpecialistBase):
         specialist = str(event.get("specialist_id", "") or "").strip()
         query = str(event.get("query_context", "") or "").strip()
         domain_hint = str(event.get("domain_hint", "") or "").strip()
-        if specialist and outcome != 0 and query and not is_chain_step:
+        if specialist and query and not is_chain_step:
             self.learn_from_feedback(
                 query=query,
                 specialist=specialist,
-                success=(outcome > 0),
+                success=None,
+                ternary_outcome=outcome,
                 confidence=float(event.get("quality_signal", 0.0) or 0.0),
                 domain_hint=(domain_hint or None),
             )
@@ -1226,24 +1230,28 @@ class TRMNavigator(SpecialistBase):
         *,
         query: str,
         specialist: str,
-        success: bool,
+        success: bool | None = None,
+        ternary_outcome: int | None = None,
         confidence: float | None = None,
         domain_hint: str | None = None,
+        defeat_source: str | None = None,
     ) -> None:
         """Update persistent routing weights from observed outcomes."""
+        outcome = _resolve_ternary(success, ternary_outcome)
         self.navigator_specialist.learn_routing_topology(
             query=query,
             specialist=specialist,
             success=success,
+            ternary_outcome=outcome,
         )
         node = self._resolve_specialist_node(
             specialist=specialist,
             query=query,
             domain_hint=domain_hint,
         )
-        node.mark_query(success=success)
+        node.mark_query(success=success, ternary_outcome=outcome)
         if node.parent is not None:
-            node.parent.update_routing_bias(node.name, success)
+            node.parent.update_routing_bias(node.name, success, ternary_outcome=outcome)
         observed_confidence = 0.5 if confidence is None else float(confidence)
         spawn_parent = node if node.children else (node.parent or self)
         decision = self.specialist_spawner.observe(
@@ -1251,8 +1259,13 @@ class TRMNavigator(SpecialistBase):
             query=query,
             confidence=observed_confidence,
             success=success,
+            ternary_outcome=outcome,
             domain_hint=domain_hint,
         )
+        if defeat_source and outcome < 0:
+            self._trace.append(
+                f"defeasible_defeat specialist={specialist} source={str(defeat_source).strip()}"
+            )
         if decision is not None:
             self._trace.append(
                 "matryoshka_spawn "
@@ -1277,15 +1290,38 @@ class TRMNavigator(SpecialistBase):
             specialist = str(event.get("specialist") or data.get("specialist") or "grammar")
             query = str(data.get("query") or data.get("prompt") or event_type or specialist)
             confidence = float(event.get("confidence", data.get("confidence", 0.0)) or 0.0)
-            success = ("success" in event_type) or (
-                "fail" not in event_type and confidence >= 0.65
+            raw_outcome = (
+                data.get("verdict_trit")
+                if data.get("verdict_trit") is not None else
+                event.get("verdict_trit")
+                if event.get("verdict_trit") is not None else
+                data.get("outcome")
+                if data.get("outcome") is not None else
+                event.get("outcome")
             )
+            ternary_outcome: int | None
+            if raw_outcome is not None:
+                ternary_outcome = _resolve_ternary(None, int(raw_outcome))
+            else:
+                ternary_outcome = _resolve_ternary(
+                    ("success" in event_type) or ("fail" not in event_type and confidence >= 0.65),
+                    None,
+                )
+            defeat_source = str(
+                data.get("was_defeated_by")
+                or event.get("was_defeated_by")
+                or data.get("defeat_source")
+                or event.get("defeat_source")
+                or ""
+            ).strip() or None
             self.learn_from_feedback(
                 query=query,
                 specialist=specialist,
-                success=success,
+                success=None,
+                ternary_outcome=ternary_outcome,
                 confidence=confidence,
                 domain_hint=str(data.get("domain_hint") or data.get("domain") or ""),
+                defeat_source=defeat_source,
             )
             updated += 1
             specialists.add(specialist)
@@ -1668,6 +1704,8 @@ class TRMNavigator(SpecialistBase):
             chat_specialist.query_count = chat_child.query_count
             chat_specialist.success_count = chat_child.success_count
             chat_specialist.failure_count = chat_child.failure_count
+            chat_specialist.uncertain_count = getattr(chat_child, "uncertain_count", 0)
+            chat_specialist.exploration_pressure = getattr(chat_child, "exploration_pressure", 0)
             self.children["ChatSpecialist"] = chat_specialist
             return chat_specialist
 
@@ -1698,6 +1736,8 @@ class TRMNavigator(SpecialistBase):
             primer.query_count = primer_child.query_count
             primer.success_count = primer_child.success_count
             primer.failure_count = primer_child.failure_count
+            primer.uncertain_count = getattr(primer_child, "uncertain_count", 0)
+            primer.exploration_pressure = getattr(primer_child, "exploration_pressure", 0)
             self.children["InputPrimerSpecialist"] = primer
             return primer
 

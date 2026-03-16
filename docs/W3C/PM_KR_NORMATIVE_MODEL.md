@@ -190,6 +190,20 @@ A PM-KR-compliant node MUST expose:
 
 **Extensibility**: Implementations MAY add fields, but MUST preserve these core semantics.
 
+**Defeasible Reasoning Metadata (March 2026 Extension):**
+
+Grammar-type nodes (Layer 3: Rules) MAY include defeasible logic fields:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `rule_strength` | trit (-1, 0, +1) | 0 | Strict (+1), defeasible (0), or defeater (-1) |
+| `superior_to` | array of node IDs | [] | Explicit superiority relations for conflict resolution |
+| `trust_weight` | float [0, 1] | 1.0 | Source confidence, subject to sleep-time decay |
+
+These fields enable non-monotonic reasoning: conclusions drawn from defeasible rules can be withdrawn when contradicted by superior evidence. The `superior_to` graph is processed by the sovereign `gre_defeasible_resolver` kernel at query time.
+
+**Conformance:** Defeasible metadata is OPTIONAL at Level A. Level B (Sovereign Runtime) implementations SHOULD support defeasible resolution for Grammar nodes. Level C (Auditable Production) implementations MUST support defeasible resolution and log verdict events.
+
 ### 4.2 Reference Field Semantics
 
 | Field | Layer | Points To | Example |

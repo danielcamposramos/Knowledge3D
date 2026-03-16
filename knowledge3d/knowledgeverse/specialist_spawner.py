@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .specialist_base import SpecialistBase
+from .specialist_base import SpecialistBase, _resolve_ternary
 
 
 @dataclass
@@ -60,23 +60,30 @@ class SpecialistSpawner:
         parent: SpecialistBase,
         query: str,
         confidence: float,
-        success: bool,
+        success: bool | None = None,
+        ternary_outcome: int | None = None,
         domain_hint: str | None = None,
     ) -> SpawnDecision | None:
+        outcome = _resolve_ternary(success, ternary_outcome)
         bucket = self._infer_bucket(
             parent=parent,
             query=query,
             domain_hint=domain_hint,
         )
         parent_stats = self.stats.setdefault(parent.name, {})
-        metrics = parent_stats.setdefault(bucket, {"count": 0, "low_conf": 0, "success": 0, "failure": 0})
+        metrics = parent_stats.setdefault(
+            bucket,
+            {"count": 0, "low_conf": 0, "success": 0, "failure": 0, "uncertain": 0},
+        )
         metrics["count"] += 1
         if float(confidence) < self.low_confidence_threshold:
             metrics["low_conf"] += 1
-        if success:
+        if outcome > 0:
             metrics["success"] += 1
-        else:
+        elif outcome < 0:
             metrics["failure"] += 1
+        else:
+            metrics["uncertain"] += 1
 
         decision = self._evaluate(parent=parent, bucket=bucket, metrics=metrics)
         if decision is not None:
@@ -197,6 +204,7 @@ class SpecialistSpawner:
                         "low_conf": int(metrics.get("low_conf", 0)),
                         "success": int(metrics.get("success", 0)),
                         "failure": int(metrics.get("failure", 0)),
+                        "uncertain": int(metrics.get("uncertain", 0)),
                     }
                     for bucket, metrics in buckets.items()
                     if isinstance(metrics, dict)

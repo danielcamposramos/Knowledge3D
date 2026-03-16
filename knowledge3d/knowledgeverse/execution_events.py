@@ -59,6 +59,34 @@ class ExecutionEvent:
         }
 
 
+@dataclass(frozen=True)
+class DefeasibleVerdictEvent:
+    stage: str
+    candidate_id: str
+    program_id: str
+    verdict_trit: int
+    proof_tag: int
+    rule_strength: int
+    was_defeated_by: str | None
+    confidence: float
+    timestamp_us: int
+    domain_hint: str | None = None
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "stage": str(self.stage),
+            "candidate_id": str(self.candidate_id),
+            "program_id": str(self.program_id),
+            "verdict_trit": int(self.verdict_trit),
+            "proof_tag": int(self.proof_tag),
+            "rule_strength": int(self.rule_strength),
+            "was_defeated_by": (None if self.was_defeated_by is None else str(self.was_defeated_by)),
+            "confidence": float(self.confidence),
+            "timestamp_us": int(self.timestamp_us),
+            "domain_hint": self.domain_hint,
+        }
+
+
 class ExecutionEventRecorder:
     def __init__(
         self,
@@ -350,6 +378,7 @@ def attach_execution_event(result: Any, event: ExecutionEvent) -> Any:
 
 
 __all__ = [
+    "DefeasibleVerdictEvent",
     "ExecutionEvent",
     "ExecutionEventRecorder",
     "attach_execution_event",
