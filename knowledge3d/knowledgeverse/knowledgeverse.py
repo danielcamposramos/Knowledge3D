@@ -1618,11 +1618,28 @@ class Knowledgeverse:
             return 0
         return 1
 
+    @staticmethod
+    def _decode_defeasible_trit(encoded: int) -> int:
+        value = int(encoded) & 0x3
+        if value == 2:
+            return 1
+        if value == 0:
+            return -1
+        return 0
+
     @classmethod
     def _pack_defeasible_proof_tag(cls, definite_trit: int, defeasible_trit: int) -> int:
         return (
             cls._encode_defeasible_trit(definite_trit)
             | (cls._encode_defeasible_trit(defeasible_trit) << 2)
+        )
+
+    @classmethod
+    def _unpack_defeasible_proof_tag(cls, proof_tag: int) -> tuple[int, int]:
+        packed = int(proof_tag)
+        return (
+            cls._decode_defeasible_trit(packed & 0x3),
+            cls._decode_defeasible_trit((packed >> 2) & 0x3),
         )
 
     def _defeasible_rule_profile(self, program_id: str) -> dict[str, Any]:
@@ -1647,6 +1664,241 @@ class Knowledgeverse:
             "superior_to": superior_to,
             "trust_weight": max(0.0, min(trust_weight, 1.0)),
         }
+
+    @staticmethod
+    def _record_path_defeasible_tag(record: dict[str, Any]) -> int:
+        try:
+            if "path_defeasible_tag" in record:
+                return int(record.get("path_defeasible_tag", 1))
+        except Exception:
+            pass
+        candidate = record.get("candidate") if isinstance(record.get("candidate"), dict) else {}
+        try:
+            if "path_defeasible_tag" in candidate:
+                return int(candidate.get("path_defeasible_tag", 1))
+        except Exception:
+            pass
+        path = candidate.get("path") if isinstance(candidate.get("path"), dict) else {}
+        try:
+            return int(path.get("path_defeasible_tag", 1))
+        except Exception:
+            return 1
+
+    def _candidate_defeasible_rule_id(
+        self,
+        *,
+        candidate: dict[str, Any],
+        path: dict[str, Any],
+    ) -> str:
+        match = candidate.get("match") if isinstance(candidate.get("match"), dict) else {}
+        metadata = match.get("metadata") if isinstance(match.get("metadata"), dict) else {}
+        candidate_rule_id = str(metadata.get("rule_id", "")).strip()
+        if not candidate_rule_id and str(match.get("galaxy", "")).strip() == "Grammar":
+            candidate_rule_id = str(match.get("id", "")).strip()
+        if candidate_rule_id:
+            candidate_metadata = self._grammar_rule_metadata(candidate_rule_id)
+            if candidate_metadata:
+                return candidate_rule_id
+        return str(path.get("program_id", "")).strip()
+
+    def _apply_early_defeasible_gate(
+        self,
+        *,
+        task_type: str | None = None,
+        paths: list[dict[str, Any]],
+        swarm_weights: list[float],
+        selection_steps: list[str],
+    ) -> None:
+        if not paths or not swarm_weights:
+            return
+        if str(task_type or "").strip() == "MMLU_TASK":
+            selection_steps.append("GRE triple defeasible stage1: deferred_for_mmlu")
+            return
+        resolver = self.get_defeasible_resolver()
+        neutral_proof_tag = self._pack_defeasible_proof_tag(0, 0)
+        path_count = min(len(paths), len(swarm_weights))
+        for path in paths:
+            path["path_defeasible_tag"] = 1
+            path["path_defeasible_verdict"] = 0.0
+            path["path_defeasible_proof_tag"] = int(neutral_proof_tag)
+        if resolver is None or path_count <= 0:
+            return
+
+        profiles: list[dict[str, Any]] = []
+        rule_indexes: dict[str, list[int]] = {}
+        for worker_index, path in enumerate(paths[:path_count]):
+            profile = self._defeasible_rule_profile(str(path.get("program_id", "")).strip())
+            profiles.append(profile)
+            if profile["rule_id"]:
+                rule_indexes.setdefault(profile["rule_id"], []).append(worker_index)
+
+        has_nondefault_logic = any(
+            int(profile["rule_strength"]) != 0 or list(profile["superior_to"])
+            for profile in profiles
+        )
+        if not has_nondefault_logic:
+            selection_steps.append(
+                "GRE triple defeasible stage1: compatibility mode "
+                f"(paths={path_count})"
+            )
+            return
+
+        conclusions = np.zeros((path_count, path_count), dtype=np.float32)
+        rule_strengths = np.zeros((path_count,), dtype=np.int8)
+        max_superiors = max(
+            1,
+            max(len(profile["superior_to"]) for profile in profiles),
+        )
+        superiority = np.full((path_count, max_superiors), 0xFFFFFFFF, dtype=np.uint32)
+
+        for worker_index, profile in enumerate(profiles):
+            scaled_score = abs(float(swarm_weights[worker_index])) * float(profile["trust_weight"])
+            if scaled_score <= 0.0:
+                continue
+            conclusions[worker_index, worker_index] = scaled_score
+            rule_strengths[worker_index] = np.int8(int(profile["rule_strength"]))
+            defeated_workers: list[int] = []
+            for defeated_rule_id in profile["superior_to"]:
+                defeated_workers.extend(rule_indexes.get(str(defeated_rule_id), []))
+            for slot, inferior_index in enumerate(dict.fromkeys(defeated_workers)):
+                if slot >= max_superiors:
+                    break
+                superiority[worker_index, slot] = np.uint32(int(inferior_index))
+                if int(inferior_index) != int(worker_index):
+                    conclusions[worker_index, int(inferior_index)] = -scaled_score
+
+        verdicts, proof_tags = resolver.resolve(
+            conclusions,
+            rule_strengths,
+            superiority,
+            num_workers=path_count,
+            num_candidates=path_count,
+            max_superiors=max_superiors,
+        )
+        hard_defeats = 0
+        soft_defeats = 0
+        for path_index, path in enumerate(paths[:path_count]):
+            verdict = float(verdicts[path_index])
+            proof_tag = int(proof_tags[path_index])
+            definite_trit, defeasible_trit = self._unpack_defeasible_proof_tag(proof_tag)
+            path_tag = 1
+            if definite_trit < 0:
+                path_tag = -1
+                swarm_weights[path_index] = 0.0
+                hard_defeats += 1
+            elif defeasible_trit < 0 or verdict < -1e-6:
+                path_tag = 0
+                swarm_weights[path_index] = float(swarm_weights[path_index]) * 0.3
+                soft_defeats += 1
+            path["path_defeasible_tag"] = int(path_tag)
+            path["path_defeasible_verdict"] = float(verdict)
+            path["path_defeasible_proof_tag"] = int(proof_tag)
+        selection_steps.append(
+            "GRE triple defeasible stage1: "
+            f"paths={path_count} soft={soft_defeats} hard={hard_defeats}"
+        )
+
+    def _apply_intra_path_defeasible(
+        self,
+        *,
+        local_candidates: list[dict[str, Any]],
+        path: dict[str, Any],
+        task_type: str,
+        selection_steps: list[str],
+    ) -> None:
+        if not local_candidates:
+            return
+        neutral_proof_tag = self._pack_defeasible_proof_tag(0, 0)
+        path_tag = int(path.get("path_defeasible_tag", 1))
+        for candidate in local_candidates:
+            candidate.setdefault("specialist_intra_defeasible", 0.0)
+            candidate.setdefault("specialist_intra_proof_tag", int(neutral_proof_tag))
+            candidate["path_defeasible_tag"] = int(path_tag)
+        if str(task_type).strip() == "MMLU_TASK":
+            selection_steps.append(
+                "GRE triple defeasible stage2: deferred_for_mmlu "
+                f"({str(path.get('label') or path.get('program_id', 'path'))})"
+            )
+            return
+        resolver = self.get_defeasible_resolver()
+        if resolver is None:
+            return
+
+        profiles: list[dict[str, Any]] = []
+        rule_indexes: dict[str, list[int]] = {}
+        for candidate_index, candidate in enumerate(local_candidates):
+            rule_id = self._candidate_defeasible_rule_id(candidate=candidate, path=path)
+            profile = self._defeasible_rule_profile(rule_id)
+            profiles.append(profile)
+            if profile["rule_id"]:
+                rule_indexes.setdefault(profile["rule_id"], []).append(candidate_index)
+
+        has_nondefault_logic = any(
+            int(profile["rule_strength"]) != 0 or list(profile["superior_to"])
+            for profile in profiles
+        )
+        if not has_nondefault_logic:
+            selection_steps.append(
+                "GRE triple defeasible stage2: compatibility mode "
+                f"({str(task_type).strip() or 'task'}, candidates={len(local_candidates)})"
+            )
+            return
+
+        candidate_count = len(local_candidates)
+        conclusions = np.zeros((candidate_count, candidate_count), dtype=np.float32)
+        rule_strengths = np.zeros((candidate_count,), dtype=np.int8)
+        max_superiors = max(
+            1,
+            max(len(profile["superior_to"]) for profile in profiles),
+        )
+        superiority = np.full((candidate_count, max_superiors), 0xFFFFFFFF, dtype=np.uint32)
+
+        for candidate_index, candidate in enumerate(local_candidates):
+            profile = profiles[candidate_index]
+            base_score = abs(
+                float(
+                    candidate.get(
+                        "specialist_coherence",
+                        candidate.get("specialist_resonance", candidate.get("similarity", 0.0)),
+                    )
+                )
+            )
+            scaled_score = base_score * float(profile["trust_weight"])
+            if scaled_score <= 0.0:
+                continue
+            conclusions[candidate_index, candidate_index] = scaled_score
+            rule_strengths[candidate_index] = np.int8(int(profile["rule_strength"]))
+            defeated_indexes: list[int] = []
+            for defeated_rule_id in profile["superior_to"]:
+                defeated_indexes.extend(rule_indexes.get(str(defeated_rule_id), []))
+            for slot, inferior_index in enumerate(dict.fromkeys(defeated_indexes)):
+                if slot >= max_superiors:
+                    break
+                superiority[candidate_index, slot] = np.uint32(int(inferior_index))
+                if int(inferior_index) != int(candidate_index):
+                    conclusions[candidate_index, int(inferior_index)] = -scaled_score
+
+        verdicts, proof_tags = resolver.resolve(
+            conclusions,
+            rule_strengths,
+            superiority,
+            num_workers=candidate_count,
+            num_candidates=candidate_count,
+            max_superiors=max_superiors,
+        )
+        decisive_count = 0
+        for candidate_index, candidate in enumerate(local_candidates):
+            verdict = float(verdicts[candidate_index])
+            proof_tag = int(proof_tags[candidate_index])
+            if abs(verdict) > 1e-6:
+                decisive_count += 1
+            candidate["specialist_intra_defeasible"] = float(verdict)
+            candidate["specialist_intra_proof_tag"] = int(proof_tag)
+        selection_steps.append(
+            "GRE triple defeasible stage2: "
+            f"{str(path.get('label') or path.get('program_id', 'path'))} "
+            f"candidates={candidate_count} decisive={decisive_count}"
+        )
 
     def _halting_record_candidate_id(
         self,
@@ -1714,6 +1966,7 @@ class Knowledgeverse:
         if not candidate_keys:
             return
 
+        neutral_proof_tag = self._pack_defeasible_proof_tag(0, 0)
         has_nondefault_logic = any(
             int(profile["rule_strength"]) != 0 or list(profile["superior_to"])
             for profile in profiles
@@ -1721,12 +1974,19 @@ class Knowledgeverse:
         if not has_nondefault_logic:
             for candidate_key, record, candidate, raw_score in record_rows:
                 defeasible_trit = 1 if raw_score > 1e-6 else (-1 if raw_score < -1e-6 else 0)
+                verdict = float(raw_score)
                 proof_tag = self._pack_defeasible_proof_tag(0, defeasible_trit)
-                record["specialist_defeasible_verdict"] = float(raw_score)
+                path_tag = self._record_path_defeasible_tag(record)
+                if path_tag < 0:
+                    verdict = 0.0
+                    proof_tag = int(neutral_proof_tag)
+                elif path_tag == 0:
+                    verdict *= 0.3
+                record["specialist_defeasible_verdict"] = float(verdict)
                 record["specialist_proof_tag"] = int(proof_tag)
-                record["path_score"] = float(raw_score) + (0.04 * float(raw_score))
+                record["path_score"] = float(raw_score) + (0.04 * float(verdict))
                 if isinstance(candidate, dict):
-                    candidate["specialist_defeasible_verdict"] = float(raw_score)
+                    candidate["specialist_defeasible_verdict"] = float(verdict)
                     candidate["specialist_proof_tag"] = int(proof_tag)
                     candidate["path_score"] = float(record["path_score"])
             selection_steps.append(
@@ -1780,6 +2040,12 @@ class Knowledgeverse:
                 continue
             verdict = float(verdicts[candidate_index])
             proof_tag = int(proof_tags[candidate_index])
+            path_tag = self._record_path_defeasible_tag(record)
+            if path_tag < 0:
+                verdict = 0.0
+                proof_tag = int(neutral_proof_tag)
+            elif path_tag == 0:
+                verdict *= 0.3
             if abs(verdict) > 1e-6:
                 decisive_count += 1
             updated_score = float(raw_score) + (0.04 * verdict)
@@ -5983,8 +6249,11 @@ class Knowledgeverse:
             candidate["specialist_fractal"] = float(fractal_score)
         neutral_proof_tag = self._pack_defeasible_proof_tag(0, 0)
         for candidate in local_candidates:
+            candidate.setdefault("specialist_intra_defeasible", 0.0)
+            candidate.setdefault("specialist_intra_proof_tag", int(neutral_proof_tag))
             candidate.setdefault("specialist_defeasible_verdict", 0.0)
             candidate.setdefault("specialist_proof_tag", int(neutral_proof_tag))
+            candidate.setdefault("path_defeasible_tag", int(path.get("path_defeasible_tag", 1)))
         if applied_kernels:
             selection_steps.append(
                 "GRE specialist dispatch: "
@@ -7680,6 +7949,13 @@ class Knowledgeverse:
             paths=paths,
             selection_steps=selection_steps,
         )
+        if gsm8k_mode:
+            self._apply_early_defeasible_gate(
+                task_type=task_type,
+                paths=paths,
+                swarm_weights=swarm_weights,
+                selection_steps=selection_steps,
+            )
         engine = self.get_gpu_reasoning_engine()
         scored_candidates: list[dict[str, Any]] = []
         path_best_records: list[dict[str, Any]] = []
@@ -7853,6 +8129,12 @@ class Knowledgeverse:
                         embedding_rows,
                     )
         for path_index, path in enumerate(paths[:18]):
+            if int(path.get("path_defeasible_tag", 1)) < 0:
+                selection_steps.append(
+                    "GRE triple defeasible stage1: skipped "
+                    f"{str(path.get('label') or path.get('program_id', 'path'))}"
+                )
+                continue
             program = self._select_gpu_reasoning_program(str(path.get("program_id", "")).strip())
             option_text = str(path.get("option_text", "")).strip()
             proposition_text = str(path.get("query_text", "")).strip()
@@ -7899,6 +8181,13 @@ class Knowledgeverse:
                     path=path,
                     selection_steps=selection_steps,
                 )
+                if gsm8k_mode:
+                    self._apply_intra_path_defeasible(
+                        local_candidates=local_candidates,
+                        path=path,
+                        task_type=task_type,
+                        selection_steps=selection_steps,
+                    )
                 scores = self._score_gpu_candidates_batch(
                     candidates=local_candidates,
                     primary_program_id=reasoning_program_id,
@@ -8009,6 +8298,13 @@ class Knowledgeverse:
                     path=path,
                     selection_steps=selection_steps,
                 )
+                if gsm8k_mode:
+                    self._apply_intra_path_defeasible(
+                        local_candidates=local_candidates,
+                        path=path,
+                        task_type=task_type,
+                        selection_steps=selection_steps,
+                    )
                 scores = self._score_gpu_candidates_batch(
                     candidates=local_candidates,
                     primary_program_id=reasoning_program_id,
@@ -8286,6 +8582,13 @@ class Knowledgeverse:
                 task_type=task_type,
                 selection_steps=selection_steps,
             )
+            if gsm8k_mode:
+                self._apply_intra_path_defeasible(
+                    local_candidates=local_candidates,
+                    path=path,
+                    task_type=task_type,
+                    selection_steps=selection_steps,
+                )
             scores = self._score_gpu_candidates_batch(
                 candidates=local_candidates,
                 primary_program_id=reasoning_program_id,
@@ -9126,6 +9429,7 @@ class Knowledgeverse:
         specialist_geometry = float(candidate.get("specialist_geometry", 0.0))
         specialist_temporal = float(candidate.get("specialist_temporal", 0.0))
         specialist_fractal = float(candidate.get("specialist_fractal", 0.0))
+        specialist_intra_defeasible = float(candidate.get("specialist_intra_defeasible", 0.0))
         specialist_defeasible_verdict = float(candidate.get("specialist_defeasible_verdict", 0.0))
         parse_similarity = float(candidate.get("parse_similarity", 0.0))
         parse_directional_similarity = float(candidate.get("parse_directional_similarity", 0.0))
@@ -9231,6 +9535,10 @@ class Knowledgeverse:
             "+",
             self._gpu_scalar_literal(specialist_fractal),
             "0.02",
+            "*",
+            "+",
+            self._gpu_scalar_literal(specialist_intra_defeasible),
+            "0.03",
             "*",
             "+",
             self._gpu_scalar_literal(specialist_defeasible_verdict),

@@ -880,6 +880,7 @@ def test_phase_track1_defeasible_verdict_threads_into_scoring_expression(tmp_pat
         "similarity": 0.5,
         "option_similarity": 0.5,
         "galaxy_weight": 1.0,
+        "specialist_intra_defeasible": 0.3,
         "specialist_defeasible_verdict": 0.6,
     }
 
@@ -891,7 +892,221 @@ def test_phase_track1_defeasible_verdict_threads_into_scoring_expression(tmp_pat
         domain_hint="math",
     )
 
+    assert kv._gpu_scalar_literal(0.3) in expr
     assert kv._gpu_scalar_literal(0.6) in expr
+
+
+def test_triple_defeasible_stage1_reduces_defeated_path_weight(tmp_path, monkeypatch):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_triple_def_stage1")
+
+    def _metadata(rule_id: str):
+        if rule_id == "strict_rule":
+            return {"rule_strength": 1, "superior_to": ["defeasible_rule"], "trust_weight": 1.0}
+        if rule_id == "defeasible_rule":
+            return {"rule_strength": 0, "superior_to": [], "trust_weight": 1.0}
+        return {}
+
+    monkeypatch.setattr(kv, "_grammar_rule_metadata", _metadata)
+
+    paths = [
+        {"program_id": "strict_rule", "label": "strict"},
+        {"program_id": "defeasible_rule", "label": "defeasible"},
+    ]
+    swarm_weights = [1.4, 1.1]
+    selection_steps: list[str] = []
+
+    kv._apply_early_defeasible_gate(
+        paths=paths,
+        swarm_weights=swarm_weights,
+        selection_steps=selection_steps,
+    )
+
+    assert paths[0]["path_defeasible_tag"] == 1
+    assert paths[1]["path_defeasible_tag"] == -1
+    assert swarm_weights[0] == pytest.approx(1.4)
+    assert swarm_weights[1] == pytest.approx(0.0)
+    assert any("stage1" in step for step in selection_steps)
+
+
+def test_triple_defeasible_stage2_intra_path_strict_beats_defeasible(tmp_path, monkeypatch):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_triple_def_stage2")
+
+    def _metadata(rule_id: str):
+        if rule_id == "strict_rule":
+            return {"rule_strength": 1, "superior_to": ["defeasible_rule"], "trust_weight": 1.0}
+        if rule_id == "defeasible_rule":
+            return {"rule_strength": 0, "superior_to": [], "trust_weight": 1.0}
+        return {}
+
+    monkeypatch.setattr(kv, "_grammar_rule_metadata", _metadata)
+
+    path = {"program_id": "strict_rule", "label": "primary", "path_defeasible_tag": 1}
+    local_candidates = [
+        {
+            "match": {
+                "id": "strict_rule",
+                "galaxy": "Grammar",
+                "embedding16": [1.0] + [0.0] * 15,
+            },
+            "program": {"id": "strict_rule"},
+            "specialist_coherence": 0.8,
+        },
+        {
+            "match": {
+                "id": "defeasible_rule",
+                "galaxy": "Grammar",
+                "embedding16": [0.0, 1.0] + [0.0] * 14,
+            },
+            "program": {"id": "defeasible_rule"},
+            "specialist_coherence": 0.8,
+        },
+    ]
+    selection_steps: list[str] = []
+
+    kv._apply_intra_path_defeasible(
+        local_candidates=local_candidates,
+        path=path,
+        task_type="MATH_TASK",
+        selection_steps=selection_steps,
+    )
+
+    assert local_candidates[0]["specialist_intra_defeasible"] > 0.0
+    assert local_candidates[1]["specialist_intra_defeasible"] < 0.0
+    assert local_candidates[0]["specialist_intra_defeasible"] > local_candidates[1]["specialist_intra_defeasible"]
+    assert any("stage2" in step for step in selection_steps)
+
+
+def test_triple_defeasible_stage3_honors_upstream_defeat(tmp_path):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_triple_def_stage3")
+    neutral_proof_tag = kv._pack_defeasible_proof_tag(0, 0)
+
+    record = {
+        "path_score": 0.9,
+        "candidate": {
+            "match": {"id": "candidate_a", "galaxy": "Math"},
+            "program": {"id": "gsm_consume_from_total"},
+            "path": {"path_defeasible_tag": -1},
+        },
+    }
+    selection_steps: list[str] = []
+
+    kv._apply_defeasible_specialist_resolution(
+        records=[record],
+        task_type="MATH_TASK",
+        gsm8k_mode=False,
+        selection_steps=selection_steps,
+    )
+
+    assert record["specialist_defeasible_verdict"] == pytest.approx(0.0)
+    assert int(record["specialist_proof_tag"]) == int(neutral_proof_tag)
+    assert record["path_score"] == pytest.approx(0.9)
+
+
+def test_triple_defeasible_backward_compat(tmp_path):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_triple_def_compat")
+
+    paths = [
+        {"program_id": "gsm_consume_from_total", "label": "a"},
+        {"program_id": "gsm_answer_final_stack", "label": "b"},
+    ]
+    swarm_weights = [1.3, 1.1]
+    original_weights = list(swarm_weights)
+    selection_steps: list[str] = []
+
+    kv._apply_early_defeasible_gate(
+        paths=paths,
+        swarm_weights=swarm_weights,
+        selection_steps=selection_steps,
+    )
+
+    assert swarm_weights == pytest.approx(original_weights)
+    assert [path["path_defeasible_tag"] for path in paths] == [1, 1]
+
+    local_candidates = [
+        {
+            "match": {"id": "entry_a", "galaxy": "Math", "embedding16": [1.0] + [0.0] * 15},
+            "program": {"id": "gsm_consume_from_total"},
+            "specialist_coherence": 0.4,
+        },
+        {
+            "match": {"id": "entry_b", "galaxy": "Grammar", "embedding16": [0.0, 1.0] + [0.0] * 14},
+            "program": {"id": "gsm_answer_final_stack"},
+            "specialist_coherence": 0.2,
+        },
+    ]
+
+    kv._apply_intra_path_defeasible(
+        local_candidates=local_candidates,
+        path=paths[0],
+        task_type="MATH_TASK",
+        selection_steps=selection_steps,
+    )
+
+    assert all(candidate["specialist_intra_defeasible"] == pytest.approx(0.0) for candidate in local_candidates)
+
+    record_a = {
+        "option_text": "A",
+        "path_score": 0.7,
+        "candidate": {
+            "match": {"id": "a", "galaxy": "Math"},
+            "program": {"id": "gsm_consume_from_total"},
+            "path": {"path_defeasible_tag": 1},
+        },
+    }
+    record_b = {
+        "option_text": "B",
+        "path_score": 0.2,
+        "candidate": {
+            "match": {"id": "b", "galaxy": "Grammar"},
+            "program": {"id": "gsm_answer_final_stack"},
+            "path": {"path_defeasible_tag": 1},
+        },
+    }
+
+    kv._apply_defeasible_specialist_resolution(
+        records=[record_a, record_b],
+        task_type="MMLU_TASK",
+        gsm8k_mode=False,
+        selection_steps=selection_steps,
+    )
+
+    assert record_a["specialist_defeasible_verdict"] == pytest.approx(0.7)
+    assert record_b["specialist_defeasible_verdict"] == pytest.approx(0.2)
+
+
+def test_triple_defeasible_defers_stage1_and_stage2_for_mmlu(tmp_path):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_triple_def_mmlu_defer")
+
+    paths = [{"program_id": "strict_rule", "label": "mmlu_path"}]
+    swarm_weights = [1.25]
+    selection_steps: list[str] = []
+
+    kv._apply_early_defeasible_gate(
+        task_type="MMLU_TASK",
+        paths=paths,
+        swarm_weights=swarm_weights,
+        selection_steps=selection_steps,
+    )
+
+    assert swarm_weights == pytest.approx([1.25])
+    assert "path_defeasible_tag" not in paths[0]
+
+    local_candidates = [
+        {
+            "match": {"id": "entry_a", "galaxy": "Reality", "embedding16": [1.0] + [0.0] * 15},
+            "program": {"id": "strict_rule"},
+            "specialist_coherence": 0.4,
+        }
+    ]
+    kv._apply_intra_path_defeasible(
+        local_candidates=local_candidates,
+        path={"program_id": "strict_rule", "label": "mmlu_path"},
+        task_type="MMLU_TASK",
+        selection_steps=selection_steps,
+    )
+
+    assert local_candidates[0]["specialist_intra_defeasible"] == pytest.approx(0.0)
+    assert any("deferred_for_mmlu" in step for step in selection_steps)
 
 
 def test_phase_track1_defeasible_compatibility_mode_preserves_raw_scores(tmp_path):
