@@ -1156,6 +1156,51 @@ Trusted Procedural Knowledge: Sign workflows, verify execution, audit trail
 
 ---
 
+### 4.4 Christoph Stach: Defeasible Logic and Trust-Weighted Reasoning
+
+**Collaborator**: Christoph Stach (Systems Thinker, SPINdle contributor)
+**Contribution Period**: March 2026
+**Reference Implementations**: [spindle-rust](https://codeberg.org/anuna/spindle-rust), [spindle-racket](https://codeberg.org/anuna/spindle-racket)
+**Demo**: [spindle-rust.anuna.io](https://spindle-rust.anuna.io/)
+
+**What He Contributed**:
+- **Defeasible Logic Paradigm**: Non-monotonic reasoning where conclusions can be withdrawn when stronger evidence appears — computationally tractable (linear time for propositional theories)
+- **SPINdle Reference**: Rust and Racket implementations of defeasible logic with trust-weighted reasoning, superiority relations, and first-order logic support
+- **Trust-Weighted Inference**: Source attribution with configurable trust weights, threshold filtering, and time-based decay models
+- **Three Rule Types**: Strict rules (always hold), defeasible rules (normally hold, can be overridden), defeaters (block conclusions without proving alternatives)
+
+**The Insight**:
+Christoph recognized that K3D's existing ternary logic (RPN opcodes 0x70-0x76) and Grammar Galaxy rule system are the exact primitives needed for principled defeasible reasoning. Rather than ad-hoc majority voting in the swarm, defeasible logic provides mathematically grounded conflict resolution via explicit superiority relations.
+
+**Our Integration**:
+- **Ternary opcodes ARE defeasible primitives**: TADD (accumulate evidence), TMUL (conjunction), TNOT (negation-as-failure), TCOMP (superiority comparison), TPACK/TUNPACK (pack definite + defeasible proof tags)
+- **Grammar Galaxy rules get defeasible metadata**: `rule_strength` (strict/defeasible/defeater as trit), `superior_to` (explicit priority), `trust_weight` (source confidence with decay)
+- **New kernel `gre_defeasible_resolver.cu`**: Sits between Nine-Chain Swarm and Halting Gate, applies superiority relations to produce principled verdicts (+D definitely proven, +d defeasibly proven, -d defeated, 0 undetermined)
+- **Halting Gate enhancement**: Distinguishes certain answers (+D strict chain) from survived-challenge answers (+d) from undetermined — enabling confident early halt on axioms
+
+**The Paradigm Fit**:
+```
+SPINdle Forward Chaining  →  Nine-Chain Swarm (already exists)
+Strict/Defeasible/Defeater →  rule_strength trit on GrammarRule
+Superiority Relations      →  superior_to metadata in Galaxy
+Trust Weights              →  trust_weight + source attribution
++D/+d/-D/-d Conclusions   →  TPACK'd trit pairs per candidate
+What-if / Why-not Queries  →  Swarm hypothesis + selection traces
+```
+
+**The Absorption Pattern**:
+SPINdle's CONCEPTS enter the Galaxy as principled metadata. The IMPLEMENTATION stays sovereign PTX — no Rust runtime dependency, no external reasoner process, no SPL parser. SPINdle's 1,500+ test cases serve as validation oracle only.
+
+**Credit**:
+- **Christoph Stach** for identifying the defeasible logic mapping to K3D's ternary system
+- For bringing systems-level thinking to K3D's conflict resolution architecture
+- For the SPINdle implementations that serve as reference and validation oracle
+- **Nute (1994)** and the defeasible logic research community for the theoretical foundations
+
+**Architecture Spec**: [TEMP/CLAUDE_DEFEASIBLE_LOGIC_INTEGRATION_03.16.2026.md](TEMP/CLAUDE_DEFEASIBLE_LOGIC_INTEGRATION_03.16.2026.md)
+
+---
+
 ## 5. Software & Tools
 
 ### 5.1 CUDA & PTX
@@ -2103,6 +2148,7 @@ We stand on the shoulders of:
 - **Alibaba Cloud / Qwen Team** for Matryoshka representation learning in embeddings
 - **François Chollet** for ARC-AGI benchmark
 - **Milton Ponson** for mathematical grounding (domains of discourse, adequacy framework)
+- **Christoph Stach** for defeasible logic integration (SPINdle, trust-weighted non-monotonic reasoning)
 - **Farbrausch** for .kkrieger and procedural generation pioneering
 - **Nikolay Brusentsov** and Moscow State University for Setun ternary computer
 - **MIT Instrumentation Lab** (Margaret Hamilton et al.) for Apollo 11 modular engineering
@@ -2130,11 +2176,13 @@ The **Multi-Vibe Code In Chain (MVCIC)** methodology — 7 AI partners, 1 human 
 
 ---
 
-**Last Updated**: February 21, 2026
-**Version**: Phase Week 22+ (PM-KR CG Launch, Hyper-Modular Architecture Coined, Debian `apt` Distribution Model)
+**Last Updated**: March 16, 2026
+**Version**: Phase B+ Complete (All GRE Kernels Sovereign, Defeasible Logic Integration)
 **Major Milestones Since Last Update**:
 - W3C PM-KR Community Group launched (February 20, 2026)
 - "Hyper-Modular Architecture" term coined (February 20, 2026) — first architecture with 7-level simultaneous modularity
 - Debian `apt` distribution model for PM-KR formalized (February 21, 2026)
 - Key founding members committed to PM-KR standardization (Ian Jacobs, Manu Sporny, Jonathan DeRouchie, Nitin Pasumarthy)
 - OpenFn validation (40+ countries, 10M+ transactions/year) proves PM-KR addresses real production workflows
+- All 11 GRE sovereign kernels replaced with real CUDA (March 2026)
+- Defeasible logic integration architecture from Christoph Stach / SPINdle (March 2026)
