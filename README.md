@@ -13,7 +13,7 @@
 
 [![status](https://img.shields.io/badge/status-Phase_G_Training_Complete-green)](docs/ROADMAP.md) [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE) [![FMEAI](https://img.shields.io/badge/Philosophy-FMEAI-purple)](docs/PHILOSOPHY.md) [![Awesome](https://awesome.re/mentioned-badge.svg)](https://github.com/josephmisiti/awesome-machine-learning#cuda-ptx)
 
-> 🎓 **Deep Dive**: For comprehensive understanding of the project architecture, philosophy, and technical details, visit our [**NotebookLM Research Space**](https://notebooklm.google.com/notebook/1bd10bda-8900-4c41-931e-c9ec67ac865f) — the best place to explore Knowledge3D in depth.
+> 🎓 **Deep Dive**: Visit our [**PM-KR NotebookLM Research Space**](https://notebooklm.google.com/notebook/98ffd298-1314-477f-b1e1-8d29da4f3848) for PM-KR standards and architecture, or the [**K3D Theory Research Space**](https://notebooklm.google.com/notebook/1bd10bda-8900-4c41-931e-c9ec67ac865f) for the Knowledge3D reference implementation deep dive.
 
 **Independent analyses (Claude.ai):**
 - **K3D's architectural novelty** — why the raw PTX + spatial KR + zero-framework stack is essentially unique: https://claude.ai/public/artifacts/e79b9a70-7907-4a63-9052-d94c386f83f9
@@ -686,7 +686,7 @@ Knowledge3D is built through Multi-Vibe Code In Chain (MVCIC) — human-AI partn
 
 **"Software was always meant to be a place, not a window. Welcome home."**
 
-🌌 **Explore K3D**: [NotebookLM Research Space](https://notebooklm.google.com/notebook/1bd10bda-8900-4c41-931e-c9ec67ac865f)
+🌌 **Explore**: [PM-KR Research Space](https://notebooklm.google.com/notebook/98ffd298-1314-477f-b1e1-8d29da4f3848) | [K3D Theory Research Space](https://notebooklm.google.com/notebook/1bd10bda-8900-4c41-931e-c9ec67ac865f)
 🎬 **Watch Videos**: [Multi-Language Playlist](https://www.youtube.com/playlist?list=PLmWTHH0cS_OgQ7h_xRMhZ6UqE5mRYAhD7)
 🌐 **W3C Standardization**: [PM-KR Community Group](https://www.w3.org/community/pm-kr/)
 📚 **Dive Deep**: [docs/vocabulary/](docs/vocabulary/)
