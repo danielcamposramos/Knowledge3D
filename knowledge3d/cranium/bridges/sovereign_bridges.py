@@ -872,61 +872,84 @@ class TemporalReasoning:
 # ============================================================================
 
 class VectorResonator:
-    """Sovereign Vector Resonator - Recursive ANN search with alpha blend"""
+    """Sovereign Vector Resonator - attention-weighted vector blending."""
 
     def __init__(self):
         ptx_path = KERNELS_DIR / "gre_vector_resonator.ptx"
         self.kernel = load_ptx_file(str(ptx_path), "gre_vector_resonator")
 
-    def resonate(self, vec_a, vec_b, alpha: float):
-        """Blend two vectors using alpha
-        
-        Args:
-            vec_a, vec_b: Input vectors (float32)
-            alpha: Blend factor (0.0 to 1.0)
-        
-        Returns:
-            Blended vector
-        """
-        assert vec_a.shape == vec_b.shape
-        length = len(vec_a)
-        byte_count = length * 4
+    def resonate_attention(self, vectors):
+        """Blend a small set of vectors with content-dependent attention."""
+        np_mod = _np()
+        arr = np_mod.asarray(vectors, dtype=np_mod.float32)
+        if arr.ndim != 2:
+            raise ValueError("vectors must be a 2D array-like [K x D]")
+        if arr.shape[0] == 0 or arr.shape[1] == 0:
+            raise ValueError("vectors must be non-empty")
 
-        d_a = gpu_malloc(byte_count)
-        d_b = gpu_malloc(byte_count)
-        d_out = gpu_malloc(byte_count)
-        
+        arr = np_mod.ascontiguousarray(arr, dtype=np_mod.float32)
+        k_count, dims = arr.shape
+        blended_bytes = dims * 4
+        weights_bytes = k_count * 4
+        d_vectors = gpu_malloc(arr.nbytes)
+        d_blended = gpu_malloc(blended_bytes)
+        d_weights = gpu_malloc(weights_bytes)
+
         try:
-            memcpy_htod(d_a, vec_a.ctypes.data_as(ctypes.c_void_p), byte_count)
-            memcpy_htod(d_b, vec_b.ctypes.data_as(ctypes.c_void_p), byte_count)
-            
+            memcpy_htod(d_vectors, arr.ctypes.data_as(ctypes.c_void_p), arr.nbytes)
+
             launch(
                 self.kernel,
-                grid=((len(vec_a) + 255) // 256, 1, 1),
-                block=(256, 1, 1),
+                grid=(1, 1, 1),
+                block=(1, 1, 1),
                 params=[
-                    ctypes.c_uint64(d_a.value),
-                    ctypes.c_uint64(d_b.value),
-                    ctypes.c_uint64(d_out.value),
-                    ctypes.c_uint32(len(vec_a)),
-                    ctypes.c_float(alpha),
+                    ctypes.c_uint64(d_vectors.value),
+                    ctypes.c_uint64(d_blended.value),
+                    ctypes.c_uint64(d_weights.value),
+                    ctypes.c_int(k_count),
+                    ctypes.c_int(dims),
                 ],
             )
             synchronize()
 
-            OutArray = ctypes.c_float * length
-            out_host = OutArray()
-            memcpy_dtoh(ctypes.cast(out_host, ctypes.c_void_p), d_out, byte_count)
+            blended_host = (ctypes.c_float * dims)()
+            weights_host = (ctypes.c_float * k_count)()
+            memcpy_dtoh(ctypes.cast(blended_host, ctypes.c_void_p), d_blended, blended_bytes)
+            memcpy_dtoh(ctypes.cast(weights_host, ctypes.c_void_p), d_weights, weights_bytes)
 
-            try:
-                np_mod = _np()
-                return np_mod.asarray(out_host, dtype=np_mod.float32).reshape(vec_a.shape)
-            except Exception:
-                return [float(out_host[i]) for i in range(length)]
+            blended = np_mod.asarray(blended_host, dtype=np_mod.float32).reshape(dims)
+            weights = np_mod.asarray(weights_host, dtype=np_mod.float32).reshape(k_count)
+            return blended, weights
         finally:
-            gpu_free(d_a)
-            gpu_free(d_b)
-            gpu_free(d_out)
+            gpu_free(d_vectors)
+            gpu_free(d_blended)
+            gpu_free(d_weights)
+
+    def resonate(self, vec_a, vec_b, alpha: float):
+        """Blend two vectors using content attention with an alpha prior."""
+        np_mod = _np()
+        arr_a_full = np_mod.asarray(vec_a, dtype=np_mod.float32)
+        arr_b_full = np_mod.asarray(vec_b, dtype=np_mod.float32)
+        assert arr_a_full.shape == arr_b_full.shape
+        arr_a = arr_a_full.reshape(-1)
+        arr_b = arr_b_full.reshape(-1)
+        _blended, weights = self.resonate_attention(np_mod.stack([arr_a, arr_b], axis=0))
+
+        prior = np_mod.asarray(
+            [
+                min(max(float(alpha), 1e-4), 1.0 - 1e-4),
+                min(max(1.0 - float(alpha), 1e-4), 1.0 - 1e-4),
+            ],
+            dtype=np_mod.float32,
+        )
+        adjusted = np_mod.asarray(weights, dtype=np_mod.float32) * prior
+        total = float(adjusted.sum())
+        if total <= 0.0:
+            adjusted = prior / float(prior.sum())
+        else:
+            adjusted = adjusted / total
+        blended = adjusted[0] * arr_a + adjusted[1] * arr_b
+        return blended.reshape(arr_a_full.shape)
 
     def resonate_list(self, vec_a, vec_b, alpha: float) -> list[float]:
         np_mod = _np()
@@ -934,6 +957,14 @@ class VectorResonator:
         arr_b = np_mod.asarray(list(vec_b), dtype=np_mod.float32)
         blended = self.resonate(arr_a, arr_b, alpha)
         return [float(value) for value in np_mod.asarray(blended, dtype=np_mod.float32).reshape(-1).tolist()]
+
+    def resonate_attention_list(self, vectors) -> tuple[list[float], list[float]]:
+        np_mod = _np()
+        blended, weights = self.resonate_attention(vectors)
+        return (
+            [float(value) for value in np_mod.asarray(blended, dtype=np_mod.float32).reshape(-1).tolist()],
+            [float(value) for value in np_mod.asarray(weights, dtype=np_mod.float32).reshape(-1).tolist()],
+        )
 
     def calculate_complexity(self, input_embedding, modal_signature: list) -> float:
         """Calculate input complexity for adaptive sparsity decisions.

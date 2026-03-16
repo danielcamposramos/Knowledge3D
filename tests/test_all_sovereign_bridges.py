@@ -184,18 +184,42 @@ class TestGrokKernels:
     """Test Grok's 3 kernels: VectorResonator, GraphCrystallizer, MultimodalHaltingGate"""
 
     def test_vector_resonator(self):
-        """Test VectorResonator blends vectors"""
+        """Test VectorResonator preserves alpha bias and content-aware attention."""
         resonator = VectorResonator()
 
-        vec_a = np.ones(200, dtype=np.float32) * 2.0
-        vec_b = np.ones(200, dtype=np.float32) * 4.0
-        alpha = 0.3
+        vec_a = np.concatenate(
+            [
+                np.ones(100, dtype=np.float32),
+                -np.ones(100, dtype=np.float32),
+            ]
+        )
+        vec_b = -vec_a
+        low_alpha = 0.2
+        high_alpha = 0.8
 
-        output = resonator.resonate(vec_a, vec_b, alpha)
-        expected = vec_a * alpha + vec_b * (1 - alpha)
+        low_alpha_out = resonator.resonate(vec_a, vec_b, low_alpha)
+        high_alpha_out = resonator.resonate(vec_a, vec_b, high_alpha)
 
-        assert np.allclose(output, expected, rtol=1e-5), "Blend incorrect"
-        print(f"✅ VectorResonator: blend correct")
+        assert low_alpha_out.shape == vec_a.shape
+        assert high_alpha_out.shape == vec_a.shape
+        assert np.dot(high_alpha_out, vec_a) > np.dot(low_alpha_out, vec_a)
+
+        blended, weights = resonator.resonate_attention(
+            np.stack(
+                [
+                    np.ones(32, dtype=np.float32),
+                    np.ones(32, dtype=np.float32) * 3.0,
+                    np.ones(32, dtype=np.float32) * 0.5,
+                ],
+                axis=0,
+            )
+        )
+
+        assert blended.shape == (32,)
+        assert weights.shape == (3,)
+        assert np.isclose(float(weights.sum()), 1.0, atol=1e-5)
+        assert float(weights[1]) > float(weights[0]) > float(weights[2])
+        print(f"✅ VectorResonator: attention weights={weights.tolist()}")
 
     def test_graph_crystallizer(self):
         """Test GraphCrystallizer performs graph message passing"""
