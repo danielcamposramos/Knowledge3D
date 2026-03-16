@@ -108,12 +108,12 @@
 ### W3C Leadership
 50. **Ian Jacobs** (W3C Head of Communications) → PM-KR CG launch, editorial guidance (v2 → v3)
 
-### Founding Members (February 2026)
+### Early Ingressors (February 2026)
 51. **Manu Sporny** (JSON-LD co-creator, Digital Bazaar CTO) → CBOR-LD compression, procedural canonicalization, rdf-canon
 52. **Adam Sobieski** → WICG #188 (5-year-old stateful procedural execution proposal), OpenFn BPM validation, audit message schema
 53. **Jonathan DeRouchie** → Persistent memory AI architecture, public/private knowledge separation
 54. **Nitin Pasumarthy** (LinkedIn LLM/GNN) → Production-scale systems perspective
-55. **Hanna Abi Akl** → 5th founding member (W3C Community Group)
+55. **Hanna Abi Akl** → 5th early ingressor (W3C Community Group)
 56. **OpenFn Organization** → Real-world validation (40+ countries, 10M+ transactions/year, governments/NGOs/healthcare)
 
 ### Graph Theory Foundation
@@ -246,7 +246,7 @@ Tesla 3-6-9 (sacred geometry) → K3D Hyperparameters (18 instances, 6 steps, 69
 Gutenberg Press (1440) → Aaron Swartz (2008) → K3D Public Prior Art (2025) → NO PATENTS, APACHE 2.0
 
 **W3C Standardization Chain**:
-Ian Jacobs (W3C guidance) → PM-KR CG (Feb 20, 2026) → 6 founding members → OpenFn validation
+Ian Jacobs (W3C guidance) → PM-KR CG (Feb 20, 2026) → 6 early ingressors → OpenFn validation
 
 **MVCIC Swarm Chain**:
 11 AI partners + 1 human visionary → 4× industry speed (3-7 years ahead in 13 months)

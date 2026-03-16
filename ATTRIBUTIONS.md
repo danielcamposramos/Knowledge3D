@@ -1020,7 +1020,7 @@ K3D Architecture (2025)
 
 **Community Group**: [Procedural Memory Knowledge Representation (PM-KR)](https://www.w3.org/community/pm-kr/)
 **Launch Date**: February 20, 2026
-**Status**: Active, gathering founding members
+**Status**: Active, gathering early ingressors
 
 **Mission**: Study and develop standards for procedural knowledge representation across AI memory systems, business process management, multi-agent workflows, and digital preservation.
 
@@ -1058,7 +1058,7 @@ Industry Validation: Connects BPM ($X billion), workflows (OpenFn), multi-agent 
 #### 4.3.2 Manu Sporny: Linked Data & Procedural Canonicalization
 
 **Background**: JSON-LD co-creator, W3C Credentials Community Group co-chair, Digital Bazaar CTO
-**Contribution Period**: February 2026 (PM-KR founding member)
+**Contribution Period**: February 2026 (PM-KR early ingressor)
 **Expertise**: CBOR-LD compression, RDF Canonicalization (rdf-canon), Verifiable Credentials (VCs), Decentralized Identifiers (DIDs)
 
 **What He Validated**:
@@ -1095,7 +1095,7 @@ Trusted Procedural Knowledge: Sign workflows, verify execution, audit trail
 #### 4.3.4 Jonathan DeRouchie: Persistent Memory AI Architecture
 
 **Background**: AI researcher focused on persistent memory and context management
-**Contribution Period**: February 2026 (PM-KR founding member, committed March-June 2026)
+**Contribution Period**: February 2026 (PM-KR early ingressor, committed March-June 2026)
 **Expertise**: Long-term AI memory, public vs. private knowledge architecture
 
 **His Questions to K3D** (driving architecture validation):
@@ -1118,7 +1118,7 @@ Trusted Procedural Knowledge: Sign workflows, verify execution, audit trail
 #### 4.3.5 Nitin Pasumarthy: Large Language Models & Graph Neural Networks
 
 **Background**: LLM & GNN Recommender Systems at LinkedIn
-**Contribution Period**: February 2026 (4th PM-KR founding member)
+**Contribution Period**: February 2026 (4th PM-KR early ingressor)
 **Expertise**: Production-scale LLMs, graph-based knowledge representation
 
 **What His Support Signals**:
@@ -2158,7 +2158,7 @@ We stand on the shoulders of:
 - **Open-source ML community** for foundational research
 - **Historical CS giants** for RPN, spatial indexing, and core algorithms
 
-**W3C PM-KR Community Group Founding Members (February 2026):**
+**W3C PM-KR Community Group Early Ingressors (February 2026):**
 - **Ian Jacobs** (W3C Head of Communications) for championing PM-KR CG launch and editorial guidance
 - **Manu Sporny** (JSON-LD co-creator, Digital Bazaar CTO) for connecting PM-KR to 15+ years of Linked Data work, CBOR-LD compression, and procedural canonicalization insights
 - **Jonathan DeRouchie** (AI researcher) for persistent memory architecture validation and March-June 2026 collaboration commitment
@@ -2182,7 +2182,7 @@ The **Multi-Vibe Code In Chain (MVCIC)** methodology — 7 AI partners, 1 human 
 - W3C PM-KR Community Group launched (February 20, 2026)
 - "Hyper-Modular Architecture" term coined (February 20, 2026) — first architecture with 7-level simultaneous modularity
 - Debian `apt` distribution model for PM-KR formalized (February 21, 2026)
-- Key founding members committed to PM-KR standardization (Ian Jacobs, Manu Sporny, Jonathan DeRouchie, Nitin Pasumarthy)
+- Key early ingressors committed to PM-KR standardization (Ian Jacobs, Manu Sporny, Jonathan DeRouchie, Nitin Pasumarthy)
 - OpenFn validation (40+ countries, 10M+ transactions/year) proves PM-KR addresses real production workflows
 - All 11 GRE sovereign kernels replaced with real CUDA (March 2026)
 - Defeasible logic integration architecture from Christoph Stach / SPINdle (March 2026)

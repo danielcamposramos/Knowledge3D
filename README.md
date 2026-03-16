@@ -235,7 +235,7 @@ Knowledge3D stands on the shoulders of giants. We build upon foundational resear
 
 **CRITICAL SHIFT:** PM-KR Community Group is actively steering K3D's development from standalone prototype to **foundational web standard reference implementation**.
 
-**The 6 Strategic Imperatives** (driven by founding members):
+**The 6 Strategic Imperatives** (driven by early ingressors):
 
 1. **🔐 Access Control & Sovereignty** (Jonathan DeRouchie) — Formalize House-Galaxy boundaries with security metadata
 2. **🔏 Cryptographic Trust** (Manu Sporny) — Procedural C14N + W3C Verifiable Credentials integration
@@ -293,7 +293,7 @@ This collaboration between an electrical engineer from Brazil and a mathematicia
 
 ### Expert Validation & Active Contributors
 
-**Founding Members (24+ as of Feb 2026):**
+**Early Ingressors (24+ as of Feb 2026):**
 - **Manu Sporny** (JSON-LD co-creator, RDF Canonicalization editor) — Cryptographic C14N guidance
 - **Milton Ponson** (Mathematician, Gödelian KR, domains of discourse) — Official supporter
 - **Jonathan DeRouchie** (Persistent memory AI systems) — Security boundaries + Developer UX (March-June commitment)

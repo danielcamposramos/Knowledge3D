@@ -300,7 +300,7 @@ navigator.gpu.createProceduralPrint({
 - **Entry Point**: 3MF became ISO standard (2025) → PM-KR as evolution
 
 **3MF Consortium**:
-- **Contact**: Autodesk, Microsoft, HP, Stratasys (founding members)
+- **Contact**: Autodesk, Microsoft, HP, Stratasys (early ingressors)
 - **Pitch**: "PM-KR procedural layer on top of 3MF (backward compatible, adds adaptive capabilities)"
 - **Entry Point**: Autodesk already contacted (BIM/Revit use case)
 

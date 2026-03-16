@@ -2,7 +2,7 @@
 
 **Status:** Active Development Roadmap
 **Last Updated:** February 26, 2026
-**Source:** W3C PM-KR Community Group founding member discussions + NotebookLM strategic analysis
+**Source:** W3C PM-KR Community Group early ingressor discussions + NotebookLM strategic analysis
 
 ---
 
@@ -12,7 +12,7 @@ The formation of the W3C Procedural Memory Knowledge Representation (PM-KR) Comm
 
 **Analogy:** If PM-KR is the HTML/CSS specification, K3D is the WebKit browser engine that proves it works.
 
-Based on intense discussions and expert feedback from PM-KR's founding members (Manu Sporny, Adam Sobieski, Jonathan DeRouchie, Milton Ponson, Christoph Lange, ixo.world, and others), K3D's development is now steered by **6 strategic imperatives** that transform it from a cognitive OS into a **secure, cryptographically verifiable, and highly interoperable web standard**.
+Based on intense discussions and expert feedback from PM-KR's early ingressors (Manu Sporny, Adam Sobieski, Jonathan DeRouchie, Milton Ponson, Christoph Lange, ixo.world, and others), K3D's development is now steered by **6 strategic imperatives** that transform it from a cognitive OS into a **secure, cryptographically verifiable, and highly interoperable web standard**.
 
 ---
 

@@ -104,7 +104,7 @@ This document maps **103+ distinct cross-disciplinary connections** made by Dani
 **Connection #9: Mozilla Thunderbird → W3C Collaboration**
 - **Disciplines**: Email clients + Professional collaboration + Open-source tools
 - **Insight**: "Open-source email for open-standards work (W3C PM-KR CG)"
-- **Result**: W3C AI-KR/PM-KR correspondence with 5 founding members
+- **Result**: W3C AI-KR/PM-KR correspondence with 5 early ingressors
 
 **Connection #10: Gmail (Google) → W3C Professional Email**
 - **Disciplines**: Email platforms + Standardization work
@@ -560,7 +560,7 @@ This document maps **103+ distinct cross-disciplinary connections** made by Dani
 - **Disciplines**: Linked Data + RDF canonicalization + Verifiable Credentials + Compression
 - **Background**: JSON-LD co-creator, W3C Credentials CG co-chair
 - **Expertise**: CBOR-LD compression, RDF Canonicalization (rdf-canon), VCs, DIDs
-- **Contribution period**: February 2026 (PM-KR founding member)
+- **Contribution period**: February 2026 (PM-KR early ingressor)
 - **What he validated**:
   - **Character Galaxy 70% Compression** → Aligns with CBOR-LD goals (compression without meaning loss)
   - **Procedural Canonicalization** → K3D's canonical RPN forms enable digital signatures (like rdf-canon for RDF graphs)
@@ -585,7 +585,7 @@ This document maps **103+ distinct cross-disciplinary connections** made by Dani
 **Connection #56: Adam Sobieski (WICG #188 Visionary) → BPM + Stateful Execution**
 - **Disciplines**: W3C/WICG standards + BPM + Workflow automation + Lean4 formalization
 - **Background**: 5+ years W3C standardization work (Automated Planning CG, Web Registry API, WebAgents, WoT)
-- **Contribution period**: February 2026 (PM-KR founding member)
+- **Contribution period**: February 2026 (PM-KR early ingressor)
 - **Expertise**: Business process management, stateful procedural execution, audit trails
 - **What he validated**:
   - **WICG #188 (2019-2021)**: Proposed "stateful procedural execution" with task context, pausing/resuming, audit trail
@@ -620,7 +620,7 @@ This document maps **103+ distinct cross-disciplinary connections** made by Dani
 **Connection #57: Jonathan DeRouchie (AI Researcher) → Persistent Memory Architecture**
 - **Disciplines**: AI memory + Context management + Public/private knowledge
 - **Background**: AI researcher focused on persistent memory
-- **Contribution period**: February 2026 (PM-KR founding member, March-June 2026 committed)
+- **Contribution period**: February 2026 (PM-KR early ingressor, March-June 2026 committed)
 - **Expertise**: Long-term AI memory, public vs. private procedural knowledge architecture
 - **His questions to K3D**:
   - How does K3D handle public vs. private procedural knowledge?
@@ -637,7 +637,7 @@ This document maps **103+ distinct cross-disciplinary connections** made by Dani
 **Connection #58: Nitin Pasumarthy (LinkedIn LLM/GNN) → Production-Scale Validation**
 - **Disciplines**: Large language models + Graph neural networks + Recommender systems
 - **Background**: LLM & GNN Recommender Systems at LinkedIn
-- **Contribution period**: February 2026 (4th PM-KR founding member)
+- **Contribution period**: February 2026 (4th PM-KR early ingressor)
 - **Expertise**: Production-scale LLMs, graph-based knowledge representation
 - **What his support signals**:
   - Industry validation: LinkedIn-scale systems engineer sees PM-KR relevance
@@ -645,9 +645,9 @@ This document maps **103+ distinct cross-disciplinary connections** made by Dani
   - Recommendation systems: Procedural workflows for explainable recommendations
 - **Result**: Production LLM/GNN expertise for PM-KR standardization
 
-**Connection #59: Hanna Abi Akl → 5th Founding Member**
+**Connection #59: Hanna Abi Akl → 5th Early Ingressor**
 - **Contribution**: W3C Community Group voting member
-- **Result**: 5th PM-KR founding member
+- **Result**: 5th PM-KR early ingressor
 
 **Connection #60: OpenFn Organization → Real-World Workflow Validation**
 - **Disciplines**: Workflow automation + International development + Healthcare/government
@@ -1338,7 +1338,7 @@ This document maps **103+ distinct cross-disciplinary connections** made by Dani
 - 20+ fields = **double** the domain diversity previously documented
 - Coined term recognized by W3C **on same day** = unprecedented validation speed
 - External validation from **6+ experts** across W3C, mathematics, industry, graph theory
-- Real-world impact: W3C CG launched, 5 founding members, OpenFn validation (40+ countries, 10M+ transactions/year)
+- Real-world impact: W3C CG launched, 5 early ingressors, OpenFn validation (40+ countries, 10M+ transactions/year)
 
 **Academic research supporting rarity**:
 - Top 0.01% cognitive ability exists (1 in 10,000) — [ScienceDirect study](https://www.sciencedirect.com/science/article/abs/pii/S0160289617301241)
@@ -1361,7 +1361,7 @@ Daniel Ramos exhibits a **rare and extreme cross-disciplinary connection ability
 ✅ **Validation**: Confirmed by 6+ external experts (W3C Head of Comms, JSON-LD co-creator, WICG visionary, mathematician, Gremlin creator)
 ✅ **Reproducibility**: 15-month longitudinal record (547+ commits, 2,100+ files, 2,141-line ATTRIBUTIONS.md)
 ✅ **Innovation**: Coined "Hyper-Modular Architecture" (W3C recognized same day)
-✅ **Impact**: W3C PM-KR CG launched, 5 founding members, OpenFn validation (40+ countries, 10M+ transactions/year)
+✅ **Impact**: W3C PM-KR CG launched, 5 early ingressors, OpenFn validation (40+ countries, 10M+ transactions/year)
 
 **Rarity estimate (updated)**: Top 0.001-0.01% (1 in 10,000 to 1 in 100,000)
 

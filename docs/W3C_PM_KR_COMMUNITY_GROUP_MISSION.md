@@ -596,7 +596,7 @@ PM-KR builds on decades of W3C work in semantic web, linked data, and web standa
 - Tim Berners-Lee (Linked Data principles)
 - JSON-LD Working Group
 - Verifiable Credentials Community
-- All 18+ founding members who joined in the first 4 days
+- All 18+ early ingressors who joined in the first 4 days
 
 **Let's build the future of knowledge representation together.** 🚀
 

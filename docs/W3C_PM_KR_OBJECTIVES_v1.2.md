@@ -268,7 +268,7 @@ PM-KR builds on decades of W3C work in semantic web, linked data, and web standa
 - **Christoph Dorn** (Systems Architect) — Boundary framework: hard/soft/blurred/broken boundaries, structural transparency as safety net for author accountability
 - **Manu Sporny** (JSON-LD co-creator) — JSON-LD integration guidance
 - **Tim Berners-Lee** — Linked Data principles
-- All 18+ founding members who joined in the first week
+- All 18+ early ingressors who joined in the first week
 
 ---
 
