@@ -19,9 +19,10 @@ This architecture enables explainable AI through embodied spatial reasoning, sub
 - **TRM IS the Avatar** — the TRM (~7M params) is NOT a function Python calls. It IS the AI entity that lives in the House and thinks inside the Galaxy. Runs as a game loop via `trm_step_fused.ptx`.
 - **House = Memory Palace (Method of Loci)** — external shared 3D reality where humans AND AI cohabit. Rooms are knowledge domains. Doors are network interfaces. The avatar LIVES here.
 - **Galaxy = Internal Brain** — what happens INSIDE the avatar's head. Processes the House as unified multi-modal reality. ALL default galaxies loaded simultaneously in VRAM.
-- **Internal Swarm = "Superdotados" Thinking** — nine-chain parallel workers model how gifted individuals think: multiple internal cognitive channels processing simultaneously inside the avatar's head.
-- **K3D is NOT a program you run** — it is a living, always-on, embodied AI that perfects itself during idle time (sleep-time consolidation).
+- **Internal Swarm = "Superdotados" Thinking** — nine-chain parallel workers model how gifted individuals think: multiple internal cognitive channels processing simultaneously inside the avatar's head. See: [HYPER_PARALLEL_PROCESSING.md](HYPER_PARALLEL_PROCESSING.md) for the formal paradigm.
+- **K3D is NOT a program you run** — it is a living, always-on, embodied AI that perfects itself during idle time (sleep-time consolidation). The brain model persists across wake cycles as a versioned entity with rollback capability.
 - **Python = Boot + I/O only** (~200 lines target). ALL reasoning happens on GPU via PTX kernels.
+- **Ternary-ready registers** — all intermediate results carry value + confidence + polarity, ready for future ternary hardware accelerators (balanced ternary: −1/0/+1). See: [HYPER_PARALLEL_PROCESSING.md](HYPER_PARALLEL_PROCESSING.md) §6.
 
 **Game Engine Analogy:**
 | Game Concept | K3D Equivalent |

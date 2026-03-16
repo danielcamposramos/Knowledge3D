@@ -294,6 +294,26 @@ Zero external libraries in inference loop (complete sovereignty)
 
 ---
 
+## Companion Paradigm: Hyper-Parallel Processing
+
+**Hyper-Modular** answers: *how is knowledge organized?*
+**Hyper-Parallel** answers: *how is knowledge processed?*
+
+| Dimension | Hyper-Modular | Hyper-Parallel |
+|-----------|--------------|----------------|
+| **Concern** | Knowledge structure | Knowledge processing |
+| **Unit** | Galaxy entry (procedural module) | RPN core (specialized processor) |
+| **Composition** | Symlink references across hierarchy levels | Cross-core register sharing across specialists |
+| **Scaling axis** | More domains, more entries, more levels | More cores, more specialists, more concurrent paths |
+| **Biological analogy** | Brain anatomy (regions, neurons, synapses) | Brain function (parallel activation, cross-region integration) |
+| **Key invariant** | Zero duplication | One mind |
+
+**Together:** Hyper-modular knowledge stored in Galaxy Universe, processed by hyper-parallel specialist cores, producing one unified answer. Structure and function unified in one system.
+
+**See:** [HYPER_PARALLEL_PROCESSING.md](HYPER_PARALLEL_PROCESSING.md) for the complete companion specification.
+
+---
+
 ## Connection to Other K3D Specifications
 
 **Hyper-Modular Architecture is the ORGANIZING PRINCIPLE for:**
@@ -401,6 +421,7 @@ It is a **paradigm shift** where:
 
 ## References
 
+- [HYPER_PARALLEL_PROCESSING.md](HYPER_PARALLEL_PROCESSING.md) — Companion paradigm: how knowledge is processed (specialist swarm, ternary-ready, persistent brain)
 - [KNOWLEDGEVERSE_SPECIFICATION.md](KNOWLEDGEVERSE_SPECIFICATION.md) — Unified VRAM memory architecture (7 regions)
 - [THREE_BRAIN_SYSTEM_SPECIFICATION.md](THREE_BRAIN_SYSTEM_SPECIFICATION.md) — Cranium + Galaxy + House
 - [DUAL_CLIENT_CONTRACT_SPECIFICATION.md](DUAL_CLIENT_CONTRACT_SPECIFICATION.md) — Procedural foundation (form + meaning)

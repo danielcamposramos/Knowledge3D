@@ -1,6 +1,6 @@
 # Knowledge3D Vocabulary — Architecture Specifications
 
-**Last Updated**: March 6, 2026
+**Last Updated**: March 16, 2026
 **Status**: Living documentation (updated as architecture evolves)
 
 ---
@@ -10,13 +10,14 @@
 This directory contains the **canonical architectural specifications** for Knowledge3D. Each specification defines a critical component of the system, providing detailed design, implementation guidance, and integration contracts.
 
 **Reading Order for New Contributors:**
-1. Start with [SUPERHUMAN_GENERAL_INTELLIGENCE_SPECIFICATION.md](#superhuman-general-intelligence-shgi) 🌟 **NEW: Ultimate Goal** (March 5, 2026)
-2. Read [SPATIAL_GENERAL_INTELLIGENCE_SPECIFICATION.md](#spatial-general-intelligence-sgi) ⭐ (foundational prerequisite for SHGI)
+1. Start with [SUPERHUMAN_GENERAL_INTELLIGENCE_SPECIFICATION.md](#superhuman-general-intelligence-shgi) 🌟 **Ultimate Goal** (March 5, 2026)
+2. Read [SPATIAL_GENERAL_INTELLIGENCE_SPECIFICATION.md](#spatial-general-intelligence-sgi) (foundational prerequisite for SHGI)
 3. Read [THREE_BRAIN_SYSTEM_SPECIFICATION.md](#three-brain-system) (foundational architecture)
-4. Read [HYPER_MODULAR_ARCHITECTURE.md](#hyper-modular-architecture) (organizing paradigm)
-5. Read [KNOWLEDGEVERSE_SPECIFICATION.md](#knowledgeverse) (runtime memory substrate)
-6. Read [DUAL_CLIENT_CONTRACT_SPECIFICATION.md](#dual-client-contract) (human + AI duality)
-7. Then explore domain-specific specs as needed
+4. Read [HYPER_MODULAR_ARCHITECTURE.md](#hyper-modular-architecture) (structure paradigm — how knowledge is organized)
+5. Read [HYPER_PARALLEL_PROCESSING.md](#hyper-parallel-processing) 🆕 (function paradigm — how knowledge is processed)
+6. Read [KNOWLEDGEVERSE_SPECIFICATION.md](#knowledgeverse) (runtime memory substrate)
+7. Read [DUAL_CLIENT_CONTRACT_SPECIFICATION.md](#dual-client-contract) (human + AI duality)
+8. Then explore domain-specific specs as needed
 
 ---
 
@@ -135,7 +136,7 @@ Defines the three-layer memory hierarchy that enables sovereign reasoning with p
 ---
 
 ### [HYPER_MODULAR_ARCHITECTURE.md](HYPER_MODULAR_ARCHITECTURE.md)
-**Paradigm: Cross-Domain Procedural Composition**
+**Paradigm: Cross-Domain Procedural Composition (Structure)**
 
 Defines the **Hyper-Modular Architecture** paradigm where procedural RPN programs compose across ALL modalities (visual, mathematical, physical, auditory), ALL client types (human, AI, robot), and ALL scales (atomic → cosmic).
 
@@ -150,15 +151,37 @@ Defines the **Hyper-Modular Architecture** paradigm where procedural RPN program
 - **Procedural sovereignty**: PTX + Galaxy only in hot path (zero external dependencies)
 - **Shadow copy learning**: Architecture learns from successful compositions
 
-**Comparison to Traditional Modular Programming:**
-- Traditional: Functions compose within ONE domain (e.g., image processing → image processing)
-- Hyper-Modular: Galaxy entries compose across ALL domains (e.g., Math Galaxy → Drawing Galaxy → Reality Galaxy)
-
-**15-dimension comparison table** showing distinction from traditional modular, microservices, OOP, Unix pipes, knowledge graphs, TerraVision
+**Companion**: [HYPER_PARALLEL_PROCESSING.md](HYPER_PARALLEL_PROCESSING.md) (how knowledge is processed)
 
 **Production Status**: ✅ Foundational paradigm (publicly timestamped, defensible)
 
 **Integration**: Organizing principle for ALL K3D specifications (cross-cutting concern)
+
+---
+
+### [HYPER_PARALLEL_PROCESSING.md](HYPER_PARALLEL_PROCESSING.md) 🆕
+**Paradigm: Concurrent Specialized Procedural Cognition (Function)**
+
+Defines the **Hyper-Parallel Processing** paradigm where multiple specialized procedural cores operate simultaneously on the same problem, each carrying domain-specific learned weights (LoRA-like specialist adapters) and cross-referencing other cores' intermediate results via shared stack registers, converging to one unified answer.
+
+**Term Coined**: March 16, 2026 by Daniel Ramos
+
+**Key Concepts:**
+- **Specialist parallelism**: Each core carries different domain-specific LoRA-like weights (not identical copies)
+- **Cross-core register communication**: STORE/RECALL registers span across cores during execution
+- **One-mind convergence**: All specialists produce ONE unified answer (not a vote or ensemble)
+- **TRM-spawnable specialist lifecycle**: Avatar autonomously creates, activates, and prunes specialists
+- **RPN as native parallelization substrate**: Stack machines map directly to CUDA/ternary hardware cores
+- **Ternary logic as hardware imperative**: Balanced ternary (−1/0/+1) gives 58.5% more info per unit; "uncertain" as first-class value
+- **Persistent brain model**: No cold starts — versioned living brain with rollback on drift
+
+**Companion**: [HYPER_MODULAR_ARCHITECTURE.md](HYPER_MODULAR_ARCHITECTURE.md) (how knowledge is organized)
+
+**Together:** Hyper-modular = how knowledge is stored. Hyper-parallel = how knowledge is thought.
+
+**Production Status**: ✅ Foundational paradigm (formally defined with W3C conformance levels A/B/C)
+
+**Integration**: Processing paradigm for ALL K3D reasoning (cross-cutting concern, companion to Hyper-Modular)
 
 ---
 
@@ -449,8 +472,12 @@ Canonical registry of all RPN opcodes across domains, with formal capability cla
 ## Integration Map
 
 ```
-HYPER_MODULAR_ARCHITECTURE (Organizing Paradigm — Cross-Cutting)
+HYPER_MODULAR_ARCHITECTURE (Structure Paradigm — Cross-Cutting)
 │   └── Applies to ALL regions (cross-domain composition, N-client reality, symlink deduplication)
+│
+HYPER_PARALLEL_PROCESSING (Function Paradigm — Cross-Cutting)
+│   └── Applies to ALL reasoning (specialist swarm, ternary-ready registers, persistent brain model)
+│   └── Companion to Hyper-Modular: structure + function = complete cognitive architecture
 │
 Knowledgeverse (Runtime Substrate)
 ├── THREE_BRAIN_SYSTEM (Cranium + Galaxy + House)

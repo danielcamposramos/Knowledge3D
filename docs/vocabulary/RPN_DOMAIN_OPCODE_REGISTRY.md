@@ -210,7 +210,21 @@ The following are valid design targets currently at Stage 0-1. They MUST pass th
 
 ---
 
-## 7. Future Extensions
+## 7. Ternary-Ready Register Semantics (March 2026)
+
+The [Hyper-Parallel Processing](HYPER_PARALLEL_PROCESSING.md) paradigm (§6) establishes that all RPN register values MUST be representable with **value + confidence + polarity** — either natively (future ternary hardware: balanced ternary −1/0/+1) or by convention (current binary hardware: explicit encoding).
+
+**Implications for RPN opcodes:**
+- `OP_STORE` / `OP_RECALL` registers carry ternary-ready triples, not bare scalars
+- Cross-core register sharing (hyper-parallel specialist swarm) uses the same STORE/RECALL mechanism
+- "Uncertain / no evidence" (0 in balanced ternary) is a first-class value, not a sentinel or NaN
+- When ternary hardware accelerators arrive, RPN programs migrate by changing the hardware mapping, not the opcode semantics
+
+**Current implementation**: Binary encoding with explicit confidence fields. Future ternary hardware maps each trit natively.
+
+---
+
+## 8. Future Extensions
 
 Once the math core tiering and Reality Enabler galaxies are stable, the promotion pipeline (Section 6) governs admission of new opcodes. Candidates include:
 

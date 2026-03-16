@@ -736,6 +736,22 @@ This is the self-improving loop: the system discovers its own defeaters from run
 
 ---
 
+### 8.4 Persistent Brain Model Versioning (March 2026)
+
+**Context**: SleepTime consolidation produces checkpoints of Galaxy → House knowledge. The [Hyper-Parallel Processing](HYPER_PARALLEL_PROCESSING.md) paradigm (§7) extends this to the **full brain model**: TRM weights + specialist adapter populations + navigation biases + consolidation state.
+
+**Key additions:**
+- Every sleep cycle produces a **versioned brain model checkpoint** (diffed against previous — zero duplication, hyper-modular principle)
+- **Drift detection**: If benchmark regression or convergence failure rate exceeds threshold, **rollback** to nearest stable checkpoint
+- **Storage separation**: Galaxy/House (knowledge) is separate from TRM (cognition) — rollback the model head without losing the knowledge base
+- The K3D brain model v1.0 is the **reference proof**; labs build domain-specific specialist populations on top
+
+**Imperative**: Running from ground state (cold start) destroys accumulated sleep-time learning. Cold start is a degraded mode, not normal operation. The living brain persists.
+
+**See**: [HYPER_PARALLEL_PROCESSING.md](HYPER_PARALLEL_PROCESSING.md) §7 for the full persistent brain model architecture.
+
+---
+
 ## 9. References
 
 - **Neuroscience**:

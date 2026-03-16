@@ -686,9 +686,12 @@ def update_routing_bias_from_shadow_copy(specialist: SpecialistBase):
 ## 11. References
 
 **Related Specifications:**
-- THREE_BRAIN_SYSTEM_SPECIFICATION.md (Section 2: TRM Architecture)
-- DUAL_CLIENT_CONTRACT_SPECIFICATION.md (Section 4: Procedural Composition)
-- MATH_CORE_SPECIFICATION.md (Section 5: Specialist Routing)
+- [HYPER_PARALLEL_PROCESSING.md](HYPER_PARALLEL_PROCESSING.md) — The specialist swarm IS the hyper-parallel processing paradigm. Each specialist core = one parallel reasoning unit with LoRA-like domain adapter + RPN stack + cross-core register communication. Ternary-ready registers carry value + confidence + polarity. Persistent brain model versioning prevents cold-start amnesia.
+- [THREE_BRAIN_SYSTEM_SPECIFICATION.md](THREE_BRAIN_SYSTEM_SPECIFICATION.md) (Section 2: TRM Architecture)
+- [DUAL_CLIENT_CONTRACT_SPECIFICATION.md](DUAL_CLIENT_CONTRACT_SPECIFICATION.md) (Section 4: Procedural Composition)
+- [MATH_CORE_SPECIFICATION.md](MATH_CORE_SPECIFICATION.md) (Section 5: Specialist Routing)
+- [TERNARY_CONTRASTIVE_LEARNING_SPECIFICATION.md](TERNARY_CONTRASTIVE_LEARNING_SPECIFICATION.md) — Ternary (+1/0/-1) learning signals that train the specialist population
+- [SLEEPTIME_PROTOCOL_SPECIFICATION.md](SLEEPTIME_PROTOCOL_SPECIFICATION.md) — Sleep-time creates/prunes specialists, produces brain model checkpoints
 
 **External Concepts:**
 - LoRA (Low-Rank Adaptation): https://arxiv.org/abs/2106.09685

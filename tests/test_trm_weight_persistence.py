@@ -1346,6 +1346,192 @@ def test_triple_defeasible_defers_stage1_and_stage2_for_mmlu(tmp_path):
     assert any("deferred_for_mmlu" in step for step in selection_steps)
 
 
+def test_mmlu_reset_query_session_clears_navigation_runtime_state(tmp_path):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_mmlu_session_reset")
+
+    class _FakeSubstrate:
+        def __init__(self):
+            self.closed = False
+
+        def close(self):
+            self.closed = True
+
+    class _FakeGraph:
+        def __init__(self):
+            self.reset_calls = 0
+
+        def reset_traversal_state(self):
+            self.reset_calls += 1
+
+    fake_substrate = _FakeSubstrate()
+    fake_graph = _FakeGraph()
+    kv._query_head_substrate = fake_substrate
+    kv._semantic_csr_graph = fake_graph
+    kv._led_pathfinder = object()
+    kv._gpu_reasoning_programs["math"] = {"id": "math"}
+    kv._query_sequence = 9
+
+    kv.reset_query_session()
+
+    assert fake_substrate.closed is True
+    assert fake_graph.reset_calls == 1
+    assert kv._query_head_substrate is None
+    assert kv._led_pathfinder is None
+    assert kv._gpu_reasoning_programs == {}
+    assert kv._query_sequence == 0
+
+
+def test_mmlu_subject_seed_bias_promotes_subject_matched_candidate(tmp_path, monkeypatch):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_mmlu_seed_bias")
+
+    catalog = [
+        {
+            "id": "generic_math",
+            "galaxy": "Math",
+            "embedding16": [1.0] + [0.0] * 15,
+            "gpu_galaxy_index": kv._gpu_galaxy_index("Math"),
+            "confidence": 0.5,
+        },
+        {
+            "id": "subject_reality",
+            "galaxy": "Reality",
+            "embedding16": [0.0, 1.0] + [0.0] * 14,
+            "gpu_galaxy_index": kv._gpu_galaxy_index("Reality"),
+            "confidence": 0.5,
+        },
+    ]
+
+    class _FakeSubstrate:
+        def morton_locate(self, **kwargs):
+            return np.asarray([0, 1], dtype=np.uint32)
+
+        def frustum_visible(self, **kwargs):
+            return np.asarray([0, 1], dtype=np.uint32)
+
+        def lod_metrics(self, **kwargs):
+            return {
+                0: (0.5, 5),
+                1: (0.5, 5),
+            }
+
+    class _FakeGraph:
+        def select_seed_nodes(self, **kwargs):
+            return [(0, 0.6), (1, 0.4)]
+
+        def extract_local_kernel(self, **kwargs):
+            return (
+                [0, 1],
+                np.asarray([0, 0, 0], dtype=np.uint32),
+                np.asarray([], dtype=np.uint32),
+                np.asarray([], dtype=np.uint32),
+            )
+
+    monkeypatch.setattr(kv, "get_query_head_substrate", lambda: _FakeSubstrate())
+    monkeypatch.setattr(kv, "get_gpu_galaxy_catalog", lambda: list(catalog))
+    monkeypatch.setattr(kv, "get_semantic_csr_graph", lambda: _FakeGraph())
+    monkeypatch.setattr(kv, "get_led_pathfinder", lambda: None)
+    monkeypatch.setattr(kv, "_embedding_similarities", lambda reference, candidates: [0.6, 0.4])
+    monkeypatch.setattr(
+        kv,
+        "_subject_anchor_match_score",
+        lambda entry, subject_hint, match_mode="mmlu": 1.0 if entry.get("id") == "subject_reality" else 0.0,
+    )
+
+    selection_steps: list[str] = []
+    candidates = kv._compose_head_navigation_candidates(
+        binding={"galaxies": list(kv.GPU_MMLU_TARGET_GALAXIES)},
+        target_galaxies=list(kv.GPU_MMLU_TARGET_GALAXIES),
+        galaxy_weights=None,
+        reasoning_program_id=kv.GPU_CHAT_REASONING_PROGRAM_ID,
+        query_embedding=[1.0] + [0.0] * 15,
+        task_type="MMLU_TASK",
+        selection_steps=selection_steps,
+        task={"type": "MMLU_TASK", "task_id": "mmlu_seed_bias"},
+        query_text="college physics anchor question",
+        domain_hint="college_physics",
+    )
+
+    assert candidates
+    assert candidates[0]["match"]["id"] == "subject_reality"
+    assert candidates[0]["subject_anchor_focus"] == pytest.approx(1.0)
+    assert any("MMLU seed bias: 1/2 subject-matched candidates" in step for step in selection_steps)
+
+
+def test_mmlu_priority_seed_injection_adds_subject_matched_reality_anchor(tmp_path, monkeypatch):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_mmlu_seed_injection")
+
+    catalog = [
+        {
+            "id": "generic_math",
+            "galaxy": "Math",
+            "embedding16": [1.0] + [0.0] * 15,
+            "gpu_galaxy_index": kv._gpu_galaxy_index("Math"),
+            "confidence": 0.5,
+        },
+        {
+            "id": "subject_reality",
+            "galaxy": "Reality",
+            "embedding16": [0.0, 1.0] + [0.0] * 14,
+            "gpu_galaxy_index": kv._gpu_galaxy_index("Reality"),
+            "confidence": 0.7,
+        },
+    ]
+
+    class _FakeSubstrate:
+        def morton_locate(self, **kwargs):
+            return np.asarray([0], dtype=np.uint32)
+
+        def frustum_visible(self, **kwargs):
+            return np.asarray([0], dtype=np.uint32)
+
+        def lod_metrics(self, **kwargs):
+            return {
+                0: (0.5, 5),
+                1: (0.5, 5),
+            }
+
+    class _FakeGraph:
+        def select_seed_nodes(self, **kwargs):
+            return [(0, 0.6)]
+
+        def extract_local_kernel(self, **kwargs):
+            return (
+                [0, 1],
+                np.asarray([0, 0, 0], dtype=np.uint32),
+                np.asarray([], dtype=np.uint32),
+                np.asarray([], dtype=np.uint32),
+            )
+
+    monkeypatch.setattr(kv, "get_query_head_substrate", lambda: _FakeSubstrate())
+    monkeypatch.setattr(kv, "get_gpu_galaxy_catalog", lambda: list(catalog))
+    monkeypatch.setattr(kv, "get_semantic_csr_graph", lambda: _FakeGraph())
+    monkeypatch.setattr(kv, "get_led_pathfinder", lambda: None)
+    monkeypatch.setattr(kv, "_embedding_similarities", lambda reference, candidates: [0.6, 0.4])
+    monkeypatch.setattr(
+        kv,
+        "_subject_anchor_match_score",
+        lambda entry, subject_hint, match_mode="mmlu": 1.0 if entry.get("id") == "subject_reality" else 0.0,
+    )
+
+    selection_steps: list[str] = []
+    candidates = kv._compose_head_navigation_candidates(
+        binding={"galaxies": list(kv.GPU_MMLU_TARGET_GALAXIES)},
+        target_galaxies=list(kv.GPU_MMLU_TARGET_GALAXIES),
+        galaxy_weights=None,
+        reasoning_program_id=kv.GPU_CHAT_REASONING_PROGRAM_ID,
+        query_embedding=[1.0] + [0.0] * 15,
+        task_type="MMLU_TASK",
+        selection_steps=selection_steps,
+        task={"type": "MMLU_TASK", "task_id": "mmlu_seed_injection"},
+        query_text="college physics anchor question",
+        domain_hint="college_physics",
+    )
+
+    candidate_ids = {candidate["match"]["id"] for candidate in candidates}
+    assert "subject_reality" in candidate_ids
+    assert any("MMLU priority seed injection: 1 Reality anchors" in step for step in selection_steps)
+
+
 def test_nsi_routing_bias_holds_on_zero_outcome():
     node = SpecialistBase(name="root", domain="generic")
     node.routing_bias["child"] = 0.42

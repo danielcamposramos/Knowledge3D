@@ -182,6 +182,8 @@ class Knowledgeverse:
         "Character",
     )
     GPU_CROSS_DOMAIN_SCAN_WEIGHT = 0.92
+    MMLU_SUBJECT_SEED_WEIGHT = 0.35
+    MMLU_SUBJECT_PRIORITY_INJECTION_LIMIT = 4
     DEFAULT_GALAXIES: tuple[str, ...] = (
         "Drawing",
         "Character",
@@ -857,6 +859,7 @@ class Knowledgeverse:
                 )
             )
         ):
+            self._ensure_navigation_substrate()
             return dict(self._gpu_galaxy_binding)
         engine = self._gpu_reasoning_engine
         if engine is None:
@@ -912,11 +915,43 @@ class Knowledgeverse:
         self._semantic_csr_graph = None
         self._query_head_substrate = None
 
+    def _ensure_navigation_substrate(self) -> None:
+        if self._query_head_substrate is not None and self._semantic_csr_graph is not None:
+            return
+        if not self._gpu_galaxy_catalog:
+            return
+        if self._semantic_csr_graph is None:
+            self._semantic_csr_graph = load_or_build_semantic_csr_graph(
+                catalog=self._gpu_galaxy_catalog,
+                cache_root=self.storage_root / "graph_cache",
+                knn_k=12,
+                similarity_threshold=0.3,
+            )
+        if self._query_head_substrate is None and self._semantic_csr_graph is not None:
+            self._query_head_substrate = QueryHeadSubstrate.build(
+                signature=str(self._semantic_csr_graph.signature),
+                catalog=self._gpu_galaxy_catalog,
+            )
+
+    def _reset_navigation_query_state(self) -> None:
+        if self._query_head_substrate is not None:
+            try:
+                self._query_head_substrate.close()
+            except Exception:
+                pass
+            self._query_head_substrate = None
+        if self._semantic_csr_graph is not None and hasattr(self._semantic_csr_graph, "reset_traversal_state"):
+            try:
+                self._semantic_csr_graph.reset_traversal_state()
+            except Exception:
+                pass
+        self._led_pathfinder = None
+
     def reset_query_session(self) -> None:
         """Clear mutable per-benchmark state while keeping the GPU-bound galaxy snapshot assembled."""
         self._gpu_reasoning_programs.clear()
         self._query_sequence = 0
-        self._led_pathfinder = None
+        self._reset_navigation_query_state()
         if self._gpu_reasoning_engine is not None and hasattr(self._gpu_reasoning_engine, "reset_instance"):
             for instance_id in range(18):
                 try:
@@ -929,6 +964,8 @@ class Knowledgeverse:
         self.shadow_copy.event_buffer.clear()
 
     def get_query_head_substrate(self) -> QueryHeadSubstrate:
+        if self._query_head_substrate is None:
+            self._ensure_navigation_substrate()
         if self._query_head_substrate is None:
             self.bind_gpu_galaxy_runtime()
         if self._query_head_substrate is None:
@@ -1173,6 +1210,8 @@ class Knowledgeverse:
         return self._led_pathfinder
 
     def get_semantic_csr_graph(self):
+        if self._semantic_csr_graph is None:
+            self._ensure_navigation_substrate()
         if self._semantic_csr_graph is None:
             self.bind_gpu_galaxy_runtime()
         return self._semantic_csr_graph
@@ -6927,6 +6966,54 @@ class Knowledgeverse:
             match_mode="mmlu",
         )
 
+    def _mmlu_priority_seed_indexes(
+        self,
+        *,
+        catalog: list[dict[str, Any]],
+        candidate_index_list: list[int],
+        query_embedding: list[float],
+        subject_hint: str,
+        task: dict[str, Any] | None,
+        query_text: str,
+    ) -> list[int]:
+        if not catalog:
+            return []
+        existing = {int(index) for index in candidate_index_list}
+        ranked_rows: list[tuple[float, int]] = []
+        for candidate_index, entry in enumerate(catalog):
+            if int(candidate_index) in existing:
+                continue
+            if str(entry.get("galaxy", "")).strip() != "Reality":
+                continue
+            if not self._benchmark_navigation_entry_allowed(
+                entry=entry,
+                task_type="MMLU_TASK",
+                task=task,
+                query_text=query_text,
+            ):
+                continue
+            match_score = self._subject_anchor_match_score(
+                entry=entry,
+                subject_hint=subject_hint,
+                match_mode="mmlu",
+            )
+            if match_score <= 0.0:
+                continue
+            embedding = list(entry.get("embedding16", []))
+            if not embedding:
+                continue
+            similarity = self._embedding_similarity(query_embedding, embedding)
+            confidence = float(entry.get("confidence", 0.0))
+            ranked_rows.append(
+                (
+                    (0.55 * float(match_score)) + (0.35 * float(similarity)) + (0.10 * confidence),
+                    int(candidate_index),
+                )
+            )
+        ranked_rows.sort(key=lambda item: item[0], reverse=True)
+        limit = int(self.MMLU_SUBJECT_PRIORITY_INJECTION_LIMIT)
+        return [candidate_index for _, candidate_index in ranked_rows[:limit]]
+
     def _apply_specialist_swarm_features(
         self,
         *,
@@ -8170,7 +8257,7 @@ class Knowledgeverse:
             zip(candidate_index_list, candidate_similarities),
             key=lambda item: (
                 item[1]
-                + (0.22 * float(subject_seed_bias.get(int(item[0]), 0.0)))
+                + (self.MMLU_SUBJECT_SEED_WEIGHT * float(subject_seed_bias.get(int(item[0]), 0.0)))
                 + (
                     0.18
                     * (
@@ -8354,6 +8441,29 @@ class Knowledgeverse:
                 query_text=query_text,
             )
         ]
+        if task_type == "MMLU_TASK" and str(domain_hint or "").strip():
+            injected_visible_indexes = self._mmlu_priority_seed_indexes(
+                catalog=catalog,
+                candidate_index_list=visible_index_list,
+                query_embedding=query_embedding,
+                subject_hint=str(domain_hint),
+                task=task,
+                query_text=query_text,
+            )
+            if injected_visible_indexes:
+                visible_index_list = list(dict.fromkeys(visible_index_list + injected_visible_indexes))
+                for candidate_index in injected_visible_indexes:
+                    subject_seed_bias[int(candidate_index)] = max(
+                        float(subject_seed_bias.get(int(candidate_index), 0.0)),
+                        self._subject_anchor_match_score(
+                            entry=catalog[int(candidate_index)],
+                            subject_hint=str(domain_hint),
+                            match_mode="mmlu",
+                        ),
+                    )
+                selection_steps.append(
+                    f"MMLU priority seed injection: {len(injected_visible_indexes)} Reality anchors"
+                )
         visible_embeddings = [
             list(catalog[candidate_index].get("embedding16", []))
             for candidate_index in visible_index_list

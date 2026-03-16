@@ -823,6 +823,7 @@ This is the neurosymbolic integration loop: neural generation, symbolic validati
 
 ## 🔗 Related Specifications
 
+- [HYPER_PARALLEL_PROCESSING.md](HYPER_PARALLEL_PROCESSING.md) — Ternary logic as hardware imperative (§6): balanced ternary hardware accelerators, 58.5% more info per switching element, "uncertain" as first-class value for specialist cross-core communication
 - [THREE_BRAIN_SYSTEM_SPECIFICATION.md](THREE_BRAIN_SYSTEM_SPECIFICATION.md) — Cranium + Galaxy + House architecture
 - [KNOWLEDGEVERSE_SPECIFICATION.md](KNOWLEDGEVERSE_SPECIFICATION.md) — 7-region unified memory
 - [PROGRESSIVE_CURRICULUM_SPECIFICATION.md](PROGRESSIVE_CURRICULUM_SPECIFICATION.md) — Stage A/B/C/D training
