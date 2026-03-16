@@ -6,7 +6,13 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from knowledge3d.cranium.bridges.sovereign_bridges import DefeasibleResolver
 from knowledge3d.cranium.sovereign import loader
+from knowledge3d.knowledgeverse.foundational_operations_bootstrap import (
+    _foundational_reality_entries,
+    foundational_reasoning_entries,
+)
+from knowledge3d.knowledgeverse.grammar_galaxy import GrammarGalaxy
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
 from knowledge3d.training.trm_galaxy_nav import (
     apply_trm_weights_to_traces,
@@ -819,6 +825,156 @@ def test_phase_a3_atomic_fission_threads_compositional_consistency_into_gsm8k_ca
         domain_hint="math",
     )
     assert kv._gpu_scalar_literal(0.75) in expr
+
+
+def test_phase_track1_strict_rules_produce_definite_proof_tags():
+    resolver = DefeasibleResolver()
+
+    verdicts, proof_tags = resolver.resolve(
+        conclusions=np.asarray([[0.8]], dtype=np.float32),
+        rule_strengths=np.asarray([1], dtype=np.int8),
+        superiority=np.asarray([[np.uint32(0xFFFFFFFF)]], dtype=np.uint32),
+        num_workers=1,
+        num_candidates=1,
+        max_superiors=1,
+    )
+
+    assert verdicts.shape == (1,)
+    assert verdicts[0] == pytest.approx(0.8, abs=1e-5)
+    assert int(proof_tags[0]) == 10  # D=+1, d=+1
+
+
+def test_phase_track1_defeater_blocks_defeasible_verdict():
+    resolver = DefeasibleResolver()
+
+    verdicts, proof_tags = resolver.resolve(
+        conclusions=np.asarray([[0.9], [0.8]], dtype=np.float32),
+        rule_strengths=np.asarray([-1, 0], dtype=np.int8),
+        superiority=np.asarray(
+            [
+                [np.uint32(0xFFFFFFFF)],
+                [np.uint32(0xFFFFFFFF)],
+            ],
+            dtype=np.uint32,
+        ),
+        num_workers=2,
+        num_candidates=1,
+        max_superiors=1,
+    )
+
+    assert verdicts[0] == pytest.approx(0.0, abs=1e-6)
+    assert int(proof_tags[0]) == 5  # D=0, d=0
+
+
+def test_phase_track1_defeasible_verdict_threads_into_scoring_expression(tmp_path):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_defeasible_expr")
+
+    candidate = {
+        "match": {
+            "embedding16": [1.0] + [0.0] * 15,
+            "galaxy": "Grammar",
+            "category": "rule",
+            "confidence": 0.8,
+        },
+        "program": {"id": "reasoning_word_problem_chain"},
+        "similarity": 0.5,
+        "option_similarity": 0.5,
+        "galaxy_weight": 1.0,
+        "specialist_defeasible_verdict": 0.6,
+    }
+
+    expr = kv._build_gpu_candidate_score_expression(
+        candidate=candidate,
+        primary_program_id="reasoning_word_problem_chain",
+        target_galaxies=["Grammar", "Math"],
+        task_type="MATH_TASK",
+        domain_hint="math",
+    )
+
+    assert kv._gpu_scalar_literal(0.6) in expr
+
+
+def test_phase_track1_defeasible_compatibility_mode_preserves_raw_scores(tmp_path):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_defeasible_compat")
+
+    record_a = {
+        "option_text": "A",
+        "path_score": 0.7,
+        "candidate": {
+            "match": {"id": "a", "galaxy": "Math"},
+            "program": {"id": "gsm_consume_from_total"},
+        },
+    }
+    record_b = {
+        "option_text": "B",
+        "path_score": 0.2,
+        "candidate": {
+            "match": {"id": "b", "galaxy": "Grammar"},
+            "program": {"id": "gsm_answer_final_stack"},
+        },
+    }
+    selection_steps: list[str] = []
+
+    kv._apply_defeasible_specialist_resolution(
+        records=[record_a, record_b],
+        task_type="MMLU_TASK",
+        gsm8k_mode=False,
+        selection_steps=selection_steps,
+    )
+
+    assert record_a["specialist_defeasible_verdict"] == pytest.approx(0.7)
+    assert record_b["specialist_defeasible_verdict"] == pytest.approx(0.2)
+    assert record_a["path_score"] > record_b["path_score"]
+    assert any("compatibility mode" in step for step in selection_steps)
+
+
+def test_direction_b_gsm8k_rule_pack_includes_failure_specific_patterns():
+    galaxy = GrammarGalaxy()
+    required_ids = {
+        "gsm_fractional_total_materials",
+        "gsm_markup_profit_after_repairs",
+        "gsm_repeated_schedule_distance",
+        "gsm_scaled_total_minus_meals",
+        "gsm_alternating_discount_pairs",
+        "gsm_successive_ratio_family_total",
+        "gsm_restart_from_beginning_time",
+        "gsm_turnaround_distance_balance",
+        "gsm_overtime_total_earnings",
+    }
+
+    assert required_ids.issubset(set(galaxy.rules.keys()))
+    robe_rule = galaxy.rules["gsm_fractional_total_materials"]
+    assert robe_rule.rule_strength == 0
+    assert "math_template_arithmetic_chain_gpu" in robe_rule.symbol_refs
+    assert robe_rule.examples
+
+
+def test_direction_b_bootstrap_includes_targeted_gsm8k_patterns_and_algebra_reality_facts():
+    grammar_entry_ids: set[str] = set()
+    for rows in foundational_reasoning_entries().values():
+        grammar_entry_ids.update(str(entry.get("id", "")).strip() for entry in rows)
+    reality_entry_ids = {str(entry.get("id", "")).strip() for entry in _foundational_reality_entries()}
+
+    assert {
+        "operation_pattern_fractional_material_total",
+        "operation_pattern_markup_profit_after_costs",
+        "operation_pattern_repeat_groups_total",
+        "operation_pattern_scaled_total_minus_meals",
+        "operation_pattern_alternating_discount_pairs",
+        "operation_pattern_successive_ratio_family_sum",
+        "operation_pattern_restart_progress_time",
+        "operation_pattern_outbound_return_distance",
+        "operation_pattern_overtime_total_pay",
+    }.issubset(grammar_entry_ids)
+
+    assert {
+        "reality_anchor_abstract_algebra_core",
+        "reality_abstract_algebra_homomorphic_image_factor_group",
+        "reality_abstract_algebra_finite_field_size_prime_power",
+        "reality_abstract_algebra_diagonal_quotient_order",
+        "reality_abstract_algebra_s10_max_order",
+        "reality_abstract_algebra_polynomial_factor_example_z7",
+    }.issubset(reality_entry_ids)
 
 
 def test_phase_d_boot_binding_reuses_all_default_catalog_for_subset_requests(tmp_path, monkeypatch):

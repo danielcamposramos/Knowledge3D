@@ -292,6 +292,7 @@ class Knowledgeverse:
         self._galaxy_resonance_engine: Any | None | bool = None
         self._graph_crystallizer: Any | None | bool = None
         self._atomic_fission_fusion: Any | None | bool = None
+        self._defeasible_resolver: Any | None | bool = None
         self._cosine_similarity_bridge: Any | None | bool = None
         self._query_sequence = 0
         self._runtime_language_enrichment_loaded = False
@@ -1060,6 +1061,19 @@ class Knowledgeverse:
                 return None
         return self._atomic_fission_fusion
 
+    def get_defeasible_resolver(self):
+        if self._defeasible_resolver is False:
+            return None
+        if self._defeasible_resolver is None:
+            try:
+                from knowledge3d.cranium.bridges.sovereign_bridges import DefeasibleResolver
+
+                self._defeasible_resolver = DefeasibleResolver()
+            except Exception:
+                self._defeasible_resolver = False
+                return None
+        return self._defeasible_resolver
+
     def get_cosine_similarity_bridge(self):
         if self._cosine_similarity_bridge is False:
             return None
@@ -1175,6 +1189,22 @@ class Knowledgeverse:
         if not isinstance(entry, dict):
             return
         metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+        if not metadata and str(entry.get("rule_id", "")).strip():
+            metadata = {
+                "rule_id": str(entry.get("rule_id", "")).strip(),
+                "language": str(entry.get("language", "")).strip(),
+                "pattern": str(entry.get("pattern", "")).strip(),
+                "domain": str(entry.get("domain", galaxy_name)).strip(),
+                "symbol_refs": list(entry.get("symbol_refs", []) or []),
+                "word_refs": list(entry.get("word_refs", []) or []),
+                "description": entry.get("description"),
+                "semantics": dict(entry.get("semantics", {}) or {}),
+                "usage_conditions": list(entry.get("usage_conditions", []) or []),
+                "is_canonical": bool(entry.get("is_canonical", False)),
+                "rule_strength": int(entry.get("rule_strength", 0) or 0),
+                "superior_to": list(entry.get("superior_to", []) or []),
+                "trust_weight": float(entry.get("trust_weight", 1.0) or 1.0),
+            }
         confidence = self._clamp_confidence(metadata.get("confidence", entry.get("confidence", 0.5)))
         domain_hash = self._hash_to_unit_float(entry.get("domain") or galaxy_name)
         subject_hash = self._hash_to_unit_float(
@@ -1207,7 +1237,7 @@ class Knowledgeverse:
             {
                 "index": len(catalog),
                 "galaxy": galaxy_name,
-                "id": str(entry.get("id", "")),
+                "id": str(entry.get("id", entry.get("rule_id", ""))),
                 "name": str(entry.get("name", "")),
                 "category": str(entry.get("category", "")),
                 "domain": str(entry.get("domain", galaxy_name)),
@@ -1564,6 +1594,11 @@ class Knowledgeverse:
         target = str(rule_id).strip()
         if not target:
             return {}
+        if not self._gpu_galaxy_catalog:
+            try:
+                self.bind_gpu_galaxy_runtime()
+            except Exception:
+                return {}
         for entry in self.get_gpu_galaxy_catalog():
             if str(entry.get("galaxy", "")).strip() != "Grammar":
                 continue
@@ -1574,6 +1609,191 @@ class Knowledgeverse:
                 return dict(metadata)
             return {}
         return {}
+
+    @staticmethod
+    def _encode_defeasible_trit(trit: int) -> int:
+        if int(trit) > 0:
+            return 2
+        if int(trit) < 0:
+            return 0
+        return 1
+
+    @classmethod
+    def _pack_defeasible_proof_tag(cls, definite_trit: int, defeasible_trit: int) -> int:
+        return (
+            cls._encode_defeasible_trit(definite_trit)
+            | (cls._encode_defeasible_trit(defeasible_trit) << 2)
+        )
+
+    def _defeasible_rule_profile(self, program_id: str) -> dict[str, Any]:
+        metadata = self._grammar_rule_metadata(program_id)
+        superior_to = [
+            str(value).strip()
+            for value in list(metadata.get("superior_to", []) or [])
+            if str(value).strip()
+        ]
+        try:
+            raw_strength = int(metadata.get("rule_strength", 0))
+        except Exception:
+            raw_strength = 0
+        rule_strength = 1 if raw_strength > 0 else (-1 if raw_strength < 0 else 0)
+        try:
+            trust_weight = float(metadata.get("trust_weight", 1.0))
+        except Exception:
+            trust_weight = 1.0
+        return {
+            "rule_id": str(program_id).strip(),
+            "rule_strength": rule_strength,
+            "superior_to": superior_to,
+            "trust_weight": max(0.0, min(trust_weight, 1.0)),
+        }
+
+    def _halting_record_candidate_id(
+        self,
+        *,
+        record: dict[str, Any],
+        task_type: str,
+        gsm8k_mode: bool,
+    ) -> str:
+        if task_type in {"MMLU_TASK", "LHE_TASK"}:
+            return str(record.get("option_text", "")).strip()
+        if gsm8k_mode:
+            return self._gsm8k_preview_candidate_id(record)
+        candidate = record.get("candidate")
+        if not isinstance(candidate, dict):
+            return ""
+        match = candidate.get("match")
+        if not isinstance(match, dict):
+            return ""
+        return str(match.get("id", "")).strip()
+
+    def _apply_defeasible_specialist_resolution(
+        self,
+        *,
+        records: list[dict[str, Any]],
+        task_type: str,
+        gsm8k_mode: bool,
+        selection_steps: list[str],
+    ) -> None:
+        if not records:
+            return
+        resolver = self.get_defeasible_resolver()
+        if resolver is None:
+            return
+
+        candidate_keys: list[str] = []
+        key_to_index: dict[str, int] = {}
+        profiles: list[dict[str, Any]] = []
+        current_rule_indexes: dict[str, list[int]] = {}
+        record_rows: list[tuple[str, dict[str, Any], dict[str, Any] | None, float]] = []
+
+        for worker_index, record in enumerate(records):
+            candidate_key = self._halting_record_candidate_id(
+                record=record,
+                task_type=task_type,
+                gsm8k_mode=gsm8k_mode,
+            )
+            if candidate_key and candidate_key not in key_to_index:
+                key_to_index[candidate_key] = len(candidate_keys)
+                candidate_keys.append(candidate_key)
+            candidate = record.get("candidate") if isinstance(record.get("candidate"), dict) else None
+            program = candidate.get("program") if isinstance(candidate, dict) else {}
+            program_id = str((program or {}).get("id", "")).strip()
+            profile = self._defeasible_rule_profile(program_id)
+            profiles.append(profile)
+            if profile["rule_id"]:
+                current_rule_indexes.setdefault(profile["rule_id"], []).append(worker_index)
+            raw_score = float(
+                record.get(
+                    "path_score",
+                    (candidate or {}).get("path_score", (candidate or {}).get("gpu_score", 0.0)),
+                )
+            )
+            record_rows.append((candidate_key, record, candidate, raw_score))
+
+        if not candidate_keys:
+            return
+
+        has_nondefault_logic = any(
+            int(profile["rule_strength"]) != 0 or list(profile["superior_to"])
+            for profile in profiles
+        )
+        if not has_nondefault_logic:
+            for candidate_key, record, candidate, raw_score in record_rows:
+                defeasible_trit = 1 if raw_score > 1e-6 else (-1 if raw_score < -1e-6 else 0)
+                proof_tag = self._pack_defeasible_proof_tag(0, defeasible_trit)
+                record["specialist_defeasible_verdict"] = float(raw_score)
+                record["specialist_proof_tag"] = int(proof_tag)
+                record["path_score"] = float(raw_score) + (0.04 * float(raw_score))
+                if isinstance(candidate, dict):
+                    candidate["specialist_defeasible_verdict"] = float(raw_score)
+                    candidate["specialist_proof_tag"] = int(proof_tag)
+                    candidate["path_score"] = float(record["path_score"])
+            selection_steps.append(
+                "GRE defeasible resolver: compatibility mode "
+                f"(records={len(records)}, candidates={len(candidate_keys)})"
+            )
+            return
+
+        conclusions = np.zeros((len(records), len(candidate_keys)), dtype=np.float32)
+        rule_strengths = np.zeros((len(records),), dtype=np.int8)
+        max_superiors = max(
+            1,
+            max(
+                len(profile["superior_to"])
+                for profile in profiles
+            ),
+        )
+        superiority = np.full((len(records), max_superiors), 0xFFFFFFFF, dtype=np.uint32)
+
+        for worker_index, (candidate_key, _record, _candidate, raw_score) in enumerate(record_rows):
+            profile = profiles[worker_index]
+            scaled_score = abs(float(raw_score)) * float(profile["trust_weight"])
+            if scaled_score <= 0.0:
+                continue
+            selected_index = key_to_index.get(candidate_key)
+            if selected_index is None:
+                continue
+            conclusions[worker_index, :] = -scaled_score
+            conclusions[worker_index, selected_index] = scaled_score
+            rule_strengths[worker_index] = np.int8(int(profile["rule_strength"]))
+            defeated_workers: list[int] = []
+            for defeated_rule_id in profile["superior_to"]:
+                defeated_workers.extend(current_rule_indexes.get(str(defeated_rule_id), []))
+            for slot, inferior_index in enumerate(dict.fromkeys(defeated_workers)):
+                if slot >= max_superiors:
+                    break
+                superiority[worker_index, slot] = np.uint32(int(inferior_index))
+
+        verdicts, proof_tags = resolver.resolve(
+            conclusions,
+            rule_strengths,
+            superiority,
+            num_workers=len(records),
+            num_candidates=len(candidate_keys),
+            max_superiors=max_superiors,
+        )
+        decisive_count = 0
+        for candidate_key, record, candidate, raw_score in record_rows:
+            candidate_index = key_to_index.get(candidate_key)
+            if candidate_index is None:
+                continue
+            verdict = float(verdicts[candidate_index])
+            proof_tag = int(proof_tags[candidate_index])
+            if abs(verdict) > 1e-6:
+                decisive_count += 1
+            updated_score = float(raw_score) + (0.04 * verdict)
+            record["specialist_defeasible_verdict"] = verdict
+            record["specialist_proof_tag"] = proof_tag
+            record["path_score"] = updated_score
+            if isinstance(candidate, dict):
+                candidate["specialist_defeasible_verdict"] = verdict
+                candidate["specialist_proof_tag"] = proof_tag
+                candidate["path_score"] = updated_score
+        selection_steps.append(
+            "GRE defeasible resolver: "
+            f"workers={len(records)} candidates={len(candidate_keys)} decisive={decisive_count}"
+        )
 
     def _mmlu_option_rule_weights(self) -> tuple[float, float]:
         metadata = self._grammar_rule_metadata("reasoning_elimination_option_score")
@@ -3119,6 +3339,9 @@ class Knowledgeverse:
                 return str(int(round(numeric)))
             return self._gpu_scalar_literal(numeric)
 
+        def _sum_literals(values: list[float]) -> list[str]:
+            return self._gsm8k_sum_token_rows([[_lit(value)] for value in values if value is not None])
+
         if binding_mode == "remainder_scale":
             initial = self._gsm8k_slot_value("initial", role_values=role_values)
             part_1 = self._gsm8k_slot_value("part_1", role_values=role_values)
@@ -3200,6 +3423,162 @@ class Knowledgeverse:
                 tokens = self._gsm8k_product_tokens(literals)
                 return " ".join(tokens).strip()
             return ""
+
+        if binding_mode == "fractional_part_plus_base":
+            initial = self._gsm8k_slot_value("initial", role_values=role_values)
+            ratio = self._gsm8k_slot_value("ratio_value", role_values=role_values)
+            if ratio is None:
+                default_ratio = metadata.get("default_ratio")
+                try:
+                    ratio = float(default_ratio)
+                except Exception:
+                    ratio = None
+            if None in {initial, ratio}:
+                return ""
+            if float(ratio) <= 1.0:
+                return f"{_lit(initial)} {_lit(ratio)} * {_lit(initial)} +"
+            return f"{_lit(initial)} {_lit(ratio)} / {_lit(initial)} +"
+
+        if binding_mode == "markup_profit_after_costs":
+            initial = self._gsm8k_slot_value("initial", role_values=role_values)
+            percentage = self._gsm8k_slot_value("percentage", role_values=role_values)
+            parts = list(role_values.get("part", []))
+            if None in {initial, percentage} or not parts:
+                return ""
+            part_tokens = _sum_literals(parts[:3])
+            if not part_tokens:
+                return ""
+            return " ".join(
+                [
+                    _lit(initial),
+                    _lit(percentage),
+                    "100",
+                    "/",
+                    "*",
+                    _lit(initial),
+                    "+",
+                    _lit(initial),
+                    *part_tokens,
+                    "+",
+                    "-",
+                ]
+            ).strip()
+
+        if binding_mode == "count_rate_product":
+            counts = list(role_values.get("count", []))
+            rate = self._gsm8k_slot_value("rate", role_values=role_values)
+            if rate is None or len(counts) < 2:
+                return ""
+            return f"{_lit(counts[0])} {_lit(counts[1])} * {_lit(rate)} *"
+
+        if binding_mode == "scaled_total_minus_parts":
+            count = self._gsm8k_slot_value("count", role_values=role_values)
+            rate = self._gsm8k_slot_value("rate", role_values=role_values)
+            parts = list(role_values.get("part", []))
+            if None in {count, rate} or len(parts) < 2:
+                return ""
+            return f"{_lit(count)} {_lit(rate)} * {_lit(parts[0])} - {_lit(parts[1])} -"
+
+        if binding_mode == "alternating_discount_pairs":
+            count = self._gsm8k_slot_value("count", role_values=role_values)
+            rate = self._gsm8k_slot_value("rate", role_values=role_values)
+            percentage = self._gsm8k_slot_value("percentage", role_values=role_values)
+            if None in {count, rate, percentage}:
+                return ""
+            return " ".join(
+                [
+                    _lit(count),
+                    "2",
+                    "/",
+                    _lit(rate),
+                    _lit(rate),
+                    _lit(percentage),
+                    "100",
+                    "/",
+                    "*",
+                    "+",
+                    "*",
+                ]
+            ).strip()
+
+        if binding_mode == "successive_ratio_family_sum":
+            initial = self._gsm8k_slot_value("initial", role_values=role_values)
+            counts = sorted([float(value) for value in role_values.get("count", [])], reverse=True)
+            if initial is None or len(counts) < 2:
+                return ""
+            return " ".join(
+                [
+                    _lit(initial),
+                    _lit(initial),
+                    _lit(counts[0]),
+                    "*",
+                    "+",
+                    _lit(initial),
+                    _lit(counts[0]),
+                    "*",
+                    _lit(counts[1]),
+                    "*",
+                    "+",
+                ]
+            ).strip()
+
+        if binding_mode == "restart_progress_time":
+            total = self._gsm8k_slot_value("total", role_values=role_values)
+            rate = self._gsm8k_slot_value("rate", role_values=role_values)
+            percentage = self._gsm8k_slot_value("percentage", role_values=role_values)
+            durations = [float(value) for value in role_values.get("duration", [])]
+            if None in {total, rate, percentage} or not durations:
+                return ""
+            delay = durations[-1]
+            return " ".join(
+                [
+                    _lit(total),
+                    _lit(rate),
+                    "/",
+                    _lit(total),
+                    _lit(percentage),
+                    "100",
+                    "/",
+                    "*",
+                    _lit(rate),
+                    "/",
+                    "+",
+                    _lit(delay),
+                    "+",
+                ]
+            ).strip()
+
+        if binding_mode == "outbound_return_distance":
+            durations = [float(value) for value in role_values.get("duration", [])]
+            rates = [float(value) for value in role_values.get("rate", [])]
+            if len(durations) < 4 or len(rates) < 3:
+                return ""
+            outbound_duration = durations[0]
+            return_window = durations[1]
+            blocked_duration = durations[2]
+            segment_duration = durations[3]
+            outbound_rate = rates[0]
+            segment_rate = rates[1]
+            final_rate = rates[2]
+            return " ".join(
+                [
+                    _lit(outbound_duration),
+                    _lit(outbound_rate),
+                    "*",
+                    _lit(segment_duration),
+                    _lit(segment_rate),
+                    "*",
+                    _lit(return_window),
+                    _lit(blocked_duration),
+                    "-",
+                    _lit(segment_duration),
+                    "-",
+                    _lit(final_rate),
+                    "*",
+                    "+",
+                    "-",
+                ]
+            ).strip()
 
         return ""
 
@@ -5602,6 +5981,10 @@ class Knowledgeverse:
             candidate["specialist_temporal"] = float(temporal_score)
         for candidate, fractal_score in zip(local_candidates, fractal_scores):
             candidate["specialist_fractal"] = float(fractal_score)
+        neutral_proof_tag = self._pack_defeasible_proof_tag(0, 0)
+        for candidate in local_candidates:
+            candidate.setdefault("specialist_defeasible_verdict", 0.0)
+            candidate.setdefault("specialist_proof_tag", int(neutral_proof_tag))
         if applied_kernels:
             selection_steps.append(
                 "GRE specialist dispatch: "
@@ -8189,16 +8572,21 @@ class Knowledgeverse:
         if task_type == "LHE_TASK":
             self._record_active_lhe_timing("scoring", time.perf_counter() - scoring_started)
         halting_records = path_best_records if gsm8k_mode else selected_records
+        self._apply_defeasible_specialist_resolution(
+            records=halting_records,
+            task_type=task_type,
+            gsm8k_mode=gsm8k_mode,
+            selection_steps=selection_steps,
+        )
         path_best_scores = [float(record.get("path_score", float("-inf"))) for record in halting_records]
-        if task_type in {"MMLU_TASK", "LHE_TASK"}:
-            path_candidate_ids = [str(record.get("option_text", "")).strip() for record in halting_records]
-        elif gsm8k_mode:
-            path_candidate_ids = [self._gsm8k_preview_candidate_id(record) for record in halting_records]
-        else:
-            path_candidate_ids = [
-                str(((record.get("candidate") or {}).get("match") or {}).get("id", "")).strip()
-                for record in halting_records
-            ]
+        path_candidate_ids = [
+            self._halting_record_candidate_id(
+                record=record,
+                task_type=task_type,
+                gsm8k_mode=gsm8k_mode,
+            )
+            for record in halting_records
+        ]
         halting_started = time.perf_counter()
         converged = self._halting_gate_converged(
             task_type=task_type,
@@ -8738,6 +9126,7 @@ class Knowledgeverse:
         specialist_geometry = float(candidate.get("specialist_geometry", 0.0))
         specialist_temporal = float(candidate.get("specialist_temporal", 0.0))
         specialist_fractal = float(candidate.get("specialist_fractal", 0.0))
+        specialist_defeasible_verdict = float(candidate.get("specialist_defeasible_verdict", 0.0))
         parse_similarity = float(candidate.get("parse_similarity", 0.0))
         parse_directional_similarity = float(candidate.get("parse_directional_similarity", 0.0))
         parse_support = float(candidate.get("parse_support", 0.0))
@@ -8842,6 +9231,10 @@ class Knowledgeverse:
             "+",
             self._gpu_scalar_literal(specialist_fractal),
             "0.02",
+            "*",
+            "+",
+            self._gpu_scalar_literal(specialist_defeasible_verdict),
+            "0.04",
             "*",
             "+",
             self._gpu_scalar_literal(parse_similarity),

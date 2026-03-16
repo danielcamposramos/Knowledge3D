@@ -20,6 +20,15 @@ _BENCHMARK_GSM8K_RULE_IDS = {
     "gsm_comparison_delta",
     "gsm_percent_of",
     "gsm_answer_final_stack",
+    "gsm_fractional_total_materials",
+    "gsm_markup_profit_after_repairs",
+    "gsm_repeated_schedule_distance",
+    "gsm_scaled_total_minus_meals",
+    "gsm_alternating_discount_pairs",
+    "gsm_successive_ratio_family_total",
+    "gsm_restart_from_beginning_time",
+    "gsm_turnaround_distance_balance",
+    "gsm_overtime_total_earnings",
 }
 
 _BENCHMARK_CALCULUS_RULE_IDS = {
@@ -51,20 +60,42 @@ class GrammarGalaxy(LegacyGrammarGalaxy):
     def entries(self) -> list[dict[str, Any]]:
         entries: list[dict[str, Any]] = []
         for rule in self.rules.values():
+            semantics = dict(getattr(rule, "semantics", {}) or {})
+            usage_conditions = list(getattr(rule, "usage_conditions", []) or [])
+            symbol_refs = list(getattr(rule, "symbol_refs", []) or [])
+            word_refs = list(getattr(rule, "word_refs", []) or [])
+            metadata = {
+                "rule_id": rule.rule_id,
+                "language": rule.language,
+                "pattern": rule.pattern,
+                "domain": getattr(rule, "domain", "general"),
+                "symbol_refs": symbol_refs,
+                "word_refs": word_refs,
+                "description": getattr(rule, "description", None),
+                "semantics": semantics,
+                "usage_conditions": usage_conditions,
+                "is_canonical": getattr(rule, "is_canonical", False),
+                "rule_strength": int(getattr(rule, "rule_strength", 0) or 0),
+                "superior_to": list(getattr(rule, "superior_to", []) or []),
+                "trust_weight": float(getattr(rule, "trust_weight", 1.0) or 1.0),
+            }
             entries.append(
                 {
+                    "id": rule.rule_id,
+                    "name": rule.rule_id,
                     "type": "canonical_rule",
                     "rule_id": rule.rule_id,
                     "language": rule.language,
                     "pattern": rule.pattern,
                     "rpn_program": rule.rpn_program,
                     "domain": getattr(rule, "domain", "general"),
-                    "symbol_refs": list(getattr(rule, "symbol_refs", []) or []),
-                    "word_refs": list(getattr(rule, "word_refs", []) or []),
+                    "symbol_refs": symbol_refs,
+                    "word_refs": word_refs,
                     "description": getattr(rule, "description", None),
-                    "semantics": dict(getattr(rule, "semantics", {}) or {}),
-                    "usage_conditions": list(getattr(rule, "usage_conditions", []) or []),
+                    "semantics": semantics,
+                    "usage_conditions": usage_conditions,
                     "is_canonical": getattr(rule, "is_canonical", False),
+                    "metadata": metadata,
                 }
             )
         for rule_id, info in self._local_discoveries.items():
@@ -93,6 +124,13 @@ class GrammarGalaxy(LegacyGrammarGalaxy):
                 semantics=dict(entry.get("semantics", {})),
                 usage_conditions=list(entry.get("usage_conditions", [])),
                 is_canonical=bool(entry.get("is_canonical", False)),
+                rule_strength=int(entry.get("rule_strength", 0) or 0),
+                superior_to=[
+                    str(value)
+                    for value in list(entry.get("superior_to", []) or [])
+                    if str(value).strip()
+                ],
+                trust_weight=float(entry.get("trust_weight", 1.0) or 1.0),
             )
             self.add_rule(rule, persist=False)
         else:
@@ -546,6 +584,195 @@ class GrammarGalaxy(LegacyGrammarGalaxy):
                 usage_conditions=["tablet_boundary", "benchmark_math", "word_problem", "emit"],
                 is_canonical=True,
             ),
+            GrammarRule(
+                rule_id="gsm_fractional_total_materials",
+                language="natural",
+                pattern=r"(half that much|half as much|in total|total bolts|takes .* white fiber)",
+                rpn_program="STACK base fraction MUL base ADD",
+                domain="math",
+                symbol_refs=["math_template_arithmetic_chain_gpu", "math_concept_rate_balance"],
+                examples=[
+                    "A robe takes 2 bolts of blue fiber and half that much white fiber. How many bolts in total does it take?",
+                ],
+                description="Recover a total when one material is a fractional share of the base material and both must be combined.",
+                semantics={
+                    "benchmark_family": "GSM8K",
+                    "tablet_contract": "math_text_answer",
+                    "benchmark_stage": "track1_content",
+                    "benchmark_track": "math_word_problem",
+                    "composition_role": "fractional_total_materials",
+                },
+                usage_conditions=["tablet_boundary", "benchmark_math", "word_problem", "fraction", "composition"],
+                is_canonical=True,
+            ),
+            GrammarRule(
+                rule_id="gsm_markup_profit_after_repairs",
+                language="natural",
+                pattern=r"(profit|flipping a house|repairs|increased the value|150%)",
+                rpn_program="STACK initial markup APPLY_INCREASE repairs SUBTRACT_COST_BASIS",
+                domain="math",
+                symbol_refs=["math_template_arithmetic_chain_gpu", "math_concept_rate_balance"],
+                examples=[
+                    "Josh buys a house, puts in repairs, and the value increases by 150%. How much profit did he make?",
+                ],
+                description="Compute profit after a percentage markup by comparing the new value to the original purchase plus repair costs.",
+                semantics={
+                    "benchmark_family": "GSM8K",
+                    "tablet_contract": "math_text_answer",
+                    "benchmark_stage": "track1_content",
+                    "benchmark_track": "math_word_problem",
+                    "composition_role": "markup_profit_after_repairs",
+                },
+                usage_conditions=["tablet_boundary", "benchmark_math", "word_problem", "percentage", "profit"],
+                is_canonical=True,
+            ),
+            GrammarRule(
+                rule_id="gsm_repeated_schedule_distance",
+                language="natural",
+                pattern=r"(sprints .* times a week|times a week|meters each sprint|runs .* each sprint)",
+                rpn_program="STACK repeat_count session_count distance_per_session MUL_CHAIN",
+                domain="math",
+                symbol_refs=["math_template_arithmetic_chain_gpu", "math_concept_rate_balance"],
+                examples=[
+                    "James runs 3 sprints 3 times a week and each sprint is 60 meters. How many total meters does he run?",
+                ],
+                description="Multiply repeated schedule counts by per-session distance to recover a weekly or repeated total.",
+                semantics={
+                    "benchmark_family": "GSM8K",
+                    "tablet_contract": "math_text_answer",
+                    "benchmark_stage": "track1_content",
+                    "benchmark_track": "math_word_problem",
+                    "composition_role": "repeated_schedule_distance",
+                },
+                usage_conditions=["tablet_boundary", "benchmark_math", "word_problem", "schedule", "multiplicative_chain"],
+                is_canonical=True,
+            ),
+            GrammarRule(
+                rule_id="gsm_scaled_total_minus_meals",
+                language="natural",
+                pattern=r"(each of her chickens|cups of feed|final meal|morning|afternoon|flock)",
+                rpn_program="STACK count per_unit MUL known_parts SUB",
+                domain="math",
+                symbol_refs=["math_template_arithmetic_chain_gpu", "math_concept_rate_balance"],
+                examples=[
+                    "Wendi feeds 20 chickens 3 cups each per day, gives 15 cups in the morning and 25 in the afternoon. How many cups remain for the final meal?",
+                ],
+                description="Scale a daily per-unit total and subtract the already-served meals to recover the remaining final allocation.",
+                semantics={
+                    "benchmark_family": "GSM8K",
+                    "tablet_contract": "math_text_answer",
+                    "benchmark_stage": "track1_content",
+                    "benchmark_track": "math_word_problem",
+                    "composition_role": "scaled_total_minus_meals",
+                },
+                usage_conditions=["tablet_boundary", "benchmark_math", "word_problem", "remainder", "scaled_total"],
+                is_canonical=True,
+            ),
+            GrammarRule(
+                rule_id="gsm_alternating_discount_pairs",
+                language="natural",
+                pattern=r"(every second glass|only 60% of the price|second glass costs|buy 16 glasses)",
+                rpn_program="STACK pair_count full_price discount_price PAIR_TOTAL",
+                domain="math",
+                symbol_refs=["math_template_arithmetic_chain_gpu", "math_concept_rate_balance"],
+                examples=[
+                    "One glass costs $5, every second glass costs 60% of the price, and 16 glasses are bought. How much does he pay?",
+                ],
+                description="Pair full-price and discounted items together so alternating-discount purchases resolve to pair totals instead of a naive single-rate multiply.",
+                semantics={
+                    "benchmark_family": "GSM8K",
+                    "tablet_contract": "math_text_answer",
+                    "benchmark_stage": "track1_content",
+                    "benchmark_track": "math_word_problem",
+                    "composition_role": "alternating_discount_pairs",
+                },
+                usage_conditions=["tablet_boundary", "benchmark_math", "word_problem", "discount", "pairing"],
+                is_canonical=True,
+            ),
+            GrammarRule(
+                rule_id="gsm_successive_ratio_family_total",
+                language="natural",
+                pattern=r"(twice as many|4 times as many|how many .* together|altogether if .* has)",
+                rpn_program="STACK base ratio_chain EXPAND_AND_SUM",
+                domain="math",
+                symbol_refs=["math_template_arithmetic_chain_gpu", "math_concept_rate_balance"],
+                examples=[
+                    "Toulouse has twice as many sheep as Charleston, Charleston has 4 times as many as Seattle, and Seattle has 20 sheep. How many are there together?",
+                ],
+                description="Expand chained family ratios from the base quantity and sum every related branch in the ratio family.",
+                semantics={
+                    "benchmark_family": "GSM8K",
+                    "tablet_contract": "math_text_answer",
+                    "benchmark_stage": "track1_content",
+                    "benchmark_track": "math_word_problem",
+                    "composition_role": "successive_ratio_family_total",
+                },
+                usage_conditions=["tablet_boundary", "benchmark_math", "word_problem", "ratio_chain", "family_total"],
+                is_canonical=True,
+            ),
+            GrammarRule(
+                rule_id="gsm_restart_from_beginning_time",
+                language="natural",
+                pattern=r"(restart .* beginning|40% of the way|download from the beginning|takes 20 minutes)",
+                rpn_program="STACK full_time partial_progress_time restart_delay ADD",
+                domain="math",
+                symbol_refs=["math_template_arithmetic_chain_gpu", "math_concept_rate_balance"],
+                examples=[
+                    "Carla downloads 40% of a 200 GB file at 2 GB/minute, restarts, waits 20 minutes, then downloads the file again from the beginning. How long does it take?",
+                ],
+                description="Accumulate wasted progress time, restart delay, and the full successful rerun when a process restarts from the beginning.",
+                semantics={
+                    "benchmark_family": "GSM8K",
+                    "tablet_contract": "math_text_answer",
+                    "benchmark_stage": "track1_content",
+                    "benchmark_track": "math_word_problem",
+                    "composition_role": "restart_from_beginning_time",
+                },
+                usage_conditions=["tablet_boundary", "benchmark_math", "word_problem", "restart", "time_accumulation"],
+                is_canonical=True,
+            ),
+            GrammarRule(
+                rule_id="gsm_turnaround_distance_balance",
+                language="natural",
+                pattern=r"(turns around|from home at the end|standstill traffic|remaining time .* 80 mph)",
+                rpn_program="STACK outbound_distance return_segments SUB",
+                domain="math",
+                symbol_refs=["math_template_arithmetic_chain_gpu", "math_concept_rate_balance"],
+                examples=[
+                    "John drives away from home, turns around, then returns with traffic and changing speeds. How far is he from home at the end?",
+                ],
+                description="Compute an outbound distance, compute segmented return distance, and subtract the return progress from the outbound leg.",
+                semantics={
+                    "benchmark_family": "GSM8K",
+                    "tablet_contract": "math_text_answer",
+                    "benchmark_stage": "track1_content",
+                    "benchmark_track": "math_word_problem",
+                    "composition_role": "turnaround_distance_balance",
+                },
+                usage_conditions=["tablet_boundary", "benchmark_math", "word_problem", "distance", "segmented_motion"],
+                is_canonical=True,
+            ),
+            GrammarRule(
+                rule_id="gsm_overtime_total_earnings",
+                language="natural",
+                pattern=r"(first 40 hours|overtime pay|1.2 times|regular hourly rate|earnings for this week)",
+                rpn_program="STACK base_hours base_rate MUL overtime_hours overtime_rate MUL ADD",
+                domain="math",
+                symbol_refs=["math_template_arithmetic_chain_gpu", "math_concept_rate_balance"],
+                examples=[
+                    "Eliza earns $10 for the first 40 hours and 1.2 times that rate for overtime. She worked 45 hours. How much did she earn?",
+                ],
+                description="Split compensation into regular and overtime components, compute both, and add them into one weekly earnings total.",
+                semantics={
+                    "benchmark_family": "GSM8K",
+                    "tablet_contract": "math_text_answer",
+                    "benchmark_stage": "track1_content",
+                    "benchmark_track": "math_word_problem",
+                    "composition_role": "overtime_total_earnings",
+                },
+                usage_conditions=["tablet_boundary", "benchmark_math", "word_problem", "overtime", "earnings"],
+                is_canonical=True,
+            ),
         ]
         return [rule for rule in rules if rule.rule_id in _BENCHMARK_GSM8K_RULE_IDS]
 
@@ -577,6 +804,7 @@ class GrammarGalaxy(LegacyGrammarGalaxy):
                     semantics=semantics,
                     usage_conditions=["tablet_boundary", "benchmark_math", "symbolic_reasoning"],
                     is_canonical=True,
+                    rule_strength=1,
                 )
             )
         return selected

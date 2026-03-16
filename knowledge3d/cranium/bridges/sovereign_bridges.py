@@ -380,6 +380,7 @@ __all__ = [
     "ARCReasoner",
     "OOMSpillManager",
     "GalaxyResonanceEngine",
+    "DefeasibleResolver",
 ]
 
 
@@ -810,6 +811,99 @@ class AtomicFissionFusion:
         else:
             # Unknown type, return as-is
             return weights
+
+
+class DefeasibleResolver:
+    """Sovereign Defeasible Resolver - non-monotonic conflict resolution."""
+
+    def __init__(self):
+        ptx_path = KERNELS_DIR / "gre_defeasible_resolver.ptx"
+        self.kernel = load_ptx_file(str(ptx_path), "gre_defeasible_resolver")
+
+    def resolve(
+        self,
+        conclusions,
+        rule_strengths,
+        superiority,
+        *,
+        num_workers: int | None = None,
+        num_candidates: int | None = None,
+        max_superiors: int | None = None,
+    ):
+        np_mod = _np()
+        conclusion_arr = np_mod.asarray(conclusions, dtype=np_mod.float32)
+        if conclusion_arr.ndim == 1:
+            if num_workers is None or num_candidates is None:
+                raise ValueError("num_workers_and_num_candidates_required_for_flat_conclusions")
+            conclusion_arr = conclusion_arr.reshape(int(num_workers), int(num_candidates))
+        if conclusion_arr.ndim != 2:
+            raise ValueError("conclusions_must_be_rank1_or_rank2")
+
+        worker_count = int(num_workers or conclusion_arr.shape[0])
+        candidate_count = int(num_candidates or conclusion_arr.shape[1])
+        if conclusion_arr.shape != (worker_count, candidate_count):
+            raise ValueError(
+                f"conclusion_shape_mismatch: expected {(worker_count, candidate_count)}, got {conclusion_arr.shape}"
+            )
+
+        strength_arr = np_mod.asarray(rule_strengths, dtype=np_mod.int8).reshape(-1)
+        if strength_arr.shape[0] != worker_count:
+            raise ValueError("rule_strengths_length_mismatch")
+
+        superiority_arr = np_mod.asarray(superiority, dtype=np_mod.uint32)
+        if superiority_arr.ndim == 1:
+            if max_superiors is None:
+                raise ValueError("max_superiors_required_for_flat_superiority")
+            superiority_arr = superiority_arr.reshape(worker_count, int(max_superiors))
+        if superiority_arr.ndim != 2 or superiority_arr.shape[0] != worker_count:
+            raise ValueError("superiority_shape_mismatch")
+        superiority_cap = int(max_superiors or superiority_arr.shape[1])
+        if superiority_arr.shape[1] != superiority_cap:
+            raise ValueError("max_superiors_shape_mismatch")
+
+        conclusion_arr = np_mod.ascontiguousarray(conclusion_arr, dtype=np_mod.float32)
+        strength_arr = np_mod.ascontiguousarray(strength_arr, dtype=np_mod.int8)
+        superiority_arr = np_mod.ascontiguousarray(superiority_arr, dtype=np_mod.uint32)
+        verdicts = np_mod.zeros((candidate_count,), dtype=np_mod.float32)
+        proof_tags = np_mod.zeros((candidate_count,), dtype=np_mod.uint32)
+
+        d_conclusions = gpu_malloc(conclusion_arr.nbytes)
+        d_strengths = gpu_malloc(strength_arr.nbytes)
+        d_superiority = gpu_malloc(superiority_arr.nbytes)
+        d_verdicts = gpu_malloc(verdicts.nbytes)
+        d_proof_tags = gpu_malloc(proof_tags.nbytes)
+        try:
+            memcpy_htod(d_conclusions, conclusion_arr.ctypes.data_as(ctypes.c_void_p), conclusion_arr.nbytes)
+            memcpy_htod(d_strengths, strength_arr.ctypes.data_as(ctypes.c_void_p), strength_arr.nbytes)
+            memcpy_htod(d_superiority, superiority_arr.ctypes.data_as(ctypes.c_void_p), superiority_arr.nbytes)
+            memcpy_htod(d_verdicts, verdicts.ctypes.data_as(ctypes.c_void_p), verdicts.nbytes)
+            memcpy_htod(d_proof_tags, proof_tags.ctypes.data_as(ctypes.c_void_p), proof_tags.nbytes)
+
+            launch(
+                self.kernel,
+                grid=(1, 1, 1),
+                block=(min(max(candidate_count, 1), 128), 1, 1),
+                params=[
+                    ctypes.c_uint64(d_conclusions.value),
+                    ctypes.c_uint64(d_strengths.value),
+                    ctypes.c_uint64(d_superiority.value),
+                    ctypes.c_uint64(d_verdicts.value),
+                    ctypes.c_uint64(d_proof_tags.value),
+                    ctypes.c_int(worker_count),
+                    ctypes.c_int(candidate_count),
+                    ctypes.c_int(superiority_cap),
+                ],
+            )
+            synchronize()
+            memcpy_dtoh(verdicts.ctypes.data_as(ctypes.c_void_p), d_verdicts, verdicts.nbytes)
+            memcpy_dtoh(proof_tags.ctypes.data_as(ctypes.c_void_p), d_proof_tags, proof_tags.nbytes)
+            return verdicts, proof_tags
+        finally:
+            gpu_free(d_conclusions)
+            gpu_free(d_strengths)
+            gpu_free(d_superiority)
+            gpu_free(d_verdicts)
+            gpu_free(d_proof_tags)
 
 
 class TemporalReasoning:
@@ -2095,6 +2189,7 @@ __all__ = [
     # GLM's
     "ResonanceField",
     "AtomicFissionFusion",
+    "DefeasibleResolver",
     "TemporalReasoning",
     # Grok's
     "VectorResonator",

@@ -259,6 +259,44 @@ class TestGLMKernels:
 
         print("✅ TemporalReasoning: pattern extraction and delta compatibility valid")
 
+    def test_defeasible_resolver(self):
+        """Test DefeasibleResolver resolves superiority conflicts and packs proof tags."""
+        resolver = DefeasibleResolver()
+
+        conclusions = np.array(
+            [
+                [0.9, -0.9],
+                [-0.8, 0.8],
+            ],
+            dtype=np.float32,
+        )
+        rule_strengths = np.array([0, 0], dtype=np.int8)
+        superiority = np.array(
+            [
+                [1],
+                [np.uint32(0xFFFFFFFF)],
+            ],
+            dtype=np.uint32,
+        )
+
+        verdicts, proof_tags = resolver.resolve(
+            conclusions,
+            rule_strengths,
+            superiority,
+            num_workers=2,
+            num_candidates=2,
+            max_superiors=1,
+        )
+
+        assert verdicts.shape == (2,)
+        assert proof_tags.shape == (2,)
+        assert verdicts[0] > 0.0
+        assert verdicts[1] < 0.0
+        assert int(proof_tags[0]) == 9  # D=0, d=+1
+        assert int(proof_tags[1]) == 1  # D=0, d=-1
+
+        print(f"✅ DefeasibleResolver: verdicts={verdicts.tolist()} tags={proof_tags.tolist()}")
+
 
 class TestGrokKernels:
     """Test Grok's 3 kernels: VectorResonator, GraphCrystallizer, MultimodalHaltingGate"""
