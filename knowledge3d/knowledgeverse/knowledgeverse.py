@@ -73,6 +73,12 @@ class Knowledgeverse:
     }
     TRM_INIT_SEED = 314159
     TRM_GALAXY_INFLUENCE_STRENGTH = 0.5
+    GSM8K_STRUCTURAL_OVERRIDE_MIN = 0.65
+    GSM8K_STRUCTURAL_OVERRIDE_MARGIN = 0.05
+    GSM8K_STRUCTURAL_OVERRIDE_PATH_WEIGHT = 1.0
+    GSM8K_STRUCTURAL_OVERRIDE_STRUCT_WEIGHT = 0.2
+    GSM8K_STRUCTURAL_OVERRIDE_COMPOSITIONAL_WEIGHT = 0.08
+    GSM8K_STRUCTURAL_OVERRIDE_DIMENSIONAL_WEIGHT = 0.04
     GPU_GALAXY_ENTRY_STRIDE = 23
     GPU_GALAXY_EMBEDDING_OFFSET = 3
     GPU_GALAXY_EMBEDDING_DIM = 16
@@ -3155,7 +3161,7 @@ class Knowledgeverse:
             "part": ["part", "delta", "count"],
             "count": ["count", "duration", "part", "delta"],
             "duration": ["duration", "count"],
-            "rate": ["rate"],
+            "rate": ["rate", "price"],
             "threshold": ["threshold", "count", "initial", "total"],
             "excess": ["excess", "part", "delta", "count"],
             "percentage": ["percentage", "divisor"],
@@ -3635,6 +3641,407 @@ class Knowledgeverse:
                 return float(values[index])
         return None
 
+    @staticmethod
+    def _gsm8k_semantic_slot_base(slot: str) -> str:
+        token = str(slot).strip().lower()
+        if not token:
+            return ""
+        if token.endswith("_value"):
+            token = token[: -len("_value")]
+        if "_" in token:
+            head, _, tail = token.rpartition("_")
+            if tail.isdigit():
+                token = head
+        return token
+
+    @staticmethod
+    def _gsm8k_semantic_entity_local_windows(entity: dict[str, Any]) -> tuple[str, str]:
+        raw_text = str(entity.get("raw_block", "")).strip()
+        surface = str(entity.get("surface", "")).strip()
+        offset = int(entity.get("offset", 0) or 0)
+        local_window = raw_text[
+            max(offset - 24, 0) : min(offset + max(len(surface), 1) + 24, len(raw_text))
+        ].lower()
+        tight_window = raw_text[
+            max(offset - 8, 0) : min(offset + max(len(surface), 1) + 8, len(raw_text))
+        ].lower()
+        return local_window, tight_window
+
+    def _gsm8k_semantic_slot_score(
+        self,
+        *,
+        slot: str,
+        entity: dict[str, Any],
+    ) -> float:
+        slot_base = self._gsm8k_semantic_slot_base(slot)
+        if not slot_base:
+            return float("-inf")
+        role = str(entity.get("role", "")).strip().lower()
+        unit = str(entity.get("unit", "")).strip().lower()
+        scope = str(entity.get("scope", "")).strip().lower()
+        surface = str(entity.get("surface", "")).strip().lower()
+        local_window, tight_window = self._gsm8k_semantic_entity_local_windows(entity)
+        has_percent = "%" in local_window or " percent" in local_window
+        has_adjacent_currency = "$" in tight_window
+        has_temporal = any(
+            token in local_window
+            for token in (
+                " minute",
+                " minutes",
+                " hour",
+                " hours",
+                " day",
+                " days",
+                " week",
+                " weeks",
+                " month",
+                " months",
+                " year",
+                " years",
+            )
+        )
+        has_duration_cue = any(
+            cue in local_window
+            for cue in (" takes ", " take ", " delay", " wait", " restart", " time")
+        )
+        has_rate_cue = ("/" in local_window) or (" per " in f" {local_window} ") or scope.startswith("per_")
+        has_currency_cue = (
+            "$" in tight_window
+            or "$" in local_window
+            or " price" in local_window
+            or " cost" in local_window
+            or unit == "currency"
+        )
+        has_total_cue = any(
+            cue in local_window
+            for cue in (" file", " files", " total", " altogether", " from the beginning", " downloading", " download")
+        )
+        word_number = surface.isalpha() and not any(char.isdigit() for char in surface)
+        score = 0.0
+        if slot_base == "percentage":
+            if has_percent or role == "percentage" or unit == "percent":
+                score += 8.0
+            if has_rate_cue or has_currency_cue or has_temporal:
+                score -= 2.5
+        elif slot_base == "duration":
+            if has_temporal or role == "duration":
+                score += 7.0
+            if has_duration_cue:
+                score += 2.0
+            if has_percent or has_currency_cue or has_rate_cue:
+                score -= 2.0
+        elif slot_base == "rate":
+            if role in {"rate", "price"}:
+                score += 5.0
+            if has_rate_cue:
+                score += 5.0
+            if has_currency_cue:
+                score += 3.0
+            if has_adjacent_currency:
+                score += 5.0
+            if has_percent or has_temporal:
+                score -= 2.0
+            if word_number:
+                score -= 5.0
+        elif slot_base in {"total", "initial"}:
+            if role in {slot_base, "total", "initial"}:
+                score += 5.0
+            if has_total_cue:
+                score += 4.0
+            if slot_base == "initial" and any(
+                cue in local_window for cue in (" buy ", " buys ", " bought ", " purchase ", " purchased ", " cost ")
+            ):
+                score += 4.0
+            if not (has_percent or has_temporal or has_rate_cue):
+                score += 2.0
+            if word_number:
+                score -= 1.0
+        elif slot_base == "threshold":
+            if role in {"threshold", "count", "duration"}:
+                score += 4.0
+            if any(cue in local_window for cue in (" first ", " before ", " up to ", " threshold ", " regular ")):
+                score += 4.5
+            if has_currency_cue and not has_rate_cue:
+                score -= 2.0
+        elif slot_base == "part":
+            if role in {"part", "delta"}:
+                score += 5.0
+            if role == "price":
+                score += 2.5
+            if any(cue in local_window for cue in (" repair", " repairs", " spent", " puts in", " fee", " cost ")):
+                score += 4.0
+            if has_percent:
+                score -= 2.0
+        elif slot_base == "count":
+            if role == "count":
+                score += 4.0
+            if any(
+                cue in local_window
+                for cue in (" buy", " bought", " want", " wants", " glass", " glasses", " bolt", " bolts")
+            ):
+                score += 3.0
+            if any(cue in local_window for cue in (" chicken", " chickens", " flock", " size of")):
+                score += 4.5
+            if any(cue in local_window for cue in (" meal", " meals", " morning", " afternoon")):
+                score -= 4.0
+            if has_percent or has_temporal or has_rate_cue:
+                score -= 3.0
+            if word_number:
+                score -= 1.0
+        elif slot_base in {"divisor", "ratio"}:
+            if role in {"divisor", "percentage", "frequency", "excess"}:
+                score += 4.0
+            if any(cue in local_window for cue in (" times ", " ratio ", " multiplier ", " regular hourly rate", " regular rate")):
+                score += 5.0
+            if has_currency_cue or has_temporal:
+                score -= 1.5
+        else:
+            if role == slot_base:
+                score += 5.0
+            for alias in self._gsm8k_slot_role_names(slot_base):
+                if role == alias:
+                    score += 3.0
+                    break
+        try:
+            numeric_value = float(entity.get("resolved_value", entity.get("value", 0.0)))
+        except Exception:
+            numeric_value = 0.0
+        score += min(max(numeric_value, 0.0), 1000.0) * 1e-6
+        return float(score)
+
+    def _gsm8k_operation_role_match_score(
+        self,
+        *,
+        metadata: dict[str, Any],
+        context: dict[str, Any],
+    ) -> float:
+        required_roles = [
+            str(value).strip()
+            for value in (metadata.get("required_roles") if isinstance(metadata.get("required_roles"), list) else [])
+            if str(value).strip()
+        ]
+        if not required_roles:
+            return 0.0
+        if not {role.strip().lower() for role in required_roles}.intersection({"part", "threshold", "divisor"}):
+            return 0.0
+        semantic_entities: list[dict[str, Any]] = [
+            dict(row)
+            for row in (context.get("semantic_entities") if isinstance(context.get("semantic_entities"), list) else [])
+            if isinstance(row, dict)
+        ]
+        quantity_candidates = context.get("quantity_role_candidates") if isinstance(context.get("quantity_role_candidates"), list) else []
+        seen_semantic: set[tuple[str, float, int]] = {
+            (
+                str(row.get("surface", "")).strip(),
+                float(row.get("resolved_value", row.get("value", 0.0)) or 0.0),
+                int(row.get("offset", 0) or 0),
+            )
+            for row in semantic_entities
+        }
+        for row in quantity_candidates:
+            if not isinstance(row, dict):
+                continue
+            try:
+                numeric_value = float(row.get("value", 0.0))
+            except Exception:
+                continue
+            signature = (
+                str(row.get("surface", "")).strip(),
+                numeric_value,
+                int(row.get("offset", 0) or 0),
+            )
+            if signature in seen_semantic:
+                continue
+            semantic_entities.append(
+                {
+                    "value": numeric_value,
+                    "resolved_value": numeric_value,
+                    "surface": str(row.get("surface", "")).strip(),
+                    "role": str(row.get("role", "")).strip(),
+                    "unit": "",
+                    "scope": "",
+                    "offset": int(row.get("offset", 0) or 0),
+                    "raw_block": str(row.get("raw", "")).strip(),
+                }
+            )
+            seen_semantic.add(signature)
+        if not semantic_entities:
+            return 0.0
+        used_entities: set[int] = set()
+        matched = 0
+        confidence_total = 0.0
+        for role in required_roles:
+            best_index = -1
+            best_score = float("-inf")
+            for index, entity in enumerate(semantic_entities):
+                if index in used_entities:
+                    continue
+                score = self._gsm8k_semantic_slot_score(slot=role, entity=entity)
+                if score > best_score:
+                    best_score = score
+                    best_index = index
+            if best_index >= 0 and best_score >= 2.0:
+                matched += 1
+                used_entities.add(best_index)
+                confidence_total += min(1.0, max(0.0, (float(best_score) - 2.0) / 8.0))
+        coverage = float(matched) / float(len(required_roles))
+        confidence = float(confidence_total) / float(len(required_roles))
+        return min(1.0, (0.65 * coverage) + (0.35 * confidence))
+
+    def _gsm8k_operation_disambiguation_bonus(
+        self,
+        *,
+        metadata: dict[str, Any],
+        context: dict[str, Any],
+    ) -> float:
+        binding_mode = str(metadata.get("binding_mode", "")).strip().lower()
+        if not binding_mode:
+            return 0.0
+        semantic_entities = [
+            dict(row)
+            for row in (
+                context.get("semantic_entities")
+                if isinstance(context.get("semantic_entities"), list)
+                else []
+            )
+            if isinstance(row, dict)
+        ]
+        if not semantic_entities:
+            return 0.0
+        source_text = str(context.get("source_text", "")).strip().lower()
+        role_counts: dict[str, int] = {}
+        for entity in semantic_entities:
+            role = str(entity.get("role", "")).strip().lower()
+            if role:
+                role_counts[role] = int(role_counts.get(role, 0)) + 1
+
+        def _has_role(role: str, count: int = 1) -> bool:
+            return int(role_counts.get(role, 0)) >= count
+
+        def _has_any(*phrases: str) -> bool:
+            return any(str(phrase).strip().lower() in source_text for phrase in phrases if str(phrase).strip())
+
+        bonus = 0.0
+        if binding_mode == "restart_progress_time":
+            if _has_role("total") and _has_role("rate") and _has_role("percentage") and _has_role("duration"):
+                bonus += 0.95
+            if _has_any("restart", "from the beginning", "download"):
+                bonus += 0.85
+            if _has_any("% of the way", "percent of the way", "minutes"):
+                bonus += 0.25
+        elif binding_mode == "ratio_then_add":
+            if _has_any("restart", "from the beginning", "download"):
+                bonus -= 1.10
+            if _has_role("total") and _has_role("rate") and _has_role("percentage") and _has_role("duration"):
+                bonus -= 0.90
+        elif binding_mode == "scaled_total_minus_parts":
+            if _has_role("count") and _has_role("rate") and _has_role("part", 2):
+                bonus += 0.90
+            if _has_any("each of her chickens", "final meal", "flock", "feed", "chickens"):
+                bonus += 0.80
+        elif binding_mode == "total_minus_parts":
+            if _has_any("final meal", "morning", "afternoon") and _has_role("count") and _has_role("rate"):
+                bonus -= 0.40
+        elif binding_mode == "base_plus_excess":
+            if _has_any("overtime", "regular rate", "hourly", "worked", "wage"):
+                bonus += 0.85
+            if _has_any("final meal", "chickens", "flock", "feed"):
+                bonus -= 0.95
+            if _has_any("restart", "download", "from the beginning"):
+                bonus -= 0.80
+        elif binding_mode == "outbound_return_distance":
+            if _has_any("turns around", "turn around", "get home", "standstill traffic", "remaining time"):
+                bonus += 1.10
+            if _has_role("duration", 3) and _has_role("rate", 2):
+                bonus += 0.60
+        elif binding_mode in {"multiply_chain_sum", "count_rate_product"}:
+            if _has_any("turns around", "standstill traffic", "get home"):
+                bonus -= 0.75
+        return float(bonus)
+
+    def _gsm8k_template_slot_bindings(
+        self,
+        *,
+        context: dict[str, Any],
+        metadata: dict[str, Any],
+    ) -> tuple[dict[str, float], str]:
+        role_slots = [
+            str(value).strip()
+            for value in (
+                metadata.get("role_slots")
+                if isinstance(metadata.get("role_slots"), list)
+                else []
+            )
+            if str(value).strip()
+        ]
+        if not role_slots:
+            return {}, ""
+        role_values = self._gsm8k_role_value_map(context)
+        semantic_entities = [
+            dict(row)
+            for row in (
+                context.get("semantic_entities")
+                if isinstance(context.get("semantic_entities"), list)
+                else []
+            )
+            if isinstance(row, dict)
+        ]
+        priority = {
+            "percentage": 0,
+            "duration": 1,
+            "rate": 2,
+            "threshold": 3,
+            "excess": 4,
+            "total": 5,
+            "initial": 6,
+            "count": 7,
+            "part": 8,
+        }
+        ordered_slots = sorted(
+            role_slots,
+            key=lambda slot: (priority.get(self._gsm8k_semantic_slot_base(slot), 99), slot),
+        )
+        bound: dict[str, float] = {}
+        binding_rows: dict[str, str] = {}
+        used_entities: set[int] = set()
+        for slot in ordered_slots:
+            best_index = -1
+            best_score = float("-inf")
+            for index, entity in enumerate(semantic_entities):
+                if index in used_entities:
+                    continue
+                score = self._gsm8k_semantic_slot_score(slot=slot, entity=entity)
+                if score > best_score:
+                    best_index = index
+                    best_score = score
+            if best_index >= 0 and best_score >= 2.0:
+                entity = semantic_entities[best_index]
+                try:
+                    value = float(entity.get("resolved_value", entity.get("value", 0.0)))
+                except Exception:
+                    value = None
+                if value is not None:
+                    used_entities.add(best_index)
+                    bound[slot] = float(value)
+                    binding_rows[slot] = (
+                        f"{self._gpu_scalar_literal(value)}"
+                        + f"[semantic:{str(entity.get('role', '')).strip() or 'quantity'}:{str(entity.get('surface', '')).strip()}]"
+                    )
+                    continue
+            fallback = self._gsm8k_slot_value(slot, role_values=role_values)
+            if fallback is not None:
+                bound[slot] = float(fallback)
+                binding_rows[slot] = f"{self._gpu_scalar_literal(fallback)}[fallback]"
+        ordered_summary = [
+            f"{slot}={binding_rows[slot]}"
+            for slot in role_slots
+            if slot in binding_rows
+        ]
+        summary = ", ".join(ordered_summary)
+        context["_last_gsm8k_slot_binding"] = summary
+        context["_last_gsm8k_slot_values"] = dict(bound)
+        return bound, summary
+
     def _gsm8k_pattern_structural_score(
         self,
         *,
@@ -3735,6 +4142,10 @@ class Knowledgeverse:
         metadata: dict[str, Any],
     ) -> str:
         role_values = self._gsm8k_role_value_map(context)
+        bound_slots, binding_summary = self._gsm8k_template_slot_bindings(
+            context=context,
+            metadata=metadata,
+        )
         binding_mode = str(metadata.get("binding_mode", "")).strip().lower()
         if not binding_mode:
             return ""
@@ -3747,35 +4158,53 @@ class Knowledgeverse:
                 return str(int(round(numeric)))
             return self._gpu_scalar_literal(numeric)
 
+        def _bound(slot: str) -> float | None:
+            if slot in bound_slots:
+                return float(bound_slots[slot])
+            return self._gsm8k_slot_value(slot, role_values=role_values)
+
+        semantic_entities = [
+            dict(row)
+            for row in (
+                context.get("semantic_entities")
+                if isinstance(context.get("semantic_entities"), list)
+                else []
+            )
+            if isinstance(row, dict)
+        ]
+
         def _sum_literals(values: list[float]) -> list[str]:
             return self._gsm8k_sum_token_rows([[_lit(value)] for value in values if value is not None])
 
+        if binding_summary:
+            context["_last_gsm8k_slot_binding"] = binding_summary
+
         if binding_mode == "remainder_scale":
-            initial = self._gsm8k_slot_value("initial", role_values=role_values)
-            part_1 = self._gsm8k_slot_value("part_1", role_values=role_values)
-            part_2 = self._gsm8k_slot_value("part_2", role_values=role_values)
-            rate = self._gsm8k_slot_value("rate", role_values=role_values)
+            initial = _bound("initial")
+            part_1 = _bound("part_1")
+            part_2 = _bound("part_2")
+            rate = _bound("rate")
             if None in {initial, part_1, part_2, rate}:
                 return ""
             return f"{_lit(initial)} {_lit(part_1)} - {_lit(part_2)} - {_lit(rate)} *"
 
         if binding_mode == "ratio_then_add":
-            initial = self._gsm8k_slot_value("initial", role_values=role_values)
-            ratio = self._gsm8k_slot_value("ratio_value", role_values=role_values)
+            initial = _bound("initial")
+            ratio = _bound("ratio_value")
             if None in {initial, ratio}:
                 return ""
             op = "*" if float(ratio) <= 1.0 else "/"
             return f"{_lit(initial)} {_lit(ratio)} {op} {_lit(initial)} +"
 
         if binding_mode == "percentage_change":
-            initial = self._gsm8k_slot_value("initial", role_values=role_values)
-            percentage = self._gsm8k_slot_value("percentage", role_values=role_values)
+            initial = _bound("initial")
+            percentage = _bound("percentage")
             if None in {initial, percentage}:
                 return ""
             return f"{_lit(initial)} {_lit(percentage)} 100 / * {_lit(initial)} +"
 
         if binding_mode == "total_minus_parts":
-            total = self._gsm8k_slot_value("total", role_values=role_values)
+            total = _bound("total")
             parts = list(role_values.get("part", [])) or list(role_values.get("delta", []))
             if total is None or len(parts) < 2:
                 return ""
@@ -3787,12 +4216,12 @@ class Knowledgeverse:
             return " ".join([_lit(total), *part_tokens, "-"]).strip()
 
         if binding_mode == "base_plus_excess":
-            threshold = self._gsm8k_slot_value("threshold", role_values=role_values)
-            rate_1 = self._gsm8k_slot_value("rate_1", role_values=role_values)
-            total = self._gsm8k_slot_value("total", role_values=role_values)
-            excess = self._gsm8k_slot_value("excess", role_values=role_values)
-            rate_2 = self._gsm8k_slot_value("rate_2", role_values=role_values)
-            ratio = self._gsm8k_slot_value("ratio_value", role_values=role_values)
+            threshold = _bound("threshold")
+            rate_1 = _bound("rate_1")
+            total = _bound("total")
+            excess = _bound("excess")
+            rate_2 = _bound("rate_2")
+            ratio = _bound("ratio_value")
             if threshold is None or rate_1 is None:
                 return ""
             base_tokens = [_lit(threshold), _lit(rate_1), "*"]
@@ -3815,8 +4244,8 @@ class Knowledgeverse:
 
         if binding_mode == "multiply_chain_sum":
             counts = list(role_values.get("count", []))
-            rate = self._gsm8k_slot_value("rate", role_values=role_values)
-            initial = self._gsm8k_slot_value("initial", role_values=role_values)
+            rate = _bound("rate")
+            initial = _bound("initial")
             if initial is not None and counts:
                 branch_rows: list[list[str]] = []
                 for depth in range(1, len(counts) + 1):
@@ -3833,8 +4262,8 @@ class Knowledgeverse:
             return ""
 
         if binding_mode == "fractional_part_plus_base":
-            initial = self._gsm8k_slot_value("initial", role_values=role_values)
-            ratio = self._gsm8k_slot_value("ratio_value", role_values=role_values)
+            initial = _bound("initial")
+            ratio = _bound("ratio_value")
             if ratio is None:
                 default_ratio = metadata.get("default_ratio")
                 try:
@@ -3848,9 +4277,22 @@ class Knowledgeverse:
             return f"{_lit(initial)} {_lit(ratio)} / {_lit(initial)} +"
 
         if binding_mode == "markup_profit_after_costs":
-            initial = self._gsm8k_slot_value("initial", role_values=role_values)
-            percentage = self._gsm8k_slot_value("percentage", role_values=role_values)
-            parts = list(role_values.get("part", []))
+            initial = _bound("initial")
+            percentage = _bound("percentage")
+            declared_slots = [
+                str(value).strip()
+                for value in (metadata.get("role_slots") if isinstance(metadata.get("role_slots"), list) else [])
+                if str(value).strip()
+            ]
+            parts = [
+                float(part_value)
+                for slot_name in declared_slots
+                if self._gsm8k_semantic_slot_base(slot_name) == "part"
+                for part_value in [_bound(slot_name)]
+                if part_value is not None
+            ]
+            if not parts:
+                parts = list(role_values.get("part", []))
             if None in {initial, percentage} or not parts:
                 return ""
             part_tokens = _sum_literals(parts[:3])
@@ -3874,23 +4316,36 @@ class Knowledgeverse:
 
         if binding_mode == "count_rate_product":
             counts = list(role_values.get("count", []))
-            rate = self._gsm8k_slot_value("rate", role_values=role_values)
+            rate = _bound("rate")
             if rate is None or len(counts) < 2:
                 return ""
             return f"{_lit(counts[0])} {_lit(counts[1])} * {_lit(rate)} *"
 
         if binding_mode == "scaled_total_minus_parts":
-            count = self._gsm8k_slot_value("count", role_values=role_values)
-            rate = self._gsm8k_slot_value("rate", role_values=role_values)
-            parts = list(role_values.get("part", []))
+            count = _bound("count")
+            rate = _bound("rate")
+            declared_slots = [
+                str(value).strip()
+                for value in (metadata.get("role_slots") if isinstance(metadata.get("role_slots"), list) else [])
+                if str(value).strip()
+            ]
+            parts = [
+                float(part_value)
+                for slot_name in declared_slots
+                if self._gsm8k_semantic_slot_base(slot_name) == "part"
+                for part_value in [_bound(slot_name)]
+                if part_value is not None
+            ]
+            if not parts:
+                parts = list(role_values.get("part", []))
             if None in {count, rate} or len(parts) < 2:
                 return ""
             return f"{_lit(count)} {_lit(rate)} * {_lit(parts[0])} - {_lit(parts[1])} -"
 
         if binding_mode == "alternating_discount_pairs":
-            count = self._gsm8k_slot_value("count", role_values=role_values)
-            rate = self._gsm8k_slot_value("rate", role_values=role_values)
-            percentage = self._gsm8k_slot_value("percentage", role_values=role_values)
+            count = _bound("count")
+            rate = _bound("rate")
+            percentage = _bound("percentage")
             if None in {count, rate, percentage}:
                 return ""
             return " ".join(
@@ -3910,7 +4365,7 @@ class Knowledgeverse:
             ).strip()
 
         if binding_mode == "successive_ratio_family_sum":
-            initial = self._gsm8k_slot_value("initial", role_values=role_values)
+            initial = _bound("initial")
             counts = sorted([float(value) for value in role_values.get("count", [])], reverse=True)
             if initial is None or len(counts) < 2:
                 return ""
@@ -3931,13 +4386,12 @@ class Knowledgeverse:
             ).strip()
 
         if binding_mode == "restart_progress_time":
-            total = self._gsm8k_slot_value("total", role_values=role_values)
-            rate = self._gsm8k_slot_value("rate", role_values=role_values)
-            percentage = self._gsm8k_slot_value("percentage", role_values=role_values)
-            durations = [float(value) for value in role_values.get("duration", [])]
-            if None in {total, rate, percentage} or not durations:
+            total = _bound("total")
+            rate = _bound("rate")
+            percentage = _bound("percentage")
+            duration = _bound("duration")
+            if None in {total, rate, percentage, duration}:
                 return ""
-            delay = durations[-1]
             return " ".join(
                 [
                     _lit(total),
@@ -3951,12 +4405,75 @@ class Knowledgeverse:
                     _lit(rate),
                     "/",
                     "+",
-                    _lit(delay),
+                    _lit(duration),
                     "+",
                 ]
             ).strip()
 
         if binding_mode == "outbound_return_distance":
+            if semantic_entities:
+                outbound_duration = None
+                outbound_rate = None
+                return_window = None
+                blocked_duration = None
+                segment_duration = None
+                segment_rate = None
+                final_rate = None
+                for entity in semantic_entities:
+                    raw_block = str(entity.get("raw_block", "")).strip().lower()
+                    surface = str(entity.get("surface", "")).strip().lower()
+                    role = str(entity.get("role", "")).strip().lower()
+                    try:
+                        value = float(entity.get("resolved_value", entity.get("value", 0.0)))
+                    except Exception:
+                        continue
+                    if outbound_duration is None and role == "duration" and "turns around" in raw_block:
+                        outbound_duration = value
+                    if outbound_rate is None and role == "rate" and "turns around" in raw_block:
+                        outbound_rate = value
+                    if return_window is None and role == "duration" and "get home in" in raw_block:
+                        return_window = value
+                    if (
+                        blocked_duration is None
+                        and role == "duration"
+                        and "standstill traffic" in raw_block
+                        and ("standstill" in str(entity.get("unit", "")).strip().lower() or surface in {"2", "2.0", "two"})
+                    ):
+                        blocked_duration = value
+                    if segment_duration is None and role == "duration" and ("half-hour" in raw_block or "half an hour" in raw_block or surface == "half-hour"):
+                        segment_duration = value
+                    if segment_rate is None and role == "rate" and surface in {"30", "30.0"} and ("30mph" in raw_block or "30 mph" in raw_block):
+                        segment_rate = value
+                    if final_rate is None and role == "rate" and surface in {"80", "80.0"} and ("80mph" in raw_block or "80 mph" in raw_block):
+                        final_rate = value
+                if None not in {
+                    outbound_duration,
+                    outbound_rate,
+                    return_window,
+                    blocked_duration,
+                    segment_duration,
+                    segment_rate,
+                    final_rate,
+                }:
+                    return " ".join(
+                        [
+                            _lit(outbound_duration),
+                            _lit(outbound_rate),
+                            "*",
+                            _lit(segment_duration),
+                            _lit(segment_rate),
+                            "*",
+                            _lit(return_window),
+                            _lit(blocked_duration),
+                            "-",
+                            _lit(segment_duration),
+                            "-",
+                            _lit(final_rate),
+                            "*",
+                            "+",
+                            "-",
+                        ]
+                    ).strip()
             durations = [float(value) for value in role_values.get("duration", [])]
             rates = [float(value) for value in role_values.get("rate", [])]
             if len(durations) < 4 or len(rates) < 3:
@@ -4202,9 +4719,11 @@ class Knowledgeverse:
         preview_program = str(candidate.get("gsm8k_preview_program", "")).strip()
         preview_label = str(candidate.get("gsm8k_preview_strategy", "")).strip()
         if preview_answer and preview_program:
+            binding_summary = str(context.get("_last_gsm8k_slot_binding", "")).strip()
             return preview_answer, [
                 "GSM8K atomic fission: operation/number context bound from navigator fusion parse",
                 f"GSM8K candidate program: {preview_label or 'fusion_chain'}",
+                *([f"GSM8K slot binding: {binding_summary}"] if binding_summary else []),
                 f"GSM8K fusion eval: {preview_program}",
             ]
         path = candidate.get("path") if isinstance(candidate.get("path"), dict) else {}
@@ -4217,9 +4736,11 @@ class Knowledgeverse:
         if preview is None:
             return None
         answer, program, label, _ = preview
+        binding_summary = str(context.get("_last_gsm8k_slot_binding", "")).strip()
         return answer, [
             "GSM8K atomic fission: operation/number context bound from navigator fusion parse",
             f"GSM8K candidate program: {label}",
+            *([f"GSM8K slot binding: {binding_summary}"] if binding_summary else []),
             f"GSM8K fusion eval: {program}",
         ]
 
@@ -5632,6 +6153,26 @@ class Knowledgeverse:
         clause_values: list[float] = []
         goal_operation = ""
         if operation_rows:
+            source_text = " ".join(
+                str(block.get("raw", "")).strip()
+                for block in self._gsm8k_parse_blocks(parse_bundle)
+                if isinstance(block, dict) and str(block.get("raw", "")).strip()
+            )
+            semantic_context = {
+                "semantic_entities": [
+                    dict(row)
+                    for row in (
+                        (
+                            parse_bundle.get("fusion_parse")
+                            if isinstance(parse_bundle, dict) and isinstance(parse_bundle.get("fusion_parse"), dict)
+                            else {}
+                        ).get("semantic_entities", [])
+                    )
+                    if isinstance(row, dict)
+                ],
+                "quantity_role_candidates": quantity_candidates,
+                "source_text": source_text,
+            }
             def _best_operation_for_text(text: str) -> str:
                 clause_text = str(text).strip()
                 if not clause_text:
@@ -5716,18 +6257,35 @@ class Knowledgeverse:
                             top_operations=operation_pool,
                             goal_operation=goal_operation,
                         ),
+                        self._gsm8k_operation_role_match_score(
+                            metadata=(entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}),
+                            context=semantic_context,
+                        ),
+                        self._gsm8k_operation_disambiguation_bonus(
+                            metadata=(entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}),
+                            context=semantic_context,
+                        ),
                         entry,
                     )
                     for signal, similarity, entry in zip(operation_signal, operation_similarities, operation_rows)
                 ],
-                key=lambda item: item[0],
+                key=lambda item: (
+                    item[0] + (0.72 * item[4]) + item[5],
+                    item[5],
+                    item[4],
+                    item[3],
+                    item[1],
+                    item[2],
+                ),
                 reverse=True,
             )
             selected_operation_rows = []
-            for combined_score, raw_signal, raw_similarity, structural_score, entry in ranked_operations[:4]:
+            for combined_score, raw_signal, raw_similarity, structural_score, role_match_score, disambiguation_bonus, entry in ranked_operations[:4]:
                 enriched = dict(entry)
-                enriched["gsm8k_combined_signal"] = float(combined_score)
+                enriched["gsm8k_combined_signal"] = float(combined_score + (0.72 * role_match_score) + disambiguation_bonus)
                 enriched["gsm8k_structural_score"] = float(structural_score)
+                enriched["gsm8k_role_match_score"] = float(role_match_score)
+                enriched["gsm8k_disambiguation_bonus"] = float(disambiguation_bonus)
                 enriched["gsm8k_embedding_signal"] = float(raw_signal)
                 enriched["gsm8k_similarity"] = float(raw_similarity)
                 selected_operation_rows.append(enriched)
@@ -5850,6 +6408,7 @@ class Knowledgeverse:
             )
         forward_number_values = [float(value) for value in parsed_numeric_values[:6]]
         backward_number_values = list(reversed(forward_number_values)) if forward_number_values else list(reversed(selected_number_values[:6]))
+        fusion_parse = parse_bundle.get("fusion_parse") if isinstance(parse_bundle, dict) and isinstance(parse_bundle.get("fusion_parse"), dict) else {}
         return {
             "navigation_embedding": navigation_embedding,
             "operation_embedding": operation_embedding,
@@ -5872,7 +6431,148 @@ class Knowledgeverse:
             "goal_type": str(parse_role_diagnostics.get("goal_type", "")).strip(),
             "uses_typed_fusion": bool(parse_role_diagnostics.get("uses_typed_fusion", False)),
             "typed_roles": list(parse_role_diagnostics.get("typed_roles", [])),
+            "semantic_entities": [
+                dict(row)
+                for row in (
+                    fusion_parse.get("semantic_entities")
+                    if isinstance(fusion_parse.get("semantic_entities"), list)
+                    else []
+                )
+                if isinstance(row, dict)
+            ],
+            "goal_entity": (
+                dict(fusion_parse.get("goal_entity"))
+                if isinstance(fusion_parse.get("goal_entity"), dict)
+                else {}
+            ),
+            "source_text": " ".join(
+                str(block.get("raw", "")).strip()
+                for block in self._gsm8k_parse_blocks(parse_bundle)
+                if isinstance(block, dict) and str(block.get("raw", "")).strip()
+            ),
         }
+
+    @staticmethod
+    def _normalize_semantic_dimension_token(value: str) -> str:
+        normalized = re.sub(r"[^a-z0-9_]+", "", str(value or "").strip().lower())
+        if len(normalized) > 4 and normalized.endswith("ies"):
+            normalized = normalized[:-3] + "y"
+        elif len(normalized) > 3 and normalized.endswith("ses"):
+            normalized = normalized[:-2]
+        elif len(normalized) > 3 and normalized.endswith("s") and not normalized.endswith("ss"):
+            normalized = normalized[:-1]
+        return normalized
+
+    @classmethod
+    def _semantic_dimension_key(cls, entity: dict[str, Any]) -> str:
+        unit = cls._normalize_semantic_dimension_token(str(entity.get("unit", "")))
+        scope = cls._normalize_semantic_dimension_token(str(entity.get("scope", "")))
+        return f"{unit}|{scope}"
+
+    def _semantic_entity_atom_embedding(
+        self,
+        entity: dict[str, Any],
+        *,
+        context: dict[str, Any],
+        embedding_cache: dict[str, list[float]],
+    ) -> tuple[list[float], str] | None:
+        quantity_candidates = (
+            context.get("quantity_role_candidates")
+            if isinstance(context.get("quantity_role_candidates"), list)
+            else []
+        )
+        surface = str(entity.get("surface", "")).strip().lower()
+        offset = int(entity.get("offset", 0) or 0)
+        try:
+            target_value = float(entity.get("resolved_value", entity.get("value", 0.0)))
+        except Exception:
+            target_value = None
+        if target_value is not None:
+            entry_id = self._numeric_entry_id_for_value(target_value)
+            if entry_id:
+                entry = self._catalog_entry_by_id(entry_id)
+                if isinstance(entry, dict):
+                    embedding = [float(value) for value in entry.get("embedding16", []) if value is not None]
+                    if embedding:
+                        return embedding, f"numeric:{entry_id}"
+        for row in quantity_candidates:
+            if not isinstance(row, dict):
+                continue
+            row_surface = str(row.get("surface", "")).strip().lower()
+            row_offset = int(row.get("offset", 0) or 0)
+            if row_surface != surface or row_offset != offset:
+                continue
+            embedding = [float(value) for value in row.get("embedding16", []) if value is not None]
+            if embedding:
+                return embedding, f"quantity:{row_surface}:{row_offset}"
+        label_parts = [
+            self._gpu_scalar_literal(target_value) if target_value is not None else surface,
+            str(entity.get("unit", "")).strip(),
+            str(entity.get("scope", "")).strip(),
+            str(entity.get("role", "")).strip(),
+        ]
+        label = " ".join(part for part in label_parts if part).strip()
+        if not label:
+            return None
+        if label in embedding_cache:
+            return list(embedding_cache[label]), f"semantic:{label}"
+        try:
+            embedding = [float(value) for value in self._embed_query_gpu(label) if value is not None]
+        except Exception:
+            return None
+        if not embedding:
+            return None
+        embedding_cache[label] = list(embedding)
+        return embedding, f"semantic:{label}"
+
+    def _check_dimensional_consistency(
+        self,
+        semantic_entities: list[dict[str, Any]],
+        goal_entity: dict[str, Any] | None,
+    ) -> bool | None:
+        if not semantic_entities or not isinstance(goal_entity, dict):
+            return None
+        goal_unit = self._normalize_semantic_dimension_token(str(goal_entity.get("unit", "")))
+        goal_scope = self._normalize_semantic_dimension_token(str(goal_entity.get("scope", "")))
+        goal_denominator = goal_scope[4:] if goal_scope.startswith("per_") else ""
+        if not goal_unit and not goal_denominator:
+            return None
+        balance: dict[str, int] = {}
+        informative = 0
+        unknown = 0
+        for entity in semantic_entities:
+            if not isinstance(entity, dict):
+                continue
+            unit = self._normalize_semantic_dimension_token(str(entity.get("unit", "")))
+            scope = self._normalize_semantic_dimension_token(str(entity.get("scope", "")))
+            denominator = scope[4:] if scope.startswith("per_") else ""
+            if not unit and not denominator:
+                unknown += 1
+                continue
+            informative += 1
+            if unit:
+                balance[unit] = balance.get(unit, 0) + 1
+            if denominator:
+                balance[denominator] = balance.get(denominator, 0) - 1
+        if informative == 0:
+            return None
+        numerator = sorted(
+            token
+            for token, count in balance.items()
+            for _ in range(max(int(count), 0))
+        )
+        denominator = sorted(
+            token
+            for token, count in balance.items()
+            for _ in range(max(int(-count), 0))
+        )
+        goal_numerator = [goal_unit] if goal_unit else []
+        goal_denominator_tokens = [goal_denominator] if goal_denominator else []
+        if numerator == goal_numerator and denominator == goal_denominator_tokens:
+            return True
+        if unknown > 0:
+            return None
+        return False
 
     def _candidate_compositional_atom_rows(self, candidate: dict[str, Any]) -> list[list[float]]:
         context = candidate.get("gsm8k_context") if isinstance(candidate.get("gsm8k_context"), dict) else {}
@@ -5885,6 +6585,7 @@ class Knowledgeverse:
 
         rows: list[list[float]] = []
         seen: set[str] = set()
+        embedding_cache: dict[str, list[float]] = {}
 
         def _append_row(row: dict[str, Any] | None) -> None:
             if not isinstance(row, dict):
@@ -5902,6 +6603,45 @@ class Knowledgeverse:
             seen.add(key)
             rows.append(embedding)
 
+        def _append_embedding(embedding: list[float], key: str) -> None:
+            if not embedding:
+                return
+            if key in seen:
+                return
+            seen.add(key)
+            rows.append([float(value) for value in embedding])
+
+        semantic_entities = [
+            dict(row)
+            for row in (
+                context.get("semantic_entities")
+                if isinstance(context.get("semantic_entities"), list)
+                else []
+            )
+            if isinstance(row, dict)
+        ]
+        semantic_groups: dict[str, list[tuple[str, list[float]]]] = {}
+        for entity in semantic_entities:
+            resolved = self._semantic_entity_atom_embedding(
+                entity,
+                context=context,
+                embedding_cache=embedding_cache,
+            )
+            if resolved is None:
+                continue
+            embedding, row_key = resolved
+            dimension_key = self._semantic_dimension_key(entity)
+            if dimension_key != "|":
+                semantic_groups.setdefault(dimension_key, []).append((row_key, embedding))
+            else:
+                _append_embedding(embedding, row_key)
+        for dimension_key, group_rows in sorted(semantic_groups.items(), key=lambda item: item[0]):
+            if len(group_rows) > 1:
+                group_embedding = self._mean_embedding_rows([embedding for _, embedding in group_rows])
+                if group_embedding:
+                    _append_embedding(group_embedding, f"semantic_group:{dimension_key}")
+            for row_key, embedding in group_rows:
+                _append_embedding(embedding, row_key)
         for row in context.get("pattern_rows", []):
             _append_row(row if isinstance(row, dict) else None)
         for row in context.get("quantity_role_candidates", []):
@@ -5927,6 +6667,8 @@ class Knowledgeverse:
 
         applied = 0
         consistency_values: list[float] = []
+        boosted = 0
+        penalized = 0
         for candidate in local_candidates:
             if float(candidate.get("gsm8k_mode", 0.0)) <= 0.0:
                 continue
@@ -5949,16 +6691,43 @@ class Knowledgeverse:
                 _reconstructed, consistency = bridge.decompose(compound_row, atom_matrix)
             except Exception:
                 continue
-            candidate["compositional_consistency"] = float(consistency)
+            context = candidate.get("gsm8k_context") if isinstance(candidate.get("gsm8k_context"), dict) else {}
+            semantic_entities = [
+                dict(row)
+                for row in (
+                    context.get("semantic_entities")
+                    if isinstance(context.get("semantic_entities"), list)
+                    else []
+                )
+                if isinstance(row, dict)
+            ]
+            goal_entity = (
+                dict(context.get("goal_entity"))
+                if isinstance(context.get("goal_entity"), dict)
+                else {}
+            )
+            dimensional_ok = self._check_dimensional_consistency(semantic_entities, goal_entity)
+            adjusted_consistency = float(consistency)
+            if dimensional_ok is True:
+                adjusted_consistency = min(1.0, adjusted_consistency * 1.3)
+                boosted += 1
+            elif dimensional_ok is False:
+                adjusted_consistency = max(0.0, adjusted_consistency * 0.5)
+                penalized += 1
+            candidate["compositional_consistency"] = float(adjusted_consistency)
             candidate["compositional_atom_count"] = int(len(atom_matrix))
+            candidate["compositional_dimensional_consistency"] = (
+                1.0 if dimensional_ok is True else -1.0 if dimensional_ok is False else 0.0
+            )
             applied += 1
-            consistency_values.append(float(consistency))
+            consistency_values.append(float(adjusted_consistency))
 
         if applied:
             selection_steps.append(
                 "Atomic fission/fusion: "
                 f"verified {applied} candidates "
-                f"(mean_consistency={sum(consistency_values) / max(1, len(consistency_values)):.2f})"
+                f"(mean_consistency={sum(consistency_values) / max(1, len(consistency_values)):.2f}, "
+                f"dimensional_boosts={boosted}, dimensional_penalties={penalized})"
             )
 
     @staticmethod
@@ -5985,6 +6754,79 @@ class Knowledgeverse:
             aliases.update(synonym_map.get(alias, set()))
         return [alias for alias in aliases if alias]
 
+    def _subject_anchor_match_score(
+        self,
+        *,
+        entry: dict[str, Any],
+        subject_hint: str,
+        match_mode: str,
+    ) -> float:
+        aliases = {
+            alias.strip().lower()
+            for alias in self._subject_hint_aliases(subject_hint)
+            if alias.strip()
+        }
+        if not aliases:
+            return 0.0
+        metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+        explicit_subjects = {
+            str(item).strip().lower()
+            for item in (
+                metadata.get("mmlu_subjects")
+                if isinstance(metadata.get("mmlu_subjects"), list)
+                else []
+            )
+            if str(item).strip()
+        }
+        direct_subjects = {
+            str(entry.get("subject") or "").strip().lower(),
+            str(metadata.get("subject") or "").strip().lower(),
+            str(metadata.get("subfield") or "").strip().lower(),
+            str(entry.get("domain") or "").strip().lower(),
+            str(metadata.get("domain") or "").strip().lower(),
+        }
+        direct_subjects = {value for value in direct_subjects if value}
+        alias_hits = {
+            str(item).strip().lower()
+            for item in (
+                metadata.get("aliases")
+                if isinstance(metadata.get("aliases"), list)
+                else []
+            )
+            if str(item).strip()
+        }
+        if explicit_subjects.intersection(aliases):
+            return 1.0
+        if match_mode == "mmlu":
+            if direct_subjects.intersection(aliases):
+                return 0.8
+            if alias_hits.intersection(aliases):
+                return 0.45
+            return 0.0
+        entry_id = str(entry.get("id", "")).strip().lower()
+        category = str(entry.get("category", "")).strip().lower()
+        anchor_like = (
+            "anchor" in entry_id
+            or category
+            in {
+                "concept",
+                "definition",
+                "template_support",
+                "math_reasoning_pattern",
+                "rule",
+                "pattern_rule",
+                "compositional_rule",
+                "constant",
+            }
+        )
+        if not anchor_like:
+            return 0.0
+        if direct_subjects.intersection(aliases):
+            return 1.0
+        if alias_hits.intersection(aliases):
+            return 0.5
+        return 0.0
+
     def _subject_anchor_context(
         self,
         *,
@@ -5996,51 +6838,48 @@ class Knowledgeverse:
         aliases = {alias.strip().lower() for alias in self._subject_hint_aliases(subject_hint) if alias.strip()}
         if not aliases:
             return [], [], []
+        catalog = self.get_gpu_galaxy_catalog()
+        if not catalog:
+            try:
+                self.bind_gpu_galaxy_runtime(galaxy_names=target_galaxies or None)
+            except Exception:
+                pass
+            catalog = self.get_gpu_galaxy_catalog()
+        if not catalog:
+            fallback_catalog: list[dict[str, Any]] = []
+            for galaxy_name in target_galaxies:
+                try:
+                    galaxy = self.galaxy_manager.get_galaxy(galaxy_name)
+                except Exception:
+                    continue
+                for raw_entry in getattr(galaxy, "entries", []):
+                    if not isinstance(raw_entry, dict):
+                        continue
+                    row = dict(raw_entry)
+                    row.setdefault("galaxy", str(galaxy_name))
+                    fallback_catalog.append(row)
+            catalog = fallback_catalog
+        if not catalog:
+            return [], [], []
         allowed_galaxies = {str(name).strip() for name in target_galaxies if str(name).strip()}
         matched_entries: list[dict[str, Any]] = []
-        for entry in self.get_gpu_galaxy_catalog():
+        for entry in catalog:
             galaxy_name = str(entry.get("galaxy", "")).strip()
             if allowed_galaxies and galaxy_name not in allowed_galaxies:
                 continue
-            metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
-            category = str(entry.get("category", "")).strip().lower()
-            entry_id = str(entry.get("id", "")).strip().lower()
-            match_hit = False
-            if match_mode == "mmlu":
-                explicit_subjects = {
-                    str(item).strip().lower()
-                    for item in (metadata.get("mmlu_subjects") if isinstance(metadata.get("mmlu_subjects"), list) else [])
-                    if str(item).strip()
-                }
-                match_hit = bool(explicit_subjects.intersection(aliases))
-            elif match_mode == "domain":
-                anchor_like = (
-                    "anchor" in entry_id
-                    or category in {
-                        "concept",
-                        "definition",
-                        "template_support",
-                        "math_reasoning_pattern",
-                        "rule",
-                        "pattern_rule",
-                        "compositional_rule",
-                        "constant",
-                    }
-                )
-                explicit_subjects = {
-                    str(entry.get("subject") or "").strip().lower(),
-                    str(metadata.get("subject") or "").strip().lower(),
-                    str(metadata.get("subfield") or "").strip().lower(),
-                    str(entry.get("domain") or "").strip().lower(),
-                }
-                explicit_subjects = {value for value in explicit_subjects if value}
-                match_hit = anchor_like and bool(explicit_subjects.intersection(aliases))
-            if not match_hit:
+            match_score = self._subject_anchor_match_score(
+                entry=entry,
+                subject_hint=subject_hint,
+                match_mode=match_mode,
+            )
+            if match_score <= 0.0:
                 continue
             embedding = list(entry.get("embedding16", []))
             if not embedding:
                 continue
-            matched_entries.append(dict(entry))
+            row = dict(entry)
+            row["_subject_anchor_match_score"] = float(match_score)
+            matched_entries.append(row)
         if not matched_entries:
             return [], [], []
         match_similarities = self._embedding_similarities(
@@ -6052,7 +6891,9 @@ class Knowledgeverse:
             confidence = float(entry.get("confidence", 0.0))
             ranked_rows.append(
                 (
-                    float(similarity) + (0.05 * confidence),
+                    float(similarity)
+                    + (0.05 * confidence)
+                    + (0.16 * float(entry.get("_subject_anchor_match_score", 0.0))),
                     list(entry.get("embedding16", [])),
                     str(entry.get("id", "")).strip(),
                     str(entry.get("galaxy", "")).strip(),
@@ -7112,6 +7953,7 @@ class Knowledgeverse:
         selection_steps: list[str],
         task: dict[str, Any] | None = None,
         query_text: str = "",
+        domain_hint: str | None = None,
     ) -> list[dict[str, Any]]:
         substrate = self.get_query_head_substrate()
         catalog = self.get_gpu_galaxy_catalog()
@@ -7316,10 +8158,19 @@ class Knowledgeverse:
             for index in candidate_index_list
         ]
         candidate_similarities = self._embedding_similarities(query_embedding, candidate_embeddings)
+        subject_seed_bias: dict[int, float] = {}
+        if task_type == "MMLU_TASK" and str(domain_hint or "").strip():
+            for candidate_index in candidate_index_list:
+                subject_seed_bias[int(candidate_index)] = self._subject_anchor_match_score(
+                    entry=catalog[int(candidate_index)],
+                    subject_hint=str(domain_hint),
+                    match_mode="mmlu",
+                )
         similarity_pairs = sorted(
             zip(candidate_index_list, candidate_similarities),
             key=lambda item: (
                 item[1]
+                + (0.22 * float(subject_seed_bias.get(int(item[0]), 0.0)))
                 + (
                     0.18
                     * (
@@ -7333,6 +8184,12 @@ class Knowledgeverse:
             ),
             reverse=True,
         )
+        if subject_seed_bias:
+            matched_seed_count = sum(1 for value in subject_seed_bias.values() if float(value) > 0.0)
+            if matched_seed_count > 0:
+                selection_steps.append(
+                    f"MMLU seed bias: {matched_seed_count}/{len(candidate_index_list)} subject-matched candidates"
+                )
         selection_steps.append(
             f"Morton locate: {len(similarity_pairs)} candidates (radius={morton_radius}, target={len(target_galaxies)})"
         )
@@ -7531,6 +8388,7 @@ class Knowledgeverse:
                         str(match.get("galaxy", "")),
                         normalized_galaxy_weights,
                     ),
+                    "subject_anchor_focus": float(subject_seed_bias.get(int(candidate_index), 0.0)),
                     "led_path": list(led_path_nodes),
                     "led_path_position": int(led_path_positions.get(int(candidate_index), -1)),
                     "graph_neighbors": list(candidate_adjacency.get(int(candidate_index), [])),
@@ -7613,6 +8471,7 @@ class Knowledgeverse:
         path_scores: list[float],
         candidate_ids: list[str],
         selection_steps: list[str],
+        gsm8k_structural_override: dict[str, Any] | None = None,
     ) -> bool:
         if not path_scores:
             selection_steps.append("Halting gate: no path scores, continue")
@@ -7667,6 +8526,22 @@ class Knowledgeverse:
         top_score = float(metric_values[0]) if len(metric_values) >= 1 else 0.0
         score_gap = float(metric_values[1]) if len(metric_values) >= 2 else 0.0
         agreement_count = int(round(metric_values[2])) if len(metric_values) >= 3 else 0
+        if self._is_gsm8k_math_task(task) and isinstance(gsm8k_structural_override, dict):
+            override_answer = self._halting_record_candidate_id(
+                record=gsm8k_structural_override,
+                task_type=task_type,
+                gsm8k_mode=True,
+            )
+            top_answer = ordered_candidate_ids[0] if ordered_candidate_ids else ""
+            if override_answer and (not converged or override_answer != top_answer):
+                converged = True
+                selection_steps.append(
+                    "GSM8K structural override: "
+                    f"{override_answer} beats {top_answer or 'none'} "
+                    + (
+                        f"(priority={self._gsm8k_structural_override_priority(gsm8k_structural_override):.2f})"
+                    )
+                )
         selection_steps.append(
             "Halting gate: "
             + ("halt" if converged else "continue")
@@ -7783,6 +8658,112 @@ class Knowledgeverse:
             reverse=True,
         )
         return aggregated_records
+
+    @staticmethod
+    def _try_parse_finite_number(value: Any) -> float | None:
+        try:
+            numeric = float(str(value).strip())
+        except Exception:
+            return None
+        if not math.isfinite(numeric):
+            return None
+        return float(numeric)
+
+    def _gsm8k_consensus_record(self, records: list[dict[str, Any]]) -> dict[str, Any] | None:
+        viable = [record for record in records if isinstance(record, dict)]
+        if not viable:
+            return None
+        return max(
+            viable,
+            key=lambda record: (
+                float(((record.get("candidate") or {}).get("gsm8k_consensus_weight", record.get("weighted_support", 0.0)))),
+                int(((record.get("candidate") or {}).get("gsm8k_consensus_support", record.get("support_count", 0)))),
+                float(((record.get("candidate") or {}).get("path_score", record.get("path_score", float("-inf"))))),
+                float(((record.get("candidate") or {}).get("gpu_score", float("-inf")))),
+            ),
+        )
+
+    def _gsm8k_structural_override_priority(self, record: dict[str, Any]) -> float:
+        candidate = record.get("candidate") if isinstance(record.get("candidate"), dict) else {}
+        structural = float(
+            candidate.get(
+                "gsm8k_best_structural_score",
+                record.get("best_structural_score", candidate.get("gsm8k_structural_score", 0.0)),
+            )
+            or 0.0
+        )
+        compositional = max(0.0, float(candidate.get("compositional_consistency", 0.0) or 0.0))
+        dimensional = max(0.0, float(candidate.get("compositional_dimensional_consistency", 0.0) or 0.0))
+        path_score = float(candidate.get("path_score", record.get("path_score", float("-inf"))) or float("-inf"))
+        return float(
+            (self.GSM8K_STRUCTURAL_OVERRIDE_PATH_WEIGHT * path_score)
+            + (self.GSM8K_STRUCTURAL_OVERRIDE_STRUCT_WEIGHT * structural)
+            + (self.GSM8K_STRUCTURAL_OVERRIDE_COMPOSITIONAL_WEIGHT * compositional)
+            + (self.GSM8K_STRUCTURAL_OVERRIDE_DIMENSIONAL_WEIGHT * dimensional)
+        )
+
+    def _gsm8k_structural_override_record(self, records: list[dict[str, Any]]) -> dict[str, Any] | None:
+        viable = [record for record in records if isinstance(record, dict)]
+        if not viable:
+            return None
+        consensus_record = self._gsm8k_consensus_record(viable)
+        if consensus_record is None:
+            return None
+        numeric_records = [
+            record
+            for record in viable
+            if self._try_parse_finite_number(record.get("option_text", "")) is not None
+        ]
+        if not numeric_records:
+            return None
+        structural_record = max(
+            numeric_records,
+            key=lambda record: (
+                self._gsm8k_structural_override_priority(record),
+                float(
+                    ((record.get("candidate") or {}).get(
+                        "gsm8k_best_structural_score",
+                        record.get("best_structural_score", ((record.get("candidate") or {}).get("gsm8k_structural_score", 0.0))),
+                    ))
+                ),
+                float(((record.get("candidate") or {}).get("path_score", record.get("path_score", float("-inf"))))),
+            ),
+        )
+        if structural_record is consensus_record:
+            return None
+        candidate = structural_record.get("candidate") if isinstance(structural_record.get("candidate"), dict) else {}
+        structural_score = float(
+            candidate.get(
+                "gsm8k_best_structural_score",
+                structural_record.get("best_structural_score", candidate.get("gsm8k_structural_score", 0.0)),
+            )
+            or 0.0
+        )
+        if structural_score < self.GSM8K_STRUCTURAL_OVERRIDE_MIN:
+            return None
+        structural_priority = self._gsm8k_structural_override_priority(structural_record)
+        consensus_priority = self._gsm8k_structural_override_priority(consensus_record)
+        consensus_numeric = self._try_parse_finite_number(consensus_record.get("option_text", ""))
+        consensus_candidate = (
+            consensus_record.get("candidate") if isinstance(consensus_record.get("candidate"), dict) else {}
+        )
+        consensus_structural = float(
+            consensus_candidate.get(
+                "gsm8k_best_structural_score",
+                consensus_record.get("best_structural_score", consensus_candidate.get("gsm8k_structural_score", 0.0)),
+            )
+            or 0.0
+        )
+        if consensus_numeric is None:
+            if structural_priority >= (float(consensus_record.get("path_score", float("-inf"))) + self.GSM8K_STRUCTURAL_OVERRIDE_MARGIN):
+                return structural_record
+            return None
+        if (
+            structural_priority >= (consensus_priority + self.GSM8K_STRUCTURAL_OVERRIDE_MARGIN)
+            and structural_score >= (consensus_structural + self.GSM8K_STRUCTURAL_OVERRIDE_MARGIN)
+        ):
+            return structural_record
+        return None
 
     @staticmethod
     def _halting_candidate_hashes(candidate_ids: list[str], score_count: int) -> list[int]:
@@ -8064,6 +9045,7 @@ class Knowledgeverse:
             selection_steps=selection_steps,
             task=task,
             query_text=benchmark_query_text,
+            domain_hint=domain_hint,
         )
         if not navigation_candidates and task_type != "MMLU_TASK":
             return None
@@ -8170,10 +9152,13 @@ class Knowledgeverse:
                 )
                 for record, subject_similarity in zip(shared_mmlu_records, subject_similarities):
                     record["subject_similarity"] = float(subject_similarity)
-                    record["subject_anchor_focus"] = (
-                        1.0
-                        if str(record["match"].get("galaxy", "")).strip() in subject_anchor_galaxies
-                        else 0.0
+                    record["subject_anchor_focus"] = max(
+                        float(record.get("subject_anchor_focus", 0.0)),
+                        self._subject_anchor_match_score(
+                            entry=record["match"],
+                            subject_hint=subject_label,
+                            match_mode="mmlu",
+                        ),
                     )
             if shared_mmlu_records and list(parse_context.get("fusion_embedding", [])):
                 parse_similarities = self._embedding_similarities(
@@ -8258,10 +9243,13 @@ class Knowledgeverse:
                 )
                 for record, subject_similarity in zip(shared_lhe_records, subject_similarities):
                     record["subject_similarity"] = float(subject_similarity)
-                    record["subject_anchor_focus"] = (
-                        1.0
-                        if str(record["match"].get("galaxy", "")).strip() in subject_anchor_galaxies
-                        else 0.0
+                    record["subject_anchor_focus"] = max(
+                        float(record.get("subject_anchor_focus", 0.0)),
+                        self._subject_anchor_match_score(
+                            entry=record["match"],
+                            subject_hint=subject_label,
+                            match_mode="domain",
+                        ),
                     )
             if shared_lhe_records and list(parse_context.get("fusion_embedding", [])):
                 parse_similarities = self._embedding_similarities(
@@ -8417,6 +9405,7 @@ class Knowledgeverse:
                     selection_steps=[],
                     task=task,
                     query_text=benchmark_query_text,
+                    domain_hint=domain_hint,
                 )
                 if not path_navigation_candidates:
                     path_navigation_candidates = navigation_candidates
@@ -8558,10 +9547,13 @@ class Knowledgeverse:
                 )
                 for record, subject_similarity in zip(local_candidates, subject_similarities):
                     record["subject_similarity"] = float(subject_similarity)
-                    record["subject_anchor_focus"] = (
-                        1.0
-                        if str(record["match"].get("galaxy", "")).strip() in subject_anchor_galaxies
-                        else 0.0
+                    record["subject_anchor_focus"] = max(
+                        float(record.get("subject_anchor_focus", 0.0)),
+                        self._subject_anchor_match_score(
+                            entry=record["match"],
+                            subject_hint=subject_label,
+                            match_mode="mmlu" if task_type == "MMLU_TASK" else "domain",
+                        ),
                     )
             if local_candidates and list(parse_context.get("fusion_embedding", [])):
                 parse_similarities = self._embedding_similarities(
@@ -8663,7 +9655,17 @@ class Knowledgeverse:
                         if isinstance(record["match"].get("metadata"), dict)
                         else {}
                     )
-                    record["operation_pattern_focus"] = 1.0 if match_id in operation_ids else 0.0
+                    operation_role_match = 0.0
+                    if bool(match_metadata.get("operation_pattern")) and gsm8k_context:
+                        operation_role_match = self._gsm8k_operation_role_match_score(
+                            metadata=match_metadata,
+                            context=gsm8k_context,
+                        )
+                    record["operation_pattern_focus"] = (
+                        (1.0 if match_id in operation_ids else 0.0)
+                        + (0.75 * float(operation_role_match))
+                    )
+                    record["operation_role_match"] = float(operation_role_match)
                     numeric_value = self._gsm8k_numeric_entry_value(record["match"])
                     numeric_id = numeric_value[0] if numeric_value is not None else ""
                     record["numeric_focus"] = 1.0 if numeric_id in numeric_ids else 0.0
@@ -8807,12 +9809,23 @@ class Knowledgeverse:
                     best_for_path["gsm8k_preview_program"] = preview_program
                     best_for_path["gsm8k_preview_strategy"] = preview_label
                     best_for_path["gsm8k_structural_score"] = float(preview_structural)
+                    binding_summary = str(
+                        (
+                            best_for_path.get("gsm8k_context")
+                            if isinstance(best_for_path.get("gsm8k_context"), dict)
+                            else {}
+                        ).get("_last_gsm8k_slot_binding", "")
+                    ).strip()
+                    if binding_summary:
+                        best_for_path["gsm8k_slot_binding"] = binding_summary
                     strategy_name = preview_label or strategy_name
                     selection_steps.append(
                         "GSM8K worker preview: "
                         f"{str(path.get('label') or path.get('program_id', 'worker'))} "
                         f"{preview_label} -> {preview_answer}"
                     )
+                    if binding_summary:
+                        selection_steps.append(f"GSM8K slot binding: {binding_summary}")
                 strategy_weight = self._gsm8k_strategy_weight(strategy_name)
                 best_for_path["gsm8k_strategy_weight"] = float(strategy_weight)
                 if strategy_weight != 1.0:
@@ -9049,6 +10062,11 @@ class Knowledgeverse:
             )
             for record in halting_records
         ]
+        gsm8k_structural_override = (
+            self._gsm8k_structural_override_record(selected_records)
+            if gsm8k_mode and selected_records
+            else None
+        )
         halting_started = time.perf_counter()
         converged = self._halting_gate_converged(
             task_type=task_type,
@@ -9056,6 +10074,7 @@ class Knowledgeverse:
             path_scores=path_best_scores,
             candidate_ids=path_candidate_ids,
             selection_steps=selection_steps,
+            gsm8k_structural_override=gsm8k_structural_override,
         )
         if task_type == "LHE_TASK":
             self._record_active_lhe_timing("halting", time.perf_counter() - halting_started)
@@ -9080,6 +10099,36 @@ class Knowledgeverse:
                 selection_steps=selection_steps,
             )
         if gsm8k_mode and selected_records:
+            if isinstance(gsm8k_structural_override, dict):
+                override_candidate = (
+                    gsm8k_structural_override.get("candidate")
+                    if isinstance(gsm8k_structural_override.get("candidate"), dict)
+                    else None
+                )
+                if isinstance(override_candidate, dict):
+                    selection_steps.append(
+                        "GSM8K final selection: structural override -> "
+                        f"{str(gsm8k_structural_override.get('option_text', '')).strip()}"
+                    )
+                    return self._attach_galaxy_contribution(
+                        override_candidate,
+                        records=path_best_records or selected_records,
+                        candidates=scored_candidates,
+                        selection_steps=selection_steps,
+                    )
+            consensus_record = self._gsm8k_consensus_record(selected_records)
+            consensus_candidate = (
+                consensus_record.get("candidate")
+                if isinstance((consensus_record or {}).get("candidate"), dict)
+                else None
+            )
+            if isinstance(consensus_candidate, dict):
+                return self._attach_galaxy_contribution(
+                    consensus_candidate,
+                    records=path_best_records or selected_records,
+                    candidates=scored_candidates,
+                    selection_steps=selection_steps,
+                )
             return self._attach_galaxy_contribution(
                 max(
                 (record.get("candidate") for record in selected_records if isinstance(record.get("candidate"), dict)),

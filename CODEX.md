@@ -1,7 +1,7 @@
 # CODEX.md -- Implementation Lead Guide
 
-**Last Updated:** March 14, 2026
-**Version:** 6.0 (Phase D — TRM Game Loop Migration)
+**Last Updated:** March 16, 2026
+**Version:** 6.1 (Track A landed, Track C in progress, Phase D queued)
 
 Codex-style agents lead implementation, Reality Galaxy, and testing. Read the latest briefing first for the full architecture; this file captures Codex's role, patterns, and backlog.
 
@@ -18,9 +18,9 @@ Morton Octree → LED-A* → Frustum Cull → Dynamic LOD → Nine-Chain Swarm �
 |-----------|------------|---------------|--------|
 | ARC | 10/10 | 10/50 | 34 nav_miss + 6 prim_bug; deterministic |
 | Math | 20/20 | — | GPU query path sovereign; deterministic |
-| GSM8K | — | 1/10 | Ceiling at template approach; Phase D needed for 5+ |
-| LHE | — | 6/10 | Factual lookup dominates; multi-hop needed |
-| MMLU | — | 13-14/50 | ±1 non-deterministic variance |
+| GSM8K | — | 2/10 | Track A (Pass 4 semantic verification) landed; upstream parse/strategy failures dominate |
+| LHE | — | 6/10 | Track B (pre-scoring crystallization) REVERTED — regressed to 5/10; stays post-hoc |
+| MMLU | — | 12-15/50 | Variance 11-16 across checkpoint roots; Track C (Galaxy expansion) in progress |
 
 **Key Achievement:** First sovereign GPU-converged answer ("What is 2+3?" = 5) with ZERO Python fallback.
 
@@ -74,8 +74,10 @@ Morton Octree → LED-A* → Frustum Cull → Dynamic LOD → Nine-Chain Swarm �
    - [docs/vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md](docs/vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md) -- Form + Meaning for humans AND AI
 
 4. **Read the latest Claude directives:**
-   - [TEMP/CLAUDE_PHASE_D_TRM_GAME_LOOP_STEERING_03.14.2026.md](TEMP/CLAUDE_PHASE_D_TRM_GAME_LOOP_STEERING_03.14.2026.md) -- **Phase D steering (ACTIVE)**
-   - [TEMP/CLAUDE_COMPOSED_HEAD_CONVERGENCE_PLAN_03.10.2026.md](TEMP/CLAUDE_COMPOSED_HEAD_CONVERGENCE_PLAN_03.10.2026.md) -- convergence plan (Phases A-D overview)
+   - [TEMP/CODEX_TRACK_C_MMLU_GALAXY_PLUS_GSM8K_AUDIT_03.16.2026.md](TEMP/CODEX_TRACK_C_MMLU_GALAXY_PLUS_GSM8K_AUDIT_03.16.2026.md) -- **Track C MMLU Galaxy + GSM8K audit (ACTIVE)**
+   - [TEMP/CODEX_TRACK_A_PASS4_SEMANTIC_VERIFICATION_03.16.2026.md](TEMP/CODEX_TRACK_A_PASS4_SEMANTIC_VERIFICATION_03.16.2026.md) -- Track A Pass 4 (LANDED)
+   - [TEMP/CLAUDE_PHASE_B_PLUS_ADVANCEMENT_03.16.2026.md](TEMP/CLAUDE_PHASE_B_PLUS_ADVANCEMENT_03.16.2026.md) -- Three-track steering (B reverted, A→C)
+   - [TEMP/CLAUDE_PHASE_D_TRM_GAME_LOOP_STEERING_03.14.2026.md](TEMP/CLAUDE_PHASE_D_TRM_GAME_LOOP_STEERING_03.14.2026.md) -- Phase D steering (queued after Track C)
 
 5. **Read the GPU environment policy:**
    - [docs/ENV_POLICY.md](docs/ENV_POLICY.md) -- critical GPU setup (CUDA_VISIBLE_DEVICES=0)
@@ -87,7 +89,7 @@ Morton Octree → LED-A* → Frustum Cull → Dynamic LOD → Nine-Chain Swarm �
 
 ## Quick Start (After Reading Briefing + Specs)
 - Check [docs/ROADMAP.md](docs/ROADMAP.md) for current phase.
-- Review Claude's specs in TEMP/*.md (latest dated March 10, 2026).
+- Review Claude's specs in TEMP/*.md (latest dated March 16, 2026).
 - Verify hot path sovereignty (no Python regex/string ops for reasoning logic).
 - Read the key implementation files before modifying them (see Code References below).
 - Coordinate with Claude for architecture questions; own implementation and tests.
@@ -208,7 +210,19 @@ Answer (or iterate)
 
 ## Current Backlog (Codex-owned)
 
-### Priority 1: Phase D — TRM Game Loop Migration (ACTIVE)
+### Priority 1: Track C — MMLU Galaxy Expansion (IN PROGRESS)
+
+**Full spec:** [TEMP/CODEX_TRACK_C_MMLU_GALAXY_PLUS_GSM8K_AUDIT_03.16.2026.md](TEMP/CODEX_TRACK_C_MMLU_GALAXY_PLUS_GSM8K_AUDIT_03.16.2026.md)
+
+**Part 1:** Add ~70-80 Reality Galaxy entries across 25+ MMLU subjects (biology, chemistry, CS, humanities, social sciences). Add ~15-20 Grammar rules with defeasible metadata. Enhance domain_hint → LED-A* seeding for MMLU.
+
+**Part 2:** GSM8K failure audit — run 10-question benchmark, classify each of the ~8 failures (PARSE_FAILURE, STRATEGY_FAILURE, COMPOSITION_FAILURE, GALAXY_MISS, HALTING_FAILURE). Output: `TEMP/GSM8K_FAILURE_AUDIT_03.16.2026.md`.
+
+**Target:** MMLU 18+/50 (from 12-15). GSM8K 2/10 must hold.
+
+**Constraint:** All Galaxy entries via ingestion path (`foundational_operations_bootstrap.py`). NO live insertion during inference (exploratory grammar insertion caused MMLU regression — deferred to sleep-time only).
+
+### Priority 2: Phase D — TRM Game Loop Migration
 
 **Full spec:** [TEMP/CLAUDE_PHASE_D_TRM_GAME_LOOP_STEERING_03.14.2026.md](TEMP/CLAUDE_PHASE_D_TRM_GAME_LOOP_STEERING_03.14.2026.md)
 
@@ -228,26 +242,36 @@ Answer (or iterate)
 - `knowledge3d/cranium/ptx/trm_step_fused.cu` — Single-kernel TRM forward pass
 - `knowledge3d/knowledgeverse/knowledgeverse.py` — The 8,182-line target (shrink to ~200)
 
-**Quartet gate (must hold at every sub-step):**
-ARC 10/10, Math 20/20, GSM8K 1/10, LHE 6/10, MMLU 13-14/50
+**Quintet gate (must hold at every sub-step):**
+ARC 10/10, Math 20/20, GSM8K 2/10, LHE 6/10, MMLU 12+/50
 
-**Start with D.1.** Wire TRMLauncher, run quartet, report back.
-
-### Priority 2: Wire GRE Specialist Kernels (See table above)
+### Priority 3: Wire GRE Specialist Kernels (See table above)
 
 Concurrent with Phase D — wire GRE kernels into swarm worker dispatch as TRM takes over orchestration.
 
-### Priority 3: Fix Benchmark Gaps (Phase D enables)
+### Priority 4: Fix Benchmark Gaps (Targeted by Audit)
 
-- GSM8K 5+/10 — needs compositional RPN chaining (Phase D.6 enables)
-- LHE multi-hop — needs `gre_graph_crystallizer` + TRM multi-tick reasoning
+- GSM8K 5+/10 — Track A (Pass 4 semantic verification) landed; GSM8K failure audit will identify specific upstream parse/strategy fixes needed
+- LHE multi-hop — Track B REVERTED (pre-scoring crystallization destabilized). Deferred to Phase D (TRM game loop). Graph crystallizer stays post-hoc.
 - ARC expansion — 34 nav_miss need better Galaxy coverage + transform diversity
-- MMLU — Galaxy neighborhood coverage + option-wise elimination
+- MMLU — Track C (Galaxy expansion) in progress; once content lands, leverage Pass 4 knowledge verification
 
-### Priority 4: Cross-Benchmark Session Management
+### Learnings (Track A/B)
 
-**Bug:** Single Knowledgeverse instance shared across benchmarks causes cross-contamination.
-**Fix:** Implement `reset_query_session()` clearing per-benchmark mutable state.
+**Track A (Pass 4 Semantic Verification) — LANDED:**
+- `_annotate_semantic_roles()` + `_resolve_reference_entities()` in navigator_specialist.py
+- Dimensional consistency boost/penalty in `_apply_atomic_compositional_consistency()` (knowledgeverse.py)
+- GSM8K-gated (line 606), feeds into existing `compositional_consistency` at weight 0.12
+- GSM8K stayed at 2/10 — upstream parse/strategy failures dominate, not compositional verification
+
+**Track B (Pre-Scoring Crystallization) — REVERTED:**
+- Moving graph crystallizer into pre-scoring loop dropped LHE 6→5, MMLU 15→8
+- Even LHE-only narrowing destabilized checkpoints
+- **Lesson:** Don't move kernels earlier in pipeline without weight recalibration
+
+**Exploratory Grammar Insertion — DEFERRED:**
+- Live insertion of 0-signal Grammar rules caused MMLU regression
+- Exploratory promotions deferred to sleep-time consolidation only
 
 ---
 

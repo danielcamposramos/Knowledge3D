@@ -14,6 +14,7 @@ from knowledge3d.knowledgeverse.foundational_operations_bootstrap import (
 )
 from knowledge3d.knowledgeverse.grammar_galaxy import GrammarGalaxy
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
+from knowledge3d.knowledgeverse.navigator_specialist import NavigatorSpecialist
 from knowledge3d.knowledgeverse.specialist_base import SpecialistBase
 from knowledge3d.training.trm_galaxy_nav import (
     apply_trm_weights_to_traces,
@@ -828,6 +829,241 @@ def test_phase_a3_atomic_fission_threads_compositional_consistency_into_gsm8k_ca
     assert kv._gpu_scalar_literal(0.75) in expr
 
 
+def test_track_a_semantic_entities_capture_frequency_rate_and_goal():
+    navigator = NavigatorSpecialist()
+
+    route = navigator._fusion_reading_path(
+        "James decides to run 3 sprints 3 times a week. He runs 60 meters each sprint. How many total meters does he run a week?",
+        {
+            "specialist": "math",
+            "domain": "math",
+            "galaxy_names": ["Math", "Grammar"],
+            "goal_type_family": "gsm8k",
+        },
+    )
+
+    fusion = route["fusion_parse"]
+    semantic_entities = fusion["semantic_entities"]
+    assert any(
+        float(entity.get("value", 0.0)) == pytest.approx(3.0)
+        and str(entity.get("role", "")).strip() == "count"
+        and str(entity.get("unit", "")).strip() == "sprint"
+        and str(entity.get("scope", "")).strip() == "per_session"
+        for entity in semantic_entities
+    )
+    assert any(
+        float(entity.get("value", 0.0)) == pytest.approx(3.0)
+        and str(entity.get("role", "")).strip() == "frequency"
+        and str(entity.get("unit", "")).strip() == "session"
+        and str(entity.get("scope", "")).strip() == "per_week"
+        for entity in semantic_entities
+    )
+    assert any(
+        float(entity.get("value", 0.0)) == pytest.approx(60.0)
+        and str(entity.get("role", "")).strip() == "rate"
+        and str(entity.get("unit", "")).strip() == "meter"
+        and str(entity.get("scope", "")).strip() == "per_sprint"
+        for entity in semantic_entities
+    )
+    assert fusion["goal_entity"]["role"] == "goal"
+    assert fusion["goal_entity"]["unit"] == "meter"
+    assert fusion["goal_entity"]["scope"] == "per_week"
+
+
+def test_track_a_reference_resolution_recovers_half_that_much():
+    navigator = NavigatorSpecialist()
+
+    route = navigator._fusion_reading_path(
+        "A robe takes 2 bolts of blue fiber and half that much white fiber. How many bolts of white fiber are needed?",
+        {
+            "specialist": "math",
+            "domain": "math",
+            "galaxy_names": ["Math", "Grammar"],
+            "goal_type_family": "gsm8k",
+        },
+    )
+
+    semantic_entities = route["fusion_parse"]["semantic_entities"]
+    reference_entity = next(
+        entity
+        for entity in semantic_entities
+        if str(entity.get("reference", "")).strip() == "half"
+    )
+
+    assert float(reference_entity["resolved_value"]) == pytest.approx(1.0)
+    assert float(reference_entity["reference_source"]["value"]) == pytest.approx(2.0)
+    assert str(reference_entity.get("unit", "")).strip() == "bolt"
+
+
+def test_track_a_dimensional_consistency_boosts_existing_compositional_signal(tmp_path, monkeypatch):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_track_a_dimensional")
+
+    class _FakeAtomicFissionFusion:
+        def decompose(self, compound, atoms):
+            return np.asarray(compound, dtype=np.float32), 0.5
+
+    monkeypatch.setattr(kv, "get_atomic_fission_fusion", lambda: _FakeAtomicFissionFusion())
+
+    candidate = {
+        "match": {
+            "embedding16": [1.0] + [0.0] * 15,
+            "galaxy": "Math",
+            "category": "template",
+        },
+        "gsm8k_mode": 1.0,
+        "gsm8k_template_focus": 1.0,
+        "gsm8k_context": {
+            "semantic_entities": [
+                {"value": 3.0, "role": "count", "unit": "sprints", "scope": "per_session"},
+                {"value": 3.0, "role": "frequency", "unit": "sessions", "scope": "per_week"},
+                {"value": 60.0, "role": "rate", "unit": "meters", "scope": "per_sprint"},
+            ],
+            "goal_entity": {"role": "goal", "unit": "meters", "scope": "per_week"},
+        },
+    }
+
+    kv._apply_atomic_compositional_consistency(
+        local_candidates=[candidate],
+        task_type="MATH_TASK",
+        selection_steps=[],
+    )
+
+    assert candidate["compositional_consistency"] == pytest.approx(0.65)
+    assert candidate["compositional_dimensional_consistency"] == pytest.approx(1.0)
+
+
+def test_gsm8k_structural_override_promotes_numeric_answer_over_non_numeric_consensus(tmp_path):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_structural_override_non_numeric")
+
+    records = [
+        {
+            "option_text": "operation_pattern_multiplication",
+            "path_score": 1.94,
+            "weighted_support": 1.34,
+            "support_count": 1,
+            "best_structural_score": 0.0,
+            "candidate": {
+                "path_score": 1.94,
+                "gsm8k_consensus_weight": 1.34,
+                "gsm8k_consensus_support": 1,
+                "gsm8k_best_structural_score": 0.0,
+                "compositional_consistency": 0.30,
+            },
+        },
+        {
+            "option_text": "3",
+            "path_score": 1.90,
+            "weighted_support": 1.30,
+            "support_count": 1,
+            "best_structural_score": 0.71,
+            "candidate": {
+                "path_score": 1.90,
+                "gsm8k_consensus_weight": 1.30,
+                "gsm8k_consensus_support": 1,
+                "gsm8k_best_structural_score": 0.71,
+                "compositional_consistency": 0.30,
+            },
+        },
+        {
+            "option_text": "0.75",
+            "path_score": 1.33,
+            "weighted_support": 0.92,
+            "support_count": 1,
+            "best_structural_score": 0.75,
+            "candidate": {
+                "path_score": 1.33,
+                "gsm8k_consensus_weight": 0.92,
+                "gsm8k_consensus_support": 1,
+                "gsm8k_best_structural_score": 0.75,
+                "compositional_consistency": 0.30,
+            },
+        },
+    ]
+
+    override = kv._gsm8k_structural_override_record(records)
+
+    assert override is not None
+    assert override["option_text"] == "3"
+
+
+def test_gsm8k_structural_override_promotes_better_numeric_answer_over_noisy_consensus(tmp_path):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_structural_override_numeric")
+
+    records = [
+        {
+            "option_text": "30",
+            "path_score": 1.34,
+            "weighted_support": 3.26,
+            "support_count": 3,
+            "best_structural_score": 0.86,
+            "candidate": {
+                "path_score": 1.34,
+                "gsm8k_consensus_weight": 3.26,
+                "gsm8k_consensus_support": 3,
+                "gsm8k_best_structural_score": 0.86,
+                "compositional_consistency": 1.0,
+                "compositional_dimensional_consistency": 1.0,
+            },
+        },
+        {
+            "option_text": "260",
+            "path_score": 1.62,
+            "weighted_support": 1.34,
+            "support_count": 1,
+            "best_structural_score": 0.93,
+            "candidate": {
+                "path_score": 1.62,
+                "gsm8k_consensus_weight": 1.34,
+                "gsm8k_consensus_support": 1,
+                "gsm8k_best_structural_score": 0.93,
+                "compositional_consistency": 1.0,
+                "compositional_dimensional_consistency": 1.0,
+            },
+        },
+    ]
+
+    override = kv._gsm8k_structural_override_record(records)
+
+    assert override is not None
+    assert override["option_text"] == "260"
+
+
+def test_gsm8k_halting_structural_override_halts_single_worker_numeric_answer(tmp_path, monkeypatch):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_halting_override")
+
+    class _FakeHaltingGate:
+        def analyze_scores(self, ordered_scores, candidate_hashes, **kwargs):
+            return (
+                np.asarray([1, 0, 1, 0], dtype=np.uint32),
+                np.asarray([2.01, 0.04, 1.0], dtype=np.float32),
+            )
+
+    monkeypatch.setattr(kv, "get_halting_gate", lambda: _FakeHaltingGate())
+
+    override = {
+        "option_text": "3",
+        "path_score": 1.90,
+        "candidate": {
+            "path_score": 1.90,
+            "gsm8k_best_structural_score": 0.71,
+            "compositional_consistency": 0.30,
+        },
+    }
+    selection_steps: list[str] = []
+
+    converged = kv._halting_gate_converged(
+        task_type="MATH_TASK",
+        task={"type": "MATH_TASK", "competition": "GSM8K"},
+        path_scores=[2.01, 1.90],
+        candidate_ids=["operation_pattern_multiplication", "3"],
+        selection_steps=selection_steps,
+        gsm8k_structural_override=override,
+    )
+
+    assert converged is True
+    assert any("GSM8K structural override:" in step for step in selection_steps)
+
+
 def test_phase_track1_strict_rules_produce_definite_proof_tags():
     resolver = DefeasibleResolver()
 
@@ -1329,6 +1565,75 @@ def test_direction_b_bootstrap_includes_targeted_gsm8k_patterns_and_algebra_real
         "reality_abstract_algebra_s10_max_order",
         "reality_abstract_algebra_polynomial_factor_example_z7",
     }.issubset(reality_entry_ids)
+
+
+def test_track_c_foundational_reality_expands_mmlu_subject_coverage():
+    tagged_entries = []
+    subjects: set[str] = set()
+    for entry in _foundational_reality_entries():
+        metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+        mmlu_subjects = [
+            str(value).strip()
+            for value in list(metadata.get("mmlu_subjects", []) or [])
+            if str(value).strip()
+        ]
+        if not mmlu_subjects:
+            continue
+        tagged_entries.append(str(entry.get("id", "")).strip())
+        subjects.update(mmlu_subjects)
+
+    assert len(tagged_entries) >= 70
+    assert len(subjects) >= 25
+    assert {
+        "abstract_algebra",
+        "formal_logic",
+        "college_biology",
+        "college_chemistry",
+        "college_computer_science",
+        "computer_security",
+        "machine_learning",
+        "jurisprudence",
+        "professional_law",
+        "high_school_microeconomics",
+        "high_school_government_and_politics",
+        "high_school_world_history",
+        "sociology",
+    }.issubset(subjects)
+
+
+def test_track_c_grammar_rules_and_anchor_context_cover_new_mmlu_subjects(tmp_path):
+    galaxy = GrammarGalaxy()
+    required_rules = {
+        "mmlu_algebra_field_extension_degree",
+        "mmlu_formal_logic_truth_evaluation",
+        "mmlu_ml_bias_variance_diagnosis",
+        "mmlu_law_precedent_vs_statute",
+        "mmlu_government_branch_reasoning",
+    }
+    assert required_rules.issubset(set(galaxy.rules.keys()))
+
+    entry_map = {
+        str(entry.get("id", "")).strip(): entry
+        for entry in galaxy.entries
+        if str(entry.get("id", "")).strip() in required_rules
+    }
+    assert set(entry_map["mmlu_algebra_field_extension_degree"]["metadata"]["mmlu_subjects"]) == {"abstract_algebra"}
+    assert "machine_learning" in entry_map["mmlu_ml_bias_variance_diagnosis"]["metadata"]["mmlu_subjects"]
+
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_track_c_subject_anchor")
+    government_entry = next(
+        entry
+        for entry in _foundational_reality_entries()
+        if str(entry.get("id", "")).strip() == "reality_government_separation_of_powers"
+    )
+    assert (
+        kv._subject_anchor_match_score(
+            entry=government_entry,
+            subject_hint="high_school_government_and_politics",
+            match_mode="mmlu",
+        )
+        > 0.0
+    )
 
 
 def test_phase_d_boot_binding_reuses_all_default_catalog_for_subset_requests(tmp_path, monkeypatch):

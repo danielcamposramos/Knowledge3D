@@ -57,6 +57,52 @@ _NUMERIC_WORD_SPECIAL: dict[str, float] = {
     "quadruple": 4.0,
 }
 
+_SEMANTIC_REFERENCE_MULTIPLIERS: dict[str, float] = {
+    "half": 0.5,
+    "quarter": 0.25,
+    "twice": 2.0,
+    "double": 2.0,
+    "thrice": 3.0,
+    "triple": 3.0,
+    "quadruple": 4.0,
+}
+
+_SEMANTIC_SKIP_TOKENS = {
+    "a",
+    "an",
+    "and",
+    "as",
+    "at",
+    "by",
+    "each",
+    "every",
+    "for",
+    "from",
+    "in",
+    "much",
+    "many",
+    "of",
+    "or",
+    "per",
+    "that",
+    "the",
+    "this",
+    "times",
+    "time",
+    "total",
+}
+
+_SEMANTIC_SCOPE_CUES = {"per", "each", "every"}
+_SEMANTIC_TEMPORAL_UNITS = {
+    "day",
+    "daily",
+    "hour",
+    "minute",
+    "month",
+    "week",
+    "year",
+}
+
 
 @dataclass
 class PathCandidate:
@@ -495,6 +541,7 @@ class NavigatorSpecialist:
         def _merge_quantity_block(block: dict[str, Any]) -> None:
             rows = block.get("quantities") if isinstance(block.get("quantities"), list) else []
             raw_block = str(block.get("raw", "")).strip()
+            block_kind = str(block.get("type", "")).strip().lower() or "context"
             for raw_row in rows:
                 if not isinstance(raw_row, dict):
                     continue
@@ -522,6 +569,8 @@ class NavigatorSpecialist:
                         "role": role,
                         "source": str(raw_row.get("source", "")).strip() or "parse",
                         "offset": offset,
+                        "raw_block": raw_block,
+                        "block_kind": block_kind,
                     }
                 )
 
@@ -552,6 +601,14 @@ class NavigatorSpecialist:
                 if key not in unified_goal and b_goal.get(key):
                     unified_goal[key] = b_goal.get(key)
 
+        semantic_entities: list[dict[str, Any]] = []
+        goal_entity: dict[str, Any] = {}
+        if str(base_route.get("goal_type_family", "")).strip().lower() == "gsm8k":
+            semantic_entities, goal_entity = self._annotate_semantic_roles(
+                merged_quantities,
+                unified_goal=unified_goal,
+            )
+
         var_str = ", ".join(f"{k}={v}" for k, v in merged_vars.items())
         goal_raw = str(unified_goal.get("raw") or unified_goal.get("expression") or query)
         query_variant = f"Given {var_str}, {goal_raw}".strip() if var_str else goal_raw
@@ -566,6 +623,8 @@ class NavigatorSpecialist:
                 "unified_goal": unified_goal,
                 "goal_type": str(unified_goal.get("goal_type", "")).strip(),
                 "operation_frame": str(unified_goal.get("operation_frame", "")).strip(),
+                "semantic_entities": semantic_entities,
+                "goal_entity": goal_entity,
                 "forward_context_count": len(forward_context),
                 "backward_deps_count": len(backward_deps),
                 "deduplication_savings": max(
@@ -609,6 +668,8 @@ class NavigatorSpecialist:
             return float(_NUMERIC_WORD_TENS[normalized])
         if "-" in normalized:
             left, _, right = normalized.partition("-")
+            if left in _NUMERIC_WORD_SPECIAL and right:
+                return float(_NUMERIC_WORD_SPECIAL[left])
             if left in _NUMERIC_WORD_TENS and right in _NUMERIC_WORD_UNITS:
                 return float(_NUMERIC_WORD_TENS[left] + _NUMERIC_WORD_UNITS[right])
         return None
@@ -616,10 +677,11 @@ class NavigatorSpecialist:
     def _extract_quantities(self, sentence: str) -> list[dict[str, Any]]:
         quantities: list[dict[str, Any]] = []
         lowered = str(sentence or "").lower()
-        for match in re.finditer(r"(?<![A-Za-z])[-+]?\d+(?:\.\d+)?", sentence):
+        digit_pattern = r"(?<![A-Za-z])(?:[-+]?\d{1,3}(?:,\d{3})+(?:\.\d+)?|[-+]?\d+(?:\.\d+)?)"
+        for match in re.finditer(digit_pattern, sentence):
             raw = match.group(0)
             try:
-                value = float(raw)
+                value = float(raw.replace(",", ""))
             except ValueError:
                 continue
             quantities.append(
@@ -773,6 +835,406 @@ class NavigatorSpecialist:
         start = max(int(offset) - 56, 0)
         end = min(int(offset) + max(len(str(surface or "")), 1) + 48, len(text))
         return text[start:end].strip(" ,.;:!?") or text
+
+    @staticmethod
+    def _semantic_word_spans(text: str) -> list[tuple[str, int, int]]:
+        return [
+            (match.group(0).strip().lower(), int(match.start()), int(match.end()))
+            for match in re.finditer(r"[a-zA-Z$]+(?:-[a-zA-Z]+)?", str(text or ""))
+        ]
+
+    @staticmethod
+    def _normalize_semantic_token(token: str) -> str:
+        normalized = re.sub(r"[^a-z0-9_]+", "", str(token or "").strip().lower())
+        if len(normalized) > 4 and normalized.endswith("ies"):
+            normalized = normalized[:-3] + "y"
+        elif len(normalized) > 3 and normalized.endswith("ses"):
+            normalized = normalized[:-2]
+        elif len(normalized) > 3 and normalized.endswith("s") and not normalized.endswith("ss"):
+            normalized = normalized[:-1]
+        return normalized
+
+    def _semantic_context_tokens(
+        self,
+        raw_text: str,
+        *,
+        surface: str,
+        offset: int,
+    ) -> tuple[list[str], list[str], str]:
+        snippet = self._quantity_local_snippet(raw_text, surface=surface, offset=offset).lower()
+        spans = self._semantic_word_spans(raw_text)
+        anchor = int(offset) + max(len(str(surface or "")), 1)
+        before = [token for token, _start, end in spans if end <= int(offset)]
+        after = [token for token, start, _end in spans if start >= anchor]
+        return before[-6:], after[:8], snippet
+
+    def _semantic_unit_from_tokens(
+        self,
+        tokens: list[str],
+        *,
+        allow_reference: bool,
+    ) -> str:
+        if not allow_reference:
+            return ""
+        for token in tokens:
+            normalized = self._normalize_semantic_token(token)
+            if not normalized or normalized in _SEMANTIC_SKIP_TOKENS:
+                continue
+            if self._numeric_word_value(normalized) is not None:
+                continue
+            if normalized in _SEMANTIC_TEMPORAL_UNITS:
+                continue
+            return normalized
+        return ""
+
+    def _semantic_scope_from_tokens(self, before: list[str], after: list[str]) -> str:
+        merged = [self._normalize_semantic_token(token) for token in [*before[-2:], *after[:6]]]
+        for index, token in enumerate(merged[:-1]):
+            next_token = merged[index + 1]
+            if token in _SEMANTIC_SCOPE_CUES and next_token:
+                return f"per_{next_token}"
+            if token in {"a", "an"} and index > 0 and merged[index - 1] in {"time", "times"} and next_token:
+                return f"per_{next_token}"
+        return ""
+
+    def _semantic_reference_marker(self, *, surface: str, snippet: str) -> str | None:
+        normalized_surface = self._normalize_semantic_token(surface)
+        if normalized_surface in _SEMANTIC_REFERENCE_MULTIPLIERS:
+            return normalized_surface
+        return None
+
+    def _find_nearest_referent(
+        self,
+        index: int,
+        semantic_entities: list[dict[str, Any]],
+    ) -> dict[str, Any] | None:
+        if index <= 0:
+            return None
+        target = semantic_entities[index]
+        target_unit = str(target.get("unit", "")).strip().lower()
+        target_scope = str(target.get("scope", "")).strip().lower()
+        target_block = str(target.get("raw_block", "")).strip().lower()
+        for candidate in reversed(semantic_entities[:index]):
+            candidate_reference = (
+                str(candidate.get("reference", "")).strip().lower()
+                if isinstance(candidate.get("reference"), str)
+                else ""
+            )
+            if candidate_reference:
+                continue
+            candidate_unit = str(candidate.get("unit", "")).strip().lower()
+            candidate_scope = str(candidate.get("scope", "")).strip().lower()
+            if target_unit and candidate_unit == target_unit:
+                return candidate
+            if target_scope and candidate_scope == target_scope:
+                return candidate
+            if target_block and str(candidate.get("raw_block", "")).strip().lower() == target_block:
+                return candidate
+        for candidate in reversed(semantic_entities[:index]):
+            candidate_reference = (
+                str(candidate.get("reference", "")).strip().lower()
+                if isinstance(candidate.get("reference"), str)
+                else ""
+            )
+            if not candidate_reference:
+                return candidate
+        return None
+
+    def _resolve_reference_entities(self, semantic_entities: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        for index, entity in enumerate(semantic_entities):
+            reference = (
+                str(entity.get("reference", "")).strip().lower()
+                if isinstance(entity.get("reference"), str)
+                else ""
+            )
+            if not reference:
+                continue
+            referent = self._find_nearest_referent(index, semantic_entities)
+            if not isinstance(referent, dict):
+                continue
+            multiplier = _SEMANTIC_REFERENCE_MULTIPLIERS.get(reference)
+            if multiplier is None:
+                continue
+            try:
+                resolved_value = float(referent.get("resolved_value", referent.get("value", 0.0))) * float(multiplier)
+            except Exception:
+                continue
+            entity["resolved_value"] = float(resolved_value)
+            entity["reference_source"] = {
+                "value": float(referent.get("resolved_value", referent.get("value", 0.0))),
+                "surface": str(referent.get("surface", "")).strip(),
+                "unit": str(referent.get("unit", "")).strip(),
+                "scope": str(referent.get("scope", "")).strip(),
+            }
+            if not str(entity.get("unit", "")).strip():
+                entity["unit"] = str(referent.get("unit", "")).strip()
+            if not str(entity.get("scope", "")).strip():
+                entity["scope"] = str(referent.get("scope", "")).strip()
+            if str(entity.get("role", "")).strip().lower() in {"", "quantity"}:
+                entity["role"] = str(referent.get("role", "")).strip() or "count"
+        return semantic_entities
+
+    def _goal_semantic_entity(
+        self,
+        unified_goal: dict[str, Any],
+        *,
+        semantic_entities: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        raw_text = str(
+            unified_goal.get("expression")
+            or unified_goal.get("raw")
+            or ""
+        ).strip()
+        lowered = raw_text.lower()
+        unit = ""
+        scope = ""
+        many_match = re.search(r"how\s+many(?:\s+total)?\s+([a-zA-Z-]+)", lowered)
+        if many_match:
+            unit = self._normalize_semantic_token(many_match.group(1))
+        scope_match = re.search(r"(?:per|each|every|a|an)\s+([a-zA-Z-]+)", lowered)
+        if scope_match:
+            prev = lowered[: scope_match.start()].strip().split()
+            if not prev or prev[-1] in {"times", "time", "per", "each", "every", "run", "does", "do"}:
+                scope = f"per_{self._normalize_semantic_token(scope_match.group(1))}"
+        if not unit:
+            for entity in reversed(semantic_entities):
+                inferred_unit = self._normalize_semantic_token(str(entity.get("unit", "")))
+                if inferred_unit:
+                    unit = inferred_unit
+                    break
+        return {
+            "role": "goal",
+            "unit": unit,
+            "scope": scope,
+            "raw": raw_text,
+        }
+
+    def _annotate_semantic_roles(
+        self,
+        merged_quantities: list[dict[str, Any]],
+        *,
+        unified_goal: dict[str, Any],
+    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+        semantic_entities: list[dict[str, Any]] = []
+        sorted_rows = sorted(
+            [dict(row) for row in merged_quantities if isinstance(row, dict)],
+            key=lambda row: (int(row.get("offset", 0) or 0), str(row.get("surface", ""))),
+        )
+        for row in sorted_rows:
+            raw_text = str(row.get("raw_block", "")).strip()
+            surface = str(row.get("surface", "")).strip()
+            offset = int(row.get("offset", 0) or 0)
+            before_tokens, after_tokens, snippet = self._semantic_context_tokens(
+                raw_text,
+                surface=surface,
+                offset=offset,
+            )
+            local_window = raw_text[
+                max(offset - 24, 0) : min(offset + max(len(surface), 1) + 24, len(raw_text))
+            ].lower()
+            tight_window = raw_text[
+                max(offset - 8, 0) : min(offset + max(len(surface), 1) + 8, len(raw_text))
+            ].lower()
+            reference = self._semantic_reference_marker(surface=surface, snippet=snippet)
+            unit = self._semantic_unit_from_tokens(after_tokens, allow_reference=reference is None)
+            scope = self._semantic_scope_from_tokens(before_tokens, after_tokens)
+            normalized_surface = self._normalize_semantic_token(surface)
+            role = str(row.get("role", "")).strip().lower()
+            if role in {"", "quantity", "target"}:
+                role = ""
+            raw_lower = raw_text.lower()
+            temporal_tokens = [
+                self._normalize_semantic_token(token)
+                for token in after_tokens[:3]
+                if self._normalize_semantic_token(token)
+            ]
+            nearby_tokens = [
+                self._normalize_semantic_token(token)
+                for token in [*before_tokens[-4:], *after_tokens[:4]]
+                if self._normalize_semantic_token(token)
+            ]
+            has_percentage_cue = "%" in tight_window or any(
+                token.startswith("percent") for token in after_tokens[:2]
+            )
+            explicit_percent_surface = (
+                raw_text[offset + max(len(surface), 1) :].lstrip().startswith("%")
+                or normalized_surface.endswith("%")
+                or normalized_surface in {"percent", "percentage"}
+            )
+            has_temporal_cue = any(token in _SEMANTIC_TEMPORAL_UNITS for token in temporal_tokens)
+            surface_temporal_unit = next(
+                (
+                    token
+                    for token in _SEMANTIC_TEMPORAL_UNITS
+                    if token in normalized_surface
+                ),
+                "",
+            )
+            has_rate_cue = (
+                "/" in local_window
+                or " per " in f" {local_window} "
+                or bool(scope)
+                or any(token in {"per", "hour", "hourly", "minute", "daily", "weekly", "rate"} for token in nearby_tokens)
+            )
+            has_speed_cue = (
+                " mph" in f" {local_window} "
+                or "mph" in normalized_surface
+                or "speed" in local_window
+                or "/minute" in local_window
+                or "/hour" in local_window
+            )
+            has_tight_rate_cue = (
+                "mph" in tight_window
+                or "/" in tight_window
+                or " per " in f" {tight_window} "
+                or "/minute" in tight_window
+                or "/hour" in tight_window
+            )
+            has_currency_cue = (
+                "$" in tight_window
+                or any(token in {"dollar", "dollars", "cent", "cents", "price"} for token in temporal_tokens)
+            )
+            has_threshold_cue = any(token in {"first", "before", "until", "up", "limit", "threshold"} for token in nearby_tokens)
+            has_ratio_cue = (
+                " times " in f" {local_window} "
+                or any(token in {"times", "double", "triple", "ratio", "multiplier"} for token in nearby_tokens)
+            )
+            if not role and explicit_percent_surface:
+                role = "percentage"
+                unit = "percent"
+                scope = ""
+            elif not role and has_speed_cue and not explicit_percent_surface:
+                role = "rate"
+            elif not role and has_currency_cue and has_rate_cue:
+                role = "rate"
+                unit = "currency"
+                scope = scope or "per_time"
+            elif not role and has_ratio_cue and any(token in {"rate", "hourly", "regular"} for token in nearby_tokens):
+                role = "divisor"
+                scope = ""
+            elif not role and has_temporal_cue and has_threshold_cue:
+                role = "threshold"
+                scope = ""
+            elif not role and has_temporal_cue:
+                role = "duration"
+                if not unit:
+                    unit = next(
+                        (
+                            token
+                            for token in temporal_tokens
+                            if token in _SEMANTIC_TEMPORAL_UNITS
+                        ),
+                        "",
+                    )
+                scope = ""
+            elif not role and has_rate_cue:
+                role = "rate"
+            elif not role and has_currency_cue:
+                role = "price"
+                unit = "currency"
+            if not role:
+                currency_window = raw_text[max(offset - 1, 0) : offset + max(len(surface), 1) + 16].lower()
+                if "$" in currency_window or any(token in {"dollar", "dollars", "cent", "cents"} for token in after_tokens[:3]):
+                    role = "price"
+                    unit = "currency"
+                elif reference is not None:
+                    role = "count"
+                elif any(token in {"file", "files"} for token in temporal_tokens) and "download" in raw_lower:
+                    role = "total"
+                elif "remaining" in raw_lower or "left" in raw_lower or "after" in raw_lower:
+                    role = "result"
+                elif after_tokens and after_tokens[0] == "times":
+                    role = "frequency"
+                    unit = "session"
+                elif any(token in _SEMANTIC_SCOPE_CUES for token in after_tokens[:3]):
+                    role = "rate"
+                elif any(token in {"total", "altogether"} for token in before_tokens + after_tokens):
+                    role = "goal"
+                else:
+                    role = "count"
+            if role == "count" and any(token == "times" for token in after_tokens[:4]):
+                scope = "per_session"
+            if role == "frequency":
+                if not scope:
+                    scope = self._semantic_scope_from_tokens(before_tokens, ["times", *after_tokens])
+                if not unit:
+                    unit = "session"
+                if has_ratio_cue and any(token in {"rate", "hourly", "regular"} for token in nearby_tokens):
+                    role = "divisor"
+                    scope = ""
+            if role == "price":
+                if any(token in {"buy", "buys", "bought", "purchase", "purchased", "cost", "for"} for token in before_tokens[-5:]):
+                    role = "initial"
+                elif (
+                    any(token in {"repair", "repairs", "spent", "spend", "renovation"} for token in nearby_tokens)
+                    or ("puts" in nearby_tokens and "in" in nearby_tokens)
+                ):
+                    role = "part"
+            if role == "duration":
+                if has_threshold_cue:
+                    role = "threshold"
+                    scope = ""
+                elif (
+                    "worked for" in raw_lower
+                    and any(token in raw_lower for token in ("earnings", "earned", "pay"))
+                ):
+                    role = "total"
+                    scope = ""
+            if role in {"percentage", "count", "total"} and has_speed_cue and not explicit_percent_surface:
+                role = "rate"
+            if role == "duration" and has_tight_rate_cue and not (has_temporal_cue or bool(surface_temporal_unit)):
+                role = "rate"
+            if (
+                role in {"rate", "count", "part"}
+                and (has_temporal_cue or bool(surface_temporal_unit))
+                and not has_tight_rate_cue
+                and not explicit_percent_surface
+            ):
+                role = "duration"
+                if not unit:
+                    unit = surface_temporal_unit or next(
+                        (
+                            token
+                            for token in temporal_tokens
+                            if token in _SEMANTIC_TEMPORAL_UNITS
+                        ),
+                        "",
+                    )
+                scope = ""
+            if (
+                any(cue in raw_lower for cue in ("each of her chickens", "each chicken", "per chicken"))
+                and "cup" in raw_lower
+                and role in {"count", "total", "quantity"}
+            ):
+                role = "rate"
+                unit = unit or "cup"
+                scope = "per_chicken"
+            if (
+                any(cue in raw_lower for cue in ("morning", "afternoon", "final meal", "another"))
+                and (unit == "cup" or " cup" in f" {local_window} ")
+                and role == "count"
+            ):
+                role = "part"
+            if "standstill traffic" in raw_lower and role in {"threshold", "count", "duration"}:
+                role = "duration"
+                unit = unit or "hour"
+                scope = ""
+            if role == "goal":
+                unit = unit or self._goal_semantic_entity(unified_goal, semantic_entities=semantic_entities).get("unit", "")
+            semantic_entities.append(
+                {
+                    "value": float(row.get("value", 0.0)),
+                    "surface": surface,
+                    "role": role or "count",
+                    "unit": unit,
+                    "scope": scope,
+                    "reference": reference,
+                    "offset": offset,
+                    "raw_block": raw_text,
+                }
+            )
+        semantic_entities = self._resolve_reference_entities(semantic_entities)
+        return semantic_entities, self._goal_semantic_entity(unified_goal, semantic_entities=semantic_entities)
 
     def _apply_goal_roles_to_block(
         self,

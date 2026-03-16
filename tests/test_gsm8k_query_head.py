@@ -32,6 +32,43 @@ GSM8K_EARNINGS_QUESTION = (
     "How much did Weng earn in total?"
 )
 
+GSM8K_MARKUP_QUESTION = (
+    "Josh decides to try flipping a house. He buys a house for $80,000 and then puts in "
+    "$50,000 in repairs. This increased the value of the house by 150%. How much profit "
+    "did he make?"
+)
+
+GSM8K_OVERTIME_QUESTION = (
+    "Eliza's rate per hour for the first 40 hours she works each week is $10. She also "
+    "receives an overtime pay of 1.2 times her regular hourly rate. If Eliza worked for "
+    "45 hours this week, how much are her earnings for this week?"
+)
+
+GSM8K_RESTART_QUESTION = (
+    "Carla is downloading a 200 GB file. Normally she can download 2 GB/minute, "
+    "but 40% of the way through the download, Windows forces a restart to install "
+    "updates, which takes 20 minutes. Then Carla has to restart the download from "
+    "the beginning. How load does it take to download the file?"
+)
+
+GSM8K_FINAL_MEAL_QUESTION = (
+    "Every day, Wendi feeds each of her chickens three cups of mixed chicken feed, "
+    "containing seeds, mealworms and vegetables to help keep them healthy. She gives "
+    "the chickens their feed in three separate meals. In the morning, she gives her "
+    "flock of chickens 15 cups of feed. In the afternoon, she gives her chickens "
+    "another 25 cups of feed. How many cups of feed does she need to give her chickens "
+    "in the final meal of the day if the size of Wendi's flock is 20 chickens?"
+)
+
+GSM8K_OUTBOUND_RETURN_QUESTION = (
+    "John drives for 3 hours at a speed of 60 mph and then turns around because he "
+    "realizes he forgot something very important at home. He tries to get home in 4 "
+    "hours but spends the first 2 hours in standstill traffic. He spends the next "
+    "half-hour driving at a speed of 30mph, before being able to drive the remaining "
+    "time of the 4 hours going at 80 mph. How far is he from home at the end of those "
+    "4 hours?"
+)
+
 
 def test_gsm8k_route_expands_into_grammar_number_and_word(tmp_path) -> None:
     kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_route")
@@ -476,10 +513,11 @@ def test_gsm8k_template_preview_uses_role_bound_pattern(tmp_path) -> None:
     )
 
     assert preview is not None
-    answer, program, label = preview
+    answer, program, label, structural = preview
     assert answer == "18"
     assert program == "16 3 - 4 - 2 *"
     assert label == "fusion_chain"
+    assert structural >= 0.0
 
 
 def test_gsm8k_goal_adjusted_chain_handles_relation_plus_total(tmp_path) -> None:
@@ -718,3 +756,212 @@ def test_gsm8k_preview_discards_non_finite_results(tmp_path) -> None:
     )
 
     assert preview is None
+
+
+def test_gsm8k_semantic_role_binding_recovers_alternating_discount_pairs(tmp_path) -> None:
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_discount_binding")
+    kv.bind_gpu_galaxy_runtime(galaxy_names=["Grammar"])
+    pattern = kv._catalog_entry_by_id("operation_pattern_alternating_discount_pairs")
+    assert pattern is not None
+
+    question = (
+        "Kylar went to the store to buy glasses for his new apartment. One glass costs $5, "
+        "but every second glass costs only 60% of the price. Kylar wants to buy 16 glasses. "
+        "How much does he need to pay for them?"
+    )
+    parse_bundle = kv._collect_parse_bundle(
+        question,
+        specialist="math",
+        galaxy_names=["Math", "Grammar", "Number", "Word"],
+        domain_hint="math",
+        task={"type": "MATH_TASK", "competition": "GSM8K", "query": question},
+    )
+    fusion = parse_bundle.get("fusion_parse", {})
+    context = {
+        "semantic_entities": list(fusion.get("semantic_entities", [])),
+        "goal_entity": dict(fusion.get("goal_entity", {})),
+    }
+    program = kv._gsm8k_template_program(
+        context=context,
+        metadata=dict(pattern.get("metadata", {})),
+    )
+
+    assert program == "16 2 / 5 5 60 100 / * + *"
+    assert "count=16" in str(context.get("_last_gsm8k_slot_binding", ""))
+
+
+def test_gsm8k_semantic_role_binding_recovers_restart_progress_time(tmp_path) -> None:
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_restart_binding")
+    kv.bind_gpu_galaxy_runtime(galaxy_names=["Grammar"])
+    pattern = kv._catalog_entry_by_id("operation_pattern_restart_progress_time")
+    assert pattern is not None
+
+    question = (
+        "Carla is downloading a 200 GB file. Normally she can download 2 GB/minute, "
+        "but 40% of the way through the download, Windows forces a restart to install updates, "
+        "which takes 20 minutes. Then Carla has to restart the download from the beginning. "
+        "How load does it take to download the file?"
+    )
+    parse_bundle = kv._collect_parse_bundle(
+        question,
+        specialist="math",
+        galaxy_names=["Math", "Grammar", "Number", "Word"],
+        domain_hint="math",
+        task={"type": "MATH_TASK", "competition": "GSM8K", "query": question},
+    )
+    fusion = parse_bundle.get("fusion_parse", {})
+    context = {
+        "semantic_entities": list(fusion.get("semantic_entities", [])),
+        "goal_entity": dict(fusion.get("goal_entity", {})),
+    }
+    program = kv._gsm8k_template_program(
+        context=context,
+        metadata=dict(pattern.get("metadata", {})),
+    )
+
+    assert program == "200 2 / 200 40 100 / * 2 / + 20 +"
+    binding = str(context.get("_last_gsm8k_slot_binding", ""))
+    assert "total=200" in binding
+    assert "rate=2" in binding
+    assert "percentage=40" in binding
+    assert "duration=20" in binding
+
+
+def test_gsm8k_parse_bundle_preserves_thousands_separator_values(tmp_path) -> None:
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_thousands")
+
+    parse_bundle = kv._collect_parse_bundle(
+        GSM8K_MARKUP_QUESTION,
+        specialist="math",
+        galaxy_names=["Math", "Grammar", "Number", "Word"],
+        domain_hint="math",
+        task={"type": "MATH_TASK", "competition": "GSM8K", "query": GSM8K_MARKUP_QUESTION},
+    )
+
+    values = parse_bundle["fusion_parse"]["quantity_values"]
+
+    assert 80000.0 in values
+    assert 50000.0 in values
+    assert 150.0 in values
+    assert 0.0 not in values
+
+
+def test_gsm8k_semantic_role_binding_recovers_markup_profit_with_thousands(tmp_path) -> None:
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_markup_binding")
+    kv.bind_gpu_galaxy_runtime(galaxy_names=["Grammar", "Math", "Number", "Word"])
+    pattern = kv._catalog_entry_by_id("operation_pattern_markup_profit_after_costs")
+    assert pattern is not None
+
+    parse_bundle = kv._collect_parse_bundle(
+        GSM8K_MARKUP_QUESTION,
+        specialist="math",
+        galaxy_names=["Math", "Grammar", "Number", "Word"],
+        domain_hint="math",
+        task={"type": "MATH_TASK", "competition": "GSM8K", "query": GSM8K_MARKUP_QUESTION},
+    )
+    context = kv._gsm8k_word_problem_context(
+        target_galaxies=["Math", "Grammar", "Number", "Word"],
+        base_embedding=kv._embed_query_gpu(GSM8K_MARKUP_QUESTION),
+        parse_bundle=parse_bundle,
+    )
+    program = kv._gsm8k_template_program(
+        context=dict(context),
+        metadata=dict(pattern.get("metadata", {})),
+    )
+
+    assert program == "80000 150 100 / * 80000 + 80000 50000 + -"
+
+
+def test_gsm8k_operation_role_match_prefers_overtime_over_restart(tmp_path) -> None:
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_overtime_routing")
+    kv.bind_gpu_galaxy_runtime(galaxy_names=["Grammar", "Math", "Number", "Word"])
+
+    parse_bundle = kv._collect_parse_bundle(
+        GSM8K_OVERTIME_QUESTION,
+        specialist="math",
+        galaxy_names=["Math", "Grammar", "Number", "Word"],
+        domain_hint="math",
+        task={"type": "MATH_TASK", "competition": "GSM8K", "query": GSM8K_OVERTIME_QUESTION},
+    )
+    context = kv._gsm8k_word_problem_context(
+        target_galaxies=["Math", "Grammar", "Number", "Word"],
+        base_embedding=kv._embed_query_gpu(GSM8K_OVERTIME_QUESTION),
+        parse_bundle=parse_bundle,
+    )
+
+    assert context["operation_ids"][0] == "operation_pattern_overtime_total_pay"
+
+
+def test_gsm8k_operation_disambiguation_prefers_restart_over_ratio_then_add(tmp_path) -> None:
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_restart_routing")
+    kv.bind_gpu_galaxy_runtime(galaxy_names=["Grammar", "Math", "Number", "Word"])
+
+    parse_bundle = kv._collect_parse_bundle(
+        GSM8K_RESTART_QUESTION,
+        specialist="math",
+        galaxy_names=["Math", "Grammar", "Number", "Word"],
+        domain_hint="math",
+        task={"type": "MATH_TASK", "competition": "GSM8K", "query": GSM8K_RESTART_QUESTION},
+    )
+    context = kv._gsm8k_word_problem_context(
+        target_galaxies=["Math", "Grammar", "Number", "Word"],
+        base_embedding=kv._embed_query_gpu(GSM8K_RESTART_QUESTION),
+        parse_bundle=parse_bundle,
+    )
+
+    assert context["operation_ids"][0] == "operation_pattern_restart_progress_time"
+
+
+def test_gsm8k_semantic_role_binding_recovers_final_meal_pattern(tmp_path) -> None:
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_final_meal_binding")
+    kv.bind_gpu_galaxy_runtime(galaxy_names=["Grammar", "Math", "Number", "Word"])
+    pattern = kv._catalog_entry_by_id("operation_pattern_scaled_total_minus_meals")
+    assert pattern is not None
+
+    parse_bundle = kv._collect_parse_bundle(
+        GSM8K_FINAL_MEAL_QUESTION,
+        specialist="math",
+        galaxy_names=["Math", "Grammar", "Number", "Word"],
+        domain_hint="math",
+        task={"type": "MATH_TASK", "competition": "GSM8K", "query": GSM8K_FINAL_MEAL_QUESTION},
+    )
+    context = kv._gsm8k_word_problem_context(
+        target_galaxies=["Math", "Grammar", "Number", "Word"],
+        base_embedding=kv._embed_query_gpu(GSM8K_FINAL_MEAL_QUESTION),
+        parse_bundle=parse_bundle,
+    )
+    program = kv._gsm8k_template_program(
+        context=dict(context),
+        metadata=dict(pattern.get("metadata", {})),
+    )
+
+    assert context["operation_ids"][0] == "operation_pattern_scaled_total_minus_meals"
+    assert program == "20 3 * 25 - 15 -"
+
+
+def test_gsm8k_outbound_return_distance_prefers_turnaround_template(tmp_path) -> None:
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_turnaround_binding")
+    kv.bind_gpu_galaxy_runtime(galaxy_names=["Grammar", "Math", "Number", "Word"])
+    pattern = kv._catalog_entry_by_id("operation_pattern_outbound_return_distance")
+    assert pattern is not None
+
+    parse_bundle = kv._collect_parse_bundle(
+        GSM8K_OUTBOUND_RETURN_QUESTION,
+        specialist="math",
+        galaxy_names=["Math", "Grammar", "Number", "Word"],
+        domain_hint="math",
+        task={"type": "MATH_TASK", "competition": "GSM8K", "query": GSM8K_OUTBOUND_RETURN_QUESTION},
+    )
+    context = kv._gsm8k_word_problem_context(
+        target_galaxies=["Math", "Grammar", "Number", "Word"],
+        base_embedding=kv._embed_query_gpu(GSM8K_OUTBOUND_RETURN_QUESTION),
+        parse_bundle=parse_bundle,
+    )
+    program = kv._gsm8k_template_program(
+        context=dict(context),
+        metadata=dict(pattern.get("metadata", {})),
+    )
+
+    assert 0.5 in parse_bundle["fusion_parse"]["quantity_values"]
+    assert context["operation_ids"][0] == "operation_pattern_outbound_return_distance"
+    assert program == "3 60 * 0.5 30 * 4 2 - 0.5 - 80 * + -"
