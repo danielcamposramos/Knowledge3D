@@ -9,6 +9,7 @@ def test_doors_connect_adjacent_rooms() -> None:
         assert door.meaning_class == "door"
         assert door.behavior_rpn and door.behavior_rpn.startswith("DOOR_TRAVERSE")
         assert "CONNECT" in door.behavior_rpn
+    assert HOUSE_DOORS[0].star_id == "door_living_library"
 
 
 def test_door_visual_rpn_produces_frame() -> None:

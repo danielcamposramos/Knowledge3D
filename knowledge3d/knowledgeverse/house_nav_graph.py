@@ -116,6 +116,8 @@ def build_house_nav_graph() -> HouseNavGraph:
             nodes[left_room.star_id].connected_to.append(right_room.star_id)
         if left_room.star_id not in nodes[right_room.star_id].connected_to:
             nodes[right_room.star_id].connected_to.append(left_room.star_id)
+    for node in nodes.values():
+        node.connected_to.sort()
     return HouseNavGraph(nodes=nodes, edges=edges)
 
 

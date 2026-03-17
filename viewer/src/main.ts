@@ -366,8 +366,8 @@ async function loadHouseSceneAsset(url: string) {
     try {
         loadedHouseScene = await loadHouseScene(url);
         scene.add(loadedHouseScene.root);
-        roomCamera = new RoomCamera(camera, controls, loadedHouseScene.rooms, loadedHouseScene.currentRoom || 'room_library');
-        roomCamera.snapToRoom(loadedHouseScene.currentRoom || 'room_library');
+        roomCamera = new RoomCamera(camera, controls, loadedHouseScene.rooms, loadedHouseScene.currentRoom || 'room_living');
+        roomCamera.snapToRoom(loadedHouseScene.currentRoom || 'room_living');
         loadedHouseScene.currentRoom = roomCamera.currentRoom;
 
         if (!tablet) {

@@ -8,6 +8,28 @@ from .meaning_star import MeaningCentricStar
 
 HOUSE_ROOMS: list[MeaningCentricStar] = [
     MeaningCentricStar(
+        star_id="room_living",
+        meaning_class="room",
+        meaning_rpn="ROOM COLLABORATION SHARED PROJECTION DOMAIN_CENTER",
+        domain="House/LivingRoom",
+        visual_rpn=(
+            "10.0 GEN_CUBE 9.4 GEN_CUBE CSG_SUBTRACT "
+            "1.0 GEN_CUBE 1.3 1.6 0.35 MAT4_SCALE MAT4_APPLY -5.0 -1.0 0.0 MAT4_TRANSLATE MAT4_APPLY CSG_SUBTRACT "
+            "1.0 GEN_CUBE 1.3 1.6 0.35 MAT4_SCALE MAT4_APPLY 5.0 -1.0 0.0 MAT4_TRANSLATE MAT4_APPLY CSG_SUBTRACT"
+        ),
+        behavior_rpn="ROOM_ENTER LOAD_KNOWLEDGE_DOMAIN COLLABORATION ACTIVATE_HOLODESK",
+        surface_forms=surface_forms("living room", "sala de estar", "リビングルーム"),
+        house_position=(-10.0, 0.0, 0.0),
+        house_room="House/LivingRoom",
+        confidence=1,
+        polarity=1,
+        taxonomy_refs=["concept_visual_art", "concept_tool", "concept_language"],
+        component_refs=[
+            "furniture_sofa",
+            "furniture_holodesk",
+        ],
+    ),
+    MeaningCentricStar(
         star_id="room_library",
         meaning_class="room",
         meaning_rpn="ROOM KNOWLEDGE BOOKS READING DOMAIN_CENTER",

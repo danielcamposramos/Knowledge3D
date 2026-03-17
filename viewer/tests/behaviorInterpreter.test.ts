@@ -36,6 +36,11 @@ describe('behavior interpreter', () => {
     expect(action.type).toBe('browse_galaxy');
   });
 
+  it('holodesk behavior produces browse_galaxy action', () => {
+    const action = interpretBehavior('HOLODESK ACTIVATE PROJECT_3D', mockNode);
+    expect(action.type).toBe('browse_galaxy');
+  });
+
   it('unknown behavior produces noop', () => {
     const action = interpretBehavior('UNKNOWN_COMMAND', mockNode);
     expect(action.type).toBe('noop');

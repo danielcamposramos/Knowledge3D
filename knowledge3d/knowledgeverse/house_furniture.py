@@ -8,6 +8,58 @@ from .meaning_star import MeaningCentricStar
 
 HOUSE_FURNITURE: list[MeaningCentricStar] = [
     MeaningCentricStar(
+        star_id="furniture_sofa",
+        meaning_class="furniture",
+        meaning_rpn="SOFA SEATING COMFORT COLLABORATION SHARED DOMAIN_CENTER",
+        domain="House/LivingRoom/Furniture",
+        visual_rpn=(
+            "1.0 GEN_CUBE 2.4 0.45 1.0 MAT4_SCALE MAT4_APPLY "
+            "0.0 0.3 0.0 MAT4_TRANSLATE MAT4_APPLY "
+            "1.0 GEN_CUBE 2.4 0.7 0.2 MAT4_SCALE MAT4_APPLY "
+            "0.0 0.8 -0.5 MAT4_TRANSLATE MAT4_APPLY CSG_UNION "
+            "1.0 GEN_CUBE 0.15 0.55 0.9 MAT4_SCALE MAT4_APPLY "
+            "-1.2 0.55 -0.05 MAT4_TRANSLATE MAT4_APPLY CSG_UNION "
+            "1.0 GEN_CUBE 0.15 0.55 0.9 MAT4_SCALE MAT4_APPLY "
+            "1.2 0.55 -0.05 MAT4_TRANSLATE MAT4_APPLY CSG_UNION"
+        ),
+        behavior_rpn="SUPPORT SEATED COLLABORATE",
+        surface_forms=surface_forms("sofa", "sofa", "ソファ"),
+        house_position=(0.0, 0.0, -2.5),
+        house_room="House/LivingRoom",
+        confidence=1,
+        polarity=1,
+        taxonomy_refs=["concept_visual_art", "concept_language"],
+    ),
+    MeaningCentricStar(
+        star_id="furniture_holodesk",
+        meaning_class="furniture",
+        meaning_rpn="HOLODESK PROJECTION SURFACE COLLABORATION 3D AUGMENTED DOMAIN_CENTER",
+        domain="House/LivingRoom/Furniture",
+        visual_rpn=(
+            "1.0 GEN_CUBE 1.6 0.04 0.9 MAT4_SCALE MAT4_APPLY "
+            "0.0 0.42 0.0 MAT4_TRANSLATE MAT4_APPLY "
+            "0.04 0.40 8 1 GEN_CYLINDER -0.7 0.20 -0.38 MAT4_TRANSLATE MAT4_APPLY CSG_UNION "
+            "0.04 0.40 8 1 GEN_CYLINDER 0.7 0.20 -0.38 MAT4_TRANSLATE MAT4_APPLY CSG_UNION "
+            "0.04 0.40 8 1 GEN_CYLINDER -0.7 0.20 0.38 MAT4_TRANSLATE MAT4_APPLY CSG_UNION "
+            "0.04 0.40 8 1 GEN_CYLINDER 0.7 0.20 0.38 MAT4_TRANSLATE MAT4_APPLY CSG_UNION "
+            "1.0 GEN_CUBE 1.68 0.02 0.98 MAT4_SCALE MAT4_APPLY "
+            "1.0 GEN_CUBE 1.56 0.04 0.86 MAT4_SCALE MAT4_APPLY CSG_SUBTRACT "
+            "0.0 0.45 0.0 MAT4_TRANSLATE MAT4_APPLY CSG_UNION"
+        ),
+        behavior_rpn="HOLODESK ACTIVATE PROJECT_3D COLLABORATE SHARE_MODELS",
+        surface_forms=surface_forms("HoloDesk", "HoloMesa", "ホロデスク"),
+        house_position=(0.0, 0.0, 0.0),
+        house_room="House/LivingRoom",
+        confidence=1,
+        polarity=1,
+        taxonomy_refs=[
+            "concept_visual_art",
+            "concept_tool",
+            "concept_mathematics",
+            "concept_language",
+        ],
+    ),
+    MeaningCentricStar(
         star_id="furniture_bookshelf",
         meaning_class="furniture",
         meaning_rpn="SHELF STORAGE BOOKS VERTICAL DOMAIN_CENTER",

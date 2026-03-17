@@ -41,9 +41,9 @@ def test_export_house_produces_valid_glb(tmp_path: Path) -> None:
     summary = export_house_glb(output)
     assert output.exists()
     assert output.stat().st_size > 1000
-    assert summary["rooms"] == 5
-    assert summary["furniture"] >= 6
-    assert summary["doors"] >= 4
+    assert summary["rooms"] == 6
+    assert summary["furniture"] >= 8
+    assert summary["doors"] >= 5
     assert summary["tools"] >= 5
     assert summary["books"] >= 5
     assert summary["displays"] >= 4
@@ -72,3 +72,6 @@ def test_exported_house_includes_observatory_and_tablet(tmp_path: Path) -> None:
     house_node = next(node for node in (gltf.nodes or []) if node.name == "House")
     assert isinstance(house_node.extras, dict)
     assert "nav_graph" in house_node.extras["k3d"]
+    nav_graph = house_node.extras["k3d"]["nav_graph"]
+    assert "room_living" in nav_graph["nodes"]
+    assert any(edge["door"] == "door_living_library" for edge in nav_graph["edges"])

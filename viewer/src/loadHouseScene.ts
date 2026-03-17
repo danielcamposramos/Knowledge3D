@@ -136,9 +136,11 @@ export async function loadHouseScene(url: string): Promise<LoadedHouseScene> {
 
   const rooms = Array.from(nodesByStarId.values()).filter((node) => node.meaningClass === 'room');
   const doors = Array.from(nodesByStarId.values()).filter((node) => node.meaningClass === 'door');
-  const currentRoom = nodesByStarId.has('room_library')
-    ? 'room_library'
-    : (rooms[0]?.starId || '');
+  const currentRoom = nodesByStarId.has('room_living')
+    ? 'room_living'
+    : nodesByStarId.has('room_library')
+      ? 'room_library'
+      : (rooms[0]?.starId || '');
 
   return {
     root,

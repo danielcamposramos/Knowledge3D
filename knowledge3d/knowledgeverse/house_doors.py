@@ -48,6 +48,16 @@ def _door(
 
 HOUSE_DOORS: list[MeaningCentricStar] = [
     _door(
+        star_id="door_living_library",
+        title_en="Living Room Library Door",
+        title_pt="Porta Sala Biblioteca",
+        title_ja="リビングと図書館の扉",
+        room_a="House/LivingRoom",
+        room_b="House/Library",
+        house_position=(5.0, 0.0, 0.0),
+        rotation_y=math.pi / 2.0,
+    ),
+    _door(
         star_id="door_library_garden",
         title_en="Library Garden Door",
         title_pt="Porta Biblioteca Jardim",

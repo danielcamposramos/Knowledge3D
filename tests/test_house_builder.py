@@ -82,8 +82,11 @@ def test_build_house_stores_templates_and_seeds(tmp_path: Path) -> None:
         + len(SEED_STARS)
     )
     assert manager.load_meaning_star("House", "room_library") is not None
+    assert manager.load_meaning_star("House", "room_living") is not None
     assert manager.load_meaning_star("House", "furniture_bookshelf") is not None
+    assert manager.load_meaning_star("House", "furniture_holodesk") is not None
     assert manager.load_meaning_star("House", "door_library_garden") is not None
+    assert manager.load_meaning_star("House", "door_living_library") is not None
     assert manager.load_meaning_star("House", "tool_obj_hammer") is not None
     assert manager.load_meaning_star("House", "book_mathematics_primer") is not None
     assert manager.load_meaning_star("House", "display_number_line") is not None
@@ -92,8 +95,11 @@ def test_build_house_stores_templates_and_seeds(tmp_path: Path) -> None:
     assert manager.load_meaning_star("House", "tree_branch_mathematics") is not None
     assert manager.load_meaning_star("House", SEED_STARS[0].star_id) is not None
     assert summary["room_meshes"]["room_library"].mesh.vertices
+    assert summary["room_meshes"]["room_living"].mesh.vertices
     assert summary["furniture_meshes"]["furniture_bookshelf"].mesh.triangles
+    assert summary["furniture_meshes"]["furniture_holodesk"].mesh.triangles
     assert summary["door_meshes"]["door_library_garden"].mesh.triangles
+    assert summary["door_meshes"]["door_living_library"].mesh.triangles
     assert summary["tool_meshes"]["tool_obj_hammer"].mesh.triangles
     assert summary["book_meshes"]["book_mathematics_primer"].mesh.triangles
     assert summary["display_meshes"]["display_number_line"].mesh.triangles

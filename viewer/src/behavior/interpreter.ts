@@ -30,6 +30,7 @@ export function interpretBehavior(
     case 'DISPLAY':
       return { type: 'activate_display', taxonomyRefs: node.taxonomyRefs };
     case 'TABLET':
+    case 'HOLODESK':
       return { type: 'browse_galaxy' };
     default:
       return { type: 'noop' };
