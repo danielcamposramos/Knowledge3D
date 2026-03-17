@@ -12,7 +12,7 @@ The formation of the W3C Procedural Memory Knowledge Representation (PM-KR) Comm
 
 **Analogy:** If PM-KR is the HTML/CSS specification, K3D is the WebKit browser engine that proves it works.
 
-Based on intense discussions and expert feedback from PM-KR's early ingressors (Manu Sporny, Adam Sobieski, Jonathan DeRouchie, Milton Ponson, Christoph Lange, ixo.world, and others), K3D's development is now steered by **6 strategic imperatives** that transform it from a cognitive OS into a **secure, cryptographically verifiable, and highly interoperable web standard**.
+Based on intense discussions and expert feedback from PM-KR's early ingressors (Manu Sporny, Adam Sobieski, Jonathan DeRouchie, Milton Ponson, Christoph Dorn, ixo.world, and others), K3D's development is now steered by **6 strategic imperatives** that transform it from a cognitive OS into a **secure, cryptographically verifiable, and highly interoperable web standard**.
 
 ---
 
@@ -402,7 +402,7 @@ Reach **Level C (Auditable Production)** by finalizing externalized test suites,
 | **Adam Sobieski** (W3C veteran) | STRIPS/PDDL planning metadata | AI reasoning over procedures |
 | **Jonathan DeRouchie** (Persistent memory AI) | Access control + Developer UX | Security boundaries + analogies |
 | **Milton Ponson** (Gödelian KR) | Domains of discourse formalization | House-Galaxy separation |
-| **Christoph Lange** (Interactive schemas) | Multi-schema evolution | Metadata flexibility |
+| **Christoph Dorn** (K3D main contributor, PM-KR group member) | "Semantic gravity cohered by meaning"; TerraVision heritage | Spatial navigation + force paradigm |
 | **ixo.world** (Shaun Conway) | W3C DIDs + Verifiable Claims | Blockchain-backed provenance |
 | **Nitin Pasumarthy** (LinkedIn GNNs) | Production KG scaling patterns | Galaxy Universe optimization |
 | **Marko Rodriguez** (Apache TinkerPop) | Gremlin graph query analogies | Developer onboarding |

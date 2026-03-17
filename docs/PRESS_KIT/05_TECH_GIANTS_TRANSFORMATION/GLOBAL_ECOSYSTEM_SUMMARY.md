@@ -290,6 +290,6 @@ And it's happening **NOW**.
 ---
 
 **Last Updated**: March 5, 2026
-**Maintainers**: Daniel Campos Ramos (PM-KR Co-Chair, Brazil), Milton Ponson (Mathematician, Rainbow Warriors Core Foundation, Netherlands/Aruba), Christoph Dorn (Sovereignty Architect)
+**Maintainers**: Daniel Campos Ramos (PM-KR Chair, Brazil), Milton Ponson (PM-KR Co-Chair, Mathematician, Rainbow Warriors Core Foundation, Netherlands/Aruba), Christoph Dorn (K3D main contributor, PM-KR group member)
 **License**: CC-BY-4.0 (Documentation), Open Source (Code)
 **Community**: public-pm-kr@w3.org

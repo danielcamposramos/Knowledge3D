@@ -107,7 +107,7 @@ K3D isn't "folders in 3D" — it's **semantic knowledge organized spatially**, w
 **Year:** 1994 (30+ years before Google Earth!)
 **Netflix Series:** "The Billion Dollar Code" (2021)
 
-**Reference:** Christoph Dorn (PM-KR Co-Chair), February 27, 2026
+**Reference:** Christoph Dorn (K3D main contributor, PM-KR group member), February 27, 2026
 > "The spatial memory discovery reminds me of 'The Billion Dollar Code' series."
 
 **Sources:**
@@ -211,7 +211,7 @@ K3D isn't "folders in 3D" — it's **semantic knowledge organized spatially**, w
 
 **Why the connection matters:**
 
-Christoph Dorn (W3C PM-KR Co-Chair, W3C veteran) connected K3D's "world as memory" paradigm to TerraVision's spatial navigation innovation.
+Christoph Dorn (K3D main contributor, W3C PM-KR group member) connected K3D's "world as memory" paradigm to TerraVision's spatial navigation innovation.
 
 **The parallel:**
 - TerraVision (1994): Navigate Earth data by moving through 3D space

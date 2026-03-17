@@ -297,7 +297,7 @@ This collaboration between an electrical engineer from Brazil and a mathematicia
 - **Manu Sporny** (JSON-LD co-creator, RDF Canonicalization editor) — Cryptographic C14N guidance
 - **Milton Ponson** (Mathematician, Gödelian KR, domains of discourse) — Official supporter
 - **Jonathan DeRouchie** (Persistent memory AI systems) — Security boundaries + Developer UX (March-June commitment)
-- **Christoph Lange** (Interactive schemas, Linked Data) — Multi-schema evolution patterns
+- **Christoph Dorn** (K3D main contributor, PM-KR group member, distributed systems) — Coined "semantic gravity cohered by meaning"; TerraVision spatial heritage
 - **ixo.world** (Shaun Conway, W3C DIDs/Verifiable Claims) — Blockchain-backed provenance use cases
 - **Nitin Pasumarthy** (LinkedIn, GNNs at production scale, KDD Best Paper) — Production KG optimization
 

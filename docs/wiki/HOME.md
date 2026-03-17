@@ -58,4 +58,4 @@ This wiki implements both requests: cross-CG collaboration infrastructure + exec
 ---
 
 **Last Updated:** March 1, 2026
-**Maintainers:** PM-KR Co-Chairs (Daniel Ramos, Christopher Allen)
+**Maintainers:** PM-KR Chair (Daniel Ramos), Co-Chair (Milton Ponson)

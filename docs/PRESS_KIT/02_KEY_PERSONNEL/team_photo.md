@@ -22,7 +22,7 @@ Create a press-ready virtual team image that represents PM-KR leadership and int
   - Optional thin line art of a graph/network map
 
 ## Caption Template
-"PM-KR Co-Chairs and Sovereignty Contributor: Daniel Campos Ramos (Brazil), Milton Ponson (Netherlands), Christoph Dorn (Canada)."
+"PM-KR Chair and Contributors: Daniel Campos Ramos (Chair, Brazil), Milton Ponson (Co-Chair, Netherlands), Christoph Dorn (K3D main contributor, Canada)."
 
 ## NotebookLM / Nano Banana Prompt Seed
 "Generate a professional team portrait with three leaders side by side. Left engineer from Brazil, center mathematician from the Netherlands, right sovereignty architect from Canada. Include subtle W3C context and MERCOSUR-EU collaboration symbolism. Keep visual style formal and publication-ready."

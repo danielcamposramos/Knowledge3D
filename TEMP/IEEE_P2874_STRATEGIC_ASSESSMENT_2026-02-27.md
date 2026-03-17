@@ -30,7 +30,7 @@
 **✅ W3C PM-KR Community Group Success:**
 - 23+ members (MIT, Huawei, JSON-LD co-creator Gregg Kellogg, etc.)
 - Active technical discussions (procedural codecs, game UI as KR, spatial memory)
-- You're Co-Chair with Christoph Dorn
+- You're Chair; Milton Ponson is Co-Chair; Christoph Dorn is K3D main contributor
 - Video presentation delivered (7-minute NotebookLM)
 
 **✅ Working Demo System:**
