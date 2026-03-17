@@ -8,6 +8,7 @@ import { loadK3DFromGLTF, fetchCondoConfig, type K3DRecord, type CondoConfig, ty
 import { HouseActivator, RoomContext } from './behavior';
 import { loadHouseScene, type HouseNode, type LoadedHouseScene } from './loadHouseScene';
 import { applyHouseMaterials, clearHouseAtmosphere, createHouseLighting, setHouseAtmosphere } from './materials';
+import { KeyboardNav, Minimap, RoomLabels, showWelcomeOverlay } from './navigation';
 import { GalaxyPodProjector, HolodeskProjector } from './projection';
 import { RoomCamera } from './roomCamera';
 import { K3DAgent } from './agent';
@@ -59,6 +60,10 @@ let houseActivator: HouseActivator | null = null;
 let roomContext: RoomContext | null = null;
 let holodeskProjector: HolodeskProjector | null = null;
 let galaxyPodProjector: GalaxyPodProjector | null = null;
+let keyboardNav: KeyboardNav | null = null;
+let minimap: Minimap | null = null;
+let roomLabels: RoomLabels | null = null;
+let welcomeOverlay: HTMLDivElement | null = null;
 // LOD HUD
 const lodHud = document.createElement('div');
 lodHud.id = 'lod-hud';
@@ -176,6 +181,16 @@ function finishBootOverlay(statusText = 'K3D ready.') {
  * Clears the current 3D scene of any house-related objects.
  */
 function clearScene() {
+    keyboardNav?.detach();
+    keyboardNav = null;
+    minimap?.destroy();
+    minimap = null;
+    roomLabels?.destroy();
+    roomLabels = null;
+    if (welcomeOverlay?.isConnected) {
+        (welcomeOverlay as any).k3dDispose?.();
+    }
+    welcomeOverlay = null;
     const houseLights = scene.getObjectByName('k3d-house-lights');
     if (houseLights) {
         scene.remove(houseLights);
@@ -312,6 +327,8 @@ function applyRoomContext(currentRoom: HouseNode | null) {
     if (!tablet || !loadedHouseScene || !currentRoom) return;
     applyRoomDimming(currentRoom);
     loadedHouseScene.currentRoom = currentRoom.starId;
+    minimap?.setCurrentRoom(currentRoom.starId);
+    roomLabels?.setCurrentRoom(currentRoom.starId);
     tablet.dispatch({
         type: 'roomContext',
         payload: {
@@ -326,6 +343,13 @@ function applyRoomContext(currentRoom: HouseNode | null) {
         nodes: loadedHouseScene.nodesByStarId.size,
         info: `room=${currentRoom.starId}`,
     });
+}
+
+function navigateToRoom(targetRoom: HouseNode | null) {
+    if (!targetRoom || !loadedHouseScene || !roomCamera || !roomContext) return;
+    roomCamera.goToRoom(targetRoom.starId);
+    loadedHouseScene.currentRoom = targetRoom.starId;
+    roomContext.setRoom(targetRoom);
 }
 
 function findHouseNodeForObject(object: THREE.Object3D | null): HouseNode | null {
@@ -412,9 +436,18 @@ async function loadHouseSceneAsset(url: string) {
         })();
 
         roomContext = new RoomContext();
+        keyboardNav = new KeyboardNav(loadedHouseScene, { onRoomChange: navigateToRoom });
+        keyboardNav.attach();
+        minimap = new Minimap(loadedHouseScene);
+        minimap.onClick((starId) => {
+            const room = loadedHouseScene?.nodesByStarId.get(starId) || null;
+            if (room?.meaningClass === 'room') navigateToRoom(room);
+        });
+        roomLabels = new RoomLabels(loadedHouseScene);
         houseActivator = new HouseActivator(loadedHouseScene, roomCamera, tablet, roomContext, {
             holodesk: holodeskProjector,
             galaxyPod: galaxyPodProjector,
+            onRoomChange: navigateToRoom,
         });
         roomContext.onEnter((room) => {
             applyRoomContext(room);
@@ -444,6 +477,7 @@ async function loadHouseSceneAsset(url: string) {
         if (initialRoom && roomContext) {
             roomContext.setRoom(initialRoom);
         }
+        welcomeOverlay = showWelcomeOverlay();
     } catch (e) {
         console.error(`Failed to load house scene from ${url}:`, e);
     }
@@ -1688,6 +1722,7 @@ function animate() {
     if (galaxyPodProjector) galaxyPodProjector.update(dt);
     controls.update();
     checkIntersects();
+    if (roomLabels) roomLabels.update(camera);
     if (agent) agent.update(dt);
     if (lod) lod.update(camera);
     renderer.render(scene, camera);

@@ -17,6 +17,7 @@ export class HouseActivator {
   private holodesk: HolodeskProjector | null;
   private galaxyPod: GalaxyPodProjector | null;
   private lastProjectedNode: HouseNode | null = null;
+  private onRoomChange: ((room: HouseNode) => void) | null;
 
   constructor(
     scene: LoadedHouseScene,
@@ -26,6 +27,7 @@ export class HouseActivator {
     options?: {
       holodesk?: HolodeskProjector | null;
       galaxyPod?: GalaxyPodProjector | null;
+      onRoomChange?: ((room: HouseNode) => void) | null;
     },
   ) {
     this.scene = scene;
@@ -34,6 +36,7 @@ export class HouseActivator {
     this.roomContext = roomContext;
     this.holodesk = options?.holodesk || null;
     this.galaxyPod = options?.galaxyPod || null;
+    this.onRoomChange = options?.onRoomChange || null;
   }
 
   activate(node: HouseNode): void {
@@ -68,6 +71,10 @@ export class HouseActivator {
     const targetHouseRoom = currentHouseRoom === roomA ? roomB : roomA;
     const targetRoom = this.scene.rooms.find((room) => room.houseRoom === targetHouseRoom);
     if (!targetRoom) return;
+    if (this.onRoomChange) {
+      this.onRoomChange(targetRoom);
+      return;
+    }
     this.roomCamera.goToRoom(targetRoom.starId);
     this.scene.currentRoom = targetRoom.starId;
     this.roomContext.setRoom(targetRoom);
@@ -140,9 +147,13 @@ export class HouseActivator {
 
   private handleRoomEnter(node: HouseNode, room: string, domain: string): void {
     if (node.meaningClass === 'room') {
-      this.roomCamera.goToRoom(node.starId);
-      this.scene.currentRoom = node.starId;
-      this.roomContext.setRoom(node);
+      if (this.onRoomChange) {
+        this.onRoomChange(node);
+      } else {
+        this.roomCamera.goToRoom(node.starId);
+        this.scene.currentRoom = node.starId;
+        this.roomContext.setRoom(node);
+      }
     }
     this.tablet.dispatch({
       type: 'roomContext',
