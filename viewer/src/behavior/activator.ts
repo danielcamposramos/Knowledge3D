@@ -1,5 +1,7 @@
 import type { HouseNode, LoadedHouseScene } from '../loadHouseScene';
-import { getBookContent } from '../contentLoader';
+import { getBookContent, getLoadedContent } from '../contentLoader';
+import type { GalaxyPodProjector, HolodeskProjector } from '../projection';
+import { rpnToMesh } from '../rpn';
 import { RoomCamera } from '../roomCamera';
 import { Tablet3D } from '../tablet';
 
@@ -12,12 +14,26 @@ export class HouseActivator {
   private roomCamera: RoomCamera;
   private tablet: Tablet3D;
   private roomContext: RoomContext;
+  private holodesk: HolodeskProjector | null;
+  private galaxyPod: GalaxyPodProjector | null;
+  private lastProjectedNode: HouseNode | null = null;
 
-  constructor(scene: LoadedHouseScene, roomCamera: RoomCamera, tablet: Tablet3D, roomContext: RoomContext) {
+  constructor(
+    scene: LoadedHouseScene,
+    roomCamera: RoomCamera,
+    tablet: Tablet3D,
+    roomContext: RoomContext,
+    options?: {
+      holodesk?: HolodeskProjector | null;
+      galaxyPod?: GalaxyPodProjector | null;
+    },
+  ) {
     this.scene = scene;
     this.roomCamera = roomCamera;
     this.tablet = tablet;
     this.roomContext = roomContext;
+    this.holodesk = options?.holodesk || null;
+    this.galaxyPod = options?.galaxyPod || null;
   }
 
   activate(node: HouseNode): void {
@@ -58,6 +74,7 @@ export class HouseActivator {
   }
 
   private handleLoadGalaxy(galaxyRef: string, node: HouseNode): void {
+    this.rememberProjectedNode(node);
     this.tablet.showFocus();
     this.tablet.dispatch({ type: 'open_app', payload: { id: 'content' } });
     const bookContent = getBookContent(galaxyRef);
@@ -74,6 +91,14 @@ export class HouseActivator {
   }
 
   private handleInspect(node: HouseNode): void {
+    if (node.starId === 'furniture_bathtub' && this.galaxyPod) {
+      if (this.galaxyPod.visible) {
+        this.galaxyPod.dismiss();
+      } else {
+        this.galaxyPod.projectFromContent(getLoadedContent());
+      }
+    }
+    this.rememberProjectedNode(node);
     this.tablet.showFocus();
     this.tablet.dispatch({ type: 'open_app', payload: { id: 'content' } });
     this.tablet.dispatch({
@@ -83,6 +108,7 @@ export class HouseActivator {
   }
 
   private handleDisplay(taxonomyRefs: string[], node: HouseNode): void {
+    this.rememberProjectedNode(node);
     this.tablet.showFocus();
     this.tablet.dispatch({ type: 'open_app', payload: { id: 'content' } });
     this.tablet.dispatch({
@@ -96,6 +122,18 @@ export class HouseActivator {
   }
 
   private handleBrowseGalaxy(): void {
+    if (this.holodesk) {
+      if (this.holodesk.visible) {
+        this.holodesk.dismiss();
+      } else {
+        const preferred = this.lastProjectedNode?.visualRpn
+          ? this.lastProjectedNode
+          : this.scene.nodesByStarId.get('furniture_knowledge_tree') || null;
+        if (preferred?.visualRpn) {
+          this.holodesk.projectNodeVisual(preferred, rpnToMesh);
+        }
+      }
+    }
     this.tablet.showFocus();
     this.tablet.dispatch({ type: 'open_app', payload: { id: 'galaxy' } });
   }
@@ -110,5 +148,11 @@ export class HouseActivator {
       type: 'roomContext',
       payload: { room, domain, title: node.surfaceForms.en?.word_ref || node.starId },
     });
+  }
+
+  private rememberProjectedNode(node: HouseNode): void {
+    if (!node.visualRpn) return;
+    if (node.starId === 'furniture_holodesk') return;
+    this.lastProjectedNode = node;
   }
 }

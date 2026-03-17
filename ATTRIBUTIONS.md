@@ -44,6 +44,7 @@ Before K3D became an architecture, it was a **dream inspired by science fiction*
 | **The Matrix** | 1999 | "I don't even see the code" (meaning perception) | **Galaxy Visualization** (see semantics, not syntax) |
 | **Ready Player One** | 2018 | The OASIS (unified virtual world) | **Knowledgeverse** (7 regions, unified substrate) |
 | **Ghost in the Shell** | 1995 | Network diving (cyberspace as physical) | **World View** (federated knowledge graphs) |
+| **Avatar** (James Cameron) | 2009 | Ops Halo Station — holographic 3D table projecting real-time topography, battlefield ops, and tactical simulations in shared command space | **HoloDesk** (3D projection surface for augmented collaboration — shared holographic workspace in the Living Room) |
 
 ### Why These Matter
 
@@ -66,6 +67,8 @@ Before K3D became an architecture, it was a **dream inspired by science fiction*
 - [The Matrix (1999)](https://en.wikipedia.org/wiki/The_Matrix)
 - [Ready Player One - Wikipedia](https://en.wikipedia.org/wiki/Ready_Player_One)
 - [Ghost in the Shell (1995) - Wikipedia](https://en.wikipedia.org/wiki/Ghost_in_the_Shell_(1995_film))
+- [Ops Halo Station | Avatar Wiki](https://james-camerons-avatar.fandom.com/wiki/Ops_Halo_Station)
+- [Operations Center | Avatar Wiki](https://james-camerons-avatar.fandom.com/wiki/Operations_Center)
 
 **Credit:** These filmmakers, directors, writers, and designers imagined the future of computing decades before the technology existed. K3D honors their vision by making it real through open standards.
 
@@ -148,6 +151,22 @@ K3D was built entirely on **free, open-source operating systems**. Every kernel 
 VSCode served as the **command center** for the entire K3D development. Its lightweight performance on Linux, excellent Python support, and GPU debugging capabilities were essential for developing 45+ PTX kernels and managing the multi-AI swarm workflow.
 
 **Credit**: Microsoft for open-sourcing the core VSCode editor and maintaining excellent Linux support. The K3D codebase was written, debugged, and refined entirely within VSCode.
+
+**Microsoft Research HoloDesk (2012)**
+**Source**: [HoloDesk: Direct 3D Interactions with a Situated See-Through Display](https://www.microsoft.com/en-us/research/project/holodesk-direct-3d-interactions-with-a-situated-see-through-display/)
+**Researchers**: Andy Wilson et al., Microsoft Research Cambridge, Sensors and Devices Group
+**Established**: February 2012
+
+**What HoloDesk Demonstrated**:
+- Optical see-through display with half-silvered mirror for spatially-aligned 3D virtual objects
+- Kinect camera tracking for direct hand interaction with virtual content — no headwear required
+- Physics-inspired interaction modeling for natural grasping of virtual objects
+- Real-world/virtual object co-manipulation (sheets of paper interacting with virtual objects)
+
+**K3D Adaptation**:
+The name "HoloDesk" in K3D's Living Room furniture (`furniture_holodesk`) directly acknowledges Microsoft Research's pioneering work on situated see-through 3D displays. K3D's HoloDesk is the architectural descendant: a 3D projection surface within the House that renders holographic content (wireframe meshes, Galaxy visualizations) above a physical table surface. Where Microsoft's HoloDesk used optical mirrors + Kinect, K3D's HoloDesk uses the same concept natively in a 3D environment — the projection surface IS the furniture object, and the viewer IS the spatial display.
+
+**Credit**: Microsoft Research Cambridge for demonstrating that direct, hands-on 3D interaction with virtual objects is achievable — the foundational proof that holographic workspaces belong on desks, not just in science fiction.
 
 ---
 

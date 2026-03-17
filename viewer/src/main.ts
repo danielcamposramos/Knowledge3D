@@ -3,10 +3,12 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { HonestyMaterial } from './HonestyMaterial';
-import { clearHouseContent, loadHouseContent } from './contentLoader';
+import { clearHouseContent, getLoadedContent, loadHouseContent } from './contentLoader';
 import { loadK3DFromGLTF, fetchCondoConfig, type K3DRecord, type CondoConfig, type LoadedK3D } from './loadK3D';
 import { HouseActivator, RoomContext } from './behavior';
 import { loadHouseScene, type HouseNode, type LoadedHouseScene } from './loadHouseScene';
+import { applyHouseMaterials, clearHouseAtmosphere, createHouseLighting, setHouseAtmosphere } from './materials';
+import { GalaxyPodProjector, HolodeskProjector } from './projection';
 import { RoomCamera } from './roomCamera';
 import { K3DAgent } from './agent';
 import { Tablet3D } from './tablet';
@@ -55,6 +57,8 @@ let loadedHouseScene: LoadedHouseScene | null = null;
 let roomCamera: RoomCamera | null = null;
 let houseActivator: HouseActivator | null = null;
 let roomContext: RoomContext | null = null;
+let holodeskProjector: HolodeskProjector | null = null;
+let galaxyPodProjector: GalaxyPodProjector | null = null;
 // LOD HUD
 const lodHud = document.createElement('div');
 lodHud.id = 'lod-hud';
@@ -172,6 +176,11 @@ function finishBootOverlay(statusText = 'K3D ready.') {
  * Clears the current 3D scene of any house-related objects.
  */
 function clearScene() {
+    const houseLights = scene.getObjectByName('k3d-house-lights');
+    if (houseLights) {
+        scene.remove(houseLights);
+    }
+    clearHouseAtmosphere(scene);
     if (loadedHouseScene) {
         scene.remove(loadedHouseScene.root);
         loadedHouseScene = null;
@@ -179,6 +188,8 @@ function clearScene() {
     roomCamera = null;
     houseActivator = null;
     roomContext = null;
+    holodeskProjector = null;
+    galaxyPodProjector = null;
     if (currentPoints) {
         scene.remove(currentPoints);
         try { (currentPoints as any).geometry?.dispose?.(); } catch {}
@@ -367,6 +378,9 @@ async function loadHouseSceneAsset(url: string) {
     try {
         loadedHouseScene = await loadHouseScene(url);
         scene.add(loadedHouseScene.root);
+        applyHouseMaterials(loadedHouseScene);
+        createHouseLighting(scene);
+        setHouseAtmosphere(scene);
         try {
             await loadHouseContent(url.replace(/house\.glb$/i, 'house-content.json').replace(/\.glb$/i, '-content.json'));
         } catch (error) {
@@ -388,10 +402,29 @@ async function loadHouseSceneAsset(url: string) {
         });
         tablet.setDataset([]);
 
+        holodeskProjector = (() => {
+            const node = loadedHouseScene?.nodesByStarId.get('furniture_holodesk') || null;
+            return node ? new HolodeskProjector(node) : null;
+        })();
+        galaxyPodProjector = (() => {
+            const node = loadedHouseScene?.nodesByStarId.get('furniture_bathtub') || null;
+            return node ? new GalaxyPodProjector(node) : null;
+        })();
+
         roomContext = new RoomContext();
-        houseActivator = new HouseActivator(loadedHouseScene, roomCamera, tablet, roomContext);
+        houseActivator = new HouseActivator(loadedHouseScene, roomCamera, tablet, roomContext, {
+            holodesk: holodeskProjector,
+            galaxyPod: galaxyPodProjector,
+        });
         roomContext.onEnter((room) => {
             applyRoomContext(room);
+            if (galaxyPodProjector) {
+                if (room.starId === 'room_bathtub') {
+                    galaxyPodProjector.projectFromContent(getLoadedContent());
+                } else {
+                    galaxyPodProjector.dismiss();
+                }
+            }
         });
 
         tablet.setLocalHandler?.((ev: any) => {
@@ -1651,6 +1684,8 @@ function animate() {
     last = now;
     requestAnimationFrame(animate);
     if (roomCamera) roomCamera.update(dt);
+    if (holodeskProjector) holodeskProjector.update(dt);
+    if (galaxyPodProjector) galaxyPodProjector.update(dt);
     controls.update();
     checkIntersects();
     if (agent) agent.update(dt);
