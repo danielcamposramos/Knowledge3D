@@ -54,6 +54,46 @@ def _populate_galaxy_entries(
     }
 
 
+def populate_book_galaxies(galaxy_manager: Any) -> dict[str, dict[str, int]]:
+    """Populate initial loadable book galaxies composed of organizer stars."""
+    from .book_content_biology import BIOLOGY_ATLAS_ENTRIES
+    from .book_content_language import LANGUAGE_FOUNDATIONS_ENTRIES
+    from .book_content_mathematics import MATHEMATICS_PRIMER_ENTRIES
+    from .book_content_physics import PHYSICS_HANDBOOK_ENTRIES
+    from .book_content_tools import TOOL_MANUAL_ENTRIES
+
+    def _populate_book(stars: list[Any], galaxy_name: str) -> dict[str, int]:
+        galaxy = galaxy_manager.get_galaxy(galaxy_name)
+        current_entries = list(getattr(galaxy, "entries", []))
+        existing_ids = _existing_ids(current_entries)
+        inserted = 0
+        for star in stars:
+            status = galaxy_manager.store_meaning_star(galaxy_name, star)
+            if status == "inserted":
+                inserted += 1
+                existing_ids.add(star.star_id)
+        return {
+            "before": len(current_entries),
+            "generated": len(stars),
+            "inserted": inserted,
+            "after": len(existing_ids),
+        }
+
+    sync_context = (
+        galaxy_manager.bulk_disk_sync()
+        if hasattr(galaxy_manager, "bulk_disk_sync")
+        else nullcontext()
+    )
+    with sync_context:
+        return {
+            "Book/MathematicsPrimer": _populate_book(MATHEMATICS_PRIMER_ENTRIES, "Book/MathematicsPrimer"),
+            "Book/LanguageFoundations": _populate_book(LANGUAGE_FOUNDATIONS_ENTRIES, "Book/LanguageFoundations"),
+            "Book/PhysicsHandbook": _populate_book(PHYSICS_HANDBOOK_ENTRIES, "Book/PhysicsHandbook"),
+            "Book/BiologyAtlas": _populate_book(BIOLOGY_ATLAS_ENTRIES, "Book/BiologyAtlas"),
+            "Book/ToolManual": _populate_book(TOOL_MANUAL_ENTRIES, "Book/ToolManual"),
+        }
+
+
 def populate_always_on_foundational_galaxies(galaxy_manager: Any) -> dict[str, Any]:
     """Populate all foundational deterministic galaxies through one entrypoint."""
     sync_context = (
@@ -79,4 +119,5 @@ def populate_always_on_foundational_galaxies(galaxy_manager: Any) -> dict[str, A
                 galaxy_name="Tool",
                 entry_builder=default_tool_entries,
             ),
+            "book_galaxies": populate_book_galaxies(galaxy_manager),
         }

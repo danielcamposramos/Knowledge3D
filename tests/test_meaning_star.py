@@ -194,3 +194,28 @@ def test_existing_galaxy_compatibility(tmp_path) -> None:
     assert loaded is not None
     assert loaded.star_id == star.star_id
     assert loaded.meaning_rpn == star.meaning_rpn
+
+
+def test_galaxy_ref_roundtrip_changes_identity() -> None:
+    left = MeaningCentricStar(
+        meaning_class="book",
+        meaning_rpn="BOOK TEST",
+        domain="House/Library/Books",
+        galaxy_ref="Book/A",
+    )
+    right = MeaningCentricStar(
+        meaning_class="book",
+        meaning_rpn="BOOK TEST",
+        domain="House/Library/Books",
+        galaxy_ref="Book/B",
+    )
+
+    payload = left.to_dict()
+    restored = MeaningCentricStar.from_dict(payload)
+    entry = left.to_galaxy_entry(galaxy_name="House")
+    from_entry = MeaningCentricStar.from_galaxy_entry(entry)
+
+    assert payload["galaxy_ref"] == "Book/A"
+    assert restored.galaxy_ref == "Book/A"
+    assert from_entry.galaxy_ref == "Book/A"
+    assert left.star_id != right.star_id

@@ -273,6 +273,12 @@ class ModularRPNEngine:
         )
 
         self._sovereign_engine = SovereignRPNEngine()
+        self._mesh_engine = None
+        from .mesh_opcodes import MESH_TOKEN_TO_OPCODE
+
+        for token, opcode in MESH_TOKEN_TO_OPCODE.items():
+            self.OPCODES.setdefault(token, opcode)
+            self.OPCODES.setdefault(token.lower(), opcode)
 
     def bind_galaxy_buffer(
         self,
@@ -475,6 +481,8 @@ class ModularRPNEngine:
             1.0
         """
         tokens = self.tokenize_rpn(expression)
+        if self._is_mesh_expression(tokens):
+            return self.evaluate_mesh(expression)
         if any(token in self.CODEC_TOKENS for token in tokens):
             # Codec ops are orchestrated directly through TieredRPNEngine to GPU kernels
             self._record_gpu_call(1)
@@ -505,6 +513,8 @@ class ModularRPNEngine:
     ) -> tuple[float, list[float]]:
         """Evaluate one RPN expression and return both top result and scalar stack."""
         tokens = self.tokenize_rpn(expression)
+        if self._is_mesh_expression(tokens):
+            raise ValueError("Mesh expressions are not supported in evaluate_with_stack; use evaluate_mesh.")
         if any(token in self.CODEC_TOKENS for token in tokens):
             raise ValueError("Codec opcodes are not supported in evaluate_with_stack.")
 
@@ -548,6 +558,8 @@ class ModularRPNEngine:
 
         for expr in expressions:
             tokens = self.tokenize_rpn(expr)
+            if self._is_mesh_expression(tokens):
+                raise ValueError("Mesh expressions are not supported in evaluate_batch; use evaluate_mesh.")
             if any(token in self.CODEC_TOKENS for token in tokens):
                 raise ValueError("Codec opcodes are not supported in evaluate_batch; use evaluate with data.")
             op_codes, scalars, vectors = self.compile_tokens(tokens)
@@ -571,6 +583,8 @@ class ModularRPNEngine:
         programs = []
         for expr in expressions:
             tokens = self.tokenize_rpn(expr)
+            if self._is_mesh_expression(tokens):
+                raise ValueError("Mesh expressions are not supported in evaluate_batch_device.")
             op_codes, scalars, vectors = self.compile_tokens(tokens)
             programs.append({
                 "op_codes": op_codes,
@@ -587,6 +601,10 @@ class ModularRPNEngine:
             instance_id: Instance slot to reset (0-14)
         """
         self._sovereign_engine.reset_instance(instance_id)
+
+    def evaluate_mesh(self, expression: str):
+        """Evaluate a Phase H1 mesh construction program on the host mesh engine."""
+        return self._get_mesh_engine().evaluate(expression)
 
     def close(self) -> None:
         """Clean up GPU resources."""
@@ -636,6 +654,18 @@ class ModularRPNEngine:
             self.pool.retier_core(self.instance_id, tier=tier)
             self.pool.touch(self.instance_id)
         return self.instance_id
+
+    def _get_mesh_engine(self):
+        if self._mesh_engine is None:
+            from .mesh_engine import MeshRPNEngine
+
+            self._mesh_engine = MeshRPNEngine()
+        return self._mesh_engine
+
+    def _is_mesh_expression(self, tokens: Sequence[str]) -> bool:
+        if not tokens:
+            return False
+        return self._get_mesh_engine().is_mesh_expression(list(tokens))
 
 
 

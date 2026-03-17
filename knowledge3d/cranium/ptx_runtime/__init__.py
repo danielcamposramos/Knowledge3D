@@ -25,6 +25,10 @@ _LAZY_ATTRS: Dict[str, Tuple[str, str]] = {
     "TRMConfig": ("trm_engine", "TRMConfig"),
     "build_trm_refine_program": ("trm_rpn_program", "build_trm_refine_program"),
     "expected_trm_opcode_sequence": ("trm_rpn_program", "expected_trm_opcode_sequence"),
+    "MeshRPNEngine": ("mesh_engine", "MeshRPNEngine"),
+    "MeshExecutionResult": ("mesh_engine", "MeshExecutionResult"),
+    "MeshBuffer": ("mesh_opcodes", "MeshBuffer"),
+    "Path2D": ("mesh_opcodes", "Path2D"),
 }
 
 

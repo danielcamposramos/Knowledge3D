@@ -640,7 +640,7 @@ export class StatsApp implements TabletApp {
 
 export class DoorsApp implements TabletApp {
   id = 'doors'; title = 'Doors';
-  private items: { label: string; address?: string }[] = [];
+  private items: { label: string; address?: string; starId?: string; roomA?: string; roomB?: string }[] = [];
   private publish: ((ev: { type: string; payload?: any }) => void) | null = null;
   setContext(ctx: { records: ReadonlyArray<K3DRecord>; publish?: (ev: { type: string; payload?: any }) => void }) { this.publish = ctx.publish || null; }
   onEvent(ev: { type: string; payload?: any }) {
@@ -659,7 +659,7 @@ export class DoorsApp implements TabletApp {
     for (const it of this.items) {
       const row = document.createElement('div'); row.style.display='flex'; row.style.justifyContent='space-between'; row.style.alignItems='center'; row.style.gap='8px'; row.style.marginTop='6px';
       const lab = document.createElement('div'); lab.textContent = it.label + (it.address?` — ${it.address}`:''); lab.style.color='#ddd'; lab.style.flex='1';
-      const btn = document.createElement('button'); btn.textContent='Open'; btn.onclick=()=>{ this.publish?.({ type:'openDoor', payload:{ label: it.label, address: it.address } }); };
+      const btn = document.createElement('button'); btn.textContent='Open'; btn.onclick=()=>{ this.publish?.({ type:'openDoor', payload:{ label: it.label, address: it.address, starId: it.starId, roomA: it.roomA, roomB: it.roomB } }); };
       row.appendChild(lab); row.appendChild(btn); list.appendChild(row);
     }
     el.appendChild(list);

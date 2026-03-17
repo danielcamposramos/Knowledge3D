@@ -11,9 +11,17 @@ TRIT_VALUES = {-1, 0, 1}
 EmbeddingVector = tuple[float, ...]
 
 
-def compute_star_id(meaning_rpn: str, meaning_class: str, domain: str) -> str:
+def compute_star_id(
+    meaning_rpn: str,
+    meaning_class: str,
+    domain: str,
+    galaxy_ref: str = "",
+) -> str:
     """Content-addressed identity: same concept definition yields the same star id."""
     content = f"{str(meaning_rpn).strip()}|{str(meaning_class).strip()}|{str(domain).strip()}"
+    galaxy_ref = str(galaxy_ref).strip()
+    if galaxy_ref:
+        content = f"{content}|{galaxy_ref}"
     return hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
 
 
@@ -96,6 +104,7 @@ class MeaningCentricStar:
     meta_refs: list[str] = field(default_factory=list)
     house_position: tuple[float, float, float] = (0.0, 0.0, 0.0)
     house_room: str = ""
+    galaxy_ref: str = ""
     confidence: int = 0
     polarity: int = 0
     embedding_64: EmbeddingVector | None = None
@@ -113,6 +122,7 @@ class MeaningCentricStar:
             self.meaning_rpn,
             self.meaning_class,
             self.domain,
+            self.galaxy_ref,
         )
         self.taxonomy_refs = _coerce_refs(self.taxonomy_refs)
         self.surface_forms = {
@@ -136,6 +146,7 @@ class MeaningCentricStar:
         self.grammar_refs = _coerce_refs(self.grammar_refs)
         self.meta_refs = _coerce_refs(self.meta_refs)
         self.house_room = str(self.house_room).strip()
+        self.galaxy_ref = str(self.galaxy_ref).strip()
         raw_position = list(self.house_position) if isinstance(self.house_position, (list, tuple)) else [0.0, 0.0, 0.0]
         while len(raw_position) < 3:
             raw_position.append(0.0)
@@ -150,7 +161,7 @@ class MeaningCentricStar:
         self.composite_of = _coerce_refs(self.composite_of)
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        payload = {
             "star_id": self.star_id,
             "meaning_class": self.meaning_class,
             "meaning_rpn": self.meaning_rpn,
@@ -180,6 +191,9 @@ class MeaningCentricStar:
             "component_refs": list(self.component_refs),
             "composite_of": list(self.composite_of),
         }
+        if self.galaxy_ref:
+            payload["galaxy_ref"] = self.galaxy_ref
+        return payload
 
     @classmethod
     def from_dict(cls, payload: Mapping[str, Any] | None) -> "MeaningCentricStar":
@@ -206,6 +220,7 @@ class MeaningCentricStar:
             meta_refs=_coerce_refs(payload.get("meta_refs")),
             house_position=tuple(payload.get("house_position", (0.0, 0.0, 0.0))),
             house_room=str(payload.get("house_room", "")).strip(),
+            galaxy_ref=str(payload.get("galaxy_ref", "")).strip(),
             confidence=_coerce_trit(payload.get("confidence")),
             polarity=_coerce_trit(payload.get("polarity")),
             embedding_64=payload.get("embedding_64"),
@@ -230,6 +245,8 @@ class MeaningCentricStar:
         entry_metadata["meaning_star_id"] = self.star_id
         entry_metadata["meaning_class"] = self.meaning_class
         entry_metadata["house_room"] = self.house_room
+        if self.galaxy_ref:
+            entry_metadata["galaxy_ref"] = self.galaxy_ref
         entry_metadata["surface_form_languages"] = sorted(self.surface_forms.keys())
         preferred_name = name or self._preferred_name()
         return {
@@ -260,6 +277,7 @@ class MeaningCentricStar:
             meaning_rpn=str(entry.get("rpn_program", "")).strip(),
             domain=str(entry.get("domain", "")).strip(),
             house_room=str(metadata.get("house_room", "")).strip(),
+            galaxy_ref=str(metadata.get("galaxy_ref", "")).strip(),
         )
 
     def _preferred_name(self) -> str:
@@ -280,6 +298,8 @@ def wrap_galaxy_entry_with_meaning_star(
     metadata["meaning_star"] = star.to_dict()
     metadata["meaning_star_id"] = star.star_id
     metadata["meaning_class"] = star.meaning_class
+    if star.galaxy_ref:
+        metadata["galaxy_ref"] = star.galaxy_ref
     wrapped["metadata"] = metadata
     return wrapped
 

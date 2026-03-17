@@ -4,6 +4,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { HonestyMaterial } from './HonestyMaterial';
 import { loadK3DFromGLTF, fetchCondoConfig, type K3DRecord, type CondoConfig, type LoadedK3D } from './loadK3D';
+import { loadHouseScene, type HouseNode, type LoadedHouseScene } from './loadHouseScene';
+import { RoomCamera } from './roomCamera';
 import { K3DAgent } from './agent';
 import { Tablet3D } from './tablet';
 import { ChatClient, type ChatMessage, type CommandMessage } from './chat';
@@ -47,6 +49,8 @@ let lastHoverRecord: K3DRecord | null = null;
 let layersOverlay: HTMLDivElement | null = null;
 let edgesObject: THREE.LineSegments | null = null;
 let gardenInstanced: THREE.Group | null = null;
+let loadedHouseScene: LoadedHouseScene | null = null;
+let roomCamera: RoomCamera | null = null;
 // LOD HUD
 const lodHud = document.createElement('div');
 lodHud.id = 'lod-hud';
@@ -164,6 +168,11 @@ function finishBootOverlay(statusText = 'K3D ready.') {
  * Clears the current 3D scene of any house-related objects.
  */
 function clearScene() {
+    if (loadedHouseScene) {
+        scene.remove(loadedHouseScene.root);
+        loadedHouseScene = null;
+    }
+    roomCamera = null;
     if (currentPoints) {
         scene.remove(currentPoints);
         try { (currentPoints as any).geometry?.dispose?.(); } catch {}
@@ -205,6 +214,114 @@ function clearScene() {
     if (chat) {
         chat.disconnect();
         chat = null;
+    }
+}
+
+function isHouseGlbUrl(url: string): boolean {
+    const value = String(url || '').trim().toLowerCase();
+    return value === 'house' || value.endsWith('/house.glb') || value.endsWith('house.glb');
+}
+
+function roomStarIdFromHouseRoom(houseRoom: string): string {
+    const token = String(houseRoom || '').split('/').filter(Boolean).pop() || '';
+    return token ? `room_${token.toLowerCase()}` : '';
+}
+
+function houseNodeLabel(node: HouseNode): string {
+    return node.surfaceForms.en?.word_ref || node.surfaceForms.pt?.word_ref || node.starId;
+}
+
+function extractDoorRoomStarIds(node: HouseNode, payload?: any): string[] {
+    const tokens = String(node.behaviorRpn || '').split(/\s+/).filter(Boolean);
+    if (tokens.length >= 4 && tokens[0] === 'DOOR_TRAVERSE' && tokens[1] === 'CONNECT') {
+        return [roomStarIdFromHouseRoom(tokens[2]), roomStarIdFromHouseRoom(tokens[3])].filter(Boolean);
+    }
+    return [roomStarIdFromHouseRoom(payload?.roomA || ''), roomStarIdFromHouseRoom(payload?.roomB || '')].filter(Boolean);
+}
+
+function findHouseNodeForObject(object: THREE.Object3D | null): HouseNode | null {
+    if (!loadedHouseScene || !object) return null;
+    let cursor: THREE.Object3D | null = object;
+    while (cursor) {
+        const starId = String((cursor.userData as any)?.k3d?.star_id || '').trim();
+        if (starId) {
+            return loadedHouseScene.nodesByStarId.get(starId) || null;
+        }
+        cursor = cursor.parent;
+    }
+    return null;
+}
+
+function showHouseTooltip(node: HouseNode) {
+    const label = houseNodeLabel(node);
+    tooltip.style.display = 'block';
+    tooltip.style.left = `${mouse.x * window.innerWidth / 2 + window.innerWidth / 2 + 5}px`;
+    tooltip.style.top = `${-mouse.y * window.innerHeight / 2 + window.innerHeight / 2 + 5}px`;
+    tooltip.innerHTML = `<div><strong>${label}</strong></div><div style="margin-top:4px; font-size:12px; color:#333;">${node.meaningClass}</div>`;
+    if (tablet) tablet.setFocusLabel(label);
+}
+
+async function loadHouseSceneAsset(url: string) {
+    clearScene();
+    currentHouseUrl = url;
+    try {
+        loadedHouseScene = await loadHouseScene(url);
+        scene.add(loadedHouseScene.root);
+        roomCamera = new RoomCamera(camera, controls, loadedHouseScene.rooms, loadedHouseScene.currentRoom || 'room_library');
+        roomCamera.snapToRoom(loadedHouseScene.currentRoom || 'room_library');
+        loadedHouseScene.currentRoom = roomCamera.currentRoom;
+
+        if (!tablet) {
+            tablet = new Tablet3D();
+            scene.add(tablet.object);
+        }
+        tablet.setStatus({
+            house: url,
+            nodes: loadedHouseScene.nodesByStarId.size,
+            info: `rooms=${loadedHouseScene.rooms.length} doors=${loadedHouseScene.doors.length}`,
+        });
+        tablet.setDataset([]);
+
+        const doorItems = loadedHouseScene.doors.map((door) => {
+            const tokens = String(door.behaviorRpn || '').split(/\s+/).filter(Boolean);
+            const roomA = tokens[2] || '';
+            const roomB = tokens[3] || '';
+            return {
+                label: houseNodeLabel(door),
+                address: roomA && roomB ? `${roomA} <-> ${roomB}` : door.starId,
+                starId: door.starId,
+                roomA,
+                roomB,
+            };
+        });
+        tablet.dispatch({ type: 'doors_list', payload: { items: doorItems } });
+        tablet.setLocalHandler?.((ev: any) => {
+            if (ev?.type !== 'openDoor' || !loadedHouseScene || !roomCamera) return;
+            const payload = ev.payload || {};
+            const starId = String(payload.starId || '').trim();
+            let door = starId ? loadedHouseScene.nodesByStarId.get(starId) || null : null;
+            if (!door) {
+                const label = String(payload.label || '').trim();
+                door = loadedHouseScene.doors.find((candidate) => houseNodeLabel(candidate) === label) || null;
+            }
+            if (!door) return;
+            const navTargets = loadedHouseScene.navGraph.edges
+                .filter((edge) => edge.door === door.starId && edge.from === loadedHouseScene!.currentRoom)
+                .map((edge) => edge.to)
+                .filter(Boolean);
+            const roomIds = navTargets.length > 0 ? navTargets : extractDoorRoomStarIds(door, payload);
+            const targetRoom = roomIds.find((candidate) => candidate !== loadedHouseScene!.currentRoom) || roomIds[0];
+            if (!targetRoom) return;
+            roomCamera.goToRoom(targetRoom);
+            loadedHouseScene.currentRoom = targetRoom;
+            tablet?.setStatus({
+                house: url,
+                nodes: loadedHouseScene.nodesByStarId.size,
+                info: `room=${targetRoom}`,
+            });
+        });
+    } catch (e) {
+        console.error(`Failed to load house scene from ${url}:`, e);
     }
 }
 
@@ -1012,10 +1129,21 @@ function onMouseMove(event: MouseEvent) {
 }
 
 function checkIntersects() {
-    if (!currentPoints) {
+    raycaster.setFromCamera(mouse, camera);
+    if (loadedHouseScene) {
+        const houseHits = raycaster.intersectObjects([loadedHouseScene.root], true);
+        const houseNode = houseHits
+            .map((hit) => findHouseNodeForObject(hit.object))
+            .find((node): node is HouseNode => node !== null);
+        if (houseNode) {
+            showHouseTooltip(houseNode);
+            return;
+        }
         tooltip.style.display = 'none';
+    }
+
+    if (!currentPoints) {
         // Also check ray meshes
-        raycaster.setFromCamera(mouse, camera);
         const rayHits = rayObjects.length ? raycaster.intersectObjects(rayObjects, true) : [];
         if (rayHits.length > 0) {
             const obj: any = rayHits[0].object;
@@ -1430,6 +1558,7 @@ function animate() {
     const dt = Math.min(0.1, (now - last) / 1000);
     last = now;
     requestAnimationFrame(animate);
+    if (roomCamera) roomCamera.update(dt);
     controls.update();
     checkIntersects();
     if (agent) agent.update(dt);
@@ -1702,7 +1831,11 @@ function startApp() {
         if (asset && asset.length > 0) {
             setBootLocal(0.28, `Loading asset ${asset}…`, 'stage: asset-preload');
             (async () => {
-                try { await loadAssetGLB(asset); } catch {}
+                try {
+                    const assetUrl = asset.toLowerCase() === 'house' ? '/house.glb' : asset;
+                    if (isHouseGlbUrl(assetUrl)) await loadHouseSceneAsset(assetUrl);
+                    else await loadAssetGLB(assetUrl);
+                } catch {}
                 finally {
                     setBootLocal(1.0, 'Entering K3D world…', 'stage: ready');
                     animate();
@@ -1720,7 +1853,8 @@ function startApp() {
                     const r = await fetch(pick, { method: 'HEAD', cache: 'no-store' });
                     if (r.ok) {
                         setBootLocal(0.52, `Loading ${pick}…`, 'stage: house-load');
-                        await loadHouse(pick);
+                        if (isHouseGlbUrl(pick)) await loadHouseSceneAsset(pick);
+                        else await loadHouse(pick);
                         setBootLocal(1.0, 'Entering K3D world…', 'stage: ready');
                         animate();
                         finishBootOverlay('K3D ready.');
@@ -1752,6 +1886,18 @@ function startApp() {
                     }
                 } catch {}
             }
+            try {
+                const houseUrl = '/house.glb';
+                const r = await fetch(houseUrl, { method: 'HEAD', cache: 'no-store' });
+                if (r.ok) {
+                    setBootLocal(0.55, `Loading ${houseUrl}…`, 'stage: house-load');
+                    await loadHouseSceneAsset(houseUrl);
+                    setBootLocal(1.0, 'Entering K3D world…', 'stage: ready');
+                    animate();
+                    finishBootOverlay('K3D ready.');
+                    return;
+                }
+            } catch {}
             const tip = document.getElementById('hud-tip') as HTMLDivElement | null;
             if (tip) tip.textContent = 'No house found. Build one (see docs/RUNBOOK_MULTIMODAL_50K.md).';
             setBootLocal(1.0, 'No house found. Build one to enter the world.', 'stage: ready');

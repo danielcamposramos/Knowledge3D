@@ -71,6 +71,40 @@ OP_SMAV = 0x41
 OP_ENTROPY_SUM = 0x42
 OP_SIGMOID_APPROX = 0x43
 
+# Phase H1: host-side 3D construction opcodes.
+# The original H1 draft proposed using the full 0x44-0x5F block, but this tree
+# already consumes 0x46-0x48 and 0x50-0x53 in the sovereign GPU kernel.
+# These opcodes are therefore assigned to a collision-safe mixed surface and are
+# routed through the host mesh engine until a GPU mesh kernel is promoted.
+OP_VERTEX3 = 0x44
+OP_NORMAL3 = 0x45
+OP_UV2 = 0x49
+OP_TRI_FACE = 0x4A
+OP_QUAD_FACE = 0x4B
+OP_FACE_NORMAL = 0x4C
+OP_MESH_BEGIN = 0x4D
+OP_MESH_END = 0x4E
+OP_MAT4_IDENTITY = 0x4F
+OP_MAT4_TRANSLATE = 0x54
+OP_MAT4_SCALE = 0x55
+OP_MAT4_ROTATE_X = 0x56
+OP_MAT4_ROTATE_Y = 0x57
+OP_MAT4_ROTATE_Z = 0x58
+OP_MAT4_MUL = 0x59
+OP_MAT4_APPLY = 0x5A
+OP_GEN_PLANE = 0x5B
+OP_GEN_CUBE = 0x5C
+OP_GEN_UV_SPHERE = 0x5D
+OP_GEN_CYLINDER = 0x5E
+OP_GEN_CONE = 0x5F
+OP_GEN_TORUS = 0x84
+OP_GEN_ICOSPHERE = 0x85
+OP_CSG_UNION = 0x86
+OP_CSG_SUBTRACT = 0x87
+OP_CSG_INTERSECT = 0x88
+OP_EXTRUDE = 0x89
+OP_LATHE = 0x8A
+
 # Phase 1A – TRM integration opcodes (Tier-3 execution surface)
 OP_TRM_MATVEC_512x1024 = 0x60
 OP_TRM_MATVEC_1024x512 = 0x61
@@ -406,4 +440,35 @@ __all__ = [
     "OP_LAYER_PUSH",
     "OP_LAYER_POP",
     "OP_BLEND_MODE",
+]
+
+__all__ += [
+    "OP_VERTEX3",
+    "OP_NORMAL3",
+    "OP_UV2",
+    "OP_TRI_FACE",
+    "OP_QUAD_FACE",
+    "OP_FACE_NORMAL",
+    "OP_MESH_BEGIN",
+    "OP_MESH_END",
+    "OP_MAT4_IDENTITY",
+    "OP_MAT4_TRANSLATE",
+    "OP_MAT4_SCALE",
+    "OP_MAT4_ROTATE_X",
+    "OP_MAT4_ROTATE_Y",
+    "OP_MAT4_ROTATE_Z",
+    "OP_MAT4_MUL",
+    "OP_MAT4_APPLY",
+    "OP_GEN_PLANE",
+    "OP_GEN_CUBE",
+    "OP_GEN_UV_SPHERE",
+    "OP_GEN_CYLINDER",
+    "OP_GEN_CONE",
+    "OP_GEN_TORUS",
+    "OP_GEN_ICOSPHERE",
+    "OP_CSG_UNION",
+    "OP_CSG_SUBTRACT",
+    "OP_CSG_INTERSECT",
+    "OP_EXTRUDE",
+    "OP_LATHE",
 ]

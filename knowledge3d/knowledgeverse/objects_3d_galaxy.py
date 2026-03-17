@@ -43,21 +43,21 @@ def create_mesh_primitives() -> list[dict[str, Any]]:
                 entry_id="obj3d_mesh_triangle_face",
                 name="Triangle Mesh Face",
                 category="meshes",
-                rpn_program="V1 V2 V3 MAKE_TRI_FACE",
+                rpn_program="I0 I1 I2 TRI_FACE",
                 tags=["mesh", "triangle"],
             ),
             _entry(
                 entry_id="obj3d_mesh_quad_face",
                 name="Quad Mesh Face",
                 category="meshes",
-                rpn_program="V1 V2 V3 V4 MAKE_QUAD_FACE",
+                rpn_program="I0 I1 I2 I3 QUAD_FACE",
                 tags=["mesh", "quad"],
             ),
             _entry(
                 entry_id="obj3d_mesh_compute_normal",
                 name="Face Normal from Vertices",
                 category="meshes",
-                rpn_program="V2 V1 SUB V3 V1 SUB CROSS NORMALIZE",
+                rpn_program="I0 I1 I2 FACE_NORMAL",
                 tags=["mesh", "normal", "vector"],
             ),
         ]
@@ -68,7 +68,7 @@ def create_mesh_primitives() -> list[dict[str, Any]]:
                 entry_id=f"obj3d_mesh_grid_{grid}x{grid}",
                 name=f"Grid Mesh {grid}x{grid}",
                 category="meshes_grid",
-                rpn_program=f"{grid} {grid} GENERATE_GRID_MESH",
+                rpn_program=f"1.0 1.0 {grid} {grid} GEN_PLANE",
                 tags=["mesh", "grid", "procedural"],
                 metadata={"generative": True},
             )
@@ -79,7 +79,7 @@ def create_mesh_primitives() -> list[dict[str, Any]]:
                 entry_id=f"obj3d_mesh_cylinder_segments_{segments}",
                 name=f"Cylinder Mesh segments={segments}",
                 category="meshes_parametric",
-                rpn_program=f"RADIUS HEIGHT {segments} GENERATE_CYLINDER_MESH",
+                rpn_program=f"RADIUS HEIGHT {segments} 1 GEN_CYLINDER",
                 tags=["mesh", "cylinder", "procedural"],
                 metadata={"generative": True},
             )
@@ -114,10 +114,10 @@ def create_transformation_primitives() -> list[dict[str, Any]]:
             ),
             _entry(
                 entry_id="obj3d_xform_apply",
-                name="Apply Transform to Vertex",
+                name="Apply Transform to Mesh",
                 category="transformations",
-                rpn_program="MAT4 VEC4 MAT4_VEC4_MUL",
-                tags=["transform", "matrix", "vertex"],
+                rpn_program="MAT4 MAT4_APPLY",
+                tags=["transform", "matrix", "mesh"],
             ),
         ]
     )
@@ -210,7 +210,7 @@ def create_procedural_generation_primitives() -> list[dict[str, Any]]:
                 entry_id="obj3d_gen_cube",
                 name="Generate Cube Mesh",
                 category="procedural_generation",
-                rpn_program="SIZE GENERATE_CUBE_VERTICES GENERATE_CUBE_FACES",
+                rpn_program="SIZE GEN_CUBE",
                 tags=["procedural", "mesh", "cube"],
                 metadata={"generative": True},
             ),
@@ -218,7 +218,7 @@ def create_procedural_generation_primitives() -> list[dict[str, Any]]:
                 entry_id="obj3d_gen_uv_sphere",
                 name="Generate UV Sphere Mesh",
                 category="procedural_generation",
-                rpn_program="RADIUS STACKS SLICES GENERATE_UV_SPHERE",
+                rpn_program="RADIUS STACKS SLICES GEN_UV_SPHERE",
                 tags=["procedural", "mesh", "sphere"],
                 metadata={"generative": True},
             ),
@@ -226,8 +226,16 @@ def create_procedural_generation_primitives() -> list[dict[str, Any]]:
                 entry_id="obj3d_gen_lathe_profile",
                 name="Generate Lathe Mesh from Profile",
                 category="procedural_generation",
-                rpn_program="PROFILE_CURVE SEGMENTS GENERATE_LATHE",
+                rpn_program="SEGMENTS LATHE",
                 tags=["procedural", "mesh", "lathe"],
+                metadata={"generative": True, "cross_modal": ["drawing", "character", "math"]},
+            ),
+            _entry(
+                entry_id="obj3d_gen_extrude_profile",
+                name="Extrude Closed Profile",
+                category="procedural_generation",
+                rpn_program="DEPTH EXTRUDE",
+                tags=["procedural", "mesh", "extrude"],
                 metadata={"generative": True, "cross_modal": ["drawing", "character", "math"]},
             ),
         ]
@@ -239,7 +247,7 @@ def create_procedural_generation_primitives() -> list[dict[str, Any]]:
                     entry_id=f"obj3d_gen_sphere_s{stacks}_c{slices}",
                     name=f"UV Sphere stacks={stacks} slices={slices}",
                     category="procedural_generation_sphere",
-                    rpn_program=f"RADIUS {stacks} {slices} GENERATE_UV_SPHERE",
+                    rpn_program=f"RADIUS {stacks} {slices} GEN_UV_SPHERE",
                     tags=["procedural", "sphere", "mesh"],
                     metadata={"generative": True},
                 )
@@ -307,4 +315,3 @@ def bootstrap_3d_objects_galaxy(storage_root: str | Path = "../Knowledge3D.local
         "appended": len(to_append),
         "after": len(existing) + len(to_append),
     }
-

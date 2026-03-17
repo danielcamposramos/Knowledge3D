@@ -344,6 +344,15 @@ class GalaxyManager:
                 return MeaningCentricStar.from_galaxy_entry(entry)
         return None
 
+    def load_galaxy_on_demand(self, star: MeaningCentricStar) -> Any | None:
+        """Load the galaxy referenced by a container object, if any."""
+        if not isinstance(star, MeaningCentricStar):
+            return None
+        galaxy_ref = str(star.galaxy_ref).strip()
+        if not galaxy_ref:
+            return None
+        return self.get_galaxy(galaxy_ref)
+
     def add_entry(self, galaxy_name: str, entry: dict[str, Any] | MeaningCentricStar) -> None:
         entry_dict = self._coerce_entry(galaxy_name, entry)
         galaxy = self.get_galaxy(galaxy_name)
