@@ -1,8 +1,9 @@
 import type { HouseNode, LoadedHouseScene } from '../loadHouseScene';
+import { getBookContent } from '../contentLoader';
 import { RoomCamera } from '../roomCamera';
 import { Tablet3D } from '../tablet';
 
-import { renderNodeContent, renderContentPayload } from './contentRenderer';
+import { renderBookContent, renderNodeContent, renderContentPayload } from './contentRenderer';
 import { interpretBehavior } from './interpreter';
 import { RoomContext } from './roomContext';
 
@@ -59,13 +60,16 @@ export class HouseActivator {
   private handleLoadGalaxy(galaxyRef: string, node: HouseNode): void {
     this.tablet.showFocus();
     this.tablet.dispatch({ type: 'open_app', payload: { id: 'content' } });
+    const bookContent = getBookContent(galaxyRef);
     this.tablet.dispatch({
       type: 'showContent',
-      payload: renderContentPayload({
-        node,
-        galaxyRef,
-        title: node.surfaceForms.en?.word_ref || node.starId,
-      }),
+      payload: bookContent
+        ? renderBookContent(galaxyRef, bookContent, node)
+        : renderContentPayload({
+            node,
+            galaxyRef,
+            title: node.surfaceForms.en?.word_ref || node.starId,
+          }),
     });
   }
 

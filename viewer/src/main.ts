@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { HonestyMaterial } from './HonestyMaterial';
+import { clearHouseContent, loadHouseContent } from './contentLoader';
 import { loadK3DFromGLTF, fetchCondoConfig, type K3DRecord, type CondoConfig, type LoadedK3D } from './loadK3D';
 import { HouseActivator, RoomContext } from './behavior';
 import { loadHouseScene, type HouseNode, type LoadedHouseScene } from './loadHouseScene';
@@ -366,6 +367,12 @@ async function loadHouseSceneAsset(url: string) {
     try {
         loadedHouseScene = await loadHouseScene(url);
         scene.add(loadedHouseScene.root);
+        try {
+            await loadHouseContent(url.replace(/house\.glb$/i, 'house-content.json').replace(/\.glb$/i, '-content.json'));
+        } catch (error) {
+            clearHouseContent();
+            console.warn('House content not available:', error);
+        }
         roomCamera = new RoomCamera(camera, controls, loadedHouseScene.rooms, loadedHouseScene.currentRoom || 'room_living');
         roomCamera.snapToRoom(loadedHouseScene.currentRoom || 'room_living');
         loadedHouseScene.currentRoom = roomCamera.currentRoom;

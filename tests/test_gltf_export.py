@@ -40,6 +40,7 @@ def test_export_house_produces_valid_glb(tmp_path: Path) -> None:
     output = tmp_path / "house.glb"
     summary = export_house_glb(output)
     assert output.exists()
+    assert output.with_name("house-content.json").exists()
     assert output.stat().st_size > 1000
     assert summary["rooms"] == 6
     assert summary["furniture"] >= 8
@@ -49,6 +50,9 @@ def test_export_house_produces_valid_glb(tmp_path: Path) -> None:
     assert summary["displays"] >= 4
     assert summary["instruments"] >= 3
     assert summary["tablet"] >= 1
+    assert summary["content_books"] == 5
+    assert summary["content_entries"] == 85
+    assert summary["content_concepts"] == 10
     pygltflib = pytest.importorskip("pygltflib")
     gltf = pygltflib.GLTF2().load(str(output))
     assert len(gltf.nodes) > 10

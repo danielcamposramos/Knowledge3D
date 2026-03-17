@@ -19,6 +19,7 @@ from knowledge3d.knowledgeverse.house_observatory import OBSERVATORY_INSTRUMENTS
 from knowledge3d.knowledgeverse.house_rooms import HOUSE_ROOMS
 from knowledge3d.knowledgeverse.house_workshop_tools import WORKSHOP_TOOLS
 from knowledge3d.knowledgeverse.meaning_star import MeaningCentricStar
+from knowledge3d.tools.export_house_content import export_house_content
 from knowledge3d.tools.gltf_export import compose_scene, mesh_to_gltf_node
 
 
@@ -266,6 +267,7 @@ def export_house_glb(
     gltf.scenes = [Scene(nodes=[root_index])]
     gltf.scene = 0
     gltf.save_binary(str(output_path))
+    content_summary = export_house_content(output_path.with_name("house-content.json"))
 
     total_vertices = 0
     total_triangles = 0
@@ -294,6 +296,10 @@ def export_house_glb(
         "total_triangles": total_triangles,
         "file_size_kb": output_path.stat().st_size / 1024.0,
         "output": str(output_path),
+        "content_books": int(content_summary["books"]),
+        "content_entries": int(content_summary["book_entries"]),
+        "content_concepts": int(content_summary["concepts"]),
+        "content_output": str(content_summary["output"]),
     }
 
 

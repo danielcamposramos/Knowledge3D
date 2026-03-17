@@ -24,7 +24,8 @@ def main(argv: list[str] | None = None) -> int:
     print(
         f"Exported House: {summary['rooms']} rooms, "
         f"{summary['total_vertices']} vertices, "
-        f"{summary['file_size_kb']:.1f} KB -> {args.output}"
+        f"{summary['file_size_kb']:.1f} KB -> {args.output}; "
+        f"content={summary['content_entries']} entries -> {summary['content_output']}"
     )
     return 0
 

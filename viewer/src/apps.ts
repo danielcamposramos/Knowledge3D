@@ -3,8 +3,33 @@ import * as THREE from 'three';
 import { buildNodeDomProgram } from './behavior';
 import type { ContentPage } from './behavior';
 import { openStore } from './cache';
+import { resolveRef } from './contentLoader';
 import { createVisualRpnEngine, rpnToDOM, rpnToSVG } from './rpn';
 import type { K3DRecord } from './loadK3D';
+
+function resolvedLabel(refId: string): string {
+  const resolved = resolveRef(refId);
+  const displayName = resolved?.surface_forms?.en?.word_ref || resolved?.surface_forms?.pt?.word_ref || refId;
+  return displayName !== refId ? `${displayName} (${refId})` : refId;
+}
+
+function formatContentLine(line: string): string {
+  const arrowMatch = line.match(/^(\s*→\s*)(.+)$/);
+  if (arrowMatch) {
+    return `${arrowMatch[1]}${resolvedLabel(arrowMatch[2].trim())}`;
+  }
+  const refsMatch = line.match(/^(\s*refs:\s*)(.+)$/);
+  if (refsMatch) {
+    const refs = refsMatch[2]
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean)
+      .map((ref) => resolvedLabel(ref))
+      .join(', ');
+    return `${refsMatch[1]}${refs}`;
+  }
+  return line;
+}
 
 export interface TabletApp {
   id: string;
@@ -526,7 +551,7 @@ export class ContentApp implements TabletApp {
       list.style.color = '#ddd';
       list.style.marginTop = '8px';
       list.style.whiteSpace = 'pre-wrap';
-      list.textContent = section.lines.join('\n');
+      list.textContent = section.lines.map((line) => formatContentLine(line)).join('\n');
       card.appendChild(list);
       wrap.appendChild(card);
     }

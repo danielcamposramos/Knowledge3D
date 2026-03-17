@@ -1,5 +1,5 @@
 import type { HouseNode } from '../src/loadHouseScene';
-import { renderNodeContent } from '../src/behavior';
+import { renderBookContent, renderNodeContent } from '../src/behavior';
 
 const mockBookNode: HouseNode = {
   starId: 'book_mathematics_primer',
@@ -26,5 +26,42 @@ describe('content renderer', () => {
     expect(page.sections.find((section) => section.heading === 'Identity')).toBeTruthy();
     expect(page.sections.find((section) => section.heading === 'Content Galaxy')).toBeTruthy();
     expect(page.sections.find((section) => section.heading === 'References')).toBeTruthy();
+  });
+
+  it('renders book content hierarchy', () => {
+    const page = renderBookContent(
+      'Book/MathematicsPrimer',
+      {
+        entries: [
+          {
+            star_id: 'mathbook_ch1_numbers',
+            meaning_class: 'chapter',
+            domain: 'Book/MathematicsPrimer',
+            meaning_rpn: 'CHAPTER NUMBERS',
+            behavior_rpn: 'OPEN',
+            surface_forms: { en: { word_ref: 'Chapter 1 Numbers', char_refs: [] } },
+            taxonomy_refs: ['concept_mathematics'],
+            grammar_refs: [],
+            component_refs: ['mathbook_sec1_counting'],
+          },
+          {
+            star_id: 'mathbook_sec1_counting',
+            meaning_class: 'section',
+            domain: 'Book/MathematicsPrimer',
+            meaning_rpn: 'SECTION COUNTING',
+            behavior_rpn: 'OPEN',
+            surface_forms: { en: { word_ref: 'Counting and Order', char_refs: [] } },
+            taxonomy_refs: ['num_0', 'num_1'],
+            grammar_refs: ['grammar_numeric_literal'],
+            component_refs: [],
+          },
+        ],
+      },
+      mockBookNode,
+    );
+    expect(page.title).toBe('Mathematics Primer');
+    expect(page.sections[0]?.heading).toBe('Chapter 1 Numbers');
+    expect(page.sections[0]?.lines[0]).toContain('§ Counting and Order');
+    expect(page.sections[0]?.lines.some((line) => line.includes('rules: grammar_numeric_literal'))).toBe(true);
   });
 });
