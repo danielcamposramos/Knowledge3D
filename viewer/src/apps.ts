@@ -1,5 +1,7 @@
+import * as THREE from 'three';
+
 import { openStore } from './cache';
-import { RPN } from './rpn';
+import { createVisualRpnEngine, rpnToSVG } from './rpn';
 import type { K3DRecord } from './loadK3D';
 
 export interface TabletApp {
@@ -206,40 +208,212 @@ export class NotesApp implements TabletApp {
 export class RpnApp implements TabletApp {
   id = 'rpn';
   title = 'RPN Calc';
-  private rpn = new RPN();
-  private stack: number[] = [];
-  private push(x: number) { this.stack.push(x); if (this.stack.length > 32) this.stack.shift(); }
-  private applyOp(op: string) {
-    try {
-      const res = this.rpn.eval([op]);
-      if (typeof res === 'number') this.push(res);
-    } catch {}
+  private currentProgram = '3 4 ADD';
+  private inspectedLabel = '';
+  private stackSummary: string[] = [];
+  private previewMode = 'stack';
+  private lastError = '';
+  private serverVertices = 0;
+  private serverTriangles = 0;
+  private generatedVertices = 0;
+  private generatedTriangles = 0;
+  private overlayRoot: HTMLDivElement | null = null;
+
+  private describeValue(value: unknown): string {
+    if (typeof value === 'number') return Number(value.toFixed(4)).toString();
+    if (value instanceof Float32Array && value.length === 16) return 'mat4(16)';
+    if (value instanceof Float32Array) return `float32(${value.length})`;
+    return String(value);
   }
+
+  private evaluateProgram() {
+    const engine = createVisualRpnEngine();
+    engine.reset();
+    this.generatedVertices = 0;
+    this.generatedTriangles = 0;
+    const stack = engine.execute(this.currentProgram);
+    this.stackSummary = stack.slice(-12).map((value) => this.describeValue(value)).reverse();
+    const geometry = engine.context.mesh?.toGeometry();
+    const position = geometry?.getAttribute('position');
+    const hasMesh = !!position && position.count > 0;
+    if (hasMesh) {
+      this.generatedVertices = position.count;
+      this.generatedTriangles = geometry?.index ? Math.floor(geometry.index.count / 3) : Math.floor(position.count / 3);
+      this.previewMode = 'mesh';
+      return { engine, geometry };
+    }
+    if (engine.context.path?.hasSegments()) {
+      this.previewMode = 'path';
+      return { engine, geometry: null };
+    }
+    this.previewMode = 'stack';
+    return { engine, geometry: null };
+  }
+
+  private renderMeshPreview(container: HTMLDivElement, geometry: THREE.BufferGeometry) {
+    try {
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(360, 240, false);
+      renderer.domElement.style.width = '100%';
+      renderer.domElement.style.height = '240px';
+      container.appendChild(renderer.domElement);
+
+      const scene = new THREE.Scene();
+      const material = new THREE.MeshNormalMaterial({ wireframe: true });
+      const mesh = new THREE.Mesh(geometry, material);
+      scene.add(mesh);
+      scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+      const light = new THREE.DirectionalLight(0xffffff, 0.8);
+      light.position.set(4, 6, 8);
+      scene.add(light);
+
+      geometry.computeBoundingSphere();
+      const radius = Math.max(0.25, geometry.boundingSphere?.radius || 1);
+      const camera = new THREE.PerspectiveCamera(50, 360 / 240, 0.01, 1000);
+      camera.position.set(radius * 2.4, radius * 1.8, radius * 2.6);
+      camera.lookAt(0, 0, 0);
+      renderer.render(scene, camera);
+      renderer.dispose();
+    } catch (error) {
+      const fallback = document.createElement('div');
+      fallback.style.color = '#ddd';
+      fallback.textContent = `3D preview unavailable: ${String((error as Error)?.message || error)}`;
+      container.appendChild(fallback);
+    }
+  }
+
+  onEvent(ev: { type: string; payload?: any }) {
+    if (ev.type !== 'rpn_program' || !ev.payload) return;
+    this.currentProgram = String(ev.payload.program || '').trim();
+    this.inspectedLabel = String(ev.payload.label || ev.payload.starId || '').trim();
+    this.serverVertices = Number(ev.payload.serverVertices || 0);
+    this.serverTriangles = Number(ev.payload.serverTriangles || 0);
+    this.lastError = '';
+    try {
+      this.evaluateProgram();
+    } catch (error) {
+      this.lastError = String((error as Error)?.message || error);
+    }
+    if (this.overlayRoot) this.openOverlay(this.overlayRoot);
+  }
+
   renderCanvas(ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }) {
     ctx.fillStyle = '#0b0d0f';
     ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
     ctx.fillStyle = '#e0f7fa';
     ctx.font = '12px monospace';
-    const view = this.stack.slice(-6);
-    let y = rect.y + 18;
-    for (let i = view.length - 1; i >= 0; i--) {
-      ctx.fillText((view[i] as any).toString().slice(0, 16), rect.x + 10, y);
+    ctx.fillText((this.inspectedLabel || 'RPN Preview').slice(0, 28), rect.x + 10, rect.y + 18);
+    ctx.fillStyle = '#b5e2fa';
+    ctx.fillText((this.currentProgram || '(empty)').slice(0, 42), rect.x + 10, rect.y + 36);
+    ctx.fillStyle = '#e0f7fa';
+    ctx.fillText(`mode=${this.previewMode}`, rect.x + 10, rect.y + 54);
+    const view = this.stackSummary.slice(0, 4);
+    let y = rect.y + 74;
+    for (const line of view) {
+      ctx.fillText(line.slice(0, 18), rect.x + 10, y);
       y += 14;
+    }
+    if (this.generatedVertices > 0) {
+      ctx.fillStyle = '#94d2bd';
+      ctx.fillText(`v=${this.generatedVertices} t=${this.generatedTriangles}`, rect.x + 10, rect.y + rect.h - 24);
     }
     ctx.fillStyle = '#90caf9';
     ctx.fillText('[RPN] keys in Focus mode', rect.x + 10, rect.y + rect.h - 8);
   }
+
   openOverlay(el: HTMLDivElement) {
+    this.overlayRoot = el;
     el.innerHTML = '';
-    const input = document.createElement('input'); input.placeholder = 'number or op';
-    const btnEnter = document.createElement('button'); btnEnter.textContent = 'Enter';
-    btnEnter.onclick = () => { const v = parseFloat(input.value); if (!Number.isNaN(v)) this.push(v); input.value=''; render(); };
-    const ops = ['+', '-', '*', '/', 'swap', 'drop', 'dup', 'sin', 'cos', 'tan', 'sqrt', 'pow'];
-    const panel = document.createElement('div'); panel.style.display = 'flex'; panel.style.flexWrap = 'wrap'; panel.style.gap = '6px';
-    for (const op of ops) { const b = document.createElement('button'); b.textContent = op; b.onclick = () => { this.applyOp(op); render(); }; panel.appendChild(b); }
-    const out = document.createElement('pre'); out.style.color = '#ddd';
-    const render = () => { out.textContent = this.stack.slice(-12).map((v,i)=>`${i}: ${v}`).reverse().join('\n'); };
-    el.appendChild(input); el.appendChild(btnEnter); el.appendChild(panel); el.appendChild(out); render();
+    const title = document.createElement('div');
+    title.style.color = '#ddd';
+    title.style.fontWeight = 'bold';
+    title.textContent = this.inspectedLabel ? `Inspecting ${this.inspectedLabel}` : 'Live RPN Preview';
+
+    const program = document.createElement('textarea');
+    program.rows = 6;
+    program.style.width = '100%';
+    program.style.marginTop = '8px';
+    program.style.background = '#0b0d0f';
+    program.style.color = '#e0f7fa';
+    program.style.border = '1px solid #333';
+    program.value = this.currentProgram;
+
+    const actions = document.createElement('div');
+    actions.style.display = 'flex';
+    actions.style.flexWrap = 'wrap';
+    actions.style.gap = '6px';
+    actions.style.marginTop = '8px';
+    for (const token of ['ADD', 'SUB', 'MUL', 'DIV', 'GEN_CUBE', 'MAT4_SCALE', 'MAT4_APPLY', 'MOVE', 'LINE', 'CLOSE']) {
+      const button = document.createElement('button');
+      button.textContent = token;
+      button.onclick = () => {
+        program.value = `${program.value.trim()} ${token}`.trim();
+        this.currentProgram = program.value;
+        render();
+      };
+      actions.appendChild(button);
+    }
+
+    const preview = document.createElement('div');
+    preview.style.marginTop = '10px';
+    preview.style.minHeight = '260px';
+    preview.style.border = '1px solid #333';
+    preview.style.background = '#091117';
+    preview.style.padding = '8px';
+
+    const info = document.createElement('pre');
+    info.style.color = '#ddd';
+    info.style.whiteSpace = 'pre-wrap';
+    info.style.marginTop = '8px';
+
+    const render = () => {
+      this.currentProgram = program.value.trim();
+      preview.innerHTML = '';
+      this.lastError = '';
+      try {
+        const result = this.evaluateProgram();
+        if (this.previewMode === 'mesh' && result.geometry) {
+          this.renderMeshPreview(preview, result.geometry);
+        } else if (this.previewMode === 'path') {
+          const svg = rpnToSVG(this.currentProgram);
+          svg.style.height = '240px';
+          preview.appendChild(svg);
+        } else {
+          const stackOnly = document.createElement('div');
+          stackOnly.style.color = '#ddd';
+          stackOnly.textContent = this.stackSummary.length ? this.stackSummary.join(' | ') : '(empty stack)';
+          preview.appendChild(stackOnly);
+        }
+      } catch (error) {
+        this.previewMode = 'error';
+        this.stackSummary = [];
+        this.generatedVertices = 0;
+        this.generatedTriangles = 0;
+        this.lastError = String((error as Error)?.message || error);
+        const errorEl = document.createElement('div');
+        errorEl.style.color = '#ff6b6b';
+        errorEl.textContent = this.lastError;
+        preview.appendChild(errorEl);
+      }
+      const parityDelta = this.serverVertices > 0 ? this.generatedVertices - this.serverVertices : 0;
+      info.textContent = [
+        `mode: ${this.previewMode}`,
+        this.serverVertices > 0 ? `server: vertices=${this.serverVertices} triangles=${this.serverTriangles}` : 'server: —',
+        this.generatedVertices > 0 ? `browser: vertices=${this.generatedVertices} triangles=${this.generatedTriangles}` : 'browser: —',
+        this.serverVertices > 0 ? `delta: ${parityDelta >= 0 ? '+' : ''}${parityDelta} vertices` : '',
+        this.lastError ? `error: ${this.lastError}` : '',
+        this.stackSummary.length ? `stack: ${this.stackSummary.join(', ')}` : '',
+      ].filter(Boolean).join('\n');
+    };
+
+    program.addEventListener('input', render);
+
+    el.appendChild(title);
+    el.appendChild(program);
+    el.appendChild(actions);
+    el.appendChild(preview);
+    el.appendChild(info);
+    render();
   }
 }
 

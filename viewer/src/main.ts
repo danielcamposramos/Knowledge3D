@@ -231,6 +231,37 @@ function houseNodeLabel(node: HouseNode): string {
     return node.surfaceForms.en?.word_ref || node.surfaceForms.pt?.word_ref || node.starId;
 }
 
+function houseNodeGeometryStats(node: HouseNode): { vertices: number; triangles: number } {
+    let vertices = 0;
+    let triangles = 0;
+    node.object.traverse((child: any) => {
+        if (!child?.isMesh || !child.geometry) return;
+        const geometry = child.geometry as THREE.BufferGeometry;
+        const position = geometry.getAttribute('position');
+        if (position) vertices += position.count;
+        if (geometry.index) triangles += Math.floor(geometry.index.count / 3);
+        else if (position) triangles += Math.floor(position.count / 3);
+    });
+    return { vertices, triangles };
+}
+
+function inspectHouseNode(node: HouseNode) {
+    if (!tablet || !node.visualRpn) return;
+    const stats = houseNodeGeometryStats(node);
+    tablet.showFocus();
+    tablet.dispatch({ type: 'open_app', payload: { id: 'rpn' } });
+    tablet.dispatch({
+        type: 'rpn_program',
+        payload: {
+            starId: node.starId,
+            label: houseNodeLabel(node),
+            program: node.visualRpn,
+            serverVertices: stats.vertices,
+            serverTriangles: stats.triangles,
+        },
+    });
+}
+
 function extractDoorRoomStarIds(node: HouseNode, payload?: any): string[] {
     const tokens = String(node.behaviorRpn || '').split(/\s+/).filter(Boolean);
     if (tokens.length >= 4 && tokens[0] === 'DOOR_TRAVERSE' && tokens[1] === 'CONNECT') {
@@ -254,11 +285,30 @@ function findHouseNodeForObject(object: THREE.Object3D | null): HouseNode | null
 
 function showHouseTooltip(node: HouseNode) {
     const label = houseNodeLabel(node);
+    const visual = String(node.visualRpn || '').trim();
+    const preview = visual.length > 72 ? `${visual.slice(0, 69)}...` : visual;
     tooltip.style.display = 'block';
     tooltip.style.left = `${mouse.x * window.innerWidth / 2 + window.innerWidth / 2 + 5}px`;
     tooltip.style.top = `${-mouse.y * window.innerHeight / 2 + window.innerHeight / 2 + 5}px`;
-    tooltip.innerHTML = `<div><strong>${label}</strong></div><div style="margin-top:4px; font-size:12px; color:#333;">${node.meaningClass}</div>`;
+    tooltip.innerHTML = [
+        `<div><strong>${label}</strong></div>`,
+        `<div style="margin-top:4px; font-size:12px; color:#333;">${node.meaningClass}</div>`,
+        preview ? `<div style="margin-top:4px; font-size:11px; color:#555;">${preview}</div>` : '',
+    ].join('');
     if (tablet) tablet.setFocusLabel(label);
+}
+
+function onSceneClick(event: MouseEvent) {
+    if (!loadedHouseScene || event.target !== canvas) return;
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const houseHits = raycaster.intersectObjects([loadedHouseScene.root], true);
+    const houseNode = houseHits
+        .map((hit) => findHouseNodeForObject(hit.object))
+        .find((node): node is HouseNode => node !== null);
+    if (!houseNode) return;
+    inspectHouseNode(houseNode);
 }
 
 async function loadHouseSceneAsset(url: string) {
@@ -1235,6 +1285,7 @@ function checkIntersects() {
 }
 
 window.addEventListener('mousemove', onMouseMove);
+canvas.addEventListener('click', onSceneClick);
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();

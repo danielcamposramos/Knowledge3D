@@ -1,8 +1,8 @@
 export type RPNToken = number | string;
 
 export interface RPNOptions {
-  maxDepth?: number; // total capacity
-  keepTop?: number;  // keep at least this many elements after auto-clean
+  maxDepth?: number;
+  keepTop?: number;
 }
 
 export class RPN {
@@ -12,7 +12,7 @@ export class RPN {
 
   constructor(opts: RPNOptions = {}) {
     this.maxDepth = opts.maxDepth ?? 64;
-    this.keepTop = Math.max(5, opts.keepTop ?? 5); // ensure at least 5 levels of memory
+    this.keepTop = Math.max(5, opts.keepTop ?? 5);
   }
 
   reset() {
@@ -42,7 +42,6 @@ export class RPN {
 
   private autoClean() {
     if (this.stack.length > this.maxDepth) {
-      // Drop oldest but keep at least keepTop values
       const keep = Math.max(this.keepTop, 1);
       this.stack.splice(0, this.stack.length - keep);
     }
@@ -57,17 +56,38 @@ export class RPN {
       switch (t) {
         case '+': this.push(this.pop() + this.pop()); break;
         case '-': {
-          const b = this.pop(); const a = this.pop(); this.push(a - b); break;
+          const b = this.pop();
+          const a = this.pop();
+          this.push(a - b);
+          break;
         }
         case '*': this.push(this.pop() * this.pop()); break;
         case '/': {
-          const b = this.pop(); const a = this.pop(); this.push(a / b || 0); break;
+          const b = this.pop();
+          const a = this.pop();
+          this.push(a / b || 0);
+          break;
+        }
+        case 'sin': this.push(Math.sin(this.pop())); break;
+        case 'cos': this.push(Math.cos(this.pop())); break;
+        case 'tan': this.push(Math.tan(this.pop())); break;
+        case 'pow': {
+          const b = this.pop();
+          const a = this.pop();
+          this.push(Math.pow(a, b));
+          break;
         }
         case 'sqrt': this.push(Math.sqrt(this.pop())); break;
         case 'abs': this.push(Math.abs(this.pop())); break;
         case 'dup': this.push(this.peek()); break;
         case 'drop': this.pop(); break;
-        case 'swap': { const a = this.pop(), b = this.pop(); this.push(a); this.push(b); break; }
+        case 'swap': {
+          const a = this.pop();
+          const b = this.pop();
+          this.push(a);
+          this.push(b);
+          break;
+        }
         default:
           throw new Error(`RPN unknown op: ${t}`);
       }
@@ -100,4 +120,3 @@ export class RPN {
     return this.eval([d, na, '/', nb, '/']);
   }
 }
-
