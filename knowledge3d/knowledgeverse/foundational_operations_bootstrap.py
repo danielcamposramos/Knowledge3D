@@ -6,6 +6,8 @@ from pathlib import Path
 import re
 from typing import Any
 
+from .meaning_star import MeaningCentricStar, SurfaceForm, wrap_galaxy_entry_with_meaning_star
+
 
 _NUMBER_WORD_UNITS: dict[int, str] = {
     0: "zero",
@@ -41,6 +43,65 @@ _NUMBER_WORD_TENS: dict[int, str] = {
     90: "ninety",
 }
 
+_NUMBER_WORD_UNITS_PT: dict[int, str] = {
+    0: "zero",
+    1: "um",
+    2: "dois",
+    3: "tres",
+    4: "quatro",
+    5: "cinco",
+    6: "seis",
+    7: "sete",
+    8: "oito",
+    9: "nove",
+    10: "dez",
+    11: "onze",
+    12: "doze",
+    13: "treze",
+    14: "quatorze",
+    15: "quinze",
+    16: "dezesseis",
+    17: "dezessete",
+    18: "dezoito",
+    19: "dezenove",
+}
+
+_NUMBER_WORD_TENS_PT: dict[int, str] = {
+    20: "vinte",
+    30: "trinta",
+    40: "quarenta",
+    50: "cinquenta",
+    60: "sessenta",
+    70: "setenta",
+    80: "oitenta",
+    90: "noventa",
+}
+
+_NUMBER_WORD_HUNDREDS_PT: dict[int, str] = {
+    100: "cem",
+    200: "duzentos",
+    300: "trezentos",
+    400: "quatrocentos",
+    500: "quinhentos",
+    600: "seiscentos",
+    700: "setecentos",
+    800: "oitocentos",
+    900: "novecentos",
+}
+
+_KANJI_UNITS: dict[int, str] = {
+    0: "零",
+    1: "一",
+    2: "二",
+    3: "三",
+    4: "四",
+    5: "五",
+    6: "六",
+    7: "七",
+    8: "八",
+    9: "九",
+}
+
 
 def _number_to_words(value: int) -> str:
     if value < 20:
@@ -62,8 +123,140 @@ def _number_to_words(value: int) -> str:
     raise ValueError("foundational number bootstrap capped at 1000")
 
 
+def _number_to_words_pt(value: int) -> str:
+    if value < 20:
+        return _NUMBER_WORD_UNITS_PT[value]
+    if value < 100:
+        tens = (value // 10) * 10
+        unit = value % 10
+        if unit == 0:
+            return _NUMBER_WORD_TENS_PT[tens]
+        return f"{_NUMBER_WORD_TENS_PT[tens]} e {_NUMBER_WORD_UNITS_PT[unit]}"
+    if value < 1000:
+        hundreds = (value // 100) * 100
+        remainder = value % 100
+        if value == 100:
+            return "cem"
+        prefix = "cento" if hundreds == 100 else _NUMBER_WORD_HUNDREDS_PT[hundreds]
+        if remainder == 0:
+            return prefix
+        return f"{prefix} e {_number_to_words_pt(remainder)}"
+    if value == 1000:
+        return "mil"
+    raise ValueError("foundational number bootstrap capped at 1000")
+
+
+def _number_to_words_ja(value: int) -> str:
+    if value == 0:
+        return _KANJI_UNITS[0]
+    if value == 1000:
+        return "千"
+    parts: list[str] = []
+    hundreds = value // 100
+    remainder = value % 100
+    tens = remainder // 10
+    units = remainder % 10
+    if hundreds:
+        if hundreds > 1:
+            parts.append(_KANJI_UNITS[hundreds])
+        parts.append("百")
+    if tens:
+        if tens > 1:
+            parts.append(_KANJI_UNITS[tens])
+        parts.append("十")
+    if units:
+        parts.append(_KANJI_UNITS[units])
+    return "".join(parts)
+
+
 def _word_entry_id(word: str) -> str:
     return f"word_{word.replace('-', '_').replace(' ', '_')}"
+
+
+def _localized_number_word_entry_id(language: str, value: int, english_word: str) -> str:
+    if language == "en":
+        return _word_entry_id(english_word)
+    return f"word_{language}_num_{value}"
+
+
+def _surface_form_char_refs(text: str, language: str) -> list[str]:
+    refs: list[str] = []
+    for char in text:
+        if char.isspace():
+            continue
+        if char.isascii() and char.isalnum():
+            refs.append(f"char_{char.lower()}")
+        else:
+            refs.append(f"char_{language}_u{ord(char):04x}")
+    return refs
+
+
+def _number_word_entry(value: int, language: str, word: str, word_id: str, number_id: str) -> dict[str, Any]:
+    return {
+        "id": word_id,
+        "name": word,
+        "domain": "word",
+        "category": "numeric_lexeme" if language == "en" else "numeric_lexeme_translation",
+        "rpn_program": f"LOOKUP {number_id}",
+        "metadata": {
+            "value": value,
+            "number_ref": number_id,
+            "forms": [word, str(value)],
+            "is_numeric_word": True,
+            "language": language,
+            "bootstrap": "deterministic_foundation_v3",
+            "save_information_principle": True,
+        },
+    }
+
+
+def _number_meaning_star(
+    value: int,
+    english_word: str,
+    portuguese_word: str,
+    japanese_word: str,
+    *,
+    number_id: str,
+) -> MeaningCentricStar:
+    return MeaningCentricStar(
+        meaning_class="concept",
+        meaning_rpn=f"{value} STORE_value INTEGER_CONCEPT",
+        domain="Library/Mathematics/Number",
+        taxonomy_refs=["concept_mathematics"],
+        surface_forms={
+            "en": SurfaceForm(
+                word_ref=_localized_number_word_entry_id("en", value, english_word),
+                char_refs=_surface_form_char_refs(english_word, "en"),
+            ),
+            "pt": SurfaceForm(
+                word_ref=_localized_number_word_entry_id("pt", value, english_word),
+                char_refs=_surface_form_char_refs(portuguese_word, "pt"),
+            ),
+            "ja": SurfaceForm(
+                word_ref=_localized_number_word_entry_id("ja", value, english_word),
+                char_refs=_surface_form_char_refs(japanese_word, "ja"),
+            ),
+        },
+        visual_rpn="DIGIT_GLYPH STACK",
+        audio_rpn="NUMBER_PRONUNCIATION LOOKUP",
+        pronunciations={
+            "en": f"audio_num_en_{value}",
+            "pt": f"audio_num_pt_{value}",
+            "ja": f"audio_num_ja_{value}",
+        },
+        grammar_refs=["grammar_numeric_literal"],
+        meta_refs=["meta_preserve_numeric_identity"],
+        house_position=(float(value % 10), float((value // 10) % 10), float(value // 100)),
+        house_room="Library/Mathematics/Number",
+        confidence=1,
+        polarity=1,
+        component_refs=[
+            number_id,
+            _localized_number_word_entry_id("en", value, english_word),
+            _localized_number_word_entry_id("pt", value, english_word),
+            _localized_number_word_entry_id("ja", value, english_word),
+        ],
+    )
 
 
 def _number_word_entries(max_value: int = 1000) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -71,41 +264,55 @@ def _number_word_entries(max_value: int = 1000) -> tuple[list[dict[str, Any]], l
     word_entries: list[dict[str, Any]] = []
     for value in range(max_value + 1):
         word = _number_to_words(value)
-        word_id = _word_entry_id(word)
+        portuguese_word = _number_to_words_pt(value)
+        japanese_word = _number_to_words_ja(value)
+        word_id = _localized_number_word_entry_id("en", value, word)
         number_id = f"num_{value}"
+        star = _number_meaning_star(
+            value,
+            word,
+            portuguese_word,
+            japanese_word,
+            number_id=number_id,
+        )
         number_entries.append(
-            {
-                "id": number_id,
-                "name": str(value),
-                "domain": "number",
-                "category": "integer",
-                "rpn_program": str(value),
-                "metadata": {
-                    "value": value,
-                    "word_ref": word_id,
-                    "char_refs": [f"char_{ch}" for ch in str(value)],
-                    "forms": [str(value), word],
-                    "bootstrap": "deterministic_foundation_v2",
-                    "save_information_principle": True,
+            wrap_galaxy_entry_with_meaning_star(
+                {
+                    "id": number_id,
+                    "name": str(value),
+                    "domain": "number",
+                    "category": "integer",
+                    "rpn_program": str(value),
+                    "metadata": {
+                        "value": value,
+                        "word_ref": word_id,
+                        "char_refs": [f"char_{ch}" for ch in str(value)],
+                        "forms": [str(value), word],
+                        "bootstrap": "deterministic_foundation_v3",
+                        "save_information_principle": True,
+                    },
                 },
-            }
+                star,
+            )
+        )
+        word_entries.append(_number_word_entry(value, "en", word, word_id, number_id))
+        word_entries.append(
+            _number_word_entry(
+                value,
+                "pt",
+                portuguese_word,
+                _localized_number_word_entry_id("pt", value, word),
+                number_id,
+            )
         )
         word_entries.append(
-            {
-                "id": word_id,
-                "name": word,
-                "domain": "word",
-                "category": "numeric_lexeme",
-                "rpn_program": f"LOOKUP {number_id}",
-                "metadata": {
-                    "value": value,
-                    "number_ref": number_id,
-                    "forms": [word, word.replace("-", " "), str(value)],
-                    "is_numeric_word": True,
-                    "bootstrap": "deterministic_foundation_v2",
-                    "save_information_principle": True,
-                },
-            }
+            _number_word_entry(
+                value,
+                "ja",
+                japanese_word,
+                _localized_number_word_entry_id("ja", value, word),
+                number_id,
+            )
         )
     return number_entries, word_entries
 

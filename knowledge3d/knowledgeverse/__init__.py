@@ -12,9 +12,12 @@ from .foundational_operations_bootstrap import bootstrap_default, populate_found
 from .galaxy_manager import GalaxyManager
 from .grammar_galaxy import GrammarGalaxy, GrammarRule
 from .knowledgeverse import Knowledgeverse, KnowledgeverseMetrics
+from .meaning_star import MeaningCentricStar, SurfaceForm, compute_star_id, wrap_galaxy_entry_with_meaning_star
 from .navigator_specialist import NavigatorSpecialist, PathCandidate
 from .resilience import CircuitBreakerOpen, SelfHealingWrapper
 from .ring_buffer import RingBuffer
+from .seed_stars import SEED_STARS, build_seed_stars, seed_star_entries, seed_word_entries
+from .semantic_gravity import gravity_tick, meaning_mass, semantic_gravity_force, ternary_semantic_force
 from .shadow_copy import ShadowCopyLearning
 from .sleeptime import SleepTimeConsolidation, SleepTimeError
 from .specialist_base import SpecialistBase, SpecialistDelta
@@ -47,10 +50,12 @@ __all__ = [
     "GrammarRule",
     "Knowledgeverse",
     "KnowledgeverseMetrics",
+    "MeaningCentricStar",
     "NavigatorSpecialist",
     "PathCandidate",
     "populate_foundational_operations",
     "RingBuffer",
+    "SEED_STARS",
     "SelfHealingWrapper",
     "SpecialistRoute",
     "SpecialistRouter",
@@ -61,6 +66,7 @@ __all__ = [
     "SpecialistDelta",
     "SpecialistSpawner",
     "SpawnDecision",
+    "SurfaceForm",
     "SovereigntyFirewall",
     "TemporalMetadata",
     "TemporalMetadataManager",
@@ -70,7 +76,16 @@ __all__ = [
     "TRMNavigator",
     "TRMWeightStore",
     "bootstrap_tool_galaxy",
+    "build_seed_stars",
+    "compute_star_id",
     "build_tool_payload",
     "build_multimodal_tool_payload",
     "default_tool_entries",
+    "gravity_tick",
+    "meaning_mass",
+    "seed_star_entries",
+    "seed_word_entries",
+    "semantic_gravity_force",
+    "ternary_semantic_force",
+    "wrap_galaxy_entry_with_meaning_star",
 ]

@@ -208,7 +208,7 @@ Specifies how the same data serves both human (aesthetic) and AI (semantic) need
 ### [MEANING_CENTRIC_STAR_SCHEMA_SPECIFICATION.md](MEANING_CENTRIC_STAR_SCHEMA_SPECIFICATION.md) 🆕
 **Semantic Gravity & Ternary Force — The Atomic Unit of Knowledge**
 
-Defines the **Meaning-Centric Star** — the canonical unit of knowledge in K3D. A star represents a CONCEPT, not a word. "Cat" is cat in every language; the meaning is the center, language-specific surface forms are references. Stars self-organize in the House via **semantic gravity** — a ternary force where meaning replaces mass and the ternary operator (+1/0/−1) replaces the gravitational constant.
+Defines the **Meaning-Centric Star** — the canonical unit of knowledge in K3D. A star represents a CONCEPT, not a word. "Cat" is cat in every language; the meaning is the center, language-specific surface forms are references. Stars live in the House (permanent, intentionally organized by the TRM like a librarian) and are reasoned about in the Galaxy where **"semantic gravity cohered by meaning"** (Christoph Dorn) — a ternary force where meaning replaces mass — organizes loaded concepts during active reasoning.
 
 **Term Defined**: March 16, 2026 by Daniel Ramos
 

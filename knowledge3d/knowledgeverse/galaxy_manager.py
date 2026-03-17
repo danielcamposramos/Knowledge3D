@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Sequence
 
+from .meaning_star import MeaningCentricStar
 from .resilience import SelfHealingWrapper
 
 
@@ -305,12 +306,51 @@ class GalaxyManager:
         self._galaxies[name] = galaxy
         return galaxy
 
-    def add_entry(self, galaxy_name: str, entry: dict[str, Any]) -> None:
+    def _coerce_entry(self, galaxy_name: str, entry: dict[str, Any] | MeaningCentricStar) -> dict[str, Any]:
+        if isinstance(entry, MeaningCentricStar):
+            return entry.to_galaxy_entry(galaxy_name=galaxy_name)
+        return dict(entry)
+
+    def store_meaning_star(
+        self,
+        galaxy_name: str,
+        star: MeaningCentricStar,
+        *,
+        entry_id: str | None = None,
+        name: str | None = None,
+        category: str = "meaning_star",
+        metadata: dict[str, Any] | None = None,
+    ) -> str:
+        entry = star.to_galaxy_entry(
+            entry_id=entry_id or star.star_id,
+            name=name,
+            galaxy_name=galaxy_name,
+            category=category,
+            metadata=metadata,
+        )
+        return self.upsert_entry(galaxy_name, entry)
+
+    def load_meaning_star(self, galaxy_name: str, star_id: str) -> MeaningCentricStar | None:
+        target = str(star_id).strip()
+        if not target:
+            return None
+        galaxy = self.get_galaxy(galaxy_name)
+        entries = list(getattr(galaxy, "entries", getattr(galaxy, "_extra_entries", [])) or [])
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+            if str(entry.get("id", "")).strip() == target or str(metadata.get("meaning_star_id", "")).strip() == target:
+                return MeaningCentricStar.from_galaxy_entry(entry)
+        return None
+
+    def add_entry(self, galaxy_name: str, entry: dict[str, Any] | MeaningCentricStar) -> None:
+        entry_dict = self._coerce_entry(galaxy_name, entry)
         galaxy = self.get_galaxy(galaxy_name)
         if hasattr(galaxy, "add_entry"):
-            galaxy.add_entry(entry, record_event=True)
+            galaxy.add_entry(entry_dict, record_event=True)
         else:
-            galaxy.entries.append(entry)
+            galaxy.entries.append(entry_dict)
         # Entry list changed; clear cache to avoid stale pointers.
         self._entry_text_cache.clear()
         self._specialist_entry_cache.clear()
@@ -322,18 +362,19 @@ class GalaxyManager:
         if self._disk_sync_depth > 0:
             self._dirty_galaxies.add(galaxy_name)
         else:
-            self._append_entry_to_disk(galaxy_name, entry)
+            self._append_entry_to_disk(galaxy_name, entry_dict)
 
-    def upsert_entry(self, galaxy_name: str, entry: dict[str, Any]) -> str:
+    def upsert_entry(self, galaxy_name: str, entry: dict[str, Any] | MeaningCentricStar) -> str:
+        entry_dict = self._coerce_entry(galaxy_name, entry)
         galaxy = self.get_galaxy(galaxy_name)
-        entry_id = self._entry_identifier(entry)
+        entry_id = self._entry_identifier(entry_dict)
         if not entry_id:
-            self.add_entry(galaxy_name, entry)
+            self.add_entry(galaxy_name, entry_dict)
             return "inserted"
 
-        replaced = self._replace_entry_in_memory(galaxy, entry_id, entry)
+        replaced = self._replace_entry_in_memory(galaxy, entry_id, entry_dict)
         if not replaced:
-            self.add_entry(galaxy_name, entry)
+            self.add_entry(galaxy_name, entry_dict)
             return "inserted"
 
         self._entry_text_cache.clear()

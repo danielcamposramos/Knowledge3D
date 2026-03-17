@@ -11,7 +11,7 @@
 
 This specification defines the **Meaning-Centric Star** — the atomic unit of knowledge in K3D. A star represents a **concept**, not a word. "Cat" is cat in every language; the meaning is the center, language-specific surface forms are references. Stars carry all modalities (visual, audio, behavioral, linguistic) as procedural RPN programs.
 
-Stars self-organize in the House via **semantic gravity**: a ternary force operator borrowed from physics where meaning replaces mass and the ternary operator (+1/0/−1) replaces the gravitational constant. Stars attract (semantic affinity), repel (semantic contradiction), or float neutrally (no evidence of relationship). The House organizes ITSELF — rooms emerge from gravitational clustering, not manual placement.
+Stars live in the **House** (permanent 3D knowledge repository) and are loaded into the **Galaxy** (ephemeral VRAM working memory) when the AI needs to reason about them. In the Galaxy, **semantic gravity cohered by meaning** (Christoph Dorn) organizes loaded concepts: a ternary force operator borrowed from physics where meaning replaces mass and the ternary operator (+1/0/−1) replaces the gravitational constant. Stars attract (semantic affinity), repel (semantic contradiction), or float neutrally (no evidence of relationship). The House has INTENTIONAL physical organization — the TRM places stars deliberately, like a librarian shelving books. Semantic gravity operates in the Galaxy during reasoning, not in the House.
 
 **Key relationship to existing specs:**
 - Extends `REALITY_ENABLER_SPECIFICATION.md` §3 (dual-program stars) to ALL knowledge, not just physics/chemistry
@@ -356,7 +356,7 @@ When inference creates new knowledge:
    b. Confirmed stars get `confidence = +1` and are written to House
    c. Rejected stars get `confidence = −1` and are discarded or sent to Museum
    d. Uncertain stars remain provisional for next sleep cycle
-4. Written-to-House stars enter the semantic gravity field and begin settling
+4. TRM places written-to-House stars in their appropriate room/shelf (informed by Galaxy gravity patterns, but placed deliberately)
 
 ### 4.4 Two Simultaneous Worlds (Symlink Architecture)
 
