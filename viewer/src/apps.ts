@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 
+import { buildNodeDomProgram } from './behavior';
 import type { ContentPage } from './behavior';
 import { openStore } from './cache';
-import { createVisualRpnEngine, rpnToSVG } from './rpn';
+import { createVisualRpnEngine, rpnToDOM, rpnToSVG } from './rpn';
 import type { K3DRecord } from './loadK3D';
 
 export interface TabletApp {
@@ -495,6 +496,30 @@ export class ContentApp implements TabletApp {
           preview.style.height = '180px';
           preview.style.marginTop = '8px';
           card.appendChild(preview);
+        } catch {}
+      }
+      if (section.heading === 'Content Galaxy' && section.lines[0]) {
+        try {
+          const domProgram = buildNodeDomProgram(this.page);
+          if (domProgram) {
+            const preview = document.createElement('div');
+            preview.className = 'k3d-dom-preview';
+            preview.style.border = '1px dashed #555';
+            preview.style.padding = '8px';
+            preview.style.marginTop = '8px';
+            preview.style.background = '#1a1f25';
+
+            const label = document.createElement('div');
+            label.style.color = '#666';
+            label.style.fontSize = '11px';
+            label.textContent = 'DOM Projection Preview';
+            preview.appendChild(label);
+
+            const rendered = rpnToDOM(domProgram);
+            rendered.style.marginTop = '6px';
+            preview.appendChild(rendered);
+            card.appendChild(preview);
+          }
         } catch {}
       }
       const list = document.createElement('div');

@@ -1,5 +1,6 @@
 import type { PathBuilder } from './pathBuilder';
 import type { MeshBuilder } from './meshBuilder';
+import type { DomBuilder } from './domBuilder';
 
 export type RpnValue = number | Float32Array | object;
 
@@ -10,6 +11,7 @@ export interface RpnOpHandler {
 export interface RpnContext {
   path?: PathBuilder;
   mesh?: MeshBuilder;
+  dom?: DomBuilder;
   matrixStack: Float32Array[];
 }
 
@@ -70,6 +72,10 @@ export class RpnEngine {
         this.stack.push(Number(token));
         continue;
       }
+      if (token.toUpperCase().startsWith('STR_')) {
+        this.stack.push({ str: token.slice(4).replace(/_/g, ' ') });
+        continue;
+      }
       const handler = this.ops.get(token.toUpperCase());
       if (!handler) {
         throw new Error(`Unknown RPN op: ${token}`);
@@ -84,6 +90,7 @@ export class RpnEngine {
     this.context.matrixStack = [];
     if (this.context.path) this.context.path.reset();
     if (this.context.mesh) this.context.mesh.reset();
+    if (this.context.dom) this.context.dom.reset();
   }
 
   private registerCoreOps(): void {
