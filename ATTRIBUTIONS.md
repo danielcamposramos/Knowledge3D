@@ -1156,9 +1156,9 @@ Trusted Procedural Knowledge: Sign workflows, verify execution, audit trail
 
 ---
 
-### 4.4 Christoph Stach: Defeasible Logic and Trust-Weighted Reasoning
+### 4.4 Christoph Dorn: Defeasible Logic and Trust-Weighted Reasoning
 
-**Collaborator**: Christoph Stach (Systems Thinker, SPINdle contributor)
+**Collaborator**: Christoph Dorn (Systems Thinker, SPINdle contributor)
 **Contribution Period**: March 2026
 **Reference Implementations**: [spindle-rust](https://codeberg.org/anuna/spindle-rust), [spindle-racket](https://codeberg.org/anuna/spindle-racket)
 **Demo**: [spindle-rust.anuna.io](https://spindle-rust.anuna.io/)
@@ -1192,7 +1192,7 @@ What-if / Why-not Queries  →  Swarm hypothesis + selection traces
 SPINdle's CONCEPTS enter the Galaxy as principled metadata. The IMPLEMENTATION stays sovereign PTX — no Rust runtime dependency, no external reasoner process, no SPL parser. SPINdle's 1,500+ test cases serve as validation oracle only.
 
 **Credit**:
-- **Christoph Stach** for identifying the defeasible logic mapping to K3D's ternary system
+- **Christoph Dorn** for identifying the defeasible logic mapping to K3D's ternary system
 - For bringing systems-level thinking to K3D's conflict resolution architecture
 - For the SPINdle implementations that serve as reference and validation oracle
 - **Nute (1994)** and the defeasible logic research community for the theoretical foundations
@@ -2148,7 +2148,7 @@ We stand on the shoulders of:
 - **Alibaba Cloud / Qwen Team** for Matryoshka representation learning in embeddings
 - **François Chollet** for ARC-AGI benchmark
 - **Milton Ponson** for mathematical grounding (domains of discourse, adequacy framework)
-- **Christoph Stach** for defeasible logic integration (SPINdle, trust-weighted non-monotonic reasoning)
+- **Christoph Dorn** for defeasible logic integration (SPINdle, trust-weighted non-monotonic reasoning)
 - **Farbrausch** for .kkrieger and procedural generation pioneering
 - **Nikolay Brusentsov** and Moscow State University for Setun ternary computer
 - **MIT Instrumentation Lab** (Margaret Hamilton et al.) for Apollo 11 modular engineering
@@ -2185,4 +2185,4 @@ The **Multi-Vibe Code In Chain (MVCIC)** methodology — 7 AI partners, 1 human 
 - Key early ingressors committed to PM-KR standardization (Ian Jacobs, Manu Sporny, Jonathan DeRouchie, Nitin Pasumarthy)
 - OpenFn validation (40+ countries, 10M+ transactions/year) proves PM-KR addresses real production workflows
 - All 11 GRE sovereign kernels replaced with real CUDA (March 2026)
-- Defeasible logic integration architecture from Christoph Stach / SPINdle (March 2026)
+- Defeasible logic integration architecture from Christoph Dorn / SPINdle (March 2026)

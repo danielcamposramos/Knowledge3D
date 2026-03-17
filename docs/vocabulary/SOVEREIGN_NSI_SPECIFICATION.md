@@ -324,7 +324,7 @@ The resolver runs at three points in the query pipeline, reusing the same kernel
 
 **Sovereignty:** Pure PTX kernel. No external logic engine. Leverages existing RPN ternary opcodes (0x70-0x76) for trit arithmetic.
 
-**Reference:** SPINdle defeasible logic (Christoph Stach, March 2026). K3D absorbs the reasoning patterns; implementation stays sovereign PTX.
+**Reference:** SPINdle defeasible logic (Christoph Dorn, March 2026). K3D absorbs the reasoning patterns; implementation stays sovereign PTX.
 
 ### 4.2 Recursive Reasoning via TRM
 

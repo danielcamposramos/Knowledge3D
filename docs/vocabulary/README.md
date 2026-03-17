@@ -17,7 +17,8 @@ This directory contains the **canonical architectural specifications** for Knowl
 5. Read [HYPER_PARALLEL_PROCESSING.md](#hyper-parallel-processing) 🆕 (function paradigm — how knowledge is processed)
 6. Read [KNOWLEDGEVERSE_SPECIFICATION.md](#knowledgeverse) (runtime memory substrate)
 7. Read [DUAL_CLIENT_CONTRACT_SPECIFICATION.md](#dual-client-contract) (human + AI duality)
-8. Then explore domain-specific specs as needed
+8. Read [MEANING_CENTRIC_STAR_SCHEMA_SPECIFICATION.md](#meaning-centric-star-schema) 🆕 (atomic unit of knowledge + semantic gravity)
+9. Then explore domain-specific specs as needed
 
 ---
 
@@ -201,6 +202,29 @@ Specifies how the same data serves both human (aesthetic) and AI (semantic) need
 **Production Status**: ✅ Validated (Drawing/Character/Math galaxies)
 
 **Integration**: Foundational for all K3D objects (House, Galaxy)
+
+---
+
+### [MEANING_CENTRIC_STAR_SCHEMA_SPECIFICATION.md](MEANING_CENTRIC_STAR_SCHEMA_SPECIFICATION.md) 🆕
+**Semantic Gravity & Ternary Force — The Atomic Unit of Knowledge**
+
+Defines the **Meaning-Centric Star** — the canonical unit of knowledge in K3D. A star represents a CONCEPT, not a word. "Cat" is cat in every language; the meaning is the center, language-specific surface forms are references. Stars self-organize in the House via **semantic gravity** — a ternary force where meaning replaces mass and the ternary operator (+1/0/−1) replaces the gravitational constant.
+
+**Term Defined**: March 16, 2026 by Daniel Ramos
+
+**Key Concepts:**
+- **Meaning at the center**: One concept = one star. All languages, visuals, sounds, behaviors are references
+- **Semantic gravity**: Stars attract (affinity, +1), repel (contradiction, −1), or float (unknown, 0)
+- **Meaning mass**: Richly-connected stars are heavy (gravitational centers → room nuclei)
+- **Emergent rooms**: House rooms form from gravitational clustering, not manual placement
+- **Ternary force operator**: TCOMP opcode computes semantic force between any two stars
+- **Content-addressed identity**: star_id = hash(meaning_rpn) — same concept = same ID everywhere
+- **All 4 layers unified**: Form (surface_forms) → Meaning (meaning_rpn) → Rules (grammar_refs) → Meta (meta_refs)
+- **House ↔ Galaxy lifecycle**: Stars LIVE in House, are LOADED into Galaxy for reasoning, WRITE BACK during sleep
+
+**Production Status**: 📐 Architecture specification (Phase H primary deliverable)
+
+**Integration**: Extends Reality Enabler dual-program stars to ALL knowledge. Implements Foundational Knowledge Layer 2 as canonical center. Integrates Hyper-Parallel ternary logic as spatial force operator.
 
 ---
 
