@@ -4,6 +4,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { HonestyMaterial } from './HonestyMaterial';
 import { loadK3DFromGLTF, fetchCondoConfig, type K3DRecord, type CondoConfig, type LoadedK3D } from './loadK3D';
+import { HouseActivator, RoomContext } from './behavior';
 import { loadHouseScene, type HouseNode, type LoadedHouseScene } from './loadHouseScene';
 import { RoomCamera } from './roomCamera';
 import { K3DAgent } from './agent';
@@ -51,6 +52,8 @@ let edgesObject: THREE.LineSegments | null = null;
 let gardenInstanced: THREE.Group | null = null;
 let loadedHouseScene: LoadedHouseScene | null = null;
 let roomCamera: RoomCamera | null = null;
+let houseActivator: HouseActivator | null = null;
+let roomContext: RoomContext | null = null;
 // LOD HUD
 const lodHud = document.createElement('div');
 lodHud.id = 'lod-hud';
@@ -173,6 +176,8 @@ function clearScene() {
         loadedHouseScene = null;
     }
     roomCamera = null;
+    houseActivator = null;
+    roomContext = null;
     if (currentPoints) {
         scene.remove(currentPoints);
         try { (currentPoints as any).geometry?.dispose?.(); } catch {}
@@ -222,52 +227,93 @@ function isHouseGlbUrl(url: string): boolean {
     return value === 'house' || value.endsWith('/house.glb') || value.endsWith('house.glb');
 }
 
-function roomStarIdFromHouseRoom(houseRoom: string): string {
-    const token = String(houseRoom || '').split('/').filter(Boolean).pop() || '';
-    return token ? `room_${token.toLowerCase()}` : '';
-}
-
 function houseNodeLabel(node: HouseNode): string {
     return node.surfaceForms.en?.word_ref || node.surfaceForms.pt?.word_ref || node.starId;
 }
 
-function houseNodeGeometryStats(node: HouseNode): { vertices: number; triangles: number } {
-    let vertices = 0;
-    let triangles = 0;
-    node.object.traverse((child: any) => {
-        if (!child?.isMesh || !child.geometry) return;
-        const geometry = child.geometry as THREE.BufferGeometry;
-        const position = geometry.getAttribute('position');
-        if (position) vertices += position.count;
-        if (geometry.index) triangles += Math.floor(geometry.index.count / 3);
-        else if (position) triangles += Math.floor(position.count / 3);
-    });
-    return { vertices, triangles };
+function cloneMaterialForHouse(mesh: THREE.Mesh) {
+    const anyMesh = mesh as any;
+    if (anyMesh.userData?.k3dMaterialCloned) return;
+    if (Array.isArray(mesh.material)) {
+        mesh.material = mesh.material.map((material) => material.clone());
+    } else if (mesh.material) {
+        mesh.material = mesh.material.clone();
+    }
+    anyMesh.userData = { ...(anyMesh.userData || {}), k3dMaterialCloned: true };
 }
 
-function inspectHouseNode(node: HouseNode) {
-    if (!tablet || !node.visualRpn) return;
-    const stats = houseNodeGeometryStats(node);
-    tablet.showFocus();
-    tablet.dispatch({ type: 'open_app', payload: { id: 'rpn' } });
+function setNodeVisualOpacity(node: HouseNode, opacity: number, transparent: boolean) {
+    node.object.traverse((child: any) => {
+        if (!child?.isMesh || !child.material) return;
+        const mesh = child as THREE.Mesh;
+        cloneMaterialForHouse(mesh);
+        const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        for (const material of materials) {
+            if (!material) continue;
+            material.transparent = transparent;
+            material.opacity = opacity;
+            material.needsUpdate = true;
+        }
+    });
+}
+
+function buildDoorItemsForRoom(targetRoom: HouseNode | null): Array<{ label: string; address?: string; starId?: string; roomA?: string; roomB?: string }> {
+    if (!loadedHouseScene) return [];
+    const currentRoomStarId = targetRoom?.starId || loadedHouseScene.currentRoom;
+    const currentHouseRoom = targetRoom?.houseRoom || loadedHouseScene.nodesByStarId.get(currentRoomStarId)?.houseRoom || '';
+    const visibleDoors = loadedHouseScene.doors.filter((door) => {
+        const edgeMatch = loadedHouseScene!.navGraph.edges.some((edge) =>
+            edge.door === door.starId && (edge.from === currentRoomStarId || edge.to === currentRoomStarId)
+        );
+        if (edgeMatch) return true;
+        const tokens = String(door.behaviorRpn || '').split(/\s+/).filter(Boolean);
+        return tokens[2] === currentHouseRoom || tokens[3] === currentHouseRoom;
+    });
+    return visibleDoors.map((door) => {
+        const tokens = String(door.behaviorRpn || '').split(/\s+/).filter(Boolean);
+        const roomA = tokens[2] || '';
+        const roomB = tokens[3] || '';
+        return {
+            label: houseNodeLabel(door),
+            address: roomA && roomB ? `${roomA} <-> ${roomB}` : door.starId,
+            starId: door.starId,
+            roomA,
+            roomB,
+        };
+    });
+}
+
+function applyRoomDimming(currentRoom: HouseNode | null) {
+    if (!loadedHouseScene || !currentRoom) return;
+    loadedHouseScene.nodesByStarId.forEach((node) => {
+        if (node.meaningClass === 'room') {
+            setNodeVisualOpacity(node, 1.0, false);
+            return;
+        }
+        const alwaysVisible = node.houseRoom === 'House';
+        const inCurrentRoom = alwaysVisible || node.houseRoom === currentRoom.houseRoom;
+        setNodeVisualOpacity(node, inCurrentRoom ? 1.0 : 0.3, !inCurrentRoom);
+    });
+}
+
+function applyRoomContext(currentRoom: HouseNode | null) {
+    if (!tablet || !loadedHouseScene || !currentRoom) return;
+    applyRoomDimming(currentRoom);
+    loadedHouseScene.currentRoom = currentRoom.starId;
     tablet.dispatch({
-        type: 'rpn_program',
+        type: 'roomContext',
         payload: {
-            starId: node.starId,
-            label: houseNodeLabel(node),
-            program: node.visualRpn,
-            serverVertices: stats.vertices,
-            serverTriangles: stats.triangles,
+            room: currentRoom.houseRoom,
+            domain: currentRoom.domain,
+            title: houseNodeLabel(currentRoom),
         },
     });
-}
-
-function extractDoorRoomStarIds(node: HouseNode, payload?: any): string[] {
-    const tokens = String(node.behaviorRpn || '').split(/\s+/).filter(Boolean);
-    if (tokens.length >= 4 && tokens[0] === 'DOOR_TRAVERSE' && tokens[1] === 'CONNECT') {
-        return [roomStarIdFromHouseRoom(tokens[2]), roomStarIdFromHouseRoom(tokens[3])].filter(Boolean);
-    }
-    return [roomStarIdFromHouseRoom(payload?.roomA || ''), roomStarIdFromHouseRoom(payload?.roomB || '')].filter(Boolean);
+    tablet.dispatch({ type: 'doors_list', payload: { items: buildDoorItemsForRoom(currentRoom) } });
+    tablet.setStatus({
+        house: currentHouseUrl,
+        nodes: loadedHouseScene.nodesByStarId.size,
+        info: `room=${currentRoom.starId}`,
+    });
 }
 
 function findHouseNodeForObject(object: THREE.Object3D | null): HouseNode | null {
@@ -287,6 +333,8 @@ function showHouseTooltip(node: HouseNode) {
     const label = houseNodeLabel(node);
     const visual = String(node.visualRpn || '').trim();
     const preview = visual.length > 72 ? `${visual.slice(0, 69)}...` : visual;
+    const behavior = String(node.behaviorRpn || '').trim();
+    const behaviorPreview = behavior.length > 56 ? `${behavior.slice(0, 53)}...` : behavior;
     tooltip.style.display = 'block';
     tooltip.style.left = `${mouse.x * window.innerWidth / 2 + window.innerWidth / 2 + 5}px`;
     tooltip.style.top = `${-mouse.y * window.innerHeight / 2 + window.innerHeight / 2 + 5}px`;
@@ -294,6 +342,7 @@ function showHouseTooltip(node: HouseNode) {
         `<div><strong>${label}</strong></div>`,
         `<div style="margin-top:4px; font-size:12px; color:#333;">${node.meaningClass}</div>`,
         preview ? `<div style="margin-top:4px; font-size:11px; color:#555;">${preview}</div>` : '',
+        behaviorPreview ? `<div style="margin-top:2px; font-size:11px; color:#666;">${behaviorPreview}</div>` : '',
     ].join('');
     if (tablet) tablet.setFocusLabel(label);
 }
@@ -308,7 +357,7 @@ function onSceneClick(event: MouseEvent) {
         .map((hit) => findHouseNodeForObject(hit.object))
         .find((node): node is HouseNode => node !== null);
     if (!houseNode) return;
-    inspectHouseNode(houseNode);
+    houseActivator?.activate(houseNode);
 }
 
 async function loadHouseSceneAsset(url: string) {
@@ -332,21 +381,14 @@ async function loadHouseSceneAsset(url: string) {
         });
         tablet.setDataset([]);
 
-        const doorItems = loadedHouseScene.doors.map((door) => {
-            const tokens = String(door.behaviorRpn || '').split(/\s+/).filter(Boolean);
-            const roomA = tokens[2] || '';
-            const roomB = tokens[3] || '';
-            return {
-                label: houseNodeLabel(door),
-                address: roomA && roomB ? `${roomA} <-> ${roomB}` : door.starId,
-                starId: door.starId,
-                roomA,
-                roomB,
-            };
+        roomContext = new RoomContext();
+        houseActivator = new HouseActivator(loadedHouseScene, roomCamera, tablet, roomContext);
+        roomContext.onEnter((room) => {
+            applyRoomContext(room);
         });
-        tablet.dispatch({ type: 'doors_list', payload: { items: doorItems } });
+
         tablet.setLocalHandler?.((ev: any) => {
-            if (ev?.type !== 'openDoor' || !loadedHouseScene || !roomCamera) return;
+            if (ev?.type !== 'openDoor' || !loadedHouseScene || !houseActivator) return;
             const payload = ev.payload || {};
             const starId = String(payload.starId || '').trim();
             let door = starId ? loadedHouseScene.nodesByStarId.get(starId) || null : null;
@@ -355,21 +397,13 @@ async function loadHouseSceneAsset(url: string) {
                 door = loadedHouseScene.doors.find((candidate) => houseNodeLabel(candidate) === label) || null;
             }
             if (!door) return;
-            const navTargets = loadedHouseScene.navGraph.edges
-                .filter((edge) => edge.door === door.starId && edge.from === loadedHouseScene!.currentRoom)
-                .map((edge) => edge.to)
-                .filter(Boolean);
-            const roomIds = navTargets.length > 0 ? navTargets : extractDoorRoomStarIds(door, payload);
-            const targetRoom = roomIds.find((candidate) => candidate !== loadedHouseScene!.currentRoom) || roomIds[0];
-            if (!targetRoom) return;
-            roomCamera.goToRoom(targetRoom);
-            loadedHouseScene.currentRoom = targetRoom;
-            tablet?.setStatus({
-                house: url,
-                nodes: loadedHouseScene.nodesByStarId.size,
-                info: `room=${targetRoom}`,
-            });
+            houseActivator.activate(door);
         });
+
+        const initialRoom = loadedHouseScene.nodesByStarId.get(loadedHouseScene.currentRoom) || loadedHouseScene.rooms[0] || null;
+        if (initialRoom && roomContext) {
+            roomContext.setRoom(initialRoom);
+        }
     } catch (e) {
         console.error(`Failed to load house scene from ${url}:`, e);
     }

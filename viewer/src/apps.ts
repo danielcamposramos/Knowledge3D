@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 
+import type { ContentPage } from './behavior';
 import { openStore } from './cache';
 import { createVisualRpnEngine, rpnToSVG } from './rpn';
 import type { K3DRecord } from './loadK3D';
@@ -414,6 +415,100 @@ export class RpnApp implements TabletApp {
     el.appendChild(preview);
     el.appendChild(info);
     render();
+  }
+}
+
+export class ContentApp implements TabletApp {
+  id = 'content';
+  title = 'Content';
+  private page: ContentPage | null = null;
+  private roomLine = '';
+
+  onEvent(ev: { type: string; payload?: any }) {
+    if (ev.type === 'showContent' && ev.payload) {
+      this.page = ev.payload as ContentPage;
+    } else if (ev.type === 'roomContext' && ev.payload) {
+      const room = String(ev.payload.title || ev.payload.room || '').trim();
+      const domain = String(ev.payload.domain || '').trim();
+      this.roomLine = [room, domain].filter(Boolean).join(' — ');
+    }
+  }
+
+  renderCanvas(ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }) {
+    ctx.fillStyle = '#101418';
+    ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 14px system-ui';
+    ctx.fillText((this.page?.title || 'Content').slice(0, 36), rect.x + 10, rect.y + 18);
+    ctx.font = '12px system-ui';
+    ctx.fillStyle = '#9fd3c7';
+    if (this.roomLine) ctx.fillText(this.roomLine.slice(0, 44), rect.x + 10, rect.y + 36);
+    let y = rect.y + 58;
+    const sections = this.page?.sections || [];
+    for (const section of sections.slice(0, 3)) {
+      ctx.fillStyle = '#94d2bd';
+      ctx.fillText(section.heading, rect.x + 10, y);
+      y += 14;
+      ctx.fillStyle = '#d8f3dc';
+      for (const line of section.lines.slice(0, 2)) {
+        ctx.fillText(line.slice(0, 52), rect.x + 18, y);
+        y += 14;
+      }
+      y += 6;
+    }
+  }
+
+  openOverlay(el: HTMLDivElement) {
+    el.innerHTML = '';
+    const room = document.createElement('div');
+    room.style.color = '#9fd3c7';
+    room.style.marginBottom = '8px';
+    room.textContent = this.roomLine || 'No room context';
+
+    const title = document.createElement('div');
+    title.style.color = '#fff';
+    title.style.fontWeight = 'bold';
+    title.style.fontSize = '18px';
+    title.textContent = this.page?.title || 'No content selected';
+
+    const wrap = document.createElement('div');
+    wrap.style.marginTop = '12px';
+    wrap.style.display = 'flex';
+    wrap.style.flexDirection = 'column';
+    wrap.style.gap = '12px';
+
+    for (const section of this.page?.sections || []) {
+      const card = document.createElement('div');
+      card.style.border = '1px solid #333';
+      card.style.background = '#0f1419';
+      card.style.padding = '10px';
+      const heading = document.createElement('div');
+      heading.style.color = '#94d2bd';
+      heading.style.fontWeight = 'bold';
+      heading.textContent = section.heading;
+      card.appendChild(heading);
+      if (section.heading === 'Visual Program' && section.lines[0]) {
+        try {
+          const preview = rpnToSVG(section.lines[0]);
+          preview.style.display = 'block';
+          preview.style.width = '100%';
+          preview.style.height = '180px';
+          preview.style.marginTop = '8px';
+          card.appendChild(preview);
+        } catch {}
+      }
+      const list = document.createElement('div');
+      list.style.color = '#ddd';
+      list.style.marginTop = '8px';
+      list.style.whiteSpace = 'pre-wrap';
+      list.textContent = section.lines.join('\n');
+      card.appendChild(list);
+      wrap.appendChild(card);
+    }
+
+    el.appendChild(room);
+    el.appendChild(title);
+    el.appendChild(wrap);
   }
 }
 
