@@ -10,7 +10,7 @@
 
 # Knowledge3D — Reference Implementation for W3C PM-KR
 
-[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE) [![status](https://img.shields.io/badge/status-Phase_H_House_Construction-blue)](docs/ROADMAP.md) [![W3C PM-KR](https://img.shields.io/badge/W3C-PM--KR_Community_Group-005A9C)](https://www.w3.org/community/pm-kr/)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE) [![status](https://img.shields.io/badge/status-Phase_H_House_Construction-blue)](docs/ROADMAP.md) [![W3C PM-KR](https://img.shields.io/badge/W3C-PM--KR_Community_Group-005A9C)](https://www.w3.org/community/pm-kr/) [![Awesome ML](https://img.shields.io/badge/Awesome_ML-CUDA__PTX-orange)](https://github.com/josephmisiti/awesome-machine-learning#cuda-ptx)
 
 ## Participate
 
