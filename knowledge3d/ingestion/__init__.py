@@ -15,6 +15,7 @@ _MODULE_EXPORTS = {
     "language": "knowledge3d.ingestion.language",
     "lexicons": "knowledge3d.ingestion.lexicons",
     "documents": "knowledge3d.ingestion.documents",
+    "universal_knowledge": "knowledge3d.ingestion.universal_knowledge",
     "corpus_manifest": "knowledge3d.ingestion.corpus_manifest",
     "batch_orchestrator": "knowledge3d.ingestion.batch_orchestrator",
     "enrichment_pipeline": "knowledge3d.ingestion.enrichment_pipeline",

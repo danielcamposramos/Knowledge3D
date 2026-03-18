@@ -12,6 +12,11 @@ export interface RpnContext {
   path?: PathBuilder;
   mesh?: MeshBuilder;
   dom?: DomBuilder;
+  audio?: {
+    load?: (source: string) => object;
+    play?: (buffer: object) => { stop?: () => void } | void;
+    currentSource?: { stop?: () => void } | null;
+  };
   matrixStack: Float32Array[];
 }
 
@@ -88,6 +93,8 @@ export class RpnEngine {
   reset(): void {
     this.stack.length = 0;
     this.context.matrixStack = [];
+    this.context.audio?.currentSource?.stop?.();
+    if (this.context.audio) this.context.audio.currentSource = null;
     if (this.context.path) this.context.path.reset();
     if (this.context.mesh) this.context.mesh.reset();
     if (this.context.dom) this.context.dom.reset();

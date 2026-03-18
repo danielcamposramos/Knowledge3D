@@ -23,6 +23,8 @@ class SleepTimeConsolidation:
         knowledgeverse: object | None = None,
         manifest_version: str = "unknown",
         journal_path: str | Path = "../Knowledge3D.local/logs/sleeptime_journal.jsonl",
+        health_log_path: str | Path | None = "../Knowledge3D.local/logs/health_log.jsonl",
+        consume_health_log: bool = False,
     ):
         self.kv = knowledgeverse
         if knowledgeverse is not None and hasattr(knowledgeverse, "manifest_version"):
@@ -32,6 +34,8 @@ class SleepTimeConsolidation:
             region_id="sleeptime",
         )
         self.journal_path = Path(journal_path)
+        self.health_log_path = Path(health_log_path) if health_log_path else None
+        self.consume_health_log = bool(consume_health_log)
 
     @SelfHealingWrapper.with_fallback(
         fallback_func=lambda self: self._load_last_good_checkpoint(),
@@ -88,7 +92,11 @@ class SleepTimeConsolidation:
         }
 
     def _stage_a_knowledge(self) -> dict[str, Any]:
-        return {"success": True, "stage": "knowledge"}
+        result = {"success": True, "stage": "knowledge"}
+        health_summary = self._summarize_health_log()
+        if health_summary is not None:
+            result["health_log"] = health_summary
+        return result
 
     def _stage_b_logic(self) -> dict[str, Any]:
         if self.kv is None:
@@ -126,3 +134,54 @@ class SleepTimeConsolidation:
         self.journal_path.parent.mkdir(parents=True, exist_ok=True)
         with self.journal_path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(payload, separators=(",", ":"), sort_keys=True) + "\n")
+
+    def _summarize_health_log(self) -> dict[str, Any] | None:
+        path = self.health_log_path
+        if path is None or not path.exists():
+            return None
+        total = 0
+        correct = 0
+        incorrect = 0
+        neutral = 0
+        suites: dict[str, int] = {}
+        frequent_correct: dict[tuple[str, str], int] = {}
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            try:
+                payload = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            total += 1
+            suite = str(payload.get("suite", "unknown")).strip() or "unknown"
+            suites[suite] = int(suites.get(suite, 0)) + 1
+            correct_value = payload.get("correct", None)
+            if isinstance(correct_value, bool) and correct_value:
+                correct += 1
+                question_id = str(payload.get("question_id", "")).strip()
+                if question_id:
+                    key = (suite, question_id)
+                    frequent_correct[key] = int(frequent_correct.get(key, 0)) + 1
+            elif isinstance(correct_value, bool):
+                incorrect += 1
+            else:
+                neutral += 1
+        if self.consume_health_log:
+            path.write_text("", encoding="utf-8")
+        top_patterns = sorted(
+            (
+                {"suite": suite, "question_id": question_id, "count": count}
+                for (suite, question_id), count in frequent_correct.items()
+            ),
+            key=lambda row: (-int(row["count"]), str(row["suite"]), str(row["question_id"])),
+        )[:10]
+        return {
+            "path": str(path),
+            "total": total,
+            "correct": correct,
+            "incorrect": incorrect,
+            "neutral": neutral,
+            "suites": dict(sorted(suites.items())),
+            "frequent_correct_patterns": top_patterns,
+            "consumed": bool(self.consume_health_log),
+        }
