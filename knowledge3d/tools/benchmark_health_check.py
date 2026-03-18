@@ -52,7 +52,17 @@ def evaluate_answer(suite: str, answer: Any, expected: Any) -> bool:
         expected_float = _to_float(expected)
         if answer_float is not None and expected_float is not None:
             return abs(answer_float - expected_float) <= 1e-3
+    if canonical == "mmlu":
+        answer_text = str(answer).strip().upper()
+        expected_text = str(expected).strip().upper()
+        if answer_text in {"A", "B", "C", "D"} and expected_text in {"A", "B", "C", "D"}:
+            return answer_text == expected_text
     if canonical == "arc":
+        if isinstance(answer, str):
+            try:
+                answer = json.loads(answer)
+            except json.JSONDecodeError:
+                pass
         return json.dumps(answer, sort_keys=True) == json.dumps(expected, sort_keys=True)
     return str(answer).strip().lower() == str(expected).strip().lower()
 
@@ -62,6 +72,7 @@ def _synthetic_questions(canonical: str, limit: int | None = None) -> list[dict[
         "gsm8k": [
             {
                 "id": "gsm8k_synth_0",
+                "suite": "gsm8k",
                 "question": "Janet has 16 eggs, uses 7, and sells the rest for $2 each. How much does she make?",
                 "expected": "18",
                 "payload": {"question_text": "Janet has 16 eggs, uses 7, and sells the rest for $2 each. How much does she make?"},
@@ -70,6 +81,7 @@ def _synthetic_questions(canonical: str, limit: int | None = None) -> list[dict[
         "math": [
             {
                 "id": "math_synth_0",
+                "suite": "math",
                 "question": "What is 7 * (3 + 2)?",
                 "expected": "35",
                 "payload": {"problem_text": "What is 7 * (3 + 2)?"},
@@ -78,6 +90,7 @@ def _synthetic_questions(canonical: str, limit: int | None = None) -> list[dict[
         "lhe": [
             {
                 "id": "lhe_synth_0",
+                "suite": "lhe",
                 "question": "If all A are B and all B are C, what is true?",
                 "expected": "All A are C",
                 "payload": {"question_text": "If all A are B and all B are C, what is true?"},
@@ -86,14 +99,21 @@ def _synthetic_questions(canonical: str, limit: int | None = None) -> list[dict[
         "mmlu": [
             {
                 "id": "mmlu_synth_0",
+                "suite": "mmlu",
                 "question": "What is 7 * (3 + 2)?",
-                "expected": "35",
-                "payload": {"question_text": "What is 7 * (3 + 2)?"},
+                "expected": "A",
+                "payload": {
+                    "question_text": "What is 7 * (3 + 2)?",
+                    "options": ["35", "30", "42", "28"],
+                    "correct_answer": "35",
+                    "correct_letter": "A",
+                },
             }
         ],
         "arc": [
             {
                 "id": "arc_synth_0",
+                "suite": "arc",
                 "question": "ARC task synthetic_flip_h",
                 "expected": [[0, 9], [2, 1]],
                 "payload": {"id": "synthetic_flip_h"},
@@ -118,6 +138,7 @@ def load_questions(suite: str, count: int | None = None) -> list[dict[str, Any]]
             return [
                 {
                     "id": question["id"],
+                    "suite": canonical,
                     "question": question["question_text"],
                     "expected": question["correct_answer"],
                     "payload": question,
@@ -131,6 +152,7 @@ def load_questions(suite: str, count: int | None = None) -> list[dict[str, Any]]
             return [
                 {
                     "id": problem["id"],
+                    "suite": canonical,
                     "question": problem["problem_text"],
                     "expected": problem["answer"],
                     "payload": problem,
@@ -144,6 +166,7 @@ def load_questions(suite: str, count: int | None = None) -> list[dict[str, Any]]
             return [
                 {
                     "id": question["id"],
+                    "suite": canonical,
                     "question": question["question_text"],
                     "expected": question["correct_answer"],
                     "payload": question,
@@ -157,8 +180,9 @@ def load_questions(suite: str, count: int | None = None) -> list[dict[str, Any]]
             return [
                 {
                     "id": question["id"],
+                    "suite": canonical,
                     "question": question["question_text"],
-                    "expected": question["correct_answer"],
+                    "expected": question.get("correct_letter") or question["correct_answer"],
                     "payload": question,
                 }
                 for question in bench.questions[:limit]
@@ -169,6 +193,7 @@ def load_questions(suite: str, count: int | None = None) -> list[dict[str, Any]]
         return [
             {
                 "id": task["id"],
+                "suite": canonical,
                 "question": f"ARC task {task['id']}",
                 "expected": task["test"][0].get("output"),
                 "payload": task,
@@ -290,9 +315,15 @@ def run_health_check(
             start = time.monotonic()
             response = query_fn(dict(row))
             elapsed = time.monotonic() - start
+            extras: dict[str, Any] = {}
             if isinstance(response, dict):
                 answer = response.get("answer", response.get("result"))
                 correct = response.get("correct")
+                extras = {
+                    key: value
+                    for key, value in response.items()
+                    if key not in {"answer", "result", "correct"}
+                }
                 if correct is None:
                     correct = evaluate_answer(canonical, answer, row["expected"])
             else:
@@ -308,6 +339,7 @@ def run_health_check(
                     "correct": bool(correct),
                     "elapsed_s": round(float(elapsed), 3),
                     "timestamp": time.time(),
+                    **extras,
                 }
             )
 
@@ -331,6 +363,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--suite", required=True, help="arc, gsm8k, math, lhe, or mmlu")
     parser.add_argument("--count", type=int, default=10, help="Number of questions/tasks to run.")
+    parser.add_argument("--provider", default=None, help="Optional provider backend such as ollama, gpt, or auto.")
     parser.add_argument(
         "--log",
         type=Path,
@@ -342,7 +375,18 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
-    summary = run_health_check(args.suite, args.count, args.log)
+    query_fn: HealthQueryFn | None = None
+    if args.provider:
+        provider_name = str(args.provider).strip().lower()
+        if provider_name == "ollama":
+            from knowledge3d.tools.ollama_benchmark import create_ollama_query_fn
+
+            query_fn = create_ollama_query_fn()
+        else:
+            from knowledge3d.tools.benchmark_provider_bridge import create_provider_query_fn
+
+            query_fn = create_provider_query_fn(provider_name)
+    summary = run_health_check(args.suite, args.count, args.log, query_fn=query_fn)
     print(json.dumps(summary, indent=2, ensure_ascii=False))
     return 0
 

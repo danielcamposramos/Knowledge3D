@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 from dataclasses import dataclass
+from typing import Any
+import urllib.error
+import urllib.request
 
 
 @dataclass
@@ -74,6 +78,77 @@ class OllamaModelManager:
                 stderr=(proc.stderr or "").strip(),
             )
         except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
+            return OllamaQueryResult(
+                model=model,
+                output="",
+                returncode=1,
+                stderr=str(exc),
+            )
+
+    def chat(
+        self,
+        model: str,
+        messages: list[dict[str, str]],
+        *,
+        timeout: float | None = None,
+        temperature: float = 0.3,
+        options: dict[str, Any] | None = None,
+    ) -> OllamaQueryResult:
+        """Run a structured chat call through the Ollama HTTP API."""
+        run_timeout = timeout if timeout is not None else self.default_timeout
+        safe_messages: list[dict[str, str]] = []
+        for message in list(messages or []):
+            if not isinstance(message, dict):
+                continue
+            role = str(message.get("role") or "user").strip() or "user"
+            content = self._sanitize_prompt(str(message.get("content") or ""))
+            safe_messages.append({"role": role, "content": content})
+
+        resolved_options = dict(options or {})
+        # 'think' must be a top-level key in the Ollama API, not inside options
+        think_value = resolved_options.pop("think", None)
+        payload: dict[str, Any] = {
+            "model": model,
+            "messages": safe_messages,
+            "stream": False,
+            "options": {
+                "temperature": float(temperature),
+                **resolved_options,
+            },
+        }
+        if think_value is not None:
+            payload["think"] = think_value
+        body = json.dumps(payload).encode("utf-8")
+        request = urllib.request.Request(
+            "http://localhost:11434/api/chat",
+            data=body,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=run_timeout) as response:
+                data = json.loads(response.read().decode("utf-8"))
+            msg = data.get("message", {})
+            content = str(msg.get("content", "")).strip()
+            # If content is empty but thinking is present, use thinking as fallback
+            if not content:
+                thinking = str(msg.get("thinking", "")).strip()
+                if thinking:
+                    content = thinking
+            return OllamaQueryResult(
+                model=model,
+                output=content,
+                returncode=0,
+                stderr="",
+            )
+        except urllib.error.URLError as exc:
+            return OllamaQueryResult(
+                model=model,
+                output="",
+                returncode=1,
+                stderr=str(exc),
+            )
+        except Exception as exc:
             return OllamaQueryResult(
                 model=model,
                 output="",

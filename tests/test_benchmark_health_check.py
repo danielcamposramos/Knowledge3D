@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from knowledge3d.tools.benchmark_health_check import run_health_check
+from knowledge3d.tools.benchmark_health_check import evaluate_answer, load_questions, run_health_check
 
 
 def test_run_health_check_logs_results(tmp_path: Path) -> None:
@@ -21,3 +21,17 @@ def test_run_health_check_logs_results(tmp_path: Path) -> None:
     payload = json.loads(lines[0])
     assert payload["correct"] is True
     assert payload["suite"] == "gsm8k"
+
+
+def test_load_questions_mmlu_uses_correct_letter_in_synthetic_fallback() -> None:
+    rows = load_questions("mmlu", count=1)
+
+    assert rows
+    assert rows[0]["suite"] == "mmlu"
+    assert rows[0]["expected"] in {"A", "B", "C", "D"}
+    assert rows[0]["payload"]["correct_letter"] == rows[0]["expected"]
+
+
+def test_evaluate_answer_accepts_mmlu_letter_and_arc_json_string() -> None:
+    assert evaluate_answer("mmlu", "A", "A") is True
+    assert evaluate_answer("arc", "[[1, 2], [3, 4]]", [[1, 2], [3, 4]]) is True
