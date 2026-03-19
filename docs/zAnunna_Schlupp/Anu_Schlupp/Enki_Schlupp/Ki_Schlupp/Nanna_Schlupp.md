@@ -8,6 +8,17 @@
 
 ---
 
+## Foundational Ternary Distinction
+
+Where this document refers to ternary hardware, the primitive is a native three-state element:
+- `0` = natural rest position
+- `+1` = one side of the relay/state cell
+- `-1` = the other side of the relay/state cell
+
+If an interface, toolchain, or teaching layer prefers ordinal labels, the same three states may also be written as `0, 1, 2` with an explicit mapping.
+
+Packet semantics, routing state, and network policy are derived from that primitive. This document does not normatively depend on a unary increment/decrement gate family or one specific transistor topology.
+
 ## Purpose
 
 `Ethernet-BT` is the network-hardware equivalent of the hybrid CPU bridge strategy:

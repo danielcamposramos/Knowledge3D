@@ -9,6 +9,17 @@
 
 ---
 
+## Foundational Ternary Distinction
+
+The ternary side of this true hybrid network core uses the same primitive everywhere:
+- `0` = natural rest position
+- `+1` = one side of the relay/state cell
+- `-1` = the other side of the relay/state cell
+
+An optional alias notation of `0, 1, 2` is acceptable when the mapping is explicit.
+
+Scheduling, trust, congestion, and semantic routing are derived from that primitive. This document does not normatively depend on a unary increment/decrement gate family or one specific transistor topology.
+
 ## Purpose
 
 This is the **AMD-style one-core network document**.

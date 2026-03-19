@@ -10,6 +10,17 @@
 
 ---
 
+## Foundational Ternary Distinction
+
+The ternary fabric in `x86_x64T` follows the same primitive:
+- `0` = natural rest position
+- `+1` = one side of the relay/state cell
+- `-1` = the other side of the relay/state cell
+
+The same states may also be labeled `0, 1, 2` if the mapping is explicit.
+
+Arithmetic, scheduling, and hybrid execution policy are derived from that primitive. This document does not normatively depend on a unary increment/decrement gate family or one specific transistor topology.
+
 ## Notice of Defensive Publication
 
 This document is a defensive publication for a **single-core architecture** that unifies:

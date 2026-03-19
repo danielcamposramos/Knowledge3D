@@ -6,6 +6,17 @@
 
 ---
 
+## Foundational Ternary Distinction
+
+`RF-T` is built on a native three-state primitive:
+- `0` = natural rest position
+- `+1` = one side of the relay/state cell
+- `-1` = the other side of the relay/state cell
+
+The same states may also be labeled `0, 1, 2` if the mapping is explicit.
+
+Intent, trust, uncertainty, and routing semantics are derived from that primitive. This document does not normatively depend on a unary increment/decrement gate family or one specific transistor topology.
+
 ## 1. Purpose
 
 This is the pure ternary wireless end-state: a native ternary wireless fabric where uncertainty, intent, trust, and routing state are embedded into the communication model from the start.

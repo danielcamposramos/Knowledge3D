@@ -6,6 +6,17 @@
 
 ---
 
+## Foundational Ternary Distinction
+
+`Display-T` uses a native three-state primitive:
+- `0` = natural rest position
+- `+1` = one side of the relay/state cell
+- `-1` = the other side of the relay/state cell
+
+The same states may also be labeled `0, 1, 2` if the mapping is explicit.
+
+Procedural image state, display confidence, and link semantics are derived from that primitive. This document does not normatively depend on a unary increment/decrement gate family or one specific transistor topology.
+
 ## 1. Purpose
 
 This is the pure ternary display track: a native ternary display fabric where procedural imagery is primary and raster is compatibility-only.

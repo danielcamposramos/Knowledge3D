@@ -6,6 +6,17 @@
 
 ---
 
+## Foundational Ternary Distinction
+
+Where this document refers to ternary wireless logic, the primitive is a native three-state element:
+- `0` = natural rest position
+- `+1` = one side of the relay/state cell
+- `-1` = the other side of the relay/state cell
+
+The same states may also be labeled `0, 1, 2` if the mapping is explicit.
+
+Session trust, routing policy, and wireless meaning layers are derived from that primitive. This document does not normatively depend on a unary increment/decrement gate family or one specific transistor topology.
+
 ## 1. Purpose
 
 This document defines the first wireless pattern: preserve current wireless PHYs and certifications, while adding ternary-aware session, routing, confidence, and IoT semantics on top.

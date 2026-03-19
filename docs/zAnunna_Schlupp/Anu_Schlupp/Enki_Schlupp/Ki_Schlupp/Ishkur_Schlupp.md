@@ -6,6 +6,17 @@
 
 ---
 
+## Foundational Ternary Distinction
+
+The ternary side of this true hybrid imaging core follows the same primitive:
+- `0` = natural rest position
+- `+1` = one side of the relay/state cell
+- `-1` = the other side of the relay/state cell
+
+The same states may also be labeled `0, 1, 2` if the mapping is explicit.
+
+Perception meaning, confidence, and reconstruction policy are derived from that primitive. This document does not normatively depend on a unary increment/decrement gate family or one specific transistor topology.
+
 ## 1. Purpose
 
 This is the second sensing pattern: one true hybrid camera/LiDAR core with both binary perception pipelines and ternary semantic pipelines on one chip.

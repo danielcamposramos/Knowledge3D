@@ -6,6 +6,17 @@
 
 ---
 
+## Foundational Ternary Distinction
+
+Where this document refers to ternary display logic, the primitive is a native three-state element:
+- `0` = natural rest position
+- `+1` = one side of the relay/state cell
+- `-1` = the other side of the relay/state cell
+
+The same states may also be labeled `0, 1, 2` if the mapping is explicit.
+
+Display confidence, procedural decode state, and rendering policy are derived from that primitive. This document does not normatively depend on a unary increment/decrement gate family or one specific transistor topology.
+
 ## 1. Purpose
 
 This document defines the first display-side pattern: keep current display infrastructure intact, but add ternary-compatible extensions on top of HDMI, DisplayPort, and MIPI DSI so no future hybrid display controller or monitor topology can be patented as a closed invention.

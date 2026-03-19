@@ -9,6 +9,17 @@
 
 ---
 
+## Foundational Ternary Distinction
+
+The ternary parts of this SoC follow the same primitive:
+- `0` = natural rest position
+- `+1` = one side of the relay/state cell
+- `-1` = the other side of the relay/state cell
+
+The same states may also be labeled `0, 1, 2` if the mapping is explicit.
+
+Sensor state, security policy, power orchestration, and interconnect semantics are derived from that primitive. This document does not normatively depend on a unary increment/decrement gate family or one specific transistor topology.
+
 ## Notice of Defensive Publication
 
 This document publishes prior art for a **single-chip open ternary system-on-chip** built on top of the `x86_x64T` hybrid core family. The purpose is to move beyond CPU-only thinking and define a complete chip architecture including:

@@ -6,6 +6,17 @@
 
 ---
 
+## Foundational Ternary Distinction
+
+For the Arduino community, ternary should be taught from a native three-state primitive:
+- `0` = natural rest position
+- `+1` = one side of the relay/state cell
+- `-1` = the other side of the relay/state cell
+
+If a lesson or tool prefers ordinal labels, the same three states may also be written as `0, 1, 2` with an explicit mapping.
+
+Arithmetic helpers and libraries come after that primitive. This guidance does not normatively depend on a unary increment/decrement gate family or one specific transistor topology.
+
 ## 1. Purpose
 
 Arduino is one of the best entry points for open ternary experimentation because it optimizes for:

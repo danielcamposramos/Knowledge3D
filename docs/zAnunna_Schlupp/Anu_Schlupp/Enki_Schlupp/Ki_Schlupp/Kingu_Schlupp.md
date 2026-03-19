@@ -6,6 +6,17 @@
 
 ---
 
+## Foundational Ternary Distinction
+
+`Storage-T` is built on a native three-state primitive:
+- `0` = natural rest position
+- `+1` = one side of the relay/state cell
+- `-1` = the other side of the relay/state cell
+
+The same states may also be labeled `0, 1, 2` if the mapping is explicit.
+
+Persistence class, locality, and certainty semantics are derived from that primitive. This document does not normatively depend on a unary increment/decrement gate family or one specific transistor topology.
+
 ## 1. Purpose
 
 This is the pure ternary storage/memory end-state: a native ternary fabric where persistence class, locality, and semantic certainty are first-class, rather than only inferred from binary access patterns.

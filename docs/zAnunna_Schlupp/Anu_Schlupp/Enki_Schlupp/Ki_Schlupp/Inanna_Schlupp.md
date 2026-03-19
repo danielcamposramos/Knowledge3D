@@ -8,6 +8,17 @@
 
 ---
 
+## Foundational Ternary Distinction
+
+`Net-T` is built on a native three-state primitive:
+- `0` = natural rest position
+- `+1` = one side of the relay/state cell
+- `-1` = the other side of the relay/state cell
+
+An optional alias notation of `0, 1, 2` may be used when the mapping is explicit.
+
+Networking arithmetic, trust state, and routing semantics are derived from that primitive. This document does not normatively depend on a unary increment/decrement gate family or one specific transistor topology.
+
 ## Purpose
 
 `Net-T` is the **full ternary** network-hardware specification.
