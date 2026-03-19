@@ -6,8 +6,17 @@ from __future__ import annotations
 
 from typing import Optional, Tuple
 
-import torch
-import torch.nn.functional as F
+try:
+    import torch
+    import torch.nn.functional as F
+except Exception:  # pragma: no cover - optional dependency
+    torch = None  # type: ignore[assignment]
+    F = None  # type: ignore[assignment]
+
+
+def _require_torch() -> None:
+    if torch is None or F is None:
+        raise RuntimeError("Calibration loss helpers require torch. Install torch to use training losses.")
 
 
 def binary_calibration_loss(
@@ -17,6 +26,7 @@ def binary_calibration_loss(
     mask: Optional[torch.Tensor] = None,
 ) -> torch.Tensor:
     """MSE between predicted confidence and correctness labels."""
+    _require_torch()
     if mask is not None:
         confidences = confidences[mask]
         correctness = correctness[mask]
@@ -33,6 +43,7 @@ def expected_calibration_error(
     mask: Optional[torch.Tensor] = None,
 ) -> torch.Tensor:
     """Expected Calibration Error (ECE) over confidences."""
+    _require_torch()
     if mask is not None:
         confidences = confidences[mask]
         correctness = correctness[mask]
@@ -68,6 +79,7 @@ def compute_training_loss(
     use_ece: bool = False,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Combined rule + calibration loss."""
+    _require_torch()
     rule_loss = F.cross_entropy(
         rule_logits.view(-1, rule_logits.shape[-1]),
         target_rules.view(-1),

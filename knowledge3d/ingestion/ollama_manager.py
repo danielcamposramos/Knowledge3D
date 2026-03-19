@@ -180,3 +180,6 @@ class OllamaModelManager:
 
     def __exit__(self, exc_type, exc, tb) -> None:
         self.unload_model()
+
+
+OllamaManager = OllamaModelManager

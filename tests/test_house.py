@@ -2,6 +2,10 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
+pytest.importorskip("sklearn")
+
 # This is no longer best practice, but we'll keep it for now to avoid breaking other tests
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 from k3dgen.house import House

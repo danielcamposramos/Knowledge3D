@@ -17,7 +17,10 @@ RUN pip3 install --no-cache-dir \
     numpy \
     pytest \
     pygltflib \
-    scikit-learn
+    scikit-learn \
+    fonttools>=4.40.0 \
+    sympy \
+    websockets
 
 # Set working directory
 WORKDIR /workspace

@@ -25,7 +25,16 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np  # type: ignore
-import torch
+
+try:
+    import torch
+except Exception:
+    torch = None  # type: ignore[assignment]
+
+
+def _require_torch() -> None:
+    if torch is None:
+        raise ImportError("torch is required for GLB appliance weight loading")
 
 
 def _house_glb_path() -> Path:
@@ -59,13 +68,14 @@ def load_appliance_weights_from_glb(
     appliance: str,
     *,
     glb_path: Optional[Path] = None,
-    device: Optional[torch.device] = None,
-) -> Optional[Dict[str, torch.Tensor]]:
+    device: Optional["torch.device"] = None,
+) -> Optional[Dict[str, "torch.Tensor"]]:
     """Load weights for an appliance from the active House GLB.
 
     Returns a dict name -> tensor (on requested device). If appliance not found,
     returns None.
     """
+    _require_torch()
     try:
         from pygltflib import GLTF2  # type: ignore
     except Exception:
@@ -99,7 +109,7 @@ def load_appliance_weights_from_glb(
     if blob is None:
         return None
 
-    out: Dict[str, torch.Tensor] = {}
+    out: Dict[str, "torch.Tensor"] = {}
     for t in tensors:
         if not isinstance(t, dict):
             continue
@@ -140,9 +150,10 @@ def apply_partial_state(module: torch.nn.Module, weight_map: Dict[str, torch.Ten
 
     Silently skips missing/mismatched shapes to allow partial loads.
     """
+    _require_torch()
     try:
         sd = module.state_dict()
-        updates: Dict[str, torch.Tensor] = {}
+        updates: Dict[str, "torch.Tensor"] = {}
         for k, v in weight_map.items():
             if k in sd and tuple(sd[k].shape) == tuple(v.shape):
                 try:
@@ -154,4 +165,3 @@ def apply_partial_state(module: torch.nn.Module, weight_map: Dict[str, torch.Ten
             module.load_state_dict(sd)
     except Exception:
         pass
-

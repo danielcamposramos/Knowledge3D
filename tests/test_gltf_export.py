@@ -4,6 +4,8 @@ from pathlib import Path
 
 import pytest
 
+pytest.importorskip("pygltflib")
+
 from knowledge3d.cranium.ptx_runtime.mesh_opcodes import generate_cube, generate_uv_sphere
 from knowledge3d.tools.export_house import export_house_glb
 from knowledge3d.tools.gltf_export import compose_scene, mesh_to_gltf_node

@@ -1,4 +1,6 @@
-import torch
+import pytest
+
+torch = pytest.importorskip("torch")
 
 from knowledge3d.training.math_benchmarks.navigation_model import (
     CONTROL_TOKENS,

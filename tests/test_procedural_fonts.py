@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
+
+pytest.importorskip("fontTools")
 
 from knowledge3d.cranium.procedural_fonts import segments_to_rpn
 from knowledge3d.cranium.bridges.procedural_drawing_bridge import ProceduralDrawingBridge

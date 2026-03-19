@@ -1,3 +1,7 @@
+import pytest
+
+pytest.importorskip("torch")
+
 from scripts.verification_loop import VerificationLoop
 
 

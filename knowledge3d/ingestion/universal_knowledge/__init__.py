@@ -10,6 +10,18 @@ from knowledge3d.knowledgeverse.meaning_star import MeaningCentricStar, SurfaceF
 from .file_formats import FILE_FORMATS, iter_format_entries
 from .materials_science import MATERIAL_RULES, MaterialRule, iter_material_rules, validate_material_rules
 from .measurements import MEASUREMENT_DOMAINS, MeasurementDomain, UnitDefinition, convert, from_si_value, iter_domains, to_si_value
+from .multilingual_meanings import (
+    OMW_DEFAULT_PATH,
+    OMW_LANG_MAP,
+    POS_MAP,
+    SynsetEntry,
+    build_meaning_layer_stars,
+    iter_meaning_stars,
+    load_all_omw,
+    meaning_layer_stats,
+    parse_omw_tab,
+    synset_to_star,
+)
 from .numeral_systems import NUMERAL_SYSTEMS, NumeralSystem, decode_number, encode_number, iter_numeral_systems
 from .paper_and_book_sizes import BOOK_SIZES, PAPER_SIZES, StandardSize, a_series_ratio_ok, iter_book_sizes, iter_paper_sizes
 from .periodic_table import ELEMENTS, ELEMENTS_BY_ATOMIC_NUMBER, ELEMENTS_BY_SYMBOL, ElementEntry, SUBATOMIC_PARTICLES, iter_elements
@@ -195,13 +207,17 @@ __all__ = [
     "MATERIAL_RULES",
     "MEASUREMENT_DOMAINS",
     "MeasurementDomain",
+    "OMW_DEFAULT_PATH",
+    "OMW_LANG_MAP",
     "NUMERAL_SYSTEMS",
     "NumeralSystem",
     "PAPER_SIZES",
+    "POS_MAP",
     "PHYSICAL_CONSTANTS",
     "PhysicalConstant",
     "SUBATOMIC_PARTICLES",
     "StandardSize",
+    "SynsetEntry",
     "UnitDefinition",
     "WikipediaAttribution",
     "WikipediaIngestRecord",
@@ -209,6 +225,7 @@ __all__ = [
     "WritingSystem",
     "a_series_ratio_ok",
     "build_foundation_stars",
+    "build_meaning_layer_stars",
     "build_wikipedia_record",
     "convert",
     "decode_number",
@@ -219,13 +236,18 @@ __all__ = [
     "iter_domains",
     "iter_elements",
     "iter_format_entries",
+    "iter_meaning_stars",
     "iter_material_rules",
     "iter_numeral_systems",
     "iter_paper_sizes",
     "iter_physical_constants",
     "iter_writing_systems",
+    "load_all_omw",
+    "meaning_layer_stats",
+    "parse_omw_tab",
     "proceduralize_content",
     "proceduralize_text",
+    "synset_to_star",
     "to_si_value",
     "tokenize_words",
     "validate_material_rules",

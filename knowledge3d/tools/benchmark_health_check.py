@@ -249,7 +249,7 @@ def _run_suite_via_benchmark(suite: str, count: int, knowledgeverse: Any | None 
         bench.run_benchmark(use_enriched=True)
         return [
             {
-                "question_id": row["id"],
+                "question_id": row.get("question_id", row.get("id", source["id"])),
                 "suite": canonical,
                 "question": source["question_text"],
                 "answer": row.get("predicted_answer"),
@@ -271,9 +271,10 @@ def _run_suite_via_benchmark(suite: str, count: int, knowledgeverse: Any | None 
                 "suite": canonical,
                 "question": source["question_text"],
                 "answer": row.get("predicted_answer"),
-                "expected": source["correct_answer"],
+                "expected": source.get("correct_letter") or source["correct_answer"],
                 "correct": bool(row.get("correct", False)),
                 "elapsed_s": 0.0,
+                "subject": source.get("subject"),
                 "timestamp": time.time(),
             }
             for source, row in zip(bench.questions, bench.results)
@@ -304,6 +305,7 @@ def run_health_check(
     *,
     query_fn: HealthQueryFn | None = None,
     knowledgeverse: Any | None = None,
+    session_id: str | None = None,
 ) -> dict[str, Any]:
     """Run a health check and append the resulting log rows."""
     canonical = _canonical_suite_name(suite)
@@ -339,9 +341,16 @@ def run_health_check(
                     "correct": bool(correct),
                     "elapsed_s": round(float(elapsed), 3),
                     "timestamp": time.time(),
+                    "subject": row.get("payload", {}).get("subject"),
                     **extras,
                 }
             )
+
+    for result in results:
+        if session_id:
+            result["session_id"] = str(session_id)
+        if canonical == "mmlu" and "subject" not in result:
+            result["subject"] = None
 
     path = Path(log_path)
     path.parent.mkdir(parents=True, exist_ok=True)

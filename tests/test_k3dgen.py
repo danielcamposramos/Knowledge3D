@@ -2,6 +2,10 @@ import json
 import subprocess
 from pathlib import Path
 
+import pytest
+
+pytest.importorskip("pygltflib")
+
 from pygltflib import GLTF2
 
 

@@ -2,11 +2,14 @@
 """Quick test to verify bridge detection fix."""
 
 import sys
+import pytest
+
+pytest.importorskip("pygltflib")
+
 sys.path.insert(0, '/workspace')
 
 from knowledge3d.spatial.semantic_navigator import SemanticNavigator
 import logging
-import pytest
 
 pytestmark = pytest.mark.skip(
     reason="SemanticNavigator uses deprecated CuPy-based spatial stack"
