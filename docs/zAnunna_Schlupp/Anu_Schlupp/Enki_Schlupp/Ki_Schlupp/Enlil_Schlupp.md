@@ -31,6 +31,8 @@ This third document defines the AMD64-style product view for RISC:
 
 The chip is one core family, one scheduler, one memory system, one privilege model, with both binary and ternary execution fabrics on-die.
 
+Its ternary side inherits the same primitive as RISC-T and RISC-BT: `0` as natural rest, with two active side states. Arithmetic is derived from that native state model rather than from a unary increment/decrement gate family.
+
 ---
 
 ## 2. Mode Hierarchy

@@ -19,6 +19,8 @@ This document is intentionally published openly, timestamped, and indexed to max
 
 **Motivation:** A hybrid binary-ternary chip provides the pragmatic migration path from today's binary world to tomorrow's ternary future. Rather than requiring an all-or-nothing transition, this design places BOTH logic systems on a single die, routing each computation to whichever system is cheaper. This technology must remain open and royalty-free to prevent monopolization.
 
+The ternary side of this hybrid follows the same foundational rule as RISC-T: the primitive is a native three-state relay cell with `0` as rest and two side states. Arithmetic is derived from that primitive; no unary increment/decrement gate family is normative.
+
 ---
 
 ## Table of Contents

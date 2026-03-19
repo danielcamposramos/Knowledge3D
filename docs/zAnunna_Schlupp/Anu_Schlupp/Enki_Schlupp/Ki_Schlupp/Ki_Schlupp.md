@@ -48,6 +48,13 @@ K3D already has ternary computing at the SOFTWARE level:
 
 The next step is publishing ternary HARDWARE architectures — instruction set, logic gate arrangements, memory cell designs — as open specifications through PM-KR. This creates prior art that prevents anyone from patenting what K3D has already described.
 
+**Important distinction:** K3D's foundational primitive is not "a gate that adds or subtracts 1 from a ternary value." It is a native three-state relay model:
+- `0` = natural rest position
+- `+1` = one side of the relay
+- `-1` = the other side of the relay
+
+Arithmetic comes after that primitive. If useful for tooling or education, the same states may also be named `0, 1, 2`, but the physical model stays rest-centered.
+
 ### Q: We need to talk about ternary chips to get people moving there
 
 **Action:** W3C PM-KR should publish a ternary computing specification that:
@@ -55,6 +62,11 @@ The next step is publishing ternary HARDWARE architectures — instruction set, 
 2. Specifies ternary memory cell designs (balanced ternary, -1/0/+1)
 3. Documents ternary-native data paths, ALUs, and register files
 4. Maps K3D's existing ternary opcodes to hardware instructions
+
+The hardware language should explicitly say:
+- state primitive first
+- arithmetic derived second
+- no normative dependence on one increment/decrement gate family
 
 This gives chip designers a TARGET to build toward — just as RISC-V gave designers a binary ISA to implement.
 

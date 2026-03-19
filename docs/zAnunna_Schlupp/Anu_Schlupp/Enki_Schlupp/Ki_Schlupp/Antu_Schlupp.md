@@ -227,6 +227,16 @@ Daniel's relay model is the correct physical intuition:
 
 Electrically, this means the neutral state is not a special case or exception. It is the **natural resting state**.
 
+This document follows the same distinction as the pure RISC-T spec:
+- the primitive is a native three-position state element
+- arithmetic is derived from that primitive
+- the architecture does not depend on a unary plus-one/minus-one gate family
+
+For compatibility or teaching material, the same three states may also be labeled `0, 1, 2` as long as the mapping is explicit:
+- `0` = rest
+- `1` = side_a
+- `2` = side_b
+
 ### 3.2 Silicon translation
 
 In silicon language, the three-way relay becomes one of three implementation families:
@@ -249,6 +259,8 @@ Used when process support allows stable three-state switching.
 - ternary sense amplifiers
 - ternary SRAM / register cells
 - ternary compare and branch without binary expansion
+
+The exact transistor topology is not normative. X64-BT standardizes the three-state semantics, not a specific increment/decrement ternary gate layout.
 
 #### Family C: Emerging device families
 

@@ -48,7 +48,7 @@ This document is intentionally published openly, timestamped, and indexed to max
 23. [Ternary Security Extensions (RT-S)](#23-ternary-security-extensions-rt-s)
 24. [HDL Reference Implementation (Pseudocode)](#24-hdl-reference-implementation-pseudocode)
 
-**Appendices:** A (Huawei Comparison), B (Economic Model), C (Prior Art 1-20), D (Extension Registry), E (Prior Art 21-40)
+**Appendices:** A (Distinction from Increment/Decrement Gate Families), B (Economic Model), C (Prior Art 1-20), D (Extension Registry), E (Prior Art 21-40)
 
 ---
 
@@ -72,7 +72,7 @@ Binary computing uses two states (0, 1). Ternary computing uses three states (-1
 
 ### 1.2 Balanced Ternary (-1, 0, +1)
 
-RISC-T uses **balanced ternary** exclusively. Not unbalanced (0, 1, 2) — balanced (-1, 0, +1).
+RISC-T defaults to **balanced ternary** at the ISA and mathematical layer, but the underlying primitive is more fundamental than notation: one natural rest state and two side states.
 
 **Why balanced:**
 - Negation is trivial: flip -1 ↔ +1, leave 0 unchanged. In hardware: swap two wires.
@@ -82,10 +82,25 @@ RISC-T uses **balanced ternary** exclusively. Not unbalanced (0, 1, 2) — balan
 - Zero is the natural rest state (Daniel's three-way relay: normally 0).
 
 **Notation:**
+- Physical relay/state model:
+  - `0` = natural rest position
+  - `+1` = one side of the relay
+  - `-1` = the other side of the relay
 - A single ternary digit is called a **trit** (ternary digit).
 - A group of 3 trits is a **trybble** (27 states, analogous to a nibble).
 - A group of 6 trits is a **tryte** (729 states, analogous to a byte).
 - A **word** is defined by the architecture width: RT32T uses 20 trits (3^20 = 3,486,784,401 ≈ 2^31.7), RT64T uses 40 trits (3^40 ≈ 2^63.4).
+
+**Allowed alias notation:**
+- For interface layers, educational material, or toolchains that prefer ordinal labels, the same three states may also be written as `0, 1, 2` with explicit mapping:
+  - `0` → rest
+  - `1` → side_a
+  - `2` → side_b
+
+The specification therefore distinguishes:
+- the **physical primitive**: a three-position state element
+- the **architectural notation**: balanced `(-1, 0, +1)` by default
+- the **optional alias notation**: `(0, 1, 2)` when useful
 
 ### 1.3 Design Philosophy
 
@@ -138,9 +153,27 @@ Energize B: Common → -V → trit value -1
 - **Symmetric around zero** — +1 and -1 are equidistant from rest
 - **Single-pole double-throw (SPDT)** topology — one input, two possible active outputs
 
+### 2.1.1 Architectural Distinction
+
+RISC-T is defined around a **native three-state relay primitive**:
+- `0` = natural rest position
+- `+1` = one side of the relay
+- `-1` = the other side of the relay
+
+This is intentionally different from defining ternary hardware around a unary arithmetic gate whose purpose is to transform an input ternary value into that value plus one or minus one.
+
+In RISC-T:
+- the primitive is **state selection**
+- arithmetic is built **on top of** the state primitive
+- no self-increment or self-decrement gate family is normative
+- no preprocessing family such as NTI/PTI is normative
+- no single transistor-threshold grouping is normative
+
+The architecture is rest-centered first, arithmetic second.
+
 ### 2.2 Silicon Translation: Multi-Threshold CMOS
 
-The three-way relay maps to silicon via **multi-threshold MOSFET** design:
+One possible way to realize the three-way relay in silicon is via **multi-threshold MOSFET** design. This section is illustrative, not normative: the specification standardizes the three-state behavior, not a single transistor topology.
 
 ```
                     VDD (+V supply)
@@ -166,7 +199,7 @@ The three-way relay maps to silicon via **multi-threshold MOSFET** design:
 | -VDD/6 to +VDD/6 | 0 | Neutral/Unknown/Rest | Relay at rest |
 | -VDD to -VDD/2 | -1 | Negative/False/Repel | Contact B energized |
 
-**With VDD = 0.9V (modern process):**
+**Illustrative voltage windows with VDD = 0.9V:**
 
 | Voltage Range | Trit | State |
 |--------------|------|-------|
@@ -182,7 +215,7 @@ The three-way relay model can be implemented in multiple fabrication technologie
 
 #### 2.3.1 Standard CMOS (Available NOW)
 
-Use three threshold voltages (Vth) on standard CMOS transistors. Foundries already offer multi-Vth options for power optimization. Repurpose for ternary logic:
+Use three threshold regions (Vth bands) on standard CMOS transistors. Foundries already offer multi-Vth options for power optimization. These can be repurposed for ternary logic, but the exact cell topology is intentionally left open:
 
 - **Low-Vth MOSFET** (fast switch, ~0.323V): Drives output toward +1
 - **Medium-Vth MOSFET** (~0.428V): Boundary/transition device
@@ -198,7 +231,7 @@ CNTFETs can achieve precisely controlled threshold voltages by varying nanotube 
 - Medium nanotube → medium Vth → 0 boundary
 - Thick nanotube (large diameter) → low Vth → +1 driver
 
-**Status:** Lab-demonstrated (Huawei patent 2025, Science Advances 2025). Not commercially available at scale.
+**Status:** Lab-demonstrated in the literature. Not commercially available at scale.
 
 #### 2.3.3 Memristor-CMOS Hybrid
 
@@ -626,7 +659,7 @@ A  B  | Sum  Carry
 +1 +1 |  -1   +1     (+1 + +1 = +2 = -1 carry +1, since +1×3 + (-1) = 2)
 ```
 
-**Gate implementation (three-way relay model):**
+**Behavioral implementation (three-way relay model):**
 
 ```
 Sum  = (A + B) mod 3   (balanced)
@@ -638,7 +671,7 @@ In relay terms:
 - If either is at rest (0) → output follows the other
 ```
 
-**Transistor count:** A ternary half adder requires approximately 12 multi-threshold MOSFETs (compared to ~10 binary transistors for a binary half adder). The per-trit cost is slightly higher, but each trit carries 58.5% more information — net efficiency gain.
+**Implementation note:** The half adder is defined behaviorally from direct composition of native ternary states. It is not defined in terms of a unary plus-one/minus-one gate primitive.
 
 ### 7.2 Ternary Full Adder
 
@@ -1042,18 +1075,21 @@ RT40T-Galaxy Specifications:
 
 ---
 
-## Appendix A: Comparison to Huawei's Approach
+## Appendix A: Distinction from Increment/Decrement Ternary Gate Families
 
-| Aspect | Huawei (Patented) | RISC-T (Open) |
-|--------|-------------------|---------------|
-| **IP Model** | Patented, proprietary | W3C RF, defensive publication |
-| **Gate Design** | CNTFET-specific | Technology-agnostic (CMOS, CNTFET, memristor) |
-| **ISA** | Not published | Fully specified, open |
-| **Manufacturing** | Requires CNTFET (immature) | Works on existing CMOS (available now) |
-| **Software** | No ecosystem | K3D reference stack (operational) |
-| **Community** | Closed | Open (W3C PM-KR + community) |
+| Aspect | Increment/Decrement Gate Family | RISC-T (Open) |
+|--------|---------------------------------|---------------|
+| **Primary primitive** | Unary gate that maps an input ternary value to value `+1` or `-1` | Native three-state relay cell with `0` as rest and two side states |
+| **Normative gate family** | Specific gate family may be central | No single gate family is normative |
+| **Preprocessing dependence** | May depend on dedicated preprocessing blocks | No NTI/PTI-style preprocessing is required |
+| **Topology dependence** | Can be tied to specific threshold/transistor arrangements | Technology-agnostic, behavior-first |
+| **Arithmetic construction** | Arithmetic can be built from increment/decrement primitives | Arithmetic is built from direct state composition |
+| **Notation** | Often described as arithmetic state stepping | Defaults to balanced `(-1, 0, +1)`, with optional alias `(0, 1, 2)` |
+| **ISA** | Not the focus | Fully specified, open |
+| **Software** | No open ecosystem assumed | K3D reference stack (operational) |
+| **Community** | Closed or proprietary | Open (W3C PM-KR + community) |
 
-**RISC-T's advantage:** It works TODAY on existing silicon. Huawei's approach requires CNTFET maturation (3-5 years). By the time Huawei's CNTFET is ready, RISC-T will have an established open ecosystem.
+**RISC-T's distinction:** The specification begins from a rest-centered ternary state primitive and only then derives arithmetic. It is not architecturally dependent on a plus-one/minus-one unary gate.
 
 ---
 
@@ -1867,7 +1903,9 @@ endmodule
 // Based on Daniel's three-way relay model:
 // Rest = 0, Contact A = +1, Contact B = -1
 //
-// Prior art: Multi-threshold CMOS ternary half adder implementation.
+// Prior art: Relay-state ternary half adder implementation.
+// This is specified behaviorally from the native 3-state primitive.
+// It does not require a unary increment/decrement gate family.
 
 module ternary_half_adder (
     input  trit a,
@@ -1890,7 +1928,7 @@ module ternary_half_adder (
     //   +1 = 0×3¹ + 1×3⁰ → carry=0, sum=+1
     //   +2 = 1×3¹ + (-1)×3⁰ → carry=+1, sum=-1
 
-    // Sum logic (multi-threshold CMOS implementation):
+    // Sum logic (behavioral relay-state implementation):
     // sum = (a + b) mod 3 (balanced)
     // Using three-way relay model:
     //   If a and b same non-zero → sum flips sign, carry propagates
@@ -1910,9 +1948,8 @@ module ternary_half_adder (
                    both_negative ? TRIT_NEG :    // -1 + -1 → carry = -1
                    /* else */      TRIT_ZERO;    // no carry
 
-    // Gate count: ~12 multi-threshold MOSFETs
-    // Delay: 2 gate levels
-    // Power: ~0.8× binary half adder (fewer transitions due to rest-at-zero)
+    // Gate count / transistor topology intentionally unspecified.
+    // The architecture standardizes behavior, not one cell layout.
 endmodule
 ```
 
@@ -1938,9 +1975,8 @@ module ternary_full_adder (
     // Therefore TOR (max) gives the correct carry output
     assign cout = ternary_or(c1, c2);
 
-    // Gate count: ~28 multi-threshold MOSFETs (2 × 12 + 4 for TOR)
-    // Delay: 4 gate levels
-    // Carry is a single trit — no special carry format needed
+    // Gate count / transistor topology intentionally unspecified.
+    // Carry is a single trit — no special carry format needed.
 endmodule
 ```
 
