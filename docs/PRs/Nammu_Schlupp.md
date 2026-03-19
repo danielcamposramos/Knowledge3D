@@ -14,11 +14,11 @@
 
 The Anunna tablets have been lifted out of the wandering sands and placed inside the temple archive.
 
-What was scattered across upper dust paths now sits under [Anunna_Schlupp](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/docs/Anunna_Schlupp), with the deeper plans descending through:
+What was scattered across upper dust paths now sits under [zAnunna_Schlupp](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/docs/zAnunna_Schlupp), with the deeper plans descending through:
 
-- [Anu_Schlupp](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/docs/Anunna_Schlupp/Anu_Schlupp)
-- [Enki_Schlupp](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/docs/Anunna_Schlupp/Anu_Schlupp/Enki_Schlupp)
-- [Ki_Schlupp](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/docs/Anunna_Schlupp/Anu_Schlupp/Enki_Schlupp/Ki_Schlupp)
+- [Anu_Schlupp](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/docs/zAnunna_Schlupp/Anu_Schlupp)
+- [Enki_Schlupp](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/docs/zAnunna_Schlupp/Anu_Schlupp/Enki_Schlupp)
+- [Ki_Schlupp](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/docs/zAnunna_Schlupp/Anu_Schlupp/Enki_Schlupp/Ki_Schlupp)
 
 ### Tablets Moved
 
@@ -33,9 +33,9 @@ What was scattered across upper dust paths now sits under [Anunna_Schlupp](/mnt/
 
 ### Known Tablets in the Chamber
 
-- RISC family: [Anu_Schlupp.md](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/docs/Anunna_Schlupp/Anu_Schlupp.md), [Enki_Schlupp.md](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/docs/Anunna_Schlupp/Enki_Schlupp.md), [Enlil_Schlupp.md](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/docs/Anunna_Schlupp/Enlil_Schlupp.md)
-- x86/x64 family: [Antu_Schlupp.md](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/docs/Anunna_Schlupp/Antu_Schlupp.md), [Ninlil_Schlupp.md](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/docs/Anunna_Schlupp/Ninlil_Schlupp.md), [Ninhursag_Schlupp.md](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/docs/Anunna_Schlupp/Ninhursag_Schlupp.md)
-- network family: [Nanna_Schlupp.md](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/docs/Anunna_Schlupp/Nanna_Schlupp.md), [Utu_Schlupp.md](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/docs/Anunna_Schlupp/Utu_Schlupp.md), [Inanna_Schlupp.md](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/docs/Anunna_Schlupp/Inanna_Schlupp.md)
+- RISC family: [Anu_Schlupp.md](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/docs/zAnunna_Schlupp/Anu_Schlupp.md), [Enki_Schlupp.md](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/docs/zAnunna_Schlupp/Enki_Schlupp.md), [Enlil_Schlupp.md](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/docs/zAnunna_Schlupp/Enlil_Schlupp.md)
+- x86/x64 family: [Antu_Schlupp.md](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/docs/zAnunna_Schlupp/Antu_Schlupp.md), [Ninlil_Schlupp.md](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/docs/zAnunna_Schlupp/Ninlil_Schlupp.md), [Ninhursag_Schlupp.md](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/docs/zAnunna_Schlupp/Ninhursag_Schlupp.md)
+- network family: [Nanna_Schlupp.md](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/docs/zAnunna_Schlupp/Nanna_Schlupp.md), [Utu_Schlupp.md](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/docs/zAnunna_Schlupp/Utu_Schlupp.md), [Inanna_Schlupp.md](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/docs/zAnunna_Schlupp/Inanna_Schlupp.md)
 - display, sensor, storage, wireless, and Arduino guidance families were moved into the same coded archive pack
 
 ### What Was Not Summoned
