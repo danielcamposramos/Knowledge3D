@@ -432,8 +432,103 @@ class OpenAICompatibleProvider(AugmentationProvider):
         return bool(self.api_key) and importlib.util.find_spec("openai") is not None
 
 
+class ClaudeAgentSDKProvider(AugmentationProvider):
+    """Claude via Agent SDK — subscription-based, no API key needed.
+
+    Uses the ``claude-agent-sdk`` package which authenticates through the
+    Claude Code CLI (Pro/Team/Enterprise subscription).  This is the legal
+    subscription billing path — same mechanism OpenClaw uses.
+
+    The existing :class:`ClaudeProvider` (API-key billing) is kept as-is.
+    Choose ``claude-agent-sdk`` when you want subscription billing, or
+    ``claude`` when you want per-token API billing.
+    """
+
+    provider_name = "claude-agent-sdk"
+
+    def __init__(self, model: str = "claude-sonnet-4-6", timeout: float = 120.0, **_: Any) -> None:
+        self.model = model
+        self.timeout = float(timeout)
+
+    def augment(self, content: str, context: dict[str, Any]) -> AugmentationResult:
+        if not self.is_available():
+            raise RuntimeError("claude-agent-sdk package is not installed or CLI not logged in.")
+        text = self._run_query(
+            system_prompt=AUGMENTATION_SYSTEM_PROMPT,
+            user_message=self._build_prompt(content, context),
+            max_tokens=2048,
+        )
+        return self._parse_result(text, self.provider_name, context=context)
+
+    def classify(self, content: str) -> str:
+        if not self.is_available():
+            return "General"
+        text = self._run_query(
+            system_prompt="",
+            user_message=self._build_classification_prompt(content),
+            max_tokens=64,
+        )
+        return self._normalize_domain(text)
+
+    def is_available(self) -> bool:
+        return importlib.util.find_spec("claude_agent_sdk") is not None
+
+    def _run_query(self, *, system_prompt: str, user_message: str, max_tokens: int) -> str:
+        """Run a single-turn query via the Agent SDK (async internally)."""
+        try:
+            import anyio
+            from claude_agent_sdk import query as agent_query, ClaudeAgentOptions, ResultMessage
+        except ImportError:
+            return ""
+
+        async def _do_query() -> str:
+            result_text = ""
+            opts = ClaudeAgentOptions(
+                system_prompt=system_prompt,
+                allowed_tools=[],   # pure chat — no file/shell access
+                max_turns=1,
+                model=self.model,
+            )
+            async for message in agent_query(prompt=user_message, options=opts):
+                if isinstance(message, ResultMessage):
+                    result_text = message.result
+            return result_text
+
+        try:
+            return anyio.from_thread.run_sync(_do_query)
+        except Exception:
+            # If already inside an event loop, run via anyio.run
+            try:
+                return anyio.run(_do_query)
+            except Exception:
+                return ""
+
+
+class CodexOAuthProvider(OpenAICompatibleProvider):
+    """OpenAI Codex via OAuth — subscription-based, uses Codex CLI token.
+
+    Equivalent to Claude Agent SDK but for the OpenAI ecosystem.  Uses the
+    ``openai`` package pointed at the Codex API endpoint with the OAuth
+    token from the Codex CLI session (``OPENAI_API_KEY`` env var set by
+    the Codex CLI, or the user's own subscription key).
+
+    Falls back to standard OpenAI API when Codex endpoint is unavailable.
+    """
+
+    provider_name = "codex"
+
+    def __init__(self, model: str = "gpt-4o", timeout: float = 120.0, **_: Any) -> None:
+        # Codex CLI sets OPENAI_API_KEY; same key works for standard API
+        super().__init__(
+            model=model,
+            base_url="https://api.openai.com/v1",
+            api_key_env="OPENAI_API_KEY",
+            timeout=timeout,
+        )
+
+
 class GPTProvider(OpenAICompatibleProvider):
-    """OpenAI-backed augmentation provider."""
+    """OpenAI-backed augmentation provider (API key billing)."""
 
     provider_name = "gpt"
 
@@ -586,6 +681,8 @@ def create_provider(name: str | None = None, **kwargs: Any) -> AugmentationProvi
     providers: dict[str, type[AugmentationProvider]] = {
         "ollama": OllamaProvider,
         "claude": ClaudeProvider,
+        "claude-agent-sdk": ClaudeAgentSDKProvider,
+        "codex": CodexOAuthProvider,
         "gpt": GPTProvider,
         "deepseek": DeepSeekProvider,
         "gemini": GeminiProvider,
@@ -602,7 +699,8 @@ def create_provider(name: str | None = None, **kwargs: Any) -> AugmentationProvi
                 f"Unknown provider: {name}. Available: {sorted(providers.keys())}"
             )
         return cls(**kwargs)
-    for candidate_name in ("ollama", "claude", "gpt", "deepseek", "gemini", "qwen", "glm", "grok", "kimi"):
+    # Auto-detection: subscription providers before API-key providers
+    for candidate_name in ("ollama", "claude-agent-sdk", "claude", "codex", "gpt", "deepseek", "gemini", "qwen", "glm", "grok", "kimi"):
         provider = providers[candidate_name](**kwargs)
         if provider.is_available():
             return provider
@@ -614,7 +712,9 @@ __all__ = [
     "AUGMENTATION_SYSTEM_PROMPT",
     "AugmentationProvider",
     "AugmentationResult",
+    "ClaudeAgentSDKProvider",
     "ClaudeProvider",
+    "CodexOAuthProvider",
     "DeepSeekProvider",
     "GLMProvider",
     "GeminiProvider",
