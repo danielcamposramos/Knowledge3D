@@ -112,4 +112,4 @@ This specification publishes prior art for:
 - [VESA Display Compression Codecs](https://vesa.org/vesa-display-compression-codecs/)
 - [Antmicro Video Overlays](https://github.com/antmicro/video-overlays)
 - [LiteVideo](https://github.com/litex-hub/litevideo)
-- [K3D Procedural Visual Specification](../vocabulary/PROCEDURAL_VISUAL_SPECIFICATION.md)
+- [K3D Procedural Visual Specification](../../../../vocabulary/PROCEDURAL_VISUAL_SPECIFICATION.md)

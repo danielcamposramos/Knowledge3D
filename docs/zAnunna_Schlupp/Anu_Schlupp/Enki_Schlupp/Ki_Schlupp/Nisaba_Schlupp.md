@@ -118,4 +118,4 @@ The hardware claim published here is the monitor/controller half of that stack.
 - [VESA DSC](https://vesa.org/vesa-display-compression-codecs/dsc/)
 - [LiteVideo](https://github.com/litex-hub/litevideo)
 - [Antmicro Video Overlays](https://github.com/antmicro/video-overlays)
-- [K3D Procedural Visual Specification](../vocabulary/PROCEDURAL_VISUAL_SPECIFICATION.md)
+- [K3D Procedural Visual Specification](../../../../vocabulary/PROCEDURAL_VISUAL_SPECIFICATION.md)

@@ -80,5 +80,5 @@ Publishing all three prevents a vendor from patenting the transitional or final 
 - [VESA Display Compression Codecs](https://vesa.org/vesa-display-compression-codecs/)
 - [MIPI DSI-2](https://www.mipi.org/specifications/dsi-2)
 - [DisplayPort 2.1 Release](https://vesa.org/featured-articles/vesa-releases-displayport-2-1-specification/)
-- [K3D Procedural Visual Specification](../vocabulary/PROCEDURAL_VISUAL_SPECIFICATION.md)
-- [K3D Unified Signal Specification](../vocabulary/UNIFIED_SIGNAL_SPECIFICATION.md)
+- [K3D Procedural Visual Specification](../../../../vocabulary/PROCEDURAL_VISUAL_SPECIFICATION.md)
+- [K3D Unified Signal Specification](../../../../vocabulary/UNIFIED_SIGNAL_SPECIFICATION.md)
