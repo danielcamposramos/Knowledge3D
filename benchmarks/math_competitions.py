@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC, TabletIngest
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
@@ -60,7 +61,23 @@ class MathCompetitionBenchmark:
                 return candidate
         return Path("")
 
+    def _has_present_dataset(self, root: Path) -> bool:
+        if not root:
+            return False
+        candidates = [
+            root / "data" / "train.jsonl",
+            root / "math" / "data" / "train.jsonl",
+            root / "data_train.jsonl",
+            root / "math" / "data_train.jsonl",
+        ]
+        return any(candidate.exists() for candidate in candidates)
+
     def _load_problems(self) -> list[dict[str, Any]]:
+        if self.dataset_mode == "synthetic":
+            present_root = self._resolve_dataset_path(None)
+            if self._has_present_dataset(present_root):
+                self.dataset_mode = "present"
+                self.dataset_path = present_root
         if self.dataset_mode == "synthetic":
             synthetic = self._synthetic_guard_problems()
             return synthetic[: self.max_problems] if self.max_problems is not None else synthetic
@@ -415,12 +432,24 @@ class MathCompetitionBenchmark:
     def _synthetic_guard_problems(self) -> list[dict[str, Any]]:
         return list(self._synthetic_problems())
 
-    def run_benchmark(self, use_enriched: bool = True) -> dict[str, Any]:
+    def run_benchmark(
+        self,
+        use_enriched: bool = True,
+        *,
+        progress_cb: Callable[[dict[str, Any]], None] | None = None,
+        progress_every: int | None = None,
+    ) -> dict[str, Any]:
         self.results = []
         by_competition: dict[str, dict[str, Any]] = {}
-        for problem in self.problems:
+        correct = 0
+        total = len(self.problems)
+        step = max(1, int(progress_every or 25))
+        start = time.monotonic()
+        for index, problem in enumerate(self.problems, start=1):
             result = self._solve_problem(problem=problem, use_enriched=use_enriched)
             self.results.append(result)
+            if result["correct"]:
+                correct += 1
             comp = result["competition"]
             if comp not in by_competition:
                 by_competition[comp] = {"total": 0, "correct": 0, "results": []}
@@ -428,10 +457,20 @@ class MathCompetitionBenchmark:
             if result["correct"]:
                 by_competition[comp]["correct"] += 1
             by_competition[comp]["results"].append(result)
+            if progress_cb and (index % step == 0 or index == total):
+                progress_cb(
+                    {
+                        "completed": index,
+                        "total": total,
+                        "correct": correct,
+                        "elapsed_s": time.monotonic() - start,
+                        "benchmark": "math",
+                    }
+                )
         for comp_data in by_competition.values():
             total = comp_data["total"]
             comp_data["accuracy"] = (comp_data["correct"] / total) if total else 0.0
-        total_correct = sum(row["correct"] for row in self.results)
+        total_correct = correct
         total_count = len(self.results)
         pred_none_count = sum(1 for row in self.results if row.get("predicted_answer") is None)
         pred_numeric_count = sum(1 for row in self.results if self._to_float(row.get("predicted_answer")) is not None)

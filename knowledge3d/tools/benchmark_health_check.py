@@ -10,6 +10,7 @@ from typing import Any, Callable
 
 
 HealthQueryFn = Callable[[dict[str, Any]], Any]
+BenchmarkProgressFn = Callable[[dict[str, Any]], None]
 
 
 def _canonical_suite_name(name: str) -> str:
@@ -204,13 +205,33 @@ def load_questions(suite: str, count: int | None = None) -> list[dict[str, Any]]
         return _synthetic_questions(canonical, limit)
 
 
-def _run_suite_via_benchmark(suite: str, count: int, knowledgeverse: Any | None = None) -> list[dict[str, Any]]:
+def _default_progress_every(suite: str, count: int) -> int:
     canonical = _canonical_suite_name(suite)
+    if canonical == "mmlu":
+        return 100
+    if canonical == "gsm8k":
+        return 25
+    if canonical == "math":
+        return 10
+    if canonical == "lhe":
+        return 10
+    return 10
+
+
+def _run_suite_via_benchmark(
+    suite: str,
+    count: int,
+    knowledgeverse: Any | None = None,
+    *,
+    progress_fn: BenchmarkProgressFn | None = None,
+) -> list[dict[str, Any]]:
+    canonical = _canonical_suite_name(suite)
+    progress_every = _default_progress_every(canonical, count)
     if canonical == "gsm8k":
         from benchmarks.gsm8k import GSM8KBenchmark
 
         bench = GSM8KBenchmark(knowledgeverse=knowledgeverse, max_questions=count)
-        bench.run_benchmark(use_enriched=True)
+        bench.run_benchmark(use_enriched=True, progress_cb=progress_fn, progress_every=progress_every)
         return [
             {
                 "question_id": row["question_id"],
@@ -228,7 +249,7 @@ def _run_suite_via_benchmark(suite: str, count: int, knowledgeverse: Any | None 
         from benchmarks.math_competitions import MathCompetitionBenchmark
 
         bench = MathCompetitionBenchmark(knowledgeverse=knowledgeverse, max_problems=count)
-        bench.run_benchmark(use_enriched=True)
+        bench.run_benchmark(use_enriched=True, progress_cb=progress_fn, progress_every=progress_every)
         return [
             {
                 "question_id": row["problem_id"],
@@ -246,7 +267,7 @@ def _run_suite_via_benchmark(suite: str, count: int, knowledgeverse: Any | None 
         from benchmarks.last_humanity_exam import LastHumanityExamBenchmark
 
         bench = LastHumanityExamBenchmark(knowledgeverse=knowledgeverse, max_questions=count)
-        bench.run_benchmark(use_enriched=True)
+        bench.run_benchmark(use_enriched=True, progress_cb=progress_fn, progress_every=progress_every)
         return [
             {
                 "question_id": row.get("question_id", row.get("id", source["id"])),
@@ -264,7 +285,7 @@ def _run_suite_via_benchmark(suite: str, count: int, knowledgeverse: Any | None 
         from benchmarks.mmlu import MMLUBenchmark
 
         bench = MMLUBenchmark(knowledgeverse=knowledgeverse, max_questions=count)
-        bench.run_benchmark(use_enriched=True)
+        bench.run_benchmark(use_enriched=True, progress_cb=progress_fn, progress_every=progress_every)
         return [
             {
                 "question_id": row["id"],
@@ -282,7 +303,7 @@ def _run_suite_via_benchmark(suite: str, count: int, knowledgeverse: Any | None 
     from benchmarks.arc_agi_2 import ARCAGI2Benchmark
 
     bench = ARCAGI2Benchmark(knowledgeverse=knowledgeverse, max_tasks=count)
-    bench.run_benchmark(use_enriched=True)
+    bench.run_benchmark(use_enriched=True, progress_cb=progress_fn, progress_every=progress_every)
     return [
         {
             "question_id": row["task_id"],
@@ -306,11 +327,17 @@ def run_health_check(
     query_fn: HealthQueryFn | None = None,
     knowledgeverse: Any | None = None,
     session_id: str | None = None,
+    progress_fn: BenchmarkProgressFn | None = None,
 ) -> dict[str, Any]:
     """Run a health check and append the resulting log rows."""
     canonical = _canonical_suite_name(suite)
     if query_fn is None:
-        results = _run_suite_via_benchmark(canonical, count, knowledgeverse=knowledgeverse)
+        results = _run_suite_via_benchmark(
+            canonical,
+            count,
+            knowledgeverse=knowledgeverse,
+            progress_fn=progress_fn,
+        )
     else:
         results = []
         for row in load_questions(canonical, count):

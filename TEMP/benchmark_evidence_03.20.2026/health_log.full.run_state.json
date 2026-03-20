@@ -1,0 +1,74 @@
+{
+  "completed": true,
+  "completed_at": 1773986452.0106194,
+  "completed_summaries": {
+    "arc": {
+      "correct": 10,
+      "elapsed_s": 133.59,
+      "path_used": "sovereign",
+      "pct": 8.33,
+      "per_question_s": 1.1133,
+      "score": "10/120",
+      "skipped_as_resumed": false,
+      "suite": "arc",
+      "total": 120
+    },
+    "gsm8k": {
+      "correct": 29,
+      "elapsed_s": 3767.711,
+      "path_used": "sovereign",
+      "pct": 2.2,
+      "per_question_s": 2.8565,
+      "score": "29/1319",
+      "skipped_as_resumed": false,
+      "suite": "gsm8k",
+      "total": 1319
+    },
+    "lhe": {
+      "correct": 10,
+      "elapsed_s": 219.834,
+      "path_used": "sovereign",
+      "pct": 10.0,
+      "per_question_s": 2.1983,
+      "score": "10/100",
+      "skipped_as_resumed": false,
+      "suite": "lhe",
+      "total": 100
+    },
+    "math": {
+      "correct": 0,
+      "elapsed_s": 1258.783,
+      "path_used": "sovereign",
+      "pct": 0.0,
+      "per_question_s": 2.5176,
+      "score": "0/500",
+      "skipped_as_resumed": false,
+      "suite": "math",
+      "total": 500
+    },
+    "mmlu": {
+      "correct": 3211,
+      "elapsed_s": 51848.262,
+      "path_used": "sovereign",
+      "pct": 22.87,
+      "per_question_s": 3.6924,
+      "score": "3211/14042",
+      "skipped_as_resumed": false,
+      "suite": "mmlu",
+      "total": 14042
+    }
+  },
+  "created_at": 1773929222.7295492,
+  "full": true,
+  "provider": "sovereign",
+  "session_id": "full-7602e58cc077",
+  "session_start": 1773929222.729548,
+  "suite_counts": {
+    "arc": 120,
+    "gsm8k": 1319,
+    "lhe": 100,
+    "math": 500,
+    "mmlu": 14042
+  },
+  "updated_at": 1773986452.0106196
+}

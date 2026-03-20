@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import json
+import time
 from collections import Counter
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC, TabletIngest
 from benchmarks.arc_agi_2_adapter import ArcAgi2Adapter
@@ -170,11 +171,20 @@ class ARCAGI2Benchmark:
             },
         ]
 
-    def run_benchmark(self, use_enriched: bool = True) -> dict[str, Any]:
+    def run_benchmark(
+        self,
+        use_enriched: bool = True,
+        *,
+        progress_cb: Callable[[dict[str, Any]], None] | None = None,
+        progress_every: int | None = None,
+    ) -> dict[str, Any]:
         self.results = []
         correct = 0
         generated_patterns_total = 0
         tasks_with_generated_patterns = 0
+        total = len(self.tasks)
+        step = max(1, int(progress_every or 10))
+        start = time.monotonic()
         if self.tablet_boundary is None:
             self.adapter = ArcAgi2Adapter(
                 use_enriched=use_enriched,
@@ -208,7 +218,7 @@ class ARCAGI2Benchmark:
             )
         else:
             self.adapter = None
-        for task in self.tasks:
+        for index, task in enumerate(self.tasks, start=1):
             result = self._solve_task(task=task, use_enriched=use_enriched)
             if self.enable_full_ptx and str(result.get("solver")) != "arc_ptx_ops":
                 raise RuntimeError(
@@ -222,7 +232,16 @@ class ARCAGI2Benchmark:
             generated_patterns_total += generated_count
             if generated_count > 0:
                 tasks_with_generated_patterns += 1
-        total = len(self.tasks)
+            if progress_cb and (index % step == 0 or index == total):
+                progress_cb(
+                    {
+                        "completed": index,
+                        "total": total,
+                        "correct": correct,
+                        "elapsed_s": time.monotonic() - start,
+                        "benchmark": "arc",
+                    }
+                )
         accuracy = (correct / total) if total else 0.0
         source_accuracy = self._compute_pattern_source_accuracy(self.results)
         oracle_diagnostics = self._compute_oracle_diagnostics(self.results)

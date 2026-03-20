@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import csv
 import json
+import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
 
@@ -191,16 +192,35 @@ class MMLUBenchmark:
             },
         ]
 
-    def run_benchmark(self, use_enriched: bool = True) -> dict[str, Any]:
+    def run_benchmark(
+        self,
+        use_enriched: bool = True,
+        *,
+        progress_cb: Callable[[dict[str, Any]], None] | None = None,
+        progress_every: int | None = None,
+    ) -> dict[str, Any]:
         self.results = []
         correct = 0
-        for question in self.questions:
+        total = len(self.questions)
+        step = max(1, int(progress_every or 100))
+        start = time.monotonic()
+        for index, question in enumerate(self.questions, start=1):
             result = self._solve_question(question=question, use_enriched=use_enriched)
             self.results.append(result)
             if result["correct"]:
                 correct += 1
+            if progress_cb and (index % step == 0 or index == total):
+                progress_cb(
+                    {
+                        "completed": index,
+                        "total": total,
+                        "correct": correct,
+                        "elapsed_s": time.monotonic() - start,
+                        "benchmark": "mmlu",
+                        "subject": question.get("subject"),
+                    }
+                )
 
-        total = len(self.questions)
         return {
             "benchmark": "MMLU",
             "total_questions": total,

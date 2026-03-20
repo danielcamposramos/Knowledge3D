@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Callable, Sequence
 
 from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC, TabletIngest
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
@@ -197,11 +198,20 @@ class LastHumanityExamBenchmark:
             },
         ]
 
-    def run_benchmark(self, use_enriched: bool = True) -> dict[str, Any]:
+    def run_benchmark(
+        self,
+        use_enriched: bool = True,
+        *,
+        progress_cb: Callable[[dict[str, Any]], None] | None = None,
+        progress_every: int | None = None,
+    ) -> dict[str, Any]:
         self.results = []
         correct = 0
         navigator = TRMNavigator(knowledgeverse=self.kv)
-        for question in self.questions:
+        total = len(self.questions)
+        step = max(1, int(progress_every or 10))
+        start = time.monotonic()
+        for index, question in enumerate(self.questions, start=1):
             result = self._answer_question(
                 navigator=navigator,
                 question=question,
@@ -210,7 +220,17 @@ class LastHumanityExamBenchmark:
             self.results.append(result)
             if result["correct"]:
                 correct += 1
-        total = len(self.questions)
+            if progress_cb and (index % step == 0 or index == total):
+                progress_cb(
+                    {
+                        "completed": index,
+                        "total": total,
+                        "correct": correct,
+                        "elapsed_s": time.monotonic() - start,
+                        "benchmark": "lhe",
+                        "domain": question.get("domain"),
+                    }
+                )
         accuracy = (correct / total) if total else 0.0
         return {
             "benchmark": "Last Humanity Exam",

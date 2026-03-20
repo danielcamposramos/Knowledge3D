@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 import re
 import sys
-from typing import Any
+from typing import Any, Callable
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -45,33 +45,58 @@ GALAXY_BY_DOMAIN = {
 }
 _MATH_LEMMAS = {
     "addition",
+    "add",
+    "plus",
     "subtraction",
+    "subtract",
+    "minus",
     "multiplication",
+    "multiply",
+    "times",
     "division",
+    "divide",
+    "quotient",
+    "remainder",
+    "modulo",
+    "mod",
     "equation",
+    "inequality",
     "derivative",
     "integral",
     "function",
     "algebra",
     "geometry",
     "calculus",
+    "trigonometry",
+    "trigonometric",
+    "combinatorics",
+    "counting",
     "number",
     "sum",
     "product",
-    "quotient",
-    "remainder",
     "fraction",
     "ratio",
     "exponent",
+    "power",
     "logarithm",
+    "sequence",
+    "series",
     "polynomial",
     "matrix",
     "vector",
+    "determinant",
+    "permutation",
+    "permutations",
+    "combination",
+    "combinations",
+    "binomial",
+    "factorial",
+    "probability",
+    "statistics",
     "theorem",
     "proof",
     "axiom",
     "hypothesis",
-    "probability",
     "statistic",
     "average",
     "mean",
@@ -80,9 +105,6 @@ _MATH_LEMMAS = {
     "formula",
     "computation",
     "arithmetic",
-    "subtract",
-    "multiply",
-    "divide",
     "calculate",
     "compute",
     "solve",
@@ -116,6 +138,22 @@ _MATH_LEMMAS = {
     "percentage",
     "decimal",
     "integer",
+    "prealgebra",
+    "precalculus",
+    "number_theory",
+    "prime",
+    "divisibility",
+    "gcd",
+    "lcm",
+    "congruence",
+    "slope",
+    "midpoint",
+    "distance",
+    "radius",
+    "diameter",
+    "circumference",
+    "area",
+    "volume",
 }
 _PHYSICS_LEMMAS = {
     "force",
@@ -293,6 +331,141 @@ _STOPWORD_LEMMAS = {
     "whose",
 }
 
+_MATH_EXECUTION_SPECS = [
+    (
+        {"addition", "add", "plus", "sum"},
+        {
+            "operation_key": "addition",
+            "rpn_program": "ARG0 ARG1 +",
+            "template_ref": "math_template_arithmetic_chain_gpu",
+            "math_type": "Prealgebra",
+            "keywords": ["addition", "sum", "plus", "add"],
+            "semantics": "add two values after navigating through the language meaning layer",
+        },
+    ),
+    (
+        {"subtraction", "subtract", "minus", "difference"},
+        {
+            "operation_key": "subtraction",
+            "rpn_program": "ARG0 ARG1 -",
+            "template_ref": "math_template_arithmetic_chain_gpu",
+            "math_type": "Prealgebra",
+            "keywords": ["subtraction", "difference", "minus", "subtract"],
+            "semantics": "subtract one value from another after language-side meaning lookup",
+        },
+    ),
+    (
+        {"multiplication", "multiply", "times", "product"},
+        {
+            "operation_key": "multiplication",
+            "rpn_program": "ARG0 ARG1 *",
+            "template_ref": "math_template_arithmetic_chain_gpu",
+            "math_type": "Prealgebra",
+            "keywords": ["multiplication", "product", "times", "multiply"],
+            "semantics": "multiply values after navigating from language meaning to math execution",
+        },
+    ),
+    (
+        {"division", "divide", "quotient"},
+        {
+            "operation_key": "division",
+            "rpn_program": "ARG0 ARG1 /",
+            "template_ref": "math_template_arithmetic_chain_gpu",
+            "math_type": "Prealgebra",
+            "keywords": ["division", "quotient", "divide"],
+            "semantics": "divide one value by another after language meaning resolution",
+        },
+    ),
+    (
+        {"factorial"},
+        {
+            "operation_key": "factorial",
+            "rpn_program": "ARG0 factorial",
+            "template_ref": "math_template_factorial_gpu",
+            "math_type": "Counting & Probability",
+            "keywords": ["factorial", "n!", "permutation"],
+            "semantics": "compute factorial values inside the Math galaxy after language navigation",
+        },
+    ),
+    (
+        {"combination", "combinations", "binomial"},
+        {
+            "operation_key": "combination",
+            "rpn_program": "ARG0 ARG1 binom",
+            "template_ref": "math_template_binomial_gpu",
+            "math_type": "Counting & Probability",
+            "keywords": ["combination", "choose", "binomial coefficient"],
+            "semantics": "compute combinations after following the language meaning bridge",
+        },
+    ),
+    (
+        {"permutation", "permutations"},
+        {
+            "operation_key": "permutation",
+            "rpn_program": "ARG0 factorial ARG0 ARG1 - factorial /",
+            "template_ref": "math_template_permutation_gpu",
+            "math_type": "Counting & Probability",
+            "keywords": ["permutation", "arrangement", "ordered selection"],
+            "semantics": "compute permutations after meaning lookup in the Language galaxy",
+        },
+    ),
+    (
+        {"equation", "solve", "algebra"},
+        {
+            "operation_key": "equation_solve",
+            "rpn_program": "ARG2 ARG1 - ARG0 /",
+            "template_ref": "math_template_linear_equation_ax_plus_b_eq_c_gpu",
+            "math_type": "Algebra",
+            "keywords": ["equation", "solve", "linear equation", "algebra"],
+            "semantics": "solve linear equations after language-side navigation into Math execution",
+        },
+    ),
+    (
+        {"gcd"},
+        {
+            "operation_key": "gcd",
+            "rpn_program": "ARG0 ARG1 gcd",
+            "template_ref": "math_template_gcd_gpu",
+            "math_type": "Number Theory",
+            "keywords": ["gcd", "greatest common divisor", "greatest common factor"],
+            "semantics": "compute greatest common divisors after meaning lookup",
+        },
+    ),
+    (
+        {"lcm"},
+        {
+            "operation_key": "lcm",
+            "rpn_program": "ARG0 ARG1 * ARG0 ARG1 gcd / abs",
+            "template_ref": "math_template_lcm_gpu",
+            "math_type": "Number Theory",
+            "keywords": ["lcm", "least common multiple"],
+            "semantics": "compute least common multiples after following the language meaning bridge",
+        },
+    ),
+    (
+        {"remainder", "modulo", "mod"},
+        {
+            "operation_key": "remainder",
+            "rpn_program": "ARG0 ARG1 mod",
+            "template_ref": "math_template_remainder_gpu",
+            "math_type": "Number Theory",
+            "keywords": ["remainder", "modulo", "mod"],
+            "semantics": "compute modular remainders after language meaning navigation",
+        },
+    ),
+    (
+        {"sequence", "series"},
+        {
+            "operation_key": "sequence_rule",
+            "rpn_program": "LOOKUP_SEQUENCE_RULE",
+            "template_ref": "math_template_arithmetic_nth_term_gpu",
+            "math_type": "Precalculus",
+            "keywords": ["sequence", "series", "nth term", "progression"],
+            "semantics": "navigate from the language meaning of sequences into Math galaxy execution rules",
+        },
+    ),
+]
+
 
 def load_stars_from_jsonl(path: Path) -> list[MeaningCentricStar]:
     stars: list[MeaningCentricStar] = []
@@ -368,6 +541,83 @@ def collect_benchmark_keywords(counts: dict[str, int] | None = None) -> set[str]
 
 def _english_surface_text(star: MeaningCentricStar) -> str:
     return _primary_english_lemma(star)
+
+
+def _surface_form_aliases(star: MeaningCentricStar) -> list[str]:
+    aliases: list[str] = []
+    seen: set[str] = set()
+    for language, surface in sorted(star.surface_forms.items()):
+        word_ref = str(surface.word_ref or "").strip().replace("_", " ")
+        if not word_ref:
+            continue
+        alias = word_ref.lower()
+        if alias in seen:
+            continue
+        seen.add(alias)
+        aliases.append(alias)
+        if language == "en" and alias.startswith("en "):
+            trimmed = alias[3:].strip()
+            if trimmed and trimmed not in seen:
+                seen.add(trimmed)
+                aliases.append(trimmed)
+    return aliases
+
+
+def _math_execution_spec(tokens: set[str]) -> dict[str, Any] | None:
+    for vocabulary, spec in _MATH_EXECUTION_SPECS:
+        if not tokens.isdisjoint(vocabulary):
+            return dict(spec)
+    return None
+
+
+def _language_math_bridge_id(star: MeaningCentricStar) -> str:
+    return f"math_exec_{star.star_id}"
+
+
+def build_language_math_bridge_entry(star: MeaningCentricStar) -> dict[str, Any]:
+    english_lemma = _english_surface_text(star) or star.star_id
+    aliases = _surface_form_aliases(star)
+    tokens = _star_reference_tokens(star)
+    spec = _math_execution_spec(tokens) or {
+        "operation_key": "compose_from_rules",
+        "rpn_program": "",
+        "template_ref": "",
+        "math_type": "Intermediate Algebra",
+        "keywords": sorted(tokens)[:16],
+        "semantics": "navigate from language meaning into Math galaxy execution rules",
+    }
+    bridge_id = _language_math_bridge_id(star)
+    query_anchor_parts = [english_lemma]
+    query_anchor_parts.extend(spec.get("keywords", []))
+    query_anchor_parts.append("math execution rule")
+    metadata = {
+        "ingest_source": "meaning_layer",
+        "bridge_role": "language_to_math_execution",
+        "language_star_ref": star.star_id,
+        "math_operation_key": spec.get("operation_key", "compose_from_rules"),
+        "template_ref": str(spec.get("template_ref", "")).strip(),
+        "math_type": str(spec.get("math_type", "Intermediate Algebra")).strip(),
+        "query_anchor": " ".join(part for part in query_anchor_parts if str(part).strip()),
+        "aliases": aliases,
+        "keywords": list(spec.get("keywords", [])),
+        "surface_form_languages": sorted(star.surface_forms.keys()),
+        "semantics": str(spec.get("semantics", "")).strip(),
+        "direct_eval": False,
+        "symlink_to": star.star_id,
+    }
+    return {
+        "id": bridge_id,
+        "name": f"{english_lemma} execution bridge",
+        "domain": "math",
+        "category": "rule",
+        "content": f"Math execution bridge for the language meaning '{english_lemma}'.",
+        "summary": f"{english_lemma} math execution bridge",
+        "description": "Language meaning routes into Math galaxy execution via symlink.",
+        "rpn_program": str(spec.get("rpn_program", "")).strip(),
+        "answer_text": "",
+        "symlink_to": star.star_id,
+        "metadata": metadata,
+    }
 
 
 def star_matches_keywords(star: MeaningCentricStar, keywords: set[str]) -> bool:
@@ -472,7 +722,14 @@ def _is_synset_entry(entry: dict[str, Any]) -> bool:
     metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
     entry_id = str(entry.get("id", "")).strip()
     meaning_star_id = str(metadata.get("meaning_star_id", "")).strip()
-    return entry_id.startswith("synset_") or meaning_star_id.startswith("synset_")
+    ingest_source = str(metadata.get("ingest_source", "")).strip().lower()
+    symlink_to = str(entry.get("symlink_to") or metadata.get("symlink_to") or "").strip()
+    return (
+        ingest_source == "meaning_layer"
+        or entry_id.startswith("synset_")
+        or meaning_star_id.startswith("synset_")
+        or symlink_to.startswith("synset_")
+    )
 
 
 def _purge_existing_synset_entries(knowledgeverse: Knowledgeverse) -> dict[str, int]:
@@ -502,13 +759,56 @@ def _purge_existing_synset_entries(knowledgeverse: Knowledgeverse) -> dict[str, 
     return removed
 
 
+def _invalidate_galaxy_caches(manager: Any) -> None:
+    manager._entry_text_cache.clear()
+    manager._specialist_entry_cache.clear()
+    if manager._knowledgeverse is not None and hasattr(manager._knowledgeverse, "invalidate_gpu_galaxy_binding"):
+        try:
+            manager._knowledgeverse.invalidate_gpu_galaxy_binding()
+        except Exception:
+            pass
+
+
+def _bulk_upsert_entries(manager: Any, galaxy_name: str, entries: list[dict[str, Any]]) -> dict[str, int]:
+    if not entries:
+        return {"inserted": 0, "updated": 0}
+    galaxy = manager.get_galaxy(galaxy_name)
+    entry_list = _entry_list_ref(galaxy)
+    if entry_list is None:
+        raise RuntimeError(f"Galaxy {galaxy_name} does not expose a mutable entry list")
+
+    id_to_index: dict[str, int] = {}
+    for index, current in enumerate(entry_list):
+        if not isinstance(current, dict):
+            continue
+        entry_id = manager._entry_identifier(current)
+        if entry_id and entry_id not in id_to_index:
+            id_to_index[entry_id] = index
+
+    counts = {"inserted": 0, "updated": 0}
+    for entry in entries:
+        entry_dict = dict(entry)
+        entry_id = manager._entry_identifier(entry_dict)
+        if entry_id and entry_id in id_to_index:
+            entry_list[id_to_index[entry_id]] = entry_dict
+            counts["updated"] += 1
+            continue
+        if entry_id:
+            id_to_index[entry_id] = len(entry_list)
+        entry_list.append(entry_dict)
+        counts["inserted"] += 1
+
+    manager._dirty_galaxies.add(galaxy_name)
+    _invalidate_galaxy_caches(manager)
+    return counts
+
+
 def select_meaning_layer_stars(
     meaning_stars: list[MeaningCentricStar],
     *,
     benchmark_keywords: set[str],
     full_load: bool = False,
     min_languages: int = 5,
-    max_stars: int | None = 2000,
     foundation_lemmas: set[str] | None = None,
     filter_stats: dict[str, int] | None = None,
 ) -> list[MeaningCentricStar]:
@@ -544,16 +844,11 @@ def select_meaning_layer_stars(
     stats["dedup_removed"] = stats["after_keyword_filter"] - stats["after_dedup"]
 
     deduped.sort(key=lambda star: (len(star.surface_forms), _star_quality(star), star.star_id), reverse=True)
-    capped = deduped
-    if max_stars is not None and len(capped) > int(max_stars):
-        capped = capped[: int(max_stars)]
-    stats["max_stars"] = -1 if max_stars is None else int(max_stars)
-    stats["after_cap"] = len(capped)
-    stats["capped_removed"] = stats["after_dedup"] - stats["after_cap"]
+    stats["after_selection"] = len(deduped)
 
     if filter_stats is not None:
         filter_stats.update(stats)
-    return capped
+    return deduped
 
 
 def target_galaxy_for_star(star: MeaningCentricStar, fallback: str = "Language") -> str:
@@ -590,12 +885,14 @@ def ingest_enriched_galaxy(
     full_load: bool = False,
     benchmark_counts: dict[str, int] | None = None,
     min_languages: int = 5,
-    max_stars: int | None = 2000,
+    progress: Callable[[str], None] | None = None,
 ) -> dict[str, Any]:
     manager = knowledgeverse.galaxy_manager
+    emit = progress or (lambda _message: None)
     benchmark_keywords = collect_benchmark_keywords(benchmark_counts)
     foundation_lemmas = _existing_foundation_lemmas(knowledgeverse)
 
+    emit(f"Meaning layer: loading stars from {meaning_path}")
     meaning_all = load_stars_from_jsonl(meaning_path)
     meaning_filter_stats: dict[str, int] = {}
     meaning_selected = select_meaning_layer_stars(
@@ -603,30 +900,81 @@ def ingest_enriched_galaxy(
         benchmark_keywords=benchmark_keywords,
         full_load=full_load,
         min_languages=min_languages,
-        max_stars=max_stars,
         foundation_lemmas=foundation_lemmas,
         filter_stats=meaning_filter_stats,
     )
+    emit(
+        "Meaning layer: selected "
+        f"{len(meaning_selected)} / {len(meaning_all)} stars "
+        f"(min_languages={min_languages}, full_load={bool(full_load)})"
+    )
     mmlu_stars = dedup_stars(load_stars_from_jsonl(mmlu_path))
     gsm8k_stars = dedup_stars(load_stars_from_jsonl(gsm8k_path))
+    emit(f"Proceduralized stars: MMLU={len(mmlu_stars)} GSM8K={len(gsm8k_stars)}")
 
     counts: dict[str, dict[str, int]] = {}
     removed_synsets: dict[str, int] = {}
+    staged_entries: dict[str, list[dict[str, Any]]] = {}
 
     with manager.bulk_disk_sync():
         removed_synsets = _purge_existing_synset_entries(knowledgeverse)
+        emit(
+            "Meaning layer: purged existing generated entries "
+            + json.dumps(removed_synsets, ensure_ascii=False, sort_keys=True)
+        )
         for star in meaning_selected:
             galaxy_name = _route_meaning_star_to_galaxy(star)
-            status = manager.store_meaning_star(galaxy_name, star)
-            bucket = counts.setdefault(galaxy_name, {"inserted": 0, "updated": 0})
-            bucket[status] = int(bucket.get(status, 0)) + 1
+            if galaxy_name == "Math":
+                bridge_entry = build_language_math_bridge_entry(star)
+                language_entry = star.to_galaxy_entry(
+                    entry_id=star.star_id,
+                    galaxy_name="Language",
+                    category="meaning_star",
+                    metadata={
+                        "ingest_source": "meaning_layer",
+                        "math_galaxy_ref": bridge_entry["id"],
+                        "math_bridge_role": "meaning_navigation",
+                    },
+                )
+                staged_entries.setdefault("Language", []).append(language_entry)
+                staged_entries.setdefault("Math", []).append(bridge_entry)
+                continue
+
+            staged_entries.setdefault(galaxy_name, []).append(
+                star.to_galaxy_entry(
+                    entry_id=star.star_id,
+                    galaxy_name=galaxy_name,
+                    category="meaning_star",
+                    metadata={"ingest_source": "meaning_layer"},
+                )
+            )
+
+        emit(
+            "Meaning layer: staged entries "
+            + json.dumps(
+                {name: len(values) for name, values in sorted(staged_entries.items())},
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        )
+
+        for galaxy_name, entries in sorted(staged_entries.items()):
+            emit(f"Meaning layer: writing {len(entries)} entries to {galaxy_name}")
+            galaxy_counts = _bulk_upsert_entries(manager, galaxy_name, entries)
+            counts[galaxy_name] = galaxy_counts
 
         for star in mmlu_stars + gsm8k_stars:
             galaxy_name = target_galaxy_for_star(star, fallback="Math")
-            status = manager.store_meaning_star(galaxy_name, star)
+            entry = star.to_galaxy_entry(
+                entry_id=star.star_id,
+                galaxy_name=galaxy_name,
+                category="meaning_star",
+            )
+            status = manager.upsert_entry(galaxy_name, entry)
             bucket = counts.setdefault(galaxy_name, {"inserted": 0, "updated": 0})
             bucket[status] = int(bucket.get(status, 0)) + 1
 
+    emit("Meaning layer: ingest complete")
     return {
         "foundation_bootstrap": dict(getattr(knowledgeverse, "foundational_bootstrap_summary", {}) or {}),
         "benchmark_keyword_count": len(benchmark_keywords),
@@ -650,7 +998,6 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--gsm8k-jsonl", type=Path, default=DEFAULT_GSM8K_PATH)
     parser.add_argument("--full-load", action="store_true")
     parser.add_argument("--min-languages", type=int, default=5)
-    parser.add_argument("--max-stars", type=int, default=2000)
     return parser.parse_args(argv)
 
 
@@ -664,7 +1011,7 @@ def main(argv: list[str] | None = None) -> int:
         gsm8k_path=args.gsm8k_jsonl,
         full_load=bool(args.full_load),
         min_languages=int(args.min_languages),
-        max_stars=int(args.max_stars),
+        progress=lambda message: print(message, flush=True),
     )
     print(json.dumps(summary, indent=2, ensure_ascii=False, sort_keys=True))
     return 0

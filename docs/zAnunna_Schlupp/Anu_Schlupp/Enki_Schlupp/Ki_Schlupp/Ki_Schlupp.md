@@ -244,6 +244,16 @@ This is the normalization rule used across the companion family below.
 - `Ninlil_Schlupp.md` - `x86_x64T`, one true x86/x64 hybrid core
 - `Ninhursag_Schlupp.md` - full single-chip SoC layer with sensors, IoT, security, accelerators, and chiplet path
 
+### AC Power and Device Family
+
+- `Marduk_Schlupp.md` - `AC-BT`, hybrid DC binary + AC adiabatic ternary on the same die
+- `Nabu_Schlupp.md` - `AC-xPowerT`, true hybrid AC/DC power plane with dynamic mode switching
+- `Ereshkigal_Schlupp.md` - `AC-T`, pure AC adiabatic ternary end-state with zero internal DC dependency
+- `Ningishzida_Schlupp.md` - `AC-BDT`, ballistic deflection transistor device family for intrinsic ternary routing
+- `Ninazu_Schlupp.md` - `AC-Litho`, fabrication and lithography path for AC ternary chips
+- `Gugalanna_Schlupp.md` - `AC-Sensor`, AC-native ternary sensor fabric
+- `Marduk_Tablet_Schlupp.md` - navigation marker for the AC family chamber
+
 ### Network Family
 
 - `Nanna_Schlupp.md` - `Ethernet-BT`, current network hardware + ternary compatibility bridge

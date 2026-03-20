@@ -2426,6 +2426,32 @@ class Knowledgeverse:
         return f"{numeric:.12g}"
 
     @staticmethod
+    def _explicit_math_answer(match: dict[str, Any]) -> str:
+        metadata = match.get("metadata") if isinstance(match.get("metadata"), dict) else {}
+        blocked = {
+            str(match.get("name") or "").strip(),
+            str(match.get("id") or "").strip(),
+        }
+        for value in (
+            match.get("answer_text"),
+            match.get("answer"),
+            metadata.get("answer_text"),
+            metadata.get("resolved_answer"),
+            metadata.get("boxed_answer"),
+        ):
+            if not isinstance(value, str):
+                continue
+            resolved = value.strip()
+            if resolved and resolved not in blocked:
+                return resolved
+        return ""
+
+    @staticmethod
+    def _math_match_allows_direct_eval(match: dict[str, Any]) -> bool:
+        metadata = match.get("metadata") if isinstance(match.get("metadata"), dict) else {}
+        return bool(metadata.get("direct_eval", True))
+
+    @staticmethod
     def _format_math_interval(
         lower: str,
         upper: str,
@@ -2566,6 +2592,16 @@ class Knowledgeverse:
                 f"GPU math eval: {program}",
             ]
 
+        if template_ref == "math_template_permutation_gpu":
+            n_value = float(params.get("n", numbers[0] if len(numbers) >= 2 else 0))
+            r_value = float(params.get("r", numbers[1] if len(numbers) >= 2 else 0))
+            program = f"{n_value:g} factorial {n_value:g} {r_value:g} - factorial /"
+            value = engine.evaluate(program)
+            return self._format_math_answer(value), [
+                f"GPU math template: {template_ref}",
+                f"GPU math eval: {program}",
+            ]
+
         if template_ref == "math_template_arithmetic_series_sum_gpu":
             if "first_n" in params or (len(numbers) == 1 and not params):
                 n_value = float(params.get("first_n", numbers[0] if numbers else 0))
@@ -2581,11 +2617,37 @@ class Knowledgeverse:
                 f"GPU math eval: {program}",
             ]
 
+        if template_ref == "math_template_arithmetic_nth_term_gpu":
+            if len(numbers) < 3 and not params:
+                return None
+            a1 = float(params.get("a1", numbers[0] if len(numbers) >= 3 else 0))
+            d = float(params.get("d", numbers[1] if len(numbers) >= 3 else 0))
+            n_value = float(params.get("n", numbers[2] if len(numbers) >= 3 else 0))
+            program = f"{n_value:g} 1 - {d:g} * {a1:g} +"
+            value = engine.evaluate(program)
+            return self._format_math_answer(value), [
+                f"GPU math template: {template_ref}",
+                f"GPU math eval: {program}",
+            ]
+
         if template_ref == "math_template_geometric_series_sum_gpu":
             a_value = float(params.get("a", numbers[0] if len(numbers) >= 3 else 0))
             r_value = float(params.get("r", numbers[1] if len(numbers) >= 3 else 0))
             n_value = float(params.get("n", numbers[2] if len(numbers) >= 3 else 0))
             program = f"{a_value:g} 1 {r_value:g} {n_value:g} pow - * 1 {r_value:g} - /"
+            value = engine.evaluate(program)
+            return self._format_math_answer(value), [
+                f"GPU math template: {template_ref}",
+                f"GPU math eval: {program}",
+            ]
+
+        if template_ref == "math_template_geometric_nth_term_gpu":
+            if len(numbers) < 3 and not params:
+                return None
+            a1 = float(params.get("a1", numbers[0] if len(numbers) >= 3 else 0))
+            r_value = float(params.get("r", numbers[1] if len(numbers) >= 3 else 0))
+            n_value = float(params.get("n", numbers[2] if len(numbers) >= 3 else 0))
+            program = f"{a1:g} {r_value:g} {n_value:g} 1 - pow *"
             value = engine.evaluate(program)
             return self._format_math_answer(value), [
                 f"GPU math template: {template_ref}",
@@ -2608,6 +2670,49 @@ class Knowledgeverse:
             scale = float(params.get("scale", 1))
             offset = float(params.get("offset", 0))
             program = f"{value_in:g} {scale:g} * {offset:g} +"
+            value = engine.evaluate(program)
+            return self._format_math_answer(value), [
+                f"GPU math template: {template_ref}",
+                f"GPU math eval: {program}",
+            ]
+
+        if template_ref == "math_template_gcd_gpu":
+            if len(numbers) < 2 and not params:
+                return None
+            a_value = float(params.get("a", numbers[0] if len(numbers) >= 2 else 0))
+            b_value = float(params.get("b", numbers[1] if len(numbers) >= 2 else 0))
+            program = f"{a_value:g} {b_value:g} gcd"
+            value = engine.evaluate(program)
+            return self._format_math_answer(value), [
+                f"GPU math template: {template_ref}",
+                f"GPU math eval: {program}",
+            ]
+
+        if template_ref == "math_template_lcm_gpu":
+            if len(numbers) < 2 and not params:
+                return None
+            a_value = float(params.get("a", numbers[0] if len(numbers) >= 2 else 0))
+            b_value = float(params.get("b", numbers[1] if len(numbers) >= 2 else 0))
+            if a_value == 0 or b_value == 0:
+                return self._format_math_answer(0), [
+                    f"GPU math template: {template_ref}",
+                    "GPU math eval: zero operand -> lcm = 0",
+                ]
+            program = f"{a_value:g} {b_value:g} * {a_value:g} {b_value:g} gcd / abs"
+            value = engine.evaluate(program)
+            return self._format_math_answer(value), [
+                f"GPU math template: {template_ref}",
+                f"GPU math eval: {program}",
+            ]
+
+        if template_ref == "math_template_remainder_gpu":
+            if len(numbers) < 2 and not params:
+                return None
+            a_value = float(params.get("a", numbers[0] if len(numbers) >= 2 else 0))
+            b_value = float(params.get("b", numbers[1] if len(numbers) >= 2 else 0))
+            if b_value == 0:
+                return None
+            program = f"{a_value:g} {b_value:g} mod"
             value = engine.evaluate(program)
             return self._format_math_answer(value), [
                 f"GPU math template: {template_ref}",
@@ -2669,6 +2774,39 @@ class Knowledgeverse:
                 f"GPU math template: {template_ref}",
                 f"GPU math eval x: {x_program}",
                 f"GPU math eval y: {y_program}",
+            ]
+
+        if template_ref == "math_template_midpoint_formula_gpu":
+            if len(numbers) < 4 and not params:
+                return None
+            x1 = float(params.get("x1", numbers[0] if len(numbers) >= 4 else 0))
+            y1 = float(params.get("y1", numbers[1] if len(numbers) >= 4 else 0))
+            x2 = float(params.get("x2", numbers[2] if len(numbers) >= 4 else 0))
+            y2 = float(params.get("y2", numbers[3] if len(numbers) >= 4 else 0))
+            x_program = f"{x1:g} {x2:g} + 2 /"
+            y_program = f"{y1:g} {y2:g} + 2 /"
+            x_value = self._format_math_answer(engine.evaluate(x_program))
+            y_value = self._format_math_answer(engine.evaluate(y_program))
+            return f"({x_value}, {y_value})", [
+                f"GPU math template: {template_ref}",
+                f"GPU math eval x: {x_program}",
+                f"GPU math eval y: {y_program}",
+            ]
+
+        if template_ref == "math_template_slope_formula_gpu":
+            if len(numbers) < 4 and not params:
+                return None
+            x1 = float(params.get("x1", numbers[0] if len(numbers) >= 4 else 0))
+            y1 = float(params.get("y1", numbers[1] if len(numbers) >= 4 else 0))
+            x2 = float(params.get("x2", numbers[2] if len(numbers) >= 4 else 0))
+            y2 = float(params.get("y2", numbers[3] if len(numbers) >= 4 else 0))
+            if abs(x2 - x1) <= 1e-9:
+                return None
+            program = f"{y2:g} {y1:g} - {x2:g} {x1:g} - /"
+            value = engine.evaluate(program)
+            return self._format_math_answer(value), [
+                f"GPU math template: {template_ref}",
+                f"GPU math eval: {program}",
             ]
 
         if template_ref == "math_template_interval_upper_root_gpu":
@@ -4801,9 +4939,10 @@ class Knowledgeverse:
         selection_steps: list[str],
         best_candidate: dict[str, Any] | None,
     ) -> dict[str, Any]:
-        answer = str(match.get("answer_text") or match.get("name") or match.get("id") or "").strip()
+        answer = self._explicit_math_answer(match)
         extra_steps: list[str] = list(selection_steps)
         rpn_program = str(match.get("rpn_program", "")).strip()
+        can_direct_eval = self._math_match_allows_direct_eval(match)
         resolved = False
         if self._is_gsm8k_math_task(task):
             decomposition_result = self._gsm8k_decomposition_result(
@@ -4814,7 +4953,7 @@ class Knowledgeverse:
                 answer, decomposition_steps = decomposition_result
                 extra_steps.extend(decomposition_steps)
                 resolved = True
-        if not resolved and rpn_program:
+        if not resolved and rpn_program and can_direct_eval:
             try:
                 gpu_value = engine.evaluate(rpn_program)
                 answer = self._format_math_answer(gpu_value)
@@ -4822,6 +4961,8 @@ class Knowledgeverse:
                 resolved = True
             except Exception:
                 pass
+        elif not resolved and rpn_program and not can_direct_eval:
+            extra_steps.append(f"GPU math eval deferred: symbolic rule {match.get('id', '')}")
         if not resolved:
             try:
                 template_result = self._evaluate_math_template(
@@ -4840,6 +4981,10 @@ class Knowledgeverse:
                 answer, template_steps = template_result
                 extra_steps.extend(template_steps)
                 resolved = True
+        if not resolved:
+            answer = ""
+            extra_steps.append("GPU math unresolved: no executable answer path")
+        best_candidate_payload = best_candidate if isinstance(best_candidate, dict) else {}
         thinking_trace = self._build_gpu_thinking_trace(
             binding=binding,
             program_id=str(reasoning_program.get("id", "")),
@@ -4874,13 +5019,13 @@ class Knowledgeverse:
             "query_type": str(query_type or ""),
             "use_enriched": bool(use_enriched),
             "task_id": str(task.get("task_id", "")),
-            "gsm8k_preview_strategy": str(best_candidate.get("gsm8k_preview_strategy", "")).strip(),
-            "gsm8k_preview_program": str(best_candidate.get("gsm8k_preview_program", "")).strip(),
-            "gsm8k_consensus_support": int(best_candidate.get("gsm8k_consensus_support", 0) or 0),
+            "gsm8k_preview_strategy": str(best_candidate_payload.get("gsm8k_preview_strategy", "")).strip(),
+            "gsm8k_preview_program": str(best_candidate_payload.get("gsm8k_preview_program", "")).strip(),
+            "gsm8k_consensus_support": int(best_candidate_payload.get("gsm8k_consensus_support", 0) or 0),
             "gsm8k_operation_ids": list(
                 (
-                    best_candidate.get("gsm8k_context")
-                    if isinstance(best_candidate.get("gsm8k_context"), dict)
+                    best_candidate_payload.get("gsm8k_context")
+                    if isinstance(best_candidate_payload.get("gsm8k_context"), dict)
                     else {}
                 ).get("operation_ids", [])
             ),
@@ -5617,12 +5762,28 @@ class Knowledgeverse:
             return "math_template_factorial_gpu"
         if "choose" in lowered or "binomial" in lowered or "combination" in lowered:
             return "math_template_binomial_gpu"
+        if "permutation" in lowered or "arrange" in lowered or "ordered selection" in lowered:
+            return "math_template_permutation_gpu"
         if "solve" in lowered and "x" in lowered and "=" in lowered:
             return "math_template_linear_equation_ax_plus_b_eq_c_gpu"
+        if "greatest common divisor" in lowered or "greatest common factor" in lowered or " gcd" in lowered:
+            return "math_template_gcd_gpu"
+        if "least common multiple" in lowered or " lcm" in lowered:
+            return "math_template_lcm_gpu"
+        if "remainder" in lowered or " modulo " in f" {lowered} ":
+            return "math_template_remainder_gpu"
         if "arithmetic series" in lowered or "sum of first" in lowered:
             return "math_template_arithmetic_series_sum_gpu"
+        if "arithmetic sequence" in lowered and ("nth" in lowered or "common difference" in lowered):
+            return "math_template_arithmetic_nth_term_gpu"
         if "geometric series" in lowered or "common ratio" in lowered:
             return "math_template_geometric_series_sum_gpu"
+        if "geometric sequence" in lowered and ("nth" in lowered or "common ratio" in lowered):
+            return "math_template_geometric_nth_term_gpu"
+        if "midpoint" in lowered:
+            return "math_template_midpoint_formula_gpu"
+        if "slope" in lowered:
+            return "math_template_slope_formula_gpu"
         return ""
 
     def _promote_math_template_match(
@@ -9032,6 +9193,11 @@ class Knowledgeverse:
             task=task,
             domain_hint=domain_hint,
         )
+        subject_label = (
+            str(domain_hint or "").strip()
+            or str(parse_override_signals.get("algebra_signal", "")).strip()
+            or "unknown"
+        )
         if task_type == "MMLU_TASK":
             subject_label = str(domain_hint or "").strip() or "unknown"
             subject_embedding, subject_anchor_ids, anchor_galaxies = self._mmlu_subject_anchor_context(
@@ -9074,6 +9240,7 @@ class Knowledgeverse:
         elif task_type == "MATH_TASK" and not gsm8k_mode:
             algebra_signal = str(parse_override_signals.get("algebra_signal", "")).strip()
             if algebra_signal:
+                subject_label = algebra_signal
                 subject_embedding, subject_anchor_ids, anchor_galaxies = self._subject_anchor_context(
                     subject_hint=algebra_signal,
                     target_galaxies=target_galaxies,

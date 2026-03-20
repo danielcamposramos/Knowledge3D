@@ -22,6 +22,7 @@ from knowledge3d.knowledgeverse.sleeptime import SleepTimeConsolidation  # noqa:
 from knowledge3d.tools.benchmark_health_check import load_questions, run_health_check  # noqa: E402
 from knowledge3d.tools.ollama_benchmark import create_ollama_query_fn  # noqa: E402
 from scripts.ingest_meaning_layer import DEFAULT_COUNTS, DEFAULT_STORAGE_ROOT, ingest_enriched_galaxy  # noqa: E402
+from scripts.ingest_math_rules import ingest_math_rules  # noqa: E402
 
 
 TOKEN_RE = re.compile(r"[a-z0-9_]+")
@@ -32,7 +33,6 @@ FULL_BENCHMARK_COUNTS = {
     "lhe": 100,
     "mmlu": 14042,
 }
-FULL_MAX_STARS = 5000
 
 
 def _question_specialist(suite: str) -> str:
@@ -82,12 +82,6 @@ def create_enriched_ollama_query_fn(knowledgeverse: Knowledgeverse, timeout: flo
 
 def _effective_suite_counts(full: bool) -> dict[str, int]:
     return dict(FULL_BENCHMARK_COUNTS if full else DEFAULT_COUNTS)
-
-
-def _effective_max_stars(*, full: bool, requested: int | None) -> int:
-    if requested is not None:
-        return int(requested)
-    return FULL_MAX_STARS if full else 2000
 
 
 def _run_state_path(log_path: Path, *, full: bool) -> Path:
@@ -240,6 +234,24 @@ def _print_suite_progress(summary: dict[str, Any], *, running_correct: int, runn
     print(f"{'=' * 60}\n")
 
 
+def _make_live_progress_logger(suite: str, total: int):
+    def _log(snapshot: dict[str, Any]) -> None:
+        completed = int(snapshot.get("completed") or 0)
+        correct = int(snapshot.get("correct") or 0)
+        elapsed_s = float(snapshot.get("elapsed_s") or 0.0)
+        pct = (100.0 * completed / total) if total else 0.0
+        acc = (100.0 * correct / completed) if completed else 0.0
+        marker = str(snapshot.get("subject") or snapshot.get("domain") or "").strip()
+        suffix = f" current={marker}" if marker else ""
+        print(
+            f"[{suite}] {completed}/{total} ({pct:.2f}%) correct={correct} "
+            f"running_acc={acc:.2f}% elapsed={elapsed_s:.1f}s{suffix}",
+            flush=True,
+        )
+
+    return _log
+
+
 def run_benchmarks(
     knowledgeverse: Knowledgeverse,
     *,
@@ -263,6 +275,7 @@ def run_benchmarks(
     overall_start = time.monotonic()
     for suite, count in counts.items():
         suite_start = time.monotonic()
+        print(f"Starting {suite} benchmark ({count} questions)...", flush=True)
         existing = dict((run_state.get("completed_summaries") or {}).get(suite) or {})
         if _suite_already_done(log_path, suite, count, session_id=session_id, session_start=session_start):
             rows = _iter_session_rows(log_path, session_id=session_id, session_start=session_start, suite=suite)
@@ -276,6 +289,7 @@ def run_benchmarks(
                 query_fn=query_fn,
                 knowledgeverse=knowledgeverse,
                 session_id=session_id,
+                progress_fn=_make_live_progress_logger(suite, count),
             )
             elapsed = time.monotonic() - suite_start
             rows = _iter_session_rows(log_path, session_id=session_id, session_start=session_start, suite=suite)
@@ -317,22 +331,30 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--full", action="store_true")
     parser.add_argument("--full-load", action="store_true")
     parser.add_argument("--min-languages", type=int, default=5)
-    parser.add_argument("--max-stars", type=int, default=None)
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     suite_counts = _effective_suite_counts(bool(args.full))
-    max_stars = _effective_max_stars(full=bool(args.full), requested=args.max_stars)
+    print("Booting Knowledgeverse...", flush=True)
     knowledgeverse = Knowledgeverse(storage_root=args.storage_root)
+    print("Knowledgeverse ready.", flush=True)
     ingest_summary = ingest_enriched_galaxy(
         knowledgeverse,
         full_load=bool(args.full_load),
         min_languages=int(args.min_languages),
-        max_stars=max_stars,
         benchmark_counts=suite_counts,
+        progress=lambda message: print(message, flush=True),
     )
+    print(
+        f"Meaning layer: {ingest_summary['meaning_stars_loaded']} stars loaded "
+        f"from {ingest_summary['meaning_stars_available']} available",
+        flush=True,
+    )
+    math_rules_summary = ingest_math_rules(knowledgeverse, progress=lambda message: print(message, flush=True))
+    ingest_summary["math_rules"] = math_rules_summary
+    print(f"Math rules: {math_rules_summary['total_entries']} entries ingested", flush=True)
     benchmark_run = run_benchmarks(
         knowledgeverse,
         log_path=args.log,
@@ -341,6 +363,7 @@ def main(argv: list[str] | None = None) -> int:
         suite_counts=suite_counts,
         full=bool(args.full),
     )
+    print("Starting sleep-time consolidation...", flush=True)
     sleeptime = SleepTimeConsolidation(
         knowledgeverse=knowledgeverse,
         journal_path=args.journal,
@@ -348,6 +371,7 @@ def main(argv: list[str] | None = None) -> int:
         consume_health_log=False,
     )
     sleeptime_result = sleeptime.execute()
+    print("Sleep-time consolidation complete.", flush=True)
     final_summary = {
         "path_used": args.provider,
         "session_id": benchmark_run["session_id"],
