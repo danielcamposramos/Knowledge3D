@@ -72,13 +72,13 @@ def test_math_benchmark_empty_vs_enriched(tmp_path):
     amc = [
         {
             "id": "m1",
-            "problem_text": "Find derivative of x^2 + 4x at x=3",
-            "answer": "10",
+            "problem_text": "Solve linear equation 2x + 3 = 11.",
+            "answer": r"\frac{4}{1}",
         },
         {
             "id": "m2",
-            "problem_text": "Compute 12 * (3 + 2)",
-            "answer": "60",
+            "problem_text": "What is 8 choose 2?",
+            "answer": r"\frac{28}{1}",
         },
     ]
     (dataset_dir / "amc_problems.json").write_text(json.dumps(amc), encoding="utf-8")

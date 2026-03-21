@@ -8,6 +8,7 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Sequence
 
+from benchmarks.sampling import stratified_sample
 from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC, TabletIngest
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
 from knowledge3d.knowledgeverse.trm_navigator import TRMNavigator
@@ -71,14 +72,14 @@ class LastHumanityExamBenchmark:
             if loaded:
                 self.dataset_source = "file"
                 self.synthetic_fallback = False
-                return loaded[: self.max_questions] if self.max_questions is not None else loaded
+                return stratified_sample(loaded, self.max_questions)
             self.dataset_source = "synthetic_fallback_no_supported_file"
             self.synthetic_fallback = True
         else:
             self.dataset_source = "synthetic_fallback_missing_path"
             self.synthetic_fallback = True
         fallback = self._synthetic_questions()
-        return fallback[: self.max_questions] if self.max_questions is not None else fallback
+        return stratified_sample(fallback, self.max_questions)
 
     def _load_from_known_files(self, root: Path) -> list[dict[str, Any]]:
         if root.is_file():

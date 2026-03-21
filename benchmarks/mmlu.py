@@ -8,6 +8,7 @@ import time
 from pathlib import Path
 from typing import Any, Callable
 
+from benchmarks.sampling import stratified_sample
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
 
 
@@ -81,8 +82,6 @@ class MMLUBenchmark:
                 with csv_file.open("r", encoding="utf-8") as handle:
                     reader = csv.reader(handle)
                     for idx, row in enumerate(reader):
-                        if self.max_questions is not None and len(questions) >= int(self.max_questions):
-                            return questions
                         if len(row) < 6:
                             continue
                         question_text = row[0].strip()
@@ -108,9 +107,9 @@ class MMLUBenchmark:
                 continue
 
         if questions:
-            return questions
+            return stratified_sample(questions, self.max_questions)
         self.used_synthetic_fallback = True
-        return self._synthetic_questions()
+        return stratified_sample(self._synthetic_questions(), self.max_questions)
 
     def _subject_to_domain(self, subject: str) -> str:
         stem_subjects = {

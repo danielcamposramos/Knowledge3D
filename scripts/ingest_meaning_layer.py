@@ -620,6 +620,67 @@ def build_language_math_bridge_entry(star: MeaningCentricStar) -> dict[str, Any]
     }
 
 
+def build_math_language_symlink_entries() -> list[dict[str, Any]]:
+    from scripts.ingest_math_rules import build_rule_catalog
+
+    def _dedup_lower(values: list[str]) -> list[str]:
+        result: list[str] = []
+        seen: set[str] = set()
+        for value in values:
+            resolved = str(value or "").strip().lower()
+            if not resolved or resolved in seen:
+                continue
+            seen.add(resolved)
+            result.append(resolved)
+        return result
+
+    entries: list[dict[str, Any]] = []
+    for spec in build_rule_catalog():
+        query_anchor = str(spec.get("query_anchor", "")).strip()
+        if not query_anchor:
+            parts = [spec.get("name", ""), *list(spec.get("aliases") or []), *list(spec.get("keywords") or [])]
+            query_anchor = " ".join(str(part).strip() for part in parts if str(part).strip())
+        anchor_id = f"math_anchor_{spec['id']}"
+        symlink_id = f"lang_math_symlink_{spec['id']}"
+        aliases = _dedup_lower(
+            [
+                str(spec.get("name", "")).strip().lower(),
+                *[str(value).strip().lower() for value in list(spec.get("aliases") or [])],
+            ]
+        )
+        keywords = _dedup_lower([str(value).strip().lower() for value in list(spec.get("keywords") or [])])
+        entries.append(
+            {
+                "id": symlink_id,
+                "name": f"{spec['name']} language bridge",
+                "domain": "language",
+                "category": "meaning_symlink",
+                "content": f"Language-side bridge for {spec['name']}.",
+                "summary": f"{spec['name']} language→math bridge",
+                "description": "Natural-language anchor that routes the TRM from Language Galaxy into the matching Math anchor.",
+                "rpn_program": "",
+                "answer_text": "",
+                "symlink_to": anchor_id,
+                "metadata": {
+                    "ingest_source": "meaning_layer",
+                    "bridge_role": "language_to_math_anchor",
+                    "symlink_target": anchor_id,
+                    "symlink_galaxy": "Math",
+                    "math_type": str(spec.get("math_type", "")).strip(),
+                    "subfield": str(spec.get("subfield", "")).strip(),
+                    "query_anchor": query_anchor,
+                    "aliases": aliases,
+                    "keywords": keywords,
+                    "tags": keywords,
+                    "semantics": f"Language meaning routes into Math concept anchor {anchor_id}.",
+                    "direct_eval": False,
+                    "template_ref": str(spec.get("template_ref", "")).strip(),
+                },
+            }
+        )
+    return entries
+
+
 def star_matches_keywords(star: MeaningCentricStar, keywords: set[str]) -> bool:
     if not keywords:
         return True
@@ -815,33 +876,21 @@ def select_meaning_layer_stars(
     stats: dict[str, int] = {}
     stats["available"] = len(meaning_stars)
 
-    multilingual = [star for star in meaning_stars if len(star.surface_forms) >= max(1, int(min_languages))]
+    # Architectural correction: all stars are always loaded.
+    # Volume management belongs to the sovereign GPU pipeline (LOD + frustum), not Python-side selection.
     stats["min_languages"] = int(min_languages)
-    stats["after_min_languages"] = len(multilingual)
-    stats["removed_for_min_languages"] = stats["available"] - stats["after_min_languages"]
+    stats["after_min_languages"] = len(meaning_stars)
+    stats["removed_for_min_languages"] = 0
+    stats["after_stopwords"] = len(meaning_stars)
+    stats["stopwords_removed"] = 0
+    stats["after_foundation_dedup"] = len(meaning_stars)
+    stats["foundation_duplicates_removed"] = 0
+    stats["after_keyword_filter"] = len(meaning_stars)
+    stats["keyword_filter_removed"] = 0
 
-    no_stopwords = [star for star in multilingual if not _is_stopword_star(star)]
-    stats["after_stopwords"] = len(no_stopwords)
-    stats["stopwords_removed"] = stats["after_min_languages"] - stats["after_stopwords"]
-
-    foundation = set(foundation_lemmas or set())
-    no_duplicates = [star for star in no_stopwords if not _should_skip_as_duplicate(star, foundation)]
-    stats["after_foundation_dedup"] = len(no_duplicates)
-    stats["foundation_duplicates_removed"] = stats["after_stopwords"] - stats["after_foundation_dedup"]
-
-    keyword_filtered = no_duplicates
-    if not full_load:
-        keyword_filtered = [
-            star
-            for star in no_duplicates
-            if _route_meaning_star_to_galaxy(star) != "Language" or star_matches_keywords(star, benchmark_keywords)
-        ]
-    stats["after_keyword_filter"] = len(keyword_filtered)
-    stats["keyword_filter_removed"] = stats["after_foundation_dedup"] - stats["after_keyword_filter"]
-
-    deduped = dedup_stars(keyword_filtered)
+    deduped = dedup_stars(meaning_stars)
     stats["after_dedup"] = len(deduped)
-    stats["dedup_removed"] = stats["after_keyword_filter"] - stats["after_dedup"]
+    stats["dedup_removed"] = stats["available"] - stats["after_dedup"]
 
     deduped.sort(key=lambda star: (len(star.surface_forms), _star_quality(star), star.star_id), reverse=True)
     stats["after_selection"] = len(deduped)
@@ -906,7 +955,7 @@ def ingest_enriched_galaxy(
     emit(
         "Meaning layer: selected "
         f"{len(meaning_selected)} / {len(meaning_all)} stars "
-        f"(min_languages={min_languages}, full_load={bool(full_load)})"
+        "(architectural full load)"
     )
     mmlu_stars = dedup_stars(load_stars_from_jsonl(mmlu_path))
     gsm8k_stars = dedup_stars(load_stars_from_jsonl(gsm8k_path))
@@ -957,6 +1006,11 @@ def ingest_enriched_galaxy(
                 sort_keys=True,
             )
         )
+
+        language_symlinks = build_math_language_symlink_entries()
+        if language_symlinks:
+            staged_entries.setdefault("Language", []).extend(language_symlinks)
+            emit(f"Meaning layer: staged {len(language_symlinks)} language→math symlinks")
 
         for galaxy_name, entries in sorted(staged_entries.items()):
             emit(f"Meaning layer: writing {len(entries)} entries to {galaxy_name}")
@@ -1009,8 +1063,6 @@ def main(argv: list[str] | None = None) -> int:
         meaning_path=args.meaning_jsonl,
         mmlu_path=args.mmlu_jsonl,
         gsm8k_path=args.gsm8k_jsonl,
-        full_load=bool(args.full_load),
-        min_languages=int(args.min_languages),
         progress=lambda message: print(message, flush=True),
     )
     print(json.dumps(summary, indent=2, ensure_ascii=False, sort_keys=True))

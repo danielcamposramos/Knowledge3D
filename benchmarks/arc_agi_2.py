@@ -8,6 +8,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, Callable
 
+from benchmarks.sampling import stratified_sample
 from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC, TabletIngest
 from benchmarks.arc_agi_2_adapter import ArcAgi2Adapter
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
@@ -127,8 +128,6 @@ class ARCAGI2Benchmark:
     def _load_tasks(self) -> list[dict[str, Any]]:
         if self.dataset_path and self.dataset_path.exists():
             files = sorted(self.dataset_path.glob("*.json"))
-            if self.max_tasks is not None:
-                files = files[: max(0, int(self.max_tasks))]
             tasks: list[dict[str, Any]] = []
             for file_path in files:
                 try:
@@ -149,10 +148,10 @@ class ARCAGI2Benchmark:
                     }
                 )
             if tasks:
-                return tasks
+                return stratified_sample(tasks, self.max_tasks)
 
         # Fallback synthetic set keeps benchmark infrastructure runnable.
-        return [
+        return stratified_sample([
             {
                 "id": "synthetic_flip_h",
                 "train": [
@@ -169,7 +168,7 @@ class ARCAGI2Benchmark:
                 ],
                 "test": [{"input": [[1, 2], [2, 1]], "output": [[3, 4], [4, 3]]}],
             },
-        ]
+        ], self.max_tasks)
 
     def run_benchmark(
         self,

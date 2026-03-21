@@ -2,25 +2,247 @@
 
 from __future__ import annotations
 
+import ast
 import json
+import math
 import re
 import time
 from pathlib import Path
 from typing import Any, Callable
 
+from benchmarks.sampling import stratified_sample
 from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC, TabletIngest
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
 
 
-class MathCompetitionBenchmark:
-    """Benchmark AMC/AIME/IMO style prompts with empty/enriched comparison."""
+SAFE_MATH_NAMES = {
+    "pi": math.pi,
+    "e": math.e,
+    "sqrt": math.sqrt,
+    "inf": math.inf,
+}
+
+LATEX_SPACING_RE = re.compile(r"\\[,;! ]")
+TEXT_WRAPPER_RE = re.compile(r"\\(?:text|mathrm|operatorname)\{([^{}]*)\}")
+COMMAND_BRACE_RE = re.compile(r"\\(?:boxed|fbox)\{([^{}]*)\}")
+IDENTIFIER_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+
+
+def _extract_group(text: str, start: int, *, open_ch: str = "{", close_ch: str = "}") -> tuple[str | None, int]:
+    if start >= len(text) or text[start] != open_ch:
+        return None, start
+    depth = 0
+    chars: list[str] = []
+    for index in range(start, len(text)):
+        ch = text[index]
+        if ch == open_ch:
+            depth += 1
+            if depth == 1:
+                continue
+        elif ch == close_ch:
+            depth -= 1
+            if depth == 0:
+                return "".join(chars), index + 1
+        chars.append(ch)
+    return None, start
+
+
+def _normalize_latex_wrappers(text: str) -> str:
+    current = str(text or "").strip()
+    if not current:
+        return ""
+    current = current.replace("$", "")
+    current = current.replace("\\left", "").replace("\\right", "")
+    current = current.replace("\\{", "{").replace("\\}", "}")
+    current = LATEX_SPACING_RE.sub("", current)
+    previous = None
+    while previous != current:
+        previous = current
+        current = TEXT_WRAPPER_RE.sub(lambda match: match.group(1), current)
+        current = COMMAND_BRACE_RE.sub(lambda match: match.group(1), current)
+    return current.strip()
+
+
+def normalize_latex_answer(text: Any) -> str:
+    raw = _normalize_latex_wrappers(str(text or ""))
+    if not raw:
+        return ""
+    out: list[str] = []
+    i = 0
+    while i < len(raw):
+        if raw.startswith(("\\frac", "\\dfrac", "\\tfrac"), i):
+            if raw.startswith("\\dfrac", i):
+                i += len("\\dfrac")
+            elif raw.startswith("\\tfrac", i):
+                i += len("\\tfrac")
+            else:
+                i += len("\\frac")
+            numerator, next_pos = _extract_group(raw, i)
+            if numerator is None:
+                out.append(raw[i:])
+                break
+            denominator, final_pos = _extract_group(raw, next_pos)
+            if denominator is None:
+                out.append(raw[i:])
+                break
+            out.append(f"(({normalize_latex_answer(numerator)})/({normalize_latex_answer(denominator)}))")
+            i = final_pos
+            continue
+        if raw.startswith("\\sqrt", i):
+            i += len("\\sqrt")
+            root_expr = None
+            if i < len(raw) and raw[i] == "[":
+                root_expr, i = _extract_group(raw, i, open_ch="[", close_ch="]")
+            body, final_pos = _extract_group(raw, i)
+            if body is None:
+                out.append("\\sqrt")
+                continue
+            normalized_body = normalize_latex_answer(body)
+            if root_expr is None:
+                out.append(f"sqrt({normalized_body})")
+            else:
+                out.append(f"(({normalized_body})**(1/({normalize_latex_answer(root_expr)})))")
+            i = final_pos
+            continue
+        if raw.startswith("\\pi", i):
+            out.append("pi")
+            i += len("\\pi")
+            continue
+        if raw.startswith("\\cdot", i):
+            out.append("*")
+            i += len("\\cdot")
+            continue
+        if raw.startswith("\\times", i):
+            out.append("*")
+            i += len("\\times")
+            continue
+        if raw.startswith("\\div", i):
+            out.append("/")
+            i += len("\\div")
+            continue
+        if raw.startswith("\\%", i):
+            out.append("%")
+            i += len("\\%")
+            continue
+        if raw[i] == "\\":
+            j = i + 1
+            while j < len(raw) and raw[j].isalpha():
+                j += 1
+            command = raw[i + 1 : j]
+            if command:
+                out.append(command)
+                i = j
+                continue
+        out.append(raw[i])
+        i += 1
+    normalized = "".join(out)
+    normalized = normalized.replace("^", "**")
+    normalized = normalized.replace("{", "(").replace("}", ")")
+    normalized = re.sub(r"(?<=\d)(?=(?:pi|sqrt)\b|\()", "*", normalized)
+    normalized = re.sub(r"(?<=\))(?=(?:\d|pi|sqrt|\())", "*", normalized)
+    normalized = re.sub(r"(?<=pi)(?=(?:\d|sqrt|\())", "*", normalized)
+    normalized = normalized.replace(",", "")
+    normalized = re.sub(r"\s+", "", normalized)
+    return normalized
+
+
+def _safe_eval_math(expr: str) -> float | None:
+    text = str(expr or "").strip()
+    if not text:
+        return None
+    try:
+        tree = ast.parse(text, mode="eval")
+    except SyntaxError:
+        return None
+    for node in ast.walk(tree):
+        if isinstance(
+            node,
+            (
+                ast.Expression,
+                ast.BinOp,
+                ast.UnaryOp,
+                ast.Num,
+                ast.Constant,
+                ast.Name,
+                ast.Load,
+                ast.Add,
+                ast.Sub,
+                ast.Mult,
+                ast.Div,
+                ast.Pow,
+                ast.USub,
+                ast.UAdd,
+            ),
+        ):
+            continue
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in SAFE_MATH_NAMES:
+            continue
+        return None
+    try:
+        value = eval(compile(tree, "<answer>", "eval"), {"__builtins__": {}}, SAFE_MATH_NAMES)
+    except Exception:
+        return None
+    try:
+        return float(value)
+    except Exception:
+        return None
+
+
+def _coerce_math_number(value: Any) -> float | None:
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except Exception:
+        pass
+    text = normalize_latex_answer(value)
+    if not text:
+        return None
+    if text.endswith("%"):
+        pct = _safe_eval_math(text[:-1])
+        return (pct / 100.0) if pct is not None else None
+    if text.startswith("$"):
+        text = text[1:]
+    direct = _safe_eval_math(text)
+    if direct is not None:
+        return direct
+    cleaned = text.replace("\\", "")
+    try:
+        return float(cleaned)
+    except Exception:
+        return None
+
+
+def normalize_text_answer(value: Any) -> str:
+    text = normalize_latex_answer(value)
+    if not text:
+        return ""
+    text = text.replace("\\", "")
+    text = text.lower()
+    text = re.sub(r"\s+", "", text)
+    return text
+
+
+def math_answers_match(predicted: Any, expected: Any, *, tolerance: float = 1e-3) -> bool:
+    pred = _coerce_math_number(predicted)
+    exp = _coerce_math_number(expected)
+    if pred is not None and exp is not None:
+        return abs(pred - exp) <= tolerance
+    return normalize_text_answer(predicted) == normalize_text_answer(expected)
+
+
+class UnifiedMathBenchmark:
+    """Single sovereign math benchmark surface for MATH-style and GSM8K-style prompts."""
 
     def __init__(
         self,
         knowledgeverse: Knowledgeverse | None = None,
         dataset_path: str | Path | None = None,
+        gsm8k_dataset_path: str | Path | None = None,
         dataset_mode: str | None = None,
         max_problems: int | None = None,
+        max_gsm8k_questions: int | None = None,
+        source_filter: str | list[str] | None = None,
         query_scope_galaxies: str | list[str] | None = None,
         runtime_seed_knowledge: bool = False,
         tablet_boundary: HeadlessTabletMPC | None = None,
@@ -37,11 +259,16 @@ class MathCompetitionBenchmark:
             if self.dataset_mode == "present"
             else Path("")
         )
+        self.gsm8k_dataset_path = self._resolve_gsm8k_dataset_path(gsm8k_dataset_path)
         self.max_problems = max_problems
+        self.max_gsm8k_questions = max_gsm8k_questions
+        self.source_filter = self._normalize_source_filter(source_filter)
         self.query_scope_galaxies = self._normalize_query_scope(query_scope_galaxies)
         self.runtime_seed_knowledge = bool(runtime_seed_knowledge)
         self.tablet_boundary = tablet_boundary
         self.dataset_sources: list[str] = []
+        self.used_synthetic_math_fallback = False
+        self.used_synthetic_gsm8k_fallback = False
         self.problems = self._load_problems()
         self.results: list[dict[str, Any]] = []
 
@@ -61,6 +288,31 @@ class MathCompetitionBenchmark:
                 return candidate
         return Path("")
 
+    def _resolve_gsm8k_dataset_path(self, dataset_path: str | Path | None) -> Path:
+        if dataset_path is not None:
+            return Path(dataset_path)
+        candidates = [
+            Path("/K3D/K3D_llama_cpp/datasets/GSM8K/grade_school_math/data/test.jsonl"),
+            Path("/K3D/K3D_llama_cpp/datasets/grade_school_math/data/test.jsonl"),
+            Path("../K3D_llama_cpp/datasets/GSM8K/grade_school_math/data/test.jsonl"),
+            Path("/K3D/Knowledge3D.local/datasets/GSM8K/grade_school_math/data/test.jsonl"),
+            Path("../Knowledge3D.local/datasets/GSM8K/grade_school_math/data/test.jsonl"),
+        ]
+        for candidate in candidates:
+            if candidate.exists():
+                return candidate
+        return Path("")
+
+    def _normalize_source_filter(self, value: str | list[str] | None) -> set[str]:
+        if isinstance(value, list):
+            raw = [str(item).strip().lower() for item in value]
+        elif isinstance(value, str):
+            raw = [segment.strip().lower() for segment in value.split(",")]
+        else:
+            raw = []
+        normalized = {item for item in raw if item}
+        return normalized or {"math", "gsm8k"}
+
     def _has_present_dataset(self, root: Path) -> bool:
         if not root:
             return False
@@ -73,23 +325,67 @@ class MathCompetitionBenchmark:
         return any(candidate.exists() for candidate in candidates)
 
     def _load_problems(self) -> list[dict[str, Any]]:
+        problems: list[dict[str, Any]] = []
+        if "math" in self.source_filter:
+            problems.extend(self._load_math_problems())
+        if "gsm8k" in self.source_filter:
+            problems.extend(self._load_gsm8k_problems())
+        return problems
+
+    def _load_math_problems(self) -> list[dict[str, Any]]:
         if self.dataset_mode == "synthetic":
             present_root = self._resolve_dataset_path(None)
             if self._has_present_dataset(present_root):
                 self.dataset_mode = "present"
                 self.dataset_path = present_root
         if self.dataset_mode == "synthetic":
+            self.used_synthetic_math_fallback = True
             synthetic = self._synthetic_guard_problems()
-            return synthetic[: self.max_problems] if self.max_problems is not None else synthetic
+            return stratified_sample(synthetic, self.max_problems)
         if self.dataset_mode == "present" and self.dataset_path and self.dataset_path.exists():
-            staged = self._load_from_present_datasets(self.dataset_path, limit=self.max_problems)
+            staged = self._load_from_present_datasets(self.dataset_path, limit=None)
             if staged:
-                return staged
+                return stratified_sample(staged, self.max_problems)
         fallback = self._load_from_calculus_microbench()
         if fallback:
-            return fallback[: self.max_problems] if self.max_problems is not None else fallback
+            return stratified_sample(fallback, self.max_problems)
+        self.used_synthetic_math_fallback = True
         synthetic = self._synthetic_problems()
-        return synthetic[: self.max_problems] if self.max_problems is not None else synthetic
+        return stratified_sample(synthetic, self.max_problems)
+
+    def _load_gsm8k_problems(self) -> list[dict[str, Any]]:
+        limit = self.max_gsm8k_questions
+        if self.gsm8k_dataset_path and self.gsm8k_dataset_path.exists():
+            out: list[dict[str, Any]] = []
+            with self.gsm8k_dataset_path.open("r", encoding="utf-8") as handle:
+                for idx, line in enumerate(handle):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        payload = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    question = str(payload.get("question") or "").strip()
+                    answer = self._extract_gsm8k_answer(payload.get("answer"))
+                    if not question or answer is None:
+                        continue
+                    out.append(
+                        {
+                            "id": f"gsm8k_{idx}",
+                            "suite": "gsm8k",
+                            "source_key": "gsm8k",
+                            "competition": "GSM8K",
+                            "problem_text": question,
+                            "answer": answer,
+                        }
+                    )
+            if out:
+                self.dataset_sources.append(str(self.gsm8k_dataset_path))
+                return stratified_sample(out, limit)
+        self.used_synthetic_gsm8k_fallback = True
+        synthetic = self._synthetic_gsm8k_questions()
+        return stratified_sample(synthetic, limit)
 
     def _load_from_present_datasets(self, root: Path, limit: int | None = None) -> list[dict[str, Any]]:
         batches: list[list[dict[str, Any]]] = []
@@ -138,8 +434,6 @@ class MathCompetitionBenchmark:
             if not isinstance(records, list):
                 continue
             for idx, record in enumerate(records):
-                if limit is not None and len(out) >= int(limit):
-                    return out
                 if not isinstance(record, dict):
                     continue
                 text = str(record.get("problem_text") or record.get("question") or "").strip()
@@ -149,6 +443,8 @@ class MathCompetitionBenchmark:
                 out.append(
                     {
                         "id": str(record.get("id") or f"{competition.lower()}_{idx}"),
+                        "suite": "math",
+                        "source_key": "math",
                         "competition": competition,
                         "problem_text": text,
                         "answer": answer,
@@ -171,8 +467,6 @@ class MathCompetitionBenchmark:
             out: list[dict[str, Any]] = []
             with path.open("r", encoding="utf-8") as handle:
                 for idx, line in enumerate(handle):
-                    if limit is not None and len(out) >= int(limit):
-                        break
                     line = line.strip()
                     if not line:
                         continue
@@ -188,6 +482,8 @@ class MathCompetitionBenchmark:
                     out.append(
                         {
                             "id": f"math_{idx}",
+                            "suite": "math",
+                            "source_key": "math",
                             "competition": f"MATH:{math_type}",
                             "problem_text": text,
                             "answer": answer,
@@ -223,6 +519,8 @@ class MathCompetitionBenchmark:
                     records.append(
                         {
                             "id": str(payload.get("id") or f"calculus_{idx}"),
+                            "suite": "math",
+                            "source_key": "math",
                             "competition": "AMC",
                             "problem_text": text,
                             "answer": answer,
@@ -230,8 +528,26 @@ class MathCompetitionBenchmark:
                     )
         return records
 
+    def _with_source_defaults(
+        self,
+        rows: list[dict[str, Any]],
+        *,
+        suite: str,
+        source_key: str,
+        competition: str | None = None,
+    ) -> list[dict[str, Any]]:
+        out: list[dict[str, Any]] = []
+        for row in rows:
+            enriched = dict(row)
+            enriched.setdefault("suite", suite)
+            enriched.setdefault("source_key", source_key)
+            if competition is not None:
+                enriched.setdefault("competition", competition)
+            out.append(enriched)
+        return out
+
     def _phase_cd_gap_problems(self) -> list[dict[str, Any]]:
-        return [
+        return self._with_source_defaults([
             {
                 "id": "amc_poly_1",
                 "competition": "AMC",
@@ -280,13 +596,13 @@ class MathCompetitionBenchmark:
                 "problem_text": "Evaluate derivative of x^4 at x=1",
                 "answer": "4",
             },
-        ]
+        ], suite="math", source_key="math")
 
     def _synthetic_problems(self) -> list[dict[str, Any]]:
         # Honest Phase B+ guard set: only prompt families that the current composed-head
         # runtime can solve on the executable template path. Legacy derivative/calculus
         # prompts are retained separately in _phase_cd_gap_problems() for future phases.
-        return [
+        return self._with_source_defaults([
             {
                 "id": "guard_linear_1",
                 "competition": "AMC",
@@ -427,10 +743,29 @@ class MathCompetitionBenchmark:
                 "answer": "63",
                 "tier": "tier1_series_template",
             },
-        ]
+        ], suite="math", source_key="math")
 
     def _synthetic_guard_problems(self) -> list[dict[str, Any]]:
         return list(self._synthetic_problems())
+
+    def _synthetic_gsm8k_questions(self) -> list[dict[str, Any]]:
+        return self._with_source_defaults(
+            [
+                {
+                    "id": "gsm8k_synthetic_0",
+                    "problem_text": (
+                        "Janet’s ducks lay 16 eggs per day. She eats three for breakfast every morning and "
+                        "bakes muffins for her friends every day with four. She sells the remainder at the "
+                        "farmers' market daily for $2 per fresh duck egg. How much in dollars does she make "
+                        "every day at the farmers' market?"
+                    ),
+                    "answer": "18",
+                }
+            ],
+            suite="gsm8k",
+            source_key="gsm8k",
+            competition="GSM8K",
+        )
 
     def run_benchmark(
         self,
@@ -441,6 +776,7 @@ class MathCompetitionBenchmark:
     ) -> dict[str, Any]:
         self.results = []
         by_competition: dict[str, dict[str, Any]] = {}
+        by_source: dict[str, dict[str, Any]] = {}
         correct = 0
         total = len(self.problems)
         step = max(1, int(progress_every or 25))
@@ -457,6 +793,13 @@ class MathCompetitionBenchmark:
             if result["correct"]:
                 by_competition[comp]["correct"] += 1
             by_competition[comp]["results"].append(result)
+            source_key = str(problem.get("source_key") or result.get("suite") or "math")
+            if source_key not in by_source:
+                by_source[source_key] = {"total": 0, "correct": 0, "results": []}
+            by_source[source_key]["total"] += 1
+            if result["correct"]:
+                by_source[source_key]["correct"] += 1
+            by_source[source_key]["results"].append(result)
             if progress_cb and (index % step == 0 or index == total):
                 progress_cb(
                     {
@@ -464,12 +807,22 @@ class MathCompetitionBenchmark:
                         "total": total,
                         "correct": correct,
                         "elapsed_s": time.monotonic() - start,
-                        "benchmark": "math",
+                        "benchmark": "unified_math",
+                        "current_source": source_key,
+                        "source_completed": {
+                            key: int(data["total"]) for key, data in by_source.items()
+                        },
+                        "source_correct": {
+                            key: int(data["correct"]) for key, data in by_source.items()
+                        },
                     }
                 )
         for comp_data in by_competition.values():
-            total = comp_data["total"]
-            comp_data["accuracy"] = (comp_data["correct"] / total) if total else 0.0
+            comp_total = comp_data["total"]
+            comp_data["accuracy"] = (comp_data["correct"] / comp_total) if comp_total else 0.0
+        for source_data in by_source.values():
+            source_total = source_data["total"]
+            source_data["accuracy"] = (source_data["correct"] / source_total) if source_total else 0.0
         total_correct = correct
         total_count = len(self.results)
         pred_none_count = sum(1 for row in self.results if row.get("predicted_answer") is None)
@@ -484,11 +837,14 @@ class MathCompetitionBenchmark:
                 reason = str(row.get("failure_reason", "") or "unknown")
                 failure_reason_counts[reason] = int(failure_reason_counts.get(reason, 0)) + 1
         return {
-            "benchmark": "Math Competitions",
+            "benchmark": "Unified Math",
             "dataset_mode": self.dataset_mode,
             "dataset_path": str(self.dataset_path) if self.dataset_path else "synthetic",
+            "gsm8k_dataset_path": str(self.gsm8k_dataset_path) if self.gsm8k_dataset_path else "synthetic",
             "dataset_sources": list(self.dataset_sources),
             "use_enriched": use_enriched,
+            "source_filter": sorted(self.source_filter),
+            "results_by_source": by_source,
             "results_by_competition": by_competition,
             "overall_accuracy": (total_correct / total_count) if total_count else 0.0,
             "total": total_count,
@@ -549,6 +905,8 @@ class MathCompetitionBenchmark:
         )
         return {
             "problem_id": problem["id"],
+            "suite": str(problem.get("suite") or "math"),
+            "source_key": str(problem.get("source_key") or "math"),
             "competition": problem["competition"],
             "correct": int(correct),
             "predicted_answer": predicted,
@@ -596,6 +954,8 @@ class MathCompetitionBenchmark:
         )
         return {
             "problem_id": problem["id"],
+            "suite": str(problem.get("suite") or "math"),
+            "source_key": str(problem.get("source_key") or "math"),
             "competition": problem["competition"],
             "correct": int(correct),
             "predicted_answer": predicted,
@@ -657,53 +1017,34 @@ class MathCompetitionBenchmark:
         return route
 
     def _seed_math_knowledge(self, problem: dict[str, Any]) -> None:
+        source_key = str(problem.get("source_key") or problem.get("suite") or "math")
         self.kv.galaxy_manager.add_entry(
             "Math",
             {
                 "domain": "math",
                 "competition": problem["competition"],
                 "problem_id": problem["id"],
-                "kind": "symbolic_pattern",
+                "kind": "gsm8k_word_problem_anchor" if source_key == "gsm8k" else "symbolic_pattern",
             },
         )
-        self.kv.galaxy_manager.add_entry(
-            "Grammar",
-            {
-                "domain": "math",
-                "problem_id": problem["id"],
-                "kind": "derivation_rule",
-            },
-        )
+        if source_key != "gsm8k":
+            self.kv.galaxy_manager.add_entry(
+                "Grammar",
+                {
+                    "domain": "math",
+                    "problem_id": problem["id"],
+                    "kind": "derivation_rule",
+                },
+            )
 
     def _answers_match(self, predicted: Any, expected: Any) -> bool:
-        pred = self._to_float(predicted)
-        exp = self._to_float(expected)
-        if pred is not None and exp is not None:
-            return abs(pred - exp) <= 1e-3
-        return self._normalize_text_answer(predicted) == self._normalize_text_answer(expected)
+        return math_answers_match(predicted, expected)
 
     def _to_float(self, value: Any) -> float | None:
-        try:
-            return float(value)
-        except Exception:
-            try:
-                cleaned = str(value).strip().replace(",", "").replace("\\", "")
-                if cleaned.endswith("%"):
-                    cleaned = cleaned[:-1]
-                if cleaned.startswith("$"):
-                    cleaned = cleaned[1:]
-                return float(cleaned)
-            except Exception:
-                return None
+        return _coerce_math_number(value)
 
     def _normalize_text_answer(self, value: Any) -> str:
-        return (
-            str(value)
-            .strip()
-            .lower()
-            .replace("\\", "")
-            .replace(" ", "")
-        )
+        return normalize_text_answer(value)
 
     def _extract_gsm8k_answer(self, raw_answer: Any) -> str | None:
         text = str(raw_answer or "").strip()
@@ -775,7 +1116,7 @@ class MathCompetitionBenchmark:
         path = Path(output_path)
         path.parent.mkdir(parents=True, exist_ok=True)
         payload = {
-            "benchmark": "Math Competitions",
+            "benchmark": "Unified Math",
             "total": len(self.results),
             "correct": sum(int(row.get("correct", 0)) for row in self.results),
             "accuracy": (
@@ -786,3 +1127,29 @@ class MathCompetitionBenchmark:
             "results": self.results,
         }
         path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+class MathCompetitionBenchmark(UnifiedMathBenchmark):
+    """Backward-compatible math-only wrapper over the unified sovereign math benchmark."""
+
+    def __init__(
+        self,
+        knowledgeverse: Knowledgeverse | None = None,
+        dataset_path: str | Path | None = None,
+        dataset_mode: str | None = None,
+        max_problems: int | None = None,
+        query_scope_galaxies: str | list[str] | None = None,
+        runtime_seed_knowledge: bool = False,
+        tablet_boundary: HeadlessTabletMPC | None = None,
+    ) -> None:
+        super().__init__(
+            knowledgeverse=knowledgeverse,
+            dataset_path=dataset_path,
+            dataset_mode=dataset_mode,
+            max_problems=max_problems,
+            max_gsm8k_questions=0,
+            source_filter=["math"],
+            query_scope_galaxies=query_scope_galaxies,
+            runtime_seed_knowledge=runtime_seed_knowledge,
+            tablet_boundary=tablet_boundary,
+        )

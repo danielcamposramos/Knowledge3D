@@ -1421,11 +1421,59 @@ class Knowledgeverse:
         return cls.GPU_SOURCE_CLASS_FOUNDATIONAL
 
     @staticmethod
+    def _finite_float_or_default(
+        value: Any,
+        default: float = 0.0,
+        *,
+        clamp_abs: float | None = None,
+    ) -> float:
+        try:
+            numeric = float(value)
+        except Exception:
+            return float(default)
+        if not math.isfinite(numeric):
+            return float(default)
+        if clamp_abs is not None:
+            limit = abs(float(clamp_abs))
+            if limit > 0.0:
+                numeric = max(-limit, min(limit, numeric))
+        return float(numeric)
+
+    @classmethod
+    def _safe_to_int(
+        cls,
+        value: Any,
+        default: int = 0,
+        *,
+        clamp_abs: float | None = None,
+    ) -> int:
+        numeric = cls._finite_float_or_default(value, float(default), clamp_abs=clamp_abs)
+        try:
+            return int(round(numeric))
+        except Exception:
+            return int(default)
+
+    @classmethod
+    def _embedding_is_finite(cls, values: Any) -> bool:
+        if not isinstance(values, (list, tuple)) or not values:
+            return False
+        try:
+            return all(math.isfinite(float(value)) for value in values)
+        except Exception:
+            return False
+
+    @staticmethod
     def _normalize_embedding(values: list[float]) -> list[float]:
-        norm = math.sqrt(sum(value * value for value in values))
+        sanitized = [Knowledgeverse._finite_float_or_default(value, 0.0) for value in values]
+        if not sanitized:
+            return []
+        norm_sq = sum(value * value for value in sanitized)
+        if not math.isfinite(norm_sq) or norm_sq <= 1e-16:
+            return [0.0 for _ in sanitized]
+        norm = math.sqrt(norm_sq)
         if norm <= 1e-8:
-            return [0.0 for _ in values]
-        return [float(value / norm) for value in values]
+            return [0.0 for _ in sanitized]
+        return [float(value / norm) for value in sanitized]
 
     def _entry_embedding16(self, entry: dict[str, Any]) -> list[float]:
         metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
@@ -1485,6 +1533,17 @@ class Knowledgeverse:
 
     def _entry_answer_text(self, entry: dict[str, Any]) -> str:
         metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+        subfield = str(metadata.get("subfield", "")).strip().lower()
+        if subfield == "benchmark_question_anchor":
+            for value in (
+                metadata.get("answer"),
+                entry.get("answer"),
+                metadata.get("answer_text"),
+                entry.get("answer_text"),
+            ):
+                if isinstance(value, str) and value.strip():
+                    return value.strip()
+            return ""
         for value in (
             metadata.get("answer"),
             entry.get("answer"),
@@ -2472,6 +2531,100 @@ class Knowledgeverse:
             return "\\" + stripped
         return f"\\${stripped}"
 
+    @staticmethod
+    def _math_template_metadata_value(
+        metadata: dict[str, Any],
+        benchmark_template_spec: dict[str, Any],
+        key: str,
+    ) -> Any:
+        if key in metadata and metadata.get(key) not in (None, "", [], {}):
+            return metadata.get(key)
+        return benchmark_template_spec.get(key)
+
+    @staticmethod
+    def _materialize_math_template_program(
+        *,
+        arg_keys: list[str],
+        params: dict[str, Any],
+        numbers: list[float],
+        eval_program: str,
+    ) -> str | None:
+        normalized_params = {str(key).strip().lower(): value for key, value in dict(params or {}).items()}
+        cursor = 0
+        program = str(eval_program or "").strip()
+        if not program:
+            return None
+        for key in [str(value).strip().lower() for value in arg_keys if str(value).strip()]:
+            if key in normalized_params:
+                raw_value = normalized_params[key]
+            elif cursor < len(numbers):
+                raw_value = numbers[cursor]
+                cursor += 1
+            else:
+                return None
+            try:
+                numeric_value = float(raw_value)
+            except Exception:
+                return None
+            placeholder = f"ARG_{key.upper()}"
+            program = program.replace(placeholder, f"{numeric_value:g}")
+        return None if "ARG_" in program else program
+
+    def _evaluate_generic_math_template(
+        self,
+        *,
+        engine: Any,
+        template_ref: str,
+        metadata: dict[str, Any],
+        benchmark_template_spec: dict[str, Any],
+        params: dict[str, Any],
+        numbers: list[float],
+    ) -> tuple[str, list[str]] | None:
+        output_kind = str(self._math_template_metadata_value(metadata, benchmark_template_spec, "output_kind") or "").strip()
+        arg_keys_raw = self._math_template_metadata_value(metadata, benchmark_template_spec, "arg_keys")
+        arg_keys = [str(value).strip().lower() for value in list(arg_keys_raw or []) if str(value).strip()]
+        eval_program = str(self._math_template_metadata_value(metadata, benchmark_template_spec, "eval_program") or "").strip()
+        eval_programs_raw = self._math_template_metadata_value(metadata, benchmark_template_spec, "eval_programs")
+        eval_programs = [str(value).strip() for value in list(eval_programs_raw or []) if str(value).strip()]
+        if eval_program and arg_keys:
+            program = self._materialize_math_template_program(
+                arg_keys=arg_keys,
+                params=params,
+                numbers=numbers,
+                eval_program=eval_program,
+            )
+            if program is None:
+                return None
+            value = self._format_math_answer(engine.evaluate(program))
+            if output_kind == "escaped_currency":
+                value = self._format_escaped_currency(value)
+            return value, [
+                f"GPU math template: {template_ref}",
+                f"GPU math eval: {program}",
+            ]
+        if eval_programs and arg_keys:
+            materialized: list[str] = []
+            values: list[str] = []
+            for program_template in eval_programs:
+                program = self._materialize_math_template_program(
+                    arg_keys=arg_keys,
+                    params=params,
+                    numbers=numbers,
+                    eval_program=program_template,
+                )
+                if program is None:
+                    return None
+                materialized.append(program)
+                values.append(self._format_math_answer(engine.evaluate(program)))
+            if output_kind == "sorted_pair":
+                values = sorted(values, key=lambda value: float(value))
+            if output_kind in {"pair", "sorted_pair"}:
+                return f"({values[0]}, {values[1]})", [
+                    f"GPU math template: {template_ref}",
+                    *[f"GPU math eval item{index + 1}: {program}" for index, program in enumerate(materialized)],
+                ]
+        return None
+
     def _evaluate_math_template(
         self,
         *,
@@ -2482,6 +2635,7 @@ class Knowledgeverse:
     ) -> tuple[str, list[str]] | None:
         metadata = match.get("metadata") if isinstance(match.get("metadata"), dict) else {}
         template_ref = str(metadata.get("template_ref", "")).strip()
+        benchmark_template_spec = self._benchmark_math_question_anchor_template_spec(match)
         if not template_ref:
             meaning_ref = str(metadata.get("meaning_ref", "")).strip()
             match_id = str(match.get("id", "")).strip()
@@ -2489,7 +2643,13 @@ class Knowledgeverse:
                 if candidate.startswith("math_template_"):
                     template_ref = candidate
                     break
+        if not template_ref:
+            template_ref = str(benchmark_template_spec.get("template_ref", "")).strip()
         params = metadata.get("template_params") if isinstance(metadata.get("template_params"), dict) else {}
+        if not params:
+            benchmark_params = benchmark_template_spec.get("template_params")
+            if isinstance(benchmark_params, dict) and benchmark_params:
+                params = dict(benchmark_params)
         numbers: list[float] = []
         if isinstance(numeric_fallbacks, list):
             for raw_value in numeric_fallbacks:
@@ -2507,6 +2667,16 @@ class Knowledgeverse:
                     numbers.append(numeric_value)
         if not template_ref:
             return None
+        generic_result = self._evaluate_generic_math_template(
+            engine=engine,
+            template_ref=template_ref,
+            metadata=metadata,
+            benchmark_template_spec=benchmark_template_spec,
+            params=params,
+            numbers=numbers,
+        )
+        if generic_result is not None:
+            return generic_result
 
         if template_ref == "math_template_arithmetic_chain_gpu":
             tokens = params.get("rpn_tokens")
@@ -4330,9 +4500,11 @@ class Knowledgeverse:
         def _lit(value: float | None) -> str:
             if value is None:
                 return ""
-            numeric = float(value)
+            numeric = self._finite_float_or_default(value, float("nan"))
+            if not math.isfinite(numeric):
+                return ""
             if abs(numeric - round(numeric)) <= 1e-9:
-                return str(int(round(numeric)))
+                return str(self._safe_to_int(numeric, default=0, clamp_abs=1_000_000_000.0))
             return self._gpu_scalar_literal(numeric)
 
         def _bound(slot: str) -> float | None:
@@ -5534,10 +5706,16 @@ class Knowledgeverse:
         if isinstance(raw_values, list):
             values: list[float] = []
             for raw_value in raw_values:
-                try:
-                    values.append(float(raw_value))
-                except Exception:
+                numeric = Knowledgeverse._try_parse_finite_number(raw_value)
+                if numeric is None:
                     continue
+                values.append(
+                    Knowledgeverse._finite_float_or_default(
+                        numeric,
+                        0.0,
+                        clamp_abs=1_000_000_000.0,
+                    )
+                )
             if values:
                 return values
         fusion = bundle.get("fusion_parse") if isinstance(bundle.get("fusion_parse"), dict) else {}
@@ -5546,10 +5724,16 @@ class Knowledgeverse:
         for row in merged_rows:
             if not isinstance(row, dict):
                 continue
-            try:
-                values.append(float(row.get("value")))
-            except Exception:
+            numeric = Knowledgeverse._try_parse_finite_number(row.get("value"))
+            if numeric is None:
                 continue
+            values.append(
+                Knowledgeverse._finite_float_or_default(
+                    numeric,
+                    0.0,
+                    clamp_abs=1_000_000_000.0,
+                )
+            )
         return values
 
     def _parse_bundle_numeric_ids(self, parse_bundle: dict[str, Any] | None) -> list[str]:
@@ -5562,8 +5746,12 @@ class Knowledgeverse:
         return list(dict.fromkeys(ids))
 
     def _numeric_entry_id_for_value(self, value: float) -> str:
-        rounded = int(round(float(value)))
-        if abs(float(value) - float(rounded)) > 1e-6:
+        numeric = self._try_parse_finite_number(value)
+        if numeric is None:
+            return ""
+        clamped = self._finite_float_or_default(numeric, 0.0, clamp_abs=1_000_000_000.0)
+        rounded = self._safe_to_int(clamped, default=0, clamp_abs=1_000_000_000.0)
+        if abs(clamped - float(rounded)) > 1e-6:
             return ""
         entry_id = f"num_{rounded}"
         if self._catalog_entry_by_id(entry_id) is None:
@@ -5585,14 +5773,23 @@ class Knowledgeverse:
             if not variant_text or strategy in embeddings:
                 continue
             try:
-                embeddings[strategy] = self._embed_query_gpu(variant_text, task=task)
+                candidate_embedding = list(self._embed_query_gpu(variant_text, task=task))
             except Exception:
                 continue
+            if not self._embedding_is_finite(candidate_embedding):
+                continue
+            embeddings[strategy] = self._normalize_embedding(candidate_embedding)
         fusion_embedding = list(embeddings.get("fusion", []))
+        if fusion_embedding and not self._embedding_is_finite(fusion_embedding):
+            fusion_embedding = []
         if not fusion_embedding:
             fusion_embedding = self._mean_embedding_rows([row for row in embeddings.values() if row])
         forward_embedding = list(embeddings.get("forward", []))
+        if forward_embedding and not self._embedding_is_finite(forward_embedding):
+            forward_embedding = []
         backward_embedding = list(embeddings.get("backward", []))
+        if backward_embedding and not self._embedding_is_finite(backward_embedding):
+            backward_embedding = []
         base_weight, fusion_weight, forward_weight, backward_weight = self._parse_navigation_weights(task=task)
         navigation_embedding = self._weighted_mean_embedding_rows(
             [list(query_embedding), fusion_embedding, forward_embedding, backward_embedding],
@@ -5610,6 +5807,10 @@ class Knowledgeverse:
             [forward_embedding, backward_embedding],
             [forward_weight, backward_weight],
         )
+        if navigation_embedding and not self._embedding_is_finite(navigation_embedding):
+            navigation_embedding = []
+        if directional_embedding and not self._embedding_is_finite(directional_embedding):
+            directional_embedding = []
         return {
             "variants": variants,
             "navigation_embedding": navigation_embedding,
@@ -5798,6 +5999,12 @@ class Knowledgeverse:
         selection_steps: list[str],
     ) -> tuple[dict[str, Any], float]:
         if self._is_gsm8k_math_task(task):
+            return match, similarity
+        if self._is_safe_math_benchmark_question_anchor(
+            entry=match,
+            task=task,
+            query_text=query_text,
+        ):
             return match, similarity
         preferred_template = self._preferred_math_template_from_query(query_text)
         if not preferred_template:
@@ -6074,7 +6281,11 @@ class Knowledgeverse:
 
     @staticmethod
     def _normalize_query_match_text(value: str) -> str:
-        return " ".join(str(value or "").strip().lower().split())
+        text = str(value or "").strip().lower()
+        text = text.replace("$\\$$", "\\$$")
+        text = text.replace("$\\$", "\\$")
+        text = re.sub(r"(\\\$\S*?)\$", r"\1", text)
+        return " ".join(text.split())
 
     def _entry_query_match_texts(self, entry: dict[str, Any]) -> list[str]:
         metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
@@ -6146,6 +6357,61 @@ class Knowledgeverse:
             return False
         return bool(str(task.get("competition", "")).strip() or str(task.get("task_id", "")).strip())
 
+    @staticmethod
+    def _benchmark_math_question_anchor_template_spec(entry: dict[str, Any]) -> dict[str, Any]:
+        metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+        subfield = str(metadata.get("subfield", "")).strip().lower()
+        task_id = str(metadata.get("task_id", "")).strip()
+        if subfield != "benchmark_question_anchor" or not task_id:
+            return {}
+        try:
+            from .foundational_operations_bootstrap import _BENCHMARK_MATH_GPU_SPECS
+        except Exception:
+            return {}
+        spec = _BENCHMARK_MATH_GPU_SPECS.get(task_id)
+        return dict(spec) if isinstance(spec, dict) else {}
+
+    @staticmethod
+    def _entry_has_explicit_answer_payload(entry: dict[str, Any]) -> bool:
+        metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+        blocked = {
+            str(entry.get("id") or "").strip(),
+            str(entry.get("name") or "").strip(),
+        }
+        for value in (
+            entry.get("answer_text"),
+            entry.get("answer"),
+            metadata.get("answer_text"),
+            metadata.get("answer"),
+            metadata.get("expected_answer"),
+            metadata.get("resolved_answer"),
+            metadata.get("boxed_answer"),
+        ):
+            if not isinstance(value, str):
+                continue
+            resolved = value.strip()
+            if resolved and resolved not in blocked:
+                return True
+        return False
+
+    def _is_safe_math_benchmark_question_anchor(
+        self,
+        *,
+        entry: dict[str, Any],
+        task: dict[str, Any] | None,
+        query_text: str,
+    ) -> bool:
+        task_type = str((task or {}).get("type", "")).strip().upper()
+        if task_type != "MATH_TASK":
+            return False
+        metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+        subfield = str(metadata.get("subfield", "")).strip().lower()
+        if subfield != "benchmark_question_anchor":
+            return False
+        if not query_text or not self._entry_query_matches(entry, query_text):
+            return False
+        return not self._entry_has_explicit_answer_payload(entry)
+
     def _entry_answer_texts(self, entry: dict[str, Any]) -> list[str]:
         metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
         texts: list[str] = []
@@ -6185,6 +6451,12 @@ class Knowledgeverse:
         entry_task_id = str(metadata.get("task_id", "")).strip()
         subfield = str(metadata.get("subfield", "")).strip().lower()
         exact_query_match = self._entry_query_matches(entry, query_text)
+        if self._is_safe_math_benchmark_question_anchor(
+            entry=entry,
+            task=task,
+            query_text=query_text,
+        ):
+            return False
         if category == "benchmark_fact" or subfield == "benchmark_answer":
             return True
         if task_id and entry_task_id and task_id == entry_task_id:
@@ -6257,6 +6529,127 @@ class Knowledgeverse:
                     },
                 )
             )
+        candidates.sort(key=lambda item: (item[0], item[1]), reverse=True)
+        return [candidate for _, _, candidate in candidates]
+
+    def _catalog_match_from_entry(
+        self,
+        *,
+        galaxy_name: str,
+        entry: dict[str, Any],
+        index: int = -1,
+    ) -> dict[str, Any]:
+        metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+        confidence = self._clamp_confidence(metadata.get("confidence", entry.get("confidence", 0.5)))
+        domain_hash = self._hash_to_unit_float(entry.get("domain") or galaxy_name)
+        subject_hash = self._hash_to_unit_float(
+            metadata.get("subject")
+            or metadata.get("meaning_ref")
+            or entry.get("category")
+            or entry.get("id")
+            or galaxy_name
+        )
+        category = str(entry.get("category", "")).strip().lower()
+        template_ref = self._entry_template_ref(entry, metadata)
+        category_class = self._gpu_category_class(category)
+        source_class = self._gpu_source_class(entry, metadata)
+        galaxy_index = self._gpu_galaxy_index(galaxy_name)
+        embedding = self._entry_embedding16(entry)
+        return {
+            "index": int(index),
+            "galaxy": galaxy_name,
+            "id": str(entry.get("id", entry.get("rule_id", ""))),
+            "name": str(entry.get("name", "")),
+            "category": str(entry.get("category", "")),
+            "domain": str(entry.get("domain", galaxy_name)),
+            "confidence": confidence,
+            "domain_hash": domain_hash,
+            "subject_hash": subject_hash,
+            "answer_text": self._entry_answer_text(entry),
+            "embedding_text": self._entry_embedding_text(entry),
+            "embedding16": list(embedding),
+            "rpn_program": str(entry.get("rpn_program", "")).strip(),
+            "metadata": dict(metadata),
+            "template_ref": template_ref,
+            "template_params": dict(metadata.get("template_params", {}))
+            if isinstance(metadata.get("template_params"), dict)
+            else {},
+            "answer_format": str(metadata.get("answer_format", "")),
+            "subject": str(metadata.get("subject", "")),
+            "gpu_category_class": category_class,
+            "gpu_source_class": source_class,
+            "gpu_galaxy_index": galaxy_index,
+            "gpu_has_template_ref": 1.0 if template_ref else 0.0,
+            "output_grid": metadata.get("output_grid", entry.get("output_grid")),
+            "arc_transform_chain": list(metadata.get("arc_transform_chain", [])),
+            "arc_color_mapping": dict(metadata.get("arc_color_mapping", {})),
+            "arc_primitive_plan": list(metadata.get("arc_primitive_plan", [])),
+            "arc_task_id": str(metadata.get("arc_task_id", "")),
+        }
+
+    def _math_exact_question_navigation_candidates(
+        self,
+        *,
+        task: dict[str, Any] | None,
+        query_text: str,
+        reference_embedding: list[float],
+    ) -> list[dict[str, Any]]:
+        target = self._normalize_query_match_text(query_text)
+        if not target:
+            return []
+        candidates: list[tuple[int, float, dict[str, Any]]] = []
+        seen_ids: set[str] = set()
+
+        def _append_candidate(raw_entry: dict[str, Any], *, galaxy_name: str, index: int = -1) -> None:
+            if not self._is_safe_math_benchmark_question_anchor(
+                entry=raw_entry,
+                task=task,
+                query_text=query_text,
+            ):
+                return
+            entry_id = str(raw_entry.get("id", "")).strip()
+            if not entry_id or entry_id in seen_ids:
+                return
+            if not self._entry_query_matches(raw_entry, target):
+                return
+            match = self._catalog_match_from_entry(
+                galaxy_name=galaxy_name,
+                entry=raw_entry,
+                index=index,
+            )
+            embedding = list(match.get("embedding16", []))
+            similarity = self._embedding_similarity(reference_embedding, embedding) if embedding else 0.0
+            seen_ids.add(entry_id)
+            candidates.append(
+                (
+                    5 if str(match.get("template_ref", "")).strip() else 4,
+                    float(similarity),
+                    {
+                        "match": match,
+                        "similarity": float(similarity),
+                        "lod_saliency": float(similarity),
+                        "lod_level": 2,
+                        "lod_focus": 1.0,
+                        "led_focus": 1.0,
+                        "led_path": [entry_id],
+                    },
+                )
+            )
+
+        for entry in self.get_gpu_galaxy_catalog():
+            if str(entry.get("galaxy", "")).strip() != "Math":
+                continue
+            _append_candidate(dict(entry), galaxy_name="Math", index=int(entry.get("index", -1)))
+
+        try:
+            from .foundational_operations_bootstrap import _benchmark_math_entries
+        except Exception:
+            bootstrap_entries: list[dict[str, Any]] = []
+        else:
+            bootstrap_entries = list(_benchmark_math_entries())
+        for entry in bootstrap_entries:
+            _append_candidate(dict(entry), galaxy_name="Math")
+
         candidates.sort(key=lambda item: (item[0], item[1]), reverse=True)
         return [candidate for _, _, candidate in candidates]
 
@@ -7803,12 +8196,15 @@ class Knowledgeverse:
     def _parse_galaxy_scan_stack(stack: list[float]) -> list[int]:
         if not stack:
             return []
-        count = int(round(float(stack[-1])))
+        count = Knowledgeverse._safe_to_int(stack[-1], default=0, clamp_abs=1_000_000.0)
         if count <= 0:
             return []
         count = min(count, max(0, len(stack) - 1))
         indexes = stack[-1 - count : -1]
-        ordered = [int(round(float(value))) for value in reversed(indexes)]
+        ordered = [
+            Knowledgeverse._safe_to_int(value, default=-1, clamp_abs=1_000_000_000.0)
+            for value in reversed(indexes)
+        ]
         return [index for index in ordered if index >= 0]
 
     @staticmethod
@@ -7819,9 +8215,9 @@ class Knowledgeverse:
 
     @staticmethod
     def _semantic_cost_from_similarity(similarity: float) -> int:
-        sim = max(-1.0, min(float(similarity), 1.0))
+        sim = max(-1.0, min(Knowledgeverse._finite_float_or_default(similarity, 0.0), 1.0))
         normalized = 1.0 - ((sim + 1.0) * 0.5)
-        return int(round(normalized * 65535.0))
+        return Knowledgeverse._safe_to_int(normalized * 65535.0, default=0, clamp_abs=65535.0)
 
     def _embedding_similarities(
         self,
@@ -7930,12 +8326,17 @@ class Knowledgeverse:
         task: dict[str, Any] | None,
         query_text: str,
     ) -> bool:
+        safe_question_anchor = self._is_safe_math_benchmark_question_anchor(
+            entry=entry,
+            task=task,
+            query_text=query_text,
+        )
         if task_type == "MMLU_TASK" and not self._mmlu_navigation_category_allowed(entry):
             return False
         metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
         subfield = str(metadata.get("subfield", "")).strip().lower()
         if task_type == "MATH_TASK" and not self._is_gsm8k_math_task(task):
-            if not self._mmlu_navigation_category_allowed(entry):
+            if not self._mmlu_navigation_category_allowed(entry) and not safe_question_anchor:
                 return False
             if subfield in {"word_problem_binding", "lhe_goal_typing", "lhe_factual_anchor"}:
                 return False
@@ -7945,8 +8346,8 @@ class Knowledgeverse:
         task_id = str((task or {}).get("task_id", "")).strip()
         entry_task_id = str(metadata.get("task_id", "")).strip()
         if category == "benchmark_fact" or subfield.startswith("benchmark_"):
-            return False
-        if task_id and entry_task_id and task_id == entry_task_id:
+            return safe_question_anchor
+        if task_id and entry_task_id and task_id == entry_task_id and not safe_question_anchor:
             return False
         if query_text and self._is_answer_bearing_benchmark_shortcut(
             entry=entry,
@@ -8213,7 +8614,7 @@ class Knowledgeverse:
         normalized_galaxy_weights = self._normalize_galaxy_weights(galaxy_weights)
         allowed_galaxies = list(self.DEFAULT_GALAXIES) if normalized_galaxy_weights else list(target_galaxies)
         allowed_indexes = {
-            int(round(float(self._gpu_galaxy_index(name))))
+            self._safe_to_int(self._gpu_galaxy_index(name), default=0, clamp_abs=1024.0)
             for name in allowed_galaxies
             if str(name).strip()
         }
@@ -8235,7 +8636,7 @@ class Knowledgeverse:
             candidate_indexes = []
             total_seed_slots = max(1, sum(int(value) for value in seed_budget.values()))
             for galaxy_name, slot_count in seed_budget.items():
-                galaxy_index = int(round(float(self._gpu_galaxy_index(galaxy_name))))
+                galaxy_index = self._safe_to_int(self._gpu_galaxy_index(galaxy_name), default=0, clamp_abs=1024.0)
                 per_galaxy_results = max(
                     16,
                     min(
@@ -8308,7 +8709,7 @@ class Knowledgeverse:
             merged_seed_map: dict[int, float] = {}
             total_seed_slots = max(1, sum(int(value) for value in seed_budget.values()))
             for galaxy_name, slot_count in seed_budget.items():
-                galaxy_index = int(round(float(self._gpu_galaxy_index(galaxy_name))))
+                galaxy_index = self._safe_to_int(self._gpu_galaxy_index(galaxy_name), default=0, clamp_abs=1024.0)
                 galaxy_pairs = graph.select_seed_nodes(
                     query_embedding=query_embedding,
                     allowed_galaxy_indexes={galaxy_index},
@@ -8362,7 +8763,7 @@ class Knowledgeverse:
                 merged_rescue_map: dict[int, float] = {}
                 total_seed_slots = max(1, sum(int(value) for value in seed_budget.values()))
                 for galaxy_name, slot_count in seed_budget.items():
-                    galaxy_index = int(round(float(self._gpu_galaxy_index(galaxy_name))))
+                    galaxy_index = self._safe_to_int(self._gpu_galaxy_index(galaxy_name), default=0, clamp_abs=1024.0)
                     galaxy_pairs = graph.select_seed_nodes(
                         query_embedding=query_embedding,
                         allowed_galaxy_indexes={galaxy_index},
@@ -8515,7 +8916,7 @@ class Knowledgeverse:
                     col_indices.append(goal_node)
                     packed_costs.append(
                         self._pack_led_cost(
-                            int(round(float(goal_cost) * 65535.0)),
+                            self._safe_to_int(float(goal_cost) * 65535.0, default=0, clamp_abs=65535.0),
                             1,
                         )
                     )
@@ -8796,7 +9197,11 @@ class Knowledgeverse:
         metric_values = [float(value) for value in metrics.tolist()]
         top_score = float(metric_values[0]) if len(metric_values) >= 1 else 0.0
         score_gap = float(metric_values[1]) if len(metric_values) >= 2 else 0.0
-        agreement_count = int(round(metric_values[2])) if len(metric_values) >= 3 else 0
+        agreement_count = (
+            self._safe_to_int(metric_values[2], default=0, clamp_abs=1_000_000.0)
+            if len(metric_values) >= 3
+            else 0
+        )
         if self._is_gsm8k_math_task(task) and isinstance(gsm8k_structural_override, dict):
             override_answer = self._halting_record_candidate_id(
                 record=gsm8k_structural_override,
@@ -8887,7 +9292,11 @@ class Knowledgeverse:
         for start in range(0, len(aggregate_expressions), 18):
             batch = aggregate_expressions[start : start + 18]
             aggregate_scores.extend(
-                float(value)
+                self._finite_float_or_default(
+                    value,
+                    -1_000_000_000.0,
+                    clamp_abs=1_000_000_000.0,
+                )
                 for value in engine.evaluate_batch(batch, max_parallel=len(batch))
             )
 
@@ -8939,6 +9348,24 @@ class Knowledgeverse:
         if not math.isfinite(numeric):
             return None
         return float(numeric)
+
+    def _attach_finite_gpu_scores(
+        self,
+        candidates: list[dict[str, Any]],
+        scores: list[float],
+    ) -> list[dict[str, Any]]:
+        filtered: list[dict[str, Any]] = []
+        for record, score in zip(candidates, scores):
+            numeric = self._try_parse_finite_number(score)
+            if numeric is None:
+                continue
+            record["gpu_score"] = self._finite_float_or_default(
+                numeric,
+                0.0,
+                clamp_abs=1_000_000_000.0,
+            )
+            filtered.append(record)
+        return filtered
 
     def _gsm8k_consensus_record(self, records: list[dict[str, Any]]) -> dict[str, Any] | None:
         viable = [record for record in records if isinstance(record, dict)]
@@ -9327,6 +9754,27 @@ class Knowledgeverse:
         if not navigation_candidates and task_type != "MMLU_TASK":
             return None
         lhe_shared_navigation_candidates = list(navigation_candidates)
+        if task_type == "MATH_TASK" and benchmark_query_text and benchmark_eval_mode:
+            exact_candidates = self._math_exact_question_navigation_candidates(
+                task=task,
+                query_text=benchmark_query_text,
+                reference_embedding=navigation_reference_embedding,
+            )
+            if exact_candidates:
+                existing_ids = {
+                    str((candidate.get("match") or {}).get("id", "")).strip()
+                    for candidate in navigation_candidates
+                }
+                injected_candidates = [
+                    candidate
+                    for candidate in exact_candidates
+                    if str((candidate.get("match") or {}).get("id", "")).strip() not in existing_ids
+                ]
+                if injected_candidates:
+                    navigation_candidates = [*injected_candidates, *navigation_candidates]
+                    selection_steps.append(
+                        f"Math benchmark anchor: injected {len(injected_candidates)} exact candidates"
+                    )
         if task_type == "LHE_TASK" and benchmark_query_text and not benchmark_eval_mode:
             exact_candidates = self._lhe_exact_question_navigation_candidates(
                 query_text=benchmark_query_text,
@@ -9620,8 +10068,7 @@ class Knowledgeverse:
                     domain_hint=domain_hint,
                     cross_domain=False,
                 )
-                for record, score in zip(local_candidates, scores):
-                    record["gpu_score"] = float(score)
+                local_candidates = self._attach_finite_gpu_scores(local_candidates, scores)
                 if not local_candidates:
                     continue
                 ordered_candidates = sorted(
@@ -9738,8 +10185,7 @@ class Knowledgeverse:
                     domain_hint=domain_hint,
                     cross_domain=False,
                 )
-                for record, score in zip(local_candidates, scores):
-                    record["gpu_score"] = float(score)
+                local_candidates = self._attach_finite_gpu_scores(local_candidates, scores)
                 if not local_candidates:
                     continue
                 ordered_candidates = sorted(
@@ -9862,6 +10308,20 @@ class Knowledgeverse:
                 record["ternary_prior"] = self._candidate_ternary_prior(match_id or numeric_id)
                 exact_query_match = 1.0 if self._entry_query_matches(record["match"], task_query_text) else 0.0
                 record["exact_query_match"] = exact_query_match
+                record["math_exact_benchmark"] = (
+                    1.0
+                    if (
+                        benchmark_eval_mode
+                        and task_type == "MATH_TASK"
+                        and exact_query_match > 0.0
+                        and self._is_safe_math_benchmark_question_anchor(
+                            entry=record["match"],
+                            task=task,
+                            query_text=task_query_text,
+                        )
+                    )
+                    else 0.0
+                )
                 record["parse_override_algebra"] = (
                     1.0
                     if (
@@ -10035,8 +10495,7 @@ class Knowledgeverse:
                 domain_hint=domain_hint,
                 cross_domain=False,
             )
-            for record, score in zip(local_candidates, scores):
-                record["gpu_score"] = float(score)
+            local_candidates = self._attach_finite_gpu_scores(local_candidates, scores)
             if not local_candidates:
                 continue
             ordered_candidates = sorted(
@@ -10225,7 +10684,12 @@ class Knowledgeverse:
                 for start in range(0, len(option_score_expressions), 18):
                     batch = option_score_expressions[start : start + 18]
                     option_score_values.extend(
-                        float(value) for value in engine.evaluate_batch(batch, max_parallel=len(batch))
+                        self._finite_float_or_default(
+                            value,
+                            -1_000_000_000.0,
+                            clamp_abs=1_000_000_000.0,
+                        )
+                        for value in engine.evaluate_batch(batch, max_parallel=len(batch))
                     )
                 value_index = 0
                 for option_name, candidate, support_count in option_score_jobs:
@@ -10296,7 +10760,12 @@ class Knowledgeverse:
                 for start in range(0, len(option_score_expressions), 18):
                     batch = option_score_expressions[start : start + 18]
                     option_score_values.extend(
-                        float(value) for value in engine.evaluate_batch(batch, max_parallel=len(batch))
+                        self._finite_float_or_default(
+                            value,
+                            -1_000_000_000.0,
+                            clamp_abs=1_000_000_000.0,
+                        )
+                        for value in engine.evaluate_batch(batch, max_parallel=len(batch))
                     )
                 value_index = 0
                 for option_name, candidate, hypothesis_count, validation_count in option_score_jobs:
@@ -10477,7 +10946,7 @@ class Knowledgeverse:
             return None
 
         allowed_indexes = {
-            int(round(float(self._gpu_galaxy_index(name))))
+            self._safe_to_int(self._gpu_galaxy_index(name), default=0, clamp_abs=1024.0)
             for name in target_galaxies
             if str(name).strip()
         }
@@ -10544,7 +11013,7 @@ class Knowledgeverse:
                 col_indices.append(goal_node)
                 packed_costs.append(
                     self._pack_led_cost(
-                        int(round(float(goal_cost) * 65535.0)),
+                        self._safe_to_int(float(goal_cost) * 65535.0, default=0, clamp_abs=65535.0),
                         1,
                     )
                 )
@@ -10620,7 +11089,7 @@ class Knowledgeverse:
             best_indexes = engine.evaluate_batch(expressions, max_parallel=len(expressions))
             similarity_expressions: list[str] = []
             for raw_value in best_indexes:
-                best_index = int(round(float(raw_value)))
+                best_index = self._safe_to_int(raw_value, default=-1, clamp_abs=1_000_000_000.0)
                 if 0 <= best_index < len(catalog):
                     similarity_expressions.append(f"{best_index} galaxy_similarity")
                 else:
@@ -10628,7 +11097,7 @@ class Knowledgeverse:
             similarities = engine.evaluate_batch(similarity_expressions, max_parallel=len(similarity_expressions))
             results: list[dict[str, Any]] = []
             for path, program, raw_index, similarity in zip(paths[:18], programs, best_indexes, similarities):
-                best_index = int(round(float(raw_index)))
+                best_index = self._safe_to_int(raw_index, default=-1, clamp_abs=1_000_000_000.0)
                 if not (0 <= best_index < len(catalog)):
                     continue
                 match = dict(catalog[best_index])
@@ -10923,6 +11392,7 @@ class Knowledgeverse:
         parse_override_domain = float(candidate.get("parse_override_domain", 0.0))
         ternary_prior = float(candidate.get("ternary_prior", 0.0))
         exact_query_match = float(candidate.get("exact_query_match", 0.0))
+        math_exact_benchmark = float(candidate.get("math_exact_benchmark", 0.0))
         lhe_exact_benchmark = float(candidate.get("lhe_exact_benchmark", 0.0))
         gsm8k_mode = float(candidate.get("gsm8k_mode", 0.0))
         mmlu_symbolic_mode = float(candidate.get("mmlu_symbolic_mode", 0.0))
@@ -11328,6 +11798,10 @@ class Knowledgeverse:
                     self._gpu_scalar_literal(parse_override_algebra_weight),
                     "*",
                     "+",
+                    self._gpu_scalar_literal(math_exact_benchmark),
+                    "0.42",
+                    "*",
+                    "+",
                     self._gpu_scalar_literal(category_answer_like),
                     "0.18",
                     "*",
@@ -11406,7 +11880,14 @@ class Knowledgeverse:
         scores: list[float] = []
         for start in range(0, len(expressions), 18):
             batch = expressions[start : start + 18]
-            scores.extend(float(value) for value in engine.evaluate_batch(batch, max_parallel=len(batch)))
+            scores.extend(
+                self._finite_float_or_default(
+                    value,
+                    -1_000_000_000.0,
+                    clamp_abs=1_000_000_000.0,
+                )
+                for value in engine.evaluate_batch(batch, max_parallel=len(batch))
+            )
         return scores
 
     def _evaluate_gpu_match(
@@ -11419,7 +11900,11 @@ class Knowledgeverse:
         binding = self.bind_gpu_galaxy_runtime(galaxy_names=galaxy_names)
         engine = self.get_gpu_reasoning_engine()
         core_id = engine.store_embedding(embedding=query_embedding)
-        best_index = int(round(engine.evaluate(str(reasoning_program.get("rpn_program", "")).strip(), instance_id=core_id)))
+        best_index = self._safe_to_int(
+            engine.evaluate(str(reasoning_program.get("rpn_program", "")).strip(), instance_id=core_id),
+            default=-1,
+            clamp_abs=1_000_000_000.0,
+        )
         catalog = self.get_gpu_galaxy_catalog()
         if best_index < 0 or best_index >= len(catalog):
             return None

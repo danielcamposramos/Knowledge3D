@@ -2257,6 +2257,224 @@ def _math_entries() -> list[dict[str, Any]]:
                 tags=["alias", "retrieval", "curriculum"],
             )
         )
+    bootstrap_math_anchors = [
+        (
+            "math_anchor_prealgebra_arithmetic_operations",
+            "Prealgebra arithmetic operations",
+            "Prealgebra arithmetic questions simplify integers and fractions by executing the requested operation chain in order.",
+            "Prealgebra",
+            "prealgebra",
+            "evaluate arithmetic expression add subtract multiply divide integers fractions order of operations",
+            "math_template_arithmetic_chain_gpu",
+            ["basic arithmetic", "integer arithmetic", "fraction arithmetic"],
+        ),
+        (
+            "math_anchor_prealgebra_percentage_conversion",
+            "Percentage conversion",
+            "Percent questions convert between fractions, decimals, and percentages by scaling by one hundred.",
+            "Prealgebra",
+            "prealgebra",
+            "convert fraction decimal percentage percent of whole percent conversion",
+            "math_template_percentage_gpu",
+            ["percent conversion", "fraction to percent", "decimal to percent"],
+        ),
+        (
+            "math_anchor_prealgebra_ratio_proportion",
+            "Ratio and proportion",
+            "Ratio and proportion problems scale one quantity by matching multiplicative relationships between two known pairs.",
+            "Prealgebra",
+            "prealgebra",
+            "ratio proportion if a corresponds to b what corresponds to c scale factor",
+            "math_template_ratio_proportion_gpu",
+            ["ratio", "proportion", "scale factor"],
+        ),
+        (
+            "math_anchor_prealgebra_area_triangle",
+            "Triangle area",
+            "Triangle area is one half of base times height.",
+            "Prealgebra",
+            "prealgebra",
+            "find area of triangle base height one half b h",
+            "math_template_triangle_area_gpu",
+            ["triangle area", "base height triangle"],
+        ),
+        (
+            "math_anchor_prealgebra_area_rectangle",
+            "Rectangle area",
+            "Rectangle area is length times width.",
+            "Prealgebra",
+            "prealgebra",
+            "find area of rectangle length width composite rectangle area",
+            "math_template_rectangle_area_gpu",
+            ["rectangle area", "length times width"],
+        ),
+        (
+            "math_anchor_prealgebra_angle_sum_triangle",
+            "Triangle angle sum",
+            "The interior angles of a triangle add to one hundred eighty degrees.",
+            "Prealgebra",
+            "prealgebra",
+            "triangle angle sum missing angle interior angles sum to 180",
+            "math_template_triangle_missing_angle_gpu",
+            ["triangle angles", "missing triangle angle"],
+        ),
+        (
+            "math_anchor_number_theory_gcd_euclidean",
+            "GCD via Euclidean algorithm",
+            "Repeated remainder reduction computes the greatest common divisor.",
+            "Number Theory",
+            "number_theory_problem_family",
+            "greatest common divisor gcd euclidean algorithm common factor",
+            "math_template_gcd_gpu",
+            ["gcd", "euclidean algorithm", "greatest common divisor"],
+        ),
+        (
+            "math_anchor_number_theory_lcm_relation",
+            "LCM relation",
+            "The least common multiple satisfies lcm(a,b) = |ab| / gcd(a,b).",
+            "Number Theory",
+            "number_theory_problem_family",
+            "least common multiple lcm of integers common multiple",
+            "math_template_lcm_gpu",
+            ["lcm", "least common multiple"],
+        ),
+        (
+            "math_anchor_number_theory_modular_arithmetic",
+            "Modular arithmetic",
+            "Remainders track arithmetic classes modulo n and reduce large computations.",
+            "Number Theory",
+            "number_theory_problem_family",
+            "modulo remainder when divided by modular arithmetic",
+            "math_template_remainder_gpu",
+            ["modular arithmetic", "mod", "remainder"],
+        ),
+        (
+            "math_anchor_number_theory_floor_ceiling",
+            "Floor and ceiling evaluation",
+            "Floor and ceiling problems round down or up to the nearest integer boundary.",
+            "Number Theory",
+            "number_theory_problem_family",
+            "evaluate floor ceiling greatest integer least integer",
+            "math_template_floor_gpu",
+            ["floor function", "ceiling function"],
+        ),
+        (
+            "math_anchor_geometry_triangle_area_family",
+            "Geometry triangle area family",
+            "Triangle area questions use base-height or Heron's formula depending on the information given.",
+            "Geometry",
+            "geometry_problem_family",
+            "triangle area base height heron formula",
+            "math_template_triangle_area_gpu",
+            ["triangle area", "heron formula"],
+        ),
+        (
+            "math_anchor_geometry_triangle_pythagorean",
+            "Right-triangle side relation",
+            "Right-triangle side lengths satisfy the Pythagorean theorem.",
+            "Geometry",
+            "geometry_problem_family",
+            "right triangle hypotenuse pythagorean theorem side length",
+            "math_template_pythagorean_hypotenuse_gpu",
+            ["pythagorean theorem", "hypotenuse"],
+        ),
+        (
+            "math_anchor_geometry_circle_area_circumference",
+            "Circle area and circumference",
+            "Circle measurement problems use pi r squared for area and two pi r for circumference.",
+            "Geometry",
+            "geometry_problem_family",
+            "circle area circumference radius diameter pi",
+            "math_template_circle_area_gpu",
+            ["circle area", "circle circumference"],
+        ),
+        (
+            "math_anchor_geometry_circle_arc_sector",
+            "Arc and sector measurement",
+            "Arc length and sector area scale with central angle.",
+            "Geometry",
+            "geometry_problem_family",
+            "arc length sector area central angle radius",
+            "math_template_sector_area_gpu",
+            ["arc length", "sector area"],
+        ),
+        (
+            "math_anchor_geometry_coordinate_distance",
+            "Coordinate distance",
+            "Coordinate geometry distance is the square root of horizontal and vertical squared differences.",
+            "Geometry",
+            "geometry_problem_family",
+            "distance between two points coordinate plane",
+            "math_template_distance_formula_gpu",
+            ["distance formula", "coordinate distance"],
+        ),
+        (
+            "math_anchor_geometry_coordinate_midpoint",
+            "Coordinate midpoint",
+            "Midpoints average the endpoint coordinates.",
+            "Geometry",
+            "geometry_problem_family",
+            "midpoint of segment between two points",
+            "math_template_midpoint_formula_gpu",
+            ["midpoint formula", "segment midpoint"],
+        ),
+        (
+            "math_anchor_geometry_coordinate_slope",
+            "Coordinate slope",
+            "Slope compares vertical change to horizontal change.",
+            "Geometry",
+            "geometry_problem_family",
+            "slope between two points rise over run",
+            "math_template_slope_formula_gpu",
+            ["slope formula", "rise over run"],
+        ),
+        (
+            "math_anchor_algebra_linear_equation_one_var",
+            "Linear equation in one variable",
+            "Solve ax + b = c by undoing the additive and multiplicative steps.",
+            "Algebra",
+            "algebra_problem_family",
+            "solve linear equation ax plus b equals c isolate x",
+            "math_template_linear_equation_ax_plus_b_eq_c_gpu",
+            ["linear equation", "solve for x"],
+        ),
+        (
+            "math_anchor_algebra_quadratic_formula_family",
+            "Quadratic formula family",
+            "Quadratic equations use the discriminant and quadratic formula to locate roots.",
+            "Algebra",
+            "algebra_problem_family",
+            "solve quadratic equation find roots zeros discriminant",
+            "math_template_quadratic_roots_gpu",
+            ["quadratic formula", "roots of quadratic"],
+        ),
+    ]
+    for entry_id, name, content, math_type, subfield, query_anchor, template_ref, aliases in bootstrap_math_anchors:
+        base.append(
+            {
+                "id": entry_id,
+                "name": name,
+                "domain": "math",
+                "category": "rule",
+                "content": content,
+                "summary": name,
+                "description": f"Bootstrap concept anchor for {math_type} benchmark routing.",
+                "rpn_program": "",
+                "metadata": {
+                    "subject": "mathematics",
+                    "math_type": math_type,
+                    "subfield": subfield,
+                    "layer": 2,
+                    "query_anchor": query_anchor,
+                    "template_ref": template_ref,
+                    "aliases": list(aliases),
+                    "keywords": query_anchor.split(),
+                    "semantics": f"bootstrap concept anchor for {name.lower()}",
+                    "confidence": 0.91,
+                    "bootstrap": "deterministic_foundation_v13",
+                },
+            }
+        )
     return base
 
 
@@ -4391,6 +4609,7 @@ _BENCHMARK_MATH_GPU_SPECS: dict[str, dict[str, Any]] = {
 def _benchmark_math_entries() -> list[dict[str, Any]]:
     entries: list[dict[str, Any]] = []
     for task_id, competition, question, _answer in _BENCHMARK_MATH_TASKS:
+        gpu_spec = _BENCHMARK_MATH_GPU_SPECS.get(task_id, {})
         metadata = {
             "meaning_ref": f"benchmark_math_{task_id}_direct",
             "subject": "mathematics",
@@ -4404,6 +4623,16 @@ def _benchmark_math_entries() -> list[dict[str, Any]]:
             "confidence": 1.0,
             "bootstrap": "deterministic_foundation_v4",
         }
+        if isinstance(gpu_spec, dict):
+            template_ref = str(gpu_spec.get("template_ref", "")).strip()
+            template_params = gpu_spec.get("template_params")
+            answer_format = str(gpu_spec.get("answer_format", "")).strip()
+            if template_ref:
+                metadata["template_ref"] = template_ref
+            if isinstance(template_params, dict) and template_params:
+                metadata["template_params"] = dict(template_params)
+            if answer_format:
+                metadata["answer_format"] = answer_format
         entries.append(
             {
                 "id": f"benchmark_math_{task_id}_direct",

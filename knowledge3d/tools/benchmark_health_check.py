@@ -8,6 +8,7 @@ from pathlib import Path
 import time
 from typing import Any, Callable
 
+from benchmarks.math_competitions import MathCompetitionBenchmark, UnifiedMathBenchmark, math_answers_match
 
 HealthQueryFn = Callable[[dict[str, Any]], Any]
 BenchmarkProgressFn = Callable[[dict[str, Any]], None]
@@ -49,10 +50,7 @@ def evaluate_answer(suite: str, answer: Any, expected: Any) -> bool:
     """Evaluate answer correctness for the health-check logger."""
     canonical = _canonical_suite_name(suite)
     if canonical in {"gsm8k", "math"}:
-        answer_float = _to_float(answer)
-        expected_float = _to_float(expected)
-        if answer_float is not None and expected_float is not None:
-            return abs(answer_float - expected_float) <= 1e-3
+        return math_answers_match(answer, expected)
     if canonical == "mmlu":
         answer_text = str(answer).strip().upper()
         expected_text = str(expected).strip().upper()
@@ -133,22 +131,22 @@ def load_questions(suite: str, count: int | None = None) -> list[dict[str, Any]]
     limit = int(count) if count is not None else None
     try:
         if canonical == "gsm8k":
-            from benchmarks.gsm8k import GSM8KBenchmark
-
-            bench = GSM8KBenchmark(knowledgeverse=object(), max_questions=limit)
+            bench = UnifiedMathBenchmark(
+                knowledgeverse=object(),
+                max_gsm8k_questions=limit,
+                source_filter=["gsm8k"],
+            )
             return [
                 {
                     "id": question["id"],
                     "suite": canonical,
-                    "question": question["question_text"],
-                    "expected": question["correct_answer"],
+                    "question": question["problem_text"],
+                    "expected": question["answer"],
                     "payload": question,
                 }
-                for question in bench.questions[:limit]
+                for question in bench.problems[:limit]
             ]
         if canonical == "math":
-            from benchmarks.math_competitions import MathCompetitionBenchmark
-
             bench = MathCompetitionBenchmark(knowledgeverse=object(), max_problems=limit)
             return [
                 {
@@ -228,22 +226,24 @@ def _run_suite_via_benchmark(
     canonical = _canonical_suite_name(suite)
     progress_every = _default_progress_every(canonical, count)
     if canonical == "gsm8k":
-        from benchmarks.gsm8k import GSM8KBenchmark
-
-        bench = GSM8KBenchmark(knowledgeverse=knowledgeverse, max_questions=count)
+        bench = UnifiedMathBenchmark(
+            knowledgeverse=knowledgeverse,
+            max_gsm8k_questions=count,
+            source_filter=["gsm8k"],
+        )
         bench.run_benchmark(use_enriched=True, progress_cb=progress_fn, progress_every=progress_every)
         return [
             {
-                "question_id": row["question_id"],
+                "question_id": row["problem_id"],
                 "suite": canonical,
-                "question": source["question_text"],
+                "question": source["problem_text"],
                 "answer": row.get("predicted_answer"),
-                "expected": source["correct_answer"],
+                "expected": source["answer"],
                 "correct": bool(row.get("correct", False)),
                 "elapsed_s": 0.0,
                 "timestamp": time.time(),
             }
-            for source, row in zip(bench.questions, bench.results)
+            for source, row in zip(bench.problems, bench.results)
         ]
     if canonical == "math":
         from benchmarks.math_competitions import MathCompetitionBenchmark
