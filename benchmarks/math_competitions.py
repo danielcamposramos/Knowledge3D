@@ -773,19 +773,39 @@ class UnifiedMathBenchmark:
         *,
         progress_cb: Callable[[dict[str, Any]], None] | None = None,
         progress_every: int | None = None,
+        row_cb: Callable[[dict[str, Any], dict[str, Any]], None] | None = None,
+        start_index: int = 0,
+        initial_correct: int = 0,
+        initial_source_completed: dict[str, int] | None = None,
+        initial_source_correct: dict[str, int] | None = None,
     ) -> dict[str, Any]:
         self.results = []
         by_competition: dict[str, dict[str, Any]] = {}
         by_source: dict[str, dict[str, Any]] = {}
-        correct = 0
         total = len(self.problems)
+        resume_index = max(0, min(int(start_index), total))
+        correct = max(0, int(initial_correct))
+        source_completed = {
+            str(key): int(value)
+            for key, value in dict(initial_source_completed or {}).items()
+            if str(key).strip()
+        }
+        source_correct = {
+            str(key): int(value)
+            for key, value in dict(initial_source_correct or {}).items()
+            if str(key).strip()
+        }
         step = max(1, int(progress_every or 25))
         start = time.monotonic()
-        for index, problem in enumerate(self.problems, start=1):
+        for index, problem in enumerate(self.problems[resume_index:], start=resume_index + 1):
+            row_start = time.monotonic()
             result = self._solve_problem(problem=problem, use_enriched=use_enriched)
+            result["elapsed_s"] = round(max(0.0, time.monotonic() - row_start), 3)
             self.results.append(result)
             if result["correct"]:
                 correct += 1
+            if row_cb is not None:
+                row_cb(problem, result)
             comp = result["competition"]
             if comp not in by_competition:
                 by_competition[comp] = {"total": 0, "correct": 0, "results": []}
@@ -800,6 +820,9 @@ class UnifiedMathBenchmark:
             if result["correct"]:
                 by_source[source_key]["correct"] += 1
             by_source[source_key]["results"].append(result)
+            source_completed[source_key] = int(source_completed.get(source_key, 0)) + 1
+            if result["correct"]:
+                source_correct[source_key] = int(source_correct.get(source_key, 0)) + 1
             if progress_cb and (index % step == 0 or index == total):
                 progress_cb(
                     {
@@ -809,12 +832,8 @@ class UnifiedMathBenchmark:
                         "elapsed_s": time.monotonic() - start,
                         "benchmark": "unified_math",
                         "current_source": source_key,
-                        "source_completed": {
-                            key: int(data["total"]) for key, data in by_source.items()
-                        },
-                        "source_correct": {
-                            key: int(data["correct"]) for key, data in by_source.items()
-                        },
+                        "source_completed": dict(source_completed),
+                        "source_correct": dict(source_correct),
                     }
                 )
         for comp_data in by_competition.values():

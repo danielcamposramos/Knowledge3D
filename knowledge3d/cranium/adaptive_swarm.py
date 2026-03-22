@@ -479,16 +479,20 @@ class AdaptiveSwarmTRM:
     def train_specialist_contrastive(
         self,
         specialist_name: str,
-        embedding_pairs: List[Tuple[np.ndarray, np.ndarray]],
-        learning_rate: Optional[float] = None
+        positive_pairs: List[Tuple[np.ndarray, np.ndarray]],
+        negative_pairs: Optional[List[Tuple[np.ndarray, np.ndarray]]] = None,
+        learning_rate: Optional[float] = None,
+        margin: float = 0.5,
     ) -> Dict[str, float]:
         """
-        Train specialist using contrastive learning (pull embeddings together).
+        Train specialist using true contrastive learning.
 
         Args:
             specialist_name: Which specialist to train
-            embedding_pairs: List of (input_emb, target_emb) pairs to align
+            positive_pairs: List of (input_emb, target_emb) pairs to pull together
+            negative_pairs: List of (input_emb, wrong_emb) pairs to push apart
             learning_rate: Optional override for specialist LR
+            margin: Repulsion margin for negative pairs
 
         Returns:
             Training statistics
@@ -502,47 +506,79 @@ class AdaptiveSwarmTRM:
 
         lr = learning_rate if learning_rate is not None else self.config.specialist_learning_rate
 
-        total_loss = 0.0
+        total_positive_loss = 0.0
+        total_negative_loss = 0.0
+        positive_steps = 0
+        negative_steps = 0
 
-        for input_emb, target_emb in embedding_pairs:
-            # Ensure correct dimensions
-            if input_emb.shape[0] != dims or target_emb.shape[0] != dims:
-                # Pad or truncate
-                input_emb = np.pad(input_emb, (0, max(0, dims - len(input_emb))))[:dims]
-                target_emb = np.pad(target_emb, (0, max(0, dims - len(target_emb))))[:dims]
+        for input_emb, target_emb in positive_pairs:
+            input_emb = self._pad_or_truncate(input_emb, dims)
+            target_emb = self._pad_or_truncate(target_emb, dims)
 
-            # Contrastive loss: minimize distance between embeddings
-            # Simple gradient: direction from input to target
             diff = target_emb - input_emb
             loss = np.linalg.norm(diff)
-            total_loss += loss
+            total_positive_loss += float(loss)
 
-            # Gradient for adapter: outer product of difference (simple update rule)
             gradient = np.outer(diff, input_emb)
+            self._apply_adapter_gradient(adapter, gradient, lr)
+            positive_steps += 1
 
-            # Update adapter weights using proper low-rank gradient application
-            # SelfUpdatingAdapter has apply_gradient method that updates A and B matrices
-            if hasattr(adapter, 'apply_gradient'):
-                # Use adapter's built-in gradient method (handles A @ B decomposition)
-                adapter.apply_gradient(gradient, lr=lr)
-            elif hasattr(adapter, 'A') and hasattr(adapter, 'B'):
-                # Direct update to A and B (LoRA-style)
-                grad_A = gradient @ adapter.B.T
-                grad_B = adapter.A.T @ gradient
-                adapter.A -= lr * grad_A
-                adapter.B -= lr * grad_B
+        for input_emb, wrong_emb in list(negative_pairs or []):
+            input_emb = self._pad_or_truncate(input_emb, dims)
+            wrong_emb = self._pad_or_truncate(wrong_emb, dims)
 
-        avg_loss = total_loss / len(embedding_pairs) if embedding_pairs else 0.0
+            diff = input_emb - wrong_emb
+            dist = float(np.linalg.norm(diff))
+            if dist >= float(margin):
+                continue
 
-        # Increment specialist step counter
+            repulsion_loss = float(margin) - dist
+            total_negative_loss += repulsion_loss
+            gradient = np.outer(-diff, input_emb)
+            self._apply_adapter_gradient(adapter, gradient, lr * 0.5)
+            negative_steps += 1
+
+        total_steps = positive_steps + negative_steps
+        avg_loss = (
+            (total_positive_loss + total_negative_loss) / total_steps
+            if total_steps
+            else 0.0
+        )
+
         if specialist_name in self.specialist_steps:
-            self.specialist_steps[specialist_name] += len(embedding_pairs)
+            self.specialist_steps[specialist_name] += total_steps
 
         return {
             'avg_loss': avg_loss,
-            'num_pairs': len(embedding_pairs),
-            'steps': self.specialist_steps.get(specialist_name, 0)
+            'positive_loss': total_positive_loss / max(positive_steps, 1),
+            'negative_loss': total_negative_loss / max(negative_steps, 1),
+            'positive_steps': positive_steps,
+            'negative_steps': negative_steps,
+            'num_pairs': len(positive_pairs) + len(list(negative_pairs or [])),
+            'steps': self.specialist_steps.get(specialist_name, 0),
         }
+
+    @staticmethod
+    def _pad_or_truncate(embedding: np.ndarray, dims: int) -> np.ndarray:
+        if embedding.shape[0] != dims:
+            embedding = np.pad(embedding, (0, max(0, dims - len(embedding))))[:dims]
+        return embedding
+
+    @staticmethod
+    def _apply_adapter_gradient(adapter: Any, gradient: np.ndarray, lr: float) -> None:
+        if (
+            hasattr(adapter, 'config')
+            and bool(getattr(adapter.config, 'require_gpu', True)) is False
+            and hasattr(adapter, '_apply_gradient_cpu')
+        ):
+            adapter._apply_gradient_cpu(gradient, lr)
+        elif hasattr(adapter, 'apply_gradient'):
+            adapter.apply_gradient(gradient, lr=lr)
+        elif hasattr(adapter, 'A') and hasattr(adapter, 'B'):
+            grad_A = gradient @ adapter.B.T
+            grad_B = adapter.A.T @ gradient
+            adapter.A -= lr * grad_A
+            adapter.B -= lr * grad_B
 
     def _validate_and_commit_base(self, eval_fn: Callable[[np.ndarray, List], float]) -> bool:
         """

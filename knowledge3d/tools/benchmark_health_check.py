@@ -12,6 +12,7 @@ from benchmarks.math_competitions import MathCompetitionBenchmark, UnifiedMathBe
 
 HealthQueryFn = Callable[[dict[str, Any]], Any]
 BenchmarkProgressFn = Callable[[dict[str, Any]], None]
+BenchmarkRowFn = Callable[[dict[str, Any], dict[str, Any]], None]
 
 
 def _canonical_suite_name(name: str) -> str:
@@ -216,107 +217,203 @@ def _default_progress_every(suite: str, count: int) -> int:
     return 10
 
 
+def _iter_session_rows(log_path: str | Path, *, session_id: str, suite: str | None = None) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    path = Path(log_path)
+    if not path.exists():
+        return rows
+    with path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            if not line.strip():
+                continue
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if str(row.get("session_id") or "").strip() != str(session_id).strip():
+                continue
+            if suite is not None and str(row.get("suite") or "").strip() != str(suite).strip():
+                continue
+            rows.append(row)
+    return rows
+
+
+def _count_session_rows(log_path: str | Path, *, session_id: str, suite: str) -> int:
+    return len(_iter_session_rows(log_path, session_id=session_id, suite=suite))
+
+
+def _count_session_correct(log_path: str | Path, *, session_id: str, suite: str) -> int:
+    return sum(1 for row in _iter_session_rows(log_path, session_id=session_id, suite=suite) if bool(row.get("correct")))
+
+
+def _append_row_incremental(log_path: str | Path, row: dict[str, Any], *, session_id: str | None = None) -> dict[str, Any]:
+    payload = dict(row)
+    if session_id:
+        payload["session_id"] = str(session_id)
+    if "timestamp" not in payload:
+        payload["timestamp"] = time.time()
+    path = Path(log_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n")
+    return payload
+
+
 def _run_suite_via_benchmark(
     suite: str,
     count: int,
     knowledgeverse: Any | None = None,
     *,
     progress_fn: BenchmarkProgressFn | None = None,
+    log_path: str | Path | None = None,
+    session_id: str | None = None,
+    resume_count: int = 0,
+    initial_correct: int = 0,
 ) -> list[dict[str, Any]]:
     canonical = _canonical_suite_name(suite)
     progress_every = _default_progress_every(canonical, count)
+    results: list[dict[str, Any]] = []
     if canonical == "gsm8k":
         bench = UnifiedMathBenchmark(
             knowledgeverse=knowledgeverse,
             max_gsm8k_questions=count,
             source_filter=["gsm8k"],
         )
-        bench.run_benchmark(use_enriched=True, progress_cb=progress_fn, progress_every=progress_every)
-        return [
-            {
+        def _row_cb(source: dict[str, Any], row: dict[str, Any]) -> None:
+            payload = {
                 "question_id": row["problem_id"],
                 "suite": canonical,
                 "question": source["problem_text"],
                 "answer": row.get("predicted_answer"),
                 "expected": source["answer"],
                 "correct": bool(row.get("correct", False)),
-                "elapsed_s": 0.0,
+                "elapsed_s": float(row.get("elapsed_s") or 0.0),
                 "timestamp": time.time(),
             }
-            for source, row in zip(bench.problems, bench.results)
-        ]
+            stored = _append_row_incremental(log_path, payload, session_id=session_id) if log_path else payload
+            results.append(stored)
+
+        bench.run_benchmark(
+            use_enriched=True,
+            progress_cb=progress_fn,
+            progress_every=progress_every,
+            row_cb=_row_cb,
+            start_index=resume_count,
+            initial_correct=initial_correct,
+            initial_source_completed={"gsm8k": resume_count},
+            initial_source_correct={"gsm8k": initial_correct},
+        )
+        return results
     if canonical == "math":
         from benchmarks.math_competitions import MathCompetitionBenchmark
 
         bench = MathCompetitionBenchmark(knowledgeverse=knowledgeverse, max_problems=count)
-        bench.run_benchmark(use_enriched=True, progress_cb=progress_fn, progress_every=progress_every)
-        return [
-            {
+        def _row_cb(source: dict[str, Any], row: dict[str, Any]) -> None:
+            payload = {
                 "question_id": row["problem_id"],
                 "suite": canonical,
                 "question": source["problem_text"],
                 "answer": row.get("predicted_answer"),
                 "expected": source["answer"],
                 "correct": bool(row.get("correct", False)),
-                "elapsed_s": 0.0,
+                "elapsed_s": float(row.get("elapsed_s") or 0.0),
                 "timestamp": time.time(),
             }
-            for source, row in zip(bench.problems, bench.results)
-        ]
+            stored = _append_row_incremental(log_path, payload, session_id=session_id) if log_path else payload
+            results.append(stored)
+
+        bench.run_benchmark(
+            use_enriched=True,
+            progress_cb=progress_fn,
+            progress_every=progress_every,
+            row_cb=_row_cb,
+            start_index=resume_count,
+            initial_correct=initial_correct,
+            initial_source_completed={"math": resume_count},
+            initial_source_correct={"math": initial_correct},
+        )
+        return results
     if canonical == "lhe":
         from benchmarks.last_humanity_exam import LastHumanityExamBenchmark
 
         bench = LastHumanityExamBenchmark(knowledgeverse=knowledgeverse, max_questions=count)
-        bench.run_benchmark(use_enriched=True, progress_cb=progress_fn, progress_every=progress_every)
-        return [
-            {
+        def _row_cb(source: dict[str, Any], row: dict[str, Any]) -> None:
+            payload = {
                 "question_id": row.get("question_id", row.get("id", source["id"])),
                 "suite": canonical,
                 "question": source["question_text"],
                 "answer": row.get("predicted_answer"),
                 "expected": source["correct_answer"],
                 "correct": bool(row.get("correct", False)),
-                "elapsed_s": 0.0,
+                "elapsed_s": float(row.get("elapsed_s") or 0.0),
                 "timestamp": time.time(),
             }
-            for source, row in zip(bench.questions, bench.results)
-        ]
+            stored = _append_row_incremental(log_path, payload, session_id=session_id) if log_path else payload
+            results.append(stored)
+
+        bench.run_benchmark(
+            use_enriched=True,
+            progress_cb=progress_fn,
+            progress_every=progress_every,
+            row_cb=_row_cb,
+            start_index=resume_count,
+            initial_correct=initial_correct,
+        )
+        return results
     if canonical == "mmlu":
         from benchmarks.mmlu import MMLUBenchmark
 
         bench = MMLUBenchmark(knowledgeverse=knowledgeverse, max_questions=count)
-        bench.run_benchmark(use_enriched=True, progress_cb=progress_fn, progress_every=progress_every)
-        return [
-            {
+        def _row_cb(source: dict[str, Any], row: dict[str, Any]) -> None:
+            payload = {
                 "question_id": row["id"],
                 "suite": canonical,
                 "question": source["question_text"],
                 "answer": row.get("predicted_answer"),
                 "expected": source.get("correct_letter") or source["correct_answer"],
                 "correct": bool(row.get("correct", False)),
-                "elapsed_s": 0.0,
+                "elapsed_s": float(row.get("elapsed_s") or 0.0),
                 "subject": source.get("subject"),
                 "timestamp": time.time(),
             }
-            for source, row in zip(bench.questions, bench.results)
-        ]
+            stored = _append_row_incremental(log_path, payload, session_id=session_id) if log_path else payload
+            results.append(stored)
+
+        bench.run_benchmark(
+            use_enriched=True,
+            progress_cb=progress_fn,
+            progress_every=progress_every,
+            row_cb=_row_cb,
+            start_index=resume_count,
+            initial_correct=initial_correct,
+        )
+        return results
     from benchmarks.arc_agi_2 import ARCAGI2Benchmark
 
     bench = ARCAGI2Benchmark(knowledgeverse=knowledgeverse, max_tasks=count)
-    bench.run_benchmark(use_enriched=True, progress_cb=progress_fn, progress_every=progress_every)
-    return [
-        {
+    def _row_cb(source: dict[str, Any], row: dict[str, Any]) -> None:
+        payload = {
             "question_id": row["task_id"],
             "suite": canonical,
             "question": f"ARC task {source['id']}",
             "answer": row.get("predicted"),
             "expected": source["test"][0].get("output"),
             "correct": bool(row.get("correct", False)),
-            "elapsed_s": 0.0,
+            "elapsed_s": float(row.get("elapsed_s") or 0.0),
             "timestamp": time.time(),
         }
-        for source, row in zip(bench.tasks, bench.results)
-    ]
+        stored = _append_row_incremental(log_path, payload, session_id=session_id) if log_path else payload
+        results.append(stored)
+
+    bench.run_benchmark(
+        use_enriched=True,
+        progress_cb=progress_fn,
+        progress_every=progress_every,
+        row_cb=_row_cb,
+        start_index=resume_count,
+        initial_correct=initial_correct,
+    )
+    return results
 
 
 def run_health_check(
@@ -331,16 +428,27 @@ def run_health_check(
 ) -> dict[str, Any]:
     """Run a health check and append the resulting log rows."""
     canonical = _canonical_suite_name(suite)
+    existing_rows = (
+        _iter_session_rows(log_path, session_id=session_id, suite=canonical)
+        if session_id
+        else []
+    )
+    resume_count = len(existing_rows)
+    initial_correct = sum(1 for row in existing_rows if bool(row.get("correct")))
     if query_fn is None:
-        results = _run_suite_via_benchmark(
+        new_results = _run_suite_via_benchmark(
             canonical,
             count,
             knowledgeverse=knowledgeverse,
             progress_fn=progress_fn,
+            log_path=log_path,
+            session_id=session_id,
+            resume_count=resume_count,
+            initial_correct=initial_correct,
         )
     else:
-        results = []
-        for row in load_questions(canonical, count):
+        new_results = []
+        for row in load_questions(canonical, count)[resume_count:]:
             start = time.monotonic()
             response = query_fn(dict(row))
             elapsed = time.monotonic() - start
@@ -358,34 +466,29 @@ def run_health_check(
             else:
                 answer = response
                 correct = evaluate_answer(canonical, answer, row["expected"])
-            results.append(
-                {
-                    "question_id": row["id"],
-                    "suite": canonical,
-                    "question": row["question"],
-                    "answer": answer,
-                    "expected": row["expected"],
-                    "correct": bool(correct),
-                    "elapsed_s": round(float(elapsed), 3),
-                    "timestamp": time.time(),
-                    "subject": row.get("payload", {}).get("subject"),
-                    **extras,
-                }
-            )
-
-    for result in results:
-        if session_id:
-            result["session_id"] = str(session_id)
-        if canonical == "mmlu" and "subject" not in result:
-            result["subject"] = None
-
-    path = Path(log_path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as handle:
-        for result in results:
-            handle.write(json.dumps(result, ensure_ascii=False, sort_keys=True) + "\n")
-
+            payload = {
+                "question_id": row["id"],
+                "suite": canonical,
+                "question": row["question"],
+                "answer": answer,
+                "expected": row["expected"],
+                "correct": bool(correct),
+                "elapsed_s": round(float(elapsed), 3),
+                "timestamp": time.time(),
+                "subject": row.get("payload", {}).get("subject"),
+                **extras,
+            }
+            if canonical == "mmlu" and "subject" not in payload:
+                payload["subject"] = None
+            stored = _append_row_incremental(log_path, payload, session_id=session_id)
+            new_results.append(stored)
+    results = (
+        _iter_session_rows(log_path, session_id=session_id, suite=canonical)
+        if session_id
+        else new_results
+    )
     correct_count = sum(1 for row in results if row["correct"])
+    path = Path(log_path)
     return {
         "suite": canonical,
         "total": len(results),

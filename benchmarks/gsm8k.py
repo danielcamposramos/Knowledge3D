@@ -55,11 +55,21 @@ class GSM8KBenchmark:
         *,
         progress_cb: Callable[[dict[str, Any]], None] | None = None,
         progress_every: int | None = None,
+        row_cb: Callable[[dict[str, Any], dict[str, Any]], None] | None = None,
+        start_index: int = 0,
+        initial_correct: int = 0,
+        initial_source_completed: dict[str, int] | None = None,
+        initial_source_correct: dict[str, int] | None = None,
     ) -> dict[str, Any]:
         summary = self._bench.run_benchmark(
             use_enriched=use_enriched,
             progress_cb=progress_cb,
             progress_every=progress_every,
+            row_cb=row_cb,
+            start_index=start_index,
+            initial_correct=initial_correct,
+            initial_source_completed=initial_source_completed,
+            initial_source_correct=initial_source_correct,
         )
         self.questions = [
             {

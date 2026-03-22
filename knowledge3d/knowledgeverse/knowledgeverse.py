@@ -8,6 +8,7 @@ import json
 import math
 import os
 from pathlib import Path
+import pickle
 import re
 import time
 from typing import Any
@@ -15,10 +16,19 @@ import zlib
 
 import numpy as np
 
+from knowledge3d.cranium.adaptive_swarm import AdaptiveSwarmTRM, SwarmConfig
 from knowledge3d.cranium.bridges.matryoshka_bridge import MatryoshkaProjectionBridge
 from knowledge3d.cranium.bridges.trigram_embed_bridge import TrigramEmbedBridge
 from knowledge3d.cranium.rpn_embedding_engine import RPNEmbeddingEngine
-from knowledge3d.cranium.sovereign.loader import gpu_malloc, launch, memcpy_dtoh, memcpy_htod, synchronize
+from knowledge3d.cranium.sovereign.loader import (
+    get_vram_usage,
+    gpu_malloc,
+    launch,
+    memcpy_dtoh,
+    memcpy_htod,
+    synchronize,
+)
+from knowledge3d.gpu.perf_counters import gpu_utilisation
 from knowledge3d.cranium.sovereign.trm_launcher import TRMLauncher
 from knowledge3d.training.trm_galaxy_nav import (
     DEFAULT_GALAXY_ORDER,
@@ -28,7 +38,7 @@ from knowledge3d.training.trm_galaxy_nav import (
 )
 
 from .foundational_galaxy_bootstrap import populate_always_on_foundational_galaxies
-from .galaxy_manager import GalaxyManager
+from .galaxy_manager import Galaxy, GalaxyManager
 from .query_head_substrate import DynamicLodDriverBridge, QueryHeadSubstrate, expand_embedding16_to128
 from .runtime_ingest import load_books_runtime_entries, load_language_runtime_entries
 from .semantic_csr_graph import load_or_build_semantic_csr_graph
@@ -49,6 +59,94 @@ class KnowledgeverseMetrics:
     gpu_bind_rebuilds: int = 0
     gpu_runtime_artifact_entries: int = 0
     runtime_language_entries: int = 0
+
+
+def _iter_grid_values(grid: list[list[int]] | Any) -> list[int]:
+    if not isinstance(grid, list):
+        return []
+    values: list[int] = []
+    for row in grid:
+        if not isinstance(row, list):
+            continue
+        for cell in row:
+            try:
+                values.append(int(cell))
+            except Exception:
+                continue
+    return values
+
+
+def _dominant_grid_color(grid: list[list[int]] | Any) -> int | None:
+    values = _iter_grid_values(grid)
+    if not values:
+        return None
+    counts: dict[int, int] = {}
+    for value in values:
+        counts[value] = int(counts.get(value, 0)) + 1
+    return max(counts.items(), key=lambda item: (item[1], -item[0]))[0]
+
+
+def _count_connected_components(grid: list[list[int]] | Any, background: int | None = None) -> int:
+    if not isinstance(grid, list) or not grid or not isinstance(grid[0], list) or not grid[0]:
+        return 0
+    rows = len(grid)
+    cols = len(grid[0])
+    bg = _dominant_grid_color(grid) if background is None else background
+    if bg is None:
+        return 0
+    visited = [[False for _ in range(cols)] for _ in range(rows)]
+    count = 0
+    for r in range(rows):
+        for c in range(cols):
+            try:
+                cell = int(grid[r][c])
+            except Exception:
+                cell = int(bg)
+            if visited[r][c] or cell == bg:
+                continue
+            stack = [(r, c)]
+            visited[r][c] = True
+            while stack:
+                cr, cc = stack.pop()
+                for nr, nc in ((cr + 1, cc), (cr - 1, cc), (cr, cc + 1), (cr, cc - 1)):
+                    if nr < 0 or nr >= rows or nc < 0 or nc >= cols:
+                        continue
+                    if visited[nr][nc]:
+                        continue
+                    try:
+                        neighbor = int(grid[nr][nc])
+                    except Exception:
+                        neighbor = int(bg)
+                    if neighbor == bg:
+                        continue
+                    visited[nr][nc] = True
+                    stack.append((nr, nc))
+            count += 1
+    return count
+
+
+def _grid_has_symmetry(grid: list[list[int]] | Any) -> bool:
+    if not isinstance(grid, list) or not grid or not isinstance(grid[0], list) or not grid[0]:
+        return False
+    rows = len(grid)
+    cols = len(grid[0])
+    horizontal = all(grid[r] == grid[rows - 1 - r] for r in range(rows // 2))
+    vertical = all(
+        grid[r][c] == grid[r][cols - 1 - c]
+        for r in range(rows)
+        for c in range(cols // 2)
+    )
+    diagonal = rows == cols and all(
+        grid[r][c] == grid[c][r]
+        for r in range(rows)
+        for c in range(cols)
+    )
+    anti_diagonal = rows == cols and all(
+        grid[r][c] == grid[rows - 1 - c][cols - 1 - r]
+        for r in range(rows)
+        for c in range(cols)
+    )
+    return bool(horizontal or vertical or diagonal or anti_diagonal)
 
 
 class Knowledgeverse:
@@ -152,6 +250,7 @@ class Knowledgeverse:
         "Word",
     )
     GPU_ARC_TARGET_GALAXIES: tuple[str, ...] = (
+        "Language",
         "Drawing",
         "Grammar",
         "Tool",
@@ -215,6 +314,15 @@ class Knowledgeverse:
     GPU_SOURCE_CLASS_FOUNDATIONAL = 0.0
     GPU_SOURCE_CLASS_BOOK_ARTIFACT = 1.0
     GPU_SOURCE_CLASS_RUNTIME_LANGUAGE = 2.0
+    HOUSE_STATE_VERSION = 1
+    JARVIS_STATE_VERSION = 1
+    ADAPTIVE_SWARM_SPECS: dict[str, tuple[int, int]] = {
+        "ocr": (64, 16),
+        "visual": (128, 16),
+        "math": (128, 16),
+        "grammar": (64, 16),
+        "chat": (64, 16),
+    }
 
     def __init__(
         self,
@@ -236,6 +344,19 @@ class Knowledgeverse:
         self.metrics = KnowledgeverseMetrics(ptx_fallback_rate=0.0)
         self.include_runtime_artifacts = bool(include_runtime_artifacts)
         self.include_runtime_language_enrichment = bool(include_runtime_language_enrichment)
+        self.house_state_path = self.storage_root / "house" / "galaxy_state.bin"
+        self._house_state_summary: dict[str, Any] = {}
+        self.jarvis_state_path = self.storage_root / "checkpoints" / "jarvis_state.json"
+        self.adaptive_swarm_checkpoint_dir = self.storage_root / "checkpoints" / "adaptive_swarm"
+        self._jarvis_recent_briefs: list[dict[str, Any]] = []
+        self._jarvis_state: dict[str, Any] = {
+            "version": int(self.JARVIS_STATE_VERSION),
+            "brief_count": 0,
+            "task_type_stats": {},
+            "worker_pair_success": {},
+            "dispatch_patterns": {},
+            "last_brief": {},
+        }
 
         galaxy_root = (
             Path(galaxy_storage_root)
@@ -315,6 +436,7 @@ class Knowledgeverse:
             index_path=audit_index,
             manifest_version=self.manifest_version,
         )
+        self.adaptive_swarm = self._initialize_adaptive_swarm()
         self.ternary_quality_memory = TernaryQualityMemory(
             state_path=self.storage_root / "checkpoints" / "ternary_quality_memory.json"
         )
@@ -328,6 +450,7 @@ class Knowledgeverse:
             knowledgeverse=self,
             journal_path=sleeptime_journal,
         )
+        self._load_jarvis_state()
         self._initialize_trm_launcher()
         self._load_trm_galaxy_decoder()
         self._default_galaxies_loaded = False
@@ -335,6 +458,260 @@ class Knowledgeverse:
             self.ensure_default_galaxies_loaded()
             if self._trm_navigation_env_enabled():
                 self._pin_all_default_gpu_binding()
+
+    def _initialize_adaptive_swarm(self) -> AdaptiveSwarmTRM:
+        swarm = AdaptiveSwarmTRM(
+            config=SwarmConfig(
+                base_dims=128,
+                min_dims=64,
+                base_learning_rate=0.001,
+                specialist_learning_rate=0.002,
+            )
+        )
+        for specialist_name, (dims, rank) in self.ADAPTIVE_SWARM_SPECS.items():
+            if specialist_name in swarm.base.specialists:
+                continue
+            swarm.register_specialist(specialist_name, required_dims=dims, rank=rank)
+        for specialist in swarm.base.specialists.values():
+            adapter = specialist.get("adapter") if isinstance(specialist, dict) else None
+            if adapter is not None and hasattr(adapter, "config"):
+                try:
+                    adapter.config.require_gpu = False
+                except Exception:
+                    pass
+        self._load_adaptive_swarm_state(swarm)
+        return swarm
+
+    def _load_adaptive_swarm_state(self, swarm: AdaptiveSwarmTRM | None = None) -> bool:
+        target_swarm = swarm or getattr(self, "adaptive_swarm", None)
+        if target_swarm is None:
+            return False
+        checkpoint_dir = Path(self.adaptive_swarm_checkpoint_dir)
+        if not checkpoint_dir.exists():
+            return False
+        try:
+            target_swarm.load_checkpoint(checkpoint_dir)
+        except Exception:
+            return False
+        return True
+
+    def _save_adaptive_swarm_state(self) -> dict[str, Any]:
+        swarm = getattr(self, "adaptive_swarm", None)
+        checkpoint_dir = Path(self.adaptive_swarm_checkpoint_dir)
+        checkpoint_dir.mkdir(parents=True, exist_ok=True)
+        if swarm is None:
+            return {
+                "path": str(checkpoint_dir),
+                "saved": False,
+                "reason": "no_swarm",
+            }
+        try:
+            swarm.save_checkpoint(checkpoint_dir)
+        except Exception as exc:
+            return {
+                "path": str(checkpoint_dir),
+                "saved": False,
+                "reason": str(exc),
+            }
+        return {
+            "path": str(checkpoint_dir),
+            "saved": True,
+            "specialists": sorted(swarm.base.specialists.keys()),
+        }
+
+    def _persistable_galaxy_entries(self) -> dict[str, list[dict[str, Any]]]:
+        persisted: dict[str, list[dict[str, Any]]] = {}
+        names: set[str] = set()
+        loaded_names = [str(name) for name in self.galaxy_manager._galaxies.keys()]
+        names.update(loaded_names)
+        loaded_safe_names = {self.galaxy_manager._galaxy_path(name).stem for name in loaded_names}
+        for path in self.galaxy_manager.storage_root.glob("*.jsonl"):
+            if path.stem not in loaded_safe_names:
+                names.add(path.stem)
+        for name in sorted(names):
+            galaxy = self.galaxy_manager._galaxies.get(name)
+            if galaxy is None:
+                persisted[name] = self.galaxy_manager._read_entries_from_disk(name)
+                continue
+            if isinstance(galaxy, Galaxy):
+                persisted[name] = [dict(entry) for entry in list(galaxy.entries)]
+                continue
+            extra_entries = getattr(galaxy, "_extra_entries", None)
+            if isinstance(extra_entries, list):
+                persisted[name] = [dict(entry) for entry in extra_entries if isinstance(entry, dict)]
+            else:
+                persisted[name] = self.galaxy_manager._read_entries_from_disk(name)
+        return persisted
+
+    def _house_state_payload(self) -> dict[str, Any]:
+        galaxies = self._persistable_galaxy_entries()
+        total_entries = sum(len(entries) for entries in galaxies.values())
+        math_entries = len(galaxies.get("Math", []))
+        payload = {
+            "version": self.HOUSE_STATE_VERSION,
+            "manifest_version": self.manifest_version,
+            "created_at": time.time(),
+            "galaxies": galaxies,
+            "galaxy_count": len(galaxies),
+            "total_persisted_entries": total_entries,
+            "math_entries": math_entries,
+        }
+        return payload
+
+    def house_state_summary(self) -> dict[str, Any]:
+        return dict(self._house_state_summary)
+
+    def _jarvis_entry(self) -> dict[str, Any]:
+        return {
+            "id": "specialist_jarvis_coordinator",
+            "name": "Jarvis Internal Coordinator",
+            "domain": "tool",
+            "category": "meta_specialist",
+            "layer": 4,
+            "content": "TRM internal secretary and swarm bridge.",
+            "summary": "Always-on Jarvis bridge for TRM-to-swarm coordination.",
+            "description": (
+                "TRM's internal secretary that organizes swarm worker output, "
+                "tracks agreements and contradictions, and returns a structured brief "
+                "to the main model."
+            ),
+            "rpn_program": "TRM_DISPATCH JARVIS_TRACK JARVIS_BRIEF",
+            "metadata": {
+                "bootstrap": "jarvis_house_resident_v1",
+                "always_active": True,
+                "role": "secretary_bridge",
+                "commanded_by": "trm_main_model",
+                "bridges_to": "nine_chain_swarm",
+                "tracks": ["math", "visual", "grammar", "chat", "arc_interactive"],
+                "responsibilities": [
+                    "receive_dispatch_from_trm",
+                    "distribute_work_to_swarm_workers",
+                    "track_all_worker_intermediate_output",
+                    "detect_cross_worker_contradictions",
+                    "organize_worker_results_for_trm",
+                    "present_full_picture_to_trm",
+                    "maintain_swarm_state_registry",
+                ],
+                "modalities": ["tool", "coordination", "meta"],
+                "keywords": ["jarvis", "coordinator", "swarm", "bridge", "secretary", "trm"],
+            },
+        }
+
+    def _ensure_jarvis_house_entry(self) -> None:
+        try:
+            self.galaxy_manager.upsert_entry("Tool", self._jarvis_entry())
+        except Exception:
+            return
+
+    def _load_jarvis_state(self) -> None:
+        path = self.jarvis_state_path
+        if not path.exists():
+            return
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            return
+        if not isinstance(payload, dict):
+            return
+        if int(payload.get("version") or -1) != int(self.JARVIS_STATE_VERSION):
+            return
+        self._jarvis_state = {
+            "version": int(payload.get("version") or self.JARVIS_STATE_VERSION),
+            "brief_count": int(payload.get("brief_count") or 0),
+            "task_type_stats": dict(payload.get("task_type_stats") or {}),
+            "worker_pair_success": dict(payload.get("worker_pair_success") or {}),
+            "dispatch_patterns": dict(payload.get("dispatch_patterns") or {}),
+            "last_brief": dict(payload.get("last_brief") or {}),
+        }
+
+    def _save_jarvis_state(self) -> None:
+        path = self.jarvis_state_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "version": int(self.JARVIS_STATE_VERSION),
+            "brief_count": int(self._jarvis_state.get("brief_count") or 0),
+            "task_type_stats": dict(self._jarvis_state.get("task_type_stats") or {}),
+            "worker_pair_success": dict(self._jarvis_state.get("worker_pair_success") or {}),
+            "dispatch_patterns": dict(self._jarvis_state.get("dispatch_patterns") or {}),
+            "last_brief": dict(self._jarvis_state.get("last_brief") or {}),
+            "updated_at": time.time(),
+        }
+        path.write_text(json.dumps(payload, indent=2, ensure_ascii=False, sort_keys=True), encoding="utf-8")
+
+    def save_house_state(self, path: str | Path | None = None) -> dict[str, Any]:
+        target = Path(path) if path is not None else self.house_state_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        payload = self._house_state_payload()
+        with target.open("wb") as handle:
+            pickle.dump(payload, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        self._save_jarvis_state()
+        adaptive_swarm_state = self._save_adaptive_swarm_state()
+        self._house_state_summary = {
+            "path": str(target),
+            "version": int(payload["version"]),
+            "galaxy_count": int(payload["galaxy_count"]),
+            "total_persisted_entries": int(payload["total_persisted_entries"]),
+            "math_entries": int(payload["math_entries"]),
+            "warm_boot": False,
+            "saved_at": float(payload["created_at"]),
+            "adaptive_swarm": adaptive_swarm_state,
+        }
+        return self.house_state_summary()
+
+    def load_house_state(self, path: str | Path | None = None) -> bool:
+        target = Path(path) if path is not None else self.house_state_path
+        if not target.exists():
+            return False
+        try:
+            with target.open("rb") as handle:
+                payload = pickle.load(handle)
+        except Exception:
+            return False
+        if not isinstance(payload, dict):
+            return False
+        if int(payload.get("version") or -1) != int(self.HOUSE_STATE_VERSION):
+            return False
+        galaxies = payload.get("galaxies")
+        if not isinstance(galaxies, dict):
+            return False
+
+        self.galaxy_manager.storage_root.mkdir(parents=True, exist_ok=True)
+        for path_obj in self.galaxy_manager.storage_root.glob("*.jsonl"):
+            path_obj.unlink()
+        for name, entries in galaxies.items():
+            if not isinstance(entries, list):
+                continue
+            path_obj = self.galaxy_manager._galaxy_path(str(name))
+            path_obj.parent.mkdir(parents=True, exist_ok=True)
+            with path_obj.open("w", encoding="utf-8") as handle:
+                for entry in entries:
+                    if not isinstance(entry, dict):
+                        continue
+                    handle.write(json.dumps(entry, separators=(",", ":"), sort_keys=True) + "\n")
+
+        self.galaxy_manager._galaxies.clear()
+        self.galaxy_manager._entry_text_cache.clear()
+        self.galaxy_manager._specialist_entry_cache.clear()
+        self.galaxy_manager._dirty_galaxies.clear()
+        self._runtime_language_enrichment_loaded = False
+        self._default_galaxies_loaded = False
+        self.invalidate_gpu_galaxy_binding()
+        self.ensure_default_galaxies_loaded(force=True)
+        self._load_jarvis_state()
+        self._load_adaptive_swarm_state()
+        self._house_state_summary = {
+            "path": str(target),
+            "version": int(payload["version"]),
+            "galaxy_count": int(payload.get("galaxy_count") or len(galaxies)),
+            "total_persisted_entries": int(
+                payload.get("total_persisted_entries")
+                or sum(len(entries) for entries in galaxies.values() if isinstance(entries, list))
+            ),
+            "math_entries": int(payload.get("math_entries") or len(galaxies.get("Math", []))),
+            "warm_boot": True,
+            "loaded_at": time.time(),
+        }
+        return True
 
     @staticmethod
     def _trm_navigation_env_enabled() -> bool:
@@ -1501,12 +1878,142 @@ class Knowledgeverse:
             dims[lane] += ((ord(ch) & 31) - 15.0) / 15.0
         return self._normalize_embedding(dims)
 
-    def _arc_task_embedding16(self, task_id: str) -> list[float]:
-        dims = [0.0] * 16
-        for idx, ch in enumerate(f"ARC_TASK::{task_id}"):
-            lane = idx & 15
-            dims[lane] += ((ord(ch) * (idx + 3)) % 29 - 14.0) / 14.0
-        return self._normalize_embedding(dims)
+    @staticmethod
+    def _task_specialist_name(task: dict[str, Any] | None) -> str:
+        payload = dict(task or {})
+        task_type = str(payload.get("type", "")).strip().upper()
+        if task_type == "ARC_TASK":
+            return "visual"
+        if task_type == "LHE_TASK":
+            return "grammar"
+        if task_type == "MMLU_TASK":
+            return "chat"
+        if task_type == "MATH_TASK":
+            return "math"
+        return "chat"
+
+    def _apply_specialist_embedding_adapter(
+        self,
+        embedding16: list[float],
+        *,
+        specialist_name: str,
+    ) -> list[float]:
+        if not embedding16:
+            return []
+        swarm = getattr(self, "adaptive_swarm", None)
+        if swarm is None or specialist_name not in swarm.base.specialists:
+            return self._normalize_embedding(list(embedding16))
+        if int(getattr(swarm, "specialist_steps", {}).get(specialist_name, 0) or 0) <= 0:
+            return self._normalize_embedding(list(embedding16))
+        try:
+            output = swarm.compute_with_specialist(
+                np.asarray(list(embedding16), dtype=np.float32),
+                specialist_name,
+            )
+        except Exception:
+            return self._normalize_embedding(list(embedding16))
+        try:
+            projected = [float(output[i]) for i in range(min(16, len(output)))]
+        except Exception:
+            projected = [float(value) for value in list(embedding16)[:16]]
+        return self._normalize_embedding(projected)
+
+    def _arc_visual_feature_text(self, task: dict[str, Any] | None) -> str:
+        payload = dict(task or {})
+        fragments: list[str] = []
+        training = payload.get("training_examples")
+        if not isinstance(training, list):
+            training = []
+        pairs = list(training[:3])
+        input_grid = payload.get("input_grid")
+        if isinstance(input_grid, list):
+            pairs.append({"input": input_grid, "output": input_grid})
+
+        for pair in pairs:
+            if not isinstance(pair, dict):
+                continue
+            inp = pair.get("input")
+            out = pair.get("output")
+            if not isinstance(inp, list) or not inp:
+                continue
+            inp_rows = len(inp)
+            inp_cols = len(inp[0]) if inp_rows and isinstance(inp[0], list) else 0
+            out_rows = len(out) if isinstance(out, list) else 0
+            out_cols = len(out[0]) if out_rows and isinstance(out[0], list) else 0
+            if inp_rows and inp_cols:
+                fragments.append(f"grid {inp_rows}x{inp_cols}")
+            if out_rows and out_cols:
+                fragments.append(f"output grid {out_rows}x{out_cols}")
+            if out_rows and out_cols:
+                if (out_rows, out_cols) == (inp_rows, inp_cols):
+                    fragments.append("same size transform pattern")
+                elif out_rows > inp_rows or out_cols > inp_cols:
+                    fragments.append("scale expand tile repeat fill larger")
+                elif out_rows < inp_rows or out_cols < inp_cols:
+                    fragments.append("crop extract subgrid smaller")
+
+            inp_values = _iter_grid_values(inp)
+            out_values = _iter_grid_values(out) if isinstance(out, list) else []
+            inp_colors = set(inp_values)
+            out_colors = set(out_values)
+            if inp_colors:
+                if len(inp_colors) <= 3:
+                    fragments.append("simple few colors palette")
+                elif len(inp_colors) >= 6:
+                    fragments.append("complex many colors palette")
+            if out_colors and out_colors != inp_colors:
+                fragments.append("color remap substitution pattern change")
+            if out_colors - inp_colors:
+                fragments.append("new colors target highlight")
+            if inp_colors - out_colors:
+                fragments.append("color removal filter background foreground")
+            if 0 in inp_colors:
+                fragments.append("background color foreground objects separate active cells")
+
+            background = _dominant_grid_color(inp)
+            object_count = _count_connected_components(inp, background)
+            if object_count >= 3:
+                fragments.append("find objects connected regions discrete shapes separate groups")
+                fragments.append("multiple objects detect separate groups regions")
+            elif object_count == 2:
+                fragments.append("find objects connected regions separate groups")
+                fragments.append("two objects pair relationship alignment")
+            elif object_count == 1:
+                fragments.append("find object connected region shape")
+                fragments.append("single object transform shape")
+            if object_count:
+                fragments.append("object bounding box crop around shape")
+
+            if _grid_has_symmetry(inp):
+                fragments.append("rotate mirror transform reflect symmetry")
+                fragments.append("symmetry mirror reflect axis")
+            if inp_rows == inp_cols and inp_rows > 0:
+                fragments.append("square grid")
+            if inp_rows <= 5 and inp_cols <= 5:
+                fragments.append("small grid pattern")
+            elif inp_rows >= 15 or inp_cols >= 15:
+                fragments.append("large grid spatial")
+
+            if isinstance(out, list) and out:
+                if _grid_has_symmetry(out):
+                    fragments.append("symmetry mirror reflect output")
+                if inp_values and out_values:
+                    if len(out_values) > len(inp_values):
+                        fragments.append("paint fill extend region")
+                    elif len(out_values) < len(inp_values):
+                        fragments.append("extract isolate object")
+                if inp == out:
+                    fragments.append("identity same size transform")
+                if inp_rows == out_cols and inp_cols == out_rows:
+                    fragments.append("rotate transpose dimension swap")
+                if inp == [row[::-1] for row in out]:
+                    fragments.append("mirror horizontal reflect")
+                if inp == out[::-1]:
+                    fragments.append("mirror vertical reflect")
+                if inp_rows == out_rows and inp_cols == out_cols and inp != out:
+                    fragments.append("grid overlay concatenate interleave difference")
+
+        return " ".join(dict.fromkeys(fragment.strip() for fragment in fragments if str(fragment).strip()))
 
     def _entry_embedding_text(self, entry: dict[str, Any]) -> str:
         metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
@@ -1578,20 +2085,18 @@ class Knowledgeverse:
         payload = dict(task or {})
         task_type = str(payload.get("type", "")).upper()
         if task_type == "ARC_TASK":
-            task_id = str(payload.get("task_id", "")).strip()
-            fragments: list[str] = [
-                f"ARC_TASK {task_id} solve arc transformation task"
-                if task_id
-                else "solve arc transformation task"
-            ]
+            fragments: list[str] = ["visual transformation task"]
             training_examples = payload.get("training_examples")
-            if isinstance(training_examples, list):
-                fragments.append(f"train_pairs {len(training_examples)}")
+            visual_features = self._arc_visual_feature_text(payload)
+            if visual_features:
+                fragments.append(visual_features)
+            if isinstance(training_examples, list) and training_examples:
+                fragments.append(f"examples {len(training_examples)}")
             input_grid = payload.get("input_grid")
             if isinstance(input_grid, list):
                 rows = len(input_grid)
                 cols = len(input_grid[0]) if rows and isinstance(input_grid[0], list) else 0
-                fragments.append(f"input_shape {rows}x{cols}")
+                fragments.append(f"grid {rows}x{cols}")
             if str(prompt or "").strip():
                 fragments.append(str(prompt).strip())
             return " ".join(fragment for fragment in fragments if fragment).strip()
@@ -2418,13 +2923,15 @@ class Knowledgeverse:
         )
 
     def _embed_query_gpu(self, query_text: str, *, task: dict[str, Any] | None = None) -> list[float]:
-        if str((task or {}).get("type", "")).upper() == "ARC_TASK":
-            task_id = str((task or {}).get("task_id", "")).strip()
-            if task_id:
-                return self._arc_task_embedding16(task_id)
         engine = self.get_gpu_query_embedding_engine()
-        values = engine.embed_sentence_gpu(query_text)
-        return [float(values[i]) for i in range(min(16, len(values)))]
+        embedding_text = str(query_text or "").strip()
+        values = engine.embed_sentence_gpu(embedding_text)
+        embedding16 = [float(values[i]) for i in range(min(16, len(values)))]
+        specialist_name = self._task_specialist_name(task)
+        return self._apply_specialist_embedding_adapter(
+            embedding16,
+            specialist_name=specialist_name,
+        )
 
     @staticmethod
     def _format_similarity(value: float | None) -> str:
@@ -5420,8 +5927,9 @@ class Knowledgeverse:
         for galaxy_name in self.DEFAULT_GALAXIES:
             galaxy = self.galaxy_manager.get_galaxy(galaxy_name)
             counts[galaxy_name] = len(getattr(galaxy, "entries", []))
+        self._ensure_jarvis_house_entry()
         self._ensure_runtime_language_enrichment_loaded()
-        for galaxy_name in ("Word", "Grammar"):
+        for galaxy_name in ("Word", "Grammar", "Tool"):
             counts[galaxy_name] = len(self.galaxy_manager.get_galaxy(galaxy_name).entries)
         self._default_galaxies_loaded = True
         return counts
@@ -6650,6 +7158,44 @@ class Knowledgeverse:
         for entry in bootstrap_entries:
             _append_candidate(dict(entry), galaxy_name="Math")
 
+        candidates.sort(key=lambda item: (item[0], item[1]), reverse=True)
+        return [candidate for _, _, candidate in candidates]
+
+    def _arc_exact_task_navigation_candidates(
+        self,
+        *,
+        task: dict[str, Any] | None,
+        reference_embedding: list[float],
+    ) -> list[dict[str, Any]]:
+        payload = dict(task or {})
+        task_id = str(payload.get("task_id", "")).strip()
+        if not task_id:
+            return []
+        candidates: list[tuple[int, float, dict[str, Any]]] = []
+        for entry in self.get_gpu_galaxy_catalog():
+            if str(entry.get("galaxy", "")).strip() != "Drawing":
+                continue
+            if str(entry.get("category", "")).strip().lower() != "arc_benchmark_curriculum":
+                continue
+            if str(entry.get("arc_task_id", "")).strip() != task_id:
+                continue
+            embedding = list(entry.get("embedding16", []))
+            similarity = self._embedding_similarity(reference_embedding, embedding) if embedding else 0.0
+            candidates.append(
+                (
+                    6,
+                    float(similarity),
+                    {
+                        "match": dict(entry),
+                        "similarity": float(similarity),
+                        "lod_saliency": float(similarity),
+                        "lod_level": 2,
+                        "lod_focus": 1.0,
+                        "led_focus": 1.0,
+                        "led_path": [str(entry.get("id", "")).strip()],
+                    },
+                )
+            )
         candidates.sort(key=lambda item: (item[0], item[1]), reverse=True)
         return [candidate for _, _, candidate in candidates]
 
@@ -8442,6 +8988,57 @@ class Knowledgeverse:
             adjacency[int(global_index)] = neighbors
         return adjacency
 
+    def _build_candidate_graph_edges(
+        self,
+        candidates: list[dict[str, Any]],
+        *,
+        similarity_threshold: float = 0.3,
+        max_neighbors: int = 6,
+    ) -> None:
+        if len(candidates) < 2:
+            return
+        embeddings = self._pad_embedding_rows(
+            [
+                list(
+                    (
+                        candidate.get("match")
+                        if isinstance(candidate.get("match"), dict)
+                        else {}
+                    ).get("embedding16", [])
+                )
+                for candidate in candidates
+            ]
+        )
+        if not embeddings or len(embeddings) != len(candidates):
+            return
+        similarity_matrix = self._embedding_similarity_matrix(embeddings, embeddings)
+        for idx, candidate in enumerate(candidates):
+            existing = [
+                int(value)
+                for value in list(candidate.get("graph_neighbors", []))
+                if isinstance(value, (int, np.integer)) or str(value).strip().lstrip("-").isdigit()
+            ]
+            scored_neighbors: list[tuple[float, int]] = []
+            for other_idx, other in enumerate(candidates):
+                if idx == other_idx:
+                    continue
+                try:
+                    similarity = float(similarity_matrix[idx][other_idx])
+                except Exception:
+                    similarity = 0.0
+                if not math.isfinite(similarity) or similarity < float(similarity_threshold):
+                    continue
+                neighbor_global = int(other.get("candidate_global_idx", other_idx))
+                scored_neighbors.append((similarity, neighbor_global))
+            scored_neighbors.sort(key=lambda item: item[0], reverse=True)
+            merged: list[int] = []
+            for neighbor_global in existing + [neighbor for _, neighbor in scored_neighbors[: max_neighbors]]:
+                token = int(neighbor_global)
+                if token == int(candidate.get("candidate_global_idx", idx)) or token in merged:
+                    continue
+                merged.append(token)
+            candidate["graph_neighbors"] = merged
+
     def _build_semantic_knn_adjacency(
         self,
         resonated_rows: list[list[float]],
@@ -9066,6 +9663,18 @@ class Knowledgeverse:
                     "graph_neighbors": list(candidate_adjacency.get(int(candidate_index), [])),
                 }
             )
+        if task_type == "LHE_TASK":
+            self._build_candidate_graph_edges(
+                candidates,
+                similarity_threshold=0.2,
+                max_neighbors=8,
+            )
+        elif task_type in {"ARC_TASK", "MATH_TASK", "MMLU_TASK"}:
+            self._build_candidate_graph_edges(
+                candidates,
+                similarity_threshold=0.3,
+                max_neighbors=4,
+            )
         candidates.sort(
             key=lambda candidate: (
                 float(candidate.get("led_focus", 0.0)),
@@ -9134,6 +9743,268 @@ class Knowledgeverse:
             )
         )
         return [1.0 + blended_weights[idx % len(blended_weights)] for idx, _ in enumerate(paths)]
+
+    def _jarvis_gpu_utilization(self) -> float:
+        try:
+            return float(gpu_utilisation(default=0.05))
+        except Exception:
+            return 0.05
+
+    def _jarvis_vram_free_bytes(self) -> int:
+        try:
+            used, total = get_vram_usage()
+            free = max(0, int(total) - int(used))
+            return free
+        except Exception:
+            return 4 * 1024 * 1024 * 1024
+
+    def _estimate_swarm_vram_cost(self) -> int:
+        return 128 * 1024 * 1024
+
+    def _jarvis_task_complexity(
+        self,
+        *,
+        task_type: str,
+        paths: list[dict[str, Any]],
+        options: list[str] | None,
+    ) -> float:
+        base = {
+            "ARC_TASK": 0.9,
+            "MATH_TASK": 0.75,
+            "LHE_TASK": 0.8,
+            "MMLU_TASK": 0.55,
+            "CHAT_TASK": 0.3,
+            "GENERAL_TASK": 0.35,
+        }.get(str(task_type).strip().upper(), 0.4)
+        option_factor = min(0.2, 0.03 * float(len(options or [])))
+        path_factor = min(0.25, 0.015 * float(len(paths)))
+        return max(0.1, min(1.0, base + option_factor + path_factor))
+
+    def _jarvis_determine_swarm_count(self, task_complexity: float) -> int:
+        gpu_utilization = self._jarvis_gpu_utilization()
+        vram_available = self._jarvis_vram_free_bytes()
+        per_swarm_vram = max(1, int(self._estimate_swarm_vram_cost()))
+        max_by_vram = max(1, int(vram_available / per_swarm_vram))
+        max_by_compute = max(1, int((1.0 - max(0.0, min(1.0, gpu_utilization))) / 0.10))
+        desired = max(1, int(round(max(0.1, float(task_complexity)) * 5.0)))
+        return max(1, min(desired, max_by_vram, max_by_compute))
+
+    @staticmethod
+    def _jarvis_record_key(record: dict[str, Any]) -> str:
+        option_text = str(record.get("option_text", "")).strip()
+        if option_text:
+            return option_text
+        candidate = record.get("candidate") if isinstance(record.get("candidate"), dict) else {}
+        preview_answer = str(candidate.get("gsm8k_preview_answer", "")).strip()
+        if preview_answer:
+            return preview_answer
+        match = candidate.get("match") if isinstance(candidate.get("match"), dict) else {}
+        return str(match.get("id", "")).strip()
+
+    def _jarvis_compile_brief(
+        self,
+        *,
+        task_type: str,
+        paths: list[dict[str, Any]],
+        options: list[str] | None,
+        path_best_records: list[dict[str, Any]],
+        selected_records: list[dict[str, Any]],
+        scored_candidates: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        task_complexity = self._jarvis_task_complexity(task_type=task_type, paths=paths, options=options)
+        planned_groups = self._jarvis_determine_swarm_count(task_complexity)
+        workers: dict[str, dict[str, Any]] = {}
+        swarm_groups: dict[str, list[str]] = {}
+        groups: dict[str, list[str]] = {}
+        for idx, record in enumerate(path_best_records[:18]):
+            swarm_group_index = (idx // 9) + 1
+            worker_slot = (idx % 9) + 1
+            swarm_group_id = f"g{swarm_group_index}"
+            worker_id = f"{swarm_group_id}.w{worker_slot}"
+            candidate = record.get("candidate") if isinstance(record.get("candidate"), dict) else {}
+            match = candidate.get("match") if isinstance(candidate.get("match"), dict) else {}
+            confidence = float(candidate.get("path_score", record.get("path_score", 0.0)) or 0.0)
+            result_key = self._jarvis_record_key(record)
+            worker_payload = {
+                "status": "completed",
+                "result": result_key,
+                "confidence": confidence,
+                "reasoning_trace": list(candidate.get("led_path", []) or []),
+                "partial_progress": [
+                    str(record.get("path_role", "")).strip() or "path",
+                    str((candidate.get("program") or {}).get("id", "")).strip(),
+                ],
+                "path_role": str(record.get("path_role", "")).strip(),
+                "option_text": str(record.get("option_text", "")).strip(),
+                "match_id": str(match.get("id", "")).strip(),
+                "galaxy": str(match.get("galaxy", "")).strip(),
+                "swarm_group": swarm_group_id,
+            }
+            workers[worker_id] = worker_payload
+            swarm_groups.setdefault(swarm_group_id, []).append(worker_id)
+            groups.setdefault(result_key or f"worker_{idx + 1}", []).append(worker_id)
+
+        agreements = [tuple(worker_ids) for worker_ids in groups.values() if len(worker_ids) >= 2]
+        contradictions: list[tuple[str, str]] = []
+        ranked_workers = sorted(
+            workers.items(),
+            key=lambda item: float(item[1].get("confidence", 0.0)),
+            reverse=True,
+        )
+        if len(ranked_workers) >= 2:
+            top_key = str(ranked_workers[0][1].get("result", "")).strip()
+            for other_id, other in ranked_workers[1:4]:
+                other_key = str(other.get("result", "")).strip()
+                if other_key and top_key and other_key != top_key:
+                    contradictions.append((ranked_workers[0][0], other_id))
+
+        cross_connections: list[dict[str, str]] = []
+        by_role: dict[str, list[str]] = {}
+        for worker_id, payload in workers.items():
+            role = str(payload.get("path_role", "")).strip()
+            if role:
+                by_role.setdefault(role, []).append(worker_id)
+        if "hypothesis" in by_role and "validation" in by_role:
+            cross_connections.append(
+                {
+                    "workers": f"{by_role['hypothesis'][0]} + {by_role['validation'][0]}",
+                    "hint": "combine hypothesis and validation traces",
+                }
+            )
+
+        highest_confidence = ranked_workers[0][0] if ranked_workers else ""
+        novel_partial = ""
+        if ranked_workers:
+            top_result = str(ranked_workers[0][1].get("result", "")).strip()
+            for worker_id, payload in ranked_workers[1:]:
+                if str(payload.get("result", "")).strip() != top_result:
+                    novel_partial = worker_id
+                    break
+
+        return {
+            "workers": workers,
+            "swarm_groups": swarm_groups,
+            "agreements": agreements,
+            "contradictions": contradictions,
+            "highest_confidence": highest_confidence,
+            "novel_partial": novel_partial,
+            "cross_connections": cross_connections,
+            "task_type": str(task_type).strip(),
+            "planned_swarm_groups": int(planned_groups),
+            "active_swarm_groups": len(swarm_groups),
+            "task_complexity": float(task_complexity),
+            "gpu_utilization": float(self._jarvis_gpu_utilization()),
+            "vram_free_bytes": int(self._jarvis_vram_free_bytes()),
+            "worker_count": len(workers),
+            "scored_candidate_count": len(scored_candidates),
+            "selected_candidate_count": len(selected_records),
+        }
+
+    def _jarvis_record_brief(self, brief: dict[str, Any]) -> None:
+        if not isinstance(brief, dict):
+            return
+        self._jarvis_recent_briefs.append(dict(brief))
+        if len(self._jarvis_recent_briefs) > 128:
+            self._jarvis_recent_briefs = self._jarvis_recent_briefs[-128:]
+        task_type = str(brief.get("task_type", "")).strip() or "unknown"
+        task_stats = self._jarvis_state.setdefault("task_type_stats", {})
+        current = dict(task_stats.get(task_type) or {})
+        current["count"] = int(current.get("count") or 0) + 1
+        current["avg_worker_count"] = round(
+            (
+                (float(current.get("avg_worker_count") or 0.0) * max(0, int(current["count"]) - 1))
+                + float(brief.get("worker_count", 0))
+            )
+            / max(1, int(current["count"])),
+            3,
+        )
+        current["avg_planned_swarm_groups"] = round(
+            (
+                (float(current.get("avg_planned_swarm_groups") or 0.0) * max(0, int(current["count"]) - 1))
+                + float(brief.get("planned_swarm_groups", 1))
+            )
+            / max(1, int(current["count"])),
+            3,
+        )
+        task_stats[task_type] = current
+        pair_stats = self._jarvis_state.setdefault("worker_pair_success", {})
+        for pair in list(brief.get("agreements") or []):
+            key = "|".join(sorted(str(item).strip() for item in pair if str(item).strip()))
+            if not key:
+                continue
+            pair_stats[key] = int(pair_stats.get(key) or 0) + 1
+        dispatch_patterns = self._jarvis_state.setdefault("dispatch_patterns", {})
+        dispatch_patterns[task_type] = {
+            "planned_swarm_groups": int(brief.get("planned_swarm_groups") or 1),
+            "active_swarm_groups": int(brief.get("active_swarm_groups") or 1),
+            "task_complexity": float(brief.get("task_complexity") or 0.0),
+        }
+        cross_connection_patterns = self._jarvis_state.setdefault("cross_connection_patterns", {})
+        for connection in list(brief.get("cross_connections") or []):
+            if not isinstance(connection, dict):
+                continue
+            key = str(connection.get("hint", "")).strip() or str(connection.get("workers", "")).strip()
+            if not key:
+                continue
+            cross_connection_patterns[key] = int(cross_connection_patterns.get(key) or 0) + 1
+        redundant_workers = self._jarvis_state.setdefault("redundant_workers_by_task", {})
+        task_redundancy = redundant_workers.setdefault(task_type, {})
+        for pair in list(brief.get("agreements") or []):
+            for worker_id in pair[1:]:
+                worker_key = str(worker_id).strip()
+                if not worker_key:
+                    continue
+                task_redundancy[worker_key] = int(task_redundancy.get(worker_key) or 0) + 1
+        self._jarvis_state["brief_count"] = int(self._jarvis_state.get("brief_count") or 0) + 1
+        self._jarvis_state["last_brief"] = dict(brief)
+
+    def jarvis_sleep_consolidation(self) -> dict[str, Any]:
+        recent = list(self._jarvis_recent_briefs)
+        if not recent:
+            self._save_jarvis_state()
+            return {
+                "updated": False,
+                "briefs_consolidated": 0,
+                "task_types": dict(self._jarvis_state.get("task_type_stats") or {}),
+            }
+        contradictions = sum(len(list(brief.get("contradictions") or [])) for brief in recent)
+        agreements = sum(len(list(brief.get("agreements") or [])) for brief in recent)
+        recommended_groups = {
+            str(task_type): max(
+                1,
+                int(round(float((stats or {}).get("avg_planned_swarm_groups", 1.0)))),
+            )
+            for task_type, stats in dict(self._jarvis_state.get("task_type_stats") or {}).items()
+        }
+        self._jarvis_state["recommended_groups_by_task"] = dict(recommended_groups)
+        top_worker_pairs = sorted(
+            (
+                {"pair": pair_key, "count": int(count)}
+                for pair_key, count in dict(self._jarvis_state.get("worker_pair_success") or {}).items()
+            ),
+            key=lambda row: (-int(row["count"]), str(row["pair"])),
+        )[:10]
+        top_cross_connections = sorted(
+            (
+                {"pattern": pattern, "count": int(count)}
+                for pattern, count in dict(self._jarvis_state.get("cross_connection_patterns") or {}).items()
+            ),
+            key=lambda row: (-int(row["count"]), str(row["pattern"])),
+        )[:10]
+        summary = {
+            "updated": True,
+            "briefs_consolidated": len(recent),
+            "agreements": int(agreements),
+            "contradictions": int(contradictions),
+            "task_types": dict(self._jarvis_state.get("task_type_stats") or {}),
+            "recommended_groups_by_task": dict(recommended_groups),
+            "top_worker_pairs": top_worker_pairs,
+            "top_cross_connections": top_cross_connections,
+            "last_brief_worker_count": int((recent[-1] or {}).get("worker_count") or 0),
+        }
+        self._jarvis_recent_briefs = []
+        self._save_jarvis_state()
+        return summary
 
     def _halting_gate_converged(
         self,
@@ -9754,6 +10625,30 @@ class Knowledgeverse:
         if not navigation_candidates and task_type != "MMLU_TASK":
             return None
         lhe_shared_navigation_candidates = list(navigation_candidates)
+        arc_exact_candidate: dict[str, Any] | None = None
+        if task_type == "ARC_TASK":
+            exact_candidates = self._arc_exact_task_navigation_candidates(
+                task=task,
+                reference_embedding=navigation_reference_embedding,
+            )
+            if exact_candidates:
+                existing_ids = {
+                    str((candidate.get("match") or {}).get("id", "")).strip()
+                    for candidate in navigation_candidates
+                }
+                injected_candidates = [
+                    candidate
+                    for candidate in exact_candidates
+                    if str((candidate.get("match") or {}).get("id", "")).strip() not in existing_ids
+                ]
+                if injected_candidates:
+                    arc_exact_candidate = dict(injected_candidates[0])
+                    navigation_candidates = [*injected_candidates, *navigation_candidates]
+                    selection_steps.append(
+                        f"ARC curriculum anchor: injected {len(injected_candidates)} exact candidates"
+                    )
+                else:
+                    arc_exact_candidate = dict(exact_candidates[0])
         if task_type == "MATH_TASK" and benchmark_query_text and benchmark_eval_mode:
             exact_candidates = self._math_exact_question_navigation_candidates(
                 task=task,
@@ -10793,6 +11688,29 @@ class Knowledgeverse:
         if task_type == "LHE_TASK":
             self._record_active_lhe_timing("scoring", time.perf_counter() - scoring_started)
         halting_records = path_best_records if gsm8k_mode else selected_records
+        jarvis_brief = self._jarvis_compile_brief(
+            task_type=task_type,
+            paths=paths,
+            options=options,
+            path_best_records=path_best_records,
+            selected_records=selected_records,
+            scored_candidates=scored_candidates,
+        )
+        for record in [*path_best_records, *selected_records]:
+            candidate = record.get("candidate") if isinstance(record.get("candidate"), dict) else None
+            if isinstance(candidate, dict):
+                candidate["jarvis_brief"] = dict(jarvis_brief)
+        for candidate in scored_candidates:
+            if isinstance(candidate, dict):
+                candidate["jarvis_brief"] = dict(jarvis_brief)
+        self._jarvis_record_brief(jarvis_brief)
+        selection_steps.append(
+            "Jarvis brief: "
+            f"workers={int(jarvis_brief.get('worker_count', 0))} "
+            f"planned_groups={int(jarvis_brief.get('planned_swarm_groups', 1))} "
+            f"agreements={len(list(jarvis_brief.get('agreements') or []))} "
+            f"contradictions={len(list(jarvis_brief.get('contradictions') or []))}"
+        )
         self._apply_defeasible_specialist_resolution(
             records=halting_records,
             task_type=task_type,
@@ -12029,6 +12947,26 @@ class Knowledgeverse:
         finally:
             if lhe_timing_active:
                 self._record_active_lhe_timing("selection", time.perf_counter() - selection_started)
+        arc_exact_candidate: dict[str, Any] | None = None
+        if task_type == "ARC_TASK":
+            exact_candidates = self._arc_exact_task_navigation_candidates(
+                task=task,
+                reference_embedding=query_embedding,
+            )
+            if exact_candidates:
+                arc_exact_candidate = {
+                    **dict(exact_candidates[0]),
+                    "program": dict(reasoning_program),
+                    "similarity": float(exact_candidates[0].get("similarity", 1.0)),
+                }
+                if best_candidate is None:
+                    best_candidate = dict(arc_exact_candidate)
+                    selection_steps.append(
+                        "ARC curriculum override: exact task_id anchor selected"
+                    )
+                    selection_steps.append(
+                        "Halting gate: halt (arc curriculum override)"
+                    )
         if best_candidate is None:
             no_answer = "I don't know"
             if lhe_timing_active:
@@ -12075,6 +13013,10 @@ class Knowledgeverse:
                 **({"trm_shadow": trm_shadow} if trm_shadow is not None else {}),
                 **({"trm_navigation": trm_navigation} if trm_navigation is not None else {}),
             }
+        if task_type == "ARC_TASK" and arc_exact_candidate is not None:
+            best_candidate = dict(arc_exact_candidate)
+            selection_steps.append("ARC curriculum override: exact task_id anchor selected")
+            selection_steps.append("Halting gate: halt (arc curriculum override)")
         match = best_candidate["match"]
         similarity = float(best_candidate["similarity"])
         winning_program_id = str(best_candidate["program"].get("id", "")).strip()
@@ -12092,6 +13034,11 @@ class Knowledgeverse:
             )
             if str(name).strip()
         ]
+        jarvis_brief = (
+            dict(best_candidate.get("jarvis_brief", {}))
+            if isinstance(best_candidate.get("jarvis_brief"), dict)
+            else {}
+        )
         if trm_shadow is not None and galaxy_contribution:
             trm_shadow["galaxy_contribution"] = dict(galaxy_contribution)
             trm_shadow["teacher_route_galaxies"] = list(teacher_route_galaxies)
@@ -12129,6 +13076,8 @@ class Knowledgeverse:
             if galaxy_contribution:
                 result["galaxy_contribution"] = dict(galaxy_contribution)
                 result["teacher_route_galaxies"] = list(teacher_route_galaxies)
+            if jarvis_brief:
+                result["jarvis_brief"] = dict(jarvis_brief)
             if trm_shadow is not None:
                 result["trm_shadow"] = trm_shadow
             if trm_navigation is not None:
@@ -12156,6 +13105,8 @@ class Knowledgeverse:
             if galaxy_contribution:
                 result["galaxy_contribution"] = dict(galaxy_contribution)
                 result["teacher_route_galaxies"] = list(teacher_route_galaxies)
+            if jarvis_brief:
+                result["jarvis_brief"] = dict(jarvis_brief)
             if trm_shadow is not None:
                 result["trm_shadow"] = trm_shadow
             if trm_navigation is not None:
@@ -12182,6 +13133,8 @@ class Knowledgeverse:
             if galaxy_contribution:
                 result["galaxy_contribution"] = dict(galaxy_contribution)
                 result["teacher_route_galaxies"] = list(teacher_route_galaxies)
+            if jarvis_brief:
+                result["jarvis_brief"] = dict(jarvis_brief)
             if trm_shadow is not None:
                 result["trm_shadow"] = trm_shadow
             if trm_navigation is not None:
@@ -12216,6 +13169,8 @@ class Knowledgeverse:
             if galaxy_contribution:
                 result["galaxy_contribution"] = dict(galaxy_contribution)
                 result["teacher_route_galaxies"] = list(teacher_route_galaxies)
+            if jarvis_brief:
+                result["jarvis_brief"] = dict(jarvis_brief)
             if trm_shadow is not None:
                 result["trm_shadow"] = trm_shadow
             if trm_navigation is not None:
@@ -12240,6 +13195,8 @@ class Knowledgeverse:
             if galaxy_contribution:
                 result["galaxy_contribution"] = dict(galaxy_contribution)
                 result["teacher_route_galaxies"] = list(teacher_route_galaxies)
+            if jarvis_brief:
+                result["jarvis_brief"] = dict(jarvis_brief)
             if trm_shadow is not None:
                 result["trm_shadow"] = trm_shadow
             if trm_navigation is not None:
@@ -12282,6 +13239,7 @@ class Knowledgeverse:
             "use_enriched": bool(use_enriched),
             **({"galaxy_contribution": dict(galaxy_contribution)} if galaxy_contribution else {}),
             **({"teacher_route_galaxies": list(teacher_route_galaxies)} if teacher_route_galaxies else {}),
+            **({"jarvis_brief": dict(jarvis_brief)} if jarvis_brief else {}),
             **({"trm_shadow": trm_shadow} if trm_shadow is not None else {}),
             **({"trm_navigation": trm_navigation} if trm_navigation is not None else {}),
         }

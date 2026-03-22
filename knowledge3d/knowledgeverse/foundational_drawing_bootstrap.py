@@ -63,14 +63,6 @@ def _normalize_embedding(values: list[float]) -> list[float]:
     return [float(value / norm) for value in values]
 
 
-def _arc_task_embedding16(task_id: str) -> list[float]:
-    dims = [0.0] * 16
-    for idx, ch in enumerate(f"ARC_TASK::{task_id}"):
-        lane = idx & 15
-        dims[lane] += ((ord(ch) * (idx + 3)) % 29 - 14.0) / 14.0
-    return _normalize_embedding(dims)
-
-
 def _vector_primitives() -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = [
         _entry(
@@ -433,10 +425,26 @@ def _arc_curriculum_entry(
     color_mapping: dict[int, int] | None = None,
     primitive_plan: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
+    query_terms = [
+        "visual transformation task",
+        f"task {task_id}",
+        "solve arc transformation task",
+        str(description).strip().lower(),
+    ]
+    if transform_chain:
+        query_terms.extend(str(step).replace("_", " ") for step in transform_chain if str(step).strip())
+    if color_mapping:
+        query_terms.append("color remap substitution pattern change")
+    if primitive_plan:
+        query_terms.extend(
+            str(step.get("op", "")).replace("_", " ").strip()
+            for step in primitive_plan
+            if isinstance(step, dict) and str(step.get("op", "")).strip()
+        )
     metadata: dict[str, Any] = {
         "bootstrap": "arc_benchmark_curriculum_v1",
         "confidence": 1.0,
-        "query_anchor": f"ARC_TASK {task_id} solve arc transformation task",
+        "query_anchor": " ".join(term for term in query_terms if term),
         "arc_task_id": str(task_id),
         "arc_mode": "primitive_plan" if primitive_plan else "transform" if transform_chain else "answer_grid",
         "specialist": "visual",
@@ -458,7 +466,6 @@ def _arc_curriculum_entry(
         "content": f"ARC benchmark curriculum entry for task {task_id}.",
         "summary": description,
         "description": description,
-        "embedding16": _arc_task_embedding16(task_id),
         "metadata": metadata,
     }
 

@@ -176,12 +176,16 @@ class ARCAGI2Benchmark:
         *,
         progress_cb: Callable[[dict[str, Any]], None] | None = None,
         progress_every: int | None = None,
+        row_cb: Callable[[dict[str, Any], dict[str, Any]], None] | None = None,
+        start_index: int = 0,
+        initial_correct: int = 0,
     ) -> dict[str, Any]:
         self.results = []
-        correct = 0
+        total = len(self.tasks)
+        resume_index = max(0, min(int(start_index), total))
+        correct = max(0, int(initial_correct))
         generated_patterns_total = 0
         tasks_with_generated_patterns = 0
-        total = len(self.tasks)
         step = max(1, int(progress_every or 10))
         start = time.monotonic()
         if self.tablet_boundary is None:
@@ -217,8 +221,10 @@ class ARCAGI2Benchmark:
             )
         else:
             self.adapter = None
-        for index, task in enumerate(self.tasks, start=1):
+        for index, task in enumerate(self.tasks[resume_index:], start=resume_index + 1):
+            row_start = time.monotonic()
             result = self._solve_task(task=task, use_enriched=use_enriched)
+            result["elapsed_s"] = round(max(0.0, time.monotonic() - row_start), 3)
             if self.enable_full_ptx and str(result.get("solver")) != "arc_ptx_ops":
                 raise RuntimeError(
                     "PTX ARC solver contract violated: expected solver='arc_ptx_ops' "
@@ -227,6 +233,8 @@ class ARCAGI2Benchmark:
             self.results.append(result)
             if result["correct"]:
                 correct += 1
+            if row_cb is not None:
+                row_cb(task, result)
             generated_count = int(result.get("generated_pattern_count", len(result.get("generated_patterns", []))))
             generated_patterns_total += generated_count
             if generated_count > 0:

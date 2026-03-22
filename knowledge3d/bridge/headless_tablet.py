@@ -151,14 +151,14 @@ class TabletIngest:
         return TabletEnvelope(
             benchmark="ARC",
             task_id=str(task_id),
-            query="solve arc transformation task",
+            query="visual transformation task",
             specialist="visual",
             domain_hint="visual",
             galaxies=("Drawing", "Tool", "Grammar"),
             task={
                 "type": "ARC_TASK",
                 "task_id": str(task_id),
-                "query": "solve arc transformation task",
+                "query": "visual transformation task",
                 "training_examples": list(training_examples),
                 "input_grid": input_grid,
                 "expected_output": expected_output,

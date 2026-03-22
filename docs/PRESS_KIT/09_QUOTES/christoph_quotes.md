@@ -16,6 +16,8 @@
 
 8. "The goal is practical sovereignty: measurable boundaries, auditable execution, and policy-aware behavior."
 
+9. "One can only truly experience MVCIC if one is prepared to let go of all existing boundaries and commit oneself to discover what is possible."
+
 Sources:
 - docs/Sovereign_Systems_Charter/FINAL_REPORT_FOR_CHRISTOPH.md
 - TEMP/PROJECT_OVERVIEW_KEY_PERSONNEL_2026-03-04.md

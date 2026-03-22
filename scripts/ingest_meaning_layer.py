@@ -1051,7 +1051,6 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--mmlu-jsonl", type=Path, default=DEFAULT_MMLU_PATH)
     parser.add_argument("--gsm8k-jsonl", type=Path, default=DEFAULT_GSM8K_PATH)
     parser.add_argument("--full-load", action="store_true")
-    parser.add_argument("--min-languages", type=int, default=5)
     return parser.parse_args(argv)
 
 

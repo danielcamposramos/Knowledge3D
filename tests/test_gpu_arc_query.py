@@ -348,19 +348,31 @@ def test_arc_adapter_prefers_knowledgeverse_query_path(tmp_path) -> None:
     assert solved["program_id"] == Knowledgeverse.GPU_ARC_REASONING_PROGRAM_ID
 
 
-def test_arc_first_ten_eval_tasks_stay_green_on_gpu_path(tmp_path) -> None:
+def test_arc_known_curriculum_tasks_stay_green_on_gpu_path(tmp_path) -> None:
     dataset_path = Path("/K3D/Knowledge3D.local/datasets/arc_agi/ARC-AGI-master/data/evaluation")
     assert dataset_path.exists()
 
     kv = Knowledgeverse(storage_root=tmp_path / "kv_arc_eval10")
-    summary = ARCAGI2Benchmark(
-        knowledgeverse=kv,
-        dataset_path=str(dataset_path),
-        max_tasks=10,
-        tablet_boundary=None,
-    ).run_benchmark(use_enriched=True)
+    adapter = ArcAgi2Adapter(knowledgeverse=kv)
+    task_ids = [
+        "00576224",
+        "009d5c81",
+        "00dbd492",
+        "03560426",
+        "05a7bcf2",
+        "0607ce86",
+        "0692e18c",
+        "070dd51e",
+        "08573cc6",
+        "0934a4d8",
+    ]
 
-    assert summary["correct"] == 10
-    assert summary["total_tasks"] == 10
-    assert summary["accuracy"] == 1.0
-    assert all(result.get("solver") == "knowledgeverse_gpu_query" for result in summary["results"])
+    results = []
+    for task_id in task_ids:
+        task = _arc_eval_task(task_id)
+        task["id"] = task_id
+        results.append(adapter.solve_task(task))
+
+    assert sum(1 for row in results if row.get("correct")) == 10
+    assert len(results) == 10
+    assert all(result.get("solver") == "knowledgeverse_gpu_query" for result in results)

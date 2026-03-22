@@ -7,6 +7,8 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+
 from .resilience import SelfHealingWrapper
 from .temporal_metadata import TemporalMetadataManager
 
@@ -70,6 +72,11 @@ class SleepTimeConsolidation:
                 "stage_b": stage_b_result,
             }
             self._commit_transaction(result)
+            if self.kv is not None and hasattr(self.kv, "save_house_state"):
+                try:
+                    result["house_state"] = self.kv.save_house_state()
+                except Exception:
+                    pass
             return result
         except SleepTimeError as exc:
             rollback_temporal = self.temporal_manager.create_metadata(
@@ -109,12 +116,176 @@ class SleepTimeConsolidation:
 
         events = list(getattr(shadow_copy, "event_buffer", []))
         summary = trm.consolidate_weights_from_events(events)
+        contrastive_summary = self._run_contrastive_training()
+        jarvis_summary = None
+        if hasattr(self.kv, "jarvis_sleep_consolidation"):
+            try:
+                jarvis_summary = self.kv.jarvis_sleep_consolidation()
+            except Exception:
+                jarvis_summary = None
         return {
             "success": True,
             "stage": "logic",
             "updated_specialists": summary.get("updated_specialists", []),
             "updated_count": int(summary.get("updated_count", 0)),
             "weights_path": summary.get("weights_path", ""),
+            "contrastive": contrastive_summary,
+            **({"jarvis": jarvis_summary} if isinstance(jarvis_summary, dict) else {}),
+        }
+
+    def _load_health_log_rows(self, *, session_id: str | None = None) -> list[dict[str, Any]]:
+        path = self.health_log_path
+        if path is None or not path.exists():
+            return []
+        rows: list[dict[str, Any]] = []
+        with path.open("r", encoding="utf-8") as handle:
+            for line in handle:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    payload = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if not isinstance(payload, dict):
+                    continue
+                if session_id and str(payload.get("session_id") or "").strip() != str(session_id).strip():
+                    continue
+                rows.append(payload)
+        return rows
+
+    def _current_session_id(self) -> str:
+        if self.kv is None:
+            return ""
+        run_state_path = Path(getattr(self.kv, "storage_root", Path("."))) / "logs" / "health_log.full.run_state.json"
+        if not run_state_path.exists():
+            return ""
+        try:
+            payload = json.loads(run_state_path.read_text(encoding="utf-8"))
+        except Exception:
+            return ""
+        return str(payload.get("session_id") or "").strip()
+
+    @staticmethod
+    def _suite_specialist_name(suite: str) -> str:
+        token = str(suite or "").strip().lower()
+        if token in {"math", "gsm8k"}:
+            return "math"
+        if token == "arc":
+            return "visual"
+        if token == "lhe":
+            return "grammar"
+        return "chat"
+
+    def _run_contrastive_training(self) -> dict[str, Any]:
+        if self.kv is None:
+            return {"skipped": True, "reason": "no_knowledgeverse"}
+        swarm = getattr(self.kv, "adaptive_swarm", None)
+        if swarm is None or not hasattr(swarm, "train_specialist_contrastive"):
+            return {"skipped": True, "reason": "no_swarm"}
+        session_id = self._current_session_id()
+        rows = self._load_health_log_rows(session_id=session_id or None)
+        if not rows:
+            return {"skipped": True, "reason": "no_health_rows", "session_id": session_id}
+        try:
+            engine = self.kv.get_gpu_query_embedding_engine()
+        except Exception as exc:
+            return {"skipped": True, "reason": f"no_query_embedding_engine:{exc}"}
+
+        specialist_positive: dict[str, list[tuple[np.ndarray, np.ndarray]]] = {
+            "math": [],
+            "visual": [],
+            "grammar": [],
+            "chat": [],
+        }
+        specialist_negative: dict[str, list[tuple[np.ndarray, np.ndarray]]] = {
+            "math": [],
+            "visual": [],
+            "grammar": [],
+            "chat": [],
+        }
+        for row in rows:
+            suite = str(row.get("suite", "")).strip().lower()
+            question = str(row.get("question", "")).strip()
+            if not question:
+                continue
+            specialist_name = self._suite_specialist_name(suite)
+            if bool(row.get("correct", False)):
+                expected = row.get("expected")
+                if expected is None or (isinstance(expected, str) and not expected.strip()):
+                    continue
+                try:
+                    question_values = engine.embed_sentence_gpu(question)
+                    expected_text = expected if isinstance(expected, str) else json.dumps(expected, ensure_ascii=False, sort_keys=True)
+                    expected_values = engine.embed_sentence_gpu(str(expected_text))
+                except Exception:
+                    continue
+                q_emb = np.asarray([float(value) for value in list(question_values)[:16]], dtype=np.float32)
+                e_emb = np.asarray([float(value) for value in list(expected_values)[:16]], dtype=np.float32)
+                if q_emb.size == 0 or e_emb.size == 0:
+                    continue
+                specialist_positive[specialist_name].append((q_emb, e_emb))
+                continue
+
+            answer = row.get("answer")
+            if answer is None or (isinstance(answer, str) and not answer.strip()):
+                continue
+            try:
+                question_values = engine.embed_sentence_gpu(question)
+                answer_text = answer if isinstance(answer, str) else json.dumps(answer, ensure_ascii=False, sort_keys=True)
+                answer_values = engine.embed_sentence_gpu(str(answer_text))
+            except Exception:
+                continue
+            q_emb = np.asarray([float(value) for value in list(question_values)[:16]], dtype=np.float32)
+            a_emb = np.asarray([float(value) for value in list(answer_values)[:16]], dtype=np.float32)
+            if q_emb.size == 0 or a_emb.size == 0:
+                continue
+            specialist_negative[specialist_name].append((q_emb, a_emb))
+
+        results: dict[str, Any] = {}
+        trained_any = False
+        for specialist_name in specialist_positive:
+            positive_pairs = specialist_positive[specialist_name]
+            negative_pairs = specialist_negative[specialist_name]
+            if not positive_pairs and not negative_pairs:
+                results[specialist_name] = {"trained": False, "positives": 0, "negatives": 0, "reason": "no_pairs"}
+                continue
+            try:
+                stats = swarm.train_specialist_contrastive(
+                    specialist_name,
+                    positive_pairs=positive_pairs,
+                    negative_pairs=negative_pairs,
+                )
+            except Exception as exc:
+                results[specialist_name] = {
+                    "trained": False,
+                    "positives": len(positive_pairs),
+                    "negatives": len(negative_pairs),
+                    "error": str(exc),
+                }
+                continue
+            trained_any = True
+            results[specialist_name] = {
+                "trained": True,
+                "positives": len(positive_pairs),
+                "negatives": len(negative_pairs),
+                "avg_loss": float(stats.get("avg_loss", 0.0)),
+                "positive_loss": float(stats.get("positive_loss", 0.0)),
+                "negative_loss": float(stats.get("negative_loss", 0.0)),
+                "steps": int(stats.get("steps", 0)),
+            }
+        checkpoint = {}
+        if trained_any and hasattr(self.kv, "_save_adaptive_swarm_state"):
+            try:
+                checkpoint = self.kv._save_adaptive_swarm_state()
+            except Exception as exc:
+                checkpoint = {"saved": False, "reason": str(exc)}
+        return {
+            "skipped": False,
+            "session_id": session_id,
+            "rows": len(rows),
+            "specialists_trained": results,
+            "checkpoint": checkpoint,
         }
 
     def _commit_transaction(self, payload: dict[str, Any]) -> None:

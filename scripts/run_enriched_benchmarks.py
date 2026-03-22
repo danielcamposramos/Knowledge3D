@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-import re
+import signal
 import sys
 import time
 from typing import Any
@@ -20,13 +20,13 @@ if str(REPO_ROOT) not in sys.path:
 from benchmarks.math_competitions import UnifiedMathBenchmark  # noqa: E402
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse  # noqa: E402
 from knowledge3d.knowledgeverse.sleeptime import SleepTimeConsolidation  # noqa: E402
-from knowledge3d.tools.benchmark_health_check import load_questions, run_health_check  # noqa: E402
+from knowledge3d.tools.benchmark_health_check import run_health_check  # noqa: E402
 from knowledge3d.tools.ollama_benchmark import create_ollama_query_fn  # noqa: E402
+from scripts.ingest_arc_knowledge import build_all_arc_entries, ingest_arc_knowledge  # noqa: E402
 from scripts.ingest_meaning_layer import DEFAULT_COUNTS, DEFAULT_STORAGE_ROOT, ingest_enriched_galaxy  # noqa: E402
-from scripts.ingest_math_rules import ingest_math_rules  # noqa: E402
+from scripts.ingest_math_rules import build_math_rule_entries, ingest_math_rules  # noqa: E402
 
 
-TOKEN_RE = re.compile(r"[a-z0-9_]+")
 FULL_BENCHMARK_COUNTS = {
     "arc": 120,
     "math": 500,
@@ -182,6 +182,12 @@ def _iter_session_rows(
     return rows
 
 
+def _session_suite_stats(log_path: Path, suite: str, *, session_id: str, session_start: float) -> tuple[int, int]:
+    rows = _iter_session_rows(log_path, session_id=session_id, session_start=session_start, suite=suite)
+    correct = sum(1 for row in rows if bool(row.get("correct")))
+    return len(rows), correct
+
+
 def _suite_already_done(log_path: Path, suite: str, expected_count: int, *, session_id: str, session_start: float) -> bool:
     return len(_iter_session_rows(log_path, session_id=session_id, session_start=session_start, suite=suite)) >= int(expected_count)
 
@@ -303,31 +309,82 @@ def _append_rows(log_path: Path, rows: list[dict[str, Any]]) -> None:
             handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
 
 
+def _append_row(log_path: Path, row: dict[str, Any]) -> None:
+    _append_rows(log_path, [row])
+
+
+def _incremental_knowledge_update(knowledgeverse: Knowledgeverse) -> dict[str, Any]:
+    manager = knowledgeverse.galaxy_manager
+    existing_ids: dict[str, set[str]] = {}
+    for galaxy_name in ("Drawing", "Language", "Math"):
+        galaxy = manager.get_galaxy(galaxy_name)
+        existing_ids[galaxy_name] = {
+            str(entry.get("id") or "").strip()
+            for entry in galaxy.entries
+            if isinstance(entry, dict) and str(entry.get("id") or "").strip()
+        }
+
+    added = 0
+    skipped = 0
+    counts: dict[str, int] = {"Drawing": 0, "Language": 0, "Math": 0}
+
+    with manager.bulk_disk_sync():
+        for galaxy_name, entries in build_all_arc_entries().items():
+            for entry in entries:
+                entry_id = str(entry.get("id") or "").strip()
+                if not entry_id or entry_id in existing_ids.setdefault(galaxy_name, set()):
+                    skipped += 1
+                    continue
+                manager.upsert_entry(galaxy_name, entry)
+                existing_ids[galaxy_name].add(entry_id)
+                added += 1
+                counts[galaxy_name] = int(counts.get(galaxy_name, 0)) + 1
+
+        for entry in build_math_rule_entries():
+            entry_id = str(entry.get("id") or "").strip()
+            if not entry_id or entry_id in existing_ids.setdefault("Math", set()):
+                skipped += 1
+                continue
+            manager.upsert_entry("Math", entry)
+            existing_ids["Math"].add(entry_id)
+            added += 1
+            counts["Math"] = int(counts.get("Math", 0)) + 1
+
+    return {
+        "added": int(added),
+        "skipped": int(skipped),
+        "counts": {key: int(value) for key, value in sorted(counts.items()) if int(value) > 0},
+    }
+
+
 def _run_unified_math_pair(
     knowledgeverse: Knowledgeverse,
     *,
     log_path: Path,
     session_id: str,
+    session_start: float,
     math_count: int,
     gsm8k_count: int,
 ) -> dict[str, dict[str, Any]]:
+    math_existing, math_correct = _session_suite_stats(
+        log_path,
+        "math",
+        session_id=session_id,
+        session_start=session_start,
+    )
+    gsm8k_existing, gsm8k_correct = _session_suite_stats(
+        log_path,
+        "gsm8k",
+        session_id=session_id,
+        session_start=session_start,
+    )
     bench = UnifiedMathBenchmark(
         knowledgeverse=knowledgeverse,
         max_problems=math_count,
         max_gsm8k_questions=gsm8k_count,
         source_filter=["math", "gsm8k"],
     )
-    start = time.monotonic()
-    benchmark_summary = bench.run_benchmark(
-        use_enriched=True,
-        progress_cb=_make_unified_math_progress_logger(math_count, gsm8k_count),
-        progress_every=10,
-    )
-    elapsed = time.monotonic() - start
-    rows_by_suite: dict[str, list[dict[str, Any]]] = {"math": [], "gsm8k": []}
-    ordered_rows: list[dict[str, Any]] = []
-    now = time.time()
-    for source, row in zip(bench.problems, bench.results):
+    def _row_cb(source: dict[str, Any], row: dict[str, Any]) -> None:
         suite = str(source.get("suite") or row.get("suite") or "math").strip().lower()
         payload = {
             "question_id": row["problem_id"],
@@ -336,31 +393,64 @@ def _run_unified_math_pair(
             "answer": row.get("predicted_answer"),
             "expected": source["answer"],
             "correct": bool(row.get("correct", False)),
-            "elapsed_s": 0.0,
-            "timestamp": now,
+            "elapsed_s": float(row.get("elapsed_s") or 0.0),
+            "timestamp": time.time(),
             "competition": source.get("competition"),
             "source_key": source.get("source_key"),
             "session_id": session_id,
         }
-        ordered_rows.append(payload)
-        rows_by_suite.setdefault(suite, []).append(payload)
-    _append_rows(log_path, ordered_rows)
+        _append_row(log_path, payload)
+
+    bench.run_benchmark(
+        use_enriched=True,
+        progress_cb=_make_unified_math_progress_logger(math_count, gsm8k_count),
+        progress_every=10,
+        row_cb=_row_cb,
+        start_index=math_existing + gsm8k_existing,
+        initial_correct=math_correct + gsm8k_correct,
+        initial_source_completed={"math": math_existing, "gsm8k": gsm8k_existing},
+        initial_source_correct={"math": math_correct, "gsm8k": gsm8k_correct},
+    )
     summaries: dict[str, dict[str, Any]] = {}
-    total_rows = max(1, len(ordered_rows))
-    for suite, rows in rows_by_suite.items():
-        suite_elapsed = elapsed * (len(rows) / total_rows)
-        summary = _suite_summary_from_rows(suite, rows, elapsed_s=suite_elapsed)
+    for suite in ("math", "gsm8k"):
+        rows = _iter_session_rows(log_path, session_id=session_id, session_start=session_start, suite=suite)
+        summary = _suite_summary_from_rows(suite, rows)
         summary["shared_unified_run"] = True
-        summary["source_breakdown"] = {
-            key: {
-                "total": int(value.get("total") or 0),
-                "correct": int(value.get("correct") or 0),
-                "accuracy": float(value.get("accuracy") or 0.0),
+        source_breakdown: dict[str, dict[str, Any]] = {}
+        for key in ("math", "gsm8k"):
+            key_rows = [row for row in rows if str(row.get("source_key") or row.get("suite") or "") == key]
+            total = len(key_rows)
+            correct = sum(1 for row in key_rows if bool(row.get("correct")))
+            source_breakdown[key] = {
+                "total": total,
+                "correct": correct,
+                "accuracy": (correct / total) if total else 0.0,
             }
-            for key, value in (benchmark_summary.get("results_by_source") or {}).items()
-        }
+        summary["source_breakdown"] = source_breakdown
         summaries[suite] = summary
     return summaries
+
+
+def _install_signal_handlers(context: dict[str, Any]) -> None:
+    def _graceful_shutdown(signum: int, _frame: Any) -> None:
+        print(f"\nReceived signal {signum}, saving run state...", flush=True)
+        state_path = context.get("state_path")
+        run_state = context.get("run_state")
+        if state_path is not None and isinstance(run_state, dict):
+            run_state["completed"] = False
+            run_state["updated_at"] = time.time()
+            _write_json(Path(state_path), run_state)
+        knowledgeverse = context.get("knowledgeverse")
+        if knowledgeverse is not None:
+            try:
+                knowledgeverse.save_house_state()
+            except Exception:
+                pass
+        print("Run state saved. Exiting.", flush=True)
+        raise SystemExit(128 + int(signum))
+
+    signal.signal(signal.SIGTERM, _graceful_shutdown)
+    signal.signal(signal.SIGINT, _graceful_shutdown)
 
 
 def run_benchmarks(
@@ -371,11 +461,15 @@ def run_benchmarks(
     timeout: float = 120.0,
     suite_counts: dict[str, int] | None = None,
     full: bool = False,
+    signal_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     counts = dict(suite_counts or _effective_suite_counts(full))
     log_path = Path(log_path)
     state_path = _run_state_path(log_path, full=full)
     run_state = _load_or_create_run_state(state_path, suite_counts=counts, full=full, provider=provider)
+    if signal_context is not None:
+        signal_context["state_path"] = str(state_path)
+        signal_context["run_state"] = run_state
     session_id = str(run_state["session_id"])
     session_start = float(run_state["session_start"])
     query_fn = None
@@ -386,9 +480,7 @@ def run_benchmarks(
     unified_math_cache: dict[str, dict[str, Any]] | None = None
     overall_start = time.monotonic()
     for suite, count in counts.items():
-        suite_start = time.monotonic()
         print(f"Starting {suite} benchmark ({count} questions)...", flush=True)
-        existing = dict((run_state.get("completed_summaries") or {}).get(suite) or {})
         math_pair_enabled = (
             query_fn is None
             and "math" in counts
@@ -403,6 +495,7 @@ def run_benchmarks(
                     knowledgeverse,
                     log_path=log_path,
                     session_id=session_id,
+                    session_start=session_start,
                     math_count=counts["math"],
                     gsm8k_count=counts["gsm8k"],
                 )
@@ -411,7 +504,7 @@ def run_benchmarks(
                 summary["skipped_as_resumed"] = False
             elif _suite_already_done(log_path, suite, count, session_id=session_id, session_start=session_start):
                 rows = _iter_session_rows(log_path, session_id=session_id, session_start=session_start, suite=suite)
-                summary = _suite_summary_from_rows(suite, rows, elapsed_s=existing.get("elapsed_s"))
+                summary = _suite_summary_from_rows(suite, rows)
                 summary["skipped_as_resumed"] = True
             else:
                 run_health_check(
@@ -423,13 +516,12 @@ def run_benchmarks(
                     session_id=session_id,
                     progress_fn=_make_live_progress_logger(suite, count),
                 )
-                elapsed = time.monotonic() - suite_start
                 rows = _iter_session_rows(log_path, session_id=session_id, session_start=session_start, suite=suite)
-                summary = _suite_summary_from_rows(suite, rows, elapsed_s=elapsed)
+                summary = _suite_summary_from_rows(suite, rows)
                 summary["skipped_as_resumed"] = False
         elif _suite_already_done(log_path, suite, count, session_id=session_id, session_start=session_start):
             rows = _iter_session_rows(log_path, session_id=session_id, session_start=session_start, suite=suite)
-            summary = _suite_summary_from_rows(suite, rows, elapsed_s=existing.get("elapsed_s"))
+            summary = _suite_summary_from_rows(suite, rows)
             summary["skipped_as_resumed"] = True
         else:
             run_health_check(
@@ -441,9 +533,8 @@ def run_benchmarks(
                 session_id=session_id,
                 progress_fn=_make_live_progress_logger(suite, count),
             )
-            elapsed = time.monotonic() - suite_start
             rows = _iter_session_rows(log_path, session_id=session_id, session_start=session_start, suite=suite)
-            summary = _suite_summary_from_rows(suite, rows, elapsed_s=elapsed)
+            summary = _suite_summary_from_rows(suite, rows)
             summary["skipped_as_resumed"] = False
         summary["path_used"] = provider
         summaries.append(summary)
@@ -480,7 +571,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--timeout", type=float, default=120.0)
     parser.add_argument("--full", action="store_true")
     parser.add_argument("--full-load", action="store_true")
-    parser.add_argument("--min-languages", type=int, default=5)
+    parser.add_argument("--cold-start", action="store_true")
     parser.add_argument("--arc-max", type=int, default=None)
     parser.add_argument("--math-max", type=int, default=None)
     parser.add_argument("--gsm8k-max", type=int, default=None)
@@ -492,22 +583,76 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     suite_counts = _apply_suite_overrides(_effective_suite_counts(bool(args.full)), args)
+    signal_context: dict[str, Any] = {
+        "state_path": str(_run_state_path(args.log, full=bool(args.full))),
+        "run_state": None,
+        "knowledgeverse": None,
+    }
+    _install_signal_handlers(signal_context)
     print("Booting Knowledgeverse...", flush=True)
-    knowledgeverse = Knowledgeverse(storage_root=args.storage_root)
+    knowledgeverse = Knowledgeverse(
+        storage_root=args.storage_root,
+        eager_load_default_galaxies=False,
+    )
+    signal_context["knowledgeverse"] = knowledgeverse
     print("Knowledgeverse ready.", flush=True)
-    ingest_summary = ingest_enriched_galaxy(
-        knowledgeverse,
-        benchmark_counts=suite_counts,
-        progress=lambda message: print(message, flush=True),
-    )
-    print(
-        f"Meaning layer: {ingest_summary['meaning_stars_loaded']} stars loaded "
-        f"from {ingest_summary['meaning_stars_available']} available",
-        flush=True,
-    )
-    math_rules_summary = ingest_math_rules(knowledgeverse, progress=lambda message: print(message, flush=True))
-    ingest_summary["math_rules"] = math_rules_summary
-    print(f"Math rules: {math_rules_summary['total_entries']} entries ingested", flush=True)
+    if bool(args.cold_start) and knowledgeverse.house_state_path.exists():
+        knowledgeverse.house_state_path.unlink()
+    warm_boot = (not bool(args.cold_start)) and knowledgeverse.load_house_state()
+    if warm_boot:
+        house_summary = dict(knowledgeverse.house_state_summary())
+        incremental_summary = _incremental_knowledge_update(knowledgeverse)
+        ingest_summary = {
+            "house_boot": "warm",
+            "house_state_path": str(knowledgeverse.house_state_path),
+            "persisted_galaxies": int(house_summary.get("galaxy_count", 0)),
+            "persisted_entries": int(house_summary.get("total_persisted_entries", 0)),
+            "incremental": incremental_summary,
+        }
+        math_rules_summary = {
+            "warm_boot": True,
+            "total_entries": int(house_summary.get("math_entries", 0)),
+        }
+        print(
+            f"Warm boot: House loaded ({ingest_summary['persisted_entries']} entries across "
+            f"{ingest_summary['persisted_galaxies']} galaxies)",
+            flush=True,
+        )
+        if int(incremental_summary.get("added", 0)) > 0:
+            house_save_summary = knowledgeverse.save_house_state()
+            ingest_summary["house_state"] = house_save_summary
+            math_rules_summary["total_entries"] = int(house_save_summary.get("math_entries", math_rules_summary["total_entries"]))
+            print(
+                f"Incremental update: {int(incremental_summary['added'])} new entries added to House.",
+                flush=True,
+            )
+    else:
+        print("Cold start: bootstrapping...", flush=True)
+        knowledgeverse.ensure_default_galaxies_loaded()
+        ingest_summary = ingest_enriched_galaxy(
+            knowledgeverse,
+            benchmark_counts=suite_counts,
+            progress=lambda message: print(message, flush=True),
+        )
+        print(
+            f"Meaning layer: {ingest_summary['meaning_stars_loaded']} stars loaded "
+            f"from {ingest_summary['meaning_stars_available']} available",
+            flush=True,
+        )
+        arc_summary = ingest_arc_knowledge(knowledgeverse, progress=lambda message: print(message, flush=True))
+        ingest_summary["arc_knowledge"] = arc_summary
+        print(
+            f"ARC knowledge: {arc_summary['anchor_entries']} anchors + "
+            f"{arc_summary['language_symlinks']} bridges "
+            f"({arc_summary['arc_related_total']} ARC-related entries)",
+            flush=True,
+        )
+        math_rules_summary = ingest_math_rules(knowledgeverse, progress=lambda message: print(message, flush=True))
+        ingest_summary["math_rules"] = math_rules_summary
+        print(f"Math rules: {math_rules_summary['total_entries']} entries ingested", flush=True)
+        house_save_summary = knowledgeverse.save_house_state()
+        ingest_summary["house_state"] = house_save_summary
+        print("House state saved for future warm boots.", flush=True)
     benchmark_run = run_benchmarks(
         knowledgeverse,
         log_path=args.log,
@@ -515,6 +660,7 @@ def main(argv: list[str] | None = None) -> int:
         timeout=float(args.timeout),
         suite_counts=suite_counts,
         full=bool(args.full),
+        signal_context=signal_context,
     )
     print("Starting sleep-time consolidation...", flush=True)
     sleeptime = SleepTimeConsolidation(
@@ -531,6 +677,7 @@ def main(argv: list[str] | None = None) -> int:
         "session_start": benchmark_run["session_start"],
         "state_path": benchmark_run["state_path"],
         "galaxy_state": ingest_summary,
+        "house_state": sleeptime_result.get("house_state") or knowledgeverse.house_state_summary(),
         "benchmarks": benchmark_run["suites"],
         "combined": benchmark_run["combined"],
         "mmlu_breakdown": benchmark_run["mmlu_breakdown"],

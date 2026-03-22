@@ -197,17 +197,26 @@ class MMLUBenchmark:
         *,
         progress_cb: Callable[[dict[str, Any]], None] | None = None,
         progress_every: int | None = None,
+        row_cb: Callable[[dict[str, Any], dict[str, Any]], None] | None = None,
+        start_index: int = 0,
+        initial_correct: int = 0,
     ) -> dict[str, Any]:
         self.results = []
-        correct = 0
+        total = len(self.questions)
+        resume_index = max(0, min(int(start_index), total))
+        correct = max(0, int(initial_correct))
         total = len(self.questions)
         step = max(1, int(progress_every or 100))
         start = time.monotonic()
-        for index, question in enumerate(self.questions, start=1):
+        for index, question in enumerate(self.questions[resume_index:], start=resume_index + 1):
+            row_start = time.monotonic()
             result = self._solve_question(question=question, use_enriched=use_enriched)
+            result["elapsed_s"] = round(max(0.0, time.monotonic() - row_start), 3)
             self.results.append(result)
             if result["correct"]:
                 correct += 1
+            if row_cb is not None:
+                row_cb(question, result)
             if progress_cb and (index % step == 0 or index == total):
                 progress_cb(
                     {
