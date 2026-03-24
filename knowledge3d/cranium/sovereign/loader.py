@@ -55,7 +55,29 @@ try:
 except AttributeError:
     _cuMemcpyDtoD_v1 = None
 
+try:
+    _cuMemcpyHtoD_v2 = getattr(nvcuda, "cuMemcpyHtoD_v2")
+except AttributeError:
+    _cuMemcpyHtoD_v2 = None
+
+try:
+    _cuMemcpyHtoD_v1 = getattr(nvcuda, "cuMemcpyHtoD")
+except AttributeError:
+    _cuMemcpyHtoD_v1 = None
+
+try:
+    _cuMemcpyDtoH_v2 = getattr(nvcuda, "cuMemcpyDtoH_v2")
+except AttributeError:
+    _cuMemcpyDtoH_v2 = None
+
+try:
+    _cuMemcpyDtoH_v1 = getattr(nvcuda, "cuMemcpyDtoH")
+except AttributeError:
+    _cuMemcpyDtoH_v1 = None
+
 _cuMemcpyDtoD = _cuMemcpyDtoD_v2 or _cuMemcpyDtoD_v1
+_cuMemcpyHtoD = _cuMemcpyHtoD_v2 or _cuMemcpyHtoD_v1
+_cuMemcpyDtoH = _cuMemcpyDtoH_v2 or _cuMemcpyDtoH_v1
 
 if _cuMemGetInfo is not None:
     _cuMemGetInfo.restype = ctypes.c_int
@@ -75,6 +97,24 @@ if _cuMemcpyDtoD_v1 is not None:
 if _cuMemcpyDtoD_v2 is not None:
     _cuMemcpyDtoD_v2.restype = ctypes.c_int
     _cuMemcpyDtoD_v2.argtypes = [ctypes.c_uint64, ctypes.c_uint64, ctypes.c_size_t]
+if _cuMemcpyHtoD is not None:
+    _cuMemcpyHtoD.restype = ctypes.c_int
+    _cuMemcpyHtoD.argtypes = [ctypes.c_uint64, ctypes.c_void_p, ctypes.c_size_t]
+if _cuMemcpyHtoD_v1 is not None:
+    _cuMemcpyHtoD_v1.restype = ctypes.c_int
+    _cuMemcpyHtoD_v1.argtypes = [ctypes.c_uint64, ctypes.c_void_p, ctypes.c_size_t]
+if _cuMemcpyHtoD_v2 is not None:
+    _cuMemcpyHtoD_v2.restype = ctypes.c_int
+    _cuMemcpyHtoD_v2.argtypes = [ctypes.c_uint64, ctypes.c_void_p, ctypes.c_size_t]
+if _cuMemcpyDtoH is not None:
+    _cuMemcpyDtoH.restype = ctypes.c_int
+    _cuMemcpyDtoH.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.c_size_t]
+if _cuMemcpyDtoH_v1 is not None:
+    _cuMemcpyDtoH_v1.restype = ctypes.c_int
+    _cuMemcpyDtoH_v1.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.c_size_t]
+if _cuMemcpyDtoH_v2 is not None:
+    _cuMemcpyDtoH_v2.restype = ctypes.c_int
+    _cuMemcpyDtoH_v2.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.c_size_t]
 
 CUDA_MEMCPY_HOST_TO_DEVICE = 1
 CUDA_MEMCPY_DEVICE_TO_HOST = 2
@@ -435,7 +475,19 @@ def memcpy_htod(dst_device: CUdeviceptr, src_host: ctypes.c_void_p, size_bytes: 
         if res != 0:
             ck(res)
         return
-    res = nvcuda.cuMemcpyHtoD(dst_device, src_host, size_bytes)
+    if _cuMemcpyHtoD is None:
+        raise RuntimeError("cuMemcpyHtoD not available in CUDA driver.")
+    host_ptr = src_host if isinstance(src_host, ctypes.c_void_p) else ctypes.c_void_p(int(src_host))
+    res = _cuMemcpyHtoD(dst_device.value, host_ptr, ctypes.c_size_t(size_bytes))
+    if (
+        res == 201
+        and _cuMemcpyHtoD_v2 is not None
+        and _cuMemcpyHtoD_v1 is not None
+        and _cuMemcpyHtoD is _cuMemcpyHtoD_v2
+    ):
+        if os.environ.get("K3D_RPN_DEBUG"):
+            print("[loader] cuMemcpyHtoD_v2 invalid context, retrying v1")
+        res = _cuMemcpyHtoD_v1(dst_device.value, host_ptr, ctypes.c_size_t(size_bytes))
     if os.environ.get("K3D_RPN_DEBUG"):
         print(f"[loader] cuMemcpyHtoD -> {res}")
     ck(res)
@@ -473,7 +525,19 @@ def memcpy_dtoh(dst_host: ctypes.c_void_p, src_device: CUdeviceptr, size_bytes: 
         if res != 0:
             ck(res)
         return
-    res = nvcuda.cuMemcpyDtoH(dst_host, src_device, size_bytes)
+    if _cuMemcpyDtoH is None:
+        raise RuntimeError("cuMemcpyDtoH not available in CUDA driver.")
+    host_ptr = dst_host if isinstance(dst_host, ctypes.c_void_p) else ctypes.c_void_p(int(dst_host))
+    res = _cuMemcpyDtoH(host_ptr, src_device.value, ctypes.c_size_t(size_bytes))
+    if (
+        res == 201
+        and _cuMemcpyDtoH_v2 is not None
+        and _cuMemcpyDtoH_v1 is not None
+        and _cuMemcpyDtoH is _cuMemcpyDtoH_v2
+    ):
+        if os.environ.get("K3D_RPN_DEBUG"):
+            print("[loader] cuMemcpyDtoH_v2 invalid context, retrying v1")
+        res = _cuMemcpyDtoH_v1(host_ptr, src_device.value, ctypes.c_size_t(size_bytes))
     if os.environ.get("K3D_RPN_DEBUG"):
         print(f"[loader] cuMemcpyDtoH -> {res}")
     ck(res)

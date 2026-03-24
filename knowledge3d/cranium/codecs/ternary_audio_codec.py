@@ -45,7 +45,7 @@ class TernaryAudioCodec:
         self.n_harmonics = int(n_harmonics)
         self.synthesizer = ProceduralAudioSynthesizer(sample_rate, frame_size)
         self._mdct_gpu: Optional[TernaryMDCTKernel] = None
-        self._require_gpu = use_gpu
+        self._gpu_enabled = use_gpu
         self._mdct_gpu = TernaryMDCTKernel(n=self.frame_size)
         logger.info("TernaryMDCTKernel initialised for frame_size=%d", self.frame_size)
         self.rpn = ModularRPNEngine()

@@ -13,7 +13,20 @@ import numpy as np
 import pytest
 
 from knowledge3d.cranium.trm_adapters import SelfUpdatingAdapter, AdapterConfig
-from knowledge3d.cranium.ptx_runtime.rpn_math_core import RPNMathCore
+from knowledge3d.cranium.ptx_runtime.rpn_math_core import HostTensorF32, RPNMathCore
+
+
+def _np_matrix(value) -> np.ndarray:
+    if isinstance(value, HostTensorF32):
+        return np.asarray(value.to_nested_list(), dtype=np.float32)
+    return np.asarray(value, dtype=np.float32)
+
+
+def _copy_tensor(dst, src) -> None:
+    if isinstance(dst, HostTensorF32):
+        dst.copy_from(src)
+        return
+    np.copyto(dst, src)
 
 # Provide a benchmark fixture fallback when pytest-benchmark isn't installed.
 try:
@@ -28,14 +41,14 @@ except ImportError:  # pragma: no cover - optional dependency
 
 @pytest.mark.cuda
 class TestRPNSovereignty:
-    """Test RPN-native training path vs CPU fallback."""
+    """Test sovereign RPN training against a NumPy reference update."""
 
-    def test_rpn_vs_cpu_gradient_update(self):
+    def test_rpn_vs_numpy_reference_gradient_update(self):
         """
-        Verify RPN gradient update produces equivalent results to CPU NumPy.
+        Verify sovereign RPN gradient update matches a NumPy reference.
 
         Acceptance criteria:
-        - Both paths should produce similar A and B updates
+        - GPU path should match mathematically equivalent LoRA updates
         - Difference should be within floating-point tolerance (1e-4)
         """
         # Setup
@@ -50,32 +63,43 @@ class TestRPNSovereignty:
             specialist_name="rpn_test"
         )
 
-        adapter_cpu = SelfUpdatingAdapter(
+        adapter_ref = SelfUpdatingAdapter(
             shape=(dims, dims),
             rank=rank,
-            specialist_name="cpu_test"
+            specialist_name="reference_test"
         )
 
         # Copy weights to ensure identical starting point
-        np.copyto(adapter_cpu.A, adapter_rpn.A)
-        np.copyto(adapter_cpu.B, adapter_rpn.B)
+        _copy_tensor(adapter_ref.A, adapter_rpn.A)
+        _copy_tensor(adapter_ref.B, adapter_rpn.B)
 
         # Generate test gradient
         gradient = np.random.randn(dims, dims).astype(np.float32) * 0.01
 
         # Apply via RPN path
         adapter_rpn.apply_gradient_rpn(gradient, lr)
+        stale_host_a = _np_matrix(adapter_rpn.A).copy()
+        stale_host_b = _np_matrix(adapter_rpn.B).copy()
+        adapter_rpn.sync_weights_to_host()
 
-        # Apply via CPU path
-        adapter_cpu._apply_gradient_cpu(gradient, lr)
+        # Apply mathematically equivalent NumPy reference update
+        grad_a = gradient @ _np_matrix(adapter_ref.B).T
+        grad_b = _np_matrix(adapter_ref.A).T @ gradient
+        _copy_tensor(adapter_ref.A, _np_matrix(adapter_ref.A) - (lr * grad_a))
+        _copy_tensor(adapter_ref.B, _np_matrix(adapter_ref.B) - (lr * grad_b))
 
         # Compare results
-        a_diff = np.linalg.norm(adapter_rpn.A - adapter_cpu.A)
-        b_diff = np.linalg.norm(adapter_rpn.B - adapter_cpu.B)
+        a_diff = np.linalg.norm(_np_matrix(adapter_rpn.A) - _np_matrix(adapter_ref.A))
+        b_diff = np.linalg.norm(_np_matrix(adapter_rpn.B) - _np_matrix(adapter_ref.B))
 
-        print(f"\n[Regression Test] RPN vs CPU gradient update:")
+        print(f"\n[Regression Test] RPN vs NumPy reference gradient update:")
         print(f"  A difference: {a_diff:.6f}")
         print(f"  B difference: {b_diff:.6f}")
+        host_stale = (
+            not np.allclose(stale_host_a, _np_matrix(adapter_ref.A))
+            or not np.allclose(stale_host_b, _np_matrix(adapter_ref.B))
+        )
+        assert host_stale, "At least one host matrix should remain stale until sync_weights_to_host()"
 
         # Tolerance: 1e-4 (should be very close)
         assert a_diff < 1e-4, f"A matrices diverged: {a_diff:.6f}"
@@ -102,10 +126,11 @@ class TestRPNSovereignty:
 
         # Fork to shadow
         adapter.fork_to_shadow()
+        adapter.sync_shadow_weights_to_host()
 
         # Verify shadow matches primary initially
-        assert np.allclose(adapter.A, adapter.A_shadow)
-        assert np.allclose(adapter.B, adapter.B_shadow)
+        assert np.allclose(_np_matrix(adapter.A), _np_matrix(adapter.A_shadow))
+        assert np.allclose(_np_matrix(adapter.B), _np_matrix(adapter.B_shadow))
 
         # Generate gradient
         gradient = np.random.randn(dims, dims).astype(np.float32) * 0.01
@@ -116,23 +141,24 @@ class TestRPNSovereignty:
 
         # Apply to shadow
         adapter.apply_gradient_to_shadow(gradient, lr)
+        adapter.sync_shadow_weights_to_host()
 
         # Verify primary unchanged
-        assert np.allclose(adapter.A, A_primary_before)
-        assert np.allclose(adapter.B, B_primary_before)
+        assert np.allclose(_np_matrix(adapter.A), _np_matrix(A_primary_before))
+        assert np.allclose(_np_matrix(adapter.B), _np_matrix(B_primary_before))
 
         # Verify shadow changed (LoRA updates touch B first, then A)
-        changed_A = not np.allclose(adapter.A_shadow, A_primary_before)
-        changed_B = not np.allclose(adapter.B_shadow, B_primary_before)
+        changed_A = not np.allclose(_np_matrix(adapter.A_shadow), _np_matrix(A_primary_before))
+        changed_B = not np.allclose(_np_matrix(adapter.B_shadow), _np_matrix(B_primary_before))
 
         assert changed_B, "B shadow weights should change after update"
         assert changed_A or changed_B, "At least one shadow matrix should change"
 
         print(f"\n[Regression Test] Shadow updates:")
-        print(f"  Primary A unchanged: {np.allclose(adapter.A, A_primary_before)}")
-        print(f"  Primary B unchanged: {np.allclose(adapter.B, B_primary_before)}")
-        print(f"  Shadow A changed: {not np.allclose(adapter.A_shadow, A_primary_before)}")
-        print(f"  Shadow B changed: {not np.allclose(adapter.B_shadow, B_primary_before)}")
+        print(f"  Primary A unchanged: {np.allclose(_np_matrix(adapter.A), _np_matrix(A_primary_before))}")
+        print(f"  Primary B unchanged: {np.allclose(_np_matrix(adapter.B), _np_matrix(B_primary_before))}")
+        print(f"  Shadow A changed: {not np.allclose(_np_matrix(adapter.A_shadow), _np_matrix(A_primary_before))}")
+        print(f"  Shadow B changed: {not np.allclose(_np_matrix(adapter.B_shadow), _np_matrix(B_primary_before))}")
 
     def test_ternary_validation_gate(self):
         """
@@ -219,6 +245,17 @@ class TestRPNSovereignty:
         RPNMathCore.free(d_vec)
         RPNMathCore.free(d_fill)
 
+    def test_rpn_math_core_copy_round_trip_supports_2d_arrays(self):
+        """2D host arrays must round-trip through device copy helpers without shape loss."""
+        matrix = np.arange(12, dtype=np.float32).reshape(3, 4)
+        ptr = RPNMathCore.to_device(matrix)
+        restored = np.zeros_like(matrix)
+
+        RPNMathCore.copy_to_host(ptr, restored)
+
+        assert np.allclose(restored, matrix)
+        RPNMathCore.free(ptr)
+
     def test_gradient_norm_clipping(self):
         """
         Test gradient norm clipping in RPN path.
@@ -295,7 +332,7 @@ class TestRPNSovereignty:
         print(f"  TRUE case: success={success}, baseline={baseline:.4f}, shadow={shadow:.4f}")
 
         assert success, "TRUE decision should commit"
-        assert not np.allclose(adapter.A, A_before), "Primary should be updated"
+        assert not np.allclose(_np_matrix(adapter.A), _np_matrix(A_before)), "Primary should be updated"
         assert adapter.accepted_count == 1, "Accepted count should increment"
 
         # Test FALSE case (excessive degradation)
@@ -309,7 +346,7 @@ class TestRPNSovereignty:
         print(f"  FALSE case: success={success}, baseline={baseline:.4f}, shadow={shadow:.4f}")
 
         assert not success, "FALSE decision should reject"
-        assert np.allclose(adapter.A, A_before), "Primary should be unchanged"
+        assert np.allclose(_np_matrix(adapter.A), _np_matrix(A_before)), "Primary should be unchanged"
 
 
 class TestRPNPerformance:

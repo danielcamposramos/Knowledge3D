@@ -38,25 +38,31 @@ import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
+import zipfile
 
-import numpy as np
-
-from knowledge3d.cranium.ptx_runtime.rpn_math_core import DeviceTensor, RPNMathCore
+from knowledge3d.cranium.ptx_runtime.rpn_math_core import (
+    DeviceTensor,
+    HostTensorF32,
+    RPNMathCore,
+)
 from knowledge3d.cranium.sovereign import loader
 
 
 def _to_serializable(obj: Any) -> Any:
-    """Recursively convert numpy types to plain Python for JSON serialization."""
+    """Recursively convert array-like types to plain Python for JSON serialization."""
     if isinstance(obj, dict):
         return {k: _to_serializable(v) for k, v in obj.items()}
     if isinstance(obj, (list, tuple)):
         return [_to_serializable(v) for v in obj]
-    if isinstance(obj, np.ndarray):
-        return obj.tolist()
-    if isinstance(obj, (np.integer,)):
+    if isinstance(obj, HostTensorF32):
+        return obj.to_nested_list()
+    if isinstance(obj, (int,)):
         return int(obj)
-    if isinstance(obj, (np.floating,)):
+    if isinstance(obj, (float,)):
         return float(obj)
+    tolist = getattr(obj, "tolist", None)
+    if callable(tolist):
+        return tolist()
     return obj
 
 
@@ -69,7 +75,6 @@ class AdapterConfig:
     gradient_clip: float = 1.0        # Gradient clipping threshold
     min_improvement: float = 0.001    # Minimum improvement to commit (0.1%)
     max_degradation: float = 0.05     # Maximum allowed degradation (5%)
-    require_gpu: bool = True          # Enforce GPU-only path
 
 
 @dataclass
@@ -79,12 +84,19 @@ class AdapterDeviceBuffers:
     dims: int
     rank: int
     gradient: DeviceTensor
+    gradient_transposed: DeviceTensor
     grad_a: DeviceTensor
     grad_b: DeviceTensor
-    A: DeviceTensor
-    B: DeviceTensor
+    grad_a_transposed: DeviceTensor
+    grad_b_transposed: DeviceTensor
+    A_weights: DeviceTensor
+    B_weights: DeviceTensor
+    A_shadow_weights: DeviceTensor
+    B_shadow_weights: DeviceTensor
     A_transposed: DeviceTensor
     B_transposed: DeviceTensor
+    A_shadow_transposed: DeviceTensor
+    B_shadow_transposed: DeviceTensor
     grad_scale: DeviceTensor
     a_scale: DeviceTensor
     b_scale: DeviceTensor
@@ -130,63 +142,50 @@ class AdapterWeights:
         self.alpha = alpha
 
         # Low-rank decomposition: ΔW = A @ B
-        self.A = np.random.randn(shape[0], self.rank).astype(np.float32) * init_std
-        self.B = np.random.randn(self.rank, shape[1]).astype(np.float32) * init_std
+        self.A = HostTensorF32.random_normal(shape[0], self.rank, init_std)
+        self.B = HostTensorF32.zeros(self.rank, shape[1])
 
-        # Zero-initialize B for stable training (LoRA best practice)
-        self.B.fill(0.0)
+    def _require_math_core(self) -> RPNMathCore:
+        ensure = getattr(self, "_ensure_math_core", None)
+        if callable(ensure):
+            if not ensure():
+                raise RuntimeError("GPU math core unavailable. Sovereign path requires CUDA context.")
+            math_core = getattr(self, "_math_core", None)
+            if math_core is None:
+                raise RuntimeError("GPU math core missing after successful initialization.")
+            return math_core
+        return RPNMathCore()
 
-    def get_delta(self) -> np.ndarray:
+    def _delta_from(self, left: HostTensorF32, right: HostTensorF32) -> List[List[float]]:
+        math_core = self._require_math_core()
+        delta = math_core.matmul_host(left, right)
+        if self.alpha != 1.0:
+            delta.scale_inplace(self.alpha)
+        return delta.to_nested_list()
+
+    def get_delta(self) -> List[List[float]]:
         """
         Reconstruct full adapter delta.
 
         Returns: ΔW = α × (A @ B)  [D×D]
         """
-        return self.alpha * (self.A @ self.B)
+        device_delta = getattr(self, "_delta_from_device_weights", None)
+        if callable(device_delta):
+            maybe_delta = device_delta(primary=True)
+            if maybe_delta is not None:
+                return maybe_delta
+        return self._delta_from(self.A, self.B)
 
-    def apply_gradient(self, gradient: np.ndarray, lr: float = 0.001):
-        if self._ensure_math_core():
-            self.apply_gradient_rpn(gradient, lr)
-            return
-
-        if self.config.require_gpu:
+    def apply_gradient(self, gradient: Any, lr: float = 0.001):
+        """Sovereign GPU gradient application. No CPU fallback exists."""
+        if not self._ensure_math_core():
             raise RuntimeError(
-                f"[{self.specialist_name}] GPU math core required but unavailable; "
-                "set require_gpu=False to enable CPU fallback."
+                f"[{self.specialist_name}] GPU math core unavailable. "
+                "Sovereign path requires CUDA context. Fix the GPU path."
             )
+        self.apply_gradient_rpn(gradient, lr)
 
-        self._apply_gradient_cpu(gradient, lr)
-
-    def _apply_gradient_cpu(self, gradient: np.ndarray, lr: float) -> None:
-        """
-        Update adapter weights given gradient for full ΔW.
-
-        Uses chain rule to compute gradients for A and B:
-            ∂L/∂A = ∂L/∂ΔW @ B.T
-            ∂L/∂B = A.T @ ∂L/∂ΔW
-
-        Args:
-            gradient: Gradient w.r.t. full ΔW [D×D]
-            lr: Learning rate
-        """
-        if gradient.shape != self.shape:
-            raise ValueError(f"Gradient shape {gradient.shape} != adapter shape {self.shape}")
-
-        # Gradient clipping (prevent instability)
-        grad_norm = np.linalg.norm(gradient)
-        if grad_norm > 1.0:
-            gradient = gradient / grad_norm
-
-        # Compute gradients for A and B using chain rule
-        grad_A = gradient @ self.B.T  # [D×D] @ [D×r] = [D×r]
-        grad_B = self.A.T @ gradient  # [r×D] @ [D×D] = [r×D]
-
-        # Gradient descent
-        self.A -= lr * grad_A
-        self.B -= lr * grad_B
-        return None
-
-    def apply_gradient_rpn(self, gradient: np.ndarray, lr: float = 0.001) -> float:
+    def apply_gradient_rpn(self, gradient: Any, lr: float = 0.001) -> float:
         """
         Sovereign RPN-based gradient application.
 
@@ -197,62 +196,10 @@ class AdapterWeights:
         Returns:
             Gradient norm after clipping
         """
-        buffers = self._ensure_device_buffers()
-        if buffers is None or self._math_core is None:
-            if self.config.require_gpu:
-                raise RuntimeError(
-                    f"[{self.specialist_name}] GPU buffers unavailable for RPN training"
-                )
-            self._apply_gradient_cpu(gradient, lr)
-            return float(np.linalg.norm(gradient))
-
-        dims = buffers.dims
-        rank = buffers.rank
-        if gradient.shape != (dims, dims):
-            raise ValueError(f"Gradient shape {gradient.shape} != adapter shape {(dims, dims)}")
-
-        grad_host = np.ascontiguousarray(gradient, dtype=np.float32)
-        RPNMathCore.copy_to_device(grad_host, buffers.gradient.ptr)
-        RPNMathCore.copy_to_device(self.A, buffers.A.ptr)
-        RPNMathCore.copy_to_device(self.B, buffers.B.ptr)
-
-        b_t_host = np.ascontiguousarray(self.B.T, dtype=np.float32)
-        RPNMathCore.copy_to_device(b_t_host, buffers.B_transposed.ptr)
-        a_t_host = np.ascontiguousarray(self.A.T, dtype=np.float32)
-        RPNMathCore.copy_to_device(a_t_host, buffers.A_transposed.ptr)
-
-        grad_vec = self._vector_view(buffers.gradient)
-        grad_norm = self._math_core.vector_norm(grad_vec)
-
-        clip = self.config.gradient_clip
-        if clip > 0.0 and grad_norm > clip:
-            scale = clip / max(grad_norm, 1e-6)
-            self._scale_vector(grad_vec, buffers.grad_scale, 'grad_scale_value', scale)
-            grad_norm = clip
-
-        # Compute grad_A = gradient @ B.T
-        self._math_core.matmul(buffers.grad_a, buffers.gradient, buffers.B_transposed)
-
-        # Compute grad_B = A.T @ gradient
-        self._math_core.matmul(buffers.grad_b, buffers.A_transposed, buffers.gradient)
-
-        # Update A
-        a_vec = self._vector_view(buffers.grad_a)
-        a_dest = self._vector_view(buffers.A)
-        self._scale_vector(a_vec, buffers.a_scale, 'a_scale_value', -lr)
-        self._math_core.vec_add3(a_dest, a_dest, a_vec, buffers.a_zero)
-
-        # Update B
-        b_vec = self._vector_view(buffers.grad_b)
-        b_dest = self._vector_view(buffers.B)
-        self._scale_vector(b_vec, buffers.b_scale, 'b_scale_value', -lr)
-        self._math_core.vec_add3(b_dest, b_dest, b_vec, buffers.b_zero)
-
-        # Sync back to host
-        RPNMathCore.copy_to_host(buffers.A.ptr, self.A)
-        RPNMathCore.copy_to_host(buffers.B.ptr, self.B)
-
-        return float(grad_norm)
+        apply_device = getattr(self, "_apply_gradient_device", None)
+        if callable(apply_device):
+            return float(apply_device(gradient, lr=lr, shadow=False))
+        raise RuntimeError("Adapter missing sovereign device gradient implementation.")
 
     def get_num_params(self) -> int:
         """Get total number of parameters."""
@@ -264,23 +211,43 @@ class AdapterWeights:
 
     def save(self, path: Path):
         """Save adapter to disk."""
-        np.savez_compressed(
-            path,
-            A=self.A,
-            B=self.B,
-            alpha=self.alpha,
-            rank=self.rank,
-            shape=self.shape
-        )
+        sync = getattr(self, "sync_weights_to_host", None)
+        if callable(sync):
+            sync()
+        payload = {
+            "alpha": self.alpha,
+            "rank": self.rank,
+            "shape": [int(self.shape[0]), int(self.shape[1])],
+            "A_shape": [int(self.A.rows), int(self.A.cols)],
+            "B_shape": [int(self.B.rows), int(self.B.cols)],
+        }
+        with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr("metadata.json", json.dumps(payload))
+            archive.writestr("A.bin", self.A.to_bytes())
+            archive.writestr("B.bin", self.B.to_bytes())
 
     def load(self, path: Path):
         """Load adapter from disk."""
-        data = np.load(path)
-        self.A = data['A']
-        self.B = data['B']
-        self.alpha = float(data['alpha'])
-        self.rank = int(data['rank'])
-        self.shape = tuple(data['shape'])
+        release = getattr(self, "_release_device_buffers", None)
+        if callable(release):
+            release()
+        metadata = self.peek_saved_metadata(path)
+        self.alpha = float(metadata["alpha"])
+        self.rank = int(metadata["rank"])
+        self.shape = (int(metadata["shape"][0]), int(metadata["shape"][1]))
+        self.A = HostTensorF32.zeros(int(metadata["A_shape"][0]), int(metadata["A_shape"][1]))
+        self.B = HostTensorF32.zeros(int(metadata["B_shape"][0]), int(metadata["B_shape"][1]))
+        with zipfile.ZipFile(path, "r") as archive:
+            self.A.load_bytes(archive.read("A.bin"))
+            self.B.load_bytes(archive.read("B.bin"))
+        hook = getattr(self, "_after_primary_host_reload", None)
+        if callable(hook):
+            hook()
+
+    @staticmethod
+    def peek_saved_metadata(path: Path) -> Dict[str, Any]:
+        with zipfile.ZipFile(path, "r") as archive:
+            return json.loads(archive.read("metadata.json").decode("utf-8"))
 
 
 class SelfUpdatingAdapter(AdapterWeights):
@@ -314,8 +281,8 @@ class SelfUpdatingAdapter(AdapterWeights):
         self.config = config or AdapterConfig()
 
         # Shadow weights (candidate updates)
-        self.A_shadow = np.zeros_like(self.A)
-        self.B_shadow = np.zeros_like(self.B)
+        self.A_shadow = HostTensorF32.zeros(self.A.rows, self.A.cols)
+        self.B_shadow = HostTensorF32.zeros(self.B.rows, self.B.cols)
 
         # Validation tracking
         self.validation_samples = []
@@ -334,6 +301,11 @@ class SelfUpdatingAdapter(AdapterWeights):
         self._math_core: Optional[RPNMathCore] = None
         self._device_buffers: Optional[AdapterDeviceBuffers] = None
         self._rpn_available: bool = True
+        self._primary_host_dirty: bool = False
+        self._primary_device_dirty: bool = False
+        self._shadow_host_dirty: bool = False
+        self._shadow_device_dirty: bool = False
+        self._bind_host_callbacks()
 
     def set_validation_samples(self, samples: List[Dict]):
         """Set specialist-specific validation set."""
@@ -358,6 +330,20 @@ class SelfUpdatingAdapter(AdapterWeights):
     def _vector_view(tensor: DeviceTensor) -> DeviceTensor:
         """Return a vector view (rows*cols, 1) for element-wise ops."""
         return DeviceTensor(tensor.ptr, tensor.rows * tensor.cols, 1)
+
+    def _bind_host_callbacks(self) -> None:
+        self.A.set_mutation_callback(self._mark_primary_host_dirty)
+        self.B.set_mutation_callback(self._mark_primary_host_dirty)
+        self.A_shadow.set_mutation_callback(self._mark_shadow_host_dirty)
+        self.B_shadow.set_mutation_callback(self._mark_shadow_host_dirty)
+
+    def _mark_primary_host_dirty(self) -> None:
+        self._primary_host_dirty = True
+        self._primary_device_dirty = False
+
+    def _mark_shadow_host_dirty(self) -> None:
+        self._shadow_host_dirty = True
+        self._shadow_device_dirty = False
 
     def _scale_vector(self, tensor: DeviceTensor, scale_buffer: DeviceTensor,
                       attr_name: str, value: float) -> None:
@@ -390,12 +376,19 @@ class SelfUpdatingAdapter(AdapterWeights):
             return loader.gpu_malloc(size * 4)
 
         gradient = DeviceTensor(alloc(grad_len), dims, dims)
+        gradient_transposed = DeviceTensor(alloc(grad_len), dims, dims)
         grad_a = DeviceTensor(alloc(a_len), dims, rank)
         grad_b = DeviceTensor(alloc(b_len), rank, dims)
+        grad_a_transposed = DeviceTensor(alloc(a_len), rank, dims)
+        grad_b_transposed = DeviceTensor(alloc(b_len), dims, rank)
         A_dev = DeviceTensor(alloc(a_len), dims, rank)
         B_dev = DeviceTensor(alloc(b_len), rank, dims)
+        A_shadow_dev = DeviceTensor(alloc(a_len), dims, rank)
+        B_shadow_dev = DeviceTensor(alloc(b_len), rank, dims)
         A_transposed = DeviceTensor(alloc(a_len), rank, dims)
         B_transposed = DeviceTensor(alloc(b_len), dims, rank)
+        A_shadow_transposed = DeviceTensor(alloc(a_len), rank, dims)
+        B_shadow_transposed = DeviceTensor(alloc(b_len), dims, rank)
         grad_scale = DeviceTensor(alloc(grad_len), grad_len, 1)
         a_scale = DeviceTensor(alloc(a_len), a_len, 1)
         b_scale = DeviceTensor(alloc(b_len), b_len, 1)
@@ -406,12 +399,19 @@ class SelfUpdatingAdapter(AdapterWeights):
             dims=dims,
             rank=rank,
             gradient=gradient,
+            gradient_transposed=gradient_transposed,
             grad_a=grad_a,
             grad_b=grad_b,
-            A=A_dev,
-            B=B_dev,
+            grad_a_transposed=grad_a_transposed,
+            grad_b_transposed=grad_b_transposed,
+            A_weights=A_dev,
+            B_weights=B_dev,
+            A_shadow_weights=A_shadow_dev,
+            B_shadow_weights=B_shadow_dev,
             A_transposed=A_transposed,
             B_transposed=B_transposed,
+            A_shadow_transposed=A_shadow_transposed,
+            B_shadow_transposed=B_shadow_transposed,
             grad_scale=grad_scale,
             a_scale=a_scale,
             b_scale=b_scale,
@@ -423,18 +423,251 @@ class SelfUpdatingAdapter(AdapterWeights):
         self._math_core.fill(a_zero, 0.0)
         self._math_core.fill(b_zero, 0.0)
         self._device_buffers = buffers
+        self._upload_host_weight_pair(self.A, self.B, buffers.A_weights, buffers.B_weights, buffers.A_transposed, buffers.B_transposed)
+        self._upload_host_weight_pair(
+            self.A_shadow,
+            self.B_shadow,
+            buffers.A_shadow_weights,
+            buffers.B_shadow_weights,
+            buffers.A_shadow_transposed,
+            buffers.B_shadow_transposed,
+        )
+        self._primary_host_dirty = False
+        self._primary_device_dirty = False
+        self._shadow_host_dirty = False
+        self._shadow_device_dirty = False
         return buffers
+
+    def _release_device_buffers(self) -> None:
+        buffers = self._device_buffers
+        if buffers is None:
+            return
+        for value in buffers.__dict__.values():
+            if isinstance(value, DeviceTensor):
+                loader.gpu_free(value.ptr)
+        self._device_buffers = None
+
+    def _after_primary_host_reload(self) -> None:
+        self.A_shadow = HostTensorF32.zeros(self.A.rows, self.A.cols)
+        self.B_shadow = HostTensorF32.zeros(self.B.rows, self.B.cols)
+        self._bind_host_callbacks()
+        self._primary_host_dirty = False
+        self._primary_device_dirty = False
+        self._shadow_host_dirty = False
+        self._shadow_device_dirty = False
+
+    def _upload_host_weight_pair(
+        self,
+        host_a: HostTensorF32,
+        host_b: HostTensorF32,
+        dev_a: DeviceTensor,
+        dev_b: DeviceTensor,
+        dev_a_t: DeviceTensor,
+        dev_b_t: DeviceTensor,
+    ) -> None:
+        RPNMathCore.copy_to_device(host_a, dev_a.ptr)
+        RPNMathCore.copy_to_device(host_b, dev_b.ptr)
+        RPNMathCore.copy_to_device(host_a.transpose(), dev_a_t.ptr)
+        RPNMathCore.copy_to_device(host_b.transpose(), dev_b_t.ptr)
+
+    def _select_weight_buffers(self, shadow: bool = False) -> Tuple[DeviceTensor, DeviceTensor, DeviceTensor, DeviceTensor]:
+        buffers = self._ensure_device_buffers()
+        if buffers is None:
+            raise RuntimeError("Adapter device buffers unavailable.")
+        if shadow:
+            return (
+                buffers.A_shadow_weights,
+                buffers.B_shadow_weights,
+                buffers.A_shadow_transposed,
+                buffers.B_shadow_transposed,
+            )
+        return (
+            buffers.A_weights,
+            buffers.B_weights,
+            buffers.A_transposed,
+            buffers.B_transposed,
+        )
+
+    def _ensure_device_weight_set(self, shadow: bool = False) -> Tuple[DeviceTensor, DeviceTensor, DeviceTensor, DeviceTensor]:
+        buffers = self._ensure_device_buffers()
+        if buffers is None:
+            raise RuntimeError("Adapter device buffers unavailable.")
+        if shadow:
+            if self._shadow_host_dirty:
+                self._upload_host_weight_pair(
+                    self.A_shadow,
+                    self.B_shadow,
+                    buffers.A_shadow_weights,
+                    buffers.B_shadow_weights,
+                    buffers.A_shadow_transposed,
+                    buffers.B_shadow_transposed,
+                )
+                self._shadow_host_dirty = False
+                self._shadow_device_dirty = False
+            return (
+                buffers.A_shadow_weights,
+                buffers.B_shadow_weights,
+                buffers.A_shadow_transposed,
+                buffers.B_shadow_transposed,
+            )
+        if self._primary_host_dirty:
+            self._upload_host_weight_pair(
+                self.A,
+                self.B,
+                buffers.A_weights,
+                buffers.B_weights,
+                buffers.A_transposed,
+                buffers.B_transposed,
+            )
+            self._primary_host_dirty = False
+            self._primary_device_dirty = False
+        return (
+            buffers.A_weights,
+            buffers.B_weights,
+            buffers.A_transposed,
+            buffers.B_transposed,
+        )
+
+    def _sync_weight_pair_to_host(
+        self,
+        dev_a: DeviceTensor,
+        dev_b: DeviceTensor,
+        host_a: HostTensorF32,
+        host_b: HostTensorF32,
+    ) -> None:
+        host_a.set_mutation_callback(None)
+        host_b.set_mutation_callback(None)
+        try:
+            RPNMathCore.copy_to_host(dev_a.ptr, host_a)
+            RPNMathCore.copy_to_host(dev_b.ptr, host_b)
+        finally:
+            self._bind_host_callbacks()
+
+    def sync_weights_to_host(self) -> None:
+        buffers = self._device_buffers
+        if buffers is None or not self._primary_device_dirty:
+            return
+        self._sync_weight_pair_to_host(buffers.A_weights, buffers.B_weights, self.A, self.B)
+        self._primary_device_dirty = False
+        self._primary_host_dirty = False
+
+    def sync_shadow_weights_to_host(self) -> None:
+        buffers = self._device_buffers
+        if buffers is None or not self._shadow_device_dirty:
+            return
+        self._sync_weight_pair_to_host(buffers.A_shadow_weights, buffers.B_shadow_weights, self.A_shadow, self.B_shadow)
+        self._shadow_device_dirty = False
+        self._shadow_host_dirty = False
+
+    def _delta_from_device_weights(self, primary: bool = True) -> Optional[List[List[float]]]:
+        if self._device_buffers is None:
+            return None
+        if primary and self._primary_host_dirty:
+            return None
+        if (not primary) and self._shadow_host_dirty:
+            return None
+
+        if not self._ensure_math_core() or self._math_core is None:
+            return None
+
+        left, right, _, _ = self._select_weight_buffers(shadow=not primary)
+        dest_ptr = loader.gpu_malloc(self.shape[0] * self.shape[1] * 4)
+        dest = DeviceTensor(dest_ptr, self.shape[0], self.shape[1])
+        try:
+            self._math_core.matmul(dest, left, right)
+            host = HostTensorF32.zeros(self.shape[0], self.shape[1])
+            RPNMathCore.copy_to_host(dest.ptr, host)
+            if self.alpha != 1.0:
+                host.scale_inplace(self.alpha)
+            return host.to_nested_list()
+        finally:
+            loader.gpu_free(dest_ptr)
+
+    def _apply_gradient_device(self, gradient: Any, lr: float = 0.001, shadow: bool = False) -> float:
+        buffers = self._ensure_device_buffers()
+        if buffers is None or self._math_core is None:
+            raise RuntimeError(
+                f"[{self.specialist_name}] GPU device buffers unavailable. "
+                "Sovereign path requires allocated VRAM buffers. Fix gpu_malloc."
+            )
+
+        dims = buffers.dims
+        grad_rows, grad_cols = RPNMathCore.shape_of(gradient)
+        if (grad_rows, grad_cols) != (dims, dims):
+            raise ValueError(f"Gradient shape {(grad_rows, grad_cols)} != adapter shape {(dims, dims)}")
+
+        gradient_host = HostTensorF32.from_array_like(gradient, rows=dims, cols=dims)
+        gradient_transposed = gradient_host.transpose()
+        RPNMathCore.copy_to_device(gradient_host, buffers.gradient.ptr)
+        RPNMathCore.copy_to_device(gradient_transposed, buffers.gradient_transposed.ptr)
+
+        a_weights, b_weights, a_transposed, b_transposed = self._ensure_device_weight_set(shadow=shadow)
+        grad_vec = self._vector_view(buffers.gradient)
+        grad_vec_t = self._vector_view(buffers.gradient_transposed)
+        grad_norm = self._math_core.vector_norm(grad_vec)
+
+        clip = self.config.gradient_clip
+        if clip > 0.0 and grad_norm > clip:
+            scale = clip / max(grad_norm, 1e-6)
+            self._scale_vector(grad_vec, buffers.grad_scale, "grad_scale_value", scale)
+            self._scale_vector(grad_vec_t, buffers.grad_scale, "grad_scale_value", scale)
+            grad_norm = clip
+
+        self._math_core.matmul(buffers.grad_a, buffers.gradient, b_transposed)
+        self._math_core.matmul(buffers.grad_a_transposed, b_weights, buffers.gradient_transposed)
+        self._math_core.matmul(buffers.grad_b, a_transposed, buffers.gradient)
+        self._math_core.matmul(buffers.grad_b_transposed, buffers.gradient_transposed, a_weights)
+
+        a_vec = self._vector_view(buffers.grad_a)
+        a_vec_t = self._vector_view(buffers.grad_a_transposed)
+        a_dest = self._vector_view(a_weights)
+        a_dest_t = self._vector_view(a_transposed)
+        self._scale_vector(a_vec, buffers.a_scale, "a_scale_value", -lr)
+        self._scale_vector(a_vec_t, buffers.a_scale, "a_scale_value", -lr)
+        self._math_core.vec_add3(a_dest, a_dest, a_vec, buffers.a_zero)
+        self._math_core.vec_add3(a_dest_t, a_dest_t, a_vec_t, buffers.a_zero)
+
+        b_vec = self._vector_view(buffers.grad_b)
+        b_vec_t = self._vector_view(buffers.grad_b_transposed)
+        b_dest = self._vector_view(b_weights)
+        b_dest_t = self._vector_view(b_transposed)
+        self._scale_vector(b_vec, buffers.b_scale, "b_scale_value", -lr)
+        self._scale_vector(b_vec_t, buffers.b_scale, "b_scale_value", -lr)
+        self._math_core.vec_add3(b_dest, b_dest, b_vec, buffers.b_zero)
+        self._math_core.vec_add3(b_dest_t, b_dest_t, b_vec_t, buffers.b_zero)
+
+        if shadow:
+            self._shadow_device_dirty = True
+            self._shadow_host_dirty = False
+        else:
+            self._primary_device_dirty = True
+            self._primary_host_dirty = False
+
+        return float(grad_norm)
 
     def fork_to_shadow(self):
         """Copy primary weights → shadow for testing."""
-        np.copyto(self.A_shadow, self.A)
-        np.copyto(self.B_shadow, self.B)
+        buffers = self._ensure_device_buffers()
+        if buffers is None:
+            raise RuntimeError("Cannot fork adapter weights without sovereign device buffers.")
+        self._ensure_device_weight_set(shadow=False)
+        size_a = self.A.nbytes
+        size_b = self.B.nbytes
+        loader.memcpy_dtod(buffers.A_shadow_weights.ptr, buffers.A_weights.ptr, size_a)
+        loader.memcpy_dtod(buffers.B_shadow_weights.ptr, buffers.B_weights.ptr, size_b)
+        loader.memcpy_dtod(buffers.A_shadow_transposed.ptr, buffers.A_transposed.ptr, size_a)
+        loader.memcpy_dtod(buffers.B_shadow_transposed.ptr, buffers.B_transposed.ptr, size_b)
+        self._shadow_host_dirty = False
+        self._shadow_device_dirty = True
 
-    def get_delta_shadow(self) -> np.ndarray:
+    def get_delta_shadow(self) -> List[List[float]]:
         """Get shadow delta: ΔW_shadow = α × (A_shadow @ B_shadow)"""
-        return self.alpha * (self.A_shadow @ self.B_shadow)
+        maybe_delta = self._delta_from_device_weights(primary=False)
+        if maybe_delta is not None:
+            return maybe_delta
+        return self._delta_from(self.A_shadow, self.B_shadow)
 
-    def apply_gradient_to_shadow(self, gradient: np.ndarray,
+    def apply_gradient_to_shadow(self, gradient: Any,
                                  lr: Optional[float] = None):
         """
         Apply gradient to shadow weights.
@@ -443,36 +676,15 @@ class SelfUpdatingAdapter(AdapterWeights):
         """
         lr = lr or self.config.learning_rate
 
-        if self._ensure_math_core():
-            primary_A = self.A
-            primary_B = self.B
-            try:
-                self.A = self.A_shadow
-                self.B = self.B_shadow
-                self.apply_gradient_rpn(gradient, lr)
-            finally:
-                self.A = primary_A
-                self.B = primary_B
-            return
-
-        # CPU fallback
-        if self.config.require_gpu:
+        if not self._ensure_math_core():
             raise RuntimeError(
-                f"[{self.specialist_name}] GPU math core required for shadow update"
+                f"[{self.specialist_name}] GPU math core unavailable for shadow update. "
+                "Sovereign path requires CUDA context."
             )
+        self._apply_gradient_device(gradient, lr=lr, shadow=True)
 
-        grad_norm = np.linalg.norm(gradient)
-        if grad_norm > self.config.gradient_clip:
-            gradient = gradient / grad_norm * self.config.gradient_clip
-
-        grad_A = gradient @ self.B_shadow.T
-        grad_B = self.A_shadow.T @ gradient
-
-        self.A_shadow -= lr * grad_A
-        self.B_shadow -= lr * grad_B
-
-    def validate_and_commit(self, base_weights: np.ndarray,
-                           eval_fn: Callable[[np.ndarray, List], float]) -> Tuple[bool, float, float]:
+    def validate_and_commit(self, base_weights: Any,
+                           eval_fn: Callable[[Any, List], float]) -> Tuple[bool, float, float]:
         """
         Validate shadow adapter and commit if performance improves.
 
@@ -500,8 +712,21 @@ class SelfUpdatingAdapter(AdapterWeights):
 
         if decision == "TRUE":
             # Performance improved → commit shadow → primary
-            np.copyto(self.A, self.A_shadow)
-            np.copyto(self.B, self.B_shadow)
+            self._ensure_device_weight_set(shadow=True)
+            self.sync_shadow_weights_to_host()
+            buffers = self._ensure_device_buffers()
+            if buffers is None:
+                raise RuntimeError("Cannot commit shadow weights without sovereign device buffers.")
+            size_a = self.A.nbytes
+            size_b = self.B.nbytes
+            loader.memcpy_dtod(buffers.A_weights.ptr, buffers.A_shadow_weights.ptr, size_a)
+            loader.memcpy_dtod(buffers.B_weights.ptr, buffers.B_shadow_weights.ptr, size_b)
+            loader.memcpy_dtod(buffers.A_transposed.ptr, buffers.A_shadow_transposed.ptr, size_a)
+            loader.memcpy_dtod(buffers.B_transposed.ptr, buffers.B_shadow_transposed.ptr, size_b)
+            self.A.copy_from(self.A_shadow)
+            self.B.copy_from(self.B_shadow)
+            self._primary_host_dirty = False
+            self._primary_device_dirty = False
 
             self.baseline_performance = shadow_perf
             self.accepted_count += 1
@@ -654,6 +879,7 @@ class SelfUpdatingAdapter(AdapterWeights):
         self.performance_history = metadata.get('performance_history', [])
         stats = metadata.get('stats', {})
         self.baseline_performance = stats.get('baseline_performance', 0.0)
+        self.fork_to_shadow()
 
         print(f"[{self.specialist_name}] Checkpoint loaded from {checkpoint_dir}")
         print(f"  Baseline performance: {self.baseline_performance:.4f}")

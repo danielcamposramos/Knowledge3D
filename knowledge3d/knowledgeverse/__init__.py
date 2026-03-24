@@ -49,6 +49,7 @@ from .tool_galaxy import (
     build_tool_payload,
     default_tool_entries,
 )
+from .trm_game_loop import TRMGameLoop
 from .trm_navigator import TRMNavigator
 from .trm_weight_store import TRMWeightStore
 
@@ -105,6 +106,7 @@ __all__ = [
     "TemporalMetadata",
     "TemporalMetadataManager",
     "ToolNode",
+    "TRMGameLoop",
     "QualityPrior",
     "TernaryQualityMemory",
     "TRMNavigator",

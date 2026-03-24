@@ -37,14 +37,14 @@ Usage:
 
 from __future__ import annotations
 
-import numpy as np
-from pathlib import Path
-from typing import Dict, List, Tuple, Optional, Any, Callable
-import json
 from dataclasses import dataclass
 from datetime import datetime
+import json
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 from knowledge3d.cranium.matryoshka_trm import MatryoshkaTRM, DimensionSelector
+from knowledge3d.cranium.ptx_runtime.rpn_math_core import HostTensorF32, RPNMathCore
 from knowledge3d.cranium.trm_adapters import (
     SelfUpdatingAdapter,
     AdapterConfig,
@@ -99,7 +99,7 @@ class AdaptiveSwarmTRM:
         self.base_validation_samples = []
 
         # Base self-updating mechanism
-        self.W_base_shadow = np.zeros_like(self.base.W_base_full)
+        self.W_base_shadow: Optional[HostTensorF32] = None
         self.base_baseline_performance = 0.0
         self.base_update_count = 0
         self.base_accepted_count = 0
@@ -149,7 +149,7 @@ class AdaptiveSwarmTRM:
         adapter.set_validation_samples(samples)
 
     def train_base_epoch(self, train_samples: List[Dict],
-                        eval_fn: Callable[[np.ndarray, List], float],
+                        eval_fn: Callable[[Any, List], float],
                         use_self_update: bool = True) -> Dict[str, float]:
         """
         Train base model for one epoch.
@@ -162,54 +162,14 @@ class AdaptiveSwarmTRM:
         Returns:
             Training statistics
         """
-        print(f"\n[Base Training] Starting epoch over {len(train_samples)} samples")
-
-        total_loss = 0.0
-
-        for i, sample in enumerate(train_samples):
-            # Compute gradient (placeholder - real implementation would compute actual gradient)
-            # In practice, this would be backprop through TRM
-            gradient = self._compute_base_gradient(sample)
-
-            if use_self_update:
-                # Apply to shadow
-                if i == 0:
-                    # Fork to shadow at start
-                    np.copyto(self.W_base_shadow, self.base.W_base_full)
-
-                # Update shadow
-                self.W_base_shadow -= self.config.base_learning_rate * gradient
-            else:
-                # Direct update (no validation)
-                self.base.W_base_full -= self.config.base_learning_rate * gradient
-
-            # Track loss
-            loss = np.linalg.norm(gradient)
-            total_loss += loss
-
-            self.base_step += 1
-
-            if (i + 1) % 100 == 0:
-                avg_loss = total_loss / (i + 1)
-                print(f"  Step {i+1}/{len(train_samples)}: Loss {avg_loss:.4f}")
-
-        avg_loss = total_loss / len(train_samples)
-
-        # Validate and commit if using self-update
-        if use_self_update and len(self.base_validation_samples) > 0:
-            success = self._validate_and_commit_base(eval_fn)
-
-            return {
-                'avg_loss': avg_loss,
-                'update_accepted': success,
-                'steps': self.base_step
-            }
-
-        return {'avg_loss': avg_loss, 'steps': self.base_step}
+        raise RuntimeError(
+            "Base epoch training still depends on placeholder host-side gradients. "
+            "Phase 1 removes that fake path instead of keeping non-sovereign NumPy training alive."
+        )
 
     def train_specialist_epoch(self, specialist_name: str,
                               train_samples: List[Dict],
-                              eval_fn: Callable[[np.ndarray, List], float],
+                              eval_fn: Callable[[Any, List], float],
                               use_self_update: bool = True) -> Dict[str, float]:
         """
         Train specialist for one epoch.
@@ -223,65 +183,14 @@ class AdaptiveSwarmTRM:
         Returns:
             Training statistics
         """
-        if specialist_name not in self.base.specialists:
-            raise ValueError(f"Unknown specialist: {specialist_name}")
+        raise RuntimeError(
+            "Specialist epoch training still depends on placeholder host-side gradients. "
+            "Phase 1 removes that fake path; contrastive training remains the active sovereign path."
+        )
 
-        specialist = self.base.specialists[specialist_name]
-        adapter = specialist['adapter']
-        dims = specialist['dims']
-
-        print(f"\n[Specialist '{specialist_name}'] Training epoch over {len(train_samples)} samples")
-
-        total_loss = 0.0
-
-        for i, sample in enumerate(train_samples):
-            # Compute gradient for specialist
-            gradient = self._compute_specialist_gradient(specialist_name, sample)
-
-            if use_self_update:
-                # Fork to shadow at start
-                if i == 0:
-                    adapter.fork_to_shadow()
-
-                # Apply to shadow
-                adapter.apply_gradient_to_shadow(gradient, lr=self.config.specialist_learning_rate)
-            else:
-                # Direct update
-                adapter.apply_gradient(gradient, lr=self.config.specialist_learning_rate)
-
-            # Track loss
-            loss = np.linalg.norm(gradient)
-            total_loss += loss
-
-            self.specialist_steps[specialist_name] += 1
-
-            if (i + 1) % 100 == 0:
-                avg_loss = total_loss / (i + 1)
-                print(f"  Step {i+1}/{len(train_samples)}: Loss {avg_loss:.4f}")
-
-        avg_loss = total_loss / len(train_samples)
-
-        # Validate and commit if using self-update
-        if use_self_update and len(adapter.validation_samples) > 0:
-            # Get current base weights at specialist's dimension
-            base_weights = self.base.get_base_at_dim(dims)
-
-            # Validate and commit
-            success, baseline, shadow = adapter.validate_and_commit(base_weights, eval_fn)
-
-            return {
-                'avg_loss': avg_loss,
-                'update_accepted': success,
-                'baseline_performance': baseline,
-                'shadow_performance': shadow,
-                'steps': self.specialist_steps[specialist_name]
-            }
-
-        return {'avg_loss': avg_loss, 'steps': self.specialist_steps[specialist_name]}
-
-    def forward(self, input_data: np.ndarray,
+    def forward(self, input_data: Any,
                 specialist: Optional[str] = None,
-                complexity: Optional[float] = None) -> np.ndarray:
+                complexity: Optional[float] = None) -> Any:
         """
         Forward pass through swarm.
 
@@ -316,8 +225,8 @@ class AdaptiveSwarmTRM:
             # Use specific specialist
             return self.base.compute_with_specialist(input_data, specialist)
 
-    def forward_moe(self, input_data: np.ndarray,
-                   specialist_weights: Dict[str, float]) -> np.ndarray:
+    def forward_moe(self, input_data: Any,
+                   specialist_weights: Dict[str, float]) -> Any:
         """
         Forward pass with MoE (mixture of specialists).
 
@@ -330,7 +239,7 @@ class AdaptiveSwarmTRM:
         """
         return self.base.compute_with_moe(input_data, specialist_weights)
 
-    def compute_with_specialist(self, input_data: np.ndarray, specialist_name: str) -> np.ndarray:
+    def compute_with_specialist(self, input_data: Any, specialist_name: str) -> Any:
         """
         Compute using specific specialist.
 
@@ -357,7 +266,7 @@ class AdaptiveSwarmTRM:
         self.base.expand_base_dimensions(new_max_dims)
 
         # Update shadow weights to match
-        self.W_base_shadow = np.zeros_like(self.base.W_base_full)
+        self.W_base_shadow = None
 
         print(f"[AdaptiveSwarmTRM] Capacity expanded to {new_max_dims} dims")
 
@@ -441,11 +350,11 @@ class AdaptiveSwarmTRM:
         self.base_baseline_performance = training_state.get('base_baseline_performance', 0.0)
 
         # Reinitialize shadow weights
-        self.W_base_shadow = np.zeros_like(self.base.W_base_full)
+        self.W_base_shadow = None
 
         print(f"[AdaptiveSwarmTRM] Checkpoint loaded from {checkpoint_dir}")
 
-    def _compute_base_gradient(self, sample: Dict) -> np.ndarray:
+    def _compute_base_gradient(self, sample: Dict) -> HostTensorF32:
         """
         Compute gradient for base model.
 
@@ -457,10 +366,12 @@ class AdaptiveSwarmTRM:
         Returns:
             Gradient [D×D]
         """
-        # Placeholder: Random gradient (replace with actual backprop)
-        return np.random.randn(self.base.max_dims, self.base.max_dims).astype(np.float32) * 0.01
+        raise RuntimeError(
+            "Base gradient computation placeholder removed. "
+            "A sovereign base-training kernel path must replace it."
+        )
 
-    def _compute_specialist_gradient(self, specialist_name: str, sample: Dict) -> np.ndarray:
+    def _compute_specialist_gradient(self, specialist_name: str, sample: Dict) -> HostTensorF32:
         """
         Compute gradient for specialist adapter.
 
@@ -471,16 +382,16 @@ class AdaptiveSwarmTRM:
         Returns:
             Gradient [D×D]
         """
-        dims = self.base.specialists[specialist_name]['dims']
-
-        # Placeholder: Random gradient (replace with actual backprop)
-        return np.random.randn(dims, dims).astype(np.float32) * 0.01
+        raise RuntimeError(
+            "Specialist gradient computation placeholder removed. "
+            "A sovereign specialist-training kernel path must replace it."
+        )
 
     def train_specialist_contrastive(
         self,
         specialist_name: str,
-        positive_pairs: List[Tuple[np.ndarray, np.ndarray]],
-        negative_pairs: Optional[List[Tuple[np.ndarray, np.ndarray]]] = None,
+        positive_pairs: List[Tuple[Sequence[float], Sequence[float]]],
+        negative_pairs: Optional[List[Tuple[Sequence[float], Sequence[float]]]] = None,
         learning_rate: Optional[float] = None,
         margin: float = 0.5,
     ) -> Dict[str, float]:
@@ -506,6 +417,7 @@ class AdaptiveSwarmTRM:
 
         lr = learning_rate if learning_rate is not None else self.config.specialist_learning_rate
 
+        math_core = RPNMathCore()
         total_positive_loss = 0.0
         total_negative_loss = 0.0
         positive_steps = 0
@@ -515,11 +427,14 @@ class AdaptiveSwarmTRM:
             input_emb = self._pad_or_truncate(input_emb, dims)
             target_emb = self._pad_or_truncate(target_emb, dims)
 
-            diff = target_emb - input_emb
-            loss = np.linalg.norm(diff)
+            diff = [target_value - input_value for input_value, target_value in zip(input_emb, target_emb)]
+            loss = math_core.vector_norm_host(diff)
             total_positive_loss += float(loss)
 
-            gradient = np.outer(diff, input_emb)
+            gradient = math_core.outer_product_host(
+                HostTensorF32.from_array_like(diff, rows=dims, cols=1),
+                HostTensorF32.from_array_like(input_emb, rows=1, cols=dims),
+            )
             self._apply_adapter_gradient(adapter, gradient, lr)
             positive_steps += 1
 
@@ -527,14 +442,18 @@ class AdaptiveSwarmTRM:
             input_emb = self._pad_or_truncate(input_emb, dims)
             wrong_emb = self._pad_or_truncate(wrong_emb, dims)
 
-            diff = input_emb - wrong_emb
-            dist = float(np.linalg.norm(diff))
+            diff = [input_value - wrong_value for input_value, wrong_value in zip(input_emb, wrong_emb)]
+            dist = float(math_core.vector_norm_host(diff))
             if dist >= float(margin):
                 continue
 
             repulsion_loss = float(margin) - dist
             total_negative_loss += repulsion_loss
-            gradient = np.outer(-diff, input_emb)
+            negative_diff = [-value for value in diff]
+            gradient = math_core.outer_product_host(
+                HostTensorF32.from_array_like(negative_diff, rows=dims, cols=1),
+                HostTensorF32.from_array_like(input_emb, rows=1, cols=dims),
+            )
             self._apply_adapter_gradient(adapter, gradient, lr * 0.5)
             negative_steps += 1
 
@@ -559,28 +478,23 @@ class AdaptiveSwarmTRM:
         }
 
     @staticmethod
-    def _pad_or_truncate(embedding: np.ndarray, dims: int) -> np.ndarray:
-        if embedding.shape[0] != dims:
-            embedding = np.pad(embedding, (0, max(0, dims - len(embedding))))[:dims]
-        return embedding
+    def _pad_or_truncate(embedding: Sequence[float], dims: int) -> List[float]:
+        values = [float(value) for value in embedding]
+        if len(values) >= dims:
+            return values[:dims]
+        return values + ([0.0] * (dims - len(values)))
 
     @staticmethod
-    def _apply_adapter_gradient(adapter: Any, gradient: np.ndarray, lr: float) -> None:
-        if (
-            hasattr(adapter, 'config')
-            and bool(getattr(adapter.config, 'require_gpu', True)) is False
-            and hasattr(adapter, '_apply_gradient_cpu')
-        ):
-            adapter._apply_gradient_cpu(gradient, lr)
-        elif hasattr(adapter, 'apply_gradient'):
+    def _apply_adapter_gradient(adapter: Any, gradient: Any, lr: float) -> None:
+        if hasattr(adapter, 'apply_gradient'):
             adapter.apply_gradient(gradient, lr=lr)
-        elif hasattr(adapter, 'A') and hasattr(adapter, 'B'):
-            grad_A = gradient @ adapter.B.T
-            grad_B = adapter.A.T @ gradient
-            adapter.A -= lr * grad_A
-            adapter.B -= lr * grad_B
+            return
+        raise RuntimeError(
+            f"Adapter {type(adapter).__name__} has no sovereign apply_gradient method. "
+            "Contrastive training requires the GPU adapter path."
+        )
 
-    def _validate_and_commit_base(self, eval_fn: Callable[[np.ndarray, List], float]) -> bool:
+    def _validate_and_commit_base(self, eval_fn: Callable[[Any, List], float]) -> bool:
         """
         Validate shadow base weights and commit if improved.
 
@@ -590,33 +504,10 @@ class AdaptiveSwarmTRM:
         Returns:
             True if accepted, False if rejected
         """
-        # Evaluate baseline
-        baseline_perf = eval_fn(self.base.W_base_full, self.base_validation_samples)
-
-        # Evaluate shadow
-        shadow_perf = eval_fn(self.W_base_shadow, self.base_validation_samples)
-
-        improvement = shadow_perf - baseline_perf
-
-        self.base_update_count += 1
-
-        # Check for improvement
-        min_improvement = 0.001  # 0.1%
-
-        if improvement >= min_improvement:
-            # Accept update
-            np.copyto(self.base.W_base_full, self.W_base_shadow)
-            self.base_baseline_performance = shadow_perf
-            self.base_accepted_count += 1
-
-            print(f"[Base] ✓ Update accepted: {baseline_perf:.4f} → {shadow_perf:.4f} (+{improvement:.4f})")
-            return True
-        else:
-            # Reject update
-            self.base_rejected_count += 1
-
-            print(f"[Base] ✗ Update rejected: {baseline_perf:.4f} → {shadow_perf:.4f} (+{improvement:.4f})")
-            return False
+        raise RuntimeError(
+            "Base validate-and-commit still depends on non-sovereign base weight ownership. "
+            "Phase 1 removes the placeholder instead of preserving a NumPy training path."
+        )
 
 
 class SwarmTrainingProtocol:
@@ -633,7 +524,7 @@ class SwarmTrainingProtocol:
     def train_base_first(swarm: AdaptiveSwarmTRM,
                         general_samples: List[Dict],
                         specialist_samples: Dict[str, List[Dict]],
-                        eval_fn: Callable[[np.ndarray, List], float]) -> Dict[str, Any]:
+                        eval_fn: Callable[[Any, List], float]) -> Dict[str, Any]:
         """
         Train base first, then specialists.
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ctypes
 from dataclasses import dataclass
+import heapq
 import json
 import math
 import os
@@ -46,6 +47,7 @@ from .shadow_copy import ShadowCopyLearning
 from .sleeptime import SleepTimeConsolidation
 from .stargate import IngestionStargate
 from .ternary_quality_memory import TernaryQualityMemory
+from .trm_game_loop import TRMGameLoop
 from .trm_navigator import TRMNavigator
 
 
@@ -316,6 +318,18 @@ class Knowledgeverse:
     GPU_SOURCE_CLASS_RUNTIME_LANGUAGE = 2.0
     HOUSE_STATE_VERSION = 1
     JARVIS_STATE_VERSION = 1
+    BOOK_GALAXY_ALIASES: dict[str, str] = {
+        "Book/MathematicsPrimer": "Book/MathematicsPrimer",
+        "Book_MathematicsPrimer": "Book/MathematicsPrimer",
+        "Book/LanguageFoundations": "Book/LanguageFoundations",
+        "Book_LanguageFoundations": "Book/LanguageFoundations",
+        "Book/PhysicsHandbook": "Book/PhysicsHandbook",
+        "Book_PhysicsHandbook": "Book/PhysicsHandbook",
+        "Book/BiologyAtlas": "Book/BiologyAtlas",
+        "Book_BiologyAtlas": "Book/BiologyAtlas",
+        "Book/ToolManual": "Book/ToolManual",
+        "Book_ToolManual": "Book/ToolManual",
+    }
     ADAPTIVE_SWARM_SPECS: dict[str, tuple[int, int]] = {
         "ocr": (64, 16),
         "visual": (128, 16),
@@ -450,6 +464,12 @@ class Knowledgeverse:
             knowledgeverse=self,
             journal_path=sleeptime_journal,
         )
+        self._trm_game_loop = TRMGameLoop(
+            self,
+            input_ring=self.stargate.ring_buffer,
+            output_ring=self.shadow_copy.compressed_journal.buffer,
+        )
+        self._trm_game_loop.start()
         self._load_jarvis_state()
         self._initialize_trm_launcher()
         self._load_trm_galaxy_decoder()
@@ -472,13 +492,6 @@ class Knowledgeverse:
             if specialist_name in swarm.base.specialists:
                 continue
             swarm.register_specialist(specialist_name, required_dims=dims, rank=rank)
-        for specialist in swarm.base.specialists.values():
-            adapter = specialist.get("adapter") if isinstance(specialist, dict) else None
-            if adapter is not None and hasattr(adapter, "config"):
-                try:
-                    adapter.config.require_gpu = False
-                except Exception:
-                    pass
         self._load_adaptive_swarm_state(swarm)
         return swarm
 
@@ -522,14 +535,20 @@ class Knowledgeverse:
     def _persistable_galaxy_entries(self) -> dict[str, list[dict[str, Any]]]:
         persisted: dict[str, list[dict[str, Any]]] = {}
         names: set[str] = set()
-        loaded_names = [str(name) for name in self.galaxy_manager._galaxies.keys()]
+        loaded_names = [
+            self._canonical_galaxy_name(name)
+            for name in self.galaxy_manager._galaxies.keys()
+        ]
         names.update(loaded_names)
         loaded_safe_names = {self.galaxy_manager._galaxy_path(name).stem for name in loaded_names}
         for path in self.galaxy_manager.storage_root.glob("*.jsonl"):
             if path.stem not in loaded_safe_names:
-                names.add(path.stem)
+                names.add(self._canonical_galaxy_name(path.stem))
         for name in sorted(names):
             galaxy = self.galaxy_manager._galaxies.get(name)
+            if galaxy is None:
+                disk_alias = name.replace("/", "_")
+                galaxy = self.galaxy_manager._galaxies.get(disk_alias)
             if galaxy is None:
                 persisted[name] = self.galaxy_manager._read_entries_from_disk(name)
                 continue
@@ -560,6 +579,11 @@ class Knowledgeverse:
 
     def house_state_summary(self) -> dict[str, Any]:
         return dict(self._house_state_summary)
+
+    @classmethod
+    def _canonical_galaxy_name(cls, name: str | Any) -> str:
+        normalized = str(name or "").strip()
+        return str(cls.BOOK_GALAXY_ALIASES.get(normalized, normalized))
 
     def _jarvis_entry(self) -> dict[str, Any]:
         return {
@@ -675,18 +699,35 @@ class Knowledgeverse:
         if not isinstance(galaxies, dict):
             return False
 
-        self.galaxy_manager.storage_root.mkdir(parents=True, exist_ok=True)
-        for path_obj in self.galaxy_manager.storage_root.glob("*.jsonl"):
-            path_obj.unlink()
+        merged_galaxies: dict[str, list[dict[str, Any]]] = {}
         for name, entries in galaxies.items():
             if not isinstance(entries, list):
                 continue
+            canonical_name = self._canonical_galaxy_name(name)
+            bucket = merged_galaxies.setdefault(canonical_name, [])
+            seen_ids = {
+                str(entry.get("id") or entry.get("rule_id") or "").strip()
+                for entry in bucket
+                if isinstance(entry, dict)
+            }
+            for entry in entries:
+                if not isinstance(entry, dict):
+                    continue
+                entry_id = str(entry.get("id") or entry.get("rule_id") or "").strip()
+                if entry_id and entry_id in seen_ids:
+                    continue
+                bucket.append(dict(entry))
+                if entry_id:
+                    seen_ids.add(entry_id)
+
+        self.galaxy_manager.storage_root.mkdir(parents=True, exist_ok=True)
+        for path_obj in self.galaxy_manager.storage_root.glob("*.jsonl"):
+            path_obj.unlink()
+        for name, entries in merged_galaxies.items():
             path_obj = self.galaxy_manager._galaxy_path(str(name))
             path_obj.parent.mkdir(parents=True, exist_ok=True)
             with path_obj.open("w", encoding="utf-8") as handle:
                 for entry in entries:
-                    if not isinstance(entry, dict):
-                        continue
                     handle.write(json.dumps(entry, separators=(",", ":"), sort_keys=True) + "\n")
 
         self.galaxy_manager._galaxies.clear()
@@ -702,12 +743,12 @@ class Knowledgeverse:
         self._house_state_summary = {
             "path": str(target),
             "version": int(payload["version"]),
-            "galaxy_count": int(payload.get("galaxy_count") or len(galaxies)),
+            "galaxy_count": int(len(merged_galaxies)),
             "total_persisted_entries": int(
                 payload.get("total_persisted_entries")
-                or sum(len(entries) for entries in galaxies.values() if isinstance(entries, list))
+                or sum(len(entries) for entries in merged_galaxies.values())
             ),
-            "math_entries": int(payload.get("math_entries") or len(galaxies.get("Math", []))),
+            "math_entries": int(payload.get("math_entries") or len(merged_galaxies.get("Math", []))),
             "warm_boot": True,
             "loaded_at": time.time(),
         }
@@ -1348,6 +1389,40 @@ class Knowledgeverse:
         if self._query_head_substrate is None:
             raise RuntimeError("query head substrate unavailable")
         return self._query_head_substrate
+
+    def start_trm_game_loop(self) -> dict[str, Any]:
+        self._trm_game_loop.start()
+        return self._trm_game_loop.snapshot()
+
+    def stop_trm_game_loop(self) -> dict[str, Any]:
+        self._trm_game_loop.stop()
+        return self._trm_game_loop.snapshot()
+
+    def trm_game_loop_status(self) -> dict[str, Any]:
+        return self._trm_game_loop.snapshot()
+
+    def write_input_buffer(
+        self,
+        *,
+        task: dict[str, Any],
+        route: dict[str, Any] | None = None,
+        specialist: str = "auto",
+        domain_hint: str | None = None,
+        use_enriched: bool = True,
+    ) -> str:
+        return self._trm_game_loop.enqueue_task(
+            task=task,
+            route=route,
+            specialist=specialist,
+            domain_hint=domain_hint,
+            use_enriched=use_enriched,
+        )
+
+    def wait_output_buffer(self, request_id: str, *, max_ticks: int = 1) -> dict[str, Any]:
+        result = self._trm_game_loop.wait_output(str(request_id), max_ticks=max_ticks)
+        if result is None:
+            raise RuntimeError(f"TRM game loop produced no output for request {request_id}")
+        return result
 
     def get_swarm_bridge(self):
         if self._swarm_bridge is False:
@@ -2922,16 +2997,44 @@ class Knowledgeverse:
             f"Missing GPU reasoning program: {program_id}"
         )
 
-    def _embed_query_gpu(self, query_text: str, *, task: dict[str, Any] | None = None) -> list[float]:
+    def _embed_query_batch_gpu(
+        self,
+        query_texts: list[str],
+        *,
+        task: dict[str, Any] | None = None,
+    ) -> list[list[float]]:
+        """Main-model embedding stage for query/perception text.
+
+        Per the architecture specs, this is TRM/main-model work, not Jarvis
+        work. Jarvis consumes the resulting embedding packet later when it
+        coordinates swarm dispatch.
+        """
+        if not query_texts:
+            return []
         engine = self.get_gpu_query_embedding_engine()
-        embedding_text = str(query_text or "").strip()
-        values = engine.embed_sentence_gpu(embedding_text)
-        embedding16 = [float(values[i]) for i in range(min(16, len(values)))]
+        normalized_texts = [str(query_text or "").strip() for query_text in query_texts]
+        if hasattr(engine, "embed_sentences_gpu"):
+            values_batch = engine.embed_sentences_gpu(normalized_texts)
+        else:
+            values_batch = [engine.embed_sentence_gpu(text) for text in normalized_texts]
         specialist_name = self._task_specialist_name(task)
-        return self._apply_specialist_embedding_adapter(
-            embedding16,
-            specialist_name=specialist_name,
-        )
+        outputs: list[list[float]] = []
+        for values in values_batch:
+            embedding16 = [float(values[i]) for i in range(min(16, len(values)))]
+            outputs.append(
+                self._apply_specialist_embedding_adapter(
+                    embedding16,
+                    specialist_name=specialist_name,
+                )
+            )
+        return outputs
+
+    def _embed_query_gpu(self, query_text: str, *, task: dict[str, Any] | None = None) -> list[float]:
+        embedding_text = str(query_text or "").strip()
+        outputs = self._embed_query_batch_gpu([embedding_text], task=task)
+        if not outputs:
+            return []
+        return list(outputs[0])
 
     @staticmethod
     def _format_similarity(value: float | None) -> str:
@@ -6275,15 +6378,20 @@ class Knowledgeverse:
     ) -> dict[str, Any]:
         variants = self._parse_bundle_variant_rows(parse_bundle, str((parse_bundle or {}).get("query_text", "")))
         embeddings: dict[str, list[float]] = {}
+        pending_strategies: list[str] = []
+        pending_texts: list[str] = []
         for variant in variants[:4]:
             strategy = str(variant.get("strategy", "")).strip().lower() or "auto"
             variant_text = str(variant.get("query_text", "")).strip()
-            if not variant_text or strategy in embeddings:
+            if not variant_text or strategy in embeddings or strategy in pending_strategies:
                 continue
-            try:
-                candidate_embedding = list(self._embed_query_gpu(variant_text, task=task))
-            except Exception:
-                continue
+            pending_strategies.append(strategy)
+            pending_texts.append(variant_text)
+        try:
+            batch_embeddings = self._embed_query_batch_gpu(pending_texts, task=task)
+        except Exception:
+            batch_embeddings = []
+        for strategy, candidate_embedding in zip(pending_strategies, batch_embeddings):
             if not self._embedding_is_finite(candidate_embedding):
                 continue
             embeddings[strategy] = self._normalize_embedding(candidate_embedding)
@@ -6664,6 +6772,60 @@ class Knowledgeverse:
             resonator.resonate_list(query_embedding, option_embedding, alpha=0.55 if query_text else 0.35)
         )
 
+    def _build_option_embedding_cache(
+        self,
+        *,
+        query_embedding: list[float],
+        paths: list[dict[str, Any]],
+        task_type: str,
+    ) -> dict[str, list[float]]:
+        if task_type not in {"MMLU_TASK", "LHE_TASK"}:
+            return {}
+        requests: list[tuple[str, str, bool]] = []
+        seen_keys: set[str] = set()
+        for path in paths[:18]:
+            option_text = str(path.get("option_text", "")).strip()
+            proposition_text = str(path.get("query_text", "")).strip()
+            cache_key = proposition_text or option_text
+            if not option_text or not cache_key or cache_key in seen_keys:
+                continue
+            requests.append((cache_key, option_text, bool(proposition_text)))
+            seen_keys.add(cache_key)
+        if not requests:
+            return {}
+        unique_option_texts: list[str] = []
+        seen_option_texts: set[str] = set()
+        for _, option_text, _ in requests:
+            if option_text in seen_option_texts:
+                continue
+            unique_option_texts.append(option_text)
+            seen_option_texts.add(option_text)
+        embedded_rows = self._embed_query_batch_gpu(unique_option_texts)
+        embedded_by_text = {
+            option_text: list(embedding)
+            for option_text, embedding in zip(unique_option_texts, embedded_rows)
+        }
+        resonator = self.get_vector_resonator()
+        if resonator is None:
+            raise RuntimeError("vector_resonator_unavailable")
+        resonated_cache: dict[tuple[str, bool], list[float]] = {}
+        cache: dict[str, list[float]] = {}
+        for cache_key, option_text, has_query_text in requests:
+            resonance_key = (option_text, has_query_text)
+            resonated = resonated_cache.get(resonance_key)
+            if resonated is None:
+                option_embedding = embedded_by_text.get(option_text, [])
+                resonated = self._normalize_embedding(
+                    resonator.resonate_list(
+                        query_embedding,
+                        option_embedding,
+                        alpha=0.55 if has_query_text else 0.35,
+                    )
+                )
+                resonated_cache[resonance_key] = list(resonated)
+            cache[cache_key] = list(resonated)
+        return cache
+
     @classmethod
     def _pad_embedding_rows(cls, rows: list[list[float]]) -> list[list[float]]:
         if not rows:
@@ -6769,6 +6931,49 @@ class Knowledgeverse:
         for value in scalars[1:]:
             tokens.extend([self._gpu_scalar_literal(value), "+"])
         return " ".join(tokens)
+
+    @staticmethod
+    def _record_score_value(record: dict[str, Any], score_key: str) -> float:
+        try:
+            return float(record.get(score_key, float("-inf")))
+        except Exception:
+            return float("-inf")
+
+    @classmethod
+    def _best_record_by_score(
+        cls,
+        records: list[dict[str, Any]],
+        *,
+        score_key: str,
+    ) -> dict[str, Any] | None:
+        viable = [record for record in records if isinstance(record, dict)]
+        if not viable:
+            return None
+        return max(viable, key=lambda record: cls._record_score_value(record, score_key))
+
+    @classmethod
+    def _top_records_by_score(
+        cls,
+        records: list[dict[str, Any]],
+        *,
+        score_key: str,
+        top_k: int,
+    ) -> list[dict[str, Any]]:
+        viable = [record for record in records if isinstance(record, dict)]
+        limit = max(0, int(top_k))
+        if not viable or limit <= 0:
+            return []
+        if len(viable) <= limit:
+            return sorted(
+                viable,
+                key=lambda record: cls._record_score_value(record, score_key),
+                reverse=True,
+            )
+        return heapq.nlargest(
+            limit,
+            viable,
+            key=lambda record: cls._record_score_value(record, score_key),
+        )
 
     @staticmethod
     def _is_numeric_galaxy_entry(entry: dict[str, Any]) -> bool:
@@ -8801,14 +9006,14 @@ class Knowledgeverse:
         self,
         sources: list[list[float]],
         targets: list[list[float]],
-    ) -> list[list[float]]:
+    ) -> np.ndarray:
         if not sources or not targets:
-            return []
+            return np.empty((len(sources), len(targets)), dtype=np.float32)
         max_dim = 0
         for vector in list(sources) + list(targets):
             max_dim = max(max_dim, len(vector))
         if max_dim <= 0:
-            return [[0.0 for _ in targets] for _ in sources]
+            return np.zeros((len(sources), len(targets)), dtype=np.float32)
         padded_sources: list[list[float]] = []
         padded_targets: list[list[float]] = []
         for vector in sources:
@@ -8825,7 +9030,285 @@ class Knowledgeverse:
         if bridge is None:
             raise RuntimeError("cosine_similarity_bridge_unavailable")
         matrix = bridge.compute_similarity_matrix(padded_sources, padded_targets)
-        return [[float(value) for value in row.tolist()] for row in matrix]
+        return np.asarray(matrix, dtype=np.float32)
+
+    def _embedding_similarity_topk_matrix(
+        self,
+        sources: list[list[float]],
+        targets: list[list[float]],
+        *,
+        k: int,
+        exclude_self: bool = False,
+        similarity_threshold: float | None = None,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        if not sources or not targets or int(k) <= 0:
+            shape = (len(sources), 0)
+            return np.empty(shape, dtype=np.int32), np.empty(shape, dtype=np.float32)
+        max_dim = 0
+        for vector in list(sources) + list(targets):
+            max_dim = max(max_dim, len(vector))
+        if max_dim <= 0:
+            shape = (len(sources), 0)
+            return np.empty(shape, dtype=np.int32), np.empty(shape, dtype=np.float32)
+        padded_sources: list[list[float]] = []
+        padded_targets: list[list[float]] = []
+        for vector in sources:
+            padded = [float(value) for value in list(vector)[:max_dim]]
+            if len(padded) < max_dim:
+                padded.extend([0.0] * (max_dim - len(padded)))
+            padded_sources.append(padded)
+        for vector in targets:
+            padded = [float(value) for value in list(vector)[:max_dim]]
+            if len(padded) < max_dim:
+                padded.extend([0.0] * (max_dim - len(padded)))
+            padded_targets.append(padded)
+        bridge = self.get_cosine_similarity_bridge()
+        if bridge is None:
+            raise RuntimeError("cosine_similarity_bridge_unavailable")
+        if hasattr(bridge, "compute_similarity_topk"):
+            top_idx, top_scores = bridge.compute_similarity_topk(
+                np.asarray(padded_sources, dtype=np.float32),
+                np.asarray(padded_targets, dtype=np.float32),
+                k=max(1, int(k)),
+                exclude_self=exclude_self,
+                similarity_threshold=similarity_threshold,
+            )
+            return (
+                np.asarray(top_idx, dtype=np.int32),
+                np.asarray(top_scores, dtype=np.float32),
+            )
+        matrix = np.asarray(self._embedding_similarity_matrix(padded_sources, padded_targets), dtype=np.float32)
+        if matrix.size == 0:
+            shape = (len(sources), 0)
+            return np.empty(shape, dtype=np.int32), np.empty(shape, dtype=np.float32)
+        if exclude_self and matrix.shape[0] == matrix.shape[1]:
+            diag = np.arange(matrix.shape[0], dtype=np.int32)
+            matrix = matrix.copy()
+            matrix[diag, diag] = -np.inf
+        limit = max(1, min(int(k), matrix.shape[1]))
+        partition = np.argpartition(-matrix, limit - 1, axis=1)[:, :limit]
+        row_ids = np.arange(matrix.shape[0], dtype=np.int32)[:, None]
+        scores = matrix[row_ids, partition]
+        order = np.argsort(-scores, axis=1)
+        idx = partition[row_ids, order].astype(np.int32, copy=False)
+        ordered_scores = scores[row_ids, order].astype(np.float32, copy=False)
+        if similarity_threshold is not None:
+            threshold = float(similarity_threshold)
+            idx = idx.copy()
+            ordered_scores = ordered_scores.copy()
+            mask = ~np.isfinite(ordered_scores) | (ordered_scores < threshold)
+            idx[mask] = -1
+            ordered_scores[mask] = -np.inf
+        return idx, ordered_scores
+
+    @staticmethod
+    def _navigation_candidate_cache_key(candidates: list[dict[str, Any]]) -> tuple[str, ...]:
+        keys: list[str] = []
+        for idx, candidate in enumerate(candidates):
+            match = candidate.get("match") if isinstance(candidate.get("match"), dict) else {}
+            match_id = str(match.get("id", "")).strip()
+            if match_id:
+                keys.append(match_id)
+            else:
+                keys.append(f"idx:{idx}")
+        return tuple(keys)
+
+    def _build_base_navigation_records(
+        self,
+        *,
+        candidates: list[dict[str, Any]],
+        task_type: str,
+        task: dict[str, Any] | None,
+        task_query_text: str,
+        benchmark_eval_mode: bool,
+        parse_context: dict[str, Any],
+        parse_override_signals: dict[str, Any],
+        subject_embedding: list[float],
+        subject_label: str,
+        gsm8k_mode: bool,
+        gsm8k_context: dict[str, Any],
+        option_embeddings: dict[str, list[float]],
+    ) -> tuple[list[dict[str, Any]], dict[str, list[float]]]:
+        base_records: list[dict[str, Any]] = []
+        for candidate in candidates:
+            base_records.append(
+                {
+                    "match": dict(candidate["match"]),
+                    "similarity": float(candidate.get("similarity", 0.0)),
+                    "lod_saliency": float(candidate.get("lod_saliency", 0.0)),
+                    "lod_level": int(candidate.get("lod_level", 0)),
+                    "lod_focus": float(candidate.get("lod_focus", 0.0)),
+                    "led_focus": float(candidate.get("led_focus", 0.0)),
+                    "led_path": list(candidate.get("led_path", [])),
+                    "gsm8k_mode": 1.0 if gsm8k_mode else 0.0,
+                }
+            )
+        if not base_records:
+            return [], {}
+        embedding_rows = [list(record["match"].get("embedding16", [])) for record in base_records]
+        option_similarity_cache: dict[str, list[float]] = {}
+        if option_embeddings:
+            for option_key, option_embedding in option_embeddings.items():
+                option_similarity_cache[option_key] = self._embedding_similarities(
+                    option_embedding,
+                    embedding_rows,
+                )
+        if task_type in {"MMLU_TASK", "LHE_TASK", "MATH_TASK"} and subject_embedding:
+            subject_similarities = self._embedding_similarities(subject_embedding, embedding_rows)
+            for record, subject_similarity in zip(base_records, subject_similarities):
+                record["subject_similarity"] = float(subject_similarity)
+                record["subject_anchor_focus"] = max(
+                    float(record.get("subject_anchor_focus", 0.0)),
+                    self._subject_anchor_match_score(
+                        entry=record["match"],
+                        subject_hint=subject_label,
+                        match_mode="mmlu" if task_type == "MMLU_TASK" else "domain",
+                    ),
+                )
+        fusion_embedding = list(parse_context.get("fusion_embedding", []))
+        if fusion_embedding:
+            parse_similarities = self._embedding_similarities(fusion_embedding, embedding_rows)
+            for record, parse_similarity in zip(base_records, parse_similarities):
+                record["parse_similarity"] = float(parse_similarity)
+        directional_embedding = list(parse_context.get("directional_embedding", []))
+        if directional_embedding:
+            directional_similarities = self._embedding_similarities(directional_embedding, embedding_rows)
+            for record, directional_similarity in zip(base_records, directional_similarities):
+                record["parse_directional_similarity"] = float(directional_similarity)
+        parse_numeric_ids = {
+            str(value).strip()
+            for value in parse_context.get("numeric_ids", [])
+            if str(value).strip()
+        }
+        parse_quantity_values = [
+            float(value) for value in list(parse_context.get("quantity_values", []))[:8]
+        ]
+        algebra_signal = str(parse_override_signals.get("algebra_signal", "")).strip()
+        domain_signal = str(parse_override_signals.get("domain_signal", "")).strip()
+        for record in base_records:
+            match_id = str(record["match"].get("id", "")).strip()
+            numeric_value = self._gsm8k_numeric_entry_value(record["match"])
+            numeric_id = numeric_value[0] if numeric_value is not None else match_id
+            exact_query_match = 1.0 if self._entry_query_matches(record["match"], task_query_text) else 0.0
+            record["parse_support"] = 1.0 if numeric_id in parse_numeric_ids else 0.0
+            record["parse_quantity_values"] = list(parse_quantity_values)
+            record["ternary_prior"] = self._candidate_ternary_prior(match_id or numeric_id)
+            record["exact_query_match"] = exact_query_match
+            record["math_exact_benchmark"] = (
+                1.0
+                if (
+                    benchmark_eval_mode
+                    and task_type == "MATH_TASK"
+                    and exact_query_match > 0.0
+                    and self._is_safe_math_benchmark_question_anchor(
+                        entry=record["match"],
+                        task=task,
+                        query_text=task_query_text,
+                    )
+                )
+                else 0.0
+            )
+            record["parse_override_algebra"] = (
+                1.0
+                if (
+                    algebra_signal
+                    and self._candidate_matches_parse_signal(record["match"], algebra_signal)
+                )
+                else 0.0
+            )
+            record["parse_override_domain"] = (
+                1.0
+                if (
+                    domain_signal
+                    and self._candidate_matches_parse_signal(record["match"], domain_signal)
+                )
+                else 0.0
+            )
+            record["lhe_exact_benchmark"] = (
+                1.0
+                if (
+                    not benchmark_eval_mode
+                    and task_type == "LHE_TASK"
+                    and exact_query_match > 0.0
+                    and str(record["match"].get("galaxy", "")).strip() in {"Reality", "Math"}
+                    and str(record["match"].get("category", "")).strip().lower()
+                    in {"benchmark_fact", "clue_fact", "cipher_result", "formal_result"}
+                )
+                else 0.0
+            )
+        if gsm8k_mode:
+            operation_embedding = list(gsm8k_context.get("operation_embedding", []))
+            numeric_embedding = list(gsm8k_context.get("numeric_embedding", []))
+            gsm8k_task_id = str((task or {}).get("task_id", "")).strip()
+            operation_ids = {
+                str(value).strip()
+                for value in gsm8k_context.get("operation_ids", [])
+                if str(value).strip()
+            }
+            numeric_ids = {
+                str(value).strip()
+                for value in gsm8k_context.get("number_ids", [])
+                if str(value).strip()
+            }
+            if operation_embedding:
+                operation_similarities = self._embedding_similarities(operation_embedding, embedding_rows)
+                for record, operation_similarity in zip(base_records, operation_similarities):
+                    record["operation_similarity"] = float(operation_similarity)
+            if numeric_embedding:
+                numeric_similarities = self._embedding_similarities(numeric_embedding, embedding_rows)
+                for record, numeric_similarity in zip(base_records, numeric_similarities):
+                    record["number_similarity"] = float(numeric_similarity)
+            for record in base_records:
+                match_id = str(record["match"].get("id", "")).strip()
+                match_metadata = (
+                    record["match"].get("metadata")
+                    if isinstance(record["match"].get("metadata"), dict)
+                    else {}
+                )
+                operation_role_match = 0.0
+                if bool(match_metadata.get("operation_pattern")) and gsm8k_context:
+                    operation_role_match = self._gsm8k_operation_role_match_score(
+                        metadata=match_metadata,
+                        context=gsm8k_context,
+                    )
+                record["operation_pattern_focus"] = (
+                    (1.0 if match_id in operation_ids else 0.0)
+                    + (0.75 * float(operation_role_match))
+                )
+                record["operation_role_match"] = float(operation_role_match)
+                numeric_value = self._gsm8k_numeric_entry_value(record["match"])
+                numeric_id = numeric_value[0] if numeric_value is not None else ""
+                record["numeric_focus"] = 1.0 if numeric_id in numeric_ids else 0.0
+                record["gsm8k_template_focus"] = 1.0 if (
+                    self._match_template_ref(record["match"]) == "math_template_arithmetic_chain_gpu"
+                    or str(match_metadata.get("template_ref", "")).strip() == "math_template_arithmetic_chain_gpu"
+                ) else 0.0
+                match_task_id = str(match_metadata.get("task_id", "")).strip()
+                match_competition = str(match_metadata.get("competition", "")).strip().upper()
+                record["gsm8k_exact_benchmark"] = 0.0 if benchmark_eval_mode else (
+                    1.0
+                    if (
+                        match_competition == "GSM8K"
+                        and gsm8k_task_id
+                        and match_task_id == gsm8k_task_id
+                    )
+                    else 0.0
+                )
+                record["gsm8k_foreign_benchmark"] = 0.0 if benchmark_eval_mode else (
+                    1.0
+                    if (
+                        match_competition == "GSM8K"
+                        and match_task_id
+                        and gsm8k_task_id
+                        and match_task_id != gsm8k_task_id
+                    )
+                    else 0.0
+                )
+                record["gsm8k_non_chain_template"] = 1.0 if (
+                    bool(self._match_template_ref(record["match"]))
+                    and self._match_template_ref(record["match"]) != "math_template_arithmetic_chain_gpu"
+                ) else 0.0
+        return base_records, option_similarity_cache
 
     @staticmethod
     def _graph_seed_limit(task_type: str) -> int:
@@ -9011,28 +9494,29 @@ class Knowledgeverse:
         )
         if not embeddings or len(embeddings) != len(candidates):
             return
-        similarity_matrix = self._embedding_similarity_matrix(embeddings, embeddings)
+        neighbor_idx, _neighbor_scores = self._embedding_similarity_topk_matrix(
+            embeddings,
+            embeddings,
+            k=max(1, int(max_neighbors)),
+            exclude_self=True,
+            similarity_threshold=float(similarity_threshold),
+        )
         for idx, candidate in enumerate(candidates):
             existing = [
                 int(value)
                 for value in list(candidate.get("graph_neighbors", []))
                 if isinstance(value, (int, np.integer)) or str(value).strip().lstrip("-").isdigit()
             ]
-            scored_neighbors: list[tuple[float, int]] = []
-            for other_idx, other in enumerate(candidates):
-                if idx == other_idx:
-                    continue
-                try:
-                    similarity = float(similarity_matrix[idx][other_idx])
-                except Exception:
-                    similarity = 0.0
-                if not math.isfinite(similarity) or similarity < float(similarity_threshold):
-                    continue
-                neighbor_global = int(other.get("candidate_global_idx", other_idx))
-                scored_neighbors.append((similarity, neighbor_global))
-            scored_neighbors.sort(key=lambda item: item[0], reverse=True)
             merged: list[int] = []
-            for neighbor_global in existing + [neighbor for _, neighbor in scored_neighbors[: max_neighbors]]:
+            top_neighbors: list[int] = []
+            if idx < neighbor_idx.shape[0]:
+                for other_idx in neighbor_idx[idx].tolist():
+                    if int(other_idx) < 0 or int(other_idx) >= len(candidates):
+                        continue
+                    top_neighbors.append(
+                        int(candidates[int(other_idx)].get("candidate_global_idx", int(other_idx)))
+                    )
+            for neighbor_global in existing + top_neighbors:
                 token = int(neighbor_global)
                 if token == int(candidate.get("candidate_global_idx", idx)) or token in merged:
                     continue
@@ -9053,29 +9537,26 @@ class Knowledgeverse:
                 0.0,
             )
         k = max(1, min(int(k), node_count - 1))
-        similarity_matrix = self._embedding_similarity_matrix(resonated_rows, resonated_rows)
-        adjacency = np.full((node_count, k), -1, dtype=np.int32)
-        neighbor_counts = np.zeros(node_count, dtype=np.int32)
-        selected_similarities: list[float] = []
-        for row_index, similarity_row in enumerate(similarity_matrix):
-            row_values = np.asarray(similarity_row, dtype=np.float32)
-            if row_values.shape[0] != node_count:
-                continue
-            row_values[row_index] = -1.0
-            ranked_neighbors = np.argsort(row_values)[-k:][::-1]
-            write_index = 0
-            for neighbor_index in ranked_neighbors.tolist():
-                similarity = float(row_values[int(neighbor_index)])
-                if similarity <= 0.0:
-                    continue
-                adjacency[row_index, write_index] = int(neighbor_index)
-                neighbor_counts[row_index] += 1
-                selected_similarities.append(similarity)
-                write_index += 1
-                if write_index >= k:
-                    break
+        adjacency, similarity_scores = self._embedding_similarity_topk_matrix(
+            resonated_rows,
+            resonated_rows,
+            k=k,
+            exclude_self=True,
+            similarity_threshold=0.0,
+        )
+        adjacency = np.asarray(adjacency, dtype=np.int32)
+        similarity_scores = np.asarray(similarity_scores, dtype=np.float32)
+        if adjacency.shape != (node_count, k):
+            adjusted = np.full((node_count, k), -1, dtype=np.int32)
+            rows = min(node_count, adjacency.shape[0])
+            cols = min(k, adjacency.shape[1] if adjacency.ndim == 2 else 0)
+            if rows > 0 and cols > 0:
+                adjusted[:rows, :cols] = adjacency[:rows, :cols]
+            adjacency = adjusted
+        neighbor_counts = np.sum(adjacency >= 0, axis=1, dtype=np.int32)
+        valid_scores = similarity_scores[np.isfinite(similarity_scores) & (similarity_scores > 0.0)]
         effective_k = int(np.max(neighbor_counts)) if neighbor_counts.size else 0
-        avg_top_similarity = float(np.mean(selected_similarities)) if selected_similarities else 0.0
+        avg_top_similarity = float(np.mean(valid_scores)) if valid_scores.size else 0.0
         return adjacency, neighbor_counts, effective_k, avg_top_similarity
 
     def _allocate_galaxy_seed_budget(
@@ -10691,19 +11172,15 @@ class Knowledgeverse:
             self._record_active_lhe_timing("morton", time.perf_counter() - morton_started)
 
         scoring_started = time.perf_counter()
-        option_embeddings: dict[str, list[float]] = {}
-        if task_type in {"MMLU_TASK", "LHE_TASK"}:
-            for path in paths[:18]:
-                option_text = str(path.get("option_text", "")).strip()
-                proposition_text = str(path.get("query_text", "")).strip()
-                cache_key = proposition_text or option_text
-                if not option_text or cache_key in option_embeddings:
-                    continue
-                option_embeddings[cache_key] = self._resonate_option_embedding(
-                    navigation_reference_embedding,
-                    option_text,
-                    query_text=proposition_text or None,
-                )
+        option_embeddings = self._build_option_embedding_cache(
+            query_embedding=navigation_reference_embedding,
+            paths=paths,
+            task_type=task_type,
+        )
+        base_navigation_record_cache: dict[
+            tuple[str, ...],
+            tuple[list[dict[str, Any]], dict[str, list[float]]],
+        ] = {}
 
         swarm_weights = self._dispatch_swarm_weights(
             query_embedding=navigation_reference_embedding,
@@ -10966,13 +11443,14 @@ class Knowledgeverse:
                 local_candidates = self._attach_finite_gpu_scores(local_candidates, scores)
                 if not local_candidates:
                     continue
-                ordered_candidates = sorted(
+                best_for_path = self._best_record_by_score(local_candidates, score_key="gpu_score")
+                if best_for_path is None:
+                    continue
+                coherence_candidates = self._top_records_by_score(
                     local_candidates,
-                    key=lambda candidate: float(candidate.get("gpu_score", float("-inf"))),
-                    reverse=True,
+                    score_key="gpu_score",
+                    top_k=min(4, len(local_candidates)),
                 )
-                best_for_path = ordered_candidates[0]
-                coherence_candidates = ordered_candidates[: min(4, len(ordered_candidates))]
                 neighborhood_mean = float(
                     engine.evaluate(
                         self._gpu_mean_expression(
@@ -11083,12 +11561,9 @@ class Knowledgeverse:
                 local_candidates = self._attach_finite_gpu_scores(local_candidates, scores)
                 if not local_candidates:
                     continue
-                ordered_candidates = sorted(
-                    local_candidates,
-                    key=lambda candidate: float(candidate.get("gpu_score", float("-inf"))),
-                    reverse=True,
-                )
-                best_for_path = ordered_candidates[0]
+                best_for_path = self._best_record_by_score(local_candidates, score_key="gpu_score")
+                if best_for_path is None:
+                    continue
                 best_for_path["path_score"] = float(best_for_path.get("gpu_score", float("-inf")))
                 selection_steps.append(
                     "Swarm path result: "
@@ -11128,241 +11603,82 @@ class Knowledgeverse:
                     )
             if not path_navigation_candidates:
                 continue
+            candidate_cache_key = self._navigation_candidate_cache_key(path_navigation_candidates)
+            cached_base_records = base_navigation_record_cache.get(candidate_cache_key)
+            if cached_base_records is None:
+                cached_base_records = self._build_base_navigation_records(
+                    candidates=path_navigation_candidates,
+                    task_type=task_type,
+                    task=task,
+                    task_query_text=task_query_text,
+                    benchmark_eval_mode=benchmark_eval_mode,
+                    parse_context=parse_context,
+                    parse_override_signals=parse_override_signals,
+                    subject_embedding=subject_embedding,
+                    subject_label=subject_label,
+                    gsm8k_mode=gsm8k_mode,
+                    gsm8k_context=gsm8k_context,
+                    option_embeddings=option_embeddings,
+                )
+                base_navigation_record_cache[candidate_cache_key] = cached_base_records
+            base_records, cached_option_similarities = cached_base_records
             local_candidates = []
-            for candidate in path_navigation_candidates:
+            for base_record in base_records:
                 record = {
+                    **base_record,
                     "path": dict(path),
                     "program": dict(program),
-                    "match": dict(candidate["match"]),
-                    "similarity": float(candidate.get("similarity", 0.0)),
-                    "lod_saliency": float(candidate.get("lod_saliency", 0.0)),
-                    "lod_level": int(candidate.get("lod_level", 0)),
-                    "lod_focus": float(candidate.get("lod_focus", 0.0)),
-                    "led_focus": float(candidate.get("led_focus", 0.0)),
+                    "match": dict(base_record["match"]),
+                    "led_path": list(base_record.get("led_path", [])),
+                    "parse_quantity_values": list(base_record.get("parse_quantity_values", [])),
                     "swarm_weight": float(swarm_weights[path_index]) if path_index < len(swarm_weights) else 1.0,
-                    "led_path": list(candidate.get("led_path", [])),
-                    "gsm8k_mode": 1.0 if gsm8k_mode else 0.0,
                     "parse_strategy": str(path.get("parse_strategy", "")).strip() or "auto",
                 }
                 local_candidates.append(record)
-            if option_embedding is not None and local_candidates:
-                option_similarities = self._embedding_similarities(
-                    option_embedding,
-                    [list(record["match"].get("embedding16", [])) for record in local_candidates],
-                )
-                for record, option_similarity in zip(local_candidates, option_similarities):
+            if option_text and local_candidates:
+                option_similarity_values = cached_option_similarities.get(proposition_text or option_text, [])
+                for record, option_similarity in zip(local_candidates, option_similarity_values):
                     record["option_text"] = option_text
                     record["option_similarity"] = float(option_similarity)
-                    if task_type == "MMLU_TASK" and option_text:
+                    if task_type == "MMLU_TASK":
                         record["option_support"] = self._mmlu_option_support_score(
                             record["match"],
                             option_text,
                         )
-            if task_type in {"MMLU_TASK", "LHE_TASK", "MATH_TASK"} and subject_embedding and local_candidates:
-                subject_similarities = self._embedding_similarities(
-                    subject_embedding,
-                    [list(record["match"].get("embedding16", [])) for record in local_candidates],
+            if gsm8k_mode and local_candidates and gsm8k_context:
+                role_variants = (
+                    gsm8k_context.get("role_map_variants")
+                    if isinstance(gsm8k_context.get("role_map_variants"), list)
+                    else []
                 )
-                for record, subject_similarity in zip(local_candidates, subject_similarities):
-                    record["subject_similarity"] = float(subject_similarity)
-                    record["subject_anchor_focus"] = max(
-                        float(record.get("subject_anchor_focus", 0.0)),
-                        self._subject_anchor_match_score(
-                            entry=record["match"],
-                            subject_hint=subject_label,
-                            match_mode="mmlu" if task_type == "MMLU_TASK" else "domain",
-                        ),
-                    )
-            if local_candidates and list(parse_context.get("fusion_embedding", [])):
-                parse_similarities = self._embedding_similarities(
-                    list(parse_context.get("fusion_embedding", [])),
-                    [list(record["match"].get("embedding16", [])) for record in local_candidates],
-                )
-                for record, parse_similarity in zip(local_candidates, parse_similarities):
-                    record["parse_similarity"] = float(parse_similarity)
-            if local_candidates and list(parse_context.get("directional_embedding", [])):
-                directional_similarities = self._embedding_similarities(
-                    list(parse_context.get("directional_embedding", [])),
-                    [list(record["match"].get("embedding16", [])) for record in local_candidates],
-                )
-                for record, directional_similarity in zip(local_candidates, directional_similarities):
-                    record["parse_directional_similarity"] = float(directional_similarity)
-            parse_numeric_ids = {
-                str(value).strip()
-                for value in parse_context.get("numeric_ids", [])
-                if str(value).strip()
-            }
-            for record in local_candidates:
-                match_id = str(record["match"].get("id", "")).strip()
-                numeric_value = self._gsm8k_numeric_entry_value(record["match"])
-                numeric_id = numeric_value[0] if numeric_value is not None else match_id
-                record["parse_support"] = 1.0 if numeric_id in parse_numeric_ids else 0.0
-                record["parse_quantity_values"] = [
-                    float(value) for value in list(parse_context.get("quantity_values", []))[:8]
-                ]
-                record["ternary_prior"] = self._candidate_ternary_prior(match_id or numeric_id)
-                exact_query_match = 1.0 if self._entry_query_matches(record["match"], task_query_text) else 0.0
-                record["exact_query_match"] = exact_query_match
-                record["math_exact_benchmark"] = (
-                    1.0
-                    if (
-                        benchmark_eval_mode
-                        and task_type == "MATH_TASK"
-                        and exact_query_match > 0.0
-                        and self._is_safe_math_benchmark_question_anchor(
-                            entry=record["match"],
-                            task=task,
-                            query_text=task_query_text,
-                        )
-                    )
-                    else 0.0
-                )
-                record["parse_override_algebra"] = (
-                    1.0
-                    if (
-                        str(parse_override_signals.get("algebra_signal", "")).strip()
-                        and self._candidate_matches_parse_signal(
-                            record["match"],
-                            str(parse_override_signals.get("algebra_signal", "")).strip(),
-                        )
-                    )
-                    else 0.0
-                )
-                record["parse_override_domain"] = (
-                    1.0
-                    if (
-                        str(parse_override_signals.get("domain_signal", "")).strip()
-                        and self._candidate_matches_parse_signal(
-                            record["match"],
-                            str(parse_override_signals.get("domain_signal", "")).strip(),
-                        )
-                    )
-                    else 0.0
-                )
-                record["lhe_exact_benchmark"] = (
-                    1.0
-                    if (
-                        not benchmark_eval_mode
-                        and
-                        task_type == "LHE_TASK"
-                        and exact_query_match > 0.0
-                        and str(record["match"].get("galaxy", "")).strip() in {"Reality", "Math"}
-                        and str(record["match"].get("category", "")).strip().lower()
-                        in {"benchmark_fact", "clue_fact", "cipher_result", "formal_result"}
-                    )
-                    else 0.0
-                )
-            if gsm8k_mode and local_candidates:
-                operation_embedding = list(gsm8k_context.get("operation_embedding", []))
-                numeric_embedding = list(gsm8k_context.get("numeric_embedding", []))
-                gsm8k_task_id = str((task or {}).get("task_id", "")).strip()
-                operation_ids = {
-                    str(value).strip()
-                    for value in gsm8k_context.get("operation_ids", [])
-                    if str(value).strip()
-                }
-                numeric_ids = {
-                    str(value).strip()
-                    for value in gsm8k_context.get("number_ids", [])
-                    if str(value).strip()
-                }
-                if operation_embedding:
-                    operation_similarities = self._embedding_similarities(
-                        operation_embedding,
-                        [list(record["match"].get("embedding16", [])) for record in local_candidates],
-                    )
-                    for record, operation_similarity in zip(local_candidates, operation_similarities):
-                        record["operation_similarity"] = float(operation_similarity)
-                if numeric_embedding:
-                    numeric_similarities = self._embedding_similarities(
-                        numeric_embedding,
-                        [list(record["match"].get("embedding16", [])) for record in local_candidates],
-                    )
-                    for record, numeric_similarity in zip(local_candidates, numeric_similarities):
-                        record["number_similarity"] = float(numeric_similarity)
                 for record in local_candidates:
-                    match_id = str(record["match"].get("id", "")).strip()
-                    match_metadata = (
-                        record["match"].get("metadata")
-                        if isinstance(record["match"].get("metadata"), dict)
-                        else {}
-                    )
-                    operation_role_match = 0.0
-                    if bool(match_metadata.get("operation_pattern")) and gsm8k_context:
-                        operation_role_match = self._gsm8k_operation_role_match_score(
-                            metadata=match_metadata,
-                            context=gsm8k_context,
-                        )
-                    record["operation_pattern_focus"] = (
-                        (1.0 if match_id in operation_ids else 0.0)
-                        + (0.75 * float(operation_role_match))
-                    )
-                    record["operation_role_match"] = float(operation_role_match)
-                    numeric_value = self._gsm8k_numeric_entry_value(record["match"])
-                    numeric_id = numeric_value[0] if numeric_value is not None else ""
-                    record["numeric_focus"] = 1.0 if numeric_id in numeric_ids else 0.0
-                    record["gsm8k_template_focus"] = 1.0 if (
-                        self._match_template_ref(record["match"]) == "math_template_arithmetic_chain_gpu"
-                        or str(match_metadata.get("template_ref", "")).strip() == "math_template_arithmetic_chain_gpu"
-                    ) else 0.0
-                    match_task_id = str(match_metadata.get("task_id", "")).strip()
-                    match_competition = str(match_metadata.get("competition", "")).strip().upper()
-                    record["gsm8k_exact_benchmark"] = 0.0 if benchmark_eval_mode else (
-                        1.0
-                        if (
-                            match_competition == "GSM8K"
-                            and gsm8k_task_id
-                            and match_task_id == gsm8k_task_id
-                        )
-                        else 0.0
-                    )
-                    record["gsm8k_foreign_benchmark"] = 0.0 if benchmark_eval_mode else (
-                        1.0
-                        if (
-                            match_competition == "GSM8K"
-                            and match_task_id
-                            and gsm8k_task_id
-                            and match_task_id != gsm8k_task_id
-                        )
-                        else 0.0
-                    )
-                    record["gsm8k_non_chain_template"] = 1.0 if (
-                        bool(self._match_template_ref(record["match"]))
-                        and self._match_template_ref(record["match"]) != "math_template_arithmetic_chain_gpu"
-                    ) else 0.0
-                    if gsm8k_context:
-                        record_context = dict(gsm8k_context)
-                        role_variants = (
-                            gsm8k_context.get("role_map_variants")
-                            if isinstance(gsm8k_context.get("role_map_variants"), list)
-                            else []
-                        )
-                        if role_variants:
-                            variant_index = int(path.get("role_variant_index", path_index) or 0)
-                            variant = role_variants[variant_index % len(role_variants)]
-                            if isinstance(variant, dict):
-                                record_context["quantity_role_candidates"] = [
-                                    dict(row)
-                                    for row in (
-                                        variant.get("quantity_role_candidates")
-                                        if isinstance(variant.get("quantity_role_candidates"), list)
-                                        else []
-                                    )
-                                    if isinstance(row, dict)
+                    record_context = dict(gsm8k_context)
+                    if role_variants:
+                        variant_index = int(path.get("role_variant_index", path_index) or 0)
+                        variant = role_variants[variant_index % len(role_variants)]
+                        if isinstance(variant, dict):
+                            record_context["quantity_role_candidates"] = [
+                                dict(row)
+                                for row in (
+                                    variant.get("quantity_role_candidates")
+                                    if isinstance(variant.get("quantity_role_candidates"), list)
+                                    else []
+                                )
+                                if isinstance(row, dict)
+                            ]
+                            record_context["quantity_role_values"] = {
+                                str(key).strip().lower(): [
+                                    float(value)
+                                    for value in (values if isinstance(values, list) else [])
                                 ]
-                                record_context["quantity_role_values"] = {
-                                    str(key).strip().lower(): [
-                                        float(value)
-                                        for value in (values if isinstance(values, list) else [])
-                                    ]
-                                    for key, values in (
-                                        variant.get("quantity_role_values")
-                                        if isinstance(variant.get("quantity_role_values"), dict)
-                                        else {}
-                                    ).items()
-                                }
-                                record_context["role_variant_label"] = str(variant.get("label", "")).strip()
-                        record["gsm8k_context"] = record_context
+                                for key, values in (
+                                    variant.get("quantity_role_values")
+                                    if isinstance(variant.get("quantity_role_values"), dict)
+                                    else {}
+                                ).items()
+                            }
+                            record_context["role_variant_label"] = str(variant.get("label", "")).strip()
+                    record["gsm8k_context"] = record_context
             self._apply_specialist_swarm_features(
                 local_candidates=local_candidates,
                 reference_embedding=option_embedding or navigation_reference_embedding,
@@ -11393,14 +11709,15 @@ class Knowledgeverse:
             local_candidates = self._attach_finite_gpu_scores(local_candidates, scores)
             if not local_candidates:
                 continue
-            ordered_candidates = sorted(
-                local_candidates,
-                key=lambda candidate: float(candidate.get("gpu_score", float("-inf"))),
-                reverse=True,
-            )
-            best_for_path = ordered_candidates[0]
+            best_for_path = self._best_record_by_score(local_candidates, score_key="gpu_score")
+            if best_for_path is None:
+                continue
             if task_type == "MMLU_TASK":
-                coherence_candidates = ordered_candidates[: min(4, len(ordered_candidates))]
+                coherence_candidates = self._top_records_by_score(
+                    local_candidates,
+                    score_key="gpu_score",
+                    top_k=min(4, len(local_candidates)),
+                )
                 neighborhood_mean = float(
                     engine.evaluate(
                         self._gpu_mean_expression(
@@ -11745,19 +12062,29 @@ class Knowledgeverse:
         if not converged:
             if task_type == "LHE_TASK" and scored_candidates:
                 selection_steps.append("LHE fallback: use top factual candidate")
+                fallback_candidate = self._best_record_by_score(scored_candidates, score_key="gpu_score")
+                if fallback_candidate is None:
+                    return None
                 return self._attach_galaxy_contribution(
-                    max(scored_candidates, key=lambda candidate: float(candidate.get("gpu_score", float("-inf")))),
+                    fallback_candidate,
                     records=path_best_records,
                     candidates=scored_candidates,
                     selection_steps=selection_steps,
                 )
             return None
         if task_type in {"MMLU_TASK", "LHE_TASK"} and selected_records:
+            best_selected_candidate = self._best_record_by_score(
+                [
+                    record.get("candidate")
+                    for record in selected_records
+                    if isinstance(record.get("candidate"), dict)
+                ],
+                score_key="path_score",
+            )
+            if best_selected_candidate is None:
+                return None
             return self._attach_galaxy_contribution(
-                max(
-                (record.get("candidate") for record in selected_records if isinstance(record.get("candidate"), dict)),
-                key=lambda candidate: float((candidate or {}).get("path_score", float("-inf"))),
-                ),
+                best_selected_candidate,
                 records=path_best_records or selected_records,
                 candidates=scored_candidates,
                 selection_steps=selection_steps,
@@ -11793,8 +12120,7 @@ class Knowledgeverse:
                     candidates=scored_candidates,
                     selection_steps=selection_steps,
                 )
-            return self._attach_galaxy_contribution(
-                max(
+            fallback_candidate = max(
                 (record.get("candidate") for record in selected_records if isinstance(record.get("candidate"), dict)),
                 key=lambda candidate: (
                     float((candidate or {}).get("gsm8k_consensus_weight", 0.0)),
@@ -11802,13 +12128,18 @@ class Knowledgeverse:
                     float((candidate or {}).get("path_score", float("-inf"))),
                     float((candidate or {}).get("gpu_score", float("-inf"))),
                 ),
-                ),
+            )
+            return self._attach_galaxy_contribution(
+                fallback_candidate,
                 records=path_best_records or selected_records,
                 candidates=scored_candidates,
                 selection_steps=selection_steps,
             )
+        best_scored_candidate = self._best_record_by_score(scored_candidates, score_key="gpu_score")
+        if best_scored_candidate is None:
+            return None
         return self._attach_galaxy_contribution(
-            max(scored_candidates, key=lambda candidate: float(candidate.get("gpu_score", float("-inf")))),
+            best_scored_candidate,
             records=path_best_records,
             candidates=scored_candidates,
             selection_steps=selection_steps,
@@ -13246,7 +13577,7 @@ class Knowledgeverse:
         self._record_query_feedback(task=task, result=result, specialist=specialist, domain_hint=domain_hint)
         return result
 
-    def execute_task(
+    def _execute_task_direct(
         self,
         *,
         task: dict[str, Any],
@@ -13271,3 +13602,30 @@ class Knowledgeverse:
         )
         result.setdefault("query_id", query_id)
         return result
+
+    def execute_task(
+        self,
+        *,
+        task: dict[str, Any],
+        route: dict[str, Any] | None = None,
+        specialist: str = "auto",
+        domain_hint: str | None = None,
+        use_enriched: bool = True,
+    ) -> dict[str, Any]:
+        """Execute through the queued TRM shell so ingress/egress stays buffered."""
+        if not self._trm_game_loop.is_active():
+            return self._execute_task_direct(
+                task=task,
+                route=route,
+                specialist=specialist,
+                domain_hint=domain_hint,
+                use_enriched=use_enriched,
+            )
+        request_id = self.write_input_buffer(
+            task=task,
+            route=route,
+            specialist=specialist,
+            domain_hint=domain_hint,
+            use_enriched=use_enriched,
+        )
+        return self.wait_output_buffer(request_id, max_ticks=1)

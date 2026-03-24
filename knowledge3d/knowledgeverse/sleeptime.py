@@ -228,7 +228,21 @@ class SleepTimeConsolidation:
                 continue
 
             answer = row.get("answer")
+            expected = row.get("expected")
             if answer is None or (isinstance(answer, str) and not answer.strip()):
+                if expected is None or (isinstance(expected, str) and not expected.strip()):
+                    continue
+                try:
+                    question_values = engine.embed_sentence_gpu(question)
+                    expected_text = expected if isinstance(expected, str) else json.dumps(expected, ensure_ascii=False, sort_keys=True)
+                    expected_values = engine.embed_sentence_gpu(str(expected_text))
+                except Exception:
+                    continue
+                q_emb = np.asarray([float(value) for value in list(question_values)[:16]], dtype=np.float32)
+                e_emb = np.asarray([float(value) for value in list(expected_values)[:16]], dtype=np.float32)
+                if q_emb.size == 0 or e_emb.size == 0:
+                    continue
+                specialist_positive[specialist_name].append((q_emb, e_emb))
                 continue
             try:
                 question_values = engine.embed_sentence_gpu(question)

@@ -224,6 +224,43 @@ class RPNEmbeddingEngine:
         stacked = np.vstack(embeddings).astype(np.float32)
         return _normalize(stacked.mean(axis=0))
 
+    def embed_sentences_gpu(self, sentences: Sequence[str]) -> List[np.ndarray]:
+        """Embed multiple sentences through the sovereign GPU path.
+
+        This is still the main-model embedding stage, not Jarvis dispatch.
+        The method avoids re-embedding repeated tokens across closely related
+        query variants by caching GPU word embeddings once per unique token.
+        """
+        if self._gpu_bridge is None:
+            raise RuntimeError(
+                "GPU trigram bridge not initialized. "
+                "RPN embeddings require GPU sovereignty - no CPU fallback. "
+                "Call attach_gpu_bridge() before using embed_sentences_gpu()."
+            )
+        token_rows: List[List[str]] = []
+        unique_tokens: Dict[str, None] = {}
+        for sentence in sentences:
+            tokens = [t for t in str(sentence).strip().split() if t]
+            token_rows.append(tokens)
+            for token in tokens:
+                unique_tokens.setdefault(token, None)
+
+        if not token_rows:
+            return []
+
+        token_cache: Dict[str, np.ndarray] = {}
+        for token in unique_tokens:
+            token_cache[token] = self.embed_word_gpu(token)
+
+        outputs: List[np.ndarray] = []
+        for tokens in token_rows:
+            if not tokens:
+                outputs.append(np.zeros(self.embedding_dim, dtype=np.float32))
+                continue
+            stacked = np.vstack([token_cache[token] for token in tokens]).astype(np.float32)
+            outputs.append(_normalize(stacked.mean(axis=0)))
+        return outputs
+
     def extract_trigram_indices(self, text: str) -> List[int]:
         trigrams = _extract_trigrams(text.lower())
         if not trigrams:

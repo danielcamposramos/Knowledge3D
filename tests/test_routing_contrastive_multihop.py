@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from knowledge3d.bridge.headless_tablet import TabletIngest
+from knowledge3d.cranium.adaptive_swarm import AdaptiveSwarmTRM
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
 from knowledge3d.knowledgeverse.sleeptime import SleepTimeConsolidation
 
@@ -99,12 +100,11 @@ def test_build_candidate_graph_edges_populates_neighbors(tmp_path, monkeypatch):
     kv = Knowledgeverse(storage_root=tmp_path / "kv_lhe_edges", eager_load_default_galaxies=False)
     monkeypatch.setattr(
         kv,
-        "_embedding_similarity_matrix",
-        lambda _sources, _targets: [
-            [1.0, 0.92, 0.12],
-            [0.92, 1.0, 0.41],
-            [0.12, 0.41, 1.0],
-        ],
+        "_embedding_similarity_topk_matrix",
+        lambda _sources, _targets, **_kwargs: (
+            np.asarray([[1, -1, -1], [0, 2, -1], [1, -1, -1]], dtype=np.int32),
+            np.asarray([[0.92, -np.inf, -np.inf], [0.92, 0.41, -np.inf], [0.41, -np.inf, -np.inf]], dtype=np.float32),
+        ),
     )
 
     candidates = [
@@ -132,6 +132,50 @@ def test_build_candidate_graph_edges_populates_neighbors(tmp_path, monkeypatch):
     assert candidates[2]["graph_neighbors"] == [11]
 
 
+def test_build_semantic_knn_adjacency_uses_topk_neighborhoods(tmp_path, monkeypatch):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_semantic_knn", eager_load_default_galaxies=False)
+    monkeypatch.setattr(
+        kv,
+        "_embedding_similarity_topk_matrix",
+        lambda _sources, _targets, **_kwargs: (
+            np.asarray([[1, 2], [0, 2], [1, -1]], dtype=np.int32),
+            np.asarray([[0.9, 0.3], [0.9, 0.4], [0.4, -np.inf]], dtype=np.float32),
+        ),
+    )
+
+    adjacency, neighbor_counts, effective_k, avg_top_similarity = kv._build_semantic_knn_adjacency(
+        resonated_rows=[
+            [1.0] + [0.0] * 15,
+            [0.0, 1.0] + [0.0] * 14,
+            [0.0, 0.0, 1.0] + [0.0] * 13,
+        ],
+        k=2,
+    )
+
+    assert adjacency.tolist() == [[1, 2], [0, 2], [1, -1]]
+    assert neighbor_counts.tolist() == [2, 2, 1]
+    assert effective_k == 2
+    assert avg_top_similarity == pytest.approx((0.9 + 0.3 + 0.9 + 0.4 + 0.4) / 5.0)
+
+
+def test_best_and_top_record_helpers_preserve_score_order(tmp_path):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_score_helpers", eager_load_default_galaxies=False)
+
+    records = [
+        {"id": "low", "gpu_score": 0.1},
+        {"id": "top", "gpu_score": 0.9},
+        {"id": "mid", "gpu_score": 0.5},
+        {"id": "next", "gpu_score": 0.7},
+    ]
+
+    best = kv._best_record_by_score(records, score_key="gpu_score")
+    top_two = kv._top_records_by_score(records, score_key="gpu_score", top_k=2)
+
+    assert best is not None
+    assert best["id"] == "top"
+    assert [record["id"] for record in top_two] == ["top", "next"]
+
+
 def test_sleeptime_contrastive_trains_all_specialists(tmp_path, monkeypatch):
     storage_root = tmp_path / "kv_contrastive"
     kv = Knowledgeverse(storage_root=storage_root, eager_load_default_galaxies=False)
@@ -144,6 +188,7 @@ def test_sleeptime_contrastive_trains_all_specialists(tmp_path, monkeypatch):
     rows = [
         {"session_id": session_id, "suite": "math", "question": "2+2=?", "expected": "4", "correct": True},
         {"session_id": session_id, "suite": "math", "question": "3+5=?", "answer": "11", "correct": False},
+        {"session_id": session_id, "suite": "arc", "question": "ARC task missed", "expected": [[1, 0], [0, 1]], "answer": None, "correct": False},
         {"session_id": session_id, "suite": "arc", "question": "ARC task demo", "answer": [[0, 0], [0, 0]], "correct": False},
         {"session_id": session_id, "suite": "lhe", "question": "All A are B; all B are C", "expected": "All A are C", "correct": True},
         {"session_id": session_id, "suite": "lhe", "question": "No A are B", "answer": "All A are B", "correct": False},
@@ -166,13 +211,13 @@ def test_sleeptime_contrastive_trains_all_specialists(tmp_path, monkeypatch):
     summary = sleeptime._run_contrastive_training()
 
     assert summary["skipped"] is False
-    assert summary["rows"] == 7
+    assert summary["rows"] == 8
     trained = summary["specialists_trained"]
     assert trained["math"]["trained"] is True
     assert trained["math"]["positives"] == 1
     assert trained["math"]["negatives"] == 1
     assert trained["visual"]["trained"] is True
-    assert trained["visual"]["positives"] == 0
+    assert trained["visual"]["positives"] == 1
     assert trained["visual"]["negatives"] == 1
     assert trained["grammar"]["trained"] is True
     assert trained["grammar"]["positives"] == 1
@@ -182,3 +227,15 @@ def test_sleeptime_contrastive_trains_all_specialists(tmp_path, monkeypatch):
     assert trained["chat"]["negatives"] == 1
     assert summary["checkpoint"]["saved"] is True
     assert (storage_root / "checkpoints" / "adaptive_swarm" / "swarm_state.json").exists()
+
+
+def test_apply_adapter_gradient_propagates_gpu_typeerror():
+    class _Adapter:
+        def apply_gradient(self, gradient, lr=0.001):
+            raise TypeError("argument 2: TypeError: Don't know how to convert parameter 2")
+
+    adapter = _Adapter()
+    gradient = np.arange(4, dtype=np.float32).reshape(2, 2)
+
+    with pytest.raises(TypeError, match="Don't know how to convert parameter 2"):
+        AdaptiveSwarmTRM._apply_adapter_gradient(adapter, gradient, 0.125)

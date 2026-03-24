@@ -1,0 +1,639 @@
+=== CUDA CONTEXT ===
+nvcuda loaded: True
+libcudart loaded: True
+Context ensured
+
+=== GPU MALLOC TEST ===
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(65536) -> 0, ptr=c_ulong(140509184)
+Allocated ptr: c_ulong(140509184), type: <class 'ctypes.c_ulong'>, value: 140509184
+Is CuPy allocation: False
+Is cudart allocation: False
+Is driver allocation: True
+
+=== MEMCPY HTOD TEST ===
+host_ptr type: <class 'ctypes.c_void_p'>, value: 94646070698320
+nbytes: 65536, type: <class 'int'>
+dst ptr type: <class 'ctypes.c_ulong'>, value: 140509184
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+memcpy_htod: PASSED
+
+=== FULL ADAPTER GPU PATH ===
+[diag_math] Self-updating adapter initialized
+  Shape: (128, 128), Rank: 16
+  Parameters: 4.1K (0.02 MB)
+_rpn_available: True
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(18720) -> 0, ptr=c_ulong(140574720)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+_ensure_math_core: True
+_math_core type: <class 'knowledge3d.cranium.ptx_runtime.rpn_math_core.RPNMathCore'>
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(65536) -> 0, ptr=c_ulong(140593664)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(8192) -> 0, ptr=c_ulong(140659200)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(8192) -> 0, ptr=c_ulong(140667392)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(8192) -> 0, ptr=c_ulong(140675584)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(8192) -> 0, ptr=c_ulong(140683776)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(8192) -> 0, ptr=c_ulong(140691968)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(8192) -> 0, ptr=c_ulong(140700160)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(65536) -> 0, ptr=c_ulong(140708352)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(8192) -> 0, ptr=c_ulong(140773888)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(8192) -> 0, ptr=c_ulong(140782080)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(8192) -> 0, ptr=c_ulong(140790272)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(8192) -> 0, ptr=c_ulong(140798464)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(6) -> 0, ptr=c_ulong(140806656)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(20) -> 0, ptr=c_ulong(140807168)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(6) -> 0, ptr=c_ulong(140806656)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(20) -> 0, ptr=c_ulong(140807168)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+_ensure_device_buffers: True
+buffers.dims: 128, buffers.rank: 16
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(4) -> 0, ptr=c_ulong(140806656)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(16) -> 0, ptr=c_ulong(140807168)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(6) -> 0, ptr=c_ulong(140806656)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(20) -> 0, ptr=c_ulong(140807168)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(6) -> 0, ptr=c_ulong(140806656)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(32) -> 0, ptr=c_ulong(140807168)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(8) -> 0, ptr=c_ulong(140806656)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(48) -> 0, ptr=c_ulong(140807168)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(8) -> 0, ptr=c_ulong(140806656)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(48) -> 0, ptr=c_ulong(140807168)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(6) -> 0, ptr=c_ulong(140806656)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(20) -> 0, ptr=c_ulong(140807168)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(6) -> 0, ptr=c_ulong(140806656)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(32) -> 0, ptr=c_ulong(140807168)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(10) -> 0, ptr=c_ulong(140806656)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(64) -> 0, ptr=c_ulong(140807168)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(6) -> 0, ptr=c_ulong(140806656)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(20) -> 0, ptr=c_ulong(140807168)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(6) -> 0, ptr=c_ulong(140806656)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(32) -> 0, ptr=c_ulong(140807168)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(10) -> 0, ptr=c_ulong(140806656)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(64) -> 0, ptr=c_ulong(140807168)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+apply_gradient_rpn: PASSED
+
+=== APPLY_GRADIENT DISPATCH ===
+[diag_dispatch] Self-updating adapter initialized
+  Shape: (128, 128), Rank: 16
+  Parameters: 4.1K (0.02 MB)
+config attrs: ['alpha', 'gradient_clip', 'learning_rate', 'max_degradation', 'min_improvement', 'rank']
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(18720) -> 0, ptr=c_ulong(140806656)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(65536) -> 0, ptr=c_ulong(140825600)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(8192) -> 0, ptr=c_ulong(140891136)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(8192) -> 0, ptr=c_ulong(140899328)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(8192) -> 0, ptr=c_ulong(140907520)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(8192) -> 0, ptr=c_ulong(140915712)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(8192) -> 0, ptr=c_ulong(140923904)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(8192) -> 0, ptr=c_ulong(140932096)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(65536) -> 0, ptr=c_ulong(140940288)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(8192) -> 0, ptr=c_ulong(141005824)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(8192) -> 0, ptr=c_ulong(141014016)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(8192) -> 0, ptr=c_ulong(141022208)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(8192) -> 0, ptr=c_ulong(141030400)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(6) -> 0, ptr=c_ulong(141038592)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(20) -> 0, ptr=c_ulong(141039104)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(6) -> 0, ptr=c_ulong(141038592)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(20) -> 0, ptr=c_ulong(141039104)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(4) -> 0, ptr=c_ulong(141038592)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(16) -> 0, ptr=c_ulong(141039104)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(6) -> 0, ptr=c_ulong(141038592)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(20) -> 0, ptr=c_ulong(141039104)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(6) -> 0, ptr=c_ulong(141038592)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(32) -> 0, ptr=c_ulong(141039104)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(8) -> 0, ptr=c_ulong(141038592)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(48) -> 0, ptr=c_ulong(141039104)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(8) -> 0, ptr=c_ulong(141038592)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(48) -> 0, ptr=c_ulong(141039104)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(6) -> 0, ptr=c_ulong(141038592)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(20) -> 0, ptr=c_ulong(141039104)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(6) -> 0, ptr=c_ulong(141038592)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(32) -> 0, ptr=c_ulong(141039104)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(10) -> 0, ptr=c_ulong(141038592)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(64) -> 0, ptr=c_ulong(141039104)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(6) -> 0, ptr=c_ulong(141038592)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(20) -> 0, ptr=c_ulong(141039104)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(6) -> 0, ptr=c_ulong(141038592)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(32) -> 0, ptr=c_ulong(141039104)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(10) -> 0, ptr=c_ulong(141038592)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemAlloc(64) -> 0, ptr=c_ulong(141039104)
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyHtoD_v2 invalid context, retrying v1
+[loader] cuMemcpyHtoD -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+[loader] cuCtxSetCurrent (ensure) -> 0
+[loader] cuMemcpyDtoH_v2 invalid context, retrying v1
+[loader] cuMemcpyDtoH -> 0
+apply_gradient: PASSED
+
+=== DIAGNOSTIC COMPLETE ===
+[loader] raising error code 1
+[loader] raising error code 1

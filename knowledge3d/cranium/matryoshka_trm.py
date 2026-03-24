@@ -448,10 +448,9 @@ class MatryoshkaTRM:
             # Find adapter file
             adapter_path = checkpoint_dir / f'{name}_adapter.npz'
             if adapter_path.exists():
-                # Load adapter data
-                data = np.load(adapter_path)
-                dims = int(data['shape'][0])
-                rank = int(data['rank'])
+                adapter_meta = SelfUpdatingAdapter.peek_saved_metadata(adapter_path)
+                dims = int(adapter_meta['shape'][0])
+                rank = int(adapter_meta['rank'])
 
                 # Register specialist
                 self.register_specialist(name, dims, rank)

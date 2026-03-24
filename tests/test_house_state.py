@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from scripts.run_enriched_benchmarks import _incremental_knowledge_update
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
+import pickle
 
 
 def test_knowledgeverse_house_state_round_trip(tmp_path) -> None:
@@ -68,3 +69,28 @@ def test_incremental_knowledge_update_adds_only_new_entries(tmp_path, monkeypatc
     assert summary["added"] == 3
     assert summary["skipped"] == 2
     assert summary["counts"] == {"Drawing": 1, "Language": 1, "Math": 1}
+
+
+def test_house_state_preserves_book_galaxy_logical_names(tmp_path) -> None:
+    storage_root = tmp_path / "kv_book_state"
+    first = Knowledgeverse(storage_root=storage_root, eager_load_default_galaxies=False)
+    first.galaxy_manager.add_entry(
+        "Book/MathematicsPrimer",
+        {
+            "id": "unit_book_entry",
+            "domain": "Book/MathematicsPrimer",
+            "category": "unit_test",
+            "content": "book star",
+        },
+    )
+    first.save_house_state()
+
+    with (storage_root / "house" / "galaxy_state.bin").open("rb") as handle:
+        payload = pickle.load(handle)
+    assert "Book/MathematicsPrimer" in payload["galaxies"]
+    assert "Book_MathematicsPrimer" not in payload["galaxies"]
+
+    second = Knowledgeverse(storage_root=storage_root, eager_load_default_galaxies=False)
+    assert second.load_house_state() is True
+    restored = second.galaxy_manager.get_galaxy("Book/MathematicsPrimer").entries
+    assert any(entry.get("id") == "unit_book_entry" for entry in restored)

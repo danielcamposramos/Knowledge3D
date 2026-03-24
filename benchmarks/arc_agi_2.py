@@ -302,7 +302,7 @@ class ARCAGI2Benchmark:
                 "task_id": task["id"],
                 "correct": False,
                 "exact_match": False,
-                "predicted": None,
+                "predicted": getattr(exc, "partial_result", None),
                 "expected": task["test"][0].get("output"),
                 "transform": None,
                 "patterns_used": 0,

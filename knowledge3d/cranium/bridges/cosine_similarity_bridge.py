@@ -141,5 +141,52 @@ class CosineSimilarityBridge:
             loader.gpu_free(d_tgt)
             loader.gpu_free(d_out)
 
+    def compute_similarity_topk(
+        self,
+        sources: np.ndarray,
+        targets: np.ndarray,
+        *,
+        k: int,
+        exclude_self: bool = False,
+        similarity_threshold: float | None = None,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        src = np.ascontiguousarray(np.asarray(sources, dtype=np.float32))
+        tgt = np.ascontiguousarray(np.asarray(targets, dtype=np.float32))
+        if src.ndim != 2 or tgt.ndim != 2:
+            raise ValueError(
+                f"expected 2D sources/targets, got {src.shape=} {tgt.shape=}"
+            )
+        if src.shape[0] == 0 or tgt.shape[0] == 0 or int(k) <= 0:
+            shape = (src.shape[0], 0)
+            return np.empty(shape, dtype=np.int32), np.empty(shape, dtype=np.float32)
+
+        matrix = self.compute_similarity_matrix(src, tgt)
+        if matrix.size == 0:
+            shape = (src.shape[0], 0)
+            return np.empty(shape, dtype=np.int32), np.empty(shape, dtype=np.float32)
+
+        work = np.asarray(matrix, dtype=np.float32).copy()
+        if exclude_self and work.shape[0] == work.shape[1]:
+            diag = np.arange(work.shape[0], dtype=np.int32)
+            work[diag, diag] = -np.inf
+
+        limit = max(1, min(int(k), work.shape[1]))
+        partition = np.argpartition(-work, limit - 1, axis=1)[:, :limit]
+        row_ids = np.arange(work.shape[0], dtype=np.int32)[:, None]
+        top_scores = work[row_ids, partition]
+        order = np.argsort(-top_scores, axis=1)
+        ordered_idx = partition[row_ids, order].astype(np.int32, copy=False)
+        ordered_scores = top_scores[row_ids, order].astype(np.float32, copy=False)
+
+        if similarity_threshold is not None:
+            threshold = float(similarity_threshold)
+            ordered_idx = ordered_idx.copy()
+            ordered_scores = ordered_scores.copy()
+            mask = ~np.isfinite(ordered_scores) | (ordered_scores < threshold)
+            ordered_idx[mask] = -1
+            ordered_scores[mask] = -np.inf
+
+        return ordered_idx, ordered_scores
+
 
 __all__ = ["CosineSimilarityBridge"]
